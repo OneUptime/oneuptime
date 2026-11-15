@@ -118,7 +118,7 @@ La connettività dei dispositivi è un requisito a parte. I dispositivi iOS hann
 3. Controlla gli errori del relay, di Expo o del Web Push nei log di OneUptime; un invio riuscito all'API non conferma da solo la consegna al dispositivo.
 :::
 
-Per i push mobili, OneUptime legge anche la ricevuta di consegna di Expo circa 15 minuti dopo ogni push: un push che non ha mai raggiunto il dispositivo compare allora come non consegnato nel registro dei push e, per un avviso di reperibilità, nella cronologia della reperibilità.
+Per i push mobili, OneUptime legge anche la ricevuta di consegna di Expo circa 15 minuti dopo ogni push: un push che non ha mai raggiunto il dispositivo compare allora come non consegnato nel log dei push e, per un avviso di reperibilità, nella cronologia della reperibilità.
 
 ## Disattivare i push per l'intero server
 
@@ -128,7 +128,7 @@ Finché i push sono disattivati:
 
 - Nulla viene inviato via push a telefoni o browser, in nessun progetto.
 - Nessun dispositivo può essere registrato. La scheda **Notifiche push** di ogni persona, in **Impostazioni utente > Metodi di notifica**, indica che i push sono disattivati, e le regole di reperibilità non offrono dispositivi push.
-- Un avviso tramite una regola push non viene inviato. Il registro di reperibilità della persona riporta `Push notification not sent: Push notifications are turned off on this server.`
+- Un avviso tramite una regola push non viene inviato. Il log di reperibilità della persona riporta `Push notification not sent: Push notifications are turned off on this server.`
 - La prontezza della reperibilità considera inutilizzabili i dispositivi push, e il ripiego li salta. Chi ha come unico metodo verificato un dispositivo push risulta irraggiungibile.
 
 Per continuare a raggiungere le persone sul telefono, aggiungi un [canale personalizzato](/docs/self-hosted/custom-notification-channels) per la tua app o il tuo gateway. Ogni server OneUptime rilegge l'interruttore entro 10 secondi da una modifica. Quando i push vengono riattivati, i dispositivi si registrano di nuovo dall'app mobile al suo prossimo avvio, oppure dal browser.
@@ -233,18 +233,18 @@ Una regola push può inviare di nuovo il suo avviso finché qualcuno non lo rico
 
 ### Push contrassegnati come «non consegnati»
 
-Che Expo accetti un push non significa che abbia raggiunto il dispositivo: Apple o Google possono ancora rifiutarlo. OneUptime legge la ricevuta di consegna di ogni push mobile circa 15 minuti dopo l'invio, tramite il relay push quando `EXPO_ACCESS_TOKEN` non è impostato. Quando la ricevuta segnala un errore, il registro dei push e la cronologia della reperibilità dell'avviso passano da inviato a **Push notification not delivered**, con il codice di errore di Expo:
+Che Expo accetti un push non significa che abbia raggiunto il dispositivo: Apple o Google possono ancora rifiutarlo. OneUptime legge la ricevuta di consegna di ogni push mobile circa 15 minuti dopo l'invio, tramite il relay push quando `EXPO_ACCESS_TOKEN` non è impostato. Quando la ricevuta segnala un errore, il log dei push e la cronologia della reperibilità dell'avviso passano da inviato a **Push notification not delivered**, con il codice di errore di Expo:
 
 - `DeviceNotRegistered`: l'app mobile è stata rimossa dal dispositivo, oppure il suo token push non è più valido. Vedi la sezione successiva.
 - `MessageRateExceeded`: al dispositivo sono state inviate troppe notifiche in poco tempo. I push successivi verso di esso vengono inviati come di consueto.
 - `MessageTooBig`: la notifica era più grande di quanto accettino i servizi push. OneUptime accorcia le notifiche perché ci stiano, quindi non dovrebbe succedere; segnalalo se succede.
 - `InvalidCredentials` o `MismatchSenderId`: le credenziali push del progetto Expo che ha inviato il push non sono valide. Con `EXPO_ACCESS_TOKEN`, controlla le credenziali push del tuo progetto Expo; con il relay predefinito, contatta il supporto di OneUptime.
 
-Quando Expo rifiuta subito un push, il registro dei push ne riporta immediatamente il motivo. Tramite il relay push funziona allo stesso modo: il relay trasmette il codice di errore di Expo invece di rispondere con un errore del server.
+Quando Expo rifiuta subito un push, il log dei push ne riporta immediatamente il motivo. Tramite il relay push funziona allo stesso modo: il relay trasmette il codice di errore di Expo invece di rispondere con un errore del server.
 
 ### Errori «DeviceNotRegistered» nei log
 
-Expo segnala `DeviceNotRegistered` quando l'app mobile è stata rimossa dal dispositivo o il token push del dispositivo non è più valido. Di solito lo indica nella ricevuta di consegna di un push, che OneUptime legge circa 15 minuti dopo il push, e a volte rifiuta subito il push. In entrambi i casi OneUptime smette di inviare a quel dispositivo. Viene contrassegnato come non più in grado di ricevere notifiche invece di essere eliminato, quindi le sue regole di notifica restano, e il registro dei push e la cronologia della reperibilità dell'avviso non arrivato ne indicano il motivo. **Impostazioni utente > Metodi di notifica > Notifiche push** lo mostra come **Non riceve notifiche**. Gli altri dispositivi e metodi di notifica del suo proprietario continuano a ricevere gli avvisi.
+Expo segnala `DeviceNotRegistered` quando l'app mobile è stata rimossa dal dispositivo o il token push del dispositivo non è più valido. Di solito lo indica nella ricevuta di consegna di un push, che OneUptime legge circa 15 minuti dopo il push, e a volte rifiuta subito il push. In entrambi i casi OneUptime smette di inviare a quel dispositivo. Viene contrassegnato come non più in grado di ricevere notifiche invece di essere eliminato, quindi le sue regole di notifica restano, e il log dei push e la cronologia della reperibilità dell'avviso non arrivato ne indicano il motivo. **Impostazioni utente > Metodi di notifica > Notifiche push** lo mostra come **Non riceve notifiche**. Gli altri dispositivi e metodi di notifica del suo proprietario continuano a ricevere gli avvisi.
 
 Per recuperare il dispositivo, aprici l'app mobile con l'accesso effettuato. L'app si registra di nuovo, il che rinnova il suo token push presso Expo, e il dispositivo torna a ricevere le notifiche con le sue regole. Se l'app è stata rimossa, reinstallala ed effettua l'accesso. Una ricevuta per un push inviato prima che l'app si registrasse di nuovo non contrassegna il dispositivo. Quando un'app mobile aggiornata viene configurata su un nuovo telefono da un backup del vecchio, comunica a OneUptime il token push che aveva prima; se il dispositivo del vecchio telefono non riceve più notifiche, il nuovo telefono subentra con le sue regole.
 

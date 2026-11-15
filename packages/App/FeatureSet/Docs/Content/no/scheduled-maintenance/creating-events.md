@@ -39,7 +39,7 @@ Skriv inn en **Tittel**, og legg til en **Beskrivelse** hvis det hjelper: den er
 
 ### Velg hva det berører
 
-Klikk på **Neste** for å komme til **Berørte ressurser**. Velg **Monitorer** som arbeidet berører. Så snart du velger én, vises **Endre overvåkingsstatus til** under dem: statusen monitorene går over til når hendelsen starter. Velg deretter eventuelle **Andre berørte ressurser**, for eksempel verter, klynger, databaser, nettverkslokasjoner eller tjenester.
+Klikk på **Neste** for å komme til **Berørte ressurser**. Velg **Monitorer** som arbeidet berører. Så snart du velger én, vises **Endre monitorstatus til** under dem: statusen monitorene går over til når hendelsen starter. Velg deretter eventuelle **Andre berørte ressurser**, for eksempel verter, klynger, databaser, nettverkslokasjoner eller tjenester.
 
 ### Velg hvem som får høre om det
 
@@ -63,7 +63,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 | **Eiere**                            | **Detaljer om vedlikehold**       | Ingen                           | Personer og team som eier hendelsen og får beskjed om den.                       |
 | **Etiketter**                        | **Detaljer om vedlikehold**       | Ingen                           | Etiketter som regler og filtre kan matche på.                                    |
 | **Monitorer**                        | **Berørte ressurser** | Ingen                        | Monitorene som ikke sjekkes mens hendelsen pågår.                                |
-| **Endre overvåkingsstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
+| **Endre monitorstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
 | **Vis hendelse på disse statussidene** | **Berørte ressurser** | Ingen                      | Statussidene som viser hendelsen og gir abonnentene sine beskjed.                |
 | **Varslinger til abonnenter**           | **Berørte ressurser** | Publisert med en gang, alle tre tidspunktene på, ingen påminnelser | Når hendelsen vises på disse sidene, og når abonnentene deres får beskjed. |
@@ -119,7 +119,7 @@ Alt i skjemaet kan endres på hendelsens egne sider, unntatt de tre abonnenttids
 | Beskrivelsen                                | **Beskrivelse** i sidemenyen                                                   |
 | Eierne                                      | **Eiere** i sidemenyen                                                         |
 
-**Endre overvåkingsstatus til** kan endres til hendelsen starter. Etter det viser kortet den skrivebeskyttet, fordi monitorene allerede har den statusen. En redigering legger til en oppføring i **Feed for planlagt vedlikehold** som nevner hva den endret; å lagre uten endringer legger ikke til noen.
+**Endre monitorstatus til** kan endres til hendelsen starter. Etter det viser kortet den skrivebeskyttet, fordi monitorene allerede har den statusen. En redigering legger til en oppføring i **Feed for planlagt vedlikehold** som nevner hva den endret; å lagre uten endringer legger ikke til noen.
 
 ## Skriv notater mens arbeidet pågår
 
@@ -150,7 +150,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `title`, `startsAt`, `endsAt`                          | Påkrevd, som i skjemaet.                                                                  |
 | `monitors`, `statusPages`, `labels`                   | Monitorene, statussidene og etikettene til hendelsen, alle fra prosjektet til API-nøkkelen. |
-| `changeMonitorStatusToId`                             | Overvåkingsstatusen monitorene går over til når den starter.                              |
+| `changeMonitorStatusToId`                             | Monitorstatusen monitorene går over til når den starter.                              |
 | `currentScheduledMaintenanceStateId`                  | Ignoreres: hver hendelse starter i den planlagte tilstanden din.                          |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Bryteren **Når hendelsen planlegges**. De to andre tidspunktene har egne felt.            |
 | `publishOnStatusPageAt`                               | Når hendelsen publiseres på statussidene sine og abonnentene får beskjed om at den er planlagt. Utelatt: med en gang. |
@@ -163,11 +163,11 @@ Den samme hendelsen som kode er Terraform-ressursen `oneuptime_scheduled_mainten
 Vinduet må være i riktig rekkefølge: hendelsen slutter etter at den har startet. Flytt **Begynner den** først, siden **Slutter den** følger med, og sett deretter **Slutter den**.
 :::
 
-:::details Endre overvåkingsstatus til mangler i skjemaet
+:::details Endre monitorstatus til mangler i skjemaet
 Det spørres bare om den når hendelsen har en monitor. Velg én under **Monitorer**, så vises den rett under dem.
 :::
 
-:::details Endre overvåkingsstatus til kan ikke endres lenger
+:::details Endre monitorstatus til kan ikke endres lenger
 Hendelsen har startet, og monitorene dens har allerede den statusen. Statusen gjelder fra det øyeblikket hendelsen starter, til den slutter.
 :::
 

@@ -32,7 +32,7 @@ Eine Gruppe von Personen in einem Projekt, deren Berechtigungen bestimmen, was i
 
 Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
-### Überwachung
+### Monitor
 
 Prüft eine Sache, die Sie betreiben, etwa eine Website, eine API, einen Server oder einen Kubernetes-Cluster, und entscheidet, ob sie funktioniert. Treffen die Kriterien des Monitors zu, ändert er seinen Status und kann einen Vorfall melden oder eine Warnung erstellen.
 

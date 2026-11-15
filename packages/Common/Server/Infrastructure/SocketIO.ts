@@ -1,5 +1,9 @@
 import Express from "../Utils/Express";
 import Redis from "./Redis";
+import {
+  ValkeySocketIOClusterBus,
+  createSocketIOClusterAdapter,
+} from "./SocketIOCluster";
 import { RealtimeRoute } from "../../ServiceRoute";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import http from "http";
@@ -12,26 +16,29 @@ export type SocketServer = SocketIO.Server;
 export default abstract class IO {
   private static socketServer: SocketIO.Server | null = null;
 
+  /*
+   * This process's socket.io server, one member of every App process's
+   * (#8662): its adapter (SocketIOCluster) joins them over Valkey, so a
+   * record written on any process - another replica, a worker - reaches the
+   * pages connected to this one, as Realtime decides who may hear it.
+   */
   @CaptureSpan()
   public static init(): void {
-    const server: http.Server = Express.getHttpServer();
-
-    this.socketServer = new SocketIO.Server(server, {
-      path: RealtimeRoute.toString(),
-    });
-
     if (!Redis.getClient()) {
       throw new DatabaseNotConnectedException(
         "Redis is not connected. Please connect to Redis before connecting to SocketIO.",
       );
     }
 
-    /*
-     * const pubClient: ClientType = Redis.getClient()!.duplicate();
-     * const subClient: ClientType = Redis.getClient()!.duplicate();
-     */
+    const server: http.Server = Express.getHttpServer();
 
-    // this.socketServer.adapter(createAdapter(pubClient, subClient));
+    this.socketServer = new SocketIO.Server(server, {
+      path: RealtimeRoute.toString(),
+      // A constructor of the namespace, as socket.io makes its adapters.
+      adapter: createSocketIOClusterAdapter({
+        bus: new ValkeySocketIOClusterBus(),
+      }) as unknown as SocketIO.ServerOptions["adapter"],
+    });
   }
 
   public static getSocketServer(): SocketIO.Server | null {

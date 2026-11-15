@@ -56,7 +56,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 | Acknowledge or close the Zabbix problem with the alert | 인시던트와 같지만, 경고의 상태를 따릅니다. | Zabbix URL, Zabbix API Token |
 | Copy alert private notes to the Zabbix problem | 경고의 각 비공개 메모를 그 문제에 메시지로 추가합니다. | Zabbix URL, Zabbix API Token |
 
-**Declare an incident for each Zabbix problem**으로 시작하고, 경고라면 **Create an alert for each Zabbix problem**으로 시작하세요. 이 템플릿이 연 인시던트나 경고는 문제의 이벤트 ID를 사용자 지정 필드 `zabbixEventId`에 보관하고, 나머지 두 템플릿은 이것으로 문제를 찾습니다.
+**Declare an incident for each Zabbix problem**으로 시작하고, 경고가라면 **Create an alert for each Zabbix problem**으로 시작하세요. 이 템플릿이 연 인시던트나 경고는 문제의 이벤트 ID를 사용자 지정 필드 `zabbixEventId`에 보관하고, 나머지 두 템플릿은 이것으로 문제를 찾습니다.
 
 ### 템플릿에 필요한 입력
 

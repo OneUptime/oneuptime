@@ -43,21 +43,21 @@ Under **Detaljer om vedlikehold** fyller du ut **Tittel** og **Beskrivelse** som
 
 ### Velg hva den berører
 
-Under **Berørte ressurser** velger du **Monitorer**, **Endre overvåkingsstatus til** for dem, eventuelle **Andre berørte ressurser**, statussidene under **Vis hendelse på disse statussidene** og **Varslinger til abonnenter**.
+Under **Berørte ressurser** velger du **Monitorer**, **Endre monitorstatus til** for dem, eventuelle **Andre berørte ressurser**, statussidene under **Vis hendelse på disse statussidene** og **Varslinger til abonnenter**.
 
 ### Bestem om den gjentas
 
 Under **Gjentakende** lar du **Gjentakende hendelse** være av for en mal du bruker manuelt, eller slår den på og fyller ut tidsplanen. Klikk på **Neste** for å se gjennom oversikten, og opprett deretter malen.
 :::
 
-En mal spør om **Endre overvåkingsstatus til** selv når den ikke nevner noen monitorer: statusen gjelder også monitorene du legger til når du planlegger en hendelse fra den. Under **Andre berørte ressurser** tar en mal verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester.
+En mal spør om **Endre monitorstatus til** selv når den ikke nevner noen monitorer: statusen gjelder også monitorene du legger til når du planlegger en hendelse fra den. Under **Andre berørte ressurser** tar en mal verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester.
 
 ## Hva en mal fyller ut
 
 | Del av hendelsen                                  | Opprett fra mal                      | En gjentakende hendelse         |
 | ------------------------------------------------- | ------------------------------------ | ------------------------------- |
 | **Tittel** og **Beskrivelse**                     | Utfylt, og du kan endre dem          | Kopiert                         |
-| **Monitorer** og **Endre overvåkingsstatus til**  | Utfylt                               | Kopiert                         |
+| **Monitorer** og **Endre monitorstatus til**  | Utfylt                               | Kopiert                         |
 | **Andre berørte ressurser**                       | Utfylt                               | Kopiert                         |
 | Statussidene og **Varslinger til abonnenter**        | Utfylt                               | Kopiert                         |
 | **Eiere** og **Etiketter**                        | Utfylt                               | Kopiert                         |
@@ -109,7 +109,7 @@ En jobb sjekker de gjentakende malene hvert minutt. Når det neste tidspunktet t
 Åpne en mal fra listen for å se siden dens:
 
 - **Maldetaljer for planlagt vedlikehold** viser hva nye hendelser starter med. **Rediger** går gjennom **Malinformasjon**, **Detaljer om vedlikehold**, **Statussider** og **Gjentakende**.
-- **Berørte ressurser** rommer **Monitorer**, deres **Endre overvåkingsstatus til** og **Andre berørte ressurser**, med sin egen **Rediger**.
+- **Berørte ressurser** rommer **Monitorer**, deres **Endre monitorstatus til** og **Andre berørte ressurser**, med sin egen **Rediger**.
 - **Eiere** viser personene og teamene som eier hver hendelse som planlegges fra den.
 
 Endringer gjelder hendelsene som opprettes etter at du har lagret dem; hendelser som allerede er opprettet, beholder sine egne verdier. For å stoppe en tidsplan slår du av **Gjentakende hendelse** under **Rediger**, eller sletter malen. En mal som er slått av, beholder tidsplanen sin: slår du den på igjen, fortsetter den ved tidsplanens neste tidspunkt og hopper over tidspunktene den var av. Sletter du en mal, blir hendelsene den har opprettet, værende.

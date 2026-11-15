@@ -163,7 +163,7 @@ Le soglie degli OSD sono quelle predefinite di Ceph. Un cluster impostato con al
 
 ## Facoltativo — Inviare il log del cluster Ceph
 
-L'agent può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, riempiendo la pagina **Registro del cluster** del cluster. È disattivato per impostazione predefinita perché l'agent deve girare su un host che ha il log del cluster: per impostazione predefinita, un host monitor.
+L'agent può seguire `/var/log/ceph/ceph.log` e inviarlo a OneUptime, riempiendo la pagina **Log del cluster** del cluster. È disattivato per impostazione predefinita perché l'agent deve girare su un host che ha il log del cluster: per impostazione predefinita, un host monitor.
 
 :::steps
 ### Attiva il receiver

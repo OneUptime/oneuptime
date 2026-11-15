@@ -113,8 +113,12 @@ async function expectTooltip(
   const describedBy: string | null = trigger.getAttribute("aria-describedby");
 
   expect(describedBy).toBeTruthy();
+  /*
+   * toHaveTextContent reads the tooltip with its whitespace collapsed to
+   * plain spaces, a figure's no-break space (#8457) among them.
+   */
   expect(document.getElementById(describedBy as string)).toHaveTextContent(
-    text,
+    text.replace(/\u00A0/g, " "),
   );
 }
 
@@ -719,7 +723,7 @@ describe("WebVitalsCard", () => {
     );
 
     expect(screen.getByRole("tooltip").textContent).toMatch(
-      /Good below 2\.5 s; poor at 4 s or more\.$/,
+      /Good below 2\.5\u00A0s; poor at 4\u00A0s or more\.$/,
     );
   });
 
@@ -777,11 +781,11 @@ describe("describeWebVital", () => {
   }
 
   test.each([
-    ["lcp", "Good below 2.5 s; poor at 4 s or more."],
-    ["inp", "Good below 200 ms; poor at 500 ms or more."],
+    ["lcp", "Good below 2.5\u00A0s; poor at 4\u00A0s or more."],
+    ["inp", "Good below 200\u00A0ms; poor at 500\u00A0ms or more."],
     ["cls", "Good below 0.1; poor at 0.25 or more."],
-    ["fcp", "Good below 1.8 s; poor at 3 s or more."],
-    ["ttfb", "Good below 800 ms; poor at 1.8 s or more."],
+    ["fcp", "Good below 1.8\u00A0s; poor at 3\u00A0s or more."],
+    ["ttfb", "Good below 800\u00A0ms; poor at 1.8\u00A0s or more."],
   ])(
     "%s: description, one space, then the limits",
     (key: string, limits: string) => {
@@ -804,7 +808,7 @@ describe("describeWebVital", () => {
         description: "Largest paint.",
         thresholds: { warn: 3000, danger: 6000 },
       }),
-    ).toBe("Largest paint. Good below 3 s; poor at 6 s or more.");
+    ).toBe("Largest paint. Good below 3\u00A0s; poor at 6\u00A0s or more.");
   });
 });
 

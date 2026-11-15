@@ -93,7 +93,7 @@ return {
 | Far fallire il controllo | `throw new Error("...")` | L'**Errore di script**, che i criteri predefiniti trasformano in un incidente. |
 | Lasciare una traccia | `console.log(...)` | I **Messaggi di log**, fino a 1.000 per esecuzione. |
 
-Per vedere un'esecuzione, aprite la **Panoramica** del monitor: la scheda **Riepilogo del monitor** mostra la sonda, il tempo di esecuzione e l'errore, e **Mostra altri dettagli** mostra il risultato, l'errore di script e i messaggi di log. **Registri di monitoraggio** contiene lo stesso riepilogo per i controlli precedenti.
+Per vedere un'esecuzione, aprite la **Panoramica** del monitor: la scheda **Riepilogo del monitor** mostra la sonda, il tempo di esecuzione e l'errore, e **Mostra altri dettagli** mostra il risultato, l'errore di script e i messaggi di log. **Log di monitoraggio** contiene lo stesso riepilogo per i controlli precedenti.
 
 > [!NOTE]
 > In questa sandbox `axios` non segue i reindirizzamenti, e le sue richieste non passano da un proxy configurato sulla sonda. Richiedete l'URL finale.

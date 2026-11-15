@@ -50,7 +50,7 @@
     "items": {
       "monitorsTitle": "مانیتورها",
       "monitorsDescription": "وب‌سایت‌ها، APIها و سرورها را بررسی کنید و از خرابی آن‌ها باخبر شوید.",
-      "slosTitle": "SLOs",
+      "slosTitle": "SLOها",
       "slosDescription": "اهداف پایداری، و این‌که چقدر از بودجهٔ خطا باقی مانده است.",
       "statusPagesTitle": "صفحات وضعیت",
       "storageArraysDescription": "آرایه‌های ذخیره‌سازی مانند Pure Storage FlashArray و FlashBlade را پایش کنید.",
@@ -15428,7 +15428,7 @@
   "SLO status changed": "وضعیت SLO تغییر کرد",
   "SLO status summary": "خلاصه وضعیت SLOها",
   "SLO summary": "خلاصه SLO",
-  "SLOs": "SLOs",
+  "SLOs": "SLOها",
   "SLOs are evaluated every few minutes. Widen the time range, or wait for the next evaluation if this SLO was created recently.": "SLOها هر چند دقیقه یک بار ارزیابی می‌شوند. بازه زمانی را گسترده‌تر کنید یا اگر این SLO تازه ساخته شده، منتظر ارزیابی بعدی بمانید.",
   "SLOs you have archived. They are hidden from the SLO list and are not evaluated, so their numbers stay frozen as of their last evaluation. Select SLOs to unarchive them and resume measuring.": "SLOهایی که بایگانی کرده‌اید. این‌ها در فهرست SLOها پنهان‌اند و ارزیابی نمی‌شوند، پس اعدادشان در آخرین ارزیابی ثابت می‌ماند. برای خروج از بایگانی و ادامه سنجش، SLOها را انتخاب کنید.",
   "SMS": "پیامک",
@@ -55180,6 +55180,7 @@
   "The request filter can be at most {{max}} characters long.": "فیلتر درخواست حداکثر می‌تواند {{max}} نویسه باشد.",
   "The request filter can have at most {{max}} terms.": "فیلتر درخواست حداکثر می‌تواند {{max}} شرط داشته باشد.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "فیلتر درخواست ویژگی‌های اسپن و نام اسپن را می‌پذیرد، مثلاً @http.route:/checkout* یا name:\"POST /checkout\". «{{text}}» هیچ‌کدام نیست.",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "رد ممیزی Keystone و فیلتر ممیزی روی هر API، به رویدادهای امنیتی.",
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "«{{rule}}» از این تیم حذف می‌شود. این کار برگشت‌پذیر نیست؛ برای نگه داشتن آن، به‌جای این کار آن را ویرایش کنید و شدت‌های تازه انتخاب کنید.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "«{{rule}}» دیگر برای هیچ‌کس در این تیم بررسی نمی‌شود. این کار برگشت‌پذیر نیست؛ برای توقف موقت بررسی، به‌جای این کار آن را متوقف کنید.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "هر قاعده می‌گوید همه در این تیم چه چیزی را باید راه‌اندازی کنند، مثلاً تماس تلفنی برای حادثه‌های بحرانی. از یکی از پیشنهادهای زیر شروع کنید یا قاعدهٔ خودتان را بسازید.",
@@ -55687,5 +55688,6 @@
   "Valid (OAuth token)": "معتبر",
   "Yes / No": "بله / خیر",
   "which led to {{steps}}": "که به {{steps}} رسید",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} هنوز اجرا نشده است. پس از اجرا، فیلدهایش اینجا نمایش داده می‌شوند."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} هنوز اجرا نشده است. پس از اجرا، فیلدهایش اینجا نمایش داده می‌شوند.",
+  "Insights (explorer analytics)": "بینش‌ها"
 }

@@ -56,7 +56,7 @@ Ein Projekt ohne Gruppierungsregeln sieht statt einer leeren Liste fünf fertige
 :::steps
 #### Festlegen, wie gruppiert wird
 
-Klicken Sie unter den Vorlagen auf **Eigene Regel erstellen** oder, sobald Sie Regeln haben, auf der Karte auf **Gruppierungsregel für Warnungen erstellen**. Im Schritt **Gruppierung** stellt **Warnungen gruppieren nach** eine Frage: **Überwachung**, **Alles zusammen**, **Verbundene Dienste**, **Schweregrad**, **Titel** oder **Benutzerdefiniert**. Der **Name** folgt Ihrer Antwort, bis Sie einen eigenen eingeben.
+Klicken Sie unter den Vorlagen auf **Eigene Regel erstellen** oder, sobald Sie Regeln haben, auf der Karte auf **Gruppierungsregel für Warnungen erstellen**. Im Schritt **Gruppierung** stellt **Warnungen gruppieren nach** eine Frage: **Monitor**, **Alles zusammen**, **Verbundene Dienste**, **Schweregrad**, **Titel** oder **Benutzerdefiniert**. Der **Name** folgt Ihrer Antwort, bis Sie einen eigenen eingeben.
 
 #### Das Zeitfenster festlegen
 
@@ -88,7 +88,7 @@ Regeln werden von oben nach unten geprüft, und der erste Treffer gewinnt: Ziehe
 - **Bis dahin wartet jede Warnung für sich.** Eine Warnung, die keine offene Episode ihrer Gruppe zum Beitreten und keine behobene zum Wiederöffnen findet, öffnet nichts und führt nur ihre eigenen Bereitschaftsrichtlinien aus, wie eine Warnung, auf die keine Regel zutrifft.
 - **Dann öffnet sich eine Episode mit ihnen allen.** Die Warnung, mit der die Anzahl erreicht ist, öffnet die Episode mit jeder Warnung, die gewartet hat. Die Episode übernimmt Titel, Monitor und Schweregrad von der ersten von ihnen und steigt auf den schwersten Schweregrad, und die Warnungen danach treten ihr wie gewohnt bei.
 - **Nur laufende Warnungen zählen.** Eine zwischendurch behobene ist vorbei, sodass ein Monitor, der immer wieder ausfällt und sich erholt, nie von sich aus eine Episode öffnet. Solange **Nur Warnungen gruppieren, die kurz nacheinander eintreffen** eingeschaltet ist, müssen die Warnungen außerdem innerhalb seines Fensters zueinander eingetroffen sein.
-- **Es zählt pro Gruppe.** Mit **Alles zusammen** zählen alle passenden Warnungen, sodass sich eine Episode nur bei einem Ausfall öffnet, der mehrere Monitore zugleich auslöst. Mit **Überwachung** öffnet sich die Episode eines Monitors, sobald dieser Monitor mehrere laufende Warnungen hat.
+- **Es zählt pro Gruppe.** Mit **Alles zusammen** zählen alle passenden Warnungen, sodass sich eine Episode nur bei einem Ausfall öffnet, der mehrere Monitore zugleich auslöst. Mit **Monitor** öffnet sich die Episode eines Monitors, sobald dieser Monitor mehrere laufende Warnungen hat.
 
 Die Spalte **Gruppierung** der Liste sagt „Öffnet eine Episode, sobald 3 passende Warnungen laufen“. Über die API und Terraform heißt es `enableMinimumAlertCount` und `minimumAlertCount`.
 
@@ -99,7 +99,7 @@ Wenn ein Dienst ausfällt, fallen auch die Dienste aus, die ihn aufrufen, und je
 - Die Dienste einer Warnung sind die, die unter **Betroffene Ressourcen** mit ihr verknüpft sind, und die, die mit ihrem Monitor verknüpft sind.
 - Eine Warnung tritt einer offenen Episode der Regel bei, wenn einer ihrer Dienste ein Dienst einer Warnung in der Episode ist, ihn aufruft oder von ihm aufgerufen wird. So bleibt ein Fehler, der sich ausbreitet, in einer Episode.
 - Verbunden heißt einen Aufruf entfernt: Zwei Dienste, die nur dieselbe Datenbank oder dieselbe externe API aufrufen, sind nicht verbunden. Sonst würde eine Abhängigkeit, die die Hälfte Ihrer Dienste aufruft, jede Warnung in eine Episode legen.
-- Eine Warnung ohne Dienst wird nach ihrem Monitor gruppiert, so wie **Überwachung** gruppiert.
+- Eine Warnung ohne Dienst wird nach ihrem Monitor gruppiert, so wie **Monitor** gruppiert.
 
 Ein Aufruf, der 30 Tage lang nicht gesehen wurde, verschwindet von der Dienstkarte und mit ihm die Verbindung. Die Spalte **Gruppierung** der Liste sagt „Warnungen verbundener Dienste teilen sich eine Episode“. Über die API und Terraform heißt es `groupByConnectedServices`.
 

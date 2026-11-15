@@ -1,6 +1,6 @@
 # Slik når OneUptime deg
 
-OneUptime når deg på to måter. Det tilkaller deg når en hendelse eller et varsel utløses mens du har vakt, og det holder deg oppdatert om det du eier: et notat på hendelsen din, en overvåking som endret status, den neste vakten din. Begge deler kommer til adressene du har i **Brukerinnstillinger**, prosjekt for prosjekt. Denne siden forklarer hvordan delene henger sammen, hvor de er, og hva du starter med.
+OneUptime når deg på to måter. Det tilkaller deg når en hendelse eller et varsel utløses mens du har vakt, og det holder deg oppdatert om det du eier: et notat på hendelsen din, en monitor som endret status, den neste vakten din. Begge deler kommer til adressene du har i **Brukerinnstillinger**, prosjekt for prosjekt. Denne siden forklarer hvordan delene henger sammen, hvor de er, og hva du starter med.
 
 :::cards
 - [Tre sider, tre spørsmål](#tre-sider-tre-spørsmål): Metoder, vaktregler og varslingsinnstillinger, og hva hver av dem avgjør.

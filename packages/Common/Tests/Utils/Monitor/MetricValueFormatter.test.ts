@@ -25,39 +25,41 @@ import { describe, expect, test } from "@jest/globals";
 describe("MetricValueFormatter", () => {
   describe("format — units with a scale ladder", () => {
     test("scales bytes the way the dashboard does", () => {
-      expect(MetricValueFormatter.format({ value: 0, unit: "By" })).toBe("0 B");
+      expect(MetricValueFormatter.format({ value: 0, unit: "By" })).toBe(
+        "0\u00A0B",
+      );
       expect(MetricValueFormatter.format({ value: 512, unit: "By" })).toBe(
-        "512 B",
+        "512\u00A0B",
       );
       expect(MetricValueFormatter.format({ value: 1000, unit: "By" })).toBe(
-        "1 KB",
+        "1\u00A0KB",
       );
       expect(
         MetricValueFormatter.format({ value: 1048576, unit: "bytes" }),
-      ).toBe("1.05 MB");
+      ).toBe("1.05\u00A0MB");
       expect(
         MetricValueFormatter.format({ value: 1073741824, unit: "By" }),
-      ).toBe("1.07 GB");
+      ).toBe("1.07\u00A0GB");
       expect(
         MetricValueFormatter.format({ value: 1099511627776, unit: "bytes" }),
-      ).toBe("1.1 TB");
+      ).toBe("1.1\u00A0TB");
     });
 
     test("scales time units", () => {
       expect(MetricValueFormatter.format({ value: 750, unit: "ms" })).toBe(
-        "750 ms",
+        "750\u00A0ms",
       );
       expect(MetricValueFormatter.format({ value: 1500, unit: "ms" })).toBe(
-        "1.5 sec",
+        "1.5\u00A0sec",
       );
       expect(
         MetricValueFormatter.format({ value: 3661, unit: "seconds" }),
-      ).toBe("1.02 hours");
+      ).toBe("1.02\u00A0hours");
       expect(MetricValueFormatter.format({ value: 1500, unit: "ns" })).toBe(
-        "1.5 µs",
+        "1.5\u00A0µs",
       );
       expect(MetricValueFormatter.format({ value: 0, unit: "seconds" })).toBe(
-        "0 sec",
+        "0\u00A0sec",
       );
     });
 
@@ -69,52 +71,52 @@ describe("MetricValueFormatter", () => {
      */
     test("rescales a PREFIXED unit through its family base", () => {
       expect(MetricValueFormatter.format({ value: 2500, unit: "GB" })).toBe(
-        "2.5 TB",
+        "2.5\u00A0TB",
       );
       expect(MetricValueFormatter.format({ value: 2, unit: "GB" })).toBe(
-        "2 GB",
+        "2\u00A0GB",
       );
       expect(MetricValueFormatter.format({ value: 0.5, unit: "MB" })).toBe(
-        "500 KB",
+        "500\u00A0KB",
       );
       expect(MetricValueFormatter.format({ value: 1500, unit: "KB" })).toBe(
-        "1.5 MB",
+        "1.5\u00A0MB",
       );
       expect(MetricValueFormatter.format({ value: 36, unit: "hours" })).toBe(
-        "1.5 days",
+        "1.5\u00A0days",
       );
       expect(MetricValueFormatter.format({ value: 5, unit: "min" })).toBe(
-        "5 min",
+        "5\u00A0min",
       );
       expect(MetricValueFormatter.format({ value: 90, unit: "min" })).toBe(
-        "1.5 hours",
+        "1.5\u00A0hours",
       );
     });
 
     test("scales the numerator of a rate unit and keeps the denominator", () => {
       expect(
         MetricValueFormatter.format({ value: 1500000, unit: "By/s" }),
-      ).toBe("1.5 MB/s");
+      ).toBe("1.5\u00A0MB/s");
       expect(MetricValueFormatter.format({ value: 2.5, unit: "GB/s" })).toBe(
-        "2.5 GB/s",
+        "2.5\u00A0GB/s",
       );
       expect(MetricValueFormatter.format({ value: 2000, unit: "GB/s" })).toBe(
-        "2 TB/s",
+        "2\u00A0TB/s",
       );
     });
 
     test("a rate whose numerator has no ladder keeps its digits", () => {
       expect(
         MetricValueFormatter.format({ value: 1500, unit: "requests/s" }),
-      ).toBe("1500 requests/s");
+      ).toBe("1500\u00A0requests/s");
     });
 
     test("negatives keep their sign through the ladder", () => {
       expect(MetricValueFormatter.format({ value: -2048, unit: "bytes" })).toBe(
-        "-2.05 KB",
+        "-2.05\u00A0KB",
       );
       expect(MetricValueFormatter.format({ value: -1500, unit: "ms" })).toBe(
-        "-1.5 sec",
+        "-1.5\u00A0sec",
       );
     });
   });
@@ -129,25 +131,25 @@ describe("MetricValueFormatter", () => {
   describe("format — binary (IEC) byte units", () => {
     test("scale through the bytes ladder", () => {
       expect(MetricValueFormatter.format({ value: 2048, unit: "MiBy" })).toBe(
-        "2.15 GB",
+        "2.15\u00A0GB",
       );
       expect(
         MetricValueFormatter.format({ value: 1048576, unit: "MiBy" }),
-      ).toBe("1.1 TB");
+      ).toBe("1.1\u00A0TB");
       expect(MetricValueFormatter.format({ value: 1024, unit: "KiBy" })).toBe(
-        "1.05 MB",
+        "1.05\u00A0MB",
       );
       expect(MetricValueFormatter.format({ value: 1, unit: "KiBy" })).toBe(
-        "1.02 KB",
+        "1.02\u00A0KB",
       );
       expect(MetricValueFormatter.format({ value: 3, unit: "GiBy" })).toBe(
-        "3.22 GB",
+        "3.22\u00A0GB",
       );
       expect(MetricValueFormatter.format({ value: 1.5, unit: "TiBy" })).toBe(
-        "1.65 TB",
+        "1.65\u00A0TB",
       );
       expect(MetricValueFormatter.format({ value: 2, unit: "PiBy" })).toBe(
-        "2.25 PB",
+        "2.25\u00A0PB",
       );
     });
 
@@ -172,33 +174,35 @@ describe("MetricValueFormatter", () => {
 
     test("accept the short and spelled-out IEC names too", () => {
       expect(MetricValueFormatter.format({ value: 2048, unit: "MiB" })).toBe(
-        "2.15 GB",
+        "2.15\u00A0GB",
       );
       expect(
         MetricValueFormatter.format({ value: 2048, unit: "mebibytes" }),
-      ).toBe("2.15 GB");
+      ).toBe("2.15\u00A0GB");
       expect(MetricValueFormatter.format({ value: 2048, unit: "miby" })).toBe(
-        "2.15 GB",
+        "2.15\u00A0GB",
       );
     });
 
     test("keep the sign, and read zero in bytes like any other byte unit", () => {
       expect(MetricValueFormatter.format({ value: -2048, unit: "MiBy" })).toBe(
-        "-2.15 GB",
+        "-2.15\u00A0GB",
       );
       expect(MetricValueFormatter.format({ value: 0, unit: "MiBy" })).toBe(
-        "0 B",
+        "0\u00A0B",
       );
       // The decimal prefixes have always done the same.
-      expect(MetricValueFormatter.format({ value: 0, unit: "GB" })).toBe("0 B");
+      expect(MetricValueFormatter.format({ value: 0, unit: "GB" })).toBe(
+        "0\u00A0B",
+      );
     });
 
     test("scale as the numerator of a rate", () => {
       expect(MetricValueFormatter.format({ value: 2500, unit: "KiBy/s" })).toBe(
-        "2.56 MB/s",
+        "2.56\u00A0MB/s",
       );
       expect(MetricValueFormatter.format({ value: 100, unit: "MiBy/s" })).toBe(
-        "105 MB/s",
+        "105\u00A0MB/s",
       );
     });
 
@@ -221,13 +225,13 @@ describe("MetricValueFormatter", () => {
     test("a braced byte rate is unwrapped and scaled", () => {
       expect(
         MetricValueFormatter.format({ value: 2500000, unit: "{KiBy/s}" }),
-      ).toBe("2.56 GB/s");
+      ).toBe("2.56\u00A0GB/s");
       expect(
         MetricValueFormatter.format({ value: 1500000, unit: "{By/s}" }),
-      ).toBe("1.5 MB/s");
+      ).toBe("1.5\u00A0MB/s");
       expect(
         MetricValueFormatter.format({ value: 512, unit: "{KiBy/s}" }),
-      ).toBe("524 KB/s");
+      ).toBe("524\u00A0KB/s");
     });
 
     test("renders exactly as the unbraced unit does", () => {
@@ -246,7 +250,7 @@ describe("MetricValueFormatter", () => {
     test("tolerates whitespace inside and around the braces", () => {
       expect(
         MetricValueFormatter.format({ value: 2500000, unit: " { KiBy/s } " }),
-      ).toBe("2.56 GB/s");
+      ).toBe("2.56\u00A0GB/s");
     });
 
     test("a braced COUNT is still hidden, rate or not", () => {
@@ -305,13 +309,13 @@ describe("MetricValueFormatter", () => {
 
     test("decimal prefixes still convert by powers of 1000", () => {
       expect(MetricValueFormatter.format({ value: 2048, unit: "MB" })).toBe(
-        "2.05 GB",
+        "2.05\u00A0GB",
       );
       expect(MetricValueFormatter.format({ value: 1500, unit: "KB" })).toBe(
-        "1.5 MB",
+        "1.5\u00A0MB",
       );
       expect(MetricValueFormatter.format({ value: 257.76, unit: "GB" })).toBe(
-        "258 GB",
+        "258\u00A0GB",
       );
     });
   });
@@ -325,7 +329,8 @@ describe("MetricValueFormatter", () => {
     const binaryByteUnit: RegExp = /^[KMGTP]iBy$/;
     const bracedByteRate: RegExp = /^\{[KMGTP]?i?By\/s\}$/;
     const bareNumber: RegExp = /^-?\d+(\.\d+)?$/;
-    const scaledSize: RegExp = /^\d+(\.\d+)? (B|KB|MB|GB|TB|PB)(\/s)?$/;
+    // The figure and the size held together by a no-break space (#8457).
+    const scaledSize: RegExp = /^\d+(\.\d+)?\u00A0(B|KB|MB|GB|TB|PB)(\/s)?$/;
 
     const byteMetrics: Array<VMwareMetricDefinition> =
       getAllVMwareMetrics().filter((m: VMwareMetricDefinition) => {
@@ -528,26 +533,26 @@ describe("MetricValueFormatter", () => {
   describe("format — units with a dimension but no ladder", () => {
     test("appends the unit symbol and leaves every digit alone", () => {
       expect(MetricValueFormatter.format({ value: 0.42, unit: "cores" })).toBe(
-        "0.42 cores",
+        "0.42\u00A0cores",
       );
       expect(
         MetricValueFormatter.format({ value: 1234567, unit: "cores" }),
-      ).toBe("1234567 cores");
+      ).toBe("1234567\u00A0cores");
       expect(MetricValueFormatter.format({ value: 95, unit: "Cel" })).toBe(
-        "95 °C",
+        "95\u00A0°C",
       );
       expect(MetricValueFormatter.format({ value: 1500, unit: "kbit" })).toBe(
-        "1500 kbit",
+        "1500\u00A0kbit",
       );
       /*
        * "KiBy" used to be the example here ("1024 KiB"). It has a ladder
        * now — see "format — binary (IEC) byte units" below.
        */
       expect(MetricValueFormatter.format({ value: 2400, unit: "MHz" })).toBe(
-        "2400 MHz",
+        "2400\u00A0MHz",
       );
       expect(MetricValueFormatter.format({ value: 4200, unit: "ops" })).toBe(
-        "4200 ops",
+        "4200\u00A0ops",
       );
     });
 
@@ -557,18 +562,20 @@ describe("MetricValueFormatter", () => {
      * the exact count is the thing the reader came for.
      */
     test("does NOT abbreviate large numbers the way a chart axis would", () => {
-      expect(ValueFormatter.formatValue(1234567, "cores")).toBe("1.23M cores");
+      expect(ValueFormatter.formatValue(1234567, "cores")).toBe(
+        "1.23M\u00A0cores",
+      );
       expect(
         MetricValueFormatter.format({ value: 1234567, unit: "cores" }),
-      ).toBe("1234567 cores");
+      ).toBe("1234567\u00A0cores");
     });
 
     test("rounds a non-integer to two decimals", () => {
       expect(MetricValueFormatter.format({ value: 3.14159, unit: "ops" })).toBe(
-        "3.14 ops",
+        "3.14\u00A0ops",
       );
       expect(MetricValueFormatter.format({ value: 2.5, unit: "ops" })).toBe(
-        "2.5 ops",
+        "2.5\u00A0ops",
       );
     });
   });
@@ -646,13 +653,13 @@ describe("MetricValueFormatter", () => {
             unit: "seconds",
             metricName: metricName,
           }),
-        ).toBe("1750000000 s");
+        ).toBe("1750000000\u00A0s");
       }
     });
 
     test("the ladder is what would otherwise mislead", () => {
       expect(ValueFormatter.formatValue(1750000000, "seconds")).toBe(
-        "20.25K days",
+        "20.25K\u00A0days",
       );
     });
 
@@ -698,7 +705,7 @@ describe("MetricValueFormatter", () => {
           unit: "seconds",
           metricName: "http.server.request.duration",
         }),
-      ).toBe("1.02 hours");
+      ).toBe("1.02\u00A0hours");
     });
 
     test("only suppresses the ladder, not the unit label", () => {
@@ -719,7 +726,9 @@ describe("MetricValueFormatter", () => {
      * broken metric as "InfinityP PB" in an on-call email.
      */
     test("are reported verbatim, never through the scaling ladder", () => {
-      expect(ValueFormatter.formatValue(Infinity, "By")).toBe("InfinityP PB");
+      expect(ValueFormatter.formatValue(Infinity, "By")).toBe(
+        "InfinityP\u00A0PB",
+      );
 
       expect(MetricValueFormatter.format({ value: NaN, unit: "By" })).toBe(
         "NaN",

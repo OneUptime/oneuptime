@@ -11,7 +11,7 @@ En monitors kriterier avgjør hva hver kontroll betyr: om monitoren er oppe elle
 
 ## Slik avgjør kriteriene
 
-Hver gang en monitor kontrolleres, vurderer kriteriene resultatet fra toppen av listen og nedover. Det første kriteriet der filtrene samsvarer, avgjør hva som skjer, og kriteriene under det blir ikke sett på for den kontrollen. Samsvarer ingen, går monitoren til sin **Standard overvåkingsstatus**.
+Hver gang en monitor kontrolleres, vurderer kriteriene resultatet fra toppen av listen og nedover. Det første kriteriet der filtrene samsvarer, avgjør hva som skjer, og kriteriene under det blir ikke sett på for den kontrollen. Samsvarer ingen, går monitoren til sin **Standard monitorstatus**.
 
 ```mermaid title="Slik vurderes hver kontroll"
 flowchart TB
@@ -27,7 +27,7 @@ flowchart TB
 
 Rekkefølgen er en del av regelen. En ny monitor lister kriteriene sine fra det verste tilfellet: frakoblet, så en advarsel der typen har en (et sertifikat eller et domene som snart utløper), så tilkoblet. Et bredt friskt kriterium, som **Er tilkoblet** satt til **Sann**, samsvarer med nesten hver kontroll, så det kommer sist: over de andre ville det samsvare først hver gang, og de andre ville aldri handle.
 
-Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrollen: monitoren beholder statusen sin, og kriteriene under det venter på neste kontroll. **Standard overvåkingsstatus** gjelder bare når ingen kriterier samsvarer. For en ny monitor er den **I drift**; endre den under **Flere felt**, under kriteriene.
+Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrollen: monitoren beholder statusen sin, og kriteriene under det venter på neste kontroll. **Standard monitorstatus** gjelder bare når ingen kriterier samsvarer. For en ny monitor er den **I drift**; endre den under **Flere felt**, under kriteriene.
 
 > [!NOTE]
 > En monitor som åpner en hendelse eller et varsel per vert, container, disk eller grensesnitt, vurderer alle kriterier ved hver kontroll, slik at to verter kan samsvare med to ulike kriterier samtidig. Det er en monitor der spørringen har en **Grupper etter**, som en målings- eller loggmonitor, eller et kriterium som angir `*` for hver disk eller hvert grensesnitt. En monitor for innkommende forespørsler som grupperer hendelser etter et payload-felt, stopper likevel ved det første samsvaret.
@@ -57,7 +57,7 @@ Hver handling er en bryter under **Handlinger**:
 
 | Bryter | Hva den gjør |
 | --- | --- |
-| **Når filtre samsvarer, endre overvåkerstatus.** | Flytter monitoren til statusen som er valgt i **Endre overvåkingsstatus til**. |
+| **Når filtre samsvarer, endre monitorstatus.** | Flytter monitoren til statusen som er valgt i **Endre monitorstatus til**. |
 | **Når filtre samsvarer, opprett et varsel.** | Oppretter varslene som er satt opp under **Opprett varsel**. Et varsel gir teamet ditt beskjed og vises aldri på en statusside. |
 | **Når filtre samsvarer, erklær en hendelse.** | Erklærer hendelsene som er satt opp under **Opprett hendelse**. Statussidene dine kan vise dem. |
 
@@ -127,7 +127,7 @@ Klikk på **Lagre endringer**. Neste kontroll vurderes etter de nye kriteriene.
 
 ### Test monitoren
 
-På en monitor som sonder kontrollerer, klikker du på **Test monitor** på kortet, velger en sonde under **Velg sonde** og klikker på **Kjør test**. **Resultat av overvåkingstest** viser hva kontrollen fant.
+På en monitor som sonder kontrollerer, klikker du på **Test monitor** på kortet, velger en sonde under **Velg sonde** og klikker på **Kjør test**. **Resultat av monitortest** viser hva kontrollen fant.
 :::
 
 En manuell monitor har ingen kriterier: du setter statusen selv. Se [Oppdatere status](/docs/monitor/manual-monitor#oppdater-status).
@@ -138,7 +138,7 @@ En monitor har alltid en av prosjektets statuser. Et nytt prosjekt har tre, fra 
 
 | Status | Plass | Farge | Hva OneUptime gjør med den |
 | --- | --- | --- | --- |
-| **I drift** | 1 | Grønn | Nye monitorer starter i den, og den er en ny monitors **Standard overvåkingsstatus**. Innebygd. |
+| **I drift** | 1 | Grønn | Nye monitorer starter i den, og den er en ny monitors **Standard monitorstatus**. Innebygd. |
 | **Redusert** | 2 | Gul | Ingenting av seg selv: et av kriteriene dine flytter en monitor hit. |
 | **Frakoblet** | 3 | Rød | En ny monitors frakoblet-kriterium flytter den hit, og OneUptime behandler en monitor med denne statusen som nede. Innebygd. |
 
@@ -173,7 +173,7 @@ Dra statusen i håndtaket. En status lenger ned i listen regnes som verre enn al
 
 ### Bruk den i et kriterium
 
-En status gjør ingenting før et kriterium flytter monitorer til den. Velg den i **Endre overvåkingsstatus til** på kriteriet som skal sette den.
+En status gjør ingenting før et kriterium flytter monitorer til den. Velg den i **Endre monitorstatus til** på kriteriet som skal sette den.
 :::
 
 Den driftsklare statusen og frakoblet-statusen er merket **Innebygd**: du kan gi dem nytt navn og endre fargen, men ikke slette dem. På OneUptime Cloud krever det Growth-planen å opprette eller endre en status. Å administrere statuser krever rollen Prosjekteier, Prosjektadministrator eller Monitoradministrator, eller en egendefinert rolle med tilsvarende tillatelse for monitorstatuser.
@@ -182,7 +182,7 @@ Den driftsklare statusen og frakoblet-statusen er merket **Innebygd**: du kan gi
 
 Hver statusendring lagres på monitorens **Statustidslinje**: når den startet, hvor lenge den varte, og **Vis årsak** for kriteriet som satte den. **Opprett Statushendelse for monitor** legger til en status manuelt. På en monitor som sonder kontrollerer, setter neste kontroll som samsvarer med et kriterium med en status den statusen igjen.
 
-En statusendring varsler monitorens eiere bare hvis de har slått på **Overvåkingsstatus endret** i varslingsinnstillingene sine: den er slått av fra start. En monitor som går tilbake til sin **Standard overvåkingsstatus** fordi ingen kriterier samsvarte, varsler ingen. Se [Hva som er slått på for et nytt medlem](/docs/notifications/notification-settings#hva-som-er-slått-på-for-et-nytt-medlem).
+En statusendring varsler monitorens eiere bare hvis de har slått på **Monitorstatus endret** i varslingsinnstillingene sine: den er slått av fra start. En monitor som går tilbake til sin **Standard monitorstatus** fordi ingen kriterier samsvarte, varsler ingen. Se [Hva som er slått på for et nytt medlem](/docs/notifications/notification-settings#hva-som-er-slått-på-for-et-nytt-medlem).
 
 ## Arkivere en monitorstatus
 
@@ -196,7 +196,7 @@ Arkiver en status som teamet ditt ikke lenger skal bruke, i stedet for å slette
 ## Feilsøking
 
 :::details Nettstedet er nede, men monitoren forblir I drift
-Et kriterium høyere opp i listen samsvarte først. Åpne **Konfigurasjon → Kriterier** og sjekk rekkefølgen: det friske kriteriet kommer sist. Sjekk også at frakoblet-kriteriet har **Aktiver disse kriteriene** slått på, og at handlingen **Når filtre samsvarer, endre overvåkerstatus.** er slått på med en valgt status.
+Et kriterium høyere opp i listen samsvarte først. Åpne **Konfigurasjon → Kriterier** og sjekk rekkefølgen: det friske kriteriet kommer sist. Sjekk også at frakoblet-kriteriet har **Aktiver disse kriteriene** slått på, og at handlingen **Når filtre samsvarer, endre monitorstatus.** er slått på med en valgt status.
 :::
 
 :::details Ingen hendelse ble åpnet da monitoren gikk ned

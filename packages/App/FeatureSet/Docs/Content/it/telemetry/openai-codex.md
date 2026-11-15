@@ -72,7 +72,7 @@ Codex usa ogni `endpoint` esattamente come è scritto: non aggiunge `/v1/logs`, 
 
 ### Esegui un turno
 
-Avvia una sessione interattiva di `codex`, chiedi qualcosa di piccolo e lascia finire il turno. Poi apri **Registri** in OneUptime: gli eventi di Codex, come `codex.conversation_starts`, `codex.api_request` e `codex.turn_cost`, compaiono lì.
+Avvia una sessione interattiva di `codex`, chiedi qualcosa di piccolo e lascia finire il turno. Poi apri **Log** in OneUptime: gli eventi di Codex, come `codex.conversation_starts`, `codex.api_request` e `codex.turn_cost`, compaiono lì.
 :::
 
 > [!IMPORTANT]
@@ -120,7 +120,7 @@ OneUptime legge le persone dagli span e dai punti dati delle metriche, mai dai r
 | --- | --- | --- |
 | Tracce | `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` e i token della cache, ma nessun modello | Conta i token per persona; non può dar loro un prezzo |
 | Metriche | `codex.turn.token_usage` per `token_type`, e `codex.turn.cost_microusd`, in milionesimi di USD | Converte il costo in USD; legge le metriche solo dove gli span non riportano nulla |
-| Log | `codex.turn_cost`, con `usage.estimated_usd` e la persona | Lo salva nell'esploratore dei **Registri**; non lo collega alla spesa |
+| Log | `codex.turn_cost`, con `usage.estimated_usd` e la persona | Lo salva nell'esploratore dei **Log**; non lo collega alla spesa |
 
 Con la configurazione qui sopra, nella scheda **Utilizzo** il risultato è questo:
 

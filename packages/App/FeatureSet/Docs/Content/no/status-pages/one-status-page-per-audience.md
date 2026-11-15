@@ -110,7 +110,7 @@ På **Hendelser → Alle hendelser → Erklær hendelse** har trinnet **Berørte
 Skjemaet advarer deg:
 
 - når en valgt side ikke viser noen av hendelsens monitorer, eller det ikke er knyttet noen monitor i det hele tatt. Hendelsen vil ikke vises på den siden eller varsle abonnentene dens;
-- når du også angir **Endre overvåkingsstatus til**, rett under monitorene på det samme trinnet. Se [Monitorstatus er delt](#monitorstatus-er-delt);
+- når du også angir **Endre monitorstatus til**, rett under monitorene på det samme trinnet. Se [Monitorstatus er delt](#monitorstatus-er-delt);
 - når du også krysser av for **Privat hendelse** under **Flere felt** på trinnet **Hendelsesdetaljer**. Private hendelser er skjult på alle statussider, også dem du valgte.
 
 Trinnet **Detaljer**, rett etter **Berørte ressurser**, spør om de egendefinerte hendelsesfeltene som er merket med **Vis ved opprettelse** (se [Opprette en hendelse](/docs/incidents/declaring-incidents)). Svarene går til hver side hendelsen når: verdier i egendefinerte felt tilhører hendelsen, ikke en statusside.
@@ -236,9 +236,9 @@ Det hindrer at et feil valg setter en hendelse på en side om noe helt annet. De
 
 ## Monitorstatus er delt
 
-En monitor har én status, og hver statusside som viser monitoren, viser den. Å begrense en hendelse endrer ikke det. Hvis hendelsen angir **Endre overvåkingsstatus til**, eller monitoren går ned av seg selv, blir monitoren rød på hver side som viser den, også sider hendelsen ikke er begrenset til, og sider som bare viser hendelser som er begrenset til dem. Erklæringsskjemaet advarer deg når du kombinerer en statusendring med valgte sider.
+En monitor har én status, og hver statusside som viser monitoren, viser den. Å begrense en hendelse endrer ikke det. Hvis hendelsen angir **Endre monitorstatus til**, eller monitoren går ned av seg selv, blir monitoren rød på hver side som viser den, også sider hendelsen ikke er begrenset til, og sider som bare viser hendelser som er begrenset til dem. Erklæringsskjemaet advarer deg når du kombinerer en statusendring med valgte sider.
 
-**Når hver lokasjon trenger sin egen status, gir du hver lokasjon en manuell monitor.** Opprett en [Manuell overvåking](/docs/monitor/manual-monitor) per lokasjon, for eksempel `Site 03 network`, og vis den bare på den lokasjonens side. Knytt de berørte lokasjonenes manuelle monitorer til hendelsen, med **Endre overvåkingsstatus til** hvis du vil at statusen deres skal endres, og la den delte monitoren være for sidene som skal se den. Hendelsen når da akkurat lokasjonene den har monitorene til, og en statusendring vises bare på sidene deres.
+**Når hver lokasjon trenger sin egen status, gir du hver lokasjon en manuell monitor.** Opprett en [Manuell overvåking](/docs/monitor/manual-monitor) per lokasjon, for eksempel `Site 03 network`, og vis den bare på den lokasjonens side. Knytt de berørte lokasjonenes manuelle monitorer til hendelsen, med **Endre monitorstatus til** hvis du vil at statusen deres skal endres, og la den delte monitoren være for sidene som skal se den. Hendelsen når da akkurat lokasjonene den har monitorene til, og en statusendring vises bare på sidene deres.
 
 ## Hva som registreres
 

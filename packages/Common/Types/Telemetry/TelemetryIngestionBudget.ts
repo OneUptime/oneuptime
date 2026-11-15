@@ -540,11 +540,11 @@ export const getTelemetryIngestionBudgetValueProblem: (data: {
   if (value < 0 || (value === 0 && !data.allowZero)) {
     return data.allowZero
       ? `${what} must be 0 or more ${unit}. Use 0 for no limit, or leave it empty for the instance default.`
-      : `${what} must be more than 0 ${unit}. Leave it empty for no limit.`;
+      : `${what} must be more than 0\u00A0${unit}. Leave it empty for no limit.`;
   }
 
   if (value > max) {
-    return `${what} can be at most ${max.toLocaleString("en-US")} ${unit}.`;
+    return `${what} can be at most ${max.toLocaleString("en-US")}\u00A0${unit}.`;
   }
 
   const bytes: number = isDaily
@@ -911,12 +911,12 @@ const formatAmount: (value: number) => string = (value: number): string => {
 /*
  * A number of GB for a sentence: whole when it is, else at most three
  * decimals ("10 GB", "1.5 GB"), or three significant digits below one
- * ("0.5 GB", "0.00195 GB").
+ * ("0.5 GB", "0.00195 GB"), held to its unit by a no-break space (#8457).
  */
 export const formatTelemetryIngestionBudgetGB: (bytes: number) => string = (
   bytes: number,
 ): string => {
-  return `${formatAmount(bytes / TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB)} GB`;
+  return `${formatAmount(bytes / TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB)}\u00A0GB`;
 };
 
 export const formatTelemetryIngestionBudgetMBPerSecond: (
@@ -924,7 +924,7 @@ export const formatTelemetryIngestionBudgetMBPerSecond: (
 ) => string = (bytesPerSecond: number): string => {
   return `${formatAmount(
     bytesPerSecond / TELEMETRY_INGESTION_BUDGET_BYTES_PER_MB,
-  )} MB per second`;
+  )}\u00A0MB per second`;
 };
 
 /*

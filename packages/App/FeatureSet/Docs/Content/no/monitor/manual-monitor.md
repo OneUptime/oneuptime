@@ -92,7 +92,7 @@ curl -X POST https://oneuptime.com/api/monitor-status-timeline \
 
 En manuell monitor velges som enhver annen monitor overalt der monitorer velges:
 
-- Erklær en hendelse, og velg monitoren under **Monitorer**. Med **Endre overvåkingsstatus til** setter erklæringen også monitorens status, og når hendelsen løses, settes monitoren tilbake til i drift, med mindre en annen hendelse på den fortsatt er åpen. Se [Opprette en hendelse](/docs/incidents/declaring-incidents#trinn-2-berørte-ressurser).
+- Erklær en hendelse, og velg monitoren under **Monitorer**. Med **Endre monitorstatus til** setter erklæringen også monitorens status, og når hendelsen løses, settes monitoren tilbake til i drift, med mindre en annen hendelse på den fortsatt er åpen. Se [Opprette en hendelse](/docs/incidents/declaring-incidents#trinn-2-berørte-ressurser).
 - Opprett et varsel om den, for et problem teamet ditt bør håndtere uten å si fra til kundene.
 - Legg den til på en statusside, for å vise kundene en avhengighet du følger med på for hånd.
 

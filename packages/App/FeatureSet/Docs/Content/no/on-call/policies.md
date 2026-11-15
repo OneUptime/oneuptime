@@ -4,7 +4,7 @@ En vaktpolicy avgjør hvem som tilkalles om en hendelse eller et varsel, og hvem
 
 :::cards
 - [Opprett en policy](#opprett-en-policy): Et navn, og hvem som tilkalles først.
-- [Hva som kjører en policy](#hva-som-kjører-en-policy): Regler, maler, overvåkinger, chat og deg selv.
+- [Hva som kjører en policy](#hva-som-kjører-en-policy): Regler, maler, monitorer, chat og deg selv.
 - [Utførelseslogger](#utførelseslogger): Hver kjøring, regel for regel, og hvorfor den stoppet.
 - [Arkiver eller slett en policy](#arkiver-eller-slett-en-policy): Ta en policy ut av drift.
 :::
@@ -30,7 +30,7 @@ En policy tilkaller ingen før noe kjører den. Hver hendelse, hvert varsel og h
 
 | Hva | Hvordan policyen legges til | Les mer |
 | --- | --- | --- |
-| Selve posten | Feltet **Vaktpolicy** når en hendelse eller et varsel opprettes, en hendelsesmal, eller den sammenslåtte delen **Vakt** i kriteriene til en overvåking | [Opprette en hendelse](/docs/incidents/declaring-incidents) |
+| Selve posten | Feltet **Vaktpolicy** når en hendelse eller et varsel opprettes, en hendelsesmal, eller den sammenslåtte delen **Vakt** i kriteriene til en monitor | [Opprette en hendelse](/docs/incidents/declaring-incidents) |
 | Vaktregler | **Hendelser → Regler → Vaktregler** og **Varsler → Regler → Vaktregler** legger til policyene fra hver regel som passer | [Vaktregler for hendelser](/docs/incidents/settings#vaktregler-for-hendelser) |
 | Grupperingsregler | En grupperingsregel kjører policyene sine når den åpner en episode | [Varselepisoder og grupperingsregler](/docs/alerts/episodes) |
 | Manuelt | **Kjør vaktpolicy**, i menyen **Handlinger** i en feed, eller på en melding i Slack eller Microsoft Teams | [Hendelsens feed](/docs/incidents/notes-owners-and-feed#hendelsens-feed) |

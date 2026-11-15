@@ -55180,6 +55180,7 @@
   "The request filter can be at most {{max}} characters long.": "The request filter can be at most {{max}} characters long.",
   "The request filter can have at most {{max}} terms.": "The request filter can have at most {{max}} terms.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events.",
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.",
@@ -55687,5 +55688,6 @@
   "Valid (OAuth token)": "Valid (OAuth token)",
   "Yes / No": "Yes / No",
   "which led to {{steps}}": "which led to {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} hasn't run yet. Its fields show up here after it does."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} hasn't run yet. Its fields show up here after it does.",
+  "Insights (explorer analytics)": "Insights (explorer analytics)"
 }

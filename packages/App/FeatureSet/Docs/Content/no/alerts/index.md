@@ -82,7 +82,7 @@ Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en 
 
 ### Velg hva det berører, og hvem som tilkalles
 
-Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Overvåking** det gjelder, og eventuelle **Andre berørte ressurser**, som verter, nettverksenheter, Kubernetes-klynger eller tjenester. Under **Vaktpolicy** velger du policyene som skal kjøre når varselet opprettes.
+Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Monitor** det gjelder, og eventuelle **Andre berørte ressurser**, som verter, nettverksenheter, Kubernetes-klynger eller tjenester. Under **Vaktpolicy** velger du policyene som skal kjøre når varselet opprettes.
 
 ### Opprett det
 

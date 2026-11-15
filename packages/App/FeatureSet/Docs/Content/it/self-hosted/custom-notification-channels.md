@@ -42,7 +42,7 @@ Nel passaggio **Delivery**, **Page everyone through this channel** è attivo. On
 
 Le persone vedono il canale in **Impostazioni utente**, poi **Metodi di notifica**, poi **Canali personalizzati**, con un pulsante **Invia test**, e lo scelgono nelle loro regole di reperibilità come `Custom Channel: CorpoApp`. Non devono configurare nulla: il tuo servizio sa per chi è ogni avviso.
 
-Per smettere di inviare senza cambiare le regole di nessuno, scegli **Disattiva** nel menu ⋯ del canale, oppure modifica il canale e disattiva **Attivato**; **Attiva** nello stesso menu lo riaccende. Gli avvisi che sarebbero andati al canale vengono annotati nel registro di reperibilità come non inviati. Eliminare un canale elimina tutte le regole di reperibilità che lo usano.
+Per smettere di inviare senza cambiare le regole di nessuno, scegli **Disattiva** nel menu ⋯ del canale, oppure modifica il canale e disattiva **Attivato**; **Attiva** nello stesso menu lo riaccende. Gli avvisi che sarebbero andati al canale vengono annotati nel log di reperibilità come non inviati. Eliminare un canale elimina tutte le regole di reperibilità che lo usano.
 
 ## Cosa riceve il tuo servizio
 
@@ -185,7 +185,7 @@ Una notifica va a ogni canale attivo, come una richiesta per canale, con `event`
 
 Una richiesta conta come consegnata quando il tuo servizio risponde con uno stato 2xx entro 10 secondi. Una richiesta senza risposta, o a cui ha risposto con 408, 429 o uno stato 5xx, viene inviata di nuovo dopo 1 secondo e dopo altri 4 secondi: tre tentativi in tutto. Con qualsiasi altro stato 4xx non viene inviata di nuovo. L'esito di ogni messaggio è contato nelle [Metriche di consegna delle notifiche](/docs/self-hosted/notification-delivery-metrics), per ID e nome del canale.
 
-L'esito di ogni tentativo compare nel registro di reperibilità della persona, con il nome del canale e lo stato con cui ha risposto il tuo servizio, mai l'URL. Un avviso non consegnato non ferma la policy di reperibilità: se nessuno conferma, viene escalato come di consueto. Tieni una regola e-mail o SMS più avanti nelle tue regole se il tuo servizio è l'unico modo per raggiungere le persone.
+L'esito di ogni tentativo compare nel log di reperibilità della persona, con il nome del canale e lo stato con cui ha risposto il tuo servizio, mai l'URL. Un avviso non consegnato non ferma la policy di reperibilità: se nessuno conferma, viene escalato come di consueto. Tieni una regola e-mail o SMS più avanti nelle tue regole se il tuo servizio è l'unico modo per raggiungere le persone.
 
 ## Richieste di test
 
@@ -195,7 +195,7 @@ L'esito di ogni tentativo compare nel registro di reperibilità della persona, c
 
 I canali personalizzati funzionano durante la prova di 14 giorni della Enterprise Edition e il periodo di tolleranza di 30 giorni dopo la scadenza di una licenza. Dopo, o con una licenza che non li include:
 
-- **Non viene inviato nulla a nessun canale personalizzato.** Un avviso che sarebbe andato a un canale viene annotato nel registro di reperibilità della persona come non inviato, e così anche un test.
+- **Non viene inviato nulla a nessun canale personalizzato.** Un avviso che sarebbe andato a un canale viene annotato nel log di reperibilità della persona come non inviato, e così anche un test.
 - **I canali non vengono più proposti.** Spariscono dai metodi di notifica, dalle regole di reperibilità e dalle impostazioni delle notifiche delle persone, e la prontezza e il ripiego smettono di contarli.
 - **La conformità dei team non verifica i canali personalizzati.** Una regola di conformità di un team che richiede un canale personalizzato mostra **Non verificato**, e i membri non vengono verificati su di essa finché un canale personalizzato non può di nuovo recapitare un avviso.
 - **La pagina è di sola lettura.** Puoi vedere ed eliminare i canali, ma non aggiungerli né modificarli, e nessuno può indirizzare una regola o un'impostazione delle notifiche verso uno di essi.

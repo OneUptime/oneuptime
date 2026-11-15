@@ -196,7 +196,7 @@ Gli elenchi **Host**, **Replica** e **File system** indicano lo stato di ogni pa
 
 ## Facoltativo — Inviare il syslog dell'array
 
-Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Registri** dell'array resta vuota. Gli array inoltrano i loro avvisi e gli eventi di audit come syslog, e ogni configurazione fornita del collector contiene una coppia di receiver `syslog` commentati (TCP e UDP sulla porta 5514, RFC 3164), collegati a una pipeline `logs` commentata che applica `storage.array.name` così che i log arrivino al tuo array.
+Per impostazione predefinita l'agent invia solo metriche, quindi la pagina **Log** dell'array resta vuota. Gli array inoltrano i loro avvisi e gli eventi di audit come syslog, e ogni configurazione fornita del collector contiene una coppia di receiver `syslog` commentati (TCP e UDP sulla porta 5514, RFC 3164), collegati a una pipeline `logs` commentata che applica `storage.array.name` così che i log arrivino al tuo array.
 
 :::steps
 ### Attivare i receiver

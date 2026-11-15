@@ -77,7 +77,7 @@ SDK 从未启动。几乎总是以下原因之一：
 new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 ```
 
-除非 span 携带了很大的属性，例如整段堆栈跟踪或响应正文，浏览器很少发送这么大的批次。精简这些属性是更好的解决办法。
+除非 span 携带了很大的属性，例如整段堆栈追踪或响应正文，浏览器很少发送这么大的批次。精简这些属性是更好的解决办法。
 
 **`422`.** OneUptime 在这里拒绝了该密钥，消息会说明原因。 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示页面的确切来源（包括协议和端口，如果有）不在该密钥的 **允许的来源** 中。 `This telemetry ingestion key has been disabled.` 表示有人关闭了该密钥。
 

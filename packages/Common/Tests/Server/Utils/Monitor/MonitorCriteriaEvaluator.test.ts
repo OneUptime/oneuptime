@@ -286,7 +286,7 @@ describe("MonitorCriteriaEvaluator - Proxmox root cause breakdown", () => {
      * 3am should not have to divide by 2^30 in their head.
      */
     expect(context).toContain(
-      "1. **Virtual Machine** `db-vm` (`qemu/101`) — **8.59 GB**",
+      "1. **Virtual Machine** `db-vm` (`qemu/101`) — **8.59\u00A0GB**",
     );
     expect(context).not.toContain("**8589934592**");
   });
@@ -548,10 +548,10 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
      */
     expect(context).toContain(
       [
-        "1. **Virtual Machine** `db-01` — **8.59 GB**",
+        "1. **Virtual Machine** `db-01` — **8.59\u00A0GB**",
         "   - Host: `esx-02`",
         "   - Cluster: `prod-cluster`",
-        "2. **Virtual Machine** `lab-01` — **1.07 GB**",
+        "2. **Virtual Machine** `lab-01` — **1.07\u00A0GB**",
         "   - Host: `esx-standalone`",
       ].join("\n"),
     );
@@ -634,7 +634,9 @@ describe("MonitorCriteriaEvaluator - VMware root cause breakdown", () => {
     );
 
     // Unit from the catalog ("ms"), not a bare, unit-less 85.
-    expect(context).toMatch(/1\. \*\*Host\*\* `esx-01` — \*\*85(\.00)? ms\*\*/);
+    expect(context).toMatch(
+      /1\. \*\*Host\*\* `esx-01` — \*\*85(\.00)?\u00A0ms\*\*/,
+    );
   });
 
   test("caps the list at 10 items, worst first, with an overflow suffix", () => {
@@ -791,9 +793,9 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
      */
     expect(context).toContain(
       [
-        "1. **Daemon** `osd.3` — **250 ms**",
+        "1. **Daemon** `osd.3` — **250\u00A0ms**",
         "   - Host: `ceph-node-1`",
-        "2. **Pool** `rbd` (`2`) — **91 ms**",
+        "2. **Pool** `rbd` (`2`) — **91\u00A0ms**",
       ].join("\n"),
     );
     expect(context).not.toContain("| --- |");
@@ -868,8 +870,8 @@ describe("MonitorCriteriaEvaluator - Ceph root cause breakdown", () => {
       }),
     );
 
-    expect(context).toContain("1. **Daemon** `osd.bigger` — **1.07 GB**");
-    expect(context).toContain("2. **Daemon** `osd.smaller` — **922 KB**");
+    expect(context).toContain("1. **Daemon** `osd.bigger` — **1.07\u00A0GB**");
+    expect(context).toContain("2. **Daemon** `osd.smaller` — **922\u00A0KB**");
 
     // "1.07 GB" < "922 KB" as strings — the raw numbers must drive this.
     const biggerIndex: number = context!.indexOf("`osd.bigger`");
@@ -1106,9 +1108,9 @@ describe("MonitorCriteriaEvaluator - Ceph affected-resources breach predicate", 
 
     expect(context).toContain(
       [
-        "1. **Daemon** `osd.3` — **250 ms**",
+        "1. **Daemon** `osd.3` — **250\u00A0ms**",
         "   - Host: `ceph-node-1`",
-        "2. **Pool** `rbd` (`2`) — **91 ms**",
+        "2. **Pool** `rbd` (`2`) — **91\u00A0ms**",
       ].join("\n"),
     );
     expect(context).not.toContain("osd.5");
@@ -1814,7 +1816,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
       });
 
       expect(analysis).toContain(
-        "Node `node-1` is at **1.4 cores** CPU utilization.",
+        "Node `node-1` is at **1.4\u00A0cores** CPU utilization.",
       );
       expect(analysis).not.toContain("1.4%");
     });
@@ -1826,7 +1828,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
       });
 
       expect(analysis).toContain(
-        "Node `node-1` memory usage is at **8.59 GB**.",
+        "Node `node-1` memory usage is at **8.59\u00A0GB**.",
       );
       expect(analysis).not.toContain("8589934592");
       expect(analysis).not.toContain("%");
@@ -1839,7 +1841,7 @@ describe("MonitorCriteriaEvaluator - Kubernetes root cause analysis scoping", ()
       });
 
       expect(analysis).toContain(
-        "Node `node-1` filesystem usage is at **1.1 TB**.",
+        "Node `node-1` filesystem usage is at **1.1\u00A0TB**.",
       );
       expect(analysis).not.toContain("%");
     });
@@ -2095,8 +2097,8 @@ describe("MonitorCriteriaEvaluator - Kubernetes affected resources list", () => 
 
     expect(context).toContain(
       [
-        "1. **Node** `gke-prod-pool-a` — **8.59 GB**",
-        "2. **Node** `gke-prod-pool-b` — **1.07 GB**",
+        "1. **Node** `gke-prod-pool-a` — **8.59\u00A0GB**",
+        "2. **Node** `gke-prod-pool-b` — **1.07\u00A0GB**",
       ].join("\n"),
     );
     expect(context).not.toContain("- Node:");
@@ -2507,7 +2509,7 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
     );
 
     expect(context).toContain(
-      "1. **Virtual Machine** `5029abcd-1111-2222-3333-444455556666` — **1.07 GB**\n   - Host: `esx-01`",
+      "1. **Virtual Machine** `5029abcd-1111-2222-3333-444455556666` — **1.07\u00A0GB**\n   - Host: `esx-01`",
     );
   });
 
@@ -2638,7 +2640,7 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
       }),
     );
 
-    expect(context).toContain("1. **Pool** `7` — **3 B**");
+    expect(context).toContain("1. **Pool** `7` — **3\u00A0B**");
   });
 
   test("Ceph: a daemon lists its pool and host; a pool lists its host; a host and a cluster stand alone", () => {
@@ -2676,13 +2678,13 @@ describe("MonitorCriteriaEvaluator - per-platform resource kinds in the list", (
 
     expect(context).toContain(
       [
-        "1. **Daemon** `osd.7` — **400 ms**",
+        "1. **Daemon** `osd.7` — **400\u00A0ms**",
         "   - Pool: `rbd` (`2`)",
         "   - Host: `ceph-node-1`",
-        "2. **Pool** `cephfs_data` (`3`) — **300 ms**",
+        "2. **Pool** `cephfs_data` (`3`) — **300\u00A0ms**",
         "   - Host: `ceph-node-2`",
-        "3. **Host** `ceph-node-3` — **200 ms**",
-        "4. **Cluster** `prod-cluster` — **100 ms**",
+        "3. **Host** `ceph-node-3` — **200\u00A0ms**",
+        "4. **Cluster** `prod-cluster` — **100\u00A0ms**",
       ].join("\n"),
     );
   });

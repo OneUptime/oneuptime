@@ -133,7 +133,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 4. **워크플로 생성**을 클릭합니다. 모든 워크플로는 꺼진 상태로 만들어집니다. **빌더** 상단에서 **활성화됨**을 켜세요.
 :::
 
-**Create a Dynamics 365 case when an incident is declared**(경고라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 경고를 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-case-1`의 **응답 본문**에 `CAS-01001-X1Y2Z3` 같은 새 사례의 `ticketnumber`가 들어 있습니다.
+**Create a Dynamics 365 case when an incident is declared**(경고가라면 **Create a Dynamics 365 case when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Dynamics 365 템플릿은 모두 이 템플릿이 쓰는 링크로 사례를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 경고를 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-case-1`의 **응답 본문**에 `CAS-01001-X1Y2Z3` 같은 새 사례의 `ticketnumber`가 들어 있습니다.
 
 ### Dynamics 365 → OneUptime 템플릿 연결하기
 

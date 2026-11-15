@@ -129,7 +129,7 @@ Atlassian **서비스 계정**도 쓸 수 있습니다. 조직 관리자가 [adm
 4. **워크플로 생성**을 클릭합니다. 모든 워크플로는 꺼진 상태로 만들어집니다. **빌더** 상단에서 **활성화됨**을 켜세요.
 :::
 
-**Create a Jira issue when an incident is declared**(경고라면 **Create a Jira issue when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Jira 템플릿은 모두 이 템플릿이 붙이는 레이블로 이슈를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 경고를 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-issue-1`의 **응답 본문**에 새 이슈가 나옵니다.
+**Create a Jira issue when an incident is declared**(경고가라면 **Create a Jira issue when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Jira 템플릿은 모두 이 템플릿이 붙이는 레이블로 이슈를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 경고를 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-issue-1`의 **응답 본문**에 새 이슈가 나옵니다.
 
 각 워크플로는 이 값의 사본을 따로 가집니다. 토큰을 교체할 때는 토큰을 물었던 모든 Jira 워크플로의 **워크플로 변수**에서 `jiraBasicAuthToken`을 업데이트하세요. Jira 주소가 바뀌면 `jiraSiteUrl`과 `jiraBaseUrl`도 같은 방식으로 업데이트하세요.
 
@@ -196,7 +196,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 연결은 Jira가 보관합니다. 인시던트나 경고에 속한 이슈에는 레이블이 두 개 붙습니다:
 
 - `oneuptime`: 이슈가 연결되어 있음을 표시합니다.
-- 인시던트라면 `oneuptime-incident-<incident id>`, 경고라면 `oneuptime-alert-<alert id>`: 레코드를 가리킵니다. ID는 대시보드에서 레코드 주소의 마지막 부분입니다: `/dashboard/<project id>/incidents/<incident id>`.
+- 인시던트라면 `oneuptime-incident-<incident id>`, 경고가라면 `oneuptime-alert-<alert id>`: 레코드를 가리킵니다. ID는 대시보드에서 레코드 주소의 마지막 부분입니다: `/dashboard/<project id>/incidents/<incident id>`.
 
 이슈를 만드는 두 템플릿은 이슈를 열 때 두 레이블을 모두 붙이고, Jira 이슈에서 레코드를 만드는 두 템플릿은 레코드가 생기는 즉시 두 레이블을 붙입니다. 다른 모든 템플릿은 이 레이블로 반대편을 찾습니다. OneUptime → Jira 템플릿은 레코드의 레이블로 Jira를 검색하고, Jira → OneUptime 템플릿은 이슈의 레이블에서 레코드의 ID를 읽습니다. 그러니 이름을 바꾸거나 지우지 마세요. 직접 연 이슈를 연결하려면 레코드에 아직 이슈가 없을 때만 두 레이블을 직접 붙이세요.
 

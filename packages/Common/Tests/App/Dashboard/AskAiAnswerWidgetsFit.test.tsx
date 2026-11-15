@@ -34,15 +34,15 @@ afterEach(() => {
 
 describe("a chart's axis writes each value short enough for one line", () => {
   test("a latency series: milliseconds, then seconds, as the dashboards write them", () => {
-    expect(formatChartValue(0, "ms")).toBe("0 ms");
-    expect(formatChartValue(650, "ms")).toBe("650 ms");
-    expect(formatChartValue(1300, "ms")).toBe("1.3 s");
-    expect(formatChartValue(1950, "ms")).toBe("1.95 s");
-    expect(formatChartValue(2600, "ms")).toBe("2.6 s");
+    expect(formatChartValue(0, "ms")).toBe("0\u00A0ms");
+    expect(formatChartValue(650, "ms")).toBe("650\u00A0ms");
+    expect(formatChartValue(1300, "ms")).toBe("1.3\u00A0s");
+    expect(formatChartValue(1950, "ms")).toBe("1.95\u00A0s");
+    expect(formatChartValue(2600, "ms")).toBe("2.6\u00A0s");
   });
 
   test("bytes and big bare numbers are scaled too; a percent joins its number", () => {
-    expect(formatChartValue(1500000, "bytes")).toBe("1.5 MB");
+    expect(formatChartValue(1500000, "bytes")).toBe("1.5\u00A0MB");
     expect(formatChartValue(1204331)).toBe("1.2M");
     expect(formatChartValue(1204331, "")).toBe("1.2M");
     expect(formatChartValue(42, "%")).toBe("42.00%");

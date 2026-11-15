@@ -392,6 +392,34 @@ describe("TelemetryIngestionBudget.admit refusals", () => {
     expect(logger.warn as unknown as MockFn).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * The page holds a budget's figure to its unit (#8457); the sender's
+   * answer keeps the plain space its logs and the docs' quote of it have.
+   */
+  test("the sender's answer writes its figures with plain spaces, in every refusal", () => {
+    for (const kind of [
+      TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
+      TelemetryIngestionBudgetRefusalKind.RateLimited,
+    ]) {
+      for (const scope of [
+        TelemetryIngestionBudgetScope.Project,
+        TelemetryIngestionBudgetScope.IngestionKey,
+      ]) {
+        const message: string = TelemetryIngestionBudget.getRefusalMessage({
+          kind: kind,
+          scope: scope,
+          signal: ProductType.Traces,
+          limitBytes: 1536 * 1024 * 1024,
+          resetsAt: new Date("2026-11-10T00:00:00.000Z"),
+          retryAfterSeconds: 2,
+        });
+
+        expect(message).not.toContain("\u00A0");
+        expect(message).toMatch(/\d (GB|MB per second)/);
+      }
+    }
+  });
+
   test("logs only the day's first refusal", async () => {
     getInstanceSettings.mockResolvedValue(instance(logs(10)) as never);
     consume.mockResolvedValue({

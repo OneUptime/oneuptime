@@ -616,8 +616,7 @@ function menuTitlesApartFromPages(
  * Comparing only the nouns let 19 more pairs through (#8229): Danish
  * "Overvågninger" over "Monitorer" and "Målinger" over "Metrikker",
  * Norwegian "Overvåkere", Swedish "Mått" over "Mätvärden", Italian "Log"
- * over "Registri", Russian "Логи" over "Журналы", Korean 경고 over 알림
- * (the page now says 경고 too, #8686),
+ * over "Registri", Russian "Логи" over "Журналы", Korean 경고 over 알림,
  * Chinese 跟踪 over 追踪 and 资产清单 over 清单 (資產清單 over 清單),
  * Hindi कतारें over क्यू,
  * Spanish "Hallazgos" over "Análisis", Italian "Insight" over
@@ -711,33 +710,36 @@ describe("the Products menu and the page it opens", () => {
     ["ru", "Dashboards", "Панели"],
     ["no", "Metrics", "Målinger"],
     ["fr", "Workflows", "Flux de travail"],
-    // #8229: the menu took its page's word.
+    /*
+     * #8229: the menu took its page's word. #8628 then moved Italian logs,
+     * Korean alerts, Spanish insights and French and Persian SLOs, menu
+     * and page together, to the word their sentences say most
+     * (OneWordInSentencesPerThing).
+     */
     ["da", "Monitors", "Monitorer"],
     ["da", "Metrics", "Metrikker"],
     ["no", "Monitors", "Monitorer"],
     ["sv", "Metrics", "Mätvärden"],
-    ["it", "Logs", "Registri"],
+    ["it", "Logs", "Log"],
     ["ru", "Logs", "Журналы"],
+    ["ko", "Alerts", "경고"],
     ["zh-CN", "Traces", "追踪"],
     ["hi", "Queues", "क्यू"],
-    ["es", "Insights", "Análisis"],
+    ["es", "Insights", "Hallazgos"],
     ["de", "Status Pages", "Statusseiten"],
     ["hi", "Logs", "लॉग"],
     ["hi", "Hosts", "होस्ट"],
     ["ru", "Traces", "Трассировки"],
-    ["fr", "SLOs", "SLOs"],
-    ["fa", "SLOs", "SLOs"],
+    ["fr", "SLOs", "SLO"],
+    ["fa", "SLOs", "SLOها"],
     /*
      * #8229: the page took the menu's word. "Informazioni" is information;
      * 清单 and 清單 on their own are any list (the Users 清單), where the
-     * menu and the docs name the product 资产清单 and 資產清單. Korean 알림
-     * is a notification (Notifications reads 알림), so the Alerts page took
-     * the menu's 경고, which an alert is everywhere else (#8686).
+     * menu and the docs name the product 资产清单 and 資產清單.
      */
     ["it", "Insights", "Insight"],
     ["zh-CN", "Inventory", "资产清单"],
     ["zh-TW", "Inventory", "資產清單"],
-    ["ko", "Alerts", "경고"],
   ])(
     "%s: the menu's %s and its page both read %p",
     (language: string, english: string, name: string) => {
