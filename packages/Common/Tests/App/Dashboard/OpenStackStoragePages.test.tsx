@@ -334,7 +334,7 @@ describe("the Volumes list", () => {
       return type.textContent || "";
     });
     expect(types).toEqual(
-      expect.arrayContaining(["ceph2 volumes30 GiB", "ssd1 volume10 GiB"]),
+      expect.arrayContaining(["ceph2 volumes30\u00A0GiB", "ssd1 volume10\u00A0GiB"]),
     );
   });
 
@@ -366,7 +366,7 @@ describe("the Volumes list", () => {
           return type.textContent;
         },
       ),
-    ).toEqual([expect.stringMatching(/1 volume.*20 GiB/)]);
+    ).toEqual([expect.stringMatching(/1 volume.*20\u00A0GiB/)]);
   });
 
   test("no volumes and a read of the types that failed leave the card out", async () => {
