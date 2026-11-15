@@ -62,6 +62,7 @@ import PodmanDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pa
 import DockerSwarmDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Documentation";
 import CephDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Documentation";
 import IoTDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Documentation";
+import OpenStackDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Documentation";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -86,6 +87,12 @@ import { getCephSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Page
 import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
 import { getIoTSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
 import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
+import {
+  OpenStackConnectMethod,
+  getOpenStackSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
+import { OpenStackDeploymentTool } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
+import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -101,6 +108,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   DockerSwarm: {},
   Ceph: {},
   IoT: {},
+  OpenStack: {},
 };
 
 /*
@@ -138,6 +146,24 @@ function cephGuide(): SetupGuideContent {
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: "install-script",
+  });
+}
+
+/*
+ * The OpenStack guide a reader meets before a key is picked: for "Not sure,
+ * or something else" and the install script unless a tool and an install
+ * method are picked.
+ */
+function openStackGuide(
+  tool: OpenStackDeploymentTool = "not-sure",
+  method: OpenStackConnectMethod = "install-script",
+): SetupGuideContent {
+  return getOpenStackSetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    method: method,
+    tool: tool,
   });
 }
 
@@ -253,6 +279,9 @@ beforeAll(async () => {
     ).default;
     WORDS["IoT"]![language] = (
       await IOT_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["OpenStack"]![language] = (
+      await OPENSTACK_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -536,6 +565,208 @@ describe("Ceph > Help > Documentation", () => {
           language === "fa" ? "rtl" : "ltr",
         );
       }
+    },
+  );
+});
+
+describe("OpenStack > Help > Documentation", () => {
+  /*
+   * The credential step's tabs (Full view, Infrastructure only, Project
+   * view) draw one at a time: each is picked once, so every tab is drawn.
+   */
+  async function openEveryVariant(): Promise<void> {
+    for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+      await act(async () => {
+        fireEvent.click(tab);
+      });
+    }
+    await settle();
+  }
+
+  // Every piece of `guide` is drawn in the reader's words, and none in English.
+  function expectGuideInReadersWords(
+    guide: SetupGuideContent,
+    language: string,
+  ): void {
+    const drawn: string = drawnTexts().join("\n");
+
+    for (const piece of getSetupGuideWordPieces(guide)) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: false,
+      });
+    }
+    for (const piece of getSetupGuideWordPieces(
+      inLanguage("OpenStack", guide, language),
+    )) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: true,
+      });
+    }
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the OpenStack guide, its questions and its topics in the reader's words, its commands as written",
+    async (language: string) => {
+      await drawIn(language, <OpenStackDocumentationPage {...PAGE_PROPS} />);
+      await openEveryVariant();
+
+      expectGuideInReadersWords(openStackGuide(), language);
+
+      // The card's own words, both questions and the topics' summaries come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect an OpenStack Cloud"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect an OpenStack Cloud")).toBeNull();
+      expect(
+        screen.getByText(locale["Create the agent's credential"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["How do you deploy OpenStack?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["How do you want to install the agent?"]!),
+      ).toBeInTheDocument();
+
+      // The role, the variables and the access table's services are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`oneuptime_monitoring`");
+      expect(drawn).toContain("`OPENSTACK_CLOUD_NAME`");
+      expect(drawn).toContain("`OPENSTACK_EXPORTER_CLOUDS`");
+      expect(drawn).toContain("Keystone");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each(["de", "ar"])(
+    "in %s, picking Kolla-Ansible and Docker Compose draws that tool's own steps in the reader's words",
+    async (language: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <OpenStackDocumentationPage {...PAGE_PROPS} />
+          </MemoryRouter>,
+        );
+      });
+      await settle();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("setup-guide-option-kolla-ansible"));
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId("setup-guide-option-docker-compose"),
+        );
+      });
+      await settle();
+      await openEveryTopic();
+      await openEveryVariant();
+
+      expectGuideInReadersWords(
+        openStackGuide("kolla-ansible", "docker-compose"),
+        language,
+      );
+
+      // Kolla-Ansible's own step and its exporter table, with the ports and settings as written.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Watch what the cloud stands on"]!),
+      ).toBeInTheDocument();
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`OPENSTACK_RABBITMQ_TARGETS`");
+      expect(drawn).toContain("`15692`");
+      expect(drawn).toContain("`/etc/kolla/globals.yml`");
+    },
+  );
+
+  /*
+   * A closed topic shows its summary under its title. Who did what's was
+   * written in a const the i18n extractor never saw, so it read in English
+   * in every language (#8341).
+   */
+  test.each(["de", "ar"])(
+    "in %s, the Who did what topic's summary is in the reader's words",
+    async (language: string) => {
+      const summary: string =
+        "Keystone's audit trail and the audit filter on each API, into Security Events.";
+
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <OpenStackDocumentationPage {...PAGE_PROPS} />
+          </MemoryRouter>,
+        );
+      });
+      await settle();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("setup-guide-advanced-toggle"));
+      });
+
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(locale[summary]).toBeDefined();
+      expect(locale[summary]).not.toBe(summary);
+      expect(screen.getByText(locale[summary]!)).toBeInTheDocument();
+      expect(screen.queryByText(summary)).toBeNull();
+      expect(screen.getByText(locale["Who did what"]!)).toBeInTheDocument();
+    },
+  );
+
+  test("a tool without an agent draws a probe's steps in the reader's words, and no install question", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <OpenStackDocumentationPage {...PAGE_PROPS} />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("setup-guide-option-openstack-helm"));
+    });
+    await settle();
+    await openEveryTopic();
+
+    expectGuideInReadersWords(openStackGuide("openstack-helm"), "de");
+
+    const locale: Record<string, string> = readDashboardLocale("de");
+    expect(
+      screen.queryByText(locale["How do you want to install the agent?"]!),
+    ).toBeNull();
+    expect(drawnTexts().join("\n")).toContain("**OpenStack → Alle Clouds**");
+  });
+
+  /*
+   * The key the guide's first step creates is named "OpenStack key". Chinese
+   * named it 键 (a keyboard's key) where every other product's is 密钥 and
+   * 金鑰: in every language it is worded as Docker's and Ceph's are.
+   */
+  test.each(["de", "fr", "ja", "ko", "zh-CN", "zh-TW", "hi", "fa", "ar"])(
+    "in %s, the OpenStack key is named as the other products' keys are",
+    (language: string) => {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      expect(locale["OpenStack key"]).toBe(
+        locale["Docker key"]!.replace("Docker", "OpenStack"),
+      );
+      expect(locale["OpenStack key"]).toBe(
+        locale["Ceph key"]!.replace("Ceph", "OpenStack"),
+      );
     },
   );
 });
