@@ -117,7 +117,7 @@ En regel som tilkaller en telefon, bestemmer hvordan pushen høres ut:
 | **Kritisk varsel** | Ringer selv når telefonen er på lydløs eller i Ikke forstyrr, når Critical On-Call Alerts er slått på i appen OneUptime On-Call. En ny telefonregel starter her. |
 | **Normal** | Følger telefonens innstillinger for lyd, lydløs og Ikke forstyrr. |
 
-En push-regel, for en telefon eller en nettleser, kan også sende pushen på nytt til noen bekrefter: **Ikke gjenta**, standarden, eller **Hvert minutt**, **Hvert 2. minutt**, **Hvert 3. minutt**, **Hvert 5. minutt**, **Hvert 10. minutt**, **Hvert 15. minutt** eller **Hvert 30. minutt**. Den gjentas opptil 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. Se [Kritiske vaktvarsler](/docs/self-hosted/push-notifications#kritiske-vaktvarsler-overstyre-lydløs-modus).
+En push-regel, for en telefon eller en nettleser, kan også sende pushen på nytt til noen bekrefter: **Ikke gjenta**, standarden, eller **Hvert minutt**, **Hvert 2. minutt**, **Hvert 3. minutt**, **Hvert 5. minutt**, **Hvert 10. minutt**, **Hvert 15. minutt** eller **Hvert 30. minutt**. Den gjentas opptil 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. En tilkalling som fortsetter etter en bekreftelse, som en ny varsling, gjentas til noen den har tilkalt, svarer, eller hendelsen, varselet eller episoden er løst: [Når flere retningslinjer tilkaller](/docs/on-call/policies#når-flere-retningslinjer-tilkaller) nevner dem. Se [Kritiske vaktvarsler](/docs/self-hosted/push-notifications#kritiske-vaktvarsler-overstyre-lydløs-modus).
 
 ## Når en alvorlighetsgrad ikke har noen regel
 
