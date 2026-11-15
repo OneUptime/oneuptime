@@ -1,6 +1,7 @@
 // UX rule: Docs/ux/README.md#in-every-language
 import {
   ADMIN_DASHBOARD_SOURCE,
+  REPOSITORY_ROOT,
   isSourceFile,
   readAdminOwnStrings,
   readDrawnAsWritten,
@@ -33,9 +34,19 @@ import path from "path";
  * key the locales hold as written (READ_AS_WRITTEN there), so the list
  * needs no exceptions.
  *
- * The Enterprise pages (ee/AdminDashboard) still draw theirs as written:
- * #8599.
+ * The Enterprise Edition's admin pages (ee/AdminDashboard) draw through the
+ * same locales and are held the same way when the checkout has them: they
+ * drew 204 as written (#8599). The App's test job runs without ee/, so
+ * there they are skipped.
  */
+
+const ENTERPRISE_SOURCE: string = path.join(
+  REPOSITORY_ROOT,
+  "ee",
+  "AdminDashboard",
+);
+
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(ENTERPRISE_SOURCE);
 
 const SOURCE_PREFIX: string = "packages/App/FeatureSet/AdminDashboard/src/";
 
@@ -78,6 +89,37 @@ describe("the Admin Dashboard's own pages", () => {
     expect(readAdminOwnStrings().texts.length).toBeGreaterThan(500);
   });
 });
+
+(ENTERPRISE_PRESENT ? describe : describe.skip)(
+  "the Enterprise Edition's admin pages (#8599)",
+  () => {
+    test("draw no text as written: each goes through translation", () => {
+      expect(
+        readDrawnAsWritten(ENTERPRISE_SOURCE).map(
+          (entry: HardcodedString): string => {
+            return `${entry.file}:${entry.line} [${entry.reason}] ${entry.text}`;
+          },
+        ),
+      ).toEqual([]);
+    });
+
+    test("are all read: the licenses, live Health, White Label and backup pages", () => {
+      const files: Array<string> = fs
+        .readdirSync(ENTERPRISE_SOURCE, { recursive: true })
+        .map((file: string | Buffer): string => {
+          return String(file);
+        })
+        .filter((file: string): boolean => {
+          return isSourceFile(path.basename(file));
+        });
+
+      expect(files.length).toBeGreaterThan(50);
+      expect(
+        readAdminOwnStrings(ENTERPRISE_SOURCE).texts.length,
+      ).toBeGreaterThan(500);
+    });
+  },
+);
 
 /*
  * What the guard names, on fixtures: a passing run is not a scan that

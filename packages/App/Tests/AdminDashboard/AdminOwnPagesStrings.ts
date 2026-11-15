@@ -1,5 +1,6 @@
 import {
   HardcodedString,
+  SourceKind,
   SourceScanResult,
   UndefinedNestedKey,
   scanSourceText,
@@ -97,9 +98,10 @@ export function listSourceFiles(directory: string): Array<string> {
 export function readOwnStrings(
   relativeFile: string,
   source: string,
+  kind: SourceKind = "ui",
 ): { texts: Array<OwnText>; nestedKeys: Array<OwnNestedKey> } {
   const result: SourceScanResult = scanSourceText(relativeFile, source, {
-    kind: "ui",
+    kind,
   });
   const drawnAsWritten: Set<string> = new Set<string>(
     result.hardcoded.map((entry: HardcodedString): string => {
@@ -150,6 +152,36 @@ export function readOwnStrings(
   }
 
   return { texts, nestedKeys };
+}
+
+/*
+ * Shared catalogs outside the Admin's src whose words its pages draw: the
+ * activation milestones' titles and what a project is missing, on a
+ * project's milestones card and its setup pill (#8599). Each is read for
+ * what it marks as a key (translationKey), as the Dashboard's extractor
+ * reads such a file ("keys"): its other strings are values, not words.
+ */
+export const ADMIN_DASHBOARD_CATALOGS: ReadonlyArray<string> = [
+  "packages/Common/Types/Analytics/ActivationMilestone.ts",
+];
+
+export function readAdminCatalogStrings(): OwnStrings {
+  const texts: Array<OwnText> = [];
+  const nestedKeys: Array<OwnNestedKey> = [];
+
+  for (const file of ADMIN_DASHBOARD_CATALOGS) {
+    const read: { texts: Array<OwnText>; nestedKeys: Array<OwnNestedKey> } =
+      readOwnStrings(
+        file,
+        fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
+        "keys",
+      );
+
+    texts.push(...read.texts);
+    nestedKeys.push(...read.nestedKeys);
+  }
+
+  return { texts, nestedKeys, files: ADMIN_DASHBOARD_CATALOGS.length };
 }
 
 // Every text the Admin Dashboard's own src hands a lookup.
