@@ -100,19 +100,12 @@ const DOCS_NAV_DIR: string = path.join(APPS_DIR, "Docs/Locales");
  * dropped word, in pages written before the Dashboard settled on one. Every
  * other name's docs say the one name and are read for it. #8230 took the
  * last five off (French, Italian and Danish workflows, Russian dashboards,
- * Norwegian metrics): a name added to OneNamePerThing before its docs are
+ * Norwegian metrics), and #8565 the Italian and Portuguese on-call policy
+ * #8435 had put here: a name added to OneNamePerThing before its docs are
  * reworded goes here, and comes off when they say the one name - the test
  * fails while one is listed and clean.
  */
-const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [
-  /*
-   * #8435 settled the Dashboard's Italian and Portuguese words for an
-   * on-call policy; their docs pages still say the dropped ones (#8565).
-   * Norwegian's docs say vaktpolicy since #8527.
-   */
-  { language: "it", title: "On-Call" },
-  { language: "pt", title: "On-Call" },
-];
+const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [];
 
 /*
  * Products whose Products-menu title (navbar.items.*Title) still names
@@ -879,7 +872,8 @@ describe("every name in OneNamePerThing", () => {
    * The French, Italian and Danish docs said "workflow", the Russian
    * "дашборд" and the Norwegian "metrikk" in about 3,800 blocks and 35
    * navigation titles beside their Dashboard's word (#8230): they are read
-   * for it like every other name's.
+   * for it like every other name's. So are the Italian, Portuguese and
+   * Norwegian on-call policy's (#8565, #8527).
    */
   test.each([
     ["fr", "Workflows"],
@@ -887,6 +881,9 @@ describe("every name in OneNamePerThing", () => {
     ["da", "Workflows"],
     ["ru", "Dashboards"],
     ["no", "Metrics"],
+    ["it", "On-Call"],
+    ["pt", "On-Call"],
+    ["no", "On-Call"],
   ])(
     "%s %s: its docs are read for the one name",
     (language: string, title: string) => {
