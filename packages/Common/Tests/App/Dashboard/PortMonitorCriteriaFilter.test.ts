@@ -88,6 +88,6 @@ describe("Dashboard Port timing criteria", () => {
 
     expect(
       CriteriaFilterUtil.translateFilterToText(filter, FilterCondition.All),
-    ).toContain("125ms");
+    ).toContain("125 ms");
   });
 });

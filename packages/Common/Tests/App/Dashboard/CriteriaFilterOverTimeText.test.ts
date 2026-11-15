@@ -67,7 +67,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         FilterCondition.All,
       ),
     ).toBe(
-      'Check if "Response Body" not contains "App Title" on every check in the past 5 minutes and,',
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes and,',
     );
   });
 
@@ -77,7 +77,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         overTime(BODY, EvaluateOverTimeType.AnyValue, 15),
       ),
     ).toBe(
-      'Check if "Response Body" not contains "App Title" on any check in the past 15 minutes ',
+      'Check if "Response Body" does not contain "App Title" on any check in the past 15 minutes',
     );
   });
 
@@ -87,7 +87,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         overTime(BODY, EvaluateOverTimeType.Average),
       ),
     ).toBe(
-      'Check if "Response Body" not contains "App Title" on every check in the past 5 minutes ',
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes',
     );
   });
 
@@ -105,7 +105,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         overTime(HEADER_VALUE, undefined, 10),
       ),
     ).toBe(
-      'Check if "Response Header Value" contains "starting" on every check in the past 10 minutes ',
+      'Check if "Response Header Value" contains "starting" on every check in the past 10 minutes',
     );
   });
 
@@ -125,13 +125,13 @@ describe("the criteria list, for a filter judged from its match history", () => 
         }),
       ),
     ).toBe(
-      'Check if all values of "Is Request Timeout" in the past 5 minutes is true ',
+      'Check if all values of "Is Request Timeout" in the past 5 minutes is true',
     );
   });
 
   test("the same filters without a window read without one", () => {
     expect(CriteriaFilterUtil.translateFilterToText(BODY)).toBe(
-      'Check if "Response Body" not contains "App Title" ',
+      'Check if "Response Body" does not contain "App Title"',
     );
     expect(CriteriaFilterUtil.translateFilterToText(EXPRESSION)).toBe(
       "Check if JavaScript expression '{{responseBody.status}}' === 'starting' - evaluates to true.",
@@ -144,7 +144,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         ...BODY,
         evaluateOverTime: true,
       }),
-    ).toBe('Check if "Response Body" not contains "App Title" ');
+    ).toBe('Check if "Response Body" does not contain "App Title"');
   });
 
   test("nor does a window without minutes - saved through the API, or with the dropdown cleared", () => {
@@ -165,9 +165,9 @@ describe("the criteria list, for a filter judged from its match history", () => 
           undefined,
           MonitorType.Website,
         ),
-      ).toBe('Check if "Response Body" not contains "App Title" ');
+      ).toBe('Check if "Response Body" does not contain "App Title"');
       expect(CriteriaFilterUtil.translateFilterToText(noMinutes)).toBe(
-        'Check if "Response Body" not contains "App Title" ',
+        'Check if "Response Body" does not contain "App Title"',
       );
     }
   });
@@ -194,7 +194,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
         MonitorType.Website,
       ),
     ).toBe(
-      'Check if "Response Body" not contains "App Title" on every check in the past 5 minutes ',
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes',
     );
 
     for (const monitorType of [
@@ -224,7 +224,9 @@ describe("the criteria list, for a filter judged from its match history", () => 
           EvaluateOverTimeType.Average,
         ),
       ),
-    ).toContain('average value"Response Time (in ms)" in the past 5 minutes');
+    ).toContain(
+      'average value of "Response Time (in ms)" in the past 5 minutes',
+    );
   });
 });
 
@@ -238,7 +240,7 @@ describe("the criteria list, for a filter judged from its match history", () => 
 describe("the criteria list quotes the text a comparison looks for", () => {
   test.each([
     [FilterType.Contains, "contains"],
-    [FilterType.NotContains, "not contains"],
+    [FilterType.NotContains, "does not contain"],
     [FilterType.StartsWith, "starts with"],
     [FilterType.EndsWith, "ends with"],
   ])(
@@ -250,7 +252,7 @@ describe("the criteria list quotes the text a comparison looks for", () => {
           filterType: filterType,
           value: "max-age=0",
         }),
-      ).toBe(`Check if "Response Header Value" ${verb} "max-age=0" `);
+      ).toBe(`Check if "Response Header Value" ${verb} "max-age=0"`);
     },
   );
 
@@ -270,7 +272,7 @@ describe("the criteria list quotes the text a comparison looks for", () => {
         MonitorType.Website,
       ),
     ).toBe(
-      'Check if "Response Body" contains "Application starting..." on every check in the past 15 minutes ',
+      'Check if "Response Body" contains "Application starting..." on every check in the past 15 minutes',
     );
   });
 
@@ -281,21 +283,21 @@ describe("the criteria list quotes the text a comparison looks for", () => {
         filterType: FilterType.GreaterThan,
         value: 3000,
       }),
-    ).toBe('Check if "Response Time (in ms)" is greater than 3000ms ');
+    ).toBe('Check if "Response Time (in ms)" is greater than 3,000 ms');
     expect(
       CriteriaFilterUtil.translateFilterToText({
         checkOn: CheckOn.ResponseStatusCode,
         filterType: FilterType.EqualTo,
         value: 200,
       }),
-    ).toBe('Check if "Response Status Code" is equal to 200 ');
+    ).toBe('Check if "Response Status Code" is equal to 200');
     expect(
       CriteriaFilterUtil.translateFilterToText({
         checkOn: CheckOn.IsOnline,
         filterType: FilterType.True,
         value: undefined,
       }),
-    ).toBe('Check if "Is Online" is true ');
+    ).toBe('Check if "Is Online" is true');
   });
 
   test("isTextComparison is exactly the four text conditions", () => {
@@ -315,63 +317,76 @@ describe("the criteria list quotes the text a comparison looks for", () => {
   });
 });
 
-describe("getCheckByCheckWindowText", () => {
-  test("is empty for a filter without a window", () => {
-    expect(CriteriaFilterUtil.getCheckByCheckWindowText(BODY)).toBe("");
-    expect(CriteriaFilterUtil.getCheckByCheckWindowText(undefined)).toBe("");
+describe("getCheckByCheckWindow", () => {
+  test("is none for a filter without a window", () => {
+    expect(CriteriaFilterUtil.getCheckByCheckWindow(BODY)).toBeNull();
+    expect(CriteriaFilterUtil.getCheckByCheckWindow(undefined)).toBeNull();
   });
 
-  test("is empty for a measured value and for a true/false series", () => {
+  test("is none for a measured value and for a true/false series", () => {
     expect(
-      CriteriaFilterUtil.getCheckByCheckWindowText(
+      CriteriaFilterUtil.getCheckByCheckWindow(
         overTime({
           checkOn: CheckOn.ResponseTime,
           filterType: FilterType.GreaterThan,
           value: 3000,
         }),
       ),
-    ).toBe("");
+    ).toBeNull();
     expect(
-      CriteriaFilterUtil.getCheckByCheckWindowText(
+      CriteriaFilterUtil.getCheckByCheckWindow(
         overTime({
           checkOn: CheckOn.IsOnline,
           filterType: FilterType.False,
           value: undefined,
         }),
       ),
-    ).toBe("");
+    ).toBeNull();
   });
 
   test("names the checks and the window otherwise", () => {
-    expect(CriteriaFilterUtil.getCheckByCheckWindowText(overTime(BODY))).toBe(
-      "on every check in the past 5 minutes ",
-    );
+    expect(CriteriaFilterUtil.getCheckByCheckWindow(overTime(BODY))).toEqual({
+      minutes: 5,
+      isAnyCheck: false,
+    });
     expect(
-      CriteriaFilterUtil.getCheckByCheckWindowText(
+      CriteriaFilterUtil.getCheckByCheckWindow(
         overTime(HEADER, EvaluateOverTimeType.AnyValue, 30),
       ),
-    ).toBe("on any check in the past 30 minutes ");
+    ).toEqual({ minutes: 30, isAnyCheck: true });
   });
 
-  test("is empty on a monitor type that keeps no match history for the check", () => {
+  test("a window saved as a string of minutes is read as its number", () => {
     expect(
-      CriteriaFilterUtil.getCheckByCheckWindowText(
+      CriteriaFilterUtil.getCheckByCheckWindow(
+        overTime(
+          BODY,
+          EvaluateOverTimeType.AllValues,
+          "10" as unknown as number,
+        ),
+      ),
+    ).toEqual({ minutes: 10, isAnyCheck: false });
+  });
+
+  test("is none on a monitor type that keeps no match history for the check", () => {
+    expect(
+      CriteriaFilterUtil.getCheckByCheckWindow(
         overTime(EXPRESSION),
         MonitorType.SQLQuery,
       ),
-    ).toBe("");
+    ).toBeNull();
     expect(
-      CriteriaFilterUtil.getCheckByCheckWindowText(
+      CriteriaFilterUtil.getCheckByCheckWindow(
         overTime(BODY),
         MonitorType.SyntheticMonitor,
       ),
-    ).toBe("");
+    ).toBeNull();
     expect(
-      CriteriaFilterUtil.getCheckByCheckWindowText(
+      CriteriaFilterUtil.getCheckByCheckWindow(
         overTime(EXPRESSION),
         MonitorType.API,
       ),
-    ).toBe("on every check in the past 5 minutes ");
+    ).toEqual({ minutes: 5, isAnyCheck: false });
   });
 });
 
