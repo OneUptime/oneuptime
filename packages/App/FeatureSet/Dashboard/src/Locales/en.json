@@ -54668,6 +54668,8 @@
   "Inactive · seen {{time}}": "Inactive · seen {{time}}",
   "Runs on {{count}} of these": "Runs on {{count}} of these",
   "Runs on {{count}} of these_one": "Runs on {{count}} of these",
+  "Fleets and devices, and the attributes that identify and classify them.": "Fleets and devices, and the attributes that identify and classify them.",
+  "How OneUptime models IoT": "How OneUptime models IoT",
   "The call could not be connected.": "The call could not be connected.",
   "The call was answered and lasted {{count}} seconds.": "The call was answered and lasted {{count}} seconds.",
   "The call was answered and lasted {{count}} seconds._one": "The call was answered and lasted {{count}} second.",

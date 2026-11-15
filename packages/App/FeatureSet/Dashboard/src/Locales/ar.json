@@ -54668,6 +54668,8 @@
   "Inactive · seen {{time}}": "غير نشط · آخر ظهور {{time}}",
   "Runs on {{count}} of these": "يعمل على {{count}} منها",
   "Runs on {{count}} of these_one": "يعمل على {{count}} منها",
+  "Fleets and devices, and the attributes that identify and classify them.": "الأساطيل والأجهزة، والسمات التي تعرّفها وتصنّفها.",
+  "How OneUptime models IoT": "كيف يمثّل OneUptime أجهزة IoT",
   "The call could not be connected.": "تعذّر توصيل المكالمة.",
   "The call was answered and lasted {{count}} seconds.": "تمت الإجابة عن المكالمة واستمرت {{count}} ث.",
   "The call was answered and lasted {{count}} seconds._one": "تمت الإجابة عن المكالمة واستمرت {{count}} ثانية.",

@@ -54668,6 +54668,8 @@
   "Inactive · seen {{time}}": "非アクティブ · 最終確認 {{time}}",
   "Runs on {{count}} of these": "このうち {{count}} 件で実行",
   "Runs on {{count}} of these_one": "このうち {{count}} 件で実行",
+  "Fleets and devices, and the attributes that identify and classify them.": "フリートとデバイス、およびそれらを識別して分類する属性。",
+  "How OneUptime models IoT": "OneUptime での IoT のモデル",
   "The call could not be connected.": "通話を接続できませんでした。",
   "The call was answered and lasted {{count}} seconds.": "通話に応答があり、{{count}} 秒間続きました。",
   "The call was answered and lasted {{count}} seconds._one": "通話に応答があり、{{count}} 秒間続きました。",
