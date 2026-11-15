@@ -21,7 +21,7 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -185,8 +185,12 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
       route: route(PageMap.HEALTH_POSTGRES),
       status: datastoreStatus(postgresConnected),
       secondary: postgresConnected
-        ? `Database ${bytesToReadable(postgres["databaseSizeInBytes"])}`
-        : "Not reachable from this instance",
+        ? translator.translateTemplate("Database {{size}}", {
+            size: bytesToReadable(postgres["databaseSizeInBytes"]),
+          })
+        : (translator.translateText(
+            "Not reachable from this instance",
+          ) as string),
     },
     {
       key: "clickhouse",
@@ -194,8 +198,10 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
       route: route(PageMap.HEALTH_CLICKHOUSE),
       status: datastoreStatus(clickhouseConnected),
       secondary: clickhouseConnected
-        ? "Capacity, tables & cluster"
-        : "Not reachable from this instance",
+        ? (translator.translateText("Capacity, tables & cluster") as string)
+        : (translator.translateText(
+            "Not reachable from this instance",
+          ) as string),
     },
     {
       key: "redis",
@@ -203,10 +209,14 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
       route: route(PageMap.HEALTH_REDIS),
       status: datastoreStatus(redisConnected),
       secondary: redisConnected
-        ? `Memory ${bytesToReadable(redis["usedMemoryInBytes"])}${
-            redisMax ? ` / ${bytesToReadable(redisMax)}` : ""
-          }`
-        : "Not reachable from this instance",
+        ? translator.translateTemplate("Memory {{size}}", {
+            size: redisMax
+              ? `${bytesToReadable(redis["usedMemoryInBytes"])} / ${bytesToReadable(redisMax)}`
+              : bytesToReadable(redis["usedMemoryInBytes"]),
+          })
+        : (translator.translateText(
+            "Not reachable from this instance",
+          ) as string),
     },
     {
       key: "queues",
@@ -215,12 +225,31 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
       status: queueStatus,
       secondary:
         totalQueues > 0
-          ? `${healthyQueues}/${totalQueues} queues healthy${
-              failedJobs > 0
-                ? ` · ${failedJobs.toLocaleString()} failed jobs`
-                : ""
-            }`
-          : "Worker backlog & failures",
+          ? formatInline(
+              [
+                translator.translatePlural(
+                  {
+                    one: "{{healthy}}/{{count}} queue healthy",
+                    other: "{{healthy}}/{{count}} queues healthy",
+                  },
+                  totalQueues,
+                  { healthy: translator.formatNumber(healthyQueues) },
+                ),
+                ...(failedJobs > 0
+                  ? [
+                      translator.translatePlural(
+                        {
+                          one: "{{count}} failed job",
+                          other: "{{count}} failed jobs",
+                        },
+                        failedJobs,
+                      ),
+                    ]
+                  : []),
+              ],
+              translator,
+            )
+          : (translator.translateText("Worker backlog & failures") as string),
     },
   ];
 

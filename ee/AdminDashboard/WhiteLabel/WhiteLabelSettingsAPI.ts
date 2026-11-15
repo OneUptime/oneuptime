@@ -5,6 +5,13 @@ import { getProductBranding } from "Common/UI/Utils/ProductBranding";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import { translationKey } from "Common/Types/Translator";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
+
+// What a person reads when the browser cannot read the chosen image.
+const IMAGE_UNREADABLE: string = translationKey(
+  "The image could not be read. Choose it again.",
+);
 
 /*
  * The Admin Dashboard's side of the white-label settings: whether this
@@ -50,22 +57,26 @@ export const WHITE_LABEL_IMAGE_RULES: Readonly<
     slot: WhiteLabelImageSlot.Logo,
     accept: LOGO_ACCEPT,
     maxBytes: 512 * 1024,
-    tooLargeMessage: "The logo must be 512 KB or smaller.",
-    formats: "PNG, JPEG, GIF, WebP or SVG, up to 512 KB",
+    tooLargeMessage: translationKey("The logo must be 512 KB or smaller."),
+    formats: translationKey("PNG, JPEG, GIF, WebP or SVG, up to 512 KB"),
   },
   [WhiteLabelImageSlot.DarkLogo]: {
     slot: WhiteLabelImageSlot.DarkLogo,
     accept: LOGO_ACCEPT,
     maxBytes: 512 * 1024,
-    tooLargeMessage: "The logo for dark backgrounds must be 512 KB or smaller.",
-    formats: "PNG, JPEG, GIF, WebP or SVG, up to 512 KB",
+    tooLargeMessage: translationKey(
+      "The logo for dark backgrounds must be 512 KB or smaller.",
+    ),
+    formats: translationKey("PNG, JPEG, GIF, WebP or SVG, up to 512 KB"),
   },
   [WhiteLabelImageSlot.Favicon]: {
     slot: WhiteLabelImageSlot.Favicon,
     accept: `${LOGO_ACCEPT},image/x-icon,image/vnd.microsoft.icon,.ico`,
     maxBytes: 128 * 1024,
-    tooLargeMessage: "The browser tab icon must be 128 KB or smaller.",
-    formats: "PNG, ICO, SVG, GIF, JPEG or WebP, up to 128 KB",
+    tooLargeMessage: translationKey(
+      "The browser tab icon must be 128 KB or smaller.",
+    ),
+    formats: translationKey("PNG, ICO, SVG, GIF, JPEG or WebP, up to 128 KB"),
   },
 };
 
@@ -199,11 +210,11 @@ export const readFileAsDataUrl: (file: File) => Promise<string> = (
           return;
         }
 
-        reject(new Error("The image could not be read. Choose it again."));
+        reject(new Error(translateText(IMAGE_UNREADABLE) as string));
       };
 
       reader.onerror = (): void => {
-        reject(new Error("The image could not be read. Choose it again."));
+        reject(new Error(translateText(IMAGE_UNREADABLE) as string));
       };
 
       reader.readAsDataURL(file);

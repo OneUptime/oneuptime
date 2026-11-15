@@ -24,6 +24,7 @@ import { getCreateProjectFormFields } from "Common/UI/Components/Project/CreateP
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Project from "Common/Models/DatabaseModels/Project";
+import { translationKey } from "Common/Types/Translator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -102,7 +103,9 @@ const Projects: FunctionComponent = (): ReactElement => {
   ) => BulkActionButtonSchema<Project> = (
     isBlocked: boolean,
   ): BulkActionButtonSchema<Project> => {
-    const actionLabel: string = isBlocked ? "Block" : "Unblock";
+    const actionLabel: string = isBlocked
+      ? translationKey("Block")
+      : translationKey("Unblock");
 
     return {
       title: actionLabel,
