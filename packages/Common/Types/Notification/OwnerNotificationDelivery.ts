@@ -1,7 +1,8 @@
 /*
  * WHAT THE OWNERS OF A RECORD ARE TOLD, OWNER BY OWNER (issues #8199,
  * #8509, #8510): an incident, an alert, an episode of either, a monitor, a
- * scheduled maintenance event, a status page, an SLO or a network device.
+ * scheduled maintenance event, a status page, an SLO, a network device, a
+ * probe or an AI agent.
  *
  * Each owner notification job takes (marks) the record it is about - the
  * incident or alert just created, a state change, a note, an owner row, a
@@ -52,6 +53,8 @@ export enum OwnerNotificationKind {
   StatusPageOwnerAdded = "StatusPageOwnerAdded",
   ServiceLevelObjectiveOwnerAdded = "ServiceLevelObjectiveOwnerAdded",
   NetworkDeviceOwnerAdded = "NetworkDeviceOwnerAdded",
+  ProbeOwnerAdded = "ProbeOwnerAdded",
+  AIAgentOwnerAdded = "AIAgentOwnerAdded",
 }
 
 export enum OwnerNotificationDeliveryStatus {

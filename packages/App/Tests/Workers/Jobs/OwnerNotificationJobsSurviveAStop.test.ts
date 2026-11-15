@@ -181,6 +181,7 @@ function mockAnyService(): unknown {
       getScheduledMaintenanceLinkInDashboard: jest.fn(),
       getStatusPageLinkInDashboard: jest.fn(),
       getSloLinkInDashboard: jest.fn(),
+      getLinkInDashboard: jest.fn(),
       isScheduledMaintenanceCompleted: jest.fn(),
       isScheduledMaintenanceOngoing: jest.fn(),
       findMatchingRule: jest.fn(),
@@ -321,6 +322,24 @@ jest.mock("Common/Server/Services/NetworkDeviceOwnerTeamService", () => {
   return mockAnyService();
 });
 jest.mock("Common/Server/Services/NetworkDeviceOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ProbeService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ProbeOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ProbeOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/AIAgentService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/AIAgentOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/AIAgentOwnerUserService", () => {
   return mockAnyService();
 });
 
@@ -564,6 +583,12 @@ import ServiceLevelObjectiveOwnerUserService from "Common/Server/Services/Servic
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import NetworkDeviceOwnerTeamService from "Common/Server/Services/NetworkDeviceOwnerTeamService";
 import NetworkDeviceOwnerUserService from "Common/Server/Services/NetworkDeviceOwnerUserService";
+import ProbeService from "Common/Server/Services/ProbeService";
+import ProbeOwnerTeamService from "Common/Server/Services/ProbeOwnerTeamService";
+import ProbeOwnerUserService from "Common/Server/Services/ProbeOwnerUserService";
+import AIAgentService from "Common/Server/Services/AIAgentService";
+import AIAgentOwnerTeamService from "Common/Server/Services/AIAgentOwnerTeamService";
+import AIAgentOwnerUserService from "Common/Server/Services/AIAgentOwnerUserService";
 
 // Imported for their side effect: RunCron (mocked above) records each handler.
 import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification";
@@ -599,6 +624,8 @@ import "../../../FeatureSet/Workers/Jobs/StatusPageOwners/SendAnnouncementCreate
 import "../../../FeatureSet/Workers/Jobs/StatusPageOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/SloOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/Probe/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/AIAgent/SendOwnerAddedNotification";
 
 type AnyMock = jest.Mock;
 
@@ -1222,6 +1249,12 @@ const EVERY_RESOURCE_SERVICES: Array<unknown> = [
   NetworkDeviceService,
   NetworkDeviceOwnerTeamService,
   NetworkDeviceOwnerUserService,
+  ProbeService,
+  ProbeOwnerTeamService,
+  ProbeOwnerUserService,
+  AIAgentService,
+  AIAgentOwnerTeamService,
+  AIAgentOwnerUserService,
 ];
 
 // The record the owners of the other resources are told of.
@@ -1315,6 +1348,24 @@ function serviceLevelObjective(): PlainRecord {
 
 function networkDevice(): PlainRecord {
   return plain({ id: RESOURCE_ID, ...OF_THE_PROJECT, name: "core-sw-1" });
+}
+
+function probe(): PlainRecord {
+  return plain({
+    id: RESOURCE_ID,
+    ...OF_THE_PROJECT,
+    name: "eu-west probe",
+    description: "Frankfurt",
+  });
+}
+
+function aiAgent(): PlainRecord {
+  return plain({
+    id: RESOURCE_ID,
+    ...OF_THE_PROJECT,
+    name: "Fixer",
+    description: "Opens pull requests",
+  });
 }
 
 // A team row of the record, added as its owner: its members are the owners.
@@ -1840,6 +1891,24 @@ const EVERY_RESOURCE_CASES: Array<JobCase> = [
     recordIdField: "networkDeviceId",
     record: networkDevice,
   }),
+  ownerAddedCase({
+    title: "a team added as the owner of a probe",
+    jobName: "ProbeOwner:SendOwnerAddedEmail",
+    kind: OwnerNotificationKind.ProbeOwnerAdded,
+    recordService: ProbeService,
+    teamService: ProbeOwnerTeamService,
+    recordIdField: "probeId",
+    record: probe,
+  }),
+  ownerAddedCase({
+    title: "a team added as the owner of an AI agent",
+    jobName: "AIAgentOwner:SendOwnerAddedEmail",
+    kind: OwnerNotificationKind.AIAgentOwnerAdded,
+    recordService: AIAgentService,
+    teamService: AIAgentOwnerTeamService,
+    recordIdField: "aiAgentId",
+    record: aiAgent,
+  }),
 ];
 
 describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
@@ -1982,6 +2051,7 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
           "getScheduledMaintenanceLinkInDashboard",
           "getStatusPageLinkInDashboard",
           "getSloLinkInDashboard",
+          "getLinkInDashboard",
         ]) {
           asMock(each[link]).mockResolvedValue("https://oneuptime.test/record");
         }

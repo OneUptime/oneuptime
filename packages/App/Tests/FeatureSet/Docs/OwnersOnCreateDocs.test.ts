@@ -359,7 +359,23 @@ describe("the docs on owners told after a stop part way", () => {
       }
     }
 
-    expect(jobs).toBe(33);
+    // The owner-added jobs of probes and AI agents, which sit with them.
+    for (const file of [
+      "Probe/SendOwnerAddedNotification.ts",
+      "AIAgent/SendOwnerAddedNotification.ts",
+    ]) {
+      const source: string = fs.readFileSync(path.join(jobsRoot, file), "utf8");
+
+      jobs++;
+
+      expect({
+        job: file,
+        resumes: source.includes("OwnerNotificationDeliveries.resume("),
+        tellsEachOnce: source.includes("delivery.tell("),
+      }).toEqual({ job: file, resumes: true, tellsEachOnce: true });
+    }
+
+    expect(jobs).toBe(35);
     // The incident and alert jobs among them, by name.
     expect(JOBS).toHaveLength(5);
 
