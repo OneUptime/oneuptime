@@ -236,7 +236,7 @@ font is fetched from another site). Latin text keeps Inter.
 | Workload | حمل العمل (أحمال العمل) |
 | Container | الحاوية (الحاويات) |
 | Bucket (object storage) | حاوية التخزين; الحاوية alone once S3 or Cloud Storage is named |
-| Pool | المجمّع (المجمّعات) |
+| Pool | التجمّع (التجمّعات) |
 | Availability / High availability / Availability zone | التوفر / التوفر العالي / منطقة التوفر |
 | Serverless function | دالة بلا خادم |
 | Walk (SNMP) | الاستعراض |
@@ -271,6 +271,17 @@ unit as the traceroute hops listed under it, and the Response time card's
 unit as the probe durations listed beside it.
 The Dashboard's list of texts Arabic writes as English on purpose is
 `sameAsEnglish` in `../../i18n/Progress/ar.json`.
+
+Two rows never give one Arabic word. A collector and a pool had both been
+المجمّع (المجمّعات), and a Ceph cluster's pages and its setup guide name the
+two side by side ("the collector reads `CEPH_MGR_ENDPOINTS`" beside the
+**Pool** row of what it collects), so a reader could not tell which a
+sentence meant (#8581). A pool, whatever it pools (Ceph's, vSphere's
+resource pool, a connection, thread or buffer pool), is التجمّع, the word
+Arabic system software uses for one; the collector stays المجمّع, in every
+setup guide too. `Common/Tests/App/ArabicTermsApart` fails when two rows
+share a word, when a text that names a pool says المجمّع for it, or when a
+setup guide calls the collector anything but المجمّع.
 
 Latency, a datastore and the inventory are named in well over a hundred texts
 each. `Common/Tests/App/ArabicLocaleGuards` fails when a text whose English names

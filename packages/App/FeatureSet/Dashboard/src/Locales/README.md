@@ -347,6 +347,8 @@ Translation guidelines:
   English's on purpose, list its English as same-as-English (see Plurals
   above). In ja/ko/zh-CN/zh-TW, `_one` is never shown, so translate it the
   same as the general form or leave it.
+- Give each of OneUptime's things a word no other thing has in your language:
+  Arabic had called both the collector and a Ceph pool المجمّع (#8581).
 
 ### Spaces in Chinese and Japanese (zh-CN, zh-TW, ja)
 

@@ -877,6 +877,12 @@ then `npm run i18n:validate` from the root.
   [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
+- **Two things never share one name in a language.** Arabic called the collector an agent runs
+  and a Ceph pool both المجمّع, and a Ceph cluster's pages and its setup guide name the two side by
+  side: "the collector reads `CEPH_MGR_ENDPOINTS`" beside the **Pool** row of what it collects
+  (#8581). A pool is التجمّع now, in the locale and every setup guide, and a new row of a
+  language's glossary takes a word no other row gives. Enforced by
+  [ArabicTermsApart](../../packages/Common/Tests/App/ArabicTermsApart.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
