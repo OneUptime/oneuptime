@@ -439,8 +439,7 @@ describe("the whole Persian file, old keys included", () => {
     ).toEqual([]);
   });
 
-  test("the profile page's Top functions tab, drawn by a prop the extractor does not read, reads in Persian", () => {
-    expect(PAGE_KEYS).not.toContain("Top functions");
+  test("the profile page's Top functions tab, which Tab.tsx translates as it draws it, reads in Persian", () => {
     expect(PERSIAN.get("Top functions")).toBe("توابع برتر");
   });
 
