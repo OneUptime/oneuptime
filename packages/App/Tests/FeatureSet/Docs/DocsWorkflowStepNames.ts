@@ -86,8 +86,7 @@ function collectStepNames(): Set<string> {
   }
 
   // Create One Incident's template setting (Types/Workflow/CreateFromTemplate).
-  const template: Argument | undefined =
-    getCreateFromTemplateArgument("Incident");
+  const template: Argument | null = getCreateFromTemplateArgument("Incident");
 
   if (template) {
     names.add(template.name);
