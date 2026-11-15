@@ -79,6 +79,13 @@ function ago(ms: number): Date {
 const LATIN_DIGIT: RegExp = /[0-9]/;
 const LATIN_LETTER: RegExp = /[A-Za-z]/;
 const PERSIAN_DIGIT: RegExp = /[\u{06F0}-\u{06F9}]/u;
+
+/*
+ * What sets two words of an age apart: a space, or the no-break space that
+ * holds its count to its unit ("20\u00A0minutes ago", #8456). One character
+ * either way, so each word keeps its offset in the line.
+ */
+const WORD_SPACE: RegExp = /[ \u00A0]/;
 const ARABIC_INDIC_DIGIT: RegExp = /[\u{0660}-\u{0669}]/u;
 // A word that is a count, in Latin or Persian digits.
 const COUNT_WORD: RegExp = /^[\d\u{06F0}-\u{06F9}]+$/u;
@@ -106,7 +113,7 @@ function wordsReadFromTheRight(text: string): Array<string> {
   const words: Array<{ word: string; right: number }> = [];
   let start: number = 0;
 
-  for (const word of text.split(" ")) {
+  for (const word of text.split(WORD_SPACE)) {
     let right: number = -1;
 
     for (let index: number = start; index < start + word.length; index++) {
@@ -136,23 +143,23 @@ describe("in English, as the feed always read", () => {
     const english: Translator = dashboardTranslator("en");
 
     expect(getRelativeTimeLabel(30 * SECOND, english)).toBe("just now");
-    expect(getRelativeTimeLabel(MINUTE, english)).toBe("1 minute ago");
+    expect(getRelativeTimeLabel(MINUTE, english)).toBe("1\u00A0minute ago");
     expect(getRelativeTimeLabel(20 * MINUTE + 59 * SECOND, english)).toBe(
-      "20 minutes ago",
+      "20\u00A0minutes ago",
     );
-    expect(getRelativeTimeLabel(HOUR, english)).toBe("1 hour ago");
+    expect(getRelativeTimeLabel(HOUR, english)).toBe("1\u00A0hour ago");
     expect(getRelativeTimeLabel(3 * HOUR + 59 * MINUTE, english)).toBe(
-      "3 hours ago",
+      "3\u00A0hours ago",
     );
   });
 });
 
 describe("in the reader's language: its words, its plural forms and its digits", () => {
   test.each([
-    ["de", "vor 20 Minuten", "vor 3 Stunden"],
-    ["fa", "۲۰ دقیقه پیش", "۳ ساعت پیش"],
-    ["ar", "قبل 20 دقيقة", "قبل 3 ساعات"],
-    ["ja", "20 分前", "3 時間前"],
+    ["de", "vor 20\u00A0Minuten", "vor 3\u00A0Stunden"],
+    ["fa", "۲۰\u00A0دقیقه پیش", "۳\u00A0ساعت پیش"],
+    ["ar", "قبل 20\u00A0دقيقة", "قبل 3\u00A0ساعات"],
+    ["ja", "20\u00A0分前", "3\u00A0時間前"],
   ])(
     "%s: a note 20 minutes old reads %p, one 3 hours old %p",
     (language: string, twentyMinutes: string, threeHours: string) => {
@@ -162,22 +169,26 @@ describe("in the reader's language: its words, its plural forms and its digits",
   );
 
   test("one minute and one hour take the language's own singular", () => {
-    expect(labelIn("de", MINUTE)).toBe("vor 1 Minute");
-    expect(labelIn("de", HOUR)).toBe("vor 1 Stunde");
-    expect(labelIn("fa", MINUTE)).toBe("۱ دقیقه پیش");
+    expect(labelIn("de", MINUTE)).toBe("vor 1\u00A0Minute");
+    expect(labelIn("de", HOUR)).toBe("vor 1\u00A0Stunde");
+    expect(labelIn("fa", MINUTE)).toBe("۱\u00A0دقیقه پیش");
     expect(labelIn("ar", HOUR)).toBe("قبل ساعة واحدة");
   });
 
   test("Russian's three forms, which no one English template could give", () => {
-    expect(labelIn("ru", 21 * MINUTE)).toBe("21 минуту назад");
-    expect(labelIn("ru", 3 * HOUR)).toBe("3 часа назад");
-    expect(labelIn("ru", 5 * HOUR)).toBe("5 часов назад");
+    expect(labelIn("ru", 21 * MINUTE)).toBe("21\u00A0минуту назад");
+    expect(labelIn("ru", 3 * HOUR)).toBe("3\u00A0часа назад");
+    expect(labelIn("ru", 5 * HOUR)).toBe("5\u00A0часов назад");
   });
 
   test("counted as before: whole minutes and whole hours, against the feed's now", () => {
-    expect(labelIn("de", 20 * MINUTE + 59 * SECOND)).toBe("vor 20 Minuten");
-    expect(labelIn("de", 59 * MINUTE + 59 * SECOND)).toBe("vor 59 Minuten");
-    expect(labelIn("de", 5 * HOUR + 59 * MINUTE)).toBe("vor 5 Stunden");
+    expect(labelIn("de", 20 * MINUTE + 59 * SECOND)).toBe(
+      "vor 20\u00A0Minuten",
+    );
+    expect(labelIn("de", 59 * MINUTE + 59 * SECOND)).toBe(
+      "vor 59\u00A0Minuten",
+    );
+    expect(labelIn("de", 5 * HOUR + 59 * MINUTE)).toBe("vor 5\u00A0Stunden");
   });
 
   test.each(EVERY_LANGUAGE)(
@@ -243,7 +254,7 @@ describe("on a page read from the right", () => {
     (language: string, ageMs: number, written: Array<string>) => {
       const label: string = labelIn(language, ageMs);
 
-      expect(label.split(" ")).toEqual(written);
+      expect(label.split(WORD_SPACE)).toEqual(written);
       expect(wordsReadFromTheRight(label)).toEqual(written);
 
       // Its count is drawn as written: "۲۰", never "۰۲".

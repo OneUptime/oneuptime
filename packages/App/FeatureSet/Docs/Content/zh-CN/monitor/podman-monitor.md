@@ -200,7 +200,7 @@ flowchart TB
 | `resource.container.runtime` | 始终为 `podman`。 |
 | `attributes["log.iostream"]` | `stdout` 或 `stderr`。 |
 | `severityText` / `severityNumber` | 如果行中有级别，就从级别关键字中读取（`[ERROR]`、`app.INFO:`、`{"level":"warn"}`、`level=error`）。没有级别的行根据其流确定：`stderr` 为 `ERROR`，`stdout` 为 `INFO`。 |
-| `body` | 容器写入的行。以空白或右括号开头的行（例如堆栈跟踪的帧）会接到上一行。 |
+| `body` | 容器写入的行。以空白或右括号开头的行（例如堆栈追踪的帧）会接到上一行。 |
 | `time` | Podman 为该行记录的时间戳。 |
 
 日志会显示在主机的 **日志** 页面和每个容器的页面上。

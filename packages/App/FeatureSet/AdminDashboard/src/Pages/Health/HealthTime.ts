@@ -1,4 +1,5 @@
 import { writeReaderMoment } from "Common/UI/Utils/ReaderMoments";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 
 /*
  * A time the health pages read from the server (an ISO timestamp): a
@@ -13,7 +14,7 @@ export function formatHealthDateTime(value: unknown): string {
   const raw: string = String(value || "");
 
   if (!raw) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const date: Date = new Date(raw);

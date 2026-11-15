@@ -80,18 +80,18 @@ Regler, du allerede har, røres ikke: se [Rediger en regel](#rediger-en-regel).
 
 Regler for hændelser, alarmer og planlagt vedligeholdelse kan også give videre, hvad de ressourcer, en begivenhed berører, bærer. Under **Etiketter at tilføje** (eller **Ejere**) indeholder den sammenfoldede sektion **Nedarv etiketter** (eller **Nedarv ejere**) seks kontakter:
 
-- **Nedarv etiketter fra overvågninger**: hver etiket på hændelsens monitorer sættes også på hændelsen. En alarm har én monitor, så i en alarmregel hedder kontakten **Nedarv etiketter fra overvågning** (og i en ejerregel for alarmer **Nedarv ejere fra overvågning**).
+- **Nedarv etiketter fra monitorer**: hver etiket på hændelsens monitorer sættes også på hændelsen. En alarm har én monitor, så i en alarmregel hedder kontakten **Nedarv etiketter fra monitor** (og i en ejerregel for alarmer **Nedarv ejere fra monitor**).
 - **Nedarv etiketter fra værter**, **Nedarv etiketter fra Kubernetes-klynger**, **Nedarv etiketter fra Docker-værter**, **Inherit Labels From Podman Hosts** og **Nedarv etiketter fra tjenester** gør det samme for de ressourcer.
 
-Ejerregler har de samme seks kontakter for ejere (**Nedarv ejere fra overvågninger** og så videre). Så længe ingen kontakt er slået til, fortæller den sammenfoldede sektion, hvad den bruges til; i en regel, der nedarver, åbner den af sig selv. Episoderegler har ingen nedarvningskontakter.
+Ejerregler har de samme seks kontakter for ejere (**Nedarv ejere fra monitorer** og så videre). Så længe ingen kontakt er slået til, fortæller den sammenfoldede sektion, hvad den bruges til; i en regel, der nedarver, åbner den af sig selv. Episoderegler har ingen nedarvningskontakter.
 
 En regel, der nedarver, kan lade **Etiketter at tilføje** (eller **Ejere**) være tom: den tilføjer det, den nedarver. Sådan en regel får navn efter det, den nedarver fra:
 
 | Kontakter slået til | Navn |
 | --- | --- |
-| **Nedarv etiketter fra overvågninger** | _Nedarv etiketter fra: monitorer_ |
-| **Nedarv etiketter fra overvågninger** og **Nedarv etiketter fra værter** | _Nedarv etiketter fra: monitorer, værter_ |
-| **Nedarv etiketter fra overvågning**, i en alarmregel | _Nedarv etiketter fra: overvågning_ |
+| **Nedarv etiketter fra monitorer** | _Nedarv etiketter fra: monitorer_ |
+| **Nedarv etiketter fra monitorer** og **Nedarv etiketter fra værter** | _Nedarv etiketter fra: monitorer, værter_ |
+| **Nedarv etiketter fra monitor**, i en alarmregel | _Nedarv etiketter fra: monitor_ |
 
 Navnet følger kontakterne, indtil du vælger en etiket (så får reglen navn efter sine etiketter) eller skriver et navn selv.
 

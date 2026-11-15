@@ -188,10 +188,15 @@ describe("metric list sparklines stay out of the page's zoom", () => {
       } as DOMRect;
     };
 
+    /*
+     * The value as getByText reads the row: its whitespace collapsed to
+     * plain spaces, the no-break space that holds the figure to its unit
+     * (#8457) among them.
+     */
     const formatted: (value: number) => string = (value: number): string => {
       return ValueFormatter.formatValue(value, "ms", {
         metricName: METRIC.name || "",
-      });
+      }).replace(/\u00A0/g, " ");
     };
     expect(screen.getByText(formatted(21))).toBeInTheDocument();
 

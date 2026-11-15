@@ -86,7 +86,7 @@ Gli SLO a mese di calendario ricevono i valori di 30 giorni. Le regole usano il 
 
 Gli SLO creati prima che esistesse Slow leak hanno solo Fast burn e Slow burn: aggiornare OneUptime non aggiunge mai da solo una regola che inizierebbe a generare avvisi. Finché a uno SLO manca una delle tre regole predefinite, la sua pagina **Regole di tasso di consumo** le nomina in una nota sopra la tabella. Fai clic su **Aggiungi regole consigliate** nella nota per vedere esattamente cosa aggiunge, adattato alla finestra dello SLO, e conferma. Aggiunge solo le regole mancanti, e un nuovo clic non aggiunge nulla.
 
-Una regola conta come presente quando lo SLO ha una regola con lo stesso nome, o una con la stessa finestra lunga, che sia attiva o no. Così una regola predefinita che hai rinominato o regolato non viene mai aggiunta due volte. Perché la nota smetta di proporre una regola predefinita che non vuoi, tieni la regola e disabilitala invece di eliminarla. Ti serve il permesso di creare regole del tasso di consumo degli SLO. Ogni regola aggiunta così viene pubblicata nel feed dello SLO e registrata nei suoi registri di audit, come una regola che crei tu.
+Una regola conta come presente quando lo SLO ha una regola con lo stesso nome, o una con la stessa finestra lunga, che sia attiva o no. Così una regola predefinita che hai rinominato o regolato non viene mai aggiunta due volte. Perché la nota smetta di proporre una regola predefinita che non vuoi, tieni la regola e disabilitala invece di eliminarla. Ti serve il permesso di creare regole del tasso di consumo degli SLO. Ogni regola aggiunta così viene pubblicata nel feed dello SLO e registrata nei suoi log di audit, come una regola che crei tu.
 
 ### Aggiungerle a molti SLO in una volta
 
@@ -106,7 +106,7 @@ Apri **Azioni di massa** e scegli **Aggiungi regole consigliate**.
 Prima di aggiungere qualsiasi cosa, la conferma conta quanti degli SLO selezionati ricevono ciascuna regola, adattata alle loro finestre. Quando più SLO con finestre diverse ricevono una regola in varianti diverse, come Slow leak su uno SLO di 7 giorni e su uno di 30 giorni, elenca ogni variante con la sua soglia, le sue finestre e gli SLO che la ricevono. Dice anche quanti hanno già tutte le regole consigliate e quanti non è stato possibile leggere. Fai clic su **Aggiungi regole consigliate** per aggiungerle.
 :::
 
-Ogni SLO riceve solo le regole che gli mancano, esattamente come le aggiungerebbe la sua pagina **Regole di tasso di consumo**: lo stesso controllo di cosa conta come presente, e un elemento del feed e una voce nei registri di audit per ogni regola. Il risultato dice, per ogni SLO, se sono state aggiunte regole, se aveva già tutte le regole consigliate oppure se non è stato modificato e perché, per esempio uno SLO che non puoi modificare. Uno SLO non modificato non blocca mai gli altri, e ripetere l'azione sugli stessi SLO non aggiunge nulla. Gli SLO archiviati non compaiono nell'elenco e le regole non vengono mai proposte per loro, perché non vengono valutati: prima annulla l'archiviazione dello SLO.
+Ogni SLO riceve solo le regole che gli mancano, esattamente come le aggiungerebbe la sua pagina **Regole di tasso di consumo**: lo stesso controllo di cosa conta come presente, e un elemento del feed e una voce nei log di audit per ogni regola. Il risultato dice, per ogni SLO, se sono state aggiunte regole, se aveva già tutte le regole consigliate oppure se non è stato modificato e perché, per esempio uno SLO che non puoi modificare. Uno SLO non modificato non blocca mai gli altri, e ripetere l'azione sugli stessi SLO non aggiunge nulla. Gli SLO archiviati non compaiono nell'elenco e le regole non vengono mai proposte per loro, perché non vengono valutati: prima annulla l'archiviazione dello SLO.
 
 Gli script possono fare lo stesso tramite l'API, con una [chiave API](/docs/api-reference/api-reference) del progetto. Le richieste per un solo SLO accettano `{ "serviceLevelObjectiveId": "..." }` e rispondono con le regole in `rules`. Le richieste di massa accettano `{ "serviceLevelObjectiveIds": ["..."] }`, al massimo 100 SLO per richiesta, e rispondono con una voce per ogni SLO in `results`, nell'ordine richiesto:
 
@@ -260,7 +260,7 @@ Mentre un monitor dello SLO è in un evento di manutenzione in corso, le sue reg
 
 ## Il feed dello SLO
 
-Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Registri di audit** dello SLO. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
+Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Log di audit** dello SLO. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
 
 ## Risoluzione dei problemi
 

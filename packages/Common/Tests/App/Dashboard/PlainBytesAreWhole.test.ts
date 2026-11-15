@@ -167,9 +167,9 @@ describe("every byte formatter writes plain bytes whole", () => {
   });
 
   test("in Persian, zero bytes is a whole Persian zero", () => {
-    expect(formatOpenStackBytes(0, { language: "fa" })).toBe("۰ B");
-    expect(formatOpenStackBytes(5, { language: "fa" })).toBe("۵ B");
-    expect(formatOpenStackBytes(1536, { language: "fa" })).toBe("۱٫۵ KiB");
+    expect(formatOpenStackBytes(0, { language: "fa" })).toBe("۰\u00A0B");
+    expect(formatOpenStackBytes(5, { language: "fa" })).toBe("۵\u00A0B");
+    expect(formatOpenStackBytes(1536, { language: "fa" })).toBe("۱٫۵\u00A0KiB");
   });
 
   // The rule as it was, which the first test fails on: the negative control.
@@ -274,6 +274,12 @@ const HELD: Readonly<Record<string, Held>> = {
     { wholeBytesRule: "scaled >= 10 || exponent === 0 ? 0 : 1" },
   "App/FeatureSet/AdminDashboard/src/Pages/Health/InstanceHealthLogs.tsx": {
     wholeBytesRule: "scaled >= 10 || exponent === 0 ? 0 : 1",
+  },
+  // A data security scan's size: Intl's byte, its symbols only for an engine without one (#8456).
+  "App/FeatureSet/Dashboard/src/Components/DataSecurity/ScanDetail.tsx": {
+    wholeBytesRule: "maximumFractionDigits: unit > 0 && value < 10 ? 1 : 0",
+    provenBy:
+      "Common/Tests/App/Dashboard/IntlUnitsHeldWhereTheyAreDrawn.test.ts",
   },
 };
 

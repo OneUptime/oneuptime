@@ -226,5 +226,5 @@ OneUptime이 15분 동안 함수에서 아무것도 받지 못하면 함수는 *
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 어떤 애플리케이션에서든 트레이스, 로그, 메트릭을 보냅니다.
 - [큐](/docs/telemetry/queues): 함수가 게시하고 소비하는 큐와 토픽.
-- [트레이스 모니터](/docs/monitor/traces-monitor): 함수 호출의 실패나 지연에 대해 알림을 보냅니다.
+- [트레이스 모니터](/docs/monitor/traces-monitor): 함수 호출의 실패나 지연에 대해 경고를 보냅니다.
 :::

@@ -24,9 +24,9 @@ flowchart TB
 
 | Fonte | Nell'API | Da dove viene | Quanto resta |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | Gli attributi di risorsa OpenTelemetry, letti all'arrivo della telemetria: un servizio, un host, un oggetto Kubernetes o una macchina virtuale che invia telemetria. | Registrato di nuovo a ogni batch. Rimosso quando resta in silenzio più a lungo della finestra del suo tipo (vedi sotto). |
-| **Mirrored** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker e host Podman. Copiato ogni 15 minuti. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
-| **Added by you** | `manual` | Aggiunto da te, per qualcosa che OneUptime non può vedere: un'API di terze parti, un database gestito da un fornitore, un'appliance in un rack. | Finché non lo elimini. Niente lo fa scadere. |
+| **Rilevato** | `discovered` | Gli attributi di risorsa OpenTelemetry, letti all'arrivo della telemetria: un servizio, un host, un oggetto Kubernetes o una macchina virtuale che invia telemetria. | Registrato di nuovo a ogni batch. Rimosso quando resta in silenzio più a lungo della finestra del suo tipo (vedi sotto). |
+| **Replicato** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker e host Podman. Copiato ogni 15 minuti. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
+| **Aggiunto da te** | `manual` | Aggiunto da te, per qualcosa che OneUptime non può vedere: un'API di terze parti, un database gestito da un fornitore, un'appliance in un rack. | Finché non lo elimini. Niente lo fa scadere. |
 
 Un elemento scoperto o replicato non può essere rinominato né cambiare tipo: la sua fonte sovrascriverebbe la modifica al passaggio successivo. La pagina **Impostazioni** dell'elemento indica invece dove fare una modifica duratura. Quello che puoi sempre aggiungere a qualsiasi elemento, qualunque sia la sua fonte, sono i valori dei campi personalizzati: vedi [Campi personalizzati dell'inventario](/docs/inventory/custom-fields).
 
@@ -37,8 +37,8 @@ Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la
 | Stato | Cosa significa |
 | --- | --- |
 | **In diretta** | Visto negli ultimi 30 minuti. |
-| **Recent** | Visto nell'ultimo giorno. |
-| **Non aggiornato** | Non visto da più di un giorno. La pagina **Gone Quiet** li elenca. |
+| **Recente** | Visto nell'ultimo giorno. |
+| **Non aggiornato** | Non visto da più di un giorno. La pagina **In silenzio** li elenca. |
 
 Ogni tre ore, OneUptime rimuove gli elementi scoperti rimasti in silenzio più a lungo della finestra del loro tipo, archiviati compresi, e i loro valori dei campi personalizzati se ne vanno con loro. Gli elementi replicati e quelli che hai aggiunto non vengono mai rimossi in questo modo.
 
@@ -52,20 +52,20 @@ Una relazione che OneUptime ha scoperto viene rimossa quando non viene rivista p
 
 ## Orientarsi
 
-Apri **Prodotti → Risorse → Inventario**. Il suo menu laterale ha queste pagine. **By Source**, **Impostazioni**, **Aiuto** e **Avanzato** partono chiusi: fai clic sul titolo di una sezione per aprirla.
+Apri **Prodotti → Risorse → Inventario**. Il suo menu laterale ha queste pagine. **Per origine**, **Impostazioni**, **Aiuto** e **Avanzato** partono chiusi: fai clic sul titolo di una sezione per aprirla.
 
 | Pagina | Cosa trovi |
 | --- | --- |
 | **Panoramica** | Quanti elementi hai, cosa sono, quanti sono diventati silenziosi e cosa è stato aggiunto più di recente. |
 | **Tutti gli elementi** | Ogni elemento. Cerca per nome, descrizione o chiave d'identità, filtra l'elenco per tipo, fonte, stato o campo personalizzato e aggiungi un elemento a mano. |
 | **Mappa della topologia** | Come sono collegati gli elementi: i servizi, cosa chiamano e gli host, i pod e i dispositivi su cui girano. |
-| **Gone Quiet** | Gli elementi scoperti che non inviano telemetria da più di un giorno. |
-| **By Source** | Gli elementi di una fonte: **Discovered**, **Mirrored** o **Added by You**. |
+| **In silenzio** | Gli elementi scoperti che non inviano telemetria da più di un giorno. |
+| **Per origine** | Gli elementi di una fonte: **Rilevato**, **Replicato** o **Aggiunto da te**. |
 | **Impostazioni → Campi personalizzati** | I campi che il tuo progetto tiene su ogni elemento. |
 | **Aiuto → Documentazione** | Una breve guida all'inventario, con i tipi di elemento che riconosce. |
 | **Avanzato → Archiviato** | Gli elementi che hai archiviato. Ripristinali da qui. |
 
-Apri un elemento e il suo menu laterale ha la sua **Panoramica** (tipo, fonte e stato, e ogni attributo osservato su di esso), le sue **Connessioni** e i suoi **Campi personalizzati**; i suoi **Registri**, **Tracce**, **Metriche**, **Profili** ed **Eccezioni**; e i suoi **Incidenti**, **Avvisi** e **Manutenzione programmata**. In **Avanzato** ci sono le sue **Impostazioni**, i suoi **Registri di audit** e **Delete Item**. Le pagine di telemetria mostrano ciò che l'elemento stesso ha inviato. Gli incidenti, gli avvisi e gli eventi di manutenzione sono quelli del servizio, dell'host o del cluster Kubernetes che l'elemento rappresenta; su qualsiasi altro elemento, quelle pagine dicono quale risorsa guardare.
+Apri un elemento e il suo menu laterale ha la sua **Panoramica** (tipo, fonte e stato, e ogni attributo osservato su di esso), le sue **Connessioni** e i suoi **Campi personalizzati**; i suoi **Log**, **Tracce**, **Metriche**, **Profili** ed **Eccezioni**; e i suoi **Incidenti**, **Avvisi** e **Manutenzione programmata**. In **Avanzato** ci sono le sue **Impostazioni**, i suoi **Log di audit** e **Elimina elemento**. Le pagine di telemetria mostrano ciò che l'elemento stesso ha inviato. Gli incidenti, gli avvisi e gli eventi di manutenzione sono quelli del servizio, dell'host o del cluster Kubernetes che l'elemento rappresenta; su qualsiasi altro elemento, quelle pagine dicono quale risorsa guardare.
 
 ### Dettagli dell'asset
 
@@ -100,7 +100,7 @@ Fai clic su **Aggiungi: Elemento**. Scegli il suo **Tipo**, dagli un **Nome** e,
 
 ### Compilare i suoi campi personalizzati
 
-Apri il nuovo elemento. La sua fonte indica **Added by you**, e la sua pagina **Campi personalizzati** accoglie i valori che il tuo progetto segue.
+Apri il nuovo elemento. La sua fonte indica **Aggiunto da te**, e la sua pagina **Campi personalizzati** accoglie i valori che il tuo progetto segue.
 :::
 
 Puoi aggiungere a mano tre tipi:
@@ -117,9 +117,9 @@ Archiviare toglie un elemento dall'elenco mentre conserva la sua identità, la s
 
 | Fonte | Archiviare | Eliminare |
 | --- | --- | --- |
-| **Discovered** | Resta archiviato. | Torna con il prossimo batch della sua telemetria. |
-| **Mirrored** | Resta archiviato. | Torna con la copia successiva. Elimina invece il record originale. |
-| **Added by you** | Resta archiviato. | Sparisce per sempre. |
+| **Rilevato** | Resta archiviato. | Torna con il prossimo batch della sua telemetria. |
+| **Replicato** | Resta archiviato. | Torna con la copia successiva. Elimina invece il record originale. |
+| **Aggiunto da te** | Resta archiviato. | Sparisce per sempre. |
 
 Per archiviare elementi, selezionali in **Tutti gli elementi** e archiviali in un colpo solo, oppure apri un elemento e usa la scheda **Archivia** della sua pagina **Impostazioni**. Gli elementi archiviati si trovano in **Inventario → Avanzato → Archiviato**, dove puoi selezionarli e ripristinarli.
 

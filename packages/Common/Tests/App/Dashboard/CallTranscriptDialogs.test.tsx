@@ -342,10 +342,10 @@ describe("Add transcript", () => {
   });
 
   test("file sizes read as a person writes them, as every list of files writes them (Types/File/FileSize)", () => {
-    expect(formatFileSize(512)).toBe("512 B");
-    expect(formatFileSize(2048)).toBe("2 KB");
-    expect(formatFileSize(MAX_TRANSCRIPT_FILE_BYTES)).toBe("5 MB");
-    expect(formatFileSize(2.44 * 1024 * 1024)).toBe("2.4 MB");
+    expect(formatFileSize(512)).toBe("512\u00A0B");
+    expect(formatFileSize(2048)).toBe("2\u00A0KB");
+    expect(formatFileSize(MAX_TRANSCRIPT_FILE_BYTES)).toBe("5\u00A0MB");
+    expect(formatFileSize(2.44 * 1024 * 1024)).toBe("2.4\u00A0MB");
   });
 });
 

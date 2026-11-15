@@ -1,4 +1,5 @@
 import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -31,7 +32,7 @@ export type ProxmoxResourceKind = "Node" | "Guest" | "Storage";
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
     return `${Math.round(bytes)}\u00A0B`;
@@ -48,7 +49,7 @@ export function formatBytes(bytes: number | null | undefined): string {
 
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 }

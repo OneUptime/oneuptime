@@ -328,7 +328,7 @@ describe("a File field on create", () => {
     });
 
     await expect(create({ Contract: id })).rejects.toThrow(
-      '"dump.pdf" is larger than 10 MB, the most a file in "Contract" can be.',
+      '"dump.pdf" is larger than 10\u00A0MB, the most a file in "Contract" can be.',
     );
   });
 
@@ -494,7 +494,7 @@ describe("a Multiple files field on create", () => {
     await expect(create({ Screenshots: ids })).rejects.toThrow(
       CustomFieldFileMessages.tooMuchInAll({
         field: "Screenshots",
-        size: "54 MB",
+        size: "54\u00A0MB",
       }),
     );
   });

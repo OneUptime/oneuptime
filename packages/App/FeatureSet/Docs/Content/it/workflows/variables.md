@@ -46,7 +46,7 @@ Fai clic su **Avanti**.
 Nel passaggio **Valore**, compila:
 
 - **Contenuto** — il valore vero e proprio. È un campo di testo lungo, quindi i valori su più righe funzionano.
-- **Segreto** — quando è attivo, il valore viene eliminato dai registri delle esecuzioni e dalle tracce dei passaggi.
+- **Segreto** — quando è attivo, il valore viene eliminato dai log delle esecuzioni e dalle tracce dei passaggi.
 
 Fai clic su **Crea: Variabile del flusso di lavoro**. Per cambiare il nome o la descrizione prima di farlo, fai clic su **Variabile** nell'elenco dei passaggi accanto al modulo (visibile sugli schermi larghi); ciò che hai scritto in entrambi i passaggi viene conservato.
 :::
@@ -164,13 +164,13 @@ La scheda **Token di accesso** nella pagina di una variabile OAuth 2.0 mostra un
 
 ### Quando il provider dice di no
 
-Il passaggio che aveva bisogno del token fallisce prima di essere eseguito, e il registro dell'esecuzione nomina la variabile e cita la risposta del provider, ad esempio `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` Lo stesso motivo compare nella scheda **Token di accesso** della variabile. `invalid_grant` su una variabile Refresh Token significa quasi sempre che il refresh token stesso è scaduto o è stato revocato, e la soluzione è **Aggiorna le credenziali**.
+Il passaggio che aveva bisogno del token fallisce prima di essere eseguito, e il log dell'esecuzione nomina la variabile e cita la risposta del provider, ad esempio `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` Lo stesso motivo compare nella scheda **Token di accesso** della variabile. `invalid_grant` su una variabile Refresh Token significa quasi sempre che il refresh token stesso è scaduto o è stato revocato, e la soluzione è **Aggiorna le credenziali**.
 
-Se il rinnovo fallisce quando il token in cache non è ancora davvero scaduto (era solo dentro il margine di un minuto), il passaggio procede con il token in cache e il registro lo dice.
+Se il rinnovo fallisce quando il token in cache non è ancora davvero scaduto (era solo dentro il margine di un minuto), il passaggio procede con il token in cache e il log lo dice.
 
 ### Sicurezza
 
-- Le variabili OAuth 2.0 sono sempre segrete. Il token di accesso viene sostituito con `[REDACTED]` nei registri delle esecuzioni e nelle tracce dei passaggi, compreso un token sostituito a metà di un'esecuzione.
+- Le variabili OAuth 2.0 sono sempre segrete. Il token di accesso viene sostituito con `[REDACTED]` nei log delle esecuzioni e nelle tracce dei passaggi, compreso un token sostituito a metà di un'esecuzione.
 - Il client secret, il refresh token e il token di accesso sono cifrati nel database e non possono mai essere riletti tramite l'API o la dashboard. **Aggiorna ora** riporta quando scade il nuovo token, mai il token.
 - L'URL del token deve essere `http` o `https`. Le richieste a indirizzi di loopback, link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud vengono rifiutati anche gli indirizzi di rete privata. Le installazioni self-hosted possono raggiungere un provider di identità sulla propria rete. OneUptime non segue i reindirizzamenti nelle richieste di token, quindi punta l'URL del token all'indirizzo su cui l'endpoint risponde davvero. Una richiesta di token si arrende dopo 20 secondi.
 
@@ -250,7 +250,7 @@ Un flusso di lavoro che chiama PagerDuty:
 1. Salva `PAGERDUTY_KEY` come variabile globale segreta.
 2. Sul blocco **API**, imposta l'header `Authorization` su `Token token={{global.variables.PAGERDUTY_KEY}}`.
 
-La chiave resta fuori dal flusso di lavoro e dai registri.
+La chiave resta fuori dal flusso di lavoro e dai log.
 
 ### Concatenare due chiamate API
 
@@ -284,15 +284,15 @@ La chiave API ha bisogno di **Edit Workflow Variables**. Non serve alcun permess
 Due cose a cui fare attenzione:
 
 - **Non rinominare una variabile a cui fai riferimento.** `name` fa parte di `{{local.variables.NAME}}`. Cambiarlo lascia irrisolti tutti i riferimenti esistenti, e un riferimento irrisolto viene passato così com'è come testo letterale — vedi [Trappole](#trappole).
-- **Una variabile si può scrivere così, ma mai rileggere.** `content` è di sola scrittura tramite l'API per ogni variabile, segreta o no. È ciò che rende una variabile un posto sicuro per un token che ruota. Contrassegnarla come segreta tiene inoltre il valore fuori dai registri delle esecuzioni e dalle tracce dei passaggi.
+- **Una variabile si può scrivere così, ma mai rileggere.** `content` è di sola scrittura tramite l'API per ogni variabile, segreta o no. È ciò che rende una variabile un posto sicuro per un token che ruota. Contrassegnarla come segreta tiene inoltre il valore fuori dai log delle esecuzioni e dalle tracce dei passaggi.
 
 ## Trappole
 
 - **Usa { } (o scrivi `{{`).** Inserisce gli ID esatti di componente, valore di ritorno e variabile che l'esecutore si aspetta, e offre solo valori che esistono quando il blocco viene eseguito.
 - **I nomi delle variabili distinguono maiuscole e minuscole.** `{{global.variables.MyKey}}` e `{{global.variables.mykey}}` sono diversi.
-- **Un riferimento che non si risolve resta così com'è, non viene svuotato.** Fare riferimento a qualcosa che non esiste non è un errore, e non ti dà nemmeno una stringa vuota: le parentesi graffe passano così come sono, quindi `{{local.components.api-get-1.returnValues.body}}` con un ID di passaggio scritto male finisce alla lettera nel tuo messaggio Slack, nell'URL o nel corpo della richiesta, e l'esecuzione riporta comunque **Eseguito**. La scheda **Passaggi** dell'esecuzione mostra sul passaggio un avviso che nomina ogni riferimento sfuggito, e contrassegna l'impostazione in cui si trovava come **Did not resolve**; il registro dell'esecuzione riporta la stessa riga di avviso. L'eccezione è un ID che un componente dati legge o scrive, come `_id` nella sua **Query**: lì il passaggio si ferma prima di leggere o scrivere qualcosa, prende la sua uscita **Errore** e dice quale riferimento non si è risolto e cosa controllare.
+- **Un riferimento che non si risolve resta così com'è, non viene svuotato.** Fare riferimento a qualcosa che non esiste non è un errore, e non ti dà nemmeno una stringa vuota: le parentesi graffe passano così come sono, quindi `{{local.components.api-get-1.returnValues.body}}` con un ID di passaggio scritto male finisce alla lettera nel tuo messaggio Slack, nell'URL o nel corpo della richiesta, e l'esecuzione riporta comunque **Eseguito**. La scheda **Passaggi** dell'esecuzione mostra sul passaggio un avviso che nomina ogni riferimento sfuggito, e contrassegna l'impostazione in cui si trovava come **Did not resolve**; il log dell'esecuzione riporta la stessa riga di avviso. L'eccezione è un ID che un componente dati legge o scrive, come `_id` nella sua **Query**: lì il passaggio si ferma prima di leggere o scrivere qualcosa, prende la sua uscita **Errore** e dice quale riferimento non si è risolto e cosa controllare.
 - **Un campo senza contenuto arriva vuoto.** Non tutti i record hanno tutti i campi. Un avviso che nessun monitor ha generato, come uno da uno SLO o uno creato a mano, non ha un monitor, quindi `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` non ha nulla da dare: in un messaggio non c'è nulla, e da solo in JSON è `null`. Lo stesso vale per una descrizione che nessuno ha scritto, un campo personalizzato che il record non contiene, un **Find One** che non ha trovato alcun record, un elenco senza quell'elemento e un campo che il blocco non trasmette, che in più mette sul passaggio un avviso che dice cosa aggiungere ai suoi **Campi da passare**. Un URL e un blocco che legge o scrive record sono le eccezioni, perché un vuoto cambierebbe ciò su cui il blocco agisce: lì il riferimento resta così com'è, e un ID ferma il blocco. Per prendere un altro percorso, controlla il valore con **è vuoto** in un **Se / Altrimenti**. Per nominare lo SLO dietro un avviso, trasmetti il suo nome e usa `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
-- **Il pannello dei problemi non può controllare i nomi delle variabili.** Segnala i riferimenti ai componenti che non riesce ad abbinare — un ID di passaggio sconosciuto, un valore di ritorno sconosciuto, una radice malformata — prima del salvataggio. Non può sapere se una variabile esiste. Le impostazioni di un blocco invece sì: un riferimento a una variabile mancante compare lì come chip ambra. Altrimenti, una variabile rinominata viene scoperta solo dal registro dell'esecuzione.
+- **Il pannello dei problemi non può controllare i nomi delle variabili.** Segnala i riferimenti ai componenti che non riesce ad abbinare — un ID di passaggio sconosciuto, un valore di ritorno sconosciuto, una radice malformata — prima del salvataggio. Non può sapere se una variabile esiste. Le impostazioni di un blocco invece sì: un riferimento a una variabile mancante compare lì come chip ambra. Altrimenti, una variabile rinominata viene scoperta solo dal log dell'esecuzione.
 - **Gli spazi dentro le parentesi graffe non vengono rimossi.** `{{ local.variables.NAME }}` è una ricerca diversa da `{{local.variables.NAME}}` e non si risolve mai. L'unica eccezione è all'interno di un blocco `{{#each}}`, dove i nomi vengono ripuliti.
 
 ## Prossimi passi
@@ -300,5 +300,5 @@ Due cose a cui fare attenzione:
 :::cards
 - [Componenti](/docs/workflows/components): Di cosa ha bisogno e cosa restituisce ogni blocco.
 - [Esecuzioni](/docs/workflows/runs-and-logs): Guarda quale valore è diventato ogni riferimento in un'esecuzione.
-- [Configurazione e sicurezza](/docs/workflows/configuration#segreti): Tieni i segreti fuori dai blocchi, dalle esportazioni e dai registri.
+- [Configurazione e sicurezza](/docs/workflows/configuration#segreti): Tieni i segreti fuori dai blocchi, dalle esportazioni e dai log.
 :::

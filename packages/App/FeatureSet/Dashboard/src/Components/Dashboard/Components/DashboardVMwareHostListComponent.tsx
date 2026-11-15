@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DashboardVMwareHostListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardVMwareHostListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
@@ -170,7 +172,7 @@ export function formatVMwareHostPercent(
 ): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(numeric, {
     decimals: 1,
@@ -186,7 +188,7 @@ export function formatVMwareHostMhz(
 ): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (numeric >= 1000) {
     return `${formatReaderFigure(numeric / 1000, {
@@ -206,7 +208,7 @@ export function formatVMwareHostBytes(
 ): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
   let scaled: number = numeric;
@@ -317,7 +319,7 @@ function renderHostRow(r: VMwareResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = getHostDisplayName(r);
   const clusterName: string = (r.clusterName as string) || getStandaloneText();
-  const vcenterName: string = (r.vmwareVCenter?.name as string) || "—";
+  const vcenterName: string | undefined = r.vmwareVCenter?.name as string;
   const route: Route | undefined = getHostRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -350,7 +352,10 @@ function renderHostRow(r: VMwareResource): ReactElement {
           capacity: formatVMwareHostMhz(r.cpuCapacityMhz, translator),
         })}
       >
-        {formatVMwareHostPercent(r.latestCpuPercent, translator)}
+        {getValueOrQuietDash(
+          formatVMwareHostPercent(r.latestCpuPercent, translator),
+          { isSmall: true },
+        )}
       </td>
       <td
         className="px-3 py-2 text-xs"
@@ -359,7 +364,10 @@ function renderHostRow(r: VMwareResource): ReactElement {
           capacity: formatVMwareHostBytes(r.maxMemoryBytes, translator),
         })}
       >
-        {formatVMwareHostPercent(r.latestMemoryPercent, translator)}
+        {getValueOrQuietDash(
+          formatVMwareHostPercent(r.latestMemoryPercent, translator),
+          { isSmall: true },
+        )}
       </td>
       <ResourceListNameCell
         name={clusterName}
@@ -391,8 +399,8 @@ function buildHostTile(r: VMwareResource): HoneycombTile {
     tooltip: {
       title: name,
       details: [
-        { label: "vCenter", value: (r.vmwareVCenter?.name as string) || "—" },
-        { label: "Datacenter", value: (r.datacenterName as string) || "—" },
+        { label: "vCenter", value: r.vmwareVCenter?.name as string },
+        { label: "Datacenter", value: r.datacenterName as string },
         {
           label: "Cluster",
           value: (r.clusterName as string) || getStandaloneText(),

@@ -9,6 +9,7 @@ import {
   getMessageQueueBrokerMetricTitle,
 } from "./MessageQueueOverviewPresentation";
 import { getMessageQueueSystemLabel } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -552,7 +553,7 @@ export function formatMessageQueueFigureValue(
   figure: Pick<MessageQueueOverviewFigure, "value" | "broker">,
 ): string {
   if (figure.value === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatMessageQueueCount(
     figure.broker?.isEstimatedFromRate

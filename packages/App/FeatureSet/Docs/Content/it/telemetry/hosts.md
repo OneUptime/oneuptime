@@ -33,7 +33,7 @@ Ogni host esegue una configurazione, scelta in questo ordine:
 | La prima delle **Configurazioni del collector** che si applica a lui | Una configurazione si applica quando è per il sistema dell'host e, se nomina etichette, l'host ne ha una. |
 | La predefinita di OneUptime per il suo sistema | Nessuna configurazione si applica. |
 
-La predefinita di OneUptime legge CPU, memoria, dischi, file system, rete e processi su ogni sistema; il journal e le unità systemd su Linux, dove l'host li ha; i registri eventi System, Application e Security, i log di Sysmon, Microsoft Defender e PowerShell dove l'host li ha, e i servizi Windows su Windows; e i log di installazione e Wi-Fi in `/var/log` su macOS. Esclude i file system pieni per progettazione, come i pacchetti snap e il `/dev` di macOS, così non tengono mai attivo il modello High Filesystem Usage. Segue le release di OneUptime, quindi un host con la predefinita riceve i miglioramenti che OneUptime vi apporta.
+La predefinita di OneUptime legge CPU, memoria, dischi, file system, rete e processi su ogni sistema; il journal e le unità systemd su Linux, dove l'host li ha; i log eventi System, Application e Security, i log di Sysmon, Microsoft Defender e PowerShell dove l'host li ha, e i servizi Windows su Windows; e i log di installazione e Wi-Fi in `/var/log` su macOS. Esclude i file system pieni per progettazione, come i pacchetti snap e il `/dev` di macOS, così non tengono mai attivo il modello High Filesystem Usage. Segue le release di OneUptime, quindi un host con la predefinita riceve i miglioramenti che OneUptime vi apporta.
 
 ## Prima di iniziare
 
@@ -189,7 +189,7 @@ Restart-Service oneuptime-collector
 ```
 :::
 
-Su Linux il collector gira come utente non privilegiato `oneuptime-collector`, nei gruppi `systemd-journal` e `adm` per poter leggere il journal e i log in `/var/log`. Su macOS gira come root, come i demoni launchd, e su Windows come LocalSystem, per poter leggere ogni registro eventi e ogni servizio Windows.
+Su Linux il collector gira come utente non privilegiato `oneuptime-collector`, nei gruppi `systemd-journal` e `adm` per poter leggere il journal e i log in `/var/log`. Su macOS gira come root, come i demoni launchd, e su Windows come LocalSystem, per poter leggere ogni log eventi e ogni servizio Windows.
 
 ## Host configurati a mano
 

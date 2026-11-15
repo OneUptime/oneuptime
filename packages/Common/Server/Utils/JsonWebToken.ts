@@ -61,6 +61,16 @@ export interface DecodeOptions {
   acceptExpired?: boolean | undefined;
 }
 
+/*
+ * The session a browser's sign-out cookie names
+ * (JsonWebTokenPurpose.UserSessionSignOut), read by
+ * JSONWebToken.decodeSessionToSignOut: whose session, and which.
+ */
+export interface SessionToSignOut {
+  userId: ObjectID;
+  sessionId: ObjectID;
+}
+
 class JSONWebToken {
   /*
    * A dashboard session's access token, the only token the API takes as a
@@ -117,6 +127,40 @@ class JSONWebToken {
           ? Math.floor(data.expiresInSeconds)
           : DEFAULT_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
       purpose: JsonWebTokenPurpose.UserSession,
+    });
+  }
+
+  /*
+   * Which session a browser holds, for its sign-out and nothing else
+   * (JsonWebTokenPurpose.UserSessionSignOut): CookieUtil.setUserCookie
+   * keeps it in a cookie sent only to POST /identity/logout, beside the
+   * session's refresh token and for as long, so that a sign-out can name
+   * its session when neither its refresh token nor its access token can
+   * (issue #8638).
+   *
+   * It says whose session and which, and nothing else: no address, no
+   * name, nothing of a session's access token. Every reader of a person's
+   * token makes an address of the token's own, so none of them - of this
+   * release or of one before tokens said what they were for - takes it for
+   * a session, however long it lives. Read only by decodeSessionToSignOut.
+   */
+  @CaptureSpan()
+  public static signSessionSignOutToken(data: {
+    userId: ObjectID;
+    sessionId: ObjectID;
+    // As long as the session's refresh token: a whole number of seconds.
+    expiresInSeconds: number;
+  }): string {
+    return JSONWebToken.sign({
+      data: {
+        userId: data.userId,
+        sessionId: data.sessionId,
+      },
+      expiresInSeconds:
+        Number.isFinite(data.expiresInSeconds) && data.expiresInSeconds > 0
+          ? Math.ceil(data.expiresInSeconds)
+          : 0,
+      purpose: JsonWebTokenPurpose.UserSessionSignOut,
     });
   }
 
@@ -336,6 +380,21 @@ class JSONWebToken {
 
         return claimedPurpose === undefined && namesStatusPage && namesSession;
 
+      /*
+       * Which session a browser's sign-out names
+       * (signSessionSignOutToken): it says so - no release signed one
+       * that did not - and names its user and its session, and no status
+       * page or SSO provider.
+       */
+      case JsonWebTokenPurpose.UserSessionSignOut:
+        return (
+          claimedPurpose === JsonWebTokenPurpose.UserSessionSignOut &&
+          !namesStatusPage &&
+          !JSONWebToken.namesSsoProvider(claims) &&
+          JSONWebToken.isId(claims["userId"]) &&
+          JSONWebToken.isId(claims["sessionId"])
+        );
+
       default:
         return false;
     }
@@ -348,6 +407,10 @@ class JSONWebToken {
    * so an SSO sign-in is no session, a session no SSO sign-in, and a status
    * page's session neither. With `acceptExpired` (DecodeOptions), one that
    * has expired is taken too, for the one use that asks.
+   *
+   * A browser's sign-out cookie names a person too, but holds no address
+   * and is no one's identity: it is read only by decodeSessionToSignOut,
+   * and refused here whatever is asked.
    */
   @CaptureSpan()
   public static decode(
@@ -356,16 +419,17 @@ class JSONWebToken {
     options?: DecodeOptions,
   ): JSONWebTokenData {
     try {
-      const decoded: JSONObject = JSONWebToken.decodeJsonPayload(
-        token,
-        options,
-      );
-
-      if (!JSONWebToken.isFor(decoded, purpose)) {
+      if (purpose === JsonWebTokenPurpose.UserSessionSignOut) {
         throw new BadDataException(
-          `The token is not one OneUptime signed for this use (${purpose}).`,
+          "A sign-out cookie is read only by JSONWebToken.decodeSessionToSignOut.",
         );
       }
+
+      const decoded: JSONObject = JSONWebToken.readClaimsFor(
+        token,
+        purpose,
+        options,
+      );
 
       // When it was issued, from the claims whose signature was just checked.
       const issuedAtInSeconds: unknown = decoded["iat"];
@@ -422,6 +486,54 @@ class JSONWebToken {
       logger.error(e);
       throw new BadDataException(INVALID_TOKEN_MESSAGE);
     }
+  }
+
+  /*
+   * The session a browser's sign-out cookie names
+   * (JsonWebTokenPurpose.UserSessionSignOut, signSessionSignOutToken), if
+   * OneUptime signed it for that and it has not expired. Throws otherwise,
+   * as decode does: a session's access token, an SSO sign-in, a status
+   * page's session or anything else is refused here exactly as a token
+   * that does not verify. For POST /identity/logout to end that session of
+   * that user and nothing else (issue #8638).
+   */
+  @CaptureSpan()
+  public static decodeSessionToSignOut(token: string): SessionToSignOut {
+    try {
+      const decoded: JSONObject = JSONWebToken.readClaimsFor(
+        token,
+        JsonWebTokenPurpose.UserSessionSignOut,
+      );
+
+      return {
+        userId: new ObjectID(decoded["userId"] as string),
+        sessionId: new ObjectID(decoded["sessionId"] as string),
+      };
+    } catch (e) {
+      logger.error(e);
+      throw new BadDataException(INVALID_TOKEN_MESSAGE);
+    }
+  }
+
+  /*
+   * The claims of `token`, if OneUptime signed it for `purpose` (isFor) and
+   * it has not expired - or, with `acceptExpired`, whether or not it has.
+   * Throws otherwise.
+   */
+  private static readClaimsFor(
+    token: string,
+    purpose: JsonWebTokenPurpose,
+    options?: DecodeOptions,
+  ): JSONObject {
+    const decoded: JSONObject = JSONWebToken.decodeJsonPayload(token, options);
+
+    if (!JSONWebToken.isFor(decoded, purpose)) {
+      throw new BadDataException(
+        `The token is not one OneUptime signed for this use (${purpose}).`,
+      );
+    }
+
+    return decoded;
   }
 
   private static isId(value: unknown): boolean {

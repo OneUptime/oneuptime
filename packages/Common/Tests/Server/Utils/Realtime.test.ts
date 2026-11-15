@@ -401,17 +401,23 @@ describe("Realtime (server) ListenToModelEvent", () => {
   let connectionListener: (socket: Socket) => void = (): void => {};
 
   beforeAll(async () => {
+    const fetchHeldSockets: () => Promise<Array<Socket>> = async (): Promise<
+      Array<Socket>
+    > => {
+      return heldSockets.map((socket: FakeServerSocket): Socket => {
+        return socket.asSocket();
+      });
+    };
+
     (IO.getSocketServer as unknown as jest.Mock).mockReturnValue({
       on: (event: string, listener: (socket: Socket) => void): void => {
         if (event === "connection") {
           connectionListener = listener;
         }
       },
-      fetchSockets: async (): Promise<Array<Socket>> => {
-        return heldSockets.map((socket: FakeServerSocket): Socket => {
-          return socket.asSocket();
-        });
-      },
+      fetchSockets: fetchHeldSockets,
+      // This server's own sockets: a recheck asks no other server's.
+      local: { fetchSockets: fetchHeldSockets },
     });
 
     await Realtime.init();

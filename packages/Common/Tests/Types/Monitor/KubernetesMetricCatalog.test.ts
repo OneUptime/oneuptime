@@ -497,16 +497,18 @@ describe("KubernetesMetricCatalog", () => {
 
     test("allocatable memory reads in GB, not as twelve digits", () => {
       expect(formatFor("k8s.node.allocatable_memory", 257760964608)).toBe(
-        "258 GB",
+        "258\u00A0GB",
       );
       expect(formatFor("k8s.node.allocatable_memory", 8235155456)).toBe(
-        "8.24 GB",
+        "8.24\u00A0GB",
       );
     });
 
     test("allocatable CPU reads in cores", () => {
-      expect(formatFor("k8s.node.allocatable_cpu", 31.85)).toBe("31.85 cores");
-      expect(formatFor("k8s.node.allocatable_cpu", 4)).toBe("4 cores");
+      expect(formatFor("k8s.node.allocatable_cpu", 31.85)).toBe(
+        "31.85\u00A0cores",
+      );
+      expect(formatFor("k8s.node.allocatable_cpu", 4)).toBe("4\u00A0cores");
     });
 
     test("the pod limit utilizations read as a percentage of the limit", () => {

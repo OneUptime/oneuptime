@@ -19,6 +19,7 @@ import {
   TelemetrySortDirection,
 } from "./TelemetryIngestionUtils";
 import URL from "Common/Types/API/URL";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -393,7 +394,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                     {signal.telemetryType}
                   </span>
                   <span className="tabular-nums text-gray-900">
-                    {formatCount(signal.lastDay)}
+                    {getValueOrQuietDash(formatCount(signal.lastDay))}
                   </span>
                   <span className="text-xs text-gray-500">
                     {translator.translateTemplate("({{share}} of 24h)", {
@@ -617,13 +618,17 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                                     key={telemetryType}
                                     className="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-gray-700"
                                   >
-                                    {formatCount(counts.lastDay)}
+                                    {getValueOrQuietDash(
+                                      formatCount(counts.lastDay),
+                                    )}
                                   </td>
                                 );
                               },
                             )}
                             <td className="whitespace-nowrap px-3 py-2 text-right text-sm font-semibold tabular-nums text-gray-900">
-                              {formatCount(project.lastDay)}
+                              {getValueOrQuietDash(
+                                formatCount(project.lastDay),
+                              )}
                             </td>
                             <td className="px-3 py-2">
                               <ShareBar
@@ -634,10 +639,14 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
                               />
                             </td>
                             <td className="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-gray-700">
-                              {formatCount(project.lastHour)}
+                              {getValueOrQuietDash(
+                                formatCount(project.lastHour),
+                              )}
                             </td>
                             <td className="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-gray-700">
-                              {formatCount(project.lastMinute)}
+                              {getValueOrQuietDash(
+                                formatCount(project.lastMinute),
+                              )}
                             </td>
                           </tr>
                         );

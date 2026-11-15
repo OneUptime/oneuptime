@@ -87,7 +87,7 @@ Aprite un gruppo per vederne le pagine nel menu laterale:
 | **Incidenti** | Gli incidenti su qualsiasi monitor del gruppo. |
 | **Avvisi** | Gli avvisi su qualsiasi monitor del gruppo. |
 | **Proprietari** | Le persone e i team responsabili del gruppo. Si trova sotto **Avanzato**, che parte chiuso. |
-| **Registri di audit** | Chi ha modificato il gruppo, e quando, anche questa sotto **Avanzato**. |
+| **Log di audit** | Chi ha modificato il gruppo, e quando, anche questa sotto **Avanzato**. |
 | **Elimina gruppo** | Elimina il gruppo, anche questa sotto **Avanzato**. |
 
 La disponibilità nella **Panoramica** conta come inattività ogni stato tranne quello operativo. Una pagina di stato conta solo gli stati nel proprio elenco **Conta come inattività**: vedere [Scegliere cosa mostra la pagina](/docs/status-pages/index#scegliere-che-cosa-compare-sulla-pagina).

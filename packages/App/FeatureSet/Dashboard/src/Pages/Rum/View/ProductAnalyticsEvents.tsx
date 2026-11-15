@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -128,7 +129,7 @@ export function buildProductAnalyticsEventTiles(data: {
   ): string => {
     return trend
       ? formatProductAnalyticsCount(value || 0, data.translator)
-      : "-";
+      : EMPTY_VALUE_MARK;
   };
 
   return [

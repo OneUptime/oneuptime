@@ -163,7 +163,7 @@ En nyttig fordeling: gi en supportmedarbeider `ReadRumApplication` og `ReadRumSe
 
 ## Varsler på RUM-data
 
-RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RUM-overvåking: de vanlige overvåkingene virker med den. Den raskeste starten er applikasjonens side **Anbefalinger**, som tilbyr overvåkinger som allerede er avgrenset til applikasjonen:
+RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RUM-monitor: de vanlige monitorene virker med den. Den raskeste starten er applikasjonens side **Anbefalinger**, som tilbyr monitorer som allerede er avgrenset til applikasjonen:
 
 | Gruppe | Anbefalinger |
 | --- | --- |
@@ -171,14 +171,14 @@ RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RU
 | Feil | Failed User Operations og Unhandled Browser Exceptions. |
 | Øktavspilling | De fire [varslene for lagringsbudsjettet](/docs/telemetry/session-replay#varsler-for-lagringsbudsjettet), som advarer før prosjektets daglige grense eller applikasjonens månedlige budsjett er brukt opp. De tilbys så snart applikasjonen har tatt opp en avspilling, og det månedlige paret når den også har et månedlig budsjett. |
 
-For å lage din egen overvåking velger du den som leser signalet:
+For å lage din egen monitor velger du den som leser signalet:
 
 - [Målingsovervåking](/docs/monitor/metrics-monitor): en Core Web Vital eller en annen måling appen din sender.
 - [Trase-overvåking](/docs/monitor/traces-monitor): feilrate eller ventetid på klientsiden.
 - [Logg-overvåking](/docs/monitor/logs-monitor): et mønster i nettleserlogger.
 - [Unntak-overvåking](/docs/monitor/exceptions-monitor): nye eller raskt økende unntak på klientsiden.
 
-Avgrens overvåkingen du lager, til applikasjonen, slik at en backend-tjeneste med en lignende signatur ikke utløser den.
+Avgrens monitoren du lager, til applikasjonen, slik at en backend-tjeneste med en lignende signatur ikke utløser den.
 
 ## Neste steg
 

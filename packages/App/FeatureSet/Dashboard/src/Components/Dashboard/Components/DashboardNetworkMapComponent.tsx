@@ -415,7 +415,7 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
             )}
           </ResourceListNameCell>
           <ResourceListNameCell
-            name={site.siteType || "—"}
+            name={site.siteType}
             className="px-3 py-2 text-xs text-gray-500 truncate"
           />
           <td className="px-3 py-2">

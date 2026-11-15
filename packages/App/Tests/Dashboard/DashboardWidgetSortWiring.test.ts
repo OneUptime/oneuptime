@@ -510,7 +510,7 @@ describe("the security events table", () => {
     for (const value of ["className", "message", "host"]) {
       expect(code).toMatch(
         new RegExp(
-          `<ResourceListNameCell name=\\{${value} \\|\\| "—"\\} className="max-w-0 truncate px-3 py-1\\.5 text-xs text-gray-\\d00" title=\\{${value}\\} />`,
+          `<ResourceListNameCell name=\\{${value}\\} className="max-w-0 truncate px-3 py-1\\.5 text-xs text-gray-\\d00" title=\\{${value}\\} />`,
         ),
       );
     }

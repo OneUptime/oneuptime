@@ -24,9 +24,9 @@ flowchart TB
 
 | Bron | In de API | Waar het vandaan komt | Hoe lang het blijft |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | OpenTelemetry-resourceattributen, gelezen zodra telemetrie binnenkomt: een service, host, Kubernetes-object of virtuele machine die telemetrie stuurt. | Wordt bij elke batch opnieuw geregistreerd. Wordt verwijderd zodra het langer stil is dan het venster van zijn soort (zie hieronder). |
-| **Mirrored** | `inventory` | Een record dat een poller van OneUptime bijhoudt: netwerkapparaten, cloudresources, IoT-apparaten, serverless functies, RUM-applicaties, Docker-hosts en Podman-hosts. Elke 15 minuten gekopieerd. | Zolang het record bestaat. Verwijder het record en het item gaat mee. |
-| **Added by you** | `manual` | Door jou toegevoegd, voor iets wat OneUptime niet kan zien: een API van een derde partij, een database die een leverancier beheert, een appliance in een rack. | Tot je het verwijdert. Niets laat het verlopen. |
+| **Ontdekt** | `discovered` | OpenTelemetry-resourceattributen, gelezen zodra telemetrie binnenkomt: een service, host, Kubernetes-object of virtuele machine die telemetrie stuurt. | Wordt bij elke batch opnieuw geregistreerd. Wordt verwijderd zodra het langer stil is dan het venster van zijn soort (zie hieronder). |
+| **Gespiegeld** | `inventory` | Een record dat een poller van OneUptime bijhoudt: netwerkapparaten, cloudresources, IoT-apparaten, serverless functies, RUM-applicaties, Docker-hosts en Podman-hosts. Elke 15 minuten gekopieerd. | Zolang het record bestaat. Verwijder het record en het item gaat mee. |
+| **Door u toegevoegd** | `manual` | Door jou toegevoegd, voor iets wat OneUptime niet kan zien: een API van een derde partij, een database die een leverancier beheert, een appliance in een rack. | Tot je het verwijdert. Niets laat het verlopen. |
 
 Een ontdekt of gespiegeld item kan niet worden hernoemd of een ander type krijgen: de bron zou de wijziging bij de volgende ronde overschrijven. De pagina **Instellingen** van het item zegt waar je in plaats daarvan een blijvende wijziging maakt. Wat je altijd aan elk item kunt toevoegen, ongeacht de bron, zijn waarden van aangepaste velden: zie [Aangepaste inventarisvelden](/docs/inventory/custom-fields).
 
@@ -38,7 +38,7 @@ Een ontdekt item heeft een hartslag. Elke keer dat er telemetrie voor binnenkomt
 | --- | --- |
 | **Live** | Gezien in de laatste 30 minuten. |
 | **Recent** | Gezien binnen de laatste dag. |
-| **Verouderd** | Al meer dan een dag niet gezien. De pagina **Gone Quiet** toont ze. |
+| **Verouderd** | Al meer dan een dag niet gezien. De pagina **Stilgevallen** toont ze. |
 
 Elke drie uur verwijdert OneUptime de ontdekte items die langer stil zijn dan het venster van hun soort, gearchiveerde inbegrepen, en hun waarden van aangepaste velden gaan mee. Gespiegelde items en de items die jij hebt toegevoegd worden nooit op deze manier verwijderd.
 
@@ -52,20 +52,20 @@ Een relatie die OneUptime heeft ontdekt, wordt verwijderd zodra die 30 dagen nie
 
 ## Je weg vinden
 
-Open **Producten → Bronnen → Inventaris**. Het zijmenu heeft deze pagina's. **By Source**, **Instellingen**, **Hulp** en **Geavanceerd** staan eerst ingeklapt: klik op de titel van een sectie om die te openen.
+Open **Producten → Bronnen → Inventaris**. Het zijmenu heeft deze pagina's. **Per bron**, **Instellingen**, **Hulp** en **Geavanceerd** staan eerst ingeklapt: klik op de titel van een sectie om die te openen.
 
 | Pagina | Wat je er vindt |
 | --- | --- |
 | **Overzicht** | Hoeveel items je hebt, wat ze zijn, hoeveel er stil zijn geworden en wat het laatst is toegevoegd. |
 | **Alle items** | Elk item. Zoek op naam, beschrijving of identiteitssleutel, beperk de lijst op type, bron, status of aangepast veld, en voeg handmatig een item toe. |
 | **Topologiekaart** | Hoe de items met elkaar verbonden zijn: services, wat ze aanroepen, en de hosts, pods en apparaten waarop ze draaien. |
-| **Gone Quiet** | De ontdekte items die al meer dan een dag geen telemetrie hebben gestuurd. |
-| **By Source** | De items van één bron: **Discovered**, **Mirrored** of **Added by You**. |
+| **Stilgevallen** | De ontdekte items die al meer dan een dag geen telemetrie hebben gestuurd. |
+| **Per bron** | De items van één bron: **Ontdekt**, **Gespiegeld** of **Door u toegevoegd**. |
 | **Instellingen → Aangepaste velden** | De velden die je project op elk item bijhoudt. |
 | **Hulp → Documentatie** | Een korte gids over de inventaris, met de soorten items die hij herkent. |
 | **Geavanceerd → Gearchiveerd** | De items die je hebt gearchiveerd. Haal ze hier uit het archief. |
 
-Open een item, en het eigen zijmenu heeft zijn **Overzicht** (type, bron en status, en elk attribuut dat erop is waargenomen), zijn **Verbindingen** en zijn **Aangepaste velden**; zijn **Logboeken**, **Traces**, **Metrieken**, **Profielen** en **Uitzonderingen**; en zijn **Incidenten**, **Waarschuwingen** en **Gepland onderhoud**. Onder **Geavanceerd** staan zijn **Instellingen**, zijn **Auditlogboeken** en **Delete Item**. De telemetriepagina's tonen wat het item zelf heeft gestuurd. De incidenten, waarschuwingen en onderhoudsgebeurtenissen zijn die van de service, host of het Kubernetes-cluster waar het item voor staat; bij elk ander item zeggen die pagina's welke resource je in plaats daarvan moet bekijken.
+Open een item, en het eigen zijmenu heeft zijn **Overzicht** (type, bron en status, en elk attribuut dat erop is waargenomen), zijn **Verbindingen** en zijn **Aangepaste velden**; zijn **Logboeken**, **Traces**, **Metrieken**, **Profielen** en **Uitzonderingen**; en zijn **Incidenten**, **Waarschuwingen** en **Gepland onderhoud**. Onder **Geavanceerd** staan zijn **Instellingen**, zijn **Auditlogboeken** en **Item verwijderen**. De telemetriepagina's tonen wat het item zelf heeft gestuurd. De incidenten, waarschuwingen en onderhoudsgebeurtenissen zijn die van de service, host of het Kubernetes-cluster waar het item voor staat; bij elk ander item zeggen die pagina's welke resource je in plaats daarvan moet bekijken.
 
 ### Assetgegevens
 
@@ -100,7 +100,7 @@ Klik op **Item toevoegen**. Kies het **Type**, geef het een **Naam** en eventuee
 
 ### De aangepaste velden invullen
 
-Open het nieuwe item. De bron staat op **Added by you**, en de pagina **Aangepaste velden** neemt de waarden op die je project bijhoudt.
+Open het nieuwe item. De bron staat op **Door u toegevoegd**, en de pagina **Aangepaste velden** neemt de waarden op die je project bijhoudt.
 :::
 
 Drie typen kun je handmatig toevoegen:
@@ -117,9 +117,9 @@ Archiveren haalt een item uit de lijst terwijl het zijn identiteit, zijn geschie
 
 | Bron | Archiveren | Verwijderen |
 | --- | --- | --- |
-| **Discovered** | Blijft gearchiveerd. | Komt terug met de volgende batch van zijn telemetrie. |
-| **Mirrored** | Blijft gearchiveerd. | Komt terug met de volgende kopie. Verwijder in plaats daarvan het oorspronkelijke record. |
-| **Added by you** | Blijft gearchiveerd. | Voorgoed weg. |
+| **Ontdekt** | Blijft gearchiveerd. | Komt terug met de volgende batch van zijn telemetrie. |
+| **Gespiegeld** | Blijft gearchiveerd. | Komt terug met de volgende kopie. Verwijder in plaats daarvan het oorspronkelijke record. |
+| **Door u toegevoegd** | Blijft gearchiveerd. | Voorgoed weg. |
 
 Om items te archiveren selecteer je ze in **Alle items** en archiveer je ze in één keer, of open je een item en gebruik je de kaart **Archiveren** op de pagina **Instellingen**. Gearchiveerde items staan onder **Inventaris → Geavanceerd → Gearchiveerd**, waar je ze kunt selecteren en uit het archief kunt halen.
 

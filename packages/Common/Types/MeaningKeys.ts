@@ -79,6 +79,33 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "From (range start)",
   "To (range end)",
+  /*
+   * The states a page draws together for one kind of thing agree with each
+   * other (Common/Tests/App/StatesDrawnTogetherAgree, #8659). A shared word
+   * worded for one thing's gender read wrong beside another's: Russian's
+   * "Истёк" (masculine, as a token is) under a threat indicator's and a
+   * rule exception's neuter "Активно", and "Ещё не запрашивалась"
+   * (feminine) beside a token's "Действителен" and a calendar link's
+   * "Отключено". Each of these pages words its state with a key of its own.
+   */
+  // A threat intel indicator past its validity: the Indicators list's Status.
+  "Expired (threat indicator)",
+  // A rule exception past its expiry, and a window not started yet (Rule Exceptions).
+  "Expired (rule exception)",
+  "Upcoming (rule exception)",
+  // A workflow variable's OAuth token: never fetched, and valid.
+  "Not fetched yet (OAuth token)",
+  "Valid (OAuth token)",
+  // An on-call calendar link no calendar app has read in its first two days.
+  "Not fetched yet (calendar feed)",
+  /*
+   * The Logs, Traces, Metrics and Exceptions explorers' tab that counts and
+   * charts what came in (their NavTabs, breadcrumbs and search entries).
+   * The bare "Insights" is OneUptime AI's findings - the Products menu's
+   * Insights and each AI section's page - so Spanish named both "Análisis"
+   * beside sentences about "hallazgos", and Italian "Informazioni" (#8629).
+   */
+  "Insights (explorer analytics)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

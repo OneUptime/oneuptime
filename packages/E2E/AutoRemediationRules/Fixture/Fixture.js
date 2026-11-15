@@ -138,8 +138,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000a1";
 const USER_ID = "30000000-0000-4000-8000-0000000000c1";
@@ -1048,28 +1048,35 @@ API.get = async () => new HTTPResponse(200, {}, {});
  * turned off, as the Dashboard's own setup does.
  */
 /*
- * Russian, whose words are among the Dashboard's longest (a fix pill's
- * "Спрашивает перед исправлением", #7111), loaded only when ?lang=ru asks
- * for it: a locale is some four megabytes of JSON, which every other page
- * of the suite would parse if it were bundled into the entry.
+ * English, the fallback, is in the bundle; German, Persian and Russian are
+ * each a chunk of their own, loaded only by a page drawn in that language,
+ * as the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built
+ * as the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * A locale is some six megabytes of JSON, which every other page of the
+ * suite parsed while German and Persian were bundled into the entry
+ * (#8366). Russian's words are among the Dashboard's longest (a fix pill's
+ * "Спрашивает перед исправлением", #7111).
  */
-const resources = {
-  en: { translation: {} },
-  de: { translation: DE },
-  fa: { translation: FA },
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+  ru: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ru.json");
+  },
 };
-if (language === "ru") {
-  resources.ru = {
-    translation: (
-      await import("../../../App/FeatureSet/Dashboard/src/Locales/ru.json")
-    ).default,
-  };
-}
 
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources,
+  fallbackLng: "en",
+  resources: await localeResources({
+    language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

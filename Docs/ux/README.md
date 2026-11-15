@@ -393,8 +393,13 @@ work out, starts from a default for everything else, and folds what most people 
   labels attached."). A stat tile's figure (`text-lg` and up) draws `EmptyFigure`: the same light
   grey dash at the figure's size, read out as "Not set", where tiles drew bare dashes of their own
   in several greys that a screen reader heard as "dash" (#8264). Every tile draws it for a value
-  that is missing, blank or a dash, so a tile is handed no value. A dash between two values, a
-  minus sign and code are not empty values. Enforced by
+  that is missing, blank or a dash, so a tile is handed no value. A formatter never writes a dash
+  of its own for nothing (`return "—"`, `host || "-"`): pages drew some five hundred of those
+  straight into their cells (#8262). A component that draws a value is handed nothing, and plain
+  text (a chart's label, an export, a sentence) gets the shared mark `EMPTY_VALUE_MARK`. A page
+  that draws a formatter's text in an element of its own draws it through `getValueOrQuietDash`
+  (or `getFigure` in a figure), which turns that mark into the quiet dash. A dash between two
+  values, a minus sign and code are not empty values. Enforced by
   [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
   and
   [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
@@ -682,11 +687,22 @@ work out, starts from a default for everything else, and folds what most people 
   words, Arabic's "ملي ث", is held together after its number too (#8304). Write the unit as its
   symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
   itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
-  as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
-  plain space, listed with its reason. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts)
+  as `formatMilliseconds` does, and so does code that holds the unit in a variable or a property
+  (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457): a holder
+  named `unit` or `symbol` holds a unit's symbol, and a word is named for what it holds (`word`,
+  `noun`, `unitName`) and keeps its plain space ("5 minutes", "2,340 groups"). Text that is no page's -
+  a prompt, a Markdown export, a stored name, an API's answer the docs quote - keeps its plain
+  space, listed with its reason, and a CSV export writes a plain one (`TableColumnsToCsv`). Intl
+  writes a plain space there too ("5 Min.", "vor 5 Minuten", "2 Tage, 3 Stunden", #8456), so ask
+  Intl for a unit or a relative time only through `Common/Types/DateLanguage`
+  (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`, `getUnitAmountParts`,
+  `formatRelativeAmount`), which holds the number to its unit in every language, English
+  included, and keeps French's own no-break spaces; never with `style: "unit"` or
+  `Intl.RelativeTimeFormat` yourself. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and
-  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts).
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
@@ -700,8 +716,11 @@ work out, starts from a default for everything else, and folds what most people 
   attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
   timeout or a count is written in the reader's digits. A summary draws a probe's message with
   `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
-  right-to-left line. An incident's root cause words its figures the same way: a response time,
-  the attempts and an NTP server's facts in the reader's digits and units (#8268). A Database
+  right-to-left line, and so do a network device's diagnostics (a ping's Reason, a traceroute's
+  note, #8675). An incident's root cause words its figures the same way: a response time, the
+  attempts and an NTP server's facts in the reader's digits and units (#8268), and a metric
+  criteria's Time Window, Data Arrives and Forecast lines with a duration as the reader's
+  language says one in a sentence (#8674). A Database
   Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
@@ -767,9 +786,27 @@ then `npm run i18n:validate` from the root.
   for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
   the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
   [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts),
+  for every word of a built-in workflow step (its card, its settings form, its Outputs and
+  Returns lists), which read English in most languages because the step catalogue was never
+  extracted (#8359),
+  [WorkflowStepWordsInEveryLanguage](../../packages/App/Tests/Dashboard/WorkflowStepWordsInEveryLanguage.test.ts),
+  for a monitor's type and a security event's severity wherever they are drawn as text (#8294,
+  #8295),
+  [MonitorTypeAndEventSeverityInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MonitorTypeAndEventSeverityInReadersLanguage.test.tsx),
+  for a picker's label with an English word glued on, an archived SLO's "(archived)" and an
+  unnamed ingestion key's "Unnamed Key" (#8297),
+  [PickerLabelsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/PickerLabelsInReadersLanguage.test.tsx),
+  for the topology screens' "Unnamed resource", a browser service's "Browser" and the entity
+  drawer's screen-reader line (#8260),
+  [TopologyUnnamedBrowserAndDrawerInLanguages](../../packages/Common/Tests/App/Dashboard/TopologyUnnamedBrowserAndDrawerInLanguages.test.tsx),
   and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
   whose 186 texts had no entry in its locales and read English in every language (#8227),
-  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts).
+  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts),
+  with the texts those pages drew as written, which no lookup read (#8555),
+  [AdminOwnPagesDrawnAsWrittenGuard](../../packages/App/Tests/AdminDashboard/AdminOwnPagesDrawnAsWrittenGuard.test.ts),
+  and the sentences the extractor could not see there, kept in a variable or handed to a prop it
+  does not know (#8636),
+  [AdminUnseenTextsGuard](../../packages/App/Tests/AdminDashboard/AdminUnseenTextsGuard.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
@@ -876,7 +913,8 @@ then `npm run i18n:validate` from the root.
   "Any" is the Match Condition's word. A word that means something else in one place takes a key
   that names its meaning, the word then what it means in brackets: "View (database object)", a
   database's view beside the View buttons' verb. A Spanish catalog named a view "Ver" ("see it")
-  and headed its schema changes "Cambiar" ("change it", #8078). List the key in
+  and headed its schema changes "Cambiar" ("change it", #8078), and named an explorer's Insights tab
+  and OneUptime AI's findings both "Análisis" (#8629: the tab is "Insights (explorer analytics)"). List the key in
   [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), so English reads it as
   the word alone, "View", wherever it is drawn: a column's or a filter's title, an option, a pill.
   Look such a key up as any key, and never write its English by hand: no `hasTranslation` check,
@@ -895,7 +933,11 @@ then `npm run i18n:validate` from the root.
   called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
   status page three ways (#8029, #8030, #8031). The Products menu says a product's page title word for
   word: Danish "Overvågninger" opened a page titled "Monitorer", and German "Status-Seiten" one titled
-  "Statusseiten" (#8229). A word that names another product's thing keeps that
+  "Statusseiten" (#8229). A string whose English names the thing says that word too, even where the
+  other word has a meaning of its own: Korean said 알림, its word for a notification, for an alert in
+  600 strings beside 경고 in 1,100, and Danish said "overvågning" (monitoring) for a monitor (#8628).
+  The docs prose says it on every line whose English line names the thing (#8692).
+  A word that names another product's thing keeps that
   product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
   in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). A probe is the
   Dashboard's word too, in the apps and every docs page: the Danish docs said "probes" over a list
@@ -905,6 +947,7 @@ then `npm run i18n:validate` from the root.
   درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
   Enforced by
   [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
+  [OneWordInSentencesPerThing](../../packages/App/Tests/Dashboard/OneWordInSentencesPerThing.test.ts),
   [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
@@ -919,7 +962,11 @@ then `npm run i18n:validate` from the root.
   thing can disagree: Russian's infrastructure list said "Активно" on one row and "Неактивен" on
   the next (#8588). Word a state as the locale words the others it is drawn with (Russian words a
   state on its own in the neuter: "Неактивно", "Выведено из работы"), and list a new set of states
-  a page draws together, with the files that draw it. Enforced by
+  a page draws together, with the files that draw it. Where a shared word cannot agree with every
+  page, the page takes a key of its own in
+  [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), read in English as
+  the bare word: a threat indicator's Expired is Russian "Истекло" while a token's stays "Истёк"
+  (#8659). Enforced by
   [StatesDrawnTogetherAgree](../../packages/Common/Tests/App/StatesDrawnTogetherAgree.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same

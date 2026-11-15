@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55438,
-    "untranslated": 8357
+    "keys": 55628,
+    "untranslated": 8353
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -325,6 +325,7 @@
     "Standard",
     "StatusPage",
     "Stratum",
+    "Stripe Payments API",
     "Switch",
     "TLS",
     "TTL",

@@ -129,7 +129,7 @@ Il bot di OneUptime li aggiunge, come aggiunge le persone del canale di una rego
 
 - **Chi può aggiungere persone.** Chi può modificare il record: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore degli incidenti** e **Membro degli incidenti** per un incidente, oppure **Edit Incident** in un ruolo personalizzato, e lo stesso permesso per un avviso, un episodio o un evento (per esempio **Edit Alert**). Gli altri vedono chi è nel canale e come entrarci.
 - **Chi può essere aggiunto.** Qualcuno che OneUptime trova in Mattermost, dall'account che ha collegato oppure dal suo indirizzo email, quando il tuo server mostra gli indirizzi email al bot, e che è nel team del canale. Si può aggiungere anche un account ospite di quel team: Mattermost permette ai membri di un canale di aggiungere ospiti. La scheda nomina chi non ha potuto aggiungere, e perché.
-- **Cosa viene registrato.** Chi è stato aggiunto, e da chi, nel feed del record (**Membro aggiunto al canale**) e in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**.
+- **Cosa viene registrato.** Chi è stato aggiunto, e da chi, nel feed del record (**Membro aggiunto al canale**) e in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**.
 - **Un canale archiviato.** La scheda continua a elencare chi c'è, e non aggiunge nessuno finché il canale non viene ripristinato dall'archivio in Mattermost.
 - **Un canale da cui è stato rimosso il bot.** Mattermost mostra le persone di un canale solo a chi ne fa parte, anche per un canale pubblico, quindi la scheda dice che non riesce a vedere il canale. Qualcuno che ne fa parte può aggiungere di nuovo il bot in Mattermost. OneUptime rientra anche da solo in un canale pubblico la prossima volta che vi pubblica.
 - **Togliere qualcuno.** OneUptime aggiunge soltanto: togli qualcuno dal canale in Mattermost.
@@ -149,7 +149,7 @@ I messaggi di OneUptime hanno pulsanti, e un menu **More actions** per ciò che 
 
 Se il tuo account Mattermost non è ancora collegato, un pulsante te lo dice, con un link a **Impostazioni utente** > **Area di lavoro** > **Mattermost**. Collega il tuo account, poi premi di nuovo il pulsante.
 
-Ogni pressione di un pulsante viene registrata in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**, insieme a chi l'ha premuto.
+Ogni pressione di un pulsante viene registrata in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**, insieme a chi l'ha premuto.
 
 ## Approvare una nota pubblica
 

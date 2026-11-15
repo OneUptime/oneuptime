@@ -67,7 +67,7 @@ Con Slack Enterprise Grid, un progetto può funzionare in più workspace della t
 3. La scheda **Spazi di lavoro Slack** elenca questi workspace. Fai clic su **Aggiorna** dopo aver aggiunto OneUptime a un altro workspace.
 
 - **Quale workspace usa una regola.** Le regole di notifica scelgono lo **Spazio di lavoro Slack** dei loro canali. Se resta vuoto, la regola usa il workspace predefinito e cerca lì per primi i canali che nomina. **Imposta come predefinito** sulla scheda cambia il predefinito. Se OneUptime viene rimosso dal workspace predefinito, il primo in ordine alfabetico dei workspace rimasti diventa il predefinito. Resta il predefinito quando OneUptime viene aggiunto di nuovo al vecchio workspace.
-- **Un workspace da cui OneUptime è stato rimosso.** Una regola che lo sceglie non pubblica al suo posto in un altro workspace: la scheda della regola, **Testa la regola** e i registri di notifica dicono che OneUptime non vi è più aggiunto. Anche la scheda **Canale Slack** lo dice quando il canale si trova in quel workspace. Aggiungi di nuovo OneUptime a quel workspace nelle impostazioni dell'organizzazione di Slack, oppure scegli un altro workspace nella regola.
+- **Un workspace da cui OneUptime è stato rimosso.** Una regola che lo sceglie non pubblica al suo posto in un altro workspace: la scheda della regola, **Testa la regola** e i log di notifica dicono che OneUptime non vi è più aggiunto. Anche la scheda **Canale Slack** lo dice quando il canale si trova in quel workspace. Aggiungi di nuovo OneUptime a quel workspace nelle impostazioni dell'organizzazione di Slack, oppure scegli un altro workspace nella regola.
 - **Dove funziona OneUptime.** Pulsanti, comandi, la scheda Home e OneUptime AI funzionano in ognuno di questi workspace, e i membri collegano il proprio account Slack da uno qualsiasi di essi.
 - **Un progetto collegato a un solo workspace.** Se quel workspace fa parte dell'organizzazione, il progetto mantiene regole, canali e account collegati quando viene installato per l'intera organizzazione con **Installa per l'organizzazione** nella stessa pagina. Quel workspace diventa il predefinito.
 - **Su un server self-hosted,** un'app Slack creata dal manifest di OneUptime lo consente già: il manifest imposta `org_deploy_enabled`.
@@ -159,7 +159,7 @@ L'app di OneUptime li aggiunge, come aggiunge le persone del canale di una regol
 
 - **Chi può aggiungere persone.** Chi può modificare il record: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore degli incidenti** e **Membro degli incidenti** per un incidente, oppure **Edit Incident** in un ruolo personalizzato, e lo stesso permesso per un avviso, un episodio o un evento (per esempio **Edit Alert**). Gli altri vedono chi è nel canale e come entrarci.
 - **Chi può essere aggiunto.** Qualcuno che OneUptime trova in Slack: dall'account Slack che ha collegato, oppure dall'indirizzo email che Slack ha per lui. La scheda nomina chi non ha potuto aggiungere, e perché, come un ospite che Slack tiene fuori dal canale.
-- **Cosa viene registrato.** Chi è stato aggiunto, e da chi, nel feed del record (**Membro aggiunto al canale**) e in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**.
+- **Cosa viene registrato.** Chi è stato aggiunto, e da chi, nel feed del record (**Membro aggiunto al canale**) e in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**.
 - **Togliere qualcuno.** OneUptime aggiunge soltanto: togli qualcuno dal canale in Slack.
 
 ## Provare una regola
@@ -359,7 +359,7 @@ Ciò che OneUptime ne conserva — il nome dell'area di lavoro, i suoi canali, g
 ## Risoluzione dei problemi
 
 :::details Una regola non pubblica nulla
-Controlla le condizioni della regola con **Testa la regola**: se la prova arriva, le condizioni della regola non corrispondevano all'evento. Se non arriva, la pagina Slack dice perché. Per un canale privato, invita prima l'app di OneUptime in Slack. Ogni messaggio che OneUptime pubblica, e ognuno che Slack ha rifiutato, è elencato in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**.
+Controlla le condizioni della regola con **Testa la regola**: se la prova arriva, le condizioni della regola non corrispondevano all'evento. Se non arriva, la pagina Slack dice perché. Per un canale privato, invita prima l'app di OneUptime in Slack. Ogni messaggio che OneUptime pubblica, e ognuno che Slack ha rifiutato, è elencato in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**.
 :::
 
 :::details Manca qualcuno nel canale di una regola

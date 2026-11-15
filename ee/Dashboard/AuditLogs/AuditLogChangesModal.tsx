@@ -1,4 +1,6 @@
 import { splitCapitalRunsBeforeWords } from "Common/Utils/CapitalRuns";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
@@ -136,7 +138,7 @@ const formatScalar: (value: JSONValue | undefined) => string = (
   value: JSONValue | undefined,
 ): string => {
   if (value === null || value === undefined || value === "") {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (typeof value === "boolean") {
     return value ? "true" : "false";
@@ -361,7 +363,7 @@ const renderValue: (
 
   return (
     <span className="text-gray-900 whitespace-pre-wrap break-words">
-      {formatScalar(value)}
+      {getValueOrQuietDash(formatScalar(value))}
     </span>
   );
 };
@@ -420,7 +422,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       {row.label}
                     </dt>
                     <dd className="text-sm text-gray-900 break-words sm:col-span-2">
-                      {row.value}
+                      {getValueOrQuietDash(row.value)}
                     </dd>
                   </div>
                 );

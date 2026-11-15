@@ -1,4 +1,6 @@
 import AppLink from "../../AppLink/AppLink";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
 import { getChangeEventTypeLabel } from "../../Metrics/Utils/UseEventTimeReferenceLines";
 import {
@@ -254,7 +256,11 @@ const StoryItemLinks: FunctionComponent<{
               icon={link.icon}
               className="h-3.5 w-3.5 shrink-0 text-gray-400"
             />
-            <span>{translator.translateText(link.label) || link.label}</span>
+            <span>
+              {getValueOrQuietDash(
+                translator.translateText(link.label) || link.label,
+              )}
+            </span>
           </AppLink>
         );
       })}
@@ -375,7 +381,7 @@ const StoryItemFacts: FunctionComponent<{
             const label: string = isSecurityEventRequestOutcome(entry.outcome)
               ? translator.translateText(STORY_OUTCOME_LABELS[entry.outcome]) ||
                 STORY_OUTCOME_LABELS[entry.outcome]
-              : "—";
+              : EMPTY_VALUE_MARK;
 
             return (
               <span key={entry.outcome || "none"} className="whitespace-nowrap">
