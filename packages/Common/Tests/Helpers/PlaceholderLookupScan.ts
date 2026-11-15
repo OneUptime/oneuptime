@@ -2340,6 +2340,32 @@ class PlaceholderScan {
            * other prop where the component offers its flag.
            */
           if (!isHeldEverywhere(prop) && !this.offers(target, flag)) {
+            /*
+             * Not held - but a flag given to a component that never reads
+             * it says nothing, and the component looks the text up again
+             * (#8423): a caller told isTooltipTranslated of a colour square
+             * that handed its tooltip on with no flag.
+             */
+            const unread: ts.JsxAttribute | undefined = attributes.get(flag);
+
+            if (
+              unread &&
+              !isFalse(unread.initializer) &&
+              !this.reads(target, flag) &&
+              this.endsInLookup(target, prop)
+            ) {
+              problems.push({
+                where: `${this.relative(file)}:${
+                  source.getLineAndCharacterOfPosition(
+                    attribute.getStart(source),
+                  ).line + 1
+                }`,
+                handedTo: `<${tag} ${prop}>`,
+                code: oneLine(attribute.initializer, source),
+                message: `${FLAG_NOT_READ_MESSAGE}${flag}`,
+              });
+            }
+
             continue;
           }
 
