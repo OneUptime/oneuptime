@@ -58,7 +58,7 @@ export const IncomingRequestSecretsCopy: {
   ),
   confirmTurnOnTitle: translationKey("Require a Secret on Every Request?"),
   confirmTurnOnDescription: translationKey(
-    "From now on, requests without one of this project's secrets are refused. Monitors whose senders do not send one yet stop receiving requests, and their heartbeat criteria may raise incidents.",
+    "Requests without one of this project's secrets are refused from now on. Monitors whose senders send none yet may go offline and raise incidents.",
   ),
   confirmTurnOnButton: translationKey("Require a Secret"),
   tableTitle: translationKey("Secrets"),
