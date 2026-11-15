@@ -128,7 +128,7 @@ Reglene, eierne, feeden og den første tilstanden skjer likevel i begge tilfelle
 
 Et bytte til en annen tilstand ber deg bekrefte, med et valgfritt privat notat sammenfoldet under **Legg til et privat notat**. Hva hver tilstand gjør, står på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities).
 
-Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fyller ut sidene **Rotårsak** og **Utbedring** og legger til **Eiere**. Menyen **Handlinger** i **Varselsfeed** kjører også en runbook med **Kjør runbook**, eller tilkaller flere personer med **Kjør vakttjenesteretningslinje**.
+Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fyller ut sidene **Rotårsak** og **Utbedring** og legger til **Eiere**. Menyen **Handlinger** i **Varselsfeed** kjører også en runbook med **Kjør runbook**, eller tilkaller flere personer med **Kjør vaktpolicy**.
 
 ## Hva hver side av et varsel viser
 

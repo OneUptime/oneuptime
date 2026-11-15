@@ -56,6 +56,17 @@ export interface OneName {
  */
 const SWEDISH_NOUN_FOR_A_WATCHER: RegExp = /övervakar(?=\p{L})/iu;
 
+/*
+ * The words Norwegian dropped for an on-call or incoming call policy: a
+ * vakt(tjeneste)retningslinje in any form, a retningslinje for vakttjeneste
+ * or for innkommende anrop, and an (innkommende) anropsretningslinje. A
+ * retningslinje on its own is read by the on-call keys' own check
+ * (OneNamePerThingGuard), since Norwegian keeps the word for a guideline and
+ * a Kubernetes or network policy.
+ */
+export const NORWEGIAN_ON_CALL_POLICY_DROPPED: RegExp =
+  /vakt(?:tjeneste-?|ordning-)?retningslinj|retningslinj\p{L}* for (?:vakttjeneste|innkommende anrop)|anropsretningslinj/iu;
+
 // Several keys kept for one reason.
 function keptForOneReason(
   keys: ReadonlyArray<string>,
@@ -256,6 +267,22 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Metrics",
       word: /måling/i,
       others: /metrikk/i,
+    },
+    /*
+     * An on-call policy is a vaktpolicy, and an incoming call policy a
+     * policy for innkommende anrop: "policy" is the Norwegian Dashboard's
+     * word for every policy it has (varslingspolicy, feilbudsjettpolicy,
+     * avspillingspolicy), and a new project's first policy is named
+     * "Standard vaktpolicy". The list, the menu and about a hundred
+     * sentences said vaktretningslinje, vakttjenesteretningslinje or
+     * retningslinje for vakttjeneste beside it (#8527). Both nouns are
+     * common gender (en retningslinje, en policy), so en, den, denne and
+     * dens stayed as they were.
+     */
+    {
+      title: "On-Call",
+      word: /vakt/i,
+      others: NORWEGIAN_ON_CALL_POLICY_DROPPED,
     },
   ],
 };

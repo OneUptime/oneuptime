@@ -206,7 +206,7 @@ Et teams tillatelse med omfanget Eide rekker til det teamet eier, ikke til det p
 
 **Etiketter** er den mer manuelle varianten av samme idé: merk ressurser, og gi så tillatelser begrenset til de merkene.
 
-**Å handle på hele prosjektet krever en tillatelse som når det.** **Kjør nå** for en regel bruker regelen på alle ressursene i prosjektet, og et nettverks regler for tildeling av steder, enhetsetiketter og automatisk import på alle nettverksenheter eller skanninger, så det krever tillatelser med omfang over alle ressursene i prosjektet: en tillatelse begrenset til etiketter eller til eide ressurser er ikke nok, og en blokkering med etiketter på ressursene en kjøring endrer, avviser kjøringen, fordi den også ville endret ressursene med de etikettene. En global brukeroverstyring gjelder for alle vaktretningslinjer, så å legge til eller slette en krever på samme måte tillatelsen for overstyringer med omfang over alle ressursene i prosjektet; et team med omfang over sine egne retningslinjer, eller over noen etiketter, legger til overstyringer på de retningslinjene. Se [Hvem som kan legge til overstyringer](/docs/on-call/user-overrides#hvem-som-kan-legge-til-overstyringer).
+**Å handle på hele prosjektet krever en tillatelse som når det.** **Kjør nå** for en regel bruker regelen på alle ressursene i prosjektet, og et nettverks regler for tildeling av steder, enhetsetiketter og automatisk import på alle nettverksenheter eller skanninger, så det krever tillatelser med omfang over alle ressursene i prosjektet: en tillatelse begrenset til etiketter eller til eide ressurser er ikke nok, og en blokkering med etiketter på ressursene en kjøring endrer, avviser kjøringen, fordi den også ville endret ressursene med de etikettene. En global brukeroverstyring gjelder for alle vaktpolicyer, så å legge til eller slette en krever på samme måte tillatelsen for overstyringer med omfang over alle ressursene i prosjektet; et team med omfang over sine egne policyer, eller over noen etiketter, legger til overstyringer på de policyene. Se [Hvem som kan legge til overstyringer](/docs/on-call/user-overrides#hvem-som-kan-legge-til-overstyringer).
 
 Noen roller gjelder per definisjon hele prosjektet og tilbyr ikke noe omfang i det hele tatt, fordi en avgrensning ville vært meningsløs — «Faktureringsadministrator, men bare for faktureringen jeg eier» beskriver ingenting:
 
@@ -362,7 +362,7 @@ Hvert teams tillatelse rekker til reglene som teamet eier. Den som er med i to t
 
 **Et team som bare ser på.** Opprett teamet med **Viser** under **Tilgang**. For bare noen områder velger du **Velg tillatelser senere** og legger til de områdevise `*Viewer`-rollene teamet skal se.
 
-**Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av overvåkerne, vaktretningslinjene og vaktplanene det drifter. Det personene dets oppretter med disse tillatelsene, eier de allerede.
+**Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av overvåkerne, vaktpolicyene og vaktplanene det drifter. Det personene dets oppretter med disse tillatelsene, eier de allerede.
 
 **Innleide holdt unna produksjon.** Gi teamet rollene det trenger med omfanget **Alle**, og legg så til en **blokkert tillatelse** (under **Flere innstillinger** på teamets side Tillatelser) for de sensitive evnene, begrenset til etiketten `Production`.
 

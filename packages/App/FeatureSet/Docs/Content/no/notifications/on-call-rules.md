@@ -25,7 +25,7 @@ flowchart TB
     ack["Du bekrefter"] -.->|"stopper resten"| third
 ```
 
-De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsApp, Telegram, Slack, Microsoft Teams og Mattermost har en bekreftelseslenke, og et anrop ber deg trykke 1. Kan du ikke ta en tilkalling, kan du eskalere den fra de samme meldingene, og et anrop ber deg trykke 2: retningslinjen varsler neste nivå med en gang, og du blir ikke varslet om det igjen. Se [Eskaler en varsling](/docs/on-call/escalation-rules#eskaler-en-varsling). Hver tilkalling du får, står under **Brukerinnstillinger → Vaktlogger**, der **Vis tidslinje** viser hver sendte melding og om den ble levert.
+De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsApp, Telegram, Slack, Microsoft Teams og Mattermost har en bekreftelseslenke, og et anrop ber deg trykke 1. Kan du ikke ta en tilkalling, kan du eskalere den fra de samme meldingene, og et anrop ber deg trykke 2: policyen varsler neste nivå med en gang, og du blir ikke varslet om det igjen. Se [Eskaler en varsling](/docs/on-call/escalation-rules#eskaler-en-varsling). Hver tilkalling du får, står under **Brukerinnstillinger → Vaktlogger**, der **Vis tidslinje** viser hver sendte melding og om den ble levert.
 
 ## Én rekkefølge for alt
 
@@ -117,7 +117,7 @@ En regel som tilkaller en telefon, bestemmer hvordan pushen høres ut:
 | **Kritisk varsel** | Ringer selv når telefonen er på lydløs eller i Ikke forstyrr, når Critical On-Call Alerts er slått på i appen OneUptime On-Call. En ny telefonregel starter her. |
 | **Normal** | Følger telefonens innstillinger for lyd, lydløs og Ikke forstyrr. |
 
-En push-regel, for en telefon eller en nettleser, kan også sende pushen på nytt til noen bekrefter: **Ikke gjenta**, standarden, eller **Hvert minutt**, **Hvert 2. minutt**, **Hvert 3. minutt**, **Hvert 5. minutt**, **Hvert 10. minutt**, **Hvert 15. minutt** eller **Hvert 30. minutt**. Den gjentas opptil 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. En tilkalling som fortsetter etter en bekreftelse, som en ny varsling, gjentas til noen den har tilkalt, svarer, eller hendelsen, varselet eller episoden er løst: [Når flere retningslinjer tilkaller](/docs/on-call/policies#når-flere-retningslinjer-tilkaller) nevner dem. Se [Kritiske vaktvarsler](/docs/self-hosted/push-notifications#kritiske-vaktvarsler-overstyre-lydløs-modus).
+En push-regel, for en telefon eller en nettleser, kan også sende pushen på nytt til noen bekrefter: **Ikke gjenta**, standarden, eller **Hvert minutt**, **Hvert 2. minutt**, **Hvert 3. minutt**, **Hvert 5. minutt**, **Hvert 10. minutt**, **Hvert 15. minutt** eller **Hvert 30. minutt**. Den gjentas opptil 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. En tilkalling som fortsetter etter en bekreftelse, som en ny varsling, gjentas til noen den har tilkalt, svarer, eller hendelsen, varselet eller episoden er løst: [Når flere policyer tilkaller](/docs/on-call/policies#når-flere-policyer-tilkaller) nevner dem. Se [Kritiske vaktvarsler](/docs/self-hosted/push-notifications#kritiske-vaktvarsler-overstyre-lydløs-modus).
 
 ## Når en alvorlighetsgrad ikke har noen regel
 

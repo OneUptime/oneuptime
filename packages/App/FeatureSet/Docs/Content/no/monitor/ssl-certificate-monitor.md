@@ -97,11 +97,11 @@ En ny SSL-sertifikatmonitor starter med tre kriterier, så den varsler deg før 
 2. **Sertifikatet utløper snart** — sertifikatet er gyldig, men utløper om 14 dager eller mindre. Det opprettes et **varsel** med navnet "_monitor name_ certificate expires soon".
 3. **Sertifikatet er gyldig** — monitoren merkes som **I drift**.
 
-Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktretningslinje på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Når det fornyede sertifikatet blir plukket opp, er monitoren tilbake på "Sertifikatet er gyldig", og varselet løser seg selv.
+Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktpolicy på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Når det fornyede sertifikatet blir plukket opp, er monitoren tilbake på "Sertifikatet er gyldig", og varselet løser seg selv.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Derfor står "utløper snart" over "er gyldig": et sertifikat som er i ferd med å utløpe, er fortsatt gyldig, så det ville samsvare med begge.
 
-For å bli varslet tidligere endrer du verdien til filteret **Dager til utløp** i kriteriet "utløper snart", for eksempel til `30`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktretningslinje på det under **Vaktretningslinjer**.
+For å bli varslet tidligere endrer du verdien til filteret **Dager til utløp** i kriteriet "utløper snart", for eksempel til `30`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktpolicy på det under **Vaktpolicyer**.
 
 :::details Legg til varselet på en monitor som ble opprettet før det fantes
 Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke noe kriterium "utløper snart". Slik legger du det til:

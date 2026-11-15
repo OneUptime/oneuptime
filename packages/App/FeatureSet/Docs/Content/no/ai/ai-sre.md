@@ -462,11 +462,11 @@ Hvert trinn sier hvorfor OneUptime AI kjørte det, hva det gjør, og hvordan det
 
 ## OneUptime AI reagerer først
 
-En vaktregel for hendelser eller varsler kan la OneUptime AI ta tilkallingen først. Under **Flere felt** svarer du **Når OneUptime AI har prøvd** på **Når skal denne regelen tilkalle?**. Når OneUptime AI kan rette det en samsvarende hendelse eller et samsvarende varsel gjelder, venter regelens retningslinjer mens AI undersøker, retter og kontrollerer rettingen, i høyst den tiden som er angitt i **Vent på OneUptime AI i opptil (minutter)**: 10 minutter som standard, fra 1 til 30. Hvis rettingen fra AI bekreftes, løser OneUptime AI posten, og ingen blir tilkalt.
+En vaktregel for hendelser eller varsler kan la OneUptime AI ta tilkallingen først. Under **Flere felt** svarer du **Når OneUptime AI har prøvd** på **Når skal denne regelen tilkalle?**. Når OneUptime AI kan rette det en samsvarende hendelse eller et samsvarende varsel gjelder, venter regelens policyer mens AI undersøker, retter og kontrollerer rettingen, i høyst den tiden som er angitt i **Vent på OneUptime AI i opptil (minutter)**: 10 minutter som standard, fra 1 til 30. Hvis rettingen fra AI bekreftes, løser OneUptime AI posten, og ingen blir tilkalt.
 
 Ellers tilkaller regelen med en gang, og feeden til posten sier hvorfor, når en person opprettet posten, den har prosjektets høyeste alvorlighetsgrad, 3 eller flere andre varsler og hendelser ble åpnet i de 5 minuttene før, prosjektet har et abonnement under Growth (der ville ingen sett en tilbakeholdt tilkalling), OneUptime AI ikke kan undersøke eller rette den automatisk, ingen monitor er koblet til den, eller ingen koblet Kubernetes-klynge eller ressurs har en AI-agent satt til **Automatisk** eller **Hopp over godkjenning**.
 
-Mens AI holder igjen en tilkalling, viser kortet **OneUptime AI** når tilkallingen starter, med **Tilkall nå** for alle som vil ha en person på saken med en gang; den er låst, med begrunnelse, for alle som ikke kan tilkalle via vaktretningslinjer. Hvert minutt sjekker OneUptime hver tilkalling AI holder igjen, og begynner å tilkalle med en gang, med begrunnelse, når:
+Mens AI holder igjen en tilkalling, viser kortet **OneUptime AI** når tilkallingen starter, med **Tilkall nå** for alle som vil ha en person på saken med en gang; den er låst, med begrunnelse, for alle som ikke kan tilkalle via vaktpolicyer. Hvert minutt sjekker OneUptime hver tilkalling AI holder igjen, og begynner å tilkalle med en gang, med begrunnelse, når:
 
 - undersøkelsen ikke starter, venter på en AI-regel eller ikke blir ferdig;
 - AI ikke finner en retting den kan kjøre på egen hånd, eller rettingen trenger godkjenning fra en person;
@@ -474,7 +474,7 @@ Mens AI holder igjen en tilkalling, viser kortet **OneUptime AI** når tilkallin
 - noen trykker **Tilkall nå**, posten når den høyeste alvorlighetsgraden, eller mange poster åpnes samtidig;
 - AI eller automatisk retting slås av, eller regelen ikke lenger lar AI reagere først.
 
-Kjøringsloggene til retningslinjen viser hvordan hver tilbakeholding endte. Gjennom API-et eller Terraform er regelens `whenToPage` `After OneUptime AI`, og `aiHoldTimeInMinutes` er ventetiden.
+Kjøringsloggene til policyen viser hvordan hver tilbakeholding endte. Gjennom API-et eller Terraform er regelens `whenToPage` `After OneUptime AI`, og `aiHoldTimeInMinutes` er ventetiden.
 
 ## Hva OneUptime AI har lært, og alt den har gjort
 
