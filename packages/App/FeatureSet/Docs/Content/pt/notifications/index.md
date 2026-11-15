@@ -95,7 +95,7 @@ Um acionamento pode chegar até você para um tipo e uma gravidade para os quais
 2. Se você não tem nenhum desses, um método pago, nesta ordem: SMS, uma chamada telefônica, WhatsApp, Telegram. É o primeiro que você verificou, em um canal que o projeto ativou.
 3. Se você também não tem nenhum desses, um webhook.
 
-Você recebe um e-mail avisando, e também os proprietários da política de plantão, ou os do projeto se a política não tiver. Se não houver nada verificado, o acionamento não pode ser entregue, e o e-mail diz isso. Esses e-mails ficam retidos enquanto os acionamentos continuam chegando, para que uma tempestade de acionamentos não vire uma tempestade de e-mails. Para adicionar a regra que falta, veja [Como me contatar](/docs/notifications/on-call-rules#quando-uma-gravidade-não-tem-regra).
+Você recebe um e-mail avisando, e também os proprietários da política de plantão, ou os Proprietários do projeto se a política não tiver. Se não houver nada verificado, o acionamento não pode ser entregue, e o e-mail diz isso. Esses e-mails ficam retidos enquanto os acionamentos continuam chegando, para que uma tempestade de acionamentos não vire uma tempestade de e-mails. Para adicionar a regra que falta, veja [Como me contatar](/docs/notifications/on-call-rules#quando-uma-gravidade-não-tem-regra).
 
 ## O idioma dos seus acionamentos
 

@@ -24,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * Spans from OSProfiler's driver, end to end through the real OTLP walk and row builders, to
@@ -97,7 +98,7 @@ function body(data: {
 }
 
 describe("spans from OSProfiler's driver, through the real ingest", () => {
-  let insert: jest.SpiedFunction<typeof SpanService.insertJsonRows>;
+  let insert: SpyInstance<typeof SpanService.insertJsonRows>;
   let resourceAttributes: Array<JSONArray>;
 
   beforeAll(() => {
@@ -167,7 +168,7 @@ describe("spans from OSProfiler's driver, through the real ingest", () => {
 
     insert = jest
       .spyOn(SpanService, "insertJsonRows")
-      .mockResolvedValue(undefined as never) as unknown as jest.SpiedFunction<
+      .mockResolvedValue(undefined as never) as unknown as SpyInstance<
       typeof SpanService.insertJsonRows
     >;
   });

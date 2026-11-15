@@ -28,7 +28,7 @@ flowchart TB
 ## 开始之前
 
 - **一个已连接的 Azure 订阅。** 先在 **云 → 连接** 中连接它：参见 [连接云账户](/docs/telemetry/cloud-accounts)。
-- **项目所有者或管理员。** 只有他们可以开启读取和停止流式传输。
+- **项目所有者或项目管理员。** 只有他们可以开启读取和停止流式传输。
 - **Azure Cloud Shell**，以订阅的 **Owner** 身份登录，或以同时是 **User Access Administrator** 的 **Contributor** 身份登录：命令会创建资源组和角色分配，并更改诊断设置。
 - **在自托管的 OneUptime 上，能访问 Azure 的出口。** OneUptime 通过端口 9093 在 `<namespace>.servicebus.windows.net` 读取每个命名空间，命名空间接受来自互联网的连接。
 

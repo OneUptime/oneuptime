@@ -2293,7 +2293,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Daily AI Token Limit Reached At",
     description:
-      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. Project Owners are emailed then, once a day.",
   })
   @Column({
     nullable: true,
@@ -2312,7 +2312,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Daily AI Spend Limit Reached At",
     description:
-      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. Project Owners are emailed then, once a day.",
   })
   @Column({
     nullable: true,
@@ -2342,7 +2342,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Date,
     title: "Plan Cut-off Notice Sent At",
     description:
-      "Internal: when the project's owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
+      "Internal: when the Project Owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
   })
   @Column({
     nullable: true,

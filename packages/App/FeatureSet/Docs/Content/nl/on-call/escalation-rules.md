@@ -165,7 +165,7 @@ Een oproep die niet wordt verstuurd, zegt waarom in de **Bereikbaarheidslogboeke
 - het saldo van het project kon hem niet betalen, en wie saldo kan toevoegen;
 - het kanaal staat uit in het project, en wie het kan aanzetten.
 
-De eigenaren van het project krijgen daar één keer een e-mail over, totdat het saldo is aangevuld of het kanaal weer aan staat.
+De Projecteigenaren krijgen daar één keer een e-mail over, totdat het saldo is aangevuld of het kanaal weer aan staat.
 
 Een oproep die de meldingsdienst van OneUptime niet kon bereiken, zegt `Could not reach the Notification service to send this (ECONNREFUSED).`, met de code van de netwerkfout tussen de haakjes. Een oproep waarvan het verzenden nooit klaar was, bijvoorbeeld omdat een server tijdens het verzenden opnieuw opstartte, zegt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Als het verzenden toch nog klaar is, vervangt het resultaat dat bericht.
 

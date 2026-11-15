@@ -138,7 +138,7 @@ Klicken Sie auf der Karte **Aktuelles Guthaben** der Seite auf **Guthaben auflad
 Klicken Sie auf der Karte **Automatisches Aufladen** auf **Automatische Aufladung bearbeiten** und schalten Sie **Automatisches Aufladen aktivieren** ein. Anfangs ist es aus. Ist es eingeschaltet, lädt OneUptime $20 auf, sobald das Guthaben auf $10 fällt, oder die Beträge, die Sie wählen.
 :::
 
-Wenn ein Guthaben nicht ausreicht, wird die Nachricht nicht gesendet oder OneUptime AI hält an, und die Owners des Projekts erhalten eine E-Mail. Siehe [Wenn eine Alarmierung nicht gesendet wird](/docs/on-call/escalation-rules#wenn-eine-alarmierung-nicht-gesendet-wird) und [Wenn das KI-Guthaben aufgebraucht ist](/docs/ai/ai-sre#wenn-das-ki-guthaben-aufgebraucht-ist).
+Wenn ein Guthaben nicht ausreicht, wird die Nachricht nicht gesendet oder OneUptime AI hält an, und die Projektinhaber erhalten eine E-Mail. Siehe [Wenn eine Alarmierung nicht gesendet wird](/docs/on-call/escalation-rules#wenn-eine-alarmierung-nicht-gesendet-wird) und [Wenn das KI-Guthaben aufgebraucht ist](/docs/ai/ai-sre#wenn-das-ki-guthaben-aufgebraucht-ist).
 
 ## Wer was darf
 

@@ -152,6 +152,9 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
    */
   const isRequestSlo: boolean = isRequestSliType(slo.sliType);
   const serviceCount: number = props.serviceCount || 0;
+  const requestFilter: string | null = isRequestSlo
+    ? (slo.requestFilter || "").trim() || null
+    : null;
 
   const headline: string = getSloHeadlineInLanguage(
     {
@@ -457,6 +460,25 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
                 />
               </Link>
             </dd>
+            {/*
+             * Only some of their requests count (#8444): says so, with the
+             * search, so the numbers above read for what they count.
+             */}
+            {requestFilter ? (
+              <dd
+                className="mt-0.5 truncate text-xs text-gray-500"
+                data-testid="slo-overview-chip-request-filter"
+                title={requestFilter}
+              >
+                {translator.translateTemplate(
+                  "Matching {{filter}}",
+                  { filter: requestFilter },
+                  { setsValuesApart: true },
+                )}
+              </dd>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
           <div className="min-w-0" data-testid="slo-overview-chip-monitors">

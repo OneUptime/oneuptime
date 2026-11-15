@@ -35,7 +35,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **En projektägare eller -administratör.** Bara de kan ansluta, testa och redigera molnkonton.
+- **En Projektägare eller Projektadministratör.** Bara de kan ansluta, testa och redigera molnkonton.
 - **Molnets terminal** (AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell), inloggad som någon som får skapa en IAM-roll eller -användare, en appregistrering eller ett tjänstkonto.
 
 ## Amazon Web Services

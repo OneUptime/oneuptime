@@ -280,6 +280,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
           { one: "{{count}} session", other: "{{count}} sessions" },
           count,
         )}
+        isLabelTranslated={true}
         variant="ghost"
         tone="accent"
         trailingIcon={IconProp.ChevronDown}

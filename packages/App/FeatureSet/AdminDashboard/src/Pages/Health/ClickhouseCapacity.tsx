@@ -17,6 +17,8 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -76,6 +78,7 @@ const bytesToReadable: (value: unknown) => string = (
 };
 
 const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -147,6 +150,9 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
 
   const renderDiskBars: () => ReactElement = (): ReactElement => {
     const bars: Array<ReactElement> = [];
+    const diskTitle: string = translator.translateText(
+      "ClickHouse disk",
+    ) as string;
 
     diskByNode.forEach((value: unknown, index: number): void => {
       const node: JSONObject = asObject(value);
@@ -169,7 +175,11 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
       const labels: Array<string> = [];
 
       if (shard !== null) {
-        labels.push(`Shard ${shard}`);
+        labels.push(
+          translator.translateTemplate("Shard {{shard}}", {
+            shard: translator.formatNumber(shard),
+          }),
+        );
       }
       if (host) {
         labels.push(host);
@@ -181,11 +191,7 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
       bars.push(
         <ResourceUsageBar
           key={`clickhouse-disk-${index}`}
-          label={
-            labels.length > 0
-              ? `ClickHouse disk · ${labels.join(" · ")}`
-              : "ClickHouse disk"
-          }
+          label={formatInline([diskTitle, ...labels], translator)}
           value={percent}
           valueLabel={`${percent.toFixed(0)}%`}
           secondaryLabel={`${bytesToReadable(used)} / ${bytesToReadable(
@@ -202,7 +208,7 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
     if (diskPercent !== null) {
       return (
         <ResourceUsageBar
-          label="ClickHouse disk"
+          label={diskTitle}
           value={diskPercent}
           valueLabel={`${diskPercent.toFixed(0)}%`}
           secondaryLabel={`${bytesToReadable(diskUsed)} / ${bytesToReadable(
@@ -214,6 +220,18 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
 
     return <></>;
   };
+
+  // The local tables' column titles, each for its header and its resize handle.
+  const shardTitle: string = translator.translateText("Shard") as string;
+  const hostTitle: string = translator.translateText("Host") as string;
+  const localTableTitle: string = translator.translateText(
+    "Local table",
+  ) as string;
+  const dataTitle: string = translator.translateText("Data") as string;
+  const rowsTitle: string = translator.translateText("Rows") as string;
+  const activePartsTitle: string = translator.translateText(
+    "Active parts",
+  ) as string;
 
   const renderStat: (label: string, value: string) => ReactElement = (
     label: string,
@@ -259,8 +277,13 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                ClickHouse is {connected ? "reachable" : "not reachable"} from
-                this instance.
+                {connected
+                  ? translator.translateText(
+                      "ClickHouse is reachable from this instance.",
+                    )
+                  : translator.translateText(
+                      "ClickHouse is not reachable from this instance.",
+                    )}
               </div>
               <Statusbubble
                 text={connected ? "Connected" : "Unreachable"}
@@ -275,11 +298,17 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {renderStat(
-                    "ClickHouse data",
+                    translator.translateText("ClickHouse data") as string,
                     bytesToReadable(data?.["dataSizeInBytes"]),
                   )}
-                  {renderStat("Disk used", bytesToReadable(diskUsed))}
-                  {renderStat("Disk total", bytesToReadable(diskTotal))}
+                  {renderStat(
+                    translator.translateText("Disk used") as string,
+                    bytesToReadable(diskUsed),
+                  )}
+                  {renderStat(
+                    translator.translateText("Disk total") as string,
+                    bytesToReadable(diskTotal),
+                  )}
                 </div>
               </>
             ) : (
@@ -306,61 +335,61 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
                     className="pb-2 pr-4"
                     resize={localTableColumns.getResize(
                       "shard",
-                      "Shard",
+                      shardTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>Shard</span>
+                    <span>{shardTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     className="pb-2 px-4"
                     resize={localTableColumns.getResize(
                       "host",
-                      "Host",
+                      hostTitle,
                       ColumnWidthKind.Text,
                     )}
                   >
-                    <span>Host</span>
+                    <span>{hostTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     className="pb-2 px-4"
                     resize={localTableColumns.getResize(
                       "localTable",
-                      "Local table",
+                      localTableTitle,
                       ColumnWidthKind.Text,
                     )}
                   >
-                    <span>Local table</span>
+                    <span>{localTableTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     className="pb-2 px-4 text-right"
                     resize={localTableColumns.getResize(
                       "data",
-                      "Data",
+                      dataTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>Data</span>
+                    <span>{dataTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     className="pb-2 px-4 text-right"
                     resize={localTableColumns.getResize(
                       "rows",
-                      "Rows",
+                      rowsTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>Rows</span>
+                    <span>{rowsTitle}</span>
                   </ResizableHeaderCell>
                   <ResizableHeaderCell
                     className="pb-2 pl-4 text-right"
                     resize={localTableColumns.getResize(
                       "activeParts",
-                      "Active parts",
+                      activePartsTitle,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>Active parts</span>
+                    <span>{activePartsTitle}</span>
                   </ResizableHeaderCell>
                 </tr>
               </thead>
@@ -399,7 +428,9 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
           </div>
         ) : (
           <div className="text-sm text-gray-500">
-            No local ClickHouse table sizes were reported.
+            {translator.translateText(
+              "No local ClickHouse table sizes were reported.",
+            )}
           </div>
         )}
       </Card>

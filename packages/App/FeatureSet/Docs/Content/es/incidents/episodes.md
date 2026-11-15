@@ -51,7 +51,7 @@ Activarlo no saca ningún incidente de un episodio: un incidente que ya está en
 
 ## Quién puede añadir
 
-Añadir requiere permiso para añadir incidentes a un episodio, que tienen los roles Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de incidentes y Miembro de incidentes, y también un rol personalizado con Create Incident Episode Member. Solo puedes añadir incidentes que puedes ver: un incidente privado solo lo pueden añadir sus propietarios y los propietarios y administradores del proyecto. Añadir a un episodio nuevo requiere además permiso para crear un episodio. Cuando no puedes usar una acción, aparece bloqueada y su descripción emergente nombra el permiso que falta.
+Añadir requiere permiso para añadir incidentes a un episodio, que tienen los roles Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de incidentes y Miembro de incidentes, y también un rol personalizado con Create Incident Episode Member. Solo puedes añadir incidentes que puedes ver: un incidente privado solo lo pueden añadir sus propietarios y los Propietarios del proyecto y Administradores del proyecto. Añadir a un episodio nuevo requiere además permiso para crear un episodio. Cuando no puedes usar una acción, aparece bloqueada y su descripción emergente nombra el permiso que falta.
 
 ## Con la API
 

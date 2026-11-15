@@ -4,6 +4,7 @@ Un SLO de solicitudes mide lo que tus usuarios obtienen de un servicio: la parte
 
 :::cards
 - [Crear un SLO de solicitudes](#crear-un-slo-de-solicitudes): Los servicios, un umbral para la latencia y un objetivo.
+- [Contar solo algunas solicitudes](#contar-solo-algunas-solicitudes): Un solo endpoint, o todas las solicitudes menos las comprobaciones de salud.
 - [Cómo se cuentan las solicitudes](#cómo-se-cuentan-las-solicitudes): Qué spans cuentan, y cuándo.
 - [Comprobaciones de lanzamiento](/docs/slo/release-checks): Revierte un lanzamiento que consume el presupuesto de errores.
 :::
@@ -48,7 +49,7 @@ Abre **SLO** desde el menú **Productos** de la barra superior y haz clic en **C
 
 ### Elegir qué mide
 
-En **Qué mide**, elige **Éxito de solicitudes** o **Latencia de solicitudes** y, después, los **Servicios** cuyas solicitudes cuenta. Para **Latencia de solicitudes**, fija también el **Umbral de latencia (ms)**: una solicitud servida dentro de ese tiempo cuenta como lo bastante rápida, por ejemplo `300`. Haz clic en **Siguiente**.
+En **Qué mide**, elige **Éxito de solicitudes** o **Latencia de solicitudes** y, después, los **Servicios** cuyas solicitudes cuenta. Para **Latencia de solicitudes**, fija también el **Umbral de latencia (ms)**: una solicitud servida dentro de ese tiempo cuenta como lo bastante rápida, por ejemplo `300`. Para contar solo algunas de sus solicitudes, escribe un **Filtro de solicitudes**: consulta [Contar solo algunas solicitudes](#contar-solo-algunas-solicitudes). Haz clic en **Siguiente**.
 
 ### Ponerle nombre y fijar un objetivo
 
@@ -59,7 +60,22 @@ Escribe un **Nombre**, por ejemplo «Checkout requests», y un **Objetivo (%)**:
 La primera evaluación, en menos de 5 minutos, cuenta las solicitudes de las últimas 6 horas, así que el SLO tiene cifras enseguida. Las evaluaciones siguientes cuentan también solicitudes más antiguas, hasta cubrir la ventana de cumplimiento.
 :::
 
-La página **SLO** de un servicio lista los SLO que lo miden, y su **Crear Objetivo de nivel de servicio** abre el mismo formulario con el servicio ya elegido. Para cambiar más adelante lo que mide un SLO, sus servicios o su umbral, abre sus **Ajustes** y haz clic en **Editar qué mide**.
+La página **SLO** de un servicio lista los SLO que lo miden, y su **Crear Objetivo de nivel de servicio** abre el mismo formulario con el servicio ya elegido. Para cambiar más adelante lo que mide un SLO, sus servicios, su umbral o su filtro, abre sus **Ajustes** y haz clic en **Editar qué mide**.
+
+## Contar solo algunas solicitudes
+
+Un SLO de solicitudes cuenta todas las solicitudes de sus servicios. Un **Filtro de solicitudes** cuenta solo las que importan, como las del endpoint de checkout, o deja fuera algunas, como las comprobaciones de salud, que harían que el SLI pareciera mejor que lo que obtienen los usuarios. Escríbelo como una búsqueda de trazas, con la misma [sintaxis de búsqueda](/docs/telemetry/search-syntax#coincidencia-de-valores) que el explorador de trazas:
+
+| Filtro de solicitudes | Qué cuenta |
+| --- | --- |
+| `@http.route:/checkout*` | Las solicitudes cuya ruta empieza por `/checkout`. |
+| `-@http.route:/health` | Todas las solicitudes menos las comprobaciones de salud. |
+| `@http.request.method:[POST, PUT]` | Las solicitudes POST y PUT. |
+| `name:"POST /checkout"` | Las solicitudes cuyo span se llama `POST /checkout`. |
+
+Todos los términos deben coincidir, así que `@http.route:/checkout* -@http.route:/checkout/health` cuenta las solicitudes de checkout menos su comprobación de salud. Un término con `@` es un atributo del span de la solicitud, y `name:` es el nombre del span. El texto libre y los demás campos del explorador, como `status:` y `duration:`, no son filtros aquí: el SLO ya decide qué solicitudes son malas o lentas. Un filtro admite hasta 10 términos en 500 caracteres.
+
+La **Vista general** muestra el filtro bajo los servicios del SLO, y los **Ajustes** lo muestran bajo **Qué mide**. Cambiarlo vuelve a contar las solicitudes del SLO desde el principio.
 
 ## Cómo se cuentan las solicitudes
 
@@ -68,7 +84,7 @@ OneUptime cuenta las solicitudes buenas y totales de cada SLO en pasos de 5 minu
 - Un paso se cuenta 2 minutos después de terminar, para que incluya los spans que llegan tarde, y la evaluación siguiente vuelve a contar los dos últimos pasos por los spans que llegan más tarde todavía.
 - Un SLO nuevo empieza con las últimas 6 horas. Cada evaluación posterior cuenta hasta un día de solicitudes más antiguas, de las más recientes hacia atrás, hasta cubrir la ventana.
 - Solo se pueden contar las solicitudes que siguen dentro de tu [retención de telemetría](/docs/telemetry/data-retention#cuánto-tiempo-se-conserva-la-telemetría). Los pasos contados se conservan 400 días, más que cualquier ventana de cumplimiento, así que una ventana más larga que la retención se va llenando a medida que el SLO envejece.
-- Cambiar lo que mide el SLO, sus servicios o su umbral de latencia vuelve a contar sus solicitudes desde el principio. Una ventana de cumplimiento más larga se llena contando más hacia atrás.
+- Cambiar lo que mide el SLO, sus servicios, su umbral de latencia o su filtro de solicitudes vuelve a contar sus solicitudes desde el principio. Una ventana de cumplimiento más larga se llena contando más hacia atrás.
 
 Mientras los recuentos cubren solo una parte de la ventana de cumplimiento, la **Vista general** lo indica con un indicador **Ventana llena al 23 %**, y el mosaico **Presupuesto de errores restante** lo repite bajo su cifra. Ambos desaparecen cuando los recuentos cubren toda la ventana.
 
@@ -82,16 +98,16 @@ El presupuesto son las solicitudes malas que permite el objetivo entre las solic
 
 Las alertas de tasa de consumo, las notificaciones y el feed también expresan el presupuesto en solicitudes. La métrica `oneuptime.slo.error.budget.remaining.seconds` no se publica para un SLO de solicitudes; representa en tus gráficos `oneuptime.slo.error.budget.remaining.percent` en su lugar.
 
-Un SLO de solicitudes recibe las mismas reglas **Fast burn**, **Slow burn** y **Slow leak** que cualquier SLO nuevo. En una hora tranquila con un puñado de solicitudes, un solo fallo puede consumir el presupuesto muy rápido, así que una regla puede ignorar las ventanas con muy pocas solicitudes: fija el `minimumSampleCount` de la regla mediante la API, y la regla omite una ventana larga que tenga menos solicitudes que ese número.
+Un SLO de solicitudes recibe las mismas reglas **Fast burn**, **Slow burn** y **Slow leak** que cualquier SLO nuevo. En una hora tranquila con un puñado de solicitudes, un solo fallo puede consumir el presupuesto muy rápido, así que una regla puede ignorar las ventanas con muy pocas solicitudes: fija el **Mínimo de solicitudes** de la regla, y la regla omite una ventana larga que tenga menos solicitudes que ese número.
 
 ## Solución de problemas
 
 :::details El SLO muestra Esperando solicitudes
-Ninguno de sus servicios ha servido todavía una solicitud en la ventana. Comprueba que los servicios envían trazas a OneUptime y que sus spans incluyen spans de entrada: un servicio cuyos spans son todos internos no tiene solicitudes que contar.
+Ninguno de sus servicios ha servido todavía una solicitud en la ventana. Comprueba que los servicios envían trazas a OneUptime y que sus spans incluyen spans de entrada: un servicio cuyos spans son todos internos no tiene solicitudes que contar. Si el SLO tiene un **Filtro de solicitudes**, busca con él en el [Explorador de trazas](/docs/telemetry/traces-explorer): un filtro que allí no coincide con ninguna solicitud no le deja al SLO ninguna que contar.
 :::
 
 :::details El SLI cambió después de cambiar los servicios
-Cambiar lo que mide el SLO, sus servicios o su umbral de latencia vuelve a contar sus solicitudes, empezando por las últimas 6 horas, así que el SLI y el presupuesto vuelven a empezar desde ahí. El indicador **Ventana llena al 23 %** muestra qué parte de la ventana se ha contado hasta ahora.
+Cambiar lo que mide el SLO, sus servicios, su umbral de latencia o su filtro de solicitudes vuelve a contar sus solicitudes, empezando por las últimas 6 horas, así que el SLI y el presupuesto vuelven a empezar desde ahí. El indicador **Ventana llena al 23 %** muestra qué parte de la ventana se ha contado hasta ahora.
 :::
 
 ## Próximos pasos

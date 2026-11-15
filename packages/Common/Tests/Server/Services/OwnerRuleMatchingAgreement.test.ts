@@ -217,7 +217,7 @@ const TITLE_PATTERNS: Array<string> = [
 ];
 const NAME_PATTERNS: Array<string> = ["^Checkout", "API$", "^Search"];
 
-const PROJECT_OWNERS: string = "the project's owners";
+const PROJECT_OWNERS: string = "the Project Owners";
 
 const CASES: number = 120;
 

@@ -188,8 +188,13 @@ export interface IpAllowlistCardProps {
   description: string;
   editButtonText: string;
   fieldDescription: string;
-  // Shown while no allow-list is set.
+  // Shown while no allow-list is set: English, looked up by the card.
   emptyText: string;
+  /*
+   * The empty text is in the reader's words already: drawn as given, never
+   * looked up again (#8423).
+   */
+  isEmptyTextTranslated?: boolean | undefined;
   // Shown for an allow-list with no address in it.
   noAddressText: string;
   // The test id of the list of entries.

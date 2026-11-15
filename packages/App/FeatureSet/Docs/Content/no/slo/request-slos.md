@@ -4,6 +4,7 @@ Et forespørsels-SLO måler det brukerne dine får fra en tjeneste: andelen av f
 
 :::cards
 - [Opprett et forespørsels-SLO](#opprett-et-forespørsels-slo): Tjenestene, en latensgrense og et mål.
+- [Tell bare noen forespørsler](#tell-bare-noen-forespørsler): Ett endepunkt, eller alle forespørsler unntatt helsesjekker.
 - [Slik telles forespørsler](#slik-telles-forespørsler): Hvilke spans som teller, og når.
 - [Utgivelseskontroller](/docs/slo/release-checks): Rull tilbake en utgivelse som brenner opp feilbudsjettet.
 :::
@@ -44,22 +45,37 @@ Derfra fungerer et forespørsels-SLO som alle andre. Statusen, forbruksrateregle
 :::steps
 ### Åpne SLO-er
 
-Åpne **SLOs** fra menyen **Produkter** i topplinjen, og klikk på **Opprett Service Level Objective**.
+Åpne **SLOs** fra menyen **Produkter** i topplinjen, og klikk på **Opprett Tjenestenivåmål**.
 
 ### Velg hva SLO-et måler
 
-Under **Hva den måler** velger du **Vellykkede forespørsler** eller **Forespørselslatens**, og deretter under **Tjenester** hvilke tjenester forespørslene skal telles fra. For **Forespørselslatens** angir du også **Latensgrense (ms)**: en forespørsel som besvares innenfor grensen, teller som rask nok, for eksempel `300`. Klikk på **Neste**.
+Under **Hva den måler** velger du **Vellykkede forespørsler** eller **Forespørselslatens**, og deretter under **Tjenester** hvilke tjenester forespørslene skal telles fra. For **Forespørselslatens** angir du også **Latensgrense (ms)**: en forespørsel som besvares innenfor grensen, teller som rask nok, for eksempel `300`. Vil du bare telle noen av forespørslene deres, skriver du inn et **Forespørselsfilter**: se [Tell bare noen forespørsler](#tell-bare-noen-forespørsler). Klikk på **Neste**.
 
 ### Gi det et navn og et mål
 
-Skriv inn et **Navn**, for eksempel «Checkout requests», og et **Mål (%)**: andelen forespørsler som må være gode. Klikk på **Opprett Service Level Objective**.
+Skriv inn et **Navn**, for eksempel «Checkout requests», og et **Mål (%)**: andelen forespørsler som må være gode. Klikk på **Opprett Tjenestenivåmål**.
 
 ### Se de første tallene komme inn
 
 Den første evalueringen, innen 5 minutter, teller forespørslene fra de siste 6 timene, så SLO-et har tall med en gang. Evalueringene etter den teller også eldre forespørsler, helt til samsvarsvinduet er dekket.
 :::
 
-En tjenestes egen side **SLOs** viser SLO-ene som måler den, og **Opprett Service Level Objective** der åpner det samme skjemaet med tjenesten allerede valgt. Vil du senere endre hva et SLO måler, tjenestene eller grensen, åpner du **Innstillinger** for SLO-et og klikker på **Rediger hva den måler**.
+En tjenestes egen side **SLOs** viser SLO-ene som måler den, og **Opprett Tjenestenivåmål** der åpner det samme skjemaet med tjenesten allerede valgt. Vil du senere endre hva et SLO måler, tjenestene, grensen eller filteret, åpner du **Innstillinger** for SLO-et og klikker på **Rediger hva den måler**.
+
+## Tell bare noen forespørsler
+
+Et forespørsels-SLO teller alle forespørslene fra tjenestene sine. Et **Forespørselsfilter** teller bare dem som betyr noe, som checkout-endepunktet, eller utelater noen, som helsesjekker som ville fått SLI-en til å se bedre ut enn det brukerne får. Skriv det som et sporsøk, i den samme [søkesyntaksen](/docs/telemetry/search-syntax#samsvar-mot-verdier) som sporutforskeren:
+
+| Forespørselsfilter | Teller |
+| --- | --- |
+| `@http.route:/checkout*` | Forespørsler der ruten begynner med `/checkout`. |
+| `-@http.route:/health` | Alle forespørsler unntatt helsesjekker. |
+| `@http.request.method:[POST, PUT]` | POST- og PUT-forespørsler. |
+| `name:"POST /checkout"` | Forespørsler der spannet heter `POST /checkout`. |
+
+Alle betingelser må samsvare, så `@http.route:/checkout* -@http.route:/checkout/health` teller checkout-forespørslene unntatt helsesjekken deres. En betingelse med `@` er et attributt på spannet til forespørselen, og `name:` er navnet på spannet. Fritekst og de andre feltene i utforskeren, som `status:` og `duration:`, er ikke filtre her: SLO-et avgjør allerede hvilke forespørsler som er dårlige eller trege. Et filter kan ha opptil 10 betingelser på høyst 500 tegn.
+
+**Oversikt** viser filteret under tjenestene til SLO-et, og **Innstillinger** viser det under **Hva den måler**. Endrer du det, telles forespørslene til SLO-et på nytt fra starten.
 
 ## Slik telles forespørsler
 
@@ -68,7 +84,7 @@ OneUptime teller de gode forespørslene og alle forespørslene til hvert SLO i s
 - Et steg telles 2 minutter etter at det er slutt, så spans som kommer sent, kommer med, og neste evaluering teller de to siste stegene på nytt for spans som kommer enda senere.
 - Et nytt SLO starter med de siste 6 timene. Hver evaluering etter det teller opptil et døgn med eldre forespørsler, de nyeste først, til vinduet er dekket.
 - Bare forespørsler som fortsatt er innenfor [oppbevaringstiden for telemetri](/docs/telemetry/data-retention#hvor-lenge-telemetri-oppbevares), kan telles. Telte steg oppbevares i 400 dager, lenger enn noe samsvarsvindu, så et vindu som er lengre enn oppbevaringstiden, fylles etter hvert som SLO-et blir eldre.
-- Endrer du hva SLO-et måler, tjenestene eller latensgrensen, telles forespørslene på nytt fra starten. Et lengre samsvarsvindu fylles ved at det telles lenger tilbake.
+- Endrer du hva SLO-et måler, tjenestene, latensgrensen eller forespørselsfilteret, telles forespørslene på nytt fra starten. Et lengre samsvarsvindu fylles ved at det telles lenger tilbake.
 
 Så lenge tellingene bare dekker en del av samsvarsvinduet, sier **Oversikt** fra med indikatoren **Vinduet er 23 % fylt**, og flisen **Feilbudsjett igjen** gjentar det under tallet sitt. Begge forsvinner når tellingene dekker hele vinduet.
 
@@ -82,16 +98,16 @@ Budsjettet er de dårlige forespørslene målet tillater blant forespørslene so
 
 Forbruksratevarsler, varslinger og feeden oppgir også budsjettet i forespørsler. Målingen `oneuptime.slo.error.budget.remaining.seconds` sendes ikke for et forespørsels-SLO; vis `oneuptime.slo.error.budget.remaining.percent` i et diagram i stedet.
 
-Et forespørsels-SLO får de samme reglene **Fast burn**, **Slow burn** og **Slow leak** som alle nye SLO-er. I en rolig time med en håndfull forespørsler kan én enkelt feil gi et raskt forbruk, så en regel kan se bort fra vinduer med for få forespørsler: angi `minimumSampleCount` for regelen via API-et, så hopper regelen over et langt vindu med færre forespørsler enn det.
+Et forespørsels-SLO får de samme reglene **Fast burn**, **Slow burn** og **Slow leak** som alle nye SLO-er. I en rolig time med en håndfull forespørsler kan én enkelt feil gi et raskt forbruk, så en regel kan se bort fra vinduer med for få forespørsler: angi **Minste antall forespørsler** for regelen, så hopper regelen over et langt vindu med færre forespørsler enn det.
 
 ## Feilsøking
 
 :::details SLO-et viser Venter på forespørsler
-Ingen av tjenestene har besvart en forespørsel i vinduet ennå. Sjekk at tjenestene sender spor til OneUptime, og at spannene deres omfatter inngangsspans: en tjeneste der alle spannene er interne, har ingen forespørsler å telle.
+Ingen av tjenestene har besvart en forespørsel i vinduet ennå. Sjekk at tjenestene sender spor til OneUptime, og at spannene deres omfatter inngangsspans: en tjeneste der alle spannene er interne, har ingen forespørsler å telle. Har SLO-et et **Forespørselsfilter**, søker du med det i [sporutforskeren](/docs/telemetry/traces-explorer): et filter som ikke treffer noen forespørsel der, gir SLO-et ingen forespørsler å telle.
 :::
 
 :::details SLI-en endret seg etter at jeg endret tjenestene
-Endrer du hva SLO-et måler, tjenestene eller latensgrensen, telles forespørslene på nytt, først de siste 6 timene, så SLI-en og budsjettet starter på nytt derfra. Indikatoren **Vinduet er 23 % fylt** viser hvor stor del av vinduet som er telt så langt.
+Endrer du hva SLO-et måler, tjenestene, latensgrensen eller forespørselsfilteret, telles forespørslene på nytt, først de siste 6 timene, så SLI-en og budsjettet starter på nytt derfra. Indikatoren **Vinduet er 23 % fylt** viser hvor stor del av vinduet som er telt så langt.
 :::
 
 ## Neste steg

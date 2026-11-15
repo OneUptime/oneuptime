@@ -92,7 +92,12 @@ export default class DashboardSecurityEventsListComponentUtil extends DashboardB
         section: FiltersSection,
         dropdownOptions: OcsfEventClasses.map(
           (eventClass: OcsfEventClassProps): DropdownOption => {
-            return { label: eventClass.name, value: eventClass.name };
+            return {
+              label: eventClass.name,
+              value: eventClass.name,
+              // OCSF's own name for the class, as the standard writes it.
+              isUserContent: true,
+            };
           },
         ),
       },

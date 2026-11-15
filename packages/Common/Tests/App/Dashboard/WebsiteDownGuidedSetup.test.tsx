@@ -2006,7 +2006,7 @@ describe("the person setting it up owns the monitor (#7409)", () => {
     expect(
       screen.getByTestId("guided-setup-step-who_is_told-done-line"),
     ).toHaveTextContent(
-      "The project's owners are emailed about incidents nobody owns.",
+      "Project Owners are emailed about incidents nobody owns.",
     );
   });
 

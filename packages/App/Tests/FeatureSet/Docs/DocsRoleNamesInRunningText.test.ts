@@ -6,13 +6,16 @@ import {
 } from "./DocsContentSupport";
 import {
   BUILT_IN_ROLE_NAMES,
+  GENERAL_WORDS_NOT_THE_ROLES,
   KEPT_IN_ENGLISH,
   KeptEnglish,
   NOT_A_ROLE_IN_ENGLISH,
   englishRoleCounts,
+  generalRoleWords,
   englishRoleNamesIn,
   isBuiltInRoleName,
   namesRoleAsDrawn,
+  proseText,
   roleText,
   rolesLeftInEnglish,
   runningText,
@@ -384,3 +387,100 @@ describe.each(TRANSLATED_LANGUAGES)(
     });
   },
 );
+
+/*
+ * THE ENGLISH PAGES NAME THE ROLES THEY MEAN (#8493, #8595).
+ *
+ * The checks above hold each translation to the roles its English page
+ * names. A role the English words in general terms - "the project's owners
+ * are emailed", "**A project owner or admin.**" - is one no translation
+ * names either, so these hold the English pages, bold leads included, to
+ * the roles' own names (DocsRoleNames.generalRoleWords).
+ */
+describe("the English pages name the built-in roles they mean", () => {
+  it("would find a role in general words, and not a role named", () => {
+    expect(generalRoleWords("The project's owners are emailed.")).toEqual([
+      "The project's owners",
+    ]);
+    expect(
+      generalRoleWords("- **A project owner or admin.** Only they can."),
+    ).toEqual(["project owner", "owner or admin"]);
+    expect(
+      generalRoleWords("and by your project's admins and owners."),
+    ).toEqual(["your project's admins", "admins and owners"]);
+    expect(
+      generalRoleWords("Ask a project admin, or an incident admin."),
+    ).toEqual(["project admin", "incident admin"]);
+    expect(generalRoleWords("Ask a Project Owner or Project Admin.")).toEqual(
+      [],
+    );
+    expect(
+      generalRoleWords(
+        "Project Owners and Project Admins export a project's audit log.",
+      ),
+    ).toEqual([]);
+    // The people in a project, not the Project Member role.
+    expect(generalRoleWords("Search your project members by name.")).toEqual(
+      [],
+    );
+    // Code is read as it is.
+    expect(generalRoleWords("Set `project owners and admins` here.")).toEqual(
+      [],
+    );
+    // Slack's own owners and admins, and the incident owner rules.
+    expect(
+      generalRoleWords(
+        "a workspace can let only its owners and admins change them, for example through the project's owner rules",
+      ),
+    ).toEqual([]);
+    // The bot's reply names the roles now, and reads as a role named.
+    expect(
+      generalRoleWords(
+        '"this incident is private, so only its owners, Project Owners and Project Admins can see it."',
+      ),
+    ).toEqual([]);
+  });
+
+  it("lists only words the English pages use, each with its reason", () => {
+    for (const kept of GENERAL_WORDS_NOT_THE_ROLES) {
+      expect([kept.text, kept.why.length > 10]).toEqual([kept.text, true]);
+      expect([
+        kept.text,
+        listPages("en").some((page: string): boolean => {
+          return proseText(readPage("en", page)).includes(kept.text);
+        }),
+      ]).toEqual([kept.text, true]);
+    }
+  });
+
+  it("would fail a page that says the project's owners again", () => {
+    const page: string = "on-call/readiness";
+    const english: string = readPage("en", page);
+
+    expect(generalRoleWords(english)).toEqual([]);
+    expect(english).toContain("the Project Owners get one email");
+    expect(
+      generalRoleWords(
+        english.replace(
+          "the Project Owners get one email",
+          "the project's owners get one email",
+        ),
+      ),
+    ).toEqual(["the project's owners"]);
+  });
+
+  it("names them on every English page", () => {
+    const found: Array<string> = listPages("en").flatMap(
+      (page: string): Array<string> => {
+        return generalRoleWords(readPage("en", page)).map(
+          (words: string): string => {
+            return `${page}: ${words}`;
+          },
+        );
+      },
+    );
+
+    expect(listPages("en").length).toBeGreaterThan(90);
+    expect(found).toEqual([]);
+  });
+});

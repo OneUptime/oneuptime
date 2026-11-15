@@ -41,6 +41,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE RULE ENGINES HAND BACK WHEN THE POLICIES THEY ADD MAY PAGE.
@@ -290,12 +291,10 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     return dailyWindow(Date.now() - HOUR, Date.now() + HOUR);
   }
 
-  function stubRules(rules: Array<BaseModel>): jest.SpiedFunction<() => void> {
+  function stubRules(rules: Array<BaseModel>): SpyInstance<() => void> {
     return jest
       .spyOn(engine.ruleService as never, "findBy" as never)
-      .mockResolvedValue(rules as never) as unknown as jest.SpiedFunction<
-      () => void
-    >;
+      .mockResolvedValue(rules as never) as unknown as SpyInstance<() => void>;
   }
 
   beforeEach(() => {
@@ -335,7 +334,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
   });
 
   test("reads when each rule pages along with the rest of it", async () => {
-    const findBy: jest.SpiedFunction<() => void> = stubRules([]);
+    const findBy: SpyInstance<() => void> = stubRules([]);
 
     await engine.apply(engine.newRecord());
 

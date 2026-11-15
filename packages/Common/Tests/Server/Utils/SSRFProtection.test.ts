@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment";
 
@@ -24,7 +25,7 @@ import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment
  * dns.promises.lookup is heavily overloaded, so spyOn resolves to the wrong
  * signature. Pin the one shape this module actually calls ({ all: true }).
  */
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

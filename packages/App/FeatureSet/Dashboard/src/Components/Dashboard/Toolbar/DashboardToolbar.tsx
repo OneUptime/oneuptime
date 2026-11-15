@@ -824,6 +824,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                           ? undefined
                           : props.editDashboardDisabledReason
                       }
+                      isTooltipTranslated={true}
                       onClick={props.onEditClick}
                     />
                   ) : (

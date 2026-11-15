@@ -19,6 +19,10 @@ import {
   SloRecommendedBurnRateRule,
   getSloRecommendedBurnRateRules,
 } from "../../Utils/Slo/SloRecommendedBurnRateRules";
+import {
+  getSloRequestFilterError,
+  normalizeSloRequestFilter,
+} from "../../Utils/Slo/SloRequestFilter";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -218,6 +222,13 @@ export class Service extends ProjectReferencesService<Model> {
         createBy.data.latencyThresholdInMilliseconds === null)
     ) {
       throw new BadDataException(SLO_LATENCY_THRESHOLD_REQUIRED_ERROR_MESSAGE);
+    }
+
+    // Which of its services' requests a request SLO counts (#8444).
+    if (createBy.data.requestFilter !== undefined) {
+      createBy.data.requestFilter = this.validateRequestFilter(
+        createBy.data.requestFilter,
+      ) as string;
     }
 
     /*
@@ -440,6 +451,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.assertRequestLatencySloKeepsThreshold(updateBy);
 
+    if (updateBy.data.requestFilter !== undefined) {
+      updateBy.data.requestFilter = this.validateRequestFilter(
+        updateBy.data.requestFilter as unknown,
+      ) as string;
+    }
+
     await this.assertMonitorEditRespectsMonitorRules(updateBy);
 
     /*
@@ -624,6 +641,7 @@ export class Service extends ProjectReferencesService<Model> {
       onUpdate.updateBy.data.sliType !== undefined ||
       onUpdate.updateBy.data.services !== undefined ||
       onUpdate.updateBy.data.latencyThresholdInMilliseconds !== undefined ||
+      onUpdate.updateBy.data.requestFilter !== undefined ||
       /*
        * Unarchived: the worker stopped looking at this SLO while it was
        * archived, so its status and budget are frozen at archive time. Its
@@ -1011,6 +1029,8 @@ export class Service extends ProjectReferencesService<Model> {
           _id: true,
         },
         latencyThresholdInMilliseconds: true,
+        // Which of the services' requests count (#8444).
+        requestFilter: true,
         goodEventCount: true,
         totalEventCount: true,
         errorBudgetTotalEvents: true,
@@ -2190,6 +2210,32 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return windowDays;
+  }
+
+  /*
+   * A request filter is a traces search of span attributes and the span's
+   * name (Common/Utils/Slo/SloRequestFilter), stored trimmed; empty is no
+   * filter, so null. One the counting cannot read is refused here, with
+   * what to write instead, rather than counted as every request.
+   */
+  private validateRequestFilter(value: unknown): string | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    if (typeof value !== "string") {
+      throw new BadDataException(
+        "The request filter must be text: a traces search such as @http.route:/checkout*.",
+      );
+    }
+
+    const error: string | null = getSloRequestFilterError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    return normalizeSloRequestFilter(value);
   }
 
   private validateLatencyThresholdInMilliseconds(value: unknown): number {

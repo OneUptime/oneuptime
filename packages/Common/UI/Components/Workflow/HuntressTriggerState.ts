@@ -246,8 +246,12 @@ export const HuntressTriggerPanelCopy: {
   stepTurnOnBody: translationKey(
     "Switch {{switch}} on at the top of the Builder. Then, in Huntress, choose Send Test on the endpoint. It shows up here within a few seconds.",
   ),
-  // Read out after a step's title once it is done: its check is drawn only.
-  stepDone: translationKey("Done"),
+  /*
+   * Read out after a step's title once it is done, an aside as Data
+   * Observability's steps read it: its check is drawn only. It was "Done"
+   * tacked onto the title, "<title> Done" (#8483).
+   */
+  stepDone: translationKey("(done)"),
   webhookUrl: translationKey("Webhook URL"),
   copyUrl: translationKey("Copy URL"),
   copyUrlTitle: translationKey("Copy webhook URL"),

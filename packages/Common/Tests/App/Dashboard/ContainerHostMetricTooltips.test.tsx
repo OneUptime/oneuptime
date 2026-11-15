@@ -127,6 +127,14 @@ import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsMode
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/resource-ai-access/status"]);
 
 const D: Record<ContainerHostMetric, string> =
   CONTAINER_HOST_METRIC_DESCRIPTIONS;

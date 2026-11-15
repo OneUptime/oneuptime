@@ -5,6 +5,10 @@ import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
 import {
+  ParsedSloRequestFilter,
+  parseSloRequestFilter,
+} from "Common/Utils/Slo/SloRequestFilter";
+import {
   DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
   DEFAULT_ROLLING_WINDOW_DAYS,
 } from "Common/Utils/Slo/SloHealth";
@@ -608,6 +612,38 @@ export const validateLatencyThreshold: ValidateLatencyThresholdFunction = (
   return null;
 };
 
+export type ValidateRequestFilterFunction = (
+  value: FormValues<ServiceLevelObjective>,
+) => string | null;
+
+/*
+ * The mirror of ServiceLevelObjectiveService.validateRequestFilter, in the
+ * reader's language: a traces search the counting can read (#8444).
+ */
+export const validateRequestFilter: ValidateRequestFilterFunction = (
+  value: FormValues<ServiceLevelObjective>,
+): string | null => {
+  const parsed: ParsedSloRequestFilter = parseSloRequestFilter(
+    value.requestFilter as string | undefined | null,
+  );
+
+  if (!parsed.error) {
+    return null;
+  }
+
+  const reader: Translator = getGlobalTranslator();
+  const values: Record<string, string> = {};
+
+  for (const [name, figure] of Object.entries(parsed.error.values)) {
+    values[name] =
+      typeof figure === "number" ? reader.formatNumber(figure) : figure;
+  }
+
+  return reader.translateTemplate(parsed.error.template, values, {
+    setsValuesApart: true,
+  });
+};
+
 type IsRequestFormFunction = (
   item: FormValues<ServiceLevelObjective>,
 ) => boolean;
@@ -700,6 +736,24 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       placeholder: "300",
       customValidation: validateLatencyThreshold,
       showIf: isLatencyForm,
+      stepId: "measures",
+    },
+    /*
+     * Which of the services' requests count (#8444): optional, a traces
+     * search in the Traces explorer's own syntax. Empty counts them all.
+     */
+    {
+      field: {
+        requestFilter: true,
+      },
+      title: "Request Filter",
+      description:
+        "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.",
+      fieldType: FormFieldSchemaType.Text,
+      required: false,
+      placeholder: "@http.route:/checkout* -@http.route:/health",
+      customValidation: validateRequestFilter,
+      showIf: isRequestForm,
       stepId: "measures",
     },
     {

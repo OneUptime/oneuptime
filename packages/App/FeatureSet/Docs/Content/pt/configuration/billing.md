@@ -138,7 +138,7 @@ No cartão **Saldo Atual** da página, clique em **Recarregar Saldo**. Informe u
 No cartão **Recarga automática**, clique em **Editar: Recarga automática** e ative **Habilitar recarga automática**. Ela começa desativada. Depois de ativada, o OneUptime adiciona $20 sempre que o saldo cai para $10, ou os valores que você escolher.
 :::
 
-Quando um saldo não consegue pagar, a mensagem não é enviada ou o OneUptime AI para, e os proprietários do projeto recebem um e-mail. Veja [Quando um acionamento não é enviado](/docs/on-call/escalation-rules#quando-um-acionamento-não-é-enviado) e [Quando os créditos de IA acabam](/docs/ai/ai-sre#quando-os-créditos-de-ia-acabam).
+Quando um saldo não consegue pagar, a mensagem não é enviada ou o OneUptime AI para, e os Proprietários do projeto recebem um e-mail. Veja [Quando um acionamento não é enviado](/docs/on-call/escalation-rules#quando-um-acionamento-não-é-enviado) e [Quando os créditos de IA acabam](/docs/ai/ai-sre#quando-os-créditos-de-ia-acabam).
 
 ## Quem pode fazer o quê
 
