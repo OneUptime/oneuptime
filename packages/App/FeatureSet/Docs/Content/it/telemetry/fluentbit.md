@@ -1,6 +1,6 @@
 # Fluent Bit
 
-[Fluent Bit](https://docs.fluentbit.io/manual) è un agente leggero che raccoglie log da file, systemd, container, syslog, HTTP e molte altre sorgenti. Il suo [output OpenTelemetry](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry) invia ciò che raccoglie all'endpoint OpenTelemetry (OTLP) di OneUptime, dove i log diventano ricercabili in **Prodotti → Registri**.
+[Fluent Bit](https://docs.fluentbit.io/manual) è un agente leggero che raccoglie log da file, systemd, container, syslog, HTTP e molte altre sorgenti. Il suo [output OpenTelemetry](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry) invia ciò che raccoglie all'endpoint OpenTelemetry (OTLP) di OneUptime, dove i log diventano ricercabili in **Prodotti → Log**.
 
 :::cards
 - [Configurare Fluent Bit](#configurare-fluent-bit): Aggiungi l'output OpenTelemetry e dai un nome al tuo servizio.
@@ -125,7 +125,7 @@ sudo systemctl enable fluent-bit
 sudo systemctl restart fluent-bit
 ```
 
-L'`ExecStart=` vuoto cancella la riga di avvio del pacchetto. Per provare prima il file in primo piano, esegui `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`: il pacchetto mette il programma in `/opt/fluent-bit/bin`, che non è nel `PATH`. In pochi secondi i log compaiono in **Prodotti → Registri** e il servizio è elencato in **Prodotti → Servizi**.
+L'`ExecStart=` vuoto cancella la riga di avvio del pacchetto. Per provare prima il file in primo piano, esegui `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`: il pacchetto mette il programma in `/opt/fluent-bit/bin`, che non è nel `PATH`. In pochi secondi i log compaiono in **Prodotti → Log** e il servizio è elencato in **Prodotti → Servizi**.
 :::
 
 ## Esempio completo

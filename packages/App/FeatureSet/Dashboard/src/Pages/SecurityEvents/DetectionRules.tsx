@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -111,7 +112,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How often a new rule runs, as the form starts it: the
@@ -913,7 +916,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                 item.evaluationIntervalInMinutes !== undefined &&
                 item.evaluationIntervalInMinutes !== null
                   ? translator.formatNumber(item.evaluationIntervalInMinutes)
-                  : "-";
+                  : EMPTY_VALUE_MARK;
 
               if (item.isRealTime) {
                 const countsInWindows: boolean = countsInWindowsValues(
@@ -924,7 +927,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                   <span className="text-gray-700">
                     {countsInWindows ? (
                       <span data-testid="detection-rule-interval">
-                        {interval}
+                        {getValueOrQuietDash(interval)}
                         <InlineSeparator />
                       </span>
                     ) : (
@@ -935,7 +938,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                 );
               }
 
-              return <span>{interval}</span>;
+              return <span>{getValueOrQuietDash(interval)}</span>;
             },
           },
           {

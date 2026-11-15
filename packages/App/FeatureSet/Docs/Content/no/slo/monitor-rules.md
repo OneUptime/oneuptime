@@ -80,20 +80,20 @@ Hver betingelse sammenligner ett felt på en monitor:
 
 | Felt | Sammenlignes med | Operatorer |
 | --- | --- | --- |
-| **Overvåkingsetiketter** | Etikettene til monitoren. | **Har en av**, **Har alle**, **Har ingen av** |
+| **Monitoretiketter** | Etikettene til monitoren. | **Har en av**, **Har alle**, **Har ingen av** |
 | **Monitortype** | Typen til monitoren, valgt fra listen over typer. | **Er lik**, **Er ikke lik** |
-| **Overvåkingsnavn** | Navnet til monitoren. | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, **Samsvarer med mønster**, **Samsvarer ikke med mønster** |
-| **Overvåkingsbeskrivelse** | Beskrivelsen til monitoren. | De samme som for **Overvåkingsnavn** |
+| **Monitornavn** | Navnet til monitoren. | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, **Samsvarer med mønster**, **Samsvarer ikke med mønster** |
+| **Monitorbeskrivelse** | Beskrivelsen til monitoren. | De samme som for **Monitornavn** |
 
-Et mønster er et regulært uttrykk, som `^api-.*`, eller et `*`-jokertegn, som `*checkout*`, og skiller ikke mellom store og små bokstaver. Et mønster som ikke er noen av delene, som `api-(01`, avvises når du lagrer, i stedet for i stillhet å ikke treffe noe. For å knytte til alle monitorer i prosjektet legger du til en betingelse på **Overvåkingsnavn** som samsvarer med mønsteret `.*`.
+Et mønster er et regulært uttrykk, som `^api-.*`, eller et `*`-jokertegn, som `*checkout*`, og skiller ikke mellom store og små bokstaver. Et mønster som ikke er noen av delene, som `api-(01`, avvises når du lagrer, i stedet for i stillhet å ikke treffe noe. For å knytte til alle monitorer i prosjektet legger du til en betingelse på **Monitornavn** som samsvarer med mønsteret `.*`.
 
 | Du vil ha | Betingelser |
 | --- | --- |
-| Hver produksjonsmonitor | **Overvåkingsetiketter** har en av _Production_ |
+| Hver produksjonsmonitor | **Monitoretiketter** har en av _Production_ |
 | Hver API-monitor | **Monitortype** er lik _API_ |
 | Hver monitor unntatt de manuelle | **Monitortype** er ikke lik _Manual_ |
-| Hver monitor der navnet starter med api- | **Overvåkingsnavn** samsvarer med mønsteret `^api-` |
-| Checkout-monitorene, men ikke de fra staging | **Samsvar med alle**: **Overvåkingsnavn** samsvarer med mønsteret `*checkout*`, og **Overvåkingsetiketter** har ingen av _Staging_ |
+| Hver monitor der navnet starter med api- | **Monitornavn** samsvarer med mønsteret `^api-` |
+| Checkout-monitorene, men ikke de fra staging | **Samsvar med alle**: **Monitornavn** samsvarer med mønsteret `*checkout*`, og **Monitoretiketter** har ingen av _Staging_ |
 
 ### Når regler kjører
 

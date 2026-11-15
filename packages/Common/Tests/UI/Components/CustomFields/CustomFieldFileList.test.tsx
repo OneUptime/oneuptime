@@ -423,7 +423,11 @@ describe("a detail field of files", () => {
       rows.map((row: HTMLElement): string | null => {
         return row.textContent;
       }),
-    ).toEqual(["signed-contract.pdf47 KB", "rack.png1.5 MB", "inventory.xlsx"]);
+    ).toEqual([
+      "signed-contract.pdf47\u00A0KB",
+      "rack.png1.5\u00A0MB",
+      "inventory.xlsx",
+    ]);
     expect(screen.queryByRole("link")).toBeNull();
   });
 

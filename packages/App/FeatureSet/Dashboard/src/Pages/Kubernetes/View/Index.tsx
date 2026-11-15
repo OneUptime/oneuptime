@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -197,32 +198,33 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(value, { decimals: 1, isPercent: true });
 };
 
 /*
  * A size in the reader's digits, in the unit and rounding every telemetry
- * page writes (getBytesReading): "12 GiB", "1.5 KiB", plain bytes whole.
+ * page writes (getBytesReading): "12 GiB", "1.5 KiB", plain bytes whole,
+ * the figure held to its unit by a no-break space (#8457).
  */
 const formatMemoryBytes: (bytes: number | null | undefined) => string = (
   bytes: number | null | undefined,
 ): string => {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const reading: BytesReading = getBytesReading(bytes);
   return `${formatReaderFigure(reading.value, {
     decimals: reading.decimals,
-  })} ${reading.unit}`;
+  })}\u00A0${reading.unit}`;
 };
 
 const formatBytesPerSec: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return ValueFormatter.formatValue(value, "By/s", {
     language: getDateDisplayLanguage(),

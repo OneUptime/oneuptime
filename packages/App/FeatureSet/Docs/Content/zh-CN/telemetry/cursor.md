@@ -5,7 +5,7 @@ Cursor 从 Cursor 自己的服务器导出团队的遥测。团队管理员在 C
 :::cards
 - [两种方式](#两种方式): 在 OneUptime 中使用管理员 API 密钥，或使用 Cursor 的 OpenTelemetry Export。
 - [开始设置](#开始设置): 在 OneUptime 中创建密钥，在 Cursor 中创建目标。
-- [你能得到什么](#你能得到什么得不到什么): 指标和日志；没有跟踪。
+- [你能得到什么](#你能得到什么得不到什么): 指标和日志；没有追踪。
 - [谁花了什么](#员工归属): 人员以 Cursor 用户 ID 的形式到达。
 - [故障排除](#故障排除): 什么都没有到达时要检查什么。
 :::
@@ -75,10 +75,10 @@ Cursor 只使用基于 HTTP 的二进制 protobuf 格式的 OTLP（不支持 gRP
 | 指标：token、估算成本、工具调用 | 是，以增量形式 |
 | 日志事件：请求、错误、更正、技能、钩子、插件、云端代理 | 是 |
 | 提示词和回答文本 | 只有开启 `conversation_content` 系列时才有 |
-| 跟踪 | 否 |
+| 追踪 | 否 |
 | 启用目标之前的任何数据 | 否 |
 
-因此在 OneUptime 中，Cursor 会根据 `cursor.token.usage` 和 `cursor.cost.usage` 显示在 **产品 → AI / LLM** 的 **用量** 标签页上，但从不出现在由跟踪构建的 **调用** 或 **对话** 中。逐个请求的详细信息是 **日志** 浏览器中的 `cursor.api.request` 事件。
+因此在 OneUptime 中，Cursor 会根据 `cursor.token.usage` 和 `cursor.cost.usage` 显示在 **产品 → AI / LLM** 的 **用量** 标签页上，但从不出现在由追踪构建的 **调用** 或 **对话** 中。逐个请求的详细信息是 **日志** 浏览器中的 `cursor.api.request` 事件。
 
 ### 系列
 
@@ -188,6 +188,6 @@ Cursor 的支出来自它的指标，而不是日志：请检查 Cursor 的指�
 :::cards
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): 支出如何在所有编程助手之间归属。
 - [AI 提供商账户](/docs/telemetry/ai-provider-accounts#cursor): 使用管理员 API 密钥读取 Cursor 团队的用量和 Cursor 收取的费用。
-- [AI 网关](/docs/telemetry/ai-gateways): 为你自己的应用发起的模型调用提供完整的跟踪和提示词。
+- [AI 网关](/docs/telemetry/ai-gateways): 为你自己的应用发起的模型调用提供完整的追踪和提示词。
 - [指标监控](/docs/monitor/metrics-monitor): 针对 `cursor.cost.usage`、`cursor.token.usage` 或 `cursor.tool.calls` 设置警报。
 :::

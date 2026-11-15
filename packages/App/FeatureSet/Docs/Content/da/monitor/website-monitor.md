@@ -56,7 +56,7 @@ Angiv sidens fulde adresse under **Websteds-URL**, inklusive `https://`, som `ht
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser, hvad sonden fik tilbage.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, hvad sonden fik tilbage.
 
 ### Gennemgå kriterierne
 

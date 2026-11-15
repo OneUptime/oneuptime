@@ -540,6 +540,15 @@ function createConfig(options) {
      * production-only failure that no test would catch.
      */
     keepNames: true,
+    /*
+     * Letters outside ASCII written as they are, not as \u escapes (#8650).
+     * Each frontend loads what this builds as module scripts, which a
+     * browser always reads as UTF-8, from pages that declare UTF-8. Escaped,
+     * a Persian, Arabic, Russian or Hindi letter took six bytes where UTF-8
+     * takes two, and their locale chunks were twice the size of the words
+     * they carry: Persian's 16.3 MB for 8.1 MB.
+     */
+    charset: "utf8",
     treeShaking: true,
     splitting: true,
     publicPath,

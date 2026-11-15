@@ -449,7 +449,11 @@ describe("the on-demand ping rows", () => {
     });
 
     expect(failed.rows).toEqual([
-      { label: "Reason", value: "ICMP is not usable on this probe." },
+      {
+        label: "Reason",
+        value: "ICMP is not usable on this probe.",
+        isProbeMessage: true,
+      },
     ]);
     expect(failed.rows[0]!.description).toBeUndefined();
   });

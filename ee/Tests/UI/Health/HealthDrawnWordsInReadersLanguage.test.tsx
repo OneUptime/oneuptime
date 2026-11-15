@@ -1,4 +1,7 @@
 import PostgresCluster from "../../../AdminDashboard/Health/PostgresCluster";
+import HealthOverview from "../../../AdminDashboard/Health/Overview";
+import { metricTooltipContent } from "../../../AdminDashboard/Health/HealthMetricTooltip";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   EnterpriseLicenseInstanceStatusPill,
   getLicenseLifecycle,
@@ -279,6 +282,22 @@ const ACTIVITY: JSONObject = {
   topStatements: [],
 };
 
+// PostgreSQL up, ClickHouse down, three of four queues healthy, 12 jobs failed.
+const OVERVIEW: JSONObject = {
+  summary: {
+    postgres: { connected: true, databaseSizeInBytes: 1073741824 },
+    clickhouse: { connected: false },
+    redis: { connected: true, usedMemoryInBytes: 1048576 },
+    queues: {
+      totalQueues: 4,
+      healthyQueues: 3,
+      failingQueues: 1,
+      unavailableQueues: 0,
+      failedJobs: 12,
+    },
+  },
+};
+
 afterEach(() => {
   cleanup();
   mockApiGet.mockReset();
@@ -290,6 +309,10 @@ const serve: () => void = (): void => {
 
     if (url.includes("/admin/health/postgres-activity")) {
       return { data: ACTIVITY };
+    }
+
+    if (url.includes("/admin/health/overview")) {
+      return { data: OVERVIEW };
     }
 
     return { data: CLUSTER };
@@ -369,6 +392,66 @@ describe.each(LANGUAGES)(
 
       if (language !== "en") {
         expect(pageText()).not.toContain("extension is not available");
+      }
+    });
+  },
+);
+
+describe.each(LANGUAGES)("Health > Overview, in %s", (language: string) => {
+  test("each tile's line reads in the language, its counts in the language's forms (#8636)", async () => {
+    serve();
+    await drawIn(language, <HealthOverview />);
+
+    await waitFor(() => {
+      expect(pageText()).toContain(
+        sentenceIn(language, "Database {{size}}", { size: "1.0 GB" }),
+      );
+    });
+
+    expect(pageText()).toContain(
+      wordIn(language, "Not reachable from this instance"),
+    );
+    expect(pageText()).toContain(
+      sentenceIn(language, "{{healthy}}/{{count}} queues healthy", {
+        healthy: digits(language, 3),
+        count: digits(language, 4),
+      }),
+    );
+    expect(pageText()).toContain(
+      sentenceIn(language, "{{count}} failed jobs", {
+        count: digits(language, 12),
+      }),
+    );
+
+    if (language !== "en") {
+      expect(pageText()).not.toContain("Not reachable from this instance");
+      expect(pageText()).not.toContain("queues healthy");
+    }
+  });
+});
+
+// A tooltip's explanation, drawn as the health pages draw it (#8677).
+const SLOTS_EXPLAINED: string =
+  "Named slots that make the primary retain WAL until a consumer (a standby or logical subscriber) has read it. Inactive slots can pile up WAL and fill the disk; a 'lost' slot has already dropped WAL a consumer still needed.";
+
+const SlotsTooltip: () => ReactElement = (): ReactElement => {
+  return metricTooltipContent(
+    { title: "Replication slots", body: SLOTS_EXPLAINED },
+    useTranslator(),
+  );
+};
+
+describe.each(LANGUAGES)(
+  "Health > a metric's tooltip, in %s",
+  (language: string) => {
+    test("its title and its explanation read in the language", async () => {
+      await drawIn(language, <SlotsTooltip />);
+
+      expect(pageText()).toContain(wordIn(language, "Replication slots"));
+      expect(pageText()).toContain(wordIn(language, SLOTS_EXPLAINED));
+
+      if (language !== "en") {
+        expect(pageText()).not.toContain("Named slots that make the primary");
       }
     });
   },

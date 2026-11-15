@@ -1,4 +1,5 @@
 import AIInsightHumanVerdict from "Common/Types/AI/AIInsightHumanVerdict";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
 import AIInsightStatus from "Common/Types/AI/AIInsightStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
@@ -165,14 +166,14 @@ export function getInsightTypeLabel(
   insightType: AIInsightType | undefined,
 ): string {
   if (!insightType) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   return INSIGHT_TYPE_LABELS[insightType] || insightType;
 }
 
 export function getStatusLabel(status: AIInsightStatus | undefined): string {
   if (!status) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   return STATUS_LABELS[status] || status;
 }

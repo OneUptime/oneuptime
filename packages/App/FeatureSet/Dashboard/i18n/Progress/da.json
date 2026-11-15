@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55497,
-    "untranslated": 8371
+    "keys": 55711,
+    "untranslated": 8172
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -33,6 +33,7 @@
     "App",
     "Appliance",
     "Appliance {{appliance}}",
+    "Appliances",
     "Application credential",
     "Application credential {{id}}",
     "Apps",
@@ -132,6 +133,8 @@
     "Filter: {{expression}}",
     "Find",
     "Finland (+358)",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Floating IP",
@@ -183,6 +186,7 @@
     "Jitter",
     "Job",
     "Kelvin",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",
@@ -347,6 +351,7 @@
     "Status",
     "StatusPage",
     "Stratum",
+    "Stripe Payments API",
     "Sum",
     "Switch",
     "System",

@@ -7,9 +7,11 @@ import {
   listSourceFiles,
 } from "../../../ForeignHiddenRuleGuard";
 import {
+  DashFormatterIndex,
   findHandWrittenDashes,
   HandWrittenDash,
   HandWrittenDashKind,
+  indexDashFormatters,
 } from "../../../Helpers/HandWrittenEmptyValueScan";
 
 /*
@@ -37,7 +39,17 @@ import {
  * table's `<td>`) or `<EmptyValue />` (a card's field) where the dash was -
  * `{team.name || <TableEmptyValue />}`. A column that has words for
  * nothing ("Never") draws them (getTableNoValue). A monitor summary's fact
- * is handed no value at all: it draws the quiet dash itself.
+ * and a stat tile are handed no value at all: they draw the quiet dash
+ * themselves (EmptyFigure in a tile, #8264).
+ *
+ * A dash written as a string first (#8262) is the same mark out of the
+ * JSX's sight: a formatter's `return "—"`, `const host = r.host || "—"`,
+ * `{ value: m ? fmt(m) : "—" }`. Hand a component nothing; for plain text
+ * (a chart's label, an export, a sentence) write the shared mark,
+ * EMPTY_VALUE_MARK. Where a page draws a formatter's text in an element of
+ * its own, it draws it through getValueOrQuietDash (or getFigure in a
+ * figure), which turns the mark into the quiet dash: the scan follows a
+ * formatter's mark into the element that draws it, across imports.
  *
  * A dash a page truly means as its mark goes in MEANT_MARKS below, with
  * why. The Common Test job deletes ee/ before it runs; the Enterprise
@@ -69,6 +81,36 @@ const MEANT_MARKS: ReadonlyArray<MeantMark> = [
     reason:
       "A count the monitor's open-work sentence could not read, inside the sentence ('— incidents · 0 alerts'), with the reason said under it ('Couldn't load open alerts'). The quiet dash would read 'Not set incidents'; the bar's uptime tiles draw EmptyFigure.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Utils/ReplayCorrelation.ts",
+    text: 'return minusOne.endsWith(one) ? minusOne.slice(0, minusOne.length - one.length) || "-" : "-";',
+    reason:
+      "A minus sign, not an empty value: the sign the reader's language writes before a negative figure, a hyphen where its number formatter writes none of its own. Reported once for each of its two hyphens.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/AIChat/Export/PdfMarkdown.ts",
+    text: 'this.pdf.drawLine(this.pdf.sanitize(block.marker || "-"), x, this.pdf.y);',
+    reason:
+      "A Markdown list's bullet in the PDF export: an unordered item's marker, not a value.",
+  },
+  {
+    file: "packages/Common/UI/Utils/AIChatExport/MarkdownBlocks.ts",
+    text: 'marker: isOrdered ? `${counter}.` : "-"',
+    reason:
+      "A Markdown list's bullet: an ordered item's number, else the unordered item's hyphen.",
+  },
+  {
+    file: "packages/Common/UI/Components/Table/ColumnResize/ColumnWidths.ts",
+    text: 'SLUG_DASH: string = "-"',
+    reason:
+      "The hyphen a table's id joins its words with, in the key its column widths are remembered by: a slug's separator.",
+  },
+  {
+    file: "packages/Common/UI/Utils/AIChatExport/ChatWidgetData.ts",
+    text: 'CHAT_TABLE_WORD_HYPHEN: string = "-"',
+    reason:
+      "The hyphen a long word in an exported chat table is broken with at the end of a line: a word's hyphen.",
+  },
 ];
 
 // What to draw instead, by what the scan found.
@@ -83,26 +125,56 @@ const FIXES: Record<HandWrittenDashKind, string> = {
     "hand the component no value (undefined): a fact and a tile draw the quiet dash themselves",
   "dash-figure":
     "draw <EmptyFigure /> (Common/UI/Components/EmptyFigure) in the figure, or hand the tile no value",
+  "dash-string":
+    "hand the component no value (undefined), or, for plain text (a chart's label, an export, a sentence), write the shared mark EMPTY_VALUE_MARK (Detail/EmptyValue)",
+  "dash-flow":
+    "draw it through getValueOrQuietDash (Table/TableEmptyValue), or getFigure (EmptyFigure) in a figure: the mark is text, with nothing for a screen reader",
 };
 
 function relative(file: string): string {
   return path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/");
 }
 
+interface ScannedModule {
+  file: string;
+  sourceText: string;
+}
+
+let scanned: { files: number; found: Array<HandWrittenDash> } | null = null;
+
+/*
+ * Every module of the tree, read once: a page is held to what the
+ * formatters it imports write (indexDashFormatters), so the index is built
+ * over every module before any is scanned.
+ */
 function scanTree(): { files: number; found: Array<HandWrittenDash> } {
-  const found: Array<HandWrittenDash> = [];
-  let files: number = 0;
+  if (scanned) {
+    return scanned;
+  }
+
+  const modules: Array<ScannedModule> = [];
 
   for (const root of listScanRoots(REPOSITORY_ROOT)) {
     for (const file of listSourceFiles(root)) {
-      files++;
-      found.push(
-        ...findHandWrittenDashes(fs.readFileSync(file, "utf8"), relative(file)),
-      );
+      modules.push({
+        file: relative(file),
+        sourceText: fs.readFileSync(file, "utf8"),
+      });
     }
   }
 
-  return { files: files, found: found };
+  const formatters: DashFormatterIndex = indexDashFormatters(modules);
+  const found: Array<HandWrittenDash> = [];
+
+  for (const module of modules) {
+    found.push(
+      ...findHandWrittenDashes(module.sourceText, module.file, formatters),
+    );
+  }
+
+  scanned = { files: modules.length, found: found };
+
+  return scanned;
 }
 
 function isMeant(dash: HandWrittenDash): boolean {
@@ -482,7 +554,7 @@ describe("the scan leaves alone a dash that is not an empty value", () => {
     ).toEqual([]);
   });
 
-  test("attributes no one reads as a value, comments and strings that are not drawn", () => {
+  test("attributes no one reads as a value, and comments", () => {
     expect(
       scan(
         [
@@ -492,8 +564,495 @@ describe("the scan leaves alone a dash that is not an empty value", () => {
           'const d = <Input placeholder="-" />;',
           '// return <span className="text-gray-400">-</span>;',
           '/* {team.name || "-"} */',
-          'const e: string = team.name || "-";',
-          'const f = csvRow.push(value ?? "—");',
+          '// const host = r.host || "—";',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a string's own work with a dash: joining, splitting, comparing, a sign, a minus", () => {
+    expect(
+      scan(
+        [
+          'const a = parts.join("-");',
+          'const b = slug.split("-");',
+          'const c = name.replace(/\\s+/g, "-");',
+          'const d = status === "-";',
+          'const e = status !== "—" ? status : "";',
+          'const f = delta < 0 ? "-" : "+";',
+          'const g = `${delta < 0 ? "-" : ""}${Math.abs(delta)}`;',
+          'const h = "-" + amount;',
+          'slug += "-";',
+          'const i = text.startsWith("-");',
+          'const j = ["-", "\\u2013", "\\u2014"];',
+          'switch (mark) { case "-": break; }',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a dash with room around it: a separator, a range, a list's bullet", () => {
+    expect(
+      scan(
+        [
+          'const RANGE_SEPARATOR: string = " – ";',
+          'const SPACED_DASH: string = "\\u00a0–\\u00a0";',
+          'const BULLET: string = "\\n- ";',
+          'let prefix: string = "";',
+          'prefix = "- ";',
+          "const label = from ? `${from} – ${to}` : to;",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("the shared mark handed to plain text, and a dash's prop that is no value", () => {
+    expect(
+      scan(
+        [
+          "const a = (n: number | null): string => n === null ? EMPTY_VALUE_MARK : String(n);",
+          "const b = { text: label || EMPTY_VALUE_MARK };",
+          "const c = csv.push(value ?? EMPTY_VALUE_MARK);",
+          'const d = { bullet: "-", separator: "-" };',
+          'const e = { marker: "—" };',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("the shared mark drawn through the quiet dash, and a formatter's text in a tile", () => {
+    expect(
+      scan(
+        [
+          "const formatBytes = (n: number | null): string => n === null ? EMPTY_VALUE_MARK : `${n} B`;",
+          "const a = <td>{getValueOrQuietDash(formatBytes(n), { isSmall: true })}</td>;",
+          'const b = <span className="text-2xl">{getFigure(formatBytes(n))}</span>;',
+          'const c = <GoldenMetricTile title="Size" value={formatBytes(n)} />;',
+          "const d = <span title={formatBytes(n)}>{label}</span>;",
+          "const e = <code>{formatBytes(n)}</code>;",
+          'const f = <span aria-hidden="true">{formatBytes(n)}</span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("the scan finds a dash written as a string for an empty value (#8262)", () => {
+  test.each([
+    ['return "—";'],
+    ['return "-";'],
+    ['return "–";'],
+    ['return n === null ? "—" : fmt(n);'],
+    ['return name || "-";'],
+    ['return value ?? "—";'],
+    ['return a ? fmt(a) : b ? fmt(b) : "—";'],
+  ])("a function that returns a dash for nothing: %s", (body: string) => {
+    expect(
+      kindsOf(`function fmt(n: number | null): string {\n  ${body}\n}`),
+    ).toEqual(["dash-string"]);
+  });
+
+  test.each([
+    ['const fmt = (n: number | null): string => n === null ? "—" : String(n);'],
+    ['const fmt = (n: number | null): string => "—";'],
+    ['const host: string = r.hostname || "—";'],
+    ['const host: string = (r.hostname as string) ?? "-";'],
+    ['const label: string = isKnown ? describe(x) : "—";'],
+    ['const tile = { title: "CPU", value: m ? fmt(m) : "—" };'],
+    ['const detail = { label: "Host", value: r.host || "—" };'],
+    ['const tile = { title: "CPU", value: "—" };'],
+    ['const cell = { text: "-" };'],
+    ['const NO_VALUE: string = "-";'],
+    ['let at: string = "-";'],
+    ['at = "—";'],
+    ['setModalText(text || "-");'],
+    ['const line: string = `${phase ?? "—"} · ${table}`;'],
+    ['const sum = String(row["type"] ?? "—");'],
+    ['const cell = <IsolatedText text={name || "—"} />;'],
+    [
+      'const cell = <ResourceListNameCell name={(r.host as string) || "—"} className="px-3" />;',
+    ],
+    ['const modal = <ConfirmModal title="Body" description={text || "-"} />;'],
+  ])("a dash defaulted or named as a string: %s", (code: string) => {
+    expect(
+      findHandWrittenDashes(code, "Example.tsx").map(
+        (dash: HandWrittenDash): string => {
+          return dash.kind;
+        },
+      ),
+    ).toEqual([
+      code.includes("<IsolatedText") ||
+      code.includes("<ResourceListNameCell") ||
+      code.includes("<ConfirmModal")
+        ? "dash-value"
+        : "dash-string",
+    ]);
+  });
+
+  test("reports the statement, the prop or the attribute the dash is in", () => {
+    expect(
+      findHandWrittenDashes(
+        [
+          "const formatBytes = (n: number | null): string => {",
+          "  if (n === null) {",
+          '    return "—";',
+          "  }",
+          "  return `${n} B`;",
+          "};",
+          'const tile = { title: "Size", value: n ? formatBytes(n) : "—" };',
+        ].join("\n"),
+        "packages/App/FeatureSet/Dashboard/src/Example.ts",
+      ),
+    ).toEqual([
+      {
+        file: "packages/App/FeatureSet/Dashboard/src/Example.ts",
+        line: 3,
+        kind: "dash-string",
+        text: 'return "—";',
+      },
+      {
+        file: "packages/App/FeatureSet/Dashboard/src/Example.ts",
+        line: 7,
+        kind: "dash-string",
+        text: 'value: n ? formatBytes(n) : "—"',
+      },
+    ]);
+  });
+});
+
+describe("the scan follows a formatter's mark into the element that draws it (#8262)", () => {
+  test.each([
+    ["{formatBytes(n)}"],
+    ["{formatBytes(row.size, translator)}"],
+    ["{isKnown ? formatBytes(n) : <TableEmptyValue />}"],
+    ["{formatBytes(a) || formatBytes(b)}"],
+    ["{hostName}"],
+  ])(
+    "a formatter or a value of the module that writes the mark, drawn bare: %s",
+    (child: string) => {
+      expect(
+        kindsOf(
+          [
+            "const formatBytes = (n: number | null): string => n === null ? EMPTY_VALUE_MARK : `${n} B`;",
+            "const hostName: string = r.host || EMPTY_VALUE_MARK;",
+            `const cell = <td className="px-3 text-xs">${child}</td>;`,
+          ].join("\n"),
+        ),
+      ).toEqual(["dash-flow"]);
+    },
+  );
+
+  test("a function declaration, a class's method and a const's arrow alike", () => {
+    expect(
+      scan(
+        [
+          "function formatA(n: number | null): string {",
+          "  if (n === null) {",
+          "    return EMPTY_VALUE_MARK;",
+          "  }",
+          "  return String(n);",
+          "}",
+          "const formatB = (n: number | null): string => n ?? EMPTY_VALUE_MARK;",
+          "const a = <span>{formatA(n)}</span>;",
+          "const b = <p>{formatB(n)}</p>;",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      { line: 8, kind: "dash-flow" },
+      { line: 9, kind: "dash-flow" },
+    ]);
+  });
+
+  const UTILS: string = [
+    "export function formatBytes(n: number | null): string {",
+    "  return n === null ? EMPTY_VALUE_MARK : `${n} B`;",
+    "}",
+    "export const formatCount = (n: number | null): string => n === null ? EMPTY_VALUE_MARK : String(n);",
+    "export function formatName(name: string): string {",
+    "  return name.trim();",
+    "}",
+    "export default { formatBytes, formatCount, formatName };",
+  ].join("\n");
+
+  const STATIC_UTILS: string = [
+    "export default class SizeUtil {",
+    "  public static formatBytes(n: number | null): string {",
+    "    return n === null ? EMPTY_VALUE_MARK : `${n} B`;",
+    "  }",
+    "  public static formatName(name: string): string {",
+    "    return name;",
+    "  }",
+    "}",
+  ].join("\n");
+
+  const index: DashFormatterIndex = indexDashFormatters([
+    {
+      file: "packages/App/FeatureSet/Dashboard/src/Utils/SizeFormat.ts",
+      sourceText: UTILS,
+    },
+    {
+      file: "packages/App/FeatureSet/Dashboard/src/Utils/SizeUtil.ts",
+      sourceText: STATIC_UTILS,
+    },
+    {
+      file: "packages/Common/UI/Utils/CommonFormat.ts",
+      sourceText:
+        "export const formatShared = (n: number | null): string => n === null ? EMPTY_VALUE_MARK : String(n);",
+    },
+  ]);
+
+  test("indexes what each module exports that writes the mark", () => {
+    expect(
+      Array.from(index.entries()).map(
+        ([file, names]: [string, Set<string>]): [string, Array<string>] => {
+          return [file, Array.from(names).sort()];
+        },
+      ),
+    ).toEqual([
+      [
+        "packages/App/FeatureSet/Dashboard/src/Utils/SizeFormat.ts",
+        [
+          "default.formatBytes",
+          "default.formatCount",
+          "formatBytes",
+          "formatCount",
+        ],
+      ],
+      [
+        "packages/App/FeatureSet/Dashboard/src/Utils/SizeUtil.ts",
+        ["default.formatBytes"],
+      ],
+      ["packages/Common/UI/Utils/CommonFormat.ts", ["formatShared"]],
+    ]);
+  });
+
+  test.each([
+    ['import { formatBytes } from "../Utils/SizeFormat";', "{formatBytes(n)}"],
+    [
+      'import { formatCount as count } from "../Utils/SizeFormat";',
+      "{count(n)}",
+    ],
+    [
+      'import SizeFormat from "../Utils/SizeFormat";',
+      "{SizeFormat.formatBytes(n)}",
+    ],
+    ['import * as Sizes from "../Utils/SizeFormat";', "{Sizes.formatCount(n)}"],
+    ['import SizeUtil from "../Utils/SizeUtil";', "{SizeUtil.formatBytes(n)}"],
+    [
+      'import { formatShared } from "Common/UI/Utils/CommonFormat";',
+      "{formatShared(n)}",
+    ],
+  ])(
+    "an imported formatter that writes the mark, drawn bare: %s",
+    (imported: string, child: string) => {
+      expect(
+        findHandWrittenDashes(
+          `${imported}\nconst cell = <td>${child}</td>;`,
+          "packages/App/FeatureSet/Dashboard/src/Pages/Example.tsx",
+          index,
+        ).map((dash: HandWrittenDash): string => {
+          return dash.kind;
+        }),
+      ).toEqual(["dash-flow"]);
+    },
+  );
+
+  test.each([
+    ['import { formatName } from "../Utils/SizeFormat";', "{formatName(n)}"],
+    ['import SizeUtil from "../Utils/SizeUtil";', "{SizeUtil.formatName(n)}"],
+    [
+      'import { formatBytes } from "../Utils/SizeFormat";',
+      "{getValueOrQuietDash(formatBytes(n))}",
+    ],
+    ['import { formatBytes } from "../Utils/Elsewhere";', "{formatBytes(n)}"],
+    [
+      'import { formatBytes } from "../Utils/SizeFormat";',
+      "{translator.formatBytes(n)}",
+    ],
+  ])(
+    "a formatter that never writes the mark, one drawn through the quiet dash, or another module's of the same name: %s",
+    (imported: string, child: string) => {
+      expect(
+        findHandWrittenDashes(
+          `${imported}\nconst cell = <td>${child}</td>;`,
+          "packages/App/FeatureSet/Dashboard/src/Pages/Example.tsx",
+          index,
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  test("the mark handed to an element by hand is the dash it always was", () => {
+    expect(
+      scan(
+        [
+          "const a = <span>{EMPTY_VALUE_MARK}</span>;",
+          "const b = <td>{name || EMPTY_VALUE_MARK}</td>;",
+          'const c = <GoldenMetricTile title="CPU" value={cpu ?? EMPTY_VALUE_MARK} />;',
+          'const d = <span className="text-2xl">{count ?? EMPTY_VALUE_MARK}</span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      { line: 1, kind: "dash-element" },
+      { line: 2, kind: "dash-fallback" },
+      { line: 3, kind: "dash-value" },
+      { line: 4, kind: "dash-figure" },
+    ]);
+  });
+});
+
+describe("the scan follows the mark through an object's prop into the element that draws it (#8679)", () => {
+  test.each([
+    [
+      '{ label: "Cluster", value: clusterName || EMPTY_VALUE_MARK }',
+      "{row.value}",
+    ],
+    ['{ label: "Size", value: formatBytes(n) }', "{row.value}"],
+    ['{ label: "Size", value: n === null ? "—" : `${n} B` }', "{row.value}"],
+    ["{ value: EMPTY_VALUE_MARK, description: words }", "{runway.value}"],
+    ['{ "text": formatBytes(n) }', "{cell.text}"],
+    ["{ value }", "{tile.value}"],
+    ['{ label: "Size", value: formatBytes(n) }', "{props.rows[0].value}"],
+    ['{ label: "Size", value: formatBytes(n) }', "{isOpen ? row.value : null}"],
+  ])(
+    "an object the module builds as %s, drawn as %s",
+    (built: string, drawn: string) => {
+      expect(
+        kindsOf(
+          [
+            "const formatBytes = (n: number | null): string => n === null ? EMPTY_VALUE_MARK : `${n} B`;",
+            "const value: string = r.value || EMPTY_VALUE_MARK;",
+            `const rows = [${built}];`,
+            `const cell = <td className="px-3">${drawn}</td>;`,
+          ].join("\n"),
+        ).filter((kind: HandWrittenDashKind): boolean => {
+          return kind === "dash-flow";
+        }),
+      ).toEqual(["dash-flow"]);
+    },
+  );
+
+  const BUILDERS: string = [
+    'import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";',
+    "export function getRunwayText(seconds: number | null): { value: string; description: string } {",
+    '  return seconds === null ? { value: EMPTY_VALUE_MARK, description: "Not worked out" } : { value: `${seconds}s`, description: "" };',
+    "}",
+    "export const getNameRow = (name: string): { label: string; name: string } => {",
+    '  return { label: "Name", name: name };',
+    "};",
+    "export default class RowUtil {",
+    "  public static getRows(n: number | null): Array<{ figure: string }> {",
+    "    return [{ figure: n === null ? EMPTY_VALUE_MARK : String(n) }];",
+    "  }",
+    "}",
+  ].join("\n");
+
+  const index: DashFormatterIndex = indexDashFormatters([
+    {
+      file: "packages/App/FeatureSet/Dashboard/src/Utils/RunwayText.ts",
+      sourceText: BUILDERS,
+    },
+  ]);
+
+  test("indexes what an exported function builds, by its props that can hold the mark", () => {
+    expect(
+      Array.from(
+        index.get(
+          "packages/App/FeatureSet/Dashboard/src/Utils/RunwayText.ts",
+        ) || [],
+      ).sort(),
+    ).toEqual([
+      "returns:default.getRows:figure",
+      "returns:getRunwayText:value",
+    ]);
+  });
+
+  test.each([
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{runway.value}",
+    ],
+    [
+      'import { getRunwayText as runwayOf } from "../Utils/RunwayText";',
+      "const runway = runwayOf(seconds);",
+      "{runway.value}",
+    ],
+    [
+      'import RowUtil from "../Utils/RunwayText";',
+      "const rows = RowUtil.getRows(n);",
+      "{rows[0].figure}",
+    ],
+    [
+      'import * as Runway from "../Utils/RunwayText";',
+      "const runway = Runway.getRunwayText(seconds);",
+      "{runway.value}",
+    ],
+  ])(
+    "an object an imported function builds, drawn bare: %s",
+    (imported: string, built: string, drawn: string) => {
+      expect(
+        findHandWrittenDashes(
+          [imported, built, `const cell = <td>${drawn}</td>;`].join("\n"),
+          "packages/App/FeatureSet/Dashboard/src/Pages/Example.tsx",
+          index,
+        ).map((dash: HandWrittenDash): string => {
+          return dash.kind;
+        }),
+      ).toEqual(["dash-flow"]);
+    },
+  );
+
+  test.each([
+    // The function's other prop never holds the mark.
+    [
+      'import { getNameRow } from "../Utils/RunwayText";',
+      "const row = getNameRow(name);",
+      "{row.name}",
+    ],
+    // A module that never calls the builder is not held to its props.
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const tile = { value: count };",
+      "{tile.value}",
+    ],
+    // Drawn through the quiet dash.
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{getValueOrQuietDash(runway.value)}",
+    ],
+    // Its words, drawn only once the check says it has some.
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{isNoValue(runway.value) ? <TableEmptyValue /> : runway.value}",
+    ],
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{!isNoValue(runway.value) ? <b>{runway.value}</b> : <TableEmptyValue />}",
+    ],
+  ])(
+    "an object's prop that never holds the mark, or one drawn through the quiet dash: %s %s",
+    (imported: string, built: string, drawn: string) => {
+      expect(
+        findHandWrittenDashes(
+          [imported, built, `const cell = <td>${drawn}</td>;`].join("\n"),
+          "packages/App/FeatureSet/Dashboard/src/Pages/Example.tsx",
+          index,
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  test("an object's props that never hold the mark are not read", () => {
+    expect(
+      scan(
+        [
+          'const rows = [{ label: "Size", value: `${n} B` }, { label: "Name", value: name }];',
+          "const cell = <td>{rows[0].value}</td>;",
+          "const other = <td>{row.label}</td>;",
         ].join("\n"),
       ),
     ).toEqual([]);

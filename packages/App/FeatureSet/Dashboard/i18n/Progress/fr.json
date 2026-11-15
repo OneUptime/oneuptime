@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55497,
-    "untranslated": 4602
+    "keys": 55711,
+    "untranslated": 4499
   },
   "sameAsEnglish": [
     " incidents",
@@ -216,6 +216,8 @@
     "Favicon",
     "First Contentful Paint",
     "Fivetran",
+    "FlashArray",
+    "FlashBlade",
     "Fluent Bit",
     "Format",
     "Frames",
@@ -305,6 +307,7 @@
     "Joules",
     "Kazakhstan",
     "Kenya",
+    "Key Manager",
     "Keystone",
     "Kilobits",
     "Kilohertz",
@@ -507,6 +510,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Stripe Payments API",
     "Suggestions",
     "Switch",
     "TLS",

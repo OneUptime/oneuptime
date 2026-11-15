@@ -85,15 +85,15 @@ L'onglet **Custom Metric** propose ces métriques, regroupées par type de resso
 
 | Catégorie | Métriques |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nœud | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Conteneur | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Charge de travail | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Plan de contrôle | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Consommation CPU du pod, Utilisation mémoire du pod, Phase du pod (code), Utilisation du système de fichiers du pod, Utilisation de la limite mémoire du pod, Utilisation de la limite CPU du pod, E/S réseau du pod (cumulées, deux sens) |
+| Nœud | Consommation CPU du nœud, CPU allouable du nœud, Utilisation de la mémoire du nœud, Working set mémoire du nœud, Utilisation du système de fichiers du nœud, Mémoire allouable du nœud, Condition Ready du nœud, Condition MemoryPressure du nœud, Condition DiskPressure du nœud, Condition PIDPressure du nœud, Système de fichiers disponible du nœud |
+| Conteneur | Redémarrages du conteneur, Redémarrages du conteneur (hausse), Limite CPU du conteneur, Demande CPU du conteneur, Limite mémoire du conteneur, Demande mémoire du conteneur, Conteneur prêt |
+| Charge de travail | Réplicas disponibles du Deployment, Réplicas souhaités du Deployment, Nœuds souhaités du DaemonSet, Nœuds mal planifiés du DaemonSet, Nœuds prêts du DaemonSet, Réplicas souhaités du StatefulSet, Réplicas prêts du StatefulSet, Pods en échec du Job, Pods en échec du Job (hausse), Pods réussis du Job |
+| HPA | Réplicas actuels du HPA, Réplicas souhaités du HPA, Réplicas maximum du HPA, Réplicas minimum du HPA |
+| Plan de contrôle | etcd a un leader, Requêtes en cours du serveur d'API, Pods en attente du planificateur |
 
 > [!NOTE]
-> **Pod CPU Usage** et **Node CPU Usage** sont exprimés en cœurs, pas en pourcentage : `0.18` correspond à 0,18 cœur. **Pod Phase (Code)** est un code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agrégez-le avec Maximum ou Minimum, jamais avec Somme. Les métriques du plan de contrôle n'arrivent que si la collecte du plan de contrôle par l'agent est activée. **Node Ready Condition** vaut 1 pour Ready, 0 pour NotReady et -1 pour Unknown, ce que signale un nœud tombé : alertez en dessous de 1. **Container Restarts** est le compteur cumulé des redémarrages du conteneur ; **Container Restarts (Increase)** est ce que l'agent envoie avec chaque échantillon : les redémarrages depuis son échantillon précédent du conteneur, si bien que leur somme sur une fenêtre donne les redémarrages qu'elle contient. Elle porte ce que porte **Container Restarts**, noms des charges de travail du pod du conteneur compris, mais pas l'identifiant du conteneur, qui change à chaque redémarrage. **Job Failed Pods** est le compteur cumulé des pods en échec d'un Job ; **Job Failed Pods (Increase)** est ce que l'agent envoie avec chaque échantillon : les pods du Job en échec depuis son échantillon précédent du Job, si bien que leur somme sur une fenêtre donne les échecs qu'elle contient. Elle porte ce que porte **Job Failed Pods** : le nom et l'espace de noms du Job.
+> **Consommation CPU du pod** et **Consommation CPU du nœud** sont exprimés en cœurs, pas en pourcentage : `0.18` correspond à 0,18 cœur. **Phase du pod (code)** est un code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agrégez-le avec Maximum ou Minimum, jamais avec Somme. Les métriques du plan de contrôle n'arrivent que si la collecte du plan de contrôle par l'agent est activée. **Condition Ready du nœud** vaut 1 pour Ready, 0 pour NotReady et -1 pour Unknown, ce que signale un nœud tombé : alertez en dessous de 1. **Redémarrages du conteneur** est le compteur cumulé des redémarrages du conteneur ; **Redémarrages du conteneur (hausse)** est ce que l'agent envoie avec chaque échantillon : les redémarrages depuis son échantillon précédent du conteneur, si bien que leur somme sur une fenêtre donne les redémarrages qu'elle contient. Elle porte ce que porte **Redémarrages du conteneur**, noms des charges de travail du pod du conteneur compris, mais pas l'identifiant du conteneur, qui change à chaque redémarrage. **Pods en échec du Job** est le compteur cumulé des pods en échec d'un Job ; **Pods en échec du Job (hausse)** est ce que l'agent envoie avec chaque échantillon : les pods du Job en échec depuis son échantillon précédent du Job, si bien que leur somme sur une fenêtre donne les échecs qu'elle contient. Elle porte ce que porte **Pods en échec du Job** : le nom et l'espace de noms du Job.
 
 ## Critères de surveillance
 
@@ -191,7 +191,7 @@ Les clusters s'enregistrent eux-mêmes à partir des données de l'agent, sous l
 :::
 
 :::details Un seuil de CPU ne se déclenche jamais
-**Pod CPU Usage** et **Node CPU Usage** sont exprimés en cœurs, pas en pourcentage, donc un seuil de `80` signifie 80 cœurs. Définissez le seuil en cœurs, ou partez de **High Node CPU Utilization** ou de **Pod CPU Saturating Container Limit**, qui comparent un pourcentage.
+**Consommation CPU du pod** et **Consommation CPU du nœud** sont exprimés en cœurs, pas en pourcentage, donc un seuil de `80` signifie 80 cœurs. Définissez le seuil en cœurs, ou partez de **High Node CPU Utilization** ou de **Pod CPU Saturating Container Limit**, qui comparent un pourcentage.
 :::
 
 :::details CrashLoopBackOff Detection ne s'est pas déclenché pour un redémarrage

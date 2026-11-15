@@ -158,6 +158,6 @@ Hash:   Payment failed for [HASHED:8c87b489]
 :::cards
 - [日志管道](/docs/telemetry/log-pipelines): 解析并丰富你保留的日志。
 - [日志浏览器](/docs/telemetry/logs-explorer): 搜索已存储的内容。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 跟踪你保留的 Span。
+- [跟踪浏览器](/docs/telemetry/traces-explorer): 追踪你保留的 Span。
 - [数据保留](/docs/telemetry/data-retention): 决定它们保留多长时间。
 :::

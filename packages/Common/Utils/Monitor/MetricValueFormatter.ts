@@ -143,6 +143,12 @@ export default class MetricValueFormatter {
   /**
    * Format one metric sample for a notification.
    *
+   * The figure and its unit are joined as on the dashboard: by a no-break
+   * space before a unit's symbol ("1.07\u00A0GB"), so an email, a chat
+   * message or the incident's page never ends a line with the figure and
+   * starts the next with its unit (#8457); a text message turns it back
+   * into a space, as GSM-7 has no other (Utils/Sms/Gsm7Text).
+   *
    * Units with a scale ladder are rescaled, exactly as the dashboard does:
    *   format({ value: 1073741824, unit: "By" })            → "1.07 GB"
    *   format({ value: 2500, unit: "GB" })                  → "2.5 TB"
@@ -227,7 +233,7 @@ export default class MetricValueFormatter {
     const unitSymbol: string =
       ValueFormatter.getCompactUnit(unit, formatOptions) || unit;
 
-    return `${MetricValueFormatter.formatBareNumber(input.value)} ${unitSymbol}`;
+    return `${MetricValueFormatter.formatBareNumber(input.value)}\u00A0${unitSymbol}`;
   }
 
   /**

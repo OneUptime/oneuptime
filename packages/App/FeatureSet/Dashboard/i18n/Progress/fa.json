@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 55497,
+    "keys": 55711,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -143,6 +143,7 @@
     "Interaction to Next Paint",
     "IoT",
     "Job",
+    "Key Manager",
     "Key=Value Parser",
     "Keystone",
     "Kolla-Ansible",

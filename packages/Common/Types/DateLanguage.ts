@@ -25,12 +25,17 @@
  * a component inside a sentence draws its date in the sentence's language
  * (withDateDisplayLanguage).
  *
+ * A number Intl writes beside its unit stays on the line of its unit, in
+ * every language: "vor 5 Minuten", "5 Min.", "2 Tage, 3 Stunden" (#8456,
+ * A NUMBER KEEPS ITS UNIT ON ITS LINE below).
+ *
  * React-free and free of the rest of OneUptime, so OneUptimeDate, the
  * translation layer and any frontend can use it.
  */
 
 import moment from "moment-timezone";
 import OldestKeyMap from "../Utils/OldestKeyMap";
+import { NO_BREAK_SPACE } from "./NoBreakSpaces";
 
 export const ENGLISH_DATE_LANGUAGE: string = "en";
 
@@ -735,6 +740,367 @@ export const formatDateText: (data: {
 };
 
 /*
+ * A NUMBER KEEPS ITS UNIT ON ITS LINE.
+ *
+ * A line may break at any plain space, and Intl writes one between a
+ * number and its unit in most languages - "5 Min.", "vor 5 Minuten", "2
+ * Tage, 3 Stunden", Arabic's "5 ملي ث" with two - so a narrow cell could
+ * end a line with "5" and start the next with "Min." (#8456). The
+ * Translator holds a number to its unit in every sentence (#8043, #8302)
+ * and code that joins them itself writes a no-break space (#8303); this
+ * holds what Intl writes. Every amount of a unit and every relative time
+ * written here is read from Intl's parts (formatToParts), and the space
+ * between the number and its unit is a no-break space (U+00A0), and so is
+ * a space inside a unit of two words (Arabic's "ملي ث", Hindi's "नैनो से॰",
+ * Persian's "Gb در ثانیه"). A space no line breaks at is left as Intl wrote
+ * it: French's narrow U+202F and its U+00A0. English is held as well, for
+ * the same reason its sentences are (#8302): "in 5\u00A0minutes".
+ *
+ * Only the space beside the number is set. A line may still break between
+ * two units of a duration ("2\u00A0Tage, 3\u00A0Stunden") and before or
+ * after the words of a relative time ("vor 5\u00A0Minuten",
+ * "5\u00A0minutes ago"). A relative time has no part of its own for its
+ * unit: the unit's name is the word beside the number on the side the
+ * language writes a unit on (after it in every language the Dashboard
+ * ships, "dakika 5 zilizopita" in Swahili).
+ */
+
+// A run of the spaces a line may break at: not the figure space (U+2007).
+const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]+/g;
+
+const LEADING_BREAKING_SPACES: RegExp = /^[ \u2000-\u2006\u2008-\u200A\u205F]+/;
+
+const TRAILING_BREAKING_SPACES: RegExp =
+  /[ \u2000-\u2006\u2008-\u200A\u205F]+$/;
+
+// One part of what Intl writes, as formatToParts hands it.
+export interface IntlTextPart {
+  type: string;
+  value: string;
+}
+
+// The parts Intl writes a number in: its digits, its signs and its marks.
+const NUMBER_PART_TYPES: ReadonlyArray<string> = [
+  "integer",
+  "group",
+  "decimal",
+  "fraction",
+  "minusSign",
+  "plusSign",
+  "percentSign",
+  "compact",
+  "exponentSeparator",
+  "exponentMinusSign",
+  "exponentInteger",
+  "infinity",
+  "nan",
+];
+
+const isNumberPart: (part: IntlTextPart | undefined) => boolean = (
+  part: IntlTextPart | undefined,
+): boolean => {
+  return part !== undefined && NUMBER_PART_TYPES.includes(part.type);
+};
+
+const withSpacesHeld: (text: string, spaces: RegExp) => string = (
+  text: string,
+  spaces: RegExp,
+): string => {
+  return text.replace(spaces, NO_BREAK_SPACE);
+};
+
+// The nearest part on one side of `index` that is not a literal.
+const nearestNonLiteral: (
+  parts: ReadonlyArray<IntlTextPart>,
+  index: number,
+  step: 1 | -1,
+) => IntlTextPart | undefined = (
+  parts: ReadonlyArray<IntlTextPart>,
+  index: number,
+  step: 1 | -1,
+): IntlTextPart | undefined => {
+  for (
+    let at: number = index + step;
+    at >= 0 && at < parts.length;
+    at += step
+  ) {
+    if (parts[at]!.type !== "literal") {
+      return parts[at];
+    }
+  }
+
+  return undefined;
+};
+
+/*
+ * The parts of an amount of a unit (Intl.NumberFormat's unit style) with
+ * the unit held to its number: the literal between the two, and any space
+ * inside the unit, written with no-break spaces. Every other part as Intl
+ * wrote it.
+ */
+export const holdUnitToNumber: (
+  parts: ReadonlyArray<IntlTextPart>,
+) => Array<IntlTextPart> = (
+  parts: ReadonlyArray<IntlTextPart>,
+): Array<IntlTextPart> => {
+  return parts.map((part: IntlTextPart, index: number): IntlTextPart => {
+    if (part.type === "unit") {
+      return {
+        type: part.type,
+        value: withSpacesHeld(part.value, BREAKING_SPACES),
+      };
+    }
+
+    if (part.type !== "literal") {
+      return { type: part.type, value: part.value };
+    }
+
+    const before: IntlTextPart | undefined = nearestNonLiteral(
+      parts,
+      index,
+      -1,
+    );
+    const after: IntlTextPart | undefined = nearestNonLiteral(parts, index, 1);
+    const isBetweenNumberAndUnit: boolean =
+      (isNumberPart(before) && after?.type === "unit") ||
+      (before?.type === "unit" && isNumberPart(after));
+
+    return {
+      type: part.type,
+      value: isBetweenNumberAndUnit
+        ? withSpacesHeld(part.value, BREAKING_SPACES)
+        : part.value,
+    };
+  });
+};
+
+/*
+ * The parts of a relative time (Intl.RelativeTimeFormat) with its number
+ * held to the unit's name: the spaces between the number and the word on
+ * the unit's side, after the number unless `unitBeforeNumber`. A text
+ * with no number ("gestern", "now") is as Intl wrote it.
+ */
+export const holdRelativeUnitToNumber: (
+  parts: ReadonlyArray<IntlTextPart>,
+  unitBeforeNumber: boolean,
+) => string = (
+  parts: ReadonlyArray<IntlTextPart>,
+  unitBeforeNumber: boolean,
+): string => {
+  const numberIndexes: Array<number> = [];
+
+  parts.forEach((part: IntlTextPart, index: number): void => {
+    if (part.type !== "literal") {
+      numberIndexes.push(index);
+    }
+  });
+
+  const unitSide: number | undefined =
+    numberIndexes.length === 0
+      ? undefined
+      : unitBeforeNumber
+        ? numberIndexes[0]! - 1
+        : numberIndexes[numberIndexes.length - 1]! + 1;
+
+  return parts
+    .map((part: IntlTextPart, index: number): string => {
+      if (index !== unitSide || part.type !== "literal") {
+        return part.value;
+      }
+
+      return withSpacesHeld(
+        part.value,
+        unitBeforeNumber ? TRAILING_BREAKING_SPACES : LEADING_BREAKING_SPACES,
+      );
+    })
+    .join("");
+};
+
+// The text of `parts`, joined.
+export const joinIntlParts: (parts: ReadonlyArray<IntlTextPart>) => string = (
+  parts: ReadonlyArray<IntlTextPart>,
+): string => {
+  return parts
+    .map((part: IntlTextPart): string => {
+      return part.value;
+    })
+    .join("");
+};
+
+/*
+ * AN AMOUNT OF A UNIT.
+ *
+ * "5 Min.", "4,2 MB", "1,2 Gb/s", "۱۸۴ میلی‌ثانیه": Intl's unit style, the
+ * unit held to its number. The one place OneUptime asks Intl for a unit
+ * (NumbersKeepTheirUnitsInCodeGuard refuses another): a duration's unit
+ * goes through formatDurationUnit, any other unit Intl knows (a byte, a
+ * megabyte, a gigabit per second) through formatUnitAmount.
+ */
+export interface UnitAmount {
+  value: number;
+  // Intl's name for the unit: "minute", "megabyte", "gigabit-per-second".
+  unit: string;
+  /*
+   * The language or locale the amount is read in ("de", "ar", a feed's
+   * "fa-u-ca-gregory"), its digits as getNumberLocale writes them. None
+   * is the runtime's own.
+   */
+  locale: string | undefined;
+  unitDisplay: "long" | "short" | "narrow";
+  minimumFractionDigits?: number | undefined;
+  maximumFractionDigits?: number | undefined;
+  /*
+   * "compact" writes a big amount in the language's own short scale ("1,5
+   * Tsd. Min.", "۱٫۵ هزار دقیقه"), as a chart's scaled figure is written
+   * (ValueFormatter). The standard notation when left out.
+   */
+  notation?: "standard" | "compact" | undefined;
+}
+
+const unitFormatCache: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+// The Intl.NumberFormat the cache was built with: another one starts afresh.
+let unitFormatCacheOwner: unknown = null;
+
+/*
+ * Intl's format for an amount of `unit`, or null when this engine cannot
+ * write the unit: an unknown unit or locale, or an older engine that
+ * ignores the unit style and writes the bare number.
+ */
+const getUnitFormat: (amount: UnitAmount) => Intl.NumberFormat | null = (
+  amount: UnitAmount,
+): Intl.NumberFormat | null => {
+  const key: string = [
+    amount.locale || "",
+    amount.unit,
+    amount.unitDisplay,
+    amount.minimumFractionDigits ?? "",
+    amount.maximumFractionDigits ?? "",
+    amount.notation || "standard",
+  ].join("|");
+
+  if (unitFormatCacheOwner !== Intl.NumberFormat) {
+    unitFormatCache.clear();
+    unitFormatCacheOwner = Intl.NumberFormat;
+  }
+
+  if (unitFormatCache.has(key)) {
+    return unitFormatCache.get(key) || null;
+  }
+
+  let format: Intl.NumberFormat | null = null;
+
+  try {
+    const options: Record<string, unknown> = {
+      style: "unit",
+      unit: amount.unit,
+      unitDisplay: amount.unitDisplay,
+    };
+
+    if (amount.minimumFractionDigits !== undefined) {
+      options["minimumFractionDigits"] = amount.minimumFractionDigits;
+    }
+
+    if (amount.maximumFractionDigits !== undefined) {
+      options["maximumFractionDigits"] = amount.maximumFractionDigits;
+    }
+
+    if (amount.notation === "compact") {
+      options["notation"] = "compact";
+      options["compactDisplay"] = "short";
+    }
+
+    const candidate: Intl.NumberFormat = new Intl.NumberFormat(
+      getNumberLocale(amount.locale),
+      options as Intl.NumberFormatOptions,
+    );
+
+    // An engine without the unit style writes the bare number.
+    const writesUnit: boolean = candidate
+      .formatToParts(2)
+      .some((part: Intl.NumberFormatPart): boolean => {
+        return (part.type as string) === "unit";
+      });
+
+    format = writesUnit ? candidate : null;
+  } catch {
+    format = null;
+  }
+
+  unitFormatCache.set(key, format);
+
+  return format;
+};
+
+/*
+ * An amount of a unit in its parts, the unit held to its number: for a
+ * caller that draws the number and the unit apart (a stat tile's figure).
+ * Null when this engine cannot write the unit.
+ */
+export const getUnitAmountParts: (
+  amount: UnitAmount,
+) => Array<IntlTextPart> | null = (
+  amount: UnitAmount,
+): Array<IntlTextPart> | null => {
+  const format: Intl.NumberFormat | null = getUnitFormat(amount);
+
+  if (!format) {
+    return null;
+  }
+
+  return holdUnitToNumber(format.formatToParts(amount.value));
+};
+
+// "5\u00A0Min.", "4,2\u00A0MB": an amount of a unit; null when Intl cannot write it.
+export const formatUnitAmount: (amount: UnitAmount) => string | null = (
+  amount: UnitAmount,
+): string | null => {
+  const parts: Array<IntlTextPart> | null = getUnitAmountParts(amount);
+
+  return parts ? joinIntlParts(parts) : null;
+};
+
+const unitBeforeNumberCache: Map<string, boolean> = new Map<string, boolean>();
+
+/*
+ * Whether `locale` writes `unit`'s name before an amount of it ("dakika 5"
+ * in Swahili), as its unit style does; after it ("5 Minuten") when Intl
+ * cannot say.
+ */
+const writesUnitBeforeNumber: (
+  locale: string | undefined,
+  unit: string,
+) => boolean = (locale: string | undefined, unit: string): boolean => {
+  const key: string = `${locale || ""}|${unit}`;
+  const cached: boolean | undefined = unitBeforeNumberCache.get(key);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const parts: Array<IntlTextPart> | null = getUnitAmountParts({
+    value: 5,
+    unit: unit,
+    locale: locale,
+    unitDisplay: "long",
+  });
+  const unitAt: number = parts
+    ? parts.findIndex((part: IntlTextPart): boolean => {
+        return part.type === "unit";
+      })
+    : -1;
+  const numberAt: number = parts ? parts.findIndex(isNumberPart) : -1;
+  const before: boolean = unitAt >= 0 && numberAt >= 0 && unitAt < numberAt;
+
+  unitBeforeNumberCache.set(key, before);
+
+  return before;
+};
+
+/*
  * HOW LONG AGO, OR HOW LONG UNTIL.
  */
 
@@ -757,10 +1123,17 @@ interface RelativeTimeFormatter {
   format: (value: number, unit: RelativeDateUnit) => string;
 }
 
+interface IntlRelativeTimeFormat extends RelativeTimeFormatter {
+  // Every engine with Intl.RelativeTimeFormat has it; optional all the same.
+  formatToParts?:
+    | ((value: number, unit: RelativeDateUnit) => Array<IntlTextPart>)
+    | undefined;
+}
+
 type RelativeTimeFormatConstructor = new (
-  locale: string,
+  locale: string | undefined,
   options: { numeric: "auto" | "always"; style: "long" | "short" | "narrow" },
-) => RelativeTimeFormatter;
+) => IntlRelativeTimeFormat;
 
 interface ListFormatter {
   format: (items: Array<string>) => string;
@@ -777,19 +1150,39 @@ type ListFormatConstructor = new (
 const relativeTimeFormatCache: Map<string, RelativeTimeFormatter | null> =
   new Map<string, RelativeTimeFormatter | null>();
 
+// The Intl.RelativeTimeFormat the cache was built with: another one starts afresh.
+let relativeTimeFormatCacheOwner: unknown = null;
+
 // How much of a unit's name Intl writes: "5 minutes ago", or "5 min. ago".
 export type RelativeDateStyle = "long" | "short" | "narrow";
 
+/*
+ * Intl's relative times in `locale`, each number held to its unit ("vor
+ * 5 Minuten" with a no-break space after the 5, A NUMBER KEEPS ITS UNIT ON
+ * ITS LINE); null when this engine has no Intl.RelativeTimeFormat or
+ * cannot write `locale`. No locale is the runtime's own.
+ */
 const getRelativeTimeFormatter: (
-  locale: string,
+  locale: string | undefined,
   numeric: "auto" | "always",
   style?: RelativeDateStyle,
 ) => RelativeTimeFormatter | null = (
-  locale: string,
+  locale: string | undefined,
   numeric: "auto" | "always",
   style: RelativeDateStyle = "long",
 ): RelativeTimeFormatter | null => {
-  const key: string = `${locale}|${numeric}|${style}`;
+  const RelativeTimeFormat: RelativeTimeFormatConstructor | undefined = (
+    Intl as unknown as {
+      RelativeTimeFormat?: RelativeTimeFormatConstructor | undefined;
+    }
+  ).RelativeTimeFormat;
+
+  if (relativeTimeFormatCacheOwner !== RelativeTimeFormat) {
+    relativeTimeFormatCache.clear();
+    relativeTimeFormatCacheOwner = RelativeTimeFormat;
+  }
+
+  const key: string = `${locale || ""}|${numeric}|${style}`;
 
   if (relativeTimeFormatCache.has(key)) {
     return relativeTimeFormatCache.get(key) || null;
@@ -798,17 +1191,25 @@ const getRelativeTimeFormatter: (
   let formatter: RelativeTimeFormatter | null = null;
 
   try {
-    const RelativeTimeFormat: RelativeTimeFormatConstructor | undefined = (
-      Intl as unknown as {
-        RelativeTimeFormat?: RelativeTimeFormatConstructor | undefined;
-      }
-    ).RelativeTimeFormat;
-
     if (RelativeTimeFormat) {
-      formatter = new RelativeTimeFormat(getNumberLocale(locale) || locale, {
-        numeric: numeric,
-        style: style,
-      });
+      const numberLocale: string | undefined = getNumberLocale(locale);
+      const format: IntlRelativeTimeFormat = new RelativeTimeFormat(
+        numberLocale,
+        { numeric: numeric, style: style },
+      );
+
+      formatter = {
+        format: (value: number, unit: RelativeDateUnit): string => {
+          if (typeof format.formatToParts !== "function") {
+            return format.format(value, unit);
+          }
+
+          return holdRelativeUnitToNumber(
+            format.formatToParts(value, unit),
+            writesUnitBeforeNumber(numberLocale, unit),
+          );
+        },
+      };
     }
   } catch {
     formatter = null;
@@ -953,32 +1354,42 @@ export const formatRelativeDate: (data: {
  * when this engine has no Intl.RelativeTimeFormat. `style` "short" writes
  * the unit as its language shortens it, for a narrow column: "vor 5 Min.",
  * "il y a 5 min"; "long" when left out. A count of 0 behind now is the
- * past: "vor 0 Sek.", never "in 0 Sek.".
+ * past: "vor 0 Sek.", never "in 0 Sek.". `numeric` "auto" says the words a
+ * language has for a count where it has them - "now" for 0 seconds,
+ * "gestern" for a day behind, "tomorrow" for one ahead - for a day's
+ * heading or a hint; "always" (the default) counts: "vor 1 Tag". The
+ * number is held to its unit (A NUMBER KEEPS ITS UNIT ON ITS LINE), in
+ * English too. No locale is the runtime's own.
+ *
+ * The one place OneUptime asks Intl for a relative time, with
+ * formatRelativeDate (NumbersKeepTheirUnitsInCodeGuard refuses another).
  */
 export const formatRelativeAmount: (data: {
   count: number;
   unit: RelativeDateUnit;
   isFuture: boolean;
-  locale: string;
+  locale: string | undefined;
   style?: RelativeDateStyle | undefined;
+  numeric?: "auto" | "always" | undefined;
 }) => string | null = (data: {
   count: number;
   unit: RelativeDateUnit;
   isFuture: boolean;
-  locale: string;
+  locale: string | undefined;
   style?: RelativeDateStyle | undefined;
+  numeric?: "auto" | "always" | undefined;
 }): string | null => {
-  const always: RelativeTimeFormatter | null = getRelativeTimeFormatter(
+  const formatter: RelativeTimeFormatter | null = getRelativeTimeFormatter(
     data.locale,
-    "always",
+    data.numeric || "always",
     data.style || "long",
   );
 
-  if (!always) {
+  if (!formatter) {
     return null;
   }
 
-  return always.format(data.isFuture ? data.count : -data.count, data.unit);
+  return formatter.format(data.isFuture ? data.count : -data.count, data.unit);
 };
 
 /*
@@ -1002,70 +1413,11 @@ export interface DurationTextPart {
   unit: DurationTextUnit;
 }
 
-interface UnitFormatter {
-  format: (value: number) => string;
-}
-
-const unitFormatCache: Map<string, UnitFormatter | null> = new Map<
-  string,
-  UnitFormatter | null
->();
-
-// The Intl.NumberFormat the cache was built with: another one starts afresh.
-let unitFormatCacheOwner: unknown = null;
-
-const getUnitFormatter: (data: {
-  locale: string;
-  unit: DurationTextUnit;
-  unitDisplay: "long" | "short" | "narrow";
-  maximumFractionDigits: number;
-}) => UnitFormatter | null = (data: {
-  locale: string;
-  unit: DurationTextUnit;
-  unitDisplay: "long" | "short" | "narrow";
-  maximumFractionDigits: number;
-}): UnitFormatter | null => {
-  const key: string = `${data.locale}|${data.unit}|${data.unitDisplay}|${data.maximumFractionDigits}`;
-
-  if (unitFormatCacheOwner !== Intl.NumberFormat) {
-    unitFormatCache.clear();
-    unitFormatCacheOwner = Intl.NumberFormat;
-  }
-
-  if (unitFormatCache.has(key)) {
-    return unitFormatCache.get(key) || null;
-  }
-
-  let formatter: UnitFormatter | null = null;
-
-  try {
-    const candidate: Intl.NumberFormat = new Intl.NumberFormat(
-      getNumberLocale(data.locale),
-      {
-        style: "unit",
-        unit: data.unit,
-        unitDisplay: data.unitDisplay,
-        maximumFractionDigits: data.maximumFractionDigits,
-      } as Intl.NumberFormatOptions,
-    );
-
-    // An engine without the unit style writes the bare number.
-    const probe: string = candidate.format(2);
-
-    formatter =
-      probe === (2).toLocaleString(getNumberLocale(data.locale))
-        ? null
-        : (candidate as UnitFormatter);
-  } catch {
-    formatter = null;
-  }
-
-  unitFormatCache.set(key, formatter);
-
-  return formatter;
-};
-
-// "2 Stunden", "2 Std.", "2h": one unit of a duration in `locale`.
+/*
+ * "2 Stunden", "2 Std.", "2h": one unit of a duration in `locale`, the
+ * number held to its unit (A NUMBER KEEPS ITS UNIT ON ITS LINE), in
+ * English too. Null when this engine cannot write the unit.
+ */
 export const formatDurationUnit: (data: {
   part: DurationTextPart;
   locale: string;
@@ -1077,14 +1429,13 @@ export const formatDurationUnit: (data: {
   unitDisplay: "long" | "short" | "narrow";
   maximumFractionDigits?: number | undefined;
 }): string | null => {
-  const formatter: UnitFormatter | null = getUnitFormatter({
-    locale: data.locale,
+  return formatUnitAmount({
+    value: data.part.count,
     unit: data.part.unit,
+    locale: data.locale,
     unitDisplay: data.unitDisplay,
     maximumFractionDigits: data.maximumFractionDigits ?? 0,
   });
-
-  return formatter ? formatter.format(data.part.count) : null;
 };
 
 /*

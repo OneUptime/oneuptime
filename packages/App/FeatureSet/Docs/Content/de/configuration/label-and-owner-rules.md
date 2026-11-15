@@ -91,7 +91,7 @@ Eine Regel, die erbt, kann **Hinzuzufügende Beschriftungen** (bzw. **Eigentüme
 | --- | --- |
 | **Beschriftungen von Monitoren erben** | _Beschriftungen erben von: Monitore_ |
 | **Beschriftungen von Monitoren erben** und **Beschriftungen von Hosts erben** | _Beschriftungen erben von: Monitore, Hosts_ |
-| **Beschriftungen von Überwachung erben**, bei einer Warnungsregel | _Beschriftungen erben von: Überwachung_ |
+| **Beschriftungen von Überwachung erben**, bei einer Warnungsregel | _Beschriftungen erben von: Monitor_ |
 
 Der Name folgt den Schaltern, bis Sie eine Beschriftung wählen – dann wird die Regel nach ihren Beschriftungen benannt – oder einen eigenen Namen eingeben.
 

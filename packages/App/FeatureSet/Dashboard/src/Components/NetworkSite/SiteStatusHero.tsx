@@ -1,4 +1,5 @@
 import { formatUptimePercent } from "./SiteMapViewModel";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import DeviceStatusUtil, {
   DEVICE_STATUS_SELECT,
   NetworkDeviceStatus,
@@ -402,7 +403,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             className="mt-1.5 text-2xl font-semibold text-gray-900"
             data-testid="site-hero-daily-uptime"
           >
-            {formatUptimePercent(data.dailyUptimePercent)}
+            {getFigure(formatUptimePercent(data.dailyUptimePercent))}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
             {translator.translateText("Last 24 hours")}
@@ -417,7 +418,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             description={NETWORK_SITE_METRIC_DESCRIPTIONS.uptime30d}
           />
           <div className="mt-1.5 text-2xl font-semibold text-gray-900">
-            {formatUptimePercent(data.uptimePercent)}
+            {getFigure(formatUptimePercent(data.uptimePercent))}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
             {translator.translateText("Maintenance excluded")}

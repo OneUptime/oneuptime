@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55497,
-    "untranslated": 8355
+    "keys": 55711,
+    "untranslated": 8158
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -129,6 +129,8 @@
     "Filesystem %",
     "Fingerprint",
     "Flame graph",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Floating IP",
     "Fluent Bit",
@@ -183,6 +185,7 @@
     "Job",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",
@@ -325,6 +328,7 @@
     "Standard",
     "StatusPage",
     "Stratum",
+    "Stripe Payments API",
     "Switch",
     "TLS",
     "TTL",

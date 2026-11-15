@@ -70,7 +70,7 @@ Under standarden, sammenfoldet under **Flere innstillinger**, setter kortet **Op
 | --- | --- |
 | Logger | **Standard for logger (dager)**, og ett felt for hver loggalvorlighetsgrad |
 | Spor | **Standard for traces (dager)**, og ett felt for hver span-status: Feil, OK og Ikke angitt |
-| Målinger | **Standard for metrikker (dager)** |
+| Målinger | **Standard for målinger (dager)** |
 | Profiler | **Standard for profiler (dager)** |
 
 Et felt som står tomt, faller tilbake på neste innstilling i rekkefølgen over, så en alvorlighetsgrad uten egne dager oppbevarer loggene sine etter standarden for logger.
@@ -91,8 +91,8 @@ Tjenester, verter, Kubernetes-klynger, Docker- og Podman-verter, Docker Swarm-, 
 | Data | Oppbevares i | Hvor det endres |
 | --- | --- | --- |
 | Session Replays | 7 dager, med mindre det endres | Replay-policyen til RUM-applikasjonen: se [Administrere applikasjoner](/docs/rum/applications#oppbevaring-av-øktavspillinger). |
-| Overvåkingslogger, én rad per sjekk | 1 dag, med mindre det endres | På en selvhostet installasjon, **Loggoppbevaring for overvåking (dager)** i Admin Dashboard |
-| Overvåkingsmålinger, og målingene SLO-er registrerer | 30 dager, med mindre det endres | På en selvhostet installasjon, **Målingsoppbevaring for overvåking (dager)** i Admin Dashboard |
+| Monitorlogger, én rad per sjekk | 1 dag, med mindre det endres | På en selvhostet installasjon, **Loggoppbevaring for overvåking (dager)** i Admin Dashboard |
+| Monitormålinger, og målingene SLO-er registrerer | 30 dager, med mindre det endres | På en selvhostet installasjon, **Målingsoppbevaring for overvåking (dager)** i Admin Dashboard |
 | [Telemetriforbruk](/docs/telemetry/usage), én telling per ressurs, signal og dag | 120 dager, med mindre det endres | På en selvhostet installasjon, **Oppbevaring av telemetriforbruk (dager)** i Admin Dashboard |
 
 ## Hva oppbevaring koster

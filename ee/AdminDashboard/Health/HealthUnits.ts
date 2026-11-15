@@ -1,4 +1,5 @@
 import { formatDurationUnit } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -14,7 +15,7 @@ export const formatMillisecondsIn: (
   const count: number = Number(value);
 
   if (value === null || value === undefined || isNaN(count)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return (

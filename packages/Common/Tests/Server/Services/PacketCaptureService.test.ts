@@ -597,7 +597,7 @@ describe("onBeforeCreate: what a capture is started with", () => {
       await refusal(
         internals.onBeforeCreate(startCapture({ maxFileSizeInMB: 100 })),
       ),
-    ).toBe("A capture file is at most 25 MB.");
+    ).toBe("A capture file is at most 25\u00A0MB.");
     expect(
       await refusal(internals.onBeforeCreate(startCapture({ maxPackets: 0 }))),
     ).toBe("A capture stops after at least 1 packet.");
@@ -626,7 +626,7 @@ describe("onBeforeCreate: what a capture is started with", () => {
       await refusal(
         internals.onBeforeCreate(startCapture({ maxFileSizeInMB: 10 })),
       ),
-    ).toBe("This probe allows capture files of at most 5 MB.");
+    ).toBe("This probe allows capture files of at most 5\u00A0MB.");
   });
 
   test("a probe's lower maximum lowers the defaults too", async () => {

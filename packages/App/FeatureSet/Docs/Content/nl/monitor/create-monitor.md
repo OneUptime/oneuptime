@@ -76,7 +76,7 @@ Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de s
 
 ## Sondes en interval
 
-Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL-certificaat, DNS, DNSSEC, NTP, Domein, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
+Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL-certificaat, DNS, DNSSEC, NTP, Domein, SQL-query, Databasegezondheid, Synthetische monitor, Aangepaste JavaScript-code en Externe statuspagina. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
 
 :::steps
 ### De sondes kiezen
@@ -85,7 +85,7 @@ Houd de geselecteerde **Sondes** of kies andere. Een monitor zonder sondes wordt
 
 ### Kiezen hoe vaak er gecontroleerd wordt
 
-Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetic Monitor, Custom JavaScript Code en SSL-certificaat krijgen intervallen van 5 minuten of langer aangeboden.
+Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetische monitor, Aangepaste JavaScript-code en SSL-certificaat krijgen intervallen van 5 minuten of langer aangeboden.
 
 ### De monitor maken
 

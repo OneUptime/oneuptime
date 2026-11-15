@@ -9,6 +9,7 @@ import {
   getAllDockerMetricCategories,
   DockerMetricDefinition,
   DockerMetricCategory,
+  getDockerMetricCategoryLabel,
 } from "Common/Types/Monitor/DockerMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -35,8 +36,11 @@ const DockerMetricPicker: FunctionComponent<ComponentProps> = (
         },
       );
 
+      // The group's heading, a key of the catalog's (#8353).
+      const heading: string = getDockerMetricCategoryLabel(category);
+
       return {
-        label: category,
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: DockerMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

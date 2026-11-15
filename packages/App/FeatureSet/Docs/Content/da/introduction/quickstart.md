@@ -44,7 +44,7 @@ Klik på **Opret projekt**. Dit projekts startside åbner, med tjeklisten **Velk
 :::steps
 ### Åbn opsætningen af webstedet
 
-Klik på **Opret din første overvågning** i tjeklisten. Det åbner den guidede opsætning **Vide, når mit website eller API er nede**, som tjekker dit websted, vælger, hvem der får besked, og sender en test, på én side. En person, der ikke må oprette monitorer, får i stedet listen **Monitorer**.
+Klik på **Opret din første monitor** i tjeklisten. Det åbner den guidede opsætning **Vide, når mit website eller API er nede**, som tjekker dit websted, vælger, hvem der får besked, og sender en test, på én side. En person, der ikke må oprette monitorer, får i stedet listen **Monitorer**.
 
 ### Indtast adressen
 

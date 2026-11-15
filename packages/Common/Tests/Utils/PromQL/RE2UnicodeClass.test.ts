@@ -14,7 +14,9 @@ import {
   unicodeTableName,
 } from "../../../Utils/PromQL/RE2UnicodeClass";
 import { MAX_PATTERN_LENGTH } from "../../../Utils/LinearRegExp/LinearRegExp";
+import { clearLinearRegExpCache } from "../../../Utils/LinearRegExp/PatternCache";
 import { PatternProblemError } from "../../../Utils/LinearRegExp/PatternProblem";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { v8Tests } from "../../Helpers/V8RegExpAnswers";
 import { describe, expect, test } from "@jest/globals";
 
@@ -865,12 +867,21 @@ describe("a Unicode class written out stays inside what can run", () => {
   });
 
   test("a bracket of many classes is read in time in line with them", () => {
-    const started: number = Date.now();
-    const compiled: CompiledPromQLRegex = compilePromQLRegex(
-      `(?i)[${"\\pL\\PN".repeat(3000)}]`,
-    );
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        // Each attempt compiles the bracket again, never the kept one.
+        clearLinearRegExpCache();
 
-    expect(compiled.test("a")).toBe(true);
-    expect(Date.now() - started).toBeLessThan(10000);
+        const compiled: CompiledPromQLRegex = compilePromQLRegex(
+          `(?i)[${"\\pL\\PN".repeat(3000)}]`,
+        );
+
+        return compiled.test("a");
+      },
+      limitInMs: 10000,
+    });
+
+    expect(read.result).toBe(true);
+    expect(read.inMs).toBeLessThan(10000);
   });
 });

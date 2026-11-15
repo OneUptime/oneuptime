@@ -100,6 +100,7 @@ const READ_AS_WRITTEN: Readonly<Record<string, string>> = {
   "email@yourcompany.com": "an example address, typed over",
   "internal-probe": "an example probe name, typed over",
   "0 USD": "an amount in a currency's code, typed over",
+  "OpenID Connect (OIDC)": "a protocol's name",
 };
 
 /*
@@ -337,6 +338,7 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "signal {{signal}}",
     "⌘ / Ctrl + ↵",
     "Signal",
+    "Parent",
   ],
   es: [
     "{{count}} monitors_one",
@@ -360,6 +362,7 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Heap",
     "Query",
     "⌘ / Ctrl + ↵",
+    "Database {{size}}",
   ],
   pt: [
     "Backups",
@@ -399,6 +402,7 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Heap",
     "Query",
     "⌘ / Ctrl + ↵",
+    "Database {{size}}",
   ],
   da: [
     "Destination",
@@ -418,6 +422,7 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Heap",
     "⌘ / Ctrl + ↵",
     "Signal",
+    "Database {{size}}",
   ],
   no: [
     "{{count}} monitors_one",
@@ -432,6 +437,7 @@ const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
     "Heap",
     "⌘ / Ctrl + ↵",
     "Signal",
+    "Database {{size}}",
   ],
   sv: [
     "{{count}} monitors_one",

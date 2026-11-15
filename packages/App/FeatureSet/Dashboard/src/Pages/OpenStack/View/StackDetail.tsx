@@ -202,7 +202,7 @@ const StackOverview: FunctionComponent<{
       : {
           key: "project",
           label: "Project",
-          value: "—",
+          value: undefined,
           description: NO_PROJECT_DESCRIPTION,
         },
   );

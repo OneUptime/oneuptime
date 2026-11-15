@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55497,
-    "untranslated": 8391
+    "keys": 55711,
+    "untranslated": 8190
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -31,6 +31,7 @@
     "App",
     "Appliance",
     "Appliance {{appliance}}",
+    "Appliances",
     "Apps",
     "Array",
     "Atmosphere",
@@ -110,6 +111,8 @@
     "Feed",
     "Feedback",
     "Flags",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Fluent Bit",
@@ -158,6 +161,7 @@
     "Joules",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kibibytes",
     "Kilobits",
@@ -290,6 +294,7 @@
     "Stacks",
     "Status",
     "StatusPage",
+    "Stripe Payments API",
     "Switch",
     "TLS",
     "TTL",

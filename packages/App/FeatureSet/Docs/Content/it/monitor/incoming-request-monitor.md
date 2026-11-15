@@ -393,7 +393,7 @@ Amazon SNS e Azure Event Grid non inviano nulla a un nuovo endpoint finché qual
 | Amazon SNS | `UnsubscribeConfirmation`, quando la sottoscrizione viene eliminata | **Ripristina sottoscrizione** | Due giorni |
 | Azure Event Grid | `SubscriptionValidationEvent`, per una nuova sottoscrizione di eventi tramite webhook | **Convalida sottoscrizione** | 10 minuti |
 
-Il pulsante resta finché non arriva la prossima richiesta del monitor, anche dopo che avete aperto il link. Quando il tempo del link è scaduto, la scheda spiega invece come ottenerne uno nuovo. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della richiesta.
+Il pulsante resta finché non arriva la prossima richiesta del monitor, anche dopo che avete aperto il link. Quando il tempo del link è scaduto, la scheda spiega invece come ottenerne uno nuovo. Se nel frattempo sono arrivate richieste più recenti, aprite **Log di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della richiesta.
 
 Il link, e il token che contiene, vengono conservati senza mascheramento ovunque sia conservata la richiesta: i suoi dettagli, i suoi log e gli incidenti e gli avvisi che apre. Il link non può fare altro che avviare le consegne a questo monitor. Conta solo un link all'indirizzo del servizio stesso: qualsiasi altro viene mascherato come di consueto e non riceve alcun pulsante.
 
@@ -452,7 +452,7 @@ Nomi e valori delle intestazioni vengono confrontati per intero. Indicate il val
 :::
 
 :::details Amazon SNS dice che la sottoscrizione è in attesa di conferma
-Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** della **Panoramica** del monitor. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della conferma. Con **Conserva il contenuto della richiesta** disattivato, il monitor non conserva alcun corpo, quindi nemmeno il link: attivatelo nelle **Impostazioni** del monitor, e l'ultima richiesta viene mostrata di nuovo con il suo link.
+Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** della **Panoramica** del monitor. Se nel frattempo sono arrivate richieste più recenti, aprite **Log di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della conferma. Con **Conserva il contenuto della richiesta** disattivato, il monitor non conserva alcun corpo, quindi nemmeno il link: attivatelo nelle **Impostazioni** del monitor, e l'ultima richiesta viene mostrata di nuovo con il suo link.
 :::
 
 :::details Il mittente riceve un 500

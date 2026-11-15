@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import useResizableColumns, {
   ResizableColumns,
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
@@ -45,7 +46,7 @@ import {
 
 function formatBytesPerSecond(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return ValueFormatter.formatValue(value, "By/s");

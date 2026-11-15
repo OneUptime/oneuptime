@@ -45,6 +45,7 @@ import {
   parseWaitMinutes,
 } from "./OnCallSetup";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import GuidedSetupRunStore, {
   GuidedSetupRun,
   getFirstOpenStepKey,
@@ -1396,7 +1397,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           describeFirstLevel(translator, {
             level: firstLevel,
             responders: responders,
-          }) || "-",
+          }) || EMPTY_VALUE_MARK,
       })
     : "";
 
@@ -1901,7 +1902,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             other: "After {{count}} minutes, {{people}} is paged.",
           },
           firstLevel.escalateAfterInMinutes,
-          { people: secondLevel.names.join(", ") || "-" },
+          { people: secondLevel.names.join(", ") || EMPTY_VALUE_MARK },
         )
       : policy.repeatTimes > 0
         ? translator.translatePlural(

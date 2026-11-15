@@ -280,7 +280,7 @@ Vedi la [guida vLLM del chart Helm](https://github.com/OneUptime/oneuptime/blob/
 - **Dai ai provider nomi chiari**, come "Production OpenAI" o "Development Ollama", così un collega sa qual è quale.
 - **Tieni le chiavi nel campo Chiave API.** Le chiavi API sono cifrate a riposo, e solo i Proprietari del progetto e gli Amministratori del progetto le leggono.
 - **Prova dopo ogni modifica**, con **Test** sul provider.
-- **Tieni d'occhio quanto costa l'IA.** Ogni chiamata è elencata con i suoi token e il suo costo in **Impostazioni del progetto → IA → Registri IA**.
+- **Tieni d'occhio quanto costa l'IA.** Ogni chiamata è elencata con i suoi token e il suo costo in **Impostazioni del progetto → IA → Log IA**.
 
 ## Risoluzione dei problemi
 

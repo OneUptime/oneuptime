@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55497,
-    "untranslated": 8381
+    "keys": 55711,
+    "untranslated": 8180
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -50,6 +50,8 @@
     "EKS Fargate",
     "Edge",
     "Enterprise Edition",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Fluent Bit",
@@ -127,6 +129,7 @@
     "Serverless",
     "Slug",
     "StatusPage",
+    "Stripe Payments API",
     "TLS",
     "TTL",
     "TX",

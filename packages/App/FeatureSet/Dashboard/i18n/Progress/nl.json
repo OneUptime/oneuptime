@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55497,
-    "untranslated": 8429
+    "keys": 55711,
+    "untranslated": 8229
   },
   "sameAsEnglish": [
     " is",
@@ -47,6 +47,7 @@
     "App",
     "Appliance",
     "Appliance {{appliance}}",
+    "Appliances",
     "Apps",
     "Array",
     "Assets",
@@ -171,6 +172,8 @@
     "Filters",
     "Finland (+358)",
     "Flame graph",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Floating IP",
@@ -257,6 +260,7 @@
     "Journeys",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kibibytes",
     "Kilobits",
@@ -458,6 +462,7 @@
     "StatusPage",
     "Stratum",
     "Stream",
+    "Stripe Payments API",
     "Subnet",
     "Subnets",
     "Switch",

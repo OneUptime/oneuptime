@@ -14,7 +14,8 @@ export interface ComponentProps {
    * product's words, looked up.
    */
   isTitleUserContent?: boolean | undefined;
-  value: string | ReactElement;
+  // None, or a dash a page wrote, and it draws the figure's quiet dash.
+  value?: string | ReactElement | undefined;
   className?: string;
   textClassName?: string;
   onClick?: (() => void) | undefined;
@@ -67,13 +68,14 @@ const InfoCard: FunctionComponent<ComponentProps> = (
    * is the figure's quiet dash, read out as "Not set" (EmptyFigure, #8264).
    */
   const isEmpty: boolean = isEmptyFigure(props.value);
-  const value: ReactElement = isEmpty ? (
-    <EmptyFigure />
-  ) : typeof props.value === "string" ? (
-    <BreakableName text={props.value} />
-  ) : (
-    props.value
-  );
+  const value: ReactElement =
+    isEmpty || props.value === undefined ? (
+      <EmptyFigure />
+    ) : typeof props.value === "string" ? (
+      <BreakableName text={props.value} />
+    ) : (
+      props.value
+    );
 
   /*
    * A selected card swaps its border rather than adding one: Tailwind emits

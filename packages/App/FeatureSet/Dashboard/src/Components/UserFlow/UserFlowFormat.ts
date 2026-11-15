@@ -1,4 +1,5 @@
 import { UserFlowScope } from "./UserFlowScope";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
@@ -146,7 +147,7 @@ export function formatUserFlowDuration(
   translator: Translator = ENGLISH,
 ): string {
   if (!Number.isFinite(ms) || ms <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const seconds: number = Math.round(ms / 1000);

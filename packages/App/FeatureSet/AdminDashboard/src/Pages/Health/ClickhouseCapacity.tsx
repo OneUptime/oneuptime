@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -26,7 +27,9 @@ import React, {
   useState,
 } from "react";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 const asArray: (value: unknown) => JSONArray = (value: unknown): JSONArray => {
   return (value || []) as JSONArray;
@@ -51,7 +54,9 @@ const toNumberOrNull: (value: unknown) => number | null = (
 
 const formatNumber: (value: unknown) => string = (value: unknown): string => {
   const parsed: number | null = toNumberOrNull(value);
-  return parsed === null ? "—" : parsed.toLocaleString(getReaderNumberLocale());
+  return parsed === null
+    ? EMPTY_VALUE_MARK
+    : parsed.toLocaleString(getReaderNumberLocale());
 };
 
 const bytesToReadable: (value: unknown) => string = (
@@ -60,7 +65,7 @@ const bytesToReadable: (value: unknown) => string = (
   const bytes: number | null = toNumberOrNull(value);
 
   if (bytes === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes === 0) {
     return "0 B";
@@ -400,7 +405,7 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
                     return (
                       <tr key={`clickhouse-local-table-${index}`}>
                         <td className="py-2 pr-4 text-sm text-gray-700 tabular-nums">
-                          {formatNumber(table["shardNum"])}
+                          {getValueOrQuietDash(formatNumber(table["shardNum"]))}
                         </td>
                         <td className="py-2 px-4 text-sm text-gray-600 font-mono whitespace-nowrap">
                           {String(table["host"] || "") || <TableEmptyValue />}
@@ -411,13 +416,17 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
                           )}
                         </td>
                         <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                          {bytesToReadable(table["sizeInBytes"])}
+                          {getValueOrQuietDash(
+                            bytesToReadable(table["sizeInBytes"]),
+                          )}
                         </td>
                         <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
-                          {formatNumber(table["rowCount"])}
+                          {getValueOrQuietDash(formatNumber(table["rowCount"]))}
                         </td>
                         <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
-                          {formatNumber(table["partCount"])}
+                          {getValueOrQuietDash(
+                            formatNumber(table["partCount"]),
+                          )}
                         </td>
                       </tr>
                     );

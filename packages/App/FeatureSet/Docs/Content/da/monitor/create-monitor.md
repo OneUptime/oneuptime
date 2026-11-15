@@ -12,7 +12,7 @@ Første trin spørger, hvad der skal overvåges, og hvad monitoren skal hedde.
 :::steps
 ### Åbn Opret monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Formularen åbner på sit første trin, **Overvågningsinfo**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Formularen åbner på sit første trin, **Monitorinfo**.
 
 ### Vælg monitortypen
 
@@ -40,7 +40,7 @@ Andet trin spørger, hvad der skal tjekkes, og afgør, hvad der tæller som et p
 
 Dette trin åbner på det, der skal tjekkes. For et websted er det dets URL med et eksempel i feltet; andre typer beder om en vært, en forespørgsel, en klynge eller et logfilter. Indstillinger, som de fleste monitorer aldrig ændrer, som timeouts og genforsøg, er foldet sammen under **Flere felter**.
 
-For en monitor, som sonder tjekker, kører **Test monitor** tjekket én gang, før du gemmer: vælg en sonde under **Vælg sonde**, og klik på **Kør test**. Svaret åbner i **Overvågningstestresultat**.
+For en monitor, som sonder tjekker, kører **Test monitor** tjekket én gang, før du gemmer: vælg en sonde under **Vælg sonde**, og klik på **Kør test**. Svaret åbner i **Monitortestresultat**.
 
 ### Gennemgå kriterierne
 
@@ -57,7 +57,7 @@ Klik på **Næste**. Intet på dette trin markeres som manglende, før du klikke
 
 ### Sådan evalueres kriterier
 
-Resultatet af hvert tjek går gennem kriterierne fra top til bund, og det første, der matcher, afgør, hvad der sker. Det kriterium kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller en hvilken som helst kombination af de tre. Når intet matcher, viser monitoren sin **Standardstatus for overvågning**, som sættes under **Flere felter** under kriterierne (**I drift**, medmindre du vælger en anden).
+Resultatet af hvert tjek går gennem kriterierne fra top til bund, og det første, der matcher, afgør, hvad der sker. Det kriterium kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller en hvilken som helst kombination af de tre. Når intet matcher, viser monitoren sin **Standardstatus for monitor**, som sættes under **Flere felter** under kriterierne (**I drift**, medmindre du vælger en anden).
 
 ```mermaid title="Fra et tjek til en status, en hændelse eller en advarsel"
 flowchart TB
@@ -76,7 +76,7 @@ Hændelser og advarsler, der er sat til at blive løst automatisk, som standardk
 
 ## Sonder og interval
 
-Monitorer, som sonder tjekker, slutter med dette trin: Websted, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domæne, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code og External Status Page. **Sonder** er de maskiner, der kører tjekkene, og dit projekts standardsonder er valgt på forhånd. **Overvågningsinterval** starter på **Hvert 5. minut**.
+Monitorer, som sonder tjekker, slutter med dette trin: Websted, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domæne, SQL-forespørgsel, Databasesundhed, Syntetisk monitor, Brugerdefineret JavaScript-kode og Ekstern statusside. **Sonder** er de maskiner, der kører tjekkene, og dit projekts standardsonder er valgt på forhånd. **Overvågningsinterval** starter på **Hvert 5. minut**.
 
 :::steps
 ### Vælg sonderne
@@ -85,7 +85,7 @@ Behold de valgte **Sonder**, eller vælg andre. En monitor uden sonder bliver al
 
 ### Vælg, hvor ofte der tjekkes
 
-Vælg et **Overvågningsinterval** fra **Hvert minut** til **Hver uge**. Monitorer af typen Synthetic Monitor, Custom JavaScript Code og SSL-certifikat får tilbudt intervaller på 5 minutter eller mere.
+Vælg et **Overvågningsinterval** fra **Hvert minut** til **Hver uge**. Monitorer af typen Syntetisk monitor, Brugerdefineret JavaScript-kode og SSL-certifikat får tilbudt intervaller på 5 minutter eller mere.
 
 ### Opret monitoren
 

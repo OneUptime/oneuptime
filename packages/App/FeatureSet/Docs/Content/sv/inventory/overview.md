@@ -24,9 +24,9 @@ flowchart TB
 
 | Källa | I API:t | Var det kommer ifrån | Hur länge det stannar |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | OpenTelemetry-resursattribut, lästa när telemetri kommer in: en tjänst, en värd, ett Kubernetes-objekt eller en virtuell maskin som skickar telemetri. | Registreras på nytt med varje batch. Tas bort när det har varit tyst längre än fönstret för sin typ (se nedan). |
-| **Mirrored** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar och Podman-värdar. Kopieras var 15:e minut. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
-| **Added by you** | `manual` | Tillagt av dig, för något OneUptime inte kan se: ett API från tredje part, en databas som en leverantör sköter, en appliance i ett rack. | Tills du raderar det. Inget får det att löpa ut. |
+| **Upptäckt** | `discovered` | OpenTelemetry-resursattribut, lästa när telemetri kommer in: en tjänst, en värd, ett Kubernetes-objekt eller en virtuell maskin som skickar telemetri. | Registreras på nytt med varje batch. Tas bort när det har varit tyst längre än fönstret för sin typ (se nedan). |
+| **Speglat** | `inventory` | En post som en OneUptime-pollare underhåller: nätverksenheter, molnresurser, IoT-enheter, serverlösa funktioner, RUM-applikationer, Docker-värdar och Podman-värdar. Kopieras var 15:e minut. | Så länge posten finns. Radera posten, så försvinner objektet med den. |
+| **Tillagt av dig** | `manual` | Tillagt av dig, för något OneUptime inte kan se: ett API från tredje part, en databas som en leverantör sköter, en appliance i ett rack. | Tills du raderar det. Inget får det att löpa ut. |
 
 Ett upptäckt eller speglat objekt kan inte byta namn eller få en annan typ: källan skulle skriva över ändringen vid nästa genomgång. Objektets sida **Inställningar** berättar i stället var en bestående ändring ska göras. Det du alltid kan lägga till på vilket objekt som helst, oavsett källa, är värden i anpassade fält: se [Anpassade inventariefält](/docs/inventory/custom-fields).
 
@@ -37,8 +37,8 @@ Ett upptäckt objekt har ett hjärtslag. Varje gång telemetri kommer in för de
 | Status | Vad det betyder |
 | --- | --- |
 | **Live** | Sett under de senaste 30 minuterna. |
-| **Recent** | Sett under det senaste dygnet. |
-| **Inaktuell** | Inte sett på mer än ett dygn. Sidan **Gone Quiet** listar dem. |
+| **Nyligen** | Sett under det senaste dygnet. |
+| **Inaktuell** | Inte sett på mer än ett dygn. Sidan **Tystnat** listar dem. |
 
 Var tredje timme tar OneUptime bort de upptäckta objekt som har varit tysta längre än fönstret för sin typ, även de arkiverade, och deras värden i anpassade fält försvinner med dem. Speglade objekt och de du har lagt till tas aldrig bort på det här sättet.
 
@@ -52,20 +52,20 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 
 ## Hitta rätt
 
-Öppna **Produkter → Resurser → Inventarie**. Sidomenyn har de här sidorna. **By Source**, **Inställningar**, **Hjälp** och **Avancerad** är hopfällda från början: klicka på en sektions rubrik för att öppna den.
+Öppna **Produkter → Resurser → Inventarie**. Sidomenyn har de här sidorna. **Efter källa**, **Inställningar**, **Hjälp** och **Avancerad** är hopfällda från början: klicka på en sektions rubrik för att öppna den.
 
 | Sida | Vad du hittar där |
 | --- | --- |
 | **Översikt** | Hur många objekt du har, vad de är, hur många som har tystnat och vad som lades till senast. |
 | **Alla objekt** | Alla objekt. Sök på namn, beskrivning eller identitetsnyckel, avgränsa listan efter typ, källa, status eller anpassat fält, och lägg till ett objekt manuellt. |
 | **Topologikarta** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
-| **Gone Quiet** | De upptäckta objekt som inte har skickat telemetri på mer än ett dygn. |
-| **By Source** | Objekten från en källa: **Discovered**, **Mirrored** eller **Added by You**. |
+| **Tystnat** | De upptäckta objekt som inte har skickat telemetri på mer än ett dygn. |
+| **Efter källa** | Objekten från en källa: **Upptäckt**, **Speglat** eller **Tillagt av dig**. |
 | **Inställningar → Anpassade fält** | De fält ditt projekt för på varje objekt. |
 | **Hjälp → Dokumentation** | En kort guide till inventariet, med de typer av objekt det känner igen. |
 | **Avancerad → Arkiverad** | De objekt du har arkiverat. Återställ dem härifrån. |
 
-Öppna ett objekt, så har dess egen sidomeny objektets **Översikt** (typ, källa och status, och varje attribut som har observerats på det), dess **Anslutningar** och dess **Anpassade fält**; dess **Loggar**, **Spår**, **Mätvärden**, **Profiler** och **Undantag**; och dess **Incidenter**, **Larm** och **Schemalagt underhåll**. Under **Avancerad** finns dess **Inställningar**, dess **Granskningsloggar** och **Delete Item**. Telemetrisidorna visar det som objektet självt har skickat. Incidenterna, larmen och underhållshändelserna är de som hör till den tjänst, värd eller det Kubernetes-kluster som objektet står för; på alla andra objekt talar de sidorna om vilken resurs du ska titta på i stället.
+Öppna ett objekt, så har dess egen sidomeny objektets **Översikt** (typ, källa och status, och varje attribut som har observerats på det), dess **Anslutningar** och dess **Anpassade fält**; dess **Loggar**, **Spår**, **Mätvärden**, **Profiler** och **Undantag**; och dess **Incidenter**, **Larm** och **Schemalagt underhåll**. Under **Avancerad** finns dess **Inställningar**, dess **Granskningsloggar** och **Ta bort objekt**. Telemetrisidorna visar det som objektet självt har skickat. Incidenterna, larmen och underhållshändelserna är de som hör till den tjänst, värd eller det Kubernetes-kluster som objektet står för; på alla andra objekt talar de sidorna om vilken resurs du ska titta på i stället.
 
 ### Tillgångsdetaljer
 
@@ -100,7 +100,7 @@ Klicka på **Lägg till Objekt**. Välj dess **Typ**, ge det ett **Namn** och ev
 
 ### Fyll i dess anpassade fält
 
-Öppna det nya objektet. Dess källa står som **Added by you**, och dess sida **Anpassade fält** tar emot de värden ditt projekt följer.
+Öppna det nya objektet. Dess källa står som **Tillagt av dig**, och dess sida **Anpassade fält** tar emot de värden ditt projekt följer.
 :::
 
 Tre typer kan du lägga till manuellt:
@@ -117,9 +117,9 @@ Arkivering tar ett objekt ur listan medan det behåller sin identitet, sin histo
 
 | Källa | Arkivera | Radera |
 | --- | --- | --- |
-| **Discovered** | Förblir arkiverat. | Kommer tillbaka med nästa batch av dess telemetri. |
-| **Mirrored** | Förblir arkiverat. | Kommer tillbaka med nästa kopia. Radera den ursprungliga posten i stället. |
-| **Added by you** | Förblir arkiverat. | Borta för gott. |
+| **Upptäckt** | Förblir arkiverat. | Kommer tillbaka med nästa batch av dess telemetri. |
+| **Speglat** | Förblir arkiverat. | Kommer tillbaka med nästa kopia. Radera den ursprungliga posten i stället. |
+| **Tillagt av dig** | Förblir arkiverat. | Borta för gott. |
 
 För att arkivera objekt markerar du dem i **Alla objekt** och arkiverar dem på en gång, eller öppnar ett objekt och använder kortet **Arkivera** på dess sida **Inställningar**. Arkiverade objekt finns under **Inventarie → Avancerad → Arkiverad**, där du kan markera dem och återställa dem.
 

@@ -316,6 +316,12 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     reason: "The collector's scraper, by the name its configuration gives it.",
   },
   {
+    english: 'Known units also scale it — "Bytes" reads as',
+    words: ["Bytes"],
+    reason:
+      "A unit as it is typed into the Unit field: the widget scales the English names only, as the field's placeholder (e.g. %, ms, Bytes) shows.",
+  },
+  {
     english: 'traceContextInjection: "all"',
     words: ["all"],
     reason: "A value of another vendor's setting, as its code writes it.",

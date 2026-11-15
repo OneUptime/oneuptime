@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55497,
-    "untranslated": 8212
+    "keys": 55711,
+    "untranslated": 8011
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -53,6 +53,9 @@
     "Edge",
     "Elasticsearch URL",
     "Enterprise Edition",
+    "FlashArray",
+    "FlashArray GUI",
+    "FlashBlade",
     "Fluent Bit",
     "Full view",
     "GKE Autopilot",
@@ -121,6 +124,7 @@
     "Project view",
     "PromQL",
     "Proxmox ID",
+    "Purity CLI",
     "RTT",
     "RX",
     "RabbitMQ",
@@ -138,6 +142,7 @@
     "Slug",
     "Splunk On-Call API ID",
     "StatusPage",
+    "Stripe Payments API",
     "Swarm ID",
     "TLS",
     "TTL",
@@ -159,6 +164,7 @@
     "VM 102 · pve2",
     "VM CPU",
     "VM CPU Ready",
+    "VM vSAN IOPS",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",

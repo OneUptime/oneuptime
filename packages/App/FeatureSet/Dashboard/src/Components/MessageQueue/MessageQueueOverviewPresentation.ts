@@ -12,6 +12,7 @@ import {
   toMessageQueueDate,
 } from "../../Pages/MessageQueue/Utils/MessageQueuePresentation";
 import { MESSAGE_QUEUE_DOCS_PATH } from "../../Pages/MessageQueue/Utils/DocumentationMarkdown";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -565,7 +566,7 @@ export function formatMessageQueueErrorRate(
   translator?: Translator | undefined,
 ): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(value, {
     decimals: 1,
@@ -586,7 +587,7 @@ export function formatMessageQueueDurationMsInLanguage(
   translator: Translator,
 ): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 1) {
     return formatDurationInUnit(translator, value * 1000, "microsecond", {

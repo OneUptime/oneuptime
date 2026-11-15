@@ -211,5 +211,5 @@ Codex는 기본적으로 메트릭을 OpenAI에도 보냅니다. [OpenAI Codex](
 - [Claude Code](/docs/telemetry/claude-code): 머신 한 대 또는 전체 머신에서 Claude Code의 내보내기를 켭니다.
 - [Cursor](/docs/telemetry/cursor): Cursor 대시보드에서 Cursor의 팀 텔레메트리를 보냅니다.
 - [OpenAI Codex](/docs/telemetry/openai-codex): Codex의 세 익스포터를 구성하고 스팬에 신원을 붙입니다.
-- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 모든 AI 호출의 대화, 알림, 비용, 예산.
+- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 모든 AI 호출의 대화, 경고, 비용, 예산.
 :::

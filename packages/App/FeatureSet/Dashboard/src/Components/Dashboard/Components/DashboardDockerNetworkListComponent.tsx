@@ -151,8 +151,8 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
     (n: DockerResource): HoneycombTile => {
       const id: string = (n._id as string) || "";
       const name: string = (n.name as string) || getUnnamedText();
-      const driverScope: string = (n.state as string) || "—";
-      const hostName: string = (n.dockerHost?.name as string) || "—";
+      const driverScope: string | undefined = n.state as string;
+      const hostName: string | undefined = n.dockerHost?.name as string;
 
       return {
         id: id || name,
@@ -172,8 +172,8 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = networks.map((n: DockerResource) => {
     const id: string = (n._id as string) || "";
     const name: string = (n.name as string) || getUnnamedText();
-    const driverScope: string = (n.state as string) || "—";
-    const hostName: string = (n.dockerHost?.name as string) || "—";
+    const driverScope: string | undefined = n.state as string;
+    const hostName: string | undefined = n.dockerHost?.name as string;
 
     return (
       <tr

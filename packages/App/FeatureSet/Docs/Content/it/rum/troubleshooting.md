@@ -113,17 +113,17 @@ L'applicazione esiste, ma le sue pagine non mostrano nulla.
 
 ## Le eccezioni o i log sono vuoti
 
-I caricamenti di pagina e le richieste arrivano, ma **Eccezioni** o **Registri** restano vuoti. L'SDK OpenTelemetry per browser invia da solo le tracce dei caricamenti di pagina e delle richieste, ma nessuna eccezione e nessun log, quindi un'applicazione può sembrare collegata mentre questi due restano vuoti per sempre.
+I caricamenti di pagina e le richieste arrivano, ma **Eccezioni** o **Log** restano vuoti. L'SDK OpenTelemetry per browser invia da solo le tracce dei caricamenti di pagina e delle richieste, ma nessuna eccezione e nessun log, quindi un'applicazione può sembrare collegata mentre questi due restano vuoti per sempre.
 
 Il grafico vuoto nella **Panoramica** dell'applicazione dice di quale caso si tratta, e la **Verifica della configurazione** nella sua pagina **Documentazione** elenca ogni tipo di telemetria con il momento in cui è arrivato il più recente:
 
 | Il grafico dice | Che cosa significa |
 | --- | --- |
-| **Le eccezioni non sono configurate** o **I registri non sono configurati** | Da questa app non ne è mai arrivato nessuno. **Configura le eccezioni** o **Configura i registri** mostra il codice che li invia, con il tuo URL e la tua chiave già inseriti. |
-| **Nessuna eccezione in questo intervallo di tempo** o **Nessun registro in questo intervallo di tempo** | Ne sono arrivati prima, e il grafico dice quando è arrivato l'ultimo. Scegli l'intervallo più lungo che propone. |
+| **Le eccezioni non sono configurate** o **I log non sono configurati** | Da questa app non ne è mai arrivato nessuno. **Configura le eccezioni** o **Configura i log** mostra il codice che li invia, con il tuo URL e la tua chiave già inseriti. |
+| **Nessuna eccezione in questo intervallo di tempo** o **Nessun log in questo intervallo di tempo** | Ne sono arrivati prima, e il grafico dice quando è arrivato l'ultimo. Scegli l'intervallo più lungo che propone. |
 | **Da questa app non è ancora arrivato nulla** | Non arriva telemetria di alcun tipo: inizia da [Verificare la chiave](#verificare-la-chiave). |
 | **L'SDK di OpenTelemetry non sta inviando dati** | Da questa app invia dati solo la riproduzione delle sessioni: configura l'SDK come in [Configurazione browser](/docs/rum/browser-setup). |
-| **Le eccezioni vengono rifiutate** o **I registri vengono rifiutati** | OneUptime li ha rifiutati dopo l'arrivo dell'ultimo, e il grafico dice perché e quando: la chiave è disattivata o scaduta, non consente l'origine del tuo sito, un limite o un budget è esaurito, oppure il progetto non ha un metodo di pagamento. Il suo pulsante rimedia: **Scegli un'altra chiave**, **Apri la chiave**, **Vedi i budget** o **Aggiungi un metodo di pagamento**. |
+| **Le eccezioni vengono rifiutate** o **I log vengono rifiutati** | OneUptime li ha rifiutati dopo l'arrivo dell'ultimo, e il grafico dice perché e quando: la chiave è disattivata o scaduta, non consente l'origine del tuo sito, un limite o un budget è esaurito, oppure il progetto non ha un metodo di pagamento. Il suo pulsante rimedia: **Scegli un'altra chiave**, **Apri la chiave**, **Vedi i budget** o **Aggiungi un metodo di pagamento**. |
 
 Le eccezioni hanno bisogno di un gestore degli errori, perché l'SDK non cattura gli errori non gestiti: [Segnalare gli errori non gestiti](/docs/rum/browser-setup#segnalare-gli-errori-non-gestiti) contiene il codice. Un errore gestito da un error boundary o da un `try`/`catch` non raggiunge mai la finestra, quindi registralo dove lo gestisci, con `span.recordException`.
 

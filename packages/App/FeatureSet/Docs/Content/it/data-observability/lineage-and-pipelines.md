@@ -70,7 +70,7 @@ Molte pipeline sono un CronJob Kubernetes, o una funzione su un timer, senza uno
 - Un'esecuzione non è riuscita quando lo è stato lo span in cima al suo trace. Una chiamata fallita e ritentata al suo interno non la fa fallire.
 - Le tabelle che ha scritto e letto provengono dai suoi span di database.
 
-Ogni esecuzione rimanda al suo trace, con i suoi registri. Valgono gli stessi tre monitor, quindi un CronJob che smette di girare viene visto come in ritardo.
+Ogni esecuzione rimanda al suo trace, con i suoi log. Valgono gli stessi tre monitor, quindi un CronJob che smette di girare viene visto come in ritardo.
 
 ## Dashboard negli strumenti BI
 
