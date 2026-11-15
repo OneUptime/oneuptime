@@ -15,6 +15,18 @@ import {
 } from "Common/Types/OnCallDutyPolicy/OnCallPageRecordGone";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
+import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
+import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import IncidentService from "Common/Server/Services/IncidentService";
+import AlertService from "Common/Server/Services/AlertService";
+import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
+import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
+import IncidentStateService from "Common/Server/Services/IncidentStateService";
+import AlertStateService from "Common/Server/Services/AlertStateService";
+import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
+import logger from "Common/Server/Utils/Logger";
+import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
+import { executePendingNotificationLog } from "../../../../FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
 
 /*
  * A PERSON'S LOG WHOSE INCIDENT, ALERT OR EPISODE WAS DELETED ENDS
@@ -35,18 +47,15 @@ import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserN
  * Executing, and a log it ends is Completed from then on.
  */
 
-type CronHandler = (deadline?: unknown) => Promise<void>;
-
-const mockCapturedJobs: Record<string, CronHandler> = {};
-
+/*
+ * RunCron schedules nothing here: the job the worker registers as it is
+ * imported is read off its calls below, and run by hand. (jest hoists every
+ * jest.mock above the imports.)
+ */
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
-    default: jest.fn(
-      (jobName: string, _options: unknown, runFunction: CronHandler): void => {
-        mockCapturedJobs[jobName] = runFunction;
-      },
-    ),
+    default: jest.fn(),
   };
 });
 
@@ -127,18 +136,6 @@ jest.mock("Common/Server/Services/AlertStateService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
-import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
-import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
-import IncidentService from "Common/Server/Services/IncidentService";
-import AlertService from "Common/Server/Services/AlertService";
-import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
-import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
-import IncidentStateService from "Common/Server/Services/IncidentStateService";
-import AlertStateService from "Common/Server/Services/AlertStateService";
-import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
-import logger from "Common/Server/Utils/Logger";
-import { executePendingNotificationLog } from "../../../../FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
-
 /*
  * The part of typeorm's FindOperator the record reads are answered from.
  * typeorm is Common's dependency, not App's, so its type cannot be imported
@@ -151,6 +148,13 @@ interface ReadFindOperator {
 type RecordKind = "incident" | "alert" | "incident episode" | "alert episode";
 
 const JOB_NAME: string = "UserOnCallLog:ExecutePendingExecutions";
+
+// The tick itself: what the worker registered with RunCron as it was imported.
+const runTick: () => Promise<void> = (
+  RunCron as unknown as jest.Mock
+).mock.calls.find((call: Array<unknown>): boolean => {
+  return call[0] === JOB_NAME;
+})![2] as () => Promise<void>;
 
 const logService: {
   findBy: jest.Mock;
@@ -351,7 +355,7 @@ function endings(): Array<{
 }
 
 async function tick(): Promise<void> {
-  await mockCapturedJobs[JOB_NAME]!();
+  await runTick();
 }
 
 type RecordRead = (args: {
@@ -373,7 +377,7 @@ function readOfKind(kind: RecordKind): RecordRead {
         const stateId: ObjectID = existing.get(id)!;
         const isIncidentList: boolean =
           kind === "incident" || kind === "incident episode";
-        const record: Record<string, unknown> =
+        const model: Incident | Alert | IncidentEpisode | AlertEpisode =
           kind === "incident"
             ? new Incident()
             : kind === "alert"
@@ -381,6 +385,10 @@ function readOfKind(kind: RecordKind): RecordRead {
               : kind === "incident episode"
                 ? new IncidentEpisode()
                 : new AlertEpisode();
+        const record: Record<string, unknown> = model as unknown as Record<
+          string,
+          unknown
+        >;
 
         record["id"] = new ObjectID(id);
         record["projectId"] = PROJECT_ID;
