@@ -92,6 +92,8 @@ Chaque journal est enregistré avec l'une de sept gravités. Pour les journaux O
 | **Fatal** | 21–24 |
 | **Non spécifié** | Tout le reste |
 
+Un journal sans numéro de gravité prend sa gravité dans son texte de gravité, en majuscules comme en minuscules : `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` et `FATAL`, leurs niveaux numérotés comme `WARN2`, et des graphies comme `warning`, `notice`, `critical` et `emerg`. Tout autre texte laisse la gravité non spécifiée.
+
 ## Comment il est évalué
 
 - **Chaque minute.** Un moniteur de journaux n'est pas vérifié par des sondes ; il n'a donc pas d'intervalle à régler ni de page **Sondes et intervalle**.

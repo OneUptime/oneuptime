@@ -92,6 +92,8 @@ Varje logg lagras med en av sju allvarlighetsgrader. För loggar från OpenTelem
 | **Fatal** | 21–24 |
 | **Ospecificerad** | Allt annat |
 
+En logg utan allvarlighetsnummer får sin allvarlighetsgrad från sin allvarlighetstext, med stora eller små bokstäver: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` och `FATAL`, deras numrerade steg som `WARN2`, och stavningar som `warning`, `notice`, `critical` och `emerg`. All annan text lämnar allvarlighetsgraden ospecificerad.
+
 ## Så utvärderas den
 
 - **Varje minut.** En loggmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
