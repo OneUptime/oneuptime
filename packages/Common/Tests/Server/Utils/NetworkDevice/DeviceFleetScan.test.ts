@@ -15,6 +15,7 @@ import {
 } from "../../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
 import { AggregateRow } from "../../../../Server/Types/Database/AggregateBy";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
  * THE FLEET, COUNTED ONCE (NetworkDeviceService.getFleetScan,
@@ -43,17 +44,8 @@ interface Device {
   isSnmpReachable: boolean | null;
 }
 
-// A seeded generator, so a failing fleet can be found again.
-function generator(seed: number): () => number {
-  let state: number = seed;
-  return (): number => {
-    state = (state * 1103515245 + 12345) % 2147483648;
-    return state / 2147483648;
-  };
-}
-
-function pick<T>(random: () => number, values: Array<T>): T {
-  return values[Math.floor(random() * values.length)]!;
+function pick<T>(random: SeededRandom, values: Array<T>): T {
+  return values[random(values.length)]!;
 }
 
 const STATUS_IDS: Array<string | null> = [
@@ -74,9 +66,10 @@ const VENDORS: Array<string> = [
   "Fortinet",
 ];
 
+// Drawn from the suites' one seeded generator, so a failing fleet can be found again.
 function randomFleet(seed: number): Array<Device> {
-  const random: () => number = generator(seed);
-  const size: number = Math.floor(random() * 300);
+  const random: SeededRandom = seededRandom(seed);
+  const size: number = random(300);
   const devices: Array<Device> = [];
 
   for (let index: number = 0; index < size; index++) {

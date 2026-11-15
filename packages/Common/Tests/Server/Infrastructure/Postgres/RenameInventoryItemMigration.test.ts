@@ -98,6 +98,12 @@ interface DeclaredIndex {
    * to rename a name that never existed.
    */
   name: string | undefined;
+  /*
+   * A partial index's condition (`@Index([...], { where })`). TypeORM hashes
+   * it into the derived name along with the table and the columns, so the
+   * names below are derived with it, as TypeORM derives them.
+   */
+  where: string | undefined;
 }
 
 type DeclaredIndexesFunction = (modelType: ModelClass) => Array<DeclaredIndex>;
@@ -120,7 +126,7 @@ const getDeclaredIndexes: DeclaredIndexesFunction = (
         ? (index.columns as Array<string>)
         : [String((index as { propertyName?: string }).propertyName)];
 
-      return { columns: columns, name: index.name };
+      return { columns: columns, name: index.name, where: index.where };
     });
 };
 
@@ -301,8 +307,16 @@ describe("index names match TypeORM's naming strategy", () => {
         continue;
       }
 
-      const oldName: string = namingStrategy.indexName(table.oldTable, columns);
-      const newName: string = namingStrategy.indexName(table.newTable, columns);
+      const oldName: string = namingStrategy.indexName(
+        table.oldTable,
+        columns,
+        index.where,
+      );
+      const newName: string = namingStrategy.indexName(
+        table.newTable,
+        columns,
+        index.where,
+      );
 
       test(`${table.newTable} (${columns.join(", ")}) is renamed or created later`, () => {
         const indexPairs: Map<string, string> = pairsWithPrefix("IDX_");
@@ -335,13 +349,19 @@ describe("index names match TypeORM's naming strategy", () => {
 
         if (
           INDEXES_ADDED_LATER.has(
-            namingStrategy.indexName(table.newTable, index.columns),
+            namingStrategy.indexName(
+              table.newTable,
+              index.columns,
+              index.where,
+            ),
           )
         ) {
           continue;
         }
 
-        expected.add(namingStrategy.indexName(table.oldTable, index.columns));
+        expected.add(
+          namingStrategy.indexName(table.oldTable, index.columns, index.where),
+        );
       }
     }
 
