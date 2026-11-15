@@ -54693,6 +54693,11 @@
   "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.": "선택 사항입니다. 스팬 속성과 이름에 대한 이 트레이스 검색과 일치하는 요청만 집계합니다(예: -@http.route:/health). 비워 두면 서비스의 모든 요청을 집계합니다.",
   "Request Filter": "요청 필터",
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "긴 기간의 요청 수가 이 값보다 적은 동안에는 이 규칙을 건너뜁니다. 그래서 실패가 한 건뿐인 조용한 한 시간에는 아무도 호출되지 않습니다. 비워 두면 최소값이 없습니다.",
+  "The connected engine does not report this group.": "연결된 엔진은 이 그룹을 보고하지 않습니다.",
+  "The group could not be collected.": "그룹을 수집할 수 없습니다.",
+  "The group's query timed out.": "그룹의 쿼리가 시간 초과되었습니다.",
+  "The monitoring login is missing a grant.": "모니터링 로그인에 권한이 빠져 있습니다.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "모니터링 역할은 다른 세션의 통계를 읽을 수 없습니다. PostgreSQL은 이를 오류로 보고하지 않고 이 연결 자체의 행만 조용히 반환하므로, 이 메트릭은 잘못된 값으로 기록하지 않고 건너뜁니다.",
   "The request filter can be at most {{max}} characters long.": "요청 필터는 최대 {{max}}자까지 입력할 수 있습니다.",
   "The request filter can have at most {{max}} terms.": "요청 필터의 조건은 최대 {{max}}개입니다.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "요청 필터에는 스팬 속성과 스팬 이름을 사용합니다(예: @http.route:/checkout* 또는 name:\"POST /checkout\"). \"{{text}}\"은(는) 둘 다 아닙니다."

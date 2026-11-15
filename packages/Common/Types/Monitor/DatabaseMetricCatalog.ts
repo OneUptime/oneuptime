@@ -703,6 +703,29 @@ export function getDatabaseMetricCategoryLabel(
   return categoryLabels[category] || category;
 }
 
+/*
+ * Each collection group's name, a key: the monitor form's Metric Groups
+ * switches and the summary's collection issues say a group the same way
+ * (#8609). Locks reads "Locks and Blocking", as its switch always has. The
+ * group's value stays what the probe, the server's Database Collection Error
+ * text and a criteria's Contains filter read.
+ */
+const groupLabels: Record<DatabaseMetricGroup, string> = {
+  [DatabaseMetricGroup.Connections]: translationKey("Connections"),
+  [DatabaseMetricGroup.Activity]: translationKey("Activity"),
+  [DatabaseMetricGroup.Throughput]: translationKey("Throughput"),
+  [DatabaseMetricGroup.Locks]: translationKey("Locks and Blocking"),
+  [DatabaseMetricGroup.Storage]: translationKey("Storage"),
+  [DatabaseMetricGroup.Replication]: translationKey("Replication"),
+  [DatabaseMetricGroup.Maintenance]: translationKey("Maintenance"),
+};
+
+export function getDatabaseMetricGroupLabel(
+  group: DatabaseMetricGroup,
+): string {
+  return groupLabels[group] || group;
+}
+
 export function getAllDatabaseMetrics(): Array<DatabaseMetricDefinition> {
   return [...databaseMetricCatalog];
 }
