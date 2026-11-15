@@ -1230,9 +1230,7 @@ const IncidentView: FunctionComponent<
           value={
             incidentStartedAt ? (
               <EventStartTileValue startedAt={incidentStartedAt} />
-            ) : (
-              "-"
-            )
+            ) : undefined
           }
           note={getImpactBeforeStartText(
             {

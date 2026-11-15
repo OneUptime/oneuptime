@@ -1802,7 +1802,9 @@ const ProxmoxClusterOverview: FunctionComponent<
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
-            nodeAvailabilityPct === null ? "—" : `${nodesOnline}/${nodesTotal}`
+            nodeAvailabilityPct === null
+              ? undefined
+              : `${nodesOnline}/${nodesTotal}`
           }
           sublabel={nodesSublabel}
           percent={nodeAvailabilityPct}
@@ -1867,7 +1869,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={
             inventory && guestsTotal > 0
               ? `${guestsRunning}/${guestsTotal}`
-              : "—"
+              : undefined
           }
           sublabel={
             netTotal === null
