@@ -32,7 +32,7 @@ flowchart TB
 
 ### Legg til en applikasjon selv
 
-Opprett en applikasjon selv når du vil ha etikettene, eierne eller avspillingsretningslinjen klar før den første besøkende kommer.
+Opprett en applikasjon selv når du vil ha etikettene, eierne eller avspillingspolicyen klar før den første besøkende kommer.
 
 :::steps
 #### Åpne listen over applikasjoner
@@ -125,7 +125,7 @@ På et lavere Cloud-abonnement fortsetter en overstyring som er igjen etter en p
 
 ### Oppbevaring av øktavspillinger
 
-Opptak har sin egen oppbevaring, som stilles inn på applikasjonens side **Avspillingspolicy** med **Rediger policy → Grenser**: 7 dager som standard, eller 1, 14, 30 eller 90 dager. Den er kort med vilje, fordi et opptak er langt mer følsomt, og langt større, enn et spenn. Kortet **Oppbevaring av øktavspilling** under **Flere innstillinger** på siden **Innstillinger** viser den (_Session replays are kept for 7 days._), og knappen **Rediger i Replay Policy** åpner retningslinjen.
+Opptak har sin egen oppbevaring, som stilles inn på applikasjonens side **Avspillingspolicy** med **Rediger policy → Grenser**: 7 dager som standard, eller 1, 14, 30 eller 90 dager. Den er kort med vilje, fordi et opptak er langt mer følsomt, og langt større, enn et spenn. Kortet **Oppbevaring av øktavspilling** under **Flere innstillinger** på siden **Innstillinger** viser den (_Session replays are kept for 7 days._), og knappen **Rediger i Replay Policy** åpner policyen.
 
 En lengre oppbevaring av telemetri beholder ikke opptak lenger. En økts tellinger, signaler og enhet utløper sammen med opptaket; bare øktens logger, spenn og unntak følger telemetriens oppbevaring. Se [Oppbevaring og sletting](/docs/telemetry/session-replay#oppbevaring-og-sletting).
 
@@ -183,7 +183,7 @@ Avgrens overvåkingen du lager, til applikasjonen, slik at en backend-tjeneste m
 ## Neste steg
 
 :::cards
-- [Øktavspilling](/docs/telemetry/session-replay): Ta opp det brukerne så, med egen retningslinje og oppbevaring.
+- [Øktavspilling](/docs/telemetry/session-replay): Ta opp det brukerne så, med egen policy og oppbevaring.
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): De to regelskjemaene, trinn for trinn.
 - [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now): Bruk en ny regel på applikasjonene du allerede har.
 - [RUM-feilsøking](/docs/rum/troubleshooting): Når en applikasjon mangler eller er tom, eller ikke har nylig trafikk mens folk bruker den.

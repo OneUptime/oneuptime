@@ -633,7 +633,9 @@
     "warning": "Advarsel"
   },
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
   "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel.",
   "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime afviste det, så hæv proxyens grænse for en forespørgsels størrelse til 50 MB, lige så meget som OneUptime selv tager imod (i nginx, client_max_body_size 50M)."
 }

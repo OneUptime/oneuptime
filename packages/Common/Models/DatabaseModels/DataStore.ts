@@ -221,6 +221,14 @@ const bigNumberTransformer: {
  */
 @Index(["scanProbeId", "nextTableHealthCollectionAt"])
 @Index(["scanProbeId", "nextContentScanAt"])
+/*
+ * OneUptime's workers ask for the due stores no probe scans, of the kinds
+ * they sample, every five minutes (DataSecurityWorkerClaim): a range of
+ * each of those kinds, due ones only, so the stores of every other kind -
+ * most of the table - are never read (OneUptime issue #8450). Partial on
+ * the one condition no switch moves a store in or out of.
+ */
+@Index(["kind", "nextContentScanAt"], { where: `"scanProbeId" IS NULL` })
 export default class DataStore extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({

@@ -3,6 +3,10 @@ import { configure } from "@testing-library/react";
 import { jest } from "@jest/globals";
 import { TextEncoder, TextDecoder } from "util";
 import { webcrypto, randomUUID } from "crypto";
+import {
+  CENSUS_ENVIRONMENT_VARIABLE,
+  refuseRealRequests,
+} from "./Helpers/RealNetworkRequests";
 
 // Polyfill TextEncoder/TextDecoder for jsdom
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,3 +54,13 @@ Object.defineProperty(window, "scrollTo", {
  * promptly instead of sitting out the 60 s testTimeout.
  */
 configure({ asyncUtilTimeout: 5000 });
+
+/*
+ * No suite reaches the network through jsdom's XMLHttpRequest: a request
+ * that would leave is refused at once, as a refused connection, and fails
+ * the test that sent it, naming it (Tests/Helpers/RealNetworkRequests.ts).
+ * ONEUPTIME_NETWORK_CENSUS=1 lists every request instead of failing on it.
+ */
+refuseRealRequests({
+  census: process.env[CENSUS_ENVIRONMENT_VARIABLE] === "1",
+});

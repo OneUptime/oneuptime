@@ -1011,6 +1011,7 @@ import { AddServiceLevelObjectiveRequestSli1809178700000 } from "./1809178700000
 import { AddIncomingRequestSecret1809178800000 } from "./1809178800000-AddIncomingRequestSecret";
 import { AddOwnerNotificationDelivery1809179400000 } from "./1809179400000-AddOwnerNotificationDelivery";
 import { AddIncomingRequestSecretActivity1809179500000 } from "./1809179500000-AddIncomingRequestSecretActivity";
+import { AddDataStoreWorkerContentScanIndex1809179800000 } from "./1809179800000-AddDataStoreWorkerContentScanIndex";
 
 export default [
   InitialMigration,
@@ -2026,4 +2027,5 @@ export default [
   AddIncomingRequestSecret1809178800000,
   AddOwnerNotificationDelivery1809179400000,
   AddIncomingRequestSecretActivity1809179500000,
+  AddDataStoreWorkerContentScanIndex1809179800000,
 ];

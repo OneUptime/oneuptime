@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+بایگانی کردن ابر هیچ‌کدام از این‌ها را خاموش نمی‌کند. ابری که بایگانی شده است فقط از فهرست‌ها پنهان می‌شود: همچنان جمع‌آوری می‌شود، و بررسی‌های API و بررسی چرخه عمر آن همچنان اجرا می‌شوند. برای متوقف کردن یک بررسی، آن را خاموش کنید.
+
 ## عامل هوش مصنوعی
 
 `docker-compose.yml` عامل همچنین **عامل هوش مصنوعی OpenStack**، یعنی `oneuptime-openstack-ai-agent` (ایمیج `oneuptime/resource-ai-agent:release`)، را اجرا می‌کند. وقتی هوش مصنوعی OneUptime incident یا هشداری روی این ابر را بررسی می‌کند، دستورهای فقط‌خواندنی `openstack` را از طریق آن اجرا می‌کند — `openstack compute service list --host compute-01`، `openstack server list --all-projects --limit 50 --host compute-01`، `openstack server event list ID`، `openstack network agent list`، `openstack volume service list` — و آنچه اجرا کرده را ذکر می‌کند. در عامل هیچ باینری `openstack` و هیچ shellی نیست: هر دستور به یک `GET` به سرویسی تبدیل می‌شود که به آن پاسخ می‌دهد، با اعتبارنامه خود عامل. عامل با همان `OPENSTACK_CLOUD_NAME` که collector گزارش می‌دهد ثبت می‌شود، پس به همین ابر سرویس می‌دهد.

@@ -55,7 +55,7 @@ Alt annet står i [dokumentasjonen](https://oneuptime.com/docs/no/introduction/g
 
 ### OneUptime Cloud
 
-[Registrer deg](https://oneuptime.com/accounts/register) og opprett et prosjekt. Gratisplanen krever ikke kredittkort.
+[Registrer deg](https://oneuptime.com/accounts/register) og opprett et prosjekt. Et prosjekt krever ikke kort. På Free-abonnementet krever sjekk av et nettsted en betalingsmetode.
 
 ### Drift selv med Docker Compose
 

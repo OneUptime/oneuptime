@@ -48,6 +48,12 @@ export interface ComponentProps {
   isAlwaysShown: boolean;
   // Locked, saying why (an English sentence): who may not change it.
   lockedReason?: string | undefined;
+  /*
+   * The locked reason is in the reader's words already: drawn as given,
+   * never looked up again (#8423). Left unset, it is English, looked up by
+   * the switch.
+   */
+  isLockedReasonTranslated?: boolean | undefined;
   saveState: ProductSwitchSaveState;
   error?: string | undefined;
   isInUse: boolean;
@@ -215,6 +221,7 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
               props.saveState === ProductSwitchSaveState.Saving
             }
             tooltip={props.lockedReason}
+            isTooltipTranslated={props.isLockedReasonTranslated}
             error={props.error}
             dataTestId={props.dataTestId}
             onChange={(value: boolean) => {
