@@ -131,9 +131,13 @@ const CHAT_AND_MOBILE_BUTTONS: Array<string> = [
 ];
 
 /*
- * The workflow builder's triggers, steps, settings and outputs. "Listen on"
- * and "Select Fields" are what "Fields to watch" and "Fields to pass on"
- * were called: the note on the rename names them as they were.
+ * The workflow builder's triggers, steps and settings that no Dashboard
+ * locale has a word for, so every language's builder draws them in
+ * English. "Listen on" and "Select Fields" are what "Fields to watch" and
+ * "Fields to pass on" were called: the note on the rename names them as
+ * they were. A step's names the builder does look up - Create One
+ * Incident's Incident Template, the Error output - are named as drawn
+ * (#7511, WorkflowStepNamesAsDrawnDocs).
  */
 const WORKFLOW_BUILDER: Array<string> = [
   "On Update",
@@ -144,8 +148,6 @@ const WORKFLOW_BUILDER: Array<string> = [
   "Text to JSON",
   "Create One Incident",
   "JSON Object",
-  "Incident Template",
-  "Error",
 ];
 
 // Example states a project might add: names people give.

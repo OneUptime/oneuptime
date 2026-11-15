@@ -216,7 +216,7 @@ Twilio 以文字轉語音朗讀這些訊息，因此請依您希望聽到的樣�
 :::steps
 1. 新增 **On Update Incoming Call Log** 觸發條件。將 **Fields to watch** 設為 **Ended At** ，並選擇要使用的欄位，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
 2. 新增一個 **If / Else** 步驟。用比較 **不等於** 和 `Completed` 檢查觸發條件的 **Status** 。
-3. 把您的步驟連接到 **Yes** 連接埠。
+3. 把您的步驟連接到 **是** 連接埠。
 :::
 
 工作流程可以用 **Find One** 和 **Find Many** 讀取通話日誌，但不能建立或修改它們。

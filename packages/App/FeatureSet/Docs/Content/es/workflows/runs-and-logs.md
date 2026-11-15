@@ -89,7 +89,7 @@ Los valores que se muestran son los que recibió el bloque, después de rellenar
 
 ### La pestaña Registro completo
 
-El registro bruto, línea a línea, que escribió el ejecutor, incluido todo lo que los propios bloques registraron, como el valor de un bloque **Log** o el `console.log` de un script. Úsalo cuando la pestaña Pasos no explique el fallo.
+El registro bruto, línea a línea, que escribió el ejecutor, incluido todo lo que los propios bloques registraron, como el valor de un bloque **Registro** o el `console.log` de un script. Úsalo cuando la pestaña Pasos no explique el fallo.
 
 ## Copiar y descargar una ejecución
 
@@ -121,7 +121,7 @@ Si la ejecución sí aparece, con el estado **La ejecución supera el plan actua
 Un bloque que no se ejecuta suele ser un problema de conexión. Abre el **Constructor** y comprueba:
 
 - ¿Está conectada la salida del bloque anterior a la entrada de este bloque?
-- ¿Tomó el bloque anterior una salida distinta de la que esperabas — **Error** en lugar de **Success**, o **No** en lugar de **Yes**? La pestaña **Pasos** dice qué salida tomó y adónde llevó, o que no hay nada conectado a ella.
+- ¿Tomó el bloque anterior una salida distinta de la que esperabas — **Error** en lugar de **Éxito**, o **No** en lugar de **Sí**? La pestaña **Pasos** dice qué salida tomó y adónde llevó, o que no hay nada conectado a ella.
 :::
 
 :::details Un valor llegó vacío, o como texto {{…}}

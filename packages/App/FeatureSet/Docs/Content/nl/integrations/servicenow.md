@@ -58,7 +58,7 @@ Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Creat
 
 ### Het record aanmaken
 
-Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **URL** in op `https://your-instance.service-now.com/api/now/table/incident`. Stel onder **Meer velden** de **Request Headers** in op:
+Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://your-instance.service-now.com/api/now/table/incident`. Stel onder **Meer velden** de **Aanvraagheaders** in op:
 
 ```json
 {
@@ -67,7 +67,7 @@ Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbin
 }
 ```
 
-En de **Request Body** op:
+En de **Verzoeklichaam** op:
 
 ```json
 {
@@ -101,11 +101,11 @@ Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update
 
 ### Controleren dat het incident is opgelost
 
-Voeg na de trigger een **If / Else**-blok toe. Stel **Value to check** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Comparison** op **is true**.
+Voeg na de trigger een **If / Else**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
 
 ### Het record zoeken
 
-Voeg na de **Yes**-kant een **API Get (JSON)**-blok toe, met dezelfde **Request Headers** en deze **URL**:
+Voeg na de **Ja**-kant een **API Get (JSON)**-blok toe, met dezelfde **Aanvraagheaders** en deze **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Het record oplossen
 
-Voeg na de **Success** van het zoekblok een **API Patch (JSON)**-blok toe, met dezelfde **Request Headers** en deze **URL**:
+Voeg na de **Succes** van het zoekblok een **API Patch (JSON)**-blok toe, met dezelfde **Aanvraagheaders** en deze **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Stel de **Request Body** in op:
+Stel de **Verzoeklichaam** in op:
 
 ```json
 {

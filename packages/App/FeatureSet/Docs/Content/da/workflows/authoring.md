@@ -47,23 +47,23 @@ Træk blokkene, hvorhen du vil; lærredet fæstner dem til et gitter undervejs. 
 | **Identifier** (under **ID**)         | Det korte ID, der vises på blokken, som `log-1`. Det er sådan, andre blokke henviser til denne, så hvis du omdøber det, går alle `{{local.components.…}}`-referencer, der peger på den, i stykker. Blokkens overskrift er komponentens eget navn og kan ikke ændres.                                              |
 | **Indstillinger**                     | Det, blokken har brug for til sit arbejde — en URL, en Slack-kanal, en beskedtekst. Valgfrie felter er mærket **(Valgfrit)**; alt andet er påkrævet. En til/fra-kontakt har ingen af delene, fordi den altid har en værdi. Mindre brugte indstillinger er foldet sammen under **Flere felter**, hvis overskrift nævner dem og viser dem, der er udfyldt. |
 | **Input**                             | Punktet på den øverste kant, hvor linjer fra tidligere blokke kommer ind. Triggere har ikke et — intet kører før dem.                                                                                                                                                                                         |
-| **Outputs**                           | Punkterne langs den nederste kant, med etiketter lige over dem, hvor linjer går ud til de næste blokke. Mange blokke har separate udgange **Success** og **Error**, så du kan håndtere begge tilfælde.                                                                                                       |
+| **Outputs**                           | Punkterne langs den nederste kant, med etiketter lige over dem, hvor linjer går ud til de næste blokke. Mange blokke har separate udgange **Succes** og **Fejl**, så du kan håndtere begge tilfælde.                                                                                                       |
 
 ## Forbind blokke
 
 Træk fra et punkt nederst på én blok ned til punktet øverst på den næste. Den linje, du trækker, afgør, hvad der kører bagefter.
 
-- Forbinder du fra **Success**, kører den næste blok kun, når den forrige lykkedes.
-- Forbinder du fra **Error**, kører den næste blok kun, når den forrige mislykkedes.
+- Forbinder du fra **Succes**, kører den næste blok kun, når den forrige lykkedes.
+- Forbinder du fra **Fejl**, kører den næste blok kun, når den forrige mislykkedes.
 - Forbinder du ikke en udgang, stopper den vej bare.
 
 ```mermaid title="Kun den udgang, en blok tager, fører nogen steder hen"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Intet er forbundet,<br/>så kørslen slutter"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    hook["Webhook"] -->|"Ud"| check{"If / Else"}
+    check -->|"Ja"| post["API Post (JSON)"]
+    check -->|"Nej"| ends(["Intet er forbundet,<br/>så kørslen slutter"])
+    post -->|"Succes"| slack["Send Message to Slack"]
+    post -->|"Fejl"| log["Log"]
 ```
 
 Du kan forbinde én udgang til flere blokke. De kører alle — men efter hinanden, i én kø, ikke parallelt. Regn ikke med rækkefølgen mellem grenene, og regn heller ikke med, at de overlapper i tid.
@@ -105,7 +105,7 @@ I indstillingen vises en værdi som en chip, som **Webhook › Request Body**. H
 
 - **Værdier, der findes, kommer først, og resten vises for sig.** Triggeren og de blokke, der kører før denne, tilbydes. En blok, der kun kører før denne i nogle kørsler — efter én udgang fra en **If / Else**, for eksempel — siger det, fordi dens værdier kan være tomme her. En blok, der kører senere, eller på en gren, der ikke fører hertil, vises til sidst, foldet sammen og nedtonet, med årsagen, og dens værdier kan ikke vælges. Indtil en blok er forbundet, vises kun triggerens værdier, og listen siger det.
 - **En post åbner på sine felter.** En Find One- eller On Create-blok returnerer en hel post. Vælg den for at se dens felter: først dem, blokken sender videre, som dens **Fields to pass on** nævner, og derefter, for sig, dem, den ikke sender videre, og som er tomme her. En JSON-værdi eller et sæt headere åbner på et felt, hvor du skriver en sti, som `title` eller `alerts[0].status`.
-- **Når en blok har kørt, ved listen, hvad der er i dens værdier.** Hver værdi siger, hvad den indeholdt i den seneste kørsel — `"production"` eller `3 fields` —, og en JSON-værdi eller et sæt headere åbner på de felter, den havde, hver med sit indhold. Fra en Webhooks **Request Body** vælger du altså **incident.title** i stedet for at skrive en sti. Søgning finder også disse felter: skriv `title`, eller `{{` og begyndelsen af en sti. En posts felter viser også, hvad de indeholdt. Felterne kommer fra den seneste kørsel, så et felt, som en senere forespørgsel udelader, er tomt i den kørsel. En værdi, der ligner en hemmelighed, som en `Authorization`-header, et token eller en adgangskode, vises uden sit indhold.
+- **Når en blok har kørt, ved listen, hvad der er i dens værdier.** Hver værdi siger, hvad den indeholdt i den seneste kørsel — `"production"` eller `3 fields` —, og en JSON-værdi eller et sæt headere åbner på de felter, den havde, hver med sit indhold. Fra en Webhooks **Anmodningsbrødtekst** vælger du altså **incident.title** i stedet for at skrive en sti. Søgning finder også disse felter: skriv `title`, eller `{{` og begyndelsen af en sti. En posts felter viser også, hvad de indeholdt. Felterne kommer fra den seneste kørsel, så et felt, som en senere forespørgsel udelader, er tomt i den kørsel. En værdi, der ligner en hemmelighed, som en `Authorization`-header, et token eller en adgangskode, vises uden sit indhold.
 - **En Webhook, der endnu ikke har modtaget en forespørgsel, siger det** øverst i sine værdier, med **Kopiér testanmodning**: en `curl`-kommando, der sender `{"message": "Hello"}` til workflowets webhook-URL. Kør den i en terminal, mens listen er åben, og forespørgslens felter dukker op i den, så snart den kørsel, den starter, er færdig, som regel inden for få sekunder. Kun personer, der må se webhook-URL'en, får knappen. Så længe workflowet er slået fra, afviser dets URL forespørgsler, så listen tilbyder **Test med "Kør arbejdsgang"** i stedet: felterne i den forespørgsel, du sender derfra, dukker op på samme måde. En Incoming Email-trigger, der endnu ikke har modtaget en e-mail, siger det samme sted; send en e-mail til dens adresse, og dens headere og vedhæftede filer dukker op på samme måde.
 - **Kodeeditorer har Insert value i deres værktøjslinje.** I JSON tilføjer den de anførselstegn, en værdi skal have inde i et dokument. **Run Custom JavaScript** læser værdier gennem sine **Arguments**, så dens kode har ingen vælger.
 - **Tal, adgangskoder, kontakter og datoer beholder deres egen kontrol,** med **{ }** ved siden af. En valgt værdi erstatter kontrollen, og **abc** går tilbage til at skrive.
@@ -135,7 +135,7 @@ Den hurtigste måde at lære lærredet at kende på er et workflow med to blokke
 :::steps
 1. Klik på den stiplede pladsholderblok, og klik så på **Manuel** i panelet **Tilføj udløser**.
 2. Klik på **Tilføj komponent**, og klik så på **Log** under **Populære**. Den nye blok havner under triggeren. Forbind triggerens punkt **Execute** ned til Log-blokkens inputpunkt.
-3. Klik på Log-blokken, hvor der står **Click to set up**, og skriv `Hello from ` i dens **Value**. Klik på **{ }**, og klik så på **JSON** under **Manuel**. Indstillingen viser **Manual › JSON** og gemmer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klik på **Gem**.
+3. Klik på Log-blokken, hvor der står **Click to set up**, og skriv `Hello from ` i dens **Værdi**. Klik på **{ }**, og klik så på **JSON** under **Manuel**. Indstillingen viser **Manual › JSON** og gemmer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klik på **Gem**.
 4. Tilbage i **Bygger** klikker du på **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kør arbejdsgang manuelt** og bekræfter med **Kør**. Workflowet er stadig slået fra, og det behøver ikke være slået til: en kørsel, du selv starter, er en **Testkørsel**.
 5. Et panel **Arbejdsgangskørsel** åbner af sig selv og følger kørslen. Øverst står der **Testkørsel**, og loggen viser `Value:` efterfulgt af `Hello from` og den JSON, du skrev.
 :::
@@ -158,7 +158,7 @@ Mens et workflow er slået fra, afgør det, der starter det, om det kører:
 | Dets trigger: en tidsplan, en OneUptime-begivenhed eller en e-mail | Ignoreret.                                                                                                                                                                       |
 | **Kør arbejdsgang** eller **Run just this step**            | Kører, som **Testkørsel**. Dets blokke kører for alvor: en besked bliver virkelig sendt, og en post bliver virkelig ændret. Kørslen er markeret som **Testkørsel** i listerne over kørsler og øverst i kørslen, med hvem der startede den. |
 | Et kald til dets webhook-URL                               | Afvist med HTTP 400 og "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                          |
-| Et andet workflows **Execute Workflow**-blok                | Den blok tager sin vej **Error**, og fejlen nævner det workflow, den kaldte. Det gælder også i en testkørsel: et workflow, den kalder, skal være slået til. |
+| Et andet workflows **Execute Workflow**-blok                | Den blok tager sin vej **Fejl**, og fejlen nævner det workflow, den kaldte. Det gælder også i en testkørsel: et workflow, den kalder, skal være slået til. |
 
 Rækkefølgen er altså: byg det, test det med **Kør arbejdsgang**, mens det stadig er slået fra, læs kørslens log, og slå **Aktiveret** til, når du er klar til, at dets trigger udløses. For at teste en enkelt blok uden at køre det hele bruger du **Run just this step** i den bloks indstillinger.
 

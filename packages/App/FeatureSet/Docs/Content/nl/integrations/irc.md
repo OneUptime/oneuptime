@@ -56,8 +56,8 @@ De stap neemt zijn uitgang **Succes** zodra de server elke regel heeft aangenome
 
 Bepaal waar de berichten heen gaan: de hostnaam van de server, bijvoorbeeld `irc.libera.chat`, en het kanaal, bijvoorbeeld `#your-channel`.
 
-- **IRC Server** neemt de hostnaam en verder niets: geen `ircs://` en geen poort. De stap maakt verbinding via TLS op poort `6697`. Neemt je server TLS aan op een andere poort, zet die dan in **Port**, onder **Meer velden**.
-- **Channel** moet een kanaal zijn. Een nickname die je daar typt, wordt geweigerd, zodat de stap nooit per ongeluk iemand een privébericht stuurt.
+- **IRC Server** neemt de hostnaam en verder niets: geen `ircs://` en geen poort. De stap maakt verbinding via TLS op poort `6697`. Neemt je server TLS aan op een andere poort, zet die dan in **Poort**, onder **Meer velden**.
+- **Kanaal** moet een kanaal zijn. Een nickname die je daar typt, wordt geweigerd, zodat de stap nooit per ongeluk iemand een privébericht stuurt.
 
 De server moet er een zijn waarmee OneUptime verbinding mag maken. Loopback-adressen (`localhost`, `127.0.0.1`), link-local-adressen en cloudmetadata-adressen worden altijd geweigerd. Op OneUptime Cloud wordt ook een server op een privénetwerkadres geweigerd. Een zelf gehoste installatie kan een IRC-server in het eigen netwerk bereiken, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` op `true` staat.
 
@@ -89,7 +89,7 @@ De workflow opent in de **Bouwer** met twee stappen: **On Create Incident** en *
 1. Open **Workflows**, klik op **Workflow maken**, kies **Vanaf nul beginnen**, geef de workflow een naam en klik op **Workflow maken**.
 2. Klik in de **Bouwer** op **Kies wat deze workflow start** en kies **On Create Incident** onder **Populair**. Klik op de trigger en kies in **Fields to pass on** de velden van het incident die je bericht toont, bijvoorbeeld de titel.
 3. Klik op **Component toevoegen**, zoek op `irc` en klik op **Send Message to IRC**. Verbind de uitgang **Succes** van de trigger met deze stap.
-4. Klik op de nieuwe stap en vul **IRC Server**, **Channel** en **Message Text** in. De knop **{ }** in **Message Text** voegt velden van het incident in, bijvoorbeeld de titel.
+4. Klik op de nieuwe stap en vul **IRC Server**, **Kanaal** en **Message Text** in. De knop **{ }** in **Message Text** voegt velden van het incident in, bijvoorbeeld de titel.
 5. Heb je in de vorige stap wachtwoorden opgeslagen, open dan **Meer velden**. Klik in **Server Password**, **SASL Password** of **Channel Key** op **{ }** en kies de variabele onder **Global variables**. Zet de naam van je account in **SASL Username**.
 :::
 

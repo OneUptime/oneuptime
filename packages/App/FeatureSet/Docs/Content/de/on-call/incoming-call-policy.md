@@ -216,7 +216,7 @@ Um nur auf verpasste Anrufe zu reagieren, etwa um sie in Slack oder Microsoft Te
 :::steps
 1. Fügen Sie den Auslöser **On Update Incoming Call Log** hinzu. Setzen Sie **Fields to watch** auf **Ended At** und wählen Sie die Felder, die Sie nutzen möchten, etwa **Status**, **Caller Phone Number** und **Routing Phone Number**.
 2. Fügen Sie einen Schritt **If / Else** hinzu. Prüfen Sie den **Status** des Auslösers mit dem Vergleich **ist ungleich** und `Completed`.
-3. Verbinden Sie Ihre Schritte mit dem Port **Yes**.
+3. Verbinden Sie Ihre Schritte mit dem Port **Ja**.
 :::
 
 Ein Workflow kann Anrufprotokolle mit **Find One** und **Find Many** lesen, aber keine anlegen oder ändern.

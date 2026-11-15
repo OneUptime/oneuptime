@@ -53,13 +53,13 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Opret alarmen
 
-Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Success**-punkt med den. Sæt dens **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sæt under **Flere felter** dens **Request Headers** til:
+Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **URL** til `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-Og dens **Request Body** til:
+Og dens **Anmodningsbrødtekst** til:
 
 ```json
 {
@@ -93,17 +93,17 @@ Opret et workflow med navnet `Close Opsgenie alerts`, og vælg **On Update Incid
 
 ### Kontrollér, at hændelsen er løst
 
-Tilføj en **If / Else**-blok efter triggeren. Sæt **Value to check** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Comparison** til **is true**.
+Tilføj en **If / Else**-blok efter triggeren. Sæt **Værdi, der skal tjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sand**.
 
 ### Luk alarmen
 
-Tilføj en **API Post (JSON)**-blok efter **Yes**-siden, med de samme **Request Headers** og denne **URL**:
+Tilføj en **API Post (JSON)**-blok efter **Ja**-siden, med de samme **Anmodningsheadere** og denne **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Sæt dens **Request Body** til `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Sæt dens **Anmodningsbrødtekst** til `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Slå det til
 
@@ -117,7 +117,7 @@ Slå **Aktiveret** til, og løs derefter en testhændelse i OneUptime. Opsgenie 
 For at sende hver hændelses alvorlighed som en Opsgenie-prioritet tilføjer du en **Run Custom JavaScript**-blok mellem triggeren og **API Post (JSON)**-blokken.
 
 1. Klik på **Tilføj felt** i triggerens **Fields to pass on**, åbn **Hændelsesalvor**, og vælg **Navn**.
-2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript Code** til:
+2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript-kode** til:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie svarer `202`, før den behandler anmodningen, så en anmodning, den sen
 :::
 
 :::details Workflowet kører aldrig
-Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **No**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 ## Næste trin

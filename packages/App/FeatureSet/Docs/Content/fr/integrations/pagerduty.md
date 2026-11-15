@@ -52,7 +52,7 @@ Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de trava
 
 ### Envoyer l'événement de déclenchement
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://events.pagerduty.com/v2/enqueue` et son **Request Body** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://events.pagerduty.com/v2/enqueue` et son **Corps de la requête** sur :
 
 ```json
 {
@@ -92,11 +92,11 @@ Créez un workflow nommé `Resolve PagerDuty incidents` et choisissez **On Updat
 
 ### Vérifier que l'incident est résolu
 
-Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Value to check** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparison** sur **is true**.
+Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
 
 ### Envoyer l'événement de résolution
 
-Ajoutez un bloc **API Post (JSON)** après le côté **Yes**, avec la même **URL** et ce **Request Body** :
+Ajoutez un bloc **API Post (JSON)** après le côté **Oui**, avec la même **URL** et ce **Corps de la requête** :
 
 ```json
 {
@@ -118,7 +118,7 @@ Vérifier `isResolvedState` plutôt que le nom d'un état continue de fonctionne
 Pour envoyer la gravité de chaque incident, ajoutez un bloc **Run Custom JavaScript** entre le déclencheur et le bloc **API Post (JSON)**, et lisez sa réponse dans le corps.
 
 1. Dans les **Fields to pass on** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
-2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **JavaScript Code** sur :
+2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **Code JavaScript** sur :
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ Les deux événements doivent porter exactement le même `dedup_key`. Vérifiez 
 :::
 
 :::details Le workflow ne s'exécute jamais
-Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **No** du bloc **If / Else** est une mise à jour qui n'était pas une résolution.
+Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **Non** du bloc **If / Else** est une mise à jour qui n'était pas une résolution.
 :::
 
 :::details PagerDuty affiche une référence au lieu d'une valeur

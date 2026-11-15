@@ -15,11 +15,11 @@ Publique uma mensagem em um canal do [Discord](https://discord.com) quando um in
 flowchart TB
     declared["Incidente declarado"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
-    step -->|"Success"| channel["Mensagem no<br/>seu canal"]
-    step -->|"Error"| failed["A execução falha<br/>e diz por quê"]
+    step -->|"Sucesso"| channel["Mensagem no<br/>seu canal"]
+    step -->|"Erro"| failed["A execução falha<br/>e diz por quê"]
 ```
 
-A etapa publica o **Message Text** no webhook do canal. Ela segue pela saída **Success** quando o Discord aceita a mensagem, e pela saída **Error**, com o motivo do Discord, quando o Discord a recusa. Sem nada ligado a **Error**, como no modelo, uma execução que não conseguiu publicar falha, e as suas **Etapas** dizem por quê.
+A etapa publica o **Message Text** no webhook do canal. Ela segue pela saída **Sucesso** quando o Discord aceita a mensagem, e pela saída **Erro**, com o motivo do Discord, quando o Discord a recusa. Sem nada ligado a **Erro**, como no modelo, uma execução que não conseguiu publicar falha, e as suas **Etapas** dizem por quê.
 
 ## Antes de começar
 
@@ -53,7 +53,7 @@ O workflow abre no **Construtor** com duas etapas: **On Create Incident** e **Se
 1. Salve a URL como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Variável do fluxo de trabalho**, dê o nome `DISCORD_WEBHOOK_URL` e clique em **Próximo**. Cole a URL em **Conteúdo**, ative **Segredo** e clique em **Criar: Variável do fluxo de trabalho**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
 3. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident** em **Populares**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos que a sua mensagem mostra, por exemplo **Incident Number With Prefix**.
-4. Clique em **Adicionar componente**, pesquise `discord` e clique em **Send Message to Discord**. Conecte a saída **Success** do gatilho a ela.
+4. Clique em **Adicionar componente**, pesquise `discord` e clique em **Send Message to Discord**. Conecte a saída **Sucesso** do gatilho a ela.
 5. Clique na nova etapa. Em **Discord Incoming Webhook URL**, clique em **{ }** e escolha `DISCORD_WEBHOOK_URL` em **Global variables**. Em **Message Text**, escreva a mensagem e insira os campos do incidente com **{ }**.
 :::
 
@@ -68,7 +68,7 @@ Uma mensagem feita do zero lê os campos do incidente com referências como esta
 
 Ative o interruptor **Habilitado** no topo do **Construtor**. A partir daí, cada novo incidente é publicado no canal.
 
-Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e escolha um incidente que você já tem em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no canal. Se a etapa seguir por **Error**, a execução falha, e a entrada da etapa em **Etapas** diz por quê: veja [Solução de problemas](#solução-de-problemas).
+Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e escolha um incidente que você já tem em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O painel **Execução do Fluxo de Trabalho** acompanha a execução, e a mensagem aparece no canal. Se a etapa seguir por **Erro**, a execução falha, e a entrada da etapa em **Etapas** diz por quê: veja [Solução de problemas](#solução-de-problemas).
 :::
 
 ## Dicas
@@ -80,7 +80,7 @@ Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e e
 
 ## Solução de problemas
 
-Quando a etapa segue por **Error**, a execução falha, e a entrada da etapa nas **Etapas** da execução traz o motivo do Discord.
+Quando a etapa segue por **Erro**, a execução falha, e a entrada da etapa nas **Etapas** da execução traz o motivo do Discord.
 
 :::details O Discord responde "Unknown Webhook" ou "Invalid Webhook Token"
 O webhook foi excluído, ou a URL foi copiada errada. Crie um novo webhook e substitua a URL: no workflow do modelo, a variável `discordWebhookUrl`; em um workflow seu, o conteúdo de `DISCORD_WEBHOOK_URL`.

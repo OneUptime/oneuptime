@@ -43,9 +43,11 @@ import path from "path";
  *
  * The steps' "How to use" help links to the section by anchor, and the docs
  * answer in the reader's language, so every language has it, under the
- * same heading. Each copy names the steps, their settings, outputs and
- * values as the steps do, the Dashboard's own labels as that language's
- * Dashboard draws them, and keeps the diagram and the code as they are.
+ * same heading. Each copy names the steps' settings, outputs and values,
+ * and the Dashboard's own labels, as that language's Dashboard draws them
+ * (the builder looks a step's names up in its locale, #7511), the steps'
+ * titles and the names no locale has a word for as the steps do, and keeps
+ * the diagram's shape and the code as they are.
  * The English section is held to what the code really does: the limit, the
  * wait, the template, and what a new step starts with.
  */
@@ -263,22 +265,27 @@ describe("the Paging section of the Components guide", () => {
       // One row for who to page, then a row per setting or pair of settings.
       expect({ language, rows: rows.length }).toEqual({ language, rows: 6 });
 
+      // As the settings form titles each: in the reader's words (#7511).
+      const named: (name: string) => string = (name: string): string => {
+        return `**${drawnActionLabel(language, name)}**`;
+      };
+
       for (const name of who) {
         expect({
           language,
           name,
-          inRow: rows[0]!.includes(`**${name}**`),
+          inRow: rows[0]!.includes(named(name)),
         }).toEqual({ language, name, inRow: true });
       }
 
-      expect(rows[1]).toBe("**Page About**");
-      expect(rows[2]).toContain("**Title**");
-      expect(rows[2]).toContain("**Message**");
-      expect(rows[3]).toContain("**Incident ID**");
-      expect(rows[3]).toContain("**Alert ID**");
+      expect(rows[1]).toBe(named("Page About"));
+      expect(rows[2]).toContain(named("Title"));
+      expect(rows[2]).toContain(named("Message"));
+      expect(rows[3]).toContain(named("Incident ID"));
+      expect(rows[3]).toContain(named("Alert ID"));
       // Responders or observers (OnCallObserverPage), choices named as the setting names them.
-      expect(rows[4]).toBe("**Page As**");
-      expect(rows[5]).toBe("**Severity**");
+      expect(rows[4]).toBe(named("Page As"));
+      expect(rows[5]).toBe(named("Severity"));
     }
   });
 
@@ -330,11 +337,12 @@ describe("the Paging section of the Components guide", () => {
     for (const language of LANGUAGES) {
       const section: string = sectionOf(language);
 
+      // As the canvas and the Returns list draw them (#7511, #8316).
       for (const name of ["Success", "Error", "Summary", "Paged Users"]) {
         expect({
           language,
           name,
-          named: section.includes(`**${name}**`),
+          named: section.includes(`**${drawnActionLabel(language, name)}**`),
         }).toEqual({ language, name, named: true });
       }
     }
@@ -403,7 +411,7 @@ describe("the Paging section of the Components guide", () => {
     }
   });
 
-  test("draws the same workflow in every language: the blocks and outputs keep their names", () => {
+  test("draws the same workflow in every language: the blocks keep their names, the outputs read as the canvas draws them", () => {
     const english: Array<string> = diagramOf(sectionOf("en"));
 
     expect(english).toEqual([
@@ -413,9 +421,19 @@ describe("the Paging section of the Components guide", () => {
     ]);
 
     for (const language of LANGUAGES) {
+      // The steps' titles have no word in any locale; their outputs do (#7511).
+      const drawn: Array<string> = english.map((line: string): string => {
+        return line
+          .replace(
+            '|"Success"|',
+            `|"${drawnActionLabel(language, "Success")}"|`,
+          )
+          .replace('|"Yes"|', `|"${drawnActionLabel(language, "Yes")}"|`);
+      });
+
       expect({ language, diagram: diagramOf(sectionOf(language)) }).toEqual({
         language,
-        diagram: english,
+        diagram: drawn,
       });
     }
   });

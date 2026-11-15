@@ -129,22 +129,22 @@ Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de trava
 
 ### Vérifier le titre
 
-Cliquez sur **Ajouter un composant**, choisissez **If / Else** et reliez-lui le point **Success** du déclencheur. Réglez **Valeur à vérifier** sur le titre de l'alerte (cliquez sur **{ }** et choisissez-le), **Comparaison** sur **contient**, et **Comparer avec** sur le début commun aux titres de vos déclencheurs, par exemple `LLM budget exceeded`.
+Cliquez sur **Ajouter un composant**, choisissez **If / Else** et reliez-lui le point **Succès** du déclencheur. Réglez **Valeur à vérifier** sur le titre de l'alerte (cliquez sur **{ }** et choisissez-le), **Comparaison** sur **contient**, et **Comparer avec** sur le début commun aux titres de vos déclencheurs, par exemple `LLM budget exceeded`.
 
 ### Appeler votre endpoint
 
-Ajoutez **API Post (JSON)** et reliez-lui le point **Yes** du **If / Else**. Réglez son **URL** sur votre endpoint, par exemple `https://agents.example.com/circuit-breaker`, et remplissez les en-têtes et le corps ci-dessous.
+Ajoutez **API Post (JSON)** et reliez-lui le point **Oui** du **If / Else**. Réglez son **URL** sur votre endpoint, par exemple `https://agents.example.com/circuit-breaker`, et remplissez les en-têtes et le corps ci-dessous.
 
 ### Signaler un échec
 
-Ajoutez **Send Message to Slack**, ou **Send Email**, et reliez-lui le point **Error** du bloc API. Un disjoncteur qui ne parvient pas à se déclencher est l'alerte qu'une personne doit voir.
+Ajoutez **Send Message to Slack**, ou **Send Email**, et reliez-lui le point **Erreur** du bloc API. Un disjoncteur qui ne parvient pas à se déclencher est l'alerte qu'une personne doit voir.
 
 ### L'activer
 
 Activez **Activé** en haut du **Constructeur**.
 :::
 
-Les **Request Headers** du bloc API :
+Les **En-têtes de la requête** du bloc API :
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ Les **Request Headers** du bloc API :
 }
 ```
 
-Son **Request Body** :
+Son **Corps de la requête** :
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ Son **Request Body** :
 }
 ```
 
-Pour réagir à plusieurs déclencheurs, faites commencer tous leurs titres de la même façon, ou chaînez d'autres blocs **If / Else** depuis le point **No**. Voir [Créer un flux de travail](/docs/workflows/authoring) pour le canevas et [Variables](/docs/workflows/variables) pour les références `{{…}}`.
+Pour réagir à plusieurs déclencheurs, faites commencer tous leurs titres de la même façon, ou chaînez d'autres blocs **If / Else** depuis le point **Non**. Voir [Créer un flux de travail](/docs/workflows/authoring) pour le canevas et [Variables](/docs/workflows/variables) pour les références `{{…}}`.
 
 ## Tester le disjoncteur
 

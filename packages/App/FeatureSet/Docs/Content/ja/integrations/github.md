@@ -66,7 +66,7 @@ flowchart TB
 
 ### issue を作成する
 
-**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそこにつなぎます。その **URL** を `https://api.github.com/repos/your-org/your-repo/issues` に設定し、リポジトリのオーナーと名前に置き換えます。**その他の項目** で、その **Request Headers** を次のように設定します:
+**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそこにつなぎます。その **URL** を `https://api.github.com/repos/your-org/your-repo/issues` に設定し、リポジトリのオーナーと名前に置き換えます。**その他の項目** で、その **リクエストヘッダー** を次のように設定します:
 
 ```json
 {
@@ -76,7 +76,7 @@ flowchart TB
 }
 ```
 
-**Request Body** は次のとおりです:
+**リクエストボディ** は次のとおりです:
 
 ```json
 {
@@ -97,11 +97,11 @@ flowchart TB
 
 - **GitHub Enterprise Server.** 代わりに自分のサーバーにリクエストを送ります: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`。プライベートネットワークのアドレスにあるサーバーには、管理者がそれを許可したセルフホストの OneUptime が必要です。[送信ネットワークアクセス](/docs/workflows/configuration#送信ネットワークアクセス) を参照してください。
 - **担当者を割り当てる。** 本文に `"assignees": ["octocat"]` や `"milestone": 3` を追加します。トークンがリポジトリに push できない場合、GitHub はラベル、担当者、マイルストーンを何も言わずに破棄します。
-- **一部のインシデントだけ。** トリガーと API ブロックの間に **If / Else** ブロックを置き、その **Yes** 側でだけ issue を作成します。たとえば特定の重大度の場合だけにします。
+- **一部のインシデントだけ。** トリガーと API ブロックの間に **If / Else** ブロックを置き、その **はい** 側でだけ issue を作成します。たとえば特定の重大度の場合だけにします。
 
 ## トラブルシューティング
 
-GitHub がリクエストを拒否すると、**API Post (JSON)** ステップは **Error** に進みます。実行の **Response Status** と **Response Body** に理由が示されます。
+GitHub がリクエストを拒否すると、**API Post (JSON)** ステップは **エラー** に進みます。実行の **Response Status** と **レスポンスボディ** に理由が示されます。
 
 :::details GitHub が 401 を返す
 トークンが誤っているか、期限切れか、取り消されています。新しいトークンを作成し、`GITHUB_TOKEN` の内容を置き換えます。
