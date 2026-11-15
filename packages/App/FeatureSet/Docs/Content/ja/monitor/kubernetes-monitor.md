@@ -85,15 +85,15 @@ flowchart TB
 
 | カテゴリ | メトリクス |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| ノード | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| コンテナ | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| ワークロード | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| コントロールプレーン | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Pod の CPU 使用量, Pod のメモリ使用量, Pod のフェーズ（コード）, Pod のファイルシステム使用量, Pod のメモリ制限使用率, Pod の CPU 制限使用率, Pod のネットワーク I/O（累積、双方向） |
+| ノード | ノード CPU 使用量, ノードの割り当て可能 CPU, ノードメモリ使用量, ノードメモリワーキングセット, ノードファイルシステム使用量, ノードの割り当て可能メモリ, ノードの Ready 状態, ノードの MemoryPressure 状態, ノードの DiskPressure 状態, ノードの PIDPressure 状態, ノードファイルシステム空き容量 |
+| コンテナ | コンテナの再起動回数, コンテナの再起動回数（増加分）, コンテナの CPU 制限, コンテナの CPU 要求, コンテナのメモリ制限, コンテナのメモリ要求, コンテナ準備完了 |
+| ワークロード | Deployment の利用可能レプリカ数, Deployment の希望レプリカ数, DaemonSet の希望ノード数, DaemonSet の誤スケジュールノード数, DaemonSet の準備完了ノード数, StatefulSet の希望レプリカ数, StatefulSet の準備完了レプリカ数, Job の失敗 Pod 数, Job の失敗 Pod 数（増加分）, Job の成功 Pod 数 |
+| HPA | HPA の現在のレプリカ数, HPA の希望レプリカ数, HPA の最大レプリカ数, HPA の最小レプリカ数 |
+| コントロールプレーン | etcd にリーダーがいる, API サーバーの処理中のリクエスト, スケジューラーの保留中 Pod |
 
 > [!NOTE]
-> **Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod Phase (Code)** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**Node Ready Condition** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。 **Container Restarts** はコンテナの再起動数の累計で、**Container Restarts (Increase)** はエージェントがサンプルごとに送る、そのコンテナの前回のサンプル以降の再起動数です。ウィンドウ内での合計が、その間の再起動数になります。**Container Restarts** と同じ属性を持ち、コンテナの Pod のワークロード名も含みますが、再起動のたびに変わるコンテナの ID は含みません。**Job Failed Pods** は Job の失敗 Pod 数の累計で、**Job Failed Pods (Increase)** はエージェントがサンプルごとに送る、その Job の前回のサンプル以降に失敗した Pod 数です。ウィンドウ内での合計が、その間の失敗数になります。**Job Failed Pods** と同じく、Job の名前と Namespace を持ちます。
+> **Pod の CPU 使用量** と **ノード CPU 使用量** の単位はパーセントではなくコア数です。`0.18` は 0.18 コアを意味します。**Pod のフェーズ（コード）** はコード（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown）なので、最大または最小で集計し、合計は使わないでください。コントロールプレーンのメトリクスは、エージェントのコントロールプレーンのスクレイプが有効な場合にのみ届きます。**ノードの Ready 状態** は Ready で 1、NotReady で 0、Unknown で -1 になり、停止したノードは Unknown を報告します。1 未満でアラートしてください。 **コンテナの再起動回数** はコンテナの再起動数の累計で、**コンテナの再起動回数（増加分）** はエージェントがサンプルごとに送る、そのコンテナの前回のサンプル以降の再起動数です。ウィンドウ内での合計が、その間の再起動数になります。**コンテナの再起動回数** と同じ属性を持ち、コンテナの Pod のワークロード名も含みますが、再起動のたびに変わるコンテナの ID は含みません。**Job の失敗 Pod 数** は Job の失敗 Pod 数の累計で、**Job の失敗 Pod 数（増加分）** はエージェントがサンプルごとに送る、その Job の前回のサンプル以降に失敗した Pod 数です。ウィンドウ内での合計が、その間の失敗数になります。**Job の失敗 Pod 数** と同じく、Job の名前と Namespace を持ちます。
 
 ## 監視条件
 
@@ -191,7 +191,7 @@ flowchart TB
 :::
 
 :::details CPU のしきい値が発火しない
-**Pod CPU Usage** と **Node CPU Usage** の単位はパーセントではなくコア数なので、しきい値 `80` は 80 コアを意味します。しきい値をコア数で設定するか、パーセントで比較する **High Node CPU Utilization** または **Pod CPU Saturating Container Limit** から始めてください。
+**Pod の CPU 使用量** と **ノード CPU 使用量** の単位はパーセントではなくコア数なので、しきい値 `80` は 80 コアを意味します。しきい値をコア数で設定するか、パーセントで比較する **High Node CPU Utilization** または **Pod CPU Saturating Container Limit** から始めてください。
 :::
 
 :::details 再起動で CrashLoopBackOff Detection が発火しなかった

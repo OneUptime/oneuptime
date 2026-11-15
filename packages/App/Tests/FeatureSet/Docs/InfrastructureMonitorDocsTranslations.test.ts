@@ -19,6 +19,7 @@ import {
   cardTargets,
   comparableFence,
   diagramSkeleton,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -38,8 +39,11 @@ import { getAllDockerSwarmAlertTemplates } from "Common/Types/Monitor/DockerSwar
 import { getAllHostAlertTemplates } from "Common/Types/Monitor/HostAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "Common/Types/Monitor/KubernetesAlertTemplates";
 import {
+  KubernetesMetricCategory,
   KubernetesMetricDefinition,
+  getAllKubernetesMetricCategories,
   getAllKubernetesMetrics,
+  getKubernetesMetricCategoryLabel,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { getAllPodmanAlertTemplates } from "Common/Types/Monitor/PodmanAlertTemplates";
@@ -201,15 +205,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "High Node CPU Request Commitment",
     "High Node Memory Request Commitment",
     ...FORM_NAMES,
-    // The Custom Metric picker's metric names.
-    "Pod CPU Usage",
-    "Node CPU Usage",
-    "Pod Phase (Code)",
-    "Node Ready Condition",
-    "Container Restarts",
-    "Container Restarts (Increase)",
-    "Job Failed Pods",
-    "Job Failed Pods (Increase)",
     // What a rule does when its window has no data.
     ...UNKEYED_NO_DATA,
   ],
@@ -1034,18 +1029,65 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     });
   });
 
-  it("keeps the Kubernetes metric names as the Custom Metric picker lists them", () => {
+  /*
+   * The Custom Metric picker draws each name in the reader's words since the
+   * catalog's names are keys (#8353): the metric table and the names the page
+   * quotes in bold say it as the picker does, and the English name is gone.
+   */
+  it("names the Kubernetes metrics as the Custom Metric picker draws them", () => {
     const translated: string = readPage(language, KUBERNETES);
+    const english: Array<string> = [];
+    // A template's name the template picker shows as written, a metric's name too.
+    const templateNames: Array<string> = (
+      TEMPLATE_NAMES[KUBERNETES] as () => Array<string>
+    )();
 
     for (const metric of getAllKubernetesMetrics()) {
-      expect({
-        metric: (metric as KubernetesMetricDefinition).friendlyName,
-        kept: true,
-      }).toEqual({
-        metric: (metric as KubernetesMetricDefinition).friendlyName,
-        kept: translated.includes(metric.friendlyName),
+      const name: string = (metric as KubernetesMetricDefinition).friendlyName;
+      const drawn: string = drawnActionLabel(language, name);
+
+      expect({ metric: name, drawn, named: true }).toEqual({
+        metric: name,
+        drawn,
+        named: translated.includes(drawn),
       });
+
+      if (
+        drawn !== name &&
+        !templateNames.includes(name) &&
+        new RegExp(`(?<![A-Za-z0-9])${escapeRegExp(name)}(?![A-Za-z0-9])`).test(
+          translated.replace(/`[^`\n]*`/g, " "),
+        )
+      ) {
+        english.push(name);
+      }
     }
+
+    expect(english).toEqual([]);
+  });
+
+  it("heads each group of the Kubernetes metric table as the picker heads it", () => {
+    const englishLines: Array<string> = englishPage(KUBERNETES).split("\n");
+    const lines: Array<string> = readPage(language, KUBERNETES).split("\n");
+    const header: number = englishLines.indexOf("| Category | Metrics |");
+
+    expect(header).toBeGreaterThan(0);
+
+    getAllKubernetesMetricCategories().forEach(
+      (category: KubernetesMetricCategory, index: number) => {
+        const cell: string = (
+          (lines[header + 2 + index] as string).split("|")[1] as string
+        ).trim();
+
+        expect({ category, cell }).toEqual({
+          category,
+          cell: drawnActionLabel(
+            language,
+            getKubernetesMetricCategoryLabel(category),
+          ),
+        });
+      },
+    );
   });
 
   /*
@@ -1072,20 +1114,32 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   });
 
   it("says the increases carry what the counts carry, naming each count, as the English page does", () => {
-    const note: (markdown: string) => string = (markdown: string): string => {
+    // The line that names the increase, in the page's own words for it (#8353).
+    const note: (markdown: string, increase: string) => string = (
+      markdown: string,
+      increase: string,
+    ): string => {
       return (
         markdown.split("\n").find((line: string): boolean => {
-          return line.includes("**Job Failed Pods (Increase)**");
+          return line.includes(`**${increase}**`);
         }) || ""
       );
     };
-    const english: string = note(englishPage(KUBERNETES));
-    const translated: string = note(readPage(language, KUBERNETES));
+    const english: string = note(
+      englishPage(KUBERNETES),
+      "Job Failed Pods (Increase)",
+    );
+    const translated: string = note(
+      readPage(language, KUBERNETES),
+      drawnActionLabel(language, "Job Failed Pods (Increase)"),
+    );
 
-    for (const name of ["**Container Restarts**", "**Job Failed Pods**"]) {
+    for (const count of ["Container Restarts", "Job Failed Pods"]) {
+      const name: string = `**${drawnActionLabel(language, count)}**`;
+
       expect({ name, times: occurrences(translated, name) }).toEqual({
         name,
-        times: occurrences(english, name),
+        times: occurrences(english, `**${count}**`),
       });
     }
     expect(occurrences(english, "**Container Restarts**")).toBe(2);

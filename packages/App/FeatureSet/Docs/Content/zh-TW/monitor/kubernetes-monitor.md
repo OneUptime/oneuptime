@@ -85,15 +85,15 @@ flowchart TB
 
 | 類別 | 指標 |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 節點 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| 容器 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 工作負載 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Pod CPU 使用量, Pod 記憶體使用量, Pod 階段（代碼）, Pod 檔案系統使用量, Pod 記憶體限制使用率, Pod CPU 限制使用率, Pod 網路 I/O（累計，雙向） |
+| 節點 | 節點 CPU 使用量, 節點可分配 CPU, 節點記憶體使用量, 節點記憶體工作集, 節點檔案系統使用量, 節點可分配記憶體, 節點 Ready 狀況, 節點 MemoryPressure 狀況, 節點 DiskPressure 狀況, 節點 PIDPressure 狀況, 節點檔案系統可用空間 |
+| 容器 | 容器重新啟動次數, 容器重新啟動次數（增量）, 容器 CPU 限制, 容器 CPU 請求, 容器記憶體限制, 容器記憶體請求, 容器就緒 |
+| 工作負載 | Deployment 可用副本數, Deployment 期望副本數, DaemonSet 期望節點數, DaemonSet 錯誤排程的節點數, DaemonSet 就緒節點數, StatefulSet 期望副本數, StatefulSet 就緒副本數, Job 失敗的 Pod 數, Job 失敗的 Pod 數（增量）, Job 成功的 Pod 數 |
+| HPA | HPA 目前副本數, HPA 期望副本數, HPA 最大副本數, HPA 最小副本數 |
+| 控制平面 | etcd 有領導者, API 伺服器進行中的請求, 排程器待處理的 Pod |
 
 > [!NOTE]
-> **Pod CPU Usage** 和 **Node CPU Usage** 的單位是核心而不是百分比：`0.18` 表示 0.18 個核心。**Pod Phase (Code)** 指標是一個代碼（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），請以最大值或最小值彙總，切勿使用總和。只有在代理程式的控制平面擷取開啟時，才會收到控制平面指標。**Node Ready Condition** 在 Ready 時為 1，NotReady 時為 0，Unknown 時為 -1，當機的節點回報的正是 Unknown：請在小於 1 時告警。 **Container Restarts** 是容器的累計重新啟動計數；**Container Restarts (Increase)** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該容器以來的重新啟動次數，所以它在一個視窗內的總和就是該視窗內的重新啟動次數。它帶有 **Container Restarts** 帶有的屬性，包括容器所在 Pod 的工作負載名稱，但不包括每次重新啟動都會改變的容器 ID。**Job Failed Pods** 是 Job 的累計失敗 Pod 計數；**Job Failed Pods (Increase)** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該 Job 以來失敗的 Pod 數，所以它在一個視窗內的總和就是該視窗內的失敗次數。它和 **Job Failed Pods** 一樣，帶有 Job 的名稱和命名空間。
+> **Pod CPU 使用量** 和 **節點 CPU 使用量** 的單位是核心而不是百分比：`0.18` 表示 0.18 個核心。**Pod 階段（代碼）** 指標是一個代碼（1 Pending、2 Running、3 Succeeded、4 Failed、5 Unknown），請以最大值或最小值彙總，切勿使用總和。只有在代理程式的控制平面擷取開啟時，才會收到控制平面指標。**節點 Ready 狀況** 在 Ready 時為 1，NotReady 時為 0，Unknown 時為 -1，當機的節點回報的正是 Unknown：請在小於 1 時告警。 **容器重新啟動次數** 是容器的累計重新啟動計數；**容器重新啟動次數（增量）** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該容器以來的重新啟動次數，所以它在一個視窗內的總和就是該視窗內的重新啟動次數。它帶有 **容器重新啟動次數** 帶有的屬性，包括容器所在 Pod 的工作負載名稱，但不包括每次重新啟動都會改變的容器 ID。**Job 失敗的 Pod 數** 是 Job 的累計失敗 Pod 計數；**Job 失敗的 Pod 數（增量）** 是代理程式隨每個樣本傳送的值，也就是自它上一次取樣該 Job 以來失敗的 Pod 數，所以它在一個視窗內的總和就是該視窗內的失敗次數。它和 **Job 失敗的 Pod 數** 一樣，帶有 Job 的名稱和命名空間。
 
 ## 監控條件
 
@@ -191,7 +191,7 @@ flowchart TB
 :::
 
 :::details CPU 閾值從不觸發
-**Pod CPU Usage** 和 **Node CPU Usage** 的單位是核心而不是百分比，所以閾值 `80` 表示 80 個核心。請以核心為單位設定閾值，或從比較百分比的 **High Node CPU Utilization** 或 **Pod CPU Saturating Container Limit** 開始。
+**Pod CPU 使用量** 和 **節點 CPU 使用量** 的單位是核心而不是百分比，所以閾值 `80` 表示 80 個核心。請以核心為單位設定閾值，或從比較百分比的 **High Node CPU Utilization** 或 **Pod CPU Saturating Container Limit** 開始。
 :::
 
 :::details CrashLoopBackOff Detection 沒有因一次重新啟動而觸發
