@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A runbook's Triggers page in a browser, against the offline fixture
@@ -580,4 +581,18 @@ test.describe("what started a run", () => {
     await expect(inputs).toContainText('"severity": "critical"');
     await expect(inputs.locator("pre code")).toHaveCount(1);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Japanese whole, parsed on every page load of every test.
+ * English is in the bundle now, and each other language a chunk of its own,
+ * loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built
+ * as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja"],
+  address: (language: string): string => {
+    return language === "en" ? TRIGGERS : `${TRIGGERS}?lang=${language}`;
+  },
 });

@@ -10,6 +10,7 @@ import fsSync from "fs";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Names instead of bare addresses on Network > Traffic (issue #5340), in a
@@ -1022,4 +1023,18 @@ test("beside the side menu, at 1024 and 768 pixels: the find box stays in its ca
 
     await screenshot(page, testInfo, `beside-the-menu-${width}`);
   }
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? TRAFFIC : `${TRAFFIC}?lang=${language}`;
+  },
 });

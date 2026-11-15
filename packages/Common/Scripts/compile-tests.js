@@ -81,6 +81,16 @@
  * Each takes about two minutes here. When one nears its heap, draw its
  * letters across two parts the same way.
  *
+ * Later on 2026-11-15 (#8760) the A-to-D part used 6.45 GiB (81%) and the
+ * S-to-Z one 6.34 GiB (79%), measured as the server parts are. A to C as
+ * one part still used 6.27 GiB (78%): most of a part is the Dashboard
+ * sources its tests share, so A is a part of its own. Now:
+ *   - ../tsconfig.tests.app-dashboard-a.json (12,516 files): 5.03 GiB;
+ *   - ../tsconfig.tests.app-dashboard-b-c.json (11,408 files): 4.94 GiB;
+ *   - ../tsconfig.tests.app-dashboard-d.json (11,498 files): 4.93 GiB;
+ *   - ../tsconfig.tests.app-dashboard-s.json (11,958 files): 5.25 GiB;
+ *   - ../tsconfig.tests.app-dashboard-t-z.json (12,207 files): 5.14 GiB.
+ *
  * Nothing goes unchecked:
  *   - every part extends tsconfig.tests.json and changes only which files it
  *     includes, so a test is held to the same rules in whichever part it is;
@@ -128,11 +138,14 @@ const ts = require("typescript");
 const COMMON_DIRECTORY = path.resolve(__dirname, "..");
 const WHOLE_PROGRAM = "tsconfig.tests.json";
 const PARTS = [
-  "tsconfig.tests.app-dashboard-a-d.json",
+  "tsconfig.tests.app-dashboard-a.json",
+  "tsconfig.tests.app-dashboard-b-c.json",
+  "tsconfig.tests.app-dashboard-d.json",
   "tsconfig.tests.app-dashboard-e-l.json",
   "tsconfig.tests.app-dashboard-m-o.json",
   "tsconfig.tests.app-dashboard-p-r.json",
-  "tsconfig.tests.app-dashboard-s-z.json",
+  "tsconfig.tests.app-dashboard-s.json",
+  "tsconfig.tests.app-dashboard-t-z.json",
   "tsconfig.tests.app-rest.json",
   "tsconfig.tests.ui.json",
   "tsconfig.tests.server.json",
