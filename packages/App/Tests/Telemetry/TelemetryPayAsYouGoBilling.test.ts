@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 import * as grpc from "@grpc/grpc-js";
 import { Client, PublishPacket, AuthenticateError } from "aedes";
 import ObjectID from "Common/Types/ObjectID";
+import SecretDigest from "Common/Server/Utils/Telemetry/SecretDigest";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
@@ -289,7 +290,7 @@ describe("MQTT payment admission", () => {
       IoTDeviceCredentialService.getCredentialContext as MockFn
     ).mockResolvedValue({
       credentialId,
-      secretKey,
+      secretKeyDigest: SecretDigest.of(secretKey),
       projectId: projectId.toString(),
       iotFleetId: ObjectID.generate().toString(),
       fleetName: "fleet",
@@ -329,7 +330,7 @@ describe("MQTT payment admission", () => {
       IoTDeviceCredentialService.getCredentialContext as MockFn
     ).mockResolvedValue({
       credentialId,
-      secretKey,
+      secretKeyDigest: SecretDigest.of(secretKey),
       projectId: projectId.toString(),
       iotFleetId: ObjectID.generate().toString(),
       fleetName: "fleet",

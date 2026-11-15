@@ -262,6 +262,9 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 
@@ -2218,5 +2221,541 @@ describe("a payment method first, on Cloud's Free plan (#7367)", () => {
       "You have reached the active monitor limit of your plan.",
     );
     expect(screen.queryByTestId("guided-setup-payment-needed")).toBeNull();
+  });
+});
+
+/*
+ * THE RUN'S POLICY DELETED WHILE THE PAGE IS OPEN (#8235) - in another tab,
+ * or by a teammate. The step's done line and the summary went on saying
+ * '"Default on-call policy" pages Ada Lovelace.' of a policy that pages
+ * nobody, so a person finished believing they would be paged; the test goes
+ * to the person themselves, so it never noticed. Each step that says the
+ * policy pages people reads it again just before it moves on: here the fake
+ * server's records change between the page opening and the click.
+ */
+describe("the run's policy deleted in another tab or by a teammate (#8235)", () => {
+  const DELETED: string =
+    "The on-call policy this setup made was deleted, so choose who is told again.";
+
+  const NO_POLICY: Record<string, unknown> = {
+    policyCount: 0,
+    incidentRuleCount: 0,
+    alertRuleCount: 0,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
+
+  const ANOTHER_POLICY: Record<string, unknown> = {
+    policyCount: 1,
+    incidentRuleCount: 1,
+    alertRuleCount: 1,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
+
+  const UNCOUNTED: Record<string, unknown> = {
+    policyCount: null,
+    incidentRuleCount: null,
+    alertRuleCount: null,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
+
+  // Step 2 open again on the run's policy, as a done step opens to look at.
+  const atWhoIsToldWithPolicy: () => Promise<void> =
+    async (): Promise<void> => {
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+      expect(stepState("test")).toBe("open");
+      await act(async () => {
+        fireEvent.click(
+          screen
+            .getByTestId("guided-setup-step-who_is_told")
+            .querySelector("button")!,
+        );
+      });
+      expect(stepState("who_is_told")).toBe("open");
+      expect(
+        screen.getByTestId("guided-setup-who-done-line"),
+      ).toHaveTextContent('"Default on-call policy" pages Ada Lovelace.');
+    };
+
+  // The test step, its test acknowledged: Continue opens the summary.
+  const atAcknowledgedTest: () => Promise<void> = async (): Promise<void> => {
+    keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+    await renderSetup();
+    expect(stepState("test")).toBe("open");
+    await press("send-test-page");
+    await act(async () => {
+      reportTestResult(result(OnCallTestPageStatus.Acknowledged));
+    });
+    expect(screen.getByTestId("guided-setup-test-continue")).toBeVisible();
+  };
+
+  // Another tab, or a teammate, deletes the policy.
+  const deleteThePolicy: (factsAfter?: Record<string, unknown>) => void = (
+    factsAfter?: Record<string, unknown>,
+  ): void => {
+    api["loadPolicy"]!.mockResolvedValue(null);
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(factsAfter || NO_POLICY);
+  };
+
+  // The run forgot its policy, and step 2 is open, saying why first.
+  const expectStepTwoAgain: () => void = (): void => {
+    expect(storedRun()["policyId"]).toBeUndefined();
+    expect(storedRun()["monitorId"]).toBe(MONITOR_ID);
+    expect(stepState("check")).toBe("done");
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+    expect(screen.getByTestId("guided-setup-policy-deleted")).toHaveTextContent(
+      DELETED,
+    );
+    expect(
+      screen
+        .getByTestId("guided-setup-who-region")
+        .contains(screen.getByTestId("guided-setup-policy-deleted")),
+    ).toBe(true);
+    // Nothing of the policy is left on the page.
+    expect(screen.queryByTestId("guided-setup-who-done-line")).toBeNull();
+    expect(document.body.textContent).not.toContain(
+      '"Default on-call policy" pages Ada Lovelace.',
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  };
+
+  test("the sentence is the website-down setup's own, a translation key", () => {
+    expect(WEBSITE_DOWN_COPY.policyDeleted).toBe(DELETED);
+  });
+
+  describe("Continue on who should be told", () => {
+    test("reads the policy again, and goes on while it is there", async () => {
+      await atWhoIsToldWithPolicy();
+      api["loadPolicy"]!.mockClear();
+
+      await press("guided-setup-who-continue");
+
+      expect(api["loadPolicy"]).toHaveBeenCalledTimes(1);
+      expect(api["loadPolicy"]).toHaveBeenCalledWith(POLICY_ID);
+      expect(stepState("who_is_told")).toBe("done");
+      expect(stepState("test")).toBe("open");
+      expect(storedRun()["policyId"]).toBe(POLICY_ID);
+      expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+    });
+
+    test("deleted: the run forgets it, makes nothing, and step 2 opens on making one, saying why", async () => {
+      await atWhoIsToldWithPolicy();
+      deleteThePolicy();
+
+      await press("guided-setup-who-continue");
+
+      expectStepTwoAgain();
+      expect(api["createPolicy"]).not.toHaveBeenCalled();
+      // The project's policies were counted again: making one is offered.
+      expect(api["loadWhoIsToldFacts"]).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'This makes the on-call policy "Default on-call policy", which pages them for every new incident and alert in this project.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("guided-setup-who-continue")).toHaveTextContent(
+        WEBSITE_DOWN_COPY.whoSave,
+      );
+    });
+
+    /*
+     * Continue stays where Save and continue is, so nothing else tells a
+     * screen reader why the step changed: the region it reads out is the
+     * one that held the policy's line before, and now holds why and what
+     * to do.
+     */
+    test("the sentence is read out: the step's polite live region, there before Continue, says it", async () => {
+      await atWhoIsToldWithPolicy();
+      const region: HTMLElement = screen.getByTestId("guided-setup-who-region");
+
+      expect(region).toHaveAttribute("aria-live", "polite");
+      expect(region).toHaveTextContent(
+        '"Default on-call policy" pages Ada Lovelace.',
+      );
+      expect(region).not.toHaveTextContent(DELETED);
+
+      deleteThePolicy();
+      await press("guided-setup-who-continue");
+
+      expect(screen.getByTestId("guided-setup-who-region")).toBe(region);
+      expect(region).toHaveTextContent(DELETED);
+      expect(region).toHaveTextContent(WEBSITE_DOWN_COPY.whoCreateHelp);
+      // Why first, then what to do.
+      expect(region.firstElementChild).toBe(
+        screen.getByTestId("guided-setup-policy-deleted"),
+      );
+      // The picker and the button are not read out with it.
+      expect(region.contains(screen.getByTestId("guided-setup-people"))).toBe(
+        false,
+      );
+      expect(
+        region.contains(screen.getByTestId("guided-setup-who-continue")),
+      ).toBe(false);
+    });
+
+    test("made again: the new policy is the run's, and the sentence is said no more", async () => {
+      await atWhoIsToldWithPolicy();
+      deleteThePolicy();
+      await press("guided-setup-who-continue");
+
+      const NEW_POLICY_ID: string = "60000000-0000-4000-8000-000000000099";
+      api["createPolicy"]!.mockResolvedValue(NEW_POLICY_ID);
+      api["loadPolicy"]!.mockResolvedValue({
+        id: NEW_POLICY_ID,
+        name: "Default on-call policy",
+        responders: ["Grace Hopper"],
+      });
+      await press("guided-setup-who-continue");
+
+      expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+      expect(storedRun()["policyId"]).toBe(NEW_POLICY_ID);
+      expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+      expect(stepState("who_is_told")).toBe("done");
+      expect(
+        screen.getByTestId("guided-setup-step-who_is_told-done-line"),
+      ).toHaveTextContent('"Default on-call policy" pages Grace Hopper.');
+    });
+
+    test("deleted, while the project pages people through other policies: they decide, and Continue goes on", async () => {
+      await atWhoIsToldWithPolicy();
+      deleteThePolicy(ANOTHER_POLICY);
+
+      await press("guided-setup-who-continue");
+
+      expectStepTwoAgain();
+      expect(screen.queryByTestId("guided-setup-people")).toBeNull();
+      expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+        WEBSITE_DOWN_COPY.whoExistingHelp,
+      );
+      expect(
+        screen
+          .getByTestId("guided-setup-who-region")
+          .contains(screen.getByTestId("guided-setup-who-help")),
+      ).toBe(true);
+
+      await press("guided-setup-who-continue");
+
+      expect(api["createPolicy"]).not.toHaveBeenCalled();
+      expect(storedRun()).toMatchObject({ whoIsToldConfirmed: true });
+      expect(stepState("who_is_told")).toBe("done");
+    });
+
+    test("the project's policies that cannot be counted again: the counts read before stand, and making one is offered", async () => {
+      await atWhoIsToldWithPolicy();
+      deleteThePolicy(UNCOUNTED);
+
+      await press("guided-setup-who-continue");
+
+      expectStepTwoAgain();
+      expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+    });
+
+    test("a policy read that fails: nothing is forgotten, and the step says why and stays", async () => {
+      await atWhoIsToldWithPolicy();
+      api["loadPolicy"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+
+      await press("guided-setup-who-continue");
+
+      expect(storedRun()["policyId"]).toBe(POLICY_ID);
+      expect(stepState("who_is_told")).toBe("open");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The server could not be reached.",
+      );
+      expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+      expect(
+        screen.getByTestId("guided-setup-who-done-line"),
+      ).toHaveTextContent('"Default on-call policy" pages Ada Lovelace.');
+    });
+
+    test("who the policy pages is read again too: changed meanwhile, the line says who it pages now", async () => {
+      await atWhoIsToldWithPolicy();
+      api["loadPolicy"]!.mockResolvedValue({
+        id: POLICY_ID,
+        name: "Default on-call policy",
+        responders: ["Ada Lovelace", "Grace Hopper"],
+      });
+
+      await press("guided-setup-who-continue");
+
+      expect(
+        screen.getByTestId("guided-setup-step-who_is_told-done-line"),
+      ).toHaveTextContent(
+        '"Default on-call policy" pages Ada Lovelace, Grace Hopper.',
+      );
+    });
+  });
+
+  describe("on the test step, before the summary", () => {
+    test("Continue reads the policy again, and opens the summary while it is there", async () => {
+      await atAcknowledgedTest();
+      api["loadPolicy"]!.mockClear();
+
+      await press("guided-setup-test-continue");
+
+      expect(api["loadPolicy"]).toHaveBeenCalledWith(POLICY_ID);
+      expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+    });
+
+    test("Continue, the policy deleted: no summary of a policy that pages nobody; step 2 opens, saying why", async () => {
+      await atAcknowledgedTest();
+      deleteThePolicy();
+
+      await press("guided-setup-test-continue");
+
+      expectStepTwoAgain();
+      expect(
+        screen.queryByTestId("guided-setup-summary-who_is_told"),
+      ).toBeNull();
+      // Who is told is not done any more, nor what comes after it.
+      expect(screen.getByTestId("guided-setup-progress")).toHaveTextContent(
+        "1 of 3 steps done",
+      );
+      expect(stepState("test")).toBe("upcoming");
+      // The test went to the person, not the policy: it is kept.
+      expect(storedRun()["testExecutionLogId"]).toBe("log-1");
+    });
+
+    test("Skip, the policy deleted: not saved as skipped, and step 2 opens, saying why", async () => {
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+      deleteThePolicy();
+
+      await press("guided-setup-skip-test");
+
+      expectStepTwoAgain();
+      expect(storedRun()["testSkipped"]).toBeUndefined();
+    });
+
+    test("Skip, the policy there: saved as skipped, and the summary names it", async () => {
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+
+      await press("guided-setup-skip-test");
+
+      expect(storedRun()).toMatchObject({
+        policyId: POLICY_ID,
+        testSkipped: true,
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("guided-setup-summary-who_is_told"),
+        ).toHaveTextContent('"Default on-call policy" pages Ada Lovelace');
+      });
+    });
+
+    test("a policy read that fails: nothing is forgotten or skipped, and the step says why and stays", async () => {
+      await atAcknowledgedTest();
+      api["loadPolicy"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+
+      await press("guided-setup-test-continue");
+
+      expect(storedRun()["policyId"]).toBe(POLICY_ID);
+      expect(stepState("test")).toBe("open");
+      expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The server could not be reached.",
+      );
+      expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+    });
+
+    test("deleted, then made again: Continue finds the test acknowledged, and the summary names the new policy", async () => {
+      await atAcknowledgedTest();
+      deleteThePolicy();
+      await press("guided-setup-test-continue");
+
+      const NEW_POLICY_ID: string = "60000000-0000-4000-8000-000000000099";
+      api["createPolicy"]!.mockResolvedValue(NEW_POLICY_ID);
+      api["loadPolicy"]!.mockResolvedValue({
+        id: NEW_POLICY_ID,
+        name: "Default on-call policy",
+        responders: ["Grace Hopper"],
+      });
+      await press("guided-setup-who-continue");
+
+      // Back on the test, whose answer is kept: Continue reads the new policy.
+      expect(stepState("test")).toBe("open");
+      await press("guided-setup-test-continue");
+
+      expect(api["loadPolicy"]).toHaveBeenLastCalledWith(NEW_POLICY_ID);
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("guided-setup-summary-who_is_told"),
+        ).toHaveTextContent('"Default on-call policy" pages Grace Hopper');
+      });
+      expect(document.body.textContent).not.toContain(
+        '"Default on-call policy" pages Ada Lovelace',
+      );
+    });
+  });
+
+  describe("opening the page", () => {
+    test("on a run whose policy is gone: step 2, saying why", async () => {
+      api["loadPolicy"]!.mockResolvedValue(null);
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+
+      expectStepTwoAgain();
+    });
+
+    test("a policy read that fails is the page's error: the run is kept, and its policy is not said to be deleted", async () => {
+      api["loadPolicy"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+
+      await act(async () => {
+        render(<WebsiteDownGuidedSetup firstCheckPollIntervalInMs={5} />);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("The server could not be reached."),
+        ).toBeInTheDocument();
+      });
+      expect(storedRun()).toEqual({
+        monitorId: MONITOR_ID,
+        policyId: POLICY_ID,
+      });
+      expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+    });
+
+    test("a monitor read that fails is the page's error too: the run is never started again on it", async () => {
+      api["loadMonitor"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+
+      await act(async () => {
+        render(<WebsiteDownGuidedSetup firstCheckPollIntervalInMs={5} />);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("The server could not be reached."),
+        ).toBeInTheDocument();
+      });
+      expect(storedRun()).toEqual({
+        monitorId: MONITOR_ID,
+        policyId: POLICY_ID,
+      });
+      expect(api["createMonitor"]).not.toHaveBeenCalled();
+    });
+
+    test("on a run whose policy is there: nothing is said of a deletion", async () => {
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+
+      expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+      expect(stepState("test")).toBe("open");
+    });
+  });
+
+  test("Check another address starts without the sentence", async () => {
+    await atAcknowledgedTest();
+    deleteThePolicy();
+    await press("guided-setup-test-continue");
+    expect(screen.getByTestId("guided-setup-policy-deleted")).toBeVisible();
+
+    // Made again, the summary is reached, and a new run starts.
+    api["loadPolicy"]!.mockResolvedValue({
+      id: POLICY_ID,
+      name: "Default on-call policy",
+      responders: ["Ada Lovelace"],
+    });
+    await press("guided-setup-who-continue");
+    await press("guided-setup-test-continue");
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-start-over")).toBeVisible();
+    });
+    await press("guided-setup-start-over");
+
+    // The next run's step 2 is its own: nothing of the last one is said.
+    typeAddress("acme.example");
+    await startChecking();
+    await press("guided-setup-check-continue");
+
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+  });
+});
+
+/*
+ * ARCHIVED POLICIES ARE NOT THE PROJECT'S POLICIES (#8234). A project
+ * whose only on-call policy was archived was told its policies decide who
+ * is paged - an archived policy pages no one - so the setup made none.
+ * Here the project is counted by the real WebsiteDownApi.loadWhoIsToldFacts
+ * from a fake server that counts as the real one does: only the records its
+ * query matches.
+ */
+describe("archived on-call policies (#8234)", () => {
+  const realApi: { loadWhoIsToldFacts: () => Promise<unknown> } = (
+    jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi",
+    ) as { default: { loadWhoIsToldFacts: () => Promise<unknown> } }
+  ).default;
+
+  const holds: (policies: Array<{ isArchived: boolean }>) => void = (
+    policies: Array<{ isArchived: boolean }>,
+  ): void => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    jest.spyOn(ModelAPI, "count").mockImplementation((async (args: {
+      modelType: { new (): unknown };
+      query: Record<string, unknown>;
+    }) => {
+      if (args.modelType !== OnCallDutyPolicy) {
+        return 0;
+      }
+
+      return policies.filter((policy: Record<string, unknown>): boolean => {
+        return Object.entries(args.query).every(
+          ([column, value]: [string, unknown]): boolean => {
+            return policy[column] === value;
+          },
+        );
+      }).length;
+    }) as unknown as typeof ModelAPI.count);
+    api["loadWhoIsToldFacts"]!.mockImplementation(() => {
+      return realApi.loadWhoIsToldFacts();
+    });
+  };
+
+  test("a project whose only policy is archived: the setup makes one, paging who is picked", async () => {
+    holds([{ isArchived: true }]);
+    await toWhoIsTold();
+
+    expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+    expect(screen.queryByTestId("guided-setup-who-help")).toBeNull();
+
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+  });
+
+  test("an archived policy beside one in service: the project's policies decide, and none is made", async () => {
+    holds([{ isArchived: true }, { isArchived: false }]);
+    await toWhoIsTold();
+
+    expect(screen.queryByTestId("guided-setup-people")).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(storedRun()).toMatchObject({ whoIsToldConfirmed: true });
   });
 });

@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **A chave decide o projeto.** Você nunca envia um ID de projeto: os dados enviados com uma chave vão para o projeto ao qual a chave pertence.
-- **As mudanças chegam a todos os servidores em até um minuto.** Desativar uma chave, redefinir o segredo dela ou mudar as origens, a expiração ou o limite tem efeito em cerca de um minuto.
+- **As mudanças chegam a todos os servidores em poucos segundos.** Desativar uma chave, redefinir o segredo dela ou mudar as origens, a expiração ou o limite tem efeito em todos os servidores em poucos segundos.
 - **Uma chave pode ter orçamentos próprios.** Um orçamento diário e uma taxa por segundo para cada sinal, dentro dos do projeto dela: veja [Orçamentos de ingestão](/docs/telemetry/ingestion-budgets).
 - **Uma chave de servidor é uma senha.** Qualquer pessoa que a tenha pode enviar telemetria para o seu projeto. Guarde-a nos segredos dos seus servidores, nunca no controle de versão nem em uma página web.
 
@@ -139,8 +139,8 @@ A página da chave também faz a conta: **Telemetria recusada** lista o que foi 
 
 Para as outras respostas que um exportador OTLP pode receber, veja [Respostas](/docs/telemetry/open-telemetry#respostas).
 
-:::details Ainda chegam dados um minuto depois de eu desativar a chave
-Cada servidor do OneUptime guarda o que sabe de uma chave por até um minuto, então uma mudança chega a todos eles em cerca de um minuto. As requisições depois disso são recusadas. Um cliente MQTT que se conectou com a chave é desconectado em poucos segundos.
+:::details Ainda chegam dados depois de eu desativar a chave
+Cada servidor do OneUptime verifica pelo menos uma vez por segundo se uma chave mudou, então uma mudança chega a todos eles em poucos segundos e as requisições depois disso são recusadas. Enquanto um servidor não consegue acessar o cache do OneUptime, ele pode seguir o que sabia da chave por até um minuto. Um cliente MQTT que se conectou com a chave é desconectado em poucos segundos.
 :::
 
 :::details Uma chave de navegador funciona no meu notebook, mas não em produção
