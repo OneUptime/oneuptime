@@ -277,7 +277,9 @@ describe("the postmortem page's action items", () => {
     expect(INCIDENT_PRIVACY_FILTER).toContain(
       "return shouldBypassRecordPrivacy(props);",
     );
-    expect(flat(readSource("Common/Server/Utils/PrivacyFilterUtil.ts"))).toContain(
+    expect(
+      flat(readSource("Common/Server/Utils/PrivacyFilterUtil.ts")),
+    ).toContain(
       "export const PRIVATE_RECORD_BYPASS_PERMISSIONS: ReadonlyArray<Permission> = [ Permission.ProjectOwner, Permission.ProjectAdmin, ];",
     );
 

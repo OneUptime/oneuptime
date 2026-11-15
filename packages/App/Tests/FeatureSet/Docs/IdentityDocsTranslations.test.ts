@@ -1494,7 +1494,9 @@ describe("the helpers, on these pages' shapes", () => {
       "SSO für die Anmeldung erzwingen",
     );
     expect(adminLabel("de", "Settings")).toBe("Einstellungen");
-    expect(adminLabel("ja", "Attached Projects")).toBe("関連付けたプロジェクト");
+    expect(adminLabel("ja", "Attached Projects")).toBe(
+      "関連付けたプロジェクト",
+    );
     // A label the Admin Dashboard's locale lacks is read in English.
     expect(adminLabel("ja", "A label no locale words")).toBe(
       "A label no locale words",

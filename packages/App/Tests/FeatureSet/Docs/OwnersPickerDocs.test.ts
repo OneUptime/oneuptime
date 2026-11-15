@@ -142,7 +142,10 @@ describe("the docs on picking owners", () => {
     ).toBe(true);
     // The dashboard's old dropdowns, on a line with no create step.
     expect(
-      namesWorkflowOwnerSetting("Pick them under **Owner Users**.", "Owner Users"),
+      namesWorkflowOwnerSetting(
+        "Pick them under **Owner Users**.",
+        "Owner Users",
+      ),
     ).toBe(false);
     // Another retired name, even beside a create step.
     expect(
