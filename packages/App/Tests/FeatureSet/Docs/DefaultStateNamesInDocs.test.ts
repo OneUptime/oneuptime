@@ -7,6 +7,7 @@ import {
   DEFAULT_MONITOR_STATUS_NAMES,
   DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
 } from "Common/Types/StatusPage/DefaultStatusNames";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -68,10 +69,6 @@ const pagesOf: (language: string) => Array<string> = (
   walk(root);
 
   return pages.sort();
-};
-
-const escapeRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /*
