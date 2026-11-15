@@ -230,6 +230,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "OneUptimeAlertsBot",
     "OpenStack",
     "Option",
+    "PID",
     "Podman",
     "PostgreSQL",
     "Postgres",
@@ -256,6 +257,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "internal-probe",
     "member@company.com",
     "mm",
+    "pg {{version}}",
     "test@example.com",
     "vCenter",
     "you@company.com",
@@ -263,6 +265,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "{{size}} KB",
     "{{size}} MB",
     "{{time}} (UTC)",
+    "⌘ / Ctrl + ↵",
   ],
 };
 

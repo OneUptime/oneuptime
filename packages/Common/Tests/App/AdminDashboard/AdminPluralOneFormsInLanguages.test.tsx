@@ -322,11 +322,11 @@ describe("the marks change what they should, and nothing else", () => {
 
     expect(marked).toEqual(listed);
     expect(marked).toEqual({
-      da: ["{{count}} monitor", "{{count}} person"],
+      da: ["{{count}} monitor", "{{count}} node", "{{count}} person"],
       es: ["{{count}} monitor"],
       fr: ["{{count}} instance", "{{count}} minute"],
-      nl: ["{{count}} product", "{{count}} project"],
-      no: ["{{count}} monitor", "{{count}} person"],
+      nl: ["{{count}} node", "{{count}} product", "{{count}} project"],
+      no: ["{{count}} monitor", "{{count}} node", "{{count}} person"],
       pt: ["{{count}} monitor"],
       sv: ["{{count}} monitor", "{{count}} person"],
     });

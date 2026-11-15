@@ -689,7 +689,7 @@ test("a Host without HOST_NAME and an executor that cannot name it stays misconf
   assert.strictEqual(snapshot.phase, "misconfigured");
   assert.match(
     snapshot.configProblems[0]!,
-    /^HOST_NAME is not set, and the agent could not read this Host's name itself/,
+    /^HOST_NAME is not set, and the agent could not read this host's name itself/,
   );
 });
 
