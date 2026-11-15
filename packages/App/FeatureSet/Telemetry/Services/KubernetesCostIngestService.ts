@@ -373,7 +373,7 @@ export default class KubernetesCostIngestService {
       allocation.labels,
     );
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       windowStart,
       data.retentionDays,
     );

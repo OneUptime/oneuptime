@@ -184,7 +184,7 @@ export default class LlmCostBudgetEvaluator {
       attributes[LLM_BUDGET_MODEL_ATTRIBUTE] = data.budget.llmModel;
     }
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       data.now,
       BUDGET_METRIC_RETENTION_IN_DAYS,
     );

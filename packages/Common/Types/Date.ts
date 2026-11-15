@@ -1385,6 +1385,26 @@ export default class OneUptimeDate {
     return moment(date1).isSame(date2);
   }
 
+  /*
+   * Whole days of 24 hours from `startDate` to `endDate`, rounded toward
+   * zero as moment's diff rounds: a length of time, the same in every zone
+   * - an event's age, the days until a certificate expires. The calendar
+   * day counts below (getDaysBetweenTwoDates, getNumberOfDaysBetweenDates)
+   * read the runtime's own calendar, so on a server whose zone changes its
+   * clocks 7 x 24 hours across the change counted 6 days (issue #8473).
+   */
+  public static getWholeDaysOfTimeBetween(
+    startDate: Date | string,
+    endDate: Date | string,
+  ): number {
+    const ms: number =
+      this.fromString(endDate).getTime() - this.fromString(startDate).getTime();
+    const days: number = Math.trunc(ms / (24 * 60 * 60 * 1000));
+
+    // Never -0: a moment and itself are 0 days apart.
+    return days === 0 ? 0 : days;
+  }
+
   public static getDaysBetweenTwoDates(startDate: Date, endDate: Date): number {
     startDate = this.fromString(startDate);
     endDate = this.fromString(endDate);
@@ -3333,9 +3353,78 @@ export default class OneUptimeDate {
    * moment caches its guess, and the translation is a map read.
    */
   public static getCurrentTimezone(): Timezone {
-    return (
-      this.userTimezone || TimezoneAlias.getCanonicalTimezone(moment.tz.guess())
+    return this.userTimezone || this.getRuntimeTimezone();
+  }
+
+  /*
+   * The zone the browser (or the process) is in, in its current name:
+   * moment's guess, kept for each guess it gives, so this stays a lookup.
+   *
+   * moment trusts the zone Intl names only when its name is longer than
+   * three letters, so in a browser on UTC - Intl's "UTC" - it guessed from
+   * the offsets instead, and named Africa/Abidjan: zones read "GMT" (and
+   * "GMT+0" in German), a new user's profile was saved with Abidjan, and
+   * an Ask AI chart said "Days are in Africa/Abidjan." of a reader on UTC
+   * (issue #8475). Where Intl names such a zone, the Timezone list names it
+   * and moment's guess keeps its clock (the same offset now and half a year
+   * on), the zone is Intl's.
+   */
+  private static runtimeTimezoneOfGuess: {
+    guess: string;
+    timezone: Timezone;
+  } | null = null;
+
+  private static getRuntimeTimezone(): Timezone {
+    const guess: string = moment.tz.guess();
+
+    if (this.runtimeTimezoneOfGuess?.guess === guess) {
+      return this.runtimeTimezoneOfGuess.timezone;
+    }
+
+    const timezone: Timezone = TimezoneAlias.getCanonicalTimezone(
+      this.getShortIntlTimezoneFor(guess) || guess,
     );
+
+    this.runtimeTimezoneOfGuess = { guess, timezone };
+
+    return timezone;
+  }
+
+  // Intl's name for the runtime's zone, when moment passed it over for `guess`.
+  private static getShortIntlTimezoneFor(guess: string): string | undefined {
+    let intlName: string | undefined = undefined;
+
+    try {
+      intlName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return undefined;
+    }
+
+    if (
+      !intlName ||
+      intlName === guess ||
+      intlName.length > 3 ||
+      !TimezoneAlias.isListedName(intlName)
+    ) {
+      return undefined;
+    }
+
+    const intlZone: moment.MomentZone | null = moment.tz.zone(intlName);
+    const guessedZone: moment.MomentZone | null = moment.tz.zone(guess);
+
+    if (!intlZone || !guessedZone) {
+      return undefined;
+    }
+
+    const nowMs: number = Date.now();
+
+    for (const ms of [nowMs, nowMs + 182 * 24 * 60 * 60 * 1000]) {
+      if (intlZone.utcOffset(ms) !== guessedZone.utcOffset(ms)) {
+        return undefined;
+      }
+    }
+
+    return intlName;
   }
 
   /**

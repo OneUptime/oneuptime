@@ -37,6 +37,7 @@ import {
 import WorkflowStatus, {
   getWorkflowStatusLabel,
 } from "../Workflow/WorkflowStatus";
+import { PROBE_AGREEMENT_SENTENCES } from "../../Utils/Monitor/ProbeAgreementRule";
 
 /*
  * WHAT AN AI ACTION'S CARD SAYS, IN EVERY READER'S LANGUAGE.
@@ -324,6 +325,9 @@ export const AI_ACTION_LINES: {
   monitorGoesOffline: string;
   monitorOwnerEmailed: string;
   monitorNoLocations: string;
+  probeAgreementSome: string;
+  probeAgreementBoth: string;
+  probeAgreementAll: string;
   pagesYouForEveryNewEvent: string;
   pagesYouAndOthersForEveryNewEvent: string;
   pagesOthersForEveryNewEvent: string;
@@ -398,6 +402,14 @@ export const AI_ACTION_LINES: {
   monitorNoLocations: translationKey(
     "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.",
   ),
+  /*
+   * How many of the locations checking it must agree before its status
+   * changes - all of them on a new monitor (#8245): the probes card's own
+   * sentences (Utils/Monitor/ProbeAgreementRule), its counts figures.
+   */
+  probeAgreementSome: PROBE_AGREEMENT_SENTENCES.some,
+  probeAgreementBoth: PROBE_AGREEMENT_SENTENCES.both,
+  probeAgreementAll: PROBE_AGREEMENT_SENTENCES.all,
   /*
    * set_up_paging (#6829): who the project's first on-call policy pages,
    * by name ({{others}} and {{responders}}: lists of AI_ACTION_NAME and

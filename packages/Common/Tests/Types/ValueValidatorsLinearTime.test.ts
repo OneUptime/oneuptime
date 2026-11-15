@@ -93,6 +93,12 @@ describe("UrlScrubber.scrub reads a long path segment quickly", () => {
     ["headers over and over", repeat("eyJabcdefgh.", LENGTH)],
     ["escapes of escapes", repeat("%2525", LENGTH)],
     ["an escaped address escaped again", repeat("a%2540", LENGTH)],
+    // #8489: standard base64's "+", and "=" that is no padding.
+    [
+      "a token in standard base64, then too many =",
+      repeat("a+", LENGTH) + "===",
+    ],
+    ["equals signs", repeat("=", LENGTH)],
   ])("decides %s quickly", (_label: string, segment: string) => {
     const timed: FastestRun<void> = fastestRun({
       run: (): void => {

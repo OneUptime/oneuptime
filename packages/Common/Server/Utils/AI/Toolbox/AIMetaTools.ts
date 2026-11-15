@@ -48,13 +48,25 @@ import {
   AIActionSentence,
   aiActionSentence,
   aiActionTerm,
+  AIActionSentenceValue,
 } from "../../../../Types/AI/AIActionWords";
 import {
   AI_READ_CITATIONS,
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
+  AI_TOOL_CITATION_PLURALS,
+  AI_READ_AI_RUN_STATUSES,
+  AI_INSIGHT_SEVERITY_LABELS,
+  AI_INSIGHT_STATUS_LABELS,
+  AI_READ_TRIAGE_LABELS,
 } from "../../../../Types/AI/AIReadTableWords";
-import { citationSentence, countFigure } from "./ReadTableWords";
+import {
+  citationSentence,
+  countFigure,
+  countedValue,
+  termCells,
+} from "./ReadTableWords";
 import {
   getAlertNumberText,
   getIncidentNumberText,
@@ -207,6 +219,25 @@ interface AIInvestigationSubject {
   citationParams: { [key: string]: string };
   // First affected monitor — the dedupe key the automatic investigation lanes record.
   monitorId: ObjectID | undefined;
+}
+
+/*
+ * The incident or the alert a chip names, as words (issue #8311): "Incident
+ * #12" - its kind, said in the reader's language, and its number, or its
+ * ID when it has none, as the subject's label says it.
+ */
+function subjectValue(subject: AIInvestigationSubject): AIActionSentenceValue {
+  return {
+    list: [
+      subject.incidentId
+        ? aiActionSentence(AI_READ_CITATIONS.incident, {
+            incident: subject.reference,
+          })
+        : aiActionSentence(AI_READ_CITATIONS.alert, {
+            alert: subject.reference,
+          }),
+    ],
+  };
 }
 
 /*
@@ -419,7 +450,8 @@ export const GetAIInvestigationTool: ObservabilityTool = {
         dataForLlm:
           "Error: pass exactly one of incidentId or alertId — an investigation belongs to a single incident OR a single alert.",
         rowCount: 0,
-        citationLabel: "AI investigation (invalid arguments)",
+        // In the reader's language (issue #8311).
+        ...citationSentence(AI_TOOL_CITATIONS.aiInvestigationInvalidArguments),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -432,7 +464,7 @@ export const GetAIInvestigationTool: ObservabilityTool = {
       return {
         dataForLlm: `Error: ${incidentId ? "incident" : "alert"} not found (or you do not have access to it).`,
         rowCount: 0,
-        citationLabel: "AI investigation (subject not found)",
+        ...citationSentence(AI_TOOL_CITATIONS.aiInvestigationSubjectNotFound),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -490,7 +522,9 @@ export const GetAIInvestigationTool: ObservabilityTool = {
           ? `No AI investigation has started for ${subject.label} yet: an AI rule makes OneUptime AI wait ${waiting.waitMinutes} ${waiting.waitMinutes === 1 ? "minute" : "minutes"} after it was created, and investigate it at ${waiting.waitUntil.toISOString()} only if it is still open then. If the user wants the investigation now, offer to start it with start_investigation, which starts it at once.`
           : `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation setting being off, or the daily AI budget). You can offer to start one with start_investigation.`,
         rowCount: 0,
-        citationLabel: `AI investigation for ${subject.label} (none found)`,
+        ...citationSentence(AI_TOOL_CITATIONS.aiInvestigationNone, {
+          subject: subjectValue(subject),
+        }),
         citationTarget: {
           type: subject.citationType,
           params: subject.citationParams,
@@ -593,7 +627,10 @@ export const GetAIInvestigationTool: ObservabilityTool = {
     return {
       dataForLlm: parts.join("\n\n"),
       rowCount: serializedRuns.rowCount,
-      citationLabel: `AI investigation for ${subject.label} (${runs.length} ${runs.length === 1 ? "run" : "runs"})`,
+      ...citationSentence(AI_TOOL_CITATIONS.aiInvestigationRuns, {
+        subject: subjectValue(subject),
+        runs: countedValue(AI_TOOL_CITATION_PLURALS.runs, runs.length),
+      }),
       citationTarget: {
         type: subject.citationType,
         params: subject.citationParams,
@@ -612,6 +649,8 @@ export const GetAIInvestigationTool: ObservabilityTool = {
                 AI_READ_RECORD_TABLE_TITLES.alertInvestigations,
                 { alert: subject.reference },
               ),
+          // Each run's status as the AI pages say it (issue #8313).
+          cells: termCells(rows, { status: AI_READ_AI_RUN_STATUSES }),
         },
         columns: [
           { key: "status", title: translationKey("Status") },
@@ -693,7 +732,7 @@ export const QueryAIInsightsTool: ObservabilityTool = {
             AIInsightStatus,
           ).join(", ")}.`,
           rowCount: 0,
-          citationLabel: "AI insights (invalid status filter)",
+          ...citationSentence(AI_TOOL_CITATIONS.aiInsightsInvalidStatus),
           redactionCount: 0,
           isTruncated: false,
         };
@@ -824,6 +863,12 @@ export const QueryAIInsightsTool: ObservabilityTool = {
                   AI_READ_RECORD_TABLE_LINES.aiInsightsInDays,
                   { days: countFigure(lookbackDays) },
                 ),
+                // As the insights inbox says them (issue #8313).
+                cells: termCells(rows, {
+                  severity: AI_INSIGHT_SEVERITY_LABELS,
+                  status: AI_INSIGHT_STATUS_LABELS,
+                  classification: AI_READ_TRIAGE_LABELS,
+                }),
               },
               columns: [
                 { key: "severity", title: translationKey("Severity") },
@@ -945,7 +990,9 @@ export const StartInvestigationTool: ObservabilityTool = {
       return {
         dataForLlm: `An AI investigation is already queued or running for ${subject.label} — not starting another. Follow it with get_ai_investigation.`,
         rowCount: 0,
-        citationLabel: `Investigation already in progress for ${subject.label}`,
+        ...citationSentence(AI_TOOL_CITATIONS.investigationInProgress, {
+          subject: subjectValue(subject),
+        }),
         citationTarget: {
           type: subject.citationType,
           params: subject.citationParams,
@@ -978,7 +1025,9 @@ export const StartInvestigationTool: ObservabilityTool = {
       return {
         dataForLlm: `A recent AI investigation already exists for ${subject.label} (started within the last ${RECENT_INVESTIGATION_REUSE_WINDOW_MINUTES} minutes) — not starting a duplicate. Read it with get_ai_investigation.`,
         rowCount: 0,
-        citationLabel: `Recent investigation exists for ${subject.label}`,
+        ...citationSentence(AI_TOOL_CITATIONS.recentInvestigationExists, {
+          subject: subjectValue(subject),
+        }),
         citationTarget: {
           type: subject.citationType,
           params: subject.citationParams,
@@ -1064,7 +1113,9 @@ export const StartInvestigationTool: ObservabilityTool = {
                 )}`
               : `The investigation for ${subject.label} could not be enqueued — the project may have reached its daily AI limit, or the enqueue failed. Try again later.`,
         rowCount: 0,
-        citationLabel: `Investigation not enqueued for ${subject.label}`,
+        ...citationSentence(AI_TOOL_CITATIONS.investigationNotEnqueued, {
+          subject: subjectValue(subject),
+        }),
         citationTarget: {
           type: subject.citationType,
           params: subject.citationParams,
@@ -1085,7 +1136,9 @@ export const StartInvestigationTool: ObservabilityTool = {
     return {
       dataForLlm: `Queued AI investigation run ${enqueuedRunId.toString()} for ${subject.label}. It usually completes within a few minutes and posts a cited root-cause analysis to the ${incidentId ? "incident" : "alert"} timeline. Read the result with get_ai_investigation.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `AI investigation queued for ${subject.label}`,
+      ...citationSentence(AI_TOOL_CITATIONS.investigationQueued, {
+        subject: subjectValue(subject),
+      }),
       citationTarget: {
         type: subject.citationType,
         params: subject.citationParams,

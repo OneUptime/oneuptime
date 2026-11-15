@@ -4,6 +4,16 @@ import { ToolArgs } from "../Toolbox/ToolTypes";
 import { ObservabilityAssistantExtraTool } from "./ObservabilityAssistant";
 import { TOOL_OUTPUT_PAGE_CHARS } from "../../../../Types/AI/AIAgentRunLimits";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import {
+  AIActionSentence,
+  aiActionFigure,
+  aiActionList,
+  aiActionSentence,
+  describeAIActionSentence,
+  isKnownAIActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import { ToolCitation } from "../Toolbox/ReadTableWords";
 /*
  * Long command output, read a page at a time instead of cut off.
  *
@@ -51,6 +61,8 @@ export function hasAgentTruncationMarker(output: string): boolean {
 
 interface StoredToolOutput {
   label: string;
+  // The label's words, when the output's chip had them (issue #8311).
+  words?: AIActionSentence | undefined;
   text: string;
 }
 
@@ -73,6 +85,7 @@ export interface ToolOutputPage {
   totalChars: number;
   hasMore: boolean;
   label: string;
+  words?: AIActionSentence | undefined;
 }
 
 export default class ToolOutputPager {
@@ -103,6 +116,8 @@ export default class ToolOutputPager {
    */
   public paginate(data: {
     label: string;
+    // The label's words, so a page's chip says them (issue #8311).
+    words?: AIActionSentence | undefined;
     text: string;
     // A hint appended to the note, e.g. where kubectl's stderr sits.
     continuationHint?: string | undefined;
@@ -119,7 +134,11 @@ export default class ToolOutputPager {
       };
     }
 
-    const outputId: string = this.store({ label: data.label, text });
+    const outputId: string = this.store({
+      label: data.label,
+      words: data.words,
+      text,
+    });
     const firstPage: string = text.slice(0, this.pageChars);
     const continuationNote: string = ToolOutputPager.describeContinuation({
       outputId,
@@ -183,6 +202,7 @@ export default class ToolOutputPager {
       totalChars,
       hasMore: end < totalChars,
       label: stored.label,
+      words: stored.words,
     };
   }
 
@@ -274,12 +294,40 @@ export default class ToolOutputPager {
       result: {
         dataForLlm: text,
         rowCount: 1,
-        citationLabel: `${page.label} (characters ${page.offset.toLocaleString(
-          "en-US",
-        )}–${page.end.toLocaleString("en-US")})`,
+        // In the reader's language and digits (issue #8311).
+        ...ToolOutputPager.getPageCitation(page),
         redactionCount: 0,
         isTruncated: false,
       },
+    };
+  }
+
+  /*
+   * What a page's chip names: the output's label - its words when it had
+   * them, else as written, a command being data - and which characters the
+   * page holds, figures written the reader's way.
+   */
+  public static getPageCitation(page: {
+    label: string;
+    words?: AIActionSentence | undefined;
+    offset: number;
+    end: number;
+  }): ToolCitation {
+    const words: AIActionSentence = aiActionSentence(
+      AI_TOOL_CITATIONS.outputPage,
+      {
+        label:
+          page.words && isKnownAIActionSentence(page.words)
+            ? aiActionList([page.words])
+            : page.label,
+        start: aiActionFigure(page.offset),
+        end: aiActionFigure(page.end),
+      },
+    );
+
+    return {
+      citationLabel: describeAIActionSentence(words),
+      citationWords: words,
     };
   }
 

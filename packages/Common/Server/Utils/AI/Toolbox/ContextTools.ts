@@ -18,6 +18,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure, ToolCitation } from "./ReadTableWords";
 const CONTEXT_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -27,6 +29,38 @@ const CONTEXT_READ_PERMISSIONS: Array<Permission> = [
   Permission.TelemetryMember,
   Permission.TelemetryViewer,
 ];
+
+/*
+ * What a read of attribute keys names under Sources, in the reader's
+ * language (issue #8311): the kind of telemetry, and a metric's name.
+ */
+const ATTRIBUTE_KEYS_CITATIONS: Record<TelemetryType, string> = {
+  [TelemetryType.Metric]: AI_TOOL_CITATIONS.metricAttributeKeys,
+  [TelemetryType.Trace]: AI_TOOL_CITATIONS.traceAttributeKeys,
+  [TelemetryType.Log]: AI_TOOL_CITATIONS.logAttributeKeys,
+  [TelemetryType.Exception]: AI_TOOL_CITATIONS.exceptionAttributeKeys,
+  [TelemetryType.Profile]: AI_TOOL_CITATIONS.profileAttributeKeys,
+  [TelemetryType.SecurityEvent]: AI_TOOL_CITATIONS.securityEventAttributeKeys,
+};
+
+export function getAttributeKeysCitation(data: {
+  telemetryType: TelemetryType;
+  metricName?: string | undefined;
+  count: number;
+}): ToolCitation {
+  if (data.telemetryType === TelemetryType.Metric && data.metricName) {
+    return citationSentence(AI_TOOL_CITATIONS.metricAttributeKeysOf, {
+      metric: data.metricName,
+      count: countFigure(data.count),
+    });
+  }
+
+  return citationSentence(
+    ATTRIBUTE_KEYS_CITATIONS[data.telemetryType] ||
+      AI_TOOL_CITATIONS.logAttributeKeys,
+    { count: countFigure(data.count) },
+  );
+}
 
 export const LookupContextTool: ObservabilityTool = {
   name: "lookup_context",
@@ -101,7 +135,10 @@ export const LookupContextTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Telemetry services (${serialized.rowCount} found)`,
+        // In the reader's language (issue #8311).
+        ...citationSentence(AI_TOOL_CITATIONS.telemetryServices, {
+          count: countFigure(serialized.rowCount),
+        }),
         citationTarget: undefined,
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,
@@ -140,7 +177,9 @@ export const LookupContextTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Metric names (${serialized.rowCount} found)`,
+        ...citationSentence(AI_TOOL_CITATIONS.metricNames, {
+          count: countFigure(serialized.rowCount),
+        }),
         citationTarget: undefined,
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,
@@ -201,7 +240,11 @@ export const LookupContextTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `${metricName ? `${metricName} ` : ""}${telemetryTypeString} attribute keys (${filtered.length} found)`,
+        ...getAttributeKeysCitation({
+          telemetryType: telemetryTypeString as TelemetryType,
+          metricName,
+          count: filtered.length,
+        }),
         citationTarget: undefined,
         redactionCount: serialized.redactionCount,
         isTruncated: serialized.isTruncated,

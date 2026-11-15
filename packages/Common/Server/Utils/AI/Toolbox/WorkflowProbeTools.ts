@@ -49,6 +49,7 @@ import {
   AI_READ_PROBE_STATUSES,
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
 import {
   citationOf,
@@ -432,7 +433,10 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         return {
           dataForLlm: serializedEmpty.text,
           rowCount: serializedEmpty.rowCount,
-          citationLabel: `Workflow ${workflowId.toString()}`,
+          // In the reader's language (issue #8311).
+          ...citationSentence(AI_TOOL_CITATIONS.workflowById, {
+            id: workflowId.toString(),
+          }),
           citationTarget: {
             type: AIChatCitationTargetType.WorkflowView,
             params: { workflowId: workflowId.toString() },

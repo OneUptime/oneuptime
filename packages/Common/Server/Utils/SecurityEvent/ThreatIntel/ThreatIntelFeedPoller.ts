@@ -642,7 +642,10 @@ export default class ThreatIntelFeedPoller {
 
     const validUntil: Date = this.clampToClickhouseRange(
       this.parseStixDate(stixObject["valid_until"]) ||
-        OneUptimeDate.addRemoveDays(validFrom, THREAT_INTEL_DEFAULT_VALID_DAYS),
+        OneUptimeDate.addRemoveDurationInDays(
+          validFrom,
+          THREAT_INTEL_DEFAULT_VALID_DAYS,
+        ),
     );
 
     const deadOnArrival: boolean =
@@ -676,10 +679,13 @@ export default class ThreatIntelFeedPoller {
      */
     const retentionDate: Date = deadOnArrival
       ? this.laterOf(
-          OneUptimeDate.addRemoveDays(validUntil, 1),
-          OneUptimeDate.addRemoveDays(now, THREAT_INTEL_DEFAULT_VALID_DAYS + 1),
+          OneUptimeDate.addRemoveDurationInDays(validUntil, 1),
+          OneUptimeDate.addRemoveDurationInDays(
+            now,
+            THREAT_INTEL_DEFAULT_VALID_DAYS + 1,
+          ),
         )
-      : OneUptimeDate.addRemoveDays(validUntil, 1);
+      : OneUptimeDate.addRemoveDurationInDays(validUntil, 1);
 
     const rows: Array<JSONObject> = values.map(
       (value: ParsedIndicatorValue): JSONObject => {
@@ -820,7 +826,10 @@ export default class ThreatIntelFeedPoller {
 
       const tombstoneRetention: Date = this.laterOf(
         storedRetention,
-        OneUptimeDate.addRemoveDays(now, THREAT_INTEL_DEFAULT_VALID_DAYS + 1),
+        OneUptimeDate.addRemoveDurationInDays(
+          now,
+          THREAT_INTEL_DEFAULT_VALID_DAYS + 1,
+        ),
       );
 
       pageRows.push({

@@ -235,7 +235,7 @@ export default class ServerMonitorCriteria {
       const expiresAt: Date | undefined = sslResponse && sslResponse.expiresAt;
       const days: number | undefined =
         expiresAt &&
-        OneUptimeDate.getDaysBetweenTwoDates(
+        OneUptimeDate.getWholeDaysOfTimeBetween(
           OneUptimeDate.getCurrentDate(),
           expiresAt,
         );
