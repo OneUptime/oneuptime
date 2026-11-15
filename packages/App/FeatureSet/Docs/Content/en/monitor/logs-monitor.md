@@ -92,6 +92,8 @@ Every log is stored with one of seven severities. For OpenTelemetry logs it come
 | **Fatal** | 21–24 |
 | **Unspecified** | Anything else |
 
+A log that sets no severity number takes its severity from its severity text, in any case: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `FATAL`, their numbered steps such as `WARN2`, and spellings such as `warning`, `notice`, `critical` and `emerg`. Any other text leaves the severity unspecified.
+
 ## How it is evaluated
 
 - **Every minute.** A Logs monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
