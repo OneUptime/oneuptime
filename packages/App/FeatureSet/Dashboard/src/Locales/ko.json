@@ -52346,6 +52346,7 @@
   "Failed runs": "실패한 실행",
   "Free memory": "사용 가능한 메모리",
   "Healthy backends": "정상 백엔드",
+  "If nobody has acknowledged yet": "아직 아무도 확인하지 않았으면",
   "Its cloud sent no value for this in the last read.": "마지막 읽기에서 클라우드가 이 값을 보내지 않았습니다.",
   "Network in": "네트워크 수신",
   "Network out": "네트워크 송신",
@@ -52358,8 +52359,12 @@
   "Read operations": "읽기 작업",
   "Request units": "요청 단위",
   "Showing what {{name}} is connected to.": "{{name}}에 연결된 항목을 표시하고 있습니다.",
+  "Used for every incident, alert and episode, of every severity.": "모든 인시던트, 알림, 에피소드에 심각도와 관계없이 사용됩니다.",
   "What it is connected to": "연결된 항목",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "호출되면 OneUptime은 누군가 확인할 때까지 각 단계를 차례로 시도합니다.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "{{name}}이(가) 호출되면 OneUptime은 누군가 확인할 때까지 각 단계를 차례로 시도합니다.",
   "Write operations": "쓰기 작업",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "이 단계들에 저장되지 않은 변경 사항이 있습니다. 지금 나가면 변경 사항이 사라집니다.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "브라우저 키입니다. 클라이언트에 배포하도록 만들어졌습니다. 웹 출처는 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트를 보낼 수 있고, app:// ID는 React Native 세션 리플레이만 허용합니다. 허용되는 ID: {{identities}}. 네이티브 앱 ID는 앱이 스스로 밝히는 것이며 플랫폼의 증명이 아닙니다.",
@@ -52392,5 +52397,6 @@
   "Void": "무효",
   "Change (schema change)": "변경 사항",
   "Table (database object)": "테이블",
-  "View (database object)": "뷰"
+  "View (database object)": "뷰",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. 이 단계를 보낼 시점을 변경합니다."
 }

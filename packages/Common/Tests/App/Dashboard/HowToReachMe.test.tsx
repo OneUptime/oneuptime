@@ -22,11 +22,16 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * HOW TO REACH ME (#6820): the page opens on one ladder, opens on the grid
- * for rules that differ or a link to one kind, names every difference, and
- * saves a ladder in one request - for yourself, or for a member with their
- * masked methods. The reads and the save are stood in for; the ladder's
- * reading and planning are the real Common functions.
+ * HOW TO REACH ME (#6820, drawn as steps in #8139): the page opens on one
+ * ladder - numbered steps, each a time and the ways to reach the person
+ * that go out together then - opens on the grid for rules that differ or
+ * a link to one kind, names every difference, and saves a ladder in one
+ * request, for yourself or for a member with their masked methods. A step's
+ * time is changed on its heading and moves the whole step; Add puts a way
+ * into a step, Add Step starts one after the last; Save Changes shows once
+ * there is something to save, and leaving before then asks first. The reads
+ * and the save are stood in for; the ladder's reading and planning are the
+ * real Common functions, and the menus are the real MoreMenu.
  */
 
 const loadDataMock: MockFunction = getJestMockFunction();
@@ -38,6 +43,11 @@ let setQueryStringSpy: SpyInstance<
   (
     ...args: Parameters<typeof Navigation.setQueryString>
   ) => ReturnType<typeof Navigation.setQueryString>
+>;
+let navigateSpy: SpyInstance<
+  (
+    ...args: Parameters<typeof Navigation.navigate>
+  ) => ReturnType<typeof Navigation.navigate>
 >;
 
 const PAGE_PATH: string =
@@ -146,55 +156,6 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
   };
 });
 
-interface DropdownOptionStub {
-  label: string;
-  value: string | number;
-}
-
-// react-select stood in for: a select, named by its aria label.
-jest.mock("../../../UI/Components/Dropdown/Dropdown", () => {
-  return {
-    __esModule: true,
-    DROPDOWN_MENU_Z_INDEX: 60,
-    default: (props: {
-      options: Array<DropdownOptionStub>;
-      value?: DropdownOptionStub | undefined;
-      ariaLabel?: string;
-      placeholder?: string;
-      dataTestId?: string;
-      onChange?: ((value: string | number) => void) | undefined;
-    }): ReactElement => {
-      return (
-        <select
-          aria-label={props.ariaLabel || props.placeholder}
-          data-testid={props.dataTestId}
-          value={props.value ? String(props.value.value) : ""}
-          onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-            const picked: DropdownOptionStub | undefined = props.options.find(
-              (option: DropdownOptionStub): boolean => {
-                return String(option.value) === event.target.value;
-              },
-            );
-
-            if (picked) {
-              props.onChange?.(picked.value);
-            }
-          }}
-        >
-          <option value="">{props.placeholder || ""}</option>
-          {props.options.map((option: DropdownOptionStub) => {
-            return (
-              <option key={String(option.value)} value={String(option.value)}>
-                {option.label}
-              </option>
-            );
-          })}
-        </select>
-      );
-    },
-  };
-});
-
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
@@ -220,6 +181,7 @@ import {
 } from "../../../Types/NotificationRule/PagingLadder";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import LeaveGuard from "../../../UI/Utils/LeaveGuard";
 import Navigation from "../../../UI/Utils/Navigation";
 import UserUtil from "../../../UI/Utils/User";
 
@@ -323,6 +285,7 @@ const step: (
   };
 };
 
+// SMS at once, then a call after five minutes.
 const ONE_LADDER: Array<PagingLadderRule> = rulesFor(CELLS, [
   step("userSmsId", SMS, 0),
   step("userCallId", CALL, 5),
@@ -365,15 +328,75 @@ const pageView: () => string | null = (): string | null => {
   return screen.getByTestId("how-to-reach-me").getAttribute("data-view");
 };
 
+// The ladder's steps, in order: each step's time and the ways it reaches the person.
+const drawnSteps: () => Array<{
+  wait: string;
+  methods: Array<string>;
+}> = (): Array<{ wait: string; methods: Array<string> }> => {
+  return screen
+    .getAllByTestId("paging-ladder-wait-group")
+    .map((group: HTMLElement) => {
+      return {
+        wait:
+          within(group).getByTestId("paging-ladder-step-wait").textContent ||
+          "",
+        methods: within(group)
+          .getAllByTestId("paging-ladder-method")
+          .map((method: HTMLElement): string => {
+            return method.textContent || "";
+          }),
+      };
+    });
+};
+
+// Lets a read or a save still in flight finish, inside act().
+const settle: () => Promise<void> = async (): Promise<void> => {
+  await act(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  });
+};
+
+const stepGroup: (index: number) => HTMLElement = (
+  index: number,
+): HTMLElement => {
+  return screen.getAllByTestId("paging-ladder-wait-group")[index]!;
+};
+
+// Opens a step's time and picks another.
+const changeStepWait: (index: number, minutes: number) => void = (
+  index: number,
+  minutes: number,
+): void => {
+  fireEvent.click(
+    within(stepGroup(index)).getByTestId("paging-ladder-step-wait"),
+  );
+  fireEvent.click(screen.getByTestId(`paging-ladder-wait-option-${minutes}`));
+};
+
+// The labels an open Add menu offers, in order.
+const offeredMethods: () => Array<string> = (): Array<string> => {
+  return screen
+    .queryAllByTestId(/^paging-ladder-add-option-/)
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+};
+
 beforeEach(() => {
   ruleCounter = 0;
   queryType = null;
   tabsProps = null;
+  LeaveGuard.reset();
   loadDataMock.mockReset();
   loadMethodsMock.mockReset();
   saveMock.mockReset();
   sendEventMock.mockReset();
   setQueryStringSpy = jest.spyOn(Navigation, "setQueryString");
+  navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
+    // Where it goes is what is checked.
+  });
   loadMethodsMock.mockResolvedValue(MY_METHODS);
   saveMock.mockResolvedValue({
     createdCount: 0,
@@ -386,11 +409,12 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  LeaveGuard.reset();
   jest.restoreAllMocks();
 });
 
 describe("which view it opens on", () => {
-  test("one ladder for everything opens on the ladder, grouped by when each step is used", async () => {
+  test("one ladder for everything opens on the ladder, as numbered steps in paging order", async () => {
     givenRules(ONE_LADDER);
     renderPage();
 
@@ -399,16 +423,47 @@ describe("which view it opens on", () => {
     expect(
       screen.getByText("How to reach me when I am on call"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "When you are paged, OneUptime tries each step in turn until somebody acknowledges.",
+      ),
+    ).toBeInTheDocument();
 
-    const groups: Array<HTMLElement> = screen.getAllByTestId(
-      "paging-ladder-wait-group",
+    expect(drawnSteps()).toEqual([
+      { wait: "At once", methods: ["SMS: +15550100"] },
+      // The method's name as the cards below name it: "Phone call", never the shared "Call" (#7178).
+      { wait: "After 5 minutes", methods: ["Phone call: +15550100"] },
+    ]);
+
+    // Numbered down the line.
+    expect(
+      screen
+        .getAllByTestId("paging-ladder-step-number")
+        .map((number: HTMLElement): string => {
+          return number.textContent || "";
+        }),
+    ).toEqual(["1", "2"]);
+
+    // A later step is skipped once somebody acknowledges, and says so; the first is not.
+    expect(
+      within(stepGroup(0)).queryByTestId("paging-ladder-if-not-acknowledged"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(stepGroup(1)).getByTestId("paging-ladder-if-not-acknowledged"),
+    ).toHaveTextContent("If nobody has acknowledged yet");
+
+    // Each way to reach the person has its kind's icon.
+    expect(screen.getAllByTestId("paging-ladder-method-icon")).toHaveLength(2);
+
+    // What it is for, beside the way to make some severities differ.
+    expect(screen.getByTestId("paging-ladder-scope")).toHaveTextContent(
+      "Used for every incident, alert and episode, of every severity.",
     );
-    expect(groups).toHaveLength(2);
-    expect(within(groups[0]!).getByText("At once")).toBeInTheDocument();
-    expect(within(groups[0]!).getByText("SMS")).toBeInTheDocument();
-    expect(within(groups[1]!).getByText("After 5 minutes")).toBeInTheDocument();
-    // The method's name as the cards below name it: "Phone call", never the shared "Call" (#7178).
-    expect(within(groups[1]!).getByText("Phone call")).toBeInTheDocument();
+
+    // Nothing changed: nothing to save, and no button for it.
+    expect(
+      screen.queryByTestId("paging-ladder-save-bar"),
+    ).not.toBeInTheDocument();
 
     // Your own page: the test page at its foot.
     expect(screen.getByTestId("test-page-card-stub")).toBeInTheDocument();
@@ -466,7 +521,7 @@ describe("which view it opens on", () => {
     expect(screen.getByText("Back to One Ladder")).toBeInTheDocument();
   });
 
-  test("a person with no rules yet opens on an empty ladder that says so", async () => {
+  test("a person with no rules yet opens on an empty ladder that says so, with one button to start it", async () => {
     givenRules([]);
     renderPage();
 
@@ -477,7 +532,10 @@ describe("which view it opens on", () => {
         "Nothing reaches you when you are paged yet. Add a way to reach you.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("paging-ladder-save")).toBeDisabled();
+    expect(screen.getByTestId("paging-ladder-add-first")).toHaveTextContent(
+      "Add a way to reach you",
+    );
+    expect(screen.queryByTestId("paging-ladder-save")).not.toBeInTheDocument();
   });
 
   test("a failed read says so, and reading again shows the ladder", async () => {
@@ -500,17 +558,55 @@ describe("which view it opens on", () => {
 });
 
 describe("moving between the ladder and the grid", () => {
-  test("Different for Some Severities opens the grid, and says so in an event", async () => {
+  test("Different for Some Severities, at the ladder's foot, opens the grid and says so in an event", async () => {
     givenRules(ONE_LADDER);
     renderPage();
 
-    fireEvent.click(await screen.findByText("Different for Some Severities"));
+    const openGrid: HTMLElement = await screen.findByTestId(
+      "paging-ladder-open-grid",
+    );
+    expect(openGrid).toHaveTextContent("Different for Some Severities");
+    expect(
+      within(screen.getByTestId("paging-ladder-scope")).getByTestId(
+        "paging-ladder-open-grid",
+      ),
+    ).toBe(openGrid);
+
+    fireEvent.click(openGrid);
 
     expect(pageView()).toBe("grid");
     expect(sendEventMock).toHaveBeenCalledWith(
       ProductEventName.PagingLadderGridOpened,
       { is_own: true, differing_card_count: 0 },
     );
+  });
+
+  test("over changes not saved yet, it asks first: Keep Editing stays, Discard Changes opens the grid", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    changeStepWait(1, 10);
+    fireEvent.click(screen.getByTestId("paging-ladder-open-grid"));
+
+    expect(screen.getByText("Leave without saving?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "You have unsaved changes to these steps. If you leave now, they will be lost.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+
+    expect(pageView()).toBe("ladder");
+    expect(drawnSteps()[1]!.wait).toBe("After 10 minutes");
+    expect(screen.queryByText("Leave without saving?")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("paging-ladder-open-grid"));
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    expect(pageView()).toBe("grid");
+    expect(saveMock).not.toHaveBeenCalled();
   });
 
   test("Back to One Ladder leaves the grid's tab out of the address", async () => {
@@ -544,19 +640,44 @@ describe("moving between the ladder and the grid", () => {
   });
 });
 
-describe("saving a ladder", () => {
-  test("a changed wait is saved for every severity in one request", async () => {
+describe("changing the steps", () => {
+  test("a step's new time is saved for every severity in one request", async () => {
     givenRules(ONE_LADDER);
     renderPage();
     await screen.findByTestId("paging-ladder");
 
-    expect(screen.getByTestId("paging-ladder-save")).toBeDisabled();
-
-    const waits: Array<HTMLElement> = screen.getAllByTestId(
-      "paging-ladder-step-wait",
-    );
     // The call: after 5 minutes, to after 10.
-    fireEvent.change(waits[1]!, { target: { value: "10" } });
+    fireEvent.click(
+      within(stepGroup(1)).getByTestId("paging-ladder-step-wait"),
+    );
+
+    // The times a step can have, the one in use ticked.
+    expect(screen.getByTestId("paging-ladder-wait-option-5")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(
+      [0, 5, 10, 15, 30, 60].map((minutes: number): string => {
+        return (
+          screen.getByTestId(`paging-ladder-wait-option-${minutes}`)
+            .textContent || ""
+        );
+      }),
+    ).toEqual([
+      "At once",
+      "After 5 minutes",
+      "After 10 minutes",
+      "After 15 minutes",
+      "After 30 minutes",
+      "After 60 minutes",
+    ]);
+
+    fireEvent.click(screen.getByTestId("paging-ladder-wait-option-10"));
+
+    expect(drawnSteps()[1]!.wait).toBe("After 10 minutes");
+    expect(screen.getByTestId("paging-ladder-unsaved")).toHaveTextContent(
+      "You have unsaved changes",
+    );
 
     // What the server holds once it has saved, as the page reads it back.
     givenRules(
@@ -581,27 +702,65 @@ describe("saving a ladder", () => {
     expect(await screen.findByTestId("paging-ladder-saved")).toHaveTextContent(
       "Saved. Every severity now uses this ladder.",
     );
+    // Saved: nothing is left to save.
+    expect(screen.queryByTestId("paging-ladder-save")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("paging-ladder-unsaved"),
+    ).not.toBeInTheDocument();
   });
 
-  test("push, then SMS, then a call after five minutes: add push, and the order is the waits", async () => {
+  test("a step moved to another step's time goes out with it", async () => {
     givenRules(ONE_LADDER);
     renderPage();
     await screen.findByTestId("paging-ladder");
 
-    fireEvent.change(screen.getByTestId("paging-ladder-add-step"), {
-      target: { value: `userPushId:${PUSH}` },
+    changeStepWait(1, 0);
+
+    expect(drawnSteps()).toEqual([
+      {
+        wait: "At once",
+        methods: ["SMS: +15550100", "Phone call: +15550100"],
+      },
+    ]);
+  });
+
+  test("a step's Add offers the ways not in it yet, and adds one at that step's time", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    fireEvent.click(
+      within(stepGroup(0)).getByTestId("paging-ladder-add-to-step"),
+    );
+
+    // SMS is in the step already, and a number waiting for its code is no step yet.
+    expect(offeredMethods()).toEqual([
+      "Push notification: Pixel 8",
+      "Email: me@example.com",
+      "Phone call: +15550100",
+    ]);
+    // Your own page: setting up another way to be reached is the menu's last item.
+    expect(screen.getByTestId("paging-ladder-set-up-more")).toHaveTextContent(
+      "Set up more ways to be reached",
+    );
+
+    fireEvent.click(
+      screen.getByTestId(`paging-ladder-add-option-userPushId:${PUSH}`),
+    );
+
+    // Push, then SMS: steps with the same time are listed gentlest first.
+    expect(drawnSteps()[0]).toEqual({
+      wait: "At once",
+      methods: ["Push notification: Pixel 8", "SMS: +15550100"],
     });
 
-    const firstGroup: HTMLElement = screen.getAllByTestId(
-      "paging-ladder-wait-group",
-    )[0]!;
-    const methods: Array<string> = within(firstGroup)
-      .getAllByTestId("paging-ladder-method")
-      .map((element: HTMLElement): string => {
-        return element.textContent || "";
-      });
-    expect(methods).toEqual(["Push notification: Pixel 8", "SMS: +15550100"]);
-
+    givenRules(
+      rulesFor(CELLS, [
+        step("userPushId", PUSH, 0),
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 5),
+      ]),
+    );
     fireEvent.click(screen.getByTestId("paging-ladder-save"));
 
     await waitFor(() => {
@@ -620,6 +779,109 @@ describe("saving a ladder", () => {
       step("userSmsId", SMS, 0),
       step("userCallId", CALL, 5),
     ]);
+    await screen.findByTestId("paging-ladder-saved");
+  });
+
+  test("Add Step starts a step after the last one, at the next time", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    fireEvent.click(screen.getByTestId("paging-ladder-add-step-button"));
+
+    // Every verified way can be a step of its own, a call again included.
+    expect(offeredMethods()).toEqual([
+      "Push notification: Pixel 8",
+      "Email: me@example.com",
+      "SMS: +15550100",
+      "Phone call: +15550100",
+    ]);
+
+    fireEvent.click(
+      screen.getByTestId(`paging-ladder-add-option-userEmailId:${EMAIL}`),
+    );
+
+    expect(drawnSteps()).toEqual([
+      { wait: "At once", methods: ["SMS: +15550100"] },
+      { wait: "After 5 minutes", methods: ["Phone call: +15550100"] },
+      { wait: "After 10 minutes", methods: ["Email: me@example.com"] },
+    ]);
+
+    givenRules(
+      rulesFor(CELLS, [
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 5),
+        step("userEmailId", EMAIL, 10),
+      ]),
+    );
+    fireEvent.click(screen.getByTestId("paging-ladder-save"));
+
+    await waitFor(() => {
+      expect(saveMock).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      (saveMock.mock.calls[0]![0] as { steps: Array<PagingLadderStep> }).steps,
+    ).toEqual([
+      step("userSmsId", SMS, 0),
+      step("userCallId", CALL, 5),
+      step("userEmailId", EMAIL, 10),
+    ]);
+    await screen.findByTestId("paging-ladder-saved");
+  });
+
+  test("no Add Step after a step an hour in, the longest time a step can have", async () => {
+    givenRules(
+      rulesFor(CELLS, [
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 60),
+      ]),
+    );
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    expect(drawnSteps()[1]!.wait).toBe("After 60 minutes");
+    expect(
+      screen.queryByTestId("paging-ladder-add-step"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an empty ladder's button adds a way to reach you at once", async () => {
+    givenRules([]);
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId("paging-ladder-add-first"));
+    fireEvent.click(
+      screen.getByTestId(`paging-ladder-add-option-userSmsId:${SMS}`),
+    );
+
+    expect(drawnSteps()).toEqual([
+      { wait: "At once", methods: ["SMS: +15550100"] },
+    ]);
+
+    givenRules(rulesFor(CELLS, [step("userSmsId", SMS, 0)]));
+    fireEvent.click(screen.getByTestId("paging-ladder-save"));
+
+    await waitFor(() => {
+      expect(saveMock).toHaveBeenCalledWith({
+        userId: undefined,
+        steps: [step("userSmsId", SMS, 0)],
+      });
+    });
+    await screen.findByTestId("paging-ladder-saved");
+  });
+
+  test("Set up more ways to be reached opens Notification Methods", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    fireEvent.click(screen.getByTestId("paging-ladder-add-step-button"));
+    fireEvent.click(screen.getByTestId("paging-ladder-set-up-more"));
+
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy.mock.calls[0]![0].toString()).toContain(
+      "/user-settings/notification-methods",
+    );
   });
 
   test("a removed step is not saved; Discard Changes puts it back", async () => {
@@ -632,7 +894,23 @@ describe("saving a ladder", () => {
 
     fireEvent.click(screen.getByTestId("paging-ladder-discard"));
     expect(screen.getAllByTestId("paging-ladder-step")).toHaveLength(2);
-    expect(screen.getByTestId("paging-ladder-save")).toBeDisabled();
+    expect(
+      screen.queryByTestId("paging-ladder-save-bar"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("each way's × names what it removes", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    expect(
+      screen
+        .getAllByTestId("paging-ladder-step-remove")
+        .map((button: HTMLElement): string | null => {
+          return button.getAttribute("aria-label");
+        }),
+    ).toEqual(["Remove SMS: +15550100", "Remove Phone call: +15550100"]);
   });
 
   test("removing every step leaves nothing to save: an empty ladder pages nobody", async () => {
@@ -646,6 +924,35 @@ describe("saving a ladder", () => {
 
     expect(screen.getByTestId("paging-ladder-empty")).toBeInTheDocument();
     expect(screen.getByTestId("paging-ladder-save")).toBeDisabled();
+    expect(screen.getByTestId("paging-ladder-discard")).toBeInTheDocument();
+  });
+
+  test("changes not saved yet hold the leave guard, until they are saved or discarded", async () => {
+    givenRules(ONE_LADDER);
+    renderPage();
+    await screen.findByTestId("paging-ladder");
+
+    expect(LeaveGuard.isHeld()).toBe(false);
+
+    changeStepWait(1, 15);
+    expect(LeaveGuard.isHeld()).toBe(true);
+
+    fireEvent.click(screen.getByTestId("paging-ladder-discard"));
+    expect(LeaveGuard.isHeld()).toBe(false);
+
+    changeStepWait(1, 15);
+    expect(LeaveGuard.isHeld()).toBe(true);
+
+    givenRules(
+      rulesFor(CELLS, [
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 15),
+      ]),
+    );
+    fireEvent.click(screen.getByTestId("paging-ladder-save"));
+
+    await screen.findByTestId("paging-ladder-saved");
+    expect(LeaveGuard.isHeld()).toBe(false);
   });
 
   test("using one ladder over rules that differ names the cards that change, before anything is saved", async () => {
@@ -672,7 +979,7 @@ describe("saving a ladder", () => {
     expect(saveMock).not.toHaveBeenCalled();
 
     givenRules(ONE_LADDER);
-    fireEvent.click(screen.getAllByText("Save Ladder").pop()!);
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
 
     await waitFor(() => {
       expect(saveMock).toHaveBeenCalledTimes(1);
@@ -685,6 +992,7 @@ describe("saving a ladder", () => {
       ProductEventName.PagingLadderSaved,
       { is_own: true, step_count: 2, replaced_card_count: 1 },
     );
+    await screen.findByTestId("paging-ladder-saved");
   });
 
   test("a save the server refuses says why, and keeps the ladder as it was typed", async () => {
@@ -707,6 +1015,10 @@ describe("saving a ladder", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByTestId("paging-ladder-step")).toHaveLength(1);
     expect(screen.queryByTestId("paging-ladder-saved")).not.toBeInTheDocument();
+    // Still unsaved, and still asked about before leaving.
+    expect(screen.getByTestId("paging-ladder-unsaved")).toBeInTheDocument();
+    expect(LeaveGuard.isHeld()).toBe(true);
+    await settle();
   });
 });
 
@@ -722,33 +1034,15 @@ describe("what is not verified yet", () => {
     expect(within(notVerified).getByText("SMS")).toBeInTheDocument();
 
     // It is not offered as a step until it is verified.
-    const addOptions: Array<string> = Array.from(
-      (screen.getByTestId("paging-ladder-add-step") as HTMLSelectElement)
-        .options,
-    ).map((option: HTMLOptionElement): string => {
-      return option.value;
-    });
-    expect(addOptions).not.toContain(`userSmsId:${UNVERIFIED_SMS}`);
-    expect(addOptions).toContain(`userCallId:${CALL}`);
-
-    // Each is named as the cards' own dropdowns name it (#7178).
+    fireEvent.click(screen.getByTestId("paging-ladder-add-step-button"));
     expect(
-      Array.from(
-        (screen.getByTestId("paging-ladder-add-step") as HTMLSelectElement)
-          .options,
-      )
-        .filter((option: HTMLOptionElement): boolean => {
-          return option.value !== "";
-        })
-        .map((option: HTMLOptionElement): string => {
-          return option.textContent || "";
-        }),
-    ).toEqual([
-      "Push notification: Pixel 8",
-      "Email: me@example.com",
-      "SMS: +15550100",
-      "Phone call: +15550100",
-    ]);
+      screen.queryByTestId(
+        `paging-ladder-add-option-userSmsId:${UNVERIFIED_SMS}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(`paging-ladder-add-option-userCallId:${CALL}`),
+    ).toBeInTheDocument();
 
     fireEvent.click(within(notVerified).getByTestId("paging-ladder-verify"));
     expect(await screen.findByText("Verify +447700900123")).toBeInTheDocument();
@@ -759,6 +1053,7 @@ describe("what is not verified yet", () => {
       expect(loadDataMock).toHaveBeenCalledTimes(2);
     });
     expect(screen.queryByTestId("verify-modal-stub")).not.toBeInTheDocument();
+    await settle();
   });
 
   test("somebody with no verified method is told where to add one", async () => {
@@ -772,7 +1067,7 @@ describe("what is not verified yet", () => {
       await screen.findByTestId("paging-ladder-no-methods"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId("paging-ladder-add-step"),
+      screen.queryByTestId("paging-ladder-add-first"),
     ).not.toBeInTheDocument();
     expect(
       screen.getByText("Set up more ways to be reached"),
@@ -814,6 +1109,11 @@ describe("a member's page", () => {
     expect(
       screen.getByText("How to reach Ana when they are on call"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "When Ana is paged, OneUptime tries each step in turn until somebody acknowledges.",
+      ),
+    ).toBeInTheDocument();
     expect(loadMethodsMock).not.toHaveBeenCalled();
     expect(loadDataMock).toHaveBeenCalledWith(new ObjectID(ANA));
     expect(screen.getAllByTestId("paging-ladder-method")[0]!).toHaveTextContent(
@@ -826,9 +1126,25 @@ describe("a member's page", () => {
       screen.queryByText("Set up more ways to be reached"),
     ).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getAllByTestId("paging-ladder-step-wait")[1]!, {
-      target: { value: "15" },
-    });
+    // A step's Add names the member, and sets up nothing of yours.
+    const add: HTMLElement = within(stepGroup(0)).getByTestId(
+      "paging-ladder-add-to-step",
+    );
+    expect(add).toHaveAttribute("aria-label", "Add a way to reach Ana");
+    fireEvent.click(add);
+    expect(offeredMethods()).toEqual(["Phone call: +1 ••• ••• 0100"]);
+    expect(
+      screen.queryByTestId("paging-ladder-set-up-more"),
+    ).not.toBeInTheDocument();
+    fireEvent.click(add);
+
+    changeStepWait(1, 15);
+    givenRules(
+      rulesFor(CELLS, [
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 15),
+      ]),
+    );
     fireEvent.click(screen.getByTestId("paging-ladder-save"));
 
     await waitFor(() => {
@@ -842,9 +1158,10 @@ describe("a member's page", () => {
       ProductEventName.PagingLadderSaved,
       { is_own: false, step_count: 2, replaced_card_count: 0 },
     );
+    await screen.findByTestId("paging-ladder-saved");
   });
 
-  test("somebody who may not change it reads it, with nothing to press", async () => {
+  test("somebody who may not change it reads it, with nothing to press but the grid", async () => {
     givenRules(ONE_LADDER);
     renderPage({
       userId: new ObjectID(ANA),
@@ -855,7 +1172,14 @@ describe("a member's page", () => {
 
     await screen.findByTestId("paging-ladder");
     expect(screen.getAllByTestId("paging-ladder-step")).toHaveLength(2);
+    // A step's time is read, not pressed.
+    expect(
+      within(stepGroup(1)).getByTestId("paging-ladder-step-wait").tagName,
+    ).toBe("SPAN");
     expect(screen.queryByTestId("paging-ladder-save")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("paging-ladder-add-to-step"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("paging-ladder-add-step"),
     ).not.toBeInTheDocument();
@@ -863,6 +1187,7 @@ describe("a member's page", () => {
       screen.queryByTestId("paging-ladder-step-remove"),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("paging-ladder-read-only")).toBeInTheDocument();
+    expect(screen.getByTestId("paging-ladder-open-grid")).toBeInTheDocument();
   });
 
   test("a rule whose method readiness cannot name says so, never a blank", async () => {
@@ -878,5 +1203,12 @@ describe("a member's page", () => {
     expect(
       screen.getAllByText("A notification method this page cannot name"),
     ).toHaveLength(2);
+    // Its × still names what it removes.
+    expect(
+      screen.getAllByTestId("paging-ladder-step-remove")[0],
+    ).toHaveAttribute(
+      "aria-label",
+      "Remove A notification method this page cannot name",
+    );
   });
 });

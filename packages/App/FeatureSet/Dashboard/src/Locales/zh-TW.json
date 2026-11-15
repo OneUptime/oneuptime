@@ -52346,6 +52346,7 @@
   "Failed runs": "失敗的執行",
   "Free memory": "可用記憶體",
   "Healthy backends": "健康的後端",
+  "If nobody has acknowledged yet": "如果還沒有人確認",
   "Its cloud sent no value for this in the last read.": "雲端在上次讀取時沒有傳送此值。",
   "Network in": "網路流入",
   "Network out": "網路流出",
@@ -52358,8 +52359,12 @@
   "Read operations": "讀取作業",
   "Request units": "要求單位",
   "Showing what {{name}} is connected to.": "正在顯示 {{name}} 連線到的內容。",
+  "Used for every incident, alert and episode, of every severity.": "用於每個事件、警示和事件群組，不分嚴重程度。",
   "What it is connected to": "連線到的內容",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "當您被呼叫時，OneUptime 會依序嘗試每一步，直到有人確認。",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "當 {{name}} 被呼叫時，OneUptime 會依序嘗試每一步，直到有人確認。",
   "Write operations": "寫入作業",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "您對這些步驟有未儲存的變更。如果現在離開，這些變更將會遺失。",
   "{{count}} more parts are not drawn. Search to find one.": "另有 {{count}} 個部分未繪製。可透過搜尋找到。",
   "{{count}} more parts are not drawn. Search to find one._one": "另有 {{count}} 個部分未繪製。可透過搜尋找到。",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "瀏覽器金鑰——用於分發到用戶端。Web 來源可以傳送追蹤、日誌、指標、工作階段重播和 Sentry 事件；app:// 識別僅授權 React Native 的工作階段重播。接受的識別：{{identities}}。原生應用程式識別由應用程式自行宣告，並非平台證明。",
@@ -52392,5 +52397,6 @@
   "Void": "已作廢",
   "Change (schema change)": "變更內容",
   "Table (database object)": "資料表",
-  "View (database object)": "檢視表"
+  "View (database object)": "檢視表",
+  "{{wait}}. Change when this step is sent.": "{{wait}}。變更此步驟的傳送時間。"
 }

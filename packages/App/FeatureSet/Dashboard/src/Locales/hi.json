@@ -52346,6 +52346,7 @@
   "Failed runs": "विफल रन",
   "Free memory": "ख़ाली मेमोरी",
   "Healthy backends": "स्वस्थ बैकएंड",
+  "If nobody has acknowledged yet": "अगर अब तक किसी ने स्वीकार नहीं किया है",
   "Its cloud sent no value for this in the last read.": "पिछली रीड में इसके क्लाउड ने इसके लिए कोई मान नहीं भेजा।",
   "Network in": "नेटवर्क इन",
   "Network out": "नेटवर्क आउट",
@@ -52358,8 +52359,12 @@
   "Read operations": "रीड ऑपरेशन",
   "Request units": "अनुरोध इकाइयाँ",
   "Showing what {{name}} is connected to.": "दिखाया जा रहा है कि {{name}} किससे जुड़ा है।",
+  "Used for every incident, alert and episode, of every severity.": "हर घटना, अलर्ट और एपिसोड के लिए, हर गंभीरता में इस्तेमाल होता है।",
   "What it is connected to": "यह किससे जुड़ा है",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "जब आपको पेज किया जाता है, तो OneUptime हर चरण को बारी-बारी से आज़माता है, जब तक कोई स्वीकार न कर ले।",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "जब {{name}} को पेज किया जाता है, तो OneUptime हर चरण को बारी-बारी से आज़माता है, जब तक कोई स्वीकार न कर ले।",
   "Write operations": "राइट ऑपरेशन",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "इन चरणों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} और हिस्से नहीं दिखाए गए। खोजकर ढूँढें।",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} और हिस्सा नहीं दिखाया गया। खोजकर ढूँढें।",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ब्राउज़र कुंजी — क्लाइंट में बाँटने के लिए बनी है। वेब ओरिजिन ट्रेस, लॉग, मेट्रिक्स, सेशन रीप्ले और Sentry इवेंट भेज सकते हैं; app:// पहचान केवल React Native सेशन रीप्ले की अनुमति देती हैं। स्वीकृत पहचान: {{identities}}। नेटिव ऐप की पहचान ऐप स्वयं बताता है, यह प्लेटफ़ॉर्म का प्रमाणन नहीं है।",
@@ -52392,5 +52397,6 @@
   "Void": "रद्द",
   "Change (schema change)": "बदलाव",
   "Table (database object)": "टेबल",
-  "View (database object)": "व्यू"
+  "View (database object)": "व्यू",
+  "{{wait}}. Change when this step is sent.": "{{wait}}। यह चरण कब भेजा जाए, इसे बदलें।"
 }

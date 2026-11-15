@@ -52346,6 +52346,7 @@
   "Failed runs": "Mislykkede kørsler",
   "Free memory": "Ledig hukommelse",
   "Healthy backends": "Sunde backends",
+  "If nobody has acknowledged yet": "Hvis ingen har bekræftet endnu",
   "Its cloud sent no value for this in the last read.": "Dens cloud sendte ingen værdi for dette ved seneste læsning.",
   "Network in": "Netværk ind",
   "Network out": "Netværk ud",
@@ -52358,8 +52359,12 @@
   "Read operations": "Læseoperationer",
   "Request units": "Anmodningsenheder",
   "Showing what {{name}} is connected to.": "Viser, hvad {{name}} er forbundet med.",
+  "Used for every incident, alert and episode, of every severity.": "Bruges til hver hændelse, advarsel og episode, uanset alvorlighed.",
   "What it is connected to": "Hvad den er forbundet med",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Når du kaldes, prøver OneUptime hvert trin efter tur, indtil nogen bekræfter.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Når {{name}} kaldes, prøver OneUptime hvert trin efter tur, indtil nogen bekræfter.",
   "Write operations": "Skriveoperationer",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i disse trin. Hvis du forlader siden nu, går de tabt.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} dele mere er ikke tegnet. Søg for at finde en.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} del mere er ikke tegnet. Søg for at finde den.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Browsernøgle – beregnet til at blive distribueret til klienter. Weboprindelser må sende spor, protokoller, metrikker, sessionsafspilninger og Sentry-hændelser; app://-identiteter tillader kun sessionsafspilning fra React Native. Accepterede identiteter: {{identities}}. Identiteter for native apps angives af appen selv og er ikke en attestering fra platformen.",
@@ -52392,5 +52397,6 @@
   "Void": "Annulleret",
   "Change (schema change)": "Ændring",
   "Table (database object)": "Tabel",
-  "View (database object)": "Visning"
+  "View (database object)": "Visning",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Skift, hvornår dette trin sendes."
 }

@@ -52346,6 +52346,7 @@
   "Failed runs": "Ejecuciones fallidas",
   "Free memory": "Memoria libre",
   "Healthy backends": "Backends en buen estado",
+  "If nobody has acknowledged yet": "Si nadie lo ha reconocido todavía",
   "Its cloud sent no value for this in the last read.": "Su nube no envió ningún valor para esto en la última lectura.",
   "Network in": "Red de entrada",
   "Network out": "Red de salida",
@@ -52358,8 +52359,12 @@
   "Read operations": "Operaciones de lectura",
   "Request units": "Unidades de solicitud",
   "Showing what {{name}} is connected to.": "Se muestra con qué está conectado {{name}}.",
+  "Used for every incident, alert and episode, of every severity.": "Se usa para cada incidente, alerta y episodio, de cualquier gravedad.",
   "What it is connected to": "Con qué está conectado",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Cuando se te avisa, OneUptime prueba cada paso, uno tras otro, hasta que alguien lo reconoce.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Cuando se avisa a {{name}}, OneUptime prueba cada paso, uno tras otro, hasta que alguien lo reconoce.",
   "Write operations": "Operaciones de escritura",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Tienes cambios sin guardar en estos pasos. Si sales ahora, se perderán.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} partes más no se dibujan. Busca para encontrar una.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} parte más no se dibuja. Búscala para encontrarla.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Clave de navegador: pensada para distribuirse a los clientes. Los orígenes web pueden enviar trazas, registros, métricas, reproducciones de sesiones y eventos de Sentry; las identidades app:// solo autorizan la reproducción de sesiones de React Native. Identidades aceptadas: {{identities}}. Las identidades de aplicaciones nativas las declara la propia aplicación; no son una atestación de la plataforma.",
@@ -52392,5 +52397,6 @@
   "Void": "Anulada",
   "Change (schema change)": "Cambio",
   "Table (database object)": "Tabla",
-  "View (database object)": "Vista"
+  "View (database object)": "Vista",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Cambiar cuándo se envía este paso."
 }

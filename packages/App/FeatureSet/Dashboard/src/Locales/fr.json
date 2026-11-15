@@ -52346,6 +52346,7 @@
   "Failed runs": "Exécutions en échec",
   "Free memory": "Mémoire libre",
   "Healthy backends": "Backends sains",
+  "If nobody has acknowledged yet": "Si personne n'a encore pris en compte",
   "Its cloud sent no value for this in the last read.": "Son cloud n'a envoyé aucune valeur pour cette mesure lors de la dernière lecture.",
   "Network in": "Réseau entrant",
   "Network out": "Réseau sortant",
@@ -52358,8 +52359,12 @@
   "Read operations": "Opérations de lecture",
   "Request units": "Unités de requête",
   "Showing what {{name}} is connected to.": "Affichage de ce à quoi {{name}} est connecté.",
+  "Used for every incident, alert and episode, of every severity.": "S'applique à chaque incident, alerte et épisode, de toute gravité.",
   "What it is connected to": "Ce à quoi il est connecté",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Quand vous êtes appelé, OneUptime essaie chaque étape tour à tour, jusqu'à ce que quelqu'un prenne en compte.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Quand {{name}} est appelé, OneUptime essaie chaque étape tour à tour, jusqu'à ce que quelqu'un prenne en compte.",
   "Write operations": "Opérations d'écriture",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur ces étapes. Si vous quittez la page maintenant, elles seront perdues.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} éléments de plus ne sont pas dessinés. Lancez une recherche pour en trouver un.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} élément de plus n'est pas dessiné. Lancez une recherche pour le trouver.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Clé navigateur — destinée à être distribuée aux clients. Les origines web peuvent envoyer des traces, des journaux, des métriques, des relectures de session et des événements Sentry ; les identités app:// n'autorisent que la relecture de session React Native. Identités acceptées : {{identities}}. Les identités des applications natives sont déclarées par l'application elle-même, sans attestation de la plateforme.",
@@ -52392,5 +52397,6 @@
   "Void": "Annulée",
   "Change (schema change)": "Modification",
   "Table (database object)": "Table",
-  "View (database object)": "Vue"
+  "View (database object)": "Vue",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Modifier quand cette étape est envoyée."
 }

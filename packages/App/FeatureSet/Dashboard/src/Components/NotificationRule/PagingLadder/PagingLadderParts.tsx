@@ -5,13 +5,18 @@ import {
   describePushSettings,
   describeWait,
 } from "./PagingLadderWords";
+import { NOTIFIED_VIA_CHANNEL_ICONS } from "../../OnCallPolicy/ExecutionLogs/NotifiedVia";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   PagingLadderCell,
   PagingLadderChangedStep,
   PagingLadderDifference,
   PagingLadderStep,
+  PagingMethodColumn,
+  getChannelForPagingMethodColumn,
   getPagingLadderStepKey,
 } from "Common/Types/NotificationRule/PagingLadder";
+import Icon from "Common/UI/Components/Icon/Icon";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
@@ -33,6 +38,40 @@ import React, { FunctionComponent, ReactElement } from "react";
 export const UNKNOWN_METHOD_LABEL: string = translationKey(
   "A notification method this page cannot name",
 );
+
+/*
+ * A method's icon, as the person's notification settings, On-Call
+ * Readiness and an on-call run's "Notified via" draw its kind: a phone for
+ * a call, a bell for a push. Read from the step's column, so a method the
+ * page cannot name still shows what kind it is.
+ */
+export const getMethodIcon: (step: {
+  methodColumn: PagingMethodColumn;
+}) => IconProp = (step: { methodColumn: PagingMethodColumn }): IconProp => {
+  return (
+    NOTIFIED_VIA_CHANNEL_ICONS[
+      getChannelForPagingMethodColumn(step.methodColumn)
+    ] || IconProp.Notification
+  );
+};
+
+/*
+ * A method's icon in a small tile, at the start of its row. Left out on a
+ * phone, where the row needs the room for the method's name.
+ */
+export const MethodIcon: FunctionComponent<{
+  step: { methodColumn: PagingMethodColumn };
+}> = (props: { step: { methodColumn: PagingMethodColumn } }): ReactElement => {
+  return (
+    <span
+      className="hidden h-7 w-7 flex-none items-center justify-center rounded-md bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-200 sm:flex"
+      aria-hidden="true"
+      data-testid="paging-ladder-method-icon"
+    >
+      <Icon icon={getMethodIcon(props.step)} className="h-4 w-4" />
+    </span>
+  );
+};
 
 /*
  * "SMS: +15550100" as the cards below name it (#7178): one sentence of the

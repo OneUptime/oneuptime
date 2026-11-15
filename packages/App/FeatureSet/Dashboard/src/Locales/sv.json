@@ -52346,6 +52346,7 @@
   "Failed runs": "Misslyckade körningar",
   "Free memory": "Ledigt minne",
   "Healthy backends": "Felfria backends",
+  "If nobody has acknowledged yet": "Om ingen har bekräftat ännu",
   "Its cloud sent no value for this in the last read.": "Molnet skickade inget värde för detta vid senaste läsningen.",
   "Network in": "Nätverk in",
   "Network out": "Nätverk ut",
@@ -52358,8 +52359,12 @@
   "Read operations": "Läsåtgärder",
   "Request units": "Begärandeenheter",
   "Showing what {{name}} is connected to.": "Visar vad {{name}} är ansluten till.",
+  "Used for every incident, alert and episode, of every severity.": "Används för varje incident, larm och episod, oavsett allvarlighetsgrad.",
   "What it is connected to": "Vad den är ansluten till",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "När du larmas provar OneUptime varje steg i tur och ordning, tills någon bekräftar.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "När {{name}} larmas provar OneUptime varje steg i tur och ordning, tills någon bekräftar.",
   "Write operations": "Skrivåtgärder",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Du har osparade ändringar i de här stegen. Om du lämnar sidan nu går de förlorade.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} delar till är inte ritade. Sök för att hitta en.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} del till är inte ritad. Sök för att hitta den.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Webbläsarnyckel – avsedd att distribueras till klienter. Webbursprung får skicka spår, loggar, mätvärden, sessionsuppspelningar och Sentry-händelser; app://-identiteter tillåter bara sessionsuppspelning från React Native. Godkända identiteter: {{identities}}. Identiteter för native-appar anges av appen själv och är ingen attestering från plattformen.",
@@ -52392,5 +52397,6 @@
   "Void": "Annullerad",
   "Change (schema change)": "Ändring",
   "Table (database object)": "Tabell",
-  "View (database object)": "Vy"
+  "View (database object)": "Vy",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Ändra när det här steget skickas."
 }
