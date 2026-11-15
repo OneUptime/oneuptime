@@ -3,7 +3,9 @@ import {
   isEmptyErrorPhrase,
   isErrorPage,
   isErrorSentence,
+  isTooLargePhrase,
   meetsErrorMessageRule,
+  TOO_LARGE_PHRASES,
 } from "../../../Types/Exception/ErrorMessageRule";
 import { describe, expect, test } from "@jest/globals";
 
@@ -285,5 +287,98 @@ describe("meetsErrorMessageRule", () => {
   test("a sentence in a script with no capitals meets it", () => {
     expect(meetsErrorMessageRule("数据库连接失败。")).toBe(true);
     expect(meetsErrorMessageRule("آیا مطمئن هستید؟")).toBe(true);
+  });
+});
+
+/*
+ * What a proxy says on its own for a 413 (#8278): its status, which says
+ * only that what was sent was too large. API.getFriendlyMessage reads a
+ * 413 that says no more than this as the sentence for what was too large;
+ * a 413 OneUptime explained in a sentence of its own is not one.
+ */
+describe("isTooLargePhrase", () => {
+  test.each([
+    "Request Entity Too Large",
+    "request entity too large",
+    "REQUEST ENTITY TOO LARGE",
+    "Request Entity Too Large.",
+    "  Request Entity Too Large\n",
+    "413 Request Entity Too Large",
+    "413: Request Entity Too Large",
+    "Error 413: Payload Too Large",
+    "error 413 - payload too large.",
+    "HTTP 413 Request Entity Too Large",
+    "Status 413: Content Too Large",
+    "Payload Too Large",
+    "Content Too Large",
+    "Entity Too Large",
+    "Request Too Large",
+    "Request Too Long",
+    "Request body too large",
+    "http: request body too large",
+    "Body too large",
+    "Request size limit exceeded",
+    "Request body size limit exceeded",
+    "Request content length exceeded",
+    '"Payload Too Large"',
+    "[Request Entity Too Large]",
+  ])("%j is only a 413's status", (message: string) => {
+    expect(isTooLargePhrase(message)).toBe(true);
+  });
+
+  test.each([
+    // Said nothing at all: an empty phrase, not a 413's status.
+    "",
+    "   ",
+    "413",
+    "Error 413",
+    // A sentence of OneUptime's own, with the limit in it.
+    "Request body too large. The compressed body of a gzip-encoded request may not exceed 4194304 bytes.",
+    "Multipart request rejected: LIMIT_FILE_SIZE.",
+    "This file is larger than 10 MB. Choose a smaller file.",
+    "Request entity too large: the monitor's steps are larger than 2 MB.",
+    // Another status, and words about something else.
+    "Too Many Requests",
+    "Request Timeout",
+    "Server Error",
+    "Not too large",
+    "Request entity is not too large",
+    "414 URI Too Long",
+    "Request Header Fields Too Large",
+    // In another script: the server's own words.
+    "درخواست بیش از حد بزرگ است.",
+    "リクエストが大きすぎます。",
+    // A page is a page, read by isErrorPage.
+    "<html><head><title>413 Request Entity Too Large</title></head></html>",
+  ])("%j is not only a 413's status", (message: string) => {
+    expect(isTooLargePhrase(message)).toBe(false);
+  });
+
+  test("nothing at all is not one", () => {
+    expect(isTooLargePhrase(undefined)).toBe(false);
+    expect(isTooLargePhrase(null)).toBe(false);
+  });
+
+  test("every phrase on the list is in the lower-case words it is compared as", () => {
+    for (const phrase of TOO_LARGE_PHRASES) {
+      expect(phrase).toBe(phrase.toLowerCase().trim());
+      expect(phrase).not.toMatch(/[^a-z ]/);
+      expect(isTooLargePhrase(phrase)).toBe(true);
+      expect(isTooLargePhrase(`413 ${phrase}`)).toBe(true);
+    }
+  });
+
+  test("none of them is an empty phrase: each is read only for a 413", () => {
+    for (const phrase of TOO_LARGE_PHRASES) {
+      expect(isEmptyErrorPhrase(phrase)).toBe(false);
+    }
+  });
+
+  test("a long message is read in linear time", () => {
+    const long: string = "Request Entity Too Large ".repeat(40_000);
+    const started: number = Date.now();
+
+    expect(isTooLargePhrase(long)).toBe(false);
+    expect(Date.now() - started).toBeLessThan(2_000);
   });
 });
