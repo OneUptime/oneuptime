@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+Архивирование облака ничего из этого не отключает. Архивированное облако только скрыто из списков: оно по-прежнему собирается, а его проверки API и проверка жизненного цикла продолжают выполняться. Чтобы остановить проверку, отключите её.
+
 ## ИИ-агент
 
 `docker-compose.yml` агента также запускает **ИИ-агент OpenStack**, `oneuptime-openstack-ai-agent` (образ `oneuptime/resource-ai-agent:release`). Пока ИИ OneUptime расследует инцидент или оповещение на этом облаке, он выполняет через него команды `openstack` только для чтения — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — и указывает, что запускал. В агенте нет бинарного файла `openstack` и нет оболочки: каждая команда превращается в один `GET` к службе, которая на неё отвечает, с собственными учётными данными агента. Агент регистрируется с тем же `OPENSTACK_CLOUD_NAME`, о котором сообщает коллектор, поэтому он обслуживает это облако.

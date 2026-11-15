@@ -58,8 +58,6 @@ import {
   SetAsideCounts,
   getClaimSetAsideParameters,
   getClaimSetAsideStatement,
-  getMakeDueNowParameters,
-  getMakeDueNowStatement,
   readSetAsideCounts,
   setAsideAfterClaim,
 } from "../Probe/ClaimSetAside";
@@ -765,8 +763,9 @@ export default class OpenStackCheckStore {
    * The check rows that are due, moved an interval on, and locked while they are: nothing else can
    * hand these out. A check nobody may run any more is claimed and answered with nothing, so it
    * does not sit at the head of every later claim. A check the claim may not hand out at all -
-   * turned off, of an archived cloud, on a probe that may not run it, of a suspended project - is
-   * set aside after it (setAsideUnclaimable), for the same reason.
+   * turned off, of a deleted cloud, on a probe that may not run it, of a suspended project - is
+   * set aside after it (setAsideUnclaimable), for the same reason. An archived cloud's checks are
+   * handed out like any other's (getClaimableSql).
    *
    * One self-committing statement (OneUptime issue #7194), as the collection's claim explains
    * (OpenStackProbeCollectionStore.claimDueClouds): locked FOR NO KEY UPDATE SKIP LOCKED and moved
@@ -920,8 +919,8 @@ export default class OpenStackCheckStore {
 
   /*
    * Sets aside the probe's due checks of one kind that nothing may run now (Utils/Probe/
-   * ClaimSetAside): that kind turned off, deleted, of a deleted or archived cloud, on a probe that
-   * may not run them, or of a suspended, blocked, sample or deleted project. Each is judged again
+   * ClaimSetAside): that kind turned off, deleted, of a deleted cloud, on a probe that may not run
+   * them, or of a suspended, blocked, sample or deleted project. Each is judged again
    * by the claim's own rule (getClaimableSql, IS NOT TRUE), so a check the claim would hand out is
    * never moved. The probe's checks are found as the claim finds them: those that name it, and
    * those that name no probe, of the clouds it collects. Makes due the probe's checks with no due
@@ -988,7 +987,13 @@ export default class OpenStackCheckStore {
    * a missing cloud, project or probe is NULL here, never true.
    *
    * - The kind is on: the API checks, or the lifecycle check or the sweep that clears up after it.
-   * - Neither the check nor its cloud is deleted, and the cloud is not archived.
+   * - Neither the check nor its cloud is deleted. Archived or not: archiving a cloud hides it from
+   *   the lists, and it keeps being collected and checked, as the Archived page says (OneUptime
+   *   issue #8449). The claim set an archived cloud's checks aside, so its check results stopped
+   *   while its metrics went on, and so did the sweep after a lifecycle run: what a run left in
+   *   the customer's cloud stayed there, counting against the check project's quota, until the
+   *   cloud was unarchived. Each check has its own switch on the Checks page, and turning the
+   *   lifecycle check off still clears up after it (OpenStackCheckSettings).
    * - The tenancy backstop: the project's own probe, or a global probe on an instance where those
    *   are the operator's own (billing off).
    * - The project is served (ProjectService.getActiveProjectStatusQuery): not deleted, not blocked,
@@ -1007,7 +1012,6 @@ export default class OpenStackCheckStore {
         : `(ck."isLifecycleCheckEnabled" = true OR ck."isSweepPending" = true)`,
       `ck."deletedAt" IS NULL`,
       `c."deletedAt" IS NULL`,
-      `c."isArchived" = false`,
       `((pr."isGlobalProbe" = false AND pr."projectId" = ck."projectId") OR (pr."isGlobalProbe" = true AND ${parameters.isBillingEnabledParameter}::boolean = false))`,
       `pr."deletedAt" IS NULL`,
       `p."deletedAt" IS NULL`,
@@ -1016,42 +1020,6 @@ export default class OpenStackCheckStore {
       `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
       `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
     ].join("\n          AND ");
-  }
-
-  /*
-   * Makes checks due now, both kinds, unless they are due already (Utils/Probe/ClaimSetAside,
-   * getMakeDueNowStatement): for a write that makes a check the claim set aside claimable again
-   * and does not make it due itself, such as its cloud unarchived (OpenStackCloudService). A kind
-   * turned on, a sweep or a run asked for make themselves due (OpenStackCheckSettings). `byCloud`
-   * names the checks by their cloud. Any service's connection will do: this is one statement.
-   */
-  public static async makeDueNow(
-    service: Pick<OpenStackCheckService, "getRepository">,
-    data: {
-      ids: Array<ObjectID>;
-      byCloud?: boolean | undefined;
-    },
-  ): Promise<void> {
-    const parameters: Array<unknown> | null = getMakeDueNowParameters({
-      ids: data.ids,
-      currentDate: OneUptimeDate.getCurrentDate(),
-    });
-
-    if (!parameters) {
-      return;
-    }
-
-    await service.getRepository().manager.query(
-      getMakeDueNowStatement({
-        table: "OpenStackCloudCheck",
-        dueColumns: [
-          OpenStackCheckStore.getDueColumn("api"),
-          OpenStackCheckStore.getDueColumn("lifecycle"),
-        ],
-        idColumn: data.byCloud ? "openStackCloudId" : "_id",
-      }),
-      parameters,
-    );
   }
 
   private static async readClaimed(
