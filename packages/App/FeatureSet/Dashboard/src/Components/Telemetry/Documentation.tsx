@@ -60,10 +60,12 @@ import {
   isCompatibleIngestMethod,
 } from "./CompatibleIngestGuide";
 import {
+  FluentdRunsIn,
   getFluentBitConfig,
   getFluentBitDockerCompose,
   getFluentdConfig,
   getFluentdDockerCompose,
+  getFluentdHostCommands,
 } from "./LogShipperSnippets";
 import {
   getEnvVarSnippet,
@@ -642,6 +644,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const [sentryRuntime, setSentryRuntime] = useState<SentryRuntime>(
     SentryRuntime.Server,
   );
+  /*
+   * The tabs picked in the Fluentd guide, most recent first: its file and
+   * its run step each offer "On the host" and "Docker Compose", and a pick
+   * in one switches both, since the file differs between them (#8007).
+   */
+  const [fluentdTabs, setFluentdTabs] = useState<Array<string>>([]);
 
   /*
    * The key every snippet on this page is rendered with. Owned here
@@ -1713,6 +1721,37 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
   // Fluentd content
   const renderFluentdContent: () => ReactElement = (): ReactElement => {
+    const onTheHost: string = translate("On the host");
+    const inDockerCompose: string = translate("Docker Compose");
+    const pickFluentdTab: (label: string) => void = (label: string): void => {
+      setFluentdTabs((picked: Array<string>): Array<string> => {
+        return [
+          label,
+          ...picked.filter((other: string): boolean => {
+            return other !== label;
+          }),
+        ];
+      });
+    };
+    /*
+     * The file names a folder for the tail's place that its user owns
+     * where it runs: the host's /var/log/fluent, or the image's
+     * /fluentd/log, which on a host is no folder at all (#8007).
+     */
+    const fluentdConfig: (runsIn: FluentdRunsIn) => ReactElement = (
+      runsIn: FluentdRunsIn,
+    ): ReactElement => {
+      return (
+        <CodeBlock
+          code={withServiceName(
+            getFluentdConfig(compatibleEndpoint, runsIn),
+            props.serviceName,
+          )}
+          language="yaml"
+        />
+      );
+    };
+
     return (
       <div>
         <div className="mt-2">
@@ -1731,12 +1770,19 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             translationKey(
               "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
             ),
-            <CodeBlock
-              code={withServiceName(
-                getFluentdConfig(compatibleEndpoint),
-                props.serviceName,
-              )}
-              language="yaml"
+            <SetupGuideStepVariants
+              selectedLabels={fluentdTabs}
+              onSelectLabel={pickFluentdTab}
+              variants={[
+                {
+                  label: onTheHost,
+                  content: fluentdConfig(FluentdRunsIn.Host),
+                },
+                {
+                  label: inDockerCompose,
+                  content: fluentdConfig(FluentdRunsIn.DockerCompose),
+                },
+              ]}
             />,
           )}
 
@@ -1747,15 +1793,23 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               "Start Fluentd with your configuration, on the host or as a Docker container.",
             ),
             <SetupGuideStepVariants
+              selectedLabels={fluentdTabs}
+              onSelectLabel={pickFluentdTab}
               variants={[
                 {
-                  label: translate("On the host"),
+                  label: onTheHost,
                   content: (
-                    <CodeBlock code="fluentd -c fluentd.conf" language="bash" />
+                    <CodeBlock
+                      code={withServiceName(
+                        getFluentdHostCommands(),
+                        props.serviceName,
+                      )}
+                      language="bash"
+                    />
                   ),
                 },
                 {
-                  label: translate("Docker Compose"),
+                  label: inDockerCompose,
                   content: (
                     <CodeBlock
                       code={withServiceName(
