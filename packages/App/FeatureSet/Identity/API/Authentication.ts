@@ -2542,22 +2542,30 @@ router.post(
       if (!hasEndedSession) {
         const accessToken: string | undefined =
           UserMiddleware.getAccessTokenFromExpressRequest(req);
-        let sessionOfAccessToken: JSONWebTokenData | null = null;
+        let sessionOfAccessToken: SessionToSignOut | null = null;
 
         if (accessToken) {
           try {
-            sessionOfAccessToken = JSONWebToken.decode(
+            /*
+             * Whose session it is and which, and nothing else: no claim of
+             * the token grants anything here - whether its person is a
+             * master admin is answered by readRequestSession alone
+             * (MasterAdminSessionClaimGuard).
+             */
+            const { userId, sessionId }: JSONWebTokenData = JSONWebToken.decode(
               accessToken,
               JsonWebTokenPurpose.UserSession,
               { acceptExpired: true },
             );
+
+            sessionOfAccessToken = sessionId ? { userId, sessionId } : null;
           } catch {
             // Not a session's token OneUptime signed: nothing to end.
             sessionOfAccessToken = null;
           }
         }
 
-        if (sessionOfAccessToken?.sessionId) {
+        if (sessionOfAccessToken) {
           hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
             {
               userId: sessionOfAccessToken.userId,
