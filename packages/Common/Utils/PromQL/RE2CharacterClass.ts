@@ -504,7 +504,7 @@ export const namedSet: (data: {
   negated: boolean;
   ignoreCase: boolean;
 }): Array<number> => {
-  let set: Array<number>;
+  let set: CodePointRanges = data.set;
 
   if (data.ignoreCase) {
     let folded: Array<number> | undefined = foldedNamedSets.get(data.set);
@@ -515,10 +515,9 @@ export const namedSet: (data: {
     }
 
     set = folded;
-  } else {
-    set = [...data.set];
   }
 
+  // A copy: the set kept here, or the table's own, stays as it is.
   return data.negated ? complementOf(set) : [...set];
 };
 
@@ -745,8 +744,8 @@ export class AstralAlphabet {
 
   /*
    * The classes the sets tell apart. Throws PatternProblemError when they
-   * are more than MAX_ASTRAL_CLASSES: a pattern that names more than 2,000
-   * characters beyond U+FFFF apart is too large to run.
+   * are more than MAX_ASTRAL_CLASSES: a pattern that names more than 2,047
+   * characters beyond U+FFFF apart, and the rest, is too large to run.
    */
   public constructor(sets: ReadonlyArray<CodePointRanges>) {
     const parts: Array<Array<number>> = sets.map(

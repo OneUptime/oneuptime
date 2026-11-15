@@ -244,10 +244,7 @@ const PROMETHEUS_FLAGS: RE2Flags = {
 interface LastAtom {
   start: number;
   end: number;
-  /*
-   * Whether JavaScript repeats it only inside a group: an assertion, two
-   * code units, or a repeat.
-   */
+  // Whether JavaScript repeats it only inside a group: an assertion, or a repeat.
   needsGroup: boolean;
   /*
    * The most times its innermost part is repeated, the counts of the
