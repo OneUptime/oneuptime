@@ -2323,6 +2323,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     templateId: ObjectID;
     data: TBaseModel;
     props: DatabaseCommonInteractionProps;
+    // What the create carries beside the record: the owners the step names.
+    miscDataProps?: JSONObject | undefined;
   }): Promise<TBaseModel> {
     throw new BadDataException(
       `${this.model.singularName || "This record"} cannot be created from a template.`,
