@@ -17,6 +17,7 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const StorageArraysArchivedPage: FunctionComponent<
   PageComponentProps
@@ -119,7 +120,7 @@ const StorageArraysArchivedPage: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -133,7 +134,7 @@ const StorageArraysArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: StorageArray): ReactElement => {
               if (!item.storageSystem) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">
@@ -199,7 +200,7 @@ const StorageArraysArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: StorageArray): ReactElement => {
               if (!item["archivedByUser"]) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
             },

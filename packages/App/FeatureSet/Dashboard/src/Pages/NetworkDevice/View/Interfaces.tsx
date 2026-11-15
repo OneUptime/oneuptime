@@ -26,6 +26,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Full interface inventory for one device: counts up top, the optics in its
@@ -384,9 +385,9 @@ const NetworkDeviceInterfaces: FunctionComponent<
                 (item.outRateMbps as number | undefined) ?? undefined;
               return (
                 <span className="text-sm text-gray-700">
-                  {inRate !== undefined ? inRate : "—"}
+                  {inRate !== undefined ? inRate : <TableEmptyValue />}
                   <span className="text-gray-400"> / </span>
-                  {outRate !== undefined ? outRate : "—"}
+                  {outRate !== undefined ? outRate : <TableEmptyValue />}
                 </span>
               );
             },

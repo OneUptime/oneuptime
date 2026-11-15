@@ -16,6 +16,7 @@ import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const HostArchivedPage: FunctionComponent<
   PageComponentProps
@@ -129,7 +130,7 @@ const HostArchivedPage: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || "—"}
+                    {name || <TableEmptyValue />}
                   </AppLink>
                   {showId && (
                     <div className="text-xs text-gray-500 font-mono truncate">
@@ -197,7 +198,7 @@ const HostArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: Host): ReactElement => {
               if (!item["archivedByUser"]) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
             },

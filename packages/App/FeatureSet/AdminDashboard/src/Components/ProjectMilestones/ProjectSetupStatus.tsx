@@ -5,6 +5,7 @@ import ActivationMilestone, {
 } from "Common/Types/Analytics/ActivationMilestone";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Where a project is in its first hour, in the Projects list (issue #6830):
@@ -23,7 +24,7 @@ const ProjectSetupStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (!props.reached) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const summary: ActivationSetupSummary = getActivationSetupSummary(

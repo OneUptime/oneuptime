@@ -37,6 +37,13 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   "Table (database object)",
   // The Schema Changes list's Change filter and column.
   "Change (schema change)",
+  /*
+   * The storage array a hardware component or a volume is in: the storage
+   * widgets' column, a tile's row and the Sort setting's choice (#7522).
+   * The bare "Array" read as a programming array in six languages (配列,
+   * Matriz, Tableau, 배열, 数组, Matrise).
+   */
+  "Array (storage array)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

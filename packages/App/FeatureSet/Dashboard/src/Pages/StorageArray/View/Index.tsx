@@ -36,6 +36,7 @@ import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -284,10 +285,6 @@ const StorageArrayOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  // A word or sentence of the page's, in the reader's language.
-  const tx: (text: string) => string = (text: string): string => {
-    return (translator.translateText(text) as string) || text;
-  };
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [storageArray, setStorageArray] = useState<StorageArray | null>(null);
@@ -1427,27 +1424,14 @@ const StorageArrayOverview: FunctionComponent<
      * The charts draw their titles, descriptions and line names as given:
      * each is looked up here, in the reader's language.
      */
-    const queryConfigs: Array<MetricQueryConfigData> = getGoldenChartQueries({
-      storageSystem: storageArray.storageSystem,
-      arrayName: storageArray.name,
-    }).map((query: MetricQueryConfigData): MetricQueryConfigData => {
-      const alias: MetricQueryConfigData["metricAliasData"] =
-        query.metricAliasData;
-      if (!alias) {
-        return query;
-      }
-      return {
-        ...query,
-        metricAliasData: {
-          ...alias,
-          title: alias.title ? tx(alias.title) : alias.title,
-          description: alias.description
-            ? tx(alias.description)
-            : alias.description,
-          legend: alias.legend ? tx(alias.legend) : alias.legend,
-        },
-      };
-    });
+    const queryConfigs: Array<MetricQueryConfigData> =
+      chartWordsInReadersLanguage(
+        getGoldenChartQueries({
+          storageSystem: storageArray.storageSystem,
+          arrayName: storageArray.name,
+        }),
+        translator,
+      );
 
     if (queryConfigs.length === 0) {
       return <Fragment />;

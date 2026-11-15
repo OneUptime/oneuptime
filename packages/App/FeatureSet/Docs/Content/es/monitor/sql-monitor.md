@@ -250,7 +250,7 @@ Asocie una política de guardia al criterio para que se avise a las personas ade
 
 - La consulta se ejecuta en cada comprobación, así que manténgala barata. Use índices y ventanas de tiempo estrechas, y apóyese en el tiempo de espera de la sentencia como respaldo.
 - Solo se informa del número de filas, la primera celda (escalar) y la primera fila: diseñe su consulta para que el valor sobre el que quiere alertar esté en la primera columna.
-- Si el resultado se trunca por superar Filas máx., el resumen de la comprobación muestra **Filas truncadas**: "Yes (result capped)". Aumente Filas máx. solo si lo necesita; los conjuntos de resultados más grandes consumen más memoria en la sonda.
+- Si el resultado se trunca por superar Filas máx., el resumen de la comprobación muestra **Filas truncadas**: "Sí (resultado limitado)". Aumente Filas máx. solo si lo necesita; los conjuntos de resultados más grandes consumen más memoria en la sonda.
 - Las escrituras y el DDL se rechazan siempre. Si necesita probar una ruta de escritura, este monitor no es para eso.
 - Prefiera un secreto de monitor a una contraseña en texto sin formato, para que la credencial quede cifrada en reposo.
 - Una comprobación cuya consulta falla se reintenta un segundo después, hasta tres veces más, antes de informar del error, para que un corte breve de la conexión no deje el monitor sin conexión. En una sonda autoalojada, `PROBE_MONITOR_RETRY_LIMIT` fija cuántas veces.

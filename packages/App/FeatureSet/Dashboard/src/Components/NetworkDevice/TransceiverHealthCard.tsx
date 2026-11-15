@@ -62,6 +62,8 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   networkDeviceId: ObjectID;
@@ -470,7 +472,7 @@ const TransceiverRow: FunctionComponent<RowProps> = (
         <div
           className={`text-sm ${transceiver.isPresent ? "text-gray-900" : "text-gray-500"}`}
         >
-          {optic || "—"}
+          {optic || <TableEmptyValue />}
         </div>
         {transceiver.serialNumber ? (
           <div className="text-xs text-gray-500">
@@ -575,7 +577,7 @@ const TransceiverListItem: FunctionComponent<RowProps> = (
       <div
         className={`mt-1 text-sm ${transceiver.isPresent ? "text-gray-700" : "text-gray-500"}`}
       >
-        {optic || "—"}
+        {optic || <EmptyValue />}
         {transceiver.serialNumber ? (
           <span className="text-xs text-gray-500">
             <InlineSeparator />
@@ -655,7 +657,7 @@ const ReadingCell: FunctionComponent<ReadingCellProps> = (
   );
 
   if (!props.transceiver.isPresent || !verdict) {
-    return <span className="text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const tone: TransceiverTone = props.isJudged

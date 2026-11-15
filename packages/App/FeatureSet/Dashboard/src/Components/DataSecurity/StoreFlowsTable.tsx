@@ -48,7 +48,7 @@ const OtherStore: FunctionComponent<{
         to={getStoreRoute(props.store._id)}
         className="text-sm font-medium text-gray-900 hover:underline"
       >
-        {props.store.name || "—"}
+        {props.store.name || <TableEmptyValue />}
       </AppLink>
     );
   }
@@ -128,7 +128,7 @@ const StoreFlowsTable: FunctionComponent<ComponentProps> = (
           getElement: (item: DataSecurityFlow): ReactElement => {
             return (
               <span className="text-sm text-gray-700">
-                {translator.translateText(item.kind) || "—"}
+                {translator.translateText(item.kind) || <TableEmptyValue />}
               </span>
             );
           },

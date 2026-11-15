@@ -85,6 +85,8 @@ import RunbookTriggersSummaryElement, {
 } from "../../../Components/Runbook/Triggers/RunbookTriggersSummary";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Link from "Common/UI/Components/Link/Link";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The Activity card's tiles. Last Run and Total Runs are the Overview's way
@@ -125,7 +127,7 @@ function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
     case RunbookExecutionStatus.Scheduled:
       return <Pill text="Scheduled" color={Gray500} isMinimal={true} />;
     default:
-      return <Pill text="—" color={Gray500} isMinimal={true} />;
+      return <TableEmptyValue />;
   }
 }
 
@@ -629,7 +631,11 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     {statusPill(lastExec.status as RunbookExecutionStatus)}
                   </div>
                   <div className="text-sm text-gray-700">
-                    {lastStartedAt ? OneUptimeDate.fromNow(lastStartedAt) : "—"}
+                    {lastStartedAt ? (
+                      OneUptimeDate.fromNow(lastStartedAt)
+                    ) : (
+                      <EmptyValue />
+                    )}
                   </div>
                   <div className="text-xs text-gray-500">
                     {lastStartedAt
@@ -700,7 +706,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="flex items-center gap-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
                   <span className="font-semibold text-gray-900">
-                    {stats.isLoaded ? stats.successRuns : "—"}
+                    {stats.isLoaded ? stats.successRuns : <EmptyValue />}
                   </span>
                   <span className="text-gray-500">
                     {translator.translateText("completed")}
@@ -709,7 +715,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="flex items-center gap-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
                   <span className="font-semibold text-gray-900">
-                    {stats.isLoaded ? stats.failedRuns : "—"}
+                    {stats.isLoaded ? stats.failedRuns : <EmptyValue />}
                   </span>
                   <span className="text-gray-500">
                     {translator.translateText("failed")}

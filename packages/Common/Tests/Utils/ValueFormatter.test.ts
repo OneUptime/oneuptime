@@ -159,10 +159,9 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2 KB/s");
     });
 
-    test("falls back to readable form for unknown numerator", () => {
-      expect(ValueFormatter.formatValue(5, "requests/s")).toBe(
-        "5 requests per Second",
-      );
+    test("keeps the slash for a numerator it cannot scale, never the words (#8049)", () => {
+      expect(ValueFormatter.formatValue(5, "requests/s")).toBe("5 requests/s");
+      expect(ValueFormatter.formatValue(100, "req/s")).toBe("100 req/s");
     });
   });
 
@@ -558,7 +557,7 @@ describe("ValueFormatter", () => {
 
     const cases: Array<NoDriftCase> = [
       { value: 23.5, unit: "Cel", expected: "23.5 Celsius" },
-      { value: 12, unit: "ug/m3", expected: "12 ug per m3" },
+      { value: 12, unit: "ug/m3", expected: "12 ug/m3" },
       { value: 23.5, unit: "%", expected: "23.50%" },
       { value: 1536, unit: "By", expected: "1.54 KB" },
       { value: 0, unit: "By", expected: "0 B" },
@@ -580,7 +579,7 @@ describe("ValueFormatter", () => {
       { value: 42, unit: "{thread}", expected: "42" },
       { value: 1500000, unit: "By/s", expected: "1.5 MB/s" },
       { value: 2000, unit: "bytes/s", expected: "2 KB/s" },
-      { value: 5, unit: "requests/s", expected: "5 requests per Second" },
+      { value: 5, unit: "requests/s", expected: "5 requests/s" },
       { value: 98.6, unit: "[degF]", expected: "98.6 Fahrenheit" },
       { value: 10, unit: "hz", expected: "10 Hertz" },
       { value: 5, unit: "v", expected: "5 Volts" },
@@ -1133,13 +1132,13 @@ describe("ValueFormatter", () => {
       }
     });
 
-    test("the unit's words stay as the formatter names them", () => {
+    test("the unit stays as the formatter names it", () => {
       expect(
         ValueFormatter.formatValueInParts(5, "requests/s", { language: "de" }),
       ).toEqual({
         value: "5",
-        unit: "requests per Second",
-        formatted: "5 requests per Second",
+        unit: "requests/s",
+        formatted: "5 requests/s",
       });
       expect(
         ValueFormatter.formatValueInParts(3600, "seconds", { language: "fa" }),

@@ -41,6 +41,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * An inventory item at a glance: what it is, where it came from, whether it
@@ -146,11 +147,13 @@ const InventoryItemOverview: FunctionComponent<
                 {translator.translateText("First seen")}
               </dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {entity.firstSeenAt
-                  ? OneUptimeDate.getDateAsLocalFormattedString(
-                      entity.firstSeenAt,
-                    )
-                  : "-"}
+                {entity.firstSeenAt ? (
+                  OneUptimeDate.getDateAsLocalFormattedString(
+                    entity.firstSeenAt,
+                  )
+                ) : (
+                  <EmptyValue />
+                )}
               </dd>
             </div>
             <div>
@@ -158,11 +161,11 @@ const InventoryItemOverview: FunctionComponent<
                 {translator.translateText("Last seen")}
               </dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {entity.lastSeenAt
-                  ? OneUptimeDate.getDateAsLocalFormattedString(
-                      entity.lastSeenAt,
-                    )
-                  : "-"}
+                {entity.lastSeenAt ? (
+                  OneUptimeDate.getDateAsLocalFormattedString(entity.lastSeenAt)
+                ) : (
+                  <EmptyValue />
+                )}
               </dd>
             </div>
             <div>
@@ -171,7 +174,7 @@ const InventoryItemOverview: FunctionComponent<
               </dt>
               <dd className="mt-1 flex items-center gap-x-2">
                 <span className="font-mono text-sm break-all text-gray-900">
-                  {entity.entityKey || "-"}
+                  {entity.entityKey || <EmptyValue />}
                 </span>
                 {entity.entityKey ? (
                   <CopyTextButton

@@ -111,6 +111,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How often a new rule runs, as the form starts it: the
@@ -833,7 +834,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                   dataTestId="detection-rule-type"
                 />
               ) : (
-                <span className="text-gray-500">-</span>
+                <TableEmptyValue />
               );
             },
           },

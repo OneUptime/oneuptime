@@ -58,6 +58,7 @@ import {
   translateTemplate,
   translateText,
 } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * `description` explains a section whose chart has no title of its own -
@@ -353,7 +354,7 @@ const KubernetesClusterCosts: FunctionComponent<
         getElement: (row: NamespaceCostRow): ReactElement => {
           // Idle / unallocated capacity has no requests to compare against.
           if (isSentinelNamespace(row.namespace)) {
-            return <span className="text-gray-400">-</span>;
+            return <TableEmptyValue />;
           }
           return getEfficiencyElement(row.efficiency);
         },
@@ -369,7 +370,7 @@ const KubernetesClusterCosts: FunctionComponent<
         key: "controllerName",
         getElement: (row: WorkloadCostRow): ReactElement => {
           if (!row.controllerName) {
-            return <span className="text-gray-400">-</span>;
+            return <TableEmptyValue />;
           }
           return (
             <span className="font-medium text-gray-900">

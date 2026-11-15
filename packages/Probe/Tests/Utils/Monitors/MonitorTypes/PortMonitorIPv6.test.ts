@@ -160,6 +160,11 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import { RequestFailedPhase } from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
+import {
+  readRequestFailureDescription,
+  REQUEST_FAILURE_DESCRIPTIONS,
+  RequestFailureDescription,
+} from "Common/Utils/Monitor/RequestFailureDescriptions";
 import dns from "dns";
 import { SpyInstance } from "jest-mock";
 import net from "net";
@@ -875,4 +880,128 @@ describe("PortMonitor.ping — an IPv6-only name on a probe without IPv6", () =>
       errorCode: "ENOTFOUND",
     });
   });
+});
+
+/*
+ * WHAT A FAILED PORT CHECK MEANS, IN THE READER'S LANGUAGE (#8001).
+ *
+ * Error Details is OneUptime's own fixed English, drawn in the reader's
+ * language only when it is exactly one of RequestFailureDescriptions'.
+ * Every explanation the Port check writes is read back from there.
+ */
+describe("PortMonitor.ping — Error Details", () => {
+  const failWith: (data: {
+    code: string;
+    address: string;
+    message?: string | undefined;
+  }) => Error = (data: {
+    code: string;
+    address: string;
+    message?: string | undefined;
+  }): Error => {
+    return Object.assign(
+      new Error(data.message || `connect ${data.code} ${data.address}:179`),
+      {
+        code: data.code,
+        syscall: "connect",
+        address: data.address,
+        port: 179,
+      },
+    );
+  };
+
+  // eslint-disable-next-line @typescript-eslint/typedef
+  let sleepSpy = jest.spyOn(Sleep, "sleep");
+
+  beforeEach(() => {
+    sleepSpy = jest.spyOn(Sleep, "sleep").mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    sleepSpy.mockRestore();
+  });
+
+  test.each([
+    [
+      "a refused connection",
+      { code: "ECONNREFUSED", address: "192.0.2.10" },
+      RequestFailureDescription.PortTcpConnectionFailed,
+    ],
+    [
+      "a name that did not resolve",
+      {
+        code: "ENOTFOUND",
+        address: "192.0.2.10",
+        message: "getaddrinfo ENOTFOUND bgp.example.com",
+      },
+      RequestFailureDescription.PortDnsResolutionFailed,
+    ],
+    [
+      "a connection that timed out",
+      { code: "ETIMEDOUT", address: "192.0.2.10" },
+      RequestFailureDescription.PortConnectionTimedOut,
+    ],
+    [
+      "an IPv4 connection the probe could not open",
+      { code: "EADDRNOTAVAIL", address: "192.0.2.10" },
+      RequestFailureDescription.PortProbeCouldNotConnect,
+    ],
+    [
+      "an IPv6 connection the probe could not open",
+      { code: "EADDRNOTAVAIL", address: CUSTOMER_ADDRESS },
+      RequestFailureDescription.PortProbeCouldNotConnectOverIPv6,
+    ],
+    [
+      "a probe that cannot send IPv6",
+      { code: "EAFNOSUPPORT", address: CUSTOMER_ADDRESS },
+      RequestFailureDescription.PortProbeCannotSendIPv6,
+    ],
+    [
+      "no IPv6 route",
+      { code: "ENETUNREACH", address: CUSTOMER_ADDRESS },
+      RequestFailureDescription.PortNoIPv6Route,
+    ],
+    [
+      "any other network error",
+      {
+        code: "EPROTO",
+        address: "192.0.2.10",
+        message: "socket hang up",
+      },
+      RequestFailureDescription.PortNetworkError,
+    ],
+  ] as Array<
+    [
+      string,
+      { code: string; address: string; message?: string },
+      RequestFailureDescription,
+    ]
+  >)(
+    "%s: the table's explanation, read back as it",
+    async (
+      _name: string,
+      error: { code: string; address: string; message?: string },
+      description: RequestFailureDescription,
+    ) => {
+      controllableNet.queueConnectError(failWith(error));
+
+      const result: PortMonitorResponse | null = await PortMonitor.ping(
+        IP.fromString(error.address) as never,
+        new Port(179),
+        {
+          retry: 0,
+          timeout: new PositiveNumber(500),
+          isOnlineCheckRequest: true,
+        },
+      );
+      const errorDescription: string | undefined =
+        result?.requestFailedDetails?.errorDescription;
+
+      expect(errorDescription).toBe(REQUEST_FAILURE_DESCRIPTIONS[description]);
+      expect(readRequestFailureDescription(errorDescription)).toEqual({
+        description: description,
+        values: {},
+      });
+    },
+  );
 });

@@ -130,7 +130,7 @@ Les critères par défaut ne surveillent pas d'eux-mêmes l'expiration des signa
 ## Dépannage
 
 :::details La chaîne est signalée rompue, mais la zone se valide avec `dig`
-L'un des résolveurs de **Résolveurs** n'a pas renvoyé l'indicateur AD : il était injoignable depuis la sonde, ou il ne valide pas DNSSEC. Le tableau **Resolver Checks**, dans **Résultat du test du moniteur** et dans le résumé de chaque vérification, montre la réponse et l'erreur de chaque résolveur. Retirez les résolveurs que la sonde ne peut pas joindre, et n'indiquez que des résolveurs validants.
+L'un des résolveurs de **Résolveurs** n'a pas renvoyé l'indicateur AD : il était injoignable depuis la sonde, ou il ne valide pas DNSSEC. Le tableau **Vérifications des résolveurs**, dans **Résultat du test du moniteur** et dans le résumé de chaque vérification, montre la réponse et l'erreur de chaque résolveur. Retirez les résolveurs que la sonde ne peut pas joindre, et n'indiquez que des résolveurs validants.
 :::
 
 :::details Les serveurs de noms sont signalés incohérents juste après une modification

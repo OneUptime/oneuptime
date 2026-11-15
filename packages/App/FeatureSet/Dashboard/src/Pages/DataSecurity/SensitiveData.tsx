@@ -57,6 +57,7 @@ import React, {
   useState,
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * WHERE DOES EACH KIND OF DATA LIVE?
@@ -465,7 +466,7 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
               wrapMaxWidthClassName: "max-w-xs",
               getElement: (row: DataTypeRow): ReactElement => {
                 if (row.frameworks.length === 0) {
-                  return <span className="text-sm text-gray-400">-</span>;
+                  return <TableEmptyValue />;
                 }
 
                 return (
@@ -550,9 +551,11 @@ const DataSecuritySensitiveDataPage: FunctionComponent<
                 getElement: (store: StoreHolding): ReactElement => {
                   return (
                     <span className="text-sm text-gray-700">
-                      {store.kind
-                        ? translator.translateText(store.kind) || store.kind
-                        : "-"}
+                      {store.kind ? (
+                        translator.translateText(store.kind) || store.kind
+                      ) : (
+                        <TableEmptyValue />
+                      )}
                     </span>
                   );
                 },

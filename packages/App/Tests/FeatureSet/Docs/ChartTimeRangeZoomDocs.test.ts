@@ -566,14 +566,19 @@ describe("Zooming Into a Time Range docs: the words a reader meets on screen", (
       hintsBySource[source] = zoomHintsIn(source);
     }
 
-    // Guards the extraction itself: these are the words on screen today.
+    /*
+     * Guards the extraction itself: these are the words on screen today.
+     * The shared hint words both gestures in one line too, for a chart row.
+     */
     expect(hintsBySource[HINT_SOURCES[0]!]).toEqual([
       "Drag to zoom",
       "Double-click to reset",
+      "double-click to reset",
     ]);
-    expect(hintsBySource[HINT_SOURCES[1]!]).toEqual(
-      expect.arrayContaining(["Drag to zoom", "double-click to reset"]),
-    );
+    // A ChartGroup draws the shared hint, and so its words (#8048).
+    expect(hintsBySource[HINT_SOURCES[1]!]).toEqual([]);
+    expect(readCode(HINT_SOURCES[1]!)).toContain("<TimeRangeZoomHint");
+    expect(readCode(HINT_SOURCES[1]!)).toContain("namesDragWhileZoomed={true}");
     for (const histogram of [HINT_SOURCES[2]!, HINT_SOURCES[3]!]) {
       expect(hintsBySource[histogram]).toEqual(
         expect.arrayContaining([

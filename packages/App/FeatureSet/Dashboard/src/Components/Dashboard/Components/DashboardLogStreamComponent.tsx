@@ -15,6 +15,7 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardWidgetError from "./DashboardWidgetError";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -300,12 +301,14 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
               </div>
             );
           })}
-          {logs.length === 0 && (
-            <div className="px-4 py-8 text-center text-gray-400 text-sm">
-              {translator.translateText("No logs found")}
-            </div>
-          )}
         </div>
+        {/*
+         * Nothing in the window: the widget's icon over the shared no-data
+         * line (#8038), in the middle of the box its lines would fill.
+         */}
+        {logs.length === 0 && (
+          <DashboardWidgetEmpty icon={IconProp.List} message="No logs found" />
+        )}
       </div>
     </div>
   );
