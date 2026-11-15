@@ -92,6 +92,8 @@ Cada registro se guarda con una de siete gravedades. En los registros de OpenTel
 | **Fatal** | 21–24 |
 | **Sin especificar** | Cualquier otro |
 
+Un registro sin número de gravedad toma su gravedad de su texto de gravedad, en mayúsculas o minúsculas: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` y `FATAL`, sus pasos numerados como `WARN2` y grafías como `warning`, `notice`, `critical` y `emerg`. Cualquier otro texto deja la gravedad sin especificar.
+
 ## Cómo se evalúa
 
 - **Cada minuto.** Un monitor de registros no lo comprueban sondas, así que no tiene intervalo que configurar ni página **Sondas e intervalo**.

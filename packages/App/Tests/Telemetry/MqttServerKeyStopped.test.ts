@@ -24,6 +24,7 @@ import TelemetryIngestRefusalRecorder, {
   TelemetryIngestRefusalRecord,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import ObjectID from "Common/Types/ObjectID";
+import SecretDigest from "Common/Server/Utils/Telemetry/SecretDigest";
 import { TelemetryIngestRefusalReason } from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
@@ -975,7 +976,7 @@ describe("a session on a device credential", () => {
       IoTDeviceCredentialService.getCredentialContext as unknown as MockFn
     ).mockResolvedValue({
       credentialId,
-      secretKey,
+      secretKeyDigest: SecretDigest.of(secretKey),
       projectId: PROJECT_ID.toString(),
       iotFleetId: ObjectID.generate().toString(),
       fleetName: FLEET,

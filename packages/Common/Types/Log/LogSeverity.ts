@@ -33,7 +33,9 @@ export const LogSeverityNumber: Record<LogSeverity, number> = {
  * Loose severity text -> the enum member actually stored on a log row.
  *
  * Only these seven strings ever reach the database: ingest discards whatever
- * severityText a client sent and re-derives it from severityNumber. So a value
+ * severityText a client sent and re-derives it from severityNumber (or, for a
+ * record that sets no number, from the level the text names:
+ * OtelLogsIngestService.severityNumberFromText). So a value
  * that is merely severity-shaped ("INFO", "warn") matches nothing — and since
  * `=` and `IN` are case-sensitive, it fails silently rather than erroring.
  *
