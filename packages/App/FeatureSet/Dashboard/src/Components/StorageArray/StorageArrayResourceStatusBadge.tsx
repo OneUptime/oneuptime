@@ -6,6 +6,7 @@ import {
   formatStatusLabel,
   getResourceStatusBadgeType,
 } from "../../Pages/StorageArray/Utils/StorageArrayResourceUtils";
+import { getKnownStorageArrayStatusKey } from "../../Pages/StorageArray/Utils/StorageArrayHealth";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
@@ -20,11 +21,20 @@ export interface ComponentProps {
  * mean a part has failed, amber for those that need attention, green for
  * healthy ones and grey for the expected states in between (not installed,
  * unused, disabled) — see StorageArrayResourceUtils for the lists.
+ *
+ * Its word is the reader's (StatusBadge looks it up): a status the rules
+ * know is the key of their list (StorageArrayHealth's
+ * getKnownStorageArrayStatusKey), the one the dashboard's hardware widget
+ * draws too (#7521), so a drive reads "Beeinträchtigt" on its array's page
+ * and on a board alike. Any other word - an alert's severity, a word a new
+ * Purity release brings - is the array's, made readable.
  */
 const StorageArrayResourceStatusBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const label: string = formatStatusLabel(props.status);
+  const label: string =
+    getKnownStorageArrayStatusKey(props.status) ||
+    formatStatusLabel(props.status);
 
   // No status: the object's own words for that, or the quiet dash.
   if (!label) {

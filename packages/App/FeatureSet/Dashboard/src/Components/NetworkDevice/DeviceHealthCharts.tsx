@@ -1,4 +1,5 @@
 import MetricView from "../Metrics/MetricView";
+import { chartWordsInReadersLanguage } from "../Metrics/Utils/ChartWordsInReadersLanguage";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -26,6 +27,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   networkDeviceId: ObjectID;
@@ -83,6 +86,7 @@ function resolveSeriesTitleFromAttributes(
 const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_HOUR,
   });
@@ -92,75 +96,79 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
       ProjectUtil.getCurrentProjectId()?.toString() || "";
     const networkDeviceId: string = props.networkDeviceId.toString();
 
-    return [
-      {
-        metricAliasData: {
-          metricVariable: "interface_utilization",
-          title: "Interface Utilization",
-          description:
-            "Per-interface bandwidth utilization. One series per interface.",
-          legend: "Utilization",
-          legendUnit: "%",
-        },
-        metricQueryData: {
-          filterData: {
-            metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
-            attributes: {
-              networkDeviceId: networkDeviceId,
-              projectId: projectId,
+    // In the reader's language: the charts draw their words as handed (#8047).
+    return chartWordsInReadersLanguage(
+      [
+        {
+          metricAliasData: {
+            metricVariable: "interface_utilization",
+            title: "Interface Utilization",
+            description:
+              "Per-interface bandwidth utilization. One series per interface.",
+            legend: "Utilization",
+            legendUnit: "%",
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
+              attributes: {
+                networkDeviceId: networkDeviceId,
+                projectId: projectId,
+              },
+              aggegationType: AggregationType.Max,
             },
-            aggegationType: AggregationType.Max,
-          },
-          groupBy: {
-            attributes: true,
-          },
-        },
-        getSeries: (data: AggregateModel): ChartSeries => {
-          return resolveSeriesTitleFromAttributes(
-            data,
-            ["interfaceName"],
-            "Interface Utilization",
-          );
-        },
-      },
-      {
-        metricAliasData: {
-          metricVariable: "oid_values",
-          title: "Device Health (Polled OIDs)",
-          description:
-            "CPU, memory, temperature, and other polled OID values from vendor templates and custom OIDs. One series per OID.",
-          legend: "Value",
-          legendUnit: "",
-        },
-        metricQueryData: {
-          filterData: {
-            metricName: MonitorMetricType.SnmpOidValue,
-            attributes: {
-              networkDeviceId: networkDeviceId,
-              projectId: projectId,
+            groupBy: {
+              attributes: true,
             },
-            /*
-             * SnmpOidValue is a gauge (whatever the OID reports), so average
-             * within each time bucket. MonitorMetricTypeUtil's aggregation
-             * helper intentionally isn't used here — it throws for metric
-             * types outside its per-type switch.
-             */
-            aggegationType: AggregationType.Avg,
           },
-          groupBy: {
-            attributes: true,
+          getSeries: (data: AggregateModel): ChartSeries => {
+            return resolveSeriesTitleFromAttributes(
+              data,
+              ["interfaceName"],
+              "Interface Utilization",
+            );
           },
         },
-        getSeries: (data: AggregateModel): ChartSeries => {
-          return resolveSeriesTitleFromAttributes(
-            data,
-            ["oidName", "oid"],
-            "OID Value",
-          );
+        {
+          metricAliasData: {
+            metricVariable: "oid_values",
+            title: "Device Health (Polled OIDs)",
+            description:
+              "CPU, memory, temperature, and other polled OID values from vendor templates and custom OIDs. One series per OID.",
+            legend: "Value",
+            legendUnit: "",
+          },
+          metricQueryData: {
+            filterData: {
+              metricName: MonitorMetricType.SnmpOidValue,
+              attributes: {
+                networkDeviceId: networkDeviceId,
+                projectId: projectId,
+              },
+              /*
+               * SnmpOidValue is a gauge (whatever the OID reports), so average
+               * within each time bucket. MonitorMetricTypeUtil's aggregation
+               * helper intentionally isn't used here — it throws for metric
+               * types outside its per-type switch.
+               */
+              aggegationType: AggregationType.Avg,
+            },
+            groupBy: {
+              attributes: true,
+            },
+          },
+          getSeries: (data: AggregateModel): ChartSeries => {
+            return resolveSeriesTitleFromAttributes(
+              data,
+              ["oidName", "oid"],
+              "OID Value",
+            );
+          },
         },
-      },
-    ];
-  }, [props.networkDeviceId]);
+      ],
+      translator,
+    );
+  }, [props.networkDeviceId, translator.language]);
 
   const [viewData, setViewData] = useState<MetricViewData>(() => {
     return {
