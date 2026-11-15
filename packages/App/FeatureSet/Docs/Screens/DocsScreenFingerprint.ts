@@ -3,10 +3,11 @@
  *
  * When a shot is drawn, the renderer keeps its fingerprint beside it
  * (packages/E2E/DocsScreens/Fingerprints/<language>.json): what the shot
- * says and how it is built, not its pixels. A job on main draws every shot
- * again and compares (compareFingerprints): a shot whose page changed is
- * stale, and one issue lists them (staleIssueBody; the job keeps the issue
- * with packages/E2E/DocsScreens/ReportStale.js).
+ * says and how it is built, not its pixels. A job on main, and one in every
+ * release run, draws every shot again and compares (compareFingerprints): a
+ * shot whose page changed is stale and fails the job (#7510), and on main
+ * one issue lists them (staleIssueBody; the job keeps the issue with
+ * packages/E2E/DocsScreens/ReportStale.js).
  *
  * Why structure, not pixels: the same page draws different pixels on a Mac
  * and on a Linux runner (font rasterizing, and the fallback fonts Chinese,
@@ -262,6 +263,8 @@ export const staleIssueBody: (
     "It needs no server: it starts the offline fixtures itself, and rewrites only the shots whose page changed. If a page changed so much that its shot no longer shows what the docs step says, change the step or the shot list (`packages/App/FeatureSet/Docs/Screens/DocsScreenList.ts`) too. `packages/E2E/DocsScreens/README.md` has the rest.",
     "",
     "This issue is kept by the Docs Screenshots workflow: it rewrites this text on every run that finds a stale shot, and closes the issue once every shot is current.",
+    "",
+    "Until then the workflow fails, and so does every release run, which waits for it before it publishes anything (#7510).",
   );
 
   if (runUrl) {

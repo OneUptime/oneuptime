@@ -52,7 +52,7 @@ flowchart TB
 
 ### trigger イベントを送信する
 
-**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそのブロックに接続します。**URL** を `https://events.pagerduty.com/v2/enqueue` に、**Request Body** を次のように設定します:
+**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://events.pagerduty.com/v2/enqueue` に、**リクエストボディ** を次のように設定します:
 
 ```json
 {
@@ -92,11 +92,11 @@ flowchart TB
 
 ### インシデントが解決されたことを確認する
 
-トリガーの後に **If / Else** ブロックを追加します。**Value to check** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**Comparison** を **is true** に設定します。
+トリガーの後に **If / Else** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
 
 ### resolve イベントを送信する
 
-**Yes** 側の後に、同じ **URL** と次の **Request Body** を持つ **API Post (JSON)** ブロックを追加します:
+**はい** 側の後に、同じ **URL** と次の **リクエストボディ** を持つ **API Post (JSON)** ブロックを追加します:
 
 ```json
 {
@@ -118,7 +118,7 @@ flowchart TB
 インシデントごとの重大度を送るには、トリガーと **API Post (JSON)** ブロックの間に **Run Custom JavaScript** ブロックを追加し、その応答を本文で読み取ります。
 
 1. トリガーの **Fields to pass on** で **フィールドを追加** をクリックし、**インシデントの重大度** を開いて **名前** を選びます。
-2. ブロックの **Arguments** を `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` に、**JavaScript Code** を次のように設定します:
+2. ブロックの **Arguments** を `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` に、**JavaScript コード** を次のように設定します:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details ワークフローが一度も実行されない
-オンになっていることを確認します: **ビルダー** の上部の **有効** です。次に **ログ → 実行履歴** を開きます。**If / Else** ブロックの **No** 側に進んだ実行は、解決ではない更新です。
+オンになっていることを確認します: **ビルダー** の上部の **有効** です。次に **ログ → 実行履歴** を開きます。**If / Else** ブロックの **いいえ** 側に進んだ実行は、解決ではない更新です。
 :::
 
 :::details PagerDuty に値ではなく参照が表示される

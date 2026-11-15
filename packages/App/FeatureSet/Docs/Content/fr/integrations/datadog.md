@@ -64,7 +64,7 @@ Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-eve
 | `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Ajoute une note privée à l'incident de l'alerte, disant quel est maintenant l'état du moniteur. |
 | `Renotify` | Rien : l'alerte est toujours ouverte. |
 
-Un avertissement ou un rétablissement pour une alerte sans incident ne change rien. Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **No**, et les **Étapes** de l'exécution disent pourquoi. Rien ne repart vers Datadog : il résout lui-même ses alertes quand le signal se rétablit, et c'est ce qui résout l'incident.
+Un avertissement ou un rétablissement pour une alerte sans incident ne change rien. Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **Non**, et les **Étapes** de l'exécution disent pourquoi. Rien ne repart vers Datadog : il résout lui-même ses alertes quand le signal se rétablit, et c'est ce qui résout l'incident.
 
 ### Priorités et astreinte
 
@@ -82,7 +82,7 @@ Un nouvel incident prévient les politiques d'astreinte que vous avez choisies q
 Avec vos propres gravités, P1, P2 et l'absence de priorité vont à la plus grave, P3 à celle du milieu, et P4 et P5 à la moins grave.
 
 - Pour faire correspondre une priorité à l'une de vos gravités par son nom, modifiez `SEVERITY_BY_NAME` dans l'étape `read-event-1`, par exemple `{ P3: 'Minor Incident' }`.
-- Pour prévenir aussi pour P3, mettez **Compare with** de l'étape `if-page-1` **If / Else** à `3`.
+- Pour prévenir aussi pour P3, mettez **Comparer avec** de l'étape `if-page-1` **If / Else** à `3`.
 
 ## Recevoir les alertes avec un moniteur
 
@@ -211,7 +211,7 @@ Testez ensuite depuis Datadog : ouvrez un moniteur qui cite le webhook, cliquez 
 :::
 
 :::details Le workflow s'exécute, mais n'ouvre rien
-Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **No**.
+Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **Non**.
 
 - `Datadog named no alert cycle key` : ajoutez `"alert_cycle_key": "$ALERT_CYCLE_KEY"` à la charge utile du webhook dans Datadog.
 - `Datadog named no transition` : ajoutez `"transition": "$ALERT_TRANSITION"` à la charge utile du webhook dans Datadog.

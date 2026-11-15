@@ -244,7 +244,16 @@ import EpisodeMemberEmailList, {
 } from "../Utils/Mail/EpisodeMemberEmailList";
 import OnCallTestPageDelivery from "../Utils/OnCall/OnCallTestPageDelivery";
 import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  getOnCallCustomChannelSendFailedMessage,
+  getOnCallSendFailedMessage,
+  getOnCallWorkspaceSendFailedMessage,
+} from "../../Types/OnCallDutyPolicy/OnCallSendFailureLine";
 import { getOnCallTestPageNotVerifiedMessage } from "../../Types/OnCallDutyPolicy/OnCallTestPageLine";
+import {
+  ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE,
+  OnCallPageRecordGoneException,
+} from "../../Types/OnCallDutyPolicy/OnCallPageRecordGone";
 
 // The record a page to a custom channel is about, with the words its push would carry.
 interface CustomChannelPagedRecord {
@@ -908,8 +917,26 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
+    /*
+     * The rule was deleted after the page read it - its owner removed "SMS
+     * after 5 minutes" while they were being paged. There is nothing to
+     * send for it, and its claim stays taken, so no later tick tries it
+     * again; the next tick's read of the person's rules no longer finds it.
+     * It used to throw a BadDataException, which ends the person's whole
+     * log in Error (UserOnCallLog:ExecutePendingExecutions): every rule of
+     * theirs still due - the call after 10 minutes - was never run (issue
+     * #8168). Skipping it lets the others run.
+     */
     if (!notificationRuleItem) {
-      throw new BadDataException("Notification rule item not found.");
+      logger.info(
+        `Notification rule ${userNotificationRuleId.toString()} was deleted before it was sent for on-call log ${options.userNotificationLogId.toString()}; skipped, and the person's other rules still run.`,
+        {
+          projectId: options.projectId?.toString(),
+          userNotificationRuleId: userNotificationRuleId.toString(),
+        } as LogAttributes,
+      );
+
+      return;
     }
 
     /*
@@ -1155,6 +1182,28 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The kind of record a page names for its event type - "incident" for an
+   * IncidentCreated page that names an incident, and so on - or null when it
+   * names none of that kind. deliverNotificationForRule reads only that one.
+   */
+  private getRecordKindNamedForEventType(
+    options: ExecuteNotificationRuleOptions,
+  ): string | null {
+    switch (options.userNotificationEventType) {
+      case UserNotificationEventType.IncidentCreated:
+        return options.triggeredByIncidentId ? "incident" : null;
+      case UserNotificationEventType.AlertCreated:
+        return options.triggeredByAlertId ? "alert" : null;
+      case UserNotificationEventType.AlertEpisodeCreated:
+        return options.triggeredByAlertEpisodeId ? "alert episode" : null;
+      case UserNotificationEventType.IncidentEpisodeCreated:
+        return options.triggeredByIncidentEpisodeId ? "incident episode" : null;
+      default:
+        return null;
+    }
+  }
+
+  /*
    * The delivery half of executeNotificationRuleItem: given a rule that is
    * already loaded with its method relations, decide what to send on which
    * channel and hand it to the senders.
@@ -1392,9 +1441,21 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (!incident && !alert && !alertEpisode && !incidentEpisode) {
-      throw new BadDataException(
-        "Incident, Alert, Alert Episode, or Incident Episode not found.",
-      );
+      /*
+       * The record the page names was deleted after the page read where it
+       * stands: the person's log ends saying so (OnCallPageRecordGone), as a
+       * log whose record the worker finds gone does, rather than in Error
+       * (issue #8168). A page that names no record of its event type is bad
+       * data, as it always was.
+       */
+      const namedRecordKind: string | null =
+        this.getRecordKindNamedForEventType(options);
+
+      if (namedRecordKind) {
+        throw new OnCallPageRecordGoneException(namedRecordKind);
+      }
+
+      throw new BadDataException(ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE);
     }
 
     /*
@@ -1494,7 +1555,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1552,7 +1615,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1607,7 +1672,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1666,7 +1733,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending email.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Email,
+              ),
             }),
           );
       }
@@ -1751,7 +1820,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -1810,7 +1881,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -1866,7 +1939,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -1925,7 +2000,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending SMS.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.SMS,
+              ),
             }),
           );
       }
@@ -2000,7 +2077,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2050,7 +2129,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2101,7 +2182,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2155,7 +2238,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending WhatsApp message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.WhatsApp,
+              ),
             }),
           );
       }
@@ -2237,7 +2322,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2294,7 +2381,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2351,7 +2440,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2411,7 +2502,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending Telegram message.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Telegram,
+              ),
             }),
           );
       }
@@ -2640,7 +2733,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error sending webhook.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Webhook,
+              ),
             }),
           );
       };
@@ -2825,7 +2920,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -2882,7 +2979,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -2937,7 +3036,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -2995,7 +3096,9 @@ export class Service extends ProjectReferencesService<Model> {
           .catch(
             whenNotificationRequestFails({
               userOnCallLogTimelineId: updatedLog.id!,
-              fallbackStatusMessage: "Error making call.",
+              fallbackStatusMessage: getOnCallSendFailedMessage(
+                OnCallPageChannel.Call,
+              ),
             }),
           );
       }
@@ -3179,7 +3282,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3280,7 +3385,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3380,7 +3487,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3479,7 +3588,9 @@ export class Service extends ProjectReferencesService<Model> {
         ).catch(
           whenSendFails({
             userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending push notification.",
+            fallbackStatusMessage: getOnCallSendFailedMessage(
+              OnCallPageChannel.Push,
+            ),
           }),
         );
       }
@@ -3782,7 +3893,8 @@ export class Service extends ProjectReferencesService<Model> {
     }).catch(
       whenSendFails({
         userOnCallLogTimelineId: updatedLog.id!,
-        fallbackStatusMessage: `Error sending ${channelDisplayName} message.`,
+        fallbackStatusMessage:
+          getOnCallWorkspaceSendFailedMessage(channelDisplayName),
       }),
     );
 
@@ -3896,7 +4008,8 @@ export class Service extends ProjectReferencesService<Model> {
     }).catch(
       whenNotificationRequestFails({
         userOnCallLogTimelineId: updatedLog.id!,
-        fallbackStatusMessage: `Error sending to ${channelName}.`,
+        fallbackStatusMessage:
+          getOnCallCustomChannelSendFailedMessage(channelName),
       }),
     );
 

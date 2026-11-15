@@ -124,6 +124,8 @@ import {
   DataStoreKind,
   DataStoreKindInfo,
   DataStoreProvider,
+  PROBE_SCANNABLE_DATA_STORE_KINDS,
+  WORKER_CLAIMED_DATA_STORE_KINDS,
 } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   ALL_DATA_STORE_EXPOSURES,
@@ -717,9 +719,20 @@ describe("Set Up Data Security", () => {
       return info.kind;
     });
 
-    expect(scannable).toEqual([DataStoreKind.PostgreSql, DataStoreKind.MySql]);
+    // From OneUptime's workers and from a probe alike (OneUptime issue #8322).
+    expect(scannable).toEqual([
+      DataStoreKind.PostgreSql,
+      DataStoreKind.MySql,
+      DataStoreKind.SqlServer,
+    ]);
+    expect([...WORKER_CLAIMED_DATA_STORE_KINDS]).toEqual(
+      expect.arrayContaining(scannable),
+    );
+    expect([...PROBE_SCANNABLE_DATA_STORE_KINDS].sort()).toEqual(
+      [...scannable].sort(),
+    );
     expect(section(page, "## Scan a database you run")).toContain(
-      "Data Security samples PostgreSQL and MySQL databases",
+      "Data Security samples PostgreSQL, MySQL and SQL Server databases",
     );
     expect(service).toContain(
       "/^(postgres|postgresql|mysql|mariadb|mssql|sqlserver):\\/\\//i",
@@ -1340,6 +1353,21 @@ describe("Data Security Checks and Issues", () => {
 describe("Sensitive Data in Telemetry", () => {
   const page: string = english(TELEMETRY);
   const scanner: string = `${SERVER}/Telemetry/TelemetryDataScanner.ts`;
+
+  // Its own switch did nothing for a service's telemetry (OneUptime issue #8323).
+  it("says the project's Scan Telemetry and a store's Scan Content each stop the scan, as the scan's rule reads them", () => {
+    const rule: string = source(`${SERVER}/DataSecurityTelemetryScanRule.ts`);
+
+    expect(page).toContain(
+      "unless **Scan Telemetry** is off in the project's settings.",
+    );
+    expect(page).toContain(
+      "turn **Scan Content** off in that store's **Settings**: from the next scan, none of it is read.",
+    );
+    expect(rule).toContain('`COALESCE(s."isTelemetryScanEnabled", true) = true`');
+    expect(rule).toContain('`ds."isContentScanEnabled" = true`');
+    expect(settingDefault("Scan Telemetry")).toBe("true");
+  });
 
   it("gives a telemetry scan's limits as the scanner holds them", () => {
     const limits: Array<Array<string>> = rows(

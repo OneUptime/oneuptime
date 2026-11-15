@@ -52,7 +52,7 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Send trigger-begivenheden
 
-Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Success**-punkt med den. Sæt dens **URL** til `https://events.pagerduty.com/v2/enqueue` og dens **Request Body** til:
+Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **URL** til `https://events.pagerduty.com/v2/enqueue` og dens **Anmodningsbrødtekst** til:
 
 ```json
 {
@@ -92,11 +92,11 @@ Opret et workflow med navnet `Resolve PagerDuty incidents`, og vælg **On Update
 
 ### Kontrollér, at hændelsen er løst
 
-Tilføj en **If / Else**-blok efter triggeren. Sæt **Value to check** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Comparison** til **is true**.
+Tilføj en **If / Else**-blok efter triggeren. Sæt **Værdi, der skal tjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sand**.
 
 ### Send resolve-begivenheden
 
-Tilføj en **API Post (JSON)**-blok efter **Yes**-siden, med samme **URL** og denne **Request Body**:
+Tilføj en **API Post (JSON)**-blok efter **Ja**-siden, med samme **URL** og denne **Anmodningsbrødtekst**:
 
 ```json
 {
@@ -118,7 +118,7 @@ At kontrollere `isResolvedState` i stedet for navnet på en tilstand bliver ved 
 For at sende hver hændelses alvorlighed tilføjer du en **Run Custom JavaScript**-blok mellem triggeren og **API Post (JSON)**-blokken og læser dens svar i brødteksten.
 
 1. Klik på **Tilføj felt** i triggerens **Fields to pass on**, åbn **Hændelsesalvor**, og vælg **Navn**.
-2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript Code** til:
+2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript-kode** til:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ Begge begivenheder skal have præcis den samme `dedup_key`. Kontrollér, at begg
 :::
 
 :::details Workflowet kører aldrig
-Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **No**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 :::details PagerDuty viser en reference i stedet for en værdi

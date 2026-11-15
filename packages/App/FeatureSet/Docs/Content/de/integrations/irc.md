@@ -26,7 +26,7 @@ sequenceDiagram
         O->>S: JOIN in den Kanal
         S-->>O: Beigetreten
     end
-    loop Jede Zeile von Message Text, höchstens 15
+    loop Jede Zeile von Nachrichtentext, höchstens 15
         O->>S: PRIVMSG an den Kanal
     end
     O->>S: PING
@@ -37,7 +37,7 @@ sequenceDiagram
 1. **Verbinden.** Der Schritt verbindet sich über TLS auf Port `6697` und prüft das Zertifikat des Servers.
 2. **Registrieren.** Er registriert sich als `OneUptime`, sofern Sie keinen anderen **Nickname** setzen, und meldet sich per SASL an, wenn **SASL Username** und **SASL Password** ausgefüllt sind.
 3. **Beitreten.** Er betritt den Kanal, außer **Send Without Joining** ist an, und zwar mit dem **Channel Key**, falls der Kanal einen hat.
-4. **Senden.** Jede Zeile von **Message Text** geht als eigene IRC-Nachricht hinaus, als `PRIVMSG`.
+4. **Senden.** Jede Zeile von **Nachrichtentext** geht als eigene IRC-Nachricht hinaus, als `PRIVMSG`.
 5. **Bestätigen.** IRC meldet nie „zugestellt“, deshalb sendet der Schritt ein `PING` und wartet auf das `PONG` des Servers. Ein Server antwortet der Reihe nach, also ist bis dahin jede Ablehnung der Nachricht eingetroffen.
 6. **Beenden.** Er verlässt den Server.
 
@@ -57,7 +57,7 @@ Der Schritt nimmt seinen Ausgang **Erfolg**, sobald der Server jede Zeile angeno
 Legen Sie fest, wohin die Nachrichten gehen: den Hostnamen des Servers, etwa `irc.libera.chat`, und den Kanal, etwa `#your-channel`.
 
 - **IRC Server** nimmt den Hostnamen und sonst nichts: kein `ircs://` und kein Port. Der Schritt verbindet sich über TLS auf Port `6697`. Nimmt Ihr Server TLS auf einem anderen Port an, tragen Sie ihn in **Port** ein, unter **Weitere Felder**.
-- **Channel** muss ein Kanal sein. Ein dort eingetragener Nickname wird abgelehnt, sodass der Schritt nie versehentlich jemandem eine private Nachricht schickt.
+- **Kanal** muss ein Kanal sein. Ein dort eingetragener Nickname wird abgelehnt, sodass der Schritt nie versehentlich jemandem eine private Nachricht schickt.
 
 Der Server muss einer sein, mit dem sich OneUptime verbinden darf. Loopback-Adressen (`localhost`, `127.0.0.1`), Link-Local-Adressen und Cloud-Metadaten-Adressen werden immer abgelehnt. In OneUptime Cloud wird auch ein Server auf einer privaten Netzwerkadresse abgelehnt. Eine selbst gehostete Installation kann einen IRC-Server in ihrem eigenen Netzwerk erreichen, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist auf `true` gesetzt.
 
@@ -89,7 +89,7 @@ Der Workflow öffnet sich im **Editor** mit zwei Schritten: **On Create Incident
 1. Öffnen Sie **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, wählen Sie **Ohne Vorlage beginnen**, geben Sie dem Workflow einen Namen und klicken Sie auf **Arbeitsablauf erstellen**.
 2. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident** unter **Beliebt**. Klicken Sie auf den Auslöser und wählen Sie in **Fields to pass on** die Felder des Vorfalls, die Ihre Nachricht zeigt, etwa seinen Titel.
 3. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `irc` und klicken Sie auf **Send Message to IRC**. Verbinden Sie den Ausgang **Erfolg** des Auslösers mit diesem Schritt.
-4. Klicken Sie auf den neuen Schritt und füllen Sie **IRC Server**, **Channel** und **Message Text** aus. Die Schaltfläche **{ }** in **Message Text** fügt Felder des Vorfalls ein, etwa seinen Titel.
+4. Klicken Sie auf den neuen Schritt und füllen Sie **IRC Server**, **Kanal** und **Nachrichtentext** aus. Die Schaltfläche **{ }** in **Nachrichtentext** fügt Felder des Vorfalls ein, etwa seinen Titel.
 5. Haben Sie im vorigen Schritt Passwörter gespeichert, öffnen Sie **Weitere Felder**. Klicken Sie in **Server Password**, **SASL Password** oder **Channel Key** auf **{ }** und wählen Sie die Variable unter **Globale Variablen**. Tragen Sie den Namen Ihres Kontos in **SASL Username** ein.
 :::
 
@@ -104,7 +104,7 @@ Um zu testen, ohne einen Vorfall zu eröffnen, klicken Sie auf **Arbeitsablauf a
 
 - **Ohne Beitritt posten.** Die meisten Kanäle nehmen Nachrichten nur von ihren Mitgliedern an (Modus `+n`), deshalb betritt der Schritt den Kanal vor dem Posten und verlässt ihn gleich danach. Ein Kanal mit `-n` nimmt Nachrichten von außen an: Schalten Sie **Send Without Joining** unter **Weitere Felder** ein, dann sieht der Kanal den Schritt nicht kommen und gehen.
 - **Mit SASL anmelden.** In Netzwerken mit SASL, etwa Libera.Chat, füllen Sie **SASL Username** und **SASL Password** aus, um sich bei Ihrem Konto anzumelden. Libera.Chat verlangt das bei Verbindungen von manchen Cloud- und VPN-Adressen. Siehe [die SASL-Anleitung von Libera.Chat](https://libera.chat/guides/sasl).
-- **Die Grenze von 15 Zeilen beachten.** Jede Zeile von **Message Text** ist eine eigene IRC-Nachricht, eine lange Zeile wird passend geteilt, und leere Zeilen fallen weg. Eine Nachricht wird als höchstens 15 IRC-Zeilen gesendet: Eine längere wird gekürzt, und ihre letzte Zeile sagt das. Die ersten vier Zeilen gehen sofort hinaus und der Rest eine pro Sekunde, im Takt von IRC-Clients, also dauern 15 Zeilen etwa 11 Sekunden.
+- **Die Grenze von 15 Zeilen beachten.** Jede Zeile von **Nachrichtentext** ist eine eigene IRC-Nachricht, eine lange Zeile wird passend geteilt, und leere Zeilen fallen weg. Eine Nachricht wird als höchstens 15 IRC-Zeilen gesendet: Eine längere wird gekürzt, und ihre letzte Zeile sagt das. Die ersten vier Zeilen gehen sofort hinaus und der Rest eine pro Sekunde, im Takt von IRC-Clients, also dauern 15 Zeilen etwa 11 Sekunden.
 - **Viele Läufe zu einer Nachricht bündeln.** Jeder Lauf ist eine eigene Verbindung, und IRC-Netzwerke begrenzen, wie oft sich eine Adresse verbinden darf. Viele Läufe kurz hintereinander können mit einem Grund wie `Reconnecting too fast` abgelehnt werden und nehmen wie jede Ablehnung **Fehler**. Bei einem Workflow, der viele Male pro Minute auslösen kann, fassen Sie zusammen, was er mitzuteilen hat, in einer Nachricht, oder senden Sie über einen eigenen Server.
 - **Mit den Codes von IRC formatieren.** IRC kennt kein Markdown, der Text wird also gesendet, wie er geschrieben ist. Die Formatierungscodes von IRC, etwa Fett und Farben, funktionieren.
 - **Ein Server ohne TLS.** Schalten Sie **Disable TLS** nur für einen Server ein, der kein TLS anbietet: Der Schritt verbindet sich dann auf Port `6667`, und jedes Passwort wird unverschlüsselt gesendet. Um dem Zertifikat eines Servers aus Ihrer eigenen Zertifizierungsstelle zu vertrauen, setzt eine selbst gehostete Installation stattdessen `NODE_EXTRA_CA_CERTS`.

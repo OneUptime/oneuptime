@@ -87,10 +87,10 @@ OneUptime → Jira 템플릿은 [**비공개 인시던트**](/docs/incidents/dec
 **모니터는 스스로 알림을 발생시키며, 그 수가 많을 수 있습니다.** **Create a Jira issue when an alert is created**는 그 모든 알림에 이슈를 만듭니다. 모든 알림에 티켓이 필요한 것이 아니라면 Jira 단계 앞에 조건을 두세요. High 알림에만 이슈를 만들려면:
 
 1. 워크플로의 **빌더**를 열고 **If / Else** 블록을 추가합니다.
-2. **Value to check**를 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`로, **Comparison**을 **is equal to**로, **Compare with**를 `High`로 설정합니다.
-3. `alert-on-create-1`에서 `prepare-issue-1`로 가는 선의 끝을 점에서 끌어내어 선을 지웁니다([정리하기](/docs/workflows/authoring#정리하기) 참고). 트리거의 **Success**를 **If / Else** 블록에, 그 **Yes**를 `prepare-issue-1`에 연결합니다.
+2. **확인할 값**을 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`로, **비교**를 **같음**으로, **비교 대상**을 `High`로 설정합니다.
+3. `alert-on-create-1`에서 `prepare-issue-1`로 가는 선의 끝을 점에서 끌어내어 선을 지웁니다([정리하기](/docs/workflows/authoring#정리하기) 참고). 트리거의 **성공**을 **If / Else** 블록에, 그 **예**를 `prepare-issue-1`에 연결합니다.
 
-**No** 쪽으로 간 알림은 그 자리에서 실행을 마치며, 이슈가 만들어지지 않습니다.
+**아니오** 쪽으로 간 알림은 그 자리에서 실행을 마치며, 이슈가 만들어지지 않습니다.
 
 ### 템플릿이 묻는 내용
 
@@ -129,7 +129,7 @@ Atlassian **서비스 계정**도 쓸 수 있습니다. 조직 관리자가 [adm
 4. **워크플로 생성**을 클릭합니다. 모든 워크플로는 꺼진 상태로 만들어집니다. **빌더** 상단에서 **활성화됨**을 켜세요.
 :::
 
-**Create a Jira issue when an incident is declared**(알림이라면 **Create a Jira issue when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Jira 템플릿은 모두 이 템플릿이 붙이는 레이블로 이슈를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 알림을 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-issue-1`의 **Response Body**에 새 이슈가 나옵니다.
+**Create a Jira issue when an incident is declared**(알림이라면 **Create a Jira issue when an alert is created**)로 시작하세요. 같은 종류의 다른 OneUptime → Jira 템플릿은 모두 이 템플릿이 붙이는 레이블로 이슈를 찾습니다. 템플릿을 켜고, 테스트 인시던트를 선언하거나 테스트 알림을 만든 다음, 워크플로의 **로그 → 실행 기록**을 엽니다. 실행은 **실행됨**으로 끝나야 하며, 마지막 단계 `create-issue-1`의 **응답 본문**에 새 이슈가 나옵니다.
 
 각 워크플로는 이 값의 사본을 따로 가집니다. 토큰을 교체할 때는 토큰을 물었던 모든 Jira 워크플로의 **워크플로 변수**에서 `jiraBasicAuthToken`을 업데이트하세요. Jira 주소가 바뀌면 `jiraSiteUrl`과 `jiraBaseUrl`도 같은 방식으로 업데이트하세요.
 
@@ -138,7 +138,7 @@ Atlassian **서비스 계정**도 쓸 수 있습니다. 조직 관리자가 [adm
 Jira → OneUptime 템플릿(인시던트용 4개, 알림용 4개)은 [Webhook 트리거](/docs/workflows/triggers#webhook)에서 시작하므로, Jira에 이벤트를 보낼 곳을 알려 줘야 합니다. 다음 순서로 진행하세요:
 
 1. 워크플로를 만들고 **먼저 켜세요**. 꺼진 워크플로는 Jira에 `400`으로 응답하며, Jira는 `4xx`로 거부된 전송을 다시 시도하지 않습니다. 켜기 전에 보낸 이벤트는 대기열에 들어가지 않고 사라집니다.
-2. 워크플로의 **빌더**를 열고 **Webhook** 트리거 블록(`webhook-1`)을 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
+2. 워크플로의 **빌더**를 열고 **웹훅** 트리거 블록(`webhook-1`)을 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
 
    ```text
    https://<your OneUptime host>/workflow/trigger/<webhook secret key>
@@ -175,7 +175,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 이것에 의존하기 전에:
 
 - **Jira는 허용된 포트에서 HTTPS로만 호출합니다.** OneUptime Cloud는 문제없습니다. 자체 호스팅 설치는 인터넷에서 Jira 목록에 있는 포트의 HTTPS로 접근할 수 있어야 합니다.
-- **URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다.** Jira 웹훅에는 워크플로가 검증할 수 있는 내용이 없으므로 URL이 유일한 비밀입니다. URL을 가진 사람은 인시던트를 선언하거나 알림을 만들 수 있고(레코드를 만드는 템플릿은 지정된 이슈가 존재하며 아직 연결되지 않았는지 Jira에 묻지만, 제목, 설명, 우선순위는 요청에서 가져옵니다), ID나 Jira 이슈 키를 아는 인시던트와 알림을 옮기거나 노트를 추가할 수 있습니다. 그런 요청의 내용은 텍스트로 기록되며([제한 사항](#제한-사항) 참고), 이슈 링크는 요청 내용과 상관없이 **Jira Site URL**이 가리키는 사이트로 갑니다. URL은 Jira 안에만 두세요. 유출되면 워크플로의 **빌더**에서 **Webhook** 트리거를 클릭하고 **URL 재설정**을 클릭한 다음, 새 URL을 Jira 웹훅에 붙여 넣으세요. 이전 URL은 즉시 작동을 멈춥니다.
+- **URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다.** Jira 웹훅에는 워크플로가 검증할 수 있는 내용이 없으므로 URL이 유일한 비밀입니다. URL을 가진 사람은 인시던트를 선언하거나 알림을 만들 수 있고(레코드를 만드는 템플릿은 지정된 이슈가 존재하며 아직 연결되지 않았는지 Jira에 묻지만, 제목, 설명, 우선순위는 요청에서 가져옵니다), ID나 Jira 이슈 키를 아는 인시던트와 알림을 옮기거나 노트를 추가할 수 있습니다. 그런 요청의 내용은 텍스트로 기록되며([제한 사항](#제한-사항) 참고), 이슈 링크는 요청 내용과 상관없이 **Jira Site URL**이 가리키는 사이트로 갑니다. URL은 Jira 안에만 두세요. 유출되면 워크플로의 **빌더**에서 **웹훅** 트리거를 클릭하고 **URL 재설정**을 클릭한 다음, 새 URL을 Jira 웹훅에 붙여 넣으세요. 이전 URL은 즉시 작동을 멈춥니다.
 - **모든 이벤트가 하나의 실행입니다.** OneUptime Cloud에서는 템플릿이 건너뛰는 것까지 포함해 모든 전송이 요금제의 워크플로 실행 수에 포함됩니다. JQL 필터로 그 수를 줄일 수 있습니다. [요금제 한도](/docs/workflows/configuration#플랜-한도)를 참고하세요.
 
 ### 작동하는지 확인하기
@@ -183,7 +183,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 각 실행의 **단계**에 템플릿이 한 일이 나오므로, **로그 → 실행 기록**에서 실행을 열고 어떻게 끝났는지 보세요:
 
 - **실행됨**: 할 일을 마쳤고, 마지막 단계에 이슈, 인시던트 또는 알림이 나옵니다.
-- **실행됨**이고 **Check With JavaScript** 단계가 **No**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 이슈가 이 종류의 레코드에 연결되지 않았거나, 노트가 Jira에서 왔거나, 레코드가 비공개이거나, 새 상태에 매핑된 Jira 상태가 없는 경우입니다.
+- **실행됨**이고 **Check With JavaScript** 단계가 **아니오**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 이슈가 이 종류의 레코드에 연결되지 않았거나, 노트가 Jira에서 왔거나, 레코드가 비공개이거나, 새 상태에 매핑된 Jira 상태가 없는 경우입니다.
 - **오류**: 단계가 실패했고, **단계**에 있는 그 항목에 이유가 나옵니다. Jira 호출이라면 Jira의 응답도 포함됩니다.
 - `link-issue-1`에서 **오류**: Jira 이슈에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Jira가 연결 레이블을 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 레이블을 직접 추가하세요.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### 템플릿이 하는 일 바꾸기
 
-워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위의 상수로, **Check With JavaScript** 블록의 **JavaScript Code**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다:
+워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위의 상수로, **Check With JavaScript** 블록의 **JavaScript 코드**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다:
 
 | 상수 | 템플릿과 블록 | 제어하는 내용 |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ const STATE_TO_JIRA_STATUS = {
 
 키로 쓰는 상태 이름은 대문자까지 포함해 정확히 그 이름대로 써야 합니다. 코드에 `{{`를 넣지 마세요. 스크립트는 실행 전에 다른 설정처럼 값이 채워지므로, 여는 중괄호 두 개가 연달아 있으면 참조로 읽힙니다.
 
-새 이슈에 더 많은 필드를 보내려면 이슈를 만드는 템플릿의 `create-issue-1` 블록에서 **Request Body**를 편집하세요. 여기에는 이슈의 프로젝트, 유형, 요약, 레이블, 설명이 있으며, `fields` 안에 [더 많은 필드 채우기](#더-많은-필드-채우기)에서 설명하는 형태로 우선순위, 구성 요소, 담당자, 사용자 지정 필드를 추가할 수 있습니다. 두 레이블은 그대로 두세요. 요약과 설명의 문구는 `prepare-issue-1` 스크립트에 있습니다. 설명에는 레코드의 심각도, 상태, 설명이 들어가고, 있다면 근본 원인과 해결 노트가 이어집니다. 모니터는 인시던트나 알림을 발생시킬 때 이를 채우며, 대개 그것이 원인을 설명합니다.
+새 이슈에 더 많은 필드를 보내려면 이슈를 만드는 템플릿의 `create-issue-1` 블록에서 **요청 본문**을 편집하세요. 여기에는 이슈의 프로젝트, 유형, 요약, 레이블, 설명이 있으며, `fields` 안에 [더 많은 필드 채우기](#더-많은-필드-채우기)에서 설명하는 형태로 우선순위, 구성 요소, 담당자, 사용자 지정 필드를 추가할 수 있습니다. 두 레이블은 그대로 두세요. 요약과 설명의 문구는 `prepare-issue-1` 스크립트에 있습니다. 설명에는 레코드의 심각도, 상태, 설명이 들어가고, 있다면 근본 원인과 해결 노트가 이어집니다. 모니터는 인시던트나 알림을 발생시킬 때 이를 채우며, 대개 그것이 원인을 설명합니다.
 
-비공개 노트와 편집 댓글은 `post-comment-1` 블록의 **Request Body**에 있는 `properties` 항목인 `sd.public.comment`로 내부 댓글로 표시됩니다. 이를 읽는 것은 Jira Service Management뿐입니다. 고객이 그 댓글을 봐야 할 때만 지우세요.
+비공개 노트와 편집 댓글은 `post-comment-1` 블록의 **요청 본문**에 있는 `properties` 항목인 `sd.public.comment`로 내부 댓글로 표시됩니다. 이를 읽는 것은 Jira Service Management뿐입니다. 고객이 그 댓글을 봐야 할 때만 지우세요.
 
 ### 제한 사항
 
@@ -307,8 +307,8 @@ Jira Cloud는 [템플릿이 묻는 내용](#템플릿이-묻는-내용)에서처
 
 :::steps
 1. `Incidents to Jira`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Fields to pass on**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다. **Identifier**는 `incident-on-create-1` 그대로 둡니다.
-2. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **Identifier**를 `create-issue`로, **URL**을 `{{global.variables.JIRA_URL}}/rest/api/3/issue`로 설정하고, **추가 필드**에서 **Request Headers**를 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`로 설정합니다.
-3. **Request Body**를 이슈로 설정하고, `OPS`와 `Bug`를 자신의 프로젝트 키와 그 프로젝트의 이슈 유형으로 바꿉니다:
+2. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **Identifier**를 `create-issue`로, **URL**을 `{{global.variables.JIRA_URL}}/rest/api/3/issue`로 설정하고, **추가 필드**에서 **요청 헤더**를 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`로 설정합니다.
+3. **요청 본문**을 이슈로 설정하고, `OPS`와 `Bug`를 자신의 프로젝트 키와 그 프로젝트의 이슈 유형으로 바꿉니다:
 
    ```json
    {
@@ -391,8 +391,8 @@ Jira의 모든 사람에게 돌아갈 길을 주려면, `create-issue` 뒤에 `{
 
 :::steps
 1. **On Update Incident** 트리거가 있는 `Incident updates to Jira`라는 워크플로를 만듭니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **Fields to pass on**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **이름**을 고릅니다.
-2. **If / Else** 블록을 추가합니다: **Value to check**는 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison**은 **is equal to**, **Compare with**는 `Resolved` 또는 자신의 해결 상태 이름입니다.
-3. 그 **Yes** 쪽 뒤에서, **Identifier**가 `find-issue`이고 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`로 게시하는 **API Post (JSON)** 블록으로 이슈를 찾습니다:
+2. **If / Else** 블록을 추가합니다: **확인할 값**은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **비교**는 **같음**, **비교 대상**은 `Resolved` 또는 자신의 해결 상태 이름입니다.
+3. 그 **예** 쪽 뒤에서, **Identifier**가 `find-issue`이고 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`로 게시하는 **API Post (JSON)** 블록으로 이슈를 찾습니다:
 
    ```json
    {
@@ -416,8 +416,8 @@ JQL은 URL에 넣지 말고 본문으로 게시하세요. URL은 인코딩되지
 
 먼저 받는 쪽 워크플로를 만듭니다:
 
-1. **Webhook** 트리거가 있는 `Jira to OneUptime`이라는 워크플로를 만듭니다.
-2. 워크플로의 **빌더**를 열고 **Webhook** 트리거를 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
+1. **웹훅** 트리거가 있는 `Jira to OneUptime`이라는 워크플로를 만듭니다.
+2. 워크플로의 **빌더**를 열고 **웹훅** 트리거를 클릭한 다음, 설정 상단의 **URL 복사**를 클릭합니다. URL은 다음과 같습니다:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
@@ -425,7 +425,7 @@ JQL은 URL에 넣지 말고 본문으로 게시하세요. URL은 인코딩되지
 
    자체 호스팅 설치는 자체 호스트를 사용합니다. URL을 비밀번호처럼 다루세요. URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다. 유출되면 같은 곳에서 **URL 재설정**을 클릭하세요. 이전 URL은 즉시 작동을 멈춥니다.
 
-3. 트리거에서 **Update One Incident** 블록을 추가합니다. **Query**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **Data (JSON Object)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **Find One Incident State** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
+3. 트리거에서 **Update One Incident** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **Data (JSON Object)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **Find One Incident State** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
 
 워크플로를 켠 다음, 자동화 규칙이나 웹훅으로 Jira가 이를 호출하게 하세요:
 
@@ -447,7 +447,7 @@ JQL은 URL에 넣지 말고 본문으로 게시하세요. URL은 인코딩되지
 
 4. 규칙을 켜고 테스트 이슈를 Done으로 옮깁니다. Jira에서 규칙의 감사 로그를, OneUptime에서 **로그 → 실행 기록**을 확인합니다.
 
-요청이 자신의 규칙에서 왔는지 확인하려면 직접 정한 값으로 두 번째 헤더 `X-OneUptime-Secret`을 추가하고, 그 헤더에 작업의 **Hide** 옵션을 사용하세요. 워크플로에서는 업데이트 앞에 **If / Else** 블록을 둡니다: **Value to check**는 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison**은 **is equal to**, **Compare with**는 시크릿 전역 변수에 보관한 같은 값입니다.
+요청이 자신의 규칙에서 왔는지 확인하려면 직접 정한 값으로 두 번째 헤더 `X-OneUptime-Secret`을 추가하고, 그 헤더에 작업의 **Hide** 옵션을 사용하세요. 워크플로에서는 업데이트 앞에 **If / Else** 블록을 둡니다: **확인할 값**은 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **비교**는 **같음**, **비교 대상**은 시크릿 전역 변수에 보관한 같은 값입니다.
 
 Send web request는 포트 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900, 9900만 호출합니다. Jira Cloud는 규칙 실행을 요금제에 따른 월간 할당량에서 차감하므로, 바쁜 프로젝트의 모든 전환에 거는 규칙은 금방 쌓입니다.
 @tab Jira webhook
@@ -476,7 +476,7 @@ Send web request는 포트 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 80
 | 레이블 `oneuptime-incident-<incident id>` | 레이블 `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-워크플로에는 트리거가 정확히 하나이므로 인시던트와 알림에는 각각 워크플로가 필요합니다. 둘 다에 같은 Jira 작업을 하려면 **Manual** 트리거가 있는 워크플로에 한 번만 만들고, 둘 다에서 **Execute Workflow** 블록으로 시작하세요.
+워크플로에는 트리거가 정확히 하나이므로 인시던트와 알림에는 각각 워크플로가 필요합니다. 둘 다에 같은 Jira 작업을 하려면 **수동** 트리거가 있는 워크플로에 한 번만 만들고, 둘 다에서 **Execute Workflow** 블록으로 시작하세요.
 
 ## Jira Data Center
 

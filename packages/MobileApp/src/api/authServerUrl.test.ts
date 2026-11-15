@@ -82,6 +82,10 @@ jest.mock("./client", () => {
       get: jest.fn(),
       post: jest.fn(),
     },
+    // No renewal is ever in flight here: logout() waits for none.
+    waitForSessionRenewal: jest.fn(async (): Promise<void> => {
+      return undefined;
+    }),
   };
 });
 

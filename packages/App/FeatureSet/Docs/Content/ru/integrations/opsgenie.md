@@ -53,13 +53,13 @@ flowchart TB
 
 ### Создайте оповещение
 
-Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Success** триггера. Задайте его **URL** значение `https://api.opsgenie.com/v2/alerts` или `https://api.eu.opsgenie.com/v2/alerts` в Европе. В разделе **Дополнительные поля** задайте его **Request Headers** так:
+Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Успешно** триггера. Задайте его **URL** значение `https://api.opsgenie.com/v2/alerts` или `https://api.eu.opsgenie.com/v2/alerts` в Европе. В разделе **Дополнительные поля** задайте его **Заголовки запроса** так:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-А его **Request Body** — так:
+А его **Тело запроса** — так:
 
 ```json
 {
@@ -93,17 +93,17 @@ flowchart TB
 
 ### Проверьте, что инцидент устранён
 
-Добавьте после триггера блок **If / Else**. Задайте **Value to check** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Comparison** — **is true**.
+Добавьте после триггера блок **If / Else**. Задайте **Проверяемое значение** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Сравнение** — **истинно**.
 
 ### Закройте оповещение
 
-Добавьте после стороны **Yes** блок **API Post (JSON)** с теми же **Request Headers** и таким **URL**:
+Добавьте после стороны **Да** блок **API Post (JSON)** с теми же **Заголовки запроса** и таким **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Задайте его **Request Body** значение `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Задайте его **Тело запроса** значение `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Включите его
 
@@ -117,7 +117,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 Чтобы отправлять серьёзность каждого инцидента как приоритет Opsgenie, добавьте между триггером и блоком **API Post (JSON)** блок **Run Custom JavaScript**.
 
 1. В **Fields to pass on** триггера нажмите **Добавить поле**, откройте **Серьёзность инцидента** и выберите **Имя**.
-2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **JavaScript Code** — следующий код:
+2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **Код JavaScript** — следующий код:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie отвечает `202` до обработки запроса, поэт
 :::
 
 :::details Рабочий процесс никогда не запускается
-Убедитесь, что он включён: **Включено** вверху окна **Конструктор**. Затем откройте **Журналы → Запуски**: запуск, пошедший по стороне **No** блока **If / Else**, — это обновление, которое не было устранением.
+Убедитесь, что он включён: **Включено** вверху окна **Конструктор**. Затем откройте **Журналы → Запуски**: запуск, пошедший по стороне **Нет** блока **If / Else**, — это обновление, которое не было устранением.
 :::
 
 ## Дальнейшие шаги

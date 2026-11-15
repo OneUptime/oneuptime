@@ -1,12 +1,9 @@
-import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
-import { sanitizeSessionReplayStringMap } from "Common/Utils/Rum/SessionReplayStringMap";
 import {
   PRODUCT_ANALYTICS_CONTENT_TYPE,
   PRODUCT_ANALYTICS_FLUSH_INTERVAL_MS,
   PRODUCT_ANALYTICS_MAX_EVENTS_PER_BATCH,
   PRODUCT_ANALYTICS_MAX_METRICS_PER_BATCH,
   PRODUCT_ANALYTICS_MAX_PENDING_EVENTS,
-  PRODUCT_ANALYTICS_PROPERTY_LIMITS,
   PRODUCT_ANALYTICS_TARGET_BATCH_BYTES,
   PRODUCT_ANALYTICS_WIRE_VERSION,
   ProductAnalyticsEventKind,
@@ -19,6 +16,7 @@ import {
   pickProductAnalyticsUserProperties,
   toProductAnalyticsEventName,
   toProductAnalyticsPage,
+  toProductAnalyticsProperties,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
 import { debugLog, debugWarn } from "./Debug";
 
@@ -39,7 +37,9 @@ import { debugLog, debugWarn } from "./Debug";
  * one-second look at the location, so the replay's own history hooks stay
  * the only ones), use sendBeacon or unload (a batch sent as the page is
  * hidden is a keepalive fetch, under the 64 KB those share), or send a
- * page's query or fragment (paths are scrubbed like every replay URL).
+ * page's query or fragment (paths are scrubbed like every replay URL, and
+ * so is a property or attribute whose value is an address). The server
+ * scrubs all of them again, whatever this sent.
  */
 
 /* Which session this browser last announced, shared by its tabs. */
@@ -123,18 +123,16 @@ function writeStorage(key: string, value: string): void {
  * fragment - and for a hash router (#/orders/42) the route in the hash,
  * after the page's own path. Which fragment is a route is UrlScrubber's
  * rule, the one the replay's URLs are stored by.
+ *
+ * The server's own reading of a page (toProductAnalyticsPage), over the
+ * location's path and fragment: the ingest runs it again over what this
+ * sends, and over the address a client of the application's own sends, so
+ * the three name a page alike.
  */
 export function readProductAnalyticsPage(locationRef: Location): string {
-  let path: string = UrlScrubber.scrubPath(locationRef.pathname || "/");
-  const route: string | null = UrlScrubber.getHashRoute(locationRef.hash || "");
-
-  if (route !== null) {
-    path =
-      (path.endsWith("/") ? path.slice(0, -1) : path) +
-      UrlScrubber.scrubPath(route);
-  }
-
-  return toProductAnalyticsPage(path);
+  return toProductAnalyticsPage(
+    `${locationRef.pathname || "/"}${locationRef.hash || ""}`,
+  );
 }
 
 export default class ProductAnalytics {
@@ -230,10 +228,7 @@ export default class ProductAnalytics {
       at: now,
       page: this.page,
       properties: this.host.maskProperties(
-        sanitizeSessionReplayStringMap(
-          properties,
-          PRODUCT_ANALYTICS_PROPERTY_LIMITS,
-        ),
+        toProductAnalyticsProperties(properties),
       ),
     });
   }
@@ -275,10 +270,7 @@ export default class ProductAnalytics {
       value: value,
       at: now,
       attributes: this.host.maskProperties(
-        sanitizeSessionReplayStringMap(
-          attributes,
-          PRODUCT_ANALYTICS_PROPERTY_LIMITS,
-        ),
+        toProductAnalyticsProperties(attributes),
       ),
     });
 

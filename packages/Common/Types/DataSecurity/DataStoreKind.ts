@@ -183,7 +183,11 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
   kind(K.PostgreSql, P.SelfManaged, F.Database, { contentScannable: true }),
   kind(K.MySql, P.SelfManaged, F.Database, { contentScannable: true }),
   kind(K.MongoDb, P.SelfManaged, F.Database),
-  kind(K.SqlServer, P.SelfManaged, F.Database),
+  /*
+   * Sampled with a connection string by OneUptime's workers or from a
+   * probe (DatabaseSampler's sqlserver engine), like PostgreSQL and MySQL.
+   */
+  kind(K.SqlServer, P.SelfManaged, F.Database, { contentScannable: true }),
   kind(K.Oracle, P.SelfManaged, F.Database),
   kind(K.Redis, P.SelfManaged, F.Cache),
   kind(K.Elasticsearch, P.SelfManaged, F.Search),
@@ -248,6 +252,34 @@ export const TELEMETRY_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.TelemetryExceptions,
   DataStoreKind.TelemetrySessionReplays,
   DataStoreKind.TelemetryAiConversations,
+];
+
+/*
+ * The kinds of self-managed database a probe samples: the ones its claim
+ * hands out (DataSecurityProbeClaim) and its DatabaseSampler reads. Here,
+ * not in the server's files, so a store's page tells the same kinds apart.
+ */
+export const PROBE_SCANNABLE_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.PostgreSql,
+  DataStoreKind.MySql,
+  DataStoreKind.SqlServer,
+];
+
+/*
+ * The kinds OneUptime's workers claim for a content scan
+ * (DataSecurityWorkerClaim) and sample (DataSecurityRunner.sampleStore):
+ * exactly the kinds outside telemetry whose info says contentScannable. A
+ * kind claimed but not sampled was claimed every hour and skipped every
+ * time, as SQL Server was (OneUptime issue #8322).
+ */
+export const WORKER_CLAIMED_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.AwsS3Bucket,
+  DataStoreKind.AzureStorageAccount,
+  DataStoreKind.GcpStorageBucket,
+  DataStoreKind.GcpBigQueryDataset,
+  DataStoreKind.PostgreSql,
+  DataStoreKind.MySql,
+  DataStoreKind.SqlServer,
 ];
 
 /*

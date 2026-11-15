@@ -142,7 +142,7 @@ sequenceDiagram
    - **附加参数**：令牌请求的额外表单字段，例如 Auth0 的 `audience`（Client Credentials 必需）或 Azure AD v1 的 `resource`。能读取该变量的任何人都能读取它们，所以不要把密钥放在这里。
    - **客户端认证**：客户端 ID 和密钥是放在 HTTP Basic 标头中发送（默认），还是放在请求正文中发送。如果你的提供商回复 `invalid_client`，试试另一种。
 
-在一些字段下方，表单会针对你选择的提供商加一行帮助，例如 Microsoft Entra ID 在哪里显示你的租户 ID，以及它的客户端密钥是密钥的 **Value**，而不是它的 **Secret ID**。
+在一些字段下方，表单会针对你选择的提供商加一行帮助，例如 Microsoft Entra ID 在哪里显示你的租户 ID，以及它的客户端密钥是密钥的 **值**，而不是它的 **Secret ID**。
 
 保存新的 OAuth 2.0 变量时，OneUptime 会立即获取它的第一个令牌，并告诉你提供商的回复。密钥或 URL 中的拼写错误会当场暴露，而不是几小时后在一次失败的运行中才发现。获取令牌会写入变量，所以需要编辑工作流变量的权限；如果你能创建变量但不能编辑，就由第一个使用该变量的工作流运行来获取它的令牌。
 
@@ -210,7 +210,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 - 标头和正文字段（在字符串值内）。
 - **If / Else** 块的两侧。
 
-在 JSON 输入框中——记录组件上的 **Data (JSON Object)** 和 **Query**，API 块的 **Request Body**，**Run Custom JavaScript** 上的 **Arguments**——引用会按它所在的位置被填入：
+在 JSON 输入框中——记录组件上的 **Data (JSON Object)** 和 **查询**，API 块的 **请求主体**，**Run Custom JavaScript** 上的 **Arguments**——引用会按它所在的位置被填入：
 
 - **在引号内，它是文本。** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` 会把值放进字符串里。值中的引号、反斜杠和换行会被转义，所以 JSON 仍然有效，值仍是一个字符串。
 - **单独出现时，它就是值本身。** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` 会插入整个对象，列表仍是列表，数字仍是数字。本身就是 JSON 的文本——`5`、`true`，或者块以 JSON 文本返回的对象——会作为那个值插入。其他任何文本都作为字符串插入。
@@ -239,7 +239,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 
 1. 一个 ID 为 `ci-webhook` 的 **Webhook** 触发器。
 2. 一个 **If / Else** 块：**要检查的值** 是 Webhook 的 Request Body 中的 `status` 字段（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比较** 是 **等于**，**比较对象** 是 `failed`。
-3. 从 **Yes** 分支接一个 **Create One Incident** 块，其中：
+3. 从 **是** 分支接一个 **Create One Incident** 块，其中：
    - 标题：`CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 描述：`See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ OAuth 2.0 变量页面上的 **访问令牌** 卡片会显示以下状态之一�
 1. **API** 组件 `lookup-order`：在它的 **URL** 中，在 `/orders?email=` 之后，用 **{ }** 插入手动触发器的 JSON，路径为 `email`。
 2. **API** 组件 `cancel-order`：`POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`。
 
-如果 `lookup-order` 失败，触发的是它的 **Error** 输出而不是 **Success**。把它连接到一个 Email 或 Slack 块，免得失败无人察觉。
+如果 `lookup-order` 失败，触发的是它的 **错误** 输出而不是 **成功**。把它连接到一个 Email 或 Slack 块，免得失败无人察觉。
 
 ## 从工作流更新变量
 
@@ -290,7 +290,7 @@ API 密钥需要 **Edit Workflow Variables**。不需要读取权限——更新
 
 - **使用 { }（或输入 `{{`）。** 它会插入运行器期望的确切组件、返回值和变量 ID，并且只提供块运行时会存在的值。
 - **变量名区分大小写。** `{{global.variables.MyKey}}` 和 `{{global.variables.mykey}}` 是不同的。
-- **无法解析的引用会原样保留，而不是变为空。** 引用不存在的东西不是错误，也不会得到空字符串：花括号会原样传下去，所以步骤 ID 拼错的 `{{local.components.api-get-1.returnValues.body}}` 会一字不差地出现在你的 Slack 消息、URL 或请求正文中，而运行仍然报告 **已执行**。运行的 **步骤** 选项卡会在该步骤上显示一条警告，列出每个漏过去的引用，并把它所在的设置标记为 **Did not resolve**；运行的日志中也有同样的警告行。例外是数据组件读取或写入的 ID，例如其 **Query** 中的 `_id`：这时该步骤会在读取或写入任何内容之前停止，走 **Error** 输出，并说明哪个引用没有解析以及要检查什么。
+- **无法解析的引用会原样保留，而不是变为空。** 引用不存在的东西不是错误，也不会得到空字符串：花括号会原样传下去，所以步骤 ID 拼错的 `{{local.components.api-get-1.returnValues.body}}` 会一字不差地出现在你的 Slack 消息、URL 或请求正文中，而运行仍然报告 **已执行**。运行的 **步骤** 选项卡会在该步骤上显示一条警告，列出每个漏过去的引用，并把它所在的设置标记为 **Did not resolve**；运行的日志中也有同样的警告行。例外是数据组件读取或写入的 ID，例如其 **查询** 中的 `_id`：这时该步骤会在读取或写入任何内容之前停止，走 **错误** 输出，并说明哪个引用没有解析以及要检查什么。
 - **没有内容的字段到达时为空。** 并非每条记录都有每个字段。不是由监视器产生的警报（例如来自 SLO 或手动创建的警报）没有监视器，所以 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 没有值可给：在消息中那里什么也没有，单独作为 JSON 值时是 `null`。没人写的描述、记录没有的自定义字段、没有找到记录的 **Find One**、没有该项的列表，以及块没有传下去的字段也是如此；对于块没有传下去的字段，步骤上还会显示警告，说明要往 **Fields to pass on** 添加什么。URL 和读写记录的块是例外，因为空值会改变块所作用的对象：那里的引用会原样保留，而 ID 会使块停止。要走另一条路径，请在 **If / Else** 中用 **为空** 检查该值。要写出警报背后的 SLO，请传下它的名称并使用 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`。
 - **问题面板无法检查变量名。** 它会在你保存前标出它无法匹配的组件引用——未知的步骤 ID、未知的返回值、无效的根——但看不出变量是否存在。块的设置可以：对缺失变量的引用会在那里显示为橙色标签。除此之外，改了名的变量只有运行的日志才能发现。
 - **花括号内的空格不会被去除。** `{{ local.variables.NAME }}` 与 `{{local.variables.NAME}}` 是不同的查找，永远不会被解析。唯一的例外是在 `{{#each}}` 块内，那里的名称会去除首尾空白。

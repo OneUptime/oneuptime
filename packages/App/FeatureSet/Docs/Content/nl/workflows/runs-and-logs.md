@@ -49,11 +49,11 @@ stateDiagram-v2
 | **Actief**                          | De workflow is bezig.                                                                                                                                                                                                                                                 |
 | **Wachten**                         | De uitvoering staat geparkeerd op een **Sleep**-blok en gaat vanzelf verder. Tijdens het wachten bezet ze geen worker.                                                                                                                                              |
 | **Uitgevoerd**                        | De uitvoering bereikte het einde zonder te mislukken. Dit is de geslaagde status: het label zegt **Uitgevoerd**, niet «Geslaagd».                                                                                                                                      |
-| **Fout**                            | Een blok stopte de uitvoering, of mislukte terwijl er niets op zijn uitgang **Error** was aangesloten. Wordt ook gebruikt als een uitvoering in de wachtrij nooit wordt opgepakt, als de hervatting van een slapende uitvoering verloren gaat, als een schema-expressie niet kan worden opgelost en als de workflow werd uitgezet of gearchiveerd terwijl de uitvoering op een **Sleep**-blok wachtte. |
+| **Fout**                            | Een blok stopte de uitvoering, of mislukte terwijl er niets op zijn uitgang **Fout** was aangesloten. Wordt ook gebruikt als een uitvoering in de wachtrij nooit wordt opgepakt, als de hervatting van een slapende uitvoering verloren gaat, als een schema-expressie niet kan worden opgelost en als de workflow werd uitgezet of gearchiveerd terwijl de uitvoering op een **Sleep**-blok wachtte. |
 | **Time-out**                        | De uitvoering duurde langer dan toegestaan: standaard 2 minuten. Zie [Hoe lang een run mag duren](/docs/workflows/configuration#hoe-lang-een-run-mag-duren).                                                                                                            |
 | **Uitvoering overschrijdt huidig abonnement** | Het project heeft zijn workflow-uitvoeringen voor de laatste 30 dagen opgebruikt, of het abonnement is niet betaald. De uitvoering wordt vastgelegd maar niet uitgevoerd. Alleen OneUptime Cloud.                                                                   |
 
-Een blok dat zijn uitgang **Error** neemt — een API-blok dat een 4xx kreeg, bijvoorbeeld — laat de uitvoering alleen mislukken als er niets op **Error** is aangesloten. Zijn daar blokken aangesloten, dan draaien die, en de uitvoering kan toch als **Uitgevoerd** eindigen. Is er niets aangesloten, dan loopt de rest van de uitvoering door, daarna eindigt ze als **Fout**, en de laatste regel van haar **Full Log** noemt het blok. Hoe dan ook wordt de stap zelf rood getekend, zodat je hem vindt.
+Een blok dat zijn uitgang **Fout** neemt — een API-blok dat een 4xx kreeg, bijvoorbeeld — laat de uitvoering alleen mislukken als er niets op **Fout** is aangesloten. Zijn daar blokken aangesloten, dan draaien die, en de uitvoering kan toch als **Uitgevoerd** eindigen. Is er niets aangesloten, dan loopt de rest van de uitvoering door, daarna eindigt ze als **Fout**, en de laatste regel van haar **Full Log** noemt het blok. Hoe dan ook wordt de stap zelf rood getekend, zodat je hem vindt.
 
 ## Een uitvoering lezen
 
@@ -89,7 +89,7 @@ De getoonde waarden zijn wat het blok ontving, nadat de variabelen waren ingevul
 
 ### Het tabblad Full Log
 
-Het ruwe logboek, regel voor regel, dat de uitvoerder schreef, inclusief alles wat de blokken zelf logden, zoals de waarde van een **Log**-blok of de `console.log` van een script. Gebruik het als het tabblad Stappen de fout niet verklaart.
+Het ruwe logboek, regel voor regel, dat de uitvoerder schreef, inclusief alles wat de blokken zelf logden, zoals de waarde van een **Logboek**-blok of de `console.log` van een script. Gebruik het als het tabblad Stappen de fout niet verklaart.
 
 ## Een uitvoering kopiëren en downloaden
 
@@ -121,7 +121,7 @@ Verschijnt de uitvoering wel, met de status **Uitvoering overschrijdt huidig abo
 Een blok dat niet draait, is meestal een aansluitprobleem. Open de **Bouwer** en controleer:
 
 - Is de uitgang van het eerdere blok aangesloten op de ingang van dit blok?
-- Nam het eerdere blok een andere uitgang dan je verwachtte — **Error** in plaats van **Success**, of **No** in plaats van **Yes**? Het tabblad **Stappen** zegt welke uitgang het nam en waar die naartoe leidde, of dat er niets op is aangesloten.
+- Nam het eerdere blok een andere uitgang dan je verwachtte — **Fout** in plaats van **Succes**, of **Nee** in plaats van **Ja**? Het tabblad **Stappen** zegt welke uitgang het nam en waar die naartoe leidde, of dat er niets op is aangesloten.
 :::
 
 :::details Een waarde kwam leeg binnen, of als {{…}}-tekst

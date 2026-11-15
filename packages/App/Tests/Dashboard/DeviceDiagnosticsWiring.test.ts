@@ -218,6 +218,13 @@ describe("the pure view-model", () => {
    */
   const ERROR_IN_SENTENCE_SPECIFIER: string = "Common/UI/Utils/ErrorInSentence";
 
+  /*
+   * The Dashboard's one duration helper (#7418), for a round trip in the
+   * reader's words: it re-exports Common/Utils/Milliseconds, which reads
+   * only Common/Types, and the test below holds both to that.
+   */
+  const MILLISECONDS_SPECIFIER: string = "../../Utils/Milliseconds";
+
   test("imports nothing that reads window at load", () => {
     const specifiers: Array<string> = [];
     let match: RegExpExecArray | null = null;
@@ -235,7 +242,8 @@ describe("the pure view-model", () => {
         specifier.startsWith("Common/Types/") ||
           specifier === METRIC_DESCRIPTIONS_SPECIFIER ||
           specifier === TRANSLATE_TEMPLATE_SPECIFIER ||
-          specifier === ERROR_IN_SENTENCE_SPECIFIER,
+          specifier === ERROR_IN_SENTENCE_SPECIFIER ||
+          specifier === MILLISECONDS_SPECIFIER,
       ]).toEqual([specifier, true]);
       expect(BROWSER_BOUND_MODULE_PATTERN.test(specifier)).toBe(false);
     }
@@ -265,12 +273,24 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
     ).toEqual([
+      "../../Types/DataObservability/DataCheckRefusals",
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
       "./SentenceSeparator",
     ]);
+    // A data check's refusals (#7530), said in the reader's words the same way.
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Types",
+          "DataObservability",
+          "DataCheckRefusals.ts",
+        ),
+      ),
+    ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
     expect(
       importsOf(
         readRaw(COMMON_ROOT, "Types", "Exception", "RefusalWithValues.ts"),
@@ -298,6 +318,25 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "SentenceSeparator.ts")),
     ).toEqual([]);
+  });
+
+  test("the duration helper it reads imports only Common's helper, which imports only Common/Types", () => {
+    const importsOf: (raw: string) => Array<string> = (
+      raw: string,
+    ): Array<string> => {
+      return Array.from(raw.matchAll(/\bfrom\s+"([^"]+)"/g))
+        .map((found: RegExpMatchArray): string => {
+          return found[1]!;
+        })
+        .sort();
+    };
+
+    expect(
+      importsOf(readRaw(DASHBOARD_SRC, "Utils", "Milliseconds.ts")),
+    ).toEqual(["Common/Utils/Milliseconds", "Common/Utils/Milliseconds"]);
+    expect(importsOf(readRaw(COMMON_ROOT, "Utils", "Milliseconds.ts"))).toEqual(
+      ["../Types/DateLanguage", "../Types/Translator"],
+    );
   });
 
   test("the metric descriptions it reads import only the translation-key marker", () => {

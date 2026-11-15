@@ -478,8 +478,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "(module) DataStore": Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityRunner.ts": {
-    "DataSecurityRunner.claimDueStores DataStore": Why.Bookkeeping,
     "DataSecurityRunner.markScrubbed DataStoreFinding": Why.Bookkeeping,
+  },
+  // The workers' content-scan claim holds the stores it hands out (#8325).
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityWorkerClaim.ts": {
+    "(module) DataStore": Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,

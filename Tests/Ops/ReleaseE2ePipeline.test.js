@@ -1100,6 +1100,108 @@ describe(`${TERRAFORM_E2E}: each release run's suite is its own`, () => {
 });
 
 /*
+ * Every gate release.yml calls (`uses: ./.github/workflows/...`) supersedes
+ * its own in-flight run with cancel-in-progress, in a group worked out with
+ * the caller's github context. Within one release run those groups must all
+ * differ: two gates in one group cancel each other, and the release they
+ * hold back never publishes. crossplane-provider.yml reads the group
+ * terraform-provider-e2e.yml does, so release.yml passes it the run id with
+ * "-crossplane"; docs-screens.yml's group names the workflow itself (#7510).
+ * Nor may a gate share a group with a run of the same workflow on main, or
+ * with the gate of another release run.
+ */
+describe(`${RELEASE}: no gate it calls cancels another`, () => {
+  const release = readYaml(RELEASE);
+  const calls = Object.entries(release.jobs).filter(([, job]) => {
+    return typeof job.uses === "string" && job.uses.startsWith("./");
+  });
+
+  function groupOf(calledPath, context) {
+    const concurrency = readYaml(calledPath).concurrency;
+    const group =
+      typeof concurrency === "string"
+        ? concurrency
+        : concurrency && concurrency.group;
+    return group === undefined
+      ? undefined
+      : evaluateExpressions(group, context);
+  }
+
+  // The group of the gate a release run's job calls, with the inputs it passes.
+  function releaseRunGroup(job, runId) {
+    const github = {
+      workflow: release.name,
+      ref: "refs/heads/release",
+      run_id: runId,
+      event: {},
+    };
+    const inputs = Object.fromEntries(
+      Object.entries(job.with || {}).map(([name, value]) => {
+        return [name, evaluateExpressions(String(value), { github })];
+      }),
+    );
+    return groupOf(job.uses.slice(2), { github, inputs });
+  }
+
+  // The group of the called workflow's own run on main, for a push.
+  function mainRunGroup(job) {
+    const called = readYaml(job.uses.slice(2));
+    return groupOf(job.uses.slice(2), {
+      github: {
+        workflow: called.name,
+        ref: "refs/heads/main",
+        run_id: "1",
+        event: {},
+      },
+      inputs: {},
+    });
+  }
+
+  test("calls its gates, each in a group (the checks below are not vacuous)", () => {
+    expect(
+      calls
+        .map(([name]) => {
+          return name;
+        })
+        .sort(),
+    ).toEqual([
+      "crossplane-provider-e2e",
+      "docs-screens",
+      "terraform-provider-e2e",
+    ]);
+    for (const [name, job] of calls) {
+      expect({
+        name,
+        group: Boolean(releaseRunGroup(job, "43706120443")),
+      }).toEqual({
+        name,
+        group: true,
+      });
+    }
+  });
+
+  test("each gate of one release run is in a group of its own", () => {
+    const groups = calls.map(([, job]) => {
+      return releaseRunGroup(job, "43706120443");
+    });
+
+    expect(new Set(groups).size).toBe(groups.length);
+  });
+
+  test.each(calls)(
+    "%s shares no group with its workflow's runs on main, or with another release run's",
+    (_name, job) => {
+      expect(releaseRunGroup(job, "43706120443")).not.toEqual(
+        mainRunGroup(job),
+      );
+      expect(releaseRunGroup(job, "43706120443")).not.toEqual(
+        releaseRunGroup(job, "43537389521"),
+      );
+    },
+  );
+});
+
+/*
  * HashiCorp asks the providers it lists as Partner for tests that run nightly
  * as a GitHub Action, so terraform-provider-e2e.yml also runs on a schedule.
  * The nightly run is main's, and its group is its own, worked out from

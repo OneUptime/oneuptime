@@ -142,7 +142,7 @@ sequenceDiagram
    - **Zusätzliche Parameter**: zusätzliche Formularfelder für die Token-Anfrage, etwa `audience` für Auth0 (für Client Credentials nötig) oder `resource` für Azure AD v1. Jeder, der die Variable lesen kann, kann diese lesen, legen Sie also keine Geheimnisse hier ab.
    - **Client-Authentifizierung**: ob Client-ID und -Secret in einem HTTP-Basic-Header (Standard) oder im Body der Anfrage gesendet werden. Antwortet Ihr Anbieter mit `invalid_client`, probieren Sie das andere.
 
-Unter manchen Feldern ergänzt das Formular eine Hilfezeile für den gewählten Anbieter, zum Beispiel, wo Microsoft Entra ID Ihre Mandanten-ID anzeigt, und dass sein Client-Secret der **Value** des Geheimnisses ist, nicht seine **Secret ID**.
+Unter manchen Feldern ergänzt das Formular eine Hilfezeile für den gewählten Anbieter, zum Beispiel, wo Microsoft Entra ID Ihre Mandanten-ID anzeigt, und dass sein Client-Secret der **Wert** des Geheimnisses ist, nicht seine **Secret ID**.
 
 Wenn Sie eine neue OAuth-2.0-Variable speichern, ruft OneUptime sofort ihr erstes Token ab und sagt Ihnen, was der Anbieter geantwortet hat. Ein Tippfehler im Secret oder in der URL zeigt sich dann, nicht Stunden später in einer fehlgeschlagenen Ausführung. Ein Token abzurufen schreibt in die Variable, daher braucht das die Berechtigung, Workflow-Variablen zu bearbeiten; dürfen Sie Variablen anlegen, aber nicht bearbeiten, ruft die erste Ausführung, die die Variable verwendet, ihr Token ab.
 
@@ -210,7 +210,7 @@ Fast jedes Textfeld nimmt Variablen an:
 - Header und Body-Felder (innerhalb von Zeichenkettenwerten).
 - Beide Seiten eines **If / Else**-Bausteins.
 
-In JSON-Feldern – **Data (JSON Object)** und **Query** bei den Datensatz-Komponenten, dem **Request Body** eines API-Bausteins, den **Arguments** von **Run Custom JavaScript** – wird ein Verweis passend zu seiner Stelle eingesetzt:
+In JSON-Feldern – **Data (JSON Object)** und **Abfrage** bei den Datensatz-Komponenten, dem **Anfragetext** eines API-Bausteins, den **Arguments** von **Run Custom JavaScript** – wird ein Verweis passend zu seiner Stelle eingesetzt:
 
 - **In Anführungszeichen ist er Text.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` setzt den Wert in die Zeichenkette. Anführungszeichen, Backslashes und Zeilenumbrüche im Wert werden maskiert, sodass das JSON gültig und der Wert eine Zeichenkette bleibt.
 - **Für sich allein ist er der Wert selbst.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` setzt das ganze Objekt ein, eine Liste bleibt eine Liste und eine Zahl eine Zahl. Text, der selbst JSON ist – `5`, `true` oder ein Objekt, das ein Baustein als JSON-Text zurückgegeben hat –, wird als dieser Wert eingesetzt. Jeder andere Text wird als Zeichenkette eingesetzt.
@@ -223,7 +223,7 @@ Der **Run Custom JavaScript**-Baustein bekommt Variablen nicht automatisch – n
 
 In einem Textfeld können Sie ein Stück Text für jedes Element einer Liste wiederholen, mit `{{#each path}}…{{/each}}`. Innerhalb des Blocks liest `{{property}}` aus dem aktuellen Element, `{{@index}}` ist seine Position ab 0, und `{{this}}` ist das Element selbst bei Listen einfacher Werte. Namen innerhalb eines `{{#each}}`-Blocks werden getrimmt, Leerzeichen schaden dort also nicht – anders als überall sonst.
 
-Zum Beispiel listet dieser **Message Text** jede Warnung auf, die ein Webhook gesendet hat:
+Zum Beispiel listet dieser **Nachrichtentext** jede Warnung auf, die ein Webhook gesendet hat:
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -239,7 +239,7 @@ Ein Webhook kommt mit einem Body wie `{ "service": "checkout", "status": "failed
 
 1. Trigger **Webhook** mit der ID `ci-webhook`.
 2. Baustein **If / Else**: **Zu prüfender Wert** ist das Feld `status` des Request Body des Webhooks (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Vergleich** ist **ist gleich**, und **Vergleichen mit** ist `failed`.
-3. Aus dem Zweig **Yes** ein **Create One Incident**-Baustein mit:
+3. Aus dem Zweig **Ja** ein **Create One Incident**-Baustein mit:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beschreibung: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ Der erste Aufruf liefert eine ID, die der zweite braucht:
 1. **API**-Komponente `lookup-order`: Fügen Sie in ihrer **URL** nach `/orders?email=` mit **{ }** das JSON des manuellen Triggers mit dem Pfad `email` ein.
 2. **API**-Komponente `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Schlägt `lookup-order` fehl, löst sein Ausgang **Error** statt **Success** aus. Verbinden Sie ihn mit einem E-Mail- oder Slack-Baustein, damit Fehler nicht unbemerkt bleiben.
+Schlägt `lookup-order` fehl, löst sein Ausgang **Fehler** statt **Erfolg** aus. Verbinden Sie ihn mit einem E-Mail- oder Slack-Baustein, damit Fehler nicht unbemerkt bleiben.
 
 ## Eine Variable aus einem Workflow aktualisieren
 
@@ -290,7 +290,7 @@ Zwei Dinge, auf die Sie achten sollten:
 
 - **Verwenden Sie { } (oder tippen Sie `{{`).** So werden genau die Komponenten-, Rückgabewert- und Variablen-IDs eingefügt, die der Runner erwartet, und es werden nur Werte angeboten, die es gibt, wenn der Baustein läuft.
 - **Variablennamen unterscheiden Groß- und Kleinschreibung.** `{{global.variables.MyKey}}` und `{{global.variables.mykey}}` sind verschieden.
-- **Ein Verweis, der sich nicht auflöst, bleibt stehen, statt geleert zu werden.** Auf etwas zu verweisen, das es nicht gibt, ist kein Fehler, und Sie bekommen auch keine leere Zeichenkette: Die Klammern werden unverändert weitergereicht, sodass `{{local.components.api-get-1.returnValues.body}}` mit einer vertippten Schritt-ID wörtlich in Ihrer Slack-Nachricht, URL oder Ihrem Request Body landet, und die Ausführung meldet trotzdem **Ausgeführt**. Der Reiter **Schritte** der Ausführung zeigt am Schritt eine Warnung, die jeden durchgerutschten Verweis nennt, und markiert die Einstellung, in der er stand, mit **Nicht behoben**; das Protokoll der Ausführung enthält dieselbe Warnzeile. Die Ausnahme ist eine ID, die eine Datenkomponente liest oder schreibt, etwa `_id` in ihrer **Query**: Dort hält der Schritt an, bevor er etwas liest oder schreibt, löst seinen Ausgang **Error** aus und sagt, welcher Verweis sich nicht aufgelöst hat und was zu prüfen ist.
+- **Ein Verweis, der sich nicht auflöst, bleibt stehen, statt geleert zu werden.** Auf etwas zu verweisen, das es nicht gibt, ist kein Fehler, und Sie bekommen auch keine leere Zeichenkette: Die Klammern werden unverändert weitergereicht, sodass `{{local.components.api-get-1.returnValues.body}}` mit einer vertippten Schritt-ID wörtlich in Ihrer Slack-Nachricht, URL oder Ihrem Request Body landet, und die Ausführung meldet trotzdem **Ausgeführt**. Der Reiter **Schritte** der Ausführung zeigt am Schritt eine Warnung, die jeden durchgerutschten Verweis nennt, und markiert die Einstellung, in der er stand, mit **Nicht behoben**; das Protokoll der Ausführung enthält dieselbe Warnzeile. Die Ausnahme ist eine ID, die eine Datenkomponente liest oder schreibt, etwa `_id` in ihrer **Abfrage**: Dort hält der Schritt an, bevor er etwas liest oder schreibt, löst seinen Ausgang **Fehler** aus und sagt, welcher Verweis sich nicht aufgelöst hat und was zu prüfen ist.
 - **Ein Feld ohne Inhalt kommt leer an.** Nicht jeder Datensatz hat jedes Feld. Eine Warnung, die kein Monitor ausgelöst hat, etwa aus einem SLO oder von Hand erstellt, hat keinen Monitor, also liefert `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` nichts: In einer Nachricht steht dort nichts, und für sich allein in JSON steht dort `null`. Dasselbe gilt für eine Beschreibung, die niemand geschrieben hat, ein benutzerdefiniertes Feld, das der Datensatz nicht enthält, ein **Find One**, das keinen Datensatz gefunden hat, eine Liste ohne dieses Element und ein Feld, das der Baustein nicht weiterreicht; dann sagt außerdem eine Warnung am Schritt, was unter **Fields to pass on** zu ergänzen ist. Ausnahmen sind eine URL und ein Baustein, der Datensätze liest oder schreibt, denn eine Lücke würde ändern, worauf er wirkt: Dort bleibt der Verweis stehen, und eine ID hält den Baustein an. Für einen anderen Pfad prüfen Sie den Wert mit **ist leer** in einem **If / Else**. Um das SLO hinter einer Warnung zu nennen, reichen Sie seinen Namen weiter und verwenden Sie `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Die Problemliste kann Variablennamen nicht prüfen.** Sie meldet Komponentenverweise, die sie nicht zuordnen kann – eine unbekannte Schritt-ID, einen unbekannten Rückgabewert, eine fehlerhafte Wurzel –, bevor Sie speichern. Ob es eine Variable gibt, kann sie nicht sagen. Die Einstellungen eines Bausteins können es: Ein Verweis auf eine fehlende Variable erscheint dort als bernsteinfarbener Chip. Ansonsten fällt eine umbenannte Variable erst im Protokoll der Ausführung auf.
 - **Leerzeichen innerhalb der Klammern werden nicht getrimmt.** `{{ local.variables.NAME }}` ist eine andere Suche als `{{local.variables.NAME}}` und löst sich nie auf. Die einzige Ausnahme ist innerhalb eines `{{#each}}`-Blocks, wo Namen getrimmt werden.

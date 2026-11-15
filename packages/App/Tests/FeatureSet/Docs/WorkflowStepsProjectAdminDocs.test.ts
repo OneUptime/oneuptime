@@ -8,6 +8,7 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
@@ -294,20 +295,21 @@ describe("every language's Configuration page has the section", () => {
       for (const role of ["Project Member", "Project Admin", "Project Owner"]) {
         expect(text).toContain(`**${writtenPermissionTitle(locale, role)}**`);
       }
-      expect(text).toContain("**Error**");
+      // The output a refused step takes, as the canvas draws it (#7511).
+      expect(text).toContain(`**${drawnStepName(locale, "Error")}**`);
       expect(text).toContain("OneUptime Cloud");
       expect(text).toContain("CNAME");
       // A Create Many step keeps the records it made before the refused one.
       expect(text).toContain("Create Many");
       /*
        * Sending the template's id is refused, and the page names the way
-       * round it: the step's Incident Template setting, or - until the
-       * translation catches up with the English - a Find One Incident
-       * Template step.
+       * round it: the step's Incident Template setting, as the settings
+       * form draws it (#7511), or - until the translation catches up with
+       * the English - a Find One Incident Template step.
        */
       expect(text).toContain("`createdIncidentTemplateId`");
       expect(
-        text.includes("**Incident Template**") ||
+        text.includes(`**${drawnStepName(locale, "Incident Template")}**`) ||
           text.includes("**Find One Incident Template**"),
       ).toBe(true);
     },

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 2660
+    "keys": 53450,
+    "untranslated": 2535
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -539,6 +539,7 @@
     "Screenshots:",
     "Senegal",
     "Server",
+    "Server / VM",
     "Service Level Objective",
     "Service Level Objectives",
     "Service Mesh",

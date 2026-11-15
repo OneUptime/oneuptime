@@ -594,6 +594,28 @@ describe("About, beside a product page's title", () => {
     ).toBeInTheDocument();
   });
 
+  test("How it works is a subtle ? icon, and there is no Pin beside the title (#8138)", async () => {
+    await renderInRouter(
+      <Page
+        title="Monitors"
+        titleRight={<ProductAboutButton product={ProductKey.Monitors} />}
+      >
+        <div />
+      </Page>,
+    );
+
+    const row: HTMLElement = screen.getByTestId(PAGE_TITLE_ROW_TEST_ID);
+    const about: HTMLElement = within(row).getByTestId(
+      PRODUCT_ABOUT_BUTTON_TEST_ID,
+    );
+    expect(about).toHaveTextContent("");
+    expect(about).toHaveAttribute("aria-label", "How it works");
+    expect(about).toHaveAttribute("title", "How it works");
+    expect(within(row).queryByText("How it works")).toBeNull();
+    expect(within(row).queryByText("Pin")).toBeNull();
+    expect(within(row).getAllByRole("button")).toHaveLength(1);
+  });
+
   test("a page with nothing beside its title is drawn as before", async () => {
     await renderInRouter(
       <Page title="Monitors">

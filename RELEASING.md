@@ -26,8 +26,10 @@ section says how to title a change.
   `.github/workflows/release.yml` ("Push Release Images to Docker Hub and GitHub
   Container Registry"). It refuses a version that already has a GitHub release.
 - The run builds and pushes every image (Docker Hub and GHCR), runs the release
-  E2E suites (SaaS, self-hosted, enterprise) against those images, publishes the
-  npm packages and the Terraform provider, then:
+  E2E suites (SaaS, self-hosted, enterprise) against those images, checks that
+  the docs' screenshots still show the pages they picture (`docs-screens`, the
+  Docs Screenshots workflow), publishes the npm packages and the Terraform
+  provider, then:
   - `push-release-tags` ("Push release tags before GitHub release") moves the
     images' `release` tags,
   - `helm-chart-deploy` publishes both Helm charts,
@@ -98,6 +100,14 @@ Keep the title starting with "Release": the release notes leave a pull request
 into `release` with such a title out (`RELEASE_GATE_TITLE` in
 `Scripts/Release/GenerateReleaseNotes.js`) and list each fix made in the branch
 as a commit of its own, under its title's type and area.
+
+The docs screenshot check is not one of those checks: it runs in the release
+run, and a stale screenshot holds the release there. Run it on the branch as
+well, so a stale one is found before the merge:
+
+```bash
+gh workflow run docs-screens.yml --ref release-14.0.106
+```
 
 ### 4. Give the release the runners
 
@@ -191,6 +201,11 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
   branch, as in step 5 (which merges it into `main` too), and merge the branch
   into `release` again. The version has no GitHub release yet, so the new run
   goes ahead.
+- `docs-screens / Draw every docs screenshot again` failed: a docs screenshot
+  no longer shows its page, and `push-release-tags` waits for it. Its log names
+  the shots. That is a failure in the code: draw them again in the release
+  branch with `cd packages/E2E && npm run docs-screens` (it needs no server),
+  and commit the pictures and fingerprints it changes.
 - A failure after the GitHub release was published, in a job that only publishes
   elsewhere (a package manager): re-run it once its cause is fixed, or fix it in
   the next release. `Publish the infrastructure agent to winget` depends on

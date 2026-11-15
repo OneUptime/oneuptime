@@ -2,7 +2,7 @@
 
 L'**Incoming Email Monitor** di OneUptime ti permette di creare e risolvere avvisi in base alle email inviate a indirizzi univoci, specifici di ogni monitor. È utile per integrare sistemi legacy, strumenti di allerta o qualsiasi servizio in grado di inviare email.
 
-La stessa configurazione permette anche ai workflow di ricevere email: un workflow con il trigger **Incoming Email** ottiene un proprio indirizzo sullo stesso dominio, e ogni email inviata a quell'indirizzo avvia il workflow. Vedi [Trigger](/docs/workflows/triggers#incoming-email).
+La stessa configurazione permette anche ai workflow di ricevere email: un workflow con il trigger **Email in arrivo** ottiene un proprio indirizzo sullo stesso dominio, e ogni email inviata a quell'indirizzo avvia il workflow. Vedi [Trigger](/docs/workflows/triggers#incoming-email).
 
 Questa guida spiega come configurare SendGrid Inbound Parse per inoltrare le email in arrivo alla tua istanza self-hosted di OneUptime. OneUptime Cloud non ne ha bisogno: i suoi indirizzi funzionano subito.
 
@@ -122,7 +122,7 @@ Poi applicale: esegui `npm run start` con Docker Compose, che ricrea i container
 
 [Crea un monitor Incoming Email](/docs/monitor/incoming-email-monitor#creare-un-monitor-di-email-in-arrivo). La sua pagina **Panoramica** mostra il suo indirizzo, ad esempio `monitor-abc123def456@inbound.yourdomain.com`, e i suoi criteri decidono quali email creano un avviso e quali lo risolvono.
 
-I workflow usano lo stesso dominio. Aggiungi il trigger **Incoming Email** a un workflow e fai clic su di esso: il suo indirizzo (`workflow-…@inbound.yourdomain.com`) è in cima alle sue impostazioni. Finché le variabili per le email in arrivo qui sopra non sono impostate, il trigger indica che il server non è configurato per ricevere email.
+I workflow usano lo stesso dominio. Aggiungi il trigger **Email in arrivo** a un workflow e fai clic su di esso: il suo indirizzo (`workflow-…@inbound.yourdomain.com`) è in cima alle sue impostazioni. Finché le variabili per le email in arrivo qui sopra non sono impostate, il trigger indica che il server non è configurato per ricevere email.
 
 ### Invia un'email di prova
 

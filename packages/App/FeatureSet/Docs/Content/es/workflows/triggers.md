@@ -20,7 +20,7 @@ Para añadir el disparador, haz clic en el bloque discontinuo **Elige qué inici
 | Hacer clic en un botón para ejecutar el flujo de trabajo | **Manual**        |
 | Ejecutarlo según una programación periódica    | **Programación**            |
 | Que otro sistema envíe datos                   | **Webhook**                 |
-| Iniciarlo a partir de un correo                | **Incoming Email**          |
+| Iniciarlo a partir de un correo                | **Correo entrante**          |
 | Actuar sobre los informes de incidente de Huntress | **Huntress Incident Report** |
 | Reaccionar a algo dentro de OneUptime          | **Evento de OneUptime**     |
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Valor                    | Qué contiene                                                                                                         |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Todas las cabeceras de la solicitud, por su nombre en minúsculas, como `content-type`.                               |
+| **Encabezados de la solicitud**      | Todas las cabeceras de la solicitud, por su nombre en minúsculas, como `content-type`.                               |
 | **Request Query Params** | Los parámetros de la cadena de consulta de la URL, por su nombre.                                                    |
-| **Request Body**         | El cuerpo que envió quien llama. Un cuerpo JSON, enviado con `Content-Type: application/json`, se puede leer campo a campo. |
+| **Cuerpo de la solicitud**         | El cuerpo que envió quien llama. Un cuerpo JSON, enviado con `Content-Type: application/json`, se puede leer campo a campo. |
 
 Lee un campo añadiendo su nombre a la referencia, como en `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,14 +125,14 @@ Cada correo inicia su propia ejecución. El correo llega al flujo de trabajo tan
 
 | Valor           | Qué contiene                                                                                            |
 | --------------- | ------------------------------------------------------------------------------------------------------- |
-| **From**        | La dirección del remitente.                                                                             |
-| **To**          | Todos los destinatarios del correo, en una sola línea, como `ops@example.com, oncall@example.com`.      |
+| **De**        | La dirección del remitente.                                                                             |
+| **Para**          | Todos los destinatarios del correo, en una sola línea, como `ops@example.com, oncall@example.com`.      |
 | **CC**          | Todos los destinatarios en copia, en una sola línea.                                                    |
-| **Subject**     | El asunto.                                                                                              |
-| **Body**        | El texto sin formato del correo.                                                                        |
+| **Asunto**     | El asunto.                                                                                              |
+| **Cuerpo**        | El texto sin formato del correo.                                                                        |
 | **HTML Body**   | El HTML del correo, cuando lo tiene. Body y HTML Body se cortan cada uno en 1 MB.                        |
 | **Headers**     | Todas las cabeceras del correo, por su nombre en minúsculas, como `message-id`.                         |
-| **Attachments** | El nombre, el tipo y el tamaño de cada archivo adjunto. Los archivos en sí no se guardan.               |
+| **Adjuntos** | El nombre, el tipo y el tamaño de cada archivo adjunto. Los archivos en sí no se guardan.               |
 | **Received At** | Cuándo recibió OneUptime el correo.                                                                     |
 
 Cuando ha llegado un correo, el selector de valores de cada bloque posterior al disparador sabe lo que contenía: muestra cada cabecera y cada adjunto que tenía el correo, con su contenido, para que puedas elegir `headers.message-id` en lugar de escribir una ruta. Hasta entonces, indica que todavía no ha llegado ningún correo a la dirección. Consulta [Usar valores de bloques anteriores](/docs/workflows/authoring#usar-valores-de-bloques-anteriores).
@@ -148,7 +148,7 @@ La parte de la dirección anterior a la `@` contiene la clave secreta del flujo 
 Si la dirección se filtra, haz clic en **Restablecer dirección** en el mismo lugar: el flujo de trabajo recibe una dirección nueva, y el correo a la antigua se ignora a partir de entonces, así que da la nueva a todo lo que escribe al flujo de trabajo. Solo las personas que pueden editar el flujo de trabajo pueden ver o restablecer su dirección — consulta [Seguridad del correo entrante](/docs/workflows/configuration#seguridad-del-correo-entrante).
 
 > [!WARNING]
-> Cualquiera puede poner cualquier remitente en un correo, así que **From** no prueba quién lo envió. Comprueba algo que solo sepa el remitente real antes de que un paso haga algo importante.
+> Cualquiera puede poner cualquier remitente en un correo, así que **De** no prueba quién lo envió. Comprueba algo que solo sepa el remitente real antes de que un paso haga algo importante.
 
 > [!NOTE]
 > En una instalación autoalojada, OneUptime recibe el correo a través de un proveedor de correo entrante que configura tu administrador — consulta [Correo entrante de SendGrid](/docs/self-hosted/sendgrid-inbound-email). Hasta entonces, el disparador no tiene dirección, y sus ajustes lo indican.
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**, **On Update** y **On Create or Update** pasan el registro al bloque siguiente, con los campos que eliges en el **Fields to pass on** del disparador. Por ejemplo, el disparador **Incident → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su gravedad o cualquier otro campo que hayas seleccionado, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Un campo que no seleccionaste llega vacío. Lo mismo ocurre con un campo en el que el registro no tiene nada, como el monitor de una alerta que ningún monitor generó.
 
-**On Create or Update** también pasa **What Happened**: `created` cuando un registro nuevo inició la ejecución, y `updated` cuando lo hizo un cambio, como en `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar los dos casos de forma distinta, compáralo en un bloque **If / Else**, o toma un camino para cada uno con **Switch / Case**.
+**On Create or Update** también pasa **Qué ocurrió**: `created` cuando un registro nuevo inició la ejecución, y `updated` cuando lo hizo un cambio, como en `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar los dos casos de forma distinta, compáralo en un bloque **If / Else**, o toma un camino para cada uno con **Switch / Case**.
 
 Un guardado lo dispara una vez. Lo que OneUptime rellena mientras crea un registro forma parte de la creación, así que un registro nuevo lo dispara una vez, como `created`. Los cambios que OneUptime hace después, como enlazar el canal de Slack de un incidente, son actualizaciones como cualquier otra: para dejarlos fuera, añade a **Fields to watch** solo los campos que te importan.
 

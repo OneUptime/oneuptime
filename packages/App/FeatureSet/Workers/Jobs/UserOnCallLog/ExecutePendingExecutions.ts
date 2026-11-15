@@ -24,7 +24,10 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import ObjectID from "Common/Types/ObjectID";
 import { isOnCallPageEndedOnlyByAnAnswer } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
-import { getOnCallPageRecordDeletedMessage } from "Common/Types/OnCallDutyPolicy/OnCallPageRecordGone";
+import {
+  getOnCallPageRecordDeletedMessage,
+  OnCallPageRecordGoneException,
+} from "Common/Types/OnCallDutyPolicy/OnCallPageRecordGone";
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
 } from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
@@ -797,6 +800,31 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         });
       }
     } catch (err: any) {
+      /*
+       * A record deleted after this tick read where it stands is found gone by
+       * the send (OnCallPageRecordGoneException): the page is over, as it is
+       * for a log whose record the tick finds gone above, and it ends with
+       * the same words - Completed, not Error (issue #8168). Nothing failed.
+       */
+      if (err instanceof OnCallPageRecordGoneException) {
+        logger.info(
+          `On-call log ${pendingNotificationLog._id}: its ${err.recordKind} was deleted as a rule was sent; the page is over.`,
+        );
+
+        await UserOnCallLogService.updateOneById({
+          id: pendingNotificationLog.id!,
+          data: {
+            status: UserNotificationExecutionStatus.Completed,
+            statusMessage: getOnCallPageRecordDeletedMessage(err.recordKind),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
+
       logger.error(
         `Error executing pending notification log: ${pendingNotificationLog._id}`,
       );

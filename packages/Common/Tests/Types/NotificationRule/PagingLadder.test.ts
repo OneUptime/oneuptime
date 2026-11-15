@@ -116,16 +116,16 @@ const ruleRow: (data: {
   methodId?: string;
   notifyAfterMinutes?: number;
   isOptOut?: boolean;
-  pushNotificationLevel?: string;
-  repeatEveryMinutes?: number;
+  pushNotificationLevel?: string | undefined;
+  repeatEveryMinutes?: number | undefined;
 }) => PagingLadderRule = (data: {
   cell: PagingLadderCell;
   methodColumn?: PagingLadderStep["methodColumn"];
   methodId?: string;
   notifyAfterMinutes?: number;
   isOptOut?: boolean;
-  pushNotificationLevel?: string;
-  repeatEveryMinutes?: number;
+  pushNotificationLevel?: string | undefined;
+  repeatEveryMinutes?: number | undefined;
 }): PagingLadderRule => {
   ruleCounter++;
 

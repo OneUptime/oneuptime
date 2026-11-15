@@ -43,6 +43,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
@@ -150,7 +151,7 @@ function postInvitationLink(
 
 let server: http.Server;
 let port: number;
-let getLink: jest.SpiedFunction<typeof InvitationLink.getForTeamMember>;
+let getLink: SpyInstance<typeof InvitationLink.getForTeamMember>;
 
 function sessionIs(answer: RequestSession): void {
   jest.spyOn(UserMiddleware, "readRequestSession").mockResolvedValue(answer);

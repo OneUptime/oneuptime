@@ -11,7 +11,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import DashboardAPI from "../../../UI/Utils/API/API";
@@ -146,7 +146,9 @@ describe("ModelAPI announces a create the server confirmed", () => {
     });
 
     try {
-      const response: HTTPResponse<unknown> = await ModelAPI.create<Monitor>({
+      const response: HTTPResponse<
+        JSONObject | JSONArray | Monitor | Array<Monitor>
+      > = await ModelAPI.create<Monitor>({
         model: monitor(),
         modelType: Monitor,
       });

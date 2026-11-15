@@ -20,7 +20,7 @@ Para adicionar o gatilho, clique no bloco tracejado **Escolha o que inicia este 
 | Clicar em um botão para rodar o workflow       | **Manual**                  |
 | Rodar em um agendamento recorrente             | **Agendamento**             |
 | Que outro sistema envie dados                  | **Webhook**                 |
-| Iniciar a partir de um e-mail                  | **Incoming Email**          |
+| Iniciar a partir de um e-mail                  | **E-mail recebido**          |
 | Agir sobre os relatórios de incidente do Huntress | **Huntress Incident Report** |
 | Reagir a algo dentro do OneUptime              | **Evento do OneUptime**     |
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Valor                    | O que contém                                                                                                          |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Todos os cabeçalhos da requisição, pelo nome em minúsculas, como `content-type`.                                      |
+| **Cabeçalhos da Requisição**      | Todos os cabeçalhos da requisição, pelo nome em minúsculas, como `content-type`.                                      |
 | **Request Query Params** | Os parâmetros da query string da URL, pelo nome.                                                                      |
-| **Request Body**         | O corpo que quem chamou enviou. Um corpo JSON, enviado com `Content-Type: application/json`, pode ser lido campo a campo. |
+| **Corpo da Requisição**         | O corpo que quem chamou enviou. Um corpo JSON, enviado com `Content-Type: application/json`, pode ser lido campo a campo. |
 
 Leia um campo acrescentando o nome dele à referência, como em `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,14 +125,14 @@ Cada e-mail inicia a sua própria execução. O e-mail chega ao workflow quer o 
 
 | Valor           | O que contém                                                                                            |
 | --------------- | ------------------------------------------------------------------------------------------------------- |
-| **From**        | O endereço do remetente.                                                                                |
-| **To**          | Todos os destinatários do e-mail, em uma linha, como `ops@example.com, oncall@example.com`.             |
+| **De**        | O endereço do remetente.                                                                                |
+| **Para**          | Todos os destinatários do e-mail, em uma linha, como `ops@example.com, oncall@example.com`.             |
 | **CC**          | Todos os destinatários em cópia, em uma linha.                                                          |
-| **Subject**     | O assunto.                                                                                              |
-| **Body**        | O texto simples do e-mail.                                                                              |
+| **Assunto**     | O assunto.                                                                                              |
+| **Corpo**        | O texto simples do e-mail.                                                                              |
 | **HTML Body**   | O HTML do e-mail, quando houver. Body e HTML Body são cortados em 1 MB cada.                            |
 | **Headers**     | Todos os cabeçalhos do e-mail, pelo nome em minúsculas, como `message-id`.                              |
-| **Attachments** | O nome, o tipo e o tamanho de cada arquivo anexado. Os arquivos em si não são guardados.                |
+| **Anexos** | O nome, o tipo e o tamanho de cada arquivo anexado. Os arquivos em si não são guardados.                |
 | **Received At** | Quando o OneUptime recebeu o e-mail.                                                                    |
 
 Depois que chega um e-mail, o seletor de valores de cada bloco após o gatilho sabe o que ele continha: lista cada cabeçalho e cada anexo do e-mail, com o seu conteúdo, para você escolher `headers.message-id` em vez de digitar um caminho. Até lá, ele avisa que nenhum e-mail chegou ainda ao endereço. Veja [Usar valores de blocos anteriores](/docs/workflows/authoring#usar-valores-de-blocos-anteriores).
@@ -148,7 +148,7 @@ A parte do endereço antes do `@` contém a chave secreta do workflow, e qualque
 Se o endereço vazar, clique em **Redefinir endereço** no mesmo lugar: o workflow recebe um endereço novo, e e-mails para o antigo passam a ser ignorados, então passe o novo para tudo o que envia e-mail ao workflow. Só quem pode editar o workflow pode ver ou redefinir o endereço dele — veja [Segurança do e-mail recebido](/docs/workflows/configuration#segurança-do-e-mail-recebido).
 
 > [!WARNING]
-> Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **From** não prova quem o enviou. Verifique algo que só o remetente real saiba antes que um passo faça algo importante.
+> Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **De** não prova quem o enviou. Verifique algo que só o remetente real saiba antes que um passo faça algo importante.
 
 > [!NOTE]
 > Em uma instalação self-hosted, o OneUptime recebe e-mails por meio de um provedor de e-mail de entrada que o seu administrador configura — veja [E-mail de entrada do SendGrid](/docs/self-hosted/sendgrid-inbound-email). Até lá, o gatilho não tem endereço, e as configurações dele avisam.
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**, **On Update** e **On Create or Update** repassam o registro ao próximo bloco, com os campos que você escolhe no **Fields to pass on** do gatilho. Por exemplo, o gatilho **Incident → On Create** repassa o novo incidente, então o próximo bloco pode ler o título, a descrição, a gravidade ou qualquer outro campo que você selecionou, como `{{local.components.incident-on-create-1.returnValues.model.title}}`. Um campo que você não selecionou chega vazio. O mesmo vale para um campo em que o registro não tem nada, como o monitor de um alerta que nenhum monitor gerou.
 
-**On Create or Update** também repassa **What Happened**: `created` quando um registro novo iniciou a execução, e `updated` quando foi uma alteração, como em `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar os dois casos de forma diferente, compare-o em um bloco **If / Else**, ou siga um caminho para cada um com **Switch / Case**.
+**On Create or Update** também repassa **O que aconteceu**: `created` quando um registro novo iniciou a execução, e `updated` quando foi uma alteração, como em `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Para tratar os dois casos de forma diferente, compare-o em um bloco **If / Else**, ou siga um caminho para cada um com **Switch / Case**.
 
 Um salvamento o dispara uma vez. O que o OneUptime preenche enquanto cria um registro faz parte da criação, então um registro novo o dispara uma vez, como `created`. As alterações que o OneUptime faz depois, como vincular o canal do Slack de um incidente, são atualizações como qualquer outra: para deixá-las de fora, adicione a **Fields to watch** só os campos que importam para você.
 

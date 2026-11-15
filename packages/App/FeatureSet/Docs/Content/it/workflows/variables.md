@@ -142,7 +142,7 @@ sequenceDiagram
    - **Parametri aggiuntivi**: campi di modulo extra per la richiesta del token, come `audience` per Auth0 (necessario per Client Credentials) o `resource` per Azure AD v1. Chiunque possa leggere la variabile può leggerli, quindi non metterci segreti.
    - **Autenticazione del client**: se il client ID e il secret vanno in un header HTTP Basic (il predefinito) o nel corpo della richiesta. Se il tuo provider risponde `invalid_client`, prova l'altra opzione.
 
-Sotto alcuni campi il modulo aggiunge una riga di aiuto per il provider che hai scelto, ad esempio dove Microsoft Entra ID mostra il tuo tenant ID, e che il suo client secret è il **Value** del segreto, non il suo **Secret ID**.
+Sotto alcuni campi il modulo aggiunge una riga di aiuto per il provider che hai scelto, ad esempio dove Microsoft Entra ID mostra il tuo tenant ID, e che il suo client secret è il **Valore** del segreto, non il suo **Secret ID**.
 
 Quando salvi una nuova variabile OAuth 2.0, OneUptime recupera subito il suo primo token e ti dice cosa ha risposto il provider. Un errore di battitura nel secret o nell'URL emerge in quel momento, non ore dopo in un'esecuzione non riuscita. Recuperare un token scrive nella variabile, quindi serve il permesso di modificare le variabili del workflow; se puoi creare variabili ma non modificarle, sarà la prima esecuzione di un workflow che usa la variabile a recuperarne il token.
 
@@ -210,7 +210,7 @@ Quasi tutti i campi di testo accettano variabili:
 - Gli header e i campi del corpo (all'interno dei valori stringa).
 - Entrambi i lati di un blocco **If / Else**.
 
-Nei campi JSON — **Data (JSON Object)** e **Query** sui componenti dei record, il **Request Body** di un blocco API, gli **Arguments** di **Run Custom JavaScript** — un riferimento viene compilato in base a dove si trova:
+Nei campi JSON — **Data (JSON Object)** e **Query** sui componenti dei record, il **Corpo della Richiesta** di un blocco API, gli **Arguments** di **Run Custom JavaScript** — un riferimento viene compilato in base a dove si trova:
 
 - **Tra virgolette, è testo.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` mette il valore nella stringa. Le virgolette, le barre rovesciate e gli a capo del valore vengono escaped, così il JSON resta valido e il valore resta un'unica stringa.
 - **Da solo, è il valore stesso.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` inserisce l'oggetto intero, una lista resta una lista e un numero resta un numero. Un testo che è JSON di per sé — `5`, `true`, o un oggetto che un blocco ha restituito come testo JSON — entra come quel valore. Qualsiasi altro testo entra come stringa.
@@ -239,7 +239,7 @@ Arriva un webhook con un corpo come `{ "service": "checkout", "status": "failed"
 
 1. Un trigger **Webhook** con l'ID `ci-webhook`.
 2. Un blocco **If / Else**: **Valore da verificare** è il campo `status` del Request Body del webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Confronto** è **è uguale a** e **Confronta con** è `failed`.
-3. Dal ramo **Yes**, un blocco **Create One Incident** con:
+3. Dal ramo **Sì**, un blocco **Create One Incident** con:
    - Titolo: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Descrizione: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ La prima chiamata ti dà un ID di cui ha bisogno la seconda:
 1. Componente **API** `lookup-order`: nel suo **URL**, dopo `/orders?email=`, usa **{ }** per inserire il JSON del trigger manuale con il percorso `email`.
 2. Componente **API** `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Se `lookup-order` non va a buon fine, scatta la sua uscita **Error** invece di **Success**. Collegala a un blocco Email o Slack, così gli errori non passano inosservati.
+Se `lookup-order` non va a buon fine, scatta la sua uscita **Errore** invece di **Successo**. Collegala a un blocco Email o Slack, così gli errori non passano inosservati.
 
 ## Aggiornare una variabile da un workflow
 
@@ -290,7 +290,7 @@ Due cose a cui fare attenzione:
 
 - **Usa { } (o scrivi `{{`).** Inserisce gli ID esatti di componente, valore di ritorno e variabile che l'esecutore si aspetta, e offre solo valori che esistono quando il blocco viene eseguito.
 - **I nomi delle variabili distinguono maiuscole e minuscole.** `{{global.variables.MyKey}}` e `{{global.variables.mykey}}` sono diversi.
-- **Un riferimento che non si risolve resta così com'è, non viene svuotato.** Fare riferimento a qualcosa che non esiste non è un errore, e non ti dà nemmeno una stringa vuota: le parentesi graffe passano così come sono, quindi `{{local.components.api-get-1.returnValues.body}}` con un ID di passaggio scritto male finisce alla lettera nel tuo messaggio Slack, nell'URL o nel corpo della richiesta, e l'esecuzione riporta comunque **Eseguito**. La scheda **Passaggi** dell'esecuzione mostra sul passaggio un avviso che nomina ogni riferimento sfuggito, e contrassegna l'impostazione in cui si trovava come **Did not resolve**; il registro dell'esecuzione riporta la stessa riga di avviso. L'eccezione è un ID che un componente dati legge o scrive, come `_id` nella sua **Query**: lì il passaggio si ferma prima di leggere o scrivere qualcosa, prende la sua uscita **Error** e dice quale riferimento non si è risolto e cosa controllare.
+- **Un riferimento che non si risolve resta così com'è, non viene svuotato.** Fare riferimento a qualcosa che non esiste non è un errore, e non ti dà nemmeno una stringa vuota: le parentesi graffe passano così come sono, quindi `{{local.components.api-get-1.returnValues.body}}` con un ID di passaggio scritto male finisce alla lettera nel tuo messaggio Slack, nell'URL o nel corpo della richiesta, e l'esecuzione riporta comunque **Eseguito**. La scheda **Passaggi** dell'esecuzione mostra sul passaggio un avviso che nomina ogni riferimento sfuggito, e contrassegna l'impostazione in cui si trovava come **Did not resolve**; il registro dell'esecuzione riporta la stessa riga di avviso. L'eccezione è un ID che un componente dati legge o scrive, come `_id` nella sua **Query**: lì il passaggio si ferma prima di leggere o scrivere qualcosa, prende la sua uscita **Errore** e dice quale riferimento non si è risolto e cosa controllare.
 - **Un campo senza contenuto arriva vuoto.** Non tutti i record hanno tutti i campi. Un avviso che nessun monitor ha generato, come uno da uno SLO o uno creato a mano, non ha un monitor, quindi `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` non ha nulla da dare: in un messaggio non c'è nulla, e da solo in JSON è `null`. Lo stesso vale per una descrizione che nessuno ha scritto, un campo personalizzato che il record non contiene, un **Find One** che non ha trovato alcun record, un elenco senza quell'elemento e un campo che il blocco non trasmette, che in più mette sul passaggio un avviso che dice cosa aggiungere ai suoi **Fields to pass on**. Un URL e un blocco che legge o scrive record sono le eccezioni, perché un vuoto cambierebbe ciò su cui il blocco agisce: lì il riferimento resta così com'è, e un ID ferma il blocco. Per prendere un altro percorso, controlla il valore con **è vuoto** in un **If / Else**. Per nominare lo SLO dietro un avviso, trasmetti il suo nome e usa `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Il pannello dei problemi non può controllare i nomi delle variabili.** Segnala i riferimenti ai componenti che non riesce ad abbinare — un ID di passaggio sconosciuto, un valore di ritorno sconosciuto, una radice malformata — prima del salvataggio. Non può sapere se una variabile esiste. Le impostazioni di un blocco invece sì: un riferimento a una variabile mancante compare lì come chip ambra. Altrimenti, una variabile rinominata viene scoperta solo dal registro dell'esecuzione.
 - **Gli spazi dentro le parentesi graffe non vengono rimossi.** `{{ local.variables.NAME }}` è una ricerca diversa da `{{local.variables.NAME}}` e non si risolve mai. L'unica eccezione è all'interno di un blocco `{{#each}}`, dove i nomi vengono ripuliti.

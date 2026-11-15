@@ -17,7 +17,7 @@ Ogni workflow ha tre parti:
 2. **I componenti** — ciò che fa il workflow: inviare un messaggio, chiamare un'API, verificare una condizione, creare o aggiornare un record di OneUptime.
 3. **I collegamenti** — le linee che tracci da un blocco al successivo. Decidono cosa viene eseguito dopo cosa.
 
-Quando scatta il trigger, OneUptime avvia un'**esecuzione**. Ogni blocco termina prendendo una delle sue uscite, ad esempio **Success** o **Error**, **Yes** o **No**, e vengono eseguiti solo i blocchi collegati a quell'uscita. Se all'uscita presa da un blocco non è collegato nessun blocco, quel percorso finisce lì. L'esecuzione viene salvata con il suo stato, il percorso seguito e ciò che ogni blocco ha ricevuto e restituito.
+Quando scatta il trigger, OneUptime avvia un'**esecuzione**. Ogni blocco termina prendendo una delle sue uscite, ad esempio **Successo** o **Errore**, **Sì** o **No**, e vengono eseguiti solo i blocchi collegati a quell'uscita. Se all'uscita presa da un blocco non è collegato nessun blocco, quel percorso finisce lì. L'esecuzione viene salvata con il suo stato, il percorso seguito e ciò che ogni blocco ha ricevuto e restituito.
 
 ```mermaid title="Cosa succede quando un workflow viene eseguito"
 flowchart TB
@@ -52,10 +52,10 @@ Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/gloss
 
 | Termine                | Cosa significa                                                                                                     |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Workflow**           | L'intera automazione: un nome, una tela di blocchi e un interruttore per attivarla o disattivarla.                 |
+| **Flusso di lavoro**           | L'intera automazione: un nome, una tela di blocchi e un interruttore per attivarla o disattivarla.                 |
 | **Trigger**            | Il primo blocco. Decide quando viene eseguito il workflow. Ogni workflow ne ha esattamente uno.                    |
 | **Componente**         | Qualsiasi altro blocco: invia un messaggio, fa una richiesta, verifica una condizione o modifica un record.        |
-| **Uscita**             | Un punto sul fondo di un blocco, come **Success** o **Error**. Le linee che partono da lì portano ai blocchi successivi. |
+| **Uscita**             | Un punto sul fondo di un blocco, come **Successo** o **Errore**. Le linee che partono da lì portano ai blocchi successivi. |
 | **Esecuzione**         | Un'esecuzione del workflow, salvata con il suo stato, gli orari e ciò che ha fatto ogni blocco.                    |
 | **Variabile globale**  | Un valore, come una chiave API, che salvi una volta e usi in qualsiasi workflow del progetto.                      |
 
@@ -107,13 +107,13 @@ Questo workflow invia un riepilogo JSON di ogni nuovo incidente a un tuo URL —
 
 ```mermaid title="L'esempio completo"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Error"| log["Log"]
-    post -->|"Success"| done["L'esecuzione termina"]
+    trigger["On Create Incident"] -->|"Successo"| post["API Post (JSON)"]
+    post -->|"Errore"| log["Registro"]
+    post -->|"Successo"| done["L'esecuzione termina"]
 ```
 
 > [!TIP]
-> Il modello **Forward new incidents to another system** costruisce per te questo workflow, senza il blocco Log: senza nulla su **Error**, una richiesta che fallisce fa fallire l'esecuzione, e i **Passaggi** dell'esecuzione dicono perché. Lo trovi in **Incidenti** quando crei un workflow.
+> Il modello **Forward new incidents to another system** costruisce per te questo workflow, senza il blocco Log: senza nulla su **Errore**, una richiesta che fallisce fa fallire l'esecuzione, e i **Passaggi** dell'esecuzione dicono perché. Lo trovi in **Incidenti** quando crei un workflow.
 
 :::steps
 ### Crea il workflow
@@ -136,11 +136,11 @@ Il trigger passa il nuovo incidente con quei campi. Un campo che non selezioni a
 
 ### Aggiungi il blocco API
 
-Fai clic su **Aggiungi componente**, poi su **API Post (JSON)** sotto **Popolari**. Trascina dal punto **Success** del trigger fino al punto superiore del nuovo blocco.
+Fai clic su **Aggiungi componente**, poi su **API Post (JSON)** sotto **Popolari**. Trascina dal punto **Successo** del trigger fino al punto superiore del nuovo blocco.
 
 ### Compila la richiesta
 
-Fai clic sul blocco API, che mostra **Click to set up**. Inserisci il tuo endpoint in **URL**. In **Request Body**, scrivi il JSON da inviare, usando **{ }** per inserire i campi dell'incidente dove servono, e fai clic su **Salva**.
+Fai clic sul blocco API, che mostra **Click to set up**. Inserisci il tuo endpoint in **URL**. In **Corpo della Richiesta**, scrivi il JSON da inviare, usando **{ }** per inserire i campi dell'incidente dove servono, e fai clic su **Salva**.
 
 ```json title="Request Body"
 {
@@ -154,7 +154,7 @@ Ogni riferimento `{{…}}` viene sostituito con il valore dell'incidente quando 
 
 ### Intercetta gli errori
 
-Fai clic su **Aggiungi componente**, poi su **Registro**. Collega a esso il punto **Error** del blocco API, poi imposta il **Value** del blocco Log su `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
+Fai clic su **Aggiungi componente**, poi su **Registro**. Collega a esso il punto **Errore** del blocco API, poi imposta il **Valore** del blocco Log su `Could not send the incident: {{local.components.api-post-1.returnValues.error}}`.
 
 Una richiesta che non va a buon fine — un URL irraggiungibile o una risposta che non è 2xx — ora prende questo percorso, e il registro dell'esecuzione dice perché.
 

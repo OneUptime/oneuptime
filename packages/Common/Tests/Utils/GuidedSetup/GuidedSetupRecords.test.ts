@@ -6,13 +6,20 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+} from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { createTranslator, Translator } from "../../../Types/Translator";
+import { getRecordWordsTranslator } from "../../../Server/Utils/ServerTranslation";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import {
   FirstOnCallPolicyCreate,
   GUIDED_SETUP_POLICY_NAME,
   WhoIsToldMode,
   buildFirstOnCallPolicy,
+  getFirstOnCallPolicyName,
   getWhoIsToldMode,
 } from "../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import {
@@ -257,6 +264,75 @@ describe("who is told", () => {
     expect(GUIDED_SETUP_POLICY_NAME).toBe("Default on-call policy");
     expect(create.miscDataProps).toEqual({
       users: ["u1", "u2"],
+      teams: ["t1"],
+      [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+    });
+  });
+
+  /*
+   * #7995: the first policy is a record the project's people then see and
+   * edit: it is named in the language of the person it is made for, and
+   * its create says that language, for the server to word its two rules
+   * in it. English is the same as it always was.
+   */
+  test("the first policy's name is English, byte for byte, with no translator or an English one", () => {
+    expect(getFirstOnCallPolicyName()).toBe("Default on-call policy");
+    expect(getFirstOnCallPolicyName(createTranslator(undefined))).toBe(
+      "Default on-call policy",
+    );
+    expect(getFirstOnCallPolicyName(dashboardTranslator("en"))).toBe(
+      "Default on-call policy",
+    );
+  });
+
+  test.each(["de", "ar", "fa", "ja"])(
+    "read in %s, the first policy is named in the reader's language, and its create carries the language",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
+        userIds: ["u1"],
+        teamIds: [],
+        translator: translator,
+        language: language,
+      });
+
+      expect(create.policy.name).toBe(
+        translator.translateText(GUIDED_SETUP_POLICY_NAME),
+      );
+      expect(create.policy.name).toBe(getFirstOnCallPolicyName(translator));
+      expect(create.policy.name).not.toBe(GUIDED_SETUP_POLICY_NAME);
+      // A record keeps no invisible marks.
+      expect(create.policy.name).not.toMatch(/[⁦-⁩‎‏]/);
+      expect(create.miscDataProps).toEqual({
+        users: ["u1"],
+        teams: [],
+        [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+        [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: language,
+      });
+    },
+  );
+
+  test("the server's copy of the words names the first policy as the Dashboard does", () => {
+    for (const language of ["de", "ar", "fa", "ja", "zh-CN", "hi"]) {
+      expect([
+        language,
+        getFirstOnCallPolicyName(getRecordWordsTranslator(language)),
+      ]).toEqual([
+        language,
+        getFirstOnCallPolicyName(dashboardTranslator(language)),
+      ]);
+    }
+  });
+
+  test("a create with no language leaves the rules' language to the server", () => {
+    expect(
+      buildFirstOnCallPolicy({
+        userIds: [],
+        teamIds: ["t1"],
+        translator: dashboardTranslator("de"),
+      }).miscDataProps,
+    ).toEqual({
+      users: [],
       teams: ["t1"],
       [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
     });

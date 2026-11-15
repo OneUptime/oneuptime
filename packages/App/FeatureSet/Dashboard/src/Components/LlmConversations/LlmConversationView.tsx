@@ -31,7 +31,7 @@ import {
   LlmAnswerIssue,
   LlmAnswerIssueUtil,
 } from "Common/Types/Telemetry/LlmAnswerIssue";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
@@ -727,11 +727,29 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                   : pending.isTool
                     ? translator.translateTemplate(
                         "Running the tool… {{duration}}",
-                        { duration: formatLlmDuration(pending.elapsedMs) },
+                        {
+                          duration: composedValue(
+                            (sentence: Translator): string => {
+                              return formatLlmDuration(
+                                pending.elapsedMs,
+                                sentence,
+                              );
+                            },
+                          ),
+                        },
                       )
                     : translator.translateTemplate(
                         "AI is answering… {{duration}}",
-                        { duration: formatLlmDuration(pending.elapsedMs) },
+                        {
+                          duration: composedValue(
+                            (sentence: Translator): string => {
+                              return formatLlmDuration(
+                                pending.elapsedMs,
+                                sentence,
+                              );
+                            },
+                          ),
+                        },
                       )}
               </span>
             </div>

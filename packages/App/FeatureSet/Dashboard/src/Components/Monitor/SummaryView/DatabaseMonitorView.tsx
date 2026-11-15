@@ -404,8 +404,11 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                 <h3 className="text-sm font-medium text-gray-700">
                   {category}
                 </h3>
+                {/* What the group holds, a key of the catalog's (#8014). */}
                 <p className="text-xs text-gray-500">
-                  {getDatabaseMetricCategoryDescription(category)}
+                  {translator.translateText(
+                    getDatabaseMetricCategoryDescription(category),
+                  )}
                 </p>
               </div>
               <div className={SUMMARY_TABLE_FRAME_CLASS_NAME}>

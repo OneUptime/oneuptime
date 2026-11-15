@@ -82,11 +82,14 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: IncidentPage): string => {
  * Bold names the translations keep in English, on purpose, by page: the
  * product shows them in English whatever the language, or they are names
  * people give rather than labels.
+ *
+ * A workflow step's own names are not among them: the builder draws
+ * Create One Incident's Incident Template and a trigger's Success output
+ * in the reader's language, and the pages name them so (#7511,
+ * WorkflowStepNamesAsDrawnDocs).
  */
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   "incidents/declaring-incidents": [
-    // The workflow step's setting: the workflow docs name it in English.
-    "Incident Template",
     /*
      * A plan's name, which the Dashboard shows as written in every language
      * (PlanPickerCopy, the plan pills), as on the invoice.
@@ -108,25 +111,12 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   "incidents/notes-owners-and-feed": [
     // The Slack and Microsoft Teams modal, which is not translated.
     "Note",
-    // The workflow step's setting.
-    "Incident Template",
   ],
   "incidents/linked-alerts": [
     // Permission names, and the permission group they are in.
     "Create Alert State Timeline",
     "Edit Alert",
     "Create Incident Alert",
-  ],
-  "incidents/settings": [
-    /*
-     * A trigger's out-port, which the workflow docs name in English as a
-     * step's own output (WorkflowDocsTranslations' OUTPUTS). The Add
-     * Trigger panel, its sections and its Incident resource are drawn in
-     * the reader's language, and the page names them so.
-     */
-    "Success",
-    // The workflow step's setting.
-    "Incident Template",
   ],
 };
 

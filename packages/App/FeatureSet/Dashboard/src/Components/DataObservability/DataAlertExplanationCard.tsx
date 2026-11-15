@@ -11,7 +11,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -32,13 +32,32 @@ export interface ComponentProps {
   alertId: ObjectID;
 }
 
-const FEEDBACK_BUTTONS: ReadonlyArray<{
+/*
+ * Each answer by its name, a key every language words: the buttons were
+ * titled with the stored value, and "Useful" and "Expected" were no keys,
+ * so they read English on every page - beside the Documentation page that
+ * names them in the reader's words (#7531). What is saved stays the value.
+ */
+export const FEEDBACK_BUTTONS: ReadonlyArray<{
   feedback: DataAlertFeedback;
+  label: string;
   style: ButtonStyleType;
 }> = [
-  { feedback: DataAlertFeedback.Useful, style: ButtonStyleType.NORMAL },
-  { feedback: DataAlertFeedback.Expected, style: ButtonStyleType.NORMAL },
-  { feedback: DataAlertFeedback.NotAnIssue, style: ButtonStyleType.NORMAL },
+  {
+    feedback: DataAlertFeedback.Useful,
+    label: translationKey("Useful"),
+    style: ButtonStyleType.NORMAL,
+  },
+  {
+    feedback: DataAlertFeedback.Expected,
+    label: translationKey("Expected"),
+    style: ButtonStyleType.NORMAL,
+  },
+  {
+    feedback: DataAlertFeedback.NotAnIssue,
+    label: translationKey("Not an Issue"),
+    style: ButtonStyleType.NORMAL,
+  },
 ];
 
 const ImpactLine: FunctionComponent<{
@@ -207,12 +226,13 @@ const DataAlertExplanationCard: FunctionComponent<ComponentProps> = (
           {FEEDBACK_BUTTONS.map(
             (button: {
               feedback: DataAlertFeedback;
+              label: string;
               style: ButtonStyleType;
             }): ReactElement => {
               return (
                 <Button
                   key={button.feedback}
-                  title={button.feedback}
+                  title={button.label}
                   buttonStyle={
                     explanation.feedback === button.feedback
                       ? ButtonStyleType.PRIMARY

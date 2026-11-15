@@ -85,7 +85,8 @@ interface AllowedRepeatedButton {
 const ALLOWED_REPEATED_FILLED_BUTTONS: Array<AllowedRepeatedButton> = [
   {
     file: "packages/App/FeatureSet/Dashboard/src/Components/DataObservability/DataAlertExplanationCard.tsx",
-    label: "button.feedback",
+    // Titled by each answer's words (Useful, Expected), not its stored value.
+    label: "button.label",
     reason:
       "A choice of one answer, not a list of actions: only the answer the alert already has is drawn filled.",
   },

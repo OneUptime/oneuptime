@@ -168,6 +168,92 @@ export class Service extends ProjectReferencesService<Model> {
     return (result.affected || 0) > 0;
   }
 
+  /*
+   * GIVES BACK A CLAIM TO MOVE A RUN ON THAT PAGED NOBODY (issue #8167).
+   *
+   * A move on (OnCallEscalationAdvance) is claimed first, by moving the
+   * run's lastEscalationRuleExecutedAt to the moment of the claim - which
+   * also starts the wait of the rule the run is on afresh. A move that
+   * failed after its claim but before it started its next rule - before
+   * anybody was paged - would leave the run to wait that rule's whole wait
+   * again (half an hour, say) before it is tried again. So the claim is
+   * given back: the run's moment is put back as it was, and the worker's
+   * next tick tries the move again at once.
+   *
+   * Only while the run is as the claim left it: still executing, its moment
+   * still the claim's, on the same rule and the same pass. A run that
+   * started its next rule - some of whose people may be paged - began its
+   * policy again, ended, or that somebody else moved on keeps what it has,
+   * so nobody is paged twice. Never throws: a claim that cannot be given
+   * back is kept, and the run waits its rule's wait again, as it did.
+   */
+  @CaptureSpan()
+  public async giveBackEscalationAdvance(data: {
+    executionLogId: ObjectID;
+    // What the claim wrote.
+    claimedLastEscalationRuleExecutedAt: Date;
+    // What the claim found, and is put back.
+    previousLastEscalationRuleExecutedAt: Date | null;
+    // The rule the run was on, and its pass, when it was claimed.
+    lastExecutedEscalationRuleId: ObjectID | null;
+    onCallPolicyExecutionRepeatCount: number | null;
+  }): Promise<boolean> {
+    try {
+      const current: Model | null = await this.findOneById({
+        id: data.executionLogId,
+        select: {
+          status: true,
+          lastEscalationRuleExecutedAt: true,
+          lastExecutedEscalationRuleId: true,
+          onCallPolicyExecutionRepeatCount: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const isAsClaimed: boolean = Boolean(
+        current &&
+          current.status === OnCallDutyPolicyStatus.Executing &&
+          current.lastEscalationRuleExecutedAt &&
+          new Date(current.lastEscalationRuleExecutedAt).getTime() ===
+            data.claimedLastEscalationRuleExecutedAt.getTime() &&
+          (current.lastExecutedEscalationRuleId?.toString() || null) ===
+            (data.lastExecutedEscalationRuleId?.toString() || null) &&
+          (current.onCallPolicyExecutionRepeatCount ?? null) ===
+            (data.onCallPolicyExecutionRepeatCount ?? null),
+      );
+
+      if (!isAsClaimed) {
+        return false;
+      }
+
+      const result: UpdateResult = await this.getRepository().update(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {
+          _id: data.executionLogId.toString(),
+          status: OnCallDutyPolicyStatus.Executing,
+          lastEscalationRuleExecutedAt:
+            data.claimedLastEscalationRuleExecutedAt,
+        } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {
+          lastEscalationRuleExecutedAt:
+            data.previousLastEscalationRuleExecutedAt,
+        } as any,
+      );
+
+      return (result.affected || 0) > 0;
+    } catch (err) {
+      logger.error(
+        `Could not give back the claim to move on-call execution log ${data.executionLogId.toString()} on; it waits its rule's wait again before it is tried.`,
+      );
+      logger.error(err as Error);
+
+      return false;
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -1435,15 +1521,111 @@ export class Service extends ProjectReferencesService<Model> {
      * worker got to it, as `run` was read before the claim moved the moment
      * - or now, for a run started before its moment (OnCallPageTiming).
      */
-    await this.startFirstEscalationRule(run, {
-      isStarted: true,
-      dueAt: getOnCallPolicyRunPagingDueAt({
-        pagingStartsAt: run.pagingStartsAt,
-        now: data.now,
-      }),
-    });
+    try {
+      await this.startFirstEscalationRule(run, {
+        isStarted: true,
+        dueAt: getOnCallPolicyRunPagingDueAt({
+          pagingStartsAt: run.pagingStartsAt,
+          now: data.now,
+        }),
+      });
+    } catch (err) {
+      /*
+       * The start failed after its claim: the run is Started, which no tick
+       * reads, and would be timed out having paged nobody. It is handed to
+       * its escalation, which pages what the start did not, and the failure
+       * goes on to the worker, which says what it means (issue #8167).
+       */
+      await this.handStartedRunToEscalation({
+        executionLogId: run.id!,
+        dueAt: getOnCallPolicyRunPagingDueAt({
+          pagingStartsAt: run.pagingStartsAt,
+          now: data.now,
+        }),
+      });
+
+      throw err;
+    }
 
     return true;
+  }
+
+  /*
+   * HANDS A RUN WHOSE START FAILED TO ITS ESCALATION (issue #8167).
+   *
+   * Starting a run that waited is claimed by moving it from Waiting to
+   * Started (claimWaitingRun). A start that then failed - the database lost
+   * as it read the first rule, or as the rule paged - left the run Started,
+   * which no tick of the worker reads: TimeoutStuckExecutions ended it in
+   * Error five minutes later, having paged nobody, and its later rules were
+   * never paged either. The run is handed to its escalation instead
+   * (Executing), and the worker's next tick pages what the start did not, in
+   * the one way a run moves on (OnCallEscalationAdvance), claimed, so nobody
+   * is paged twice:
+   *
+   *   - a start that did not get as far as its first rule (none recorded on
+   *     the run) paged nobody: its escalation starts from its first rule at
+   *     once, due when the run's page was (`dueAt`);
+   *   - a start whose first rule started - some of whose people may be
+   *     paged - goes on from that rule, to the next once its wait is over.
+   *
+   * Only a run still Started is handed over. Never throws: a run that cannot
+   * be handed over stays Started, as it did.
+   */
+  @CaptureSpan()
+  public async handStartedRunToEscalation(data: {
+    executionLogId: ObjectID;
+    // When the run's page was due.
+    dueAt: Date;
+  }): Promise<boolean> {
+    try {
+      const fromFirstRule: UpdateResult = await this.getRepository().update(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {
+          _id: data.executionLogId.toString(),
+          status: OnCallDutyPolicyStatus.Started,
+          lastExecutedEscalationRuleId: IsNull(),
+          lastEscalationRuleExecutedAt: IsNull(),
+        } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {
+          status: OnCallDutyPolicyStatus.Executing,
+          lastEscalationRuleExecutedAt: data.dueAt,
+          executeNextEscalationRuleInMinutes: 0,
+        } as any,
+      );
+
+      let handedOver: boolean = (fromFirstRule.affected || 0) > 0;
+
+      if (!handedOver) {
+        const fromItsRule: UpdateResult = await this.getRepository().update(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          {
+            _id: data.executionLogId.toString(),
+            status: OnCallDutyPolicyStatus.Started,
+          } as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          {
+            status: OnCallDutyPolicyStatus.Executing,
+          } as any,
+        );
+
+        handedOver = (fromItsRule.affected || 0) > 0;
+      }
+
+      if (handedOver) {
+        OnCallPolicyRunMessage.refresh(data.executionLogId);
+      }
+
+      return handedOver;
+    } catch (err) {
+      logger.error(
+        `Could not hand on-call execution log ${data.executionLogId.toString()} to its escalation after its start failed.`,
+      );
+      logger.error(err as Error);
+
+      return false;
+    }
   }
 
   /*

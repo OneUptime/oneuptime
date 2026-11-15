@@ -615,9 +615,13 @@ describe("the probe's timeout sentence", () => {
 const DESCRIPTIONS_FILE: string =
   "packages/Common/Utils/Monitor/RequestFailureDescriptions.ts";
 
-// The checks that say what a failed request means.
+/*
+ * The checks that say what a failed request means: the Website and API
+ * checks' requests (RequestFailedDetailsUtil, which only a probe loads),
+ * the Port check and the NTP check.
+ */
 const DESCRIPTION_WRITERS: ReadonlyArray<string> = [
-  "packages/Common/Utils/API.ts",
+  "packages/Common/Utils/RequestFailedDetailsUtil.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/PortMonitor.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/NtpMonitor.ts",
 ];

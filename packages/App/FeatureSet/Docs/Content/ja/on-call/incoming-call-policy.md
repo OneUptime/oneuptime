@@ -216,7 +216,7 @@ Twilio はメッセージを音声合成で読み上げるため、聞こえて�
 :::steps
 1. **On Update Incoming Call Log** トリガーを追加します。 **Fields to watch** を **Ended At** に設定し、 **Status** 、 **Caller Phone Number** 、 **Routing Phone Number** など、使いたいフィールドを選びます。
 2. **If / Else** ステップを追加します。トリガーの **Status** を、比較 **と等しくない** と `Completed` で確認します。
-3. 自分のステップを **Yes** ポートにつなぎます。
+3. 自分のステップを **はい** ポートにつなぎます。
 :::
 
 ワークフローは **Find One** と **Find Many** で通話ログを読み取れますが、作成や変更はできません。

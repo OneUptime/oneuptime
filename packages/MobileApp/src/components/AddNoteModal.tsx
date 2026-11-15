@@ -27,6 +27,7 @@ import {
   type SheetPlacement,
 } from "../layout/sheetPlacement";
 import { useSheetPlacement } from "../layout/useSheetPlacement";
+import { countTypingAsActivity } from "../auth/userActivity";
 
 interface AddNoteModalProps {
   visible: boolean;
@@ -248,7 +249,7 @@ export default function AddNoteModal({
               cursorColor={theme.colors.actionPrimary}
               keyboardAppearance={theme.dark ? "dark" : "light"}
               value={noteText}
-              onChangeText={setNoteText}
+              onChangeText={countTypingAsActivity(setNoteText)}
               onFocus={() => {
                 setFocused(true);
               }}

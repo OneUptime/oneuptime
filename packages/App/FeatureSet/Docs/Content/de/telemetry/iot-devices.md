@@ -179,7 +179,7 @@ OneUptime hat einen eigenen MQTT-Endpunkt; Geräte, die MQTT sprechen, veröffen
 
 Zugangsdaten eines Geräts können nur unter dessen eigenen Topics `oneuptime/<fleet>/<device>/` veröffentlichen. Sie können ein Gerät widerrufen, ohne den Rest der Flotte anzutasten: Schalten Sie seinen Schalter **Aktiviert** aus oder löschen Sie es, und ein verbundenes Gerät wird innerhalb etwa einer Minute getrennt. Ein registriertes Gerät, das verstummt, bleibt als offline im Inventar, und die Alarmvorlage Device Offline löst für es aus, auch wenn es ohne Last Will ausfällt.
 
-OneUptime lehnt falsche Zugangsdaten bei CONNECT mit Rückgabecode 4 ab (falscher Benutzername oder falsches Passwort), sodass ein falsch konfiguriertes Gerät sichtbar scheitert. Browser-Schlüssel werden über MQTT abgelehnt.
+OneUptime lehnt falsche Zugangsdaten bei CONNECT mit Rückgabecode 4 ab (falscher Benutzername oder falsches Passwort), sodass ein falsch konfiguriertes Gerät sichtbar scheitert. Browser-Schlüssel werden über MQTT abgelehnt. Ein Client, der sich mit dem Ingestion-Schlüssel verbunden hat, wird innerhalb weniger Sekunden getrennt, sobald der Schlüssel ausgeschaltet wird, abläuft, sein Geheimnis zurückgesetzt bekommt oder gelöscht wird, und beim erneuten Verbinden abgelehnt.
 
 ### Topics und Payloads
 

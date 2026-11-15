@@ -616,7 +616,12 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
    */
 
   describe("a rule id that resolves to nothing", () => {
-    test('still throws BadDataException("Notification rule item not found.")', async () => {
+    /*
+     * A rule deleted after the page read it is skipped (issue #8168): it
+     * used to throw a BadDataException, which ended the person's whole
+     * on-call log in Error and dropped every rule of theirs still due.
+     */
+    test("resolves, sending nothing, so the person's other rules still run", async () => {
       spies.findRule.mockResolvedValue(null as never);
 
       await expect(
@@ -624,39 +629,28 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
           RULE_ID,
           executeOptions(),
         ),
-      ).rejects.toThrow(BadDataException);
-
-      await expect(
-        UserNotificationRuleService.executeNotificationRuleItem(
-          RULE_ID,
-          executeOptions(),
-        ),
-      ).rejects.toThrow("Notification rule item not found.");
+      ).resolves.toBeUndefined();
     });
 
     test("the delivery half is never entered on a missing rule", async () => {
       const deliver: jest.SpyInstance = stubDeliveryHalf();
       spies.findRule.mockResolvedValue(null as never);
 
-      await expect(
-        UserNotificationRuleService.executeNotificationRuleItem(
-          RULE_ID,
-          executeOptions(),
-        ),
-      ).rejects.toThrow(BadDataException);
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
 
       expect(deliver).not.toHaveBeenCalled();
     });
 
-    test("the throw beats the Twilio config, the incident lookup and any timeline row", async () => {
+    test("nothing past the rule lookup runs: no Twilio config, no incident lookup, no timeline row", async () => {
       spies.findRule.mockResolvedValue(null as never);
 
-      await expect(
-        UserNotificationRuleService.executeNotificationRuleItem(
-          RULE_ID,
-          executeOptions(),
-        ),
-      ).rejects.toThrow(BadDataException);
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
 
       expect(spies.twilio).not.toHaveBeenCalled();
       expect(spies.incidentFind).not.toHaveBeenCalled();
@@ -669,18 +663,16 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
     test("the claim has ALREADY been consumed when the rule turns out to be missing", async () => {
       spies.findRule.mockResolvedValue(null as never);
 
-      await expect(
-        UserNotificationRuleService.executeNotificationRuleItem(
-          RULE_ID,
-          executeOptions(),
-        ),
-      ).rejects.toThrow(BadDataException);
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
 
       /*
        * Pinned as current behaviour, unchanged by the split: the claim is
        * written before the rule is read, so a rule deleted between scheduling
        * and execution burns its claim and no later tick retries it. Deliberate
-       * (a missing rule is permanent), but it means the claim is not released.
+       * (a missing rule sends nothing), and it means the claim is not released.
        */
       expect(spies.claim).toHaveBeenCalledTimes(1);
     });

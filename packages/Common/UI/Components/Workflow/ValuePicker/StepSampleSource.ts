@@ -41,6 +41,7 @@ import { getWebhookTriggerCurlExample } from "../../../../Types/Workflow/Webhook
 import OneUptimeDate from "../../../../Types/Date";
 import { translationKey } from "../../../Utils/TranslateTemplate";
 import { stepGroupId } from "./StepValueSource";
+import { returnValueName, wholeReturnValueLabel } from "../ReturnValueNames";
 import {
   ValueSuggestion,
   ValueSuggestionContext,
@@ -345,7 +346,12 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
     const fieldsToSearch: Array<ValueSuggestion> = [];
 
     for (const returnValue of step.metadata.returnValues || []) {
-      const name: string = returnValue.name || returnValue.id;
+      // As StepValueSource names it: in the reader's words (ReturnValueNames).
+      const name: string = returnValueName(returnValue, context.translator);
+      const wholeValueLabel: string = wholeReturnValueLabel(
+        returnValue,
+        context.translator,
+      );
       const reference: string = componentReturnValueReference(
         step.id,
         returnValue.id,
@@ -369,7 +375,7 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
             reference: reference,
             label: name,
             drillIn: {
-              wholeValueLabel: `The whole ${name}`,
+              wholeValueLabel: wholeValueLabel,
               allowsPath: true,
               note: isWebhook(step)
                 ? StepSampleCopy.noRequestYetInside
@@ -400,7 +406,7 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
 
       if (value.isCutShort) {
         item.drillIn = {
-          wholeValueLabel: `The whole ${name}`,
+          wholeValueLabel: wholeValueLabel,
           allowsPath: true,
           note: isWebhook(step)
             ? StepSampleCopy.cutShortRequest
@@ -428,7 +434,7 @@ export const buildStepSampleGroups: BuildStepSampleGroupsFunction = (
         );
 
         item.drillIn = {
-          wholeValueLabel: `The whole ${name}`,
+          wholeValueLabel: wholeValueLabel,
           allowsPath: true,
           note: whereFrom({ step: step, value: value, formatWhen: formatWhen }),
         };

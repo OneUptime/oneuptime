@@ -27,6 +27,13 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import { getDefaultStatusPageName } from "../../../Utils/GuidedSetup/StatusPageRecords";
+import { getFirstOnCallPolicyName } from "../../../Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  getEveryNewAlertRuleDescription,
+  getEveryNewAlertRuleName,
+  getEveryNewIncidentRuleDescription,
+  getEveryNewIncidentRuleName,
+} from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 
 /*
  * SENTENCES THE SERVER AND THE DASHBOARD BOTH WRITE (#7247).
@@ -102,6 +109,39 @@ const sentencesTheStatusPageNameLooksUp: () => Set<string> =
     return asked;
   };
 
+/*
+ * Every sentence the first on-call policy and its two catch-all rules look
+ * up (#7995): the policy's name, each rule's name - for a named policy and
+ * for one with none - and each rule's description.
+ */
+const sentencesTheFirstPolicyLooksUp: () => Set<string> = (): Set<string> => {
+  const asked: Set<string> = new Set<string>();
+  /*
+   * One that words each sentence, so the name of a policy with none - a
+   * value of the rule's sentence, worded in the sentence's language - is
+   * looked up too.
+   */
+  const recording: Translator = createTranslator(
+    (text: string): string | undefined => {
+      asked.add(text);
+      return `«${text}»`;
+    },
+    "de",
+  );
+
+  getFirstOnCallPolicyName(recording);
+
+  for (const policyName of ["Payments on-call", undefined]) {
+    getEveryNewIncidentRuleName(policyName, recording);
+    getEveryNewAlertRuleName(policyName, recording);
+  }
+
+  getEveryNewIncidentRuleDescription(recording);
+  getEveryNewAlertRuleDescription(recording);
+
+  return asked;
+};
+
 describe("the sentences the server and the Dashboard both write", () => {
   test("come from files the server's scan reads, a new monitor's criteria and a new status page's name among them", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
@@ -109,6 +149,13 @@ describe("the sentences the server and the Dashboard both write", () => {
     );
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
       "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
+    );
+    // The first on-call policy and its two rules (#7995).
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+    );
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
     );
 
     const scanned: Array<string> = listSourceFiles();
@@ -122,15 +169,28 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(fs.existsSync(DASHBOARD_LOCALES_DIRECTORY)).toBe(true);
   });
 
-  test("are every sentence a new monitor's default criteria, for every monitor type, and a new status page's name are written with, and nothing else", () => {
+  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name and the first on-call policy with its rules are written with, and nothing else", () => {
     const asked: Set<string> = new Set<string>([
       ...sentencesTheCriteriaLookUp(),
       ...sentencesTheStatusPageNameLooksUp(),
+      ...sentencesTheFirstPolicyLooksUp(),
     ]);
 
     // The name Ask AI and the status page guided setup start a page with.
     expect(sentencesTheStatusPageNameLooksUp()).toEqual(
       new Set<string>(["{{project}} Status"]),
+    );
+
+    // The first on-call policy, its two rules and what an unnamed one is called (#7995).
+    expect(sentencesTheFirstPolicyLooksUp()).toEqual(
+      new Set<string>([
+        "Default on-call policy",
+        "Page {{policy}} for every incident",
+        "Page {{policy}} for every alert",
+        "the new on-call policy",
+        "Pages this on-call policy for every new incident. Added when the policy was created.",
+        "Pages this on-call policy for every new alert. Added when the policy was created.",
+      ]),
     );
 
     // The criteria of the website and API monitors Ask AI sets up are among them.

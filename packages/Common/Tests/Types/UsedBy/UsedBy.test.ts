@@ -239,9 +239,10 @@ describe("the answers' shapes", () => {
   });
 
   /*
-   * The browser reads every answer through HTTPResponse, which takes one
-   * holding count, skip and limit for a list of models in `data`: a page
-   * once held all three, and See all failed with "array is not iterable".
+   * The browser reads every answer through HTTPResponse. It once took any
+   * answer holding count, skip and limit for a list of models in `data`: a
+   * page held all three, and See all failed with "array is not iterable".
+   * Only a real list envelope reads that way now (issue #7794).
    */
   test("a page and a summary read through HTTPResponse as the server sent them", () => {
     const page: unknown = new HTTPResponse(
@@ -258,9 +259,19 @@ describe("the answers' shapes", () => {
     expect(isUsedByPage(page)).toBe(true);
     expect((page as UsedByPage).rows).toEqual(goodPage.rows);
     expect(isUsedBySummary(summary)).toBe(true);
-    expect(Object.keys(goodPage)).not.toEqual(
-      expect.arrayContaining(["count", "skip", "limit"]),
-    );
+  });
+
+  test("a page that also says skip and limit still reads whole, its rows kept", () => {
+    const body: JSONObject = {
+      ...(goodPage as unknown as JSONObject),
+      skip: 0,
+      limit: 50,
+    };
+
+    const page: unknown = new HTTPResponse(200, body, {}).data;
+
+    expect(isUsedByPage(page)).toBe(true);
+    expect((page as UsedByPage).rows).toEqual(goodPage.rows);
   });
 
   test("anything else is an error to show, never a list to draw", () => {

@@ -66,7 +66,7 @@ Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet*
 
 ### Öppna issuet
 
-Klicka på **Lägg till komponent**, lägg till ett block **API Post (JSON)** och anslut utlösarens punkt **Success** till det. Sätt dess **URL** till `https://api.github.com/repos/your-org/your-repo/issues`, med ditt repositoriums ägare och namn. Sätt under **Fler fält** dess **Request Headers** till:
+Klicka på **Lägg till komponent**, lägg till ett block **API Post (JSON)** och anslut utlösarens punkt **Framgång** till det. Sätt dess **URL** till `https://api.github.com/repos/your-org/your-repo/issues`, med ditt repositoriums ägare och namn. Sätt under **Fler fält** dess **Begärandehuvuden** till:
 
 ```json
 {
@@ -76,7 +76,7 @@ Klicka på **Lägg till komponent**, lägg till ett block **API Post (JSON)** oc
 }
 ```
 
-Och **Request Body** på:
+Och **Begärandekropp** på:
 
 ```json
 {
@@ -97,11 +97,11 @@ Issuet förblir öppet när incidenten är löst, eftersom uppföljningsarbetet 
 
 - **GitHub Enterprise Server.** Skicka begäran till din server i stället: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. En server på en privat nätverksadress kräver en egenvärdad OneUptime vars administratör tillåter det: se [Utgående nätverksåtkomst](/docs/workflows/configuration#utgående-nätverksåtkomst).
 - **Tilldela det.** Lägg till `"assignees": ["octocat"]` eller `"milestone": 3` i bodyn. GitHub släpper etiketter, tilldelade och milstolpar utan ett ord när token inte får pusha till repositoriet.
-- **Bara vissa incidenter.** Sätt ett block **If / Else** mellan utlösaren och API-blocket, och öppna issues bara på dess **Yes**-sida, till exempel för en allvarlighetsgrad.
+- **Bara vissa incidenter.** Sätt ett block **If / Else** mellan utlösaren och API-blocket, och öppna issues bara på dess **Ja**-sida, till exempel för en allvarlighetsgrad.
 
 ## Felsökning
 
-Steget **API Post (JSON)** tar **Error** när GitHub avvisar begäran. Dess **Response Status** och **Response Body** i körningen säger varför.
+Steget **API Post (JSON)** tar **Fel** när GitHub avvisar begäran. Dess **Response Status** och **Svarstext** i körningen säger varför.
 
 :::details GitHub svarar 401
 Token är fel, har gått ut eller har återkallats. Skapa en ny och ersätt innehållet i `GITHUB_TOKEN`.

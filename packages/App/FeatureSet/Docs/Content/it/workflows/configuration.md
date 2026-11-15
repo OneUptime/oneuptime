@@ -107,8 +107,8 @@ Il trigger Incoming Email dà al workflow un indirizzo tutto suo, e chiunque con
 
 - Non pubblicarlo e non inserirlo in un repository pubblico. Il trigger nasconde la chiave finché non fai clic su **Mostra**, e **Copia indirizzo** copia l'indirizzo senza mostrarlo.
 - Se l'indirizzo trapela, fai clic sul trigger Incoming Email nel **Costruttore** e poi su **Reimposta indirizzo**. Il workflow riceve un nuovo indirizzo, e da quel momento le email al vecchio vengono ignorate.
-- Chiunque può mettere qualsiasi mittente su un'email, quindi **From** non prova chi l'ha inviata. Prima che un workflow faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **If / Else**. Salva il token atteso come variabile segreta.
-- La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **To**, **CC**, gli header e i corpi — perché il registro dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del workflow.
+- Chiunque può mettere qualsiasi mittente su un'email, quindi **Da** non prova chi l'ha inviata. Prima che un workflow faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **If / Else**. Salva il token atteso come variabile segreta.
+- La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **A**, **CC**, gli header e i corpi — perché il registro dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del workflow.
 
 Solo le persone che possono modificare il workflow — **Proprietario del progetto**, **Amministratore del progetto**, **Amministratore dei flussi di lavoro** o **Edit Workflow** — possono vedere o reimpostare il suo indirizzo. Tutti gli altri vedono una nota che dice a chi chiederlo.
 
@@ -132,14 +132,14 @@ Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access) per c
 
 Cosa riceve il provider, e cosa può farne il modello:
 
-- **Solo ciò che metti nel blocco.** OneUptime invia un'istruzione di sicurezza fissa, poi le **System Instructions**, il **Prompt** e il **Context** del blocco, con i riferimenti compilati. **Context** viene per ultimo, dopo un marcatore, e l'istruzione di sicurezza dice al modello che tutto ciò che segue il marcatore sono dati non attendibili, anche un testo che sembra un'istruzione.
+- **Solo ciò che metti nel blocco.** OneUptime invia un'istruzione di sicurezza fissa, poi le **System Instructions**, il **Prompt** e il **Contesto** del blocco, con i riferimenti compilati. **Contesto** viene per ultimo, dopo un marcatore, e l'istruzione di sicurezza dice al modello che tutto ciò che segue il marcatore sono dati non attendibili, anche un testo che sembra un'istruzione.
 - **Nient'altro.** I dati del trigger, la cronologia del workflow, gli output degli altri blocchi, i record del progetto, la telemetria e i segreti non vengono mai allegati. Lasciano OneUptime solo quando vi fai riferimento in una di quelle tre impostazioni.
 - **Testo, e nessuno strumento.** Il modello non può interrogare OneUptime, fare richieste HTTP o modificare dati. I parametri aggiuntivi di un provider lasciano passare solo un elenco consentito di campi di regolazione della generazione: non possono sostituire i messaggi, aggiungere strumenti, ricerca web o altre fonti di dati, chiedere altro che testo o più risposte, attivare lo streaming, far conservare la richiesta al provider o alzare il limite di output del blocco. I campi che OneUptime non conosce vengono scartati.
 - **Il modello lo sceglie il tuo amministratore.** Se la generazione deve restare offline, scegli un modello che non recuperi nulla da solo dal lato del provider.
 
 Cosa viene registrato:
 
-- Il registro dell'esecuzione nasconde le **System Instructions**, il **Prompt**, il **Context** e la **Response** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
+- Il registro dell'esecuzione nasconde le **System Instructions**, il **Prompt**, il **Contesto** e la **Risposta** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
 - Il provider, il modello, il numero di token, il **LLM Log ID** e un messaggio di errore sicuro restano visibili, per l'operatività e la fatturazione. L'errore grezzo di un provider resta fuori da ogni registro, perché un provider può ripetervi la richiesta.
 - Ogni chiamata compare in **Impostazioni del progetto → IA → Registri IA** con provider, modello, stato, token, costo e fatturazione, senza il prompt, la risposta o l'errore grezzo.
 
@@ -147,17 +147,17 @@ Di cosa ha bisogno il blocco, e quanto costa:
 
 - **Abilita IA** deve essere acceso, in **Impostazioni del progetto → IA → Funzionalità IA**. Su OneUptime Cloud il progetto ha bisogno anche del piano Growth o superiore e di un abbonamento pagato. Le installazioni self-hosted senza fatturazione non hanno vincoli di piano.
 - Le chiamate tramite un provider globale a pagamento usano i crediti IA del progetto.
-- Ogni chiamata conta nei [limiti giornalieri di IA del progetto](/docs/ai/ai-sre#i-limiti-giornalieri-del-progetto-stesso), quando un proprietario del progetto li imposta. Una volta raggiunto un limite, il blocco prende **Error** senza contattare il modello, fino alla mezzanotte UTC.
+- Ogni chiamata conta nei [limiti giornalieri di IA del progetto](/docs/ai/ai-sre#i-limiti-giornalieri-del-progetto-stesso), quando un proprietario del progetto li imposta. Una volta raggiunto un limite, il blocco prende **Errore** senza contattare il modello, fino alla mezzanotte UTC.
 
 | Limite                                                       | Valore                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** e **Context** insieme    | 50.000 caratteri                                                          |
-| **Temperature**                                              | Da `0` a `1`                                                              |
+| **System Instructions**, **Prompt** e **Contesto** insieme    | 50.000 caratteri                                                          |
+| **Temperatura**                                              | Da `0` a `1`                                                              |
 | **Maximum Output Tokens**                                    | Da `1` a `4096`, `1024` per impostazione predefinita                      |
 | Una richiesta                                                | Un solo tentativo, al massimo 60 secondi                                  |
-| Chiamate contemporanee                                       | 3 per progetto. Le altre prendono **Error**, e un'esecuzione successiva può riprovare. |
+| Chiamate contemporanee                                       | 3 per progetto. Le altre prendono **Errore**, e un'esecuzione successiva può riprovare. |
 
-Gli errori di convalida, configurazione, accesso, limite, crediti, concorrenza, provider e timeout prendono tutti il percorso **Error**, con il motivo in **Error**. Collega quel percorso prima che il workflow vada in produzione.
+Gli errori di convalida, configurazione, accesso, limite, crediti, concorrenza, provider e timeout prendono tutti il percorso **Errore**, con il motivo in **Errore**. Collega quel percorso prima che il workflow vada in produzione.
 
 > [!WARNING]
 > Ogni valore a cui fai riferimento è un dato che invii al provider. Non mettere una variabile segreta nel prompt o nel contesto, a meno che il provider non sia approvato per riceverla. Un provider locale self-hosted come Ollama tiene le richieste all'interno della tua infrastruttura; un provider ospitato le riceve secondo le proprie condizioni di trattamento dei dati.
@@ -196,11 +196,11 @@ I passaggi che leggono e modificano i record di OneUptime — i componenti Find,
   - modificare o eliminare una voce del feed (i feed di incidenti, avvisi, episodi, monitor, policy di reperibilità e manutenzioni pianificate);
   - scrivere un registro delle notifiche (i registri di SMS, chiamate, email, WhatsApp, Telegram, notifiche push, webhook e messaggi dell'area di lavoro);
   - i valori che OneUptime imposta man mano che le cose accadono: se il CNAME di un dominio personalizzato è verificato, gli interruttori di protezione di un team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quale ruolo di incidente è quello principale e se può essere eliminato, se un proprietario o un membro è stato avvisato, gli orari e il numero dei promemoria, chi è reperibile ora e dopo in un calendario, l'avanzamento di un'esecuzione di reperibilità, il tasso di consumo e l'error budget attuali di uno SLO, un monitor messo in pausa da un incidente o da un evento di manutenzione, il token di reimpostazione della password e l'ultimo accesso di un utente privato di una pagina di stato, i dati che un servizio riporta su sé stesso (versione, runtime, cloud) e l'ultima esecuzione di una regola di rilevamento o di un feed di minacce;
-  - dichiarare un incidente da un modello inviando `createdIncidentTemplateId` a **Create One Incident** — scegli invece il modello nell'impostazione **Incident Template** del passaggio: il passaggio dichiara allora l'incidente da esso, come Project Admin, e registra il modello;
+  - dichiarare un incidente da un modello inviando `createdIncidentTemplateId` a **Create One Incident** — scegli invece il modello nell'impostazione **Modello di incidente** del passaggio: il passaggio dichiara allora l'incidente da esso, come Project Admin, e registra il modello;
   - cambiare il record a cui appartiene un record dopo la sua creazione, come il monitor a cui si riferisce una riga di proprietario o l'incidente su cui si trova una nota.
 - **Come nessuno.** Un record creato da un workflow non indica alcun creatore, e il registro di audit nomina il workflow, con il nome che aveva in quel momento, come autore della modifica.
 
-Quando un controllo rifiuta un passaggio, il passaggio prende la sua uscita **Error** senza fare la modifica rifiutata, e il registro dell'esecuzione nomina il passaggio e il motivo con parole semplici, ad esempio *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leggilo nelle [Esecuzioni](/docs/workflows/runs-and-logs) del workflow. Un passaggio Create Many crea i suoi record uno alla volta e si ferma al primo rifiutato: i record creati prima di quello vengono conservati.
+Quando un controllo rifiuta un passaggio, il passaggio prende la sua uscita **Errore** senza fare la modifica rifiutata, e il registro dell'esecuzione nomina il passaggio e il motivo con parole semplici, ad esempio *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leggilo nelle [Esecuzioni](/docs/workflows/runs-and-logs) del workflow. Un passaggio Create Many crea i suoi record uno alla volta e si ferma al primo rifiutato: i record creati prima di quello vengono conservati.
 
 I passaggi che parlano con altri sistemi — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with AI — non leggono né modificano record di OneUptime, quindi niente di tutto questo li riguarda.
 
@@ -228,7 +228,7 @@ L'esecutore controlla la scadenza prima e dopo ogni blocco, e segna un'esecuzion
 
 ## Limite alle chiamate tra workflow
 
-Il componente **Execute Workflow** permette a un workflow di avviarne un altro. Per evitare cicli in cui il workflow A avvia B, che avvia di nuovo A, una catena di workflow che si avviano a vicenda viene rifiutata quando tornerebbe a un workflow che ne fa già parte, o supererebbe i 10 workflow di profondità. Il blocco **Execute Workflow** prende allora la sua uscita **Error**, e l'errore mostra la catena.
+Il componente **Execute Workflow** permette a un workflow di avviarne un altro. Per evitare cicli in cui il workflow A avvia B, che avvia di nuovo A, una catena di workflow che si avviano a vicenda viene rifiutata quando tornerebbe a un workflow che ne fa già parte, o supererebbe i 10 workflow di profondità. Il blocco **Execute Workflow** prende allora la sua uscita **Errore**, e l'errore mostra la catena.
 
 Se ti serve davvero una catena lunga (come un job che elabora un elemento per esecuzione), di solito è più semplice ciclare all'interno di un solo workflow con **Run Custom JavaScript**.
 

@@ -229,7 +229,7 @@ curl -X POST https://oneuptime.com/api/incident \
 
 インシデントの宣言時に所有者を追加するには、その ID を `miscDataProps` に `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` の形で送ります。呼び出し元がそれらの所有者を追加できないリクエストは、何も保存される前に拒否されます。追加できる場合は、インシデントが作成されしだい「追加されました」通知なしで追加されます。API キーは人ではないため所有者にはならず、どの所有者ルールもそのために作成者のチームを追加しません。どの所有者ルールが実行されるかを確かめるには、フォームが保持しているとおりのインシデント（`title`、`description`、`severityId`、`labelIds`、`monitorIds`、およびその他のリソースの ID）を `POST /api/incident/owner-rule-preview` に送ります。応答には、誰かを追加する各ルールが、追加される人の ID とともに含まれます。アラートの場合は `POST /api/alert/owner-rule-preview` です。
 
-API キーはテンプレートから宣言できません。`createdIncidentTemplateId` を送るリクエストは拒否されます。この列は、[フォーム](/docs/forms/on-submit) から報告されたインシデントと、ワークフローの **Create One Incident** ステップ（**Incident Template** 設定で選んだテンプレートから宣言します）のために OneUptime 自身が設定します（[ワークフロー コンポーネント](/docs/workflows/components) を参照）。API でテンプレートから宣言するには、`/api/incident-templates` からテンプレートを読み取り、その値をリクエストで送ってください。
+API キーはテンプレートから宣言できません。`createdIncidentTemplateId` を送るリクエストは拒否されます。この列は、[フォーム](/docs/forms/on-submit) から報告されたインシデントと、ワークフローの **Create One Incident** ステップ（**インシデントテンプレート** 設定で選んだテンプレートから宣言します）のために OneUptime 自身が設定します（[ワークフロー コンポーネント](/docs/workflows/components) を参照）。API でテンプレートから宣言するには、`/api/incident-templates` からテンプレートを読み取り、その値をリクエストで送ってください。
 
 関連するエンドポイントは `/api/incident-state`、`/api/incident-severity`、`/api/incident-state-timeline` です。生成された [API リファレンス](/reference) には、モニターなどのリレーション項目の表し方を含め、それぞれのリクエストとレスポンスの正確な形があります。
 

@@ -84,7 +84,7 @@ Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event
 | `recovery` | Løser problemets hændelse, medmindre den allerede er løst. Hvorfor står på dens tidslinje. |
 | `update` | Tilføjer det, der blev gjort i Zabbix, til hændelsen som en privat note: hvem der gjorde det, hvad de gjorde, og hvad de skrev. Når opdateringen bekræftede problemet, bekræfter den også hændelsen, så vagten holder op med at eskalere den. |
 
-Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være: `read-event-1` tager **No**, og kørslens **Trin** siger hvorfor. Et trin, der fejler, får kørslen til at mislykkes, og dets post under **Trin** siger hvorfor.
+Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være: `read-event-1` tager **Nej**, og kørslens **Trin** siger hvorfor. Et trin, der fejler, får kørslen til at mislykkes, og dets post under **Trin** siger hvorfor.
 
 ### Alvorligheder
 
@@ -102,7 +102,7 @@ I et nyt projekt knytter skabelonen Zabbix' seks alvorligheder til disse hændel
 Med egne alvorligheder går Disaster og High til din mest alvorlige, Average og Warning til den midterste, og Information og Not classified til din mindst alvorlige. Zabbix nummererer sine alvorligheder fra 0 (Not classified) til 5 (Disaster), og skabelonen læser nummeret, så at omdøbe en alvorlighed i Zabbix ændrer intet.
 
 - For at knytte en alvorlighed til en af dine efter navn skal du redigere `SEVERITY_BY_NAME` i trinnet `read-event-1`, f.eks. `{ 2: 'Minor Incident' }` for Warning.
-- For også at kalde op for Average-problemer skal du sætte **Compare with** i trinnet `if-page-1` **If / Else** til `3`.
+- For også at kalde op for Average-problemer skal du sætte **Sammenlign med** i trinnet `if-page-1` **If / Else** til `3`.
 
 ### Send bekræftelser og noter tilbage til Zabbix
 

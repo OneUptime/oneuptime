@@ -178,7 +178,7 @@ Hver scanning gemmer en oversigt over det, den læste, efter navn: objekterne, t
 
 ## Scan en database, du selv driver
 
-Datasikkerhed tager prøver af PostgreSQL- og MySQL-databaser på en af to måder. En database, som produktet Database overvåger, eller en, som dine tjenester taler med på tjenestekortet, er allerede et datalager. En database, som ingen scanning finder, tilføjer du selv som et datalager.
+Datasikkerhed tager prøver af PostgreSQL-, MySQL- og SQL Server-databaser på en af to måder. En database, som produktet Database overvåger, eller en, som dine tjenester taler med på tjenestekortet, er allerede et datalager. En database, som ingen scanning finder, tilføjer du selv som et datalager.
 
 - **Fra OneUptimes workers.** Sæt **Forbindelsesstreng** i datalagerets **Indstillinger** til en, der kun kan læse, f.eks. `postgresql://reader:password@db.internal:5432/app`. Den krypteres i hvile og returneres aldrig af API'et. Giv den en databasebruger, der kan læse og intet andet.
 - **Fra en sonde i dit netværk.** Vælg sonden under **Scan fra sonde**, og angiv i **Forbindelsesvariabel for sonde** navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen. Sonden læser databasen inde fra dit netværk og sender kun det tilbage, den fandt: forbindelsesstrengen når aldrig OneUptime. Se [Brugerdefinerede sonder](/docs/probe/custom-probe) for at køre en sonde.

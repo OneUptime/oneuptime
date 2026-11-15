@@ -9,7 +9,7 @@ jest.mock("isolated-vm", () => {
 });
 
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
-import API from "../../../../Utils/API";
+import RequestFailedDetailsUtil from "../../../../Utils/RequestFailedDetailsUtil";
 import EgressGuardException, {
   EgressFailureReason,
 } from "../../../../Types/Exception/EgressGuardException";
@@ -52,7 +52,7 @@ function textOf(markdown: MarkdownText | null): string | null {
  * deliberately sanitizes its message down to one sentence (a shared cloud probe
  * must not let a tenant tell "did not resolve" from "resolved but blocked", or
  * they can enumerate internal DNS names), and that sanitized sentence matched
- * none of API.getRequestFailedDetails' string patterns, so it fell through to
+ * none of RequestFailedDetailsUtil.getRequestFailedDetails' string patterns, so it fell through to
  * the Unknown default with errorCode undefined.
  *
  * This suite pins the surface the customer read: it drives the REAL classifier
@@ -86,16 +86,17 @@ const SANITIZED_GUARD_MESSAGE: string =
   "Monitor target host order.abbeysbakehouse.com could not be reached.";
 
 /*
- * The description is a constant in API.getRequestFailedDetails rather than an
+ * The description is a constant in RequestFailedDetailsUtil.getRequestFailedDetails rather than an
  * exported symbol, so read it back through the classifier instead of copying
  * a paragraph that would silently drift out of date.
  */
-const UNREACHABLE_DETAILS: RequestFailedDetails = API.getRequestFailedDetails(
-  new EgressGuardException(
-    SANITIZED_GUARD_MESSAGE,
-    EgressFailureReason.Unreachable,
-  ),
-);
+const UNREACHABLE_DETAILS: RequestFailedDetails =
+  RequestFailedDetailsUtil.getRequestFailedDetails(
+    new EgressGuardException(
+      SANITIZED_GUARD_MESSAGE,
+      EgressFailureReason.Unreachable,
+    ),
+  );
 
 function makeMonitor(): Monitor {
   const monitor: Monitor = new Monitor();
@@ -274,9 +275,10 @@ describe("Root cause for a target the probe could not resolve", () => {
       EgressFailureReason.ResolutionFailed,
       EgressFailureReason.AddressBlocked,
     ]) {
-      const details: RequestFailedDetails = API.getRequestFailedDetails(
-        new EgressGuardException(SANITIZED_GUARD_MESSAGE, reason),
-      );
+      const details: RequestFailedDetails =
+        RequestFailedDetailsUtil.getRequestFailedDetails(
+          new EgressGuardException(SANITIZED_GUARD_MESSAGE, reason),
+        );
 
       expect(details.errorCode).toBe("TARGET_UNREACHABLE");
       expect(details.errorDescription).toBe(
@@ -303,12 +305,13 @@ describe("Root cause for a target the probe could not resolve", () => {
      * nothing about the probe's network — so it has to surface as its own
      * code, or a typo'd monitor URL reads as a DNS outage.
      */
-    const details: RequestFailedDetails = API.getRequestFailedDetails(
-      new EgressGuardException(
-        "Monitor destination must be a valid HTTP or HTTPS URL.",
-        EgressFailureReason.InvalidTarget,
-      ),
-    );
+    const details: RequestFailedDetails =
+      RequestFailedDetailsUtil.getRequestFailedDetails(
+        new EgressGuardException(
+          "Monitor destination must be a valid HTTP or HTTPS URL.",
+          EgressFailureReason.InvalidTarget,
+        ),
+      );
 
     expect(details.failedPhase).toBe(RequestFailedPhase.TargetResolution);
     expect(details.errorCode).toBe("INVALID_TARGET");
