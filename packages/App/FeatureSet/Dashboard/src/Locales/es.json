@@ -52415,5 +52415,12 @@
   "{{host}} was up from {{count}} locations.": "{{host}} estaba disponible desde {{count}} ubicaciones.",
   "{{host}} was up from {{count}} locations._one": "{{host}} estaba disponible desde {{count}} ubicación.",
   "{{wait}}. Change when this step is sent.": "{{wait}}. Cambiar cuándo se envía este paso.",
-  "Created Notification Held At": "Created Notification Held At"
+  "Affects": "Afecta a",
+  "Created Notification Held At": "Created Notification Held At",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Hasta que se corrijan, algunos avisos no llegarán a las personas a las que van dirigidos.",
+  "{{count}} problems would stop people from being told": "{{count}} problemas impedirían avisar a las personas",
+  "{{count}} problems would stop people from being told_one": "{{count}} problema impediría avisar a las personas",
+  "{{count}} things in your setup are worth fixing": "Conviene corregir {{count}} cosas de tu configuración",
+  "{{count}} things in your setup are worth fixing_one": "Conviene corregir {{count}} cosa de tu configuración",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrige cada una desde aquí, o descártala si tu equipo la deja así a propósito."
 }

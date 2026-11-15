@@ -52415,5 +52415,12 @@
   "{{host}} was up from {{count}} locations.": "{{host}} 在 {{count}} 个位置检查为正常。",
   "{{host}} was up from {{count}} locations._one": "{{host}} 在 {{count}} 个位置检查为正常。",
   "{{wait}}. Change when this step is sent.": "{{wait}}。更改此步骤的发送时间。",
-  "Created Notification Held At": "Created Notification Held At"
+  "Affects": "影响",
+  "Created Notification Held At": "Created Notification Held At",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "在修复之前，部分呼叫将无法送达应当接收的人员。",
+  "{{count}} problems would stop people from being told": "有 {{count}} 个问题会让相关人员收不到通知",
+  "{{count}} problems would stop people from being told_one": "有 {{count}} 个问题会让相关人员收不到通知",
+  "{{count}} things in your setup are worth fixing": "你的配置中有 {{count}} 项值得修复",
+  "{{count}} things in your setup are worth fixing_one": "你的配置中有 {{count}} 项值得修复",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐项修复；如果团队有意保持现状，也可以将其隐藏。"
 }

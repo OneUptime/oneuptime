@@ -202,7 +202,12 @@ export default class CapturedMetricAttributeUtil {
         continue;
       }
 
-      if (sanitized[key] !== undefined) {
+      /*
+       * Own keys only: `sanitized` is a plain object, so a plain read of a
+       * key named toString, valueOf or hasOwnProperty found the method every
+       * object inherits, and the attribute was skipped without a word.
+       */
+      if (Object.prototype.hasOwnProperty.call(sanitized, key)) {
         continue;
       }
 

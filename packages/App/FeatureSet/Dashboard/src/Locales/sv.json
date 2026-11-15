@@ -52415,5 +52415,12 @@
   "{{host}} was up from {{count}} locations.": "{{host}} var uppe från {{count}} platser.",
   "{{host}} was up from {{count}} locations._one": "{{host}} var uppe från {{count}} plats.",
   "{{wait}}. Change when this step is sent.": "{{wait}}. Ändra när det här steget skickas.",
-  "Created Notification Held At": "Created Notification Held At"
+  "Affects": "Påverkar",
+  "Created Notification Held At": "Created Notification Held At",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Tills de är åtgärdade når vissa larm inte fram till de personer de är avsedda för.",
+  "{{count}} problems would stop people from being told": "{{count}} problem skulle hindra att folk får veta",
+  "{{count}} problems would stop people from being told_one": "{{count}} problem skulle hindra att folk får veta",
+  "{{count}} things in your setup are worth fixing": "{{count}} saker i dina inställningar är värda att åtgärda",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} sak i dina inställningar är värd att åtgärda",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Åtgärda var och en härifrån, eller dölj den om ditt team låter den vara så med flit."
 }

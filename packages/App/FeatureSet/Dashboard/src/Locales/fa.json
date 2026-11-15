@@ -52415,5 +52415,12 @@
   "{{host}} was up from {{count}} locations.": "{{host}} از {{count}} مکان در دسترس بود.",
   "{{host}} was up from {{count}} locations._one": "{{host}} از {{count}} مکان در دسترس بود.",
   "{{wait}}. Change when this step is sent.": "{{wait}}. تعیین کنید این گام کی فرستاده شود.",
-  "Created Notification Held At": "Created Notification Held At"
+  "Affects": "تأثیر بر",
+  "Created Notification Held At": "Created Notification Held At",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "تا وقتی رفع نشوند، برخی فراخوان‌ها به افرادی که برایشان در نظر گرفته شده‌اند نمی‌رسند.",
+  "{{count}} problems would stop people from being told": "{{count}} مشکل مانع خبردار شدن افراد می‌شود",
+  "{{count}} problems would stop people from being told_one": "{{count}} مشکل مانع خبردار شدن افراد می‌شود",
+  "{{count}} things in your setup are worth fixing": "{{count}} مورد در پیکربندی شما ارزش رفع کردن دارد",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} مورد در پیکربندی شما ارزش رفع کردن دارد",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "هر کدام را از همین‌جا رفع کنید، یا اگر تیم شما عمداً آن را همین‌طور نگه می‌دارد، پنهانش کنید."
 }

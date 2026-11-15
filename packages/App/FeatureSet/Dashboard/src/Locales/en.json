@@ -52415,5 +52415,12 @@
   "{{host}} was up from {{count}} locations.": "{{host}} was up from {{count}} locations.",
   "{{host}} was up from {{count}} locations._one": "{{host}} was up from {{count}} location.",
   "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent.",
-  "Created Notification Held At": "Created Notification Held At"
+  "Affects": "Affects",
+  "Created Notification Held At": "Created Notification Held At",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Until they are fixed, some pages won't reach the people they are meant for.",
+  "{{count}} problems would stop people from being told": "{{count}} problems would stop people from being told",
+  "{{count}} problems would stop people from being told_one": "{{count}} problem would stop people from being told",
+  "{{count}} things in your setup are worth fixing": "{{count}} things in your setup are worth fixing",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} thing in your setup is worth fixing",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Fix each one from here, or dismiss it if your team leaves it that way on purpose."
 }

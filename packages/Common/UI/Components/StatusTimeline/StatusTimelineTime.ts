@@ -1,4 +1,4 @@
-import { getNumberLocale } from "../../../Types/DateLanguage";
+import { getHourOption, getNumberLocale } from "../../../Types/DateLanguage";
 import {
   FeedClock,
   formatFeedDay,
@@ -130,7 +130,7 @@ export const formatStatusTimelineTimeWithSeconds: (
     clock: clock,
     shape: "time-seconds",
     options: {
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       second: "2-digit",
       hour12: clock.use12HourClock,
@@ -155,7 +155,7 @@ export const formatStatusTimelineShortDateTime: (
     options: {
       month: "short",
       day: "numeric",
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       hour12: clock.use12HourClock,
     },
@@ -179,7 +179,7 @@ export const formatStatusTimelineShortDateTimeWithSeconds: (
     options: {
       month: "short",
       day: "numeric",
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       second: "2-digit",
       hour12: clock.use12HourClock,

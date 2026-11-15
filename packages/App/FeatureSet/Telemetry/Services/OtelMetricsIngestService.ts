@@ -36,6 +36,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import { assignOwnValues, readOwnValue } from "Common/Utils/LookupTable";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -1830,10 +1831,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                    * metric attributes < scope.*) and same key insertion
                    * order — while the scope prefixing itself now happens
                    * once per scopeMetric (see above) instead of per metric.
+                   * assignOwnValues is that Object.assign, but it keeps an
+                   * attribute named __proto__ as a key.
                    */
                   const metricAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = Object.assign(
+                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
                     {},
                     resourceAttributes,
                     TelemetryUtil.getAttributes({
@@ -1878,19 +1881,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                      * catalog entry so the browser (which only reads the
                      * Postgres catalog) can auto-suggest rate views for
                      * cumulative monotonic counters.
+                     *
+                     * The catalog's own entry only: a plain read of a
+                     * metric named __proto__ found the prototype every
+                     * object shares, and these writes then gave every
+                     * object of the process an aggregationTemporality and
+                     * an isMonotonic.
                      */
-                    if (metricName && metricNameServiceNameMap[metricName]) {
+                    const cataloguedMetricType: MetricType | undefined =
+                      metricName
+                        ? readOwnValue(metricNameServiceNameMap, metricName)
+                        : undefined;
+
+                    if (cataloguedMetricType) {
                       const mappedTemporality: string | null =
                         this.mapAggregationTemporality(aggregationTemporality);
                       if (mappedTemporality) {
-                        metricNameServiceNameMap[
-                          metricName
-                        ]!.aggregationTemporality =
+                        cataloguedMetricType.aggregationTemporality =
                           mappedTemporality as AggregationTemporality;
                       }
                       if (typeof isMonotonic === "boolean") {
-                        metricNameServiceNameMap[metricName]!.isMonotonic =
-                          isMonotonic;
+                        cataloguedMetricType.isMonotonic = isMonotonic;
                       }
                     }
 
@@ -5060,7 +5071,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
      * Each datapoint gets its OWN attribute map — pipeline rules mutate
      * attributes in place, so sharing the base map (or any row's map)
      * across datapoints would let one row's transform corrupt its
-     * siblings. One Object.assign copy per row is the floor.
+     * siblings. One Object.assign copy per row is the floor:
+     * assignOwnValues, which is Object.assign keeping an attribute named
+     * __proto__ as a key.
      */
     let attributes: Dictionary<AttributeType | Array<AttributeType>>;
     let attributeKeys: Array<string>;
@@ -5073,7 +5086,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         prefixKeysWithString: "",
       });
 
-      attributes = Object.assign({}, data.baseAttributes, datapointAttributes);
+      attributes = assignOwnValues<AttributeType | Array<AttributeType>>(
+        {},
+        data.baseAttributes,
+        datapointAttributes,
+      );
 
       attributeKeys = data.sortedBaseAttributeKeys
         ? TelemetryUtil.mergeAttributeKeysWithSortedBase({
@@ -5082,7 +5099,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           })
         : TelemetryUtil.getAttributeKeys(attributes);
     } else {
-      attributes = Object.assign({}, data.baseAttributes);
+      attributes = assignOwnValues<AttributeType | Array<AttributeType>>(
+        {},
+        data.baseAttributes,
+      );
 
       attributeKeys = data.sortedBaseAttributeKeys
         ? data.sortedBaseAttributeKeys.slice()

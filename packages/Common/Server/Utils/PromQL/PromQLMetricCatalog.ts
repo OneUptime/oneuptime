@@ -23,6 +23,7 @@ import {
   promQLSeriesNamesOf,
   toPromQLLabelName,
 } from "../../../Utils/PromQL/PromQLMetricNames";
+import { writeOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * What the Prometheus API's metadata endpoints answer without reading
@@ -335,13 +336,14 @@ export const listPromQLMetricMetadata: (data: {
       type = "summary";
     }
 
-    metadata[base] = [
+    // As an own key: an exporter may name a metric __proto__.
+    writeOwnValue(metadata, base, [
       {
         type,
         help: metricType.description || "",
         unit: metricType.unit || "",
       },
-    ];
+    ]);
     count++;
 
     if (count >= data.limit) {

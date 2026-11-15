@@ -65,10 +65,12 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
@@ -76,6 +78,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
         {
           // The page that lists it, with the SAML providers and Require SSO.
           title: t("breadcrumbs.singleSignOn"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_SSO] as Route,
           ),

@@ -52415,5 +52415,12 @@
   "{{host}} was up from {{count}} locations.": "{{count}}개 위치에서 {{host}} 정상 응답이 확인되었습니다.",
   "{{host}} was up from {{count}} locations._one": "{{count}}개 위치에서 {{host}} 정상 응답이 확인되었습니다.",
   "{{wait}}. Change when this step is sent.": "{{wait}}. 이 단계를 보낼 시점을 변경합니다.",
-  "Created Notification Held At": "Created Notification Held At"
+  "Affects": "영향 대상",
+  "Created Notification Held At": "Created Notification Held At",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "고치기 전까지는 일부 호출이 받아야 할 사람에게 전달되지 않습니다.",
+  "{{count}} problems would stop people from being told": "사람들이 알림을 받지 못하게 하는 문제가 {{count}}개 있습니다",
+  "{{count}} problems would stop people from being told_one": "사람들이 알림을 받지 못하게 하는 문제가 {{count}}개 있습니다",
+  "{{count}} things in your setup are worth fixing": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
+  "{{count}} things in your setup are worth fixing_one": "설정에서 고칠 만한 항목이 {{count}}개 있습니다",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "여기에서 각 항목을 고치거나, 팀이 일부러 그대로 두는 항목이면 숨기세요."
 }

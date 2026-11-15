@@ -2251,6 +2251,15 @@ test.describe("setup health", () => {
       "setup-health-level-suggestion",
     ]);
 
+    // The page opens with the verdict: the worst level, counted, in its colour.
+    await expect(page.getByTestId("setup-health-summary")).toHaveAttribute(
+      "data-verdict",
+      "pages_will_not_arrive",
+    );
+    await expect(page.getByTestId("setup-health-headline")).toHaveText(
+      "3 problems would stop people from being told",
+    );
+
     const worst: Locator = page.getByTestId(
       "setup-health-level-pages_will_not_arrive",
     );
@@ -2260,6 +2269,23 @@ test.describe("setup health", () => {
     );
     await expect(worst.getByTestId("setup-health-fix").first()).toHaveText(
       "Set Up Paging",
+    );
+
+    // The policy that reaches nobody: its name in bold, and the monitors it runs for.
+    const policy: Locator = worst
+      .getByTestId("setup-health-finding")
+      .filter({ hasText: "Weekend escalation" });
+
+    await expect(policy.getByTestId("setup-health-name")).toHaveText(
+      "Weekend escalation",
+    );
+    await expect(policy.getByTestId("setup-health-related-record")).toHaveText([
+      "Payments API",
+      "Checkout API",
+      "Search API",
+    ]);
+    await expect(policy.getByTestId("setup-health-related-more")).toHaveText(
+      "+1 more",
     );
 
     // Five monitors page nobody: three show, two fold.
@@ -2280,6 +2306,40 @@ test.describe("setup health", () => {
       "Dismissed by Maya Chen: Staging never pages anybody.",
     );
     await screenshot(page, "setup-health-1280-open");
+  });
+
+  /*
+   * On a wide screen each fix was a link at the far end of its row, 800px
+   * from the sentence it fixes (#8135): it sits right under its words now.
+   */
+  test("at 1600px: each fix sits right under its sentence, never at the far end of the row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await openSetupHealth(page);
+
+    const rows: Locator = page.getByTestId("setup-health-finding");
+    const count: number = await rows.count();
+
+    expect(count).toBeGreaterThan(0);
+
+    for (let index: number = 0; index < count; index++) {
+      const row: Locator = rows.nth(index);
+      const sentence: { x: number; y: number; height: number } | null =
+        await row.getByTestId("setup-health-sentence").boundingBox();
+      const fix: { x: number; y: number } | null = await row
+        .getByTestId("setup-health-fix")
+        .boundingBox();
+
+      expect(sentence).not.toBeNull();
+      expect(fix).not.toBeNull();
+      expect(Math.abs(fix!.x - sentence!.x)).toBeLessThan(2);
+      expect(fix!.y).toBeGreaterThanOrEqual(sentence!.y + sentence!.height);
+    }
+
+    await screenshot(page, "setup-health-1600");
   });
 
   test("at 390px: one column, nothing wider than the screen", async ({
@@ -2323,6 +2383,9 @@ test.describe("setup health", () => {
     await expect(page.locator("body")).not.toContainText(
       "Pages Will Not Arrive",
     );
+    await expect(page.getByTestId("setup-health-headline")).toHaveText(
+      "3 Probleme würden verhindern, dass Menschen benachrichtigt werden",
+    );
     await expect(page.locator("body")).toContainText("Payments API");
     await screenshot(page, "setup-health-de");
 
@@ -2337,7 +2400,11 @@ test.describe("setup health", () => {
   test("nothing to fix, said plainly", async ({ page }: { page: Page }) => {
     await openSetupHealth(page, "scenario=healthy");
 
-    await expect(page.getByTestId("setup-health-nothing-to-fix")).toContainText(
+    await expect(page.getByTestId("setup-health-summary")).toHaveAttribute(
+      "data-verdict",
+      "nothing_to_fix",
+    );
+    await expect(page.getByTestId("setup-health-headline")).toHaveText(
       "Nothing to fix",
     );
     await expect(page.getByTestId("setup-health-finding")).toHaveCount(0);

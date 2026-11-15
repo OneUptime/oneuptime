@@ -525,6 +525,83 @@ describe("GrokParser - composes with the rest of the pipeline", () => {
     clearGrokCompileCache();
   });
 
+  /*
+   * Issue #8025: the parser copied the log's attributes with a spread
+   * before writing its fields, which dropped an attribute named __proto__
+   * the log already had - and one a first Grok parser wrote, before a
+   * second one ran.
+   */
+  it("keeps a __proto__ attribute the log has, and one an earlier parser wrote", () => {
+    const out: JSONObject = LogPipelineService.processLog(
+      {
+        ...logRowWithBody("alpha beta"),
+        attributes: JSON.parse(
+          '{"__proto__":"from-ingest","service.name":"api"}',
+        ) as JSONObject,
+        attributeKeys: ["__proto__", "service.name"],
+      },
+      pipelineWith([
+        {
+          name: "first",
+          processorType: LogPipelineProcessorType.GrokParser,
+          configuration: {
+            source: "body",
+            pattern: "%{WORD:first} %{WORD:second}",
+          },
+        },
+        {
+          name: "second",
+          processorType: LogPipelineProcessorType.GrokParser,
+          configuration: {
+            source: "attributes.second",
+            pattern: "%{WORD:third}",
+          },
+        },
+      ]),
+    );
+    const attributes: JSONObject = out["attributes"] as JSONObject;
+
+    expect(readOwnValue(attributes, "__proto__")).toBe("from-ingest");
+    expect(readOwnValue(attributes, "first")).toBe("alpha");
+    expect(readOwnValue(attributes, "third")).toBe("beta");
+    expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+    expect(out["attributeKeys"]).toEqual([
+      "__proto__",
+      "service.name",
+      "first",
+      "second",
+      "third",
+    ]);
+  });
+
+  it("a field a first parser names __proto__ is kept by a second parser", () => {
+    const out: JSONObject = LogPipelineService.processLog(
+      logRowWithBody("alpha beta"),
+      pipelineWith([
+        {
+          name: "first",
+          processorType: LogPipelineProcessorType.GrokParser,
+          configuration: {
+            source: "body",
+            pattern: "%{WORD:__proto__} %{WORD:second}",
+          },
+        },
+        {
+          name: "second",
+          processorType: LogPipelineProcessorType.GrokParser,
+          configuration: {
+            source: "attributes.second",
+            pattern: "%{WORD:third}",
+          },
+        },
+      ]),
+    );
+
+    expect(JSON.stringify(out["attributes"])).toBe(
+      '{"service.name":"api","__proto__":"alpha","second":"beta","third":"beta"}',
+    );
+  });
+
   it("feeds a severity remapper that runs after it", () => {
     const out: JSONObject = LogPipelineService.processLog(
       logRowWithBody("2023-10-10 warn disk is nearly full"),

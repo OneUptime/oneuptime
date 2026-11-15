@@ -52415,5 +52415,12 @@
   "{{host}} was up from {{count}} locations.": "{{host}} estava no ar em {{count}} locais.",
   "{{host}} was up from {{count}} locations._one": "{{host}} estava no ar em {{count}} local.",
   "{{wait}}. Change when this step is sent.": "{{wait}}. Alterar quando esta etapa é enviada.",
-  "Created Notification Held At": "Created Notification Held At"
+  "Affects": "Afeta",
+  "Created Notification Held At": "Created Notification Held At",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Até que sejam corrigidos, alguns acionamentos não chegarão às pessoas a quem se destinam.",
+  "{{count}} problems would stop people from being told": "{{count}} problemas impediriam que as pessoas fossem avisadas",
+  "{{count}} problems would stop people from being told_one": "{{count}} problema impediria que as pessoas fossem avisadas",
+  "{{count}} things in your setup are worth fixing": "Vale corrigir {{count}} itens da sua configuração",
+  "{{count}} things in your setup are worth fixing_one": "Vale corrigir {{count}} item da sua configuração",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrija cada um daqui ou dispense-o se sua equipe o deixa assim de propósito."
 }

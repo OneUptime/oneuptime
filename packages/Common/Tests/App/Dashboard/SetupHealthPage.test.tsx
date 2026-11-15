@@ -3,6 +3,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -17,9 +18,14 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
 import type { SpyInstance } from "jest-mock";
 import React from "react";
+import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
+import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import SetupHealthApi, {
   getSetupHealthSummaryUrl,
   getSetupHealthUrl,
@@ -28,12 +34,29 @@ import SetupHealthApi, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthApi";
 import SetupHealthView from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthView";
 import {
+  CHECK_ICONS,
+  LEVEL_LOOK,
+  RECORD_ICONS,
+  VERDICT_LOOK,
+  getSetupHealthFindingIcon,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthLook";
+import {
   FINDINGS_SHOWN_PER_CHECK,
   LEVEL_WORDS,
+  RELATED_RECORDS_SHOWN,
+  SETUP_HEALTH_AFFECTS,
+  SETUP_HEALTH_VERDICT_WORDS,
   SETUP_HEALTH_WORDS_PAGE,
+  SetupHealthSentenceValues,
+  SetupHealthVerdict,
+  SetupHealthVerdictKind,
   getSetupHealthFixLink,
+  getSetupHealthRecordRoute,
   getSetupHealthSentence,
+  getSetupHealthSentenceValues,
+  getSetupHealthVerdict,
   groupSetupHealthFindings,
+  translateSetupHealthVerdictText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthWords";
 import { SETUP_HEALTH_HOME_WORDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthHomeWords";
 import { getHomeBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/HomeBreadcrumbs";
@@ -45,6 +68,7 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import Route from "../../../Types/API/Route";
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import RecommendationType from "../../../Types/Recommendation/RecommendationType";
@@ -53,9 +77,11 @@ import {
   SetupHealthAnswer,
   SetupHealthCheck,
   SetupHealthEventKind,
+  SETUP_HEALTH_LEVEL_ORDER,
   SetupHealthFinding,
   SetupHealthFix,
   SetupHealthLevel,
+  SetupHealthRecord,
   SetupHealthRecordKind,
   SetupHealthResponderReason,
   SetupHealthScheduleReason,
@@ -77,11 +103,14 @@ import { toHeadline } from "../../../UI/Components/Table/EmptyTableMessage";
 import { goTo, PROJECT_ID as SIDE_MENU_PROJECT_ID } from "./SideMenuHarness";
 
 /*
- * SETUP HEALTH ON THE DASHBOARD (#6812): the page lists the findings by
- * level, worst first, each in the reader's words with the button that
- * opens its fix; a check broken for many records is folded past a few; a
- * finding is dismissed with a reason, for everyone, and restored from
- * Dismissed; and a project with nothing wrong says so plainly.
+ * SETUP HEALTH ON THE DASHBOARD (#6812, #8135): the page opens with the
+ * verdict - how badly, in the colour of the worst level with findings -
+ * then lists the findings by level, worst first, each with the icon of
+ * what it is about, its sentence in the reader's words with the project's
+ * names in bold, the records it reaches, and right under the sentence the
+ * button that opens its fix; a check broken for many records is folded past
+ * a few; a finding is dismissed with a reason, for everyone, and restored
+ * from Dismissed; and a project with nothing wrong says so plainly.
  */
 
 const PROJECT: string = "68125555-0000-4000-8000-000000000001";
@@ -375,6 +404,276 @@ describe("a finding, in the reader's words, with where to fix it", () => {
   });
 });
 
+/*
+ * The page opens with one line that says how badly (#8135): the worst level
+ * with findings, counted, in the reader's words.
+ */
+describe("the verdict the page opens with", () => {
+  function headline(counts: {
+    pagesWillNotArrive: number;
+    worthFixing: number;
+  }): string {
+    return translateSetupHealthVerdictText(
+      translator,
+      getSetupHealthVerdict(counts).headline,
+      { isHeadline: true },
+    );
+  }
+
+  test("the worst level with findings decides it", () => {
+    expect(
+      getSetupHealthVerdict({ pagesWillNotArrive: 2, worthFixing: 5 }).kind,
+    ).toBe(SetupHealthVerdictKind.PagesWillNotArrive);
+    expect(
+      getSetupHealthVerdict({ pagesWillNotArrive: 0, worthFixing: 5 }).kind,
+    ).toBe(SetupHealthVerdictKind.WorthFixing);
+    expect(
+      getSetupHealthVerdict({ pagesWillNotArrive: 0, worthFixing: 0 }).kind,
+    ).toBe(SetupHealthVerdictKind.NothingToFix);
+  });
+
+  test("its headline counts that level's findings in the reader's plural, and never ends on a full stop", () => {
+    expect(headline({ pagesWillNotArrive: 1, worthFixing: 4 })).toBe(
+      "1 problem would stop people from being told",
+    );
+    expect(headline({ pagesWillNotArrive: 3, worthFixing: 0 })).toBe(
+      "3 problems would stop people from being told",
+    );
+    expect(headline({ pagesWillNotArrive: 0, worthFixing: 1 })).toBe(
+      "1 thing in your setup is worth fixing",
+    );
+    expect(headline({ pagesWillNotArrive: 0, worthFixing: 6 })).toBe(
+      "6 things in your setup are worth fixing",
+    );
+    // Nothing to fix: the empty state's words, as a headline.
+    expect(headline({ pagesWillNotArrive: 0, worthFixing: 0 })).toBe(
+      toHeadline(SETUP_HEALTH_WORDS_PAGE.nothingToFix),
+    );
+    expect(
+      translateSetupHealthVerdictText(
+        translator,
+        getSetupHealthVerdict({ pagesWillNotArrive: 0, worthFixing: 0 })
+          .summary,
+      ),
+    ).toBe(SETUP_HEALTH_WORDS_PAGE.nothingToFixDescription);
+  });
+
+  test.each(["de", "fr", "es", "ru", "ja", "zh-CN", "hi", "fa", "ar"])(
+    "in %s, every verdict and the records a finding reaches read in the reader's words",
+    (language: string) => {
+      const reader: Translator = dashboardTranslator(language);
+
+      for (const counts of [
+        { pagesWillNotArrive: 1, worthFixing: 0 },
+        { pagesWillNotArrive: 3, worthFixing: 0 },
+        { pagesWillNotArrive: 0, worthFixing: 1 },
+        { pagesWillNotArrive: 0, worthFixing: 6 },
+        { pagesWillNotArrive: 0, worthFixing: 0 },
+      ]) {
+        const verdict: SetupHealthVerdict = getSetupHealthVerdict(counts);
+
+        for (const text of [verdict.headline, verdict.summary]) {
+          expect(translateSetupHealthVerdictText(reader, text)).not.toBe(
+            translateSetupHealthVerdictText(translator, text),
+          );
+        }
+      }
+
+      expect(reader.translateText(SETUP_HEALTH_AFFECTS)).not.toBe(
+        SETUP_HEALTH_AFFECTS,
+      );
+    },
+  );
+
+  test("a count reads right in Russian and Arabic, whose general form holds every count", () => {
+    const counts: { pagesWillNotArrive: number; worthFixing: number } = {
+      pagesWillNotArrive: 0,
+      worthFixing: 6,
+    };
+
+    for (const language of ["ru", "ar"]) {
+      const words: string = translateSetupHealthVerdictText(
+        dashboardTranslator(language),
+        getSetupHealthVerdict(counts).headline,
+      );
+
+      expect(words).toContain("6");
+      expect(words).not.toContain("{{count}}");
+    }
+
+    // Persian writes the count in its own digits.
+    expect(
+      translateSetupHealthVerdictText(
+        dashboardTranslator("fa"),
+        getSetupHealthVerdict({ pagesWillNotArrive: 3, worthFixing: 0 })
+          .headline,
+      ),
+    ).toContain("۳");
+  });
+
+  test("each verdict, and each level, has its own colours and icon", () => {
+    for (const kind of Object.values(SetupHealthVerdictKind)) {
+      expect(VERDICT_LOOK[kind]).toBeDefined();
+    }
+
+    expect(
+      VERDICT_LOOK[SetupHealthVerdictKind.PagesWillNotArrive].bandClassName,
+    ).toBe("bg-red-50");
+    expect(VERDICT_LOOK[SetupHealthVerdictKind.WorthFixing].bandClassName).toBe(
+      "bg-amber-50",
+    );
+    expect(
+      VERDICT_LOOK[SetupHealthVerdictKind.NothingToFix].bandClassName,
+    ).toBe("bg-emerald-50");
+
+    for (const level of SETUP_HEALTH_LEVEL_ORDER) {
+      expect(LEVEL_LOOK[level].iconBox.bg).toMatch(/^bg-/);
+      expect(LEVEL_LOOK[level].countClassName).toMatch(/text-/);
+    }
+  });
+});
+
+describe("how a finding looks: its icon, its names and the records it reaches", () => {
+  test("every check has the icon of what it is about; the server's channel and a chat workspace their own", () => {
+    for (const check of Object.values(SetupHealthCheck)) {
+      expect(CHECK_ICONS[check]).toBeDefined();
+    }
+
+    expect(
+      getSetupHealthFindingIcon({
+        check: SetupHealthCheck.MonitorPagesNobody,
+        subject: SetupHealthEventKind.Incident,
+      }),
+    ).toBe(IconProp.AltGlobe);
+    expect(getSetupHealthFindingIcon(POLICY_FINDING)).toBe(IconProp.Call);
+    expect(getSetupHealthFindingIcon(SERVER_FINDING)).toBe(IconProp.Email);
+    expect(
+      getSetupHealthFindingIcon({
+        check: SetupHealthCheck.ServerCannotSend,
+        subject: WhoIsToldServerChannel.SMS,
+      }),
+    ).toBe(IconProp.SMS);
+    expect(
+      getSetupHealthFindingIcon({
+        check: SetupHealthCheck.ServerCannotSend,
+        subject: WhoIsToldServerChannel.Call,
+      }),
+    ).toBe(IconProp.Phone);
+    expect(
+      getSetupHealthFindingIcon({
+        check: SetupHealthCheck.WorkspaceNotUsed,
+        subject: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe(IconProp.MicrosoftTeams);
+
+    // A status page's menu icon is a check mark: on a problem it reads "fine".
+    expect(CHECK_ICONS[SetupHealthCheck.StatusPageShowsNoMonitor]).not.toBe(
+      IconProp.CheckCircle,
+    );
+
+    for (const kind of Object.values(SetupHealthRecordKind)) {
+      expect(RECORD_ICONS[kind]).toBeDefined();
+    }
+  });
+
+  test("a sentence's values: the project's names, apart from the channel, the time and the amount", () => {
+    expect(getSetupHealthSentenceValues(POLICY_FINDING).names).toEqual({
+      policy: "Primary",
+    });
+
+    const off: SetupHealthSentenceValues = getSetupHealthSentenceValues(
+      makeSetupHealthFinding({
+        check: SetupHealthCheck.ChannelOff,
+        level: SetupHealthLevel.PagesWillNotArrive,
+        subject: OnCallPageChannel.SMS,
+        record: { kind: SetupHealthRecordKind.Project, id: PROJECT, name: "" },
+        fix: SetupHealthFix.ProjectNotificationSettings,
+        words: SETUP_HEALTH_WORDS.channelOff,
+        values: { channel: "SMS" },
+      }),
+    );
+
+    expect(off.names).toEqual({});
+    expect(Object.keys(off.values)).toEqual(["channel"]);
+
+    const gap: SetupHealthSentenceValues = getSetupHealthSentenceValues(
+      makeSetupHealthFinding({
+        check: SetupHealthCheck.ScheduleHasNobodyOnCall,
+        level: SetupHealthLevel.WorthFixing,
+        reason: SetupHealthScheduleReason.GapAhead,
+        record: {
+          kind: SetupHealthRecordKind.OnCallDutyPolicySchedule,
+          id: SCHEDULE,
+          name: "Primary rota",
+        },
+        fix: SetupHealthFix.OnCallSchedule,
+        words: SETUP_HEALTH_WORDS.scheduleHasNobodyOnCall.gap_ahead,
+        values: { schedule: "Primary rota", time: "2026-11-14 03:00 UTC" },
+        startsAt: "2026-11-14T03:00:00.000Z",
+      }),
+    );
+
+    expect(gap.names).toEqual({ schedule: "Primary rota" });
+    expect(Object.keys(gap.values)).toEqual(["time"]);
+
+    // A person with no name is "Someone", in the reader's words, not a name.
+    const nameless: SetupHealthSentenceValues = getSetupHealthSentenceValues(
+      makeSetupHealthFinding({
+        check: SetupHealthCheck.ResponderCannotBePaged,
+        level: SetupHealthLevel.PagesWillNotArrive,
+        reason: SetupHealthResponderReason.NoVerifiedMethod,
+        record: { kind: SetupHealthRecordKind.User, id: ANA, name: "" },
+        fix: SetupHealthFix.OnCallReadiness,
+        words: SETUP_HEALTH_WORDS.responderCannotBePaged.no_verified_method,
+        values: { name: "Someone" },
+      }),
+    );
+
+    expect(nameless.names).toEqual({});
+    expect(Object.keys(nameless.values)).toEqual(["name"]);
+  });
+
+  test.each([
+    [SetupHealthRecordKind.Monitor, PageMap.MONITOR_VIEW],
+    [SetupHealthRecordKind.OnCallDutyPolicy, PageMap.ON_CALL_DUTY_POLICY_VIEW],
+    [
+      SetupHealthRecordKind.OnCallDutyPolicySchedule,
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+    ],
+    [SetupHealthRecordKind.StatusPage, PageMap.STATUS_PAGE_VIEW],
+  ])(
+    "a %s a finding reaches opens %s",
+    (kind: SetupHealthRecordKind, pageMap: PageMap) => {
+      expect(
+        getSetupHealthRecordRoute({ kind: kind, id: CHECKOUT })!.toString(),
+      ).toBe(
+        RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
+          modelId: new ObjectID(CHECKOUT),
+        }).toString(),
+      );
+    },
+  );
+
+  test("a person, a domain and the project open no page of their own", () => {
+    for (const kind of [
+      SetupHealthRecordKind.User,
+      SetupHealthRecordKind.StatusPageDomain,
+      SetupHealthRecordKind.Project,
+    ]) {
+      expect(
+        getSetupHealthRecordRoute({ kind: kind, id: CHECKOUT }),
+      ).toBeNull();
+    }
+
+    expect(
+      getSetupHealthRecordRoute({
+        kind: SetupHealthRecordKind.Monitor,
+        id: "",
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("the page's requests", () => {
   test("one GET for the findings, with refresh only when asked; one for Home's counts", () => {
     expect(getSetupHealthUrl().toString()).toMatch(/\/setup-health$/);
@@ -592,26 +891,236 @@ describe("SetupHealthView", () => {
     });
   });
 
+  test("opens with the verdict, red while pages will not arrive, with when it was checked and Recheck", async () => {
+    getAnswer.mockResolvedValue(
+      answer([POLICY_FINDING, monitorFinding(1), OWNER_FINDING]),
+    );
+    renderView();
+
+    const summary: HTMLElement = await screen.findByTestId(
+      "setup-health-summary",
+    );
+
+    expect(summary).toHaveAttribute(
+      "data-verdict",
+      SetupHealthVerdictKind.PagesWillNotArrive,
+    );
+    expect(
+      within(summary).getByTestId("setup-health-headline"),
+    ).toHaveTextContent("1 problem would stop people from being told");
+    expect(
+      within(summary).getByTestId("setup-health-verdict"),
+    ).toHaveTextContent(SETUP_HEALTH_VERDICT_WORDS.pagesWillNotArriveSummary);
+    expect(
+      within(summary).getByTestId("setup-health-checked"),
+    ).toHaveTextContent("Checked");
+    expect(within(summary).getByTestId("setup-health-recheck")).toBeEnabled();
+    // The section is named by its headline.
+    expect(summary).toHaveAttribute(
+      "aria-labelledby",
+      within(summary).getByTestId("setup-health-headline").id,
+    );
+
+    // The verdict first, then the levels.
+    expect(
+      summary.compareDocumentPosition(
+        screen.getByTestId(
+          `setup-health-level-${SetupHealthLevel.PagesWillNotArrive}`,
+        ),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Each level's count in its own colours.
+    expect(
+      screen.getByTestId(
+        `setup-health-level-${SetupHealthLevel.PagesWillNotArrive}-count`,
+      ),
+    ).toHaveClass("text-red-700");
+    expect(
+      screen.getByTestId(
+        `setup-health-level-${SetupHealthLevel.WorthFixing}-count`,
+      ),
+    ).toHaveClass("text-amber-700");
+    expect(
+      screen.getByTestId(
+        `setup-health-level-${SetupHealthLevel.Suggestion}-count`,
+      ),
+    ).toHaveClass("text-gray-700");
+  });
+
+  test("with nothing that stops pages, the verdict counts the gaps worth fixing", async () => {
+    getAnswer.mockResolvedValue(
+      answer([monitorFinding(1), monitorFinding(2), OWNER_FINDING]),
+    );
+    renderView();
+
+    const summary: HTMLElement = await screen.findByTestId(
+      "setup-health-summary",
+    );
+
+    expect(summary).toHaveAttribute(
+      "data-verdict",
+      SetupHealthVerdictKind.WorthFixing,
+    );
+    expect(
+      within(summary).getByTestId("setup-health-headline"),
+    ).toHaveTextContent("2 things in your setup are worth fixing");
+    expect(
+      within(summary).getByTestId("setup-health-verdict"),
+    ).toHaveTextContent(SETUP_HEALTH_VERDICT_WORDS.worthFixingSummary);
+  });
+
   test("a project with nothing wrong says so plainly", async () => {
     getAnswer.mockResolvedValue(answer([]));
     renderView();
 
-    const empty: HTMLElement = await screen.findByTestId(
-      "setup-health-nothing-to-fix",
+    const summary: HTMLElement = await screen.findByTestId(
+      "setup-health-summary",
     );
 
-    // The product's all-clear state, its title a heading without the stop.
-    expect(empty).toHaveTextContent(
-      toHeadline(SETUP_HEALTH_WORDS_PAGE.nothingToFix),
+    expect(summary).toHaveAttribute(
+      "data-verdict",
+      SetupHealthVerdictKind.NothingToFix,
     );
-    expect(empty).toHaveTextContent(
-      SETUP_HEALTH_WORDS_PAGE.nothingToFixDescription,
-    );
-    expect(within(empty).getByTestId("table-empty-state")).toHaveAttribute(
-      "data-empty-state-kind",
-      "all-clear",
-    );
+    // The all-clear's words, its title a heading without the stop.
+    expect(
+      within(summary).getByTestId("setup-health-headline").textContent,
+    ).toBe(toHeadline(SETUP_HEALTH_WORDS_PAGE.nothingToFix));
+    expect(
+      within(summary).getByTestId("setup-health-verdict"),
+    ).toHaveTextContent(SETUP_HEALTH_WORDS_PAGE.nothingToFixDescription);
     expect(screen.queryByTestId("setup-health-finding")).toBeNull();
+    expect(screen.queryByTestId(/^setup-health-level-/)).toBeNull();
+  });
+
+  test("with only suggestions there is nothing to fix, and the suggestions follow", async () => {
+    getAnswer.mockResolvedValue(answer([OWNER_FINDING]));
+    renderView();
+
+    const summary: HTMLElement = await screen.findByTestId(
+      "setup-health-summary",
+    );
+
+    expect(summary).toHaveAttribute(
+      "data-verdict",
+      SetupHealthVerdictKind.NothingToFix,
+    );
+    expect(
+      screen.getByTestId(`setup-health-level-${SetupHealthLevel.Suggestion}`),
+    ).toHaveTextContent(SETUP_HEALTH_WORDS.oneOwner);
+  });
+
+  test("a finding names its records in bold, with the icon of what it is about, and its fix right under its sentence", async () => {
+    getAnswer.mockResolvedValue(answer([POLICY_FINDING]));
+    renderView();
+
+    const row: HTMLElement = await screen.findByTestId("setup-health-finding");
+    const sentence: HTMLElement = within(row).getByTestId(
+      "setup-health-sentence",
+    );
+
+    // The whole sentence, word for word.
+    expect(sentence.textContent).toBe(
+      "On-call policy Primary has no escalation rules, so it pages nobody.",
+    );
+
+    const names: Array<HTMLElement> =
+      within(sentence).getAllByTestId("setup-health-name");
+
+    expect(
+      names.map((name: HTMLElement): string | null => {
+        return name.textContent;
+      }),
+    ).toEqual(["Primary"]);
+    expect(names[0]).toHaveClass("font-semibold");
+
+    // The fix follows the sentence in the same column: never at the far end of a wide row.
+    const fix: HTMLElement = within(row).getByTestId("setup-health-fix");
+
+    expect(sentence.parentElement).toContainElement(fix);
+    expect(
+      sentence.compareDocumentPosition(fix) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(row).getByTestId("setup-health-dismiss")).toBeInTheDocument();
+    expect(sentence.parentElement).toContainElement(
+      within(row).getByTestId("setup-health-dismiss"),
+    );
+  });
+
+  test("a name the sentence does not hold never stops the sentence from being drawn whole", async () => {
+    getAnswer.mockResolvedValue(
+      answer([{ ...OWNER_FINDING, values: { workspace: "Slack" } }]),
+    );
+    renderView();
+
+    const sentence: HTMLElement = await screen.findByTestId(
+      "setup-health-sentence",
+    );
+
+    expect(sentence.textContent).toBe(SETUP_HEALTH_WORDS.oneOwner);
+    expect(within(sentence).queryByTestId("setup-health-name")).toBeNull();
+  });
+
+  test("the records a finding reaches: a few, each opening its page, and how many more", async () => {
+    const monitors: Array<SetupHealthRecord> = [1, 2, 3, 4, 5].map(
+      (index: number): SetupHealthRecord => {
+        return monitorFinding(index).record;
+      },
+    );
+
+    getAnswer.mockResolvedValue(
+      answer([
+        {
+          ...POLICY_FINDING,
+          // A record with no name is left out: nothing to show for it.
+          related: [
+            ...monitors,
+            { kind: SetupHealthRecordKind.Monitor, id: CHECKOUT, name: "" },
+          ],
+        },
+        OWNER_FINDING,
+      ]),
+    );
+    renderView();
+
+    const related: HTMLElement = await screen.findByTestId(
+      "setup-health-related",
+    );
+
+    expect(related).toHaveTextContent(SETUP_HEALTH_AFFECTS);
+
+    const records: Array<HTMLElement> = within(related).getAllByTestId(
+      "setup-health-related-record",
+    );
+
+    expect(records).toHaveLength(RELATED_RECORDS_SHOWN);
+    expect(records[0]).toHaveTextContent("Monitor 1");
+    expect(records[0]!.getAttribute("href")).toBe(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW] as Route, {
+        modelId: new ObjectID(monitors[0]!.id),
+      }).toString(),
+    );
+    expect(
+      within(related).getByTestId("setup-health-related-more"),
+    ).toHaveTextContent("+2 more");
+
+    // A finding that reaches nothing else says nothing of it.
+    expect(screen.getAllByTestId("setup-health-related")).toHaveLength(1);
+  });
+
+  test("after a failed read, Try again reads it again", async () => {
+    getAnswer
+      .mockRejectedValueOnce(new Error("Server is down."))
+      .mockResolvedValueOnce(answer([OWNER_FINDING]));
+    renderView();
+
+    fireEvent.click(await screen.findByTestId("setup-health-try-again"));
+
+    expect(
+      await screen.findByTestId("setup-health-finding"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("setup-health-error")).toBeNull();
+    expect(getAnswer).toHaveBeenCalledTimes(2);
   });
 
   test("a check broken for many monitors shows a few, and the rest a click away, saying which way it is", async () => {
@@ -797,6 +1306,108 @@ describe("SetupHealthView", () => {
 
     expect(await screen.findByTestId("setup-health-error")).toHaveTextContent(
       "Couldn't check the setup. Server is down.",
+    );
+  });
+});
+
+/*
+ * The page in the reader's language: the verdict, the sentences and the
+ * label of the records a finding reaches in their words, the project's
+ * names as written - and still in bold, wherever the sentence puts them.
+ */
+describe("SetupHealthView in the reader's language", () => {
+  const translation: i18n = createInstance();
+
+  const POLICY_WITH_MONITOR: SetupHealthFinding = {
+    ...POLICY_FINDING,
+    related: [monitorFinding(1).record],
+  };
+
+  function renderIn(): void {
+    render(
+      <I18nextProvider i18n={translation}>
+        <MemoryRouter>
+          <SetupHealthView />
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+  }
+
+  beforeAll(async () => {
+    await translation.use(initReactI18next).init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: {
+        en: { translation: englishLocale },
+        de: { translation: germanLocale },
+        fa: { translation: persianLocale },
+      },
+      interpolation: { escapeValue: false },
+    });
+  });
+
+  beforeEach(() => {
+    jest
+      .spyOn(SetupHealthApi, "getAnswer")
+      .mockResolvedValue(answer([POLICY_WITH_MONITOR, monitorFinding(2)]));
+    jest.spyOn(ProductEvents, "send").mockImplementation(() => {
+      return undefined;
+    });
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+  });
+
+  afterEach(async () => {
+    cleanup();
+    jest.restoreAllMocks();
+    await translation.changeLanguage("en");
+  });
+
+  test("German: the verdict, the sentence and what it affects in German, the names as written, in bold", async () => {
+    await translation.changeLanguage("de");
+    renderIn();
+
+    expect(
+      await screen.findByTestId("setup-health-headline"),
+    ).toHaveTextContent(
+      "1 Problem würde verhindern, dass Menschen benachrichtigt werden",
+    );
+
+    const row: HTMLElement = screen.getAllByTestId("setup-health-finding")[0]!;
+    const sentence: HTMLElement = within(row).getByTestId(
+      "setup-health-sentence",
+    );
+
+    expect(sentence.textContent).not.toBe(POLICY_FINDING.sentence);
+    expect(sentence.textContent).toContain("Primary");
+    expect(within(sentence).getByTestId("setup-health-name")).toHaveTextContent(
+      "Primary",
+    );
+    expect(within(row).getByTestId("setup-health-related")).toHaveTextContent(
+      "Betrifft",
+    );
+    expect(within(row).getByTestId("setup-health-fix")).not.toHaveTextContent(
+      "Open On-Call Policy",
+    );
+  });
+
+  test("Persian: the sentence in Persian, the names still set apart in bold", async () => {
+    await translation.changeLanguage("fa");
+    renderIn();
+
+    const headline: HTMLElement = await screen.findByTestId(
+      "setup-health-headline",
+    );
+
+    expect(headline.textContent).toContain("۱");
+
+    const sentence: HTMLElement = screen.getAllByTestId(
+      "setup-health-sentence",
+    )[0]!;
+
+    expect(sentence.textContent).not.toContain("On-call policy");
+    expect(within(sentence).getByTestId("setup-health-name")).toHaveTextContent(
+      "Primary",
     );
   });
 });

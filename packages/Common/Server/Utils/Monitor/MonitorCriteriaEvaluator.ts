@@ -178,6 +178,7 @@ import PlatformResourceIdentity, {
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
+import { readOwnValue, writeOwnValue } from "../../../Utils/LookupTable";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -2417,6 +2418,14 @@ ${incomingRequestGrouping.rootCauseNote}
   }): Record<string, unknown> {
     const flattened: Record<string, unknown> = {};
 
+    /*
+     * The first value of each key is kept, read from what was flattened
+     * itself: a series may be grouped by an attribute named constructor or
+     * toString, and a plain read of `flattened` found the method every
+     * object inherits there, so the label was never printed - the one line
+     * that says which series breached left its group-by value out. Written
+     * as own keys, so a label named __proto__ is printed too.
+     */
     for (const key of Object.keys(input.attributes)) {
       const value: unknown = input.attributes[key];
 
@@ -2426,19 +2435,19 @@ ${incomingRequestGrouping.rootCauseNote}
 
           if (
             input.seriesLabelKeys.has(nestedKey) &&
-            flattened[nestedKey] === undefined &&
+            readOwnValue(flattened, nestedKey) === undefined &&
             nestedValue !== undefined &&
             nestedValue !== null &&
             typeof nestedValue !== "object"
           ) {
-            flattened[nestedKey] = nestedValue;
+            writeOwnValue(flattened, nestedKey, nestedValue);
           }
         }
         continue;
       }
 
-      if (flattened[key] === undefined) {
-        flattened[key] = value;
+      if (readOwnValue(flattened, key) === undefined) {
+        writeOwnValue(flattened, key, value);
       }
     }
 
@@ -2556,7 +2565,11 @@ ${incomingRequestGrouping.rootCauseNote}
          * RootCauseList.code keeps whatever they contain inside the span.
          */
         for (const k of attrKeys) {
-          const v: unknown = sampleAttributes.get(s)?.[k];
+          /*
+           * This sample's own value: a key another sample has (constructor,
+           * toString) is one this sample may lack.
+           */
+          const v: unknown = readOwnValue(sampleAttributes.get(s), k);
 
           if (v === undefined || v === null) {
             continue;
@@ -2852,7 +2865,8 @@ ${incomingRequestGrouping.rootCauseNote}
           typeof value === "number" ||
           typeof value === "boolean"
         ) {
-          attributes[key] = String(value);
+          // As an own key: a series label may be named __proto__.
+          writeOwnValue(attributes, key, String(value));
         }
       }
     }

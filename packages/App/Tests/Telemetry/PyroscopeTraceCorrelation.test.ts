@@ -30,6 +30,7 @@ import {
 } from "../../FeatureSet/Telemetry/Utils/ProfileCorrelation";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 import { describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -359,5 +360,47 @@ describe("ProfileCorrelation shared helper", () => {
       "",
     );
     expect(findHexCorrelationValue({}, SPAN_ID_KEYS)).toBe("");
+  });
+});
+
+/*
+ * Issue #8025: a pprof sample's labels are named by the profiler, and every
+ * name an object inherits is one it may use. They were gathered with an
+ * assignment, which dropped a label named __proto__ before it could become
+ * a sample attribute.
+ */
+describe("Pyroscope sample labels named like what every object inherits", () => {
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a label named %s rides along as a sample attribute",
+    (name: string) => {
+      const converted: ReturnType<typeof convert> = convert([
+        JSON.parse(
+          JSON.stringify({ [name]: "eu", trace_id: HEX_TRACE_ID }),
+        ) as Dictionary<string>,
+      ]);
+
+      expect(converted.attributeTable).toEqual([
+        { key: "", value: {} },
+        { key: name, value: { stringValue: "eu" } },
+      ]);
+      expect((converted.samples[0] as JSONObject)["attributeIndices"]).toEqual([
+        1,
+      ]);
+      // Its trace id is still the sample's link, beside it.
+      expect(converted.linkTable[1]).toEqual({
+        traceId: HEX_TRACE_ID,
+        spanId: "",
+      });
+    },
+  );
+
+  test("a sample without such labels has none of their attributes", () => {
+    const converted: ReturnType<typeof convert> = convert([{ region: "eu" }]);
+
+    expect(
+      converted.attributeTable.map((entry: JSONObject | unknown): unknown => {
+        return (entry as JSONObject)["key"];
+      }),
+    ).toEqual(["", "region"]);
   });
 });
