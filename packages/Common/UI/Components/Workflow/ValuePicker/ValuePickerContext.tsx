@@ -18,6 +18,8 @@ import {
   parseReferencePath,
 } from "../../../../Types/Workflow/TemplateSyntax";
 import API from "../../../Utils/API/API";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import { createDefaultValueSources } from "./DefaultValueSources";
 import {
   ReferenceDescription,
@@ -176,6 +178,14 @@ export const ValuePickerProvider: FunctionComponent<
 
   const editedId: string | undefined = props.component?.id;
 
+  /*
+   * The reader's, which names a step's values in their words
+   * (ReturnValueNames). A new one comes with every render, so the lists
+   * are built again when the language changes, not on every render.
+   */
+  const translator: Translator = useTranslator();
+  const language: string = translator.language;
+
   const upstreamComponents: Array<NodeDataProp> = useMemo(() => {
     if (props.valueSources) {
       return props.valueSources.upstream;
@@ -195,6 +205,7 @@ export const ValuePickerProvider: FunctionComponent<
       sometimesSteps: props.valueSources?.sometimes,
       unavailableSteps: props.valueSources?.unavailable,
       isWorkflowOff: props.isWorkflowOff,
+      translator: translator,
     };
   }, [
     props.workflowId?.toString(),
@@ -203,6 +214,7 @@ export const ValuePickerProvider: FunctionComponent<
     props.webhookUrl,
     props.valueSources,
     props.isWorkflowOff,
+    language,
   ]);
 
   /*
@@ -238,6 +250,7 @@ export const ValuePickerProvider: FunctionComponent<
       .join(","),
     props.webhookUrl || "",
     props.isWorkflowOff ? "off" : "on",
+    language,
   ].join("|");
 
   const [loaded, setLoaded] = useState<Record<string, LoadedGroups>>({});
@@ -447,9 +460,10 @@ export const ValuePickerProvider: FunctionComponent<
           editedComponentId: editedId,
           downstreamIds: downstreamIds,
           variableNames: variableNames,
+          translator: translator,
         });
       },
-      [props.graphComponents, editedId, downstreamIds, variableNames],
+      [props.graphComponents, editedId, downstreamIds, variableNames, language],
     );
 
   const [childrenByReference, setChildrenByReference] = useState<

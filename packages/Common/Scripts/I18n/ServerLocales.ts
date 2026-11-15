@@ -101,6 +101,14 @@ export const PLURAL_ONE_SUFFIX: string = "_one";
 export const DASHBOARD_SHARED_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
   "packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
+  /*
+   * A project's first on-call policy's name and its two catch-all rules'
+   * names and descriptions (#7995): Ask AI's set_up_paging and
+   * OnCallDutyPolicyService.create word them for the person they are made
+   * for, as the guided setups do.
+   */
+  "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+  "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
 ];
 
 export const DASHBOARD_LOCALES_DIRECTORY: string = path.join(

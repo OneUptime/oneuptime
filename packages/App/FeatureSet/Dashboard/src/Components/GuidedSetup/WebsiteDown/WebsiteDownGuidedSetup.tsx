@@ -9,7 +9,6 @@ import WebsiteDownApi, {
 import {
   FirstCheckSentence,
   WEBSITE_DOWN_COPY,
-  WEBSITE_DOWN_POLICY_NAME,
   WEBSITE_DOWN_SETUP,
   WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH,
   WebsiteAddress,
@@ -75,6 +74,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
+import { getFirstOnCallPolicyName } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -829,15 +829,17 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         return;
       }
 
+      // Named in the reader's language, and its two rules too (#7995).
       const policyId: string = await WebsiteDownApi.createPolicy({
         userIds: pickedUserIds,
         teamIds: pickedTeamIds,
+        translator: translator,
       });
       saveRun({ [WebsiteDownRunValue.PolicyId]: policyId });
       setPolicy(
         (await WebsiteDownApi.loadPolicy(policyId)) || {
           id: policyId,
-          name: WEBSITE_DOWN_POLICY_NAME,
+          name: getFirstOnCallPolicyName(translator),
           responders: [],
         },
       );
@@ -903,7 +905,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             {translator.translateTemplate(
               WEBSITE_DOWN_COPY.whoCreatePolicyNote,
               {
-                policy: WEBSITE_DOWN_POLICY_NAME,
+                // The name it will be made with, in the reader's language.
+                policy: getFirstOnCallPolicyName(translator),
               },
             )}
           </p>

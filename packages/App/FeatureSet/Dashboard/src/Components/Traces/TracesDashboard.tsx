@@ -1,4 +1,5 @@
 import { getNumberLocale } from "Common/Types/DateLanguage";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 import React, {
   Fragment,
   FunctionComponent,
@@ -123,7 +124,11 @@ const formatDuration: (nanos: number, translator: Translator) => string = (
     return `${formatFixed(nanos / 1_000_000_000, 2, translator)}s`;
   }
   if (nanos >= 1_000_000) {
-    return `${formatFixed(nanos / 1_000_000, 1, translator)}ms`;
+    // The reader's unit and order: "12.3 ms", "۱۲٫۳ میلی‌ثانیه" (#7418).
+    return formatMilliseconds(translator, nanos / 1_000_000, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
   }
   if (nanos >= 1_000) {
     return `${formatFixed(nanos / 1_000, 0, translator)}us`;

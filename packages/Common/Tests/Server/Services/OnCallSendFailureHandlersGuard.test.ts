@@ -61,6 +61,17 @@ const ANSWER_HANDLER: string = "whenNotificationRequestAnswers";
  * its kind. A new one has to be put here, so whoever adds it decides which
  * kind it is.
  */
+/*
+ * The builders of a failed send's line, each handed its channel or name
+ * (Types/OnCallDutyPolicy/OnCallSendFailureLine): a test page's result reads
+ * the line back with them, in the reader's words (#7550).
+ */
+const SEND_FAILED_LINE_BUILDERS: ReadonlyArray<string> = [
+  "getOnCallSendFailedMessage",
+  "getOnCallWorkspaceSendFailedMessage",
+  "getOnCallCustomChannelSendFailedMessage",
+];
+
 const SENDER_HANDLERS: Record<string, string> = {
   "MailService.sendMail": REQUEST_HANDLER,
   "SmsService.sendSms": REQUEST_HANDLER,
@@ -522,7 +533,11 @@ describe.each(PAGE_SENDING_FILES)(
           });
           expect(notification).not.toBeNull();
 
-          // Words of its own: a string that names the channel.
+          /*
+           * Words of its own: a string that names the channel - written by
+           * the builder a test page's result reads it back with
+           * (OnCallSendFailureLine, #7550), handed its channel or name.
+           */
           const fallback: ts.Expression = propertyOf(
             literal,
             "fallbackStatusMessage",
@@ -532,7 +547,12 @@ describe.each(PAGE_SENDING_FILES)(
             where,
             fallback:
               (ts.isStringLiteral(fallback) && fallback.text.length > 0) ||
-              ts.isTemplateExpression(fallback),
+              ts.isTemplateExpression(fallback) ||
+              (ts.isCallExpression(fallback) &&
+                SEND_FAILED_LINE_BUILDERS.includes(
+                  fallback.expression.getText(),
+                ) &&
+                fallback.arguments.length === 1),
           }).toEqual({ where, fallback: true });
         }
       },

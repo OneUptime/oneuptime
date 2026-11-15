@@ -1532,7 +1532,7 @@ describe("OSD list", () => {
     expect(
       within(fresh).getByText("500 GiB / 2.0 TiB (25.0%)"),
     ).toBeInTheDocument();
-    expect(within(fresh).getByText("12 / 13 ms")).toBeInTheDocument();
+    expect(within(fresh).getByText("12 ms / 13 ms")).toBeInTheDocument();
   });
 });
 

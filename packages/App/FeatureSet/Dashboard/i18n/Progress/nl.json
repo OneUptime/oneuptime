@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9194
+    "keys": 52780,
+    "untranslated": 9062
   },
   "sameAsEnglish": [
     " is",
@@ -80,6 +80,7 @@
     "Chassis",
     "Chat",
     "Chats",
+    "Chrome, Safari, Firefox",
     "Claim",
     "ClickHouse",
     "Client",
@@ -118,6 +119,7 @@
     "DE",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Daemons",
     "Dashboard",
@@ -413,6 +415,7 @@
     "Script",
     "Selector",
     "Server",
+    "Server / VM",
     "Serverless",
     "Servers",
     "Service",
