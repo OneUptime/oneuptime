@@ -3,6 +3,7 @@ import { makeT as makeDocsT } from "../../../FeatureSet/Docs/Utils/I18n";
 import DocsRender from "../../../FeatureSet/Docs/Utils/Render";
 import DocsPlaceholders from "../../../FeatureSet/Docs/Utils/Placeholders";
 import { readPage } from "./DocsContentSupport";
+import { stripHtmlTags } from "./DocsHtmlText";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -28,11 +29,16 @@ const FRENCH_BREAK: RegExp = new RegExp(
   "u",
 );
 
-// A page's text as it reads: its code, preformatted text and tags left out.
+/*
+ * A page's text as it reads: its code and preformatted text left out, each
+ * block on a line of its own, its tags taken out (stripHtmlTags).
+ */
 function proseOf(html: string): string {
-  return html
-    .replace(/<(pre|code|script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]+>/g, "\n")
+  return stripHtmlTags(
+    html
+      .replace(/<(pre|code)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
+      .replace(/<\/(p|li|h[1-6]|td|th|div|blockquote)>/gi, "\n"),
+  )
     .replace(/&#39;/g, "'")
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, "&");
