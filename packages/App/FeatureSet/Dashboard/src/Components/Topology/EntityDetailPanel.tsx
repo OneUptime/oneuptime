@@ -165,7 +165,7 @@ interface SectionConfig {
 const SECTIONS: Array<SectionConfig> = [
   {
     section: "calls",
-    title: "Calls",
+    title: translationKey("Calls"),
     testId: "entity-detail-calls",
     showMetrics: true,
     infrastructureLinks: false,
@@ -173,7 +173,7 @@ const SECTIONS: Array<SectionConfig> = [
   },
   {
     section: "calledBy",
-    title: "Called by",
+    title: translationKey("Called by"),
     testId: "entity-detail-called-by",
     showMetrics: true,
     infrastructureLinks: false,
@@ -181,7 +181,7 @@ const SECTIONS: Array<SectionConfig> = [
   },
   {
     section: "runsOn",
-    title: "Runs on",
+    title: translationKey("Runs on"),
     testId: "entity-detail-runs-on",
     showMetrics: false,
     infrastructureLinks: true,
@@ -189,7 +189,7 @@ const SECTIONS: Array<SectionConfig> = [
   },
   {
     section: "related",
-    title: "Related infrastructure",
+    title: translationKey("Related infrastructure"),
     testId: "entity-detail-related",
     showMetrics: false,
     infrastructureLinks: false,
@@ -253,22 +253,22 @@ interface ResolvedLink<T> {
  * both are long, and neither reads at a glance.
  */
 const DETAIL_ATTRIBUTES: Array<{ key: string; label: string }> = [
-  { key: "telemetry.sdk.language", label: "Language" },
-  { key: "db.system.name", label: "Database engine" },
-  { key: "network.protocol.name", label: "Protocol" },
-  { key: "k8s.pod.name", label: "Pod name" },
-  { key: "k8s.node.name", label: "Node" },
-  { key: "os.type", label: "Operating system" },
-  { key: "os.version", label: "OS Version" },
-  { key: "host.arch", label: "Architecture" },
-  { key: "host.ip", label: "IP Address" },
-  { key: "host.mac", label: "MAC Address" },
-  { key: "device.manufacturer", label: "Manufacturer" },
-  { key: "device.model.name", label: "Model Name" },
-  { key: "host.serial_number", label: "Serial Number" },
-  { key: "device.firmware.version", label: "Firmware Version" },
-  { key: "cloud.provider", label: "Cloud provider" },
-  { key: "cloud.region", label: "Region" },
+  { key: "telemetry.sdk.language", label: translationKey("Language") },
+  { key: "db.system.name", label: translationKey("Database engine") },
+  { key: "network.protocol.name", label: translationKey("Protocol") },
+  { key: "k8s.pod.name", label: translationKey("Pod name") },
+  { key: "k8s.node.name", label: translationKey("Node") },
+  { key: "os.type", label: translationKey("Operating system") },
+  { key: "os.version", label: translationKey("OS Version") },
+  { key: "host.arch", label: translationKey("Architecture") },
+  { key: "host.ip", label: translationKey("IP Address") },
+  { key: "host.mac", label: translationKey("MAC Address") },
+  { key: "device.manufacturer", label: translationKey("Manufacturer") },
+  { key: "device.model.name", label: translationKey("Model Name") },
+  { key: "host.serial_number", label: translationKey("Serial Number") },
+  { key: "device.firmware.version", label: translationKey("Firmware Version") },
+  { key: "cloud.provider", label: translationKey("Cloud provider") },
+  { key: "cloud.region", label: translationKey("Region") },
 ];
 
 function normalizeHostName(value: string | undefined): string {
@@ -1087,7 +1087,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
               {moreError.action === "reload"
                 ? t("Could not reload this list.")
                 : t("Could not load more connections.")}
-              {moreError.detail ? ` ${errorDetail(moreError, t)}` : ""}
+              {moreError.detail ? <> {errorDetail(moreError, t)}</> : ""}
             </p>
             {isOutdated && (
               <button

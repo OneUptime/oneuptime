@@ -240,7 +240,12 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
       {showSCIMUrlId && currentSCIMConfig ? (
         <ConfirmModal
-          title={`SCIM URLs - ${currentSCIMConfig.name}`}
+          title={translator.translateTemplate(
+            "SCIM URLs - {{name}}",
+            { name: currentSCIMConfig.name || "" },
+            { setsValuesApart: true },
+          )}
+          isTitleTranslated={true}
           description={
             <div>
               <p>
@@ -292,10 +297,13 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 />
               </div>
               <br />
+              {/*
+               * One sentence with its lead, so each language words it
+               * whole - and no locale holds a bare "Note:".
+               */}
               <p>
-                <strong>{translator.translateText("Note:")}</strong>{" "}
                 {translator.translateText(
-                  "Make sure to use this bearer token in the Authorization header when making SCIM API requests.",
+                  "Note: Make sure to use this bearer token in the Authorization header when making SCIM API requests.",
                 )}
               </p>
               <br />
@@ -378,10 +386,13 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 <HiddenText text={newBearerToken} isCopyable={true} />
               </div>
               <br />
+              {/*
+               * One sentence with its lead, so each language words it
+               * whole - and no locale holds a bare "Important:".
+               */}
               <p>
-                <strong>{translator.translateText("Important:")}</strong>{" "}
                 {translator.translateText(
-                  "Make sure to update your identity provider with this new bearer token.",
+                  "Important: Make sure to update your identity provider with this new bearer token.",
                 )}
               </p>
             </div>

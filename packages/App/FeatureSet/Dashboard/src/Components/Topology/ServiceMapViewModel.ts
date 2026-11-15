@@ -53,13 +53,32 @@ export type ServiceMapStatus =
   | "entry"
   | "isolated";
 
+// Each looked up where it is drawn (statusLabelForEntry, the legend).
 export const SERVICE_STATUS_LABELS: Record<ServiceMapStatus, string> = {
-  healthy: "Healthy",
-  degraded: "Some errors",
-  critical: "High error rate",
-  entry: "Entry point",
-  isolated: "No calls observed",
+  healthy: translationKey("Healthy"),
+  degraded: translationKey("Some errors"),
+  critical: translationKey("High error rate"),
+  entry: translationKey("Entry point"),
+  isolated: translationKey("No calls observed"),
 };
+
+// What the map calls a service, or a dependency, that reported no name.
+export const UNNAMED_SERVICE: string = translationKey("Unnamed service");
+
+export const UNNAMED_DEPENDENCY: string = translationKey("Unnamed dependency");
+
+/*
+ * A node's name as the map draws it: an unnamed service's or dependency's
+ * in the reader's language, any other as the entity reported it.
+ */
+export function entryLabelInLanguage(
+  entry: Pick<ServiceMapEntry, "label" | "isUnnamed">,
+  translator: Translator,
+): string {
+  return entry.isUnnamed
+    ? translator.translateText(entry.label) || entry.label
+    : entry.label;
+}
 
 export interface TrafficTotals {
   calls: number;
@@ -91,6 +110,13 @@ export interface ServiceMapEntry {
    * carries is left to be found by.
    */
   detailValue: string | null;
+  /*
+   * An entity that reported no display name: its label is then
+   * UNNAMED_SERVICE or UNNAMED_DEPENDENCY, the product's English, which the
+   * map draws in the reader's language (entryLabelInLanguage) - not as
+   * written, as a service's own name is (#8260).
+   */
+  isUnnamed?: boolean | undefined;
   inbound: TrafficTotals;
   outbound: TrafficTotals;
   callers: number;
@@ -185,8 +211,11 @@ export function detailLabelInLanguage(
     : label;
 }
 
-/* Friendly names for the values semconv puts in these attributes. */
-const DETAIL_LABELS: Record<string, string> = {
+/*
+ * Friendly names for the values semconv puts in these attributes: each a
+ * product's name, drawn as written, but the browser's runtime (above).
+ */
+export const DETAIL_LABELS: Readonly<Record<string, string>> = {
   nodejs: "Node.js",
   webjs: BROWSER_DETAIL_LABEL,
   python: "Python",
@@ -472,7 +501,7 @@ export function buildServiceMapModel(
     const kind: ServiceMapNodeKind = kindForEntityType(entity.entityType);
     const label: string =
       entity.displayName ||
-      (kind === "service" ? "Unnamed service" : "Unnamed dependency");
+      (kind === "service" ? UNNAMED_SERVICE : UNNAMED_DEPENDENCY);
     const status: ServiceOperationalStatus | undefined =
       kind === "service" ? statuses.get(label.toLowerCase()) : undefined;
     const detailValue: string | null = detailValueForEntity(entity);
@@ -484,6 +513,7 @@ export function buildServiceMapModel(
       typeLabel: metaForEntityType(entity.entityType).label,
       detailLabel: detailLabelForValue(detailValue),
       detailValue,
+      isUnnamed: !entity.displayName,
       inbound: emptyTotals(),
       outbound: emptyTotals(),
       callers: 0,

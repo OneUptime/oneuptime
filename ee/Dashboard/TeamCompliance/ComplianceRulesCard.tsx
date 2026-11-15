@@ -131,9 +131,13 @@ const SHOW_WHO_FAILS: PluralTemplate = {
   other: "Show the {{count}} who fail it",
 };
 
-// A rule's warnings, counted on its chip: one is "Warning".
+/*
+ * A rule's warnings, counted on its chip when there are several (a single
+ * one is "Warning"). The "one" form is still a count's: Russian draws 21
+ * with it.
+ */
 const WARNINGS: PluralTemplate = {
-  one: "{{count}} warnings",
+  one: "{{count}} warning",
   other: "{{count}} warnings",
 };
 

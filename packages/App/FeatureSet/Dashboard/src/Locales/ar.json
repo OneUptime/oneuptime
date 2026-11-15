@@ -54071,7 +54071,6 @@
   "For identity providers that ask for a token endpoint, client ID and client secret instead of a bearer token.": "لموفّري الهوية الذين يطلبون نقطة نهاية للرمز ومعرّف عميل وسر عميل بدلًا من رمز Bearer.",
   "How everyone on this team measures up against the active rules, and what each of them still has to set up.": "مدى استيفاء كل عضو في هذا الفريق للقواعد النشطة، وما يزال على كل منهم إعداده.",
   "How everyone on {{team}} measures up against the active rules, and what each of them still has to set up.": "مدى استيفاء كل عضو في {{team}} للقواعد النشطة، وما يزال على كل منهم إعداده.",
-  "Important:": "مهم:",
   "Incident on-call rules for every severity": "قواعد مناوبة للحوادث لكل مستويات الخطورة",
   "Leave blank to use the project's default telemetry retention.": "اتركه فارغًا لاستخدام الاحتفاظ الافتراضي بالقياس عن بُعد في المشروع.",
   "Loading team compliance": "جارٍ تحميل امتثال الفريق",
@@ -54079,8 +54078,8 @@
   "Logs default (days)": "الافتراضي للسجلات (أيام)",
   "Make Client Secret": "إنشاء سر العميل",
   "Make New Client Secret": "إنشاء سر عميل جديد",
-  "Make sure to update your identity provider with this new bearer token.": "احرص على تحديث موفّر الهوية لديك برمز Bearer الجديد هذا.",
-  "Make sure to use this bearer token in the Authorization header when making SCIM API requests.": "احرص على استخدام رمز Bearer هذا في ترويسة Authorization عند إرسال طلبات إلى SCIM API.",
+  "Important: Make sure to update your identity provider with this new bearer token.": "مهم: احرص على تحديث موفّر الهوية لديك برمز Bearer الجديد هذا.",
+  "Note: Make sure to use this bearer token in the Authorization header when making SCIM API requests.": "ملاحظة: احرص على استخدام رمز Bearer هذا في ترويسة Authorization عند إرسال طلبات إلى SCIM API.",
   "Meets this rule.": "يستوفي هذه القاعدة.",
   "Member compliance": "امتثال الأعضاء",
   "Members are notified when an alert episode on-call policy pages them - for the severities and channels you choose.": "يتلقى الأعضاء إشعارًا عندما تستدعيهم سياسة مناوبة لحلقات التنبيهات، لمستويات الخطورة والقنوات التي تختارها.",
@@ -54126,7 +54125,6 @@
   "Nobody is being checked right now. {{advice}}": "لا يُفحص أحد حاليًا. {{advice}}",
   "None of the {{count}} members meet every rule": "لا يستوفي أي من الأعضاء كل القواعد (العدد: {{count}})",
   "None of the {{count}} members meet every rule_one": "لا يستوفي العضو كل القواعد ({{count}})",
-  "Note:": "ملاحظة:",
   "Nothing is being checked yet": "لا يُفحص أي شيء بعد",
   "OAuth 2.0 Client Credentials:": "بيانات اعتماد عميل OAuth 2.0:",
   "On-call rules check that members will actually be paged; notification methods check they can be reached at all.": "تتحقق قواعد المناوبة من أن الأعضاء سيُستدعون فعلًا، وتتحقق طرق الإشعار من إمكانية الوصول إليهم أصلًا.",
@@ -54296,5 +54294,9 @@
   "{{shown}} of {{count}} members_one": "{{shown}} من عضو واحد ({{count}})",
   "{{title}} (all alert severities)": "{{title}} (كل مستويات خطورة التنبيهات)",
   "{{title}} (all incident severities)": "{{title}} (كل مستويات خطورة الحوادث)",
-  "{{title}} (no severities left)": "{{title}} (لم يبقَ أي مستوى خطورة)"
+  "{{title}} (no severities left)": "{{title}} (لم يبقَ أي مستوى خطورة)",
+  "Entry point": "نقطة دخول",
+  "No calls observed": "لم تُرصد أي استدعاءات",
+  "Unnamed dependency": "اعتمادية بلا اسم",
+  "SCIM URLs - {{name}}": "عناوين URL الخاصة بـ SCIM - {{name}}"
 }

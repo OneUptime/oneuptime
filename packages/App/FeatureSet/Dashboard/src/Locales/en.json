@@ -54071,7 +54071,6 @@
   "For identity providers that ask for a token endpoint, client ID and client secret instead of a bearer token.": "For identity providers that ask for a token endpoint, client ID and client secret instead of a bearer token.",
   "How everyone on this team measures up against the active rules, and what each of them still has to set up.": "How everyone on this team measures up against the active rules, and what each of them still has to set up.",
   "How everyone on {{team}} measures up against the active rules, and what each of them still has to set up.": "How everyone on {{team}} measures up against the active rules, and what each of them still has to set up.",
-  "Important:": "Important:",
   "Incident on-call rules for every severity": "Incident on-call rules for every severity",
   "Leave blank to use the project's default telemetry retention.": "Leave blank to use the project's default telemetry retention.",
   "Loading team compliance": "Loading team compliance",
@@ -54079,8 +54078,8 @@
   "Logs default (days)": "Logs default (days)",
   "Make Client Secret": "Make Client Secret",
   "Make New Client Secret": "Make New Client Secret",
-  "Make sure to update your identity provider with this new bearer token.": "Make sure to update your identity provider with this new bearer token.",
-  "Make sure to use this bearer token in the Authorization header when making SCIM API requests.": "Make sure to use this bearer token in the Authorization header when making SCIM API requests.",
+  "Important: Make sure to update your identity provider with this new bearer token.": "Important: Make sure to update your identity provider with this new bearer token.",
+  "Note: Make sure to use this bearer token in the Authorization header when making SCIM API requests.": "Note: Make sure to use this bearer token in the Authorization header when making SCIM API requests.",
   "Meets this rule.": "Meets this rule.",
   "Member compliance": "Member compliance",
   "Members are notified when an alert episode on-call policy pages them - for the severities and channels you choose.": "Members are notified when an alert episode on-call policy pages them - for the severities and channels you choose.",
@@ -54126,7 +54125,6 @@
   "Nobody is being checked right now. {{advice}}": "Nobody is being checked right now. {{advice}}",
   "None of the {{count}} members meet every rule": "None of the {{count}} members meet every rule",
   "None of the {{count}} members meet every rule_one": "None of the {{count}} members meet every rule",
-  "Note:": "Note:",
   "Nothing is being checked yet": "Nothing is being checked yet",
   "OAuth 2.0 Client Credentials:": "OAuth 2.0 Client Credentials:",
   "On-call rules check that members will actually be paged; notification methods check they can be reached at all.": "On-call rules check that members will actually be paged; notification methods check they can be reached at all.",
@@ -54296,5 +54294,9 @@
   "{{shown}} of {{count}} members_one": "{{shown}} of {{count}} member",
   "{{title}} (all alert severities)": "{{title}} (all alert severities)",
   "{{title}} (all incident severities)": "{{title}} (all incident severities)",
-  "{{title}} (no severities left)": "{{title}} (no severities left)"
+  "{{title}} (no severities left)": "{{title}} (no severities left)",
+  "Entry point": "Entry point",
+  "No calls observed": "No calls observed",
+  "Unnamed dependency": "Unnamed dependency",
+  "SCIM URLs - {{name}}": "SCIM URLs - {{name}}"
 }

@@ -29,9 +29,9 @@ const LOG_SEVERITIES: Array<LogSeverity> = [
 ];
 
 const SPAN_STATUSES: Array<{ status: SpanStatus; label: string }> = [
-  { status: SpanStatus.Error, label: translationKey("Error") },
-  { status: SpanStatus.Ok, label: translationKey("Ok") },
-  { status: SpanStatus.Unset, label: translationKey("Unset") },
+  { status: SpanStatus.Error, label: "Error" },
+  { status: SpanStatus.Ok, label: "Ok" },
+  { status: SpanStatus.Unset, label: "Unset" },
 ];
 
 const TelemetryRetentionConfigForm: FunctionComponent<ComponentProps> = (
