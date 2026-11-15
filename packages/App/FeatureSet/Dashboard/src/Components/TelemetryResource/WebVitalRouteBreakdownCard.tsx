@@ -198,11 +198,11 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                   >
                     <span
                       dir={getLineDirection(
-                        formatVital(rated),
+                        formatVital(rated, translator),
                         translator.language,
                       )}
                     >
-                      {formatVital(rated)}
+                      {formatVital(rated, translator)}
                     </span>
                   </td>
                   <td className="whitespace-nowrap py-2 text-end">

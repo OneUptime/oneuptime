@@ -72,9 +72,13 @@ import {
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import {
-  formatDurationMs,
+  formatCount as formatTraceChartCount,
   formatDurationMsInLanguage,
 } from "../Dashboard/Components/TraceChartData";
+import {
+  getChartRowValues,
+  getYAxisWidthForValuesInPx,
+} from "Common/UI/Components/Charts/Utils/YAxisWidth";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
@@ -219,21 +223,18 @@ function isDurationMetric(metric: string): boolean {
 }
 
 /*
- * A duration as the trace widgets write it (TraceChartData): English on a
- * chart's value axis, the reader's words in its tooltip, its top list and
- * its table (issue #7418).
+ * A duration as the trace widgets write it (TraceChartData), in the
+ * reader's words on the chart's value axis, in its tooltip, its top list
+ * and its table alike (issues #7418, #8349).
  */
-export { formatDurationMs };
+export { formatDurationMsInLanguage };
 
-function formatCount(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
-  }
-  return Math.round(value).toLocaleString(getReaderNumberLocale());
-}
+/*
+ * A count on the value axis, as the trace widgets write it: "1.5K" in the
+ * page's digits and decimal sign ("1,5K", "۱٫۵K"), as the tooltip beside it
+ * writes its counts (TraceChartData's formatCount).
+ */
+const formatCount: (value: number) => string = formatTraceChartCount;
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
   const diffMinutes: number =
@@ -970,9 +971,25 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     );
   };
 
+  /*
+   * The value axis writes a figure as the tooltip and the top list beside
+   * it do, in the reader's language ("۴۲ میلی‌ثانیه", "1,5K"), and is as wide
+   * as its widest tick at its 11 px, never narrower than it was (#8349).
+   */
   const yAxisFormatter: (value: number) => string = isDuration
-    ? formatDurationMs
+    ? (value: number): string => {
+        return formatDurationMsInLanguage(value, translator);
+      }
     : formatCount;
+
+  const yAxisWidth: number = getYAxisWidthForValuesInPx({
+    values: getChartRowValues(pivotedData, seriesKeys, {
+      isStacked: !isDuration,
+    }),
+    formatter: yAxisFormatter,
+    minWidthInPx: 64,
+    tickFontSizeInPx: 11,
+  });
 
   const renderTimeseries: () => ReactElement = (): ReactElement => {
     if (pivotedData.length === 0) {
@@ -1029,7 +1046,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           tick={{ fontSize: 11, fill: "var(--ou-chart-tick, #94a3b8)" }}
           axisLine={false}
           tickLine={false}
-          width={64}
+          width={yAxisWidth}
           allowDecimals={isDuration}
           tickFormatter={yAxisFormatter}
         />

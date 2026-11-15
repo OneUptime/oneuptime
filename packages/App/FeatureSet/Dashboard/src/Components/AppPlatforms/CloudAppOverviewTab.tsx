@@ -33,7 +33,7 @@ import {
   fetchSpanMetrics,
   formatBytes,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
 } from "../TelemetryResource/telemetryMetrics";
 import { CLOUD_APP_METRIC_DESCRIPTIONS } from "../MetricDescriptions/CloudMetricDescriptions";
@@ -400,7 +400,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "p95 latency",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
       valueNote: traceNote,
       icon: IconProp.Clock,
       iconColor: "emerald",
@@ -691,7 +691,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
             windowEnd={props.end}
             syncId={chartSyncId}
             yFormatter={(value: number): string => {
-              return formatDurationMs(value);
+              return formatDurationMsInLanguage(value, translator);
             }}
             loading={isLoading && !m && !spanReadFailed}
             description={CLOUD_APP_METRIC_DESCRIPTIONS.latencyChart}
