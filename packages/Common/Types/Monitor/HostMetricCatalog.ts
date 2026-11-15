@@ -1,4 +1,5 @@
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type HostMetricCategory =
   | "CPU"
@@ -43,8 +44,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-cpu-utilization",
     friendlyName: "CPU Utilization",
-    description:
+    description: translationKey(
       "Share of CPU time spent running applications (the user state), as a ratio (0 to 1). The High CPU Utilization template adds system time.",
+    ),
     metricName: "system.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -54,8 +56,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "process-cpu-utilization",
     friendlyName: "Process CPU Utilization",
-    description:
+    description: translationKey(
       "CPU utilization of each process on the host, as a ratio (0 to 1), one series per executable.",
+    ),
     metricName: "process.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Max,
@@ -67,8 +70,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-memory-utilization",
     friendlyName: "Memory Utilization",
-    description:
+    description: translationKey(
       "Share of physical memory in use, as a ratio (0 to 1). Page cache and buffers are left out.",
+    ),
     metricName: "system.memory.utilization",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -78,8 +82,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-memory-usage",
     friendlyName: "Memory Usage",
-    description:
+    description: translationKey(
       "Memory in use, in bytes. Page cache and buffers are left out.",
+    ),
     metricName: "system.memory.usage",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -91,8 +96,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-filesystem-utilization",
     friendlyName: "Filesystem Utilization",
-    description:
+    description: translationKey(
       "Share of each filesystem in use, as a ratio (0 to 1), one series per mount point.",
+    ),
     metricName: "system.filesystem.utilization",
     category: "Disk",
     defaultAggregation: MetricsAggregationType.Max,
@@ -102,7 +108,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-filesystem-usage",
     friendlyName: "Filesystem Usage",
-    description: "Bytes in use on each filesystem, one series per mount point.",
+    description: translationKey(
+      "Bytes in use on each filesystem, one series per mount point.",
+    ),
     metricName: "system.filesystem.usage",
     category: "Disk",
     defaultAggregation: MetricsAggregationType.Max,
@@ -115,8 +123,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-network-io",
     friendlyName: "Network I/O",
-    description:
+    description: translationKey(
       "Bytes received and sent since the host started, one series per direction. A lifetime counter: it only grows.",
+    ),
     metricName: "system.network.io",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Max,
@@ -128,7 +137,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-cpu-load-average-1m",
     friendlyName: "Load Average (1m)",
-    description: "Host CPU load average over the last 1 minute.",
+    description: translationKey(
+      "Host CPU load average over the last 1 minute.",
+    ),
     metricName: "system.cpu.load_average.1m",
     category: "Load",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -137,7 +148,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-cpu-load-average-5m",
     friendlyName: "Load Average (5m)",
-    description: "Host CPU load average over the last 5 minutes.",
+    description: translationKey(
+      "Host CPU load average over the last 5 minutes.",
+    ),
     metricName: "system.cpu.load_average.5m",
     category: "Load",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -146,7 +159,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-cpu-load-average-15m",
     friendlyName: "Load Average (15m)",
-    description: "Host CPU load average over the last 15 minutes.",
+    description: translationKey(
+      "Host CPU load average over the last 15 minutes.",
+    ),
     metricName: "system.cpu.load_average.15m",
     category: "Load",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -157,8 +172,9 @@ const hostMetricCatalog: Array<HostMetricDefinition> = [
   {
     id: "system-processes-count",
     friendlyName: "Process Count",
-    description:
+    description: translationKey(
       "Number of processes on the host, one series per status (running, sleeping, blocked...).",
+    ),
     metricName: "system.processes.count",
     category: "Processes",
     defaultAggregation: MetricsAggregationType.Avg,

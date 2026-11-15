@@ -2,6 +2,17 @@ import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "../../Utils/Project/NotificationChannels";
+import {
+  ProjectBalanceNotSentReason,
+  readProjectBalanceMessageNotSentReason,
+} from "../../Utils/Project/ProjectBalance";
+import {
+  NotificationServiceAnswerLine,
+  readNotificationServiceAnswerLine,
+  readNotificationServiceNotReachedLine,
+  readOnCallSendFailedLine,
+  readWorkspaceNotConnectedLine,
+} from "./OnCallSendFailureLine";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "./AlreadyPagedTimelineMessage";
 import { readAwayUntil } from "./AwayTimelineMessage";
 import { ON_CALL_DIRECT_PAGE_EMPTY_TEAM_TIMELINE_MESSAGE } from "./OnCallDirectPage";
@@ -193,8 +204,15 @@ const PROJECT_CHANNEL_OF: Readonly<
 /*
  * What one message's line says, as a code: a method that is not verified,
  * a channel switched off in the project, a push device that no longer
- * receives. Null for any other line - a provider's own error, a message on
- * its way - and for a row that names no method.
+ * receives - and why a message was not sent, when OneUptime says it in its
+ * own words (OnCallSendFailureLine, #7550): the Notification service
+ * refused it or answered with an error, was not reached, the send failed
+ * with no words, the project's balance could not pay for it, the
+ * workspace is not connected. Null for any other line - a provider's own
+ * error, a message on its way - and for a row that names no method.
+ *
+ * A line written before these were read is read the same way: it is the
+ * same words, from the same builders.
  */
 export function readOnCallTestPageDeliveryLine(data: {
   statusMessage: string | null | undefined;
@@ -205,6 +223,96 @@ export function readOnCallTestPageDeliveryLine(data: {
 
   if (!message || !channel) {
     return null;
+  }
+
+  const answer: NotificationServiceAnswerLine | null =
+    readNotificationServiceAnswerLine(message);
+
+  if (answer) {
+    /*
+     * The service's own words may be one of OneUptime's lines: SMS
+     * switched off in the project, a balance too low. Then the line is
+     * that one, worded as it is.
+     */
+    const ownLine: OnCallTestPageLine | null = answer.words
+      ? readOwnDeliveryLine(answer.words, channel)
+      : null;
+
+    if (ownLine) {
+      return ownLine;
+    }
+
+    return {
+      code: answer.isRefused
+        ? OnCallTestPageLineCode.NotificationServiceRefused
+        : OnCallTestPageLineCode.NotificationServiceAnswerFailed,
+      ...(answer.statusCode !== undefined
+        ? { statusCode: answer.statusCode }
+        : {}),
+      ...(answer.words ? { words: answer.words } : {}),
+    };
+  }
+
+  const notReachedReason: string | null =
+    readNotificationServiceNotReachedLine(message);
+
+  if (notReachedReason) {
+    return {
+      code: OnCallTestPageLineCode.NotificationServiceNotReached,
+      reason: notReachedReason,
+    };
+  }
+
+  return readOwnDeliveryLine(message, channel);
+}
+
+/*
+ * A message's line that is one of OneUptime's own sentences, whole - the
+ * line itself, or the Notification service's words after a refusal.
+ */
+function readOwnDeliveryLine(
+  message: string,
+  channel: OnCallPageChannel,
+): OnCallTestPageLine | null {
+  const sendFailed: { name?: string | undefined } | null =
+    readOnCallSendFailedLine({ statusMessage: message, channel: channel });
+
+  if (sendFailed) {
+    return {
+      code: OnCallTestPageLineCode.SendFailed,
+      channel: channel,
+      ...(sendFailed.name ? { name: sendFailed.name } : {}),
+    };
+  }
+
+  const workspace: { isProjectConnection: boolean } | null =
+    readWorkspaceNotConnectedLine({ statusMessage: message, channel: channel });
+
+  if (workspace) {
+    return {
+      code: OnCallTestPageLineCode.WorkspaceNotConnected,
+      channel: channel,
+      isProjectConnection: workspace.isProjectConnection,
+    };
+  }
+
+  const balanceChannel: ProjectNotificationChannel | undefined =
+    PROJECT_CHANNEL_OF[channel];
+  const balance: ProjectBalanceNotSentReason | null = balanceChannel
+    ? readProjectBalanceMessageNotSentReason({
+        statusMessage: message,
+        channel: balanceChannel,
+      })
+    : null;
+
+  if (balance) {
+    return {
+      code: OnCallTestPageLineCode.ProjectBalanceTooLow,
+      channel: channel,
+      ...(balance.isUsedUp
+        ? {}
+        : { balance: balance.balance, cost: balance.cost }),
+    };
   }
 
   if (isNotVerifiedMessage(message, channel)) {

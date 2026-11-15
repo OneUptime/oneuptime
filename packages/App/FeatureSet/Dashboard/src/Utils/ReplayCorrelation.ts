@@ -15,6 +15,15 @@ import {
   buildExceptionGroupLink,
   getExceptionGroupLabel,
 } from "./ExceptionCorrelation";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/Types/Translator";
+import { formatMilliseconds } from "./Milliseconds";
+
+// The panel's own English, and a caller that hands in no sentence's translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
  * Pure helpers behind the session replay rail's backend tabs (Logs / Traces /
@@ -422,7 +431,10 @@ export function buildReplayExceptionGroupLinks(
  * whole seconds, which printed "0s (server-clamped)" for a 300 ms skew and
  * listed a "0s missing" gap - copy that contradicted itself.
  */
-export function formatReplayMilliseconds(ms: number): string {
+export function formatReplayMilliseconds(
+  ms: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(ms)) {
     return "unknown";
   }
@@ -431,7 +443,12 @@ export function formatReplayMilliseconds(ms: number): string {
   const sign: string = ms < 0 ? "-" : "";
 
   if (absolute < 1000) {
-    return `${sign}${Math.round(absolute)} ms`;
+    // The reader's figure and unit where a sentence of theirs holds it (#7418).
+    return formatMilliseconds(
+      translator,
+      (ms < 0 ? -1 : 1) * Math.round(absolute),
+      { maximumFractionDigits: 0 },
+    );
   }
 
   if (absolute < 60 * 1000) {

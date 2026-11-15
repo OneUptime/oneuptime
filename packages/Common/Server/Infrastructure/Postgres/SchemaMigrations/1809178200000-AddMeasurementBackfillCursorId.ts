@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * moment the ALTER takes. A walk under way when this runs has no id yet:
  * its next page reads from its createdAt on, as it did, and saves both.
  */
-export class AddMeasurementBackfillCursorId1809176800000
+export class AddMeasurementBackfillCursorId1809178200000
   implements MigrationInterface
 {
-  public name: string = "AddMeasurementBackfillCursorId1809176800000";
+  public name: string = "AddMeasurementBackfillCursorId1809178200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -592,8 +592,11 @@ work out, starts from a default for everything else, and folds what most people 
   [MinutePickersGuard](../../packages/Common/Tests/UI/MinutePickersGuard.test.ts).
 - **A duration in milliseconds is written in the reader's language,** with the Dashboard's
   `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
-  reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
-  an Arabic or Persian page (#7224). Enforced by
+  reader's digits), never a figure joined to " ms" or written before "ms" in a template or JSX:
+  every monitor's Response Time read "ms 411" on an Arabic or Persian page (#7224), and a trace's
+  p95 "۱۲٫۴ ms" (#7418). `minimumFractionDigits` keeps the decimals toFixed wrote, `showsSign` an
+  offset's sign. A chart's value axis and the PDF export write it in English on purpose
+  (`formatMillisecondsInEnglish`). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
@@ -675,6 +678,15 @@ then `npm run i18n:validate` from the root.
   [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts)
   and
   [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx).
+- **A metric's description reads in the reader's language, its code and names as written.** Every
+  monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
+  glued together at run time is no key, and read English in every language (#8014). Each place that
+  draws one looks it up once: a metric picker's line, a Database Health criteria's line, a Database
+  monitor's charts and summary, a metric a monitor stored. A translation keeps each piece of code
+  between backticks exactly and as often, since the picker draws it as code, and the metric,
+  attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
+  by
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).

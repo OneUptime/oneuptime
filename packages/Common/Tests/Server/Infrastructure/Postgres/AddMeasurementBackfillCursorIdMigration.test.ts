@@ -1,5 +1,5 @@
-import { AddMeasurementBackfillCursorId1809176800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809176800000-AddMeasurementBackfillCursorId";
-import { RemoveServiceTelemetryLinkPermissions1809176500000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809176500000-RemoveServiceTelemetryLinkPermissions";
+import { AddMeasurementBackfillCursorId1809178200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178200000-AddMeasurementBackfillCursorId";
+import { RemovePermissionsTeamsCannotBeGiven1809178100000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178100000-RemovePermissionsTeamsCannotBeGiven";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AlertMeasurement from "../../../../Models/DatabaseModels/AlertMeasurement";
 import IncidentMeasurement from "../../../../Models/DatabaseModels/IncidentMeasurement";
@@ -27,7 +27,7 @@ import { describe, expect, test } from "@jest/globals";
  * recorded against a fake QueryRunner.
  */
 
-const MIGRATION_NAME: string = "AddMeasurementBackfillCursorId1809176800000";
+const MIGRATION_NAME: string = "AddMeasurementBackfillCursorId1809178200000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 type MigrationClass = new () => MigrationInterface;
@@ -72,7 +72,7 @@ function timestampOf(migration: MigrationClass): number {
 
 describe("the measurement backfill cursor id migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddMeasurementBackfillCursorId1809176800000().name).toBe(
+    expect(new AddMeasurementBackfillCursorId1809178200000().name).toBe(
       MIGRATION_NAME,
     );
   });
@@ -81,21 +81,21 @@ describe("the measurement backfill cursor id migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddMeasurementBackfillCursorId1809176800000,
+      AddMeasurementBackfillCursorId1809178200000,
     );
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddMeasurementBackfillCursorId1809176800000;
+        return candidate === AddMeasurementBackfillCursorId1809178200000;
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(
-      registered.indexOf(RemoveServiceTelemetryLinkPermissions1809176500000),
+      registered.indexOf(RemovePermissionsTeamsCannotBeGiven1809178100000),
     );
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddMeasurementBackfillCursorId1809176800000),
+        timestampOf(AddMeasurementBackfillCursorId1809178200000),
       );
     }
   });
@@ -111,15 +111,15 @@ describe("the measurement backfill cursor id migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddMeasurementBackfillCursorId1809176800000)}-`,
+          `${timestampOf(AddMeasurementBackfillCursorId1809178200000)}-`,
         );
       }),
-    ).toEqual(["1809176800000-AddMeasurementBackfillCursorId.ts"]);
+    ).toEqual(["1809178200000-AddMeasurementBackfillCursorId.ts"]);
   });
 
   test("adds the column to the three tables, a nullable uuid, with no default, nothing backfilled and no index", async () => {
     const steps: Array<string> = await record(
-      new AddMeasurementBackfillCursorId1809176800000(),
+      new AddMeasurementBackfillCursorId1809178200000(),
       "up",
     );
 
@@ -136,7 +136,7 @@ describe("the measurement backfill cursor id migration", () => {
 
   test("down drops the column from the three tables, in the reverse order", async () => {
     expect(
-      await record(new AddMeasurementBackfillCursorId1809176800000(), "down"),
+      await record(new AddMeasurementBackfillCursorId1809178200000(), "down"),
     ).toEqual([
       `ALTER TABLE "ScheduledMaintenanceMeasurement" DROP COLUMN "backfillCursorId"`,
       `ALTER TABLE "AlertMeasurement" DROP COLUMN "backfillCursorId"`,

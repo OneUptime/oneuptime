@@ -108,7 +108,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 :::steps
 ### 开始一个新监视器
 
-进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **数据库监控** 下选择 **SQL Query**，或在搜索框中输入 `query`。输入 **名称**，然后点击 **下一步**。
+进入 **监视器**，点击 **创建监视器**。在 **监视器类型** 下点击 **更多监视器类型**，然后在 **数据库监控** 下选择 **SQL 查询**，或在搜索框中输入 `query`。输入 **名称**，然后点击 **下一步**。
 
 ### 输入连接信息
 
@@ -116,7 +116,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 
 ### 输入查询
 
-在 **SQL Query** 中输入一条只读语句（参见[编写查询](#编写查询)）。
+在 **SQL 查询** 中输入一条只读语句（参见[编写查询](#编写查询)）。
 
 ### 测试
 
@@ -142,7 +142,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 | **认证** | 仅限 Microsoft SQL Server：默认的 **用户名和密码**，或以运行探测器的账户登录的 **Windows Integrated Authentication**。请参阅 [Windows 集成身份验证](#windows-集成身份验证)。 |
 | **用户名** | 一个只读的最小权限数据库用户。 |
 | **密码** | 数据库密码。我们强烈建议用 `{{monitorSecrets.name}}` 引用一个 [监控密钥](/docs/monitor/monitor-secrets)，而不是以纯文本输入密码（参见[为密码使用监控密钥](#为密码使用监控密钥)）。 |
-| **SQL Query** | 要运行的只读查询（参见[编写查询](#编写查询)）。 |
+| **SQL 查询** | 要运行的只读查询（参见[编写查询](#编写查询)）。 |
 | **Use SSL/TLS** | 启用后通过 TLS 连接。启用后，如果数据库使用自签名证书，你可以关闭 **Verify server certificate**。 |
 
 ### 更多字段
@@ -216,7 +216,7 @@ WHERE status = 'CANCELLED'
 3. 在监视器的 **密码** 字段中输入 `{{monitorSecrets.dbPassword}}`。
 :::
 
-OneUptime 会在把配置交给探测器之前，在服务器端解析密钥。OneUptime 永远不会替你创建这些密钥：是否引用由你决定。**用户名**、**主机**、**数据库名称** 和 **SQL Query** 字段也接受密钥引用；**端口** 不接受。
+OneUptime 会在把配置交给探测器之前，在服务器端解析密钥。OneUptime 永远不会替你创建这些密钥：是否引用由你决定。**用户名**、**主机**、**数据库名称** 和 **SQL 查询** 字段也接受密钥引用；**端口** 不接受。
 
 ## 设置条件
 

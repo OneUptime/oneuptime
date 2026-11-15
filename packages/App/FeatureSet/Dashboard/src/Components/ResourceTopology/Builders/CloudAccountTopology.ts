@@ -25,7 +25,12 @@ import {
   readCloudResourceReadings,
 } from "Common/Types/Cloud/CloudResourceHealth";
 import ObjectID from "Common/Types/ObjectID";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import PageMap from "../../../Utils/PageMap";
 import { CLOUD_RELATIONSHIP_WORDS } from "../../Cloud/CloudRelationshipWords";
 import {
@@ -203,12 +208,20 @@ export function formatCloudTopologyCount(value: number): string {
   );
 }
 
-// A time from seconds: "230 ms" under a second, "1.8 s", "12 min", "3.5 h".
-export function formatCloudTopologySeconds(seconds: number): string {
+/*
+ * A time from seconds: "230 ms" under a second, in the reader's words
+ * ("۲۳۰ میلی‌ثانیه"; issue #7418), then "1.8 s", "12 min", "3.5 h".
+ */
+export function formatCloudTopologySeconds(
+  seconds: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const magnitude: number = Math.abs(seconds);
 
   if (magnitude < 1) {
-    return `${Math.round(seconds * 1000)} ms`;
+    return formatMilliseconds(translator, seconds * 1000, {
+      maximumFractionDigits: 0,
+    });
   }
 
   if (magnitude < 120) {

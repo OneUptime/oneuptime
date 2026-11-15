@@ -108,7 +108,7 @@ Para uma permissão mais restrita, dê ao usuário `SELECT` apenas nas tabelas q
 :::steps
 ### Começar um novo monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **SQL Query** em **Monitoramento de bancos de dados**, ou digite `query` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
+Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Consulta SQL** em **Monitoramento de bancos de dados**, ou digite `query` na caixa de pesquisa. Digite um **Nome** e clique em **Próximo**.
 
 ### Informar os dados de conexão
 
@@ -116,7 +116,7 @@ Escolha o **Database Type** (a porta muda para o padrão desse mecanismo) e pree
 
 ### Digitar a consulta
 
-Digite uma única instrução somente leitura em **SQL Query** (veja [Escrever a consulta](#escrever-a-consulta)).
+Digite uma única instrução somente leitura em **Consulta SQL** (veja [Escrever a consulta](#escrever-a-consulta)).
 
 ### Testar
 
@@ -142,7 +142,7 @@ Selecione as **Sondas** que alcançam o banco de dados e um **Intervalo de monit
 | **Autenticação** | Somente Microsoft SQL Server: **Usuário e senha**, o padrão, ou **Windows Integrated Authentication**, que entra com a conta que executa a sonda. Veja [Autenticação integrada do Windows](#autenticação-integrada-do-windows). |
 | **Nome de usuário** | Um usuário de banco de dados somente leitura e com privilégio mínimo. |
 | **Senha** | A senha do banco de dados. Recomendamos fortemente fazer referência a um [segredo do monitor](/docs/monitor/monitor-secrets) com `{{monitorSecrets.name}}` em vez de digitar a senha em texto simples (veja [Usar um segredo do monitor para a senha](#usar-um-segredo-do-monitor-para-a-senha)). |
-| **SQL Query** | A consulta somente leitura a executar (veja [Escrever a consulta](#escrever-a-consulta)). |
+| **Consulta SQL** | A consulta somente leitura a executar (veja [Escrever a consulta](#escrever-a-consulta)). |
 | **Use SSL/TLS** | Ative para se conectar via TLS. Quando ativado, você pode desligar **Verify server certificate** se o banco de dados usar um certificado autoassinado. |
 
 ### Mais campos
@@ -216,7 +216,7 @@ Para que a senha do banco de dados nunca seja armazenada em texto simples no mon
 3. No campo **Senha** do monitor, digite `{{monitorSecrets.dbPassword}}`.
 :::
 
-O OneUptime resolve o segredo no servidor antes de entregar a configuração à sonda. O OneUptime nunca cria esses segredos por você: fazer referência a um é escolha sua. Os campos **Nome de usuário**, **Host**, **Nome do Banco de Dados** e **SQL Query** também aceitam referências a segredos; **Porta** não.
+O OneUptime resolve o segredo no servidor antes de entregar a configuração à sonda. O OneUptime nunca cria esses segredos por você: fazer referência a um é escolha sua. Os campos **Nome de usuário**, **Host**, **Nome do Banco de Dados** e **Consulta SQL** também aceitam referências a segredos; **Porta** não.
 
 ## Configurar os critérios
 

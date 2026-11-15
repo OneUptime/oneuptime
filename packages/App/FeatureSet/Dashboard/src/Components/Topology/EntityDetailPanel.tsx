@@ -31,6 +31,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import {
+  composedValue,
   formatInline,
   translatableTerm,
   translationKey,
@@ -873,7 +874,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                 {totals.avgDurationMs === null ? (
                   <EmptyValue />
                 ) : (
-                  formatDurationMs(totals.avgDurationMs)
+                  formatDurationMs(totals.avgDurationMs, translator)
                 )}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
@@ -993,7 +994,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                       ),
                     }),
                     translator.translateTemplate("avg {{duration}}", {
-                      duration: formatDurationMs(row.avgDurationMs),
+                      duration: composedValue(
+                        (sentence: Translator): string => {
+                          return formatDurationMs(row.avgDurationMs, sentence);
+                        },
+                      ),
                     }),
                   ],
                   translator,

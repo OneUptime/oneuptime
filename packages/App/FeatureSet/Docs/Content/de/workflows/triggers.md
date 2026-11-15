@@ -20,7 +20,7 @@ Um den Trigger hinzuzufügen, klicken Sie auf der Arbeitsfläche eines neuen Wor
 | Den Workflow per Klick ausführen möchten        | **Manuell**           |
 | Nach einem wiederkehrenden Zeitplan ausführen möchten | **Zeitplan**    |
 | Ein anderes System Daten senden lassen möchten  | **Webhook**           |
-| Mit einer E-Mail starten möchten                | **Incoming Email**    |
+| Mit einer E-Mail starten möchten                | **Eingehende E-Mail**    |
 | Auf Huntress-Vorfallsmeldungen reagieren möchten | **Huntress Incident Report** |
 | Auf etwas in OneUptime reagieren möchten        | **OneUptime-Ereignis** |
 

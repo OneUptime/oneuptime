@@ -52,7 +52,8 @@ import {
   allowsPathInto,
   typeLabelForInputType,
 } from "./ValueSuggestion";
-import { translationKey } from "../../../Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../../Utils/TranslateTemplate";
+import { returnValueName, wholeReturnValueLabel } from "../ReturnValueNames";
 
 export { selectedColumnIds };
 
@@ -108,6 +109,14 @@ export const StepValueCopy: {
 export interface BuildStepValueGroupsOptions {
   /** Loads a model's columns, so a record can be opened to its fields. */
   loadRecordColumns?: LoadRecordColumnsFunction | undefined;
+}
+
+/*
+ * What the items are built with: the options, and the reader's translator
+ * from the context, which names a step's values.
+ */
+interface StepValueBuild extends BuildStepValueGroupsOptions {
+  translator?: Translator | undefined;
 }
 
 type RecordFieldSuggestionsFunction = (data: {
@@ -254,13 +263,13 @@ const emptyHereNote: EmptyHereNoteFunction = (
 type DrillInForFunction = (data: {
   component: NodeDataProp;
   returnValue: ReturnValue;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
 }) => ValueDrillIn | undefined;
 
 const drillInFor: DrillInForFunction = (data: {
   component: NodeDataProp;
   returnValue: ReturnValue;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
 }): ValueDrillIn | undefined => {
   const type: ComponentInputType = data.returnValue.type;
 
@@ -276,7 +285,10 @@ const drillInFor: DrillInForFunction = (data: {
     type === ComponentInputType.BaseModel && Boolean(tableName);
 
   const drillIn: ValueDrillIn = {
-    wholeValueLabel: `The whole ${data.returnValue.name}`,
+    wholeValueLabel: wholeReturnValueLabel(
+      data.returnValue,
+      data.options.translator,
+    ),
     allowsPath: true,
     pathPlaceholder:
       type === ComponentInputType.StringDictionary
@@ -337,20 +349,21 @@ const UNAVAILABLE_REASONS: Record<UnavailableReason, string> = {
 
 type StepItemsFunction = (data: {
   step: NodeDataProp;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
   isUnavailable: boolean;
 }) => Array<ValueSuggestion>;
 
 const stepItems: StepItemsFunction = (data: {
   step: NodeDataProp;
-  options: BuildStepValueGroupsOptions;
+  options: StepValueBuild;
   isUnavailable: boolean;
 }): Array<ValueSuggestion> => {
   return (data.step.metadata.returnValues || []).map(
     (returnValue: ReturnValue): ValueSuggestion => {
       const item: ValueSuggestion = {
         reference: componentReturnValueReference(data.step.id, returnValue.id),
-        label: returnValue.name || returnValue.id,
+        // In the reader's words, as its step's settings panel names it.
+        label: returnValueName(returnValue, data.options.translator),
         description: returnValue.description,
         typeLabel: typeLabelForInputType(returnValue.type),
       };
@@ -400,6 +413,11 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
     hasValues,
   );
 
+  const build: StepValueBuild = {
+    ...options,
+    translator: context.translator,
+  };
+
   const groups: Array<ValueSuggestionGroup> = steps.map(
     (step: NodeDataProp, index: number): ValueSuggestionGroup => {
       const group: ValueSuggestionGroup = {
@@ -415,7 +433,7 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
         order: index,
         items: stepItems({
           step: step,
-          options: options,
+          options: build,
           isUnavailable: false,
         }),
       };
@@ -450,7 +468,7 @@ export const buildStepValueGroups: BuildStepValueGroupsFunction = (
       order: UNAVAILABLE_GROUP_ORDER + index,
       items: stepItems({
         step: entry.step,
-        options: options,
+        options: build,
         isUnavailable: true,
       }),
       availability: {
