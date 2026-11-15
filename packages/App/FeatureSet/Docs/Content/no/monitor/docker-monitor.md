@@ -44,7 +44,7 @@ Gå til **Monitorer** og klikk på **Opprett monitor**.
 
 ### Velg Docker Container
 
-Klikk på **Flere monitortyper** under **Monitortype**, og velg **Docker Container** under **Infrastruktur**, eller skriv `docker` i søkefeltet. Skriv inn et **Navn** – det brukes i titler på hendelser og varsler – og klikk på **Neste**.
+Klikk på **Flere monitortyper** under **Monitortype**, og velg **Docker-container** under **Infrastruktur**, eller skriv `docker` i søkefeltet. Skriv inn et **Navn** – det brukes i titler på hendelser og varsler – og klikk på **Neste**.
 
 ### Velg verten
 

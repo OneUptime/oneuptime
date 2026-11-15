@@ -3,7 +3,7 @@
 Un monitor de servidor / VM vigila una máquina a través del agente de infraestructura de OneUptime (`oneuptime-infrastructure-agent`), un pequeño servicio que informa a OneUptime cada 30 segundos de la CPU, la memoria, los discos, la carga, la red y los procesos en ejecución. Esta página muestra cómo conectar el agente a un monitor de servidor / VM, qué informa el agente y cómo escribir los criterios que deciden cuándo el servidor está en línea o sin conexión.
 
 > [!IMPORTANT]
-> **Crear monitor** ya no ofrece **Server / VM**. Los monitores de servidor / VM que ya tiene siguen funcionando, y todo lo que hay en esta página se aplica a ellos. Para vigilar un servidor nuevo, cree en su lugar un [monitor de host](/docs/monitor/host-monitor): alerta sobre las métricas de host que envía el [colector OpenTelemetry en el host](/docs/telemetry/host-otel-collector).
+> **Crear monitor** ya no ofrece **Servidor / VM**. Los monitores de servidor / VM que ya tiene siguen funcionando, y todo lo que hay en esta página se aplica a ellos. Para vigilar un servidor nuevo, cree en su lugar un [monitor de host](/docs/monitor/host-monitor): alerta sobre las métricas de host que envía el [colector OpenTelemetry en el host](/docs/telemetry/host-otel-collector).
 
 :::cards
 - [Conectar el agente](#conectar-el-agente): Instalarlo, darle la clave secreta del monitor e iniciarlo.

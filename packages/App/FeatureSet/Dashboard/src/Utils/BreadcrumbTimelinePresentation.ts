@@ -10,6 +10,7 @@ import {
   translationKey,
   Translator,
 } from "Common/Types/Translator";
+import { formatMilliseconds } from "./Milliseconds";
 
 /*
  * Pure helpers for the exception Breadcrumbs card: what kind of event a span
@@ -26,8 +27,8 @@ import {
  * minutes each language's short unit, and the description whole sentences
  * in the language's plural. Handed no translator - a unit test, a caller
  * with no reader - each reads in English exactly as before. The
- * milliseconds ("-880 ms") are #7418's, with the Dashboard's other
- * hand-built milliseconds.
+ * milliseconds ("-880 ms") are the Dashboard's duration helper's
+ * (formatMilliseconds, #7418), signed as the seconds are.
  */
 
 // What a helper below writes in when it is handed no reader's translator.
@@ -434,14 +435,18 @@ export function formatBreadcrumbOffset(
 
   const diffMs: number = eventTime.getTime() - exceptionTime.getTime();
   const absMs: number = Math.abs(diffMs);
-  const sign: string = diffMs < 0 ? "-" : "+";
 
   if (absMs < 10) {
     return translator.translateText(AT_EXCEPTION_TEXT) || AT_EXCEPTION_TEXT;
   }
 
   if (absMs < 1000) {
-    return `${sign}${Math.round(absMs)} ms`;
+    // "-880 ms", "+880 ms": the reader's figure, sign and unit (#7418).
+    return formatMilliseconds(
+      translator,
+      (diffMs < 0 ? -1 : 1) * Math.round(absMs),
+      { maximumFractionDigits: 0, showsSign: true },
+    );
   }
 
   return writeSecondsAndMinutes(translator, absMs, diffMs < 0);
@@ -472,7 +477,7 @@ export function formatBreadcrumbSpan(
   const absMs: number = Math.max(0, durationMs);
 
   if (absMs < 1000) {
-    return `${Math.round(absMs)} ms`;
+    return formatMilliseconds(translator, absMs, { maximumFractionDigits: 0 });
   }
 
   return writeSecondsAndMinutes(translator, absMs);

@@ -20,7 +20,7 @@ Pour ajouter le déclencheur, cliquez sur le bloc en pointillés **Choisissez ce
 | Cliquer sur un bouton pour exécuter le workflow | **Manuel**                |
 | L'exécuter selon une planification récurrente | **Planification**           |
 | Qu'un autre système y envoie des données      | **Webhook**                 |
-| Le démarrer à partir d'un e-mail              | **Incoming Email**          |
+| Le démarrer à partir d'un e-mail              | **E-mail entrant**          |
 | Agir sur les rapports d'incident Huntress     | **Huntress Incident Report** |
 | Réagir à quelque chose dans OneUptime         | **Événement OneUptime**     |
 

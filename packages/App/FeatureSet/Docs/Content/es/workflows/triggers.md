@@ -20,7 +20,7 @@ Para añadir el disparador, haz clic en el bloque discontinuo **Elige qué inici
 | Hacer clic en un botón para ejecutar el flujo de trabajo | **Manual**        |
 | Ejecutarlo según una programación periódica    | **Programación**            |
 | Que otro sistema envíe datos                   | **Webhook**                 |
-| Iniciarlo a partir de un correo                | **Incoming Email**          |
+| Iniciarlo a partir de un correo                | **Correo entrante**          |
 | Actuar sobre los informes de incidente de Huntress | **Huntress Incident Report** |
 | Reaccionar a algo dentro de OneUptime          | **Evento de OneUptime**     |
 

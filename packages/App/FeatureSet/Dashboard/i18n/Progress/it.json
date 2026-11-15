@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9123
+    "keys": 52780,
+    "untranslated": 8990
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -87,6 +87,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Dashboard",
     "Data stream",
@@ -291,6 +292,7 @@
     "Schema",
     "Script",
     "Server",
+    "Server / VM",
     "Serverless",
     "Service Mesh",
     "Singapore (+65)",

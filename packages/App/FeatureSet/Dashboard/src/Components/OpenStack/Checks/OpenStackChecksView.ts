@@ -25,6 +25,11 @@ import {
   OPENSTACK_CERTIFICATE_EXPIRY_WARNING_DAYS,
   OPENSTACK_INSTANCE_BOOT_SLOW_SECONDS,
 } from "Common/Types/OpenStack/OpenStackHealthRules";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 /*
  * What a cloud's Checks page says, worked out apart from how it is drawn, so that every sentence
@@ -94,13 +99,17 @@ export function isOpenStackCheckConnectionNeeded(data: {
   );
 }
 
-export function getOpenStackCheckDurationText(durationInMs: number): string {
+export function getOpenStackCheckDurationText(
+  durationInMs: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const safe: number = Number.isFinite(durationInMs)
     ? Math.max(0, durationInMs)
     : 0;
 
   if (safe < 1000) {
-    return `${Math.round(safe)} ms`;
+    // "412 ms", "۴۱۲ میلی‌ثانیه" (issue #7418).
+    return formatMilliseconds(translator, safe, { maximumFractionDigits: 0 });
   }
 
   if (safe < 60_000) {

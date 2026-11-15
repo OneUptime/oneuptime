@@ -767,15 +767,20 @@ describe("a volume's figures, in the reader's digits", () => {
     return `${FIRST_STRONG_ISOLATE}${text}${POP_DIRECTIONAL_ISOLATE}`;
   };
 
+  /*
+   * A millisecond figure is the Dashboard's duration (#7418): its unit is
+   * the reader's too ("۲٫۳۵ میلی‌ثانیه", "2.35 ملي ث"); a microsecond one
+   * keeps the symbol every language writes.
+   */
   test("latency: the reader's digits and decimal sign, the unit as every language writes it", () => {
     expect(formatLatencyUsec(420, german)).toBe("420 µs");
     expect(formatLatencyUsec(2345, german)).toBe("2,35 ms");
     expect(formatLatencyUsec(1_234_567, german)).toBe("1.234,57 ms");
     expect(formatLatencyUsec(420, persian)).toBe("۴۲۰ µs");
-    expect(formatLatencyUsec(2345, persian)).toBe("۲٫۳۵ ms");
+    expect(formatLatencyUsec(2345, persian)).toBe("۲٫۳۵ میلی‌ثانیه");
     expect(formatLatencyUsec(420.4, persian)).toBe("۴۲۰ µs");
     // Arabic writes Latin digits.
-    expect(formatLatencyUsec(2345, arabic)).toBe("2.35 ms");
+    expect(formatLatencyUsec(2345, arabic)).toBe("2.35 ملي ث");
     expect(formatLatencyUsec(undefined, persian)).toBe("—");
     expect(formatLatencyUsec("not a number", german)).toBe("—");
   });
@@ -791,13 +796,14 @@ describe("a volume's figures, in the reader's digits", () => {
     expect(formatIops(undefined, german)).toBe("—");
   });
 
-  test("with no translator, or an English one, every figure is byte-identical to before", () => {
+  test("with no translator, or an English one, every figure is as before, a thousand milliseconds aside", () => {
     for (const translator of [undefined, english]) {
       expect(formatLatencyUsec(420, translator)).toBe("420 µs");
       expect(formatLatencyUsec(999.4, translator)).toBe("999 µs");
       expect(formatLatencyUsec(1000, translator)).toBe("1.00 ms");
       expect(formatLatencyUsec(2345, translator)).toBe("2.35 ms");
-      expect(formatLatencyUsec(1_234_567, translator)).toBe("1234.57 ms");
+      // A thousand or more takes its separator, as every duration does (#7418).
+      expect(formatLatencyUsec(1_234_567, translator)).toBe("1,234.57 ms");
       expect(formatIops(0, translator)).toBe("0");
       expect(formatIops(842.6, translator)).toBe("843");
       expect(formatIops(1500, translator)).toBe("1.5K");
@@ -884,10 +890,10 @@ describe("a volume's figures, in the reader's digits", () => {
    */
   test("read and write latency: each set apart on a page read from the right, as before on one read from the left", () => {
     expect(formatReadWriteLatencyUsec(420, 2345, persian)).toBe(
-      `${apart("۴۲۰ µs")} / ${apart("۲٫۳۵ ms")}`,
+      `${apart("۴۲۰ µs")} / ${apart("۲٫۳۵ میلی‌ثانیه")}`,
     );
     expect(formatReadWriteLatencyUsec(420, 2345, arabic)).toBe(
-      `${apart("420 µs")} / ${apart("2.35 ms")}`,
+      `${apart("420 µs")} / ${apart("2.35 ملي ث")}`,
     );
     expect(formatReadWriteLatencyUsec(420, 2345, german)).toBe(
       "420 µs / 2,35 ms",
@@ -897,7 +903,7 @@ describe("a volume's figures, in the reader's digits", () => {
       "— / —",
     );
     expect(formatReadWriteLatencyUsec(undefined, 2345, persian)).toBe(
-      `— / ${apart("۲٫۳۵ ms")}`,
+      `— / ${apart("۲٫۳۵ میلی‌ثانیه")}`,
     );
   });
 
