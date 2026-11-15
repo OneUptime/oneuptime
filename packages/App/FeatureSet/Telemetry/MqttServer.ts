@@ -19,6 +19,7 @@ import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingSe
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ProjectService from "Common/Server/Services/ProjectService";
+import TelemetryIngestionKeyLastUsed from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyLastUsed";
 import TelemetryIngestionKeyGuard, {
   TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL,
   TelemetryIngestionKeyRefusal,
@@ -116,6 +117,14 @@ const MQTT_MAX_PACKET_BYTES: number = MQTT_MAX_PAYLOAD_BYTES + 8 * 1024;
  */
 interface MqttAuthContext {
   projectId: ObjectID;
+  /*
+   * Present when the client authenticated with a project-wide ingestion
+   * key: the key's policy as CONNECT resolved it. Each publish the queue
+   * takes stamps this key as used (issue #8020), so a key that sends only
+   * over MQTT shows when it was last used, as one over HTTP or gRPC does.
+   * Absent for a device credential, which is not an ingestion key.
+   */
+  ingestionKey?: TelemetryIngestionKeyPolicy;
   /*
    * Present when the client authenticated with a per-device credential
    * (username = credential id, password = device secret) instead of a
@@ -249,8 +258,9 @@ async function resolveAuthContext(
    * replayed into MQTT ingest by the same script that scraped it, from any
    * origin, with no Origin check to fail (a WebSocket handshake's Origin is
    * not something this broker inspects). No OneUptime browser SDK publishes
-   * MQTT; browser keys exist for OTLP and session replay. So a Browser key
-   * presented at CONNECT has no honest explanation, and is refused.
+   * MQTT; browser keys exist for OTLP, session replay and Sentry's browser
+   * SDKs. So a Browser key presented at CONNECT has no honest explanation,
+   * and is refused.
    */
   const refusal: TelemetryIngestionKeyRefusal | null =
     TelemetryIngestionKeyGuard.getRefusal({
@@ -282,7 +292,7 @@ async function resolveAuthContext(
     return null;
   }
 
-  return { projectId: policy.projectId };
+  return { projectId: policy.projectId, ingestionKey: policy };
 }
 
 async function handleAuthorizePublish(
@@ -441,6 +451,21 @@ async function handleAuthorizePublish(
   };
 
   await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+
+  /*
+   * The key is now in use, so "Last Used At" and the guides' first-data
+   * wait see a key that sends only over MQTT (issue #8020). Stamped through
+   * the helper the HTTP and gRPC paths use, and only here, once the queue
+   * has taken the publish: a CONNECT refused for its key never gets a
+   * publish, and a blocked or unpaid project, a dropped payload (malformed,
+   * off its device's topics, or ingest switched off), a skipped will replay
+   * and a failed enqueue all return or throw before this line. A device
+   * credential names no ingestion key, so nothing is stamped for it. Fire
+   * and forget, so the publish is never held up by it.
+   */
+  if (authContext.ingestionKey) {
+    TelemetryIngestionKeyLastUsed.stamp(authContext.ingestionKey);
+  }
 }
 
 async function createMqttBroker(): Promise<Aedes> {

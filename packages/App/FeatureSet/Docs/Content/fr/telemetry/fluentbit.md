@@ -33,7 +33,7 @@ Fluent Bit enveloppe chaque enregistrement dans une enveloppe OpenTelemetry, pou
 
 Allez dans **Produits → Paramètres du projet**, ouvrez **Télémétrie & APM** dans le menu latéral et sélectionnez **Clés d'ingestion**.
 
-![La page Clés d'ingestion de télémétrie dans les paramètres du projet](/docs/static/images/TelemetryIngestionKeys.png)
+![La liste « Clés d'ingestion », avec « Créer une clé d'ingestion » entouré](screen:ingestion-keys)
 
 ### Créer une clé
 

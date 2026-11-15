@@ -3459,6 +3459,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/GrpcServerKeyLastUsedPostgres.test.ts --forceExit
 
+      # The same for a key used only over MQTT (issue #8020): the broker's
+      # own hooks, a real key resolved at CONNECT, and the stamp followed to
+      # the row. Clones the migrated Project and TelemetryIngestionKey into
+      # an isolated schema.
+      - name: Test that a key used only over MQTT is stamped as used on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MQTT_KEY_LAST_USED_TESTS: "true"
+          MQTT_KEY_LAST_USED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MQTT_KEY_LAST_USED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MQTT_KEY_LAST_USED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/MqttServerKeyLastUsedPostgres.test.ts --forceExit
+
       # An exception's activity timeline: a triage written through the
       # service's updates leaves its rows (and one that changes nothing
       # leaves none), and a teammate reads only the timelines of the
