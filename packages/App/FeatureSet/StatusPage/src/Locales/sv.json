@@ -471,5 +471,7 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "No options available": "Inga tillgängliga alternativ",
+  "No matches found": "Inga träffar hittades"
 }
