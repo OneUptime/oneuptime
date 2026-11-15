@@ -243,8 +243,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             props.currentStatus?.color?.toString() || Green.toString(),
           )}
         >
-          {uptimePercent}
-          {t("overview.uptimeSuffix")}
+          {/* One phrase, the figure where the reader's language puts it (#8076). */}
+          {t("overview.uptimePercent", { percent: String(uptimePercent) })}
         </div>
       );
     }

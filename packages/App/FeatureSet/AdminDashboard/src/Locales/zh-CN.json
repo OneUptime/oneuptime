@@ -94,7 +94,8 @@
     "versionModalTitle": "OneUptime 版本",
     "versionLabel": "版本",
     "commitLabel": "提交",
-    "versionUnavailable": "版本数据不可用"
+    "versionUnavailable": "版本数据不可用",
+    "versionUnavailableWithError": "版本数据不可用：{{error}}"
   },
   "navbar": {
     "users": "用户",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "按{{field}}筛选",
   "Something went wrong. Please try again.": "出了点问题，请重试。",
   "More actions": "更多操作",
-  "More actions for": "更多操作:",
+  "More actions for {{name}}": "{{name}} 的更多操作",
+  "Clear {{filter}} filter": "清除{{filter}}过滤器",
+  "Clear {{filter}}": "清除{{filter}}",
   "Delete Error": "删除错误",
   "Refresh?": "刷新？",
   "Updated": "已更新",

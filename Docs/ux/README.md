@@ -609,7 +609,17 @@ work out, starts from a default for everything else, and folds what most people 
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
-  yet". Use `TranslatedSentence` for a sentence with values in it. Not enforced: use judgement.
+  yet", and a sentence joined from translated pieces keeps English's order, punctuation and digits
+  whatever each piece says: every table row's ⋯ button read "More actions for" and then the row's
+  name, where Japanese puts the name first, and the Correlate builder's "Remove condition 2" kept a
+  Latin 2 on a Persian page (#8076). A sentence with a value in it is one key with a
+  `{{placeholder}}` (`translateTemplate("Remove condition {{number}}", { number:
+  translator.formatNumber(index + 1) })`), a `translatePlural` for a count, or a `TranslatedSentence`
+  around an element. Two whole sentences side by side, a label that carries its own colon and its
+  value, facts set apart by " · ", a path and an aside in brackets are no sentence built from
+  pieces. Enforced by
+  [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
+  which reads template literals, `+` and `join()`.
 
 ### In every language
 

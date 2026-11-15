@@ -48,6 +48,8 @@ import Input from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
 
@@ -107,6 +109,7 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const editorId: string = useId();
 
   const tx: (text: string) => string = (text: string): string => {
@@ -652,7 +655,9 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className={getIconButtonClassName(props.index === 0)}
-              aria-label={`${tx(FormsCopy.moveUp)}: ${label}`}
+              aria-label={translator.translateTemplate("Move Up: {{name}}", {
+                name: label,
+              })}
               title={tx(FormsCopy.moveUp)}
               disabled={props.index === 0}
               data-testid={`form-question-move-up-${field.id}`}
@@ -667,7 +672,9 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
               className={getIconButtonClassName(
                 props.index === props.count - 1,
               )}
-              aria-label={`${tx(FormsCopy.moveDown)}: ${label}`}
+              aria-label={translator.translateTemplate("Move Down: {{name}}", {
+                name: label,
+              })}
               title={tx(FormsCopy.moveDown)}
               disabled={props.index === props.count - 1}
               data-testid={`form-question-move-down-${field.id}`}

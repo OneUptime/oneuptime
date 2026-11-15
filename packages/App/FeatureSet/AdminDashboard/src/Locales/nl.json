@@ -94,7 +94,8 @@
     "versionModalTitle": "OneUptime-versie",
     "versionLabel": "Versie",
     "commitLabel": "Commit",
-    "versionUnavailable": "Versiegegevens zijn niet beschikbaar"
+    "versionUnavailable": "Versiegegevens zijn niet beschikbaar",
+    "versionUnavailableWithError": "Versiegegevens zijn niet beschikbaar: {{error}}"
   },
   "navbar": {
     "users": "Gebruikers",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "Filteren op {{field}}",
   "Something went wrong. Please try again.": "Er is iets misgegaan. Probeer het opnieuw.",
   "More actions": "Meer acties",
-  "More actions for": "Meer acties voor",
+  "More actions for {{name}}": "Meer acties voor {{name}}",
+  "Clear {{filter}} filter": "Filter {{filter}} wissen",
+  "Clear {{filter}}": "{{filter}} wissen",
   "Delete Error": "Verwijderfout",
   "Refresh?": "Vernieuwen?",
   "Updated": "Bijgewerkt",

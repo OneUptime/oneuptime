@@ -16,7 +16,7 @@ import {
   NO_VALUES_YET,
   READER_KIND_HUNT,
   READER_KIND_MONITOR,
-  READ_BY_MORE,
+  READ_BY_NAMES_AND_MORE,
   READ_BY_NO_RULE,
   SOURCE_FEED_DESCRIPTION,
   SOURCE_FEED_TITLE,
@@ -369,9 +369,10 @@ export function describeWatchlistReaders(
     return names;
   }
 
-  return `${names} ${translator.translatePlural(READ_BY_MORE, readers.more, {
+  return translator.translatePlural(READ_BY_NAMES_AND_MORE, readers.more, {
+    names: names,
     count: translator.formatNumber(readers.more),
-  })}`;
+  });
 }
 
 // What reads the list with this name, from the readers of every list.

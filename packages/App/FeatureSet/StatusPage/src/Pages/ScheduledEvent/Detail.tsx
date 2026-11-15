@@ -325,10 +325,12 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     currentStatusColor: currentStatusColor,
     eventTypeColor: Yellow,
     eventSecondDescription: scheduledMaintenance.startsAt
-      ? i18n.t("scheduledEvents.scheduledAt") +
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          scheduledMaintenance.startsAt!,
-        )
+      ? // One sentence, the date where the reader's language puts it (#8076).
+        i18n.t("scheduledEvents.scheduledAtTime", {
+          time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            scheduledMaintenance.startsAt!,
+          ),
+        })
       : "",
     labels:
       scheduledMaintenance.labels?.map((label: Label) => {
