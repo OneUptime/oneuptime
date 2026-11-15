@@ -692,7 +692,7 @@ describe.each(NAMED_CASES)(
 
       expect(durations).toEqual(
         durationCase.figures.fa.map((figure: string): string => {
-          return `${figure} ${UNIT.fa}`;
+          return `${figure}\u00A0${UNIT.fa}`;
         }),
       );
 
@@ -714,7 +714,7 @@ describe.each(NAMED_CASES)(
 
       expect(durations).toEqual(
         durationCase.figures.ar.map((figure: string): string => {
-          return `${figure} ${UNIT.ar}`;
+          return `${figure}\u00A0${UNIT.ar}`;
         }),
       );
 
@@ -788,8 +788,8 @@ describe("what sits beside the durations", () => {
 
     expect(offset("en")).toBe("0.042 ms ahead of the probe");
     expect(offset("de")).toBe("0,042 ms vor der Sonde");
-    expect(offset("ar")).toBe(`متقدم على المسبار بمقدار 0.042 ${UNIT.ar}`);
-    expect(offset("fa")).toBe(`۰٫۰۴۲ ${UNIT.fa} جلوتر از پراب`);
+    expect(offset("ar")).toBe(`متقدم على المسبار بمقدار 0.042\u00A0${UNIT.ar}`);
+    expect(offset("fa")).toBe(`۰٫۰۴۲\u00A0${UNIT.fa} جلوتر از پراب`);
   });
 
   /*
@@ -827,13 +827,13 @@ describe("what sits beside the durations", () => {
       "DNS: example.com resolved to 93.184.216.34 in 1,234 ms",
     );
     expect(sentence("ar")).toBe(
-      `DNS: حُل example.com إلى 93.184.216.34 خلال 1,234 ${UNIT.ar}`,
+      `DNS: حُل example.com إلى 93.184.216.34 خلال 1,234\u00A0${UNIT.ar}`,
     );
     expect(sentence("fa")).toBe(
-      `DNS: نام example.com در ۱٬۲۳۴ ${UNIT.fa} به 93.184.216.34 حل شد`,
+      `DNS: نام example.com در ۱٬۲۳۴\u00A0${UNIT.fa} به 93.184.216.34 حل شد`,
     );
     expect(sentence("de")).toBe(
-      "DNS: example.com wurde in 1.234 ms zu 93.184.216.34 aufgelöst",
+      "DNS: example.com wurde in 1.234\u00A0ms zu 93.184.216.34 aufgelöst",
     );
   });
 });

@@ -32,6 +32,7 @@ import {
   isWordedInDashboardLocale,
   placeholdersOf,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 
 /*
@@ -337,7 +338,8 @@ describe("the summary line names the protected fields in the reader's language",
   test.each(LANGUAGES)(
     "%s names one step's fields in its own words",
     (language: string) => {
-      const words: Record<string, string> = readDashboardLocale(language);
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
       const line: string = apiSummary(ONE_STEP, dashboardTranslator(language));
 
       expect(line).toBe(
@@ -358,7 +360,8 @@ describe("the summary line names the protected fields in the reader's language",
   test.each(LANGUAGES)(
     "%s names each step and its fields in its own words",
     (language: string) => {
-      const words: Record<string, string> = readDashboardLocale(language);
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
       const line: string = apiSummary(TWO_STEPS, dashboardTranslator(language));
       const step: (number: string, names: Array<string>) => string = (
         number: string,
@@ -434,7 +437,7 @@ describe("the summary line names the protected fields in the reader's language",
    */
   test("a French line puts a space before the semicolon between two steps, as before its colons", () => {
     expect(apiSummary(TWO_STEPS, dashboardTranslator("fr"))).toBe(
-      "Ces champs conservent les valeurs actuelles de chaque moniteur lors de la synchronisation : Étape 1 : Cible du moniteur ; Étape 2 : Délai d'expiration de la requête, Nombre de tentatives. Tous les autres réglages d'étape sont copiés depuis le modèle.",
+      "Ces champs conservent les valeurs actuelles de chaque moniteur lors de la synchronisation\u00A0: Étape 1\u00A0: Cible du moniteur\u202F; Étape 2\u00A0: Délai d'expiration de la requête, Nombre de tentatives. Tous les autres réglages d'étape sont copiés depuis le modèle.",
     );
   });
 

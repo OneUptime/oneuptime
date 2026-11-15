@@ -430,6 +430,7 @@ describe("a resource's AI agent page in the reader's language", () => {
       );
       openAgentPage();
 
+      // Read as its text reads: a no-break space is a space there.
       expect(await findTestId("ai-agent-sentence")).toHaveTextContent(
         filledIn(
           code,
@@ -438,7 +439,7 @@ describe("a resource's AI agent page in the reader's language", () => {
             ...AGENT_AND_NOUN,
             error: "Cannot connect to the Docker daemon",
           },
-        ),
+        ).replace(/\s+/g, " "),
       );
     },
   );

@@ -566,7 +566,7 @@ describe("CloudFleetSummary in the reader's language", () => {
       "2 melden nicht",
       "2 Umgebungen getrennt",
       "in den letzten 24 Stunden",
-      "in den letzten 15 Min. gesehen",
+      "in den letzten 15\u00A0Min. gesehen",
     ]);
   });
 

@@ -816,7 +816,7 @@ describe("the buttons' names, in the reader's language", () => {
     expect(
       screen.getByTestId(`security-playbook-template-${other.key}`),
     ).toHaveAccessibleName(
-      `Ajouter le playbook : ${french[other.name] || other.name}`,
+      `Ajouter le playbook\u00A0: ${french[other.name] || other.name}`,
     );
   });
 });
