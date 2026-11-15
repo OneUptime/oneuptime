@@ -52322,5 +52322,20 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "Até seis portas: primeiro as inoperantes, depois as portas com erros e, por fim, as mais ocupadas. Cada linha mostra os Mbps de entrada / saída e a utilização (a direção mais ocupada como parcela da velocidade do link), em média entre duas varreduras SNMP. Os valores são atualizados quando mudam de forma perceptível, e pelo menos a cada 15 minutos.",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "Amazon SNS sends nothing to this monitor until you confirm the subscription.",
+  "Confirm Subscription": "Confirm Subscription",
+  "Confirm the Amazon SNS subscription": "Confirm the Amazon SNS subscription",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "Event Grid sends no events to this monitor until you validate the event subscription.",
+  "Restore Subscription": "Restore Subscription",
+  "The Amazon SNS subscription was deleted": "The Amazon SNS subscription was deleted",
+  "The link works until {{time}}.": "The link works until {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "This monitor gets no more messages from the topic. To get them again, restore the subscription.",
+  "This note stays until the monitor's next request arrives.": "This note stays until the monitor's next request arrives.",
+  "Topic": "Topic",
+  "Validate Subscription": "Validate Subscription",
+  "Validate the Azure Event Grid subscription": "Validate the Azure Event Grid subscription"
 }

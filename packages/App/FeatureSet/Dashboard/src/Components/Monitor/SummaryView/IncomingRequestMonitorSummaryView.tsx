@@ -9,6 +9,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { SECRETS_IN_REQUEST_ARE_MASKED } from "../../EventView/EventEvaluationDetailsCopy";
+import SubscriptionConfirmationNotice from "../IncomingRequestMonitor/SubscriptionConfirmationNotice";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 /*
@@ -81,6 +82,15 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
    */
   return (
     <SummaryView dataTestId="incoming-request-monitor-summary">
+      {/*
+       * A request that is Amazon SNS or Azure Event Grid asking to confirm
+       * a subscription leads with the link that confirms it (#7723): the
+       * one step left before the service sends anything here.
+       */}
+      <SubscriptionConfirmationNotice
+        requestBody={props.incomingMonitorRequest?.requestBody}
+      />
+
       <SummaryFacts>
         <SummaryFact
           title="Last Request Received At"
