@@ -114,9 +114,10 @@ export default class StatusPageLiveRefreshUtil {
       return "now";
     }
 
-    const unit: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
+    // "5 minutes": a word, which a line may break before as before any word.
+    const word: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
 
-    return `${magnitude} ${unit} ago`;
+    return `${magnitude} ${word} ago`;
   }
 
   /*

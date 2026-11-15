@@ -855,9 +855,10 @@ describe("the shape of a config", () => {
     expect(problemsOf(text)).toEqual([
       {
         path: "",
+        // The form draws it: the figure held to its unit (#8720).
         message: `The config is larger than ${Math.round(
           HOST_COLLECTOR_CONFIG_MAX_BYTES / 1024,
-        )} KB.`,
+        )}\u00A0KB.`,
       },
     ]);
   });
