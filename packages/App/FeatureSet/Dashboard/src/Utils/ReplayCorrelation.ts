@@ -16,11 +16,18 @@ import {
   getExceptionGroupLabel,
 } from "./ExceptionCorrelation";
 import {
+  composedValue,
   createTranslator,
   DEFAULT_LANGUAGE,
+  translationKey,
   Translator,
 } from "Common/Types/Translator";
+import {
+  formatDurationUnit,
+  isEnglishDateLanguage,
+} from "Common/Types/DateLanguage";
 import { formatMilliseconds } from "./Milliseconds";
+import { formatReplayDurationInLanguage } from "../Components/SessionReplay/ReplayTimelineMath";
 
 // The panel's own English, and a caller that hands in no sentence's translator.
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
@@ -426,17 +433,54 @@ export function buildReplayExceptionGroupLinks(
 }
 
 /*
+ * What the details panel says of a length it could not read, and of a
+ * clock that ran ahead of or behind the server's: English keys, each a
+ * whole sentence around its {{duration}}, worded in every Dashboard
+ * language (#8299, #8350).
+ */
+export const REPLAY_UNKNOWN_DURATION: string = translationKey("unknown");
+export const REPLAY_NO_CLOCK_SKEW: string = translationKey("None");
+export const REPLAY_CLOCK_AHEAD: string = translationKey(
+  "{{duration}} ahead (server-clamped)",
+);
+export const REPLAY_CLOCK_BEHIND: string = translationKey(
+  "{{duration}} behind (server-clamped)",
+);
+
+// The minus sign `translator` writes before a figure: "-", or "‎−" in Persian.
+function getMinusSign(translator: Translator): string {
+  const minusOne: string = translator.formatNumber(-1);
+  const one: string = translator.formatNumber(1);
+
+  return minusOne.endsWith(one)
+    ? minusOne.slice(0, minusOne.length - one.length) || "-"
+    : "-";
+}
+
+/*
  * A millisecond quantity for the details panel: "420 ms" below a second,
  * "1.5s" below a minute, "2m 05s" beyond. The previous form rounded to
  * whole seconds, which printed "0s (server-clamped)" for a 300 ms skew and
  * listed a "0s missing" gap - copy that contradicted itself.
+ *
+ * In the translator's language and digits (#8299): English exactly as
+ * above; any other language writes the milliseconds with formatMilliseconds
+ * ("420 ms", "۴۲۰ میلی‌ثانیه"), the seconds with the language's own unit,
+ * decimal sign and digits ("1,5 Sek.", "۱٫۵ ثانیه", "1.5 ث"), and a minute
+ * or more as the player writes a length (formatReplayDurationInLanguage:
+ * "2 Min., 5 Sek.", "۲ دقیقه ۵ ثانیه"). A length it cannot read is
+ * "unknown" in the reader's words. Inside a sentence it goes in as a
+ * composedValue, so it is written in the sentence's language.
  */
 export function formatReplayMilliseconds(
   ms: number,
   translator: Translator = ENGLISH,
 ): string {
   if (!Number.isFinite(ms)) {
-    return "unknown";
+    return (
+      translator.translateText(REPLAY_UNKNOWN_DURATION) ||
+      REPLAY_UNKNOWN_DURATION
+    );
   }
 
   const absolute: number = Math.abs(ms);
@@ -451,6 +495,8 @@ export function formatReplayMilliseconds(
     );
   }
 
+  const isEnglish: boolean = isEnglishDateLanguage(translator.language);
+
   if (absolute < 60 * 1000) {
     const seconds: number = absolute / 1000;
     const rendered: string =
@@ -458,11 +504,38 @@ export function formatReplayMilliseconds(
         ? String(Math.round(seconds))
         : seconds.toFixed(1);
 
+    if (!isEnglish) {
+      const written: string | null = formatDurationUnit({
+        part: { count: (ms < 0 ? -1 : 1) * Number(rendered), unit: "second" },
+        locale: translator.language,
+        unitDisplay: "short",
+        maximumFractionDigits: 1,
+      });
+
+      if (written) {
+        return written;
+      }
+    }
+
     return `${sign}${rendered}s`;
   }
 
-  const minutes: number = Math.floor(absolute / (60 * 1000));
-  const seconds: number = Math.round((absolute % (60 * 1000)) / 1000);
+  /*
+   * Whole seconds, carried into the minutes: 119.6 s is "2m 00s", never
+   * "1m 60s".
+   */
+  const totalSeconds: number = Math.round(absolute / 1000);
+  const minutes: number = Math.floor(totalSeconds / 60);
+  const seconds: number = totalSeconds % 60;
+
+  if (!isEnglish) {
+    const length: string = formatReplayDurationInLanguage(
+      totalSeconds * 1000,
+      translator,
+    );
+
+    return ms < 0 ? `${getMinusSign(translator)}${length}` : length;
+  }
 
   return `${sign}${minutes}m ${String(seconds).padStart(2, "0")}s`;
 }
@@ -473,15 +546,29 @@ export function formatReplayMilliseconds(
  * much. Zero is "none measured" rather than a number, because a skew of
  * exactly 0 ms is what the header carries when the recorder never reported
  * one.
+ *
+ * One sentence for each way the clock ran, worded whole in the reader's
+ * language with its length in it, never English words glued around a
+ * figure (#8299, #8350). Without a translator, English exactly as before.
  */
-export function formatReplayClockSkew(clockSkewMs: number): string {
+export function formatReplayClockSkew(
+  clockSkewMs: number,
+  translator: Translator = ENGLISH,
+): string {
   if (!Number.isFinite(clockSkewMs) || clockSkewMs === 0) {
-    return "None";
+    return (
+      translator.translateText(REPLAY_NO_CLOCK_SKEW) || REPLAY_NO_CLOCK_SKEW
+    );
   }
 
-  const direction: string = clockSkewMs > 0 ? "ahead" : "behind";
-
-  return `${formatReplayMilliseconds(Math.abs(clockSkewMs))} ${direction} (server-clamped)`;
+  return translator.translateTemplate(
+    clockSkewMs > 0 ? REPLAY_CLOCK_AHEAD : REPLAY_CLOCK_BEHIND,
+    {
+      duration: composedValue((sentence: Translator): string => {
+        return formatReplayMilliseconds(Math.abs(clockSkewMs), sentence);
+      }),
+    },
+  );
 }
 
 /*

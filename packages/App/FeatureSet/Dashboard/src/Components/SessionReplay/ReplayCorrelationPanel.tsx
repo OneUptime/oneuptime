@@ -1376,7 +1376,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         <dl>
           <DetailRow
             label="Client clock skew"
-            value={formatReplayClockSkew(d.clockSkewMs)}
+            value={formatReplayClockSkew(d.clockSkewMs, translator)}
             testId="replay-details-skew"
           />
         </dl>
