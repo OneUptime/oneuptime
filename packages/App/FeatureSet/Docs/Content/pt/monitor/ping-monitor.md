@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Quando uma verificação falha, a sonda também rastreia a rota até o host e procura o nome dele, e anexa o que encontrou ao resultado como **Network Path at Time of Failure**, para você ver onde a rota se interrompeu.
+Quando uma verificação falha, a sonda também rastreia a rota até o host e procura o nome dele, e anexa o que encontrou ao resultado como **Caminho de rede no momento da falha**, para você ver onde a rota se interrompeu.
 
 > [!NOTE]
 > Alguns provedores de hospedagem bloqueiam ICMP nas máquinas em que uma sonda roda. Uma sonda que não consegue enviar pings de forma alguma verifica a porta TCP `80` do host, para que o monitor ainda diga se o host está acessível. A perda de pacotes e o jitter não são medidos nesse caso.
@@ -136,7 +136,7 @@ Para alertar só quando a latência continua alta, ative **Avaliar este critéri
 ## Solução de problemas
 
 :::details O host está no ar, mas o monitor diz que está offline
-O host, ou um firewall na frente dele, não responde às requisições de eco ICMP da sonda. Muitos servidores e redes de nuvem descartam o ping por padrão. Libere as requisições de eco ICMP das sondas, ou vigie um serviço do host com um [monitor de porta](/docs/monitor/port-monitor). **Network Path at Time of Failure**, na verificação que falhou, mostra até onde a rota chegou.
+O host, ou um firewall na frente dele, não responde às requisições de eco ICMP da sonda. Muitos servidores e redes de nuvem descartam o ping por padrão. Libere as requisições de eco ICMP das sondas, ou vigie um serviço do host com um [monitor de porta](/docs/monitor/port-monitor). **Caminho de rede no momento da falha**, na verificação que falhou, mostra até onde a rota chegou.
 :::
 
 :::details A verificação falha com "This probe could not resolve" para o host

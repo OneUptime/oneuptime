@@ -74,6 +74,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "TeamMember",
 })
+/*
+ * A person's memberships, by person and project. Every sign-in reads all of
+ * them (AccessTokenService.refreshUserAllPermissions), every request in a
+ * project reads theirs in it (getTeamIdsForUser, a permission set rebuilt),
+ * and the dashboard's header counts their pending invitations on every
+ * page. Without it each of those read the whole table.
+ */
+@Index(["userId", "projectId"])
 @EnableWorkflow({
   create: true,
   delete: true,

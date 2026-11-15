@@ -17,6 +17,8 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   decideStateRowDelete,
   StateRowDeleteEffect,
@@ -117,6 +119,16 @@ export const STATE_TIMELINE_DELETE_WORDS: Readonly<
       "The state before each deleted state takes over its time, so deleting the newest one changes the episode's current state.",
     ),
   },
+};
+
+// The list each record's states belong to: an episode's are its kind's.
+const STATE_LISTS: Readonly<Record<StateTimelineRecord, StateListType>> = {
+  [StateTimelineRecord.Incident]: StateListType.IncidentState,
+  [StateTimelineRecord.Alert]: StateListType.AlertState,
+  [StateTimelineRecord.ScheduledMaintenance]:
+    StateListType.ScheduledMaintenanceState,
+  [StateTimelineRecord.IncidentEpisode]: StateListType.IncidentState,
+  [StateTimelineRecord.AlertEpisode]: StateListType.AlertState,
 };
 
 export const STATE_ROW_DELETE_QUESTION: string = translationKey(
@@ -233,9 +245,14 @@ const useStateTimelineRowDelete: <T extends BaseModel>(
       id: (row._id || row.id?.toString() || "").toLowerCase(),
       /*
        * A state's name as the table's pill shows it: a built-in one in the
-       * reader's language, a project's own as it was typed.
+       * reader's language, a project's own as it was typed - a state named
+       * "Open" is "Open", never "Öffnen" (Utils/DefaultRecordNames).
        */
-      stateName: name ? translator.translateText(name) || name : "",
+      stateName: translateRecordName(
+        translator,
+        STATE_LISTS[options.record],
+        name,
+      ),
       startsAt: startsAt
         ? OneUptimeDate.fromString(startsAt as Date)
         : undefined,

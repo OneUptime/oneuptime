@@ -165,8 +165,15 @@ describe("AddNetworkEndpointLastSeenIndex1809080463891", () => {
     ]);
   });
 
-  test("its name is the one TypeORM gives the entity's index, so the drift check generates nothing", () => {
-    const indexes: Array<IndexMetadataArgs> = getMetadataArgsStorage()
+  /*
+   * The entity no longer declares it: since #8092 the age-out reads
+   * ("projectId", "coarseLastSeenAt") of live rows, and
+   * SwapNetworkEndpointLastSeenIndexes1809173100000 drops this one
+   * (NetworkEndpointHotRefreshMigrations pins that). Its name is still the
+   * one TypeORM gave the entity's index, which is the name that drop needs.
+   */
+  test("its name was the one TypeORM gave the entity's index, which the swap that replaced it drops", () => {
+    const declared: Array<IndexMetadataArgs> = getMetadataArgsStorage()
       .indices.filter((index: IndexMetadataArgs): boolean => {
         return index.target === NetworkEndpoint;
       })
@@ -178,9 +185,7 @@ describe("AddNetworkEndpointLastSeenIndex1809080463891", () => {
         );
       });
 
-    expect(indexes).toHaveLength(1);
-    expect(indexes[0]!.where).toBe(`"deletedAt" IS NULL`);
-    expect(indexes[0]!.unique).toBeFalsy();
+    expect(declared).toHaveLength(0);
     expect(
       new DefaultNamingStrategy().indexName(
         "NetworkEndpoint",

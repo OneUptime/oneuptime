@@ -234,6 +234,147 @@ export const DEVICE_HEALTH_AGGREGATES: Array<AggregateColumn> = [
   INTERFACES_DOWN_AGGREGATE,
 ];
 
+/*
+ * The summary strip's six numbers, as getFleetSummary counts them in one
+ * row: the three reachability states partition the fleet.
+ */
+export const DEVICE_FLEET_SUMMARY_AGGREGATES: Array<AggregateColumn> = [
+  {
+    expression: `COUNT(*) FILTER (WHERE ${column("isReachable")} = true)`,
+    alias: "devicesUp",
+  },
+  {
+    expression: `COUNT(*) FILTER (WHERE ${column("isReachable")} = false)`,
+    alias: "devicesDown",
+  },
+  {
+    expression: `COUNT(*) FILTER (WHERE ${column("isReachable")} IS NULL)`,
+    alias: "devicesPending",
+  },
+  {
+    expression: `COALESCE(SUM(${column("interfacesDown")}), 0)`,
+    alias: "interfacesDown",
+  },
+  {
+    expression: `COUNT(*)`,
+    alias: "totalDevices",
+  },
+  {
+    expression: `COUNT(*) FILTER (WHERE ${column("siteId")} IS NULL)`,
+    alias: "devicesWithoutSite",
+  },
+];
+
+/** Aliases the fleet scan's own columns come back under (getFleetScan). */
+export enum DeviceFleetScanAlias {
+  Vendor = "vendor",
+  DevicesWithoutSite = "devicesWithoutSite",
+  SnmpFailing = "snmpFailing",
+}
+
+/*
+ * A device's vendor as the Overview groups it: trimmed, and the empty
+ * string for a device with none yet (never walked, or walked by one that
+ * does not say) - the caller names that "Unknown".
+ */
+export const DEVICE_VENDOR_GROUP_COLUMN: AggregateColumn = {
+  expression: `COALESCE(NULLIF(TRIM(${column("vendor")}), ''), '')`,
+  alias: DeviceFleetScanAlias.Vendor,
+};
+
+/** How many of a bucket's devices are attached to no site. */
+export const DEVICES_WITHOUT_SITE_AGGREGATE: AggregateColumn = {
+  expression: `COUNT(*) FILTER (WHERE ${column("siteId")} IS NULL)`,
+  alias: DeviceFleetScanAlias.DevicesWithoutSite,
+};
+
+/*
+ * How many of a bucket's devices answer ping while their SNMP walk fails:
+ * the filter of the Overview's SNMP-failing attention read
+ * (isReachable = true, isSnmpReachable = false), counted.
+ */
+export const SNMP_FAILING_AGGREGATE: AggregateColumn = {
+  expression: `COUNT(*) FILTER (WHERE ${column(
+    "isReachable",
+  )} = true AND ${column("isSnmpReachable")} = false)`,
+  alias: DeviceFleetScanAlias.SnmpFailing,
+};
+
+/*
+ * The fleet scan's buckets: every fact the health rule reads, and the
+ * vendor - one scan answers the health tally, the vendor breakdown and the
+ * summary strip together (NetworkDeviceService.getFleetScan).
+ */
+export const DEVICE_FLEET_SCAN_GROUP_COLUMNS: Array<AggregateColumn> = [
+  ...DEVICE_HEALTH_DISCRIMINATOR_COLUMNS,
+  DEVICE_VENDOR_GROUP_COLUMN,
+];
+
+/** What each fleet-scan bucket counts. */
+export const DEVICE_FLEET_SCAN_AGGREGATES: Array<AggregateColumn> = [
+  DEVICE_COUNT_AGGREGATE,
+  INTERFACES_DOWN_AGGREGATE,
+  DEVICES_WITHOUT_SITE_AGGREGATE,
+  SNMP_FAILING_AGGREGATE,
+];
+
+/*
+ * Buckets in vendor order, by the database's own collation: the order the
+ * vendor breakdown breaks a tie of counts by, as its own read did.
+ */
+export const DEVICE_FLEET_SCAN_ORDER: Array<AggregateOrder> = [
+  {
+    expression: `"${DeviceFleetScanAlias.Vendor}"`,
+    sortOrder: SortOrder.Ascending,
+  },
+];
+
+/*
+ * The health-bucket key of a bucket: the facts the health rule reads, so
+ * the fleet scan's buckets (split by vendor too) merge back into exactly
+ * the buckets a health grouping returns.
+ */
+export function deviceHealthGroupKey(group: DeviceHealthGroup): string {
+  return JSON.stringify([
+    group.siteId,
+    group.monitorStatusId,
+    group.monitoringMethod,
+    group.isReachable,
+    group.hasBeenPolled,
+    group.hasBeenSeen,
+    group.isStale,
+    group.hasDownInterfaces,
+  ]);
+}
+
+/*
+ * Health buckets in DEVICE_HEALTH_GROUP_ORDER: status ascending, a bucket
+ * with none last (Postgres sorts NULL last in an ascending order), then the
+ * biggest bucket first. A status id compares as its text, which orders as
+ * the uuid does: lower-case hexadecimal, fixed width.
+ */
+export function sortDeviceHealthGroups(
+  groups: Array<DeviceHealthGroup>,
+): Array<DeviceHealthGroup> {
+  return [...groups].sort(
+    (first: DeviceHealthGroup, second: DeviceHealthGroup): number => {
+      if (first.monitorStatusId !== second.monitorStatusId) {
+        if (first.monitorStatusId === null) {
+          return 1;
+        }
+
+        if (second.monitorStatusId === null) {
+          return -1;
+        }
+
+        return first.monitorStatusId < second.monitorStatusId ? -1 : 1;
+      }
+
+      return second.deviceCount - first.deviceCount;
+    },
+  );
+}
+
 /** Health buckets for the whole matched set, with no per-site breakdown. */
 export const DEVICE_HEALTH_GROUP_COLUMNS: Array<AggregateColumn> = [
   ...DEVICE_HEALTH_DISCRIMINATOR_COLUMNS,
@@ -436,5 +577,136 @@ export function deviceRollupStateForGroup(data: {
     // ...and for why this rides along with the poll facts it qualifies.
     monitoringMethod: group.monitoringMethod,
     deviceCount: group.deviceCount,
+  };
+}
+
+/**
+ * The fleet-wide numbers the device summary strip and the network overview
+ * both print. Counted in Postgres — see `NetworkDeviceService.getFleetSummary`.
+ */
+export interface DeviceFleetSummary {
+  devicesUp: number;
+  devicesDown: number;
+  devicesPending: number;
+  // Interfaces, not devices: a switch with three dark ports contributes three.
+  interfacesDown: number;
+  totalDevices: number;
+  devicesWithoutSite: number;
+}
+
+/**
+ * Everything the Network Overview and the device and site summary strips
+ * count over the fleet, from ONE scan of the project's devices - see
+ * `NetworkDeviceService.getFleetScan` and readDeviceFleetScan.
+ */
+export interface DeviceFleetScan {
+  // The summary strip's numbers, as getFleetSummary counts them.
+  summary: DeviceFleetSummary;
+  // The health buckets getHealthGroups returns for the whole fleet.
+  healthGroups: Array<DeviceHealthGroup>;
+  /*
+   * Every vendor's device count, biggest first, a tie broken by the vendor
+   * in the database's collation (getVendorBreakdown's order); the empty
+   * string for devices with no vendor yet.
+   */
+  vendors: Array<{ vendor: string; count: number }>;
+  // Devices that answer ping while their SNMP walk fails.
+  snmpFailing: number;
+}
+
+/*
+ * The fleet scan's rows, read back into what it answers
+ * (NetworkDeviceService.getFleetScan). Rows arrive in vendor order
+ * (DEVICE_FLEET_SCAN_ORDER).
+ *
+ *  - the health buckets are the rows merged across vendors - exactly the
+ *    buckets a health grouping returns, in DEVICE_HEALTH_GROUP_ORDER;
+ *  - the vendors are the rows merged across health facts, biggest first,
+ *    a tie of counts keeping the database's vendor order;
+ *  - the summary strip's numbers add up over every row: up, down and
+ *    pending by the row's isReachable.
+ */
+export function readDeviceFleetScan(
+  rows: Array<AggregateRow>,
+): DeviceFleetScan {
+  const summary: DeviceFleetSummary = {
+    devicesUp: 0,
+    devicesDown: 0,
+    devicesPending: 0,
+    interfacesDown: 0,
+    totalDevices: 0,
+    devicesWithoutSite: 0,
+  };
+  let snmpFailing: number = 0;
+  const groupsByKey: Map<string, DeviceHealthGroup> = new Map<
+    string,
+    DeviceHealthGroup
+  >();
+  // Insertion order is the database's vendor order.
+  const countsByVendor: Map<string, number> = new Map<string, number>();
+
+  for (const row of rows) {
+    const bucket: DeviceHealthGroup = parseDeviceHealthGroup(row);
+    const vendor: string =
+      AggregateResultUtil.toStringOrNull(row, DeviceFleetScanAlias.Vendor) ||
+      "";
+
+    summary.totalDevices += bucket.deviceCount;
+    summary.interfacesDown += bucket.interfacesDownTotal;
+    summary.devicesWithoutSite += AggregateResultUtil.toNumber(
+      row,
+      DeviceFleetScanAlias.DevicesWithoutSite,
+    );
+
+    if (bucket.isReachable === true) {
+      summary.devicesUp += bucket.deviceCount;
+    } else if (bucket.isReachable === false) {
+      summary.devicesDown += bucket.deviceCount;
+    } else {
+      summary.devicesPending += bucket.deviceCount;
+    }
+
+    snmpFailing += AggregateResultUtil.toNumber(
+      row,
+      DeviceFleetScanAlias.SnmpFailing,
+    );
+
+    const key: string = deviceHealthGroupKey(bucket);
+    const group: DeviceHealthGroup | undefined = groupsByKey.get(key);
+
+    if (group) {
+      group.deviceCount += bucket.deviceCount;
+      group.interfacesDownTotal += bucket.interfacesDownTotal;
+    } else {
+      groupsByKey.set(key, { ...bucket });
+    }
+
+    countsByVendor.set(
+      vendor,
+      (countsByVendor.get(vendor) || 0) + bucket.deviceCount,
+    );
+  }
+
+  // A stable sort: equal counts keep the database's vendor order.
+  const vendors: Array<{ vendor: string; count: number }> = Array.from(
+    countsByVendor.entries(),
+  )
+    .map(([vendor, count]: [string, number]) => {
+      return { vendor: vendor, count: count };
+    })
+    .sort(
+      (
+        first: { vendor: string; count: number },
+        second: { vendor: string; count: number },
+      ): number => {
+        return second.count - first.count;
+      },
+    );
+
+  return {
+    summary: summary,
+    healthGroups: sortDeviceHealthGroups(Array.from(groupsByKey.values())),
+    vendors: vendors,
+    snmpFailing: snmpFailing,
   };
 }

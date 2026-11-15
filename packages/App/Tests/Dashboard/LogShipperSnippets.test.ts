@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { CompatibleIngestEndpoint } from "../../FeatureSet/Dashboard/src/Components/Telemetry/CompatibleIngestGuide";
 import {
   FLUENTD_LOGS_PATH,
@@ -381,10 +382,6 @@ const parserOf: (section: FluentdSection) => string | undefined = (
   section: FluentdSection,
 ): string | undefined => {
   return sectionsNamed(section, "parse")[0]?.parameters["@type"];
-};
-
-const escapeRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 // Braces, a regular expression or an escape, which takesParts does not read.
