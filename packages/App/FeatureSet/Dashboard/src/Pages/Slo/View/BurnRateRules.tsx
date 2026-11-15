@@ -369,6 +369,11 @@ const SloBurnRateRules: FunctionComponent<
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        /*
+         * Show ID in each row's ⋯ menu: a workflow that turns a feature flag
+         * off when this rule fires is told which rule by its ID (#8447).
+         */
+        showViewIdButton={true}
         showRefreshButton={true}
         refreshToggle={rulesRefreshToggle}
         topContent={

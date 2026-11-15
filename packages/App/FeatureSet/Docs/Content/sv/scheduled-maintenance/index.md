@@ -46,7 +46,7 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 - **Ett schema.** En återkommande mall skapar en ny händelse enligt ett schema, till exempel varje vecka eller varje månad, utan att någon öppnar formuläret.
 - **Ett formulär.** Ett formulär vars inlämningar skapar underhållshändelser gör en ändringsbegäran till en händelse. Se [Vad en inlämning skapar](/docs/forms/on-submit#så-blir-en-inlämning-en-underhållshändelse).
 - **Chatt.** `/oneuptime maintenance` i Slack, eller `maintenance` skrivet till OneUptime-boten i Microsoft Teams, öppnar formuläret i ditt chattverktyg. Se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
-- **Kod.** API:et på `/api/scheduled-maintenance`, Terraform-resursen `oneuptime_scheduled_maintenance_event` och steget **Create One Maintenance Event** i ett arbetsflöde.
+- **Kod.** API:et på `/api/scheduled-maintenance`, Terraform-resursen `oneuptime_scheduled_maintenance_event` och steget **Skapa Underhållshändelse (en post)** i ett arbetsflöde.
 
 ## Var underhåll finns i instrumentpanelen
 

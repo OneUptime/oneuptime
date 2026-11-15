@@ -769,7 +769,7 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
       },
       title: "Request Filter",
       description:
-        "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.",
+        "Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request.",
       fieldType: FormFieldSchemaType.Text,
       required: false,
       placeholder: "@http.route:/checkout* -@http.route:/health",

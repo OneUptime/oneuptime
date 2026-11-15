@@ -192,6 +192,6 @@ Med standardlagringen `emptyDir` mister en omstart noen timer med brukshistorikk
 
 :::cards
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Installer agenten, og alt annet den samler inn.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle når forbruket krysser et budsjett.
-- [Kubernetes-overvåking](/docs/monitor/kubernetes-monitor): Varsle også på klyngens helse.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle når forbruket krysser et budsjett.
+- [Kubernetes-monitor](/docs/monitor/kubernetes-monitor): Varsle også på klyngens helse.
 :::

@@ -1,5 +1,6 @@
 import { anchorsOf, readPage } from "./DocsContentSupport";
 import { drawnActionLabel } from "./DocsDashboardLabels";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import {
@@ -427,8 +428,8 @@ describe("the Paging section of the Components guide", () => {
     for (const language of LANGUAGES) {
       /*
        * The outputs read as the canvas draws them (#7511), and so do the
-       * built-in steps' titles (#8359). A record step's title (On Create
-       * Incident) is built from its model's name and has no key yet.
+       * built-in steps' titles (#8359), and a record step's (On Create
+       * Incident), as the sentence it was built from (#8708).
        */
       const drawn: Array<string> = english.map((line: string): string => {
         return line
@@ -437,6 +438,10 @@ describe("the Paging section of the Components guide", () => {
             `|"${drawnActionLabel(language, "Success")}"|`,
           )
           .replace('|"Yes"|', `|"${drawnActionLabel(language, "Yes")}"|`)
+          .replace(
+            '["On Create Incident"]',
+            `["${drawnStepName(language, "On Create Incident")}"]`,
+          )
           .replace(
             '["If / Else"]',
             `["${drawnActionLabel(language, "If / Else")}"]`,

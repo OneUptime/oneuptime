@@ -178,7 +178,7 @@ const IoTFleetDevices: FunctionComponent<
               }
               return (
                 <span className="text-sm text-gray-700">
-                  {Number(item.latestSignalStrengthDbm).toFixed(0)} dBm
+                  {`${Number(item.latestSignalStrengthDbm).toFixed(0)}\u00A0dBm`}
                 </span>
               );
             },
@@ -200,7 +200,7 @@ const IoTFleetDevices: FunctionComponent<
               }
               return (
                 <span className="text-sm text-gray-700">
-                  {Number(item.latestTemperatureCelsius).toFixed(1)} °C
+                  {`${Number(item.latestTemperatureCelsius).toFixed(1)}\u00A0°C`}
                 </span>
               );
             },

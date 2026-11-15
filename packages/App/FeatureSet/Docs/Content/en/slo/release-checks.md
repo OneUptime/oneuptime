@@ -7,6 +7,7 @@ A release check asks an SLO "is it safe to keep rolling this release out?" while
 - [Argo Rollouts](#argo-rollouts): An analysis that aborts the rollout.
 - [Flagger](#flagger): A webhook that halts the canary.
 - [GitHub Actions](#github-actions): A step that rolls back after a deploy.
+- [Turn a feature flag off](#turn-a-feature-flag-off): A workflow that turns a flag off when the SLO burns too fast.
 :::
 
 ## How it works
@@ -257,6 +258,37 @@ jobs:
 ```
 
 The step fails on a no, and on any answer without `isSafeToContinue: true` - a wrong ID, a key that cannot read the SLO, no answer at all - so the pipeline never carries on with an answer it did not get. Set `service.version` to the commit (`${{ github.sha }}`) when the service starts, so the check judges only the new version.
+
+## Turn a feature flag off
+
+A release behind a feature flag is rolled back by turning the flag off. A workflow can do that for you: when a [burn rate rule](/docs/slo/burn-rate-alerts) of the SLO raises its alert or declares its incident, the workflow turns the flag off in LaunchDarkly or Unleash. A bad rollout is then undone in minutes, without waiting for a person.
+
+:::steps
+### Copy the burn rate rule's ID
+
+Open the SLO and go to **Burn Rate Rules**. Open the menu of the rule that should turn the flag off, and pick **Show ID**. A fast-burn rule suits this best, because it fires within minutes of a bad rollout.
+
+### Create the workflow from a template
+
+Open **Workflows** and click **Create Workflow**. Under **Or start from a template**, choose the **SLOs** category, then your flag service's template:
+
+| Template | What it asks for |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | An API access token that can update the flag, and the keys of the flag's project, the flag and the environment. |
+| **Turn an Unleash flag off when an SLO burns too fast** | Your Unleash address, a service account token or a personal access token, and the flag's project, its name and the environment. |
+
+Paste the rule's ID into **Burn Rate Rule ID**, fill in the rest, and create the workflow.
+
+### Switch it on
+
+Workflows are created switched off. When you're ready, switch **Enabled** on at the top of the workflow's **Builder**.
+:::
+
+The workflow starts each time a burn rate rule in the project raises an alert or declares an incident. Its **If / Else** goes on only for the rule whose ID you pasted, and the next step calls the flag service: LaunchDarkly's `turnFlagOff` instruction, with a comment that names the rule and the SLO, or Unleash's `off` for the environment. Both turn the flag off for everyone in that environment, whatever its targeting. If the flag service refuses the call, the run fails, and its log says why. The rule's alert still pages as it always does.
+
+**Run Workflow** on the **Builder** runs the workflow as if the rule you pick had just fired, so it turns the flag off for real. Try it first with a flag in a test environment.
+
+For another flag service, or a LaunchDarkly instance with an address of its own, start from either template and change its API step to the call that turns the flag off for everyone in the environment. Choose a call that also overrides segments and targeting rules, as these two do, or a gradual rollout keeps serving the flag.
 
 ## Next steps
 

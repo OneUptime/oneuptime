@@ -16,9 +16,9 @@ Envía los incidentes de OneUptime a [Opsgenie](https://www.atlassian.com/softwa
 
 ```mermaid title="Dos flujos de trabajo, una alerta de Opsgenie"
 flowchart TB
-    declared["Incidente declarado"] --> create["Flujo de trabajo 1:<br/>On Create Incident"]
+    declared["Incidente declarado"] --> create["Flujo de trabajo 1:<br/>Al crear Incidente"]
     create -->|"POST /v2/alerts"| og["Alerta de Opsgenie"]
-    resolved["Incidente resuelto"] --> update["Flujo de trabajo 2:<br/>On Update Incident"]
+    resolved["Incidente resuelto"] --> update["Flujo de trabajo 2:<br/>Al actualizar<br/>Incidente"]
     update -->|"cerrar por alias"| og
 ```
 
@@ -49,7 +49,7 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción**.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Al crear Incidente**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción**.
 
 ### Crear la alerta
 
@@ -83,9 +83,9 @@ El esquema de Opsgenie es la palabra `GenieKey`, un espacio y luego la clave. Op
 Un flujo de trabajo tiene un solo disparador, así que cerrar requiere un segundo flujo de trabajo, que se inicia cuando cambia el estado de un incidente.
 
 :::steps
-### Añadir el disparador On Update Incident
+### Añadir el disparador «Al actualizar Incidente»
 
-Crea un flujo de trabajo llamado `Close Opsgenie alerts` y elige **On Update Incident** como disparador. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**, para que solo se ejecute cuando cambie el estado. En **Campos que pasar**, pide si el nuevo estado es un estado resuelto: haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Es estado resuelto**. O haz clic en **Editar como JSON** y reemplaza el JSON por:
+Crea un flujo de trabajo llamado `Close Opsgenie alerts` y elige **Al actualizar Incidente** como disparador. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**, para que solo se ejecute cuando cambie el estado. En **Campos que pasar**, pide si el nuevo estado es un estado resuelto: haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Es estado resuelto**. O haz clic en **Editar como JSON** y reemplaza el JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

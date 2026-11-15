@@ -377,8 +377,9 @@ function writeThreshold(data: {
     language: data.translator.language,
   });
 
+  // The figure held to its unit by a no-break space (#8720).
   return units.length > 0
-    ? fillTemplate("{{value}} {{unit}}", {
+    ? fillTemplate("{{value}}\u00A0{{unit}}", {
         value: written,
         unit: units.join(" "),
       })

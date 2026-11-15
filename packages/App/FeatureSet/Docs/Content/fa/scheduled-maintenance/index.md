@@ -46,7 +46,7 @@ flowchart TB
 - **زمان‌بندی.** قالب تکرارشونده طبق یک زمان‌بندی، مثلاً هر هفته یا هر ماه، رویداد تازه‌ای می‌سازد بی‌آنکه کسی فرم را باز کند.
 - **فرم.** فرمی که ارسال‌هایش رویداد تعمیر و نگهداری می‌سازند، یک درخواست تغییر را به رویداد تبدیل می‌کند. [ارسال چه چیزی ایجاد می‌کند](/docs/forms/on-submit#ارسال-چگونه-به-یک-رویداد-تعمیر-و-نگهداری-تبدیل-میشود) را ببینید.
 - **گفتگو.** `/oneuptime maintenance` در Slack، یا `maintenance` که در Microsoft Teams برای ربات OneUptime نوشته شود، فرم را در ابزار گفتگوی شما باز می‌کند. [Slack](/docs/workspace-connections/slack#ایجاد-حادثه-و-تعمیر-و-نگهداری-از-slack) را ببینید.
-- **کد.** API در `/api/scheduled-maintenance`، منبع Terraform با نام `oneuptime_scheduled_maintenance_event`، و گام **Create One Maintenance Event** در یک گردش کار.
+- **کد.** API در `/api/scheduled-maintenance`، منبع Terraform با نام `oneuptime_scheduled_maintenance_event`، و گام **ساخت یک رویداد تعمیر و نگهداری** در یک گردش کار.
 
 ## تعمیر و نگهداری در داشبورد کجاست
 

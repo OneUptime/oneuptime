@@ -196,7 +196,7 @@ sequenceDiagram
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Блок **API** с ID `lookup-user`                           | Код статуса: `{{local.components.lookup-user.returnValues.response-status}}`. Тело: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Блок **Выполнить собственный JavaScript** с ID `transform`           | То, что он вернул: `{{local.components.transform.returnValues.returnValue}}`.          |
-| Триггер **On Create Incident** с ID `incident-on-create-1` | Заголовок инцидента: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Триггеры записей возвращают запись как `model`, внутрь которой вы спускаетесь. |
+| Триггер **При создании: Инцидент** с ID `incident-on-create-1` | Заголовок инцидента: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Триггеры записей возвращают запись как `model`, внутрь которой вы спускаетесь. |
 
 Значения блоков существуют только в течение текущего запуска. Каждый новый запуск начинается с чистого листа.
 
@@ -239,7 +239,7 @@ sequenceDiagram
 
 1. Триггер **Вебхук** с ID `ci-webhook`.
 2. Блок **Если / Иначе**: **Проверяемое значение** — поле `status` в Request Body вебхука (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Сравнение** — **равно**, а **Сравнить с** — `failed`.
-3. Из ветви **Да** — блок **Create One Incident** с:
+3. Из ветви **Да** — блок **Создать: Инцидент (одна запись)** с:
    - Заголовок: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Описание: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

@@ -235,6 +235,6 @@ En sonde kjører 2 opptak om gangen. Vent til ett er ferdig, eller stopp ett, og
 
 :::cards
 - [Egendefinerte sonder](/docs/probe/custom-probe): Installer en sonde i nettverket du vil ta opp i.
-- [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor): Overvåk enhetene du tar opp trafikken til.
+- [Monitor for nettverksenhet](/docs/monitor/network-device-monitor): Overvåk enhetene du tar opp trafikken til.
 - [Tillatelser](/docs/permissions/index): Gi et team tillatelsene for pakkeopptak.
 :::

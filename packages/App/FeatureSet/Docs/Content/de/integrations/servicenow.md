@@ -13,9 +13,9 @@ Legen Sie für jeden OneUptime-Vorfall einen [ServiceNow](https://www.servicenow
 
 ```mermaid title="Zwei Workflows, ein ServiceNow-Vorfall"
 flowchart TB
-    declared["Vorfall gemeldet"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Vorfall gemeldet"] --> create["Workflow 1:<br/>Bei Erstellung: Vorfall"]
     create -->|"POST incident"| sn["ServiceNow-Vorfall"]
-    resolved["Vorfall behoben"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Vorfall behoben"] --> update["Workflow 2:<br/>Bei Aktualisierung:<br/>Vorfall"]
     update --> find["Datensatz finden<br/>über correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,7 +54,7 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** un
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Vorfall**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
 
 ### Den Datensatz anlegen
 
@@ -91,9 +91,9 @@ Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** eine
 Ein Workflow hat einen Trigger, das Beheben braucht also einen zweiten Workflow, der startet, wenn sich der Status eines Vorfalls ändert.
 
 :::steps
-### Den Trigger On Update Incident hinzufügen
+### Den Trigger „Bei Aktualisierung: Vorfall“ hinzufügen
 
-Legen Sie einen Workflow namens `Resolve ServiceNow incidents` an und wählen Sie **On Update Incident** als Trigger. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Weiterzugebende Felder** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
+Legen Sie einen Workflow namens `Resolve ServiceNow incidents` an und wählen Sie **Bei Aktualisierung: Vorfall** als Trigger. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Weiterzugebende Felder** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

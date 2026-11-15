@@ -7,6 +7,7 @@ Un controllo del rilascio chiede a uno SLO «è sicuro continuare a distribuire 
 - [Argo Rollouts](#argo-rollouts): Un'analisi che interrompe il rollout.
 - [Flagger](#flagger): Un webhook che ferma il canary.
 - [GitHub Actions](#github-actions): Un passo che fa il rollback dopo una distribuzione.
+- [Disattivare un feature flag](#disattivare-un-feature-flag): Un flusso di lavoro che disattiva un flag quando lo SLO consuma il budget di errore troppo in fretta.
 :::
 
 ## Come funziona
@@ -257,6 +258,37 @@ jobs:
 ```
 
 Il passo fallisce a un no, e a qualsiasi risposta senza `isSafeToContinue: true` (un ID sbagliato, una chiave che non può leggere lo SLO, nessuna risposta), quindi la pipeline non prosegue mai sulla base di una risposta che non ha ricevuto. Imposta `service.version` al commit (`${{ github.sha }}`) all'avvio del servizio, così il controllo giudica solo la nuova versione.
+
+## Disattivare un feature flag
+
+Per fare il rollback di un rilascio protetto da un feature flag basta disattivare il flag. Un flusso di lavoro può farlo al posto tuo: quando una [regola del tasso di consumo](/docs/slo/burn-rate-alerts) dello SLO genera il suo avviso o dichiara il suo incidente, il flusso di lavoro disattiva il flag in LaunchDarkly o Unleash. Così un rollout andato male viene annullato in pochi minuti, senza aspettare che intervenga qualcuno.
+
+:::steps
+### Copiare l'ID della regola del tasso di consumo
+
+Apri lo SLO e vai a **Regole di tasso di consumo**. Apri il menu della regola che deve disattivare il flag e scegli **Mostra ID**. La più adatta è una regola di consumo rapido, perché scatta pochi minuti dopo un rollout andato male.
+
+### Creare il flusso di lavoro da un modello
+
+Apri **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli la categoria **SLOs**, poi il modello del tuo servizio di feature flag:
+
+| Modello | Cosa chiede |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | Un token di accesso API che possa modificare il flag, e le chiavi del flag, del suo progetto e dell'ambiente. |
+| **Turn an Unleash flag off when an SLO burns too fast** | L'indirizzo del tuo Unleash, un token di un account di servizio o un token di accesso personale, e il progetto del flag, il suo nome e l'ambiente. |
+
+Incolla l'ID della regola in **Burn Rate Rule ID**, compila il resto e crea il flusso di lavoro.
+
+### Attivarlo
+
+I flussi di lavoro vengono creati disattivati. Quando sei pronto, attiva **Abilitato** in cima al **Costruttore** del flusso di lavoro.
+:::
+
+Il flusso di lavoro parte ogni volta che una regola del tasso di consumo del progetto genera un avviso o dichiara un incidente. Il suo blocco **Se / Altrimenti** lascia proseguire l'esecuzione solo per la regola di cui hai incollato l'ID, e il passaggio successivo chiama il servizio di feature flag: l'istruzione `turnFlagOff` di LaunchDarkly, con un commento che nomina la regola e lo SLO, oppure `off` di Unleash per l'ambiente. Entrambe le chiamate disattivano il flag per tutti in quell'ambiente, qualunque sia il suo targeting. Se il servizio di feature flag rifiuta la chiamata, l'esecuzione fallisce, e il suo log dice perché. L'avviso della regola continua ad avvisare chi è reperibile, come sempre.
+
+Nel **Costruttore**, **Esegui flusso di lavoro** esegue il flusso di lavoro come se la regola che scegli fosse appena scattata, quindi il flag viene disattivato davvero. Provalo prima con un flag in un ambiente di test.
+
+Per un altro servizio di feature flag, o per un'istanza di LaunchDarkly con un indirizzo proprio, parti da uno dei due modelli e sostituisci il suo passaggio API con la chiamata che disattiva il flag per tutti nell'ambiente. Scegli una chiamata che prevalga anche sui segmenti e sulle regole di targeting, come fanno queste due, altrimenti un rollout graduale continua a servire il flag.
 
 ## Passi successivi
 

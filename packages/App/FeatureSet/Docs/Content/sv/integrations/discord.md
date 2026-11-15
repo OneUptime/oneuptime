@@ -13,8 +13,8 @@ Posta ett meddelande i en [Discord](https://discord.com)-kanal när en incident 
 
 ```mermaid title="Från incident till Discord-meddelande"
 flowchart TB
-    declared["Incident deklarerad"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["Incident deklarerad"] --> trigger["Vid skapande:<br/>Incident"]
+    trigger --> step["Skicka meddelande<br/>till Discord"]
     step -->|"Framgång"| channel["Meddelande i<br/>din kanal"]
     step -->|"Fel"| failed["Körningen<br/>misslyckas och<br/>säger varför"]
 ```
@@ -48,11 +48,11 @@ Börja från mallen, som bygger hela arbetsflödet åt dig, eller från grunden.
 3. Behåll namnet **Notify Discord on new incident** eller ändra det, och klicka på **Nästa**.
 4. Klistra in URL:en i **Discord Webhook URL** och klicka på **Skapa arbetsflöde**.
 
-Arbetsflödet öppnas i **Byggare** med två steg: **On Create Incident** och **Skicka meddelande till Discord**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd. URL:en sparas som arbetsflödets hemliga variabel `discordWebhookUrl`.
+Arbetsflödet öppnas i **Byggare** med två steg: **Vid skapande: Incident** och **Skicka meddelande till Discord**, som postar incidentens nummer, titel, allvarlighetsgrad och tillstånd. URL:en sparas som arbetsflödets hemliga variabel `discordWebhookUrl`.
 @tab Från grunden
 1. Spara URL:en som en hemlig global variabel: gå till **Arbetsflöden → Globala variabler**, klicka på **Skapa Arbetsflödesvariabel**, ge den namnet `DISCORD_WEBHOOK_URL` och klicka på **Nästa**. Klistra in URL:en i **Innehåll**, slå på **Hemlighet** och klicka på **Skapa Arbetsflödesvariabel**.
 2. Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
-3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **On Create Incident** under **Populära**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Incident Number With Prefix**.
+3. Klicka på **Välj vad som startar det här arbetsflödet** i **Byggare** och välj **Vid skapande: Incident** under **Populära**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fält som ditt meddelande visar, till exempel **Incident Number With Prefix**.
 4. Klicka på **Lägg till komponent**, sök efter `discord` och klicka på **Skicka meddelande till Discord**. Anslut utlösarens utgång **Framgång** till det.
 5. Klicka på det nya steget. Klicka på **{ }** i **Discord-webhook-URL för inkommande meddelanden** och välj `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv meddelandet i **Meddelandetext** och infoga incidentens fält med **{ }**.
 :::
@@ -75,7 +75,7 @@ För att testa utan att öppna en incident klickar du på **Kör arbetsflöde** 
 
 - **Formatera med Discords Markdown.** Texten skickas som den är skriven, så Discords Markdown fungerar i den: asterisker runt ett ord gör det fetstilt, och en URL visas som en länk.
 - **Tänk på gränsen på 2 000 tecken.** Discord tar emot meddelanden på upp till 2 000 tecken. Ett längre kortas av och slutar med "… (truncated — see OneUptime for the full text)" i stället för att avvisas.
-- **Posta mer än nya incidenter.** Bygg ett annat arbetsflöde på **On Update Incident** för tillståndsändringar, eller på **On Create Alert** för larm, med samma steg. För att bara posta vissa incidenter sätter du ett block **Om / Annars** före steget.
+- **Posta mer än nya incidenter.** Bygg ett annat arbetsflöde på **Vid uppdatering: Incident** för tillståndsändringar, eller på **Vid skapande: Larm** för larm, med samma steg. För att bara posta vissa incidenter sätter du ett block **Om / Annars** före steget.
 - **Bara Discords egna adresser.** Steget postar till en `https`-URL på `discord.com` eller `discordapp.com` och följer inte omdirigeringar, så en URL som pekar någon annanstans stoppar körningen.
 
 ## Felsökning

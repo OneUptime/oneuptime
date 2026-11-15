@@ -285,6 +285,6 @@ Har du spørsmål eller trenger hjelp, kan du skrive til oss på support@oneupti
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send også traces og målinger fra .NET.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Tolk og berik loggene når de kommer inn.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Filtrer på Serilog-egenskapene dine.
 :::

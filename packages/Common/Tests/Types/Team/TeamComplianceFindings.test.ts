@@ -415,8 +415,10 @@ describe("in the reader's language", () => {
         ...Object.values(METHOD_MISSING_SENTENCES),
         ...Object.values(UNUSABLE_TARGETS),
         ...Object.values(ON_CALL_FINDING_SENTENCES).flatMap(
-          (sentences: Record<string, string> | undefined) => {
-            return Object.values(sentences || {});
+          (
+            sentences: (typeof ON_CALL_FINDING_SENTENCES)[ComplianceRuleType],
+          ): Array<string> => {
+            return Object.values(sentences || {}) as Array<string>;
           },
         ),
       ] as Array<string>;

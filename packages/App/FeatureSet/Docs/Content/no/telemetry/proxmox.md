@@ -444,7 +444,7 @@ Native push sender ikke HA-tilstand, start ved oppstart, sikkerhetskopidekning e
 ## Neste trinn
 
 :::cards
-- [Proxmox-overvåking](/docs/monitor/proxmox-monitor): Varsle på noder, gjester, lagring, HA, sikkerhetskopier og replikering.
+- [Proxmox-monitor](/docs/monitor/proxmox-monitor): Varsle på noder, gjester, lagring, HA, sikkerhetskopier og replikering.
 - [Ceph-agent](/docs/telemetry/ceph): Overvåk Ceph-lagringen under Proxmox-klyngen din.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva Proxmox-AI-agenten kan kjøre, og hvordan rettelser fungerer.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Visningen på OS-nivå av hver node.

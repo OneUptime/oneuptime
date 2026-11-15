@@ -15,7 +15,7 @@ En AI-agent feiler sjelden ved å krasje. Den feiler ved å fortsette: den prøv
 flowchart TB
     agent["Agenten din sender<br/>gen_ai.*-spans"] --> ingest["OneUptime"]
     ingest --> wire{"Snubletråd: budsjett-<br/>eller løkkevarsel"}
-    wire -->|"Varsel opprettet"| workflow["Arbeidsflyt:<br/>On Create Alert"]
+    wire -->|"Varsel opprettet"| workflow["Arbeidsflyt:<br/>Ved oppretting: Varsel"]
     workflow -->|"API Post (JSON)"| endpoint["Stoppendepunktet ditt"]
     endpoint --> runner["Runneren pauser<br/>eller stopper agenten"]
 ```
@@ -46,7 +46,7 @@ Forbruk er det sikreste tegnet på en løpsk agent. Et budsjett summerer dagens 
 :::steps
 1. Åpne **Produkter → AI / LLM → Budsjetter**, og klikk på **Opprett LLM Cost Budget**. Angi et **Daglig budsjett (USD)**, og velg agentens tjeneste i **Tjeneste (valgfritt)**, slik at budsjettet bare følger med på den agenten.
 2. Velg **Vis ID** i radmenyen til det nye budsjettet, og kopier ID-en.
-3. Opprett en [Målingsovervåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsvindu** til **Siste 30 minutter**.
+3. Opprett en [Målingsmonitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsvindu** til **Siste 30 minutter**.
 4. I **Når det skal varsles** setter du **Betingelse** til **På eller over** og **Verdi** til `100`, beholder **Opprett et varsel**, og gir det en **Varseltittel** som navngir agenten, for eksempel `LLM budget exceeded: support-bot`. Både arbeidsflyten og endepunktet ditt leser den tittelen.
 :::
 
@@ -125,7 +125,7 @@ Lagre først endepunktets token et sted der arbeidsflyten kan bruke det uten å 
 
 ### Legg til utløseren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Alert** i panelet **Legg til utløser**. Klikk på utløseren: **Felt som sendes videre** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Ved oppretting: Varsel** i panelet **Legg til utløser**. Klikk på utløseren: **Felt som sendes videre** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
 
 ### Sjekk tittelen
 
@@ -208,7 +208,7 @@ Monitorens **Tidsintervall** er kortere enn budsjettets 15 minutter mellom to pu
 
 :::cards
 - [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Budsjetter, kostnader og spanene circuit breakeren følger med på.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Span-filtre og kriterier i detalj.
+- [Trase-monitor](/docs/monitor/traces-monitor): Span-filtre og kriterier i detalj.
 - [Arbeidsflyter](/docs/workflows/index): Utløsere, komponenter, variabler og kjøringer.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Alle agentenes modellkall gjennom én eksport.
 :::

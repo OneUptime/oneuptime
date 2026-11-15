@@ -16,9 +16,9 @@ Stuur OneUptime-incidenten naar [Opsgenie](https://www.atlassian.com/software/op
 
 ```mermaid title="Twee workflows, één Opsgenie-alert"
 flowchart TB
-    declared["Incident gemeld"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> create["Workflow 1:<br/>Bij aanmaken:<br/>Incident"]
     create -->|"POST /v2/alerts"| og["Opsgenie-alert"]
-    resolved["Incident opgelost"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incident opgelost"] --> update["Workflow 2:<br/>Bij bijwerken:<br/>Incident"]
     update -->|"sluiten via alias"| og
 ```
 
@@ -49,7 +49,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### De alert aanmaken
 
@@ -83,9 +83,9 @@ Het schema van Opsgenie is het woord `GenieKey`, een spatie en dan de sleutel. O
 Een workflow heeft één trigger, dus voor het sluiten is een tweede workflow nodig, die start wanneer de status van een incident verandert.
 
 :::steps
-### De trigger On Update Incident toevoegen
+### De trigger "Bij bijwerken: Incident" toevoegen
 
-Maak een workflow met de naam `Close Opsgenie alerts` en kies **On Update Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
+Maak een workflow met de naam `Close Opsgenie alerts` en kies **Bij bijwerken: Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

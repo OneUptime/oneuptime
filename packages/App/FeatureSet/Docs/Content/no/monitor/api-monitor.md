@@ -1,4 +1,4 @@
-# API-overvåking
+# API-monitor
 
 En API-monitor kaller et HTTP-endepunkt etter en tidsplan, med metoden, hodene og brødteksten du velger, og sjekker det som kommer tilbake: statuskoden, svartiden, hodene og brødteksten. Bruk den for REST-, JSON- og GraphQL-endepunkter, helsesjekker og alle kall brukerne dine er avhengige av.
 
@@ -36,7 +36,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 - **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når API-et.** Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran API-et, tillater du [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). Et API på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket, som får nå private adresser: se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
-- **Påloggingsdata som overvåkingshemmeligheter.** Trenger API-et en nøkkel eller et token, lagrer du det først som en [overvåkingshemmelighet](/docs/monitor/monitor-secrets), så monitoren bare har en referanse til den.
+- **Påloggingsdata som overvåkingshemmeligheter.** Trenger API-et en nøkkel eller et token, lagrer du det først som en [monitorhemmelighet](/docs/monitor/monitor-secrets), så monitoren bare har en referanse til den.
 
 ## Opprett en API-monitor
 
@@ -70,7 +70,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ### API-URL
 
-Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`.
+Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`.
 
 ### Dynamiske URL-plassholdere
 
@@ -114,7 +114,7 @@ Disse innstillingene er brettet sammen under **Flere felt**. Den sammenbrettede 
 | **Tidsavbrudd for forespørsel (sekunder)** | `60` | Hvor lenge det ventes på hvert forsøk. Maksimum er 60 sekunder. |
 | **Nye forsøk ved feil** | Sondens standard, som regel `3` | Hvor mange ganger et mislykket forsøk gjentas. Maksimum er 3. Se [Nye forsøk og tidsavbrudd](#nye-forsøk-og-tidsavbrudd). |
 
-Forespørselshoder og forespørselens brødtekst kan bruke [overvåkingshemmeligheter](/docs/monitor/monitor-secrets), for eksempel et hode `Authorization` med verdien `Bearer {{monitorSecrets.ApiKey}}`.
+Forespørselshoder og forespørselens brødtekst kan bruke [monitorhemmeligheter](/docs/monitor/monitor-secrets), for eksempel et hode `Authorization` med verdien `Bearer {{monitorSecrets.ApiKey}}`.
 
 #### Ikke følg omdirigeringer
 
@@ -143,7 +143,7 @@ Det tilsvarer curls flagg `--cert` og `--key`:
 curl --cert client.crt --key client.key https://api.example.com/health
 ```
 
-For å holde nøkkelen utenfor monitorens innstillinger lagrer du sertifikatet og nøkkelen som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets) og angir `{{monitorSecrets.NAME}}` i disse feltene. Hemmeligheter fylles inn på serveren, og verdiene deres vises aldri i dashbordet.
+For å holde nøkkelen utenfor monitorens innstillinger lagrer du sertifikatet og nøkkelen som [monitorhemmeligheter](/docs/monitor/monitor-secrets) og angir `{{monitorSecrets.NAME}}` i disse feltene. Hemmeligheter fylles inn på serveren, og verdiene deres vises aldri i dashbordet.
 
 Klientsertifikatet presenteres bare så lenge forespørselen blir på URL-ens opprinnelse. Etter en omdirigering til en annen opprinnelse fortsetter sonden uten det.
 
@@ -233,7 +233,7 @@ Sonden fikk et annet svar enn deg. Hendelsens rotårsak og **Overvåkingslogger*
 :::
 
 :::details Monitoren sender `{{monitorSecrets.NAME}}` bokstavelig
-Monitoren får ikke bruke hemmeligheten, eller navnet stemmer ikke. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for hvem som får bruke en hemmelighet.
+Monitoren får ikke bruke hemmeligheten, eller navnet stemmer ikke. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for hvem som får bruke en hemmelighet.
 :::
 
 :::details Sjekken feiler med "unsafe cross-origin redirect"
@@ -248,7 +248,7 @@ Sonden leser høyst 512 KiB av et svar, og dette er større. Kall et endepunkt s
 
 :::cards
 - [JavaScript-uttrykk](/docs/monitor/javascript-expression): Sjekk felt dypt inne i et JSON-svar.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold API-nøkler og tokener utenfor monitorinnstillingene.
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk en nettside i stedet for et endepunkt.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Hold API-nøkler og tokener utenfor monitorinnstillingene.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Sjekk en nettside i stedet for et endepunkt.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett detaljer fra svaret inn i titlene på hendelser og varsler.
 :::

@@ -506,10 +506,21 @@ describe("a method named inside a sentence takes the sentence's language", () =>
   });
 
   test("a sentence not yet in the reader's language names the method in English", () => {
-    const german: Translator = translatorFor("de");
-
-    // The German file has the sentence in English still.
-    expect(readLocale("de")[REMOVE]).toBe(REMOVE);
+    /*
+     * German as its file read while these two sentences were still in
+     * English, every other word German. The file words them now.
+     */
+    const words: Record<string, string> = {
+      ...readLocale("de"),
+      [REMOVE]: REMOVE,
+      [DELETING]: DELETING,
+    };
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return words[text];
+      },
+      "de",
+    );
     expect(
       german.translateTemplate(REMOVE, {
         methodType: NotificationMethodUtil.getMethodNameInSentence(

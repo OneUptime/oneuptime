@@ -33,10 +33,10 @@
  * has a meaning of its own (a notification, the act of monitoring), so a
  * check reads the texts whose English names the thing, and only those: a
  * text whose English names the thing says the language's word and not the
- * dropped one. The locale files and the docs are held to these rules
- * (OneWordInSentencesPerThing), and so is every setup guide's words
- * (SetupGuideDocumentationInLocale): one list, so a rename reaches all
- * three.
+ * dropped one. The Dashboard's and the Admin Dashboard's locale files and
+ * the docs are held to these rules (OneWordInSentencesPerThing), and so is
+ * every setup guide's words (SetupGuideDocumentationInLocale): one list,
+ * so a rename reaches them all.
  */
 
 export interface SentenceRule {
@@ -63,8 +63,8 @@ export interface SentenceRule {
   docsEnglish?: RegExp;
 }
 
-// A Runner's English that names another agent, or AWS's App Runner.
-const NOT_THE_RUNNER: RegExp = /\bagent|app runner|proxy/i;
+// A Runner's English that names another agent, AWS's App Runner or the migrations' runner.
+const NOT_THE_RUNNER: RegExp = /\bagent|app runner|proxy|migration/i;
 
 export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
   {

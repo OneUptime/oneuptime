@@ -15,7 +15,7 @@ OneUptime 以两种方式与 [GitHub](https://github.com) 配合使用。通过 
 flowchart TB
     app["GitHub App"] --> repos["导入的存储库"]
     repos --> pr["来自 OneUptime<br/>AI 的修复<br/>pull request"]
-    declared["事件已宣布"] --> workflow["工作流：<br/>On Create Incident"]
+    declared["事件已宣布"] --> workflow["工作流：<br/>创建事件时"]
     workflow -->|"POST issues"| issue["GitHub issue"]
 ```
 
@@ -62,7 +62,7 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **选择启动此工作流的方式** 块，然后选择 **On Create Incident**。点击触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述** 和 **Incident Number With Prefix**。
+点击虚线的 **选择启动此工作流的方式** 块，然后选择 **创建事件时**。点击触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段** 并选择 **描述** 和 **Incident Number With Prefix**。
 
 ### 打开 issue
 

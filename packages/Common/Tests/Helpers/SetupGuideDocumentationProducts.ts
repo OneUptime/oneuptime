@@ -22,9 +22,12 @@ import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pa
 import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
 import { DATABASE_AGENT_SYSTEM_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
+import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
   getDatabaseSetupGuideWays,
+  getHostSetupGuideWays,
   getVMwareSetupGuideWays,
   getStorageArraySetupGuideWays,
   getKubernetesSetupGuideWays,
@@ -307,6 +310,33 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "This database",
         "Metrics",
         "Create monitor",
+      ],
+    }),
+    product({
+      name: "Host",
+      translations: HOST_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "HOST_DOCUMENTATION_TRANSLATIONS",
+      ways: getHostSetupGuideWays,
+      options: HOST_INSTALL_METHODS,
+      dashboardWords: [
+        "Hosts",
+        "Inventory",
+        "Details",
+        "Overview",
+        "Metrics",
+        "Processes",
+        "Logs",
+        "Systemd Units",
+        "Services",
+        "AI",
+        "AI agent",
+        "Agent Version",
+        "Kubernetes",
+        "Nodes",
+        // The guide's own topics, named from other topics.
+        "Record the serial number, make, model and firmware version",
+        "Enable the Systemd Units tab",
+        "Enable the Windows Services tab",
       ],
     }),
   ];

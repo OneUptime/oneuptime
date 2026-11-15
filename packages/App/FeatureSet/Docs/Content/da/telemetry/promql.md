@@ -162,7 +162,7 @@ Forespørgslen beder om mere, end en læsning må rumme. Tilføj etiketmatchere,
 ## Næste trin
 
 :::cards
-- [Måleudforsker](/docs/telemetry/metrics-explorer): Vis metrikker i diagrammer uden at skrive en forespørgsel.
+- [Metrikudforsker](/docs/telemetry/metrics-explorer): Vis metrikker i diagrammer uden at skrive en forespørgsel.
 - [Metrik-monitor](/docs/monitor/metrics-monitor): Få en advarsel, når en metrik krydser en grænse.
 - [Eksterne datakilder](/docs/dashboards/data-sources): Vis en ekstern Prometheus på dine dashboards.
 :::

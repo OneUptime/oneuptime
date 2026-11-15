@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 兩個 ID 都是必要的。當警示或事件屬於另一個專案，或是你看不到的對象時，連結請求也會被拒絕。無論警示或事件是不存在還是只是對你隱藏，錯誤訊息都一樣，所以它永遠不會洩露某個私人對象的存在。
 
-同一個資源驅動著產生的工作流程元件——**On Create Incident Alert** 在警示被連結時觸發，**On Delete Incident Alert** 在取消連結時觸發——以及 MCP 伺服器的 Incident Alert 工具。完整的請求和回應結構請見 [API 參考](/reference)。
+同一個資源驅動著產生的工作流程元件——**建立Incident Alert時** 在警示被連結時觸發，**刪除Incident Alert時** 在取消連結時觸發——以及 MCP 伺服器的 Incident Alert 工具。完整的請求和回應結構請見 [API 參考](/reference)。
 
 ## 取消連結
 

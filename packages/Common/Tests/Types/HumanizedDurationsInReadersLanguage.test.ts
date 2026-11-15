@@ -56,7 +56,8 @@ const humanized: (
   return withoutIsolateMarks(
     OneUptimeDate.getHumanizedDurationFromNanoseconds({
       nanoseconds,
-      maxParts,
+      // Left out, as the call reads it, when the test gives none.
+      ...(maxParts === undefined ? {} : { maxParts }),
       translator: translators[language],
     }),
   );
