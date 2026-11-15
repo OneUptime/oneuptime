@@ -133,7 +133,7 @@ E-posten må være én vanlig adresse, som `ada@example.com` — ikke et navn me
 
 ## Spørsmålene i et nytt skjema
 
-Et nytt skjema starter med spørsmålene det nesten alltid bør stille, så det fungerer i det øyeblikket det opprettes: **Tittel**, påkrevd; **Beskrivelse**; for et vedlikeholdsskjema **Begynner den** og **Slutter den**; og **Ditt navn** og **Din e-post**, påkrevd. Ordlyden er på dashbordets språk. Endre, skjul eller fjern dem som du vil — unntatt starten og slutten på en vedlikeholdsbegivenhet, uten dem kan ingen begivenhet planlegges. Når dine egne spørsmål sier alt, skjuler du **Beskrivelse** i stedet for å la en boks stå som ingen burde skrive i: se [Skjulte spørsmål](#skjulte-spørsmål).
+Et nytt skjema starter med spørsmålene det nesten alltid bør stille, så det fungerer i det øyeblikket det opprettes: **Tittel**, påkrevd; **Beskrivelse**; for et vedlikeholdsskjema **Begynner den** og **Slutter den**; og **Ditt navn** og **Din e-post**, påkrevd. Ordlyden er på dashbordets språk. Endre, skjul eller fjern dem som du vil — unntatt starten og slutten på en vedlikeholdshendelse, uten dem kan ingen begivenhet planlegges. Når dine egne spørsmål sier alt, skjuler du **Beskrivelse** i stedet for å la en boks stå som ingen burde skrive i: se [Skjulte spørsmål](#skjulte-spørsmål).
 
 ## Påkrevde spørsmål
 
@@ -151,7 +151,7 @@ Skjul et spørsmål når svaret er teamets å bestemme, ikke innsenderens:
 - **Et egendefinert felt som arbeidsflytene eller reglene dine leser**, som en varslingstype, satt av hver mal.
 - **Et av skjemaets egne spørsmål** der bare teamet ditt trenger svaret i det private notatet.
 
-Et skjult spørsmål beholder plassen, etiketten og innstillingene sine, så du kan vise det igjen når som helst. Et felt som skjemaets mål ikke kan opprettes uten — en vedlikeholdsbegivenhets **Begynner den** og **Slutter den** — kan ikke skjules. Et skjult spørsmåls svar sjekkes og lagres nøyaktig slik et skrevet svar ville bli, og beholdes med innsendingen.
+Et skjult spørsmål beholder plassen, etiketten og innstillingene sine, så du kan vise det igjen når som helst. Et felt som skjemaets mål ikke kan opprettes uten — en vedlikeholdshendelses **Begynner den** og **Slutter den** — kan ikke skjules. Et skjult spørsmåls svar sjekkes og lagres nøyaktig slik et skrevet svar ville bli, og beholdes med innsendingen.
 
 ## Maler
 
@@ -199,7 +199,7 @@ Ett hendelsesskjema kan dermed dekke begge tilfellene:
 | Berørte anlegg | Påkrevd | Valgfritt |
 | Dato for planlagt vedlikehold | Skjult | Påkrevd |
 
-Hvert spørsmål starter på **Skjemaets standard**, og det gjør også hvert spørsmål du senere legger til i skjemaet, i hver mal. En vedlikeholdsbegivenhets **Begynner den** og **Slutter den** spørres alltid om og er alltid påkrevd: ingen mal kan endre dem. En mal kan skjule alle andre spørsmål og svare på dem selv: lenken er da et skjema med én knapp, **Send inn** — praktisk for et tilfelle som **Tjeneste gjenopprettet**.
+Hvert spørsmål starter på **Skjemaets standard**, og det gjør også hvert spørsmål du senere legger til i skjemaet, i hver mal. En vedlikeholdshendelses **Begynner den** og **Slutter den** spørres alltid om og er alltid påkrevd: ingen mal kan endre dem. En mal kan skjule alle andre spørsmål og svare på dem selv: lenken er da et skjema med én knapp, **Send inn** — praktisk for et tilfelle som **Tjeneste gjenopprettet**.
 
 Siden følger malen innsenderen velger: å velge en annen tegner skjemaet på nytt med den malens spørsmål, og **Forhåndsvisning** gjør det samme. Serveren holder hver innsending opp mot spørsmålene malen den nevner stiller, uansett hva som sendte den: et spørsmål malen krever, må besvares, og et den skjuler, leses ikke fra forespørselen — malens eget svar brukes. En innsending som ikke nevner noen mal, eller en mal som er slettet siden, holdes opp mot skjemaets egne innstillinger. Et spørsmål skjemaet skjuler, vises bare for den offentlige siden når en mal spør om det.
 
@@ -231,7 +231,7 @@ Etter innsending sier siden "Takk — svaret ditt er sendt." og gir nummeret på
 | Svar | Grense |
 | --- | --- |
 | En hendelses **Tittel** | 500 tegn, uten å telle mellomrom i hver ende. |
-| En vedlikeholdsbegivenhets **Tittel** | 100 tegn. |
+| En vedlikeholdshendelses **Tittel** | 100 tegn. |
 | **Beskrivelse** | 20 000 tegn. |
 | Et hvilket som helst annet tekstsvar | 10 000 tegn. |
 | Et flervalgssvar | 100 valg. |
@@ -245,7 +245,7 @@ En innsending som bryter en grense, utelater et påkrevd svar eller gir et svar 
 ## Neste steg
 
 :::cards
-- [Hva en innsending oppretter](/docs/forms/on-submit): Hvordan svarene og innstillingene Ved innsending blir til en hendelse eller en vedlikeholdsbegivenhet.
+- [Hva en innsending oppretter](/docs/forms/on-submit): Hvordan svarene og innstillingene Ved innsending blir til en hendelse eller en vedlikeholdshendelse.
 - [Deling og sikkerhet](/docs/forms/sharing-and-security): Del lenken, en lenke for hver mal, og hva som beskytter dem.
 - [Hendelsesinnstillinger og automatisering](/docs/incidents/settings): Egendefinerte felt og maler for hendelser.
 :::

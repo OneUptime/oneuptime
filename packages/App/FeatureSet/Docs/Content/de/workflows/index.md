@@ -177,7 +177,7 @@ Ab jetzt startet jeder neue Vorfall im Projekt eine Ausführung. Sie finden alle
 ## Wie Workflows zum Rest von OneUptime passen
 
 - **Monitore** erkennen das Problem. **Vorfälle** und **Warnungen** halten es fest. **Arbeitsabläufe** reagieren darauf.
-- **Runbooks** sind Reaktionsabläufe, die Ihr Team bei einem Vorfall, einer Warnung oder einer Wartung durcharbeitet: manuelle Schritte, Freigaben und Skripte, mit Menschen in der Schleife. Workflows laufen unbeaufsichtigt. Nehmen Sie ein [Runbook](/docs/runbooks/index), wenn eine Person unterwegs Entscheidungen treffen muss, und einen Workflow, wenn jeder Schritt automatisch ist.
+- **Runbooks** sind Reaktionsabläufe, die Ihr Team bei einem Vorfall, einer Warnung oder einem Wartungsereignis durcharbeitet: manuelle Schritte, Freigaben und Skripte, mit Menschen in der Schleife. Workflows laufen unbeaufsichtigt. Nehmen Sie ein [Runbook](/docs/runbooks/index), wenn eine Person unterwegs Entscheidungen treffen muss, und einen Workflow, wenn jeder Schritt automatisch ist.
 - **Arbeitsbereich-Verbindungen** verbinden ein Projekt mit Slack und Microsoft Teams für Vorfallkanäle und Benachrichtigungen. Die Slack- und Microsoft-Teams-Bausteine der Workflows nutzen sie nicht: Jeder Baustein postet über eine eigene Incoming-Webhook-URL.
 
 ## Nächste Schritte

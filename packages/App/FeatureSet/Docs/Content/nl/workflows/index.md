@@ -177,7 +177,7 @@ Vanaf nu start elk nieuw incident in het project een uitvoering. Je vindt ze all
 ## Hoe workflows passen bij de rest van OneUptime
 
 - **Monitoren** zien het probleem. **Incidenten** en **waarschuwingen** leggen het vast. **Workflows** reageren erop.
-- **Runbooks** zijn responsprocedures die je team doorloopt bij een incident, een waarschuwing of onderhoud: handmatige stappen, goedkeuringen en scripts, met mensen erbij. Workflows draaien zonder toezicht. Gebruik een [runbook](/docs/runbooks/index) als iemand onderweg beslissingen moet nemen, en een workflow als elke stap automatisch gaat.
+- **Runbooks** zijn responsprocedures die je team doorloopt bij een incident, een waarschuwing of een onderhoudsgebeurtenis: handmatige stappen, goedkeuringen en scripts, met mensen erbij. Workflows draaien zonder toezicht. Gebruik een [runbook](/docs/runbooks/index) als iemand onderweg beslissingen moet nemen, en een workflow als elke stap automatisch gaat.
 - **Werkruimteverbindingen** koppelen een project aan Slack en Microsoft Teams voor incidentkanalen en meldingen. De Slack- en Microsoft Teams-blokken van workflows gebruiken die niet: elk blok post via een eigen incoming-webhook-URL.
 
 ## Volgende stappen
