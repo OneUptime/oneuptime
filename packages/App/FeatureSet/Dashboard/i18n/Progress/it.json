@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9123
+    "keys": 52780,
+    "untranslated": 8990
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -63,6 +63,7 @@
     "Celsius",
     "Chassis",
     "Chat",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "Client",
     "Client ID",
@@ -87,6 +88,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Dashboard",
     "Data stream",
@@ -282,6 +284,7 @@
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SQL injection",
     "SSH",
@@ -290,6 +293,7 @@
     "Schema",
     "Script",
     "Server",
+    "Server / VM",
     "Serverless",
     "Service Mesh",
     "Singapore (+65)",
@@ -316,6 +320,7 @@
     "Task · 52% CPU · 512 MB",
     "Team",
     "Team {{name}}",
+    "Team: {{name}}",
     "Tenancy",
     "Test",
     "Threat Intel",

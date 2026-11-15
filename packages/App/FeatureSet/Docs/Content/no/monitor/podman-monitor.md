@@ -44,7 +44,7 @@ Gå til **Monitorer** og klikk på **Opprett monitor**.
 
 ### Velg Podman Container
 
-Klikk på **Flere monitortyper** under **Monitortype**, og velg **Podman Container** under **Infrastruktur**, eller skriv `podman` i søkefeltet. Skriv inn et **Navn** – det brukes i titler på hendelser og varsler – og klikk på **Neste**.
+Klikk på **Flere monitortyper** under **Monitortype**, og velg **Podman-container** under **Infrastruktur**, eller skriv `podman` i søkefeltet. Skriv inn et **Navn** – det brukes i titler på hendelser og varsler – og klikk på **Neste**.
 
 ### Velg verten
 

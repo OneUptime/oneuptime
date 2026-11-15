@@ -2,7 +2,7 @@
 
 OneUptime의 **Incoming Email Monitor**를 사용하면 모니터마다 고유한 이메일 주소로 보낸 이메일을 바탕으로 알림을 만들고 해결할 수 있습니다. 레거시 시스템, 알림 도구, 이메일을 보낼 수 있는 모든 서비스와 연동할 때 유용합니다.
 
-같은 설정으로 워크플로도 이메일을 받을 수 있습니다. **Incoming Email** 트리거가 있는 워크플로는 같은 도메인에 자체 주소를 받고, 그 주소로 온 이메일마다 워크플로가 시작됩니다. [트리거](/docs/workflows/triggers#incoming-email)를 참고하세요.
+같은 설정으로 워크플로도 이메일을 받을 수 있습니다. **수신 이메일** 트리거가 있는 워크플로는 같은 도메인에 자체 주소를 받고, 그 주소로 온 이메일마다 워크플로가 시작됩니다. [트리거](/docs/workflows/triggers#incoming-email)를 참고하세요.
 
 이 가이드는 수신 이메일을 자체 호스팅한 OneUptime 인스턴스로 전달하도록 SendGrid Inbound Parse를 설정하는 방법을 설명합니다. OneUptime Cloud에는 이런 설정이 필요 없으며, 주소가 바로 동작합니다.
 
@@ -122,7 +122,7 @@ inboundEmail:
 
 [Incoming Email 모니터를 만드세요](/docs/monitor/incoming-email-monitor#수신-이메일-모니터-만들기). 그 **개요** 페이지에는 `monitor-abc123def456@inbound.yourdomain.com` 같은 주소가 표시되고, 기준에 따라 어떤 이메일이 알림을 만들고 어떤 이메일이 해결하는지가 정해집니다.
 
-워크플로도 같은 도메인을 사용합니다. 워크플로에 **Incoming Email** 트리거를 추가하고 클릭하면, 그 주소(`workflow-…@inbound.yourdomain.com`)가 설정 맨 위에 있습니다. 위의 수신 이메일 변수가 설정될 때까지 트리거는 서버가 이메일을 받도록 설정되지 않았다고 알려 줍니다.
+워크플로도 같은 도메인을 사용합니다. 워크플로에 **수신 이메일** 트리거를 추가하고 클릭하면, 그 주소(`workflow-…@inbound.yourdomain.com`)가 설정 맨 위에 있습니다. 위의 수신 이메일 변수가 설정될 때까지 트리거는 서버가 이메일을 받도록 설정되지 않았다고 알려 줍니다.
 
 ### 테스트 이메일 보내기
 

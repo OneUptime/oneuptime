@@ -276,6 +276,8 @@ export default class SiteTypeHierarchyFormUtil {
         label: candidateType?.name
           ? `${networkSite.name || "Unnamed Network Site"} (${candidateType.name})`
           : networkSite.name || "Unnamed Network Site",
+        // "Unnamed Network Site" in its place is the product's word, looked up.
+        isUserContent: Boolean(networkSite.name),
       };
 
       if (

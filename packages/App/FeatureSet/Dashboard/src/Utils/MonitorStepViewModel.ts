@@ -33,7 +33,11 @@ import {
   readSecurityWatchlistFilters,
 } from "Common/Types/SecurityEvent/SecurityWatchlistFilter";
 import { formatDictionaryValueForDisplay } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "./Milliseconds";
 import MonitorStepMetricQueries, {
   MonitorStepMetricReads,
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
@@ -165,6 +169,7 @@ const toText: (value: unknown) => string | undefined = (
   return String(value);
 };
 
+// A timeout in the reader's words: "5,000 ms", "۵٬۰۰۰ میلی‌ثانیه" (#7418).
 const toMilliseconds: (value: number | undefined) => string | undefined = (
   value: number | undefined,
 ): string | undefined => {
@@ -172,7 +177,7 @@ const toMilliseconds: (value: number | undefined) => string | undefined = (
     return undefined;
   }
 
-  return `${value} ms`;
+  return formatMilliseconds(getGlobalTranslator(), value);
 };
 
 const toDuration: (seconds: number | undefined) => string | undefined = (

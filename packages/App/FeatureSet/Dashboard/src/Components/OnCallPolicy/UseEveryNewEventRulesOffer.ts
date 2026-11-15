@@ -4,10 +4,12 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
   EveryNewEventRulesOfferFacts,
   PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
   shouldOfferEveryNewEventRules,
 } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
+import { getGlobalTranslator } from "Common/UI/Utils/TranslateTemplate";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -133,6 +135,17 @@ const useEveryNewEventRulesOffer: () => EveryNewEventRulesOffer =
       (miscDataProps: JSONObject): void => {
         if (!isOffered()) {
           delete miscDataProps[PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY];
+          delete miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY];
+          return;
+        }
+
+        /*
+         * The two rules are named in the language the form is read in
+         * (#7995): the server words them in it.
+         */
+        if (miscDataProps[PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]) {
+          miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY] =
+            getGlobalTranslator().language;
         }
       },
       [isOffered],

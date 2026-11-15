@@ -339,21 +339,25 @@ describe("a people picker field's onChange", () => {
 
     // The value is what the field writes: each kind to its own form value.
     expect(value).toEqual({ ownerUsers: [ADA], ownerTeams: [PLATFORM] });
+    // Each pick named as written, as a person's or a team's name reads.
     expect(change).toEqual({
       selectedOptions: [
         {
           label: "Ada Lovelace",
           value: getPeoplePickerOptionKey(PeoplePickerKind.User, ADA),
+          isUserContent: true,
         },
         {
           label: "Platform",
           value: getPeoplePickerOptionKey(PeoplePickerKind.Team, PLATFORM),
+          isUserContent: true,
         },
       ],
       previousOptions: [
         {
           label: "Ada Lovelace",
           value: getPeoplePickerOptionKey(PeoplePickerKind.User, ADA),
+          isUserContent: true,
         },
       ],
     });
@@ -416,8 +420,8 @@ describe("the change's plain helpers", () => {
       }),
     ).toEqual({
       selectedOptions: [
-        { label: "Ada Lovelace", value: `user:${ADA}` },
-        { label: "Ada Lovelace", value: `team:${ADA}` },
+        { label: "Ada Lovelace", value: `user:${ADA}`, isUserContent: true },
+        { label: "Ada Lovelace", value: `team:${ADA}`, isUserContent: true },
       ],
       previousOptions: [],
     });

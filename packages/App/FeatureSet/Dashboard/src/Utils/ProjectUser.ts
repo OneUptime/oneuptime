@@ -113,6 +113,8 @@ export default class ProjectUser {
       return {
         value: user.userId,
         label: user.name || user.email || "",
+        // A person's name or email, as they gave it.
+        isUserContent: true,
       };
     });
   }

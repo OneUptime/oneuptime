@@ -14,6 +14,11 @@ import {
   getStorageArrayMetricById,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { formatStorageArrayLag } from "./StorageArrayHealth";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 /*
  * Shared helpers for the Storage Array list/detail pages. The pages read
@@ -205,16 +210,25 @@ export function formatIops(value: number | null | undefined): string {
 /*
  * Pure reports latency in microseconds per operation. Below a millisecond
  * it reads best in µs (a FlashArray read is usually 150–500 µs); above,
- * in ms.
+ * in ms, in the reader's words ("2.35 ms", "۲٫۳۵ میلی‌ثانیه": #7418).
  */
-export function formatLatencyUsec(value: number | null | undefined): string {
+export function formatLatencyUsec(
+  value: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
   if (value < 1000) {
     return `${Math.round(value)} µs`;
   }
-  return `${(value / 1000).toFixed(value >= 100_000 ? 0 : 2)} ms`;
+
+  const decimals: number = value >= 100_000 ? 0 : 2;
+
+  return formatMilliseconds(translator, value / 1000, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
 }
 
 /*

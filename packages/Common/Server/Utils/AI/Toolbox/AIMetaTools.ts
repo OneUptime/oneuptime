@@ -50,6 +50,12 @@ import {
   aiActionTerm,
 } from "../../../../Types/AI/AIActionWords";
 import {
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
+import {
   getAlertNumberText,
   getIncidentNumberText,
   getRecordTitleName,
@@ -188,6 +194,8 @@ interface AIInvestigationSubject {
   alertId: ObjectID | undefined;
   // "Incident #12" / "Alert #7" — falls back to the raw id when no number exists.
   label: string;
+  // The same number alone ("#12"), or the raw id: what the label names.
+  reference: string;
   /*
    * The card it leaves: the kind of record (AI_ACTION_CARD_KINDS) and the
    * record by the number and title the person knows it by ("INC-12 ·
@@ -279,6 +287,9 @@ const fetchInvestigationSubject: (
       label: incident.incidentNumber
         ? `Incident #${incident.incidentNumber}`
         : `Incident ${incidentId.toString()}`,
+      reference: incident.incidentNumber
+        ? `#${incident.incidentNumber}`
+        : incidentId.toString(),
       cardKind: AI_ACTION_CARD_KINDS.incident,
       cardHeading: describeCardHeading(
         getIncidentNumberText(incident),
@@ -315,6 +326,9 @@ const fetchInvestigationSubject: (
       label: alert.alertNumber
         ? `Alert #${alert.alertNumber}`
         : `Alert ${alertId.toString()}`,
+      reference: alert.alertNumber
+        ? `#${alert.alertNumber}`
+        : alertId.toString(),
       cardKind: AI_ACTION_CARD_KINDS.alert,
       cardHeading: describeCardHeading(getAlertNumberText(alert), alert.title),
       citationType: AIChatCitationTargetType.AlertView,
@@ -587,7 +601,18 @@ export const GetAIInvestigationTool: ObservabilityTool = {
       redactionCount: serializedRuns.redactionCount + analysisRedactionCount,
       isTruncated: serializedRuns.isTruncated || analysisIsTruncated,
       widget: WidgetBuilder.table({
-        title: `AI investigations — ${subject.label}`,
+        // In the reader's language (issue #7977): the record by its number.
+        words: {
+          title: subject.incidentId
+            ? aiActionSentence(
+                AI_READ_RECORD_TABLE_TITLES.incidentInvestigations,
+                { incident: subject.reference },
+              )
+            : aiActionSentence(
+                AI_READ_RECORD_TABLE_TITLES.alertInvestigations,
+                { alert: subject.reference },
+              ),
+        },
         columns: [
           { key: "status", title: translationKey("Status") },
           { key: "analysisTldr", title: translationKey("TL;DR") },
@@ -778,14 +803,28 @@ export const QueryAIInsightsTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: `AI insights, last ${lookbackDays}d (${totalCount} found)`,
+      // In the reader's language (issues #7977, #7980).
+      ...citationSentence(AI_READ_CITATIONS.aiInsights, {
+        days: countFigure(lookbackDays),
+        count: countFigure(totalCount),
+      }),
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `AI insights (${totalCount})`,
-              description: `Preventive findings seen in the last ${lookbackDays}d`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.aiInsights,
+                  {
+                    count: countFigure(totalCount),
+                  },
+                ),
+                description: aiActionSentence(
+                  AI_READ_RECORD_TABLE_LINES.aiInsightsInDays,
+                  { days: countFigure(lookbackDays) },
+                ),
+              },
               columns: [
                 { key: "severity", title: translationKey("Severity") },
                 { key: "title", title: translationKey("Finding") },

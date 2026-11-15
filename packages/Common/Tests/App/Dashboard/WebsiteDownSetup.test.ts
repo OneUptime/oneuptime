@@ -56,6 +56,8 @@ import {
   OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { Translator, createTranslator } from "../../../Types/Translator";
+import { translateRecordName } from "../../../Utils/DefaultRecordNames";
+import { StateListType } from "../../../Utils/StateOrder";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -1946,7 +1948,14 @@ describe("the summary's severity, in brackets after the word for incident, in ev
     },
   );
 
-  // A project's own names, the defaults among them, kept as they were given.
+  /*
+   * A project's own name kept as it was given ("SEV1"), and the names a new
+   * project starts with in the reader's words, as their badges read them
+   * (Common/Utils/DefaultRecordNames, #7894): German "Kritischer Vorfall",
+   * in brackets, so "einen Vorfall (Kritischer Vorfall)" names the
+   * severity once and never reads it as a word before the word for
+   * incident.
+   */
   const severities: Array<string> = [
     "Critical Incident",
     "Major Incident",
@@ -1978,15 +1987,25 @@ describe("the summary's severity, in brackets after the word for incident, in ev
         )!,
       );
 
-      expect(text).toContain(bracketed.replace(SEVERITY_PLACEHOLDER, severity));
+      const shown: string = translateRecordName(
+        dashboardTranslator(language),
+        StateListType.IncidentSeverity,
+        severity,
+      );
+
+      if (severity === "SEV1") {
+        expect(shown).toBe(severity);
+      }
+
+      expect(text).toContain(bracketed.replace(SEVERITY_PLACEHOLDER, shown));
       // "Critical Incident incident", "Kritischer Vorfall Vorfall": never.
       expect(text.toLowerCase()).not.toContain(
-        `${severity} ${incidentWord}`.toLowerCase(),
+        `${shown} ${incidentWord}`.toLowerCase(),
       );
       expect(text.toLowerCase()).not.toContain(
-        `${severity}${incidentWord}`.toLowerCase(),
+        `${shown}${incidentWord}`.toLowerCase(),
       );
-      expect(text.split(severity)).toHaveLength(2);
+      expect(text.split(shown)).toHaveLength(2);
     },
   );
 

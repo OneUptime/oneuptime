@@ -12,6 +12,7 @@ import {
   REMEDIATION_ROUND_TRY_AGAIN_REFUSALS,
   RemediationRoundTryAgainRefusal,
 } from "../../../Types/AutoRemediation/RemediationRound";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import {
   createTranslator,
   PluralTemplate,
@@ -177,7 +178,8 @@ describe("the step says the server's refusal in the reader's language", () => {
 
     // What the step does with the server's words (RemediationStep.tryAgainRound).
     expect(translator.translateText(sentence)).toBe(
-      readLocale(language)[sentence],
+      // As the step draws it: French's colon kept with its word.
+      withNoBreakSpaces(readLocale(language)[sentence]!, sentence, language),
     );
     expect(translator.translateText(sentence)).not.toBe(sentence);
   });

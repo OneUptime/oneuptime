@@ -39,6 +39,13 @@ export const ON_CALL_POLICY_RUN_WAITING_MESSAGE_START: string = "Waiting. ";
 export const ON_CALL_POLICY_RUN_WAITING_FOR_ONEUPTIME_AI_MESSAGE_START: string =
   "Waiting for OneUptime AI. ";
 
+// What every waiting run's message says after why it waits.
+const PAGING_STARTS: string = "Paging starts ";
+
+// How a run OneUptime AI holds ends its message, and how every other ends it.
+const UNLESS_ONEUPTIME_AI_RESOLVES_THIS: string = " unless it resolves this.";
+const SENTENCE_END: string = ".";
+
 export function getOnCallPolicyRunWaitingMessage(data: {
   pagingStartsAt: Date;
   // The zone the moment is told in: the rule's. UTC without one.
@@ -55,14 +62,83 @@ export function getOnCallPolicyRunWaitingMessage(data: {
   });
 
   if (data.isWaitingForOneUptimeAI) {
-    return `${ON_CALL_POLICY_RUN_WAITING_FOR_ONEUPTIME_AI_MESSAGE_START}Paging starts ${moment} unless it resolves this.`;
+    return `${ON_CALL_POLICY_RUN_WAITING_FOR_ONEUPTIME_AI_MESSAGE_START}${PAGING_STARTS}${moment}${UNLESS_ONEUPTIME_AI_RESOLVES_THIS}`;
   }
 
   const start: string = data.isWaitingForWorkingHours
     ? ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START
     : ON_CALL_POLICY_RUN_WAITING_MESSAGE_START;
 
-  return `${start}Paging starts ${moment}.`;
+  return `${start}${PAGING_STARTS}${moment}${SENTENCE_END}`;
+}
+
+/*
+ * WHY A WAITING RUN WAITS, READ BACK FROM ITS MESSAGE (#7552).
+ *
+ * The run's message is written in English for every reader - its record's
+ * feed, its Slack and Microsoft Teams message - and the Execution Logs
+ * table drew it as it was: English on a German or a Persian page, and on
+ * an Arabic or Persian one laid out right to left, its full stop first and
+ * "(Europe/London)" turned round. The table now words the line itself from
+ * the run: why it waits, read here, and when paging starts, from the run's
+ * own pagingStartsAt in the reader's date and time. A message that is not
+ * one of these three, whole - a caller's own, a line written some other
+ * way - reads null, and is drawn as written, set apart.
+ */
+export enum OnCallPolicyRunWaitReason {
+  // An on-call rule that pages only during working hours holds it.
+  WorkingHours = "WorkingHours",
+  // OneUptime AI holds it while it works, unless it resolves the record.
+  OneUptimeAI = "OneUptimeAI",
+  // Any other hold: a caller that named the moment.
+  Other = "Other",
+}
+
+const WAITING_MESSAGE_SHAPES: ReadonlyArray<{
+  start: string;
+  end: string;
+  reason: OnCallPolicyRunWaitReason;
+}> = [
+  {
+    start: ON_CALL_POLICY_RUN_WAITING_FOR_ONEUPTIME_AI_MESSAGE_START,
+    end: UNLESS_ONEUPTIME_AI_RESOLVES_THIS,
+    reason: OnCallPolicyRunWaitReason.OneUptimeAI,
+  },
+  {
+    start: ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START,
+    end: SENTENCE_END,
+    reason: OnCallPolicyRunWaitReason.WorkingHours,
+  },
+  {
+    start: ON_CALL_POLICY_RUN_WAITING_MESSAGE_START,
+    end: SENTENCE_END,
+    reason: OnCallPolicyRunWaitReason.Other,
+  },
+];
+
+/*
+ * Why a waiting run waits, from its message as
+ * getOnCallPolicyRunWaitingMessage writes it - its start, "Paging starts ",
+ * a moment, and its end - or null for any other message.
+ */
+export function readOnCallPolicyRunWaitReason(
+  statusMessage: string | null | undefined,
+): OnCallPolicyRunWaitReason | null {
+  const message: string = (statusMessage || "").trim();
+
+  for (const shape of WAITING_MESSAGE_SHAPES) {
+    const opening: string = `${shape.start}${PAGING_STARTS}`;
+
+    if (
+      message.length > opening.length + shape.end.length &&
+      message.startsWith(opening) &&
+      message.endsWith(shape.end)
+    ) {
+      return shape.reason;
+    }
+  }
+
+  return null;
 }
 
 /*

@@ -143,6 +143,8 @@ const IoTMonitorStepForm: FunctionComponent<ComponentProps> = (
       toOption: (fleet: IoTFleet): DropdownOption => {
         return {
           label: fleet.name || "Unknown",
+          // Its own name as written; "Unknown" in the reader's words.
+          isUserContent: Boolean(fleet.name),
           value: fleet.name || "",
         };
       },

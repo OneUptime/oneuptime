@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9161
+    "keys": 52780,
+    "untranslated": 9029
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -49,6 +49,7 @@
     "Cache",
     "Canonical Sunbeam",
     "Celsius",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "CloudKitty",
     "CloudWatch Metric Streams",
@@ -64,6 +65,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Data",
     "Datacenter",
@@ -123,6 +125,7 @@
     "Incident",
     "Incident #{{number}}",
     "Incident #{{number}}: {{title}}",
+    "Incident {{incident}}",
     "Incident {{number}}",
     "Incident {{number}}: {{title}}",
     "Incident:",
@@ -244,11 +247,13 @@
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SSH",
     "Samples",
@@ -256,6 +261,7 @@
     "ScheduledMaintenance",
     "Schema",
     "Server",
+    "Server / VM",
     "Service Mesh",
     "Session",
     "Session {{id}}",
@@ -281,6 +287,7 @@
     "TX",
     "Team",
     "Team {{name}}",
+    "Team: {{name}}",
     "Tenancy",
     "Text",
     "Token",

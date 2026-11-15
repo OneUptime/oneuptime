@@ -14,6 +14,7 @@ import {
   rememberEnglishOf,
 } from "../../../Types/DateLanguage";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { withNumbersKeptWithUnits } from "../../../Types/NoBreakSpaces";
 import ObjectID from "../../../Types/ObjectID";
 import {
   createTranslator,
@@ -290,9 +291,13 @@ const MARKING: Translator = createTranslator((text: string): string => {
 const marked: (words: Array<CriteriaWords>) => Array<CriteriaWords> = (
   words: Array<CriteriaWords>,
 ): Array<CriteriaWords> => {
-  // A criteria with no words (Manual's blank one) asks for none.
+  /*
+   * A criteria with no words (Manual's blank one) asks for none. A marked
+   * sentence is a wording of its own, so it keeps each number with its unit
+   * (NoBreakSpaces): "1000 ms" holds together.
+   */
   const mark: (text: string) => string = (text: string): string => {
-    return text ? `«${text}»` : text;
+    return text ? `«${withNumbersKeptWithUnits(text, text)}»` : text;
   };
   const markOpened: (opened: OpenedWords) => OpenedWords = (
     opened: OpenedWords,

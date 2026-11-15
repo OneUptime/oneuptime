@@ -257,6 +257,8 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
       toOption: (cluster: KubernetesCluster): DropdownOption => {
         return {
           label: cluster.name || cluster.clusterIdentifier || "Unknown",
+          // Its own name as written; "Unknown" in the reader's words.
+          isUserContent: Boolean(cluster.name || cluster.clusterIdentifier),
           value: cluster.clusterIdentifier || "",
         };
       },

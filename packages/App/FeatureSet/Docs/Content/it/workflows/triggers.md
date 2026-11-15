@@ -20,7 +20,7 @@ Per aggiungere il trigger, fai clic sul blocco tratteggiato **Scegli cosa avvia 
 | Fare clic su un pulsante per eseguire il workflow | **Manuale**               |
 | Eseguirlo con una pianificazione ricorrente    | **Pianificazione**          |
 | Far inviare dati da un altro sistema           | **Webhook**                 |
-| Avviarlo da un'email                           | **Incoming Email**          |
+| Avviarlo da un'email                           | **Email in arrivo**          |
 | Agire sui rapporti di incidente di Huntress    | **Huntress Incident Report** |
 | Reagire a qualcosa all'interno di OneUptime    | **Evento OneUptime**        |
 

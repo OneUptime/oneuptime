@@ -168,7 +168,120 @@ describe("what the refusing places throw", () => {
   });
 });
 
+/*
+ * AN AI INSIGHT'S PAGE REFUSES WITH CODES TOO (#8052). Confirm, Dismiss,
+ * Resolve, Reopen, the triage panel and a triage's Try again all look the
+ * insight up first (findAccessibleInsight), and that lookup refused with a
+ * plain BadDataException: the page said "AI insight not found (or you do
+ * not have access to it)." in English on a German page. The service's
+ * own refusals - the insight went between the page's check and the change,
+ * or someone closed it already - are coded as well.
+ */
+const INSIGHT_API_FILE: string = "Server/API/AIInsightAPI.ts";
+const INSIGHT_SERVICE_FILE: string = "Server/Services/AIInsightService.ts";
+
+// A class method's body, from its name to the next method or the class's end.
+function getMethodBody(source: string, name: string): string {
+  const start: number = source.indexOf(`public async ${name}(`);
+
+  if (start < 0) {
+    return "";
+  }
+
+  const next: number = source.indexOf("\n  @CaptureSpan()", start + 1);
+
+  return source.slice(start, next < 0 ? source.length : next);
+}
+
+describe("what an AI insight's page refuses with (#8052)", () => {
+  test("the insight lookup every route makes refuses with its code, apart from a malformed request", () => {
+    const lookup: string = getFunctionBody(
+      readSource(INSIGHT_API_FILE),
+      "async function findAccessibleInsight(",
+    );
+
+    /*
+     * BadDataException: a request that names no insight, which the page
+     * never sends. Gone and not the reader's are one refusal, so the
+     * answer never tells whether an id exists in another project.
+     */
+    expect(getThrownExceptions(lookup)).toEqual([
+      "BadDataException",
+      "AiRunRefusalException",
+    ]);
+    expect(lookup).toContain(
+      "new AiRunRefusalException(AiRunRefusalCode.InsightNotFoundOrNoAccess)",
+    );
+    expect(lookup).not.toContain("AI insight not found");
+  });
+
+  test.each([
+    ["/ai-insight/resolve", []],
+    ["/ai-insight/reopen", []],
+    ["/ai-insight/triage-run", []],
+    ["/ai-insight/triage-try-again", []],
+    // A verdict that is neither Confirmed nor Dismissed: a malformed request.
+    ["/ai-insight/verdict", ["BadDataException"]],
+  ])(
+    "the %s route refuses nothing in place but a malformed request",
+    (routePath: string, expected: Array<string>) => {
+      const body: string = getRouteBody(
+        readSource(INSIGHT_API_FILE),
+        routePath,
+      );
+
+      expect(body).toContain("findAccessibleInsight(req, props)");
+      expect(getThrownExceptions(body)).toEqual(expected);
+    },
+  );
+
+  test.each([
+    ["applyHumanVerdict", ["AiRunRefusalException"]],
+    ["reopenInsight", ["AiRunRefusalException"]],
+    [
+      "resolveInsight",
+      [
+        "AiRunRefusalException",
+        "AiRunRefusalException",
+        "AiRunRefusalException",
+      ],
+    ],
+  ])(
+    "AIInsightService.%s refuses only with codes",
+    (method: string, expected: Array<string>) => {
+      const body: string = getMethodBody(
+        readSource(INSIGHT_SERVICE_FILE),
+        method,
+      );
+
+      expect(body.length).toBeGreaterThan(0);
+      expect(getThrownExceptions(body)).toEqual(expected);
+    },
+  );
+
+  test("the service no longer writes an insight's refusal in place", () => {
+    const source: string = readSource(INSIGHT_SERVICE_FILE);
+
+    expect(source).not.toContain("AI insight not found");
+    expect(source).not.toContain("cannot be resolved again");
+    expect(source).not.toMatch(/throw\s+new\s+BadDataException/);
+  });
+});
+
 describe("the reading itself (negative controls)", () => {
+  test("reads a method's body up to the next method", () => {
+    const source: string =
+      'class A {\n  @CaptureSpan()\n  public async a() {\n    throw new BadDataException("a");\n  }\n\n  @CaptureSpan()\n  public async b() {\n    throw new AiRunRefusalException(code);\n  }\n}\n';
+
+    expect(getThrownExceptions(getMethodBody(source, "a"))).toEqual([
+      "BadDataException",
+    ]);
+    expect(getThrownExceptions(getMethodBody(source, "b"))).toEqual([
+      "AiRunRefusalException",
+    ]);
+    expect(getMethodBody(source, "c")).toBe("");
+  });
+
   test("finds a plain refusal, as it was before #7359", () => {
     expect(
       getThrownExceptions(

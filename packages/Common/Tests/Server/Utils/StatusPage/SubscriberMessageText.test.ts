@@ -193,7 +193,7 @@ describe("the Slack and Microsoft Teams messages", () => {
         SubscriberChatText.severity,
         "Majeur",
       ).toString(),
-    ).toBe("**Gravité :** Majeur");
+    ).toBe("**Gravité\u00A0:** Majeur");
     expect(
       SubscriberMessageText.chatLine(
         getServerTranslator("zh-CN"),

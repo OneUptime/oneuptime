@@ -189,6 +189,7 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
   const teamOptions: Array<DropdownOption> = teams.map((team: TeamItem) => {
     return {
       label: team.name,
+      isUserContent: true,
       value: team.id,
     };
   });

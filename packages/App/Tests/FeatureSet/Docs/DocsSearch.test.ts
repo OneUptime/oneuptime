@@ -452,6 +452,177 @@ describe("reading what was typed", () => {
   });
 });
 
+/*
+ * Every docs language, as Ask AI reads it (#7875): the question's own
+ * words left out, word forms read without their endings, and a compound
+ * found by the words it is made of.
+ */
+describe("reading what was typed, in every docs language", () => {
+  it("cuts a Chinese question's own words out of what was typed", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/website-monitor",
+          title: "网站监控",
+          summary: "网站监控检查网页是否响应。",
+        },
+        {
+          page: "notifications/on-call-rules",
+          title: "如何联系我",
+          summary: "通知规则决定在什么时候用什么方式联系您。",
+        },
+      ],
+      "zh-CN",
+    );
+
+    expect(typedWords(index, "如何监控我的网站？")).toEqual(["监控", "网站"]);
+    expect(urls(DocsSearch.rank(index, "如何监控我的网站？"))[0]).toBe(
+      "/docs/zh-CN/monitor/website-monitor",
+    );
+    // Typed with nothing else, they are read: "如何" finds the page named with it.
+    expect(typedWords(index, "如何")).toEqual(["如何"]);
+    expect(urls(DocsSearch.rank(index, "如何联系我"))[0]).toBe(
+      "/docs/zh-CN/notifications/on-call-rules",
+    );
+  });
+
+  it("reads a word in its index's language: Norwegian 'nettstedet' is the name's 'Nettsted'", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/website-monitor",
+          title: "Nettsted-overvåking",
+          summary: "En nettstedsmonitor sjekker at en nettside svarer.",
+        },
+        {
+          page: "guides/website-down",
+          title: "Få beskjed når nettstedet ditt går ned",
+          summary: "Følg guiden for å bli varslet.",
+        },
+        {
+          page: "status-pages/index",
+          title: "Statussider",
+          summary: "Fortell kundene hva som skjer.",
+        },
+      ],
+      "no",
+    );
+
+    expect(
+      typedWords(index, "Hvordan overvåker jeg nettstedet mitt? "),
+    ).toEqual(["overvåker", "nettstedet"]);
+    expect(
+      urls(
+        DocsSearch.rank(index, "Hvordan overvåker jeg nettstedet mitt? "),
+      )[0],
+    ).toBe("/docs/no/monitor/website-monitor");
+  });
+
+  it("finds two typed words in the one word they make, in Swedish", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/website-monitor",
+          title: "Webbplatsövervakning",
+          summary: "En monitor kontrollerar att en webbsida svarar.",
+        },
+        {
+          page: "guides/website-down",
+          title: "Få veta när din webbplats går ner",
+          summary: "Följ guiden.",
+        },
+        {
+          page: "monitor/index",
+          title: "Övervakning",
+          summary: "Monitorer kontrollerar att saker fungerar.",
+        },
+      ],
+      "sv",
+    );
+    const answer: DocsSearchAnswer = DocsSearch.rank(
+      index,
+      "övervaka webbplats ",
+    );
+
+    expect(urls(answer)[0]).toBe("/docs/sv/monitor/website-monitor");
+    expect(
+      alternativeTerms(DocsSearch.readQuery(index, "övervaka webbplats ")[0]!),
+    ).toContain("webbplatsovervak");
+  });
+
+  it("opens the page whose name was typed, word for word, before one whose name says it and more", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "monitor/profiles-monitor",
+          title: "Монитор профилей",
+          summary: "Монитор профилей следит за профилями и профилем.",
+        },
+        {
+          page: "telemetry/profiles",
+          title: "Профили",
+          summary: "Профили показывают, где тратится время.",
+        },
+      ],
+      "ru",
+    );
+
+    // Both names hold "профил", read without its ending.
+    expect(
+      alternativeTerms(DocsSearch.readQuery(index, "Профили ")[0]!),
+    ).toEqual(["профил"]);
+    expect(urls(DocsSearch.rank(index, "Профили "))[0]).toBe(
+      "/docs/ru/telemetry/profiles",
+    );
+    expect(urls(DocsSearch.rank(index, "Монитор профилей "))[0]).toBe(
+      "/docs/ru/monitor/profiles-monitor",
+    );
+  });
+
+  it("reads a phrase a section says word for word whole, its question words too", () => {
+    const index: AIDocsLanguageIndex = makeDocsIndex(
+      [
+        {
+          page: "probe/custom-probe",
+          title: "Sonde personnalisée",
+          summary: "Une sonde dans votre réseau.",
+          sections: [
+            {
+              title: "Ce sur quoi la sonde écoute",
+              text: "Elle écoute sur le réseau de l'hôte ou si le conteneur le permet.",
+            },
+            {
+              title: "Le réseau de l'hôte",
+              text: "Le réseau et l'hôte de la sonde.",
+            },
+          ],
+        },
+      ],
+      "fr",
+    );
+
+    expect(
+      DocsSearch.isPhraseOfTheDocs(index, "le réseau de l'hôte ou si "),
+    ).toBe(true);
+    expect(typedWords(index, "le réseau de l'hôte ou si ")).toEqual(
+      expect.arrayContaining(["le", "de", "ou", "si"]),
+    );
+    expect(urls(DocsSearch.rank(index, "le réseau de l'hôte ou si "))[0]).toBe(
+      "/docs/fr/probe/custom-probe#ce-sur-quoi-la-sonde-écoute",
+    );
+    // A question no section says is read without its question words.
+    expect(
+      DocsSearch.isPhraseOfTheDocs(index, "Comment écoute la sonde ?"),
+    ).toBe(false);
+    expect(typedWords(index, "Comment écoute la sonde ?")).toEqual([
+      "écoute",
+      "sonde",
+    ]);
+    // Fewer than three words is not a phrase.
+    expect(DocsSearch.isPhraseOfTheDocs(index, "le réseau")).toBe(false);
+  });
+});
+
 describe("ranking", () => {
   it("needs every word typed: a section that holds them all beats a page that holds one", () => {
     // Four other pages say Kubernetes; only the agent's page says Helm too.

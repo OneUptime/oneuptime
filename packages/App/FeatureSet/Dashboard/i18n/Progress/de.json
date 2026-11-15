@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 2660
+    "keys": 52780,
+    "untranslated": 2612
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -511,6 +511,7 @@
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "Réunion",
     "SCIM (System for Cross-domain Identity Management)",
@@ -520,7 +521,9 @@
     "SHA-512",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
+    "SLOs ({{count}})",
     "SMS: ",
     "SNMP:",
     "SSH",
@@ -536,6 +539,7 @@
     "Screenshots:",
     "Senegal",
     "Server",
+    "Server / VM",
     "Service Level Objective",
     "Service Level Objectives",
     "Service Mesh",
@@ -584,7 +588,9 @@
     "Task · 52% CPU · 512 MB",
     "Team",
     "Team {{name}}",
+    "Team: {{name}}",
     "Teams",
+    "Teams ({{count}})",
     "Telegram: ",
     "Text",
     "Thailand",

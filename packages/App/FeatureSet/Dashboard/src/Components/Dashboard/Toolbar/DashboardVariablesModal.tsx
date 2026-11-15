@@ -344,11 +344,14 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
             ].map((type: DashboardVariableType): DropdownOption => {
               return {
                 label: getDashboardVariableTypeName(type),
+                // A source's name is the product's word, looked up.
+                isUserContent: false,
                 value: type,
               };
             })}
             value={{
               label: getDashboardVariableTypeName(variable.type),
+              isUserContent: false,
               value: variable.type,
             }}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {

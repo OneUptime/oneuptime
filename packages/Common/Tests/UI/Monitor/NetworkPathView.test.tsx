@@ -26,7 +26,10 @@ import NetworkPathView, {
   NETWORK_PATH_VERDICT_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/NetworkPathView";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  readDashboardLocale,
+  readDashboardLocaleAsDrawn,
+} from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
@@ -548,7 +551,7 @@ describe("Network path card in the reader's language", () => {
     );
     expect(headers()).toEqual(["Hop", "Host", "RTT"]);
     expect(document.body.textContent).toContain(
-      "api.example.com wurde in 1.234 ms zu 203.0.113.9 aufgelöst",
+      "api.example.com wurde in 1.234\u00A0ms zu 203.0.113.9 aufgelöst",
     );
   });
 
@@ -629,7 +632,7 @@ describe("Network path card in the reader's language", () => {
   it("Persian: the DNS line is the Persian sentence, its time in Persian digits", () => {
     renderIn("fa", BROKEN_ROUTE);
 
-    const persian: Record<string, string> = readDashboardLocale("fa");
+    const persian: Record<string, string> = readDashboardLocaleAsDrawn("fa");
     const words: string = withoutIsolateMarks(document.body.textContent || "");
 
     expect(words).toContain(
@@ -747,7 +750,10 @@ describe("Network path card in the reader's language", () => {
       expect(time).toHaveClass("whitespace-nowrap");
     }
     expect(times[0]!.textContent).toBe(
-      readDashboardLocale("fa")["{{value}} ms"]!.replace("{{value}}", "۱"),
+      readDashboardLocaleAsDrawn("fa")["{{value}} ms"]!.replace(
+        "{{value}}",
+        "۱",
+      ),
     );
   });
 });

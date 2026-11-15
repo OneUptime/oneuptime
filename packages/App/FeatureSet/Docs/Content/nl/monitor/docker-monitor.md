@@ -44,7 +44,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**.
 
 ### Docker Container kiezen
 
-Klik onder **Monitortype** op **Meer monitortypen** en kies **Docker Container** onder **Infrastructuur**, of typ `docker` in het zoekvak. Vul een **Naam** in – die wordt gebruikt in de titels van incidenten en waarschuwingen – en klik op **Volgende**.
+Klik onder **Monitortype** op **Meer monitortypen** en kies **Docker-container** onder **Infrastructuur**, of typ `docker` in het zoekvak. Vul een **Naam** in – die wordt gebruikt in de titels van incidenten en waarschuwingen – en klik op **Volgende**.
 
 ### De host kiezen
 

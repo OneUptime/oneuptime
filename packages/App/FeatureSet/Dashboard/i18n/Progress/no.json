@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9175
+    "keys": 52780,
+    "untranslated": 9043
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -46,6 +46,7 @@
     "Celsius",
     "Chassis",
     "Chat",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "CloudKitty",
     "CloudWatch Metric Streams",
@@ -62,6 +63,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Data",
     "Database",
@@ -213,11 +215,13 @@
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SSH",
     "Samples",
@@ -225,7 +229,9 @@
     "Send",
     "Send (Enter)",
     "Send test",
+    "Send {{command}}",
     "Server",
+    "Server / VM",
     "Service Mesh",
     "Signal",
     "Singapore (+65)",
@@ -248,6 +254,7 @@
     "TX",
     "Team",
     "Team {{name}}",
+    "Team: {{name}}",
     "Test",
     "Test {{name}}",
     "Test {{policy}}",

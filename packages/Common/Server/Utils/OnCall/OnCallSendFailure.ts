@@ -13,6 +13,7 @@ import {
   NotificationRequestFailureKind,
 } from "./NotificationRequestFailure";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { getNotificationServiceAnswerLine } from "../../../Types/OnCallDutyPolicy/OnCallSendFailureLine";
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 
@@ -70,9 +71,6 @@ export const MAX_ANSWER_WORDS_LENGTH: number = 300;
 // A run of white space, where an answer's words are broken into words.
 const WHITE_SPACE_RUN: RegExp = /\s+/;
 
-// The end of a sentence an answer's words already have - or words cut short.
-const SENTENCE_END: RegExp = /[.!?…]$/;
-
 // What a word that is an address is shown as: an answer never names one.
 const ADDRESS_PLACEHOLDER: string = "[address]";
 
@@ -122,6 +120,9 @@ function getAnswerWords(message: string | undefined): string {
  *
  *   The Notification service answered with an error (HTTP 500), so this
  *   may not have been sent: Server Error.
+ *
+ * The line is written, and read back for a test page's result to word in
+ * the reader's language, by OnCallSendFailureLine (#7550).
  */
 export function getAnsweredFailureStatusMessage(answer: {
   statusCode?: number | undefined;
@@ -135,19 +136,10 @@ export function getAnsweredFailureStatusMessage(answer: {
       ? answer.statusCode
       : null;
 
-  const status: string = statusCode ? ` (HTTP ${statusCode})` : "";
-  const words: string = getAnswerWords(answer.message);
-
-  const sentence: string =
-    statusCode !== null && statusCode >= 400 && statusCode <= 499
-      ? `The Notification service refused to send this${status}`
-      : `The Notification service answered with an error${status}, so this may not have been sent`;
-
-  if (!words) {
-    return `${sentence}.`;
-  }
-
-  return `${sentence}: ${SENTENCE_END.test(words) ? words : `${words}.`}`;
+  return getNotificationServiceAnswerLine({
+    statusCode: statusCode,
+    words: getAnswerWords(answer.message),
+  });
 }
 
 /*

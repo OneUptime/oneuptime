@@ -45,6 +45,27 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AI_READ_CARD_LINES,
+  AIActionSentence,
+  AIActionSentenceValue,
+  AIActionTableCell,
+  aiActionPluralSentence,
+  aiActionSentence,
+  describeAIActionTableCell,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_CELLS,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_PLURAL_SENTENCES,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  citationSentence,
+  countFigure,
+  respondersValue,
+} from "./ReadTableWords";
 
 /*
  * Derived from the model ACLs so the tool gates can never drift from RBAC.
@@ -86,7 +107,7 @@ const resolveExecutionLogReadPermissions: () => Array<Permission> =
  * "Nobody on call" is a state worth naming, not missing data — an uncovered
  * schedule must never render as a silent blank the model glosses over.
  */
-const NO_ONE_ON_CALL: string = "No one is on call";
+const NO_ONE_ON_CALL: string = AI_READ_CARD_LINES.noOneOnCall;
 
 /*
  * What a rule that pages the next person in a schedule's rotation pages, for
@@ -96,7 +117,7 @@ const NO_ONE_ON_CALL: string = "No one is on call";
 export const NEXT_IN_ROTATION_TARGET_NOTE: string =
   "next in rotation: the person after whoever is on call, passing over anyone away";
 const SCHEDULE_NOT_ACCESSIBLE: string =
-  "Schedule not accessible (no read access or deleted)";
+  AI_READ_RECORD_TABLE_CELLS.scheduleNotAccessible;
 
 function nameOf(user: User | undefined | null): string | undefined {
   const displayName: string = user?.name?.toString().trim() || "";
@@ -301,7 +322,7 @@ function formatEscalationChain(
   targetsByRuleId: Map<string, EscalationRuleTargets>,
 ): string {
   if (rules.length === 0) {
-    return "No escalation rules configured";
+    return AI_READ_RECORD_TABLE_CELLS.noEscalationRules;
   }
 
   return rules
@@ -323,7 +344,7 @@ function formatEscalationChain(
  * one; read by id, one is still returned, flagged, with this said alongside.
  */
 export const ARCHIVED_ON_CALL_POLICY_NOTE: string =
-  "This on-call policy is archived, so it pages no one: incidents and alerts that list it notify nobody through it. Unarchive it to use it again.";
+  AI_READ_RECORD_TABLE_LINES.onCallPolicyArchived;
 
 /*
  * ---------------------------------------------------------------------------
@@ -451,7 +472,9 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
             ? `${ARCHIVED_ON_CALL_POLICY_NOTE}\n${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `On-call policy '${policy?.name || onCallPolicyId.toString()}'`,
+        ...citationSentence(AI_READ_CITATIONS.onCallPolicy, {
+          policy: policy?.name || onCallPolicyId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.OnCallPolicyView,
           params: { onCallDutyPolicyId: onCallPolicyId.toString() },
@@ -553,9 +576,15 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: hasMore
-        ? `On-call policies (${rows.length} of ${total})`
-        : `On-call policies (${serialized.rowCount} found)`,
+      // In the reader's language (issue #7980).
+      ...(hasMore
+        ? citationSentence(AI_READ_CITATIONS.onCallPoliciesPaged, {
+            count: countFigure(rows.length),
+            total: countFigure(total),
+          })
+        : citationSentence(AI_READ_CITATIONS.onCallPolicies, {
+            count: countFigure(serialized.rowCount),
+          })),
       citationTarget: {
         type: AIChatCitationTargetType.OnCallPolicies,
       },
@@ -564,7 +593,25 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `On-call policies (${rows.length})`,
+              // In the reader's language (issue #7977).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.onCallPolicies,
+                  { count: countFigure(rows.length) },
+                ),
+                cells: rows.map(
+                  (row: JSONObject): Record<string, AIActionTableCell> => {
+                    return row["escalationChain"] ===
+                      AI_READ_RECORD_TABLE_CELLS.noEscalationRules
+                      ? {
+                          escalationChain: aiActionSentence(
+                            AI_READ_RECORD_TABLE_CELLS.noEscalationRules,
+                          ),
+                        }
+                      : {};
+                  },
+                ),
+              },
               columns: [
                 { key: "name", title: translationKey("Policy"), type: "text" },
                 {
@@ -622,21 +669,83 @@ const scheduleRosterSelect: Select<OnCallDutyPolicySchedule> = {
   rosterNextStartAt: true,
 };
 
-function scheduleStatusRow(
+/*
+ * The rows of "who is on call now", and the cells of each that are
+ * OneUptime's words (issue #7977): which schedule or rule a row is, and
+ * "No one is on call" - said in the reader's language by the chat's
+ * table, the names in them as named. Each row's text is its words in
+ * English, so the model reads what the table stores.
+ */
+interface WordedRows {
+  rows: Array<JSONObject>;
+  cells: Array<Record<string, AIActionTableCell>>;
+}
+
+function pushWordedRow(
+  target: WordedRows,
+  row: JSONObject,
+  cells: Record<string, AIActionTableCell>,
+): void {
+  const stored: JSONObject = { ...row };
+
+  for (const key of Object.keys(cells)) {
+    stored[key] = describeAIActionTableCell(cells[key]!);
+  }
+
+  target.rows.push(stored);
+  target.cells.push(cells);
+}
+
+// A rule's place in its policy's order, as a figure; "?" when it has none.
+function ruleOrderValue(
+  rule: OnCallDutyPolicyEscalationRule,
+): AIActionSentenceValue {
+  return typeof rule.order === "number" ? countFigure(rule.order) : "?";
+}
+
+function scheduleSentence(
   schedule: OnCallDutyPolicySchedule,
-  source?: string,
-): JSONObject {
+): AIActionSentence {
+  return aiActionSentence(AI_READ_RECORD_TABLE_CELLS.schedule, {
+    name: schedule.name || "",
+  });
+}
+
+function pushScheduleStatusRow(
+  target: WordedRows,
+  schedule: OnCallDutyPolicySchedule,
+  source?: AIActionSentence,
+): void {
   const currentName: string | undefined = nameOf(schedule.currentUserOnRoster);
-  return {
-    scheduleId: schedule.id?.toString(),
-    source: source ?? `Schedule '${schedule.name || ""}'`,
-    onCallNow: currentName || NO_ONE_ON_CALL,
-    onCallUserId: schedule.currentUserOnRoster?.id?.toString(),
-    onCallSince: schedule.rosterStartAt,
-    handsOffAt: schedule.rosterHandoffAt,
-    nextUp: nameOf(schedule.nextUserOnRoster),
-    nextStartsAt: schedule.rosterNextStartAt,
-  };
+
+  pushWordedRow(
+    target,
+    {
+      scheduleId: schedule.id?.toString(),
+      // Its words below, in English.
+      source: "",
+      onCallNow: currentName || "",
+      onCallUserId: schedule.currentUserOnRoster?.id?.toString(),
+      onCallSince: schedule.rosterStartAt,
+      handsOffAt: schedule.rosterHandoffAt,
+      nextUp: nameOf(schedule.nextUserOnRoster),
+      nextStartsAt: schedule.rosterNextStartAt,
+    },
+    {
+      source: source ?? scheduleSentence(schedule),
+      ...(currentName
+        ? {}
+        : { onCallNow: aiActionSentence(AI_READ_CARD_LINES.noOneOnCall) }),
+    },
+  );
+}
+
+function scheduleStatusRow(schedule: OnCallDutyPolicySchedule): JSONObject {
+  const target: WordedRows = { rows: [], cells: [] };
+
+  pushScheduleStatusRow(target, schedule);
+
+  return target.rows[0]!;
 }
 
 /*
@@ -662,10 +771,6 @@ function countResponders(rows: Array<JSONObject>): number {
     }
   }
   return responderKeys.size;
-}
-
-function respondersLabel(count: number): string {
-  return `${count} ${count === 1 ? "responder" : "responders"}`;
 }
 
 const onCallStatusColumns: Array<AIChatWidgetColumn> = [
@@ -742,7 +847,9 @@ export const GetOnCallStatusTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `On-call now: '${schedule?.name || scheduleId.toString()}'`,
+        ...citationSentence(AI_READ_CITATIONS.onCallNowForSchedule, {
+          schedule: schedule?.name || scheduleId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.OnCallPolicies,
         },
@@ -845,22 +952,33 @@ export const GetOnCallStatusTool: ObservabilityTool = {
       const rules: Array<OnCallDutyPolicyEscalationRule> =
         escalation.rulesByPolicyId.get(onCallPolicyId.toString()) || [];
 
-      const rows: Array<JSONObject> = [];
+      // Each row with the cells of it that are OneUptime's words (#7977).
+      const worded: WordedRows = { rows: [], cells: [] };
+      const rows: Array<JSONObject> = worded.rows;
 
       for (const rule of rules) {
         const ruleKey: string = rule.id?.toString() || "";
-        const ruleLabel: string = `Rule ${rule.order ?? "?"}`;
+        const order: AIActionSentenceValue = ruleOrderValue(rule);
 
         for (const link of escalation.ruleUsers) {
           if (link.onCallDutyPolicyEscalationRuleId?.toString() !== ruleKey) {
             continue;
           }
-          rows.push({
-            source: `${ruleLabel} — direct responder`,
-            onCallNow: nameOf(link.user) || "Unknown user",
-            onCallUserId: link.user?.id?.toString(),
-            note: "Paged whenever this rule fires",
-          });
+          pushWordedRow(
+            worded,
+            {
+              source: "",
+              onCallNow: nameOf(link.user) || "Unknown user",
+              onCallUserId: link.user?.id?.toString(),
+              note: "Paged whenever this rule fires",
+            },
+            {
+              source: aiActionSentence(
+                AI_READ_RECORD_TABLE_CELLS.ruleDirectResponder,
+                { order },
+              ),
+            },
+          );
         }
 
         for (const link of escalation.ruleTeams) {
@@ -868,11 +986,24 @@ export const GetOnCallStatusTool: ObservabilityTool = {
             continue;
           }
           const teamName: string = link.team?.name || "Unknown team";
-          rows.push({
-            source: `${ruleLabel} — team '${teamName}'`,
-            onCallNow: `All members of '${teamName}'`,
-            note: "Every team member is paged when this rule fires",
-          });
+          pushWordedRow(
+            worded,
+            {
+              source: "",
+              onCallNow: "",
+              note: "Every team member is paged when this rule fires",
+            },
+            {
+              source: aiActionSentence(AI_READ_RECORD_TABLE_CELLS.ruleTeam, {
+                order,
+                team: teamName,
+              }),
+              onCallNow: aiActionSentence(
+                AI_READ_RECORD_TABLE_CELLS.allMembersOfTeam,
+                { team: teamName },
+              ),
+            },
+          );
         }
 
         for (const link of escalation.ruleSchedules) {
@@ -895,26 +1026,54 @@ export const GetOnCallStatusTool: ObservabilityTool = {
               schedule.currentUserOnRoster,
             );
 
-            rows.push({
-              scheduleId: schedule.id?.toString(),
-              source: `${ruleLabel} — next in rotation of schedule '${schedule.name || ""}'`,
-              onCallNow: onCallName
-                ? `The person after ${onCallName} in the rotation`
-                : NO_ONE_ON_CALL,
-              note: `Pages the ${NEXT_IN_ROTATION_TARGET_NOTE}`,
-            });
+            pushWordedRow(
+              worded,
+              {
+                scheduleId: schedule.id?.toString(),
+                source: "",
+                onCallNow: "",
+                note: `Pages the ${NEXT_IN_ROTATION_TARGET_NOTE}`,
+              },
+              {
+                source: aiActionSentence(
+                  AI_READ_RECORD_TABLE_CELLS.ruleNextInRotation,
+                  { order, schedule: schedule.name || "" },
+                ),
+                onCallNow: onCallName
+                  ? aiActionSentence(
+                      AI_READ_RECORD_TABLE_CELLS.personAfterInRotation,
+                      { name: onCallName },
+                    )
+                  : aiActionSentence(AI_READ_CARD_LINES.noOneOnCall),
+              },
+            );
           } else if (schedule) {
-            rows.push(
-              scheduleStatusRow(
-                schedule,
-                `${ruleLabel} — schedule '${schedule.name || ""}'`,
-              ),
+            pushScheduleStatusRow(
+              worded,
+              schedule,
+              aiActionSentence(AI_READ_RECORD_TABLE_CELLS.ruleSchedule, {
+                order,
+                schedule: schedule.name || "",
+              }),
             );
           } else {
-            rows.push({
-              source: `${ruleLabel} — schedule '${link.onCallDutyPolicySchedule?.name || linkedScheduleId}'`,
-              onCallNow: SCHEDULE_NOT_ACCESSIBLE,
-            });
+            pushWordedRow(
+              worded,
+              { source: "", onCallNow: "" },
+              {
+                source: aiActionSentence(
+                  AI_READ_RECORD_TABLE_CELLS.ruleSchedule,
+                  {
+                    order,
+                    schedule:
+                      link.onCallDutyPolicySchedule?.name || linkedScheduleId,
+                  },
+                ),
+                onCallNow: aiActionSentence(
+                  AI_READ_RECORD_TABLE_CELLS.scheduleNotAccessible,
+                ),
+              },
+            );
           }
         }
       }
@@ -934,7 +1093,10 @@ export const GetOnCallStatusTool: ObservabilityTool = {
           ? `${ARCHIVED_ON_CALL_POLICY_NOTE}\n${serialized.text}`
           : serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `On-call now for '${policy.name || onCallPolicyId.toString()}' (${respondersLabel(countResponders(rows))})`,
+        ...citationSentence(AI_READ_CITATIONS.onCallNowForPolicy, {
+          policy: policy.name || onCallPolicyId.toString(),
+          responders: respondersValue(countResponders(rows)),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.OnCallPolicyView,
           params: { onCallDutyPolicyId: onCallPolicyId.toString() },
@@ -944,10 +1106,21 @@ export const GetOnCallStatusTool: ObservabilityTool = {
         widget:
           rows.length > 0
             ? WidgetBuilder.table({
-                title: `On-call now: ${policy.name || ""}`.trim(),
-                description: isArchivedPolicy
-                  ? ARCHIVED_ON_CALL_POLICY_NOTE
-                  : "Who each escalation rule pages, in order",
+                // In the reader's language (issue #7977).
+                words: {
+                  title: policy.name
+                    ? aiActionSentence(
+                        AI_READ_RECORD_TABLE_TITLES.onCallNowForPolicy,
+                        { policy: policy.name },
+                      )
+                    : aiActionSentence(AI_READ_RECORD_TABLE_TITLES.onCallNow),
+                  description: aiActionSentence(
+                    isArchivedPolicy
+                      ? AI_READ_RECORD_TABLE_LINES.onCallPolicyArchived
+                      : AI_READ_RECORD_TABLE_LINES.onCallPolicyRules,
+                  ),
+                  cells: worded.cells,
+                },
                 columns: onCallStatusColumns,
                 rows: rows,
                 link: {
@@ -971,11 +1144,14 @@ export const GetOnCallStatusTool: ObservabilityTool = {
         props: ctx.props,
       });
 
-    const rows: Array<JSONObject> = schedules.map(
-      (schedule: OnCallDutyPolicySchedule) => {
-        return scheduleStatusRow(schedule);
-      },
-    );
+    // Each schedule's row, and its cells that are OneUptime's words (#7977).
+    const worded: WordedRows = { rows: [], cells: [] };
+
+    for (const schedule of schedules) {
+      pushScheduleStatusRow(worded, schedule);
+    }
+
+    const rows: Array<JSONObject> = worded.rows;
 
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
@@ -983,7 +1159,9 @@ export const GetOnCallStatusTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `On-call now (${respondersLabel(countResponders(rows))})`,
+      ...citationSentence(AI_READ_CITATIONS.onCallNow, {
+        responders: respondersValue(countResponders(rows)),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.OnCallPolicies,
       },
@@ -992,7 +1170,14 @@ export const GetOnCallStatusTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `On-call now (${rows.length} ${rows.length === 1 ? "schedule" : "schedules"})`,
+              // In the reader's language (issue #7977).
+              words: {
+                title: aiActionPluralSentence(
+                  AI_READ_RECORD_TABLE_PLURAL_SENTENCES.onCallNowSchedules,
+                  rows.length,
+                ),
+                cells: worded.cells,
+              },
               columns: onCallStatusColumns,
               rows: rows,
               link: { type: AIChatCitationTargetType.OnCallPolicies },
@@ -1018,20 +1203,38 @@ export const GetOnCallStatusTool: ObservabilityTool = {
  * with a guess.
  */
 export const DIRECT_PAGE_POLICY_LABEL: string =
-  "Direct page (no on-call policy)";
+  AI_READ_RECORD_TABLE_CELLS.directPage;
 
-function formatTrigger(log: OnCallDutyPolicyExecutionLog): string | undefined {
+/*
+ * What started a page, as a sentence the chat's table says in the
+ * reader's language (issue #7977): the incident or alert by its number and
+ * title, or the person who paged.
+ */
+function getTriggerWords(
+  log: OnCallDutyPolicyExecutionLog,
+): AIActionSentence | undefined {
   if (log.triggeredByIncident) {
-    const incidentNumber: string = log.triggeredByIncident.incidentNumber
-      ? ` #${log.triggeredByIncident.incidentNumber}`
-      : "";
-    return `Incident${incidentNumber}: ${log.triggeredByIncident.title || ""}`.trim();
+    const title: string = (log.triggeredByIncident.title || "").trim();
+
+    return log.triggeredByIncident.incidentNumber
+      ? aiActionSentence(AI_READ_RECORD_TABLE_CELLS.triggeredByIncident, {
+          number: `#${log.triggeredByIncident.incidentNumber}`,
+          title,
+        })
+      : aiActionSentence(
+          AI_READ_RECORD_TABLE_CELLS.triggeredByIncidentUnnumbered,
+          { title },
+        );
   }
   if (log.triggeredByAlert) {
-    return `Alert: ${log.triggeredByAlert.title || ""}`.trim();
+    return aiActionSentence(AI_READ_RECORD_TABLE_CELLS.triggeredByAlert, {
+      title: (log.triggeredByAlert.title || "").trim(),
+    });
   }
   if (log.triggeredByUser) {
-    return `Manually triggered by ${nameOf(log.triggeredByUser) || "a user"}`;
+    return aiActionSentence(AI_READ_RECORD_TABLE_CELLS.triggeredByUser, {
+      name: nameOf(log.triggeredByUser) || "a user",
+    });
   }
   return undefined;
 }
@@ -1238,10 +1441,44 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
       notifiedByExecutionId.set(executionKey, entries);
     }
 
+    /*
+     * Each page's cells that are OneUptime's words (issue #7977): a direct
+     * page's policy, what started it, and that nobody was notified one by
+     * one - in the row as their English, for the model.
+     */
+    const cells: Array<Record<string, AIActionTableCell>> = logs.map(
+      (
+        log: OnCallDutyPolicyExecutionLog,
+      ): Record<string, AIActionTableCell> => {
+        const trigger: AIActionSentence | undefined = getTriggerWords(log);
+        const hasNotified: boolean =
+          (notifiedByExecutionId.get(log.id?.toString() || "") || []).length >
+          0;
+
+        return {
+          ...(!log.onCallDutyPolicy?.name && isOnCallDirectPage(log)
+            ? {
+                policy: aiActionSentence(AI_READ_RECORD_TABLE_CELLS.directPage),
+              }
+            : {}),
+          ...(trigger ? { trigger } : {}),
+          ...(hasNotified
+            ? {}
+            : {
+                notified: aiActionSentence(
+                  AI_READ_RECORD_TABLE_CELLS.noNotificationsRecorded,
+                ),
+              }),
+        };
+      },
+    );
+
     const rows: Array<JSONObject> = logs.map(
-      (log: OnCallDutyPolicyExecutionLog) => {
+      (log: OnCallDutyPolicyExecutionLog, index: number) => {
         const notified: Array<string> =
           notifiedByExecutionId.get(log.id?.toString() || "") || [];
+        const trigger: AIActionTableCell | undefined =
+          cells[index]?.["trigger"];
         return {
           id: log.id?.toString(),
           triggeredAt: log.createdAt,
@@ -1249,7 +1486,7 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
             log.onCallDutyPolicy?.name ||
             (isOnCallDirectPage(log) ? DIRECT_PAGE_POLICY_LABEL : undefined),
           policyId: log.onCallDutyPolicy?.id?.toString(),
-          trigger: formatTrigger(log),
+          trigger: trigger ? describeAIActionTableCell(trigger) : undefined,
           /*
            * Who started a direct page: the workflow whose step did, or the
            * person who paged from a chat.
@@ -1267,7 +1504,7 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
           notified:
             notified.length > 0
               ? notified.join(", ")
-              : "No individual notifications recorded",
+              : AI_READ_RECORD_TABLE_CELLS.noNotificationsRecorded,
         };
       },
     );
@@ -1283,10 +1520,11 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
       1,
       Math.round((endTime.getTime() - startTime.getTime()) / (60 * 60 * 1000)),
     );
-    const windowLabel: string =
-      windowHours >= 48 && windowHours % 24 === 0
-        ? `${windowHours / 24}d`
-        : `${windowHours}h`;
+    const isWindowInDays: boolean = windowHours >= 48 && windowHours % 24 === 0;
+    // The window's length, as a figure the reader's language writes.
+    const windowValue: Record<string, AIActionSentenceValue> = isWindowInDays
+      ? { days: countFigure(windowHours / 24) }
+      : { hours: countFigure(windowHours) };
 
     const total: number = totalCount.toNumber();
     const hasMore: boolean = total > rows.length && rows.length > 0;
@@ -1297,9 +1535,21 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: hasMore
-        ? `On-call pages, last ${windowLabel} (${rows.length} of ${total})`
-        : `On-call pages, last ${windowLabel} (${serialized.rowCount} found)`,
+      // In the reader's language (issue #7980).
+      ...citationSentence(
+        hasMore
+          ? isWindowInDays
+            ? AI_READ_CITATIONS.onCallPagesInDaysPaged
+            : AI_READ_CITATIONS.onCallPagesInHoursPaged
+          : isWindowInDays
+            ? AI_READ_CITATIONS.onCallPagesInDays
+            : AI_READ_CITATIONS.onCallPagesInHours,
+        {
+          ...windowValue,
+          count: countFigure(hasMore ? rows.length : serialized.rowCount),
+          ...(hasMore ? { total: countFigure(total) } : {}),
+        },
+      ),
       citationTarget: onCallPolicyId
         ? {
             type: AIChatCitationTargetType.OnCallPolicyView,
@@ -1313,8 +1563,20 @@ export const QueryOnCallPagesTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `On-call pages (${rows.length})`,
-              description: `Policy executions and direct pages in the last ${windowLabel}`,
+              // In the reader's language (issue #7977).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.onCallPages,
+                  { count: countFigure(rows.length) },
+                ),
+                description: aiActionSentence(
+                  isWindowInDays
+                    ? AI_READ_RECORD_TABLE_LINES.onCallPagesInDays
+                    : AI_READ_RECORD_TABLE_LINES.onCallPagesInHours,
+                  windowValue,
+                ),
+                cells,
+              },
               columns: [
                 {
                   key: "triggeredAt",

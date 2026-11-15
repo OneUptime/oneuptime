@@ -1,6 +1,8 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
   PluralTemplate,
   Translator,
   translationKey,
@@ -9,6 +11,10 @@ import {
   formatReaderFigure,
   isEnglishDateLanguage,
 } from "Common/Types/DateLanguage";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
+
+// English: a chart's value axis, and a caller with no translator.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
  * Shared presentation metadata for the topology views: raw enum values
@@ -334,12 +340,22 @@ export function edgeWidthForCalls(callCount: number | undefined): number {
   return Math.min(6, 1.5 + Math.log10(callCount + 1) * 1.2);
 }
 
-export function formatDurationMs(avgDurationMs: number | undefined): string {
+/*
+ * A call's average duration: "1.25s" from a second up, and under it the
+ * reader's milliseconds ("42 ms", "۴۲ میلی‌ثانیه"; issue #7418). Without a
+ * translator it writes English, as a chart's value axis does.
+ */
+export function formatDurationMs(
+  avgDurationMs: number | undefined,
+  translator: Translator = ENGLISH,
+): string {
   if (avgDurationMs === undefined || avgDurationMs === null) {
     return "—";
   }
   if (avgDurationMs >= 1000) {
     return `${(avgDurationMs / 1000).toFixed(2)}s`;
   }
-  return `${Math.round(avgDurationMs)}ms`;
+  return formatMilliseconds(translator, avgDurationMs, {
+    maximumFractionDigits: 0,
+  });
 }

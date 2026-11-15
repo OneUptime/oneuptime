@@ -540,8 +540,11 @@ describe("the hero's identifier line", () => {
         identifier: IDENTIFIER,
       });
 
-      expect(linePieces()).toEqual({ label: "type : ", value: IDENTIFIER });
-      expect(identifierLine().textContent).toBe(`type : ${IDENTIFIER}`);
+      expect(linePieces()).toEqual({
+        label: "type\u00A0: ",
+        value: IDENTIFIER,
+      });
+      expect(identifierLine().textContent).toBe(`type\u00A0: ${IDENTIFIER}`);
     });
 
     test("German writes it as English does, after its own word", () => {

@@ -9,12 +9,15 @@ import {
 import { SessionReplayHealthError } from "../../../Components/SessionReplay/SessionReplayHealthError";
 import {
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
 } from "../../../Components/TelemetryResource/telemetryFormat";
 import {
+  composedValue,
+  getGlobalTranslator,
   translatePlural,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -223,9 +226,14 @@ export function describePageLoadTimeTile(input: {
   }
 
   return {
-    value: formatDurationMs(input.stats.p95DurationMs),
+    value: formatDurationMsInLanguage(
+      input.stats.p95DurationMs,
+      getGlobalTranslator(),
+    ),
     sublabel: translateTemplate("median {{duration}}", {
-      duration: formatDurationMs(input.stats.p50DurationMs),
+      duration: composedValue((sentence: Translator): string => {
+        return formatDurationMsInLanguage(input.stats!.p50DurationMs, sentence);
+      }),
     }),
   };
 }

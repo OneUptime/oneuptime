@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9154
+    "keys": 52780,
+    "untranslated": 9021
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -53,6 +53,7 @@
     "Celsius",
     "Chat",
     "Chats",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "Client ID",
     "Client Secret",
@@ -72,6 +73,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Daemons",
     "Datacenter",
@@ -245,12 +247,15 @@
     "Runbook \"{{name}}\"",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
+    "SLOs ({{count}})",
     "SSH",
     "ScheduledMaintenance",
     "Script",

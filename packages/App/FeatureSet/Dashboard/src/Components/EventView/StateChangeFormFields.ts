@@ -233,6 +233,7 @@ export const getStateChangeFormFields: GetStateChangeFormFieldsFunction = <
           return {
             value: template.id,
             label: template.templateName,
+            isUserContent: true,
           };
         },
       ),

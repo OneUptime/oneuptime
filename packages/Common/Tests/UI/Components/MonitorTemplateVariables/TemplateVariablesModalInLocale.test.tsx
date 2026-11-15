@@ -9,6 +9,7 @@ import { I18nextProvider } from "react-i18next";
 import TemplateVariablesModal from "../../../../UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
 import TemplateVariablesCatalog from "../../../../UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import { withNoBreakSpaces } from "../../../../Types/NoBreakSpaces";
 import { DASHBOARD_LANGUAGES } from "../../../Helpers/TranslatedLanguages";
 
 /*
@@ -53,7 +54,14 @@ function readLocale(language: string): Record<string, unknown> {
 function drawn(language: string, english: string): string {
   const value: unknown = locales[language]?.[english];
 
-  return typeof value === "string" && value.length > 0 ? value : english;
+  if (typeof value !== "string" || value.length === 0) {
+    return english;
+  }
+
+  // As the dialog draws it: French's colon kept with its word (NoBreakSpaces).
+  return value === english
+    ? value
+    : withNoBreakSpaces(value, english, language);
 }
 
 beforeAll(async () => {

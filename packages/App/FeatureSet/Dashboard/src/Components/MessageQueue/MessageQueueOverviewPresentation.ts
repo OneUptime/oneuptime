@@ -24,12 +24,21 @@ import {
   getMessagingSystemDescriptor,
 } from "Common/Types/MessageQueue/MessagingSystem";
 import {
+  DEFAULT_LANGUAGE,
   Translator,
+  createTranslator,
   getGlobalTranslator,
   translatableTerm,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
+
+// A chart's value axis writes its figures in English, as every chart's does.
+const ENGLISH_FIGURES: Translator = createTranslator(
+  undefined,
+  DEFAULT_LANGUAGE,
+);
 
 /*
  * How a queue's Overview and telemetry tabs describe it: whether anything
@@ -539,8 +548,16 @@ export function formatMessageQueueErrorRate(value: number | null): string {
   return `${value.toFixed(1)}%`;
 }
 
-/** A span duration in milliseconds: "850 µs", "12 ms", "1.25 s". */
-export function formatMessageQueueDurationMs(value: number | null): string {
+/*
+ * A span duration in milliseconds: "850 µs", "12 ms", "1.25 s". Its
+ * milliseconds are the reader's words (issue #7418): a tile, a row, a
+ * line of the topology. A chart's value axis keeps the English figures
+ * every chart's value axis writes (formatMessageQueueDurationMs).
+ */
+export function formatMessageQueueDurationMsInLanguage(
+  value: number | null,
+  translator: Translator,
+): string {
   if (value === null || !Number.isFinite(value)) {
     return "—";
   }
@@ -548,7 +565,17 @@ export function formatMessageQueueDurationMs(value: number | null): string {
     return `${(value * 1000).toFixed(0)} µs`;
   }
   if (value < 1000) {
-    return `${value.toFixed(value < 10 ? 1 : 0)} ms`;
+    const decimals: number = value < 10 ? 1 : 0;
+
+    return formatMilliseconds(translator, value, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
   return `${(value / 1000).toFixed(2)} s`;
+}
+
+// A span duration on a chart's value axis: in English, as every chart's axis.
+export function formatMessageQueueDurationMs(value: number | null): string {
+  return formatMessageQueueDurationMsInLanguage(value, ENGLISH_FIGURES);
 }

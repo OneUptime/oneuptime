@@ -254,7 +254,11 @@ function connectionOptions(
       return connection.provider === provider;
     })
     .map((connection: PlaybookConnectionOption): DropdownOption => {
-      return { label: connection.name, value: connection.id };
+      return {
+        label: connection.name,
+        isUserContent: true,
+        value: connection.id,
+      };
     });
 }
 
