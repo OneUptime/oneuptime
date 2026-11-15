@@ -32,7 +32,7 @@ flowchart TB
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **探测器到注册局的出站访问。** 每个新监视器都会选中您项目的默认探测器；[自定义探测器](/docs/probe/custom-probe) 需要能够访问：
 
 | 目标 | 协议 | 用途 |

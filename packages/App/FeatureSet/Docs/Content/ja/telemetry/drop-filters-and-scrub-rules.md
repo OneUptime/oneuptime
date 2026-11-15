@@ -31,7 +31,7 @@ flowchart TB
 ## 始める前に
 
 - **届いているログまたはスパン。** [OpenTelemetry](/docs/telemetry/open-telemetry) を参照してください。
-- **テレメトリの設定を変更するロール。** Project Owner または Project Admin、あるいは変更する対象の権限（Create Log Drop Filter や Create Trace Scrub Rule など）を持つカスタムロールです。Telemetry ロールはフィルターとルールを表示できますが、変更はできません。
+- **テレメトリの設定を変更するロール。** プロジェクト所有者またはプロジェクト管理者、あるいは変更する対象の権限（Create Log Drop Filter や Create Trace Scrub Rule など）を持つカスタムロールです。Telemetry ロールはフィルターとルールを表示できますが、変更はできません。
 
 ## レコードを破棄またはサンプリングする
 

@@ -11,7 +11,7 @@ OneUptime は、すでにお持ちのデータ - ログ、お使いのセキュ�
 
 ## 始める前に
 
-セキュリティを設定するには Project Owner、Project Admin、Security Admin のいずれかのロールが必要です。Security Member と Security Viewer のロールは見つかったものを閲覧できます。[ロール](/docs/permissions/reference#ロール) を参照してください。
+セキュリティを設定するにはプロジェクト所有者、プロジェクト管理者、セキュリティ管理者のいずれかのロールが必要です。セキュリティメンバーとセキュリティ閲覧者のロールは見つかったものを閲覧できます。[ロール](/docs/permissions/reference#ロール) を参照してください。
 
 ## 設定する
 
@@ -84,7 +84,7 @@ CEF や LEEF の検出結果、FortiGate の IPS の検出結果など、セキ�
 ## トラブルシューティング
 
 :::details Turn on recommended がグレーアウトしている
-ロールに検出ルール、プレイブック、ログのソースを追加する権限がありません。Project Owner、Project Admin、Security Admin に依頼するか、Security Admin のロールを付与してもらってください。
+ロールに検出ルール、プレイブック、ログのソースを追加する権限がありません。プロジェクト所有者、プロジェクト管理者、セキュリティ管理者に依頼するか、セキュリティ管理者のロールを付与してもらってください。
 :::
 
 :::details Turn on recommended ですべてをオンにできなかった

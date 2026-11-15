@@ -39,7 +39,7 @@ OneUptime 全体で使われる言葉は [用語集](/docs/introduction/glossary
 
 ## SLO を作成する
 
-SLO を作成できるロールが必要です。Project Owner、Project Admin、または Create Service Level Objective 権限を持つカスタムロールです。
+SLO を作成できるロールが必要です。プロジェクト所有者、プロジェクト管理者、または Create Service Level Objective 権限を持つカスタムロールです。
 
 :::steps
 ### SLO を開く

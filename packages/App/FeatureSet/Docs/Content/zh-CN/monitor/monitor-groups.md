@@ -37,8 +37,8 @@ flowchart TB
 ## 开始之前
 
 - **您的套餐。** 在 OneUptime Cloud 上，监视器组需要 Scale 套餐。
-- **开关。** 在为项目打开 **监视器组** 之前，监视器组是隐藏的（见下文）。打开它需要 Project Owner 角色，或拥有 Edit Project 或 Manage Billing 权限的自定义角色。
-- **您的角色。** 创建、更改和删除组需要 Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member 角色，或拥有相应监视器组权限的自定义角色。Viewer 可以查看组，但不能更改。
+- **开关。** 在为项目打开 **监视器组** 之前，监视器组是隐藏的（见下文）。打开它需要项目所有者角色，或拥有 Edit Project 或 Manage Billing 权限的自定义角色。
+- **您的角色。** 创建、更改和删除组需要项目所有者、项目管理员、项目成员、监视器管理员或监视器成员角色，或拥有相应监视器组权限的自定义角色。查看者可以查看组，但不能更改。
 
 ## 启用监视器组
 

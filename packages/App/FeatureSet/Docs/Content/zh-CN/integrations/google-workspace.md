@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一位用于允许全网域授权的 Google Workspace 超级管理员，以及一位供服务账户代为行事、拥有 Reports 权限的管理员。超级管理员拥有该权限。
 - 一个你可以在其中创建服务账户并开启 Admin SDK API 的 Google Cloud 项目。
 - 对于云端硬盘活动：带有云端硬盘审计日志的版本，例如 Business Standard、Business Plus、Enterprise 或 Education。

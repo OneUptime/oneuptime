@@ -58,7 +58,7 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 3. 실행 페이지가 열립니다.
 :::
 
-실행을 시작하려면 Project Owner, Project Admin, Project Member, Runbook Admin, Runbook Member 중 하나 또는 **Create Runbook Execution** 권한이 필요합니다. Runbook Viewer와 Viewer에게는 **지금 실행**이 이유와 함께 잠겨 표시됩니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
+실행을 시작하려면 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 런북 관리자, 런북 구성원 중 하나 또는 **Create Runbook Execution** 권한이 필요합니다. 런북 뷰어와 뷰어에게는 **지금 실행**이 이유와 함께 잠겨 표시됩니다. [권한](/docs/runbooks/configuration#권한)을 참조하세요.
 
 ## 실행 보기
 
@@ -128,7 +128,7 @@ Runbook의 **감사 로그** 페이지에는 각 실행을 누가 시작했는�
 ## 문제 해결
 
 :::details Run Now가 잠겨 있음
-여러분의 역할은 Runbook을 읽을 수 있지만 실행할 수는 없습니다. 버튼에는 "이 프로젝트에서 런북 실행을 시작할 권한이 없습니다."라고 표시됩니다. Runbook Member 역할이나 **Create Runbook Execution** 권한을 요청하세요.
+여러분의 역할은 Runbook을 읽을 수 있지만 실행할 수는 없습니다. 버튼에는 "이 프로젝트에서 런북 실행을 시작할 권한이 없습니다."라고 표시됩니다. 런북 구성원 역할이나 **Create Runbook Execution** 권한을 요청하세요.
 :::
 
 :::details 실행 시작이 "Runbook is disabled" 또는 "Runbook has no steps to run"으로 실패함

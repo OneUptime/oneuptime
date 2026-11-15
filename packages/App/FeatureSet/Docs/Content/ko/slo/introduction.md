@@ -39,7 +39,7 @@ OneUptime 전반에서 쓰는 단어는 [용어집](/docs/introduction/glossary)
 
 ## SLO 만들기
 
-SLO를 만들 수 있는 역할이 필요합니다. Project Owner, Project Admin, 또는 Create Service Level Objective 권한이 있는 사용자 지정 역할입니다.
+SLO를 만들 수 있는 역할이 필요합니다. 프로젝트 소유자, 프로젝트 관리자, 또는 Create Service Level Objective 권한이 있는 사용자 지정 역할입니다.
 
 :::steps
 ### SLO 열기

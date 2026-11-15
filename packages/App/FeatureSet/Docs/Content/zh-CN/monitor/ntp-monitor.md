@@ -33,7 +33,7 @@ sequenceDiagram
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **能够访问服务器 UDP 端口 123 的探测器。** 任何探测器都可以检查公共时间服务器。对于私有网络中的服务器，请在该网络内使用 [自定义探测器](/docs/probe/custom-probe)。服务器前面的防火墙必须放行来自 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses) 或您的自定义探测器的 UDP 流量，而不仅仅是 TCP。
 
 ## 创建 NTP 监视器

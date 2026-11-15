@@ -39,7 +39,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 스팬이나 로그.** [OpenTelemetry](/docs/telemetry/open-telemetry)로 서비스를 계측합니다. **설정 가이드** 탭에 사용하는 언어에 맞는 코드가 표시됩니다.
-- **텔레메트리를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member, Telemetry Viewer 중 하나이거나 Read Exceptions 권한이 있는 사용자 지정 역할입니다. 해결하고 보관하려면 Project Owner나 Project Admin, 또는 Edit Exceptions 권한이 필요합니다.
+- **텔레메트리를 읽을 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 텔레메트리 관리자, 텔레메트리 구성원, 텔레메트리 뷰어 중 하나이거나 Read Exceptions 권한이 있는 사용자 지정 역할입니다. 해결하고 보관하려면 프로젝트 소유자나 프로젝트 관리자, 또는 Edit Exceptions 권한이 필요합니다.
 
 ## 목록 분류하기
 

@@ -39,7 +39,7 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 
 ## 创建 SLO
 
-您需要一个可以创建 SLO 的角色：Project Owner、Project Admin，或具有 Create Service Level Objective 权限的自定义角色。
+您需要一个可以创建 SLO 的角色：项目所有者、项目管理员，或具有 Create Service Level Objective 权限的自定义角色。
 
 :::steps
 ### 打开 SLO

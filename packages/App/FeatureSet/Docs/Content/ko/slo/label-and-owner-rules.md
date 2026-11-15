@@ -98,7 +98,7 @@ SLO를 편집해도 규칙이 다시 적용되지 않으며, 규칙은 아무것
 | 레이블 규칙 실행하기 | **Edit SLO Label Rule** 과 **Edit Service Level Objective** |
 | 소유자 규칙 실행하기 | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner**, **Create SLO Team Owner** |
 
-이 권한은 역할의 SLO 그룹에 있으며, Project Owner와 Project Admin 역할은 모두 가지고 있습니다. 실행은 프로젝트의 모든 SLO를 바꾸므로, 일부 레이블이나 자신이 소유한 SLO로 제한된 권한으로는 규칙을 실행할 수 없습니다.
+이 권한은 역할의 SLO 그룹에 있으며, 프로젝트 소유자와 프로젝트 관리자 역할은 모두 가지고 있습니다. 실행은 프로젝트의 모든 SLO를 바꾸므로, 일부 레이블이나 자신이 소유한 SLO로 제한된 권한으로는 규칙을 실행할 수 없습니다.
 
 ## 다음 단계
 
