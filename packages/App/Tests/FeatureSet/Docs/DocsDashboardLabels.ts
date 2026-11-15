@@ -229,20 +229,78 @@ export const drawnActionLabel: DashboardLabelFunction = (
   return english;
 };
 
+// The no-break spaces a sentence is drawn with, U+00A0 and U+202F.
+const NO_BREAK_SPACES: RegExp = /[\u00A0\u202F]/g;
+
 /*
- * The Dashboard's translator in this language, reading its locale file: a
- * value that is still the English is no wording at all, as on the screen.
+ * A label as a docs page writes it: the Dashboard's words with each
+ * no-break space read as the plain space the page, like the locale file,
+ * is typed with. The Dashboard draws French's marks and a number's unit
+ * with a no-break space, so a line never starts with "»" or parts "24"
+ * from "Std." (Common/Types/NoBreakSpaces); a docs page is prose to read
+ * and copy, and quotes the label with the space the locale writes.
  */
-export const dashboardTranslator: (language: string) => Translator = (
+export const asTheDocsWriteIt: (label: string) => string = (
+  label: string,
+): string => {
+  return label.replace(NO_BREAK_SPACES, " ");
+};
+
+// What `translator` draws, as a docs page writes it (asTheDocsWriteIt).
+export const readAsTheDocsWriteIt: (translator: Translator) => Translator = (
+  translator: Translator,
+): Translator => {
+  const docs: Translator = {
+    ...translator,
+    translateText: (text: string | undefined): string | undefined => {
+      const drawn: string | undefined = translator.translateText(text);
+
+      return drawn === undefined ? drawn : asTheDocsWriteIt(drawn);
+    },
+    translateTemplate: (
+      ...args: Parameters<Translator["translateTemplate"]>
+    ): string => {
+      return asTheDocsWriteIt(translator.translateTemplate(...args));
+    },
+    translatePlural: (
+      ...args: Parameters<Translator["translatePlural"]>
+    ): string => {
+      return asTheDocsWriteIt(translator.translatePlural(...args));
+    },
+    translateTerm: (
+      ...args: Parameters<Translator["translateTerm"]>
+    ): string => {
+      return asTheDocsWriteIt(translator.translateTerm(...args));
+    },
+  };
+
+  return docs;
+};
+
+// The Dashboard's translator reading `language`'s locale file, as its pages write it.
+const docsTranslatorOf: (language: string) => Translator = (
   language: string,
 ): Translator => {
   const locale: Record<string, unknown> = dashboardLocale(language);
 
-  return createTranslator((text: string): string | undefined => {
-    const value: unknown = locale[text];
+  return readAsTheDocsWriteIt(
+    createTranslator((text: string): string | undefined => {
+      const value: unknown = locale[text];
 
-    return typeof value === "string" ? value : undefined;
-  }, language);
+      return typeof value === "string" ? value : undefined;
+    }, language),
+  );
+};
+
+/*
+ * The Dashboard's translator in this language, reading its locale file: a
+ * value that is still the English is no wording at all, as on the screen.
+ * What it draws is read as a docs page writes it (asTheDocsWriteIt).
+ */
+export const dashboardTranslator: (language: string) => Translator = (
+  language: string,
+): Translator => {
+  return docsTranslatorOf(language);
 };
 
 /*
@@ -569,14 +627,9 @@ export const drawnTableButton: DashboardLabelFunction = (
     throw new Error(`Not a table's create button: ${english}`);
   }
 
-  const locale: Record<string, unknown> = dashboardLocale(language);
-
   return translateNamedAction(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = locale[text];
-
-      return typeof value === "string" ? value : undefined;
-    }, language),
+    // As the page writes the label it draws (asTheDocsWriteIt).
+    docsTranslatorOf(language),
     {
       template: `${verb} {{itemName}}`,
       itemName: english.slice(verb.length + 1),
@@ -604,14 +657,9 @@ export const drawnCreateButton: DashboardLabelFunction = (
     throw new Error(`Not a create button: ${english}`);
   }
 
-  const locale: Record<string, unknown> = dashboardLocale(language);
-
   return translateNamedAction(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = locale[text];
-
-      return typeof value === "string" ? value : undefined;
-    }, language),
+    // As the page writes the label it draws (asTheDocsWriteIt).
+    docsTranslatorOf(language),
     {
       template: "Create {{itemName}}",
       itemName: english.slice(CREATE_PREFIX.length),

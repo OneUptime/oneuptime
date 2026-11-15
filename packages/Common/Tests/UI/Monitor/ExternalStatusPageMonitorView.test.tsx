@@ -1654,8 +1654,8 @@ describe("a refused check's summary in English", () => {
 describe.each([
   ["en", "412 ms"],
   ["de", "412 ms"],
-  ["ar", "412 ملي ث"],
-  ["fa", "۴۱۲ میلی\u{200C}ثانیه"],
+  ["ar", "412\u00A0ملي ث"],
+  ["fa", "۴۱۲\u00A0میلی\u{200C}ثانیه"],
 ])("the Response Time in %s", (language: string, expected: string) => {
   beforeAll(async () => {
     await i18next.changeLanguage(language);

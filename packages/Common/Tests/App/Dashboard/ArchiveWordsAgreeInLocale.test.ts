@@ -764,10 +764,10 @@ describe("the French bulk title for inventory items", () => {
     const items: ListNames = namesOf("InventoryItem");
 
     expect(bulkTitle("fr", BULK_ARCHIVE_TITLE, items, 3)).toBe(
-      "Archiver 3 éléments d'inventaire ?",
+      "Archiver 3 éléments d'inventaire\u202F?",
     );
     expect(bulkTitle("fr", BULK_UNARCHIVE_TITLE, items, 1)).toBe(
-      "Désarchiver 1 élément d'inventaire ?",
+      "Désarchiver 1 élément d'inventaire\u202F?",
     );
   });
 
@@ -938,7 +938,7 @@ describe("the check of a term against its list, against the words it replaced", 
 
 describe("the bulk titles count workflows and monitors as their lists do", () => {
   test.each([
-    ["fr", "workflow", "Archiver 3 flux de travail ?"],
+    ["fr", "workflow", "Archiver 3 flux de travail\u202F?"],
     ["it", "workflow", "Archiviare 3 flussi di lavoro?"],
     ["da", "workflow", "Arkiver 3 arbejdsgange?"],
     ["sv", "monitor", "Arkivera 3 monitorer?"],

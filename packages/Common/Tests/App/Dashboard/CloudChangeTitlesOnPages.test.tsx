@@ -489,7 +489,7 @@ describe("the markers on a chart", () => {
         },
         dashboardTranslator("fr"),
       ),
-    ).toBe("Azure Resource Health : Disponible → Indisponible");
+    ).toBe("Azure Resource Health\u00A0: Disponible → Indisponible");
   });
 
   test("any other change's marker keeps its title", () => {

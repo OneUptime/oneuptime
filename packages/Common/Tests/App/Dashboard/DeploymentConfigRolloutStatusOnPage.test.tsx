@@ -23,6 +23,7 @@ import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 
 /*
@@ -222,7 +223,8 @@ function instanceFor(language: string): i18n {
     fallbackLng: "en",
     resources: {
       en: { translation: readDashboardLocale("en") },
-      [language]: { translation: readDashboardLocale(language) },
+      // As the Dashboard hands it to i18next (Utils/i18n.ts).
+      [language]: { translation: readDashboardLocaleAsDrawn(language) },
     },
     interpolation: { escapeValue: false },
     keySeparator: false,

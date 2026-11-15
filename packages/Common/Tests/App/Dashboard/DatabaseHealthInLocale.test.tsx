@@ -36,6 +36,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import useTranslator from "../../../UI/Utils/UseTranslator";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * A DATABASE'S HEALTH IN THE READER'S LANGUAGE - from the Dashboard's
@@ -70,13 +71,28 @@ function worded(locale: Record<string, string>, key: string): string {
   return value as string;
 }
 
-// A sentence of the locale with its values in place.
+const LANGUAGE_OF: Map<Record<string, string>, string> = new Map<
+  Record<string, string>,
+  string
+>([
+  [DE, "de"],
+  [FA, "fa"],
+]);
+
+/*
+ * A sentence of the locale with its values in place, as the page draws it:
+ * each number with its unit (NoBreakSpaces).
+ */
 function sentence(
   locale: Record<string, string>,
   key: string,
   values: Record<string, string>,
 ): string {
-  let text: string = worded(locale, key);
+  let text: string = withNoBreakSpaces(
+    worded(locale, key),
+    key,
+    LANGUAGE_OF.get(locale),
+  );
   for (const [name, value] of Object.entries(values)) {
     text = text.split(`{{${name}}}`).join(value);
   }

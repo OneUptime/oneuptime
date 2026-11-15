@@ -37,6 +37,7 @@ import {
   getGuidesForTelemetryGuideLanguage,
 } from "../../../Types/Telemetry/OpenTelemetryGuides";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * The telemetry guide's two pickers in the reader's language.
@@ -177,11 +178,16 @@ describe("the telemetry guide's picker labels", () => {
        * The ways to send come first in the logs guide, then the tools a team
        * may already run (#6797), then the languages.
        */
-      expect(pickerCaptions()).toEqual([
-        locale["Integration Method"],
-        locale["Already using another tool?"],
-        locale["Select Language"],
-      ]);
+      // As the guide draws them: French's question mark kept with its word.
+      expect(pickerCaptions()).toEqual(
+        [
+          "Integration Method",
+          "Already using another tool?",
+          "Select Language",
+        ].map((key: string): string => {
+          return withNoBreakSpaces(locale[key]!, key, language);
+        }),
+      );
     },
   );
 

@@ -575,17 +575,21 @@ describe("getRemediationDecisionLines", () => {
     }
 
     test.each([
-      ["fr", "Host", "« web-1 » (hôte) pourrait aussi être corrigé"],
+      ["fr", "Host", "«\u00A0web-1\u00A0» (hôte) pourrait aussi être corrigé"],
       ["da", "Host", '"web-1" (vært) kunne også rettes'],
       ["ru", "Host", "«web-1» (хост) тоже можно было бы исправить"],
       ["sv", "Host", "”web-1” (värd) kunde också åtgärdas"],
       ["es", "Host", "«web-1» (host) también se podría corregir"],
       // A type this build does not know is a resource.
-      ["fr", "Spaceship", "« web-1 » (ressource) pourrait aussi être corrigé"],
+      [
+        "fr",
+        "Spaceship",
+        "«\u00A0web-1\u00A0» (ressource) pourrait aussi être corrigé",
+      ],
       [
         "fr",
         "DatabaseServer",
-        "« web-1 » (serveur de base de données) pourrait aussi être corrigé",
+        "«\u00A0web-1\u00A0» (serveur de base de données) pourrait aussi être corrigé",
       ],
       // German nouns keep their capital.
       ["de", "DatabaseServer", "„web-1“ (Datenbankserver) könnte ebenfalls"],
@@ -609,7 +613,7 @@ describe("getRemediationDecisionLines", () => {
           AutoRemediationDecisionReason.ResourceFixesOff,
           "DatabaseServer",
         ),
-      ).toContain("pour « web-1 » (serveur de base de données)");
+      ).toContain("pour «\u00A0web-1\u00A0» (serveur de base de données)");
     });
 
     /*

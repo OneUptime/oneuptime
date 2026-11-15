@@ -408,7 +408,7 @@ describe("the bulk dialog's title on a list with sentences of its own", () => {
       "Архивировать объекты (рабочие процессы): 3?",
     );
     expect(bulkTitle("fr", DASHBOARD_ARCHIVE_COPY, 3)).toBe(
-      "Archiver 3 tableaux de bord ?",
+      "Archiver 3 tableaux de bord\u202F?",
     );
     expect(bulkTitle("ko", DASHBOARD_ARCHIVE_COPY, 3)).toBe(
       "대시보드 3개를 보관하시겠습니까?",
