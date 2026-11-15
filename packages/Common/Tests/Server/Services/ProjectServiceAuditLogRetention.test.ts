@@ -79,7 +79,7 @@ const OWNER_PROPS: DatabaseCommonInteractionProps = {
 };
 
 const CALLERS: Array<[string, DatabaseCommonInteractionProps]> = [
-  ["a project owner", OWNER_PROPS],
+  ["a Project Owner", OWNER_PROPS],
   ["a master admin", { userId: USER_ID, isMasterAdmin: true }],
   ["OneUptime itself (root)", { isRoot: true }],
 ];

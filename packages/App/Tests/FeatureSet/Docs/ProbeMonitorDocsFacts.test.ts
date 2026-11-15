@@ -1091,15 +1091,19 @@ describe("website and API checks", () => {
       const names: Array<string> = defaultCriteriaFor(
         probePage.monitorType,
       ).map((criteria: MonitorCriteriaInstance): string => {
-        return (criteria.data?.name || "").replace(SAMPLE_NAME, "(name)");
+        return (criteria.data?.name || "").replace(
+          SAMPLE_NAME,
+          "_monitor name_",
+        );
       });
 
       expect(names).toEqual([
-        "Check if (name) is offline",
-        "Check if (name) is online",
+        "Check if _monitor name_ is offline",
+        "Check if _monitor name_ is online",
       ]);
+      // Quoted, as every monitor page quotes what a new monitor is given (#8526).
       expect(englishPage(probePage)).toContain(
-        `_${names[0]}_ and _${names[1]}_`,
+        `"${names[0]}" and "${names[1]}"`,
       );
     },
   );

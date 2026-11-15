@@ -257,7 +257,7 @@ describe("BackupSettingService, through the whole write", () => {
     });
 
     test.each([
-      ["a project owner", PROJECT_OWNER],
+      ["a Project Owner", PROJECT_OWNER],
       ["a signed-in user", SIGNED_IN_USER],
     ])(
       "%s cannot set them up",
@@ -269,7 +269,7 @@ describe("BackupSettingService, through the whole write", () => {
       },
     );
 
-    test("a project owner is refused as not allowed, before any of the settings is read", async () => {
+    test("a Project Owner is refused as not allowed, before any of the settings is read", async () => {
       await expect(
         BackupSettingService.create({
           data: newS3Setting(),
@@ -577,7 +577,7 @@ describe("BackupSettingService, through the whole write", () => {
     });
 
     test.each([
-      ["a project owner", PROJECT_OWNER],
+      ["a Project Owner", PROJECT_OWNER],
       ["a signed-in user", SIGNED_IN_USER],
     ])(
       "%s cannot change them",
@@ -649,7 +649,7 @@ describe("BackupSettingService, through the whole write", () => {
       expect(findBy.query).toEqual({});
     });
 
-    test("a project owner reads nothing", async () => {
+    test("a Project Owner reads nothing", async () => {
       await expect(
         BackupSettingService.findOneById({
           id: new ObjectID(SETTING_ID),

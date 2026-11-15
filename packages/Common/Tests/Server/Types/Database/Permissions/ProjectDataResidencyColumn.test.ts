@@ -118,7 +118,7 @@ describe("Project.dataResidency column access", () => {
      * reads. `name` is writable by a project owner, so if this throws, the
      * factory is broken and the refusals below prove nothing.
      */
-    it("lets a project owner write a column the owner is allowed to write", () => {
+    it("lets a Project Owner write a column the owner is allowed to write", () => {
       expect(
         checkColumnWrite(
           { name: "Renamed" },
@@ -365,7 +365,7 @@ describe("Project.dataResidency column access", () => {
      * bypass would no longer be what lets the admin through - and any customer
      * could relabel their own project.
      */
-    it("still refuses the same write from a project owner who is not a master admin", async () => {
+    it("still refuses the same write from a Project Owner who is not a master admin", async () => {
       await expect(
         checkUpdate(
           { dataResidency: "EU (Frankfurt)" },

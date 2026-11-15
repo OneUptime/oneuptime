@@ -949,7 +949,7 @@ describe("MattermostAPI", () => {
 
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(message(response)).toBe(
-        "You do not have permission to change this project's Mattermost settings. Ask a project admin to change the default team.",
+        "You do not have permission to change this project's Mattermost settings. Ask a Project Admin to change the default team.",
       );
       expect(getTeams).not.toHaveBeenCalled();
       expect(updateTeams).not.toHaveBeenCalled();

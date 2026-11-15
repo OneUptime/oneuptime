@@ -111,7 +111,7 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe DNS-monitor begint met twee criteria:
 
-- **Offline** — de naam wordt na alle nieuwe pogingen niet omgezet, of heeft geen record van het type. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ is offline" gemaakt. Het incident lost zichzelf op wanneer de naam weer wordt omgezet.
+- **Offline** — de naam wordt na alle nieuwe pogingen niet omgezet, of heeft geen record van het type. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitornaam_ is offline" gemaakt. Het incident lost zichzelf op wanneer de naam weer wordt omgezet.
 - **Bereikbaar** — de naam wordt omgezet. De monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Komt er geen overeen, dan toont de monitor zijn standaardstatus: **Operationeel**, tenzij u onder **Meer velden**, onder de criteria, een andere kiest.

@@ -47,7 +47,7 @@ Etter triggeren **Webhook** leser steget **Check With JavaScript** `read-event-1
 
 | Det New Relic sender | Hva arbeidsflyten gjør |
 | --- | --- |
-| `state` er `ACTIVATED` eller `CREATED` | Erklærer en hendelse med tittelen `New Relic: <issue>`, med alvorlighetsgraden sakens prioritet tilsvarer, holdt unna statussidene dine. Beskrivelsen lenker til saken i New Relic, og viser prioriteten, entitetene, retningslinjene og betingelsene. Den varsler vaktretningslinjene du valgte. Den samme saken igjen, for eksempel når New Relic hever den til CRITICAL, åpner ingen ny hendelse, og varsler ingen på nytt. |
+| `state` er `ACTIVATED` eller `CREATED` | Erklærer en hendelse med tittelen `New Relic: <issue>`, med alvorlighetsgraden sakens prioritet tilsvarer, holdt unna statussidene dine. Beskrivelsen lenker til saken i New Relic, og viser prioriteten, entitetene, policyene og betingelsene. Den varsler vaktpolicyene du valgte. Den samme saken igjen, for eksempel når New Relic hever den til CRITICAL, åpner ingen ny hendelse, og varsler ingen på nytt. |
 | `state` er `ACTIVATED` og `isAcknowledged` er `true` | Bekrefter sakens hendelse, slik at vakten slutter å eskalere den. Hvorfor står på tidslinjen. |
 | `state` er `CLOSED` | Løser sakens hendelse, med mindre den allerede er løst. Hvorfor står på tidslinjen. |
 
@@ -55,7 +55,7 @@ En bekreftelse eller en lukking for en sak uten hendelse endrer ingenting. Alt a
 
 ### Prioriteter og varsling
 
-Hver ny sak varsler vaktretningslinjene du valgte, uansett prioritet: New Relic hever en sak fra HIGH til CRITICAL på stedet, på den samme saken, så å vente på CRITICAL ville aldri varslet for en sak som åpnet på HIGH og ble verre. For å varsle for færre saker begrenser du filteret til arbeidsflyten i New Relic: bare det som passerer det, når OneUptime. I et nytt prosjekt knytter prioritetene seg til disse alvorlighetsgradene for hendelser og varsler:
+Hver ny sak varsler vaktpolicyene du valgte, uansett prioritet: New Relic hever en sak fra HIGH til CRITICAL på stedet, på den samme saken, så å vente på CRITICAL ville aldri varslet for en sak som åpnet på HIGH og ble verre. For å varsle for færre saker begrenser du filteret til arbeidsflyten i New Relic: bare det som passerer det, når OneUptime. I et nytt prosjekt knytter prioritetene seg til disse alvorlighetsgradene for hendelser og varsler:
 
 | New Relic-prioritet | Hendelse | Varsel | Vakt |
 | --- | --- | --- | --- |
@@ -126,7 +126,7 @@ OneUptime-arbeidsflyten leser disse feltene i nyttelasten, og lar de andre være
 | `state` | Hvor saken står: `CREATED`, `ACTIVATED` eller `CLOSED`. |
 | `isAcknowledged` | `true` når noen bekrefter saken i New Relic. |
 | `impactedEntities` | Navnene på entitetene saken gjelder. |
-| `alertPolicyNames` | Navnene på retningslinjene bak saken. |
+| `alertPolicyNames` | Navnene på policyene bak saken. |
 | `alertConditionNames` | Navnene på betingelsene bak saken. |
 
 ## Test det
@@ -198,6 +198,6 @@ Hver ny sak som når OneUptime, varsler. Begrens filteret til arbeidsflyten i Ne
 :::cards
 - [Arbeidsflytmaler](/docs/workflows/authoring): Opprett en arbeidsflyt fra en mal, og endre den i Bygger.
 - [Datadog](/docs/integrations/datadog): Den samme malen, for Datadog-monitorer.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktretningslinje varsler, og når.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

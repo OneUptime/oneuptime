@@ -1243,7 +1243,7 @@ describe("Queues (MessageQueue) models", () => {
         "discoverySource",
         "brokerAddress",
       ])(
-        "an update of %s is refused even for a project owner",
+        "an update of %s is refused even for a Project Owner",
         (column: string) => {
           const data: MessageQueue = new MessageQueue();
           (data as unknown as Record<string, unknown>)[column] = "x";

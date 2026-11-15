@@ -60,7 +60,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
     icon: IconProp.Sparkles,
     title: "AI features are disabled for this project",
     description:
-      "Ask AI is switched off along with every other AI feature in this project. A project owner can turn it back on with the Enable AI toggle.",
+      "Ask AI is switched off along with every other AI feature in this project. A Project Owner can turn it back on with the Enable AI toggle.",
     /*
      * AI Features is in the settings menu on every install; AI Credits is
      * shown only when billing is on, so a self-hosted user would be sent to

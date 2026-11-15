@@ -210,7 +210,7 @@ describe("applyIncidentRelatedRecordPrivacyFilter", () => {
     expect(filtered.incidentId.type).toBe("raw");
   });
 
-  it("leaves the query untouched for project admins", () => {
+  it("leaves the query untouched for Project Admins", () => {
     const incidentId: ObjectID = ObjectID.generate();
     const tenantPermission: UserTenantAccessPermission = {
       projectId,

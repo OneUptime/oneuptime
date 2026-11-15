@@ -264,7 +264,7 @@ export default class MattermostActions {
     "This button cannot be used in Mattermost. Open the record in OneUptime instead.";
 
   public static readonly NO_ON_CALL_POLICIES_MESSAGE: string =
-    "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.";
+    "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a Project Admin for access to one.";
 
   // A press of a button or a menu item: what its presser is told.
   @CaptureSpan()
@@ -1067,7 +1067,7 @@ export default class MattermostActions {
           throw new MattermostRefusal(
             stateOptions.hasNoLaterState
               ? WorkspaceMemberActions.getNoLaterStateMessage(event.type)
-              : mdText`No ${noun} states are available to you in this project. Ask a project admin for access to them.`.toString(),
+              : mdText`No ${noun} states are available to you in this project. Ask a Project Admin for access to them.`.toString(),
           );
         }
 

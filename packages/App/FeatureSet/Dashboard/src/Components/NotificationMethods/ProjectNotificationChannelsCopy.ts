@@ -84,7 +84,7 @@ export const ProjectNotificationChannelsCopy: {
     "Each of these has to be on before anyone in this project can add it as a notification method.",
   ),
   whoCanChange: translationKey(
-    "A project owner, a Billing Admin or someone with Manage Billing can change these.",
+    "A Project Owner, a Billing Admin or someone with Manage Billing can change these.",
   ),
   settingsLinkText: translationKey(
     "Project Settings → Notifications → Notification Channels",
@@ -302,7 +302,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can add a phone number for SMS.",
       ),
       offSentence: translationKey(
-        "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
+        "SMS is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
       ),
       noItemsWhileOff: NO_PHONE_NUMBERS_YET,
     },
@@ -316,7 +316,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can add a phone number for calls.",
       ),
       offSentence: translationKey(
-        "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
+        "Phone calls are off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Channels.",
       ),
       noItemsWhileOff: NO_PHONE_NUMBERS_YET,
     },
@@ -330,7 +330,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can add a WhatsApp number.",
       ),
       offSentence: translationKey(
-        "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
+        "WhatsApp is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
       ),
       noItemsWhileOff: translationKey("No WhatsApp numbers yet."),
     },
@@ -344,7 +344,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can link a Telegram account.",
       ),
       offSentence: translationKey(
-        "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
+        "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
       ),
       noItemsWhileOff: translationKey("No Telegram accounts linked yet."),
     },
@@ -358,7 +358,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: numbers for incoming calls can be added and verified by SMS.",
       ),
       offSentence: translationKey(
-        "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
+        "Numbers for incoming calls are verified by SMS, which is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
       ),
       noItemsWhileOff: NO_PHONE_NUMBERS_YET,
     },

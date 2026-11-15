@@ -115,11 +115,11 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const EVALUATED_AT: string = "2026-09-17T12:24:00.000Z";
 const NEXT_EVALUATED_AT: string = "2026-09-17T12:25:00.000Z";
 const AI_DISABLED_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
+  "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
 const NO_CREDITS_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can add AI credits.";
+  "A Project Owner or someone with Manage Billing can add AI credits.";
 const DAILY_LIMIT_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.";
+  "A Project Owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.";
 
 /*
  * What the server sends: a code, how it was decided, and its own English
@@ -143,7 +143,7 @@ const REASONS: Array<ReasonExample> = [
     code: "ai_disabled",
     title: "AI is disabled for this project",
     description: "The project AI switch is off.",
-    nextStep: "A project owner can enable AI for future events.",
+    nextStep: "A Project Owner can enable AI for future events.",
   },
   {
     code: "automatic_investigation_disabled",
@@ -592,7 +592,7 @@ describe("investigation reason freshness and uncertainty", () => {
     ).toBeVisible();
     expect(
       screen.getByText(
-        "Ask a project administrator to check the service's health and the AI settings. Nothing is tried again automatically.",
+        "Ask a Project Admin to check the service's health and the AI settings. Nothing is tried again automatically.",
       ),
     ).toBeVisible();
   });
@@ -687,7 +687,7 @@ describe("investigation reason freshness and uncertainty", () => {
     expect(screen.queryByText(COOLDOWN_TITLE)).toBeNull();
     expect(screen.queryByRole("link")).toBeNull();
     expect(
-      screen.queryByText("A project administrator can review these settings."),
+      screen.queryByText("A Project Admin can review these settings."),
     ).toBeNull();
   });
 
@@ -1021,9 +1021,9 @@ describe("investigation settings actions", () => {
   );
 
   /*
-   * Only a project owner or Manage Billing may flip Project.enableAi, so a
-   * Project Admin who cannot use the link must not be told "a project
-   * administrator" can fix it — that sends them to ask themselves.
+   * Only a Project Owner or Manage Billing may flip Project.enableAi, so a
+   * Project Admin who cannot use the link must not be told "a Project
+   * Admin" can fix it — that sends them to ask themselves.
    */
   test("tells a Project Admin who can turn AI on, without claiming an administrator can", async () => {
     jest
@@ -1034,7 +1034,7 @@ describe("investigation settings actions", () => {
     await flush();
 
     expect(screen.getByText(AI_DISABLED_WHO_CAN_ACT)).toBeVisible();
-    expect(screen.queryByText(/project administrator/i)).toBeNull();
+    expect(screen.queryByText(/project admin/i)).toBeNull();
     expect(screen.queryByRole("link")).toBeNull();
   });
 
@@ -1075,7 +1075,7 @@ describe("investigation settings actions", () => {
     await flush();
 
     expect(screen.getByText(NO_CREDITS_WHO_CAN_ACT)).toBeVisible();
-    expect(screen.queryByText(/project administrator/i)).toBeNull();
+    expect(screen.queryByText(/project admin/i)).toBeNull();
   });
 
   test("still sends a viewer who cannot configure a provider to an administrator", async () => {
@@ -1088,7 +1088,7 @@ describe("investigation settings actions", () => {
 
     expect(screen.queryByRole("link")).toBeNull();
     expect(
-      screen.getByText("A project administrator can review these settings."),
+      screen.getByText("A Project Admin can review these settings."),
     ).toBeVisible();
   });
 
@@ -1123,11 +1123,11 @@ describe("investigation settings actions", () => {
     ).toBeVisible();
     expect(screen.queryByRole("link")).toBeNull();
     expect(
-      screen.getByText("A project administrator can review these settings."),
+      screen.getByText("A Project Admin can review these settings."),
     ).toBeVisible();
   });
 
-  test("respects a provider-specific permission without requiring project administrator access", async () => {
+  test("respects a provider-specific permission without requiring Project Admin access", async () => {
     jest
       .mocked(PermissionUtil.getAllPermissions)
       .mockReturnValue([Permission.CreateProjectLlm]);
@@ -1139,7 +1139,7 @@ describe("investigation settings actions", () => {
       screen.getByRole("link", { name: "Set up an LLM provider" }),
     ).toBeVisible();
     expect(
-      screen.queryByText("A project administrator can review these settings."),
+      screen.queryByText("A Project Admin can review these settings."),
     ).toBeNull();
   });
 });
@@ -1225,7 +1225,7 @@ describe("which settings page each reason points at", () => {
       expect(action.whoCanAct.trim()).not.toBe("");
       const creditsAdministrator: boolean = action.whoCanAct
         .toLowerCase()
-        .includes("project administrator");
+        .includes("project admin");
 
       expect(creditsAdministrator).toBe(
         action.permissions.includes(Permission.ProjectAdmin),

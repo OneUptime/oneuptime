@@ -19,10 +19,10 @@ Brug kontakten som din «klar til brug»-port:
 1. Byg arbejdsgangen.
 2. Klik på **Kør arbejdsgang** i **Bygger** med realistiske værdier, mens arbejdsgangen stadig er slået fra. Kørslen er en **Testkørsel**: hver blok kører for alvor, så peg den først mod en testkanal eller en testpost.
 3. Åbn kørslen, og tjek, at hver blok gik derhen, du forventede. Se [Kørsler](/docs/workflows/runs-and-logs).
-4. Slå **Aktiveret** til, når det er klar: fra da af udløses dets trigger ved rigtige begivenheder.
+4. Slå **Aktiveret** til, når den er klar: fra da af udløses dens trigger ved rigtige begivenheder.
 :::
 
-At slå en arbejdsgang fra forhindrer dens trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dets trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter. For at slå flere til eller fra på én gang markerer du dem i listen **Arbejdsgange** og vælger **Aktivér** eller **Deaktivér** under **Massehandlinger**.
+At slå en arbejdsgang fra forhindrer dens trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dens trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter. For at slå flere til eller fra på én gang markerer du dem i listen **Arbejdsgange** og vælger **Aktivér** eller **Deaktivér** under **Massehandlinger**.
 
 ## Arkiver en arbejdsgang
 
@@ -31,13 +31,13 @@ Arkiver en arbejdsgang, du ikke længere har brug for, men vil beholde. En arkiv
 - **Kører aldrig**, fra nogen trigger. Manuelle kørsler og **Run just this step**, webhook-kald, tidsplaner, OneUptime-begivenheder, indgående e-mail og andre arbejdsgange' **Execute Workflow**-trin afvises alle. Et webhook-kald til en arkiveret arbejdsgang får en fejl, der siger, at arbejdsgangen er arkiveret.
 - **Stopper kørsler, der venter.** En kørsel, der sover i et **Sleep**-trin, annulleres, når den vågner, og en kørsel, der stod i kø, men endnu ikke var startet, slutter med "Workflow was archived before this run started, so it did not run."
 - **Forsvinder fra listen over arbejdsgange.** Find den under **Arbejdsgange → Avanceret → Arkiveret**.
-- **Beholder alt.** Dets trin, variabler, ejere, etiketter og kørselshistorik forbliver, som de var.
+- **Beholder alt.** Dens trin, variabler, ejere, etiketter og kørselshistorik forbliver, som de var.
 
 For at arkivere én arbejdsgang åbner du den, går til **Indstillinger** og klikker på **Arkiver**. For at arkivere flere markerer du dem i listen **Arbejdsgange** og vælger **Arkiver**.
 
 For at hente en arbejdsgang tilbage åbner du **Arbejdsgange → Avanceret → Arkiveret**, markerer den og vælger **Fjern fra arkivet**, eller du åbner den og klikker på **Fjern fra arkivet** i banneret øverst på dens sider.
 
-Arkivering og kontakten **Aktiveret** er to forskellige ting. Arkivering rører ikke kontakten, så en arbejdsgang, der var slået til, kører igen, så snart den fjernes fra arkivet, og en, der var slået fra, forbliver slået fra. Siden **Arkiveret** viser i sin kolonne **Når det fjernes fra arkivet**, hvilket der er hvilket.
+Arkivering og kontakten **Aktiveret** er to forskellige ting. Arkivering rører ikke kontakten, så en arbejdsgang, der var slået til, kører igen, så snart den fjernes fra arkivet, og en, der var slået fra, forbliver slået fra. Siden **Arkiveret** viser i sin kolonne **Når den fjernes fra arkivet**, hvilket der er hvilket.
 
 En eksporteret arbejdsgang medbringer aldrig sin arkiverede tilstand, så en importeret kopi er aldrig arkiveret.
 
@@ -80,8 +80,8 @@ Klik på **Importér JSON** i listen **Arbejdsgange**, og vælg en fil, der er e
 
 Filen indeholder arbejdsgangens navn, beskrivelse, aktiveringstilstand og graf. Den indeholder bevidst ikke:
 
-- **Webhookens hemmelige nøgle.** Der genereres en ny, når arbejdsgangen oprettes, så en importeret arbejdsgang har en anden webhook-URL — kopiér den fra den nye arbejdsgangs Webhook-trigger. Alt, der kaldte det oprindelige, skal peges om.
-- **Adressen til indgående e-mail.** En importeret arbejdsgang med en Incoming Email-trigger får sin egen adresse — kopiér den fra den nye arbejdsgangs trigger. Alt, der sendte e-mail til det oprindelige, skal have den nye adresse.
+- **Webhookens hemmelige nøgle.** Der genereres en ny, når arbejdsgangen oprettes, så en importeret arbejdsgang har en anden webhook-URL — kopiér den fra den nye arbejdsgangs Webhook-trigger. Alt, der kaldte den oprindelige, skal peges om.
+- **Adressen til indgående e-mail.** En importeret arbejdsgang med en Incoming Email-trigger får sin egen adresse — kopiér den fra den nye arbejdsgangs trigger. Alt, der sendte e-mail til den oprindelige, skal have den nye adresse.
 - **Globale variabler.** En blok, der læser `{{global.variables.MY_SECRET}}`, beholder referencen, men værdien er ikke i filen. Opret variablerne i modtagerprojektet, før du kører den importerede arbejdsgang.
 - **Ejere og etiketter.** Dit projekts egne etiket- og ejerregler kører mod den importerede arbejdsgang, præcis som hvis du havde oprettet den manuelt.
 

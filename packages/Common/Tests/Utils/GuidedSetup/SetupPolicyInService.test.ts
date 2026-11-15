@@ -75,7 +75,12 @@ describe("the run's policy, as just read (#8432)", () => {
     expect(getSetupPolicyGone({})).toBeNull();
     expect(getSetupPolicyGone({ isArchived: null })).toBeNull();
     expect(getSetupPolicyGone({ isArchived: undefined })).toBeNull();
-    expect(isSetupPolicyInService({ id: "p", name: "Ops" })).toBe(true);
+    // A record made by hand: its other columns, and no archived flag.
+    const madeByHand: { id: string; name: string; isArchived?: boolean } = {
+      id: "p",
+      name: "Ops",
+    };
+    expect(isSetupPolicyInService(madeByHand)).toBe(true);
   });
 
   test("the two reasons are told apart, each its own", () => {

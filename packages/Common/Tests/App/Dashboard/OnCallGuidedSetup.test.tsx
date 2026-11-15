@@ -770,7 +770,7 @@ describe("how should we reach you", () => {
     expect(
       screen.getByTestId("on-call-setup-who-can-turn-on"),
     ).toHaveTextContent(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn it on",
+      "A Project Owner, a Billing Admin or someone with Manage Billing can turn it on",
     );
   });
 
@@ -1146,7 +1146,7 @@ describe("who else is on call", () => {
     await reachDone();
 
     expect(screen.getByTestId("on-call-setup-cannot-create")).toHaveTextContent(
-      "Ask a project owner or admin",
+      "Ask a Project Owner or Project Admin",
     );
     expect(screen.queryByTestId("on-call-setup-who-save")).toBeNull();
   });
@@ -1903,7 +1903,7 @@ describe("a policy made meanwhile, in another tab or on another device (#7252)",
 
     expect(api["createPolicy"]).not.toHaveBeenCalled();
     expect(screen.getByTestId("on-call-setup-cannot-create")).toHaveTextContent(
-      "Ask a project owner or admin",
+      "Ask a Project Owner or Project Admin",
     );
     // No policy appeared, so none is said to have.
     expect(
@@ -2384,7 +2384,7 @@ describe("the run's policy deleted in another tab or by a teammate (#7516)", () 
     );
 
     expect(cannot).toHaveTextContent(DELETED);
-    expect(cannot).toHaveTextContent("Ask a project owner or admin");
+    expect(cannot).toHaveTextContent("Ask a Project Owner or Project Admin");
     expect(screen.getByTestId("on-call-setup-who-help")).toHaveAttribute(
       "aria-live",
       "polite",
@@ -2942,7 +2942,7 @@ describe("the run's policy archived in another tab or by a teammate (#8432)", ()
 
       expect(cannot).toHaveTextContent(ARCHIVED);
       expect(cannot).not.toHaveTextContent(DELETED);
-      expect(cannot).toHaveTextContent("Ask a project owner or admin");
+      expect(cannot).toHaveTextContent("Ask a Project Owner or Project Admin");
       expect(screen.getByTestId("on-call-setup-who-help")).toHaveAttribute(
         "aria-live",
         "polite",

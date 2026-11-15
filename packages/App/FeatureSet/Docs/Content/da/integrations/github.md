@@ -38,7 +38,7 @@ En selvhostet instans skal først have sin egen GitHub App: [GitHub-integration]
 
 ## Før du går i gang
 
-Resten af denne side bygger arbejdsgangen. Det kræver:
+Resten af denne side bygger arbejdsgangen. Den kræver:
 
 - Et GitHub-token, der kan oprette issues i repositoriet: et fine-grained personal access token til det repositorie, med tilladelsen **Issues** sat til **Read and write**, eller et klassisk token med omfanget `repo`. Opret et i GitHubs [tokenindstillinger](https://github.com/settings/tokens).
 - I OneUptime rettigheden til at oprette arbejdsgange og globale variabler. På OneUptime Cloud kræver arbejdsgange **Growth**-abonnementet eller højere.
@@ -58,7 +58,7 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldr
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to GitHub`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to GitHub`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 

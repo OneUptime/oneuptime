@@ -1195,7 +1195,7 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       expect(table().cardProps?.description).toContain("OAuth 2.0");
     });
 
-    test("is enabled for a project admin, and says what an OAuth variable is", () => {
+    test("is enabled for a Project Admin, and says what an OAuth variable is", () => {
       permissionsForTest = [Permission.ProjectAdmin];
 
       renderPage(pageCase.page);

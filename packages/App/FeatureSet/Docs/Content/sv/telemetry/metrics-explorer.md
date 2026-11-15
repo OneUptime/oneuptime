@@ -64,13 +64,13 @@ Under **Aggregate by** väljer du hur värdena i varje punkt i diagrammet kombin
 
 ### Justera diagrammet
 
-Öppna **Display Settings** för att välja **Chart type** (linje, yta eller stapel), rita en **Warning Threshold** och en **Critical Threshold** i diagrammet, eller slå på **Convert to per-second rate**.
+Öppna **Visningsinställningar** för att välja **Diagramtyp** (linje, yta eller stapel), rita en **Varningströskel** och ett **Kritiskt tröskelvärde** i diagrammet, eller slå på **Räkna om till takt per sekund**.
 :::
 
 > [!TIP]
-> En räknare som bara ökar, som `system.disk.io`, läses bäst som en takt. Slå på **Convert to per-second rate** för att visa hur snabbt den ändras i stället för dess löpande summa; utforskaren föreslår det när den känner igen en sådan räknare.
+> En räknare som bara ökar, som `system.disk.io`, läses bäst som en takt. Slå på **Räkna om till takt per sekund** för att visa hur snabbt den ändras i stället för dess löpande summa; utforskaren föreslår det när den känner igen en sådan räknare.
 
-Varje fråga ritar sitt eget diagram. För att rita en fråga i samma diagram som den före den slår du på **Overlay with previous query** i dess **Display Settings**.
+Varje fråga ritar sitt eget diagram. För att rita en fråga i samma diagram som den före den slår du på **Lägg över föregående fråga** i dess **Visningsinställningar**.
 
 ## Kombinera frågor med en formel
 
@@ -195,7 +195,7 @@ Starta om collectorn. Varje tjänst vars spår passerar genom den skickar då `t
 ## Felsökning
 
 :::details En räknares diagram går bara uppåt
-Det är en kumulativ räknare. Slå på **Convert to per-second rate** i frågans **Display Settings**.
+Det är en kumulativ räknare. Slå på **Räkna om till takt per sekund** i frågans **Visningsinställningar**.
 :::
 
 :::details Listan säger att inga mätvärden hittades

@@ -63,15 +63,15 @@ import { WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessage
 
 // What a member allowed to connect the project is refused with.
 const CONNECT_PERMISSION_MESSAGE: string =
-  "You do not have permission to connect this project to Mattermost. Ask a project admin to connect it.";
+  "You do not have permission to connect this project to Mattermost. Ask a Project Admin to connect it.";
 
 // What a member not allowed to choose the project's default team is refused with.
 const DEFAULT_TEAM_PERMISSION_MESSAGE: string =
-  "You do not have permission to change this project's Mattermost settings. Ask a project admin to change the default team.";
+  "You do not have permission to change this project's Mattermost settings. Ask a Project Admin to change the default team.";
 
 // What every route that needs the project's connection says without one.
 const NOT_CONNECTED_MESSAGE: string =
-  "Mattermost is not connected to this project. A project admin connects it under Project Settings → Workspace → Mattermost.";
+  "Mattermost is not connected to this project. A Project Admin connects it under Project Settings → Workspace → Mattermost.";
 
 // How many sign-in links one person may have sent in a while: each is a direct message to somebody.
 const SIGN_IN_LINKS_PER_WINDOW: number = 5;

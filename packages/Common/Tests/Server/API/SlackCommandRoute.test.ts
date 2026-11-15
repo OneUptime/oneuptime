@@ -724,7 +724,7 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
 
       expect(urlsOf(calls)).toEqual([RESPONSE_URL]);
       expect(sectionText(calls[0]!.data["blocks"])).toBe(
-        "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.\n",
+        "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.\n",
       );
       expect(connectUrlOf(calls[0]!.data["blocks"])).toBeNull();
     });
@@ -737,13 +737,13 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
       expect(answer.status).toBe(200);
       expect(answer.body).toEqual({
         response_type: "ephemeral",
-        text: "This Slack workspace is not connected to a OneUptime project yet. A project admin can connect it in OneUptime under Project Settings → Workspace → Slack.",
+        text: "This Slack workspace is not connected to a OneUptime project yet. A Project Admin can connect it in OneUptime under Project Settings → Workspace → Slack.",
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "This Slack workspace is not connected to a OneUptime project yet. A project admin can connect it in OneUptime under Project Settings → Workspace → Slack.\n",
+              text: "This Slack workspace is not connected to a OneUptime project yet. A Project Admin can connect it in OneUptime under Project Settings → Workspace → Slack.\n",
             },
           },
         ],
@@ -932,7 +932,7 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
 
       expect(calls[0]!.data).toEqual({
         response_type: "ephemeral",
-        text: "This Slack workspace is not connected to a OneUptime project yet. A project admin can connect it in OneUptime under Project Settings → Workspace → Slack.",
+        text: "This Slack workspace is not connected to a OneUptime project yet. A Project Admin can connect it in OneUptime under Project Settings → Workspace → Slack.",
       });
     });
   });

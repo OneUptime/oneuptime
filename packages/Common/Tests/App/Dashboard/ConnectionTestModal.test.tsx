@@ -197,7 +197,7 @@ describe("ConnectionTestModal", () => {
           403,
           {
             message:
-              "Project owners, project administrators, and security administrators can run connection diagnostics.",
+              "Project Owners, Project Admins, and Security Admins can run connection diagnostics.",
           },
           {},
         ),
@@ -213,9 +213,7 @@ describe("ConnectionTestModal", () => {
     );
 
     expect(
-      await screen.findByText(
-        /security administrators can run connection diagnostics/,
-      ),
+      await screen.findByText(/Security Admins can run connection diagnostics/),
     ).toBeVisible();
     expect(
       screen.queryByRole("region", { name: "Connection test report" }),

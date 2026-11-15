@@ -306,7 +306,7 @@ describePostgres("AI investigation decisions against Postgres", () => {
         expect(await stored(id)).toEqual(original);
       });
 
-      test("a project owner cannot forge the internal decision through generic updates", async () => {
+      test("a Project Owner cannot forge the internal decision through generic updates", async () => {
         const id: ObjectID = await seed();
         const service: typeof AlertService | typeof IncidentService =
           kind === "Alert" ? AlertService : IncidentService;
@@ -325,7 +325,7 @@ describePostgres("AI investigation decisions against Postgres", () => {
         expect(await stored(id)).toBeNull();
       });
 
-      test("a project owner cannot read the internal column through generic reads", async () => {
+      test("a Project Owner cannot read the internal column through generic reads", async () => {
         const id: ObjectID = await seed();
         await InvestigationEligibility.recordSkipped(
           subject(id),

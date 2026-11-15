@@ -381,7 +381,7 @@ describe("ApiKeyCustomRoleService", () => {
       expect(refusal.message).toContain("Incident Responder");
     });
 
-    test("a project owner gives any role", async () => {
+    test("a Project Owner gives any role", async () => {
       rolePermissions = [
         roleRow(Permission.ProjectAdmin, PermissionScope.All),
         roleRow(Permission.MonitorAdmin, PermissionScope.Labels, [STAGING]),

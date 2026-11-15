@@ -496,7 +496,7 @@ describe("update", () => {
     expect(visibilityAsked()).toEqual(["ddd444:public"]);
   });
 
-  test("a project owner editing the status page's overview description, through the permission checks", async () => {
+  test("a Project Owner editing the status page's overview description, through the permission checks", async () => {
     const service: StatusPageWrites = new StatusPageWrites();
     const stored: StatusPage = new StatusPage();
     stored._id = RECORD_ID;

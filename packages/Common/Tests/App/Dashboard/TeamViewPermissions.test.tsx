@@ -1662,7 +1662,7 @@ describe("someone who may read a team but not change what it can do", () => {
     // The empty state says why it cannot help.
     expect(
       within(permissions).getByText(
-        "You don't have permission to create these. Ask a project admin for access.",
+        "You don't have permission to create these. Ask a Project Admin for access.",
       ),
     ).toBeInTheDocument();
   });

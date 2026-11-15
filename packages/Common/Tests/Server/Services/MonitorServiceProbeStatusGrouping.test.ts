@@ -807,7 +807,7 @@ describe("MonitorService probe status notifications (issue #2486)", () => {
   });
 
   describe("who receives the grouped message", () => {
-    test("each monitor owner hears only about their own monitors, and project owners are not looked up", async () => {
+    test("each monitor owner hears only about their own monitors, and Project Owners are not looked up", async () => {
       const ownerA: User = makeUser(1);
       const ownerB: User = makeUser(2);
       const monitors: Array<Monitor> = makeMonitors(1, 3);
@@ -833,7 +833,7 @@ describe("MonitorService probe status notifications (issue #2486)", () => {
       expect(sentTo(makeUser(9))).toHaveLength(0);
     });
 
-    test("a monitor with no owners goes to the project owners, the same fallback as the per-monitor message", async () => {
+    test("a monitor with no owners goes to the Project Owners, the same fallback as the per-monitor message", async () => {
       const monitorOwner: User = makeUser(1);
       const projectOwnerP: User = makeUser(2);
       const projectOwnerQ: User = makeUser(3);
@@ -860,7 +860,7 @@ describe("MonitorService probe status notifications (issue #2486)", () => {
       );
     });
 
-    test("someone who owns one monitor and is project owner for an unowned one gets one message with both", async () => {
+    test("someone who owns one monitor and is Project Owner for an unowned one gets one message with both", async () => {
       const person: User = makeUser(1);
       const owned: Monitor = makeMonitor(1);
       const unowned: Monitor = makeMonitor(2);
@@ -1363,7 +1363,7 @@ describe("MonitorService probe status notifications (issue #2486)", () => {
       expect(listedNames(onlyMessageTo(healthy))).toEqual(namesOf(monitors));
     });
 
-    test("a monitor whose owners cannot be read is left out rather than sent to the project owners", async () => {
+    test("a monitor whose owners cannot be read is left out rather than sent to the Project Owners", async () => {
       const projectOwner: User = makeUser(1);
       const monitorOwner: User = makeUser(2);
       const unowned: Monitor = makeMonitor(1);

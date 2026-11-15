@@ -825,7 +825,7 @@ describe("LlmUsageBreakdown - where a row's figures came from", () => {
     );
 
     expect(leftOut).toHaveTextContent(
-      /^Usage metrics are left out: your role cannot read metrics\. Ask a project admin for access\.$/,
+      /^Usage metrics are left out: your role cannot read metrics\. Ask a Project Admin for access\.$/,
     );
     expect(leftOut).toHaveClass("text-gray-500");
     expect(leftOut).not.toHaveClass("text-amber-700");

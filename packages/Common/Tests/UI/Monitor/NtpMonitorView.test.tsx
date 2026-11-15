@@ -9,6 +9,7 @@ import NtpMonitorResponse from "../../../Types/Monitor/NtpMonitor/NtpMonitorResp
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 /*
  * The latest NTP check on the monitor's page: the server, whether it
@@ -180,7 +181,8 @@ describe("NTP monitor summary", () => {
         "The server answered with a kiss-o'-death (RATE): the server is rate-limiting this probe and asks it to poll less often.",
       ),
     ).toBeInTheDocument();
-    expect(cardValue(summary, "Clock Offset")).toBe("-");
+    // No offset: the quiet dash, read out as "Not set" (d8279c590b1).
+    expect(cardValue(summary, "Clock Offset")).toBe(QUIET_DASH_TEXT);
   });
 
   it("a stratum 16 server reads as not synchronized", () => {
@@ -214,7 +216,8 @@ describe("NTP monitor summary", () => {
         "No NTP reply from 192.0.2.10:123 within 5 seconds. Tried 4 times.",
       ),
     ).toBeInTheDocument();
-    expect(cardValue(summary, "Synchronized")).toBe("-");
+    // No reply says nothing of the clock: the quiet dash, read out as "Not set".
+    expect(cardValue(summary, "Synchronized")).toBe(QUIET_DASH_TEXT);
     expect(within(summary).queryByText("Clock Offset")).not.toBeInTheDocument();
     expect(within(summary).queryByText("Stratum")).not.toBeInTheDocument();
     expect(

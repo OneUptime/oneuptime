@@ -258,11 +258,11 @@ export function describeAiRunFailureFix(
      */
     case AIRunFailureKind.LimitReached:
       return translator.translateText(
-        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.",
       ) as string;
     case AIRunFailureKind.CreditsUsedUp:
       return translator.translateText(
-        "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+        "A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
       ) as string;
     // The record's own limit, on the record's AI settings page.
     case AIRunFailureKind.IncidentTokenLimitPaused:

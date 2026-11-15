@@ -32,7 +32,7 @@ export const SECURITY_CASE_NOT_FOUND_COPY: Record<
   [SecurityCaseNotFoundReason.NoAccess]: {
     title: translationKey("You cannot open this case."),
     description: translationKey(
-      "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.",
+      "Reading security cases takes a Security role, or Project Owner or Admin. Ask a Project Admin for one.",
     ),
   },
   [SecurityCaseNotFoundReason.LoadFailed]: {

@@ -343,8 +343,8 @@ describe("what the switches say", () => {
     ]) {
       expect(sentence).toContain("owner users");
       expect(sentence).toContain("owner teams");
-      expect(sentence).toContain("project admins");
-      expect(sentence).toContain("project owners");
+      expect(sentence).toContain("Project Admins");
+      expect(sentence).toContain("Project Owners");
     }
 
     expect(AlertPrivacySwitchCopy.makePrivateConfirmDescription).toContain(

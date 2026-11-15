@@ -411,7 +411,7 @@ describe("Project.isSessionReplayAllowed", () => {
     ).toBe(true);
   });
 
-  it("is editable by a project owner or admin", () => {
+  it("is editable by a Project Owner or Project Admin", () => {
     const accessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
 
@@ -572,7 +572,7 @@ describe("RumSessionErasureRequest", () => {
     expect(model.deleteRecordPermissions).toEqual([]);
   });
 
-  it("can be raised by a project admin or the granular permission", () => {
+  it("can be raised by a Project Admin or the granular permission", () => {
     expect(model.createRecordPermissions).toContain(
       Permission.CreateRumSessionErasureRequest,
     );
