@@ -1643,7 +1643,7 @@ Molnets sida **AI-agent** erbjuder en körbok för vart och ett av dessa, att l�
 
 ### Åtgärder från ett arbetsflöde
 
-Ett arbetsflöde kan starta från ett OpenStack-larm och föreslå en åtgärd: steget **Propose an OpenStack fix** tar larmet eller incidenten, och kommandot. Det går genom samma policy, samma skrivomfång och samma läsning av vad en ändring rör som en åtgärd OneUptime AI föreslår, det behöver ingen AI-modell, och en människa godkänner det på larmet. Ett arbetsflöde kan inte göra ändringen självt eller godkänna det det föreslår, vilket läge molnets åtgärder än har. Mallen **Propose taking a failing OpenStack compute service out of scheduling** är ett ställe att börja på.
+Ett arbetsflöde kan starta från ett OpenStack-larm och föreslå en åtgärd: steget **Föreslå en OpenStack-åtgärd** tar larmet eller incidenten, och kommandot. Det går genom samma policy, samma skrivomfång och samma läsning av vad en ändring rör som en åtgärd OneUptime AI föreslår, det behöver ingen AI-modell, och en människa godkänner det på larmet. Ett arbetsflöde kan inte göra ändringen självt eller godkänna det det föreslår, vilket läge molnets åtgärder än har. Mallen **Propose taking a failing OpenStack compute service out of scheduling** är ett ställe att börja på.
 
 ## Kör som en systemd-tjänst
 

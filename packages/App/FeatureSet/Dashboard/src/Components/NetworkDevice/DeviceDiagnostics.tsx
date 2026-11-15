@@ -1,5 +1,6 @@
 import TracerouteHopsTable from "./TracerouteHopsTable";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import ProbeMessageLine from "../Monitor/SummaryView/ProbeMessageLine";
 import {
   DIAGNOSTIC_MAX_CONSECUTIVE_POLL_FAILURES,
   DIAGNOSTIC_MAX_POLL_ATTEMPTS,
@@ -448,7 +449,11 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
                     />
                   </dt>
                   <dd className="font-medium text-right break-all">
-                    {getValueOrQuietDash(diagnosticRow.value)}
+                    {diagnosticRow.isProbeMessage ? (
+                      <ProbeMessageLine message={diagnosticRow.value} />
+                    ) : (
+                      getValueOrQuietDash(diagnosticRow.value)
+                    )}
                   </dd>
                 </div>
               );
@@ -489,8 +494,15 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+        {/*
+         * The trace's own message, as the probe stored it: OneUptime's own
+         * sentence ("Traceroute could not run: ...") in the reader's words,
+         * any other in a line of its own direction (#8675).
+         */}
         {summary.note ? (
-          <p className="mt-1 text-xs text-gray-500">{summary.note}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            <ProbeMessageLine message={summary.note} />
+          </p>
         ) : (
           <></>
         )}

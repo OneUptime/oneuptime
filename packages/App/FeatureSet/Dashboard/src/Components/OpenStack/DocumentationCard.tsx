@@ -19,6 +19,7 @@ import {
   getOpenStackSetupGuide,
   resolveOpenStackConnectMethod,
 } from "../../Pages/OpenStack/Utils/DocumentationMarkdown";
+import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../Pages/OpenStack/Utils/DocumentationTranslations";
 import {
   DEFAULT_OPENSTACK_DEPLOYMENT_TOOL,
   OPENSTACK_DEPLOYMENT_TOOLS,
@@ -109,6 +110,7 @@ const OpenStackDocumentationCard: FunctionComponent<ComponentProps> = (
             tool: resolveOpenStackDeploymentTool(context.option),
           });
         }}
+        translations={OPENSTACK_DOCUMENTATION_TRANSLATIONS}
         isBare={props.isBare}
         inputs={props.inputs}
         lastStep={props.lastStep}

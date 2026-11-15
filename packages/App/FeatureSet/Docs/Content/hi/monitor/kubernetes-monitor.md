@@ -85,15 +85,15 @@ flowchart TB
 
 | श्रेणी | मेट्रिक्स |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| नोड | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| कंटेनर | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| वर्कलोड | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| कंट्रोल प्लेन | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| पॉड | Pod CPU उपयोग, Pod मेमोरी उपयोग, Pod चरण (कोड), Pod फ़ाइलसिस्टम उपयोग, Pod मेमोरी सीमा उपयोग दर, Pod CPU सीमा उपयोग दर, Pod नेटवर्क I/O (संचयी, दोनों दिशाएँ) |
+| नोड | नोड CPU उपयोग, नोड आवंटन योग्य CPU, नोड मेमोरी उपयोग, नोड मेमोरी वर्किंग सेट, नोड फ़ाइलसिस्टम उपयोग, नोड आवंटन योग्य मेमोरी, नोड Ready स्थिति, नोड MemoryPressure स्थिति, नोड DiskPressure स्थिति, नोड PIDPressure स्थिति, नोड फ़ाइलसिस्टम उपलब्ध स्थान |
+| कंटेनर | कंटेनर रीस्टार्ट, कंटेनर रीस्टार्ट (वृद्धि), कंटेनर CPU सीमा, कंटेनर CPU अनुरोध, कंटेनर मेमोरी सीमा, कंटेनर मेमोरी अनुरोध, कंटेनर तैयार |
+| वर्कलोड | Deployment उपलब्ध प्रतिकृतियां, Deployment वांछित प्रतिकृतियां, DaemonSet वांछित नोड, DaemonSet गलत शेड्यूल किए गए नोड, DaemonSet तैयार नोड, StatefulSet वांछित प्रतिकृतियां, StatefulSet तैयार प्रतिकृतियां, Job विफल Pod, Job विफल Pod (वृद्धि), Job सफल Pod |
+| HPA | HPA वर्तमान प्रतिकृतियां, HPA वांछित प्रतिकृतियां, HPA अधिकतम प्रतिकृतियां, HPA न्यूनतम प्रतिकृतियां |
+| कंट्रोल प्लेन | etcd में लीडर है, API सर्वर इन-फ़्लाइट अनुरोध, शेड्यूलर लंबित Pod |
 
 > [!NOTE]
-> **Pod CPU Usage** और **Node CPU Usage** कोर में हैं, प्रतिशत में नहीं: `0.18` का मतलब एक कोर का 0.18 है। **Pod Phase (Code)** एक कोड है (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – इसे अधिकतम या न्यूनतम से एकत्र करें, योग से कभी नहीं। कंट्रोल प्लेन मेट्रिक्स तभी आते हैं जब एजेंट का कंट्रोल प्लेन स्क्रेप चालू हो। **Node Ready Condition** Ready होने पर 1, NotReady पर 0 और Unknown पर -1 होता है, और बंद हो चुका नोड Unknown ही रिपोर्ट करता है: 1 से कम पर अलर्ट करें। **Container Restarts** कंटेनर की चालू रीस्टार्ट गिनती है; **Container Restarts (Increase)** वह है जो एजेंट हर नमूने के साथ भेजता है: कंटेनर के अपने पिछले नमूने के बाद हुए रीस्टार्ट, इसलिए किसी विंडो में इसका योग उस विंडो के रीस्टार्ट हैं। यह वही रखता है जो **Container Restarts** रखता है, कंटेनर के पॉड के वर्कलोड नामों सहित, पर कंटेनर की ID नहीं, जो हर रीस्टार्ट के साथ बदलती है। **Job Failed Pods** किसी Job के विफल पॉड की चालू गिनती है; **Job Failed Pods (Increase)** वह है जो एजेंट हर नमूने के साथ भेजता है: Job के अपने पिछले नमूने के बाद विफल हुए उसके पॉड, इसलिए किसी विंडो में इसका योग उस विंडो की विफलताएँ हैं। यह वही रखता है जो **Job Failed Pods** रखता है: Job का नाम और नेमस्पेस।
+> **Pod CPU उपयोग** और **नोड CPU उपयोग** कोर में हैं, प्रतिशत में नहीं: `0.18` का मतलब एक कोर का 0.18 है। **Pod चरण (कोड)** एक कोड है (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – इसे अधिकतम या न्यूनतम से एकत्र करें, योग से कभी नहीं। कंट्रोल प्लेन मेट्रिक्स तभी आते हैं जब एजेंट का कंट्रोल प्लेन स्क्रेप चालू हो। **नोड Ready स्थिति** Ready होने पर 1, NotReady पर 0 और Unknown पर -1 होता है, और बंद हो चुका नोड Unknown ही रिपोर्ट करता है: 1 से कम पर अलर्ट करें। **कंटेनर रीस्टार्ट** कंटेनर की चालू रीस्टार्ट गिनती है; **कंटेनर रीस्टार्ट (वृद्धि)** वह है जो एजेंट हर नमूने के साथ भेजता है: कंटेनर के अपने पिछले नमूने के बाद हुए रीस्टार्ट, इसलिए किसी विंडो में इसका योग उस विंडो के रीस्टार्ट हैं। यह वही रखता है जो **कंटेनर रीस्टार्ट** रखता है, कंटेनर के पॉड के वर्कलोड नामों सहित, पर कंटेनर की ID नहीं, जो हर रीस्टार्ट के साथ बदलती है। **Job विफल Pod** किसी Job के विफल पॉड की चालू गिनती है; **Job विफल Pod (वृद्धि)** वह है जो एजेंट हर नमूने के साथ भेजता है: Job के अपने पिछले नमूने के बाद विफल हुए उसके पॉड, इसलिए किसी विंडो में इसका योग उस विंडो की विफलताएँ हैं। यह वही रखता है जो **Job विफल Pod** रखता है: Job का नाम और नेमस्पेस।
 
 ## मॉनिटरिंग मानदंड
 
@@ -191,7 +191,7 @@ flowchart TB
 :::
 
 :::details CPU थ्रेशोल्ड कभी ट्रिगर नहीं होता
-**Pod CPU Usage** और **Node CPU Usage** कोर में हैं, प्रतिशत में नहीं, इसलिए `80` के थ्रेशोल्ड का मतलब 80 कोर है। थ्रेशोल्ड कोर में सेट करें, या **High Node CPU Utilization** या **Pod CPU Saturating Container Limit** से शुरू करें, जो प्रतिशत की तुलना करते हैं।
+**Pod CPU उपयोग** और **नोड CPU उपयोग** कोर में हैं, प्रतिशत में नहीं, इसलिए `80` के थ्रेशोल्ड का मतलब 80 कोर है। थ्रेशोल्ड कोर में सेट करें, या **High Node CPU Utilization** या **Pod CPU Saturating Container Limit** से शुरू करें, जो प्रतिशत की तुलना करते हैं।
 :::
 
 :::details CrashLoopBackOff Detection एक रीस्टार्ट पर ट्रिगर नहीं हुआ

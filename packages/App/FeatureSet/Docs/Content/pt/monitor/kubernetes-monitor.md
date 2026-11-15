@@ -85,15 +85,15 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 
 | Categoria | Métricas |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nó | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Contêiner | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Carga de trabalho | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Plano de controle | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Consumo de CPU do Pod, Uso de memória do Pod, Fase do Pod (código), Uso do sistema de arquivos do Pod, Utilização do limite de memória do Pod, Utilização do limite de CPU do Pod, E/S de rede do Pod (acumulada, ambas as direções) |
+| Nó | Consumo de CPU do nó, CPU alocável do nó, Uso de memória do nó, Working set de memória do nó, Uso do sistema de arquivos do nó, Memória alocável do nó, Condição Ready do nó, Condição MemoryPressure do nó, Condição DiskPressure do nó, Condição PIDPressure do nó, Sistema de arquivos disponível do nó |
+| Contêiner | Reinicializações do contêiner, Reinicializações do contêiner (aumento), Limite de CPU do contêiner, Solicitação de CPU do contêiner, Limite de memória do contêiner, Solicitação de memória do contêiner, Contêiner pronto |
+| Carga de trabalho | Réplicas disponíveis do Deployment, Réplicas desejadas do Deployment, Nós desejados do DaemonSet, Nós agendados incorretamente do DaemonSet, Nós prontos do DaemonSet, Réplicas desejadas do StatefulSet, Réplicas prontas do StatefulSet, Pods com falha do Job, Pods com falha do Job (aumento), Pods bem-sucedidos do Job |
+| HPA | Réplicas atuais do HPA, Réplicas desejadas do HPA, Réplicas máximas do HPA, Réplicas mínimas do HPA |
+| Plano de controle | etcd tem um líder, Solicitações em andamento do servidor de API, Pods pendentes do agendador |
 
 > [!NOTE]
-> **Pod CPU Usage** e **Node CPU Usage** estão em núcleos, não em porcentagem: `0.18` é 0,18 de um núcleo. **Pod Phase (Code)** é um código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agregue-o com Máximo ou Mínimo, nunca com Soma. As métricas do plano de controle só chegam quando a coleta do plano de controle pelo agente está ativada. **Node Ready Condition** vale 1 em Ready, 0 em NotReady e -1 em Unknown, que é o que um nó que caiu informa: alerte abaixo de 1. **Container Restarts** é o contador acumulado de reinícios do contêiner; **Container Restarts (Increase)** é o que o agente envia com cada amostra: os reinícios desde a sua amostra anterior do contêiner, então a soma numa janela dá os reinícios nela. Ela carrega o que **Container Restarts** carrega, incluindo os nomes das cargas de trabalho do pod do contêiner, mas não o ID do contêiner, que muda a cada reinício. **Job Failed Pods** é o contador acumulado de pods com falha de um Job; **Job Failed Pods (Increase)** é o que o agente envia com cada amostra: os pods do Job que falharam desde a sua amostra anterior do Job, então a soma numa janela dá as falhas nela. Ela carrega o que **Job Failed Pods** carrega: o nome e o namespace do Job.
+> **Consumo de CPU do Pod** e **Consumo de CPU do nó** estão em núcleos, não em porcentagem: `0.18` é 0,18 de um núcleo. **Fase do Pod (código)** é um código (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – agregue-o com Máximo ou Mínimo, nunca com Soma. As métricas do plano de controle só chegam quando a coleta do plano de controle pelo agente está ativada. **Condição Ready do nó** vale 1 em Ready, 0 em NotReady e -1 em Unknown, que é o que um nó que caiu informa: alerte abaixo de 1. **Reinicializações do contêiner** é o contador acumulado de reinícios do contêiner; **Reinicializações do contêiner (aumento)** é o que o agente envia com cada amostra: os reinícios desde a sua amostra anterior do contêiner, então a soma numa janela dá os reinícios nela. Ela carrega o que **Reinicializações do contêiner** carrega, incluindo os nomes das cargas de trabalho do pod do contêiner, mas não o ID do contêiner, que muda a cada reinício. **Pods com falha do Job** é o contador acumulado de pods com falha de um Job; **Pods com falha do Job (aumento)** é o que o agente envia com cada amostra: os pods do Job que falharam desde a sua amostra anterior do Job, então a soma numa janela dá as falhas nela. Ela carrega o que **Pods com falha do Job** carrega: o nome e o namespace do Job.
 
 ## Critérios de monitoramento
 
@@ -191,7 +191,7 @@ Os clusters se registram sozinhos a partir dos dados do agente, com o `clusterNa
 :::
 
 :::details Um limite de CPU nunca dispara
-**Pod CPU Usage** e **Node CPU Usage** estão em núcleos, não em porcentagem, então um limite de `80` significa 80 núcleos. Defina o limite em núcleos, ou comece por **High Node CPU Utilization** ou **Pod CPU Saturating Container Limit**, que comparam uma porcentagem.
+**Consumo de CPU do Pod** e **Consumo de CPU do nó** estão em núcleos, não em porcentagem, então um limite de `80` significa 80 núcleos. Defina o limite em núcleos, ou comece por **High Node CPU Utilization** ou **Pod CPU Saturating Container Limit**, que comparam uma porcentagem.
 :::
 
 :::details CrashLoopBackOff Detection não disparou com um reinício
