@@ -13,7 +13,7 @@ Den här integrationen är **inkommande**: Huntress skickar varje händelse om e
 
 ## Så fungerar det
 
-Huntress skickar en händelse om en incidentrapport när rapporten skickas, när någon kommenterar den och när den stängs. Utlösaren **Huntress Incident Report** startar arbetsflödet en gång för varje händelse, och dess **Event** säger vilken det var: `created`, `comment-added` eller `closed`.
+Huntress skickar en händelse om en incidentrapport när rapporten skickas, när någon kommenterar den och när den stängs. Utlösaren **Huntress Incident Report** startar arbetsflödet en gång för varje händelse, och dess **Händelse** säger vilken det var: `created`, `comment-added` eller `closed`.
 
 ```mermaid title="En Huntress-incidentrapport i ett arbetsflöde"
 sequenceDiagram
@@ -79,19 +79,19 @@ Slå på **Aktiverad** högst upp i **Byggare**. Öppna slutpunktens meny (⋯) 
 
 ## Vad arbetsflödet gör
 
-Efter utlösaren gör **Incident From Another Tool** det som varje **Event** ber om, utifrån rapportens nummer:
+Efter utlösaren gör **Incident From Another Tool** det som varje **Händelse** ber om, utifrån rapportens nummer:
 
 | Event | Vad arbetsflödet gör |
 | --- | --- |
-| `created` | Öppnar en incident med utlösarens **Incident Severity ID**, med etiketten från dess **Organization Label ID**. För en hög eller kritisk rapport larmar **Page an On-Call Policy** din policy; en låg rapport larmar ingen. En rapport som redan har en incident öppnar ingen till. |
+| `created` | Öppnar en incident med utlösarens **Id för incidentallvarlighet**, med etiketten från dess **Organization Label ID**. För en hög eller kritisk rapport larmar **Page an On-Call Policy** din policy; en låg rapport larmar ingen. En rapport som redan har en incident öppnar ingen till. |
 | `comment-added` | Hittar rapportens incident och lägger till kommentaren på den som en privat anteckning. |
 | `closed` | Hittar rapportens incident och löser den, om den inte redan är löst. Orsaken står på dess tidslinje: Huntress stängde rapporten. |
 
-Det är ett arbetsflöde som alla andra, så du kan ändra vad det gör: larma bara för kritiska rapporter genom att ändra vad **If / Else** efter **Incident From Another Tool** jämför, posta varje rapport i en chattkanal med ett Slack- eller Microsoft Teams-steg, eller skicka varje organisation till sin egen jourpolicy med en **Switch / Case** på **Organization**. Varje körning listas bland arbetsflödets körningar, med vad varje steg gjorde.
+Det är ett arbetsflöde som alla andra, så du kan ändra vad det gör: larma bara för kritiska rapporter genom att ändra vad **If / Else** efter **Incident From Another Tool** jämför, posta varje rapport i en chattkanal med ett Slack- eller Microsoft Teams-steg, eller skicka varje organisation till sin egen jourpolicy med en **Switch / Case** på **Organisation**. Varje körning listas bland arbetsflödets körningar, med vad varje steg gjorde.
 
 ### Allvarlighetsgrader
 
-Huntress ger varje incidentrapport en av tre allvarlighetsgrader. Utlösarens **Incident Severity ID** är den incidentallvarlighetsgrad som rapporten öppnas med: den som dess inställning väljer, annars ordningen på dina incidentallvarlighetsgrader, så som **Incidenter → Inställningar → Incidentallvar** listar dem:
+Huntress ger varje incidentrapport en av tre allvarlighetsgrader. Utlösarens **Id för incidentallvarlighet** är den incidentallvarlighetsgrad som rapporten öppnas med: den som dess inställning väljer, annars ordningen på dina incidentallvarlighetsgrader, så som **Incidenter → Inställningar → Incidentallvar** listar dem:
 
 | Allvarlighetsgrad i Huntress | Vad Huntress menar med den | Inställning | Incidentallvarlighetsgrad när inställningen är tom |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ Utlösaren öppnas på Huntress: dess URL, en bock vid varje konfigurationssteg 
 
 | Värde | Vad det innehåller |
 | --- | --- |
-| **Event** | `created`, `comment-added` eller `closed`. En rapport som redan är stängd eller avfärdad är `closed`, oavsett vilken händelse som kom med den. |
+| **Händelse** | `created`, `comment-added` eller `closed`. En rapport som redan är stängd eller avfärdad är `closed`, oavsett vilken händelse som kom med den. |
 | **Report ID** | Rapportens nummer i Huntress. |
-| **Severity** | `critical`, `high` eller `low`. |
+| **Allvarlighetsgrad** | `critical`, `high` eller `low`. |
 | **Status** | Rapportens status i Huntress, till exempel `sent`, `closed` eller `dismissed`. |
-| **Subject** | Rapportens ämne, så som Huntress skriver det. |
-| **Summary** | Det som SOC-analytikern skrev. |
-| **Organization**, **Organization ID** | Den Huntress-organisation som rapporten gäller. |
-| **Affected** | Den värd eller identitet som rapporten gäller. |
-| **Platform**, **Indicators** | Var Huntress hittade det, och vad den hittade. |
-| **Comment** | Kommentaren som någon lade till, vid `comment-added`. |
+| **Ämne** | Rapportens ämne, så som Huntress skriver det. |
+| **Sammanfattning** | Det som SOC-analytikern skrev. |
+| **Organisation**, **Organisations-ID** | Den Huntress-organisation som rapporten gäller. |
+| **Berörd** | Den värd eller identitet som rapporten gäller. |
+| **Plattform**, **Indikatorer** | Var Huntress hittade det, och vad den hittade. |
+| **Kommentar** | Kommentaren som någon lade till, vid `comment-added`. |
 | **Report URL** | Var rapporten öppnas i Huntress. |
-| **Incident Title**, **Incident Description** | En titel och en Markdown-beskrivning för en incident om rapporten. |
-| **Note** | Markdown för en anteckning om händelsen: kommentaren, eller att Huntress stängde rapporten. |
-| **Incident Severity ID**, **Organization Label ID** | Incidentallvarlighetsgraden och etiketten, som ovan. |
+| **Incidenttitel**, **Incidentbeskrivning** | En titel och en Markdown-beskrivning för en incident om rapporten. |
+| **Anteckning** | Markdown för en anteckning om händelsen: kommentaren, eller att Huntress stängde rapporten. |
+| **Id för incidentallvarlighet**, **Organization Label ID** | Incidentallvarlighetsgraden och etiketten, som ovan. |
 | **Received At** | När OneUptime tog emot händelsen. |
 
-**Summary** och **Comment** är text som Huntress analytiker har skrivit. Använd **Incident Description** och **Note** för att lägga dem i en incident eller en anteckning: de behåller formateringen, och inget i dem hämtar en bild eller nämner någon.
+**Sammanfattning** och **Kommentar** är text som Huntress analytiker har skrivit. Använd **Incidentbeskrivning** och **Anteckning** för att lägga dem i en incident eller en anteckning: de behåller formateringen, och inget i dem hämtar en bild eller nämner någon.
 
-För att prova arbetsflödet utan Huntress klickar du på **Kör arbetsflöde** i **Byggare** och skriver en **Event**, ett **Report ID** och de fält du behöver. Använd samma **Report ID** för att följa en rapport från `created` till `closed`.
+För att prova arbetsflödet utan Huntress klickar du på **Kör arbetsflöde** i **Byggare** och skriver en **Händelse**, ett **Report ID** och de fält du behöver. Använd samma **Report ID** för att följa en rapport från `created` till `closed`.
 
 ## Huntress-anslutningar som skapats tidigare
 

@@ -15,11 +15,11 @@ Envía un mensaje a un chat, grupo o canal de [Telegram](https://telegram.org) c
 flowchart TB
     fired["Alerta disparada"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
-    step -->|"Success"| chat["Mensaje en<br/>tu chat"]
+    step -->|"Éxito"| chat["Mensaje en<br/>tu chat"]
     step -->|"Error"| failed["La ejecución falla<br/>y dice por qué"]
 ```
 
-El paso envía el **Message Text** al chat, como tu bot, a través de la Bot API de Telegram. Toma su salida **Success** cuando Telegram acepta el mensaje, y su salida **Error**, con el motivo de Telegram, cuando Telegram lo rechaza. Sin nada conectado a **Error**, como en la plantilla, una ejecución que no pudo enviar falla, y sus **Pasos** dicen por qué.
+El paso envía el **Texto del mensaje** al chat, como tu bot, a través de la Bot API de Telegram. Toma su salida **Éxito** cuando Telegram acepta el mensaje, y su salida **Error**, con el motivo de Telegram, cuando Telegram lo rechaza. Sin nada conectado a **Error**, como en la plantilla, una ejecución que no pudo enviar falla, y sus **Pasos** dicen por qué.
 
 ## Antes de empezar
 
@@ -51,15 +51,15 @@ Empieza desde la plantilla, que crea todo el flujo de trabajo para las alertas, 
 1. Abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**.
 2. Escribe `Telegram` en **Buscar plantillas…**, haz clic en **Tell Telegram when an alert fires** y después en **Usar esta plantilla**.
 3. Deja el nombre **Notify Telegram on new alert** o cámbialo, y haz clic en **Siguiente**.
-4. Pega el token en **Telegram Bot Token** y el ID en **Telegram Chat ID**, y haz clic en **Crear flujo de trabajo**.
+4. Pega el token en **Token del bot de Telegram** y el ID en **Telegram Chat ID**, y haz clic en **Crear flujo de trabajo**.
 
 El flujo de trabajo se abre en el **Constructor** con dos pasos: **On Create Alert** y **Send Message to Telegram**, que envía el número, el título, la gravedad y el estado de la alerta. El token se guarda como la variable secreta `telegramBotToken` del flujo de trabajo, y el ID como `telegramChatId`.
 @tab Desde cero
 1. Guarda el token como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `TELEGRAM_BOT_TOKEN` y haz clic en **Siguiente**. Pega el token en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
 2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
 3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en **Populares**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que muestra tu mensaje, por ejemplo **Número de alerta con prefijo**.
-4. Haz clic en **Añadir componente**, busca `telegram` y haz clic en **Send Message to Telegram**. Conecta la salida **Success** del disparador a este paso.
-5. Haz clic en el paso nuevo. En **Telegram Bot Token**, haz clic en **{ }** y elige `TELEGRAM_BOT_TOKEN` en **Variables globales**. Escribe el ID del chat en **Chat ID**, escribe el mensaje en **Message Text** e inserta los campos de la alerta con **{ }**.
+4. Haz clic en **Añadir componente**, busca `telegram` y haz clic en **Send Message to Telegram**. Conecta la salida **Éxito** del disparador a este paso.
+5. Haz clic en el paso nuevo. En **Token del bot de Telegram**, haz clic en **{ }** y elige `TELEGRAM_BOT_TOKEN` en **Variables globales**. Escribe el ID del chat en **Chat ID**, escribe el mensaje en **Texto del mensaje** e inserta los campos de la alerta con **{ }**.
 :::
 
 Un mensaje hecho desde cero lee los campos de la alerta con referencias como estas:

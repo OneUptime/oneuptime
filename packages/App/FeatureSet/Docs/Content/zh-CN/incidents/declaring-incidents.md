@@ -229,7 +229,7 @@ curl -X POST https://oneuptime.com/api/incident \
 
 要在声明事件时添加所有者，请在 `miscDataProps` 中以 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 的形式发送他们的 ID。如果调用方无权添加这些所有者，请求会在保存任何内容之前被拒绝；否则，事件一经创建就会添加他们，且不发送“你已被添加”通知。API 密钥不是人：它不会成为所有者，也没有任何所有者规则会为它添加创建者的团队。要查询哪些所有者规则会运行，请将表单所持有的事件——`title`、`description`、`severityId`、`labelIds`、`monitorIds` 以及其他资源的 ID——发送到 `POST /api/incident/owner-rule-preview`：响应会列出每条会添加某人的规则，以及它所添加对象的 ID。对于警报，则是 `POST /api/alert/owner-rule-preview`。
 
-API 密钥不能从模板声明：发送 `createdIncidentTemplateId` 的请求会被拒绝。这一列由 OneUptime 自己设置，用于通过 [表单](/docs/forms/on-submit) 报告的事件，以及工作流的 **Create One Incident** 步骤——它会根据其 **Incident Template** 设置中选择的模板进行声明（参见 [工作流组件](/docs/workflows/components)）。要通过 API 从模板声明，请从 `/api/incident-templates` 读取模板，并在请求中发送它的值。
+API 密钥不能从模板声明：发送 `createdIncidentTemplateId` 的请求会被拒绝。这一列由 OneUptime 自己设置，用于通过 [表单](/docs/forms/on-submit) 报告的事件，以及工作流的 **Create One Incident** 步骤——它会根据其 **事件模板** 设置中选择的模板进行声明（参见 [工作流组件](/docs/workflows/components)）。要通过 API 从模板声明，请从 `/api/incident-templates` 读取模板，并在请求中发送它的值。
 
 相关端点有 `/api/incident-state`、`/api/incident-severity` 和 `/api/incident-state-timeline`。生成的 [API 参考](/reference) 给出了每个端点确切的请求和响应结构，包括监视器等关系字段的表示方式。
 

@@ -102,7 +102,7 @@ En un proyecto nuevo, la plantilla asigna las seis gravedades de Zabbix a estas 
 Con gravedades propias, Disaster y High van a tu más grave, Average y Warning a la del medio, e Information y Not classified a tu menos grave. Zabbix numera sus gravedades del 0 (Not classified) al 5 (Disaster), y la plantilla lee el número, así que renombrar una gravedad en Zabbix no cambia nada.
 
 - Para asignar una gravedad a una de las tuyas por su nombre, edita `SEVERITY_BY_NAME` en el paso `read-event-1`, como `{ 2: 'Minor Incident' }` para Warning.
-- Para avisar también con los problemas Average, pon **Compare with** del paso `if-page-1` **If / Else** a `3`.
+- Para avisar también con los problemas Average, pon **Comparar con** del paso `if-page-1` **If / Else** a `3`.
 
 ### Enviar reconocimientos y notas de vuelta a Zabbix
 

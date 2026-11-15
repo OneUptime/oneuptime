@@ -47,23 +47,23 @@ Faites glisser les blocs où vous voulez ; le canevas les aligne sur une grille 
 | **Identifiant** (sous **ID**)        | L'ID court affiché sur le bloc, comme `log-1`. C'est par lui que les autres blocs se réfèrent à celui-ci : le renommer casse donc toutes les références `{{local.components.…}}` qui le visent. Le titre du bloc est le nom propre du composant et ne peut pas être changé.                                                         |
 | **Paramètres**                       | Ce dont le bloc a besoin pour faire son travail — une URL, un canal Slack, le corps d'un message. Les champs facultatifs portent la mention **(Optionnel)** ; tout le reste est obligatoire. Un interrupteur marche/arrêt n'a ni l'un ni l'autre, car il a toujours une valeur. Les paramètres moins utilisés sont repliés sous **Plus de champs**, dont l'en-tête les nomme et montre ceux qui sont renseignés. |
 | **Entrée**                           | Le point sur le bord supérieur, où arrivent les lignes des blocs précédents. Les déclencheurs n'en ont pas : rien ne s'exécute avant eux.                                                                                                                                                                                            |
-| **Outputs**                          | Les points le long du bord inférieur, étiquetés juste au-dessus, d'où partent les lignes vers les blocs suivants. Beaucoup de blocs ont des sorties **Success** et **Error** séparées, pour que vous puissiez traiter les deux cas.                                                                                                  |
+| **Outputs**                          | Les points le long du bord inférieur, étiquetés juste au-dessus, d'où partent les lignes vers les blocs suivants. Beaucoup de blocs ont des sorties **Succès** et **Erreur** séparées, pour que vous puissiez traiter les deux cas.                                                                                                  |
 
 ## Relier les blocs
 
 Faites glisser depuis un point au bas d'un bloc jusqu'au point en haut du bloc suivant. La ligne que vous tracez décide de ce qui s'exécute ensuite.
 
-- Si vous reliez depuis **Success**, le bloc suivant ne s'exécute que si le précédent a réussi.
-- Si vous reliez depuis **Error**, le bloc suivant ne s'exécute que si le précédent a échoué.
+- Si vous reliez depuis **Succès**, le bloc suivant ne s'exécute que si le précédent a réussi.
+- Si vous reliez depuis **Erreur**, le bloc suivant ne s'exécute que si le précédent a échoué.
 - Si vous ne reliez pas une sortie, ce chemin s'arrête simplement.
 
 ```mermaid title="Seule la sortie prise par un bloc mène quelque part"
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Rien n'est relié,<br/>l'exécution s'arrête"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    check -->|"Oui"| post["API Post (JSON)"]
+    check -->|"Non"| ends(["Rien n'est relié,<br/>l'exécution s'arrête"])
+    post -->|"Succès"| slack["Send Message to Slack"]
+    post -->|"Erreur"| log["Journal"]
 ```
 
 Vous pouvez relier une sortie à plusieurs blocs. Tous s'exécutent — mais l'un après l'autre, dans une seule file, pas en parallèle. Ne comptez pas sur l'ordre entre les branches, ni sur le fait qu'elles se chevauchent dans le temps.
@@ -105,7 +105,7 @@ Dans le paramètre, une valeur apparaît comme une puce, par exemple **Webhook �
 
 - **Les valeurs disponibles viennent d'abord, et les autres sont listées à part.** Le déclencheur et les blocs qui s'exécutent avant celui-ci sont proposés. Un bloc qui ne s'exécute avant celui-ci que lors de certaines exécutions — après une sortie d'un **If / Else**, par exemple — le précise, car ses valeurs peuvent être vides ici. Un bloc qui s'exécute plus tard, ou sur une branche qui ne mène pas ici, est listé à la fin, replié et grisé, avec la raison, et ses valeurs ne peuvent pas être choisies. Tant qu'un bloc n'est pas relié, seules les valeurs du déclencheur sont listées, et la liste le précise.
 - **Un enregistrement s'ouvre sur ses champs.** Un bloc Find One ou On Create renvoie un enregistrement entier. Choisissez-le pour voir ses champs : d'abord ceux que le bloc transmet, nommés dans son **Fields to pass on**, puis, à part, ceux qu'il ne transmet pas et qui sont vides ici. Une valeur JSON ou un ensemble d'en-têtes s'ouvre sur une zone où vous tapez un chemin, comme `title` ou `alerts[0].status`.
-- **Une fois qu'un bloc s'est exécuté, la liste sait ce que contiennent ses valeurs.** Chaque valeur indique ce qu'elle contenait lors de la dernière exécution — `"production"`, ou `3 fields` —, et une valeur JSON ou un ensemble d'en-têtes s'ouvre sur les champs qu'il avait, chacun avec son contenu. Depuis le **Request Body** d'un Webhook, vous choisissez ainsi **incident.title** au lieu de taper un chemin. La recherche trouve aussi ces champs : tapez `title`, ou `{{` et le début d'un chemin. Les champs d'un enregistrement montrent aussi ce qu'ils contenaient. Les champs viennent de la dernière exécution : un champ qu'une requête ultérieure omet est donc vide dans cette exécution-là. Une valeur qui ressemble à un secret, comme un en-tête `Authorization`, un jeton ou un mot de passe, est listée sans ce qu'elle contenait.
+- **Une fois qu'un bloc s'est exécuté, la liste sait ce que contiennent ses valeurs.** Chaque valeur indique ce qu'elle contenait lors de la dernière exécution — `"production"`, ou `3 fields` —, et une valeur JSON ou un ensemble d'en-têtes s'ouvre sur les champs qu'il avait, chacun avec son contenu. Depuis le **Corps de la requête** d'un Webhook, vous choisissez ainsi **incident.title** au lieu de taper un chemin. La recherche trouve aussi ces champs : tapez `title`, ou `{{` et le début d'un chemin. Les champs d'un enregistrement montrent aussi ce qu'ils contenaient. Les champs viennent de la dernière exécution : un champ qu'une requête ultérieure omet est donc vide dans cette exécution-là. Une valeur qui ressemble à un secret, comme un en-tête `Authorization`, un jeton ou un mot de passe, est listée sans ce qu'elle contenait.
 - **Un Webhook qui n'a encore reçu aucune requête le dit** en haut de ses valeurs, avec **Copier la requête de test** : une commande `curl` qui envoie `{"message": "Hello"}` à l'URL de webhook du workflow. Lancez-la dans un terminal pendant que la liste est ouverte : les champs de la requête y apparaissent dès que l'exécution qu'elle déclenche est terminée, en général en quelques secondes. Seules les personnes qui peuvent voir l'URL du webhook ont ce bouton. Tant que le workflow est désactivé, son URL refuse les requêtes : la liste propose alors **Tester avec « Exécuter le flux de travail »** à la place, et les champs de la requête que vous envoyez de là apparaissent de la même façon. Un déclencheur Incoming Email qui n'a encore reçu aucun e-mail le dit au même endroit ; envoyez un e-mail à son adresse, et ses en-têtes et ses pièces jointes apparaissent de la même façon.
 - **Les éditeurs de code ont Insert value dans leur barre d'outils.** En JSON, il ajoute les guillemets dont une valeur a besoin à l'intérieur d'un document. **Run Custom JavaScript** lit les valeurs via ses **Arguments** : son code n'a donc pas de sélecteur.
 - **Les nombres, mots de passe, interrupteurs et dates gardent leur propre contrôle,** avec **{ }** à côté. Une valeur choisie remplace le contrôle, et **abc** revient à la saisie.
@@ -135,7 +135,7 @@ Le plus rapide pour prendre le canevas en main est un workflow de deux blocs que
 :::steps
 1. Cliquez sur le bloc d'espace réservé en pointillés, puis sur **Manuel** dans le panneau **Ajouter un déclencheur**.
 2. Cliquez sur **Ajouter un composant**, puis sur **Journal** sous **Populaires**. Le nouveau bloc se place sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log, en dessous.
-3. Cliquez sur le bloc Log, qui affiche **Click to set up**, et tapez `Hello from ` dans sa **Value**. Cliquez sur **{ }**, puis sur **JSON** sous **Manuel**. Le paramètre affiche **Manual › JSON** et enregistre `{{local.components.manual-1.returnValues.value}}`. `manual-1` est l'**Identifiant** du déclencheur, affiché sur le bloc déclencheur. Cliquez sur **Enregistrer**.
+3. Cliquez sur le bloc Log, qui affiche **Click to set up**, et tapez `Hello from ` dans sa **Valeur**. Cliquez sur **{ }**, puis sur **JSON** sous **Manuel**. Le paramètre affiche **Manual › JSON** et enregistre `{{local.components.manual-1.returnValues.value}}`. `manual-1` est l'**Identifiant** du déclencheur, affiché sur le bloc déclencheur. Cliquez sur **Enregistrer**.
 4. De retour dans le **Constructeur**, cliquez sur **Exécuter le flux de travail**, mettez `{ "name": "Ada" }` dans le champ **JSON**, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le workflow est toujours désactivé, et il n'a pas besoin d'être activé : une exécution que vous lancez vous-même est une **Exécution de test**.
 5. Un panneau **Exécution du flux de travail** s'ouvre de lui-même et suit l'exécution. Il indique **Exécution de test** en haut, et le journal affiche `Value:` suivi de `Hello from` et du JSON que vous avez tapé.
 :::
@@ -158,7 +158,7 @@ Tant qu'un workflow est désactivé, ce qui le lance décide s'il s'exécute :
 | Son déclencheur : une planification, un événement OneUptime ou un e-mail | Ignoré.                                                                                                                                                                      |
 | **Exécuter le flux de travail** ou **Run just this step** | S'exécute, en tant qu'**Exécution de test**. Ses blocs s'exécutent pour de vrai : un message est vraiment envoyé et un enregistrement est vraiment modifié. L'exécution est marquée **Exécution de test** dans les listes d'exécutions et en haut de l'exécution, avec la personne qui l'a lancée. |
 | Un appel à son URL de webhook                            | Refusé avec HTTP 400 et "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                        |
-| Le bloc **Execute Workflow** d'un autre workflow          | Ce bloc prend son chemin **Error**, et l'erreur nomme le workflow qu'il a appelé. C'est vrai aussi dans une exécution de test : un workflow qu'il appelle doit être activé. |
+| Le bloc **Execute Workflow** d'un autre workflow          | Ce bloc prend son chemin **Erreur**, et l'erreur nomme le workflow qu'il a appelé. C'est vrai aussi dans une exécution de test : un workflow qu'il appelle doit être activé. |
 
 L'ordre est donc : le construire, le tester avec **Exécuter le flux de travail** tant qu'il est encore désactivé, lire le journal de l'exécution, et basculer **Activé** quand vous êtes prêt à ce que son déclencheur se produise. Pour tester un seul bloc sans exécuter l'ensemble, utilisez **Run just this step** dans les paramètres de ce bloc.
 

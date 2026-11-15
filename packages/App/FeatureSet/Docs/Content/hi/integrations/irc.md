@@ -56,8 +56,8 @@ Server के हर line ले लेने पर step अपने **सफ�
 
 तय कीजिए कि messages कहाँ जाएँगे: server का host name, जैसे `irc.libera.chat`, और channel, जैसे `#your-channel`।
 
-- **IRC Server** में सिर्फ़ host name आता है, और कुछ नहीं: न `ircs://`, न port। Step TLS पर port `6697` से connect होता है। अगर आपका server किसी और port पर TLS लेता है, तो उसे **और फ़ील्ड** के नीचे **Port** में सेट कीजिए।
-- **Channel** एक channel ही होना चाहिए। वहाँ लिखा nickname ठुकरा दिया जाता है, ताकि step ग़लती से किसी को private message न भेजे।
+- **IRC Server** में सिर्फ़ host name आता है, और कुछ नहीं: न `ircs://`, न port। Step TLS पर port `6697` से connect होता है। अगर आपका server किसी और port पर TLS लेता है, तो उसे **और फ़ील्ड** के नीचे **पोर्ट** में सेट कीजिए।
+- **चैनल** एक channel ही होना चाहिए। वहाँ लिखा nickname ठुकरा दिया जाता है, ताकि step ग़लती से किसी को private message न भेजे।
 
 Server ऐसा होना चाहिए जिससे OneUptime को connect करने की अनुमति हो। Loopback (`localhost`, `127.0.0.1`), link-local और cloud metadata addresses हमेशा ठुकराए जाते हैं। OneUptime Cloud पर private network address वाला server भी ठुकराया जाता है। Self-hosted installation अपने network का IRC server तक पहुँच सकता है, जब तक `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` को `true` पर सेट न किया गया हो।
 
@@ -89,7 +89,7 @@ Workflow **बिल्डर** में दो steps के साथ खु�
 1. **वर्कफ़्लो** खोलिए, **वर्कफ़्लो बनाएं** दबाइए, **शुरू से बनाएं** चुनिए, workflow को नाम दीजिए और **वर्कफ़्लो बनाएं** दबाइए।
 2. **बिल्डर** में **चुनें कि यह वर्कफ़्लो किससे शुरू हो** पर क्लिक कीजिए और **लोकप्रिय** के नीचे **On Create Incident** चुनिए। Trigger पर क्लिक कीजिए और **Fields to pass on** में incident के वे fields चुनिए जो आपका message दिखाता है, जैसे उसका title।
 3. **घटक जोड़ें** दबाइए, `irc` खोजिए और **Send Message to IRC** पर क्लिक कीजिए। Trigger के **सफलता** output को इस step से जोड़िए।
-4. नए step पर क्लिक कीजिए और **IRC Server**, **Channel** और **Message Text** भरिए। **Message Text** का **{ }** बटन incident के fields डालता है, जैसे उसका title।
+4. नए step पर क्लिक कीजिए और **IRC Server**, **चैनल** और **Message Text** भरिए। **Message Text** का **{ }** बटन incident के fields डालता है, जैसे उसका title।
 5. अगर पिछले step में आपने passwords रखे थे, तो **और फ़ील्ड** खोलिए। **Server Password**, **SASL Password** या **Channel Key** में **{ }** पर क्लिक कीजिए और **Global variables** के नीचे से variable चुनिए। **SASL Username** में अपने account का नाम लिखिए।
 :::
 

@@ -84,7 +84,7 @@ Depois do gatilho **Webhook**, a etapa **Check With JavaScript** `read-event-1` 
 | `recovery` | Resolve o incidente do problema, a menos que ele já esteja resolvido. O motivo fica na linha do tempo dele. |
 | `update` | Adiciona ao incidente, como nota privada, o que foi feito no Zabbix: quem fez, o que fez e o que escreveu. Quando a atualização confirmou o problema, também confirma o incidente, o que faz o plantão parar de escalá-lo. |
 
-Todo o resto, como uma requisição de outra ferramenta, é deixado como está: `read-event-1` segue por **No**, e as **Etapas** da execução dizem por quê. Uma etapa que falha faz a execução falhar, e a entrada dela em **Etapas** diz por quê.
+Todo o resto, como uma requisição de outra ferramenta, é deixado como está: `read-event-1` segue por **Não**, e as **Etapas** da execução dizem por quê. Uma etapa que falha faz a execução falhar, e a entrada dela em **Etapas** diz por quê.
 
 ### Gravidades
 
@@ -102,7 +102,7 @@ Em um projeto novo, o modelo mapeia as seis gravidades do Zabbix nestas gravidad
 Com gravidades próprias, Disaster e High vão para a sua mais grave, Average e Warning para a do meio, e Information e Not classified para a sua menos grave. O Zabbix numera as gravidades de 0 (Not classified) a 5 (Disaster), e o modelo lê o número, então renomear uma gravidade no Zabbix não muda nada.
 
 - Para mapear uma gravidade para uma das suas pelo nome, edite `SEVERITY_BY_NAME` na etapa `read-event-1`, como `{ 2: 'Minor Incident' }` para Warning.
-- Para chamar o plantão também para problemas Average, defina **Compare with** da etapa `if-page-1` **If / Else** como `3`.
+- Para chamar o plantão também para problemas Average, defina **Comparar com** da etapa `if-page-1` **If / Else** como `3`.
 
 ### Enviar confirmações e notas de volta ao Zabbix
 

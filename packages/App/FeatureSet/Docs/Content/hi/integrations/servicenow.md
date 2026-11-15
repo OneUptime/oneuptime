@@ -58,7 +58,7 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 
 ### रिकॉर्ड बनाएं
 
-**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **URL** `https://your-instance.service-now.com/api/now/table/incident` पर सेट करें। **और फ़ील्ड** के नीचे उसके **Request Headers** इस पर सेट करें:
+**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **सफलता** बिंदु को उससे जोड़ें। उसका **URL** `https://your-instance.service-now.com/api/now/table/incident` पर सेट करें। **और फ़ील्ड** के नीचे उसके **अनुरोध हेडर** इस पर सेट करें:
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 }
 ```
 
-और उसकी **Request Body** इस पर:
+और उसकी **अनुरोध बॉडी** इस पर:
 
 ```json
 {
@@ -101,11 +101,11 @@ Table API Basic ऑथ लेता है: यूज़र का नाम औ
 
 ### जांचें कि घटना सुलझ गई है
 
-ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **Value to check** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **Comparison** को **is true** पर सेट करें।
+ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **जांचने वाला मान** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **तुलना** को **सत्य है** पर सेट करें।
 
 ### रिकॉर्ड ढूंढें
 
-**Yes** साइड के बाद एक **API Get (JSON)** ब्लॉक जोड़ें, उन्हीं **Request Headers** और इस **URL** के साथ:
+**हाँ** साइड के बाद एक **API Get (JSON)** ब्लॉक जोड़ें, उन्हीं **अनुरोध हेडर** और इस **URL** के साथ:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### रिकॉर्ड सुलझाएं
 
-ढूंढने वाले ब्लॉक के **Success** के बाद एक **API Patch (JSON)** ब्लॉक जोड़ें, उन्हीं **Request Headers** और इस **URL** के साथ:
+ढूंढने वाले ब्लॉक के **सफलता** के बाद एक **API Patch (JSON)** ब्लॉक जोड़ें, उन्हीं **अनुरोध हेडर** और इस **URL** के साथ:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-उसकी **Request Body** इस पर सेट करें:
+उसकी **अनुरोध बॉडी** इस पर सेट करें:
 
 ```json
 {

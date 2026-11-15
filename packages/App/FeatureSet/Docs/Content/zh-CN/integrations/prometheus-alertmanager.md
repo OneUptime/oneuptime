@@ -193,11 +193,11 @@ amtool alert add test_alert severity=warning \
 
 ### 检查通知是否为触发状态
 
-点击 **添加组件**，添加一个 **If / Else** 块，并把触发器的 **Out** 点连接到它。把 **Value to check** 设为 `{{local.components.webhook-1.returnValues.request-body.status}}`，**Comparison** 设为 **is equal to**，**Compare with** 设为 `firing`。
+点击 **添加组件**，添加一个 **If / Else** 块，并把触发器的 **出站** 点连接到它。把 **要检查的值** 设为 `{{local.components.webhook-1.returnValues.request-body.status}}`，**比较** 设为 **等于**，**比较对象** 设为 `firing`。
 
 ### 声明事件
 
-添加一个 **Create One Incident** 块，并把 **If / Else** 块的 **Yes** 一侧连接到它。在 **Incident Template** 中选择一个设置了严重程度和要呼叫的值班策略的模板（参见 [事件模板](/docs/incidents/settings#事件模板)）。在 **JSON Object** 中设置来自 Alertmanager 的内容：
+添加一个 **Create One Incident** 块，并把 **If / Else** 块的 **是** 一侧连接到它。在 **事件模板** 中选择一个设置了严重程度和要呼叫的值班策略的模板（参见 [事件模板](/docs/incidents/settings#事件模板)）。在 **JSON Object** 中设置来自 Alertmanager 的内容：
 
 ```json
 {
@@ -213,7 +213,7 @@ amtool alert add test_alert severity=warning \
 在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Alertmanager。
 :::
 
-一次运行处理一个通知，所以无论通知包含多少个告警，它都只声明一个事件。`resolved` 的通知会走向 **If / Else** 块的 **No** 一侧，那里没有连接任何东西，因此运行到此结束。要让每个告警一个事件并在恢复时解决，请使用监视器。
+一次运行处理一个通知，所以无论通知包含多少个告警，它都只声明一个事件。`resolved` 的通知会走向 **If / Else** 块的 **否** 一侧，那里没有连接任何东西，因此运行到此结束。要让每个告警一个事件并在恢复时解决，请使用监视器。
 
 ## 监控 Alertmanager 本身
 

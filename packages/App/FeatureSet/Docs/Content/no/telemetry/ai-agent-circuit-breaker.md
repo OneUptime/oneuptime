@@ -129,22 +129,22 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Sjekk tittelen
 
-Klikk på **Legg til komponent**, velg **If / Else**, og koble utløserens punkt **Success** til den. Sett **Verdi som skal sjekkes** til varselets tittel (klikk på **{ }**, og velg den), **Sammenligning** til **inneholder** og **Sammenlign med** til begynnelsen titlene på snubletrådene dine har felles, for eksempel `LLM budget exceeded`.
+Klikk på **Legg til komponent**, velg **If / Else**, og koble utløserens punkt **Suksess** til den. Sett **Verdi som skal sjekkes** til varselets tittel (klikk på **{ }**, og velg den), **Sammenligning** til **inneholder** og **Sammenlign med** til begynnelsen titlene på snubletrådene dine har felles, for eksempel `LLM budget exceeded`.
 
 ### Kall endepunktet ditt
 
-Legg til **API Post (JSON)**, og koble punktet **Yes** på **If / Else** til den. Sett **URL** til endepunktet ditt, for eksempel `https://agents.example.com/circuit-breaker`, og fyll inn hodene og body nedenfor.
+Legg til **API Post (JSON)**, og koble punktet **Ja** på **If / Else** til den. Sett **URL** til endepunktet ditt, for eksempel `https://agents.example.com/circuit-breaker`, og fyll inn hodene og body nedenfor.
 
 ### Rapporter en feil
 
-Legg til **Send Message to Slack** eller **Send Email**, og koble API-blokkens punkt **Error** til den. En circuit breaker som ikke klarer å slå ut, er det ene varselet et menneske må se.
+Legg til **Send Message to Slack** eller **Send Email**, og koble API-blokkens punkt **Feil** til den. En circuit breaker som ikke klarer å slå ut, er det ene varselet et menneske må se.
 
 ### Slå den på
 
 Slå på **Aktivert** øverst i **Bygger**.
 :::
 
-API-blokkens **Request Headers**:
+API-blokkens **Forespørselshoder**:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ API-blokkens **Request Headers**:
 }
 ```
 
-Dens **Request Body**:
+Dens **Forespørselstekst**:
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ Dens **Request Body**:
 }
 ```
 
-For å reagere på flere snubletråder lar du alle titlene deres begynne på samme måte, eller du kjeder flere **If / Else**-blokker fra punktet **No**. Se [Bygge en arbeidsflyt](/docs/workflows/authoring) for lerretet og [Variabler](/docs/workflows/variables) for `{{…}}`-referansene.
+For å reagere på flere snubletråder lar du alle titlene deres begynne på samme måte, eller du kjeder flere **If / Else**-blokker fra punktet **Nei**. Se [Bygge en arbeidsflyt](/docs/workflows/authoring) for lerretet og [Variabler](/docs/workflows/variables) for `{{…}}`-referansene.
 
 ## Test circuit breakeren
 

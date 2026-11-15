@@ -51,7 +51,7 @@ Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y 
 
 ### Abrir el issue
 
-Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://gitlab.com/api/v4/projects/12345678/issues`, con el ID de tu proyecto en lugar de `12345678`. En **Más campos**, pon sus **Request Headers** en:
+Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://gitlab.com/api/v4/projects/12345678/issues`, con el ID de tu proyecto en lugar de `12345678`. En **Más campos**, pon sus **Encabezados de la solicitud** en:
 
 ```json
 {
@@ -59,7 +59,7 @@ Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conec
 }
 ```
 
-Y su **Request Body** en:
+Y su **Cuerpo de la solicitud** en:
 
 ```json
 {
@@ -81,11 +81,11 @@ El bloque envía JSON, así que no necesita ninguna cabecera `Content-Type`. Git
 - **Un GitLab propio.** Envía la solicitud a tu servidor en su lugar: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Un servidor en una dirección de red privada necesita un OneUptime autoalojado cuyo administrador lo permita: consulta [Acceso de red saliente](/docs/workflows/configuration#acceso-de-red-saliente).
 - **La ruta del proyecto en lugar de su ID.** La ruta funciona en lugar del ID, con su `/` escrita como `%2F`: `projects/your-group%2Fyour-project/issues`. La URL se envía exactamente como está escrita, así que codifícala tú.
 - **Asígnalo.** Añade `"assignee_ids": [42]` o `"due_date": "2026-12-31"` al cuerpo, o `"confidential": true` para mostrarlo solo a los miembros del proyecto.
-- **Solo algunos incidentes.** Pon un bloque **If / Else** entre el disparador y el bloque de API, y abre issues solo en su lado **Yes**, por ejemplo para una gravedad.
+- **Solo algunos incidentes.** Pon un bloque **If / Else** entre el disparador y el bloque de API, y abre issues solo en su lado **Sí**, por ejemplo para una gravedad.
 
 ## Solución de problemas
 
-El paso **API Post (JSON)** toma **Error** cuando GitLab rechaza la solicitud. Sus **Response Status** y **Response Body** en la ejecución dicen por qué.
+El paso **API Post (JSON)** toma **Error** cuando GitLab rechaza la solicitud. Sus **Response Status** y **Cuerpo de la respuesta** en la ejecución dicen por qué.
 
 :::details GitLab responde 401
 El token es incorrecto, caducó o se revocó. Crea uno nuevo y sustituye el contenido de `GITLAB_TOKEN`.

@@ -51,7 +51,7 @@ flowchart TB
 
 ### 打开 issue
 
-点击 **添加组件**，添加一个 **API Post (JSON)** 块，然后把触发器的 **Success** 点连接到它。把它的 **URL** 设为 `https://gitlab.com/api/v4/projects/12345678/issues`，并用你的项目 ID 替换 `12345678`。在 **更多字段** 下，把它的 **Request Headers** 设为：
+点击 **添加组件**，添加一个 **API Post (JSON)** 块，然后把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://gitlab.com/api/v4/projects/12345678/issues`，并用你的项目 ID 替换 `12345678`。在 **更多字段** 下，把它的 **请求标头** 设为：
 
 ```json
 {
@@ -59,7 +59,7 @@ flowchart TB
 }
 ```
 
-把 **Request Body** 设为：
+把 **请求主体** 设为：
 
 ```json
 {
@@ -81,11 +81,11 @@ flowchart TB
 - **你自己的 GitLab。** 改为把请求发送到你的服务器：`https://gitlab.example.com/api/v4/projects/12345678/issues`。位于私有网络地址上的服务器需要一个由管理员允许这样做的自托管 OneUptime：请参阅 [出站网络访问](/docs/workflows/configuration#出站网络访问)。
 - **用项目路径代替 ID。** 路径可以代替 ID 使用，其中的 `/` 写作 `%2F`：`projects/your-group%2Fyour-project/issues`。URL 会完全按写法发送，所以请自己进行编码。
 - **指派它。** 在正文中添加 `"assignee_ids": [42]` 或 `"due_date": "2026-12-31"`，或者添加 `"confidential": true`，只让项目成员看到它。
-- **只针对部分事件。** 在触发器和 API 块之间放一个 **If / Else** 块，只在它的 **Yes** 一侧打开 issue，例如只针对某一种严重程度。
+- **只针对部分事件。** 在触发器和 API 块之间放一个 **If / Else** 块，只在它的 **是** 一侧打开 issue，例如只针对某一种严重程度。
 
 ## 故障排除
 
-当 GitLab 拒绝请求时，**API Post (JSON)** 步骤会走 **Error**。运行中的 **Response Status** 和 **Response Body** 会说明原因。
+当 GitLab 拒绝请求时，**API Post (JSON)** 步骤会走 **错误**。运行中的 **Response Status** 和 **响应主体** 会说明原因。
 
 :::details GitLab 返回 401
 令牌错误、已过期或已被吊销。请创建一个新令牌，并替换 `GITLAB_TOKEN` 的内容。

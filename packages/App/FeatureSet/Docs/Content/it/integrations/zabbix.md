@@ -102,7 +102,7 @@ In un nuovo progetto, il modello mappa le sei gravità di Zabbix su queste gravi
 Con gravità tue, Disaster e High vanno alla più grave, Average e Warning a quella di mezzo, e Information e Not classified alla meno grave. Zabbix numera le sue gravità da 0 (Not classified) a 5 (Disaster), e il modello legge il numero, quindi rinominare una gravità in Zabbix non cambia nulla.
 
 - Per mappare una gravità su una delle tue per nome, modifica `SEVERITY_BY_NAME` nel passo `read-event-1`, ad esempio `{ 2: 'Minor Incident' }` per Warning.
-- Per chiamare i reperibili anche per i problemi Average, imposta **Compare with** del passo `if-page-1` **If / Else** a `3`.
+- Per chiamare i reperibili anche per i problemi Average, imposta **Confronta con** del passo `if-page-1` **If / Else** a `3`.
 
 ### Rimandare riconoscimenti e note a Zabbix
 

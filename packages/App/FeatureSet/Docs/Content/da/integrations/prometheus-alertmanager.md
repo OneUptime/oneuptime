@@ -193,11 +193,11 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Kontrollér, at notifikationen er udløst
 
-Klik på **Tilføj komponent**, tilføj en blok **If / Else**, og forbind triggerens punkt **Out** med den. Sæt **Value to check** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** til **is equal to** og **Compare with** til `firing`.
+Klik på **Tilføj komponent**, tilføj en blok **If / Else**, og forbind triggerens punkt **Ud** med den. Sæt **Værdi, der skal tjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lig med** og **Sammenlign med** til `firing`.
 
 ### Erklær hændelsen
 
-Tilføj en blok **Create One Incident**, og forbind siden **Yes** af blokken **If / Else** med den. Vælg under **Incident Template** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON Object**, hvad der kommer fra Alertmanager:
+Tilføj en blok **Create One Incident**, og forbind siden **Ja** af blokken **If / Else** med den. Vælg under **Hændelsesskabelon** en skabelon, der sætter alvorligheden og de vagtpolitikker, der skal kaldes op (se [Hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner)). Angiv under **JSON Object**, hvad der kommer fra Alertmanager:
 
 ```json
 {
@@ -213,7 +213,7 @@ Uden en skabelon skal **JSON Object** også indeholde `incidentSeverityId`, ID'e
 Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer Alertmanager med `400`.
 :::
 
-En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **No** af blokken **If / Else**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
+En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset hvor mange advarsler notifikationen indeholder. En notifikation, der er `resolved`, tager siden **Nej** af blokken **If / Else**, hvor intet er forbundet, så kørslen slutter der. Brug monitoren til én hændelse pr. advarsel, der løses ved genopretning.
 
 ## Overvåg selve Alertmanager
 

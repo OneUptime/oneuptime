@@ -129,22 +129,22 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 檢查標題
 
-按一下 **新增元件** ，選擇 **If / Else** ，把觸發器的 **Success** 連接點連到它。把 **要檢查的值** 設為警示標題（按一下 **{ }** 後選擇它），把 **比較** 設為 **包含** ，把 **比較對象** 設為你的觸發條件標題共同的開頭，例如 `LLM budget exceeded`。
+按一下 **新增元件** ，選擇 **If / Else** ，把觸發器的 **成功** 連接點連到它。把 **要檢查的值** 設為警示標題（按一下 **{ }** 後選擇它），把 **比較** 設為 **包含** ，把 **比較對象** 設為你的觸發條件標題共同的開頭，例如 `LLM budget exceeded`。
 
 ### 呼叫你的端點
 
-新增 **API Post (JSON)** ，把 **If / Else** 的 **Yes** 連接點連到它。把它的 **URL** 設為你的端點，例如 `https://agents.example.com/circuit-breaker`，並填寫下方的標頭和內文。
+新增 **API Post (JSON)** ，把 **If / Else** 的 **是** 連接點連到它。把它的 **URL** 設為你的端點，例如 `https://agents.example.com/circuit-breaker`，並填寫下方的標頭和內文。
 
 ### 回報失敗
 
-新增 **Send Message to Slack** 或 **Send Email** ，把 API 區塊的 **Error** 連接點連到它。沒能觸發的斷路器，正是必須有人看到的那個警示。
+新增 **Send Message to Slack** 或 **Send Email** ，把 API 區塊的 **錯誤** 連接點連到它。沒能觸發的斷路器，正是必須有人看到的那個警示。
 
 ### 開啟它
 
 在 **建構器** 頂端開啟 **已啟用** 。
 :::
 
-API 區塊的 **Request Headers** ：
+API 區塊的 **請求標頭** ：
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ API 區塊的 **Request Headers** ：
 }
 ```
 
-它的 **Request Body** ：
+它的 **請求內文** ：
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ API 區塊的 **Request Headers** ：
 }
 ```
 
-要對多個觸發條件做出反應，請讓它們的標題以相同方式開頭，或從 **No** 連接點串接更多 **If / Else** 區塊。畫布請參閱 [撰寫工作流程](/docs/workflows/authoring)，`{{…}}` 參照請參閱 [變數](/docs/workflows/variables)。
+要對多個觸發條件做出反應，請讓它們的標題以相同方式開頭，或從 **否** 連接點串接更多 **If / Else** 區塊。畫布請參閱 [撰寫工作流程](/docs/workflows/authoring)，`{{…}}` 參照請參閱 [變數](/docs/workflows/variables)。
 
 ## 測試斷路器
 

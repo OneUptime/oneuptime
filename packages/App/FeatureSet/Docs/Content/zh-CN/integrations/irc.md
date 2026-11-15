@@ -56,8 +56,8 @@ sequenceDiagram
 
 决定消息发往哪里：服务器的主机名，例如 `irc.libera.chat`，以及频道，例如 `#your-channel`。
 
-- **IRC Server** 只填主机名，别的都不要：不要 `ircs://`，也不要端口。步骤通过 TLS 连接到端口 `6697`。如果你的服务器在其他端口上提供 TLS，请在 **更多字段** 下的 **Port** 中设置。
-- **Channel** 必须是频道。在这里填写昵称会被拒绝，所以步骤绝不会误把消息私发给某个人。
+- **IRC Server** 只填主机名，别的都不要：不要 `ircs://`，也不要端口。步骤通过 TLS 连接到端口 `6697`。如果你的服务器在其他端口上提供 TLS，请在 **更多字段** 下的 **端口** 中设置。
+- **频道** 必须是频道。在这里填写昵称会被拒绝，所以步骤绝不会误把消息私发给某个人。
 
 服务器必须是 OneUptime 允许连接的。环回地址（`localhost`、`127.0.0.1`）、链路本地地址和云元数据地址总是被拒绝。在 OneUptime Cloud 上，位于私有网络地址的服务器也会被拒绝。自托管安装可以连接自己网络中的 IRC 服务器，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 设为 `true`。
 
@@ -89,7 +89,7 @@ sequenceDiagram
 1. 打开 **工作流**，点击 **创建工作流**，选择 **从零开始**，给工作流命名，然后点击 **创建工作流**。
 2. 在 **生成器** 中点击 **选择启动此工作流的方式**，在 **热门** 下选择 **On Create Incident**。点击该触发器，在 **Fields to pass on** 中选择消息要显示的事件字段，例如标题。
 3. 点击 **添加组件**，搜索 `irc`，点击 **Send Message to IRC**。把触发器的 **成功** 输出连到这个步骤。
-4. 点击新步骤，填写 **IRC Server**、**Channel** 和 **Message Text**。**Message Text** 中的 **{ }** 按钮可以插入事件的字段，例如标题。
+4. 点击新步骤，填写 **IRC Server**、**频道** 和 **Message Text**。**Message Text** 中的 **{ }** 按钮可以插入事件的字段，例如标题。
 5. 如果你在上一步保存了密码，打开 **更多字段**。在 **Server Password**、**SASL Password** 或 **Channel Key** 中点击 **{ }**，在 **Global variables** 下选择变量。在 **SASL Username** 中填入你的账号名。
 :::
 

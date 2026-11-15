@@ -82,7 +82,7 @@ Un nuovo incidente chiama le policy di reperibilità che hai scelto quando il su
 Con gravità tue, P1, P2 e nessuna priorità vanno alla più grave, P3 a quella di mezzo, e P4 e P5 alla meno grave.
 
 - Per mappare una priorità su una delle tue per nome, modifica `SEVERITY_BY_NAME` nel passo `read-event-1`, ad esempio `{ P3: 'Minor Incident' }`.
-- Per chiamare i reperibili anche per P3, imposta **Compare with** del passo `if-page-1` **If / Else** a `3`.
+- Per chiamare i reperibili anche per P3, imposta **Confronta con** del passo `if-page-1` **If / Else** a `3`.
 
 ## Ricevere gli avvisi con un monitor
 

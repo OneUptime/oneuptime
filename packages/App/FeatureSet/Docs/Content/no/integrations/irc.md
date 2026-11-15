@@ -57,7 +57,7 @@ Trinnet tar utgangen **Suksess** så snart serveren har tatt imot hver linje. De
 Bestem hvor meldingene skal: serverens vertsnavn, for eksempel `irc.libera.chat`, og kanalen, for eksempel `#your-channel`.
 
 - **IRC Server** tar vertsnavnet og ingenting annet: ingen `ircs://` og ingen port. Trinnet kobler til over TLS på port `6697`. Tar serveren din imot TLS på en annen port, setter du den i **Port**, under **Flere felt**.
-- **Channel** må være en kanal. Et nickname skrevet der blir avvist, så trinnet sender aldri noen en privat melding ved en feil.
+- **Kanal** må være en kanal. Et nickname skrevet der blir avvist, så trinnet sender aldri noen en privat melding ved en feil.
 
 Serveren må være en som OneUptime har lov til å koble til. Loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser og sky-metadataadresser avvises alltid. På OneUptime Cloud avvises også en server på en privat nettverksadresse. En selvhostet installasjon kan nå en IRC-server i sitt eget nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er satt til `true`.
 
@@ -89,7 +89,7 @@ Arbeidsflyten åpnes i **Bygger** med to trinn: **On Create Incident** og **Send
 1. Åpne **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn og klikk på **Opprett arbeidsflyt**.
 2. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **On Create Incident** under **Populære**. Klikk på triggeren, og velg i **Fields to pass on** feltene fra hendelsen som meldingen din viser, for eksempel tittelen.
 3. Klikk på **Legg til komponent**, søk etter `irc` og klikk på **Send Message to IRC**. Koble triggerens utgang **Suksess** til trinnet.
-4. Klikk på det nye trinnet og fyll ut **IRC Server**, **Channel** og **Message Text**. **{ }**-knappen i **Message Text** setter inn felter fra hendelsen, for eksempel tittelen.
+4. Klikk på det nye trinnet og fyll ut **IRC Server**, **Kanal** og **Message Text**. **{ }**-knappen i **Message Text** setter inn felter fra hendelsen, for eksempel tittelen.
 5. Har du lagret passord i forrige trinn, åpner du **Flere felt**. Klikk på **{ }** i **Server Password**, **SASL Password** eller **Channel Key**, og velg variabelen under **Global variables**. Skriv navnet på kontoen din i **SASL Username**.
 :::
 
