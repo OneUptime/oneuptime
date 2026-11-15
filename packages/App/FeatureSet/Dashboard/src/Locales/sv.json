@@ -53649,5 +53649,7 @@
   "Time to Resolve": "Tid till lösning",
   "{{filter}} (applied filter)": "{{filter}} (tillämpat filter)",
   "{{filter}}, locked filter": "{{filter}}, låst filter",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, låst filter. Tryck på Retur för att kopiera dess söksyntax."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, låst filter. Tryck på Retur för att kopiera dess söksyntax.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Jourpolicyn som den här installationen skapade har arkiverats, så den larmar ingen. Välj igen vem som ska få veta.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Jourpolicyn som den här installationen använde har arkiverats, så den larmar ingen. Välj eller skapa en igen."
 }

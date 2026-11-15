@@ -53649,5 +53649,7 @@
   "Time to Resolve": "Tempo alla risoluzione",
   "{{filter}} (applied filter)": "{{filter}} (filtro applicato)",
   "{{filter}}, locked filter": "{{filter}}, filtro bloccato",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, filtro bloccato. Premi Invio per copiarne la sintassi di ricerca."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, filtro bloccato. Premi Invio per copiarne la sintassi di ricerca.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "La policy di reperibilità creata da questa configurazione è stata archiviata, quindi non avvisa nessuno. Scegli di nuovo chi deve essere avvisato.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "La policy di reperibilità usata da questa configurazione è stata archiviata, quindi non avvisa nessuno. Scegline o creane una di nuovo."
 }

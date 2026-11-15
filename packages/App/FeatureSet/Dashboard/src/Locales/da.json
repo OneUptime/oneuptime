@@ -53649,5 +53649,7 @@
   "Time to Resolve": "Tid til løsning",
   "{{filter}} (applied filter)": "{{filter}} (anvendt filter)",
   "{{filter}}, locked filter": "{{filter}}, låst filter",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, låst filter. Tryk på Enter for at kopiere dets søgesyntaks."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, låst filter. Tryk på Enter for at kopiere dets søgesyntaks.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Vagtpolitikken, som denne opsætning oprettede, er blevet arkiveret, så den kalder ingen. Vælg igen, hvem der skal have besked.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Vagtpolitikken, som denne opsætning brugte, er blevet arkiveret, så den kalder ingen. Vælg eller opret en igen."
 }

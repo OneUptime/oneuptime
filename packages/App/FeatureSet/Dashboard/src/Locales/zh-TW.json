@@ -53649,5 +53649,7 @@
   "Time to Resolve": "解決用時",
   "{{filter}} (applied filter)": "{{filter}}（已套用的篩選器）",
   "{{filter}}, locked filter": "{{filter}}，已鎖定的篩選器",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}，已鎖定的篩選器。按 Enter 複製其搜尋語法。"
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}，已鎖定的篩選器。按 Enter 複製其搜尋語法。",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "此設定建立的待命策略已被封存，不會呼叫任何人。請重新選擇要通知誰。",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "此設定所用的待命策略已被封存，不會呼叫任何人。請重新選擇或建立一個。"
 }

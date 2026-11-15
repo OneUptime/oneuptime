@@ -53649,5 +53649,7 @@
   "Time to Resolve": "해결까지 걸린 시간",
   "{{filter}} (applied filter)": "{{filter}}(적용된 필터)",
   "{{filter}}, locked filter": "{{filter}}, 잠긴 필터",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, 잠긴 필터입니다. Enter를 눌러 검색 구문을 복사하세요."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, 잠긴 필터입니다. Enter를 눌러 검색 구문을 복사하세요.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "이 설정에서 만든 온콜 정책이 보관되어 아무도 호출하지 않습니다. 누구에게 알릴지 다시 고르세요.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "이 설정에서 사용하던 온콜 정책이 보관되어 아무도 호출하지 않습니다. 정책을 다시 고르거나 만드세요."
 }

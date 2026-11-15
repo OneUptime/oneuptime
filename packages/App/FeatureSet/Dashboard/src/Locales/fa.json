@@ -53649,5 +53649,7 @@
   "Time to Resolve": "زمان تا رفع",
   "{{filter}} (applied filter)": "{{filter}} (فیلتر اعمال‌شده)",
   "{{filter}}, locked filter": "{{filter}}، فیلتر قفل‌شده",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}، فیلتر قفل‌شده. برای کپی نحو جستجوی آن Enter را بزنید."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}، فیلتر قفل‌شده. برای کپی نحو جستجوی آن Enter را بزنید.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "سیاست آنکالی که این راه‌اندازی ساخته بود بایگانی شد، پس کسی را فرا نمی‌خواند. دوباره انتخاب کنید چه کسی باید باخبر شود.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "سیاست آنکالی که این راه‌اندازی از آن استفاده می‌کرد بایگانی شد، پس کسی را فرا نمی‌خواند. دوباره یکی را انتخاب کنید یا بسازید."
 }

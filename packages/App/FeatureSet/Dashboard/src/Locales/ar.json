@@ -53649,5 +53649,7 @@
   "Time to Resolve": "وقت الحل",
   "{{filter}} (applied filter)": "{{filter}} (عامل تصفية مطبّق)",
   "{{filter}}, locked filter": "{{filter}}، عامل تصفية مقفل",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}، عامل تصفية مقفل. اضغط Enter لنسخ صيغة البحث الخاصة به."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}، عامل تصفية مقفل. اضغط Enter لنسخ صيغة البحث الخاصة به.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "أُرشفت سياسة المناوبة التي أنشأها هذا الإعداد، لذا لا تستدعي أحدًا. اختر من جديد من يجب إبلاغه.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "أُرشفت سياسة المناوبة التي كان هذا الإعداد يستخدمها، لذا لا تستدعي أحدًا. اختر سياسة أو أنشئ واحدة من جديد."
 }

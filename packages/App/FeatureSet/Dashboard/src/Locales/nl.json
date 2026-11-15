@@ -53649,5 +53649,7 @@
   "Time to Resolve": "Tijd tot oplossing",
   "{{filter}} (applied filter)": "{{filter}} (toegepast filter)",
   "{{filter}}, locked filter": "{{filter}}, vergrendeld filter",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, vergrendeld filter. Druk op Enter om de zoeksyntaxis te kopiëren."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, vergrendeld filter. Druk op Enter om de zoeksyntaxis te kopiëren.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Het bereikbaarheidsbeleid dat deze installatie had gemaakt, is gearchiveerd en roept dus niemand op. Kies opnieuw wie er op de hoogte moet worden gesteld.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Het bereikbaarheidsbeleid dat deze installatie gebruikte, is gearchiveerd en roept dus niemand op. Kies of maak er opnieuw een."
 }

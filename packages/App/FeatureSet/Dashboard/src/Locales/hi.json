@@ -53649,5 +53649,7 @@
   "Time to Resolve": "हल करने में लगा समय",
   "{{filter}} (applied filter)": "{{filter}} (लागू फ़िल्टर)",
   "{{filter}}, locked filter": "{{filter}}, लॉक किया गया फ़िल्टर",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, लॉक किया गया फ़िल्टर। इसका खोज सिंटैक्स कॉपी करने के लिए Enter दबाएँ।"
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, लॉक किया गया फ़िल्टर। इसका खोज सिंटैक्स कॉपी करने के लिए Enter दबाएँ।",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "इस सेटअप ने जो ऑन-कॉल नीति बनाई थी, वह संग्रहीत कर दी गई है, इसलिए वह किसी को पेज नहीं करती। फिर से चुनें कि किसे बताया जाए।",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "यह सेटअप जिस ऑन-कॉल नीति का उपयोग कर रहा था, वह संग्रहीत कर दी गई है, इसलिए वह किसी को पेज नहीं करती। फिर से कोई नीति चुनें या बनाएँ।"
 }

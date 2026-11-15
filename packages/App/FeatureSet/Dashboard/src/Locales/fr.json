@@ -53649,5 +53649,7 @@
   "Time to Resolve": "Délai de résolution",
   "{{filter}} (applied filter)": "{{filter}} (filtre appliqué)",
   "{{filter}}, locked filter": "{{filter}}, filtre verrouillé",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, filtre verrouillé. Appuyez sur Entrée pour copier sa syntaxe de recherche."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, filtre verrouillé. Appuyez sur Entrée pour copier sa syntaxe de recherche.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "La politique d'astreinte créée par cette configuration a été archivée : elle n'alerte donc personne. Choisissez de nouveau qui prévenir.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "La politique d'astreinte qu'utilisait cette configuration a été archivée : elle n'alerte donc personne. Choisissez-en une ou créez-en une nouvelle."
 }

@@ -53649,5 +53649,7 @@
   "Time to Resolve": "Время до устранения",
   "{{filter}} (applied filter)": "{{filter}} (применённый фильтр)",
   "{{filter}}, locked filter": "{{filter}}, закреплённый фильтр",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, закреплённый фильтр. Нажмите Enter, чтобы скопировать его синтаксис поиска."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, закреплённый фильтр. Нажмите Enter, чтобы скопировать его синтаксис поиска.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Политика дежурства, которую создала эта настройка, архивирована и поэтому никого не вызывает. Снова выберите, кого нужно уведомить.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Политика дежурства, которую использовала эта настройка, архивирована и поэтому никого не вызывает. Выберите или создайте другую."
 }

@@ -53649,5 +53649,7 @@
   "Time to Resolve": "Time to Resolve",
   "{{filter}} (applied filter)": "{{filter}} (applied filter)",
   "{{filter}}, locked filter": "{{filter}}, locked filter",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, locked filter. Press Enter to copy its search syntax."
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, locked filter. Press Enter to copy its search syntax.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again."
 }

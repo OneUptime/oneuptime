@@ -53649,5 +53649,7 @@
   "Time to Resolve": "解決までの時間",
   "{{filter}} (applied filter)": "{{filter}}（適用中のフィルター）",
   "{{filter}}, locked filter": "{{filter}}、固定されたフィルター",
-  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}、固定されたフィルター。Enter を押すと検索構文をコピーします。"
+  "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}、固定されたフィルター。Enter を押すと検索構文をコピーします。",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "このセットアップで作成したオンコールポリシーがアーカイブされたため、誰も呼び出しません。誰に知らせるかをもう一度選択してください。",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "このセットアップで使用していたオンコールポリシーがアーカイブされたため、誰も呼び出しません。もう一度選択するか作成してください。"
 }
