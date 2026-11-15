@@ -5,6 +5,7 @@ import {
   isEnglishDateLanguage,
 } from "../../Types/DateLanguage";
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
+import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import {
   fillTemplate,
@@ -13,6 +14,7 @@ import {
   translationKey,
   Translator,
 } from "../../Types/Translator";
+import { isRequestSliType } from "./SloRequestSli";
 
 /**
  * Pure value/label derivation for the dashboard SLO widget.
@@ -108,6 +110,13 @@ export interface SloWidgetStateData {
   errorBudgetRemainingSeconds?: number | undefined | null;
   currentBurnRate?: number | undefined | null;
   sloStatus?: SloStatus | undefined | null;
+  /*
+   * A request SLO's budget is counted in requests (#8441): what it
+   * measures, and the bad requests left (SIGNED) - a decimal column, so it
+   * can arrive as a string.
+   */
+  sliType?: SliType | string | undefined | null;
+  errorBudgetRemainingEvents?: number | string | undefined | null;
 }
 
 export interface SloWidgetTileDisplay {
@@ -396,6 +405,126 @@ export const formatErrorBudgetRemainingSeconds: FormatErrorBudgetRemainingSecond
     );
   };
 
+/*
+ * The line under a request SLO's error budget: "120 failed requests
+ * remaining", "50 slow requests over budget" - the request SLO's "43 min
+ * remaining". Whole requests, grouped as the Overview's tile groups them.
+ */
+const FAILED_REQUESTS_REMAINING: PluralTemplate = {
+  one: translationKey("{{count}} failed request remaining"),
+  other: translationKey("{{count}} failed requests remaining"),
+};
+
+const SLOW_REQUESTS_REMAINING: PluralTemplate = {
+  one: translationKey("{{count}} slow request remaining"),
+  other: translationKey("{{count}} slow requests remaining"),
+};
+
+const FAILED_REQUESTS_OVER_BUDGET: PluralTemplate = {
+  one: translationKey("{{count}} failed request over budget"),
+  other: translationKey("{{count}} failed requests over budget"),
+};
+
+const SLOW_REQUESTS_OVER_BUDGET: PluralTemplate = {
+  one: translationKey("{{count}} slow request over budget"),
+  other: translationKey("{{count}} slow requests over budget"),
+};
+
+// A decimal column as a number: Postgres numerics reach the page as text.
+const toFiniteCount: (
+  value: number | string | undefined | null,
+) => number | null = (
+  value: number | string | undefined | null,
+): number | null => {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed: number = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+export type FormatErrorBudgetRemainingRequestsFunction = (
+  data: {
+    sliType: SliType | string | undefined | null;
+    remainingEvents: number | string | undefined | null;
+  },
+  translator?: Translator | undefined,
+) => string | null;
+
+export const formatErrorBudgetRemainingRequests: FormatErrorBudgetRemainingRequestsFunction =
+  (
+    data: {
+      sliType: SliType | string | undefined | null;
+      remainingEvents: number | string | undefined | null;
+    },
+    translator?: Translator | undefined,
+  ): string | null => {
+    const remaining: number | null = toFiniteCount(data.remainingEvents);
+
+    if (remaining === null) {
+      return null;
+    }
+
+    // "|| 0": -0.4 rounds to -0, which a number format writes "-0".
+    const rounded: number = Math.round(remaining) || 0;
+    const isOverBudget: boolean = rounded < 0;
+    const count: number = Math.abs(rounded);
+    const isLatency: boolean = data.sliType === SliType.RequestLatency;
+
+    let template: PluralTemplate = isLatency
+      ? SLOW_REQUESTS_REMAINING
+      : FAILED_REQUESTS_REMAINING;
+
+    if (isOverBudget) {
+      template = isLatency
+        ? SLOW_REQUESTS_OVER_BUDGET
+        : FAILED_REQUESTS_OVER_BUDGET;
+    }
+
+    if (!translator) {
+      return fillTemplate(count === 1 ? template.one : template.other, {
+        count: count.toLocaleString("en-US"),
+      });
+    }
+
+    return translator.translatePlural(template, count, {
+      count: translator.formatNumber(count),
+    });
+  };
+
+/*
+ * The line under any SLO's error budget, as the widgets draw it: minutes
+ * for a monitor uptime SLO, requests for a request SLO, whose budget in
+ * seconds the worker leaves empty.
+ */
+export type FormatSloErrorBudgetSublineFunction = (
+  slo: SloWidgetStateData,
+  translator?: Translator | undefined,
+) => string | null;
+
+export const formatSloErrorBudgetSubline: FormatSloErrorBudgetSublineFunction =
+  (
+    slo: SloWidgetStateData,
+    translator?: Translator | undefined,
+  ): string | null => {
+    if (isRequestSliType(slo.sliType)) {
+      return formatErrorBudgetRemainingRequests(
+        {
+          sliType: slo.sliType,
+          remainingEvents: slo.errorBudgetRemainingEvents,
+        },
+        translator,
+      );
+    }
+
+    return formatErrorBudgetRemainingSeconds(
+      slo.errorBudgetRemainingSeconds,
+      translator,
+    );
+  };
+
 export type GetSloMetricLabelFunction = (
   sloMetric: SloWidgetMetric | undefined | null,
   translator?: Translator | undefined,
@@ -620,10 +749,8 @@ export const getSloWidgetTileDisplay: GetSloWidgetTileDisplayFunction = (data: {
     return {
       isEvaluated: true,
       value: value,
-      subline: formatErrorBudgetRemainingSeconds(
-        slo.errorBudgetRemainingSeconds,
-        translator,
-      ),
+      // Minutes, or a request SLO's requests (#8441).
+      subline: formatSloErrorBudgetSubline(slo, translator),
     };
   }
 

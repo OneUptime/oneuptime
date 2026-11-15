@@ -458,7 +458,10 @@ describe("SLO widget on an authenticated dashboard", () => {
     const itemArgs: JSONObject = getItemMock.mock.calls[0]![0] as JSONObject;
     expect((itemArgs["id"] as ObjectID).toString()).toBe(SLO_ID.toString());
     expect(itemArgs["requestOptions"]).toBeUndefined();
-    // Only the seven display fields, on the private route as on the public one.
+    /*
+     * Only the display fields, on the private route as on the public one:
+     * the seven, and what a request SLO's budget line is worded from (#8441).
+     */
     expect(itemArgs["select"]).toEqual({
       name: true,
       targetPercentage: true,
@@ -467,6 +470,8 @@ describe("SLO widget on an authenticated dashboard", () => {
       errorBudgetRemainingSeconds: true,
       currentBurnRate: true,
       sloStatus: true,
+      sliType: true,
+      errorBudgetRemainingEvents: true,
     });
   });
 

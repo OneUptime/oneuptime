@@ -25,6 +25,7 @@ import {
 import { SLO_METRIC_SLO_NAME_ATTRIBUTE } from "../../../Utils/Slo/SloMetricType";
 import { SloWidgetStateData } from "../../../Utils/Slo/SloWidgetFormat";
 import { describe, expect, test } from "@jest/globals";
+import SliType from "../../../Types/ServiceLevelObjective/SliType";
 
 /*
  * The SLO List widget's pure rules. Two of them are shared with the public
@@ -518,5 +519,69 @@ describe("SloListWidgetFormat", () => {
       );
       expect(SLO_LIST_STATUS_FILTER_VALUES[0]).toBe(SloStatus.BudgetExhausted);
     });
+  });
+});
+
+/*
+ * A request SLO's row in the SLO List widget says its budget in requests
+ * (#8441), as its Overview does: the worker leaves its budget in seconds
+ * empty, so the row's line under the budget used to be blank.
+ */
+describe("getSloListRowDisplay for a request SLO", () => {
+  const requestRow: (overrides?: Partial<SloListRowData>) => SloListRowData = (
+    overrides: Partial<SloListRowData> = {},
+  ): SloListRowData => {
+    return {
+      name: "Checkout requests",
+      targetPercentage: 99.9,
+      currentSliPercentage: 99.95,
+      errorBudgetRemainingPercentage: 50,
+      errorBudgetRemainingSeconds: null,
+      currentBurnRate: 0.5,
+      sloStatus: SloStatus.Healthy,
+      isEnabled: true,
+      sliType: SliType.RequestSuccess,
+      errorBudgetRemainingEvents: 500,
+      ...overrides,
+    };
+  };
+
+  test("says the failed requests left under the budget", () => {
+    const display: SloListRowDisplay = getSloListRowDisplay(requestRow());
+
+    expect(display.budget).toBe("50%");
+    expect(display.budgetTime).toBe("500 failed requests remaining");
+  });
+
+  test("a latency SLO over budget says by how many slow requests", () => {
+    expect(
+      getSloListRowDisplay(
+        requestRow({
+          sliType: SliType.RequestLatency,
+          errorBudgetRemainingPercentage: -20,
+          errorBudgetRemainingEvents: -200,
+        }),
+      ).budgetTime,
+    ).toBe("200 slow requests over budget");
+  });
+
+  test("a disabled request SLO keeps its last line, as a disabled uptime SLO keeps its minutes", () => {
+    const display: SloListRowDisplay = getSloListRowDisplay(
+      requestRow({ isEnabled: false }),
+    );
+
+    expect(display.statusText).toBe(SLO_DISABLED_STATUS_LABEL);
+    expect(display.budgetTime).toBe("500 failed requests remaining");
+  });
+
+  test("a monitor uptime row still says minutes", () => {
+    expect(
+      getSloListRowDisplay(
+        requestRow({
+          sliType: SliType.MonitorUptime,
+          errorBudgetRemainingSeconds: 600,
+        }),
+      ).budgetTime,
+    ).toBe("10 min remaining");
   });
 });
