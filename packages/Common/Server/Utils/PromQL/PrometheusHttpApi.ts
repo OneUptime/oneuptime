@@ -23,6 +23,10 @@ import {
   promQLLabelValue,
   promQLLabelsKey,
 } from "../../../Utils/PromQL/PromQLLabels";
+import {
+  comparePromQLText,
+  sortPromQLLabelSets,
+} from "../../../Utils/PromQL/PromQLLabelOrder";
 import { parsePromQL } from "../../../Utils/PromQL/PromQLParser";
 import { JSONObject } from "../../../Types/JSON";
 import { copyOwnValues } from "../../../Utils/LookupTable";
@@ -306,16 +310,23 @@ export const listPrometheusSeries: (data: {
     }
   }
 
-  return Array.from(seen.values()).sort(
-    (a: PromQLLabels, b: PromQLLabels): number => {
-      const keyA: string = promQLLabelsKey(a);
-      const keyB: string = promQLLabelsKey(b);
-      return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
-    },
-  );
+  // In the order Prometheus answers them (labels.Compare).
+  return sortPromQLLabelSets(
+    Array.from(seen.values()).map(
+      (labels: PromQLLabels): { labels: PromQLLabels } => {
+        return { labels };
+      },
+    ),
+  ).map((item: { labels: PromQLLabels }): PromQLLabels => {
+    return item.labels;
+  });
 };
 
-// The label names of the series, sorted, `__name__` first.
+/*
+ * The label names of the series, sorted as Prometheus sorts them (Go's
+ * string order, slices.Sort): by code point, so `__name__` comes after any
+ * name that starts with a capital letter.
+ */
 export const labelNamesOf: (series: Array<PromQLLabels>) => Array<string> = (
   series: Array<PromQLLabels>,
 ): Array<string> => {
@@ -327,10 +338,10 @@ export const labelNamesOf: (series: Array<PromQLLabels>) => Array<string> = (
     }
   }
 
-  return Array.from(names).sort();
+  return Array.from(names).sort(comparePromQLText);
 };
 
-// One label's values across the series, sorted.
+// One label's values across the series, sorted by code point, as Prometheus sorts them.
 export const labelValuesOf: (
   series: Array<PromQLLabels>,
   label: string,
@@ -348,7 +359,7 @@ export const labelValuesOf: (
     }
   }
 
-  return Array.from(values).sort();
+  return Array.from(values).sort(comparePromQLText);
 };
 
 // Runs an instant query and answers in the API's shape.
