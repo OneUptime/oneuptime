@@ -1022,6 +1022,18 @@ Ein Gerät, das 30 Tage lang nicht gesehen wurde, wird aus der Liste und von der
 
 Projektinhaber und Projektadministratoren wählen den Standard: Wechseln Sie zu einem Layout und wählen Sie **Für alle als Standard festlegen**. Danach öffnet jede Ansicht der Gerätekarte damit: **Gerätetopologie**, ein Standort auf der **Karte** und der Tab **Netzwerk** von **Topologie**. Im Standardlayout setzt **Standard entfernen** jede Karte auf ihren eigenen Standard zurück. Verschobene Positionen werden für jedes Layout in Ihrem Browser gespeichert, sodass die Karte mit der Anordnung öffnet, die Sie in diesem Layout erstellt haben.
 
+### Sich in einem großen Netzwerk zurechtfinden
+
+Im Layout **Eltern und Kind** zeichnet ein Gerät mit sechs oder mehr Geräten, unter denen nichts weiter hängt, diese als kompaktes Raster unter sich statt als eine lange Reihe, verbunden durch rechtwinklige Linien, die kein Gerät und keinen Namen kreuzen. Das Layout wählt die Rasterform, mit der die ganze Karte am größten auf den Bildschirm passt.
+
+Ein Gerät, unter dem etwas hängt, hat unter seinem Namen eine Schaltfläche `−`: Wählen Sie sie, um den Zweig auf das Gerät und die Zahl seiner Geräte einzuklappen, etwa `+24`, und wählen Sie die Zahl, um ihn wieder zu erweitern. **Alle Zweige einklappen** und **Alle Zweige erweitern** neben den Zoom-Schaltflächen klappen die Karte auf ihren Umriss zusammen und wieder auf. Ihr Browser merkt sich eingeklappte Zweige für jeden Standort.
+
+Um einen Zweig für sich anzusehen, klicken Sie auf sein Gerät und wählen Sie **Nur diesen Zweig anzeigen**. Die Karte zeigt dann dieses Gerät und alles darunter, oben mit dem Pfad von der Spitze des Netzwerks: Wählen Sie einen Schritt, um die Ansicht auf den Zweig dieses Geräts zu erweitern, oder **Ganze Karte anzeigen**, um wieder alles zu sehen.
+
+Die Suche bewegt die Karte zu den gefundenen Geräten. Die Pfeile neben der Zahl der Treffer oder die Eingabetaste im Suchfeld springen der Reihe nach zu jedem Treffer und markieren ihn mit einem Ring. Im Layout **Eltern und Kind** bleibt der Pfad von der Spitze des Netzwerks bis zu jedem Treffer hervorgehoben, und ein Treffer in einem eingeklappten Zweig wird mitgezählt, mit einer Schaltfläche, die die Zweige öffnet, in denen er liegt.
+
+Sobald Sie Geräte verschoben haben, wechselt ein Schalter oben auf der Karte zwischen **Eigenes Layout · 2 verschoben** und **Ursprüngliches Layout**: Das ursprüngliche Layout ist die Karte, wie OneUptime sie anordnet, und Ihr eigenes Layout bleibt erhalten, bis Sie zurückwechseln. **Layout zurücksetzen** verwirft es.
+
 ### Die Karte als PDF exportieren
 
 **PDF exportieren**, oben auf der Karte, lädt die Karte, die Sie gerade sehen, als PDF herunter, das Sie an eine Bewertung, einen Änderungsantrag oder eine Vorfallnachbesprechung anhängen oder offline lesen können. Jede Ansicht der Gerätekarte hat es: **Gerätetopologie**, ein Standort auf der **Karte** und der Tab **Netzwerk** von **Topologie**.
