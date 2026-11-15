@@ -635,10 +635,15 @@ translated the same locale. Take either side, then run
   (`Common/Types/Monitor/*MetricCatalog`, #8014), and so are the database
   catalog's metric names and its groups' headings (#8354), which the
   criteria's metric dropdown, the summary and the charts look up once, and
-  the translated Database Health pages name as each language draws them;
-  but not the VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT
-  catalogs' metric names, which their pickers and criteria draw in English,
-  so the docs' metric tables keep them in English. A Database monitor's
+  the translated Database Health pages name as each language draws them.
+  The VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT
+  catalogs' metric names are keys too, and so are their pickers' group
+  headings (`get*MetricCategoryLabel`: a category is an identifier, so
+  "ControlPlane" is headed Control Plane and the host's Load is headed Load
+  Average), each looked up once by its picker (#8353); the translated
+  Kubernetes Monitor pages name the metrics as the picker draws them. The
+  storage array, Proxmox, Ceph and OpenStack pickers still head their groups
+  with the category's English value (#8653). A Database monitor's
   summary names a collection group it could not collect as the form's
   Metric Groups switch does, says why in the reader's words and keeps the
   database's own error as written (`Common/Utils/Monitor/DatabaseCollectionIssueReading`,

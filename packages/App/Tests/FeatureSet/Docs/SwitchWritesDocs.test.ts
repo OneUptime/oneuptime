@@ -2,6 +2,7 @@ import {
   getBooleanColumnValueMessage,
   toStoredBoolean,
 } from "Common/Types/Database/BooleanColumnValue";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -19,6 +20,15 @@ const CONTENT_DIR: string = path.resolve(
   __dirname,
   "../../../FeatureSet/Docs/Content",
 );
+
+/*
+ * The On Update trigger's Fields to watch setting, as a language's workflow
+ * builder draws it: worded in every language, where On Update itself stays
+ * as the component catalog writes it.
+ */
+function fieldsToWatch(language: string): string {
+  return drawnDashboardLabel(language, "Fields to watch");
+}
 
 function read(...parts: Array<string>): string {
   return fs.readFileSync(path.join(CONTENT_DIR, "en", ...parts), "utf8");
@@ -145,10 +155,11 @@ describe("the workflow triggers page", () => {
       const sentenceEnds: number = (onUpdate!.match(/[.。।]/g) || []).length;
       expect([language, sentenceEnds >= 2]).toEqual([language, true]);
 
-      expect([language, text.includes("**Fields to watch**")]).toEqual([
+      // As that language's workflow builder draws the setting.
+      expect([
         language,
-        true,
-      ]);
+        text.includes(`**${fieldsToWatch(language)}**`),
+      ]).toEqual([language, true]);
     }
   });
 });
@@ -195,7 +206,7 @@ describe("the incident settings page on Fields to watch", () => {
         .filter((line: string): boolean => {
           return (
             line.includes("**On Update X**") &&
-            line.includes("**Fields to watch**")
+            line.includes(`**${fieldsToWatch(language)}**`)
           );
         });
 
