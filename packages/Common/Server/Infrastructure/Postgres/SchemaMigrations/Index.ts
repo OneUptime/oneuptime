@@ -1010,6 +1010,7 @@ import { RemovePermissionsThatGrantNothing1809178600000 } from "./1809178600000-
 import { AddServiceLevelObjectiveRequestSli1809178700000 } from "./1809178700000-AddServiceLevelObjectiveRequestSli";
 import { AddIncomingRequestSecret1809178800000 } from "./1809178800000-AddIncomingRequestSecret";
 import { AddOwnerNotificationDelivery1809179400000 } from "./1809179400000-AddOwnerNotificationDelivery";
+import { AddDataStoreWorkerContentScanIndex1809179800000 } from "./1809179800000-AddDataStoreWorkerContentScanIndex";
 
 export default [
   InitialMigration,
@@ -2024,4 +2025,5 @@ export default [
   AddServiceLevelObjectiveRequestSli1809178700000,
   AddIncomingRequestSecret1809178800000,
   AddOwnerNotificationDelivery1809179400000,
+  AddDataStoreWorkerContentScanIndex1809179800000,
 ];
