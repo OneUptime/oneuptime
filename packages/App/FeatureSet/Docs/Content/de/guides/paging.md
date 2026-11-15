@@ -83,7 +83,7 @@ Alarmiert die Richtlinie noch jemand anderen, können Sie auch die Eskalation be
 ## Was schiefgehen kann
 
 :::details Es gibt keine Schaltfläche „Code per SMS senden“
-Der SMS-Versand ist ausgeschaltet oder nicht möglich, und der Schritt sagt, warum. Nur ein Projekteigentümer oder jemand, der die Abrechnung verwaltet, sieht **SMS und Anrufe einschalten**. Bei OneUptime Cloud blendet ein Guthaben von 1.00 USD oder weniger das Feld aus. Auf einem selbst gehosteten Server, der keine SMS senden kann, sieht sein Master-Admin **SMS und Anrufe einrichten**, was das Admin Dashboard öffnet, um Twilio hinzuzufügen, wie [Twilio-Integration](/docs/self-hosted/twilio-integration) zeigt.
+Der SMS-Versand ist ausgeschaltet oder nicht möglich, und der Schritt sagt, warum. Nur ein Projektinhaber oder jemand, der die Abrechnung verwaltet, sieht **SMS und Anrufe einschalten**. Bei OneUptime Cloud blendet ein Guthaben von 1.00 USD oder weniger das Feld aus. Auf einem selbst gehosteten Server, der keine SMS senden kann, sieht sein Master-Admin **SMS und Anrufe einrichten**, was das Admin Dashboard öffnet, um Twilio hinzuzufügen, wie [Twilio-Integration](/docs/self-hosted/twilio-integration) zeigt.
 :::
 
 :::details „Guthaben aufladen“ meldet, dass keine Zahlungsmethode gefunden wurde

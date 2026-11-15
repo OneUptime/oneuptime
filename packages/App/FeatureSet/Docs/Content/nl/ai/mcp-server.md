@@ -113,7 +113,7 @@ Wat een gekoppelde client kan:
 
 ### Gekoppelde clients beheren
 
-Elke client die door aanmelden is gekoppeld, staat op **Projectinstellingen → AI → MCP-server**, onder **Verbonden MCP-clients**, met wie hem heeft gekoppeld, wat hij mag en wanneer hij voor het laatst is gebruikt. Je ziet de clients die je zelf hebt gekoppeld; eigenaren en beheerders van het project zien die van iedereen.
+Elke client die door aanmelden is gekoppeld, staat op **Projectinstellingen → AI → MCP-server**, onder **Verbonden MCP-clients**, met wie hem heeft gekoppeld, wat hij mag en wanneer hij voor het laatst is gebruikt. Je ziet de clients die je zelf hebt gekoppeld; Projecteigenaren en Projectbeheerders zien die van iedereen.
 
 Klik op **Verbinding verbreken** om een client af te melden. Hij werkt meteen niet meer.
 

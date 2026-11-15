@@ -1,6 +1,6 @@
 # Outils d'IA de l'entreprise
 
-Voyez ce que vos équipes demandent aux outils d'IA que paie votre entreprise, sous forme de conversations par personne. Connectez Claude Enterprise ou Microsoft 365 Copilot avec un identifiant qui ne peut que lire, et OneUptime ramène chaque nouveau chat dans **Conversations** toutes les 15 minutes. Seuls les propriétaires et administrateurs du projet peuvent les lire, sauf si vous en décidez autrement.
+Voyez ce que vos équipes demandent aux outils d'IA que paie votre entreprise, sous forme de conversations par personne. Connectez Claude Enterprise ou Microsoft 365 Copilot avec un identifiant qui ne peut que lire, et OneUptime ramène chaque nouveau chat dans **Conversations** toutes les 15 minutes. Seuls les Propriétaires du projet et Administrateurs du projet peuvent les lire, sauf si vous en décidez autrement.
 
 :::cards
 - [Prévenez d'abord vos équipes](#prévenez-dabord-vos-équipes): Leurs chats sont leurs propres mots.

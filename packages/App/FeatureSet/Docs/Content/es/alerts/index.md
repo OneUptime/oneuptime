@@ -173,7 +173,7 @@ Un criterio mantiene una sola alerta abierta a la vez. Hasta que esa alerta se r
 :::
 
 :::details Un compañero puede abrir una alerta que yo no encuentro
-Probablemente la alerta es privada. Pide a un administrador del proyecto que te añada como propietario o que desactive **Alerta privada** en la página **Ajustes** de la alerta.
+Probablemente la alerta es privada. Pide a un Administrador del proyecto que te añada como propietario o que desactive **Alerta privada** en la página **Ajustes** de la alerta.
 :::
 
 ## Próximos pasos

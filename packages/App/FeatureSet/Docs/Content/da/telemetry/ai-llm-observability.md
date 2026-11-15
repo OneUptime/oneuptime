@@ -321,7 +321,7 @@ Prompts og svar sendt som loghændelser gemmes som logs, så det er logs' **Scru
 
 Uanset hvad læser en regel hver tekst i en liste eller en struktureret værdi, såsom beskeder, som en instrumentering sender som en liste i stedet for som JSON-tekst, og bevarer værdiens form: en e-mailadresse i en prompt maskeres, uanset hvor den står. Se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data).
 
-Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre. Samtalerne fra et af virksomhedens AI-værktøjer er undtagelsen: kun projektets ejere og administratorer kan læse dem, medmindre forbindelsen siger andet ([Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools#privatliv)).
+Samtaler læses med samme tilladelse som traces: den, der kan læse projektets traces, kan læse dets samtaler, og ingen andre. Samtalerne fra et af virksomhedens AI-værktøjer er undtagelsen: kun Projektejere og Projektadministratorer kan læse dem, medmindre forbindelsen siger andet ([Virksomhedens AI-værktøjer](/docs/telemetry/ai-company-tools#privatliv)).
 
 ## Attributter, som OneUptime læser
 

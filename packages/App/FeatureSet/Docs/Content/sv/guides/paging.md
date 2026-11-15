@@ -83,7 +83,7 @@ Om policyn larmar någon annan kan du också följa eskaleringen: klicka på **�
 ## Vad som kan gå fel
 
 :::details Knappen Skicka en kod till mig via sms saknas
-Sms är avstängt eller kan inte skickas, och steget säger varför. Bara en projektägare, eller någon som hanterar faktureringen, ser **Slå på sms och samtal**. På OneUptime Cloud döljs fältet när saldot är 1.00 USD eller mindre. På en egenvärdad server som inte kan skicka sms ser huvudadministratören **Konfigurera sms och samtal**, som öppnar Admin Dashboard där Twilio läggs till: se [Twilio-integration](/docs/self-hosted/twilio-integration).
+Sms är avstängt eller kan inte skickas, och steget säger varför. Bara en Projektägare, eller någon som hanterar faktureringen, ser **Slå på sms och samtal**. På OneUptime Cloud döljs fältet när saldot är 1.00 USD eller mindre. På en egenvärdad server som inte kan skicka sms ser huvudadministratören **Konfigurera sms och samtal**, som öppnar Admin Dashboard där Twilio läggs till: se [Twilio-integration](/docs/self-hosted/twilio-integration).
 :::
 
 :::details Fyll på saldo säger att ingen betalningsmetod hittades

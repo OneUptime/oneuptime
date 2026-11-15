@@ -146,7 +146,7 @@ Chiedi all'IA dice il motivo prima che tu scriva: il piano del progetto non incl
 :::
 
 :::details Un'azione è stata rifiutata
-Chiedi all'IA dice quale permesso serve all'azione, o quale team la blocca. Chiedi a qualcuno che può fare la modifica, oppure chiedi a un proprietario del progetto di dare il permesso al tuo ruolo. Non è stato cambiato nulla.
+Chiedi all'IA dice quale permesso serve all'azione, o quale team la blocca. Chiedi a qualcuno che può fare la modifica, oppure chiedi a un Proprietario del progetto di dare il permesso al tuo ruolo. Non è stato cambiato nulla.
 :::
 
 :::details Le risposte sono vaghe o non usano mai dati

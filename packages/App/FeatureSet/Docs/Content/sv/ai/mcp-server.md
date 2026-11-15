@@ -113,7 +113,7 @@ Vad en ansluten klient kan göra:
 
 ### Hantera anslutna klienter
 
-Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Anslutna MCP-klienter**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; projektets ägare och administratörer ser allas.
+Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Anslutna MCP-klienter**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; Projektägare och Projektadministratörer ser allas.
 
 Klicka på **Koppla från** för att logga ut en klient. Den slutar fungera direkt.
 

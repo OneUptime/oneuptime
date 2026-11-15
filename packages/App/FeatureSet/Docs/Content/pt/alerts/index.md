@@ -173,7 +173,7 @@ Um critério mantém um alerta aberto por vez. Até que esse alerta seja resolvi
 :::
 
 :::details Um colega consegue abrir um alerta que eu não encontro
-O alerta provavelmente é privado. Peça a um administrador do projeto que adicione você como proprietário ou que desative **Alerta privado** na página **Configurações** do alerta.
+O alerta provavelmente é privado. Peça a um Administrador do projeto que adicione você como proprietário ou que desative **Alerta privado** na página **Configurações** do alerta.
 :::
 
 ## Próximos passos

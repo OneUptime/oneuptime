@@ -146,7 +146,7 @@ AI vragen zegt waarom voordat je typt: het abonnement van het project omvat geen
 :::
 
 :::details Een actie werd geweigerd
-AI vragen zegt welke machtiging de actie nodig heeft, of welk team haar blokkeert. Vraag iemand die de wijziging mag uitvoeren, of vraag een projecteigenaar om je rol de machtiging te geven. Er is niets gewijzigd.
+AI vragen zegt welke machtiging de actie nodig heeft, of welk team haar blokkeert. Vraag iemand die de wijziging mag uitvoeren, of vraag een Projecteigenaar om je rol de machtiging te geven. Er is niets gewijzigd.
 :::
 
 :::details Antwoorden zijn vaag of gebruiken nooit gegevens

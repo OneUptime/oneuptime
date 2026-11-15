@@ -92,7 +92,7 @@ Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår h
 
 ### Sådan nås hver person
 
-Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Sådan når man mig**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Sådan når man mig**. Se [Sådan når man mig](/docs/notifications/on-call-rules).
+Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Sådan når man mig**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En Projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Sådan når man mig**. Se [Sådan når man mig](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et niveau tilkalder, og hvordan hver person nås"
 flowchart TB
@@ -176,7 +176,7 @@ På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-b
 - Tilkald bliver ved med at gå ud på den resterende saldo, mens automatisk genopfyldning ikke kan trække på kortet.
 
 > [!IMPORTANT]
-> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto, en SMS- og opkaldsgateway eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en projektejer, en **Faktureringsadministrator** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler** — en projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
+> SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto, en SMS- og opkaldsgateway eller en Telegram-bot sat op. Så længe en kanal er slået fra, kan ingen i projektet tilføje en metode på den. Kun en Projektejer, en **Faktureringsadministrator** eller en person med tilladelsen **Manage Billing** kan slå en til, i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler** — en Projektadministrator kan ikke. Alle andre får præcis at vide, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget har brug for den.
 
 ## Eskalér til den næste person i rotationen
 

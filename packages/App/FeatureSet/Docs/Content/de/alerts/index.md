@@ -173,7 +173,7 @@ Ein Kriterium hält jeweils eine offene Warnung. Bis diese behoben ist, fügt de
 :::
 
 :::details Eine Kollegin kann eine Warnung öffnen, die ich nicht finde
-Die Warnung ist wahrscheinlich privat. Bitten Sie einen Projekt-Admin, Sie als Eigentümer hinzuzufügen oder **Private Warnung** auf der Seite **Einstellungen** der Warnung auszuschalten.
+Die Warnung ist wahrscheinlich privat. Bitten Sie einen Projektadministrator, Sie als Eigentümer hinzuzufügen oder **Private Warnung** auf der Seite **Einstellungen** der Warnung auszuschalten.
 :::
 
 ## Nächste Schritte

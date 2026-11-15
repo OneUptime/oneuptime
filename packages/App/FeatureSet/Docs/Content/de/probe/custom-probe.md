@@ -30,7 +30,7 @@ sequenceDiagram
 ## Bevor Sie beginnen
 
 - **Der Growth-Plan, in OneUptime Cloud.** Das Anlegen einer Sonde setzt ihn voraus. Eine selbst gehostete Installation hat keine Plangrenzen.
-- **Die Berechtigung, Sonden anzulegen.** Projekteigentümer, -administratoren und -mitglieder haben sie, ebenso alle, deren Rolle das Anlegen von Sonden erlaubt.
+- **Die Berechtigung, Sonden anzulegen.** Projektinhaber, Projektadministratoren und Projektmitglieder haben sie, ebenso alle, deren Rolle das Anlegen von Sonden erlaubt.
 - **Ein Rechner in dem Netzwerk, das Sie überwachen möchten.** Er braucht Docker, Docker Compose oder Kubernetes, eine Route zu den Diensten, die die Sonde prüfen soll, und ausgehendes HTTPS zu `ONEUPTIME_URL`.
 
 ## Eine Sonde installieren
@@ -42,9 +42,9 @@ sequenceDiagram
 
 ### ID und Schlüssel kopieren
 
-Die Sonde braucht ihre ID und ihren Schlüssel, um sich zu verbinden. Zum Kopieren öffnen Sie das Menü der Sonde in der Tabelle **Benutzerdefinierte Sonden** und wählen **ID und Schlüssel anzeigen**. Jeder, der die Tabelle sieht, kann die ID einer Sonde kopieren; ihr Schlüssel wird nur Projekteigentümern und -administratoren angezeigt, die **ID und Schlüssel anzeigen** sehen, wo die anderen **ID anzeigen** sehen.
+Die Sonde braucht ihre ID und ihren Schlüssel, um sich zu verbinden. Zum Kopieren öffnen Sie das Menü der Sonde in der Tabelle **Benutzerdefinierte Sonden** und wählen **ID und Schlüssel anzeigen**. Jeder, der die Tabelle sieht, kann die ID einer Sonde kopieren; ihr Schlüssel wird nur Projektinhabern und Projektadministratoren angezeigt, die **ID und Schlüssel anzeigen** sehen, wo die anderen **ID anzeigen** sehen.
 
-Projekteigentümer und -administratoren können auch auf die Sonde klicken: Die Karte **Ihre benutzerdefinierte Sonde einrichten** auf ihrer Seite zeigt den Docker-Befehl mit bereits eingesetzter ID und eingesetztem Schlüssel.
+Projektinhaber und Projektadministratoren können auch auf die Sonde klicken: Die Karte **Ihre benutzerdefinierte Sonde einrichten** auf ihrer Seite zeigt den Docker-Befehl mit bereits eingesetzter ID und eingesetztem Schlüssel.
 
 ### Die Sonde starten
 

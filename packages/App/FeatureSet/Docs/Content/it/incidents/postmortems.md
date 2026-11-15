@@ -209,7 +209,7 @@ Le due azioni con l'IA richiedono che l'IA sia attiva per il progetto e un repos
 
 **Incidenti → Azioni da intraprendere** elenca le azioni da intraprendere di tutti i post-mortem del progetto, dalla scadenza più vicina, con l'incidente, il proprietario, la data di scadenza e lo stato di ciascuna. Filtrate l'elenco per **Stato**, **Proprietario** e **Data di scadenza**, e **Visualizza** su una riga apre la pagina **Post-mortem** dell'incidente.
 
-Per leggere le azioni da intraprendere serve ciò che serve per leggere l'incidente. Aggiungerle, modificarle ed eliminarle richiede il ruolo Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore degli incidenti o Membro degli incidenti, oppure un ruolo personalizzato con il permesso corrispondente sulle azioni da intraprendere. Come l'incidente, le azioni da intraprendere di un incidente privato sono visibili solo ai suoi utenti proprietari, ai membri dei suoi team proprietari, agli amministratori e ai proprietari del progetto.
+Per leggere le azioni da intraprendere serve ciò che serve per leggere l'incidente. Aggiungerle, modificarle ed eliminarle richiede il ruolo Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore degli incidenti o Membro degli incidenti, oppure un ruolo personalizzato con il permesso corrispondente sulle azioni da intraprendere. Come l'incidente, le azioni da intraprendere di un incidente privato sono visibili solo ai suoi utenti proprietari, ai membri dei suoi team proprietari, agli Amministratori del progetto e ai Proprietari del progetto.
 
 ## Post-mortem degli episodi
 

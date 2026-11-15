@@ -47,7 +47,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - Protokolle, die in OneUptime ankommen – über [OpenTelemetry](/docs/telemetry/open-telemetry), [Syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) oder eine Probe.
-- Die Berechtigung, Pipelines zu ändern. Projektinhaber und Admins haben sie; alle anderen brauchen die Berechtigungen **Create Log Pipeline** und **Create Log Pipeline Processor**.
+- Die Berechtigung, Pipelines zu ändern. Projektinhaber und Projektadministratoren haben sie; alle anderen brauchen die Berechtigungen **Create Log Pipeline** und **Create Log Pipeline Processor**.
 
 ## Eine Pipeline erstellen
 

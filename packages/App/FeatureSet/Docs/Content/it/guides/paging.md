@@ -83,7 +83,7 @@ Se la policy avvisa qualcun altro, puoi guardare anche l'escalation: fai clic su
 ## Cosa può andare storto
 
 :::details Non c'è il pulsante Inviami un codice via SMS
-Gli SMS sono disattivati, o non si possono inviare, e il passaggio dice perché. Solo un proprietario del progetto, o chi gestisce la fatturazione, vede **Attiva SMS e chiamate**. Su OneUptime Cloud, un credito di 1.00 USD o meno nasconde il campo. Su un server self-hosted che non può inviare SMS, il suo amministratore principale vede **Configura SMS e chiamate**, che apre l'Admin Dashboard per aggiungere Twilio, come mostra [Integrazione Twilio](/docs/self-hosted/twilio-integration).
+Gli SMS sono disattivati, o non si possono inviare, e il passaggio dice perché. Solo un Proprietario del progetto, o chi gestisce la fatturazione, vede **Attiva SMS e chiamate**. Su OneUptime Cloud, un credito di 1.00 USD o meno nasconde il campo. Su un server self-hosted che non può inviare SMS, il suo amministratore principale vede **Configura SMS e chiamate**, che apre l'Admin Dashboard per aggiungere Twilio, come mostra [Integrazione Twilio](/docs/self-hosted/twilio-integration).
 :::
 
 :::details Aggiungi credito dice che non è stato trovato alcun metodo di pagamento

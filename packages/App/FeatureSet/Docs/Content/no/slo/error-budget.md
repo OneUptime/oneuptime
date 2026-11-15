@@ -133,7 +133,7 @@ En status sier hvor mye budsjett som er igjen, ikke hva teamet ditt gjør med de
 
 Når et SLO går over til **I faresonen** eller **Budsjett oppbrukt**, gir OneUptime eierne beskjed:
 
-- Eierne er brukerne og teammedlemmene på siden **Eiere** til SLO-et som fortsatt er medlemmer av prosjektet. Et SLO uten eiere gir i stedet prosjekteierne beskjed.
+- Eierne er brukerne og teammedlemmene på siden **Eiere** til SLO-et som fortsatt er medlemmer av prosjektet. Et SLO uten eiere gir i stedet Prosjekteierne beskjed.
 - Hver eier får en e-post som standard, og beskjeden på alle andre kanaler vedkommende slår på for **SLO-status endret** under **Brukerinnstillinger** → **Varselinnstillinger** → **Overvåking**.
 - Emnet i e-posten nevner statusen og SLO-et, for eksempel `[SLO At Risk] API Availability`.
 

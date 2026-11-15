@@ -209,7 +209,7 @@ De to AI-handlinger kræver, at AI er slået til for projektet, og et repository
 
 **Hændelser → Handlingspunkter** viser alle postmortems' handlingspunkter på tværs af projektet med den tidligste frist først, hver med sin hændelse, ejer, frist og status. Filtrér listen efter **Status**, **Ejer** og **Frist**, og **Vis** i en række åbner hændelsens side **Postmortem**.
 
-At læse handlingspunkter kræver det samme som at læse hændelsen. At tilføje, ændre og slette dem kræver rollen Projektejer, Projektadministrator, Projektmedlem, Hændelsesadministrator eller Hændelsesmedlem, eller en brugerdefineret rolle med den tilsvarende tilladelse til postmortem-handlingspunkter. En privat hændelses handlingspunkter er ligesom hændelsen kun synlige for de brugere, der ejer den, medlemmerne af de teams, der ejer den, projektadministratorer og projektejere.
+At læse handlingspunkter kræver det samme som at læse hændelsen. At tilføje, ændre og slette dem kræver rollen Projektejer, Projektadministrator, Projektmedlem, Hændelsesadministrator eller Hændelsesmedlem, eller en brugerdefineret rolle med den tilsvarende tilladelse til postmortem-handlingspunkter. En privat hændelses handlingspunkter er ligesom hændelsen kun synlige for de brugere, der ejer den, medlemmerne af de teams, der ejer den, Projektadministratorer og Projektejere.
 
 ## Postmortems for episoder
 

@@ -146,7 +146,7 @@ KI fragen sagt den Grund, bevor Sie tippen: Der Tarif des Projekts umfasst keine
 :::
 
 :::details Eine Aktion wurde abgelehnt
-KI fragen sagt, welche Berechtigung die Aktion braucht oder welches Team sie blockiert. Bitten Sie jemanden, der die Änderung vornehmen darf, oder bitten Sie einen Projekteigentümer, Ihrer Rolle die Berechtigung zu geben. Es wurde nichts geändert.
+KI fragen sagt, welche Berechtigung die Aktion braucht oder welches Team sie blockiert. Bitten Sie jemanden, der die Änderung vornehmen darf, oder bitten Sie einen Projektinhaber, Ihrer Rolle die Berechtigung zu geben. Es wurde nichts geändert.
 :::
 
 :::details Antworten sind vage oder nutzen nie Daten

@@ -209,7 +209,7 @@ Les deux actions d'IA demandent que l'IA soit activée pour le projet et un dép
 
 **Incidents → Actions à mener** liste les actions à mener de tous les post-mortems du projet, l'échéance la plus proche en premier, avec pour chacune son incident, son propriétaire, sa date d'échéance et son statut. Filtrez la liste par **Statut**, **Propriétaire** et **Date d'échéance**, et **Voir** sur une ligne ouvre la page **Post-mortem** de l'incident.
 
-Lire les actions à mener demande ce que demande la lecture de l'incident. Les ajouter, les modifier et les supprimer demande le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des incidents ou Membre des incidents, ou un rôle personnalisé avec l'autorisation correspondante sur les actions à mener. Comme l'incident, les actions à mener d'un incident privé ne sont visibles que de ses utilisateurs propriétaires, des membres de ses équipes propriétaires, des administrateurs et des propriétaires du projet.
+Lire les actions à mener demande ce que demande la lecture de l'incident. Les ajouter, les modifier et les supprimer demande le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des incidents ou Membre des incidents, ou un rôle personnalisé avec l'autorisation correspondante sur les actions à mener. Comme l'incident, les actions à mener d'un incident privé ne sont visibles que de ses utilisateurs propriétaires, des membres de ses équipes propriétaires, des Administrateurs du projet et des Propriétaires du projet.
 
 ## Post-mortems des épisodes
 

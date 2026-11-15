@@ -1064,7 +1064,7 @@ flowchart TB
 
 ### 擦除会话
 
-要满足擦除请求，请通过 OneUptime 的 API 提交擦除请求 — 资源为 `/rum-session-erasure-request` ；仪表板中目前还没有用于此操作的表单。请求需要 `CreateRumSessionErasureRequest` （或项目所有者 / 管理员），并接受：
+要满足擦除请求，请通过 OneUptime 的 API 提交擦除请求 — 资源为 `/rum-session-erasure-request` ；仪表板中目前还没有用于此操作的表单。请求需要 `CreateRumSessionErasureRequest` （或项目所有者或项目管理员），并接受：
 
 | 字段 | 取值 |
 | --- | --- |
@@ -1092,7 +1092,7 @@ flowchart TB
 
 ## 谁可以观看录制
 
-观看录制与列出会话是不同的权限，二者都不由项目级的查看者角色授予。项目所有者和管理员拥有全部权限。
+观看录制与列出会话是不同的权限，二者都不由项目级的查看者角色授予。项目所有者和项目管理员拥有全部权限。
 
 | 权限 | 解锁 |
 | --- | --- |

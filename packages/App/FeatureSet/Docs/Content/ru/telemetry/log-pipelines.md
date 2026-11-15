@@ -47,7 +47,7 @@ flowchart TB
 ## Перед началом работы
 
 - Логи, поступающие в OneUptime: через [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) или проб.
-- Право изменять конвейеры. Оно есть у владельцев и администраторов проекта; остальным нужны разрешения **Create Log Pipeline** и **Create Log Pipeline Processor**.
+- Право изменять конвейеры. Оно есть у Владельцев проекта и Администраторов проекта; остальным нужны разрешения **Create Log Pipeline** и **Create Log Pipeline Processor**.
 
 ## Создание конвейера
 

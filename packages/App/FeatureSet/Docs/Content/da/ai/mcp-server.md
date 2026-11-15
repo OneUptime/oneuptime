@@ -113,7 +113,7 @@ Hvad en forbundet klient kan:
 
 ### Administrer forbundne klienter
 
-Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Forbundne MCP-klienter**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; projektets ejere og administratorer ser alles.
+Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Forbundne MCP-klienter**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; Projektejere og Projektadministratorer ser alles.
 
 Klik på **Afbryd forbindelse** for at logge en klient ud. Den holder op med at virke med det samme.
 

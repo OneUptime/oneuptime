@@ -130,12 +130,12 @@ Die API kann eine Opt-out-Regel speichern, mit gesetztem `isOptOut` und ohne Met
 :::
 
 :::details Den Rückfall für ein ganzes Projekt ausschalten
-Ein Projekteigentümer oder jemand mit **Manage Billing** kann über die API `disableOnCallNotificationFallback` des Projekts setzen. Ein Alarm, der keine Regel findet, wird dann nicht zugestellt, und sein Protokoll sagt, dass der Benutzer Regeln unter **Benutzereinstellungen → Wie ich erreichbar bin** hinzufügen sollte.
+Ein Projektinhaber oder jemand mit **Manage Billing** kann über die API `disableOnCallNotificationFallback` des Projekts setzen. Ein Alarm, der keine Regel findet, wird dann nicht zugestellt, und sein Protokoll sagt, dass der Benutzer Regeln unter **Benutzereinstellungen → Wie ich erreichbar bin** hinzufügen sollte.
 :::
 
 ## Regeln eines Teammitglieds
 
-Projekteigentümer und Admins können dieselbe Seite für jeden im Projekt ansehen und ändern: Unter **Benutzer** öffnen sie die Person und dann **Wie ich erreichbar bin** im Abschnitt **Bereitschaft**. **Einsatzbereitschaft** daneben zeigt, ob jeder Schweregrad die Person erreicht. Wenn jemand anderes Ihre Regeln hinzufügt, ändert oder löscht, erhalten Sie darüber eine E-Mail, und jede Änderung steht im Audit-Log des Projekts.
+Projektinhaber und Projektadministratoren können dieselbe Seite für jeden im Projekt ansehen und ändern: Unter **Benutzer** öffnen sie die Person und dann **Wie ich erreichbar bin** im Abschnitt **Bereitschaft**. **Einsatzbereitschaft** daneben zeigt, ob jeder Schweregrad die Person erreicht. Wenn jemand anderes Ihre Regeln hinzufügt, ändert oder löscht, erhalten Sie darüber eine E-Mail, und jede Änderung steht im Audit-Log des Projekts.
 
 ## Fehlerbehebung
 

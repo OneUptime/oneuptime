@@ -123,7 +123,7 @@ Sjekk at **Aktiver AI** er slått på, og **Vurder nye saker** under **Produkter
 :::
 
 :::details Kortet sier at prosjektet er tomt for AI-kreditter, eller har nådd sin daglige KI-grense
-En prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI-funksjoner**. Klikk deretter på **Vurder med KI** på saken.
+En Prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI-funksjoner**. Klikk deretter på **Vurder med KI** på saken.
 :::
 
 :::details Kortet sier at tekst i saken leser som instruksjoner til en KI

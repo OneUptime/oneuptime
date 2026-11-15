@@ -180,7 +180,7 @@ Com o agrupamento definido, cada gateway é uma série própria: se o WAN2 ficar
 - **Os timestamps vêm dos registros.** Um registro cai no minuto do próprio timestamp. Um dispositivo cujo relógio está errado em mais do que um pouco coloca os registros no minuto errado, ou totalmente fora da janela.
 - **Sem cálculo retroativo.** Uma regra nova começa pelo minuto anterior à primeira execução; registros mais antigos não são calculados.
 - **Excluir uma regra** a interrompe. Os pontos que ela já gravou ficam até expirar.
-- **As regras de gravação veem todos os registros do projeto.** Quem pode ler a métrica de saída vê números calculados a partir de todo registro que corresponde ao filtro da regra, então criar e editar regras de gravação de registros é restrito a proprietários e administradores do projeto e às permissões **Create / Edit Log Recording Rule**.
+- **As regras de gravação veem todos os registros do projeto.** Quem pode ler a métrica de saída vê números calculados a partir de todo registro que corresponde ao filtro da regra, então criar e editar regras de gravação de registros é restrito a Proprietários do projeto e Administradores do projeto e às permissões **Create / Edit Log Recording Rule**.
 
 ## Permissões
 
@@ -191,7 +191,7 @@ Com o agrupamento definido, cada gateway é uma série própria: se o WAN2 ficar
 | Delete Log Recording Rule | Excluir regras. |
 | Read Log Recording Rule | Ver as regras e o que elas calculam. |
 
-Proprietários e administradores do projeto podem fazer tudo isso. Membros do projeto, visualizadores e os papéis de telemetria podem ler as regras.
+Proprietários do projeto e Administradores do projeto podem fazer tudo isso. Membros do projeto, Visualizadores e os papéis de telemetria podem ler as regras.
 
 ## Próximos passos
 

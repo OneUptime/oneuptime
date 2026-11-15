@@ -83,7 +83,7 @@ Si la política avisa a otra persona, también puedes ver el escalado: haz clic 
 ## Qué puede salir mal
 
 :::details No aparece el botón Envíame un código por SMS
-Los SMS están desactivados o no se pueden enviar, y el paso dice por qué. Solo un propietario del proyecto, o alguien que gestione la facturación, ve **Activar SMS y llamadas**. En OneUptime Cloud, un saldo de 1.00 USD o menos oculta el campo. En un servidor autoalojado que no puede enviar SMS, su administrador principal ve **Configurar SMS y llamadas**, que abre el Admin Dashboard para añadir Twilio, como muestra [Integración de Twilio](/docs/self-hosted/twilio-integration).
+Los SMS están desactivados o no se pueden enviar, y el paso dice por qué. Solo un Propietario del proyecto, o alguien que gestione la facturación, ve **Activar SMS y llamadas**. En OneUptime Cloud, un saldo de 1.00 USD o menos oculta el campo. En un servidor autoalojado que no puede enviar SMS, su administrador principal ve **Configurar SMS y llamadas**, que abre el Admin Dashboard para añadir Twilio, como muestra [Integración de Twilio](/docs/self-hosted/twilio-integration).
 :::
 
 :::details Al añadir saldo, dice que no se encontró ningún método de pago

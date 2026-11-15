@@ -173,7 +173,7 @@ Un criterio mantiene un solo avviso aperto alla volta. Finché quell'avviso non 
 :::
 
 :::details Un collega può aprire un avviso che io non trovo
-L'avviso è probabilmente privato. Chiedete a un amministratore del progetto di aggiungervi come proprietario, o di disattivare **Avviso privato** nella pagina **Impostazioni** dell'avviso.
+L'avviso è probabilmente privato. Chiedete a un Amministratore del progetto di aggiungervi come proprietario, o di disattivare **Avviso privato** nella pagina **Impostazioni** dell'avviso.
 :::
 
 ## Passi successivi

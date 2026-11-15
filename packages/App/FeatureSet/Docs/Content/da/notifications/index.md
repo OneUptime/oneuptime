@@ -53,7 +53,7 @@ De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger
 
 **Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack, Microsoft Teams eller Mattermost.
 
-Projektejere og administratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Sådan når man mig**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
+Projektejere og Projektadministratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Sådan når man mig**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
 
 ## Det starter du med
 
@@ -116,7 +116,7 @@ Det, der ændres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og s
 :::
 
 :::details Jeg får e-mails om ting, jeg aldrig har bedt om
-Du ejer tingen, direkte eller gennem et team, eller tingen har ingen ejere, og du er projektejer. Slå begivenheden fra under **Brugerindstillinger → Notifikationsindstillinger**, eller skru ned for mængden under **Brugerindstillinger → E-mailindstillinger**.
+Du ejer tingen, direkte eller gennem et team, eller tingen har ingen ejere, og du er Projektejer. Slå begivenheden fra under **Brugerindstillinger → Notifikationsindstillinger**, eller skru ned for mængden under **Brugerindstillinger → E-mailindstillinger**.
 :::
 
 :::details Mine tilkald er på engelsk, selvom dashboardet ikke er

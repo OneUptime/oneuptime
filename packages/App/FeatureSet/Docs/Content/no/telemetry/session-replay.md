@@ -1064,7 +1064,7 @@ Vær oppmerksom på at øktraden utløper sammen med opptaket: antall feil, frus
 
 ### Slett økter
 
-For å etterkomme en sletteforespørsel sender du inn en sletteforespørsel via OneUptimes API — ressursen `/rum-session-erasure-request`; det finnes ennå ikke noe skjema i dashbordet for det. En forespørsel krever `CreateRumSessionErasureRequest` (eller en prosjekteier / -administrator) og tar:
+For å etterkomme en sletteforespørsel sender du inn en sletteforespørsel via OneUptimes API — ressursen `/rum-session-erasure-request`; det finnes ennå ikke noe skjema i dashbordet for det. En forespørsel krever `CreateRumSessionErasureRequest` (eller en Prosjekteier / Prosjektadministrator) og tar:
 
 | Felt | Verdier |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Fordi merkingen når hver tjeneste en nettleserforespørsel gikk gjennom, fjerne
 
 ## Hvem kan se et opptak
 
-Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Leser-rollen for hele prosjektet. Prosjekteiere og -administratorer har alle.
+Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Leser-rollen for hele prosjektet. Prosjekteiere og Prosjektadministratorer har alle.
 
 | Tillatelse | Låser opp |
 | --- | --- |

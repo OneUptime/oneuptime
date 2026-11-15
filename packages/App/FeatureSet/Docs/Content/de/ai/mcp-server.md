@@ -113,7 +113,7 @@ Was ein verbundener Client tun kann:
 
 ### Verbundene Clients verwalten
 
-Jeder Client, der durch Anmelden verbunden wurde, ist unter **Projekteinstellungen → KI → MCP-Server** unter **Verbundene MCP-Clients** aufgeführt, mit der Person, die ihn verbunden hat, dem, was er tun darf, und dem Zeitpunkt seiner letzten Nutzung. Sie sehen die Clients, die Sie verbunden haben; Owner und Admins des Projekts sehen die aller.
+Jeder Client, der durch Anmelden verbunden wurde, ist unter **Projekteinstellungen → KI → MCP-Server** unter **Verbundene MCP-Clients** aufgeführt, mit der Person, die ihn verbunden hat, dem, was er tun darf, und dem Zeitpunkt seiner letzten Nutzung. Sie sehen die Clients, die Sie verbunden haben; Projektinhaber und Projektadministratoren sehen die aller.
 
 Klicken Sie auf **Trennen**, um einen Client abzumelden. Er funktioniert sofort nicht mehr.
 

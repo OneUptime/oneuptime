@@ -173,7 +173,7 @@ Ett kriterium håller ett öppet larm åt gången. Tills det larmet är löst l�
 :::
 
 :::details En kollega kan öppna ett larm som jag inte hittar
-Larmet är troligen privat. Be en projektadministratör att lägga till dig som ägare eller slå av **Privat larm** på larmets sida **Inställningar**.
+Larmet är troligen privat. Be en Projektadministratör att lägga till dig som ägare eller slå av **Privat larm** på larmets sida **Inställningar**.
 :::
 
 ## Nästa steg

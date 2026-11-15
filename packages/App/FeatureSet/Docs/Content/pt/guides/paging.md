@@ -83,7 +83,7 @@ Se a política aciona outra pessoa, você também pode ver o escalonamento: cliq
 ## O que pode dar errado
 
 :::details Não aparece o botão Enviar um código por SMS
-O SMS está desativado ou não pode ser enviado, e o passo diz por quê. Só um proprietário do projeto, ou alguém que gerencia a cobrança, vê **Ativar SMS e chamadas**. No OneUptime Cloud, um saldo de 1.00 USD ou menos esconde o campo. Num servidor auto-hospedado que não consegue enviar SMS, o administrador principal dele vê **Configurar SMS e chamadas**, que abre o Admin Dashboard para adicionar o Twilio, como mostra [Integração do Twilio](/docs/self-hosted/twilio-integration).
+O SMS está desativado ou não pode ser enviado, e o passo diz por quê. Só um Proprietário do projeto, ou alguém que gerencia a cobrança, vê **Ativar SMS e chamadas**. No OneUptime Cloud, um saldo de 1.00 USD ou menos esconde o campo. Num servidor auto-hospedado que não consegue enviar SMS, o administrador principal dele vê **Configurar SMS e chamadas**, que abre o Admin Dashboard para adicionar o Twilio, como mostra [Integração do Twilio](/docs/self-hosted/twilio-integration).
 :::
 
 :::details Ao adicionar saldo, aparece que nenhum método de pagamento foi encontrado

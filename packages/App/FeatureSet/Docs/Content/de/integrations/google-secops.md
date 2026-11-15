@@ -173,7 +173,7 @@ Jede Anfrage in einem Test hat eine Frist von 20 Sekunden. Tests lassen den Abfr
 
 ## Bei Bedarf ansehen, ausführen und importieren
 
-Öffnen Sie an einer Verbindung die **Diagnose**, um die letzten Läufe zu sehen und den Connector zu bedienen. Projektbesitzer, Projektadministratoren und Sicherheitsadministratoren können Vorgänge starten. Sicherheitsmitglieder und -betrachter können den Verlauf lesen.
+Öffnen Sie an einer Verbindung die **Diagnose**, um die letzten Läufe zu sehen und den Connector zu bedienen. Projektinhaber, Projektadministratoren und Sicherheits-Administratoren können Vorgänge starten. Sicherheitsmitglieder und -betrachter können den Verlauf lesen.
 
 - **Jetzt ausführen** stellt sofort eine Abfrage in die Warteschlange, mit dem normalen Cursor und Aufnahmeweg, auch wenn das geplante Abfragen deaktiviert ist. Die Zustände eingereiht und laufend bleiben sichtbar, während der Worker die Anfrage ausführt. Bleibt ein Lauf eingereiht, prüfen Sie, ob Worker die Worker-Warteschlange abarbeiten; die Prüfung **Background workers** in Verbindung testen sagt, ob ein Prozess das tut.
 - **Vorschau der Erkennungen** liest einen gewählten Zeitraum, ohne zu importieren oder den Cursor zu ändern. Nutzen Sie die letzte Stunde, 24 Stunden, 7 Tage oder einen eigenen Zeitraum von bis zu 7 Tagen. Der Zeitraum entspricht der Warnungsansicht von SecOps, die nach Erkennungszeit liest, und die beiden Suchdurchgänge lesen sowohl darin erzeugte Erkennungen als auch Erkennungen, deren Erkennungszeit darin liegt, eine Vorschau auf gestern zeigt also auch gestern erzeugte Erkennungen zu älteren Ereignissen. Die Vorschau zeigt Erkennungszeit und Erstellungszeit getrennt. Die Ergebnisse folgen der gespeicherten Auswahl **Zu importierende Daten** der Verbindung.

@@ -235,7 +235,7 @@ Zo wordt de titel `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate}}x`
 - **SLO-eigenaren als eigenaren toevoegen** voegt ook de eigenaren van de SLO, zijn eigenaarsgebruikers en de leden van zijn eigenaarsteams, toe aan alles wat de regel aanmaakt. De eigenaren van de SLO horen al over de statuswijzigingen van de SLO zelf, dus dit kan ze twee keer informeren. Het staat standaard uit.
 - Elke eigenaar wordt één keer toegevoegd: een gebruiker die al eigenaar van de waarschuwing of het incident is, bijvoorbeeld via de eigenaarsregels van het project, of die in een toegevoegd eigenaarsteam zit, wordt niet nog eens toegevoegd.
 - **Waarschuwingslabels** en **Incident-labels** worden aan de waarschuwing of het incident toegevoegd, zodat filters, eigenaarsregels en meldingsregels voor de werkruimte erop kunnen letten.
-- Een privé-waarschuwing of -incident is alleen zichtbaar voor de eigenaren, projectbeheerders en projecteigenaren.
+- Een privé-waarschuwing of -incident is alleen zichtbaar voor de eigenaren, Projectbeheerders en Projecteigenaren.
 
 Labels, eigenaarsteams en bereikbaarheidsbeleid moeten bij het project van de SLO horen.
 

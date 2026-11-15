@@ -146,7 +146,7 @@ Preguntar a la IA dice por qué antes de que escribas: el plan del proyecto no i
 :::
 
 :::details Se rechazó una acción
-Preguntar a la IA dice qué permiso necesita la acción, o qué equipo la bloquea. Pídeselo a alguien que pueda hacer el cambio, o pide a un propietario del proyecto que dé el permiso a tu rol. No se cambió nada.
+Preguntar a la IA dice qué permiso necesita la acción, o qué equipo la bloquea. Pídeselo a alguien que pueda hacer el cambio, o pide a un Propietario del proyecto que dé el permiso a tu rol. No se cambió nada.
 :::
 
 :::details Las respuestas son vagas o nunca usan datos

@@ -146,7 +146,7 @@ O Pergunte à IA diz o motivo antes de você digitar: o plano do projeto não in
 :::
 
 :::details Uma ação foi recusada
-O Pergunte à IA diz qual permissão a ação precisa, ou qual equipe a bloqueia. Peça a alguém que possa fazer a mudança, ou peça a um proprietário do projeto que dê a permissão à sua função. Nada foi alterado.
+O Pergunte à IA diz qual permissão a ação precisa, ou qual equipe a bloqueia. Peça a alguém que possa fazer a mudança, ou peça a um Proprietário do projeto que dê a permissão à sua função. Nada foi alterado.
 :::
 
 :::details As respostas são vagas ou nunca usam dados
