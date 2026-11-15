@@ -830,6 +830,11 @@ router.post(
 
         didClaimInvitedAccount = true;
 
+        /*
+         * The account's first password: UserService ends any session and
+         * link it had, as for every new password, but sends no "Password
+         * Changed." email - nothing was changed (#7472).
+         */
         savedUser = await UserService.updateOneByIdAndFetch({
           id: alreadySavedUser.id!,
           data: {
