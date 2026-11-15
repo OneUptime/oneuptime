@@ -844,6 +844,28 @@ export const Claims: Array<Claim> = [
     evidence: "The Apache 2.0 license.",
     sourceUrl: "https://github.com/OneUptime/oneuptime",
   },
+  {
+    /*
+     * Where "no credit card" stops (#8422). Signing up and making a project
+     * need no card on any plan, but every monitor except a Manual one is an
+     * active monitor, billed as it is used, so on the Free plan the first
+     * website check asks for a payment method (MonitorService.onBeforeCreate,
+     * PayAsYouGoBillingService.requirePayAsYouGo) - as the Dashboard's
+     * Welcome page says (WELCOME_CARD_LINE).
+     */
+    id: "discount-free-plan",
+    category: "discounts",
+    subject: "Free plan",
+    status: "compliant",
+    scope: "cloud",
+    statement:
+      "The Free plan on OneUptime Cloud is free, and signing up needs no credit card. Active monitors are $1 each a month and telemetry is billed per GB ingested, on every plan: on the Free plan, checking a website needs a payment method.",
+    qualifier:
+      'Say "no credit card" about signing up, or about a paid plan\'s 14-day trial, and never next to monitoring as if a check were free: the first website check on the Free plan asks for a payment method.',
+    evidence:
+      "The plan table on the pricing page (Active Monitors at $1/month), and the Dashboard's Welcome page.",
+    sourceUrl: "/pricing",
+  },
 
   // ----------------------------------------------------------- CONTRACT ----
   {
@@ -1165,6 +1187,43 @@ export const RetiredEditionClaims: Array<RetiredClaim> = [
   },
 ];
 
+/*
+ * One sentence of page copy: what lies between a full stop, a question or
+ * exclamation mark, a middot or a tag and the next. "Free plan · No credit
+ * card to sign up · Self-host anytime" is three of them.
+ */
+const SENTENCE_CHARACTER: string = "[^.!?<>·]";
+
+// "No credit card", "no card", "without a credit card".
+const NO_CARD: string =
+  "\\b(?:no|without\\s+an?y?)\\s+(?:credit[\\s-]+)?card\\b";
+
+// What "no credit card" is true of on every plan.
+const SIGN_UP_OR_TRIAL: string = "\\b(?:sign(?:s|ing)?[\\s-]+up|trial)\\b";
+
+/*
+ * Pricing claims the pages and the page data (Utils) must not make (#8422).
+ * They are part of RetiredClaims, so every template is scanned for them, and
+ * Tests/ClaimsGovernance.test.ts scans the Utils modules that feed pages too:
+ * the pricing page's plan cards come from Utils/Pricing.ts, and its search
+ * result from Utils/PageSEO.ts.
+ */
+export const RetiredPricingClaims: Array<RetiredClaim> = [
+  {
+    pattern: new RegExp(
+      `(?<=^|[.!?<>·])(?!${SENTENCE_CHARACTER}*${SIGN_UP_OR_TRIAL})${SENTENCE_CHARACTER}*${NO_CARD}`,
+      "i",
+    ),
+    example:
+      "Set up your first monitor in under 2 minutes. No credit card required.",
+    reason:
+      'Signing up needs no card, and a paid plan\'s 14-day trial needs none, but every monitor except a Manual one is billed as an active monitor: on the Free plan, the first website check asks for a payment method. "No credit card" on its own, beside monitoring, reads as if checking a website were free, and the newcomer meets the card at their first check.',
+    replacement:
+      "No credit card required to sign up. Active monitors are $1 each a month and need a payment method.",
+    claimId: "discount-free-plan",
+  },
+];
+
 export const RetiredClaims: Array<RetiredClaim> = [
   {
     pattern: /99\.99\s*%\s*(?:uptime\s*)?SLA/i,
@@ -1244,6 +1303,7 @@ export const RetiredClaims: Array<RetiredClaim> = [
     claimId: "compliance-gxp",
   },
   ...RetiredEditionClaims,
+  ...RetiredPricingClaims,
 ];
 
 export type GetClaimsByCategoryFunction = (

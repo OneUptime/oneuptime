@@ -55,7 +55,7 @@ Al het andere staat in de [documentatie](https://oneuptime.com/docs/nl/introduct
 
 ### OneUptime Cloud
 
-[Meld u aan](https://oneuptime.com/accounts/register) en maak een project aan. Voor het gratis abonnement is geen creditcard nodig.
+[Meld u aan](https://oneuptime.com/accounts/register) en maak een project aan. Een project heeft geen kaart nodig. Met het Free-abonnement vereist het controleren van een website een betaalmethode.
 
 ### Zelf hosten met Docker Compose
 

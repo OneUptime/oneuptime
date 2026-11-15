@@ -3,7 +3,7 @@
 As suas regras de plantão decidem como um acionamento chega até você: quais dos seus métodos de notificação o OneUptime tenta, e quanto tempo depois do início do acionamento. Cada tipo de acionamento tem as próprias regras, um conjunto por gravidade, então um incidente crítico pode ligar para você na hora enquanto um alerta de baixa gravidade espera por um e-mail. Você as define em **Configurações do usuário → Como me contatar**.
 
 > [!NOTE]
-> Estas regras são só suas. As **Regras de Plantão** em **Incidentes → Regras** e **Alertas → Regras** são outra coisa: elas decidem quais políticas de plantão um novo incidente ou alerta executa.
+> Estas regras são só suas. As **Regras de plantão** em **Incidentes → Regras** e **Alertas → Regras** são outra coisa: elas decidem quais políticas de plantão um novo incidente ou alerta executa.
 
 :::cards
 - [Como um acionamento chega até você](#como-um-acionamento-chega-até-você): As suas regras para um acionamento, passo a passo.

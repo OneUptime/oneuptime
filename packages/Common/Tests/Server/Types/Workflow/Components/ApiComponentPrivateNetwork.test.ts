@@ -15,6 +15,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 /*
@@ -47,7 +48,7 @@ jest.mock("../../../../../Utils/API", () => {
 
 const ALLOW_ENV: string = "ALLOW_PRIVATE_NETWORK_WEBHOOKS";
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

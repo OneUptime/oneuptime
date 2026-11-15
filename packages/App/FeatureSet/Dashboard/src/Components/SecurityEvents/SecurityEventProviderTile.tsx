@@ -7,6 +7,17 @@ import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoIma
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { connectorDocsUrl } from "./SecurityEventConnectionDiagnosticsUtil";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * What a screen reader reads for the tile's button and its guide link: one
+ * sentence each, with the product in it. They were "Connect" and the
+ * product, and the product and "Setup guide", each in English's order.
+ */
+export const CONNECT_PROVIDER: string = translationKey("Connect {{provider}}");
+export const PROVIDER_SETUP_GUIDE: string = translationKey(
+  "{{provider}} Setup guide",
+);
 
 export interface ComponentProps {
   // Prefix of the element ids, so two galleries on a page cannot collide.
@@ -45,7 +56,7 @@ export interface ComponentProps {
 const SecurityEventProviderTile: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, translateTemplate } = useTranslateValue();
   const definition: SecurityEventConnectorDefinition = props.definition;
   const categoryId: string = `${props.idPrefix}-provider-${definition.provider}-category`;
 
@@ -70,9 +81,18 @@ const SecurityEventProviderTile: FunctionComponent<ComponentProps> = (
             onClick={props.onConnect}
             className="block max-w-full text-left text-sm font-semibold text-gray-900 after:absolute after:inset-0 after:rounded-lg after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-indigo-500"
           >
-            <span className="sr-only">{translateString("Connect")} </span>
-            {/* A product name is a brand, never translated. */}
-            {definition.title}
+            {/*
+             * What a screen reader reads is one sentence, the product where
+             * the reader's language puts it ("AWS Security Hub verbinden");
+             * the tile shows the product alone. A product name is a brand,
+             * never translated (#8483).
+             */}
+            <span className="sr-only">
+              {translateTemplate(CONNECT_PROVIDER, {
+                provider: definition.title,
+              })}
+            </span>
+            <span aria-hidden="true">{definition.title}</span>
           </button>
         ) : (
           <p className="text-sm font-semibold text-gray-900">
@@ -90,8 +110,13 @@ const SecurityEventProviderTile: FunctionComponent<ComponentProps> = (
             openInNewTab={true}
             className="relative z-10 inline-flex items-center gap-1 rounded font-medium hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
-            <span className="sr-only">{definition.title} </span>
-            {translateString("Setup guide")}
+            {/* As the button: one sentence read, the label alone shown. */}
+            <span className="sr-only">
+              {translateTemplate(PROVIDER_SETUP_GUIDE, {
+                provider: definition.title,
+              })}
+            </span>
+            <span aria-hidden="true">{translateString("Setup guide")}</span>
             <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
             <span className="sr-only">
               {" "}

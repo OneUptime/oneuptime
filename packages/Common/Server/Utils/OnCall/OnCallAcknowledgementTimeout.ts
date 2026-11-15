@@ -47,6 +47,12 @@ import OnCallPersonPageAnswer from "./OnCallPersonPageAnswer";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
+import {
+  getOnCallPageOverRecordDeletedReason,
+  getOnCallPageOverRecordResolvedReason,
+  ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON,
+  ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageEnding";
 import OnCallPageAgainClaimsInFlight, {
   OnCallPageAgainClaim,
 } from "./OnCallPageAgainClaimsInFlight";
@@ -1152,8 +1158,8 @@ export default class OnCallAcknowledgementTimeout {
   }): Promise<string | null> {
     if (data.run.acknowledgedAt) {
       return isOnCallPageAgainRun(data.run)
-        ? "this page again is acknowledged"
-        : "this page is acknowledged";
+        ? ON_CALL_PAGE_OVER_PAGE_AGAIN_ACKNOWLEDGED_REASON
+        : ON_CALL_PAGE_OVER_PAGE_ACKNOWLEDGED_REASON;
     }
 
     const state: OnCallTimeoutRecordState | null = await this.readRecordState({
@@ -1162,10 +1168,12 @@ export default class OnCallAcknowledgementTimeout {
     });
 
     if (!state) {
-      return `${data.kind} is deleted`;
+      return getOnCallPageOverRecordDeletedReason(data.kind);
     }
 
-    return state.isResolved ? `${data.kind} is resolved` : null;
+    return state.isResolved
+      ? getOnCallPageOverRecordResolvedReason(data.kind)
+      : null;
   }
 
   /*

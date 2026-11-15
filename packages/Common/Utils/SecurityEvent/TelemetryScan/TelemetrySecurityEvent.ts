@@ -1,4 +1,4 @@
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
@@ -22,6 +22,7 @@ import {
   getSecurityTelemetrySourceDefinition,
 } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { buildObservables } from "../NormalizerHelpers";
+import { writeOwnValue } from "../../LookupTable";
 
 /*
  * One finding of a telemetry source, as the security event it is stored
@@ -190,8 +191,13 @@ export function buildTelemetrySecurityEvent(
 
     const text: string = typeof value === "string" ? value : String(value);
 
+    // Each as the event's own key, whatever the signal named it.
     if (text) {
-      attributes[key] = cutTelemetryText(text, MAX_TELEMETRY_ATTRIBUTE_LENGTH);
+      writeOwnValue<JSONValue>(
+        attributes,
+        key,
+        cutTelemetryText(text, MAX_TELEMETRY_ATTRIBUTE_LENGTH),
+      );
     }
   }
 

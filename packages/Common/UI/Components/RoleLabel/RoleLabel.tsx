@@ -11,6 +11,12 @@ export interface ComponentProps {
   color?: Color | undefined;
   icon?: IconProp | string | undefined;
   description?: string | undefined;
+  /*
+   * The description is in the reader's words already: drawn as given,
+   * never looked up again (#8423). Left unset, it is looked up by the
+   * tooltip.
+   */
+  isDescriptionTranslated?: boolean | undefined;
 }
 
 /*
@@ -86,7 +92,14 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
   );
 
   if (props.description) {
-    return <Tooltip text={props.description}>{element}</Tooltip>;
+    return (
+      <Tooltip
+        text={props.description}
+        isTextTranslated={props.isDescriptionTranslated}
+      >
+        {element}
+      </Tooltip>
+    );
   }
 
   return element;

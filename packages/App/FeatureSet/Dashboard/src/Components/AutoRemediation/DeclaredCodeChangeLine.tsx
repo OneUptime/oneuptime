@@ -10,6 +10,7 @@ import {
   DECLARED_CODE_UNNAMED_REPOSITORY,
   DECLARED_CODE_VIEW_PROGRESS,
   DECLARED_CODE_VIEW_PULL_REQUEST,
+  DECLARED_CODE_VIEW_PULL_REQUEST_NUMBER,
   DECLARED_CODE_VIEW_TASK,
   DeclaredCodeChangeTone,
   canAskForDeclaredCodeChange,
@@ -39,6 +40,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -297,18 +299,22 @@ const DeclaredCodeChangeLine: FunctionComponent<ComponentProps> = (
               data-testid={`${DECLARED_CODE_LINE_TEST_ID}-pull-request`}
             >
               <span>
-                {translator.translateText(DECLARED_CODE_VIEW_PULL_REQUEST)}
                 {/*
-                 * The space outside the number's own direction: inside it, a
-                 * right-to-left line drew it on the far side - "#482Pull".
+                 * The number reads left to right, and the space beside it is
+                 * the sentence's, outside the number's own direction: inside
+                 * it, a right-to-left line drew it on the far side - "#482Pull".
                  */}
                 {change.pullRequestNumber ? (
-                  <>
-                    {" "}
-                    <span dir="ltr">#{change.pullRequestNumber}</span>
-                  </>
+                  <TranslatedSentence
+                    template={DECLARED_CODE_VIEW_PULL_REQUEST_NUMBER}
+                    slots={{
+                      number: (
+                        <span dir="ltr">#{change.pullRequestNumber}</span>
+                      ),
+                    }}
+                  />
                 ) : (
-                  <></>
+                  translator.translateText(DECLARED_CODE_VIEW_PULL_REQUEST)
                 )}
               </span>
               <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />

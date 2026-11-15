@@ -41,7 +41,6 @@ let redis: Map<string, string>;
 let redisFails: boolean;
 let expiries: Array<number | undefined>;
 
-// jest-mock's SpyInstance, which spyOn returns (see bf9127e079c).
 let setStringIfNotExists: SpyInstance<typeof GlobalCache.setStringIfNotExists>;
 let updateMonitor: SpyInstance<
   typeof MonitorService.updateColumnsByIdWithoutHooks

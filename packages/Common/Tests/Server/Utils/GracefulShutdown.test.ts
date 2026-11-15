@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import timers from "timers";
 import GracefulShutdown, {
   ShutdownCallback,
@@ -64,7 +65,7 @@ interface MutableGracefulShutdown {
   overallTimeoutMs: number;
 }
 
-type ExitSpy = jest.SpiedFunction<(code?: number) => never>;
+type ExitSpy = SpyInstance<(code?: number) => never>;
 
 const internals: MutableGracefulShutdown =
   GracefulShutdown as unknown as MutableGracefulShutdown;

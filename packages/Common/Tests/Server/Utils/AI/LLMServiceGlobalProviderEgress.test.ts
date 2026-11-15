@@ -29,6 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 /*
@@ -128,7 +129,7 @@ const IN_CLUSTER_PROVIDERS: Array<[string, LLMProviderConfig]> = [
   ],
 ];
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

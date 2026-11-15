@@ -52,7 +52,10 @@ import { AllResourceIdentityLabelKeys } from "./SeriesResourceLabels";
  *     (`{{host.name}}` in an alert template walks `host` then `name`), so a
  *     segment of `__proto__` / `constructor` / `prototype` aims that walk at
  *     `Object.prototype`. `MonitorTemplateUtil` refuses to walk them, and this
- *     keeps them out of the store in the first place.
+ *     keeps them out of the store in the first place. Kept on purpose
+ *     (issue #8487): a template could never read such an attribute, the
+ *     script's author picks the name and can pick another, and the
+ *     refusal is reported to them in the monitor's warning.
  *
  * Values are coerced rather than filtered. The sandbox hands over whatever
  * JSON the script passed, and the ClickHouse column is Map(String, String), so

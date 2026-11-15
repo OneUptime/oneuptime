@@ -44,6 +44,7 @@ const DECLARING: string = "incidents/declaring-incidents";
 const COMPONENTS: string = "workflows/components";
 const MCP: string = "ai/mcp-server";
 const OWNERS: string = "incidents/notes-owners-and-feed";
+const SETTINGS: string = "notifications/notification-settings";
 
 const OWNER_SETTINGS: Array<string> = ["Owner Users", "Owner Teams"];
 
@@ -309,16 +310,42 @@ describe("the docs on the owners an incident's or an alert's create hands over",
 });
 
 describe("the docs on owners told after a stop part way", () => {
-  test("every incident and alert owner job hands a later run whom a stopped one had not told, a few minutes on", () => {
-    for (const folder of ["IncidentOwners", "AlertOwners"]) {
-      for (const job of JOBS) {
+  test("every owner job hands a later run whom a stopped one had not told, a few minutes on", () => {
+    const jobsRoot: string = path.join(
+      PACKAGES_ROOT,
+      "App/FeatureSet/Workers/Jobs",
+    );
+    // Each resource's owner jobs: of incidents, alerts and the rest (#8509).
+    const folders: Array<string> = fs
+      .readdirSync(jobsRoot)
+      .filter((folder: string): boolean => {
+        return folder.endsWith("Owners");
+      })
+      .sort();
+
+    expect(folders).toEqual([
+      "AlertEpisodeOwners",
+      "AlertOwners",
+      "IncidentEpisodeOwners",
+      "IncidentOwners",
+      "MonitorOwners",
+      "NetworkDeviceOwners",
+      "ScheduledMaintenanceOwners",
+      "SloOwners",
+      "StatusPageOwners",
+    ]);
+
+    let jobs: number = 0;
+
+    for (const folder of folders) {
+      for (const file of fs.readdirSync(path.join(jobsRoot, folder))) {
+        const job: string = file.replace(/\.ts$/, "");
         const source: string = fs.readFileSync(
-          path.join(
-            PACKAGES_ROOT,
-            `App/FeatureSet/Workers/Jobs/${folder}/${job}.ts`,
-          ),
+          path.join(jobsRoot, folder, file),
           "utf8",
         );
+
+        jobs++;
 
         expect({
           job: `${folder}/${job}`,
@@ -331,6 +358,26 @@ describe("the docs on owners told after a stop part way", () => {
         });
       }
     }
+
+    // The owner-added jobs of probes and AI agents, which sit with them.
+    for (const file of [
+      "Probe/SendOwnerAddedNotification.ts",
+      "AIAgent/SendOwnerAddedNotification.ts",
+    ]) {
+      const source: string = fs.readFileSync(path.join(jobsRoot, file), "utf8");
+
+      jobs++;
+
+      expect({
+        job: file,
+        resumes: source.includes("OwnerNotificationDeliveries.resume("),
+        tellsEachOnce: source.includes("delivery.tell("),
+      }).toEqual({ job: file, resumes: true, tellsEachOnce: true });
+    }
+
+    expect(jobs).toBe(35);
+    // The incident and alert jobs among them, by name.
+    expect(JOBS).toHaveLength(5);
 
     // "A few minutes late": taken up two minutes on, by a job run every minute.
     expect(
@@ -348,6 +395,22 @@ describe("the docs on owners told after a stop part way", () => {
     expect(
       section(readPage("en", ALERTS), "## Who hears about an alert"),
     ).toContain(sentence);
+  });
+
+  test("the notification settings page says it of every record's owners, in every language", () => {
+    expect(readPage("en", SETTINGS)).toContain(
+      "If OneUptime stops while it is sending an update to a record's owners, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.",
+    );
+
+    for (const language of DOCS_LANGUAGES) {
+      // The owners bullet: the one that says where an update goes.
+      const owners: string = readPage(language, SETTINGS).split("\n")[23] || "";
+
+      expect([language, A_FEW_MINUTES[language]!.test(owners)]).toEqual([
+        language,
+        true,
+      ]);
+    }
   });
 
   test("every language says it on both pages", () => {

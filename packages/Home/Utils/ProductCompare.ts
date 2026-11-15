@@ -5679,7 +5679,7 @@ const products: Dictionary<Product> = {
           },
           {
             title: "Generous free tier",
-            description: "Real capability without a credit card",
+            description: "No credit card to sign up; manual monitors are free",
             productColumn: "Up to 5 users",
             oneuptimeColumn: "tick",
           },

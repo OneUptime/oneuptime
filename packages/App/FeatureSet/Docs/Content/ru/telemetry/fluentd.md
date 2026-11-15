@@ -82,6 +82,10 @@ Fluentd отправляет записи пакетами в формате JSO
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Fluentd отправляет записи пакетами в формате JSO
 
 `json_array true` отправляет каждый блок буфера одним массивом JSON, а `flush_interval 10s` отправляет буфер каждые 10 секунд. `chunk_limit_size 900k` держит каждый запрос меньше 1 МБ: больше OneUptime на этом адресе не принимает.
 
+`@type file` хранит пакеты, которые ещё предстоит отправить, в папке, указанной в `path`, поэтому перезапуск Fluentd не теряет ни одного из них; буфер в памяти, который Fluentd использует по умолчанию, теряет всё, что в нём было. Пользователь Fluentd должен иметь право писать в эту папку: `/var/log/fluent` — папка fluent-package, `/var/log/td-agent` — td-agent, а `/fluentd/log` — образа `fluent/fluentd`. `total_limit_size 512m` хранит там не больше 512 МБ; когда буфер полон, Fluentd не принимает новые записи, пока не отправит пакет.
+
 `retryable_response_codes 429,502,503,504` отправляет пакет заново, когда OneUptime перегружен (`429`) или перезапускается (`502`, `503`, `504`); без этой настройки Fluentd отбрасывает пакет при любом ответе, кроме `503`. `retry_max_interval 30s` ждёт между попытками не больше 30 секунд, а `retry_timeout 72h` отбрасывает пакет, который не удалось отправить за 72 часа. Фильтр `record_transformer` добавляет в каждую запись время, которое ей дал Fluentd, как `fluentd_time`: HTTP-вывод отправляет только запись, а OneUptime читает время лога из неё.
 
 ### Перезапустите Fluentd
@@ -113,7 +119,7 @@ Fluentd отправляет записи пакетами в формате JSO
 
 ## Полный пример
 
-Эта конфигурация принимает записи по протоколу forward Fluentd на порту `24224` и отправляет их все в OneUptime:
+Эта конфигурация принимает записи по протоколу forward Fluentd на порту `24224`, только с этого хоста, и отправляет их все в OneUptime:
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Fluentd отправляет записи пакетами в формате JSO
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Fluentd отправляет записи пакетами в формате JSO
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Fluentd отправляет записи пакетами в формате JSO
 </label>
 ```
 
-Чтобы отправлять разные источники как разные службы, используйте по одной секции `<match>` на тег, каждую со своим `x-oneuptime-service-name`.
+`bind 127.0.0.1` принимает записи только с этого хоста, например записи драйвера логов `fluentd` в Docker, который отправляет их на `localhost:24224`. Чтобы отправлять разные источники как разные службы, используйте по одной секции `<match>` на тег, каждую со своим `x-oneuptime-service-name` и своим `path` буфера: с двумя буферами на одном пути Fluentd не запускается.
+
+## Приём записей с других хостов
+
+С `bind 0.0.0.0` и без секции `<security>` любой, кто может достучаться до порта `24224`, может отправлять логи в OneUptime под вашим ключом приёма. Чтобы принимать записи от Fluentd или Fluent Bit на других хостах, слушайте на всех адресах, требуйте от каждого отправителя общий ключ и используйте TLS. Замените секцию `<source>` полного примера на:
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` и `private_key_path` — это сертификат для имени этого хоста, здесь `fluentd.example.com`, и его ключ; пользователь Fluentd должен иметь право их читать. Fluentd предупреждает, когда у ключа нет парольной фразы; `private_key_passphrase` задаёт её. Замените `YOUR_SHARED_KEY` длинным случайным секретом, например полученным из `openssl rand -base64 32`, и дайте тот же каждому отправителю:
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Вывод `forward` в Fluent Bit принимает те же настройки: `Shared_Key`, `Self_Hostname`, `tls On` и `tls.ca_file`.
+
+Отправитель без ключа или без TLS получает отказ. Сам ключ никогда не передаётся по сети: каждая сторона доказывает, что он у неё есть. Без TLS любой в сети между хостами может читать записи. Откройте порт `24224` в брандмауэре хоста только для хостов, которые отправляют данные. Если Fluentd запущен из файла Docker Compose из руководства по логам, опубликуйте порт и там на всех адресах, `"24224:24224"`, и смонтируйте папку сертификата в контейнер.
 
 ## Как читаются записи
 
@@ -209,11 +274,15 @@ OneUptime читает из каждой записи такие поля:
 :::
 
 :::details Fluentd пишет `429`, `502`, `503` или `504`
-OneUptime перегружен или перезапускается. С `retryable_response_codes 429,502,503,504` в секции `<match>`, как в конфигурации выше, Fluentd сохраняет пакет и отправляет его заново; без этой настройки Fluentd отбрасывает пакет.
+OneUptime перегружен или перезапускается. С `retryable_response_codes 429,502,503,504` в секции `<match>`, как в конфигурации выше, Fluentd сохраняет пакет и отправляет его заново; без этой настройки Fluentd отбрасывает пакет. С `@type file` в секции `<buffer>` Fluentd сохраняет пакет и при перезапуске.
 :::
 
 :::details Логи показывают момент, когда OneUptime их получил, а не своё время
-OneUptime читает время лога из его записи, а HTTP-вывод Fluentd отправляет только запись. Секция `<parse>` убирает поле `time` из записи: добавьте в неё `keep_time_key true`. Добавьте и фильтр `record_transformer` из конфигурации выше: он добавляет в каждую запись время, которое ей дал Fluentd, как `fluentd_time`.
+OneUptime читает время лога из его записи, а HTTP-вывод Fluentd отправляет только запись. Секция `<parse>` убирает поле `time` из записи как время события: добавьте в неё `time_key fluentd_time`, чтобы она не читала время ни одной записи и оставляла `time` как есть. Добавьте и фильтр `record_transformer` из конфигурации выше: он добавляет в каждую запись время, которое ей дал Fluentd, как `fluentd_time`.
+:::
+
+:::details JSON-строка, у которой `time` равно `null`, `true`, списку или объекту, никогда не доходит
+Парсер `json` в Fluentd читает поле `time` строки как время события и без предупреждения отбрасывает строку, у которой `time` не текст и не число. Добавьте `time_key fluentd_time` в его секцию `<parse>`, как выше: тогда Fluentd оставляет `time` в записи как есть. С фильтром `record_transformer` выше OneUptime сохраняет лог на момент, когда Fluentd его прочитал, `fluentd_time`; без него — на момент, когда OneUptime его получает.
 :::
 
 :::details Логи приходят под службой `Fluentd`

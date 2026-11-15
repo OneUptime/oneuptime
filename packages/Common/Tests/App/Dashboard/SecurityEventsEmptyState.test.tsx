@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -679,10 +680,8 @@ describe("SecurityEventsEmptyState", () => {
     test("reads the project's record once, by project, one row", async () => {
       await renderEmptyState();
 
-      const getList: jest.SpiedFunction<typeof ModelAPI.getList> =
-        ModelAPI.getList as unknown as jest.SpiedFunction<
-          typeof ModelAPI.getList
-        >;
+      const getList: SpyInstance<typeof ModelAPI.getList> =
+        ModelAPI.getList as unknown as SpyInstance<typeof ModelAPI.getList>;
 
       expect(getList).toHaveBeenCalledTimes(1);
 

@@ -317,3 +317,84 @@ describe("the Services group", () => {
     expect(Number(groupCounts()["Services"])).toBeGreaterThan(0);
   });
 });
+
+/*
+ * OneUptime issue #8451: the maintenance event feed's permissions were called "Scheduled
+ * Maintenance Log", so a search for "feed" found every feed's permissions but these two.
+ */
+describe("the Scheduled Maintenance group's feed permissions", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  // Each group in the side list, with the count it shows beside its name.
+  function groupCounts(): Record<string, string> {
+    const counts: Record<string, string> = {};
+
+    for (const button of screen.getAllByRole("button")) {
+      const name: Element | null = button.querySelector("span.truncate");
+
+      if (name) {
+        counts[name.textContent || ""] =
+          button.querySelectorAll("span")[1]?.textContent || "";
+      }
+    }
+
+    return counts;
+  }
+
+  function search(query: string): void {
+    fireEvent.change(screen.getByPlaceholderText("Search permissions..."), {
+      target: { value: query },
+    });
+  }
+
+  function renderOnTheFeed(): void {
+    render(
+      <PermissionPicker
+        onChange={() => {}}
+        initialValue={Permission.ReadScheduledMaintenanceFeed}
+      />,
+    );
+  }
+
+  test("are listed in their group as Create and Read Scheduled Maintenance Feed", () => {
+    renderOnTheFeed();
+
+    expect(rowOf(Permission.CreateScheduledMaintenanceFeed)).toHaveTextContent(
+      "Create Scheduled Maintenance Feed",
+    );
+    expect(rowOf(Permission.ReadScheduledMaintenanceFeed)).toHaveTextContent(
+      "Read Scheduled Maintenance Feed",
+    );
+    // The retired Edit one is never offered.
+    expect(findRow(Permission.EditScheduledMaintenanceFeed)).toBeNull();
+    expect(screen.queryByText(/Scheduled Maintenance Log$/)).toBeNull();
+  });
+
+  test("a search for 'feed' finds them in the Scheduled Maintenance group, as it finds every other feed's", () => {
+    renderOnTheFeed();
+    search("feed");
+
+    expect(
+      rowOf(Permission.CreateScheduledMaintenanceFeed),
+    ).toBeInTheDocument();
+    expect(rowOf(Permission.ReadScheduledMaintenanceFeed)).toBeInTheDocument();
+
+    const counts: Record<string, string> = groupCounts();
+
+    expect(Number(counts["Scheduled Maintenance"])).toBeGreaterThanOrEqual(2);
+    expect(Number(counts["Incident"])).toBeGreaterThanOrEqual(2);
+  });
+
+  test("someone who knew them by their old name still finds them", () => {
+    renderOnTheFeed();
+    search("Scheduled Maintenance Log");
+
+    expect(
+      rowOf(Permission.CreateScheduledMaintenanceFeed),
+    ).toBeInTheDocument();
+    expect(rowOf(Permission.ReadScheduledMaintenanceFeed)).toBeInTheDocument();
+    expect(groupCounts()["Scheduled Maintenance"]).toBe("2");
+  });
+});

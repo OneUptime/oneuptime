@@ -273,9 +273,17 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
         </div>
         <div className="max-xl:hidden w-24 flex-shrink-0 text-right text-sm tabular-nums text-gray-700 xl:block">
           {occurrenceCount > 0 ? (
+            /*
+             * The number for the eye, in the reader's digits, and one
+             * sentence for a screen reader ("5 detections", the count in it
+             * where the language puts it). It read the bare number and then
+             * the sentence, the count twice and in English's order (#8483).
+             */
             <React.Fragment>
-              {occurrenceCount}
-              <span className="sr-only"> {detectionsLabel}</span>
+              <span aria-hidden="true">
+                {translator.formatNumber(occurrenceCount)}
+              </span>
+              <span className="sr-only">{detectionsLabel}</span>
             </React.Fragment>
           ) : (
             <React.Fragment>
