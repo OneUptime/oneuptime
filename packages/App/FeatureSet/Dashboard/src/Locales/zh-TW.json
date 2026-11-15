@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "正在待命，至 {{time}}",
   "Reload list: {{title}}": "重新載入「{{title}}」清單",
   "Show more: {{title}}": "顯示更多「{{title}}」",
-  "Show {{name}} on the map": "在地圖上顯示 {{name}}",
+  "Show on map {{name}}": "在地圖上顯示 {{name}}",
   "Trigger: {{name}}": "觸發器：{{name}}",
   "Value {{number}}": "值 {{number}}",
   "View: {{name}}": "檢視 {{name}}",

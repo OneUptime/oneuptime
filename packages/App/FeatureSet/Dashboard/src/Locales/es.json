@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "De guardia ahora, hasta {{time}}",
   "Reload list: {{title}}": "Recargar la lista {{title}}",
   "Show more: {{title}}": "Mostrar más de {{title}}",
-  "Show {{name}} on the map": "Mostrar {{name}} en el mapa",
+  "Show on map {{name}}": "Mostrar {{name}} en el mapa",
   "Trigger: {{name}}": "Disparador: {{name}}",
   "Value {{number}}": "Valor {{number}}",
   "View: {{name}}": "Ver {{name}}",

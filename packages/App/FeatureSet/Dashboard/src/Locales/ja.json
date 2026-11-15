@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "{{time}} までオンコール中",
   "Reload list: {{title}}": "{{title}} の一覧を再読み込み",
   "Show more: {{title}}": "{{title}} をさらに表示",
-  "Show {{name}} on the map": "{{name}} をマップに表示",
+  "Show on map {{name}}": "{{name}} をマップに表示",
   "Trigger: {{name}}": "トリガー: {{name}}",
   "Value {{number}}": "値 {{number}}",
   "View: {{name}}": "{{name}} を表示",

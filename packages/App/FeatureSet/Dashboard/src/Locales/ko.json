@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "{{time}}까지 온콜 중",
   "Reload list: {{title}}": "{{title}} 목록 다시 불러오기",
   "Show more: {{title}}": "{{title}} 더 보기",
-  "Show {{name}} on the map": "{{name}}을(를) 지도에 표시",
+  "Show on map {{name}}": "{{name}}을(를) 지도에 표시",
   "Trigger: {{name}}": "트리거: {{name}}",
   "Value {{number}}": "값 {{number}}",
   "View: {{name}}": "{{name}} 보기",

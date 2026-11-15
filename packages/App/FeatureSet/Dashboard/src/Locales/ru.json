@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "Сейчас на дежурстве, до {{time}}",
   "Reload list: {{title}}": "Перезагрузить список «{{title}}»",
   "Show more: {{title}}": "Показать больше: {{title}}",
-  "Show {{name}} on the map": "Показать {{name}} на карте",
+  "Show on map {{name}}": "Показать {{name}} на карте",
   "Trigger: {{name}}": "Триггер: {{name}}",
   "Value {{number}}": "Значение {{number}}",
   "View: {{name}}": "Просмотр: {{name}}",

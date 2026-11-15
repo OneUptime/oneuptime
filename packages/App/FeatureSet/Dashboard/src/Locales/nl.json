@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "Nu in dienst, tot {{time}}",
   "Reload list: {{title}}": "Lijst {{title}} opnieuw laden",
   "Show more: {{title}}": "Meer tonen van {{title}}",
-  "Show {{name}} on the map": "{{name}} op de kaart tonen",
+  "Show on map {{name}}": "{{name}} op de kaart tonen",
   "Trigger: {{name}}": "Trigger: {{name}}",
   "Value {{number}}": "Waarde {{number}}",
   "View: {{name}}": "{{name}} bekijken",

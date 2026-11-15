@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "De plantão agora, até {{time}}",
   "Reload list: {{title}}": "Recarregar a lista {{title}}",
   "Show more: {{title}}": "Mostrar mais de {{title}}",
-  "Show {{name}} on the map": "Mostrar {{name}} no mapa",
+  "Show on map {{name}}": "Mostrar {{name}} no mapa",
   "Trigger: {{name}}": "Gatilho: {{name}}",
   "Value {{number}}": "Valor {{number}}",
   "View: {{name}}": "Ver {{name}}",

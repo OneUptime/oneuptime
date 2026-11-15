@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "På vagt nu, til {{time}}",
   "Reload list: {{title}}": "Genindlæs listen {{title}}",
   "Show more: {{title}}": "Vis mere fra {{title}}",
-  "Show {{name}} on the map": "Vis {{name}} på kortet",
+  "Show on map {{name}}": "Vis {{name}} på kortet",
   "Trigger: {{name}}": "Trigger: {{name}}",
   "Value {{number}}": "Værdi {{number}}",
   "View: {{name}}": "Vis {{name}}",

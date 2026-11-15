@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "अभी ऑन कॉल, {{time}} तक",
   "Reload list: {{title}}": "{{title}} सूची दोबारा लोड करें",
   "Show more: {{title}}": "{{title}} में और दिखाएँ",
-  "Show {{name}} on the map": "{{name}} को मैप पर दिखाएँ",
+  "Show on map {{name}}": "{{name}} को मैप पर दिखाएँ",
   "Trigger: {{name}}": "ट्रिगर: {{name}}",
   "Value {{number}}": "मान {{number}}",
   "View: {{name}}": "{{name}} देखें",

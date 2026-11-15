@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "正在值班，至 {{time}}",
   "Reload list: {{title}}": "重新加载“{{title}}”列表",
   "Show more: {{title}}": "显示更多“{{title}}”",
-  "Show {{name}} on the map": "在地图上显示 {{name}}",
+  "Show on map {{name}}": "在地图上显示 {{name}}",
   "Trigger: {{name}}": "触发器：{{name}}",
   "Value {{number}}": "值 {{number}}",
   "View: {{name}}": "查看 {{name}}",

@@ -52418,7 +52418,7 @@
   "On call now, until {{time}}": "اکنون آنکال، تا {{time}}",
   "Reload list: {{title}}": "بارگذاری دوباره فهرست {{title}}",
   "Show more: {{title}}": "نمایش بیشتر از {{title}}",
-  "Show {{name}} on the map": "نمایش {{name}} روی نقشه",
+  "Show on map {{name}}": "نمایش {{name}} روی نقشه",
   "Trigger: {{name}}": "تریگر: {{name}}",
   "Value {{number}}": "مقدار {{number}}",
   "View: {{name}}": "مشاهده {{name}}",
