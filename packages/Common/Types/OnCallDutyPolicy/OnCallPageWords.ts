@@ -2,7 +2,10 @@ import {
   describeOnCallAcknowledgementTimeout,
   OnCallPageAgainNotice,
 } from "./OnCallAcknowledgementTimeout";
-import { isDefaultStatusName } from "../StatusPage/DefaultStatusNames";
+import {
+  DEFAULT_ALERT_SEVERITY_NAMES,
+  isDefaultStatusName,
+} from "../StatusPage/DefaultStatusNames";
 import {
   composedValue,
   createTranslator,
@@ -226,14 +229,11 @@ export const ON_CALL_PAGE_KINDS: ReadonlyArray<OnCallPageKind> = [
 ];
 
 /*
- * The default names a new project's alert severities start with. A status
- * page never shows an alert, so they are not among the status page's
- * names (StatusPage/DefaultStatusNames); a page shows them to its person.
+ * The default names a new project's alert severities start with, kept
+ * beside the other default names (StatusPage/DefaultStatusNames); a page
+ * shows them to its person.
  */
-export const DEFAULT_ALERT_SEVERITY_NAMES: ReadonlyArray<string> = [
-  translationKey("High"),
-  translationKey("Low"),
-];
+export { DEFAULT_ALERT_SEVERITY_NAMES };
 
 /*
  * A state's or a severity's name as a page shows it: OneUptime's own

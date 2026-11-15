@@ -14,6 +14,8 @@ import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -209,6 +211,12 @@ const ResourcePartOpenEventsCard: FunctionComponent<ComponentProps> = (
                     <div className="pl-10 sm:flex-none sm:pl-0">
                       <Pill
                         text={record.severityName}
+                        isUserContent={isRecordNameAsWritten(
+                          isIncident
+                            ? StateListType.IncidentSeverity
+                            : StateListType.AlertSeverity,
+                          record.severityName,
+                        )}
                         color={toColor(record.severityColor) || Red500}
                         size={PillSize.Small}
                       />
