@@ -1,8 +1,10 @@
+import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import Project from "../../../Models/DatabaseModels/Project";
 import Team from "../../../Models/DatabaseModels/Team";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import EmailVerificationTokenService from "../../../Server/Services/EmailVerificationTokenService";
 import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -220,6 +222,24 @@ beforeEach(() => {
   jest
     .spyOn(TeamMemberService, "acceptPendingInvitationsInProject")
     .mockResolvedValue(0);
+
+  /*
+   * Nor invited to it: this is their first membership in the project, so a
+   * membership made for their id emails them too (#8421,
+   * TeamMemberInvitationEmailById.test.ts), with the sign-up link and its
+   * token for an account with no password.
+   */
+  jest
+    .spyOn(
+      TeamMemberService as unknown as {
+        hasMembershipInProject: (data: unknown) => Promise<boolean>;
+      },
+      "hasMembershipInProject",
+    )
+    .mockResolvedValue(false);
+  jest
+    .spyOn(EmailVerificationTokenService, "create")
+    .mockResolvedValue(new EmailVerificationToken());
 
   jest
     .spyOn(ProjectService, "findOneById")

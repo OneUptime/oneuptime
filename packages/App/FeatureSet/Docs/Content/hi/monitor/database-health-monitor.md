@@ -152,8 +152,8 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 प्रोब Azure SQL Database को उसके संस्करण से नहीं, बल्कि `SERVERPROPERTY('EngineEdition')` से पहचानता है — Azure SQL Database असल में चाहे जो चला रहा हो, `12.0.2000.8` ही बताता है, जो SQL Server 2014 जैसा पढ़ा जाता है। इसलिए मॉनिटर का **इंजन** `Azure SQL Database 12.0.2000.8` दिखाता है, और अनुमति की कमी ऊपर वाले Azure स्टेटमेंट के रूप में दिखती है, कभी `VIEW SERVER STATE` के रूप में नहीं।
 
 - **Azure SQL Database पर रेप्लिकेशन इकट्ठा नहीं होता।** Azure SQL Database में `sys.dm_hadr_database_replica_states` नहीं है, इसलिए वहाँ Replication ग्रुप को हर जाँच पर विफल बताने के बजाय छोड़ दिया जाता है। Azure के अपने रेप्लिका व्यू (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) अभी नहीं पढ़े जाते।
-- **कनेक्शन हर डेटाबेस के हिसाब से होते हैं।** `VIEW DATABASE STATE` के साथ Azure SQL Database केवल निगरानी वाले डेटाबेस के सेशन दिखाता है, इसलिए Connections लॉजिकल सर्वर के बजाय उसी डेटाबेस को गिनता है। जिन डेटाबेस की आपको परवाह है, हर एक की अलग से निगरानी करें।
-- **इलास्टिक पूल में TempDB Free Space पूरे पूल का होता है।** पूल के डेटाबेस एक ही tempdb साझा करते हैं।
+- **कनेक्शन हर डेटाबेस के हिसाब से होते हैं।** `VIEW DATABASE STATE` के साथ Azure SQL Database केवल निगरानी वाले डेटाबेस के सेशन दिखाता है, इसलिए **कनेक्शन** लॉजिकल सर्वर के बजाय उसी डेटाबेस को गिनता है। जिन डेटाबेस की आपको परवाह है, हर एक की अलग से निगरानी करें।
+- **इलास्टिक पूल में "TempDB में खाली स्थान" पूरे पूल का होता है।** पूल के डेटाबेस एक ही tempdb साझा करते हैं।
 
 ## Database Health मॉनिटर बनाएं
 
@@ -198,7 +198,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### और फ़ील्ड
 
-**Metric Groups** भी यहीं है: Connections, गतिविधि, Throughput, Locks and Blocking, स्टोरेज, Replication और रखरखाव में से कौन-से ग्रुप चलें। डिफ़ॉल्ट रूप से सभी चालू हैं; [मेट्रिक ग्रुप](#मेट्रिक-ग्रुप) देखें। मॉनिटर के विवरण में ये **Collected Metric Groups** के रूप में दिखते हैं।
+**Metric Groups** भी यहीं है: कनेक्शन, गतिविधि, थ्रूपुट, लॉक और ब्लॉकिंग, स्टोरेज, रेप्लिकेशन और रखरखाव में से कौन-से ग्रुप चलें। डिफ़ॉल्ट रूप से सभी चालू हैं; [मेट्रिक ग्रुप](#मेट्रिक-ग्रुप) देखें। मॉनिटर के विवरण में ये **Collected Metric Groups** के रूप में दिखते हैं।
 
 | फ़ील्ड | डिफ़ॉल्ट | अधिकतम | किसे सीमित करता है |
 |---|---|---|---|
@@ -249,13 +249,13 @@ Azure SQL Database पर, जहाँ भी यह तालिका `VIEW S
 | क्या विफल होता है | मॉनिटर की स्थिति | आपको क्या दिखता है |
 |---|---|---|
 | **कनेक्शन**, या प्रोब क्वेरी — गलत क्रेडेंशियल, कनेक्शन अस्वीकार, TLS विफलता, कनेक्शन टाइमआउट | **ऑफ़लाइन** | `Database Is Online` false होता है, और आपने इससे जो भी घटना और ऑन-कॉल नीति जोड़ी है, वह ट्रिगर होती है। |
-| **कोई ग्रुप** — अनुमति की कमी, बंद `performance_schema`, स्टेटमेंट टाइमआउट | **ऑनलाइन रहता है** | जिन मेट्रिक्स को वह ग्रुप नहीं पढ़ सका, वे शून्य नहीं, बल्कि **गायब** होते हैं। कोई चार्ट लाइन नहीं बनती, उन सीरीज़ पर कोई थ्रेशोल्ड मेल नहीं खा सकता, और उनसे कोई घटना नहीं बन सकती। जाँच एक संग्रह समस्या दर्ज करती है, जिसमें ग्रुप, कारण और — जहाँ हो — चलाने के लिए सटीक `GRANT` होता है; यह मॉनिटर के सारांश में दिखती है और **Metric Groups Failed** में गिनी जाती है। |
-| **इंजन कोई मेट्रिक बना ही नहीं सकता** — मानक MySQL में कोई डेडलॉक काउंटर नहीं है; SQL Server डिफ़ॉल्ट रूप से अपनी कनेक्शन सीमा असीमित रखता है, इसलिए "इस्तेमाल का प्रतिशत" बेमानी होगा | **ऑनलाइन रहता है** | मेट्रिक बस मौजूद नहीं होता। यह संग्रह समस्या **नहीं** है, Metric Groups Failed में नहीं गिना जाता, और इसमें ठीक करने को कुछ नहीं है। [इकट्ठा किए गए मेट्रिक्स](#इकट्ठा-किए-गए-मेट्रिक्स) में Engines कॉलम देखें। |
+| **कोई ग्रुप** — अनुमति की कमी, बंद `performance_schema`, स्टेटमेंट टाइमआउट | **ऑनलाइन रहता है** | जिन मेट्रिक्स को वह ग्रुप नहीं पढ़ सका, वे शून्य नहीं, बल्कि **गायब** होते हैं। कोई चार्ट लाइन नहीं बनती, उन सीरीज़ पर कोई थ्रेशोल्ड मेल नहीं खा सकता, और उनसे कोई घटना नहीं बन सकती। जाँच एक संग्रह समस्या दर्ज करती है, जिसमें ग्रुप, कारण और — जहाँ हो — चलाने के लिए सटीक `GRANT` होता है; यह मॉनिटर के सारांश में दिखती है और **विफल मेट्रिक समूह** में गिनी जाती है। |
+| **इंजन कोई मेट्रिक बना ही नहीं सकता** — मानक MySQL में कोई डेडलॉक काउंटर नहीं है; SQL Server डिफ़ॉल्ट रूप से अपनी कनेक्शन सीमा असीमित रखता है, इसलिए "इस्तेमाल का प्रतिशत" बेमानी होगा | **ऑनलाइन रहता है** | मेट्रिक बस मौजूद नहीं होता। यह संग्रह समस्या **नहीं** है, **विफल मेट्रिक समूह** में नहीं गिना जाता, और इसमें ठीक करने को कुछ नहीं है। [इकट्ठा किए गए मेट्रिक्स](#इकट्ठा-किए-गए-मेट्रिक्स) में Engines कॉलम देखें। |
 
 गायब का मतलब हमेशा गायब होता है। जो मान मापा नहीं गया, उसे कभी `0` नहीं बताया जाता, क्योंकि गढ़े हुए शून्यों वाला चार्ट खाली जगह से बदतर है — खाली जगह आप देख सकते हैं।
 
 > [!TIP]
-> दृश्यता खोने पर अलर्ट के लिए `Database Collection Error` या **Metric Groups Failed** पर थ्रेशोल्ड का उपयोग करें। दोनों को घटना नहीं, अलर्ट बनाएं: रद्द की गई अनुमति एक टिकट है, ऑन-कॉल कॉल नहीं।
+> दृश्यता खोने पर अलर्ट के लिए `Database Collection Error` या **विफल मेट्रिक समूह** पर थ्रेशोल्ड का उपयोग करें। दोनों को घटना नहीं, अलर्ट बनाएं: रद्द की गई अनुमति एक टिकट है, ऑन-कॉल कॉल नहीं।
 
 ### "The user does not have permission to perform this action"
 
@@ -274,54 +274,54 @@ Azure SQL Database पर, जहाँ भी यह तालिका `VIEW S
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
+| **अपटाइम** (s) | `oneuptime.monitor.database.uptime.seconds` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
+| **विफल मेट्रिक समूह** | `oneuptime.monitor.database.metric.groups.failed` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
 
 ### कनेक्शन
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | कनेक्शन | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | कनेक्शन | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | कनेक्शन | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | कनेक्शन | MySQL |
+| **कनेक्शन** | `oneuptime.monitor.database.connections.total` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
+| **सक्रिय कनेक्शन** | `oneuptime.monitor.database.connections.active` | कनेक्शन | PostgreSQL, MySQL, SQL Server |
+| **अधिकतम कनेक्शन** | `oneuptime.monitor.database.connections.max` | कनेक्शन | PostgreSQL, MySQL |
+| **उपयोग किए गए कनेक्शन** (%) | `oneuptime.monitor.database.connections.used.percent` | कनेक्शन | PostgreSQL, MySQL |
+| **ट्रांज़ैक्शन में निष्क्रिय** | `oneuptime.monitor.database.connections.idle.in.transaction` | कनेक्शन | PostgreSQL |
+| **रद्द हुए कनेक्शन प्रयास** | `oneuptime.monitor.database.connections.aborted.total` | कनेक्शन | MySQL |
 
 ### थ्रूपुट
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | थ्रूपुट | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | थ्रूपुट | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | थ्रूपुट | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | थ्रूपुट | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **ट्रांज़ैक्शन** | `oneuptime.monitor.database.transactions.total` | थ्रूपुट | PostgreSQL, SQL Server |
+| **क्वेरी** | `oneuptime.monitor.database.queries.total` | थ्रूपुट | MySQL, SQL Server |
+| **धीमी क्वेरी** | `oneuptime.monitor.database.queries.slow.total` | थ्रूपुट | MySQL |
+| **रोलबैक अनुपात** (%) | `oneuptime.monitor.database.rollback.percent` | थ्रूपुट | PostgreSQL |
+| **सबसे लंबी चल रही क्वेरी** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **सबसे लंबा खुला ट्रांज़ैक्शन** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **खुले ट्रांज़ैक्शन** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
 
 ### लॉक और ब्लॉकिंग
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **ब्लॉक हुए सेशन** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
+| **लॉक प्रतीक्षा** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
+| **डेडलॉक** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
+| **टेबल लॉक प्रतीक्षा** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
 
-मानक MySQL किसी भी तरह का डेडलॉक काउंटर नहीं देता, इसीलिए Deadlocks केवल PostgreSQL और SQL Server पर है।
+मानक MySQL किसी भी तरह का डेडलॉक काउंटर नहीं देता, इसीलिए **डेडलॉक** केवल PostgreSQL और SQL Server पर है।
 
 ### कैश और I/O
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | थ्रूपुट | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | थ्रूपुट | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | थ्रूपुट | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | थ्रूपुट | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | थ्रूपुट | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | थ्रूपुट | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | थ्रूपुट | SQL Server |
+| **कैश हिट अनुपात** (%) | `oneuptime.monitor.database.cache.hit.percent` | थ्रूपुट | PostgreSQL, MySQL, SQL Server |
+| **डिस्क रीड** | `oneuptime.monitor.database.disk.reads.total` | थ्रूपुट | PostgreSQL, MySQL, SQL Server |
+| **डिस्क राइट** | `oneuptime.monitor.database.disk.writes.total` | थ्रूपुट | MySQL, SQL Server |
+| **I/O रीड समय** (ms) | `oneuptime.monitor.database.io.read.time.ms` | थ्रूपुट | PostgreSQL, SQL Server |
+| **I/O राइट समय** (ms) | `oneuptime.monitor.database.io.write.time.ms` | थ्रूपुट | PostgreSQL, SQL Server |
+| **पेज की अनुमानित आयु** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | थ्रूपुट | SQL Server |
+| **लंबित मेमोरी ग्रांट** | `oneuptime.monitor.database.memory.grants.pending` | थ्रूपुट | SQL Server |
 
 PostgreSQL I/O के पढ़ने और लिखने का समय केवल तब मापता है जब `track_io_timing` चालू हो। यह डिफ़ॉल्ट रूप से बंद होता है, और तब PostgreSQL दोनों को `0` बताता है — इसलिए PostgreSQL पर इन दो सीरीज़ में सपाट शून्य का मतलब आम तौर पर "मापा नहीं गया" होता है, "तेज़" नहीं। यह सर्वर की सेटिंग है, अनुमति की समस्या नहीं।
 
@@ -329,42 +329,42 @@ PostgreSQL I/O के पढ़ने और लिखने का समय �
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Database Size** (बाइट) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (बाइट) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (बाइट) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **डेटाबेस आकार** (बाइट) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
+| **लिखे गए अस्थायी बाइट** (बाइट) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
+| **डिस्क पर अस्थायी टेबल** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
+| **उपयोग किया गया लॉग स्थान** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
+| **TempDB में खाली स्थान** (बाइट) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
 
 ### रेप्लिकेशन
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (बाइट) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **कनेक्टेड रेप्लिका** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
+| **रेप्लिकेशन लैग** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
+| **रेप्लिकेशन लैग (बाइट)** (बाइट) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
+| **रिकवरी में** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
+| **निष्क्रिय रेप्लिकेशन स्लॉट** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
 
 रेप्लिकेशन मेट्रिक्स लिंक के उस तरफ़ से बताए जाते हैं जिससे मॉनिटर जुड़ा है। जुड़ी हुई रेप्लिका और भेजने की कतार देखने के लिए मॉनिटर को प्राइमरी की ओर करें; हर स्टैंडबाय असल में कितना पीछे है, यह देखने के लिए हर स्टैंडबाय की ओर एक मॉनिटर करें।
 
-सेकंड में लैग किसी निष्क्रिय प्राइमरी पर शून्य दिखता है, भले ही कोई रेप्लिका बहुत पीछे हो, क्योंकि कुछ नया लिखा ही नहीं गया। **Replication Lag (Bytes)** में यह अंधा कोना नहीं है, इसलिए दोनों पर अलर्ट करें।
+सेकंड में लैग किसी निष्क्रिय प्राइमरी पर शून्य दिखता है, भले ही कोई रेप्लिका बहुत पीछे हो, क्योंकि कुछ नया लिखा ही नहीं गया। **रेप्लिकेशन लैग (बाइट)** में यह अंधा कोना नहीं है, इसलिए दोनों पर अलर्ट करें।
 
 ### रखरखाव
 
 | मेट्रिक | सीरीज़ | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **उपयोग किए गए ट्रांज़ैक्शन ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
+| **डेड ट्यूपल** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
+| **जिन टेबल पर कभी autovacuum नहीं चला** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
+| **अनुरोधित चेकपॉइंट** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
+| **समयबद्ध चेकपॉइंट** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
 
 > [!IMPORTANT]
-> आप जो भी PostgreSQL मॉनिटर बनाएं, हर एक पर **Transaction ID Used** के लिए एक मानदंड रखना ज़रूरी है। जब यह 100% पर पहुँचता है तो PostgreSQL सभी राइट मना कर देता है, रिकवरी के लिए डेटाबेस बंद करके सिंगल-यूज़र मोड में vacuum चलाना पड़ता है, और लगभग कोई इस पर नज़र नहीं रखता। चट्टान से काफ़ी पहले अलर्ट करें — ज़्यादातर वर्कलोड पर 80% से कई दिनों की गुंजाइश मिलती है।
+> आप जो भी PostgreSQL मॉनिटर बनाएं, हर एक पर **उपयोग किए गए ट्रांज़ैक्शन ID** के लिए एक मानदंड रखना ज़रूरी है। जब यह 100% पर पहुँचता है तो PostgreSQL सभी राइट मना कर देता है, रिकवरी के लिए डेटाबेस बंद करके सिंगल-यूज़र मोड में vacuum चलाना पड़ता है, और लगभग कोई इस पर नज़र नहीं रखता। चट्टान से काफ़ी पहले अलर्ट करें — ज़्यादातर वर्कलोड पर 80% से कई दिनों की गुंजाइश मिलती है।
 
-`total` पर खत्म होने वाले काउंटर सर्वर शुरू होने के बाद से संचयी होते हैं। दर पाने के लिए समय के दो बिंदुओं की तुलना करें; अकेला मान केवल अपने इतिहास के मुकाबले ही मायने रखता है, और सर्वर रीस्टार्ट होने पर शून्य हो जाता है (जो **Uptime** आपको दिखाएगा)।
+`total` पर खत्म होने वाले काउंटर सर्वर शुरू होने के बाद से संचयी होते हैं। दर पाने के लिए समय के दो बिंदुओं की तुलना करें; अकेला मान केवल अपने इतिहास के मुकाबले ही मायने रखता है, और सर्वर रीस्टार्ट होने पर शून्य हो जाता है (जो **अपटाइम** आपको दिखाएगा)।
 
-**Cache Hit Ratio** और **Rollback Ratio** हर जांच में इस आधार पर निकाले जाते हैं कि मॉनिटर की पिछली जांच के बाद से उनके काउंटर कितने बढ़े, सर्वर शुरू होने के बाद से नहीं, इसलिए कैश के चूकना शुरू करते ही यह तुरंत दिखता है। प्रोब शुरू होने के बाद की पहली जांच और सर्वर रीस्टार्ट होने के बाद की पहली जांच में दोनों में से कोई नहीं होता।
+**कैश हिट अनुपात** और **रोलबैक अनुपात** हर जांच में इस आधार पर निकाले जाते हैं कि मॉनिटर की पिछली जांच के बाद से उनके काउंटर कितने बढ़े, सर्वर शुरू होने के बाद से नहीं, इसलिए कैश के चूकना शुरू करते ही यह तुरंत दिखता है। प्रोब शुरू होने के बाद की पहली जांच और सर्वर रीस्टार्ट होने के बाद की पहली जांच में दोनों में से कोई नहीं होता।
 
 ## मानदंड सेट करें
 
@@ -409,14 +409,14 @@ Database Health मॉनिटर के लिए एक्सप्रेश�
 | क्रम | मानदंड | फ़िल्टर |
 |---|---|---|
 | 1 | **ऑफ़लाइन** | `Database Is Online` का मान `false` है। |
-| 2 | **प्रदर्शन में गिरावट** | `Database Metric` → Connections Used, `90` से ज़्यादा, 5 मिनट तक All Values के साथ आँका गया, ताकि एक अकेला उछाल किसी को कॉल न करे। |
-| 3 | **प्रदर्शन में गिरावट** | `Database Metric` → Transaction ID Used, `80` से ज़्यादा। |
-| 4 | **प्रदर्शन में गिरावट** | `Database Metric` → Blocked Sessions, 5 मिनट तक `0` से ज़्यादा। |
+| 2 | **प्रदर्शन में गिरावट** | `Database Metric` → **उपयोग किए गए कनेक्शन**, `90` से ज़्यादा, 5 मिनट तक All Values के साथ आँका गया, ताकि एक अकेला उछाल किसी को कॉल न करे। |
+| 3 | **प्रदर्शन में गिरावट** | `Database Metric` → **उपयोग किए गए ट्रांज़ैक्शन ID**, `80` से ज़्यादा। |
+| 4 | **प्रदर्शन में गिरावट** | `Database Metric` → **ब्लॉक हुए सेशन**, 5 मिनट तक `0` से ज़्यादा। |
 | 5 | **ऑनलाइन** | `Database Is Online` का मान `true` है। |
 
 मानदंड ऊपर से नीचे आँके जाते हैं और पहला मेल जीतता है, इसलिए अलर्ट वाले मानदंड पहले और स्वस्थ स्थिति वाला सबसे आखिर में रखें।
 
-ऑफ़लाइन मानदंड से एक ऑन-कॉल नीति जोड़ें, और **Metric Groups Failed** या `Database Collection Error` से निकलने वाली हर चीज़ को बिना ऑन-कॉल नीति वाला अलर्ट ही रहने दें।
+ऑफ़लाइन मानदंड से एक ऑन-कॉल नीति जोड़ें, और **विफल मेट्रिक समूह** या `Database Collection Error` से निकलने वाली हर चीज़ को बिना ऑन-कॉल नीति वाला अलर्ट ही रहने दें।
 
 ## ध्यान देने योग्य बातें
 
@@ -441,11 +441,11 @@ Database Health मॉनिटर के लिए एक्सप्रेश�
 या तो लॉगिन के पास `performance_schema` पर `SELECT` नहीं है, या सर्वर पर `performance_schema` बंद है; मॉनिटर का सारांश MySQL का संदेश दिखाता है। अनुमति की कमी के लिए [MySQL](#mysql) के स्टेटमेंट चलाएँ। बंद `performance_schema` के लिए सर्वर के कॉन्फ़िगरेशन में `performance_schema = ON` और एक रीस्टार्ट चाहिए।
 :::
 
-:::details PostgreSQL पर I/O Read Time और I/O Write Time हमेशा 0 हैं
+:::details PostgreSQL पर **I/O रीड समय** और **I/O राइट समय** हमेशा 0 हैं
 PostgreSQL इन्हें केवल तब मापता है जब `track_io_timing` चालू हो, और यह डिफ़ॉल्ट रूप से बंद होता है। असली मान देखने के लिए इसे सर्वर के कॉन्फ़िगरेशन में, या अपनी मैनेज्ड सेवा के पैरामीटर ग्रुप में चालू करें। यह अनुमति की कमी नहीं है।
 :::
 
-:::details हर जाँच पर Metric Groups Failed 0 से ऊपर है
+:::details हर जाँच पर **विफल मेट्रिक समूह** 0 से ऊपर है
 कोई ग्रुप किसी भी जाँच पर इकट्ठा नहीं हो पा रहा, इसलिए वही संग्रह समस्या बार-बार दोहराई जाती है। मॉनिटर का सारांश ग्रुप, कारण और इसे ठीक करने वाला `GRANT` बताता है। अनुमति दें, या अगर वह नहीं मिल सकती, तो **और फ़ील्ड → Metric Groups** में उस ग्रुप को बंद करें ताकि समस्या दोहराना बंद हो जाए।
 :::
 

@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -70,8 +71,8 @@ const payload: StatusPageWebhookPayload = {
 
 // What DNS answers, by host. A host not named here does not resolve.
 let dnsAnswers: Record<string, string> = {};
-let lookupSpy: jest.SpiedFunction<typeof dns.promises.lookup>;
-let postSpy: jest.SpiedFunction<typeof API.post>;
+let lookupSpy: SpyInstance<typeof dns.promises.lookup>;
+let postSpy: SpyInstance<typeof API.post>;
 const savedEnv: Record<string, string | undefined> = {};
 
 function setInstance(settings: {
@@ -160,13 +161,13 @@ beforeEach(() => {
     }
 
     return [{ address: address, family: address.includes(":") ? 6 : 4 }];
-  }) as never) as unknown as jest.SpiedFunction<typeof dns.promises.lookup>;
+  }) as never) as unknown as SpyInstance<typeof dns.promises.lookup>;
 
   postSpy = jest
     .spyOn(API, "post")
     .mockResolvedValue(
       new HTTPResponse<JSONObject>(200, {}, {}) as never,
-    ) as unknown as jest.SpiedFunction<typeof API.post>;
+    ) as unknown as SpyInstance<typeof API.post>;
 });
 
 afterEach(() => {

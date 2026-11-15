@@ -16,7 +16,7 @@ Abra **Alertas** no menu **Produtos** da barra superior. As seções **Regras** 
 | Página de regras             | O que faz                                                                                      |
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
 | **Regras de agrupamento**    | Reúne alertas relacionados em episódios. Veja [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes). |
-| **Regras de Plantão**        | Executa políticas de plantão para os alertas e episódios correspondentes.                      |
+| **Regras de plantão**        | Executa políticas de plantão para os alertas e episódios correspondentes.                      |
 | **Regras de incidentes** | Declara um incidente a partir dos alertas correspondentes, na hora ou quando um alerta continua sem resolução. |
 | **Regras de proprietário**   | Adiciona proprietários aos alertas e episódios correspondentes.                                |
 | **Regras de runbook**        | Inicia runbooks para os alertas correspondentes.                                               |
@@ -56,9 +56,9 @@ flowchart TB
 As regras diferem na forma como várias correspondências são resolvidas:
 
 - **Regras de agrupamento**, **Regras de incidentes** e **Regras de lembrete** são verificadas de cima para baixo na lista, e a primeira correspondência vence. Arraste uma regra para mudar sua posição; uma regra nova vai para o fim.
-- **Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
+- **Regras de plantão**, **Regras de proprietário**, **Regras de Rótulos**, **Regras de privacidade** e **Regras de runbook** atuam todas quando correspondem. Políticas de plantão, proprietários e rótulos que várias regras adicionam são adicionados uma única vez.
 
-**Regras de Plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
+**Regras de plantão**, **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** têm duas abas: **Regras de alertas**, para alertas, e **Regras de episódios**, que atuam da mesma forma sobre cada novo episódio de alerta. Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição para pausá-la, e a lista mostra um **Habilitado** verde ou um **Desabilitado** vermelho para cada regra.
 
 A maioria das regras atua sobre alertas e episódios criados depois que você as salva. Para aplicar uma regra de proprietário, de rótulos ou de privacidade aos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de lembrete são a exceção: salvar uma faz todos os alertas abertos corresponderem novamente.
 
@@ -75,7 +75,7 @@ Com duas ou mais condições, escolha **Corresponder a todas**, em que todas pre
 
 ## Regras de plantão
 
-**Alertas → Regras → Regras de Plantão** torna os acionamentos automáticos. Cada regra correspondente adiciona suas políticas ao novo alerta, e o alerta as executa junto com as políticas que já tinha, cada uma uma vez.
+**Alertas → Regras → Regras de plantão** torna os acionamentos automáticos. Cada regra correspondente adiciona suas políticas ao novo alerta, e o alerta as executa junto com as políticas que já tinha, cada uma uma vez.
 
 :::steps
 ### Escolher os alertas

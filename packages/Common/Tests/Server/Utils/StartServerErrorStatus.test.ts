@@ -13,7 +13,12 @@ import Exception from "../../../Types/Exception/Exception";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import QueryTimeoutException from "../../../Types/Exception/QueryTimeoutException";
-import { UNEXPLAINED_ERROR_MESSAGES } from "../../../Types/Exception/UnexplainedError";
+import {
+  UNEXPLAINED_ERROR_MESSAGES,
+  UnexplainedErrorKind,
+  readUnexplainedError,
+} from "../../../Types/Exception/UnexplainedError";
+import { REQUEST_BODY_REFUSAL_MESSAGES } from "../../../Server/Utils/RequestBodyRefusal";
 import {
   afterEach,
   beforeEach,
@@ -258,5 +263,284 @@ describe("Response.sendErrorResponse never hands an invalid status to res.status
     statuses = [];
     send(new BadDataException("Invalid Incident ID"));
     expect(statuses).toEqual([400]);
+  });
+});
+
+/*
+ * A body the App's own body parsers refused (#8419). express.json and
+ * express.urlencoded raise an http-errors error - a `type`, a 4xx status,
+ * `expose` - which is none of OneUptime's Exceptions, so it took the last
+ * branch: an error in the logs and a 500 "could not explain" with a
+ * reference, for a body over 50 MB or JSON that does not parse.
+ */
+describe("the express error handler answers a refused request body as the client's", () => {
+  let statuses: Array<number>;
+  let bodies: Array<unknown>;
+  let res: ExpressResponse;
+  let nextCalls: number;
+  let errorLog: ReturnType<typeof jest.spyOn>;
+  let debugLog: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {});
+    debugLog = jest.spyOn(logger, "debug").mockImplementation((): void => {});
+
+    statuses = [];
+    bodies = [];
+    nextCalls = 0;
+
+    res = {
+      headersSent: false,
+      status: (code: number): ExpressResponse => {
+        statuses.push(code);
+        return res;
+      },
+      send: (body: unknown): ExpressResponse => {
+        bodies.push(body);
+        return res;
+      },
+    } as unknown as ExpressResponse;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function handle(err: Error): void {
+    expressErrorHandler(
+      err,
+      {
+        url: "/api/monitor",
+        originalUrl: "/api/monitor",
+        method: "POST",
+        requestId: "4f1c2d3e-0000-4000-8000-000000000000",
+      } as unknown as ExpressRequest,
+      res,
+      (() => {
+        nextCalls++;
+      }) as unknown as NextFunction,
+    );
+  }
+
+  // The shape http-errors gives body-parser's errors.
+  function bodyParserError(data: {
+    message: string;
+    status: number;
+    type: string;
+    expose?: boolean;
+  }): Error {
+    return Object.assign(new Error(data.message), {
+      status: data.status,
+      statusCode: data.status,
+      expose: data.expose ?? data.status < 500,
+      type: data.type,
+    });
+  }
+
+  it("answers a body over the limit with 413 and the sentence the front ends read as too large (the issue's reproduction)", () => {
+    handle(
+      Object.assign(new Error("request entity too large"), {
+        status: 413,
+        statusCode: 413,
+        expose: true,
+        type: "entity.too.large",
+      }),
+    );
+
+    // Before: [500] and UNEXPLAINED_ERROR_MESSAGES.server.
+    expect(statuses).toEqual([413]);
+    expect(bodies).toEqual([{ error: UNEXPLAINED_ERROR_MESSAGES.tooLarge }]);
+    expect(readUnexplainedError(UNEXPLAINED_ERROR_MESSAGES.tooLarge)).toEqual({
+      kind: UnexplainedErrorKind.TooLarge,
+      reference: null,
+    });
+  });
+
+  it("says OneUptime's own 50 MB when the parser names that limit, as raw-body does (#8567)", () => {
+    handle(
+      Object.assign(new Error("request entity too large"), {
+        status: 413,
+        statusCode: 413,
+        expose: true,
+        type: "entity.too.large",
+        limit: 52428800,
+        length: 60000000,
+      }),
+    );
+
+    expect(statuses).toEqual([413]);
+    expect(bodies).toEqual([
+      { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime },
+    ]);
+    expect(
+      readUnexplainedError(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime),
+    ).toEqual({
+      kind: UnexplainedErrorKind.TooLargeForOneUptime,
+      reference: null,
+    });
+  });
+
+  it("gives no reference for it: there is nothing for support to look up", () => {
+    handle(
+      bodyParserError({
+        message: "request entity too large",
+        status: 413,
+        type: "entity.too.large",
+      }),
+    );
+
+    expect(JSON.stringify(bodies)).not.toContain("reference");
+    expect(JSON.stringify(bodies)).not.toContain("4f1c2d3e");
+  });
+
+  it("answers JSON that does not parse with 400 and a sentence of its own", () => {
+    handle(
+      bodyParserError({
+        message: "Unexpected token } in JSON at position 9",
+        status: 400,
+        type: "entity.parse.failed",
+      }),
+    );
+
+    expect(statuses).toEqual([400]);
+    expect(bodies).toEqual([
+      { error: REQUEST_BODY_REFUSAL_MESSAGES.invalidJson },
+    ]);
+    // The parser's words, and the body it quotes, stay out of the answer.
+    expect(JSON.stringify(bodies)).not.toContain("Unexpected token");
+  });
+
+  it.each([
+    ["entity.too.large", 413, REQUEST_BODY_REFUSAL_MESSAGES.tooLarge],
+    ["parameters.too.many", 413, REQUEST_BODY_REFUSAL_MESSAGES.tooManyFields],
+    ["entity.parse.failed", 400, REQUEST_BODY_REFUSAL_MESSAGES.invalidJson],
+    ["request.aborted", 400, REQUEST_BODY_REFUSAL_MESSAGES.cutOff],
+    ["request.size.invalid", 400, REQUEST_BODY_REFUSAL_MESSAGES.sizeMismatch],
+    [
+      "encoding.unsupported",
+      415,
+      REQUEST_BODY_REFUSAL_MESSAGES.encodingUnsupported,
+    ],
+    [
+      "charset.unsupported",
+      415,
+      REQUEST_BODY_REFUSAL_MESSAGES.charsetUnsupported,
+    ],
+    [
+      "querystring.parse.rangeError",
+      400,
+      REQUEST_BODY_REFUSAL_MESSAGES.tooDeep,
+    ],
+  ])(
+    "answers body-parser's %s with %i and its sentence",
+    (type: string, status: number, message: string) => {
+      handle(
+        bodyParserError({
+          message: "the parser's words",
+          status: status,
+          type: type,
+        }),
+      );
+
+      expect(statuses).toEqual([status]);
+      expect(bodies).toEqual([{ error: message }]);
+    },
+  );
+
+  it("logs a refused body at debug, never as an error that pages anyone", () => {
+    handle(
+      bodyParserError({
+        message: "request entity too large",
+        status: 413,
+        type: "entity.too.large",
+      }),
+    );
+
+    expect(errorLog).not.toHaveBeenCalled();
+    expect(debugLog).toHaveBeenCalledTimes(1);
+    expect(String(debugLog.mock.calls[0]![0])).toContain("entity.too.large");
+    expect(String(debugLog.mock.calls[0]![0])).toContain("413");
+  });
+
+  it.each([
+    ["stream.not.readable", 500],
+    ["stream.encoding.set", 500],
+    ["entity.verify.failed", 403],
+  ])(
+    "still answers the parser's %s as a failure the server could not explain: it is the server's",
+    (type: string, status: number) => {
+      handle(bodyParserError({ message: "the parser's words", status, type }));
+
+      expect(statuses).toEqual([500]);
+      expect(JSON.stringify(bodies)).toContain(
+        "The server ran into a problem it could not explain",
+      );
+      expect(errorLog).toHaveBeenCalled();
+    },
+  );
+
+  it("does not take an error of the code's own for a parser's, though it carries a parser's type", () => {
+    // No `expose`, no status: thrown by OneUptime's code, not body-parser.
+    handle(
+      Object.assign(new TypeError("Cannot read properties of undefined"), {
+        type: "entity.parse.failed",
+      }),
+    );
+
+    expect(statuses).toEqual([500]);
+    expect(bodies).toEqual([
+      expect.objectContaining({
+        error: expect.stringContaining(
+          "The server ran into a problem it could not explain",
+        ),
+        reference: "4f1c2d3e",
+      }),
+    ]);
+  });
+
+  it("does not take a 5xx that names a client type, or one not exposed, for the client's", () => {
+    handle(
+      bodyParserError({
+        message: "x",
+        status: 500,
+        type: "entity.too.large",
+        expose: true,
+      }),
+    );
+    handle(
+      bodyParserError({
+        message: "x",
+        status: 413,
+        type: "entity.too.large",
+        expose: false,
+      }),
+    );
+
+    expect(statuses).toEqual([500, 500]);
+  });
+
+  it("still answers a TypeError with a 500 and a reference", () => {
+    handle(new TypeError("Cannot read properties of undefined (reading 'x')"));
+
+    expect(statuses).toEqual([500]);
+    expect(bodies).toEqual([
+      expect.objectContaining({ reference: "4f1c2d3e" }),
+    ]);
+    expect(errorLog).toHaveBeenCalled();
+  });
+
+  it("leaves a refused body whose answer has started to the default handler", () => {
+    (res as unknown as { headersSent: boolean }).headersSent = true;
+
+    handle(
+      bodyParserError({
+        message: "request entity too large",
+        status: 413,
+        type: "entity.too.large",
+      }),
+    );
+
+    expect(nextCalls).toBe(1);
+    expect(statuses).toEqual([]);
   });
 });

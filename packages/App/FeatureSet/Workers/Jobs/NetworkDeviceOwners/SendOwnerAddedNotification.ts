@@ -23,11 +23,45 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceOwnerTeam from "Common/Models/DatabaseModels/NetworkDeviceOwnerTeam";
 import NetworkDeviceOwnerUser from "Common/Models/DatabaseModels/NetworkDeviceOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  OwnerRowAdded,
+  ownersToTell,
+  planOwnersAdded,
+} from "../../Utils/OwnersAdded";
 
 RunCron(
   "NetworkDeviceOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, from the network device as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.NetworkDeviceOwnerAdded],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const networkDevice: NetworkDevice | null = await readNetworkDevice(
+          delivery.notification.resourceId,
+        );
+
+        if (!networkDevice) {
+          await delivery.giveUp("the network device is gone");
+          return;
+        }
+
+        await notifyOwnersAdded({
+          networkDevice: networkDevice,
+          deliveries: [delivery],
+        });
+      },
+    });
+
     const deviceOwnerTeams: Array<NetworkDeviceOwnerTeam> =
       await NetworkDeviceOwnerTeamService.findAllBy({
         query: {
@@ -36,6 +70,7 @@ RunCron(
         props: {
           isRoot: true,
         },
+        skip: 0,
         select: {
           _id: true,
           networkDeviceId: true,
@@ -43,7 +78,7 @@ RunCron(
         },
       });
 
-    const deviceOwnersMap: Dictionary<Array<User>> = {};
+    const deviceOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
 
     for (const deviceOwnerTeam of deviceOwnerTeams) {
       const networkDeviceId: ObjectID = deviceOwnerTeam.networkDeviceId!;
@@ -57,19 +92,12 @@ RunCron(
         deviceOwnersMap[networkDeviceId.toString()] = [];
       }
 
-      for (const user of users) {
-        (deviceOwnersMap[networkDeviceId.toString()] as Array<User>).push(user);
-      }
-
-      // mark this as notified.
-      await NetworkDeviceOwnerTeamService.updateOneById({
-        id: deviceOwnerTeam.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        deviceOwnersMap[networkDeviceId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: deviceOwnerTeam.id!,
+        isTeam: true,
+        users: users,
       });
     }
 
@@ -81,6 +109,7 @@ RunCron(
         props: {
           isRoot: true,
         },
+        skip: 0,
         select: {
           _id: true,
           networkDeviceId: true,
@@ -100,88 +129,150 @@ RunCron(
         deviceOwnersMap[networkDeviceId.toString()] = [];
       }
 
-      (deviceOwnersMap[networkDeviceId.toString()] as Array<User>).push(user);
-
-      // mark this as notified.
-      await NetworkDeviceOwnerUserService.updateOneById({
-        id: deviceOwnerUser.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        deviceOwnersMap[networkDeviceId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: deviceOwnerUser.id!,
+        isTeam: false,
+        users: [user],
       });
     }
 
     // send email to all of these users.
 
     for (const networkDeviceId in deviceOwnersMap) {
-      if (!deviceOwnersMap[networkDeviceId]) {
+      const ownerRows: Array<OwnerRowAdded> =
+        deviceOwnersMap[networkDeviceId] || [];
+
+      if (ownerRows.length === 0) {
         continue;
       }
 
-      if ((deviceOwnersMap[networkDeviceId] as Array<User>).length === 0) {
-        continue;
-      }
+      const networkDevice: NetworkDevice | null = await readNetworkDevice(
+        new ObjectID(networkDeviceId),
+      );
 
-      const ownerUsers: Array<User> = deviceOwnersMap[
-        networkDeviceId
-      ] as Array<User>;
+      /*
+       * Whom each owner row is to tell, written before the rows are taken:
+       * a worker stopped from here on leaves them to be told by a later
+       * run, and one stopped before the take leaves the rows to be read
+       * again.
+       */
+      const deliveries: Array<OwnerNotificationDelivery> = networkDevice
+        ? await planOwnersAdded({
+            kind: OwnerNotificationKind.NetworkDeviceOwnerAdded,
+            projectId: networkDevice.projectId!,
+            resourceId: networkDevice.id!,
+            ownerRows: ownerRows,
+          })
+        : [];
 
-      const networkDevice: NetworkDevice | null =
-        await NetworkDeviceService.findOneById({
-          id: new ObjectID(networkDeviceId),
-          props: {
-            isRoot: true,
-          },
-
-          select: {
-            _id: true,
-            name: true,
-            projectId: true,
-            project: {
-              name: true,
+      /*
+       * Marked as notified before the owners are told, so an owner row
+       * whose notification keeps failing is never read again on every run -
+       * one whose network device is gone too.
+       */
+      for (const ownerRow of ownerRows) {
+        if (ownerRow.isTeam) {
+          await NetworkDeviceOwnerTeamService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
             },
-          },
-        });
+            props: {
+              isRoot: true,
+            },
+          });
+        } else {
+          await NetworkDeviceOwnerUserService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+      }
 
       if (!networkDevice) {
         continue;
       }
 
-      /*
-       * A team row expands to every member row, pending invitations included,
-       * and a pending invitee has no notification settings yet (the defaults
-       * are added on accept). Tell only the accepted members of the project -
-       * the same people findOwners reports as owners.
-       */
-      const users: Array<User> =
-        await TeamMemberService.filterUsersToProjectMembers({
-          projectId: networkDevice.projectId!,
-          users: ownerUsers,
+      try {
+        await notifyOwnersAdded({
+          networkDevice: networkDevice,
+          deliveries: deliveries,
         });
-
-      if (users.length === 0) {
-        continue;
+      } catch (e) {
+        logger.error(
+          "Error in sending network device owner added notification",
+          {
+            projectId: networkDevice.projectId?.toString(),
+            networkDeviceId: networkDevice.id?.toString(),
+          },
+        );
+        logger.error(e, {
+          projectId: networkDevice.projectId?.toString(),
+          networkDeviceId: networkDevice.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
-      const deviceViewLink: string = URL.fromString(dashboardUrl.toString())
-        .addRoute(
-          `/${networkDevice.projectId!.toString()}/network-devices/${networkDevice.id!.toString()}`,
-        )
-        .toString();
+async function readNetworkDevice(
+  networkDeviceId: ObjectID,
+): Promise<NetworkDevice | null> {
+  return await NetworkDeviceService.findOneById({
+    id: networkDeviceId,
+    props: {
+      isRoot: true,
+    },
+    select: {
+      _id: true,
+      name: true,
+      projectId: true,
+      project: {
+        name: true,
+      },
+    },
+  });
+}
 
-      const emailSubject: string =
-        "You have been added as the owner of the network device.";
+/*
+ * Tells each delivery's owners that they were added as owners of the
+ * network device, each once (OwnerNotificationDelivery.tell).
+ */
+async function notifyOwnersAdded(data: {
+  networkDevice: NetworkDevice;
+  deliveries: Array<OwnerNotificationDelivery>;
+}): Promise<void> {
+  const networkDevice: NetworkDevice = data.networkDevice;
 
-      const vars: Dictionary<string> = {
-        subject: emailSubject,
-        message: `You have been added as the owner of the network device ${networkDevice.name!} in the project ${networkDevice.project!.name!}. You can view the device here: ${deviceViewLink}`,
-      };
+  if (ownersToTell(data.deliveries).length === 0) {
+    return;
+  }
 
-      for (const user of users) {
+  const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+  const deviceViewLink: string = URL.fromString(dashboardUrl.toString())
+    .addRoute(
+      `/${networkDevice.projectId!.toString()}/network-devices/${networkDevice.id!.toString()}`,
+    )
+    .toString();
+
+  const emailSubject: string =
+    "You have been added as the owner of the network device.";
+
+  const vars: Dictionary<string> = {
+    subject: emailSubject,
+    message: `You have been added as the owner of the network device ${networkDevice.name!} in the project ${networkDevice.project!.name!}. You can view the device here: ${deviceViewLink}`,
+  };
+
+  for (const delivery of data.deliveries) {
+    for (const user of delivery.owners) {
+      await delivery.tell(user, async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.SimpleMessage,
           vars: vars,
@@ -240,7 +331,7 @@ RunCron(
           whatsAppMessage,
           eventType,
         });
-      }
+      });
     }
-  },
-);
+  }
+}

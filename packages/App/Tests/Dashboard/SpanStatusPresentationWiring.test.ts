@@ -664,9 +664,12 @@ describe("the status dot in span tables (SpanStatusElement)", () => {
     expect(SPAN_STATUS_ELEMENT.source).toContain(
       "const status: SpanStatusPresentation = getSpanStatusPresentation(spanStatusCode);",
     );
-    // The display label, "Unset (no error)", unless the row asks for plainLabel.
+    /*
+     * The display label, "Unset (no error)", unless the row asks for
+     * plainLabel - worded here, so the dot draws it as given (#8423).
+     */
     expect(SPAN_STATUS_ELEMENT.source).toContain(
-      "{hasStatus ? ( <ColorCircle color={new Color(status.color)} tooltip={translator.translateTerm( props.plainLabel ? status.plainDotTooltip : status.dotTooltip, )} /> ) : ( <></> )}",
+      "{hasStatus ? ( <ColorCircle color={new Color(status.color)} tooltip={translator.translateTerm( props.plainLabel ? status.plainDotTooltip : status.dotTooltip, )} isTooltipTranslated={true} /> ) : ( <></> )}",
     );
     expect(count(SPAN_STATUS_ELEMENT.source, "<ColorCircle")).toBe(1);
   });

@@ -128,7 +128,7 @@ Aprite l'avviso. La sua intestazione mostra il suo stato, la sua gravità, da qu
 
 Il passaggio a un altro stato chiede una conferma, con una nota privata facoltativa compressa sotto **Aggiungi una nota privata**. Che cosa fa ogni stato è spiegato in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities).
 
-Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate le sue pagine **Causa principale** e **Rimedio** e aggiungete **Proprietari**. Il menu **Azioni** di **Feed dell'avviso** esegue anche un runbook con **Esegui runbook**, o chiama altre persone con **Esegui criterio di reperibilità**.
+Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate le sue pagine **Causa principale** e **Rimedio** e aggiungete **Proprietari**. Il menu **Azioni** di **Feed dell'avviso** esegue anche un runbook con **Esegui runbook**, o chiama altre persone con **Esegui policy di reperibilità**.
 
 ## Che cosa mostra ogni pagina di un avviso
 

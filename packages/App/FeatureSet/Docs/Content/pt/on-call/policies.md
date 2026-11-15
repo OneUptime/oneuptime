@@ -20,7 +20,7 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 
 **Quem é acionado primeiro?** é opcional, e só é perguntado a quem pode adicionar regras de escalonamento: se ficar vazio, a política não aciona ninguém até ter uma regra. **Descrição** e **Rótulos** ficam em **Mais campos**. Para adicionar os próximos níveis, veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
-Na primeira política de um projeto, o formulário também pergunta **Dispará-la a cada novo incidente e a cada novo alerta**, que começa ativado. Ele adiciona uma regra em **Incidentes → Regras → Regras de Plantão** e outra em **Alertas → Regras → Regras de Plantão**, cada uma correspondendo a tudo e executando esta política. Só é perguntado a quem pode adicionar regras de plantão, enquanto o projeto não tiver nenhuma política de plantão nem regra de plantão.
+Na primeira política de um projeto, o formulário também pergunta **Dispará-la a cada novo incidente e a cada novo alerta**, que começa ativado. Ele adiciona uma regra em **Incidentes → Regras → Regras de plantão** e outra em **Alertas → Regras → Regras de plantão**, cada uma correspondendo a tudo e executando esta política. Só é perguntado a quem pode adicionar regras de plantão, enquanto o projeto não tiver nenhuma política de plantão nem regra de plantão.
 
 A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
 
@@ -31,7 +31,7 @@ Uma política não aciona ninguém até que algo a execute. Cada incidente, aler
 | O quê | Como adiciona a política | Saiba mais |
 | --- | --- | --- |
 | O próprio registro | O campo **Política de plantão** ao criar um incidente ou alerta, um modelo de incidente, ou a seção recolhida **Plantão** dos critérios de um monitor | [Declarar um incidente](/docs/incidents/declaring-incidents) |
-| Regras de plantão | **Incidentes → Regras → Regras de Plantão** e **Alertas → Regras → Regras de Plantão** adicionam as políticas de cada regra que corresponde | [Regras de plantão de incidente](/docs/incidents/settings#regras-de-plantão-de-incidente) |
+| Regras de plantão | **Incidentes → Regras → Regras de plantão** e **Alertas → Regras → Regras de plantão** adicionam as políticas de cada regra que corresponde | [Regras de plantão de incidente](/docs/incidents/settings#regras-de-plantão-de-incidente) |
 | Regras de agrupamento | Uma regra de agrupamento executa suas políticas quando abre um episódio | [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes) |
 | À mão | **Executar política de plantão**, no menu **Ações** de um feed, ou em uma mensagem do Slack ou do Microsoft Teams | [O feed do incidente](/docs/incidents/notes-owners-and-feed#o-feed-do-incidente) |
 | Chat e workflows | `/oneuptime page` no Slack ou no Microsoft Teams, e a etapa **Page an On-Call Policy** de um workflow | [Paging](/docs/workflows/components#paging) |
@@ -51,7 +51,7 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 
 **Básico** fica aberta; as outras seções começam recolhidas até você clicar nelas.
 
-- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno. As regras dela para Slack, Microsoft Teams e Mattermost as publicam nos seus canais, uma passagem de turno em uma linha: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
+- **Visão geral** mostra os **Detalhes da política de plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno. As regras dela para Slack, Microsoft Teams e Mattermost as publicam nos seus canais, uma passagem de turno em uma linha: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
 - Os **Proprietários** são as pessoas e as equipes responsáveis pela política. Quando um acionamento que ela envia não encontra regra para alguém, ou não pode ser entregue, eles recebem um e-mail; uma política sem proprietários escreve aos Proprietários do projeto.
 - **Logs de notificação** lista cada mensagem que a política enviou, com uma aba por canal.
 - **Substituições de usuário** cobre pessoas só nesta política. Veja [Substituições de usuário](/docs/on-call/user-overrides).

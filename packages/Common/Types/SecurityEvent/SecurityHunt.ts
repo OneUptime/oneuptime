@@ -1,6 +1,7 @@
 import OneUptimeDate from "../Date";
 import TimeRange from "../Time/TimeRange";
 import { DETECTION_EVALUATION_DELAY_IN_SECONDS } from "./DetectionFindingConstants";
+import { writeOwnValue } from "../../Utils/LookupTable";
 
 /*
  * HUNTS: SEARCHES OVER SECURITY EVENTS, SAVED.
@@ -305,8 +306,14 @@ export function readSecurityHuntFilters(value: unknown): SecurityHuntFilters {
       }
     }
 
+    /*
+     * Each key as the filters' own, as it was stored: assigned, one named
+     * "__proto__" (no chip is, and getSecurityHuntFiltersProblem refuses
+     * it as one) made its values the filters' prototype, so it was never
+     * seen to refuse.
+     */
     if (kept.length > 0) {
-      filters[key] = kept;
+      writeOwnValue(filters, key, kept);
     }
   }
 
@@ -347,8 +354,9 @@ export function securityHuntFiltersFromMap(
 ): SecurityHuntFilters {
   const filters: SecurityHuntFilters = {};
 
+  // Each chip's key as the filters' own, as readSecurityHuntFilters reads them.
   for (const [key, values] of map.entries()) {
-    filters[key] = Array.from(values);
+    writeOwnValue(filters, key, Array.from(values));
   }
 
   return readSecurityHuntFilters(filters);
