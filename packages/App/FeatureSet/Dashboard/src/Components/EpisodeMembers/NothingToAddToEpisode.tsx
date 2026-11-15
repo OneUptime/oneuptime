@@ -111,6 +111,8 @@ export const NothingToAddToEpisodeNotice: FunctionComponent<NoticeProps> = (
 export interface ComponentProps extends NoticeProps {
   // The dialog's own title: what the person asked to do.
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   onClose: () => void;
 }
 
@@ -120,6 +122,7 @@ const NothingToAddToEpisodeModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText="Close"

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8203
+    "keys": 55711,
+    "untranslated": 8004
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -46,6 +46,8 @@
     "Elasticsearch",
     "Elasticsearch URL",
     "Enterprise Edition",
+    "FlashArray",
+    "FlashBlade",
     "Fluent Bit",
     "GKE Autopilot",
     "Gemini for Google Workspace",
@@ -115,6 +117,7 @@
     "Powered by OneUptime",
     "PromQL",
     "Proxmox ID",
+    "Purity CLI",
     "RTT",
     "RX",
     "RabbitMQ",

@@ -16,9 +16,9 @@ Send e-posten fra OneUptime gjennom HTTPS-API-et til en e-postleverandør i sted
 
 :::tabs
 @tab Prosjekt
-Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varsler > Varslingskanaler**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**. I trinnet **Leverandør** fyller du inn et **Navn** og velger leverandøren. Neste trinn ber om innstillingene for den leverandøren, og trinnet **Avsender** om **E-post fra** og **Fra-navn**. Når konfigurasjonen er lagret, sjekker **Send test-e-post** i raden at den virker.
+Åpne **Flere innstillinger** under **Prosjektinnstillinger > Varslinger > Varslingskanaler**, og klikk på **Opprett SMTP-konfigurasjon** i kortet **Egendefinerte SMTP-konfigurasjoner**. I trinnet **Leverandør** fyller du inn et **Navn** og velger leverandøren. Neste trinn ber om innstillingene for den leverandøren, og trinnet **Avsender** om **E-post fra** og **Fra-navn**. Når konfigurasjonen er lagret, sjekker **Send test-e-post** i raden at den virker.
 @tab Selvdriftet instans
-Åpne **Innstillinger** i Admin Dashboard, og deretter **Varsler > E-poster**. Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og velg leverandøren som **E-posttjenertype**. Leverandørens kort vises under, for eksempel **Amazon SES-innstillinger**: klikk på redigeringsknappen, for eksempel **Rediger Amazon SES**, og fyll ut leverandørens innstillinger og trinnet **Avsender**. Inntil kortet har alt det trenger, sier det hva som mangler, og hver e-post avvises med innstillingen som må fylles ut. En server som rulles ut fra kode, kan i stedet angi dem med miljøvariabler: se [Angi serverens e-post med miljøvariabler](#angi-serverens-e-post-med-miljøvariabler).
+Åpne **Innstillinger** i Admin Dashboard, og deretter **Varslinger > E-poster**. Klikk i kortet **E-post-serverinnstillinger** på **Rediger server**, og velg leverandøren som **E-posttjenertype**. Leverandørens kort vises under, for eksempel **Amazon SES-innstillinger**: klikk på redigeringsknappen, for eksempel **Rediger Amazon SES**, og fyll ut leverandørens innstillinger og trinnet **Avsender**. Inntil kortet har alt det trenger, sier det hva som mangler, og hver e-post avvises med innstillingen som må fylles ut. En server som rulles ut fra kode, kan i stedet angi dem med miljøvariabler: se [Angi serverens e-post med miljøvariabler](#angi-serverens-e-post-med-miljøvariabler).
 :::
 
 | Leverandør | Hva du skriver inn | Hvor OneUptime sender til |
@@ -29,7 +29,7 @@ Send e-posten fra OneUptime gjennom HTTPS-API-et til en e-postleverandør i sted
 | Postmark | Server-API-token | `https://api.postmarkapp.com/email` |
 | Resend | API-nøkkel | `https://api.resend.com/emails` |
 
-Hver e-post sendes med en tekstdel, og med bildene sine (OneUptimes logo, skjermbilder) som innebygde vedlegg. Når en leverandør begrenser hvor raskt du sender, eller feiler på sin side, prøver OneUptime igjen etter ventetiden leverandøren ber om; alle andre avvisninger lagres i varselloggene, sammen med det leverandøren svarte.
+Hver e-post sendes med en tekstdel, og med bildene sine (OneUptimes logo, skjermbilder) som innebygde vedlegg. Når en leverandør begrenser hvor raskt du sender, eller feiler på sin side, prøver OneUptime igjen etter ventetiden leverandøren ber om; alle andre avvisninger lagres i varslingsloggene, sammen med det leverandøren svarte.
 
 ## Amazon SES
 
@@ -112,7 +112,7 @@ I Resend legger du til og verifiserer domenet ditt under **Domains**, og opprett
 
 ## Angi serverens e-post med miljøvariabler
 
-En selvdriftet server som rulles ut fra kode, kan starte med å sende e-post, uten noe å sette opp for hånd: angi e-postinnstillingene med miljøvariabler, fra Terraform eller det som ellers ruller ut OneUptime. Så snart `GLOBAL_EMAIL_SERVER_TYPE` er angitt, sender serveren sin egen e-post slik variablene beskriver. Innstillingene som er lagret i Admin Dashboard under **Innstillinger** og deretter **Varsler > E-poster**, brukes ikke, og den siden viser disse skrivebeskyttet, hvert felt med variabelen som angir det. La `GLOBAL_EMAIL_SERVER_TYPE` stå tom for i stedet å sette opp e-post i Admin Dashboard. Prosjektenes SMTP-konfigurasjoner berøres ikke.
+En selvdriftet server som rulles ut fra kode, kan starte med å sende e-post, uten noe å sette opp for hånd: angi e-postinnstillingene med miljøvariabler, fra Terraform eller det som ellers ruller ut OneUptime. Så snart `GLOBAL_EMAIL_SERVER_TYPE` er angitt, sender serveren sin egen e-post slik variablene beskriver. Innstillingene som er lagret i Admin Dashboard under **Innstillinger** og deretter **Varslinger > E-poster**, brukes ikke, og den siden viser disse skrivebeskyttet, hvert felt med variabelen som angir det. La `GLOBAL_EMAIL_SERVER_TYPE` stå tom for i stedet å sette opp e-post i Admin Dashboard. Prosjektenes SMTP-konfigurasjoner berøres ikke.
 
 | Variabel | Helm-verdi | Hva den inneholder |
 | --- | --- | --- |
@@ -173,7 +173,7 @@ OneUptime leser variablene når den starter. Hvis én av dem er feil, for eksemp
 
 ## Feilsøking
 
-En test-e-post som ikke blir sendt, sier hvorfor. For all annen e-post åpner du fanen **E-post** under **Prosjektinnstillinger > Varsler > Varsellogger** og velger **Vis statusmelding** i raden.
+En test-e-post som ikke blir sendt, sier hvorfor. For all annen e-post åpner du fanen **E-post** under **Prosjektinnstillinger > Varslinger > Varslingslogger** og velger **Vis statusmelding** i raden.
 
 :::details "Amazon SES needs a verified identity in …"
 **E-post fra**, eller domenet til adressen, er ikke verifisert i regionen som er satt i konfigurasjonen, eller kontoen er i SES-sandboxen og mottakeren er ikke verifisert. Verifiser den i den regionen, eller be om produksjonstilgang.

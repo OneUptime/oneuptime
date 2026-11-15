@@ -711,11 +711,11 @@ describe("diagnostics util vocabulary", () => {
     expect(readWindowMinutes(Number.NaN)).toBeNull();
     expect(readWindowMinutes("30")).toBeNull();
     expect(readWindowMinutes(undefined)).toBeNull();
-    expect(formatWindowMinutes(1)).toBe("1 minute");
-    expect(formatWindowMinutes(45)).toBe("45 minutes");
-    expect(formatWindowMinutes(60)).toBe("1 hour");
-    expect(formatWindowMinutes(90)).toBe("90 minutes");
-    expect(formatWindowMinutes(1440)).toBe("24 hours");
+    expect(formatWindowMinutes(1)).toBe("1\u00A0minute");
+    expect(formatWindowMinutes(45)).toBe("45\u00A0minutes");
+    expect(formatWindowMinutes(60)).toBe("1\u00A0hour");
+    expect(formatWindowMinutes(90)).toBe("90\u00A0minutes");
+    expect(formatWindowMinutes(1440)).toBe("24\u00A0hours");
   });
 
   test("health tone, colour and tooltip agree on the no-events-yet state", (): void => {

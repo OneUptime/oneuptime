@@ -47,6 +47,23 @@ const FRONTENDS: Array<[string, string]> = [
   ["PublicDashboard", "/public-dashboard/dist/"],
 ];
 
+const APP_FEATURE_SETS: string = path.join(
+  REPOSITORY_ROOT,
+  "packages",
+  "App",
+  "FeatureSet",
+);
+
+// A page that declares UTF-8.
+const UTF8_PAGE: RegExp = /<meta charset="utf-8"\s*\/?>/i;
+
+// A letter written as an escape: \xNN, \uNNNN or \u{N...}.
+const ESCAPED_LETTER: RegExp =
+  /\\(x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|u\{[0-9A-Fa-f]+\})/;
+
+// Words in German, Persian, Japanese and Russian, and an arrow.
+const WORDS_OUTSIDE_ASCII: string = "Schließen ذخیره 保存 Сохранить →";
+
 interface ConfigSnapshot {
   entryPoints: Array<string>;
   bundle: boolean;
@@ -63,6 +80,8 @@ interface ConfigSnapshot {
    * though the field is always present when it is not.
    */
   keepNames?: boolean;
+  // Optional for the same reason: a config that sets none arrives as undefined.
+  charset?: string;
   treeShaking: boolean;
   splitting: boolean;
   publicPath: string;
@@ -140,6 +159,7 @@ function readConfig(
       sourcemap: cfg.sourcemap,
       minify: cfg.minify,
       keepNames: cfg.keepNames,
+      charset: cfg.charset,
       treeShaking: cfg.treeShaking,
       splitting: cfg.splitting,
       publicPath: cfg.publicPath,
@@ -268,6 +288,62 @@ describe("the frontend build config's production output settings", () => {
     });
   });
 
+  /*
+   * #8650: written as ASCII, every letter outside it became a \u escape,
+   * six bytes for a Persian letter UTF-8 writes in two: the Dashboard's
+   * Persian, Arabic, Russian and Hindi locale chunks were twice the size of
+   * the words they carry. Every frontend loads its build as module scripts,
+   * which a browser always reads as UTF-8.
+   */
+  describe("charset", () => {
+    test("writes UTF-8 in production and in development, for every frontend", () => {
+      for (const nodeEnv of ["production", null, "development"]) {
+        for (const [serviceName, publicPath] of FRONTENDS) {
+          expect([
+            nodeEnv,
+            serviceName,
+            readConfig(nodeEnv, publicPath, serviceName).charset,
+          ]).toEqual([nodeEnv, serviceName, "utf8"]);
+        }
+      }
+    });
+
+    test("every frontend loads what it builds as a module script, from a page that declares UTF-8", () => {
+      for (const [serviceName] of FRONTENDS) {
+        const view: string = fs.readFileSync(
+          path.join(APP_FEATURE_SETS, serviceName, "views", "index.ejs"),
+          "utf8",
+        );
+
+        // The page reads as UTF-8.
+        expect([serviceName, UTF8_PAGE.test(view)]).toEqual([
+          serviceName,
+          true,
+        ]);
+
+        // Its entry is a module, which a browser reads as UTF-8 whatever the server says.
+        const entryTags: Array<string> = (
+          view.match(/<script[^>]*src="[^"]*\/dist\/[^"]*"[^>]*>/g) || []
+        ).filter((tag: string): boolean => {
+          return !tag.includes("/assets/");
+        });
+
+        expect([serviceName, entryTags.length > 0]).toEqual([
+          serviceName,
+          true,
+        ]);
+
+        for (const tag of entryTags) {
+          expect([serviceName, tag, tag.includes('type="module"')]).toEqual([
+            serviceName,
+            tag,
+            true,
+          ]);
+        }
+      }
+    });
+  });
+
   describe("sourcemaps (unchanged behaviour)", () => {
     test("stay inline in development", () => {
       expect(readConfig(null).sourcemap).toBe("inline");
@@ -302,6 +378,7 @@ describe("the frontend build config's production output settings", () => {
         "sourcemap",
         "minify",
         "keepNames",
+        "charset",
         "treeShaking",
         "splitting",
         "publicPath",
@@ -586,6 +663,9 @@ describe("the frontend build config's production output settings", () => {
           1,
           myDistinctiveFunctionName(2),
         );
+
+        // Words in four scripts, as a locale chunk carries them (#8650).
+        globalThis.words = "${WORDS_OUTSIDE_ASCII}";
         `,
       );
 
@@ -629,6 +709,23 @@ describe("the frontend build config's production output settings", () => {
 
       return JSON.parse(runNode(script, nodeEnv)) as BuildResult;
     }
+
+    test("writes letters outside ASCII as they are, never as escapes, in both modes", () => {
+      for (const nodeEnv of ["production", null]) {
+        const result: BuildResult = buildFixture(nodeEnv);
+
+        expect([nodeEnv, result.ok, result.error]).toEqual([nodeEnv, true, ""]);
+        expect([nodeEnv, result.output.includes(WORDS_OUTSIDE_ASCII)]).toEqual([
+          nodeEnv,
+          true,
+        ]);
+        // No \xNN or \uNNNN escape stands in for one of them.
+        expect([
+          nodeEnv,
+          ESCAPED_LETTER.test(withoutInlineSourcemap(result.output)),
+        ]).toEqual([nodeEnv, false]);
+      }
+    });
 
     test("produces minified output for a production build", () => {
       const result: BuildResult = buildFixture("production");

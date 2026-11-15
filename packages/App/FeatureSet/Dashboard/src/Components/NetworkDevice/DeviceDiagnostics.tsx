@@ -1,4 +1,5 @@
 import TracerouteHopsTable from "./TracerouteHopsTable";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import ProbeMessageLine from "../Monitor/SummaryView/ProbeMessageLine";
 import {
   DIAGNOSTIC_MAX_CONSECUTIVE_POLL_FAILURES,
@@ -451,7 +452,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
                     {diagnosticRow.isProbeMessage ? (
                       <ProbeMessageLine message={diagnosticRow.value} />
                     ) : (
-                      diagnosticRow.value
+                      getValueOrQuietDash(diagnosticRow.value)
                     )}
                   </dd>
                 </div>
@@ -590,7 +591,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
       <>
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            title={translateString("Ping") || "Ping"}
+            title="Ping"
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.OUTLINE}
             dataTestId="network-device-diagnostic-ping"
@@ -602,7 +603,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
             }}
           />
           <Button
-            title={translateString("Traceroute") || "Traceroute"}
+            title="Traceroute"
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.OUTLINE}
             dataTestId="network-device-diagnostic-traceroute"

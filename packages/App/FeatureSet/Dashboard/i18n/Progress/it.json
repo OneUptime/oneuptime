@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8353
+    "keys": 55711,
+    "untranslated": 8157
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -131,6 +131,8 @@
     "Filesystem %",
     "Fingerprint",
     "Flame graph",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Floating IP",
     "Fluent Bit",
@@ -185,6 +187,7 @@
     "Job",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "KeyDB",
     "Keystone",
     "Kilohertz",
@@ -195,6 +198,7 @@
     "Link-local",
     "Listener",
     "Load balancer",
+    "Log",
     "Log4Shell",
     "Logo",
     "Loopback",

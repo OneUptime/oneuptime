@@ -114,13 +114,13 @@ log_type="SD-WAN" log_component="SLA" profile_name="Branch-Internet" gw_name="WA
 
 이 예에서는 이 요약을 게이트웨이별 지연 시간 메트릭으로 바꾸고, 한 게이트웨이의 지연 시간이 높은 상태로 유지되면 경고를 보냅니다.
 
-```mermaid title="방화벽 syslog에서 게이트웨이별 알림까지"
+```mermaid title="방화벽 syslog에서 게이트웨이별 경고까지"
 flowchart TB
     firewall["Sophos 방화벽"] -->|"syslog"| logs["로그"]
     logs --> pipeline["로그 파이프라인이 key=value 쌍을 파싱"]
     pipeline --> rule["기록 규칙: 게이트웨이별 평균 지연 시간"]
     rule --> metric["sdwan.gateway.latency.ms"]
-    metric --> monitor["메트릭 모니터, 게이트웨이마다 알림 하나"]
+    metric --> monitor["메트릭 모니터, 게이트웨이마다 경고 하나"]
 ```
 
 :::steps
@@ -162,7 +162,7 @@ API, MCP 또는 Terraform에서는 같은 규칙의 **정의** 가 다음과 같
 
 몇 분 안에 규칙 목록에 **Computed Until** 시각이 표시되고, `sdwan.gateway.latency.ms` 가 메트릭 탐색기에 나타납니다. 이를 고르고 `gw_name` 으로 그룹화하면 게이트웨이마다 지연 시간 선이 하나씩 그려집니다.
 
-### 한 게이트웨이의 지연 시간이 계속 높으면 알림 보내기
+### 한 게이트웨이의 지연 시간이 계속 높으면 경고 보내기
 
 **메트릭** 모니터를 만드세요 ([메트릭 모니터](/docs/monitor/metrics-monitor) 참고).
 
@@ -172,7 +172,7 @@ API, MCP 또는 Terraform에서는 같은 규칙의 **정의** 가 다음과 같
 4. **기준:** Metric value **보다 큼** `150` 이면 경고가 열립니다.
 5. 필요하면 경고 제목에 그룹화 값을 사용하세요. 예: `SD-WAN latency high on {{gw_name}} ({{profile_name}})`.
 
-그룹화 기준을 설정하면 게이트웨이마다 별도의 시리즈가 됩니다. WAN2가 느려지면 WAN2만의 경고가 열리고, WAN2가 회복되면 저절로 해결됩니다. [시리즈별 알림](/docs/monitor/metrics-monitor#시리즈별-알림group-by) 을 참고하세요.
+그룹화 기준을 설정하면 게이트웨이마다 별도의 시리즈가 됩니다. WAN2가 느려지면 WAN2만의 경고가 열리고, WAN2가 회복되면 저절로 해결됩니다. [시리즈별 경고](/docs/monitor/metrics-monitor#시리즈별-경고group-by) 을 참고하세요.
 :::
 
 ## 알아 두면 좋은 점

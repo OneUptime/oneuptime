@@ -41,7 +41,7 @@ Un blocco viene eseguito quando il blocco precedente prende l'uscita collegata a
 flowchart TB
     trigger["On Create Incident"] -->|"Successo"| post["Chiamata API POST (JSON)"]
     post -->|"Successo: una risposta 2xx"| slack["Invia messaggio a Slack"]
-    post -->|"Errore: nessuna risposta, o non 2xx"| log["Registro"]
+    post -->|"Errore: nessuna risposta, o non 2xx"| log["Log"]
 ```
 
 - Le **Impostazioni** sono ciò che compili. Le impostazioni contrassegnate con **(Facoltativo)** possono restare vuote. Le impostazioni meno usate sono raccolte sotto **Altri campi**.

@@ -304,13 +304,13 @@ describe("formatCustomFieldFileNames", () => {
 
 describe("formatCustomFieldFileSize", () => {
   test("reads bytes, kilobytes and megabytes", () => {
-    expect(formatCustomFieldFileSize(0)).toBe("0 B");
-    expect(formatCustomFieldFileSize(640)).toBe("640 B");
-    expect(formatCustomFieldFileSize(1024)).toBe("1 KB");
-    expect(formatCustomFieldFileSize(48213)).toBe("47 KB");
-    expect(formatCustomFieldFileSize(1024 * 1024)).toBe("1 MB");
-    expect(formatCustomFieldFileSize(1.5 * 1024 * 1024)).toBe("1.5 MB");
-    expect(formatCustomFieldFileSize(10 * 1024 * 1024)).toBe("10 MB");
+    expect(formatCustomFieldFileSize(0)).toBe("0\u00A0B");
+    expect(formatCustomFieldFileSize(640)).toBe("640\u00A0B");
+    expect(formatCustomFieldFileSize(1024)).toBe("1\u00A0KB");
+    expect(formatCustomFieldFileSize(48213)).toBe("47\u00A0KB");
+    expect(formatCustomFieldFileSize(1024 * 1024)).toBe("1\u00A0MB");
+    expect(formatCustomFieldFileSize(1.5 * 1024 * 1024)).toBe("1.5\u00A0MB");
+    expect(formatCustomFieldFileSize(10 * 1024 * 1024)).toBe("10\u00A0MB");
   });
 
   test("a size that is no size reads as nothing", () => {

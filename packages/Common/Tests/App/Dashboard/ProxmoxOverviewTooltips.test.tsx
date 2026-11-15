@@ -1034,8 +1034,9 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
 
     const guests: HTMLElement = cardOf(infoButton("Guests", 0));
     expect(guests).toHaveTextContent("3/3");
+    // toHaveTextContent collapses the rate's no-break space (#8457) to a space.
     expect(guests).toHaveTextContent(
-      `running · net ${ValueFormatter.formatValue(3000, "By/s")}`,
+      `running · net ${ValueFormatter.formatValue(3000, "By/s").replace(/\u00A0/g, " ")}`,
     );
   });
 
@@ -1090,7 +1091,7 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
       "ok=1",
       "failed=1",
       "not-in-job=1",
-      "newest=30 minutes ago",
+      "newest=30\u00A0minutes ago",
     ]);
     expect(within(card).queryByTestId("proxmox-backups-card-setup")).toBeNull();
     // db's failed backup needs a look too.

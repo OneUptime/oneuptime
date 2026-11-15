@@ -42,6 +42,7 @@ Vid förbrukningstakten 1 nådde fönstret exakt SLO:ets mål, så standardvärd
 Vad kontrollen läser beror på vad SLO:et mäter:
 
 - Ett [SLO för begäranden](/docs/slo/request-slos) bedöms utifrån dess tjänsters begäranden i fönstret, lästa från deras spans när de kommer in. Lägg till `serviceVersion` för att bara bedöma den nya versionens begäranden: OneUptime matchar den mot resursattributet `service.version` på spansen, som en OpenTelemetry-SDK sätter från `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. På så sätt bedöms canaryn på sina egna begäranden, utan att spädas ut av den gamla versionens.
+- Ett [mätvärdesbaserat SLO](/docs/slo/request-slos#sloer-från-ett-mätvärde) bedöms utifrån mätvärdets händelser i fönstret, räknade så som dess SLI räknar dem, så `minimumRequestCount`, `goodRequestCount` och `totalRequestCount` är händelser. Med `serviceVersion` räknas bara de punkter i mätvärdet vars resursattribut `service.version` har det värdet: en OpenTelemetry-SDK sätter det på sina mätvärden precis som på sina spans.
 - Ett SLO för monitorernas drifttid bedöms utifrån dess monitorers statustidslinjer över fönstret. `minimumRequestCount` gäller inte för det, och en kontroll med `serviceVersion` avvisas: monitorer har inga versioner.
 
 ## Innan du börjar
@@ -126,7 +127,7 @@ Svarets fält:
 | `deploymentsAllowed` och `errorBudgetPolicyTier` | Om SLO:ets felbudgetpolicy tillåter distributioner, och den nivå som SLO:et är i. |
 | `checkedAt` | När kontrollen mättes. |
 
-Ett SLO som inte kan mätas – ett SLO för begäranden utan tjänster, ett latens-SLO utan gräns, ett SLO för monitorernas drifttid utan monitorer – besvaras med HTTP 400 och vad som behöver åtgärdas, så att en utrullning stoppar på ett tydligt fel i stället för på en gissning. På en egenhostad installation använder du dess egen adress i stället för oneuptime.com.
+Ett SLO som inte kan mätas – ett SLO för begäranden utan tjänster, ett latens-SLO utan gräns, ett mätvärdesbaserat SLO utan ett mätvärde som går att räkna, ett SLO för monitorernas drifttid utan monitorer – besvaras med HTTP 400 och vad som behöver åtgärdas, så att en utrullning stoppar på ett tydligt fel i stället för på en gissning. På en egenhostad installation använder du dess egen adress i stället för oneuptime.com.
 
 ## Argo Rollouts
 

@@ -46,6 +46,7 @@ const ServiceAddedModal: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate(SERVICE_ADDED_TITLE, {
         name: props.name,
       })}
+      isTitleTranslated={true}
       description={
         canCarryServiceName(props.name)
           ? SERVICE_ADDED_DESCRIPTION

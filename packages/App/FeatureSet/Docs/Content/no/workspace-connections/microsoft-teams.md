@@ -26,7 +26,7 @@ flowchart TB
 Tre ting får dette til å fungere:
 
 - **Prosjektets tilkobling**, gjort én gang: en Microsoft 365-administrator gir samtykke til OneUptime-appen for organisasjonen din.
-- **OneUptime-appen i hvert team** du vil ha varsler i. Microsoft lar bare boten publisere i et team den er lagt til i.
+- **OneUptime-appen i hvert team** du vil ha varslinger i. Microsoft lar bare boten publisere i et team den er lagt til i.
 - **Hver persons egen tilkobling**: personens Microsoft Teams-konto koblet til personens OneUptime-konto. Knapper, kommandoer og reaksjoner handler som den personen, med personens tillatelser i prosjektet.
 
 Én Microsoft 365-organisasjon kan være koblet til mer enn ett prosjekt, for eksempel produksjon og staging. Knappen på et kort handler i prosjektet kortet ble sendt for, for eksempel prosjektet til hendelsen kortet gjelder. En melding til boten handler i prosjektet til kanalen den sendes i, for eksempel en hendelses kanal, ellers i det ene prosjektet avsenderens Microsoft Teams-konto er koblet til i. Når ingenting viser hvilket, spør boten avsenderen hvilket prosjekt personen mener, med en knapp for hvert prosjekt personen er med i, og fortsetter der når personen har valgt. I en samtale med OneUptime AI gjelder valget for oppfølgingsspørsmålene, til det går en time uten et, og svarene sier hvilket prosjekt de kommer fra. Innen den timen stiller **Ask in another project** avsenderens siste spørsmål på nytt i et annet av personens prosjekter: med en gang når personen har ett annet, ellers etter å ha spurt hvilket. I en personlig chat tilbyr boten det som en knapp ved skrivefeltet.
@@ -51,12 +51,12 @@ Klikk på **Connect with Microsoft Teams**, og logg på med jobbkontoen din. One
 
 ### Legg til OneUptime-appen i hvert team (påkrevd)
 
-Å koble til kontoen din er ikke nok i seg selv. Microsoft lar bare OneUptime-boten publisere i et team den er lagt til i, så gjør dette for hvert team du vil ha varsler i:
+Å koble til kontoen din er ikke nok i seg selv. Microsoft lar bare OneUptime-boten publisere i et team den er lagt til i, så gjør dette for hvert team du vil ha varslinger i:
 
 - I Microsoft Teams klikker du på "..." ved siden av **teamnavnet** (ikke kanalnavnet).
 - Velg **Manage team** > **Apps** > **More apps**, finn **OneUptime**, og klikk på **Add**.
 
-På OneUptime Cloud åpner **Åpne Teams Store** appen i Microsoft Teams Store, der **Add to a team** gjør det samme. På en selvdriftet server installerer du i stedet pakken fra **Last ned app-manifest-zip**: bare den inneholder serverens bot. Hvis et testvarsel sier at OneUptime-appen ikke er installert i teamet, er det dette trinnet som ble hoppet over.
+På OneUptime Cloud åpner **Åpne Teams Store** appen i Microsoft Teams Store, der **Add to a team** gjør det samme. På en selvdriftet server installerer du i stedet pakken fra **Last ned app-manifest-zip**: bare den inneholder serverens bot. Hvis en testvarsling sier at OneUptime-appen ikke er installert i teamet, er det dette trinnet som ble hoppet over.
 
 ### Koble til alle andre
 
@@ -68,7 +68,7 @@ Gå til **Hendelser** > **Arbeidsområde** > **Microsoft Teams**. Seksjonen **Ar
 :::
 
 > [!NOTE]
-> Å installere OneUptime for deg selv, eller legge den til i en chat, er en annen installasjon og lar den ikke publisere i et teams kanaler. **Private kanaler** krever at appen er lagt til i selve kanalen: åpne kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. **Delte kanaler** kan ikke motta varsler: Microsoft Teams støtter ikke boter i delte kanaler.
+> Å installere OneUptime for deg selv, eller legge den til i en chat, er en annen installasjon og lar den ikke publisere i et teams kanaler. **Private kanaler** krever at appen er lagt til i selve kanalen: åpne kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. **Delte kanaler** kan ikke motta varslinger: Microsoft Teams støtter ikke boter i delte kanaler.
 
 ## Be alle om å koble til kontoen sin
 
@@ -153,11 +153,11 @@ På OneUptime Cloud hører varslingsregler og sammendrag til **Growth**-planen o
 
 ## Bli tilkalt i Microsoft Teams
 
-For å bli tilkalt med direktemelding når du har vakt, legger du til Microsoft Teams som en av varselmetodene dine:
+For å bli tilkalt med direktemelding når du har vakt, legger du til Microsoft Teams som en av varslingsmetodene dine:
 
 :::steps
 1. Koble til din egen Microsoft Teams-konto (se [Koble til Microsoft Teams](#koble-til-microsoft-teams)).
-2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Microsoft Teams-konto**.
+2. Gå til **Brukerinnstillinger** > **Varslingsmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Microsoft Teams-konto**.
 3. Klikk på **Send testmelding** i raden. Meldingen kommer i chattene dine i Microsoft Teams.
 :::
 
@@ -292,15 +292,15 @@ En retting som OneUptime AI foreslår til godkjenning, sendes til hendelsens ell
 
 ## Godkjenne et offentlig notat
 
-Når prosjektets offentlige notater må godkjennes og du slår på Microsoft Teams for **Godkjenning av offentlige notater** i varselinnstillingene dine, kommer hvert offentlige notat som venter på et trinn du godkjenner, som et kort til den personlige chatten din med OneUptime-boten: hvem som sendte det, hvilket trinn det venter på, notatet og tre knapper. **Approve** godkjenner det for det trinnet; på det siste trinnet heter knappen **Approve and publish**, og notatet publiseres med en gang. **Reject** svarer med et kort som spør **Why are you rejecting it?**: en begrunnelse er påkrevd, og forfatteren av notatet ser den; når notatet er avvist, fjernes kortet. **View in OneUptime** åpner notatet. Knappene handler som deg, etter de samme reglene som i OneUptime: du må være nevnt på trinnet, selv eller gjennom et team, og du kan ikke avgjøre et notat du sendte selv eller godkjenne to trinn av samme notat. Boten svarer i den samme chatten. Et trykk etter at noen andre har avgjort, eller etter at notatet eller trinnene er endret, avgjør ingenting og sier hva som skjedde. Når notatet er avgjort, endres kortet til hver godkjenner om det, også ditt, så det sier hva som skjedde: godkjent for trinnet sitt og hvem det venter på nå, publisert, avvist, endret eller sendt til godkjenning igjen, publisert uten godkjenning, eller slettet. Det beholder **View in OneUptime**, og **Approve** og **Reject** er borte. Hvis Microsoft Teams-kontoen din ikke er koblet til, ber svaret deg koble den til, og OneUptime godkjenner notatet for deg når du har gjort det; trykk på **Reject** igjen. Når godkjenningstrinnene endres mens et notat venter, endres også meldingen din om det hvis notatet ikke lenger venter på trinnet ditt, eller du ikke lenger blir spurt, og de det nå venter på, får en egen melding. Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
+Når prosjektets offentlige notater må godkjennes og du slår på Microsoft Teams for **Godkjenning av offentlige notater** i varslingsinnstillingene dine, kommer hvert offentlige notat som venter på et trinn du godkjenner, som et kort til den personlige chatten din med OneUptime-boten: hvem som sendte det, hvilket trinn det venter på, notatet og tre knapper. **Approve** godkjenner det for det trinnet; på det siste trinnet heter knappen **Approve and publish**, og notatet publiseres med en gang. **Reject** svarer med et kort som spør **Why are you rejecting it?**: en begrunnelse er påkrevd, og forfatteren av notatet ser den; når notatet er avvist, fjernes kortet. **View in OneUptime** åpner notatet. Knappene handler som deg, etter de samme reglene som i OneUptime: du må være nevnt på trinnet, selv eller gjennom et team, og du kan ikke avgjøre et notat du sendte selv eller godkjenne to trinn av samme notat. Boten svarer i den samme chatten. Et trykk etter at noen andre har avgjort, eller etter at notatet eller trinnene er endret, avgjør ingenting og sier hva som skjedde. Når notatet er avgjort, endres kortet til hver godkjenner om det, også ditt, så det sier hva som skjedde: godkjent for trinnet sitt og hvem det venter på nå, publisert, avvist, endret eller sendt til godkjenning igjen, publisert uten godkjenning, eller slettet. Det beholder **View in OneUptime**, og **Approve** og **Reject** er borte. Hvis Microsoft Teams-kontoen din ikke er koblet til, ber svaret deg koble den til, og OneUptime godkjenner notatet for deg når du har gjort det; trykk på **Reject** igjen. Når godkjenningstrinnene endres mens et notat venter, endres også meldingen din om det hvis notatet ikke lenger venter på trinnet ditt, eller du ikke lenger blir spurt, og de det nå venter på, får en egen melding. Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 ## Koble fra
 
-- **Koble fra** kobler bare fra din egen Microsoft Teams-konto, og fjerner samtidig Microsoft Teams-varselmetoden din.
+- **Koble fra** kobler bare fra din egen Microsoft Teams-konto, og fjerner samtidig Microsoft Teams-varslingsmetoden din.
 - **Uninstall OneUptime from Microsoft Teams**, på **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**, kobler fra prosjektet. OneUptime slutter å publisere i Microsoft Teams, og menyene **Arbeidsområde** slutter å vise det. Varslingsreglene og sammendragene beholdes til du kobler til igjen.
 
 > [!WARNING]
-> Å avinstallere kobler også fra hvert medlems egen Microsoft Teams-konto i prosjektet, og fjerner Microsoft Teams-varselmetodene og vaktreglene som brukte dem. Et prosjekt er koblet til én Microsoft 365-organisasjon: for å flytte det til en annen må du avinstallere først.
+> Å avinstallere kobler også fra hvert medlems egen Microsoft Teams-konto i prosjektet, og fjerner Microsoft Teams-varslingsmetodene og vaktreglene som brukte dem. Et prosjekt er koblet til én Microsoft 365-organisasjon: for å flytte det til en annen må du avinstallere først.
 
 ## Feilsøking
 
@@ -316,14 +316,14 @@ Når Microsoft sender deg tilbake uten en tilkobling, sier siden du startet fra 
 Trykk på **Connect Microsoft Teams account** i svaret fra boten for å koble den til i ett trinn, eller koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**. Uansett logger du på organisasjonen prosjektet er koblet til, som gjest hvis du er gjest der. Er du gjest og har tidligere koblet til kontoen til din egen organisasjon, kobler du den til på nytt.
 :::
 
-:::details Alle varsler mislykkes på en selvdriftet server
+:::details Alle varslinger mislykkes på en selvdriftet server
 Teams-appen som er installert i teamene dine, må være pakken serveren din bygde, og Microsoft må kunne nå serverens bot-endepunkt. Se feilsøkingen i [Microsoft Teams-integrasjon](/docs/self-hosted/microsoft-teams-integration#feilsøking).
 :::
 
 ## Neste steg
 
 :::cards
-- [Slack](/docs/workspace-connections/slack): De samme varslene og handlingene i Slack.
+- [Slack](/docs/workspace-connections/slack): De samme varslingene og handlingene i Slack.
 - [Videosamtaler](/docs/workspace-connections/video-calls): Gi hver hendelse en samtale, publisert med oppdateringene.
 - [Microsoft Teams-integrasjon](/docs/self-hosted/microsoft-teams-integration): Sett opp Teams-boten på en selvdriftet server.
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): Alle måtene en hendelse starter på, og hva som kjører når den gjør det.

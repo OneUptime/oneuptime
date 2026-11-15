@@ -70,14 +70,11 @@ const KNOWN_STATIC = [
   "AcknowledgementTimeout/Fixture/Fixture.js",
   "AiContext/Fixture/Fixture.js",
   "AiInsights/Fixture/Fixture.js",
-  "AppPlatforms/Fixture/Fixture.js",
   "ArchivableValues/Fixture/Fixture.js",
   "AssetDetails/Fixture.js",
   "BulkActions/Fixture/Fixture.js",
-  "CalendarFeed/Fixture.js",
   "CephPages/Fixture/Fixture.js",
   "CloudRecommendations/Fixture/Fixture.js",
-  "CloudSpend/Fixture/Fixture.js",
   "ContainerHostPages/Fixture/Fixture.js",
   "CustomFieldFiles/Fixture/Dashboard.js",
   "CustomRoles/Fixture/Fixture.js",
@@ -86,7 +83,6 @@ const KNOWN_STATIC = [
   "DashboardTimeRange/Fixture/AppFixture.js",
   "DashboardValueWidget/Fixture/AppFixture.js",
   "DashboardWidgetSort/Fixture/AppFixture.js",
-  "DataSecurity/Fixture/Fixture.js",
   "DatabasePages/Fixture/Fixture.js",
   "DetailCards/Fixture/Fixture.js",
   "DockerSwarmPages/Fixture/Fixture.js",
@@ -95,18 +91,14 @@ const KNOWN_STATIC = [
   "ExternalMcpServers/Fixture/Fixture.js",
   "FirstOnCallPolicy/Fixture/Fixture.js",
   "GlobalRunners/Fixture/Fixture.js",
-  "HomeOverview/Fixture/Fixture.js",
   "HostCollectors/Fixture/Fixture.js",
   "HostPages/Fixture/Fixture.js",
   "InfrastructureFirstRun/Fixture/Fixture.js",
-  "KubernetesEvents/Fixture/Fixture.js",
   "KubernetesPages/Fixture/Fixture.js",
   "ListDelete/Fixture/Fixture.js",
   "LlmConnect/Fixture.js",
   "LlmProviderTest/Fixture.js",
   "MaintenanceCalendar/Fixture.js",
-  "MerakiTraffic/Fixture/Fixture.js",
-  "ModelTables/Fixture/Fixture.js",
   "MultiDeviceSnmpWalk/Fixture.js",
   "NetworkFirstRun/Fixture/Fixture.js",
   "NetworkTrafficNames/Fixture/Fixture.js",
@@ -121,14 +113,12 @@ const KNOWN_STATIC = [
   "ProxmoxPages/Fixture/Fixture.js",
   "PublicAddresses/Fixture/Fixture.js",
   "ResourceOnboarding/Fixture/Fixture.js",
-  "ResourceOverviews/Fixture/Fixture.js",
   "ResourceTopology/Fixture/Fixture.js",
   "RulesMenuSection/Fixture/Fixture.js",
   "RunbookSteps/Fixture/Fixture.js",
   "RunbookTriggers/Fixture/Fixture.js",
   "RunbookVariables/Fixture/Fixture.js",
   "RunbooksMenu/Fixture/Fixture.js",
-  "SharedUi/Fixture/Fixture.js",
   "SnmpWalk/Fixture.js",
   "StatusTimeline/Fixture/Fixture.js",
   "StorageArrayPages/Fixture/Fixture.js",
@@ -705,8 +695,25 @@ describe("the fixtures' locale helpers", () => {
     const germanFile = path.join(LOCALES_DIR, "de.json");
     const english = JSON.parse(fs.readFileSync(englishFile, "utf8"));
     const german = JSON.parse(fs.readFileSync(germanFile, "utf8"));
-    const shippedEnglish = JSON.parse(onLoad({ path: englishFile }).contents);
-    const shippedGerman = JSON.parse(onLoad({ path: germanFile }).contents);
+    /*
+     * A locale ships as one default export, its JSON handed to JSON.parse
+     * (#8650): the module's default, run as JavaScript.
+     */
+    const shippedLocale = (file) => {
+      const result = onLoad({ path: file });
+
+      expect(result.loader).toBe("js");
+      expect(result.contents.startsWith("export default JSON.parse(")).toBe(
+        true,
+      );
+
+      // eslint-disable-next-line no-new-func
+      return new Function(
+        `return ${result.contents.slice("export default ".length)}`,
+      )();
+    };
+    const shippedEnglish = shippedLocale(englishFile);
+    const shippedGerman = shippedLocale(germanFile);
 
     // English ships a sliver of itself: no key that is its own English.
     expect(Object.keys(shippedEnglish).length).toBeLessThan(

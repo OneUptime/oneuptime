@@ -50,7 +50,7 @@ I trinnet **Etiketter** velger du **Etiketter å legge til**. I en eierregel het
 
 ### Sjekk de sammenslåtte feltene
 
-**Flere felt** inneholder den valgfrie **Beskrivelse** og, i en eierregel, **Varsle eiere**, som er på som standard: eierne en regel legger til, får det samme varselet «du er lagt til som eier» som en eier som legges til manuelt. Slå det av for å legge til eiere uten å varsle dem.
+**Flere felt** inneholder den valgfrie **Beskrivelse** og, i en eierregel, **Varsle eiere**, som er på som standard: eierne en regel legger til, får den samme varslingen «du er lagt til som eier» som en eier som legges til manuelt. Slå det av for å legge til eiere uten å varsle dem.
 
 ### Lagre regelen
 

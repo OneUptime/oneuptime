@@ -35,7 +35,9 @@ const DockerDocumentationCard: FunctionComponent<ComponentProps> = (
       newKeyName={translationKey("Docker key")}
       optionsLabel="How do you want to run the agent?"
       options={DOCKER_INSTALL_METHODS}
-      keyStepDescription="The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getDockerSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,

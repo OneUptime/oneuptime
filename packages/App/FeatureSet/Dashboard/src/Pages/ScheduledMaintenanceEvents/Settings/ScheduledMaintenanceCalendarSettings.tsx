@@ -546,6 +546,7 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
           title={translator.translateTemplate("Change the link of {{name}}", {
             name: changingLinkOf.name || "",
           })}
+          isTitleTranslated={true}
           description="Paste the calendar's new iCal (.ics) link. The events of the old link are forgotten, and the new one is read at once."
           submitButtonText="Change link"
           isLoading={isChangingLink}

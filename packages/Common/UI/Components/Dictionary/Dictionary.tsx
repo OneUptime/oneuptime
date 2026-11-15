@@ -818,6 +818,7 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                 template: "Add {{itemName}}",
                 itemName: props.addButtonSuffix || translationKey("Item"),
               })}
+              isTitleTranslated={true}
               icon={IconProp.Add}
               buttonSize={ButtonSize.Small}
               onClick={() => {

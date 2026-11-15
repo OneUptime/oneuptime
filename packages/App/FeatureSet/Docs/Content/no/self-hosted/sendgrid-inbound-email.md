@@ -53,7 +53,7 @@ Sett `INBOUND_EMAIL_WEBHOOK_SECRET` til en sterk tilfeldig verdi, og erstatt `YO
 
 SendGrid tilbyr ikke en pålitelig liste over statiske kilde-IP-er for Inbound Parse. SendGrids IP-er for sending av e-post og adressene som slås opp for `mx.sendgrid.net`, er ikke en tillatelsesliste for webhooks. Følg [SendGrids veiledning om brannmurer](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) i stedet for å låse et gjeldende DNS-resultat.
 
-Inbound Parse er atskilt fra sending av utgående e-post. For å motta monitor-e-poster trenger ikke OneUptime å kalle SendGrid-API-et. Velger du også SendGrid til å sende varsler, tillater du DNS-oppslag og utgående HTTPS til `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) trenger ingen innkommende tilbakekalling for innsending. Bruker du SMTP i stedet, tillater du SMTP-serveren og porten som er satt opp i OneUptime.
+Inbound Parse er atskilt fra sending av utgående e-post. For å motta monitor-e-poster trenger ikke OneUptime å kalle SendGrid-API-et. Velger du også SendGrid til å sende varslinger, tillater du DNS-oppslag og utgående HTTPS til `api.sendgrid.com`; [Mail Send](https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send) trenger ingen innkommende tilbakekalling for innsending. Bruker du SMTP i stedet, tillater du SMTP-serveren og porten som er satt opp i OneUptime.
 
 ## Oppsettsveiledning
 

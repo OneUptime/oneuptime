@@ -443,6 +443,7 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
               },
               collect.collectableDeviceIds.length,
             )}
+            isTitleTranslated={true}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
             dataTestId="multi-snmp-walk-row-collect"
@@ -747,6 +748,7 @@ const MultiDeviceSnmpWalkResults: FunctionComponent<ComponentProps> = (
                 ),
               ),
             })}
+            isTitleTranslated={true}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
             className="!ml-0 !w-auto !text-sm"

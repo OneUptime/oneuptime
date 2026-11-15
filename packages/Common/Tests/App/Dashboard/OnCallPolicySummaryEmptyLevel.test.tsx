@@ -225,13 +225,13 @@ describe("a level with no responders before the final one", () => {
       { wait: 15, notifies: "team" },
     ]);
 
-    expect(toFinalLevel()).toBe("5 min");
+    expect(toFinalLevel()).toBe("5\u00A0min");
     expect(
       screen.getByText((_content: string, element: Element | null): boolean => {
         return (
           element?.tagName === "P" &&
           (element.textContent || "").includes(
-            "climbs to the final level after 5 min",
+            "climbs to the final level after 5\u00A0min",
           )
         );
       }),
@@ -278,7 +278,7 @@ describe("a level whose schedule has nobody on call right now", () => {
       { wait: 15, notifies: "team" },
     ]);
 
-    expect(toFinalLevel()).toBe("5 min");
+    expect(toFinalLevel()).toBe("5\u00A0min");
     expect(
       screen.queryByTestId("policy-summary-levels-skipped"),
     ).not.toBeInTheDocument();
@@ -293,7 +293,7 @@ describe("a policy whose every level pages somebody", () => {
       { wait: 15, notifies: "team" },
     ]);
 
-    expect(toFinalLevel()).toBe("15 min");
+    expect(toFinalLevel()).toBe("15\u00A0min");
     expect(
       screen.queryByTestId("policy-summary-levels-skipped"),
     ).not.toBeInTheDocument();

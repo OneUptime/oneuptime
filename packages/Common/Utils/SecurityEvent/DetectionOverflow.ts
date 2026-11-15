@@ -65,7 +65,8 @@ function formatCount(count: number): string {
 export function describeDetectionOverflow(overflow: DetectionOverflow): string {
   // A rule's evaluation is a run; a feed's, a check (the Threat Intelligence guide's word).
   const pass: string = overflow.kind === "rule" ? "run" : "check";
-  const unit: string = overflow.kind === "rule" ? "groups" : "indicator values";
+  // What was counted, in words: no unit's symbol to hold to its figure.
+  const noun: string = overflow.kind === "rule" ? "groups" : "indicator values";
   const matched: string = overflow.moreThanRead
     ? `more than ${formatCount(overflow.matched)}`
     : formatCount(overflow.matched);
@@ -94,7 +95,7 @@ export function describeDetectionOverflow(overflow: DetectionOverflow): string {
       ? "Raise the Match Count Threshold, or group by a coarser field."
       : "Check the feed for indicators that match everyday values, or raise its Minimum Confidence.";
 
-  return `This ${pass} matched ${matched} ${unit}. ${opened}; ${recorded}. ${advice}`;
+  return `This ${pass} matched ${matched} ${noun}. ${opened}; ${recorded}. ${advice}`;
 }
 
 /*

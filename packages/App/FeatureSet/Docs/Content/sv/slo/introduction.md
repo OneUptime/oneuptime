@@ -49,7 +49,7 @@ Du behöver en roll som får skapa SLO:er: Projektägare, Projektadministratör 
 
 ### Välj vad SLO:et mäter
 
-Under **Vad den mäter** behåller du **Monitorernas drifttid** för att mäta den andel av tiden som monitorerna är tillgängliga. Välj **Lyckade begäranden** eller **Latens för begäranden** för att i stället mäta tjänsters begäranden, och välj tjänsterna under **Tjänster**: se [SLO:er för begäranden och latens](/docs/slo/request-slos). Klicka på **Nästa**.
+Under **Vad den mäter** behåller du **Monitorernas drifttid** för att mäta den andel av tiden som monitorerna är tillgängliga. Välj **Lyckade begäranden** eller **Latens för begäranden** för att i stället mäta tjänsters begäranden, och välj tjänsterna under **Tjänster**: se [SLO:er för begäranden och latens](/docs/slo/request-slos). Välj **Mätvärde** för att räkna de bra händelserna i en räknare eller ett histogram som dina tjänster skickar: se [SLO:er från ett mätvärde](/docs/slo/request-slos#sloer-från-ett-mätvärde). Klicka på **Nästa**.
 
 ### Ge det ett namn och ett mål
 
@@ -201,7 +201,7 @@ Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 
 | Kort | Det du ändrar | Bra att veta |
 | --- | --- | --- |
-| **Vad den mäter** | **Vad den mäter**, **Tjänster**, **Latensgräns (ms)** och **Begäransfilter**, med **Redigera vad den mäter**. | Ett SLO för begäranden räknar om sina begäranden från början efter en ändring. |
+| **Vad den mäter** | **Vad den mäter**, **Tjänster**, **Latensgräns (ms)**, **Begäransfilter** och **Mätvärde**, med **Redigera vad den mäter**. | Ett SLO för begäranden räknar om sina begäranden från början efter en ändring. |
 | **Mål** | **Mål (%)** och **Tröskel för riskzon (%)**, med **Redigera mål**. | Visar det driftstopp som målet tillåter, till exempel ”43 min 12 s driftstopp per fönster på 30 dagar”. |
 | **Efterlevnadsperiod** | **Fönstertyp**, **Fönster (dagar)** och **Tidszon**, med **Redigera period**. | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt. |
 | **Beräkning av driftstopp** | **Läge för flera monitorer** och **Monitorstatusar för driftstopp**, med **Redigera beräkning av driftstopp**. | Bara SLO:er för monitorernas drifttid. Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |
@@ -265,6 +265,8 @@ En banner högst upp på SLO:ets sidor talar om vad som hindrar det från att m�
 | **Inga tjänster valda** | Ett SLO för begäranden har inga tjänster, så det har inga begäranden att räkna. | Välj dess tjänster under **Inställningar** → **Vad den mäter**. |
 | **Ingen latensgräns** | Ett latens-SLO har ingen gräns, så ingen begäran kan räknas som tillräckligt snabb. | Ange **Latensgräns (ms)** under **Inställningar** → **Vad den mäter**. |
 | **Väntar på begäranden** | Ingen av tjänsterna för ett SLO för begäranden har besvarat en begäran i fönstret ännu. | Kontrollera att tjänsterna skickar spår till OneUptime. Siffrorna visas efter nästa utvärdering som räknar en begäran. |
+| **Inget mätvärde att räkna** | Ett mätvärdesbaserat SLO har inget mätvärde som det kan räkna: inget är valt, eller så saknas det som avgör vilka av dess händelser som är bra. | Välj mätvärdet, och dess villkor eller värde för bra händelser, under **Inställningar** → **Vad den mäter**. |
+| **Väntar på mätvärdet** | Ingen av tjänsterna för ett mätvärdesbaserat SLO har skickat någon händelse från dess mätvärde i fönstret ännu. | Kontrollera att tjänsterna skickar mätvärdet till OneUptime, under det namn som SLO:et räknar. Siffrorna visas efter nästa utvärdering som räknar en händelse. |
 
 ## Nästa steg
 

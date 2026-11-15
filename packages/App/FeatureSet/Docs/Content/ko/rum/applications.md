@@ -161,7 +161,7 @@ const resource = defaultResource().merge(
 
 유용한 분리 방법: 지원 엔지니어에게 `ReadRumApplication`과 `ReadRumSessionReplay`를 부여하세요. 누구의 화면도 보지 않고 사용자가 누구였는지도 모른 채, 어떤 세션에 오류가 있었는지 확인할 수 있습니다. `ReadRumSessionReplayPayload`는 필요한 사람에게만 부여하세요. 그러면 `ReadRumSessionReplayAudit`이 있는 멤버가 애플리케이션의 **리플레이 접근 로그** 페이지에서 모든 시청 기록을 볼 수 있습니다. [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에서 각 권한이 세션 목록과 플레이어에서 무엇을 여는지 설명합니다.
 
-## RUM 데이터 알림
+## RUM 데이터 경고
 
 RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별도의 RUM 모니터는 없습니다. 일반 모니터가 그대로 작동합니다. 가장 빠르게 시작하는 방법은 애플리케이션의 **권장 사항** 페이지로, 이미 애플리케이션 범위로 지정된 모니터를 제안합니다.
 
@@ -169,7 +169,7 @@ RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별
 | --- | --- |
 | Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint, Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals)를 참고하세요. |
 | 오류 | Failed User Operations와 Unhandled Browser Exceptions. |
-| 세션 리플레이 | 네 가지 [스토리지 예산 알림](/docs/telemetry/session-replay#스토리지-예산-알림)으로, 프로젝트의 일일 한도나 애플리케이션의 월간 예산이 소진되기 전에 경고합니다. 애플리케이션이 리플레이를 녹화하면 제안되고, 월간 쌍은 월간 예산도 있을 때 제안됩니다. |
+| 세션 리플레이 | 네 가지 [스토리지 예산 경고](/docs/telemetry/session-replay#스토리지-예산-경고)으로, 프로젝트의 일일 한도나 애플리케이션의 월간 예산이 소진되기 전에 경고합니다. 애플리케이션이 리플레이를 녹화하면 제안되고, 월간 쌍은 월간 예산도 있을 때 제안됩니다. |
 
 직접 모니터를 만들려면 해당 신호를 읽는 모니터를 고르세요.
 

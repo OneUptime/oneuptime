@@ -202,9 +202,11 @@ describe("the incident and the alert step, each in its own words", () => {
   };
 
   test.each(
-    FROM_ANOTHER_TOOL_KINDS.map((kind: FromAnotherToolKind) => {
-      return [kind.Noun, kind];
-    }),
+    FROM_ANOTHER_TOOL_KINDS.map(
+      (kind: FromAnotherToolKind): [string, FromAnotherToolKind] => {
+        return [kind.Noun, kind];
+      },
+    ),
   )(
     "%s From Another Tool says what it said, for its kind",
     (_noun: string, kind: FromAnotherToolKind) => {

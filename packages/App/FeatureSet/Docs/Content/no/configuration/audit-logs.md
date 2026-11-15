@@ -82,7 +82,7 @@ Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, 
 
 | Registreres ikke | Hvorfor |
 | --- | --- |
-| Logger over meldinger | Hver av dem er allerede registreringen av en e-post, SMS, en samtale, et pushvarsel eller en chatmelding OneUptime har sendt eller mottatt. |
+| Logger over meldinger | Hver av dem er allerede registreringen av en e-post, SMS, en samtale, en pushvarsling eller en chatmelding OneUptime har sendt eller mottatt. |
 | Registreringer av kjøringer | Hver av dem er allerede registreringen av en kjøring av en arbeidsflyt, en vakteskalering, en skanning, en import eller en AI-kjøring. |
 | Det agenter og telemetri rapporterer | Oppdagede ressurser, målinger og forbruk endrer seg med hver rapport, ikke fordi noen har endret dem. |
 | Aktivitetsfeeder | En feed viser endringer som revisjonsloggen allerede registrerer. |

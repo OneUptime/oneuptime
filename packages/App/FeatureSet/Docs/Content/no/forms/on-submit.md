@@ -73,7 +73,7 @@ En hendelse som er opprettet via et skjema, er en vanlig hendelse med noen få e
 
 - **Skjult fra statussider.** **Synlig på statussiden** er slått av, og det samme er **Varsle statussideabonnenter**. Til en responder publiserer den, når ingenting om hendelsen en statusside eller en abonnent — bortsett fra en mals endring av monitorstatus, ovenfor.
 - **Opprettet av ingen.** Innsenderen er ikke en OneUptime-bruker, så ingen bruker registreres som den som opprettet hendelsen.
-- **Eierne får beskjed.** Eierne innstillingene og malen nevner, legges til så snart hendelsens Slack- og Microsoft Teams-kanaler finnes, og får varsel — hendelsens varsel **Hendelse opprettet** venter til de er eierne, så det går til dem i stedet for til Prosjekteiere.
+- **Eierne får beskjed.** Eierne innstillingene og malen nevner, legges til så snart hendelsens Slack- og Microsoft Teams-kanaler finnes, og får varsling — hendelsens varsling **Hendelse opprettet** venter til de er eierne, så det går til dem i stedet for til Prosjekteiere.
 - **Et privat notat registrerer innsendingen** — se [Det private notatet](#det-private-notatet).
 
 Alt som kjører for en ny hendelse, kjører også for disse: personvern-, eier-, etikett-, vakt- og runbook-regler, vaktpolicyer og arbeidsflyter med **On Create Incident**. Vaktregler matcher et skjemas hendelser som alle andre — også på tittelen og beskrivelsen, som innsenderen skrev.
@@ -89,7 +89,7 @@ Slå på **Synlig på statussiden** fra hendelsens side **Innstillinger**.
 
 #### Gi abonnentene beskjed, hvis de skal vite det
 
-Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sender publisering ikke varselet "hendelse opprettet". For å gi abonnentene beskjed publiserer du et offentlig notat med **Varsle statussideabonnenter** krysset av — se [Publiser et offentlig notat](/docs/incidents/notes-owners-and-feed#publiser-et-offentlig-notat).
+Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sender publisering ikke varslingen "hendelse opprettet". For å gi abonnentene beskjed publiserer du et offentlig notat med **Varsle statussideabonnenter** krysset av — se [Publiser et offentlig notat](/docs/incidents/notes-owners-and-feed#publiser-et-offentlig-notat).
 :::
 
 ## Slik blir en innsending til en vedlikeholdshendelse

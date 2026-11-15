@@ -147,6 +147,7 @@ const CustomChannels: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate("Send test: {{name}}", {
             name: testedChannel.name || "",
           })}
+          isTitleTranslated={true}
           error={testError}
           description={
             isTesting

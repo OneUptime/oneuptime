@@ -16,7 +16,7 @@
 ```mermaid title="각 확인을 판정하는 방식"
 flowchart TB
     R["확인 결과"] --> C1{"기준 1:<br/>필터가<br/>일치하는가?"}
-    C1 -->|"예"| A["그 기준이 동작:<br/>상태, 인시던트, 알림"]
+    C1 -->|"예"| A["그 기준이 동작:<br/>상태, 인시던트, 경고"]
     C1 -->|"아니요"| C2{"기준 2:<br/>필터가<br/>일치하는가?"}
     C2 -->|"예"| A
     C2 -->|"아니요"| D["일치하는 기준 없음:<br/>기본 상태"]
@@ -247,7 +247,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `incident_grouping` | string (JSON) | 수신 요청 모니터 전용: 요청에서 찾은 값마다 인시던트 하나(예: `jsonencode({ groupByJSONPath = "..." })`). |
 | `open_for_every_email` | bool | 수신 이메일 모니터 전용: `true`이면 한 번에 하나씩이 아니라 일치하는 이메일마다 인시던트(와 경고)를 엽니다. |
 
-### 인시던트와 알림
+### 인시던트와 경고
 
 `incidents`의 항목은 `title`과 `description`(둘 다 필수), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page`, `is_private`를 받습니다. `alerts`의 항목도 같은 것을 받지만, `alert_severity_id`와 `auto_resolve_alert`가 있고 `show_incident_on_status_page`는 없습니다.
 
@@ -384,7 +384,7 @@ monitor_steps = [{
 }]
 ```
 
-`Greater Than`과 다른 숫자 조건은 숫자인 필드에만 일치하고, 반환된 데이터에 없는 필드는 `Is Empty`에만 일치합니다. 경로와 조건이 작동하는 방식은 [반환된 데이터로 알림 받기](/docs/monitor/custom-code-monitor#반환된-데이터로-알림-받기)를 참조하세요.
+`Greater Than`과 다른 숫자 조건은 숫자인 필드에만 일치하고, 반환된 데이터에 없는 필드는 `Is Empty`에만 일치합니다. 경로와 조건이 작동하는 방식은 [반환된 데이터로 경고 받기](/docs/monitor/custom-code-monitor#반환된-데이터로-경고-받기)를 참조하세요.
 
 ## 흔한 실수
 

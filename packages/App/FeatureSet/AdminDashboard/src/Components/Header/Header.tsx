@@ -54,6 +54,7 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
             <div className="max-lg:hidden items-center lg:flex">
               <Button
                 title={t("header.exitAdmin")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.NORMAL}
                 onClick={() => {
                   Navigation.navigate(DASHBOARD_URL);

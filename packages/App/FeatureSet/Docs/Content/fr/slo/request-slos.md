@@ -5,6 +5,7 @@ Un SLO de requêtes mesure ce que vos utilisateurs obtiennent d'un service : la 
 :::cards
 - [Créer un SLO de requêtes](#créer-un-slo-de-requêtes): Les services, un seuil de latence et un objectif.
 - [Ne compter que certaines requêtes](#ne-compter-que-certaines-requêtes): Un seul point de terminaison, ou toutes les requêtes sauf les contrôles de santé.
+- [SLO à partir d'une métrique](#slo-à-partir-dune-métrique): Un compteur ou un histogramme, pour les services qui n'envoient pas de traces.
 - [Comment les requêtes sont comptées](#comment-les-requêtes-sont-comptées): Quels spans comptent, et à quel moment.
 - [Contrôles de déploiement](/docs/slo/release-checks): Annulez une mise en production qui consomme le budget d'erreur.
 :::
@@ -76,6 +77,22 @@ Un SLO de requêtes compte toutes les requêtes de ses services. Un **Filtre de 
 Chaque terme doit correspondre : `@http.route:/checkout* -@http.route:/checkout/health` compte donc les requêtes de checkout sauf leur contrôle de santé. Un terme avec `@` est un attribut du span de la requête, et `name:` est le nom du span. Le texte libre et les autres champs de l'explorateur, comme `status:` et `duration:`, ne sont pas des filtres ici : le SLO décide déjà quelles requêtes sont mauvaises ou lentes. Un filtre contient jusqu'à 10 termes en 500 caractères.
 
 La **Vue d'ensemble** affiche le filtre sous les services du SLO, et les **Paramètres** l'affichent sous **Ce qui est mesuré**. Le modifier fait recompter les requêtes du SLO depuis le début.
+
+## SLO à partir d'une métrique
+
+Quand vos services comptent déjà leurs requêtes sous forme de métriques, ou n'envoient pas de traces, mesurez plutôt le SLO à partir d'un compteur ou d'un histogramme. Sous **Ce qui est mesuré**, choisissez **Métrique** et les **Services** qui l'envoient, puis, à l'étape **Métrique** :
+
+| Champ | Ce qu'il faut saisir |
+| --- | --- |
+| **Métrique** | Le nom de la métrique, choisi parmi les métriques de votre projet ou saisi, comme `http_requests_total` ou `http.server.request.duration`. |
+| **Bons événements** | **Un compteur, selon une condition** ou **Un histogramme, selon une valeur**. |
+| **Bon si** | Pour un compteur : les événements qui sont bons, sous forme de recherche sur ses attributs, comme `@http.response.status_code:<500`. |
+| **Bon jusqu'à** | Pour un histogramme : la valeur qu'une bonne observation ne dépasse pas, dans l'unité propre de la métrique, comme `0.3` pour 300 ms d'un histogramme en secondes. Utilisez l'une des bornes de ses buckets. |
+| **Filtre de métrique** | Facultatif : les séries qui comptent, comme `-@http.route:/health`. |
+
+Les événements d'un compteur sont ce dont il a augmenté à chaque pas de 5 minutes, comme le lit `increase()` de Prometheus : un compteur qui redémarre compte de nouveau depuis zéro, et les compteurs cumulatifs comme les compteurs delta sont comptés. Les événements d'un histogramme sont ses observations, et les bons sont ceux des buckets inférieurs ou égaux à la valeur. Seuls les points propres à la métrique comptent, et seulement ceux des services du SLO : une gauge du même nom ne compte rien.
+
+À partir de là, un SLO de métrique fonctionne comme un SLO de requêtes, avec son budget d'erreur, ses règles de taux de consommation et ses contrôles de déploiement exprimés en événements. Modifier la métrique fait recompter ses événements depuis le début.
 
 ## Comment les requêtes sont comptées
 

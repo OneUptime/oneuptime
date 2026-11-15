@@ -199,7 +199,7 @@ Le serie di CPU e memoria vengono comunicate anche per ogni guest, sugli id `qem
 | `pve_onboot_status` | count | 1 quando il guest si avvia al boot del nodo. Un guest fermo con questa impostazione è di solito un'interruzione non pianificata. |
 | `pve_lock_state` | — | Il lock che Proxmox VE tiene su un guest mentre un'operazione lo modifica, una serie per lock (`backup`, `migrate`, `snapshot`, …), a 1 su quello attivo. Filtrate sull'etichetta `state`. |
 
-### Storage
+### Archiviazione
 
 | Metrica | Unità | Descrizione |
 | --- | --- | --- |

@@ -138,7 +138,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 AI 代理程式頁面上代理程式狀態旁的 **⋯** 選單中的 **測試連線** 會透過代理程式執行 `kubectl version` 和 `kubectl auth can-i --list` 並顯示結果：它能存取什麼，以及它被允許做什麼。如果頁面顯示代理程式未連線，請使用 `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100` 讀取它的日誌。設定了 **固定的服務名稱** 的金鑰無法註冊代理程式——請給 chart 一個沒有該設定的金鑰。當伺服器拒絕註冊時，日誌會說明這一拒絕是否會自行解除（先前的代理程式 Pod 仍在回報，或舊的叢集內 Runner 在升級期間仍在關閉），或者需要變更什麼。同一選單中的 **重設代理程式** 會在您確認後讓伺服器忘記代理程式的金鑰；Pod 會在幾分鐘內自動重新連線。
 
-Kubernetes AI 代理程式不是 Runner，也永遠不會出現在 運行手冊 → Runbook 代理程式 下。它只使用自己的 ServiceAccount，因此 OneUptime 永遠不會提供它任何憑證，它永遠不會被用作運行手冊的 Bash/SSH 主機，也永遠不會被接受為 AI 規則的指令 Runner。
+Kubernetes AI 代理程式不是 Runner，也永遠不會出現在 運行手冊 → Runner 下。它只使用自己的 ServiceAccount，因此 OneUptime 永遠不會提供它任何憑證，它永遠不會被用作運行手冊的 Bash/SSH 主機，也永遠不會被接受為 AI 規則的指令 Runner。
 
 ### AI 可以執行的操作——由代理程式設定
 

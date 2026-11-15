@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 1083
+    "keys": 55711,
+    "untranslated": 1044
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -96,6 +96,9 @@
     "Envoy Proxy",
     "First Contentful Paint",
     "Fivetran",
+    "FlashArray",
+    "FlashArray GUI",
+    "FlashBlade",
     "Floating IP",
     "Floating IP ID",
     "Fluent Bit",
@@ -133,6 +136,7 @@
     "K8s Deployment",
     "K8s Namespace",
     "K8s Pod",
+    "Key Manager",
     "KeyDB",
     "Keystone",
     "Kolla-Ansible",
@@ -198,6 +202,7 @@
     "Powered by OneUptime",
     "PromQL",
     "Proxmox ID",
+    "Purity CLI",
     "RTT",
     "RX",
     "RabbitMQ",

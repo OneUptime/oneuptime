@@ -1,4 +1,5 @@
 import EventStatBar from "../EventView/EventStatBar";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import EventStatTile from "../EventView/EventStatTile";
 import SloBudgetBar, { SLO_BUDGET_TIER_TEXT_CLASS } from "./SloBudgetBar";
@@ -48,7 +49,7 @@ import {
   getRequestBudgetRemainingSecondsEquivalent,
   getRequestWindowFill,
 } from "./SloRequestTextInLanguage";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -150,7 +151,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
    * A request SLO's budget is counted in requests, and its window fills as
    * OneUptime counts its services' older requests (SloRequestTextInLanguage).
    */
-  const isRequestSlo: boolean = isRequestSliType(slo.sliType);
+  const isRequestSlo: boolean = isEventSliType(slo.sliType);
 
   const requestCounting: Parameters<typeof getRequestWindowFill>[0] = {
     sliType: slo.sliType,
@@ -424,7 +425,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
              */
             isRunwayPlaceholder ? undefined : (
               <span className={RUNWAY_TONE_TEXT_CLASS[runway.tone]}>
-                {runwayText.value}
+                {getValueOrQuietDash(runwayText.value)}
               </span>
             )
           }

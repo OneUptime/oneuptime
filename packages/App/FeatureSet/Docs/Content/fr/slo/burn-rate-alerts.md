@@ -132,7 +132,7 @@ Dans **Règle**, saisissez un **Nom**, comme « Fast burn ». Une nouvelle règl
 
 ### Définir la fenêtre de consommation
 
-Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Fenêtre courte (minutes)**, et éventuellement la **Suppression du redéclenchement (minutes)**. La règle d'un SLO de requêtes prend aussi un **Nombre minimal de requêtes**, par exemple `100` : la règle ignore une fenêtre longue qui compte moins de requêtes que cette valeur.
+Dans **Fenêtre de consommation**, définissez le **Seuil de taux de consommation** (par exemple `14.4`), la **Fenêtre longue (minutes)** et la **Fenêtre courte (minutes)**, et éventuellement la **Suppression du redéclenchement (minutes)**. La règle d'un SLO de requêtes prend aussi un **Nombre minimal de requêtes**, par exemple `100` : la règle ignore une fenêtre longue qui compte moins de requêtes que cette valeur. La règle d'un SLO de métrique prend de la même façon un **Nombre minimal d'événements**, compté en événements de sa métrique.
 
 ### Choisir ce qu'elle déclare
 
@@ -152,6 +152,7 @@ OneUptime vérifie les nombres d'une règle quand vous l'enregistrez :
 | **Fenêtre longue (minutes)** | Plus longue que la fenêtre courte. |
 | **Suppression du redéclenchement (minutes)** | 0 ou plus. Vide signifie la durée de la fenêtre longue. |
 | **Nombre minimal de requêtes** | Un nombre entier, 0 ou plus. Vide signifie aucun minimum. |
+| **Nombre minimal d'événements** | Un nombre entier, 0 ou plus. Vide signifie aucun minimum. |
 
 Chaque réponse à **Quand elle se déclenche** ouvre quelque chose. L'API refuse une règle qui ne créerait aucune alerte et ne déclarerait aucun incident, car elle serait vérifiée à chaque évaluation sans jamais rien déclarer.
 

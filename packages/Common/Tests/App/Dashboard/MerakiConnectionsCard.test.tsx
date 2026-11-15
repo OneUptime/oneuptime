@@ -1376,7 +1376,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "added",
-        text: "Added 105 network devices from Meraki 1 hour ago.",
+        text: "Added 105 network devices from Meraki 1\u00A0hour ago.",
       },
       { state: "sites-added", text: "Added 1 site for their Meraki networks." },
       {
@@ -1439,7 +1439,7 @@ describe("the organization's devices that are not network devices here", () => {
         return `${line.state}: ${line.text}`;
       }),
     ).toEqual([
-      "added: Added 5,000 network devices from Meraki 2 minutes ago.",
+      "added: Added 5,000 network devices from Meraki 2\u00A0minutes ago.",
       "remaining: 700 more devices are left to add.Add the rest",
     ]);
   });
@@ -1459,7 +1459,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "nothing-added",
-        text: "Nothing was added 2 minutes ago: every device of the kinds picked is a network device here already.",
+        text: "Nothing was added 2\u00A0minutes ago: every device of the kinds picked is a network device here already.",
       },
     ]);
   });
@@ -1514,7 +1514,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "added",
-        text: "Added 40 network devices from Meraki 2 minutes ago.",
+        text: "Added 40 network devices from Meraki 2\u00A0minutes ago.",
       },
       {
         state: "add-failed",
@@ -1549,7 +1549,7 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       {
         state: "added",
-        text: "Added 4 network devices from Meraki 5 minutes ago.",
+        text: "Added 4 network devices from Meraki 5\u00A0minutes ago.",
       },
       {
         state: "add-stopped",

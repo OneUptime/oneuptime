@@ -64,6 +64,9 @@ import CephDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Page
 import IoTDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Documentation";
 import OpenStackDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Documentation";
 import KubernetesDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Documentation";
+import StorageArrayDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Documentation";
+import VMwareDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Documentation";
+import VMwareDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/DocumentationCard";
 import DatabaseDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Documentation";
 import DatabaseDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
@@ -98,6 +101,13 @@ import { OpenStackDeploymentTool } from "../../../../App/FeatureSet/Dashboard/sr
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import { getKubernetesSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
+import { getStorageArraySetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationTranslations";
+import {
+  VMwareInstallMethod,
+  getVMwareSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
 import {
   getDatabaseAgentEngine,
   getDatabaseAgentSetupGuide,
@@ -125,6 +135,8 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   IoT: {},
   OpenStack: {},
   Kubernetes: {},
+  StorageArray: {},
+  VMware: {},
   Database: {},
 };
 
@@ -146,6 +158,15 @@ function dockerSwarmGuide(): SetupGuideContent {
     oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "install-script",
+  });
+}
+
+function storageArrayGuide(): SetupGuideContent {
+  return getStorageArraySetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    platform: "flasharray",
   });
 }
 
@@ -189,6 +210,24 @@ function openStackGuide(
     hasApiKey: false,
     method: method,
     tool: tool,
+  });
+}
+
+/*
+ * The VMware guide a reader meets before a key is picked: the install script
+ * unless another install method is picked, for the vCenter a vCenter's own
+ * Documentation tab installs for.
+ */
+function vmwareGuide(
+  method: VMwareInstallMethod = "install-script",
+  vcenterName?: string,
+): SetupGuideContent {
+  return getVMwareSetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    method: method,
+    vcenterName: vcenterName,
   });
 }
 
@@ -328,8 +367,14 @@ beforeAll(async () => {
     WORDS["Kubernetes"]![language] = (
       await KUBERNETES_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
+    WORDS["StorageArray"]![language] = (
+      await STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
     WORDS["OpenStack"]![language] = (
       await OPENSTACK_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["VMware"]![language] = (
+      await VMWARE_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
     WORDS["Database"]![language] = (
       await DATABASE_DOCUMENTATION_TRANSLATIONS[language]!()
@@ -527,6 +572,63 @@ describe("Docker Swarm > Help > Documentation", () => {
   );
 });
 
+describe("Storage Array > Help > Documentation", () => {
+  test.each(["de", "ar"])(
+    "in %s, the Storage Array guide, its title, its platforms and both ways through each step in the reader's words, the Purity commands as written",
+    async (language: string) => {
+      await drawIn(language, <StorageArrayDocumentationPage {...PAGE_PROPS} />);
+
+      /*
+       * Two steps offer two ways each (Purity CLI or the FlashArray GUI,
+       * the install script or Docker Compose), one drawn at a time: draw
+       * every one.
+       */
+      for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+        await act(async () => {
+          fireEvent.click(tab);
+        });
+      }
+      await settle();
+
+      const drawn: string = drawnTexts().join("\n");
+
+      for (const piece of getSetupGuideWordPieces(storageArrayGuide())) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: false,
+        });
+      }
+      for (const piece of getSetupGuideWordPieces(
+        inLanguage("StorageArray", storageArrayGuide(), language),
+      )) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: true,
+        });
+      }
+
+      // The card's own words, its platforms and its tabs come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect a Storage Array"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect a Storage Array")).toBeNull();
+      expect(
+        screen.getByText(locale["FlashArray, older Purity"]!),
+      ).toBeInTheDocument();
+      expect(screen.getByText(locale["FlashArray GUI"]!)).toBeInTheDocument();
+      // The Purity commands, and the array's own menus, are the English's.
+      expect(drawn).toContain("pureadmin create --role readonly oneuptime");
+      expect(drawn).toContain("Settings → Users and Policies");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+});
+
 describe("Kubernetes > Help > Documentation", () => {
   test.each(["de", "fa"])(
     "in %s, the Kubernetes guide, its title and its platforms in the reader's words, the Helm values as written",
@@ -663,50 +765,51 @@ describe("Ceph > Help > Documentation", () => {
   );
 });
 
+/*
+ * A step's tabs (OpenStack's credential views, VMware's vSphere Client and
+ * govc) draw one at a time: each is picked once, so every tab is drawn.
+ */
+async function openEveryVariant(): Promise<void> {
+  for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+    await act(async () => {
+      fireEvent.click(tab);
+    });
+  }
+  await settle();
+}
+
+// Every piece of `guide` is drawn in the reader's words, and none in English.
+function expectGuideInReadersWords(
+  product: string,
+  guide: SetupGuideContent,
+  language: string,
+): void {
+  const drawn: string = drawnTexts().join("\n");
+
+  for (const piece of getSetupGuideWordPieces(guide)) {
+    expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+      piece,
+      drawn: false,
+    });
+  }
+  for (const piece of getSetupGuideWordPieces(
+    inLanguage(product, guide, language),
+  )) {
+    expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+      piece,
+      drawn: true,
+    });
+  }
+}
+
 describe("OpenStack > Help > Documentation", () => {
-  /*
-   * The credential step's tabs (Full view, Infrastructure only, Project
-   * view) draw one at a time: each is picked once, so every tab is drawn.
-   */
-  async function openEveryVariant(): Promise<void> {
-    for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
-      await act(async () => {
-        fireEvent.click(tab);
-      });
-    }
-    await settle();
-  }
-
-  // Every piece of `guide` is drawn in the reader's words, and none in English.
-  function expectGuideInReadersWords(
-    guide: SetupGuideContent,
-    language: string,
-  ): void {
-    const drawn: string = drawnTexts().join("\n");
-
-    for (const piece of getSetupGuideWordPieces(guide)) {
-      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
-        piece,
-        drawn: false,
-      });
-    }
-    for (const piece of getSetupGuideWordPieces(
-      inLanguage("OpenStack", guide, language),
-    )) {
-      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
-        piece,
-        drawn: true,
-      });
-    }
-  }
-
   test.each(["de", "ar"])(
     "in %s, the OpenStack guide, its questions and its topics in the reader's words, its commands as written",
     async (language: string) => {
       await drawIn(language, <OpenStackDocumentationPage {...PAGE_PROPS} />);
       await openEveryVariant();
 
-      expectGuideInReadersWords(openStackGuide(), language);
+      expectGuideInReadersWords("OpenStack", openStackGuide(), language);
 
       // The card's own words, both questions and the topics' summaries come from the locale files.
       const locale: Record<string, string> = readDashboardLocale(language);
@@ -766,6 +869,7 @@ describe("OpenStack > Help > Documentation", () => {
       await openEveryVariant();
 
       expectGuideInReadersWords(
+        "OpenStack",
         openStackGuide("kolla-ansible", "docker-compose"),
         language,
       );
@@ -836,7 +940,11 @@ describe("OpenStack > Help > Documentation", () => {
     await settle();
     await openEveryTopic();
 
-    expectGuideInReadersWords(openStackGuide("openstack-helm"), "de");
+    expectGuideInReadersWords(
+      "OpenStack",
+      openStackGuide("openstack-helm"),
+      "de",
+    );
 
     const locale: Record<string, string> = readDashboardLocale("de");
     expect(
@@ -863,6 +971,117 @@ describe("OpenStack > Help > Documentation", () => {
       );
     },
   );
+});
+
+describe("VMware > Help > Documentation", () => {
+  const KEY_STEP: string =
+    "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.";
+
+  // The page in `language`, an install method picked, every topic and tab open.
+  async function drawWithMethod(
+    language: string,
+    method: VMwareInstallMethod,
+  ): Promise<void> {
+    await act(async () => {
+      await i18next.changeLanguage(language);
+    });
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <VMwareDocumentationPage {...PAGE_PROPS} />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`setup-guide-option-${method}`));
+    });
+    await settle();
+    await openEveryTopic();
+    await openEveryVariant();
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the VMware guide, its question and its key step in the reader's words, vSphere's menus and the commands as written",
+    async (language: string) => {
+      await drawIn(language, <VMwareDocumentationPage {...PAGE_PROPS} />);
+      await openEveryVariant();
+
+      expectGuideInReadersWords("VMware", vmwareGuide(), language);
+
+      // The card's own words, its question and its key step come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect a vCenter"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect a vCenter")).toBeNull();
+      expect(
+        screen.getByText(locale["How do you want to install the agent?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Create a read-only vSphere user"]!),
+      ).toBeInTheDocument();
+      expect(locale[KEY_STEP]).not.toBe(KEY_STEP);
+      expect(screen.getByText(locale[KEY_STEP]!)).toBeInTheDocument();
+      expect(screen.queryByText(KEY_STEP)).toBeNull();
+
+      // vSphere's own menus, the principal and the variables are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain(
+        "*Menu → Administration → Single Sign On → Users and Groups*",
+      );
+      expect(drawn).toContain("**Propagate to children**");
+      expect(drawn).toContain("`oneuptime@vsphere.local`");
+      expect(drawn).toContain("`VMWARE_VCENTER_NAME`");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each([
+    ["de", "docker-compose"],
+    ["ar", "docker-compose"],
+    ["de", "linux-service"],
+    ["ar", "linux-service"],
+  ] as Array<[string, VMwareInstallMethod]>)(
+    "in %s, picking %s draws that install method's steps and topics in the reader's words",
+    async (language: string, method: VMwareInstallMethod) => {
+      await drawWithMethod(language, method);
+
+      expectGuideInReadersWords("VMware", vmwareGuide(method), language);
+
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain(
+        method === "linux-service"
+          ? "`sudo systemctl restart oneuptime-vmware-agent`"
+          : "`docker compose up -d`",
+      );
+    },
+  );
+
+  test("a vCenter's own tab: the guide for that vCenter, in German", async () => {
+    await drawIn(
+      "de",
+      <VMwareDocumentationCard
+        title="Connect a vCenter"
+        description="A guide."
+        vcenterName="vcenter-1"
+      />,
+    );
+    await openEveryVariant();
+
+    expectGuideInReadersWords(
+      "VMware",
+      vmwareGuide("install-script", "vcenter-1"),
+      "de",
+    );
+    expect(drawnTexts().join("\n")).toContain(
+      "Dieses vCenter ist **`vcenter-1`**.",
+    );
+  });
 });
 
 describe("Databases > Help > Documentation", () => {

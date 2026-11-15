@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8210
+    "keys": 55711,
+    "untranslated": 8011
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -55,6 +55,9 @@
     "Elasticsearch",
     "Elasticsearch URL",
     "Enterprise Edition",
+    "FlashArray",
+    "FlashArray GUI",
+    "FlashBlade",
     "Fluent Bit",
     "Full view",
     "GKE Autopilot",
@@ -128,6 +131,7 @@
     "Project view",
     "PromQL",
     "Proxmox ID",
+    "Purity CLI",
     "RTT",
     "RX",
     "RabbitMQ",

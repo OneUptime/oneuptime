@@ -1,4 +1,4 @@
-import { expect, Locator, Page, Response } from "@playwright/test";
+import { expect, Locator, Page, Response, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
@@ -118,9 +118,10 @@ export function watchDashboardLocales(page: Page): LocaleWatch {
  * What a fixture's scripts may weigh on a page, its language's own chunk
  * aside: its entry is 5 to 15 MB of the Dashboard's components once no
  * locale but English is in it. With two to four locales imported whole the
- * entries were 29 to 47 MB (#8366). A locale's chunk is not counted: an
- * unminified one is 17 to 28 MB, the JSON loader's named exports and
- * escapes on top of 6 to 8 MB of words (#8650).
+ * entries were 29 to 47 MB (#8366). A locale's chunk is not counted: it is
+ * the 5 to 9 MB of words the page is drawn in. (Through the JSON loader an
+ * unminified one was 17 to 28 MB, until #8650 shipped it as one default
+ * export, written in UTF-8.)
  */
 export const LOCALE_FREE_PAGE_BUDGET_BYTES: number = 25 * 1024 * 1024;
 
@@ -187,4 +188,47 @@ export async function expectPageLoadsOnlyItsLanguage(
     await watch.scriptBytesBesideLocale(language),
     `the scripts a page in "${language}" loaded, its locale's chunk aside, in bytes`,
   ).toBeLessThan(LOCALE_FREE_PAGE_BUDGET_BYTES);
+}
+
+export interface PageLanguagesBlock {
+  // The languages the fixture draws besides English, each by its ?lang= code.
+  languages: Array<string>;
+  // A page of the fixture in a language: its ?lang=, or none for English.
+  address: (language: string) => string;
+  /*
+   * What shows once the page is drawn: the page's first element, unless
+   * given. A fixture draws only once its language has loaded.
+   */
+  ready?: ((page: Page, language: string) => Locator) | undefined;
+}
+
+/*
+ * A suite's block of checks that each page loads its own language alone,
+ * English and every language the fixture draws, in each of the suite's
+ * projects. (Skipped from inside a test, a phone project's run would leave
+ * the page blank for the suite's own afterEach, which reads the page.)
+ */
+export function describePageLanguages(block: PageLanguagesBlock): void {
+  test.describe("the page's language, loaded as the Dashboard loads it", () => {
+    for (const language of ["en", ...block.languages]) {
+      test(`a page in ${language} loads its own locale and no other`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await expectPageLoadsOnlyItsLanguage(
+          page,
+          {
+            address: block.address,
+            ready:
+              block.ready ||
+              ((shown: Page): Locator => {
+                return shown.locator("#root > *").first();
+              }),
+          },
+          language,
+        );
+      });
+    }
+  });
 }

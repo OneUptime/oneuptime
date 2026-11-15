@@ -97,7 +97,7 @@ Hvis teamet ditt omtaler hendelser med nummer, la numrene i OneUptime starte ett
 Pek monitorene dine og verktøyene som utløser varsler, mot OneUptime, og varsle deg selv én gang for å teste det.
 
 ### Slå av varsling i incident.io
-Når OneUptime varsler de riktige personene, slår du av varslene i incident.io, så ingen varsles to ganger.
+Når OneUptime varsler de riktige personene, slår du av varslingene i incident.io, så ingen varsles to ganger.
 :::
 
 ## Feilsøking

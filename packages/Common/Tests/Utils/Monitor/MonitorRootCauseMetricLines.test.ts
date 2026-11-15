@@ -273,9 +273,12 @@ describe("in German", () => {
     expect(lineLike(FORECAST_ROOT_CAUSE, worded, "- Now, on its trend:")).toBe(
       `- Jetzt, laut Trend: **${percent(84.5)}**`,
     );
-    // Placed as text, as the engine placed its label: its brackets escaped.
+    /*
+     * Placed as text, as the engine placed its label: its brackets escaped.
+     * Intl's "7 Tage", its number held to its unit (DateLanguage, #8456).
+     */
     expect(lineLike(FORECAST_ROOT_CAUSE, worded, "- In 7 days:")).toBe(
-      mdText`- ${"Am Ende des Zeitraums (7 Tage)"}: **${percent(91.5)}**`.toString(),
+      mdText`- ${`Am Ende des Zeitraums (7${NO_BREAK_SPACE}Tage)`}: **${percent(91.5)}**`.toString(),
     );
     expect(plain(lineLike(FORECAST_ROOT_CAUSE, worded, "- Trend:"))).toBe(
       `- ${readDashboardLocale("de")["Trend"]}: steigt um ${percent(1)} pro Tag über 7 Tage, aus 168 Samples`,
@@ -309,6 +312,65 @@ describe("in German", () => {
     expect(russianFalling).toContain("за последние 3 часа");
     expect(arabic).toContain("7 أيام");
     expect(arabic).not.toContain("الأيام: 7");
+  });
+
+  /*
+   * Intl's duration is asked of DateLanguage, which holds its number to its
+   * unit (#8456): a narrow line never ends on "7" and starts on "дней".
+   */
+  test("a duration's number is held to its unit in Russian, Arabic and German", () => {
+    const russian: string = withoutIsolateMarks(
+      word(FORECAST_ROOT_CAUSE, "ru"),
+    );
+    const russianFalling: string = withoutIsolateMarks(
+      word(FALLING_ROOT_CAUSE, "ru"),
+    );
+    const arabic: string = withoutIsolateMarks(word(FORECAST_ROOT_CAUSE, "ar"));
+    const german: string = withoutIsolateMarks(word(METRIC_ROOT_CAUSE, "de"));
+
+    expect(russian).toContain(`7${NO_BREAK_SPACE}дней`);
+    expect(russian).not.toContain("7 дней");
+    expect(russianFalling).toContain(`3${NO_BREAK_SPACE}часа`);
+    expect(russianFalling).not.toContain("3 часа");
+    expect(arabic).toContain(`7${NO_BREAK_SPACE}أيام`);
+    expect(arabic).not.toContain("7 أيام");
+    expect(german).toContain(`etwa 12${NO_BREAK_SPACE}Minuten zu spät`);
+    expect(german).not.toContain("12 Minuten zu spät");
+  });
+
+  test("an engine that cannot write a unit says the duration with the reader's plural", () => {
+    const original: typeof Intl.NumberFormat = Intl.NumberFormat;
+    const withoutUnits: typeof Intl.NumberFormat = function (
+      locales?: string | Array<string>,
+      options?: Intl.NumberFormatOptions,
+    ): Intl.NumberFormat {
+      if (options && options.style === "unit") {
+        throw new RangeError("this engine has no unit style");
+      }
+
+      return new original(locales, options);
+    } as unknown as typeof Intl.NumberFormat;
+
+    Intl.NumberFormat = withoutUnits;
+
+    try {
+      const german: string = plain(word(FORECAST_ROOT_CAUSE, "de"));
+      const plural: string = dashboardTranslator("de").translatePlural(
+        { one: "{{count}} day", other: "{{count}} days" },
+        7,
+      );
+
+      expect(plain(plural)).toBe("7 Tage");
+      expect(german).toContain(`(${plain(plural)})`);
+      expect(german).toContain("noch etwa 5 Tage");
+    } finally {
+      Intl.NumberFormat = original;
+    }
+
+    // Negative control: Intl back, the duration is Intl's again, held.
+    expect(withoutIsolateMarks(word(FORECAST_ROOT_CAUSE, "ru"))).toContain(
+      `7${NO_BREAK_SPACE}дней`,
+    );
   });
 });
 

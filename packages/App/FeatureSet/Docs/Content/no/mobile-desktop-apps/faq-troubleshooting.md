@@ -1,12 +1,12 @@
 # Vanlige spørsmål og feilsøking
 
-Svar på vanlige spørsmål om OneUptimes mobil- og skrivebordsapper, og løsninger på det som oftest går galt: innlogging, varsler som ikke kommer frem, og en telefon som må registreres på nytt.
+Svar på vanlige spørsmål om OneUptimes mobil- og skrivebordsapper, og løsninger på det som oftest går galt: innlogging, varslinger som ikke kommer frem, og en telefon som må registreres på nytt.
 
 :::cards
 - [Spørsmål om mobilappen](#spørsmål-om-mobilappen): Enheter, prosjekter, selvdrift og sikkerhet.
 - [Spørsmål om skrivebordsappen](#spørsmål-om-skrivebordsappen): Hva skrivebordsappen er, og hva den ikke kan.
 - [Når en telefon må registreres på nytt](#når-en-telefon-må-registreres-på-nytt): Hvorfor en telefon slutter å få varsler, og hvordan den kommer tilbake.
-- [Feilsøking](#feilsøking): Problemer med innlogging, varsler og installasjon.
+- [Feilsøking](#feilsøking): Problemer med innlogging, varslinger og installasjon.
 :::
 
 ## Spørsmål om mobilappen
@@ -20,7 +20,7 @@ iPhone og iPad med iOS eller iPadOS 16.4 eller nyere, og Android-telefoner og -n
 :::
 
 :::details Fungerer den med et selvdriftet OneUptime?
-Ja. Skriv inn `https://`-adressen til ditt OneUptime når appen starter, eller trykk på **Change Server** på innloggingsskjermen. Som standard sender serveren din varsler til telefoner gjennom OneUptimes push-relé, så den trenger ingen konto hos Apple, Google eller Expo: se [Push-varsler](/docs/self-hosted/push-notifications).
+Ja. Skriv inn `https://`-adressen til ditt OneUptime når appen starter, eller trykk på **Change Server** på innloggingsskjermen. Som standard sender serveren din varslinger til telefoner gjennom OneUptimes push-relé, så den trenger ingen konto hos Apple, Google eller Expo: se [Push-varslinger](/docs/self-hosted/push-notifications).
 :::
 
 :::details Kan jeg bruke den med flere prosjekter?
@@ -41,7 +41,7 @@ Ja. Hver telefon eller hvert nettbrett er en egen push-enhet, med egne vaktregle
 Alt annet finner du i dashbordet.
 :::
 
-:::details Kan jeg bekrefte et varsel fra varslingen?
+:::details Kan jeg bekrefte en varsling fra varslingen?
 Nei. Trykk på varslingen: appen åpner hendelsen, varselet, episoden eller sikkerhetssaken den gjelder, i riktig prosjekt, og du bekrefter der. Er appen låst, eller er du logget ut, åpner den varselet så snart du er inne.
 :::
 
@@ -56,7 +56,7 @@ Nei. Uten tilkobling viser den **No internet connection** øverst på skjermen o
 ## Spørsmål om skrivebordsappen
 
 :::details Hva er skrivebordsappen?
-OneUptime-dashbordet, installert fra nettleseren som en app: eget vindu, et ikon i Start-menyen, i Dock eller i appstarteren, og varsler. Den gjør alt dashbordet gjør, fordi den er dashbordet.
+OneUptime-dashbordet, installert fra nettleseren som en app: eget vindu, et ikon i Start-menyen, i Dock eller i appstarteren, og varslinger. Den gjør alt dashbordet gjør, fordi den er dashbordet.
 :::
 
 :::details Hvorfor ligger den ikke i en appbutikk?
@@ -79,26 +79,26 @@ OneUptime sender en telefons varsler gjennom Expo, som gir dem videre til Apple 
 flowchart TB
     Registered["Telefonen er registrert,<br/>og varsler når den"]
     Gone["Expo melder den borte:<br/>et push avvises,<br/>eller kvitteringen sier det<br/>rundt 15 minutter senere"]
-    Marked["OneUptime merker<br/>den Mottar ikke varsler<br/>og slutter å sende;<br/>reglene blir værende"]
+    Marked["OneUptime merker<br/>den Mottar ikke varslinger<br/>og slutter å sende;<br/>reglene blir værende"]
     Open["Du åpner appen<br/>mens du er logget inn"]
     Renewed["Appen registrerer<br/>seg på nytt, fornyer<br/>push-tokenet, og<br/>varsler når den igjen"]
     Registered --> Gone --> Marked --> Open --> Renewed
 ```
 
-Expo melder en telefon borte når appen er fjernet fra den, eller når push-tokenet ikke lenger er gyldig. Telefonen slettes ikke: **Brukerinnstillinger → Varselmetoder** viser den på fanen **Push-varsler** som **Mottar ikke varsler**, og vakttidslinjen for et varsel som ikke nådde den, sier hvorfor. De andre telefonene og varselmetodene dine varsles som vanlig.
+Expo melder en telefon borte når appen er fjernet fra den, eller når push-tokenet ikke lenger er gyldig. Telefonen slettes ikke: **Brukerinnstillinger → Varslingsmetoder** viser den på fanen **Push-varslinger** som **Mottar ikke varslinger**, og vakttidslinjen for en varsling som ikke nådde den, sier hvorfor. De andre telefonene og varslingsmetodene dine varsles som vanlig.
 
 Appen registrerer telefonen hver gang den starter, når du logger inn, og når du går tilbake til den, høyst én gang hvert femte minutt. Registreringen ber Expo om push-tokenet på nytt, noe som fornyer det, og telefonen får varsler igjen med reglene den hadde.
 
 | Hva som skjedde | Hva du gjør | Hva OneUptime gjør |
 | --- | --- | --- |
-| Appen er fortsatt installert | Åpne den mens du er logget inn | Telefonen får varsler igjen, med reglene sine |
+| Appen er fortsatt installert | Åpne den mens du er logget inn | Telefonen får varslinger igjen, med reglene sine |
 | Du installerte appen på nytt på en iPhone eller iPad | Installer den, og logg inn | Som regel kommer den samme oppføringen tilbake, med reglene sine |
 | Du installerte appen på nytt på Android | Installer den, logg inn, og slett den gamle oppføringen | En ny oppføring med standardreglene; den gamle forblir merket |
 | En ny telefon, satt opp fra en sikkerhetskopi av den gamle | Åpne appen på den nye telefonen | Er den gamle telefonens oppføring merket, overtar den nye den, med reglene sine; ellers får den nye telefonen en egen oppføring |
 | En ny telefon, satt opp fra bunnen | Logg inn, og slett den gamle oppføringen | En ny oppføring med standardreglene |
 | Du logget ut av appen | Logg inn igjen | Utloggingen fjernet telefonen og reglene; den kommer tilbake med standardreglene |
 
-En nettleser kan også slutte å få varsler, når push-abonnementet utløper. Dashbordet fornyer det når det kan; forblir nettleseren merket, registrerer du den på nytt med **Registrer enhet** i den nettleseren.
+En nettleser kan også slutte å få varslinger, når push-abonnementet utløper. Dashbordet fornyer det når det kan; forblir nettleseren merket, registrerer du den på nytt med **Registrer enhet** i den nettleseren.
 
 ## Feilsøking
 
@@ -120,14 +120,14 @@ Appen kan ikke bruke en sikkerhetsnøkkel. Logg inn med en av reservekodene dine
 Tilgangsnøkler krever at adressen til ditt OneUptime begynner med `https://`, og en tilgangsnøkkel du har lagt til for dette OneUptime: se [Legg til en tilgangsnøkkel](/docs/introduction/your-account#legg-til-en-passnøkkel). Trykk på **Change Server** på innloggingsskjermen for å bruke en annen server.
 :::
 
-### Varsler
+### Varslinger
 
-:::details Ingen varsler på telefonen
-- Sjekk at telefonen tillater varsler fra OneUptime On-Call, og at Ikke forstyrr eller et Fokus ikke holder dem tilbake.
-- Sjekk under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, at telefonen står i listen, og send den et **Testvarsel**.
-- Er den merket **Mottar ikke varsler**, åpner du appen mens du er logget inn: se [Når en telefon må registreres på nytt](#når-en-telefon-må-registreres-på-nytt).
+:::details Ingen varslinger på telefonen
+- Sjekk at telefonen tillater varslinger fra OneUptime On-Call, og at Ikke forstyrr eller et Fokus ikke holder dem tilbake.
+- Sjekk under **Brukerinnstillinger → Varslingsmetoder**, på fanen **Push-varslinger**, at telefonen står i listen, og send den en **Testvarsling**.
+- Er den merket **Mottar ikke varslinger**, åpner du appen mens du er logget inn: se [Når en telefon må registreres på nytt](#når-en-telefon-må-registreres-på-nytt).
 - Sjekk vaktreglene dine under **Brukerinnstillinger → Slik når man meg**: de bestemmer hvilke varsler som når hvilken metode.
-- På et selvdriftet OneUptime sjekker du at serveren når push-reléet sitt: se [Push-varsler](/docs/self-hosted/push-notifications#nettverkstilgang).
+- På et selvdriftet OneUptime sjekker du at serveren når push-reléet sitt: se [Push-varslinger](/docs/self-hosted/push-notifications#nettverkstilgang).
 :::
 
 :::details Varsler kommer for sent på Android
@@ -144,8 +144,8 @@ Sett appens batteribruk til **Ubegrenset** i Android-innstillingene for OneUptim
 Installer fra en dashbordside etter innlogging, over `https://`, i Edge eller Chrome, eller i Safari på macOS Sonoma 14 eller nyere. Vises ikke ikonet, installerer også nettleserens meny appen: se [Windows-installasjon](/docs/mobile-desktop-apps/windows-installation#installer-appen).
 :::
 
-:::details Ingen skrivebordsvarsler
-Registrer nettleseren under **Brukerinnstillinger → Varselmetoder**, på fanen **Push-varsler**, med **Registrer enhet**, tillat varsler når du blir spurt, og sjekk datamaskinens egne varslingsinnstillinger. Et selvdriftet OneUptime trenger VAPID-nøklene sine for nettleservarsler.
+:::details Ingen skrivebordsvarslinger
+Registrer nettleseren under **Brukerinnstillinger → Varslingsmetoder**, på fanen **Push-varslinger**, med **Registrer enhet**, tillat varslinger når du blir spurt, og sjekk datamaskinens egne varslingsinnstillinger. Et selvdriftet OneUptime trenger VAPID-nøklene sine for nettleservarslinger.
 :::
 
 ## Få hjelp
@@ -158,5 +158,5 @@ Stemmer noe her ikke med det du ser, [åpner du et issue på GitHub](https://git
 - [Apper – Oversikt](/docs/mobile-desktop-apps/index): Hvilken app du skal bruke, og hvordan appene når OneUptime.
 - [Android-installasjon](/docs/mobile-desktop-apps/android-installation): Installer og sett opp appen på Android.
 - [iOS-installasjon](/docs/mobile-desktop-apps/ios-installation): Installer og sett opp appen på en iPhone eller iPad.
-- [Push-varsler](/docs/self-hosted/push-notifications): Slik sender et selvdriftet OneUptime varsler, og Expos feil.
+- [Push-varslinger](/docs/self-hosted/push-notifications): Slik sender et selvdriftet OneUptime varslinger, og Expos feil.
 :::

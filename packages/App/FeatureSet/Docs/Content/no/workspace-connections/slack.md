@@ -67,7 +67,7 @@ Med Slack Enterprise Grid kan ett prosjekt jobbe i flere workspacer i organisasj
 3. Kortet **Slack-arbeidsområder** viser disse workspacene. Klikk på **Oppdater** etter at OneUptime er lagt til i et nytt workspace.
 
 - **Hvilket workspace en regel bruker.** Varslingsregler velger **Slack-arbeidsområde** for kanalene sine. Står feltet tomt, bruker regelen standard-workspacet og leter først der etter kanalene den nevner. **Gjør til standard** på kortet endrer standarden. Fjernes OneUptime fra standard-workspacet, blir det første av de gjenværende workspacene i alfabetisk rekkefølge standard. Det forblir standard når OneUptime legges til i det gamle workspacet igjen.
-- **Et workspace OneUptime er fjernet fra.** En regel som velger det, poster ikke i et annet workspace i stedet: kortet til regelen, **Test regel** og varselloggene sier at OneUptime ikke lenger er lagt til i det. Kortet **Slack-kanal** sier det også når kanalen ligger i det workspacet. Legg OneUptime til i det workspacet igjen i organisasjonsinnstillingene i Slack, eller velg et annet workspace i regelen.
+- **Et workspace OneUptime er fjernet fra.** En regel som velger det, poster ikke i et annet workspace i stedet: kortet til regelen, **Test regel** og varslingsloggene sier at OneUptime ikke lenger er lagt til i det. Kortet **Slack-kanal** sier det også når kanalen ligger i det workspacet. Legg OneUptime til i det workspacet igjen i organisasjonsinnstillingene i Slack, eller velg et annet workspace i regelen.
 - **Hvor OneUptime fungerer.** Knapper, kommandoer, Home-fanen og OneUptime AI fungerer i hvert av disse workspacene, og medlemmer kobler til sin egen Slack-konto fra hvilket som helst av dem.
 - **Et prosjekt som er koblet til ett workspace.** Hører det workspacet til organisasjonen, beholder prosjektet reglene, kanalene og de tilkoblede kontoene sine når det installeres for hele organisasjonen med **Installer for organisasjonen** på samme side. Det workspacet blir standard.
 - **På en selvhostet server** tillater en Slack-app som er laget fra manifestet til OneUptime, dette allerede: manifestet setter `org_deploy_enabled`.
@@ -159,7 +159,7 @@ OneUptime-appen legger dem til, slik den legger til personene i kanalen til en r
 
 - **Hvem som kan legge til personer.** Den som kan redigere posten: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Hendelsesadministrator** og **Hendelsesmedlem** for en hendelse, eller **Edit Incident** i en egendefinert rolle, og den samme tillatelsen for et varsel, en episode eller en vedlikeholdshendelse (for eksempel **Edit Alert**). Alle andre ser hvem som er i kanalen, og hvordan de kommer inn.
 - **Hvem som kan legges til.** Noen OneUptime finner i Slack: gjennom Slack-kontoen vedkommende har koblet til, eller ellers gjennom e-postadressen Slack har for vedkommende. Kortet nevner hvem det ikke kunne legge til, og hvorfor, for eksempel en gjest som Slack holder utenfor kanalen.
-- **Hva som registreres.** Hvem som ble lagt til, og av hvem, i feeden til posten (**Kanalmedlem lagt til**) og under **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+- **Hva som registreres.** Hvem som ble lagt til, og av hvem, i feeden til posten (**Kanalmedlem lagt til**) og under **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger**, på fanen **Arbeidsområde**.
 - **Å ta noen ut.** OneUptime legger bare til: fjern noen fra kanalen i Slack.
 
 ## Teste en regel
@@ -184,11 +184,11 @@ På OneUptime Cloud hører varslingsregler og sammendrag til **Growth**-planen o
 
 ## Bli tilkalt i Slack
 
-For å bli tilkalt med direktemelding når du har vakt, legger du til Slack som en av varselmetodene dine:
+For å bli tilkalt med direktemelding når du har vakt, legger du til Slack som en av varslingsmetodene dine:
 
 :::steps
 1. Koble til din egen Slack-konto (se [Koble til Slack](#koble-til-slack)).
-2. Gå til **Brukerinnstillinger** > **Varselmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Slack-konto**.
+2. Gå til **Brukerinnstillinger** > **Varslingsmetoder**, åpne fanen **Arbeidsområdeapper**, og klikk på **Legg til Slack-konto**.
 3. Klikk på **Send testmelding** i raden. Meldingen kommer i direktemeldingene dine i Slack.
 :::
 
@@ -334,15 +334,15 @@ En retting som OneUptime AI foreslår til godkjenning, sendes til hendelsens ell
 
 ## Godkjenne et offentlig notat
 
-Når prosjektets offentlige notater må godkjennes og du slår på Slack for **Godkjenning av offentlige notater** i varselinnstillingene dine, kommer hvert offentlige notat som venter på et trinn du godkjenner, til direktemeldingene dine med OneUptime: hvem som sendte det, hvilket trinn det venter på, notatet og tre knapper. **Approve** godkjenner det for det trinnet; på det siste trinnet heter knappen **Approve and publish**, og notatet publiseres med en gang. **Reject** åpner et skjema som spør **Why are you rejecting it?**: en begrunnelse er påkrevd, og forfatteren av notatet ser den. **View in OneUptime** åpner notatet. Knappene handler som deg, etter de samme reglene som i OneUptime: du må være nevnt på trinnet, selv eller gjennom et team, og du kan ikke avgjøre et notat du sendte selv eller godkjenne to trinn av samme notat. Du får svar i en melding bare du ser. Et trykk etter at noen andre har avgjort, eller etter at notatet eller trinnene er endret, avgjør ingenting og sier hva som skjedde. Når notatet er avgjort, endres meldingen til hver godkjenner om det, også din, så den sier hva som skjedde: godkjent for trinnet sitt og hvem det venter på nå, publisert, avvist, endret eller sendt til godkjenning igjen, publisert uten godkjenning, eller slettet. Den beholder **View in OneUptime**, og **Approve** og **Reject** er borte. Hvis Slack-kontoen din ikke er koblet til, ber svaret deg koble den til, og OneUptime godkjenner notatet for deg når du har gjort det; trykk på **Reject** igjen. Når godkjenningstrinnene endres mens et notat venter, endres også meldingen din om det hvis notatet ikke lenger venter på trinnet ditt, eller du ikke lenger blir spurt, og de det nå venter på, får en egen melding. Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
+Når prosjektets offentlige notater må godkjennes og du slår på Slack for **Godkjenning av offentlige notater** i varslingsinnstillingene dine, kommer hvert offentlige notat som venter på et trinn du godkjenner, til direktemeldingene dine med OneUptime: hvem som sendte det, hvilket trinn det venter på, notatet og tre knapper. **Approve** godkjenner det for det trinnet; på det siste trinnet heter knappen **Approve and publish**, og notatet publiseres med en gang. **Reject** åpner et skjema som spør **Why are you rejecting it?**: en begrunnelse er påkrevd, og forfatteren av notatet ser den. **View in OneUptime** åpner notatet. Knappene handler som deg, etter de samme reglene som i OneUptime: du må være nevnt på trinnet, selv eller gjennom et team, og du kan ikke avgjøre et notat du sendte selv eller godkjenne to trinn av samme notat. Du får svar i en melding bare du ser. Et trykk etter at noen andre har avgjort, eller etter at notatet eller trinnene er endret, avgjør ingenting og sier hva som skjedde. Når notatet er avgjort, endres meldingen til hver godkjenner om det, også din, så den sier hva som skjedde: godkjent for trinnet sitt og hvem det venter på nå, publisert, avvist, endret eller sendt til godkjenning igjen, publisert uten godkjenning, eller slettet. Den beholder **View in OneUptime**, og **Approve** og **Reject** er borte. Hvis Slack-kontoen din ikke er koblet til, ber svaret deg koble den til, og OneUptime godkjenner notatet for deg når du har gjort det; trykk på **Reject** igjen. Når godkjenningstrinnene endres mens et notat venter, endres også meldingen din om det hvis notatet ikke lenger venter på trinnet ditt, eller du ikke lenger blir spurt, og de det nå venter på, får en egen melding. Se [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 ## Koble fra
 
-- **Koble fra** kobler bare fra din egen Slack-konto, og fjerner samtidig Slack-varselmetoden din.
+- **Koble fra** kobler bare fra din egen Slack-konto, og fjerner samtidig Slack-varslingsmetoden din.
 - **Avinstaller OneUptime fra Slack**, på **Prosjektinnstillinger** > **Arbeidsområde** > **Slack**, kobler fra prosjektet. OneUptime slutter å publisere i Slack, og menyene **Arbeidsområde** slutter å vise det. Varslingsreglene og sammendragene beholdes til du kobler til igjen.
 
 > [!WARNING]
-> Å avinstallere kobler også fra hvert medlems egen Slack-konto i prosjektet, og fjerner Slack-varselmetodene og vaktreglene som brukte dem. De som ble tilkalt i Slack, tilkalles via de andre varselmetodene sine til de legger til Slack igjen.
+> Å avinstallere kobler også fra hvert medlems egen Slack-konto i prosjektet, og fjerner Slack-varslingsmetodene og vaktreglene som brukte dem. De som ble tilkalt i Slack, tilkalles via de andre varslingsmetodene sine til de legger til Slack igjen.
 
 ## Dine Slack-data
 
@@ -359,7 +359,7 @@ Det OneUptime tar vare på av dette — navnet på arbeidsområdet, kanalene, Sl
 ## Feilsøking
 
 :::details En regel publiserer ingenting
-Sjekk regelens betingelser med **Test regel**: hvis testen kommer frem, passet ikke regelens betingelser på hendelsen. Hvis den ikke gjør det, sier Slack-siden hvorfor. For en privat kanal må du først invitere OneUptime-appen inn i den i Slack. Hver melding OneUptime publiserer, og hver melding Slack avviste, vises i **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+Sjekk regelens betingelser med **Test regel**: hvis testen kommer frem, passet ikke regelens betingelser på hendelsen. Hvis den ikke gjør det, sier Slack-siden hvorfor. For en privat kanal må du først invitere OneUptime-appen inn i den i Slack. Hver melding OneUptime publiserer, og hver melding Slack avviste, vises i **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger**, på fanen **Arbeidsområde**.
 :::
 
 :::details Noen mangler i en regels kanal
@@ -382,14 +382,14 @@ Trykk på **Connect Slack account** i det svaret for å koble den til i ett trin
 Et svar som ikke nevner OneUptime, blir bare besvart i din egen samtale med OneUptime AI: tråden under et spørsmål du stilte den i en kanal. I alle andre tråder, som den under en hendelses melding, nevner du OneUptime med @. Hvis Slack-kontoen din ikke er koblet til, ber OneUptime deg om å koble den til én gang i hver samtale, ikke ved hver melding: trykk på **Connect Slack account** i den meldingen, eller koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Slack**. Se [Spør OneUptime AI fra Slack](#spør-oneuptime-ai-fra-slack).
 :::
 
-:::details Varsler kommer frem, men knapper og kommandoer gjør ingenting
-På en selvdriftet server må Slack kunne nå OneUptime for knapper, skjemaer og kommandoer; varsler trenger bare utgående tilgang. Se [Nettverkstilgang for selvdriftede installasjoner](/docs/self-hosted/slack-integration#nettverkstilgang-for-selvdriftede-installasjoner).
+:::details Varslinger kommer frem, men knapper og kommandoer gjør ingenting
+På en selvdriftet server må Slack kunne nå OneUptime for knapper, skjemaer og kommandoer; varslinger trenger bare utgående tilgang. Se [Nettverkstilgang for selvdriftede installasjoner](/docs/self-hosted/slack-integration#nettverkstilgang-for-selvdriftede-installasjoner).
 :::
 
 ## Neste steg
 
 :::cards
-- [Microsoft Teams](/docs/workspace-connections/microsoft-teams): De samme varslene og handlingene i Microsoft Teams.
+- [Microsoft Teams](/docs/workspace-connections/microsoft-teams): De samme varslingene og handlingene i Microsoft Teams.
 - [Videosamtaler](/docs/workspace-connections/video-calls): Gi hver hendelse en samtale, publisert med oppdateringene.
 - [Slack-integrasjon](/docs/self-hosted/slack-integration): Sett opp Slack-appen på en selvdriftet server.
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): Alle måtene en hendelse starter på, og hva som kjører når den gjør det.

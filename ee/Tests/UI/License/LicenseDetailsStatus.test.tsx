@@ -1,5 +1,6 @@
 import LicenseDetails from "../../../AdminDashboard/License/LicenseDetails";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
+import { writeReaderDay } from "Common/UI/Utils/ReaderMoments";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -297,9 +298,8 @@ describe("EditionLabel with the license details - an expired license in its grac
       "enterprise-license-grace-notice",
     );
 
-    expect(notice).toHaveTextContent(
-      new Date(graceEndsAt).toLocaleDateString(),
-    );
+    // The reader's day, as the notice writes it (writeReaderDay, #8231).
+    expect(notice).toHaveTextContent(writeReaderDay(new Date(graceEndsAt)));
     expect(notice).toHaveTextContent("5 days left");
     expect(notice).toHaveTextContent(
       "Every enterprise feature keeps working until the grace period ends",
@@ -406,9 +406,8 @@ describe("EditionLabel with the license details - an unlicensed installation's t
 
     expect(notice).toHaveTextContent("Enterprise Edition trial: 10 days left");
     expect(notice).toHaveTextContent("No Enterprise license is installed");
-    expect(notice).toHaveTextContent(
-      new Date(graceEndsAt).toLocaleDateString(),
-    );
+    // The reader's day, as the notice writes it (writeReaderDay, #8231).
+    expect(notice).toHaveTextContent(writeReaderDay(new Date(graceEndsAt)));
     /*
      * What stops when it ends: SCIM provisioning and audit logging, not just
      * configuration - and nothing about single sign-on.

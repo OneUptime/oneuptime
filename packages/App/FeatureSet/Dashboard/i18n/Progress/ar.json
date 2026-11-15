@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 55628,
+    "keys": 55711,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -148,6 +148,7 @@
     "Job",
     "Jobs",
     "John Smith",
+    "Key Manager",
     "KeyDB",
     "Keystone",
     "Kolla-Ansible",

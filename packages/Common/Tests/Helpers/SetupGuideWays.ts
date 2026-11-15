@@ -29,6 +29,10 @@ import {
   getKubernetesSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import {
+  STORAGE_ARRAY_PLATFORMS,
+  getStorageArraySetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import {
   OPENSTACK_CONNECT_METHODS,
   getOpenStackSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
@@ -36,6 +40,10 @@ import {
   OPENSTACK_DEPLOYMENT_TOOLS,
   OpenStackDeploymentTool,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
+import {
+  VMWARE_INSTALL_METHODS,
+  getVMwareSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import {
   DATABASE_AGENT_SYSTEM_OPTIONS,
   getDatabaseAgentEngine,
@@ -243,6 +251,32 @@ export function getKubernetesSetupGuideWays(): Array<SetupGuideWay> {
 }
 
 /*
+ * The Storage Array guide varies by platform (FlashArray native, FlashArray
+ * through Pure's exporter, FlashBlade), by whether a key is picked (the
+ * install script's prompts) and by the array a Documentation tab installs
+ * for.
+ */
+export function getStorageArraySetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: STORAGE_ARRAY_PLATFORMS,
+    names: ["array-1", "Prod Array 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof STORAGE_ARRAY_PLATFORMS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getStorageArraySetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        platform: option,
+        arrayName: name,
+      });
+    },
+  });
+}
+
+/*
  * OpenStack's guide asks two things: how the reader deploys OpenStack (the
  * card's options, each tool with its own steps and topics) and, where there
  * is an agent to install, how to install it. Every tool is read with every
@@ -274,6 +308,32 @@ export function getOpenStackSetupGuideWays(): Array<SetupGuideWay> {
       });
     },
   );
+}
+
+/*
+ * The VMware guide varies by install method (the install script, Docker
+ * Compose by hand, a Linux service without Docker), by whether a key is
+ * picked (the install script's prompts) and by the vCenter a Documentation
+ * tab installs for.
+ */
+export function getVMwareSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: VMWARE_INSTALL_METHODS,
+    names: ["vcenter-1", "Prod vCenter 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof VMWARE_INSTALL_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getVMwareSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        method: option,
+        vcenterName: name,
+      });
+    },
+  });
 }
 
 /*

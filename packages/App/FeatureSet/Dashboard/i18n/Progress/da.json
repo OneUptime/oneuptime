@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8369
+    "keys": 55711,
+    "untranslated": 8172
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -135,6 +135,8 @@
     "Filter: {{expression}}",
     "Find",
     "Finland (+358)",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Floating IP",
@@ -186,6 +188,7 @@
     "Jitter",
     "Job",
     "Kelvin",
+    "Key Manager",
     "KeyDB",
     "Keystone",
     "Kilohertz",

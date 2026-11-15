@@ -6,19 +6,26 @@ import ComplianceRule, {
   ComplianceRuleCategory,
   ComplianceRuleDefinition,
   ComplianceSeverityKind,
-  joinAsProse,
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import {
+  TeamComplianceFindingJSON,
+  TeamComplianceFindingKind,
   TeamComplianceIssueJSON,
   TeamComplianceRuleJSON,
   TeamComplianceSeverityJSON,
   TeamComplianceStatusJSON,
+  TeamComplianceWarningJSON,
+  TeamComplianceWarningKind,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
+import {
+  getComplianceReasonText,
+  getComplianceWarningText,
+  METHOD_MISSING_SENTENCES,
+} from "Common/Types/Team/TeamComplianceFindings";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
-import { getWhoCanTurnOnSentence } from "Common/Utils/Project/NotificationChannels";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
@@ -73,36 +80,27 @@ import ObjectID from "Common/Types/ObjectID";
  */
 
 /*
- * The four "has a verified method" reasons that predate this module are kept
- * word for word: they are what existing installs have been showing admins.
+ * The "has a verified method" reasons, the four that predate this module
+ * word for word as existing installs have been showing admins. They are
+ * worded in Common/Types/Team/TeamComplianceFindings, where the Dashboard
+ * words them in the reader's language too (#8632).
  */
 export const METHOD_RULE_FAILURE_REASONS: Readonly<
   Record<ComplianceMethodChannel, string>
-> = {
-  [ComplianceNotificationChannel.Email]:
-    "No verified email address configured for notifications",
-  [ComplianceNotificationChannel.SMS]:
-    "No verified phone number configured for SMS notifications",
-  [ComplianceNotificationChannel.Call]:
-    "No verified phone number configured for call notifications",
-  [ComplianceNotificationChannel.Push]:
-    "No verified push notification device configured",
-  [ComplianceNotificationChannel.WhatsApp]:
-    "No verified WhatsApp number configured for notifications",
-  [ComplianceNotificationChannel.Telegram]:
-    "No verified Telegram account configured for notifications",
-  [ComplianceNotificationChannel.Slack]:
-    "No verified Slack account configured for notifications",
-  [ComplianceNotificationChannel.MicrosoftTeams]:
-    "No verified Microsoft Teams account configured for notifications",
-  [ComplianceNotificationChannel.Mattermost]:
-    "No verified Mattermost account configured for notifications",
-  [ComplianceNotificationChannel.Webhook]:
-    "No webhook configured for notifications",
+> = METHOD_MISSING_SENTENCES as Readonly<
+  Record<ComplianceMethodChannel, string>
+>;
+
+// A rule's warnings in the server's English, worded with the Dashboard's (#8632).
+const warningText: (kind: TeamComplianceWarningKind) => string = (
+  kind: TeamComplianceWarningKind,
+): string => {
+  return getComplianceWarningText({ kind: kind });
 };
 
-export const UNKNOWN_RULE_TYPE_WARNING: string =
-  "This rule type is not recognised, so it is not checked.";
+export const UNKNOWN_RULE_TYPE_WARNING: string = warningText(
+  TeamComplianceWarningKind.UnknownRuleType,
+);
 
 /*
  * Why a rule's custom channel is not checked (channelsNotChecked): no custom
@@ -112,11 +110,13 @@ export const UNKNOWN_RULE_TYPE_WARNING: string =
  * (CustomChannelEdition: no Enterprise license includes them - always so on
  * the Community Edition), the second while they are but none is turned on.
  */
-export const CUSTOM_CHANNELS_NOT_ACTIVE_WARNING: string =
-  "Custom channels are a OneUptime Enterprise feature, and this server has no Enterprise license that includes them, so nothing is sent to a custom channel and members are not checked for one.";
+export const CUSTOM_CHANNELS_NOT_ACTIVE_WARNING: string = warningText(
+  TeamComplianceWarningKind.CustomChannelsNotActive,
+);
 
-export const NO_CUSTOM_CHANNEL_ON_WARNING: string =
-  "No custom channel is turned on, so nothing is sent to one and members are not checked for one. A server admin can turn one on in the Admin Dashboard, under Settings > Notifications > Custom Channels.";
+export const NO_CUSTOM_CHANNEL_ON_WARNING: string = warningText(
+  TeamComplianceWarningKind.NoCustomChannelOn,
+);
 
 /*
  * Why a rule a severity delete left with nothing to check
@@ -124,8 +124,9 @@ export const NO_CUSTOM_CHANNEL_ON_WARNING: string =
  * though the rule is disabled: it is the only thing on the page that says
  * the rule cannot simply be switched back on.
  */
-export const SEVERITIES_DELETED_WARNING: string =
-  "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
+export const SEVERITIES_DELETED_WARNING: string = warningText(
+  TeamComplianceWarningKind.SeveritiesDeleted,
+);
 
 /*
  * The Project columns that switch a channel off for the whole project, and
@@ -164,7 +165,9 @@ export const PROJECT_CHANNEL_SWITCHES: Readonly<
   [ComplianceNotificationChannel.Telegram]: "enableTelegramNotifications",
 };
 
-export const WHATSAPP_SWITCHED_OFF_WARNING: string = `WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. ${getWhoCanTurnOnSentence("it")}`;
+export const WHATSAPP_SWITCHED_OFF_WARNING: string = warningText(
+  TeamComplianceWarningKind.WhatsAppSwitchedOff,
+);
 
 /*
  * Where a page through a custom channel can go on this server right now, as
@@ -431,9 +434,9 @@ interface ChannelRuleContext {
  * turned off.
  */
 interface ChannelVerdict {
-  missing: Array<string>;
-  unusable: Array<string>;
-  refused: Array<string>;
+  missing: Array<TeamComplianceSeverityJSON>;
+  unusable: Array<TeamComplianceSeverityJSON>;
+  refused: Array<TeamComplianceSeverityJSON>;
   optedOutSeverityIds: Array<string>;
 }
 
@@ -528,12 +531,22 @@ export default class TeamComplianceEvaluator {
   public static getCustomChannelWarning(
     customChannels: CustomChannelAvailability,
   ): string | null {
+    const warning: TeamComplianceWarningJSON | null =
+      TeamComplianceEvaluator.getCustomChannelWarningDetail(customChannels);
+
+    return warning ? getComplianceWarningText(warning) : null;
+  }
+
+  // The same, as data the Dashboard words in the reader's language (#8632).
+  public static getCustomChannelWarningDetail(
+    customChannels: CustomChannelAvailability,
+  ): TeamComplianceWarningJSON | null {
     if (!customChannels.isActive) {
-      return CUSTOM_CHANNELS_NOT_ACTIVE_WARNING;
+      return { kind: TeamComplianceWarningKind.CustomChannelsNotActive };
     }
 
     if (customChannels.channelIdsOn.size === 0) {
-      return NO_CUSTOM_CHANNEL_ON_WARNING;
+      return { kind: TeamComplianceWarningKind.NoCustomChannelOn };
     }
 
     return null;
@@ -712,15 +725,12 @@ export default class TeamComplianceEvaluator {
           return;
         }
 
-        const reason: string | null = TeamComplianceEvaluator.evaluateRule(
-          rule,
-          member.userId,
-          context,
-        );
+        const findings: Array<TeamComplianceFindingJSON> | null =
+          TeamComplianceEvaluator.evaluateRule(rule, member.userId, context);
 
         const outcome: RuleOutcome = outcomes[index]!;
 
-        if (reason === null) {
+        if (findings === null) {
           outcome.compliantCount++;
           return;
         }
@@ -729,7 +739,9 @@ export default class TeamComplianceEvaluator {
         issues.push({
           settingId: rule.settingId,
           ruleType: rule.ruleType as ComplianceRuleType,
-          reason: reason,
+          // The English the server always sent, and the same as data (#8632).
+          reason: getComplianceReasonText(findings, rule.ruleType),
+          findings: findings,
         });
       });
 
@@ -779,19 +791,37 @@ export default class TeamComplianceEvaluator {
     projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>> | null,
     customChannels: CustomChannelAvailability | null = null,
   ): Array<string> {
+    return TeamComplianceEvaluator.getRuleWarningDetails(
+      rule,
+      projectSwitches,
+      customChannels,
+    ).map((warning: TeamComplianceWarningJSON): string => {
+      return getComplianceWarningText(warning);
+    });
+  }
+
+  /*
+   * The same warnings as data, one for each sentence, for the Dashboard to
+   * word in the reader's language (#8632).
+   */
+  public static getRuleWarningDetails(
+    rule: ResolvedComplianceRule,
+    projectSwitches: Partial<Record<ProjectChannelSwitch, boolean>> | null,
+    customChannels: CustomChannelAvailability | null = null,
+  ): Array<TeamComplianceWarningJSON> {
     if (!rule.definition) {
-      return [UNKNOWN_RULE_TYPE_WARNING];
+      return [{ kind: TeamComplianceWarningKind.UnknownRuleType }];
     }
 
     if (rule.severitiesDeleted) {
-      return [SEVERITIES_DELETED_WARNING];
+      return [{ kind: TeamComplianceWarningKind.SeveritiesDeleted }];
     }
 
     if (!rule.enabled) {
       return [];
     }
 
-    const warnings: Array<string> = [];
+    const warnings: Array<TeamComplianceWarningJSON> = [];
 
     if (projectSwitches) {
       const channels: Array<ComplianceNotificationChannel> =
@@ -802,7 +832,7 @@ export default class TeamComplianceEvaluator {
           : rule.notificationChannels;
 
       warnings.push(
-        ...TeamComplianceEvaluator.getChannelsSwitchedOffWarnings(
+        ...TeamComplianceEvaluator.getChannelsSwitchedOffWarningDetails(
           channels.filter((channel: ComplianceNotificationChannel): boolean => {
             const projectSwitch: ProjectChannelSwitch | undefined =
               PROJECT_CHANNEL_SWITCHES[channel];
@@ -816,11 +846,11 @@ export default class TeamComplianceEvaluator {
       );
     }
 
-    const customChannelWarning: string | null =
+    const customChannelWarning: TeamComplianceWarningJSON | null =
       rule.channelsNotChecked.includes(
         ComplianceNotificationChannel.CustomChannel,
       ) && customChannels
-        ? TeamComplianceEvaluator.getCustomChannelWarning(customChannels)
+        ? TeamComplianceEvaluator.getCustomChannelWarningDetail(customChannels)
         : null;
 
     if (customChannelWarning) {
@@ -838,13 +868,14 @@ export default class TeamComplianceEvaluator {
   public static getChannelSwitchedOffWarning(
     channel: ComplianceNotificationChannel,
   ): string {
-    if (channel === ComplianceNotificationChannel.WhatsApp) {
-      return WHATSAPP_SWITCHED_OFF_WARNING;
-    }
-
-    const label: string = TeamComplianceEvaluator.channelLabel(channel);
-
-    return `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. ${getWhoCanTurnOnSentence("them")}`;
+    return getComplianceWarningText(
+      channel === ComplianceNotificationChannel.WhatsApp
+        ? { kind: TeamComplianceWarningKind.WhatsAppSwitchedOff }
+        : {
+            kind: TeamComplianceWarningKind.ChannelsSwitchedOff,
+            channels: [channel],
+          },
+    );
   }
 
   /*
@@ -857,6 +888,17 @@ export default class TeamComplianceEvaluator {
   public static getChannelsSwitchedOffWarnings(
     channels: Array<ComplianceNotificationChannel>,
   ): Array<string> {
+    return TeamComplianceEvaluator.getChannelsSwitchedOffWarningDetails(
+      channels,
+    ).map((warning: TeamComplianceWarningJSON): string => {
+      return getComplianceWarningText(warning);
+    });
+  }
+
+  // The same warnings as data (#8632).
+  public static getChannelsSwitchedOffWarningDetails(
+    channels: Array<ComplianceNotificationChannel>,
+  ): Array<TeamComplianceWarningJSON> {
     const switchedOff: Array<ComplianceNotificationChannel> =
       ComplianceRule.normaliseChannels(channels);
 
@@ -866,24 +908,17 @@ export default class TeamComplianceEvaluator {
       },
     );
 
-    const warnings: Array<string> = [];
+    const warnings: Array<TeamComplianceWarningJSON> = [];
 
-    if (notSent.length === 1) {
-      warnings.push(
-        TeamComplianceEvaluator.getChannelSwitchedOffWarning(notSent[0]!),
-      );
-    } else if (notSent.length > 1) {
-      warnings.push(
-        `${joinAsProse(
-          notSent.map((channel: ComplianceNotificationChannel): string => {
-            return TeamComplianceEvaluator.channelLabel(channel);
-          }),
-        )} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. ${getWhoCanTurnOnSentence("them")}`,
-      );
+    if (notSent.length > 0) {
+      warnings.push({
+        kind: TeamComplianceWarningKind.ChannelsSwitchedOff,
+        channels: notSent,
+      });
     }
 
     if (switchedOff.includes(ComplianceNotificationChannel.WhatsApp)) {
-      warnings.push(WHATSAPP_SWITCHED_OFF_WARNING);
+      warnings.push({ kind: TeamComplianceWarningKind.WhatsAppSwitchedOff });
     }
 
     return warnings;
@@ -1086,7 +1121,7 @@ export default class TeamComplianceEvaluator {
     rule: ResolvedComplianceRule,
     userId: string,
     context: EvaluationContext,
-  ): string | null {
+  ): Array<TeamComplianceFindingJSON> | null {
     const definition: ComplianceRuleDefinition = rule.definition!;
 
     if (definition.category === ComplianceRuleCategory.NotificationMethod) {
@@ -1097,7 +1132,7 @@ export default class TeamComplianceEvaluator {
 
       return owners && owners.has(userId)
         ? null
-        : METHOD_RULE_FAILURE_REASONS[channel];
+        : [{ kind: TeamComplianceFindingKind.MethodMissing, channel: channel }];
     }
 
     const channelRule: ChannelRuleContext | undefined =
@@ -1128,22 +1163,21 @@ export default class TeamComplianceEvaluator {
     rule: ResolvedComplianceRule,
     userId: string,
     context: EvaluationContext,
-  ): string | null {
+  ): Array<TeamComplianceFindingJSON> | null {
     const definition: ComplianceRuleDefinition = rule.definition!;
-    const subject: string = definition.subject || "";
 
     const coverage: Array<ComplianceCoverageCellInput> | undefined =
       context.input.coverageByUserId.get(userId);
 
     if (!coverage) {
-      return `Could not check ${subject} notification rules for this user - they may no longer be a member of this project`;
+      return [{ kind: TeamComplianceFindingKind.CouldNotCheck }];
     }
 
     // Undefined when the rule is not scoped: every severity counts.
     const scope: ReadonlySet<string> | undefined =
       context.severityScopes.get(rule);
 
-    const missing: Array<string> = coverage
+    const missing: Array<TeamComplianceSeverityJSON> = coverage
       .filter((cell: ComplianceCoverageCellInput): boolean => {
         if (cell.ruleType !== definition.notificationRuleType) {
           return false;
@@ -1158,15 +1192,20 @@ export default class TeamComplianceEvaluator {
 
         return !cell.hasRule && !cell.isOptOut;
       })
-      .map((cell: ComplianceCoverageCellInput): string => {
-        return cell.severityName || cell.severityId?.toString() || "";
+      .map((cell: ComplianceCoverageCellInput): TeamComplianceSeverityJSON => {
+        return {
+          id: cell.severityId?.toString() || "",
+          name: cell.severityName || "",
+        };
       });
 
     if (missing.length === 0) {
       return null;
     }
 
-    return `Missing notification rules for ${subject} severities: ${missing.join(", ")}`;
+    return [
+      { kind: TeamComplianceFindingKind.MissingRules, severities: missing },
+    ];
   }
 
   private static getChannelRuleContext(
@@ -1246,8 +1285,8 @@ export default class TeamComplianceEvaluator {
     rule: ChannelRuleContext,
     userId: string,
     context: EvaluationContext,
-  ): string | null {
-    const sentences: Array<string> = [];
+  ): Array<TeamComplianceFindingJSON> | null {
+    const findings: Array<TeamComplianceFindingJSON> = [];
     const optedOutSeverityIds: Set<string> = new Set<string>();
 
     for (const channel of rule.channels) {
@@ -1259,25 +1298,27 @@ export default class TeamComplianceEvaluator {
       );
 
       if (verdict.missing.length > 0) {
-        sentences.push(
-          `No ${channel.label} rule for ${rule.subject} severities: ${verdict.missing.join(", ")}`,
-        );
+        findings.push({
+          kind: TeamComplianceFindingKind.NoChannelRule,
+          channel: channel.channel,
+          severities: verdict.missing,
+        });
       }
 
       if (verdict.unusable.length > 0) {
-        sentences.push(
-          `The ${channel.label} rule for ${rule.subject} severities ${verdict.unusable.join(", ")} points at ${
-            channel.method
-              ? `an unverified ${channel.method.noun}`
-              : "a custom channel that is turned off"
-          }`,
-        );
+        findings.push({
+          kind: TeamComplianceFindingKind.UnusableChannelRule,
+          channel: channel.channel,
+          severities: verdict.unusable,
+        });
       }
 
       if (verdict.refused.length > 0) {
-        sentences.push(
-          `The ${channel.label} rule for ${rule.subject} severities ${verdict.refused.join(", ")} is never sent, because another notification method on it belongs to a different user`,
-        );
+        findings.push({
+          kind: TeamComplianceFindingKind.RefusedChannelRule,
+          channel: channel.channel,
+          severities: verdict.refused,
+        });
       }
 
       for (const severityId of verdict.optedOutSeverityIds) {
@@ -1285,21 +1326,22 @@ export default class TeamComplianceEvaluator {
       }
     }
 
-    const optedOut: Array<string> = rule.scope
+    const optedOut: Array<TeamComplianceSeverityJSON> = rule.scope
       .filter((severity: ComplianceSeverityInput): boolean => {
         return optedOutSeverityIds.has(severity.id);
       })
-      .map((severity: ComplianceSeverityInput): string => {
-        return severity.name || severity.id;
+      .map((severity: ComplianceSeverityInput): TeamComplianceSeverityJSON => {
+        return { id: severity.id, name: severity.name || "" };
       });
 
     if (optedOut.length > 0) {
-      sentences.push(
-        `Opted out of ${rule.subject} notifications for: ${optedOut.join(", ")}`,
-      );
+      findings.push({
+        kind: TeamComplianceFindingKind.OptedOut,
+        severities: optedOut,
+      });
     }
 
-    return sentences.length > 0 ? sentences.join(". ") : null;
+    return findings.length > 0 ? findings : null;
   }
 
   /*
@@ -1406,7 +1448,10 @@ export default class TeamComplianceEvaluator {
         continue;
       }
 
-      const name: string = severity.name || severity.id;
+      const name: TeamComplianceSeverityJSON = {
+        id: severity.id,
+        name: severity.name || "",
+      };
 
       if (hasBrokenRule) {
         verdict.unusable.push(name);
@@ -1482,6 +1527,12 @@ export default class TeamComplianceEvaluator {
     customChannels: CustomChannelAvailability | null,
   ): TeamComplianceRuleJSON {
     const isEvaluated: boolean = TeamComplianceEvaluator.isChecked(rule);
+    const warnings: Array<TeamComplianceWarningJSON> =
+      TeamComplianceEvaluator.getRuleWarningDetails(
+        rule,
+        projectSwitches,
+        customChannels,
+      );
 
     return {
       settingId: rule.settingId,
@@ -1506,15 +1557,11 @@ export default class TeamComplianceEvaluator {
       ),
       compliantCount: isEvaluated ? outcome.compliantCount : 0,
       nonCompliantCount: isEvaluated ? outcome.nonCompliantCount : 0,
-      warnings: TeamComplianceEvaluator.getRuleWarnings(
-        rule,
-        projectSwitches,
-        customChannels,
-      ),
+      warnings: warnings.map((warning: TeamComplianceWarningJSON): string => {
+        return getComplianceWarningText(warning);
+      }),
+      // The same as data, for the Dashboard to word (#8632).
+      warningDetails: warnings,
     };
-  }
-
-  private static channelLabel(channel: ComplianceNotificationChannel): string {
-    return ComplianceRule.getChannelDefinition(channel)?.label || channel;
   }
 }

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8413
+    "keys": 55711,
+    "untranslated": 8216
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -104,6 +104,8 @@
     "Filter:",
     "Filter: {{expression}}",
     "Finland (+358)",
+    "FlashArray",
+    "FlashBlade",
     "Flat",
     "Flavor",
     "Fluent Bit",
@@ -141,6 +143,7 @@
     "Japan (+81)",
     "Jitter",
     "Kelvin",
+    "Key Manager",
     "KeyDB",
     "Keystone",
     "Kilohertz",

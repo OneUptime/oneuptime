@@ -424,7 +424,7 @@ Med observability på holder stackens Loki tjenestenes logger. OneUptime har ing
 
 ### Hvem gjorde hva på Sunbeam
 
-Ikke ennå. Sunbeams charms skriver hver tjenestes konfigurasjon fra sine egne maler, og Keystone-charmen har ingen innstilling for hvor varsler skal sendes. Så verken Keystones revisjonsspor eller revisjonsfilteret kan slås på utenfra charmen, og ingenting her når sikkerhetshendelser.
+Ikke ennå. Sunbeams charms skriver hver tjenestes konfigurasjon fra sine egne maler, og Keystone-charmen har ingen innstilling for hvor varslinger skal sendes. Så verken Keystones revisjonsspor eller revisjonsfilteret kan slås på utenfra charmen, og ingenting her når sikkerhetshendelser.
 
 ## Red Hat OpenStack on OpenShift
 

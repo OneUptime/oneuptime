@@ -45,9 +45,14 @@ const TRAILING_ZEROS: RegExp = /\.?0+$/;
  * never splits at a no-break space.
  */
 export function formatAxisRate(megabitsPerSecond: number): string {
+  /*
+   * formatBitsPerSecond holds its figure to its unit with a no-break space
+   * (#8303), so the two are split apart at any space: at " " alone the
+   * figure kept its unit, then gained a second one ("12.3 Mbps ").
+   */
   const [amount, unit] = formatBitsPerSecond(
     megabitsPerSecond * 1_000_000,
-  ).split(" ");
+  ).split(/\s/);
   const shortAmount: string = (amount || "").includes(".")
     ? (amount || "").replace(TRAILING_ZEROS, "")
     : amount || "";

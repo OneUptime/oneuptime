@@ -249,9 +249,9 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 - **네트워크** 아래의 **라우트**와 **서비스**: 각 Route가 응답하는 위치, TLS 종료 방식, 트래픽을 보내는 서비스와 그 비율, 라우터가 Route를 거부한 이유를 보여 줍니다. Route의 TLS 키는 클러스터 밖으로 나가지 않습니다. 에이전트가 Route를 보내기 전에 키를 교체합니다.
 - **워크로드** 아래의 **DeploymentConfigs**는 Deployment와 같은 방식으로 표시됩니다. 롤아웃, Pod의 CPU와 메모리, 실행하는 ReplicationController와 Pod의 이벤트를 보여 줍니다.
 
-**Operator 및 업데이트 알림.** OpenShift 클러스터의 **권장 사항** 페이지에서는 **Cluster Operator Unavailable**, **Cluster Operator Degraded**, **Cluster Update Failing**을 제공합니다. 각각은 에이전트가 `resourceSpecs.interval`마다 보내는 스냅샷을 대상으로 하는 로그 모니터입니다. 스냅샷 두 개가 문제를 보고하면 경고를 보내므로, 업데이트 중 Operator 상태가 잠깐 바뀌는 것만으로는 아무 일도 일어나지 않습니다. 또한 스냅샷이 문제가 끝났다고 보고할 때 해결되며, 에이전트가 전송을 멈췄다는 이유로 해결되는 일은 없습니다.
+**Operator 및 업데이트 경고.** OpenShift 클러스터의 **권장 사항** 페이지에서는 **Cluster Operator Unavailable**, **Cluster Operator Degraded**, **Cluster Update Failing**을 제공합니다. 각각은 에이전트가 `resourceSpecs.interval`마다 보내는 스냅샷을 대상으로 하는 로그 모니터입니다. 스냅샷 두 개가 문제를 보고하면 경고를 보내므로, 업데이트 중 Operator 상태가 잠깐 바뀌는 것만으로는 아무 일도 일어나지 않습니다. 또한 스냅샷이 문제가 끝났다고 보고할 때 해결되며, 에이전트가 전송을 멈췄다는 이유로 해결되는 일은 없습니다.
 
-**OpenShift 자체 알림.** OpenShift에는 Prometheus와 Alertmanager가 포함되어 있으며, Operator, etcd, 노드에 대한 알림이 함께 제공됩니다. 각 알림마다 OneUptime에서 인시던트를 열려면 웹 콘솔의 **Administration → Cluster Settings → Configuration → Alertmanager**에서 OneUptime용 웹훅 수신기를 추가하세요. 방법은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요.
+**OpenShift 자체 경고.** OpenShift에는 Prometheus와 Alertmanager가 포함되어 있으며, Operator, etcd, 노드에 대한 경고가 함께 제공됩니다. 각 경고마다 OneUptime에서 인시던트를 열려면 웹 콘솔의 **Administration → Cluster Settings → Configuration → Alertmanager**에서 OneUptime용 웹훅 수신기를 추가하세요. 방법은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요.
 
 **코드에서 보내는 트레이스.** eBPF 계측은 코드를 바꾸지 않고도 HTTP, gRPC, SQL을 트레이스합니다. OpenTelemetry SDK나 Red Hat build of OpenTelemetry에서 트레이스를 보내려면 해당 OTLP 익스포터가 OneUptime을 가리키도록 하세요. 방법은 [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요.
 
@@ -294,7 +294,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 
 너비가 1024픽셀보다 좁은 화면에서는 **이벤트** 열에 **개수**와 **마지막 확인**도 표시되며, 이 둘은 그곳에서 별도의 열이 없습니다.
 
-### 이벤트 검색과 알림
+### 이벤트 검색과 경고
 
 모든 이벤트는 로그이기도 합니다. 경고는 심각도 **경고**로 저장되며, 이벤트의 내용은 속성에 들어 있습니다.
 
@@ -309,7 +309,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-**로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 알림을 받으려면 클러스터의 **권장 사항** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **경고 알림 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 알림을 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 알림을 받으려면 필터에 `k8s.event.reason`을 추가하세요.
+**로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 경고를 받으려면 클러스터의 **권장 사항** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **Warning 이벤트 경고 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 경고를 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 경고를 받으려면 필터에 `k8s.event.reason`을 추가하세요.
 
 ## 구성 옵션
 

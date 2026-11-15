@@ -1102,10 +1102,6 @@ describe("OverLongText - a link's text across a cut, and a bare address across t
 
   test.each([
     ["a text that never closes", `${FILLER}see [${"run ".repeat(400)} now`],
-    [
-      "a text closed by a ']' with no '(' after it",
-      `${FILLER}see [${"run ".repeat(400)}] now`,
-    ],
     ["an escaped '['", `${FILLER}see \\[${"run ".repeat(400)}${TAIL}`],
     [
       "more labels open than are remembered",
@@ -1120,6 +1116,23 @@ describe("OverLongText - a link's text across a cut, and a bare address across t
       expect(heldLine.inView).toHaveLength(2);
     },
   );
+
+  // A "[" the "]" in the kept end closes stays in view to be closed there (#8668).
+  test("a text closed by a ']' with no '(' after it at the end keeps its '[' in view", () => {
+    const line: string = `${FILLER}see [${"run ".repeat(400)}] now`;
+    const open: number = line.indexOf("[");
+    const heldLine: HeldLine = holdBackLine(line);
+
+    expect(heldLine.inView).toEqual([
+      line.slice(0, middleStartOf(line)),
+      "[",
+      line.slice(middleEndOf(line)),
+    ]);
+    expect(heldLine.held).toEqual([
+      line.slice(middleStartOf(line), open),
+      line.slice(open + 1, middleEndOf(line)),
+    ]);
+  });
 
   /*
    * Where the text is in nested brackets, a code span or an escape at the

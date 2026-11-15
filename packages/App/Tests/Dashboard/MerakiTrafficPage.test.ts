@@ -1960,13 +1960,13 @@ describe("what the page says", () => {
         now,
         language: "not a language!",
       }),
-    ).toBe("2 minutes ago");
+    ).toBe("2\u00A0minutes ago");
     expect(
       getMerakiReadTime("2026-10-24T11:59:48.000Z", {
         now,
         language: "not a language!",
       }),
-    ).toBe("12 seconds ago");
+    ).toBe("12\u00A0seconds ago");
   });
 
   test("how often it reads", () => {

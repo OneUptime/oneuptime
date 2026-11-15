@@ -12,8 +12,8 @@
 :::cards
 - [모니터 만들기](#수신-요청-모니터-만들기): 몇 단계만으로 하트비트 URL을 받습니다.
 - [하트비트 보내기](#하트비트-보내기): curl, cron, Node.js, Python, Go에서 보냅니다.
-- [호출이 끊기면 알림 받기](#10분-동안-하트비트가-없으면-오프라인으로-표시데드맨-스위치): 모니터를 데드맨 스위치로 만듭니다.
-- [알림 받기](#다른-시스템의-알림-수신): Alertmanager나 Grafana의 알림마다 인시던트 하나를 엽니다.
+- [호출이 끊기면 경고 받기](#10분-동안-하트비트가-없으면-오프라인으로-표시데드맨-스위치): 모니터를 데드맨 스위치로 만듭니다.
+- [경고 받기](#다른-시스템의-경고-수신): Alertmanager나 Grafana의 경고마다 인시던트 하나를 엽니다.
 - [SNS 또는 Event Grid 구독하기](#amazon-sns-또는-azure-event-grid-구독하기): 클릭 한 번으로 구독을 확인합니다.
 :::
 
@@ -38,7 +38,7 @@ sequenceDiagram
 - cron 작업과 예약된 태스크 모니터링
 - 백그라운드 워커가 실행 중인지 확인
 - 외부에서 도달할 수 없는 방화벽 뒤 서비스 모니터링
-- Prometheus Alertmanager, Grafana 및 기타 알림 시스템으로부터 알림 수신
+- Prometheus Alertmanager, Grafana 및 기타 경고 시스템으로부터 경고 수신
 - HTTP를 지원하는 모든 시스템의 하트비트 신호 추적
 
 ## 수신 요청 모니터 만들기
@@ -243,7 +243,7 @@ OneUptime은 시크릿을 저장하지 않습니다. 무엇이든 저장하기 �
 값을 발신자가 실제로 보내는 내용(`"status":"firing"`, `FAILED` 등)으로 바꾸세요. 비교는 키를 포함한 본문 전체에서 대소문자를 구분하는 부분 문자열 검색이므로, `{"error":null}` 도 `error` 와 일치합니다.
 
 > [!NOTE]
-> 이 기본값은 데드맨 스위치가 **아닙니다**. 요청이 더 이상 오지 않아도 여기서는 아무것도 발생하지 않습니다. 침묵에 대해 알림을 받으려면 아래에 설명한 대로 **수신 요청** / **분 동안 미수신** 기준을 추가하세요.
+> 이 기본값은 데드맨 스위치가 **아닙니다**. 요청이 더 이상 오지 않아도 여기서는 아무것도 발생하지 않습니다. 침묵에 대해 경고를 받으려면 아래에 설명한 대로 **수신 요청** / **분 동안 미수신** 기준을 추가하세요.
 
 ### 사용할 수 있는 필터 유형
 
@@ -296,14 +296,14 @@ OneUptime은 시크릿을 저장하지 않습니다. 무엇이든 저장하기 �
 
 백그라운드 검사는 분 단위로 세며, 값을 *넘는* 시간이 지나면 발생합니다. "분 동안 미수신: 10"은 마지막 요청 후 약 11분 뒤에 발생합니다(검사는 30초마다 실행됩니다). 요청을 한 번도 받지 않은 모니터는 생성 시각을 마지막 요청으로 취급하므로, 새로 만든 모니터에 같은 기준을 두면 발신자를 연결하지 않았더라도 생성 후 약 11분 뒤에 발생합니다. 값에는 OneUptime이 데이터를 받고 있던 분만 계산됩니다. OneUptime 자체가 재시작하거나, 업그레이드되거나, 밀린 처리를 따라잡는 동안의 분은 계산되지 않습니다. 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)를 참고하세요.
 
-## 다른 시스템의 알림 수신
+## 다른 시스템의 경고 수신
 
-Alertmanager, Grafana 같은 도구는 하나 이상의 알림을 설명하는 JSON 문서를 POST합니다. 기본적으로 기준은 인시던트를 **하나** 만 열기 때문에, 알림 다섯 개가 담긴 페이로드도 인시던트 하나만 만듭니다. 인시던트 그룹화는 이를 바꿉니다. 페이로드에서 값을 뽑아 **서로 다른 값마다 별도의 인시던트** 를 열며, 이 인시던트들은 모두 동시에 열려 있을 수 있습니다.
+Alertmanager, Grafana 같은 도구는 하나 이상의 경고를 설명하는 JSON 문서를 POST합니다. 기본적으로 기준은 인시던트를 **하나** 만 열기 때문에, 경고 다섯 개가 담긴 페이로드도 인시던트 하나만 만듭니다. 인시던트 그룹화는 이를 바꿉니다. 페이로드에서 값을 뽑아 **서로 다른 값마다 별도의 인시던트** 를 열며, 이 인시던트들은 모두 동시에 열려 있을 수 있습니다.
 
-```mermaid title="인시던트 그룹화: 페이로드의 알림마다 인시던트 하나"
+```mermaid title="인시던트 그룹화: 페이로드의 경고마다 인시던트 하나"
 flowchart TB
-    payload["웹훅 페이로드"] --> keys["알림마다 키 하나"]
-    keys --> state{"알림이 해결됨?"}
+    payload["웹훅 페이로드"] --> keys["경고마다 키 하나"]
+    keys --> state{"경고가 해결됨?"}
     state -->|아니요| open["인시던트를 열거나 유지"]
     state -->|예| resolve["인시던트 해결"]
 ```
@@ -372,7 +372,7 @@ flowchart TB
 | `requestBody.alerts[*].fingerprint`      | `{{fingerprint}}` |
 | `requestBody.commonLabels.severity`      | `{{severity}}`    |
 
-전체 페이로드도 함께 사용할 수 있으므로, 인시던트 제목을 `{{alertname}}` 으로 하고 설명에서 `{{requestBody.commonAnnotations.summary}}` 를 참조하는 것도 가능합니다. [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
+전체 페이로드도 함께 사용할 수 있으므로, 인시던트 제목을 `{{alertname}}` 으로 하고 설명에서 `{{requestBody.commonAnnotations.summary}}` 를 참조하는 것도 가능합니다. [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
 > [!WARNING]
 > 변수 이름은 OneUptime이 복구 이벤트를 열린 인시던트와 맞추는 데 쓰는 식별 정보의 일부입니다. 그룹화 경로를 마지막 세그먼트가 다른 경로로 바꾸면, 이전 경로로 현재 열려 있는 모든 인시던트가 고아가 됩니다. 더 이상 자동으로 해결할 수 없으므로 직접 닫아야 합니다.
@@ -462,8 +462,8 @@ Event Grid는 코드를 그대로 돌려보내는 엔드포인트나, 소유자�
 ## 다음 단계
 
 :::cards
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): 수신 알림을 위한 완전한 설정입니다.
-- [Grafana](/docs/integrations/grafana): Grafana 알림에 대한 같은 설정입니다.
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 제목과 설명에서 쓸 수 있는 모든 변수입니다.
+- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): 수신 경고를 위한 완전한 설정입니다.
+- [Grafana](/docs/integrations/grafana): Grafana 경고에 대한 같은 설정입니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): 제목과 설명에서 쓸 수 있는 모든 변수입니다.
 - [JavaScript 표현식](/docs/monitor/javascript-expression): 표현식 문법과 따옴표 규칙입니다.
 :::

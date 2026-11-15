@@ -42,6 +42,7 @@ Le contrôle répond par l'un de ces trois verdicts :
 Ce que lit le contrôle dépend de ce que mesure le SLO :
 
 - Un [SLO de requêtes](/docs/slo/request-slos) est jugé sur les requêtes de ses services dans la fenêtre, lues dans leurs spans à mesure qu'ils arrivent. Ajoutez `serviceVersion` pour ne juger que les requêtes de la nouvelle version : OneUptime le compare à l'attribut de ressource `service.version` des spans, qu'un SDK OpenTelemetry définit à partir de `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Le canari est ainsi jugé sur ses propres requêtes, sans être dilué par celles de l'ancienne version.
+- Un [SLO de métrique](/docs/slo/request-slos#slo-à-partir-dune-métrique) est jugé sur les événements de sa métrique dans la fenêtre, comptés comme son SLI les compte : `minimumRequestCount`, `goodRequestCount` et `totalRequestCount` sont donc des événements. Avec `serviceVersion`, seuls comptent les points de la métrique dont l'attribut de ressource `service.version` a cette valeur : un SDK OpenTelemetry le définit sur ses métriques comme sur ses spans.
 - Un SLO de disponibilité des moniteurs est jugé sur les chronologies de statut de ses moniteurs pendant la fenêtre. `minimumRequestCount` ne s'applique pas à lui, et un contrôle avec `serviceVersion` est refusé : les moniteurs n'ont pas de version.
 
 ## Avant de commencer
@@ -126,7 +127,7 @@ Les champs de la réponse :
 | `deploymentsAllowed` et `errorBudgetPolicyTier` | Si la politique de budget d'erreur du SLO autorise les déploiements, et le palier dans lequel il se trouve. |
 | `checkedAt` | Le moment où le contrôle a été mesuré. |
 
-Un SLO qui ne peut pas être mesuré (un SLO de requêtes sans services, un SLO de latence sans seuil, un SLO de disponibilité des moniteurs sans moniteurs) reçoit une réponse HTTP 400 qui dit quoi corriger : un déploiement s'arrête ainsi sur une erreur claire plutôt que sur une supposition. Sur une installation auto-hébergée, utilisez sa propre adresse au lieu de oneuptime.com.
+Un SLO qui ne peut pas être mesuré (un SLO de requêtes sans services, un SLO de latence sans seuil, un SLO de métrique sans métrique qu'il puisse compter, un SLO de disponibilité des moniteurs sans moniteurs) reçoit une réponse HTTP 400 qui dit quoi corriger : un déploiement s'arrête ainsi sur une erreur claire plutôt que sur une supposition. Sur une installation auto-hébergée, utilisez sa propre adresse au lieu de oneuptime.com.
 
 ## Argo Rollouts
 

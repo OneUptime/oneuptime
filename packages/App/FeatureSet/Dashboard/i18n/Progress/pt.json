@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8389
+    "keys": 55711,
+    "untranslated": 8190
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -113,6 +113,8 @@
     "Feed",
     "Feedback",
     "Flags",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Fluent Bit",
@@ -161,6 +163,7 @@
     "Joules",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "KeyDB",
     "Keystone",
     "Kibibytes",

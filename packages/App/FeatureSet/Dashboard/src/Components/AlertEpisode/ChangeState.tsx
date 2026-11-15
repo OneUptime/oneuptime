@@ -465,13 +465,13 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
    * of theirs, so the confirm says so.
    */
   if (isAcknowledgeTarget) {
-    modalTitle = translationKey("Acknowledge Episode");
+    modalTitle = translator.translateText("Acknowledge Episode") as string;
     modalSubmitButtonText = translationKey("Acknowledge");
     modalDescription = translationKey(
       "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. Any on-call escalation for the episode and its alerts stops.",
     );
   } else if (isResolveTarget) {
-    modalTitle = translationKey("Resolve Episode");
+    modalTitle = translator.translateText("Resolve Episode") as string;
     modalSubmitButtonText = translationKey("Resolve");
     modalDescription = translationKey(
       "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.",
@@ -570,6 +570,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
           modelType={AlertEpisodeStateTimeline}
           name={"create-episode-state-timeline"}
           title={modalTitle}
+          isTitleTranslated={true}
           description={modalDescription}
           onClose={() => {
             setShowModal(false);

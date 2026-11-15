@@ -56,11 +56,13 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DataObservability: { way: "a text per language" },
   Docker: { way: "a setup guide's words" },
   Podman: { way: "a setup guide's words" },
+  StorageArray: { way: "a setup guide's words" },
   Kubernetes: { way: "a setup guide's words" },
   IoT: { way: "a setup guide's words" },
   Ceph: { way: "a setup guide's words" },
   DockerSwarm: { way: "a setup guide's words" },
   OpenStack: { way: "a setup guide's words" },
+  VMware: { way: "a setup guide's words" },
   // The engine picker's guide; a database's own tab is #8746.
   Database: { way: "a setup guide's words" },
   DataSecurity: {
@@ -102,8 +104,6 @@ const STILL_IN_ENGLISH: ReadonlyArray<string> = [
   "Host",
   "MessageQueue",
   "Proxmox",
-  "StorageArray",
-  "VMware",
 ];
 
 // Every product that has a Help > Documentation page.

@@ -129,6 +129,18 @@ export const isRequestSliType: IsRequestSliTypeFunction = (
   );
 };
 
+/*
+ * An SLO whose SLI is good events over total events, counted in 5-minute
+ * steps into SloHistory: a request SLO from its services' traces, or a
+ * Metric SLO from their metric (#8445). Its error budget is counted in
+ * events, never in minutes; its services are what it measures.
+ */
+export const isEventSliType: IsRequestSliTypeFunction = (
+  sliType: SliType | string | undefined | null,
+): boolean => {
+  return isRequestSliType(sliType) || sliType === SliType.Metric;
+};
+
 export type FloorToRequestStepFunction = (date: Date) => Date;
 
 // The start of the 5-minute step `date` falls in, aligned to the Unix epoch.
@@ -480,6 +492,8 @@ export type FormatRequestBudgetFunction = (data: {
 /*
  * "1,234 failed requests" / "1 slow request" - the bad requests a budget has
  * left, unsigned: the caller words an overspent budget ("over budget by").
+ * A Metric SLO's events are whatever its metric counts: "12 bad events"
+ * (#8445).
  */
 export const formatRequestBudget: FormatRequestBudgetFunction = (data: {
   sliType: SliType | string | undefined | null;
@@ -489,6 +503,10 @@ export const formatRequestBudget: FormatRequestBudgetFunction = (data: {
 
   if (!count) {
     return "";
+  }
+
+  if (data.sliType === SliType.Metric) {
+    return `${count} bad ${count === "1" ? "event" : "events"}`;
   }
 
   const kind: string = getBadRequestKind(data.sliType);

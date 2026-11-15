@@ -363,13 +363,13 @@ describe("when, in the reader's words", () => {
   }
 
   test.each<[string, number, string]>([
-    ["en", 5 * 60, "5 minutes ago"],
-    ["de", 5 * 60, "vor 5 Minuten"],
-    ["ja", 5 * 60, "5 分前"],
+    ["en", 5 * 60, "5\u00A0minutes ago"],
+    ["de", 5 * 60, "vor 5\u00A0Minuten"],
+    ["ja", 5 * 60, "5\u00A0分前"],
     // Never "now": the sentence it fills needs a distance.
-    ["en", 10, "1 minute ago"],
-    ["de", 10, "vor 1 Minute"],
-    ["en", 3 * 3600, "3 hours ago"],
+    ["en", 10, "1\u00A0minute ago"],
+    ["de", 10, "vor 1\u00A0Minute"],
+    ["en", 3 * 3600, "3\u00A0hours ago"],
   ])(
     "%s, %i seconds ago: %s",
     (language: string, seconds: number, expected: string) => {

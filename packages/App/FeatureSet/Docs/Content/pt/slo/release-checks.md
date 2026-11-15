@@ -42,6 +42,7 @@ Com uma taxa de consumo de 1, a janela atingiu exatamente a meta do SLO, então 
 O que a verificação lê depende do que o SLO mede:
 
 - Um [SLO de requisições](/docs/slo/request-slos) é julgado pelas requisições dos seus serviços na janela, lidas dos spans delas à medida que chegam. Adicione `serviceVersion` para julgar só as requisições da nova versão: o OneUptime compara esse valor com o atributo de recurso `service.version` dos spans, que um SDK do OpenTelemetry define a partir de `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Assim, o canário é julgado pelas próprias requisições, sem ser diluído pelas da versão antiga.
+- Um [SLO de métrica](/docs/slo/request-slos#slos-a-partir-de-uma-métrica) é julgado pelos eventos da sua métrica na janela, contados como o SLI dele os conta, então `minimumRequestCount`, `goodRequestCount` e `totalRequestCount` são eventos. Com `serviceVersion`, só contam os pontos da métrica cujo atributo de recurso `service.version` tem esse valor: um SDK do OpenTelemetry o define nas métricas dele assim como nos spans.
 - Um SLO de disponibilidade dos monitores é julgado pelas linhas do tempo de status dos seus monitores na janela. `minimumRequestCount` não se aplica a ele, e uma verificação com `serviceVersion` é recusada: monitores não têm versões.
 
 ## Antes de começar
@@ -126,7 +127,7 @@ Os campos da resposta:
 | `deploymentsAllowed` e `errorBudgetPolicyTier` | Se a política de orçamento de erros do SLO permite implantações, e o nível em que ele está. |
 | `checkedAt` | Quando a verificação foi medida. |
 
-Um SLO que não pode ser medido (um SLO de requisições sem serviços, um SLO de latência sem limite, um SLO de disponibilidade dos monitores sem monitores) recebe como resposta HTTP 400 e o que corrigir, para que um rollout pare em um erro claro, e não em um palpite. Em uma instalação auto-hospedada, use o endereço da própria instalação em vez de oneuptime.com.
+Um SLO que não pode ser medido (um SLO de requisições sem serviços, um SLO de latência sem limite, um SLO de métrica sem uma métrica que ele possa contar, um SLO de disponibilidade dos monitores sem monitores) recebe como resposta HTTP 400 e o que corrigir, para que um rollout pare em um erro claro, e não em um palpite. Em uma instalação auto-hospedada, use o endereço da própria instalação em vez de oneuptime.com.
 
 ## Argo Rollouts
 

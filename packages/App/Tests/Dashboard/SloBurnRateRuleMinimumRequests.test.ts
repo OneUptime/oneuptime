@@ -12,9 +12,12 @@ import {
 import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 import {
   BURN_RATE_RULE_FORM_FIELDS,
+  BURN_RATE_RULE_MINIMUM_EVENTS_ERROR,
+  BURN_RATE_RULE_MINIMUM_EVENTS_FIELD,
   BURN_RATE_RULE_MINIMUM_REQUESTS_ERROR,
   BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD,
   getBurnRateRuleFormFields,
+  validateMinimumEvents,
   validateMinimumRequests,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleForm";
 import { formatBurnRateRuleMinimumRequests } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleLines";
@@ -192,8 +195,8 @@ describe("the Burn Rate Rules page", () => {
   );
 
   test("builds the form for what the SLO measures", () => {
-    expect(page).toContain(
-      "formFields={getBurnRateRuleFormFields({ isRequestSlo: isRequestSlo })}",
+    expect(page).toMatch(
+      /formFields=\{getBurnRateRuleFormFields\(\{\s*isRequestSlo: isRequestSlo,\s*isMetricSlo: isMetricSlo,\s*\}\)\}/,
     );
     expect(page).toContain("setIsRequestSlo(isRequestSliType(slo.sliType));");
   });
@@ -201,5 +204,100 @@ describe("the Burn Rate Rules page", () => {
   test("reads each rule's minimum for the table's line", () => {
     expect(page).toContain("minimumSampleCount: true,");
     expect(page).toContain("formatBurnRateRuleMinimumRequests(");
+  });
+});
+
+/*
+ * MINIMUM EVENTS (#8445): a Metric SLO's quiet hour burns its budget as a
+ * request SLO's does, and the worker honours the same minimum for it, so
+ * its rule asks for one too - counted in its metric's events.
+ */
+describe("a Metric SLO's rule: Minimum Events", () => {
+  test("is asked where a request SLO's Minimum Requests is", () => {
+    const fields: Array<RuleField> = getBurnRateRuleFormFields({
+      isRequestSlo: false,
+      isMetricSlo: true,
+    });
+    const columns: Array<string> = fields.map(columnOf);
+    const index: number = columns.indexOf("minimumSampleCount");
+
+    expect(fields[index]).toBe(BURN_RATE_RULE_MINIMUM_EVENTS_FIELD);
+    expect(columns[index + 1]).toBe("refireSuppressionMinutes");
+    expect(
+      fields.filter((field: RuleField): boolean => {
+        return field === BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD;
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("is the same column and step, in its metric's words", () => {
+    expect(BURN_RATE_RULE_MINIMUM_EVENTS_FIELD).toMatchObject({
+      field: { minimumSampleCount: true },
+      title: "Minimum Events",
+      fieldType: FormFieldSchemaType.Number,
+      required: false,
+      placeholder: "100",
+      stepId: "burn-window",
+    });
+    expect(BURN_RATE_RULE_MINIMUM_EVENTS_FIELD.description).toBe(
+      "Skip this rule while its long window holds fewer of its metric's events than this, so a quiet hour with one bad event does not page anyone. Leave empty for no minimum.",
+    );
+  });
+
+  test.each([undefined, null, "", 0, 100, "250"])(
+    "accepts %p",
+    (value: unknown) => {
+      expect(validateMinimumEvents(valuesOf(value))).toBeNull();
+    },
+  );
+
+  test.each([-1, 2.5, "many"])("refuses %p, in events", (value: unknown) => {
+    expect(validateMinimumEvents(valuesOf(value))).toBe(
+      BURN_RATE_RULE_MINIMUM_EVENTS_ERROR,
+    );
+  });
+
+  test("says so in a sentence", () => {
+    expect(BURN_RATE_RULE_MINIMUM_EVENTS_ERROR).toBe(
+      "Minimum Events must be a whole number of events, 0 or more.",
+    );
+  });
+
+  test.each([
+    [1, "At least 1 event"],
+    [1200, "At least 1,200 events"],
+  ])("the table says %p as %s", (value: number, expected: string) => {
+    expect(formatBurnRateRuleMinimumRequests(value, ENGLISH, true)).toBe(
+      expected,
+    );
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words the line in events, and counts them its own way",
+    (code: string) => {
+      const translator: Translator = shippedTranslatorFor(code);
+      const count: string = translator.formatNumber(1200);
+      const line: string = formatBurnRateRuleMinimumRequests(
+        1200,
+        translator,
+        true,
+      ) as string;
+
+      expect(line).not.toBe(`At least ${count} events`);
+      expect(line).not.toBe(
+        formatBurnRateRuleMinimumRequests(1200, translator),
+      );
+      expect(line).toContain(count);
+    },
+  );
+
+  test("the page asks a Metric SLO's rule in its own words", () => {
+    const page: string = fs.readFileSync(
+      path.join(DASHBOARD, "src/Pages/Slo/View/BurnRateRules.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain("setIsMetricSlo(slo.sliType === SliType.Metric);");
+    expect(page).toContain("isRequestSlo || isMetricSlo");
   });
 });

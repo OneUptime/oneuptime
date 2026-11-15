@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 55628,
+    "keys": 55711,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -144,6 +144,7 @@
     "Interaction to Next Paint",
     "IoT",
     "Job",
+    "Key Manager",
     "Key=Value Parser",
     "KeyDB",
     "Keystone",
