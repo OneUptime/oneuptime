@@ -657,10 +657,10 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     const code: string = dense(CREATE_PAGE);
 
     expect(code).toContain(
-      '{isAcknowledgeOffered&&alertsToAcknowledge&&(<divclassName="mt-3"data-testid="incident-create-acknowledge-alerts"><CheckboxElementdataTestId="incident-create-acknowledge-alerts-checkbox"title={getAcknowledgeAlertsTitle(alertsToAcknowledge,alertsToLink.length,)}description={getAcknowledgeAlertsDescription(alertsToAcknowledge,acknowledgeGate.disabledReason,)}value={willAcknowledgeAlerts}disabled={!acknowledgeGate.isAllowed}hoverText={acknowledgeGate.disabledReason}onChange={(value:boolean)=>{setShouldAcknowledgeAlerts(value);}}/></div>)}',
+      '{isAcknowledgeOffered&&alertsToAcknowledge&&(<divclassName="mt-3"data-testid="incident-create-acknowledge-alerts"><CheckboxElementdataTestId="incident-create-acknowledge-alerts-checkbox"title={getAcknowledgeAlertsTitle(alertsToAcknowledge,alertsToLink.length,translator,)}description={getAcknowledgeAlertsDescription(alertsToAcknowledge,acknowledgeGate.disabledReason,translator,)}value={willAcknowledgeAlerts}disabled={!acknowledgeGate.isAllowed}hoverText={acknowledgeGate.disabledReason}onChange={(value:boolean)=>{setShouldAcknowledgeAlerts(value);}}/></div>)}',
     );
     expect(code).toContain(
-      '{alertsToAcknowledge&&!willAcknowledgeAlerts&&(<pclassName="mt-2"data-testid="incident-create-alerts-keep-escalating">{getAlertsKeepEscalatingNote(alertsToAcknowledge,alertsToLink.length,)}</p>)}',
+      '{alertsToAcknowledge&&!willAcknowledgeAlerts&&(<pclassName="mt-2"data-testid="incident-create-alerts-keep-escalating">{getAlertsKeepEscalatingNote(alertsToAcknowledge,alertsToLink.length,translator,)}</p>)}',
     );
   });
 
@@ -673,7 +673,7 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     const gate: string = bodyOf(code, "exportconstgetAcknowledgeAlertsGate:");
 
     expect(code).toContain(
-      'constACKNOWLEDGE_GATE_OPTIONS:PermissionGateOptions={verb:"acknowledge",singularName:"alert",};',
+      'constACKNOWLEDGE_GATE_OPTIONS:PermissionGateOptions={verb:"acknowledge",singularName:"alert",sentence:translationKey("Youdonothavepermissiontoacknowledgethisalert.",),};',
     );
 
     expect(gate).toBe(

@@ -158,7 +158,7 @@ sequenceDiagram
 
 ### 声明时确认告警
 
-声明事件本身并不会让它的告警停止呼叫：告警的值班升级只有在告警本身被确认后才会停止。因此，当任何一个告警尚未被确认时，表单上的横幅会有一个默认勾选的复选框——一个告警时为 **Acknowledge this alert to stop its escalation**，多个时为 **Acknowledge these 3 alerts to stop their escalation**。如果其中一些已经被确认，它只会列出其余的告警，并说明已确认的保持原样。
+声明事件本身并不会让它的告警停止呼叫：告警的值班升级只有在告警本身被确认后才会停止。因此，当任何一个告警尚未被确认时，表单上的横幅会有一个默认勾选的复选框——一个告警时为 **确认这 1 个警报以停止其升级**，多个时为 **确认这 3 个警报以停止其升级**。如果其中一些已经被确认，它只会列出其余的告警，并说明已确认的保持原样。
 
 保持勾选，那么在事件声明、告警关联之后：
 
@@ -168,7 +168,7 @@ sequenceDiagram
 - **告警片段会继续升级。** 如果某个告警属于一个通过自己的值班策略进行呼叫的片段，该片段会继续升级，直到片段本身被确认。
 - **已经确认或解决的告警保持不动。** 与其他所有地方一样，状态按顺序比较，所以处于 **已确认** 之后某个自定义状态的告警被视为已确认，任何东西都绝不会被往回移。
 
-取消勾选复选框，即可在不确认的情况下声明。只要告警将保持未确认——复选框未勾选或被锁定——表单就会这样说明：“Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.”如果你确认了告警，却没有为事件选择值班策略，**值班和角色** 步骤的摘要会指出：“The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.”
+取消勾选复选框，即可在不确认的情况下声明。只要告警将保持未确认——复选框未勾选或被锁定——表单就会这样说明：“声明事件不会确认该警报：在被确认之前，它会继续升级。”如果你确认了告警，却没有为事件选择值班策略，**值班和角色** 步骤的摘要会指出：“声明事件所依据的警报也会被确认，因此它们自己的升级会停止。它们所属的警报片段会继续升级，直到该片段被确认；如果有事件值班规则，它仍可能呼叫。”
 
 **你需要有确认这些告警的权限。** 在声明时确认它们，所需的与在每个告警自己的页面上确认它时相同：**Create Alert State Timeline**，而不需要 **Edit Alert**（参见 [更改状态](/docs/permissions/index#更改状态)）。Project Owner、Project Admin、Project Member、Alert Admin 和 Alert Member 拥有该权限，而能够从告警声明事件的 Incident Admin 和 Incident Member 没有。标签、所有者和私有告警会像在告警自己的页面上一样限制该权限：每个将被确认的告警都必须是你能读取、且你的权限所及的告警——只检查尚未确认的告警。已经确认或解决的告警不需要权限，也绝不会阻止声明。没有该权限时，复选框会被锁定，提示会指出该权限，而你仍然可以声明事件。服务器在创建任何东西之前，会对它将要确认的每个告警再检查一次：如果你不能确认其中某个，就不会创建事件，表单会说明原因——取消勾选复选框后再提交一次。
 

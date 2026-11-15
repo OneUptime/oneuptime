@@ -158,7 +158,7 @@ sequenceDiagram
 
 ### 宣告時確認警示
 
-宣告事件本身並不會讓它的警示停止呼叫：警示的待命升級只有在警示本身被確認後才會停止。因此，當任何一個警示尚未被確認時，表單上的橫幅會有一個預設勾選的核取方塊——一個警示時為 **Acknowledge this alert to stop its escalation**，多個時為 **Acknowledge these 3 alerts to stop their escalation**。如果其中一些已經被確認，它只會列出其餘的警示，並說明已確認的維持原樣。
+宣告事件本身並不會讓它的警示停止呼叫：警示的待命升級只有在警示本身被確認後才會停止。因此，當任何一個警示尚未被確認時，表單上的橫幅會有一個預設勾選的核取方塊——一個警示時為 **確認這 1 個警示以停止其升級**，多個時為 **確認這 3 個警示以停止其升級**。如果其中一些已經被確認，它只會列出其餘的警示，並說明已確認的維持原樣。
 
 保持勾選，那麼在事件宣告、警示連結之後：
 
@@ -168,7 +168,7 @@ sequenceDiagram
 - **警示片段會繼續升級。** 如果某個警示屬於一個透過自己的待命策略進行呼叫的片段，該片段會繼續升級，直到片段本身被確認。
 - **已經確認或解決的警示維持不動。** 與其他所有地方一樣，狀態依順序比較，所以處於 **已確認** 之後某個自訂狀態的警示被視為已確認，任何東西都絕不會被往回移。
 
-取消勾選核取方塊，即可在不確認的情況下宣告。只要警示將維持未確認——核取方塊未勾選或被鎖定——表單就會這樣說明：「Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.」如果你確認了警示，卻沒有為事件選擇待命策略，**待命與角色** 步驟的摘要會指出：「The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.」
+取消勾選核取方塊，即可在不確認的情況下宣告。只要警示將維持未確認——核取方塊未勾選或被鎖定——表單就會這樣說明：「宣告事件不會確認該警示：在被確認之前，它會繼續升級。」如果你確認了警示，卻沒有為事件選擇待命策略，**待命與角色** 步驟的摘要會指出：「宣告事件所依據的警示也會被確認，因此它們自己的升級會停止。它們所屬的警示片段會繼續升級，直到該片段被確認；如果有事件待命規則，它仍可能呼叫。」
 
 **你需要有確認這些警示的權限。** 在宣告時確認它們，所需的與在每個警示本身的頁面上確認它時相同：**Create Alert State Timeline**，而不需要 **Edit Alert**（請參閱 [變更狀態](/docs/permissions/index#變更狀態)）。Project Owner、Project Admin、Project Member、Alert Admin 和 Alert Member 擁有該權限，而能夠從警示宣告事件的 Incident Admin 和 Incident Member 沒有。標籤、擁有者和私人警示會像在警示本身的頁面上一樣限制該權限：每個將被確認的警示都必須是你能讀取、且你的權限所及的警示——只檢查尚未確認的警示。已經確認或解決的警示不需要權限，也絕不會阻擋宣告。沒有該權限時，核取方塊會被鎖定，提示會指出該權限，而你仍然可以宣告事件。伺服器在建立任何東西之前，會對它將要確認的每個警示再檢查一次：如果你不能確認其中某個，就不會建立事件，表單會說明原因——取消勾選核取方塊後再送出一次。
 

@@ -52431,5 +52431,19 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐項修正；如果團隊刻意維持現狀，也可以將其隱藏。",
   "Nobody is paged: this project has no on-call policy yet.": "不會呼叫任何人：此專案還沒有待命策略。",
   "Picked by the fallback: no on-call rule of theirs covers this severity": "由備援方式選擇：此人沒有涵蓋此嚴重程度的待命規則",
-  "The on-call policy this setup was using was deleted, so pick or make one again.": "此設定所用的待命策略已被刪除，請重新選擇或建立一個。"
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "此設定所用的待命策略已被刪除，請重新選擇或建立一個。",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation": "確認尚未確認的 {{count}} 個警示以停止其升級",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation_one": "確認尚未確認的 {{count}} 個警示以停止其升級",
+  "Acknowledge these {{count}} alerts to stop their escalation": "確認這 {{count}} 個警示以停止其升級",
+  "Acknowledge these {{count}} alerts to stop their escalation_one": "確認此警示以停止其升級",
+  "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.": "宣告事件不會確認該警示：在被確認之前，它會繼續升級。",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged.": "宣告事件不會確認尚未確認的 {{count}} 個警示：在被確認之前，它們會繼續升級。",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged._one": "宣告事件不會確認尚未確認的那個警示：在被確認之前，它會繼續升級。",
+  "Declaring the incident does not acknowledge these alerts: they keep escalating until they are acknowledged.": "宣告事件不會確認這些警示：在被確認之前，它們會繼續升級。",
+  "It is acknowledged as you when the incident is declared, and its own on-call escalation stops within a minute. Pages that already went out are not recalled.": "宣告事件時會以你的身分確認它，它自己的待命升級會在一分鐘內停止。已經發出的呼叫不會被撤回。",
+  "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.": "宣告事件所依據的警示也會被確認，因此它們自己的升級會停止。它們所屬的警示片段會繼續升級，直到該片段被確認；如果有事件待命規則，它仍可能呼叫。",
+  "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "宣告事件時會以你的身分確認它們，它們自己的待命升級會在一分鐘內停止。已經發出的呼叫不會被撤回。",
+  "You do not have permission to acknowledge this alert.": "您沒有確認此警示的權限。",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} 個警示已確認或已解決，將維持原樣。",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} 個警示已確認或已解決，將維持原樣。"
 }

@@ -35,8 +35,20 @@ import {
   FEED_OPTIONS_TEXT,
   getFeedEventTypeLabel,
 } from "Common/UI/Components/Feed/FeedOptions";
-import { INCIDENT_PREFILL_RESOURCE_KEYS } from "Common/Utils/Incident/IncidentFromAlerts";
-import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { Translator } from "Common/Types/Translator";
+import {
+  AlertsToAcknowledge,
+  INCIDENT_PREFILL_RESOURCE_KEYS,
+} from "Common/Utils/Incident/IncidentFromAlerts";
+import {
+  ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,
+  getAcknowledgeAlertsTitle,
+  getAlertsKeepEscalatingNote,
+} from "../../../FeatureSet/Dashboard/src/Components/Incident/AcknowledgeAlertsOnDeclareWords";
+import {
+  dashboardTranslator,
+  drawnDashboardLabel,
+} from "./DocsDashboardLabels";
 import { pathWithArrows } from "./DocsPageShape";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
@@ -101,7 +113,11 @@ const DECLARE_FROM_ALERT_FILE: string = path.join(
   "App/FeatureSet/Dashboard/src/Components/Alert/DeclareIncidentFromAlert.ts",
 );
 
-// The create page's "acknowledge the alerts" box and the words around it.
+/*
+ * The create page's "acknowledge the alerts" box: who may tick it, and its
+ * words (AcknowledgeAlertsOnDeclareWords), drawn here through each
+ * language's translator.
+ */
 const CREATE_INCIDENT_PAGE_FILE: string = path.join(
   REPO_ROOT,
   "App/FeatureSet/Dashboard/src/Pages/Incidents/Create.tsx",
@@ -137,6 +153,19 @@ const LINKED_ALERT_SWITCHES_HEADING: string =
 // The alert and incident used in the page's examples.
 const EXAMPLE_INCIDENT_NUMBER: string = "INC-42";
 const EXAMPLE_ALERT_COUNT: number = 3;
+
+// The box for alerts of which none is acknowledged yet: every one of them.
+function everyAlert(count: number): AlertsToAcknowledge {
+  return {
+    alertIds: Array.from(
+      { length: count },
+      (_value: unknown, index: number): string => {
+        return `alert-${index + 1}`;
+      },
+    ),
+    alreadyAcknowledgedCount: 0,
+  };
+}
 
 // How each language says the acknowledge box starts ticked.
 const TICKED_BY_DEFAULT: Record<string, string> = {
@@ -2432,26 +2461,24 @@ describe("Incident Linked Alerts docs", () => {
       }
     });
 
-    it("quotes the acknowledge box's label as the create page builds it, and says it starts ticked, in every language", () => {
-      const labels: Array<string> = stringLiterals(
-        sourceBetween(
-          readSource(ACKNOWLEDGE_ON_DECLARE_FILE),
-          "export const getAcknowledgeAlertsTitle:",
-          "export const getAcknowledgeAlertsDescription:",
+    /*
+     * The box's words are keys, drawn with the reader's translator (#7513),
+     * so each language's page quotes them as its own Dashboard draws them:
+     * the label for one alert, and for three with the count written that
+     * language's way. They used to be English on every screen, and every
+     * page quoted them in English.
+     */
+    it("quotes the acknowledge box's label as each language's create page draws it, and says it starts ticked", () => {
+      expect(
+        getAcknowledgeAlertsTitle(everyAlert(1), 1, dashboardTranslator("en")),
+      ).toBe("Acknowledge this alert to stop its escalation");
+      expect(
+        getAcknowledgeAlertsTitle(
+          everyAlert(EXAMPLE_ALERT_COUNT),
+          EXAMPLE_ALERT_COUNT,
+          dashboardTranslator("en"),
         ),
-      );
-
-      // One alert / several, each "every alert" or "only those not acknowledged yet".
-      expect(labels).toHaveLength(4);
-
-      const oneAlert: string = labels[0] as string;
-      const severalAlerts: string = (labels[2] as string).replace(
-        "${count}",
-        EXAMPLE_ALERT_COUNT.toString(),
-      );
-
-      expect(oneAlert).toBe("Acknowledge this alert to stop its escalation");
-      expect(severalAlerts).toBe(
+      ).toBe(
         `Acknowledge these ${EXAMPLE_ALERT_COUNT} alerts to stop their escalation`,
       );
 
@@ -2462,62 +2489,74 @@ describe("Incident Linked Alerts docs", () => {
         /\[shouldAcknowledgeAlerts, setShouldAcknowledgeAlerts\]\s*=\s*useState<boolean>\(true\);/,
       );
       expect(createPage).toMatch(
-        /dataTestId="incident-create-acknowledge-alerts-checkbox"\s*title=\{getAcknowledgeAlertsTitle\(/,
+        /dataTestId="incident-create-acknowledge-alerts-checkbox"\s*title=\{getAcknowledgeAlertsTitle\(\s*alertsToAcknowledge,\s*alertsToLink\.length,\s*translator,\s*\)\}/,
       );
 
-      for (const language of ALL_LANGUAGES) {
+      for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        const translator: Translator = dashboardTranslator(language);
+        const oneAlert: string = getAcknowledgeAlertsTitle(
+          everyAlert(1),
+          1,
+          translator,
+        );
+        const severalAlerts: string = getAcknowledgeAlertsTitle(
+          everyAlert(EXAMPLE_ALERT_COUNT),
+          EXAMPLE_ALERT_COUNT,
+          translator,
+        );
         const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
         const section: string = sectionLines(
           markdown,
           englishHeadingIndex(3, ACKNOWLEDGING_HEADING),
         ).join("\n");
+        const tickedByDefault: string | undefined = TICKED_BY_DEFAULT[language];
 
         expect({
           language: language,
           oneAlert: section.includes(`**${oneAlert}**`),
           severalAlerts: section.includes(`**${severalAlerts}**`),
-          tickedByDefault: section.includes(
-            TICKED_BY_DEFAULT[language] as string,
-          ),
+          tickedByDefault: tickedByDefault
+            ? section.includes(tickedByDefault)
+            : true,
         }).toEqual({
           language: language,
           oneAlert: true,
           severalAlerts: true,
           tickedByDefault: true,
         });
+
+        // A translated page no longer quotes the English the screen dropped.
+        if (language !== "en") {
+          expect({
+            language,
+            english: section.includes(
+              "Acknowledge this alert to stop its escalation",
+            ),
+          }).toEqual({ language, english: false });
+        }
       }
     });
 
-    it("quotes the notes the create page shows about alerts that keep or stop paging, in every language", () => {
-      const source: string = readSource(ACKNOWLEDGE_ON_DECLARE_FILE);
-      const keepEscalating: string = stringLiterals(
-        sourceBetween(
-          source,
-          "export const getAlertsKeepEscalatingNote:",
-          "export const ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE:",
-        ),
-      )[0] as string;
-      const noOnCall: string = stringLiterals(
-        source.slice(
-          source.indexOf("export const ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE:"),
-        ),
-      )[0] as string;
+    it("quotes the notes the create page shows about alerts that keep or stop paging, as each language's create page draws them", () => {
+      const english: Translator = dashboardTranslator("en");
 
-      expect(keepEscalating).toBe(
+      expect(getAlertsKeepEscalatingNote(everyAlert(1), 1, english)).toBe(
         "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.",
       );
       /*
        * Claims only what acknowledging does: the alerts' own escalation
        * stops, an alert episode keeps paging, an incident on-call rule may.
        */
-      expect(noOnCall).toBe(
+      expect(english.translateText(ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE)).toBe(
         "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.",
       );
 
       // Both are on the create page: the note under the box, the other on the On-Call step.
       const createPage: string = readSource(CREATE_INCIDENT_PAGE_FILE);
 
-      expect(createPage).toContain("getAlertsKeepEscalatingNote(");
+      expect(createPage).toMatch(
+        /getAlertsKeepEscalatingNote\(\s*alertsToAcknowledge,\s*alertsToLink\.length,\s*translator,\s*\)/,
+      );
       expect(createPage).toMatch(
         /translator\.translateText\(\s*ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,?\s*\)/,
       );
@@ -2527,7 +2566,16 @@ describe("Incident Linked Alerts docs", () => {
         ACKNOWLEDGING_HEADING,
       );
 
-      for (const language of ALL_LANGUAGES) {
+      for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+        const translator: Translator = dashboardTranslator(language);
+        const keepEscalating: string = getAlertsKeepEscalatingNote(
+          everyAlert(1),
+          1,
+          translator,
+        );
+        const noOnCall: string = translator.translateText(
+          ACKNOWLEDGED_ALERTS_NO_ON_CALL_NOTE,
+        ) as string;
         const markdown: string = readPage(LINKED_ALERTS_PAGE, language);
         const section: string = sectionLines(markdown, acknowledging).join(
           "\n",

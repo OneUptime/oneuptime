@@ -52431,5 +52431,19 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Fix each one from here, or dismiss it if your team leaves it that way on purpose.",
   "Nobody is paged: this project has no on-call policy yet.": "Nobody is paged: this project has no on-call policy yet.",
   "Picked by the fallback: no on-call rule of theirs covers this severity": "Picked by the fallback: no on-call rule of theirs covers this severity",
-  "The on-call policy this setup was using was deleted, so pick or make one again.": "The on-call policy this setup was using was deleted, so pick or make one again."
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "The on-call policy this setup was using was deleted, so pick or make one again.",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation": "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation_one": "Acknowledge the {{count}} alert that is not acknowledged yet, to stop its escalation",
+  "Acknowledge these {{count}} alerts to stop their escalation": "Acknowledge these {{count}} alerts to stop their escalation",
+  "Acknowledge these {{count}} alerts to stop their escalation_one": "Acknowledge this alert to stop its escalation",
+  "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.": "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged.": "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged.",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged._one": "Declaring the incident does not acknowledge the alert that is not acknowledged yet: it keeps escalating until it is acknowledged.",
+  "Declaring the incident does not acknowledge these alerts: they keep escalating until they are acknowledged.": "Declaring the incident does not acknowledge these alerts: they keep escalating until they are acknowledged.",
+  "It is acknowledged as you when the incident is declared, and its own on-call escalation stops within a minute. Pages that already went out are not recalled.": "It is acknowledged as you when the incident is declared, and its own on-call escalation stops within a minute. Pages that already went out are not recalled.",
+  "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.": "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.",
+  "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.",
+  "You do not have permission to acknowledge this alert.": "You do not have permission to acknowledge this alert.",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} alerts are already acknowledged or resolved and are left as they are.",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} alert is already acknowledged or resolved and is left as it is."
 }

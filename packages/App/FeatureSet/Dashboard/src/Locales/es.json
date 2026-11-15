@@ -52431,5 +52431,19 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrige cada una desde aquí, o descártala si tu equipo la deja así a propósito.",
   "Nobody is paged: this project has no on-call policy yet.": "No se avisa a nadie: este proyecto aún no tiene ninguna política de guardia.",
   "Picked by the fallback: no on-call rule of theirs covers this severity": "Elegido por el respaldo: ninguna regla de guardia de esta persona cubre esta gravedad",
-  "The on-call policy this setup was using was deleted, so pick or make one again.": "Se eliminó la política de guardia que usaba esta configuración, así que elige o crea una de nuevo."
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Se eliminó la política de guardia que usaba esta configuración, así que elige o crea una de nuevo.",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation": "Reconocer las {{count}} alertas aún no reconocidas, para detener su escalado",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation_one": "Reconocer {{count}} alerta aún no reconocida, para detener su escalado",
+  "Acknowledge these {{count}} alerts to stop their escalation": "Reconocer estas {{count}} alertas para detener su escalado",
+  "Acknowledge these {{count}} alerts to stop their escalation_one": "Reconocer esta alerta para detener su escalado",
+  "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.": "Declarar el incidente no reconoce la alerta: sigue escalando hasta que se reconozca.",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged.": "Declarar el incidente no reconoce las {{count}} alertas aún no reconocidas: siguen escalando hasta que se reconozcan.",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged._one": "Declarar el incidente no reconoce la alerta aún no reconocida: sigue escalando hasta que se reconozca.",
+  "Declaring the incident does not acknowledge these alerts: they keep escalating until they are acknowledged.": "Declarar el incidente no reconoce estas alertas: siguen escalando hasta que se reconozcan.",
+  "It is acknowledged as you when the incident is declared, and its own on-call escalation stops within a minute. Pages that already went out are not recalled.": "Se reconoce en tu nombre al declarar el incidente, y su propio escalado de guardia se detiene en menos de un minuto. Los avisos que ya salieron no se retiran.",
+  "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.": "Las alertas desde las que se declara también se reconocen, así que su propio escalado se detiene. Un episodio de alerta al que pertenezcan sigue escalando hasta que se reconozca el episodio, y una regla de guardia de incidentes, si la hay, todavía puede avisar.",
+  "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "Se reconocen en tu nombre al declarar el incidente, y su propio escalado de guardia se detiene en menos de un minuto. Los avisos que ya salieron no se retiran.",
+  "You do not have permission to acknowledge this alert.": "No tiene permiso para reconocer esta alerta.",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} alertas ya están reconocidas o resueltas y se dejan como están.",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} alerta ya está reconocida o resuelta y se deja como está."
 }
