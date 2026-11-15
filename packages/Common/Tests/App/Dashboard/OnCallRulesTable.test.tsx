@@ -243,6 +243,18 @@ import NotificationRuleType from "../../../Types/NotificationRule/NotificationRu
 import OnCallRuleKind from "../../../Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
+
+// The custom channels that are on, answered here rather than over the network: none.
+beforeEach((): void => {
+  stubDashboardCustomNotificationChannels();
+});
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 /*
  * The ten models whose rows only their owner may read. They are listed

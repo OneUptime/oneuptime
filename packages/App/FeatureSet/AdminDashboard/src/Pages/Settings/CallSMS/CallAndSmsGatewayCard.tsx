@@ -20,6 +20,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -70,6 +72,7 @@ export interface ComponentProps {
 const CallAndSmsGatewayCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isTestShown, setIsTestShown] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testMessage, setTestMessage] = useState<string>("");
@@ -198,7 +201,9 @@ const CallAndSmsGatewayCard: FunctionComponent<ComponentProps> = (
               getElement: (item: GlobalConfig): ReactElement => {
                 return (
                   <span>
-                    {sendsThroughGateway(item) ? "Your own gateway" : "Twilio"}
+                    {sendsThroughGateway(item)
+                      ? translator.translateText("Your own gateway")
+                      : translator.translateText("Twilio")}
                   </span>
                 );
               },

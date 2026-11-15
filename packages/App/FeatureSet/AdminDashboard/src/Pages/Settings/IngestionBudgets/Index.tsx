@@ -23,6 +23,8 @@ import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -41,6 +43,7 @@ import { useTranslation } from "react-i18next";
  */
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
 
   return (
     <Page
@@ -158,7 +161,11 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Warning Threshold (%)",
               fieldType: FieldType.Number,
-              placeholder: `${TELEMETRY_INGESTION_BUDGET_DEFAULT_WARNING_PERCENT} (default)`,
+              placeholder: translator.translateTemplate("{{value}} (default)", {
+                value: translator.formatNumber(
+                  TELEMETRY_INGESTION_BUDGET_DEFAULT_WARNING_PERCENT,
+                ),
+              }),
             },
             {
               field: {
@@ -166,7 +173,9 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Reset Time",
               fieldType: FieldType.Text,
-              placeholder: `${TELEMETRY_INGESTION_BUDGET_DEFAULT_RESET_TIME} (default)`,
+              placeholder: translator.translateTemplate("{{value}} (default)", {
+                value: TELEMETRY_INGESTION_BUDGET_DEFAULT_RESET_TIME,
+              }),
             },
             {
               field: {
@@ -174,7 +183,9 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Reset Time Zone",
               fieldType: FieldType.Text,
-              placeholder: `${TELEMETRY_INGESTION_BUDGET_DEFAULT_TIMEZONE} (default)`,
+              placeholder: translator.translateTemplate("{{value}} (default)", {
+                value: TELEMETRY_INGESTION_BUDGET_DEFAULT_TIMEZONE,
+              }),
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

@@ -99,6 +99,14 @@ import Permission from "../../../Types/Permission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/incident-state/count"]);
 
 const SPACE: { keyCode: number; key: string } = { keyCode: 32, key: " " };
 const ARROW_UP: { keyCode: number; key: string } = {

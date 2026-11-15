@@ -163,6 +163,14 @@ import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/scheduled-maintenance-public-note/approval/policy"]);
 
 const EVENT_ID: string = "55555555-5555-4555-8555-555555555555";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");

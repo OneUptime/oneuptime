@@ -104,6 +104,12 @@ import UiAnalytics from "../../../UI/Utils/Analytics";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { MetricExplorerUrlParam } from "../../../Utils/Metrics/MetricExplorerUrl";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "6b1f0a3c-2d4e-4f5a-9b6c-7d8e9f0a1b2c",
