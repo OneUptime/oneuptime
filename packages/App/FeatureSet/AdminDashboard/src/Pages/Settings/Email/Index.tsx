@@ -610,6 +610,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         return (
                           <Pill
                             text={t("pages.settings.email.pillEnabled")}
+                            isUserContent={true}
                             color={Green}
                           />
                         );
@@ -617,6 +618,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         return (
                           <Pill
                             text={t("pages.settings.email.pillNoApiKey")}
+                            isUserContent={true}
                             color={Red}
                           />
                         );
@@ -624,6 +626,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         return (
                           <Pill
                             text={t("pages.settings.email.pillNoFromEmail")}
+                            isUserContent={true}
                             color={Red}
                           />
                         );
@@ -631,6 +634,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                         return (
                           <Pill
                             text={t("pages.settings.email.pillNoFromName")}
+                            isUserContent={true}
                             color={Red}
                           />
                         );

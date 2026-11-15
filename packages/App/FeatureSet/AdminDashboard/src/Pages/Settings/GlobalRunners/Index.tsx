@@ -94,6 +94,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       return (
         <Statusbubble
           text={t("common.connected")}
+          isUserContent={true}
           color={Green}
           shouldAnimate={true}
         />
@@ -105,6 +106,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       return (
         <Statusbubble
           text={t("pages.settings.globalRunners.neverConnected")}
+          isUserContent={true}
           color={Gray500}
           shouldAnimate={false}
         />
@@ -114,6 +116,7 @@ const Settings: FunctionComponent = (): ReactElement => {
     return (
       <Statusbubble
         text={t("common.disconnected")}
+        isUserContent={true}
         color={Red}
         shouldAnimate={false}
       />

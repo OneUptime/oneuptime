@@ -2,7 +2,6 @@ import Pill, { PillSize } from "../Pill/Pill";
 import { Gray500 } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import { translationKey } from "../../Utils/TranslateTemplate";
-import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -31,8 +30,6 @@ export interface ComponentProps {
 const MonitoringOffIndicator: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
-
   return (
     <span
       data-testid="monitoring-off-indicator"
@@ -40,7 +37,8 @@ const MonitoringOffIndicator: FunctionComponent<ComponentProps> = (
     >
       <Pill
         color={Gray500}
-        text={translateString(MONITORING_OFF_TEXT) || MONITORING_OFF_TEXT}
+        // In English: the badge looks it up, once (#8067).
+        text={MONITORING_OFF_TEXT}
         size={props.size}
         icon={IconProp.Pause}
       />

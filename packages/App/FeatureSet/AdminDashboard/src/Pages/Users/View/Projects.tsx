@@ -297,6 +297,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   return (
                     <Pill
                       text={t("pages.userProjects.statusInvited")}
+                      isUserContent={true}
                       color={Yellow}
                     />
                   );
@@ -315,6 +316,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   <div className="flex space-x-2">
                     <Pill
                       text={t("pages.userProjects.statusMember")}
+                      isUserContent={true}
                       color={Green}
                     />
                     {pendingTeamCount > 0 && (
@@ -322,6 +324,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                         text={t("pages.userProjects.pendingInvitations", {
                           pending: pendingTeamCount,
                         })}
+                        isUserContent={true}
                         color={Yellow}
                       />
                     )}
@@ -426,6 +429,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   return (
                     <Pill
                       text={t("pages.userProjects.statusMember")}
+                      isUserContent={true}
                       color={Green}
                     />
                   );
@@ -434,6 +438,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                 return (
                   <Pill
                     text={t("pages.userProjects.statusInvited")}
+                    isUserContent={true}
                     color={Yellow}
                   />
                 );

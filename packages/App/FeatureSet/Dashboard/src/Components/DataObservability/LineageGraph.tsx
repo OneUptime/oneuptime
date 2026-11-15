@@ -621,6 +621,7 @@ const CardChips: FunctionComponent<CardChipsProps> = (
           pill: (
             <Pill
               text={translator.translatePlural(OPEN_ALERTS, openAlerts)}
+              isUserContent={true}
               color={Red500}
               size={PillSize.Small}
             />
@@ -634,6 +635,7 @@ const CardChips: FunctionComponent<CardChipsProps> = (
           pill: (
             <Pill
               text={formatOverdue(translator, node.lateBySeconds || 0)}
+              isUserContent={true}
               color={Red500}
               size={PillSize.Small}
             />

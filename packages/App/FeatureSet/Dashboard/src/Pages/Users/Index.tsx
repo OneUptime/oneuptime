@@ -492,6 +492,7 @@ const Users: FunctionComponent<PageComponentProps> = (
                         },
                         pendingTeamCount,
                       )}
+                      isUserContent={true}
                       color={Yellow}
                     />
                   )}

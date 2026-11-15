@@ -641,6 +641,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                               over: formatCount(count - limit),
                             },
                           )}
+                          isUserContent={true}
                           color={Amber600}
                           size={PillSize.Normal}
                         />
@@ -650,6 +651,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
                       {limit !== null && count === limit ? (
                         <Pill
                           text={t("pages.projectSubscription.atMonitorLimit")}
+                          isUserContent={true}
                           color={Amber600}
                           size={PillSize.Normal}
                         />

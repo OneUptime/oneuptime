@@ -471,6 +471,7 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
                     color={health.color}
                     text={health.label}
                     tooltip={reason}
+                    isTooltipUserContent={true}
                   />
                   {health.key === "failing" ? (
                     <p
