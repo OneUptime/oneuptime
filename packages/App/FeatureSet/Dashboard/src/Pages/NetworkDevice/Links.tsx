@@ -8,6 +8,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Cables that discovery cannot see.
@@ -209,7 +210,7 @@ const NetworkDeviceLinks: FunctionComponent<
             getElement: (item: NetworkDeviceLink): ReactElement => {
               return (
                 <span className="text-sm text-gray-900">
-                  {item.fromDevice?.name || "—"}
+                  {item.fromDevice?.name || <TableEmptyValue />}
                 </span>
               );
             },
@@ -225,7 +226,7 @@ const NetworkDeviceLinks: FunctionComponent<
             getElement: (item: NetworkDeviceLink): ReactElement => {
               return (
                 <span className="text-sm text-gray-900">
-                  {item.toDevice?.name || "—"}
+                  {item.toDevice?.name || <TableEmptyValue />}
                 </span>
               );
             },

@@ -9,6 +9,7 @@ import {
   EnterpriseLicenseInstanceActivityState,
   getEnterpriseLicenseInstanceActivityState,
 } from "./LicenseActivityUtil";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export type LicenseLifecycleState = "active" | "expiring-soon" | "expired";
 
@@ -106,7 +107,7 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
   );
 
   if (!lifecycle) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   if (lifecycle.state === "expired") {

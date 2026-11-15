@@ -10,6 +10,7 @@ import TwilioConfigNumbersCopy, {
   TwilioConfigNumbers,
 } from "./TwilioConfigNumbersCopy";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   config: TwilioConfigNumbers;
@@ -66,7 +67,7 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
   );
 
   if (lines.length === 0) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (

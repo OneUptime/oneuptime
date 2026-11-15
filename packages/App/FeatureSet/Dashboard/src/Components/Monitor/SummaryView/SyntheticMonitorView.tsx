@@ -29,7 +29,7 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="synthetic-monitor-summary">
       <SummaryFacts>
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
       </SummaryFacts>
       {syntheticMonitorResponses &&
         syntheticMonitorResponses.map(

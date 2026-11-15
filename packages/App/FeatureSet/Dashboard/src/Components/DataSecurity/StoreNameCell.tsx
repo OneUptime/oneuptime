@@ -134,10 +134,10 @@ const StoreNameCell: FunctionComponent<ComponentProps> = (
               to={getDataStoreRoute(props.store._id)}
               className="hover:underline"
             >
-              {props.store.name || "—"}
+              {props.store.name || <TableEmptyValue />}
             </AppLink>
           ) : (
-            <span>{props.store.name || "—"}</span>
+            <span>{props.store.name || <TableEmptyValue />}</span>
           )}
         </div>
         {kind || region ? (

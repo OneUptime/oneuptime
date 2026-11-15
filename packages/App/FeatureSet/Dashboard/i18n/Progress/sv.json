@@ -464,6 +464,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{percent}} full",
+    "{{rate}}/min",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

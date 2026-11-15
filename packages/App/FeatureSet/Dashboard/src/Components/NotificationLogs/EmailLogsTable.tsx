@@ -24,6 +24,7 @@ import User from "Common/Models/DatabaseModels/User";
 import ServerSendingWords, {
   SERVER_EMAIL_NOT_SET_UP_MESSAGE,
 } from "Common/Types/ServerSending/ServerSendingWords";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What View Subject says for an email sent without one: a dialog with an
@@ -71,7 +72,7 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: EmailLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;

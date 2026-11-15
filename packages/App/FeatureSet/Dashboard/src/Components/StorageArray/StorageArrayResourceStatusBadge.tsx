@@ -6,6 +6,7 @@ import {
   formatStatusLabel,
   getResourceStatusBadgeType,
 } from "../../Pages/StorageArray/Utils/StorageArrayResourceUtils";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   // The status as ingest wrote it (lowercased): "ok", "critical", "healthy"...
@@ -25,8 +26,13 @@ const StorageArrayResourceStatusBadge: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const label: string = formatStatusLabel(props.status);
 
+  // No status: the object's own words for that, or the quiet dash.
   if (!label) {
-    return <span className="text-gray-400">{props.emptyText || "—"}</span>;
+    return props.emptyText ? (
+      <span className="text-gray-400">{props.emptyText}</span>
+    ) : (
+      <TableEmptyValue />
+    );
   }
 
   const type: StatusBadgeType = getResourceStatusBadgeType(props.status);

@@ -56,6 +56,7 @@ import {
   DOCKER_CONTAINER_HOST_RUNTIME,
   getContainerHostRoutes,
 } from "../../../Components/ContainerHost/ContainerHostRuntime";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // The columns that sort: each by the value behind its cell.
 type ContainerSortKey =
@@ -306,7 +307,7 @@ const DockerHostContainers: FunctionComponent<
           return row.composeProject ? (
             <bdi>{row.composeProject}</bdi>
           ) : (
-            <span>—</span>
+            <TableEmptyValue />
           );
         },
       });
@@ -354,7 +355,7 @@ const DockerHostContainers: FunctionComponent<
          */
         getElement: (row: ContainerHostRow): ReactElement => {
           if (row.memoryPercent === null && row.memoryUsage === null) {
-            return <span>—</span>;
+            return <TableEmptyValue />;
           }
           return (
             <div className="flex flex-col">
@@ -393,7 +394,7 @@ const DockerHostContainers: FunctionComponent<
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerUptime,
         getElement: (row: ContainerHostRow): ReactElement => {
           if (row.startedAtMs === null) {
-            return <span>—</span>;
+            return <TableEmptyValue />;
           }
           const startedAt: Date = new Date(row.startedAtMs);
           return (

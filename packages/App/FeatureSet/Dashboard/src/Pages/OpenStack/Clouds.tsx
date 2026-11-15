@@ -47,6 +47,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const OpenStackClouds: FunctionComponent<
   PageComponentProps
@@ -233,7 +234,7 @@ const OpenStackClouds: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },

@@ -44,6 +44,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoTMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -201,7 +202,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -251,7 +252,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                */
               const total: number = item.deviceCount || 0;
               if (total <= 0) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               const online: number = item.onlineDeviceCount || 0;
               const allOnline: boolean = online >= total;

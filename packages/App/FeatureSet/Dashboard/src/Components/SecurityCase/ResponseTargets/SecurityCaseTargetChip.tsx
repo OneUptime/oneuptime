@@ -28,6 +28,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The due line's own shape: its words wrap inside the cell (the table's
@@ -140,7 +141,7 @@ export const SecurityCaseDueCell: FunctionComponent<ComponentProps> = (
   });
 
   if (!due) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   // Kept whole where the words wrap: never "7" at a line's end and "h" under it.

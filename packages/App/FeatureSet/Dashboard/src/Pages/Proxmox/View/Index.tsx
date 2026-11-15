@@ -133,6 +133,8 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { toLabelTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -2181,23 +2183,27 @@ const ProxmoxClusterOverview: FunctionComponent<
                         </span>
                       ) : (
                         <span className="text-gray-500">
-                          {job.guestVmid || "—"}
+                          {job.guestVmid || <TableEmptyValue />}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-gray-700">
-                      <bdi>{job.source || "—"}</bdi>{" "}
+                      <bdi>{job.source || <TableEmptyValue />}</bdi>{" "}
                       <DirectionArrow className="text-gray-400" />{" "}
-                      <bdi>{job.target || "—"}</bdi>
+                      <bdi>{job.target || <TableEmptyValue />}</bdi>
                     </td>
                     <td className={`px-4 py-2.5 text-sm ${ageClass}`}>
-                      {ageSeconds === null ? "—" : formatAge(ageSeconds)}
+                      {ageSeconds === null ? (
+                        <TableEmptyValue />
+                      ) : (
+                        formatAge(ageSeconds)
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-sm text-gray-700">
                       {formatDuration(job.durationSeconds)}
                     </td>
                     <td className={`px-4 py-2.5 text-sm ${failedClass}`}>
-                      {failed === null ? "—" : failed}
+                      {failed === null ? <TableEmptyValue /> : failed}
                     </td>
                   </tr>
                 );
@@ -2332,9 +2338,11 @@ const ProxmoxClusterOverview: FunctionComponent<
                 />
               </span>
               <span className="font-medium text-gray-700">
-                {capacityPercent === null
-                  ? "—"
-                  : `${capacityPercent.toFixed(1)}%`}
+                {capacityPercent === null ? (
+                  <EmptyValue isSmall={true} />
+                ) : (
+                  `${capacityPercent.toFixed(1)}%`
+                )}
               </span>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-200">

@@ -529,6 +529,7 @@
     "{{minutes}} min",
     "{{name}} (monitor: {{monitor}})",
     "{{observation}} in {{readings}}",
+    "{{rate}}/min",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",

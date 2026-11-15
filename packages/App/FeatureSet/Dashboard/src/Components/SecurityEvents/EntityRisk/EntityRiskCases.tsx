@@ -25,6 +25,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   entityValue: string;
@@ -130,7 +131,7 @@ const EntityRiskCases: FunctionComponent<ComponentProps> = (
             hideOnMobile: true,
             getElement: (item: SecurityCase): ReactElement => {
               if (!item.lastDetectedAt) {
-                return <span className="text-sm text-gray-400">-</span>;
+                return <TableEmptyValue />;
               }
 
               return (

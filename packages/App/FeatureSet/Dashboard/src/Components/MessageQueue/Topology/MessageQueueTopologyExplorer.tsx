@@ -70,6 +70,7 @@ import {
 import useMessageQueueBrokerHeadlines, {
   MessageQueueHeadlineEntry,
 } from "./UseMessageQueueBrokerHeadlines";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * THE QUEUES TOPOLOGY: how messages flow between the project's services and
@@ -489,7 +490,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
     services: Array<MessageQueueTopologyServiceNode>,
   ): ReactElement => {
     if (services.length === 0) {
-      return <span className="text-gray-400">—</span>;
+      return <TableEmptyValue />;
     }
     const shown: Array<MessageQueueTopologyServiceNode> = services.slice(0, 3);
     return (

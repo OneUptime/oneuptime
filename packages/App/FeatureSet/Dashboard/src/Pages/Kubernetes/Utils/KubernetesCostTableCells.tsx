@@ -3,6 +3,7 @@ import { formatCost, formatEfficiency } from "./KubernetesCostUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Shared cell renderers for the Kubernetes cost breakdown tables (project
@@ -39,9 +40,11 @@ export function getTotalCostElement(
           {formatCost(value)}
         </span>
         <span className="tabular-nums text-xs text-gray-400">
-          {windowTotal > 0
-            ? `${share < 1 && share > 0 ? "<1" : Math.round(share)}%`
-            : "-"}
+          {windowTotal > 0 ? (
+            `${share < 1 && share > 0 ? "<1" : Math.round(share)}%`
+          ) : (
+            <TableEmptyValue isSmall={true} />
+          )}
         </span>
       </div>
       <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-100">
@@ -61,7 +64,7 @@ export function getTotalCostElement(
  */
 export function getEfficiencyElement(efficiency: number | null): ReactElement {
   if (efficiency === null || !Number.isFinite(efficiency)) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const percent: number = efficiency * 100;
@@ -84,7 +87,7 @@ export function getEfficiencyElement(efficiency: number | null): ReactElement {
 /** Namespace pill — same treatment as the Kubernetes Events table. */
 export function getNamespaceElement(namespace: string): ReactElement {
   if (!namespace) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -97,7 +100,7 @@ export function getNamespaceElement(namespace: string): ReactElement {
 /** Controller kind pill (Deployment, StatefulSet, DaemonSet, …). */
 export function getControllerKindElement(kind: string): ReactElement {
   if (!kind) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
