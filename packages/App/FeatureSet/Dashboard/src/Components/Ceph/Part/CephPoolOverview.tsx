@@ -268,7 +268,9 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
             title="Placement Groups"
             icon={IconProp.SquareStack}
             iconColor="violet"
-            value={pgSummary ? translator.formatNumber(pgSummary.total) : "—"}
+            value={
+              pgSummary ? translator.formatNumber(pgSummary.total) : undefined
+            }
             sublabel={
               pgSummary
                 ? pgSummary.clean >= pgSummary.total
@@ -294,7 +296,7 @@ const CephPoolOverview: FunctionComponent<ComponentProps> = (
             iconColor="sky"
             value={
               readings.objects === null
-                ? "—"
+                ? undefined
                 : translator.formatNumber(Math.round(readings.objects))
             }
             sublabel="RADOS objects"

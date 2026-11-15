@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - **Innstillinger** er det du fyller ut. Innstillinger merket **(Valgfritt)** kan stå tomme. Mindre brukte innstillinger er foldet sammen under **Flere felt**.
-- **Outputs** er punktene på den nederste kanten. De fleste blokker har **Suksess** og **Feil**; [Conditions](#conditions) har **Ja** og **Nei**, og [Switch / Case](#switch-case) har én for hvert av tilfellene sine, i tillegg til **Standard**.
+- **Utdata** er punktene på den nederste kanten. De fleste blokker har **Suksess** og **Feil**; [Conditions](#conditions) har **Ja** og **Nei**, og [Switch / Case](#switch-case) har én for hvert av tilfellene sine, i tillegg til **Standard**.
 - **Returns** er verdiene en blokk gir videre til senere blokker, som et API sin **Svartekst**. En senere blokk leser en med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en innstilling setter den inn for deg. Se [Variabler](/docs/workflows/variables#komponentutdata-data-fra-tidligere-blokker).
 
 En blokk som tar **Feil**, gir feilen videre til blokkene som er koblet til **Feil**, og kjøringen fortsetter der. Er ingenting koblet til **Feil**, mislykkes kjøringen: det den ellers holdt på med, kjører videre, deretter slutter den med statusen **Feil**, og blokkens oppføring under kjøringens **Trinn** sier hvorfor. En påkrevd innstilling som er latt stå tom, eller en innstilling som aldri kan virke, stopper derimot kjøringen med en feil.
@@ -463,9 +463,9 @@ For hver type post i OneUptime (monitorer, hendelser, varsler, statussider, vakt
 | **Create One Monitor**   | Legger til én post ut fra et JSON-objekt.                                      |
 | **Create Many Monitors** | Legger til flere poster ut fra en JSON-matrise.                                |
 | **Update One Monitor**   | Bruker dataene som skal skrives, på én samsvarende post.                       |
-| **Update Many Monitors** | Bruker dataene som skal skrives, på samsvarende poster, opptil **Limit**.      |
+| **Update Many Monitors** | Bruker dataene som skal skrives, på samsvarende poster, opptil **Grense**.      |
 | **Delete One Monitor**   | Sletter én samsvarende post.                                                   |
-| **Delete Many Monitors** | Sletter samsvarende poster, opptil **Limit**.                                  |
+| **Delete Many Monitors** | Sletter samsvarende poster, opptil **Grense**.                                  |
 
 Det samme settet gir deg fire triggere — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** og **On Delete Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhetstriggere).
 
@@ -533,7 +533,7 @@ Et felt som peker på en annen post, for eksempel alvorlighetsgraden til en hend
 
 Felt som OneUptime fyller ut selv, tilbys ikke når du skriver en post: postens `_id`, **Opprettet den**, **Oppdatert den**, **Opprettet av bruker**, slugger, postnumre og varslingsstatuser. Hvem som opprettet, arkiverte eller løste en post, og når, er aldri noe en arbeidsflyt setter: en post som en arbeidsflyt oppretter, er opprettet av ingen, en verdi en arbeidsflyt sender for et av de feltene ved siden av andre felt, ignoreres, og en Update som ikke sender noe annet, mislykkes med en melding som nevner dem. En oppdatering tilbyr bare felt som kan endres etter at en post finnes. En spørring tilbyr fortsatt ID-en, tidsstemplene og **Opprettet av bruker**, fordi de er nyttige å filtrere på. **Deleted At** tilbys ingen steder: poster slettes helt, så det er alltid tomt.
 
-**Hopp over** og **Limit** er to tallfelt på Find Many, Update Many og Delete Many, under **Flere felt** — `Skip: 0` med `Limit: 100` tar de første hundre treffene. **Limit** er `10` som standard, og på Update Many og Delete Many begrenser den hvor mange poster som faktisk skrives, ikke bare hvor mange som kommer tilbake. Så `Items Deleted: 10` betyr at ti poster ble slettet, ikke at ti samsvarte. Øk **Limit** når du vil endre mer enn ti.
+**Hopp over** og **Grense** er to tallfelt på Find Many, Update Many og Delete Many, under **Flere felt** — `Skip: 0` med `Limit: 100` tar de første hundre treffene. **Grense** er `10` som standard, og på Update Many og Delete Many begrenser den hvor mange poster som faktisk skrives, ikke bare hvor mange som kommer tilbake. Så `Items Deleted: 10` betyr at ti poster ble slettet, ikke at ti samsvarte. Øk **Grense** når du vil endre mer enn ti.
 
 Delete One og Delete Many etter spørring tømmer aldri en historikk. På en monitors statushendelser og på tilstandshistorikken for hendelser, varsler, vedlikeholdshendelser og episoder fjerner de aldri en posts gjeldende tilstand, og de beholder hver statushendelse for en monitor som dekker en del av de siste 90 dagene, slik at en statusside aldri viser en monitor grå. Kjøringens logg sier hvor mange som ble beholdt. For å slette én bestemt hendelse spør du etter den med dens `_id`.
 

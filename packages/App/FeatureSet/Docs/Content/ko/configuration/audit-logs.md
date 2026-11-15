@@ -43,7 +43,7 @@ flowchart TB
 
 ### 설정 편집
 
-**Edit Audit Log Settings**를 클릭합니다.
+**감사 로그 설정 편집**을 클릭합니다.
 
 ### 켜기
 

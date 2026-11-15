@@ -61,7 +61,7 @@ Appen viser notifikationer gennem sin browser, når du har registreret browseren
 Klik på **Registrer enhed**, behold det foreslåede **Enhedsnavn**, for eksempel `Edge on Windows`, eller ret det, og klik på **Registrer enhed** igen. Når browseren spørger, om OneUptime må vise notifikationer, vælger du **Tillad**.
 
 ### Send en test
-Klik på **Send Test Notification** i dialogen **Browser Registered**. Vises der intet, så se på Windows' egne notifikationsindstillinger: se [Fejlfinding](#fejlfinding).
+Klik på **Send testnotifikation** i dialogen **Browser registreret**. Vises der intet, så se på Windows' egne notifikationsindstillinger: se [Fejlfinding](#fejlfinding).
 :::
 
 En browser ringer ikke højere, end Windows tillader: den kan ikke tilsidesætte Forstyr ikke. Brug mobilappen med kritiske advarsler til alarmer, der skal vække dig: se [Android-installation](/docs/mobile-desktop-apps/android-installation#ring-igennem-lydløs) eller [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igennem-lydløs).

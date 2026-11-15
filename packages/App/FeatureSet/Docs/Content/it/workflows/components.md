@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - Le **Impostazioni** sono ciò che compili. Le impostazioni contrassegnate con **(Facoltativo)** possono restare vuote. Le impostazioni meno usate sono raccolte sotto **Altri campi**.
-- Gli **Outputs** sono i punti sul bordo inferiore. La maggior parte dei blocchi ha **Successo** ed **Errore**; [Conditions](#conditions) ha **Sì** e **No**, e [Switch / Case](#switch-case) ne ha una per ciascuno dei suoi casi, più **Predefinito**.
+- Gli **Output** sono i punti sul bordo inferiore. La maggior parte dei blocchi ha **Successo** ed **Errore**; [Conditions](#conditions) ha **Sì** e **No**, e [Switch / Case](#switch-case) ne ha una per ciascuno dei suoi casi, più **Predefinito**.
 - I **Returns** sono i valori che un blocco passa ai blocchi successivi, come il **Corpo della Risposta** di un'API. Un blocco successivo ne legge uno con `{{local.components.<block ID>.returnValues.<value ID>}}`; il pulsante **{ }** di un'impostazione lo inserisce per te. Vedi [Variabili](/docs/workflows/variables#output-dei-componenti-i-dati-dei-blocchi-precedenti).
 
 Un blocco che prende **Errore** passa l'errore ai blocchi collegati a **Errore**, e l'esecuzione prosegue lì. Se a **Errore** non è collegato nulla, l'esecuzione fallisce: quello che stava facendo per il resto continua, poi termina con lo stato **Errore**, e la voce del blocco nei **Passaggi** dell'esecuzione dice perché. Un'impostazione obbligatoria lasciata vuota, o un'impostazione che non può mai funzionare, ferma invece l'esecuzione con un errore.
@@ -463,9 +463,9 @@ Per ogni tipo di record in OneUptime (monitor, incidenti, avvisi, pagine di stat
 | **Create One Monitor**   | Aggiunge un record da un oggetto JSON.                                         |
 | **Create Many Monitors** | Aggiunge più record da un array JSON.                                          |
 | **Update One Monitor**   | Applica i dati da scrivere a un record corrispondente.                         |
-| **Update Many Monitors** | Applica i dati da scrivere ai record corrispondenti, fino a **Limit**.         |
+| **Update Many Monitors** | Applica i dati da scrivere ai record corrispondenti, fino a **Limite**.         |
 | **Delete One Monitor**   | Elimina un record corrispondente.                                              |
-| **Delete Many Monitors** | Elimina i record corrispondenti, fino a **Limit**.                             |
+| **Delete Many Monitors** | Elimina i record corrispondenti, fino a **Limite**.                             |
 
 Lo stesso insieme ti dà quattro trigger: **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** e **On Delete Monitor**. Vedi [Trigger](/docs/workflows/triggers#trigger-di-eventi-oneuptime).
 
@@ -533,7 +533,7 @@ Un campo che punta a un altro record, come la gravità di un incidente, elenca i
 
 I campi che OneUptime compila da solo non vengono offerti quando scrivi un record: l'`_id` del record, **Creato il**, **Aggiornato il**, **Creato da utente**, gli slug, i numeri dei record e gli stati delle notifiche. Chi ha creato, archiviato o risolto un record, e quando, non spetta mai a un flusso di lavoro: un record creato da un flusso di lavoro non ha un creatore, un valore che un flusso di lavoro invia per uno di quei campi insieme ad altri campi viene ignorato, e un Update che non invia nient'altro fallisce con un messaggio che li nomina. Un aggiornamento offre solo i campi che possono cambiare dopo che un record esiste. Una query offre comunque l'ID, gli orari e **Creato da utente**, perché sono utili per filtrare. **Deleted At** non viene offerto da nessuna parte: i record vengono eliminati del tutto, quindi è sempre vuoto.
 
-**Salta** e **Limit** sono due campi numerici su Find Many, Update Many e Delete Many, sotto **Altri campi**: `Skip: 0` con `Limit: 100` prende le prime cento corrispondenze. **Limit** vale `10` per impostazione predefinita, e su Update Many e Delete Many limita quanti record vengono effettivamente scritti, non solo quanti vengono restituiti. Quindi `Items Deleted: 10` significa che sono stati eliminati dieci record, non che ne corrispondevano dieci. Aumenta **Limit** quando vuoi modificarne più di dieci.
+**Salta** e **Limite** sono due campi numerici su Find Many, Update Many e Delete Many, sotto **Altri campi**: `Skip: 0` con `Limit: 100` prende le prime cento corrispondenze. **Limite** vale `10` per impostazione predefinita, e su Update Many e Delete Many limita quanti record vengono effettivamente scritti, non solo quanti vengono restituiti. Quindi `Items Deleted: 10` significa che sono stati eliminati dieci record, non che ne corrispondevano dieci. Aumenta **Limite** quando vuoi modificarne più di dieci.
 
 Delete One e Delete Many per query non svuotano mai una cronologia. Sugli eventi di stato di un monitor, e sulle cronologie di stato di incidenti, avvisi, eventi di manutenzione ed episodi, non rimuovono mai lo stato attuale di un record, e conservano ogni evento di stato di un monitor che copre parte degli ultimi 90 giorni, così una pagina di stato non mostra mai un monitor in grigio. Il registro dell'esecuzione dice quanti ne sono stati conservati. Per eliminare un evento preciso, cercalo per il suo `_id`.
 

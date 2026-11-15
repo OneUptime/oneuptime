@@ -168,7 +168,7 @@ const OpenStackCloudShareDetail: FunctionComponent<
                   value={
                     row.diskCapacityBytes === null ||
                     row.diskCapacityBytes === undefined
-                      ? "—"
+                      ? undefined
                       : formatOpenStackBytes(row.diskCapacityBytes)
                   }
                   description="What this share holds room for, as Manila reports it. How much of that is used only its backend knows."
@@ -177,12 +177,10 @@ const OpenStackCloudShareDetail: FunctionComponent<
                   title="In state for"
                   icon={IconProp.Clock}
                   iconColor="slate"
-                  value={
-                    getOpenStackTimeInState(
-                      row,
-                      OneUptimeDate.getCurrentDate(),
-                    ) || "—"
-                  }
+                  value={getOpenStackTimeInState(
+                    row,
+                    OneUptimeDate.getCurrentDate(),
+                  )}
                   description="How long since OneUptime saw this share's status change. One already in this state when OneUptime first saw it counts from then."
                 />
               </>

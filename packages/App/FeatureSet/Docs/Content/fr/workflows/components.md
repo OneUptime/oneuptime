@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - Les **Paramètres** sont ce que vous remplissez. Les paramètres marqués **(Optionnel)** peuvent rester vides. Les paramètres moins utilisés sont repliés sous **Plus de champs**.
-- Les **Outputs** sont les points du bord inférieur. La plupart des blocs ont **Succès** et **Erreur** ; [Conditions](#conditions) a **Oui** et **Non**, et [Switch / Case](#switch-case) en a une pour chacun de ses cas, plus **Par défaut**.
+- Les **Sorties** sont les points du bord inférieur. La plupart des blocs ont **Succès** et **Erreur** ; [Conditions](#conditions) a **Oui** et **Non**, et [Switch / Case](#switch-case) en a une pour chacun de ses cas, plus **Par défaut**.
 - Les **Returns** sont les valeurs qu'un bloc transmet aux blocs suivants, comme le **Corps de la réponse** d'une API. Un bloc suivant en lit une avec `{{local.components.<block ID>.returnValues.<value ID>}}` ; le bouton **{ }** d'un paramètre l'insère pour vous. Voir [Variables](/docs/workflows/variables#sorties-des-composants-données-des-blocs-précédents).
 
 Un bloc qui prend **Erreur** confie l'échec aux blocs reliés à **Erreur**, et l'exécution continue là. Si rien n'est relié à **Erreur**, l'exécution échoue : ce qu'elle faisait par ailleurs continue, puis elle se termine avec le statut **Erreur**, et l'entrée du bloc dans les **Étapes** de l'exécution dit pourquoi. Un paramètre obligatoire laissé vide, ou un paramètre qui ne peut jamais fonctionner, arrête au contraire l'exécution avec une erreur.
@@ -463,9 +463,9 @@ Pour chaque type d'enregistrement de OneUptime (moniteurs, incidents, alertes, p
 | **Create One Monitor**   | Ajoute un enregistrement à partir d'un objet JSON.                             |
 | **Create Many Monitors** | Ajoute plusieurs enregistrements à partir d'un tableau JSON.                   |
 | **Update One Monitor**   | Applique les données à écrire à un enregistrement correspondant.               |
-| **Update Many Monitors** | Applique les données à écrire aux enregistrements correspondants, jusqu'à **Limit**. |
+| **Update Many Monitors** | Applique les données à écrire aux enregistrements correspondants, jusqu'à **Limite**. |
 | **Delete One Monitor**   | Supprime un enregistrement correspondant.                                      |
-| **Delete Many Monitors** | Supprime les enregistrements correspondants, jusqu'à **Limit**.                |
+| **Delete Many Monitors** | Supprime les enregistrements correspondants, jusqu'à **Limite**.                |
 
 Le même ensemble vous donne quatre déclencheurs — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** et **On Delete Monitor**. Voir [Déclencheurs](/docs/workflows/triggers#déclencheurs-dévénements-oneuptime).
 
@@ -533,7 +533,7 @@ Un champ qui pointe vers un autre enregistrement, comme la gravité d'un inciden
 
 Les champs que OneUptime remplit lui-même ne sont pas proposés quand vous écrivez un enregistrement : le `_id` de l'enregistrement, **Créé le**, **Mis à jour le**, **Créé par l'utilisateur**, les slugs, les numéros d'enregistrement et les statuts de notification. Qui a créé, archivé ou résolu un enregistrement, et quand, n'est jamais à un flux de travail de le définir : un enregistrement créé par un flux de travail n'a pas de créateur, une valeur qu'un flux de travail envoie pour l'un de ces champs à côté d'autres champs est ignorée, et un Update qui n'envoie rien d'autre échoue avec un message qui les nomme. Une modification ne propose que les champs qui peuvent changer après la création d'un enregistrement. Une requête propose quand même l'ID, les horodatages et **Créé par l'utilisateur**, car ils sont utiles pour filtrer. **Supprimé le** n'est proposé nulle part : les enregistrements sont supprimés pour de bon, ce champ est donc toujours vide.
 
-**Ignorer** et **Limit** sont deux champs numériques sur Find Many, Update Many et Delete Many, sous **Plus de champs** — `Skip: 0` avec `Limit: 100` prend les cent premières correspondances. **Limit** vaut `10` par défaut, et sur Update Many et Delete Many il plafonne le nombre d'enregistrements réellement écrits, pas seulement le nombre de résultats renvoyés. Ainsi, `Items Deleted: 10` signifie que dix enregistrements ont été supprimés, pas que dix correspondaient. Augmentez **Limit** quand vous voulez en modifier plus de dix.
+**Ignorer** et **Limite** sont deux champs numériques sur Find Many, Update Many et Delete Many, sous **Plus de champs** — `Skip: 0` avec `Limit: 100` prend les cent premières correspondances. **Limite** vaut `10` par défaut, et sur Update Many et Delete Many il plafonne le nombre d'enregistrements réellement écrits, pas seulement le nombre de résultats renvoyés. Ainsi, `Items Deleted: 10` signifie que dix enregistrements ont été supprimés, pas que dix correspondaient. Augmentez **Limite** quand vous voulez en modifier plus de dix.
 
 Delete One et Delete Many par requête ne vident jamais un historique. Sur les événements de statut d'un moniteur, et sur les historiques d'états des incidents, des alertes, des événements de maintenance et des épisodes, ils ne suppriment jamais l'état actuel d'un enregistrement, et ils gardent chaque événement de statut d'un moniteur qui couvre une partie des 90 derniers jours, pour qu'une page de statut n'affiche jamais un moniteur en gris. Le journal de l'exécution dit combien ont été gardés. Pour supprimer un événement précis, interrogez-le par son `_id`.
 

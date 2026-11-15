@@ -85,8 +85,8 @@ Cada log é armazenado com uma de sete severidades. Para logs do OpenTelemetry, 
 | Severidade | Números de severidade do OpenTelemetry |
 | --- | --- |
 | **Traço** | 1–4 |
-| **Debug** | 5–8 |
-| **Information** | 9–12 |
+| **Depuração** | 5–8 |
+| **Informação** | 9–12 |
 | **Aviso** | 13–16 |
 | **Erro** | 17–20 |
 | **Fatal** | 21–24 |
