@@ -256,14 +256,14 @@ En [nettverkslokasjon](/docs/monitor/network-sites#standardverdier-for-overvåki
 
 ## Overstyringen med bundet monitor
 
-Noe utstyr kan ingen sonde nå eller pinge på en nyttig måte: en enhet bak en NAT, en appliance der helsen bedre vurderes med en HTTP-sjekk, en tjeneste der det virkelige signalet er en portsjekk. For dem har **Rediger innstillinger** på enhetens side **Innstillinger** en **Monitoring Method**:
+Noe utstyr kan ingen sonde nå eller pinge på en nyttig måte: en enhet bak en NAT, en appliance der helsen bedre vurderes med en HTTP-sjekk, en tjeneste der det virkelige signalet er en portsjekk. For dem har **Rediger innstillinger** på enhetens side **Innstillinger** en **Overvåkingsmetode**:
 
 | Metode | Hva den betyr |
 | --- | --- |
 | **Sonde** | Standard. Pinges av den tildelte sonden etter dens tidsplan, og walkes via SNMP når den har påloggingsinformasjon. |
-| **Bound monitor** | Statusen til en eksisterende monitor er denne enhetens status. |
+| **Bundet monitor** | Statusen til en eksisterende monitor er denne enhetens status. |
 
-Å bytte en enhet til **Bound monitor** stopper pollingen av den. Sonden, intervallet og pollingbryteren forsvinner fra kortet **Polling & Data Collection**, enhetens gamle pollingresultater slettes, og statusen kommer fra monitoren du binder. Det er valgfritt å binde en: til du gjør det, viser enheten **Venter**, merket med **Ingen overvåking**.
+Å bytte en enhet til **Bundet monitor** stopper pollingen av den. Sonden, intervallet og pollingbryteren forsvinner fra kortet **Polling & Data Collection**, enhetens gamle pollingresultater slettes, og statusen kommer fra monitoren du binder. Det er valgfritt å binde en: til du gjør det, viser enheten **Venter**, merket med **Ingen overvåking**.
 
 Å bytte tilbake til **Sonde** gjenoppretter pollingen og ber om en sonde. En monitor som var bundet, forblir bundet og fortsetter å varsle; den bestemmer bare ikke lenger enhetens status.
 
