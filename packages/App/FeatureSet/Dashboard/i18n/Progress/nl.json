@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 9062
+    "keys": 53516,
+    "untranslated": 9488
   },
   "sameAsEnglish": [
     " is",
@@ -167,6 +167,7 @@
     "Flavors",
     "Floating IP",
     "Fluent Bit",
+    "Fuchsia",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -227,6 +228,7 @@
     "Incident: {{title}}",
     "Index",
     "Indicator",
+    "Indigo",
     "Info",
     "Initiator",
     "Interface",
@@ -510,6 +512,7 @@
     "VMID {{vmid}}",
     "VMware vCenter",
     "Viewport",
+    "Violet",
     "Vital",
     "Vitals",
     "Volume",

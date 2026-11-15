@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 2612
+    "keys": 53516,
+    "untranslated": 3122
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -176,6 +176,7 @@
     "Curaçao",
     "Cursor",
     "Customize → Connectors",
+    "Cyan",
     "Côte d'Ivoire",
     "DB.*maintenance",
     "DE",
@@ -297,6 +298,7 @@
     "In Slack",
     "In {{status}}",
     "Index",
+    "Indigo",
     "Info",
     "Initiator",
     "Integration",
