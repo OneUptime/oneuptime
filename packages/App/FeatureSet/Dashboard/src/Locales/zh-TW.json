@@ -38166,7 +38166,7 @@
   "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
   "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "開啟 {{enabled}}，並將 {{endpoints}} 指向控制平面節點上的 etcd：明文指標連接埠使用 http://；使用 HTTPS 用戶端連接埠時，在 {{secret}} 填入存放 etcd 所需用戶端憑證的 Secret。EKS、GKE 與 AKS 等代管叢集不會公開 etcd。",
   "{{matches}} of {{sampled}}": "{{sampled}} 個中的 {{matches}} 個",
-  "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{minutes}} min {{seconds}} s": "{{minutes}} 分鐘 {{seconds}} 秒",
   "{{on}} of {{total}} on": "{{total}} 個中已開啟 {{on}} 個",
   "{{percent}}% of values": "{{percent}}% 的值",
   "{{region}} is not a region. Write regions as your cloud names them, such as eu-west-1, europe-west4 or westeurope; * matches any characters.": "{{region}} 不是有效的地區。請使用您雲端的地區命名方式，例如 eu-west-1、europe-west4 或 westeurope；* 可比對任何字元。",
@@ -53491,5 +53491,8 @@
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
   "The whole {{name}}": "整個 {{name}}",
-  "Backfill Cursor ID": "Backfill Cursor ID"
+  "Backfill Cursor ID": "Backfill Cursor ID",
+  "{{value}} µs": "{{value}} 微秒",
+  "{{value}} ns": "{{value}} 奈秒",
+  "{{value}} h": "{{value}} 小時"
 }

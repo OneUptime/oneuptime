@@ -53491,5 +53491,8 @@
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "یک سری برای هر نمونه، که مقدارش کدی عددی برای وضعیت آن است: ACTIVE برابر 0، BUILD برابر 1، ERROR برابر 4. واژه را از برچسب `status` بخوانید و روی آن فیلتر کنید: کد نه شمارش است و نه شدت. اکسپورتر عامل در یک ابر واقعی `address_ipv4` و `address_ipv6` را خالی می‌گذارد، و یک پراب آن‌ها را از نشانی‌هایی که Nova فهرست می‌کند پر می‌کند. `hypervisor_hostname`، `host_id` و `availability_zone` (زُن دسترس‌پذیری) تا زمان‌بندی نمونه خالی‌اند. `image_id` ایمیجی را که نمونه از آن بوت شده نام می‌برد: فقط یک پراب آن را می‌فرستد، و نه برای نمونه‌ای که از یک ولوم بوت شده است.",
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "یک سری برای هر ولوم، که مقدارش اندازهٔ آن است، با واژهٔ وضعیتش در برچسب status. در ابری که یک پراب جمع‌آوری می‌کند، برچسب `pool` می‌گوید کدام استخر آن را نگه می‌دارد، برای اعتبارنامه‌ای که Cinder آن را admin می‌داند.",
   "The whole {{name}}": "کل {{name}}",
-  "Backfill Cursor ID": "شناسهٔ مکان‌نمای پرکردن داده‌های گذشته"
+  "Backfill Cursor ID": "شناسهٔ مکان‌نمای پرکردن داده‌های گذشته",
+  "{{value}} µs": "{{value}} میکروثانیه",
+  "{{value}} ns": "{{value}} نانوثانیه",
+  "{{value}} h": "{{value}} ساعت"
 }

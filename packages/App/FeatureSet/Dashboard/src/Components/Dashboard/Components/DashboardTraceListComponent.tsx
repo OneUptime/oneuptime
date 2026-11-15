@@ -67,28 +67,38 @@ const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> =
   );
 
 /*
- * A span's duration, its milliseconds in the reader's language ("12.3 ms",
- * "۱۲٫۳ میلی‌ثانیه"); the other units as short as they always were.
+ * A span's duration in the reader's language, in every unit: "850 ns",
+ * "12 µs", "12.3 ms", "1.25 s"; "۱۲٫۳ میلی‌ثانیه", "۱٫۲۵ ثانیه" (#7418,
+ * #8348). Each unit stands apart from its figure, as the milliseconds
+ * between them always did.
  */
 export const formatTraceListDuration: (
   durationNano: number,
   translator: Translator,
 ) => string = (durationNano: number, translator: Translator): string => {
+  const durationMs: number = durationNano / 1000000;
+
   if (durationNano < 1000) {
-    return `${durationNano}ns`;
+    return formatMilliseconds(translator, durationMs, {
+      unit: "ns",
+      maximumFractionDigits: 0,
+    });
   }
-  const durationMicro: number = durationNano / 1000;
-  if (durationMicro < 1000) {
-    return `${Math.round(durationMicro)}µs`;
+  if (durationNano < 1000000) {
+    return formatMilliseconds(translator, durationMs, {
+      unit: "µs",
+      maximumFractionDigits: 0,
+    });
   }
-  const durationMs: number = durationMicro / 1000;
   if (durationMs < 1000) {
     return formatMilliseconds(translator, durationMs, {
       maximumFractionDigits: 1,
     });
   }
-  const durationS: number = durationMs / 1000;
-  return `${Math.round(durationS * 100) / 100}s`;
+  return formatMilliseconds(translator, durationMs, {
+    unit: "s",
+    maximumFractionDigits: 2,
+  });
 };
 
 const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (

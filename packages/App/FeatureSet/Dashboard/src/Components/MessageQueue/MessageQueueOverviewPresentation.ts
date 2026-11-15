@@ -549,10 +549,10 @@ export function formatMessageQueueErrorRate(value: number | null): string {
 }
 
 /*
- * A span duration in milliseconds: "850 µs", "12 ms", "1.25 s". Its
- * milliseconds are the reader's words (issue #7418): a tile, a row, a
- * line of the topology. A chart's value axis keeps the English figures
- * every chart's value axis writes (formatMessageQueueDurationMs).
+ * A span duration in milliseconds: "850 µs", "12 ms", "1.25 s". Each unit
+ * is the reader's words (issues #7418, #8348): a tile, a row, a line of
+ * the topology. A chart's value axis keeps the English figures every
+ * chart's value axis writes (formatMessageQueueDurationMs).
  */
 export function formatMessageQueueDurationMsInLanguage(
   value: number | null,
@@ -562,7 +562,10 @@ export function formatMessageQueueDurationMsInLanguage(
     return "—";
   }
   if (value < 1) {
-    return `${(value * 1000).toFixed(0)} µs`;
+    return formatMilliseconds(translator, value, {
+      unit: "µs",
+      maximumFractionDigits: 0,
+    });
   }
   if (value < 1000) {
     const decimals: number = value < 10 ? 1 : 0;
@@ -572,7 +575,11 @@ export function formatMessageQueueDurationMsInLanguage(
       maximumFractionDigits: decimals,
     });
   }
-  return `${(value / 1000).toFixed(2)} s`;
+  return formatMilliseconds(translator, value, {
+    unit: "s",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // A span duration on a chart's value axis: in English, as every chart's axis.

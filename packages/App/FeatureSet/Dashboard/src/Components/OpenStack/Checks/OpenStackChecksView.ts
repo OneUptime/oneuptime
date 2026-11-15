@@ -27,6 +27,7 @@ import {
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   getGlobalTranslator,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
@@ -99,6 +100,11 @@ export function isOpenStackCheckConnectionNeeded(data: {
   );
 }
 
+// A check's time from a minute up: "4m 12s".
+export const OPENSTACK_MINUTES_AND_SECONDS_TEMPLATE: string = translationKey(
+  "{{minutes}}m {{seconds}}s",
+);
+
 export function getOpenStackCheckDurationText(
   durationInMs: number,
   translator: Translator = getGlobalTranslator(),
@@ -113,13 +119,23 @@ export function getOpenStackCheckDurationText(
   }
 
   if (safe < 60_000) {
-    return `${(safe / 1000).toFixed(1)} s`;
+    // "1.5 s", "۱٫۵ ثانیه" (issue #8348).
+    return formatMilliseconds(translator, safe, {
+      unit: "s",
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
   }
 
   const minutes: number = Math.floor(safe / 60_000);
   const seconds: number = Math.round((safe - minutes * 60_000) / 1000);
+  const roundsUp: boolean = seconds === 60;
 
-  return seconds === 60 ? `${minutes + 1}m 0s` : `${minutes}m ${seconds}s`;
+  // "4m 12s", "۴ دقیقه ۱۲ ثانیه": the reader's short minutes and seconds.
+  return translator.translateTemplate(OPENSTACK_MINUTES_AND_SECONDS_TEMPLATE, {
+    minutes: translator.formatNumber(roundsUp ? minutes + 1 : minutes),
+    seconds: translator.formatNumber(roundsUp ? 0 : seconds),
+  });
 }
 
 // Who said what. What a service wrote is kept as it is: this is drawn as text and nothing else.

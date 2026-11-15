@@ -116,24 +116,34 @@ const formatFixed: (
   });
 };
 
-const formatDuration: (nanos: number, translator: Translator) => string = (
+/*
+ * A trace's duration in the reader's unit and order, in every unit: "1.25
+ * s", "12.3 ms", "850 µs", "42 ns"; "۱٫۲۵ ثانیه", "۱۲٫۳ میلی‌ثانیه" (#7418,
+ * #8348).
+ */
+export const formatDuration: (
   nanos: number,
   translator: Translator,
-): string => {
+) => string = (nanos: number, translator: Translator): string => {
+  const milliseconds: number = nanos / 1_000_000;
+
   if (nanos >= 1_000_000_000) {
-    return `${formatFixed(nanos / 1_000_000_000, 2, translator)}s`;
+    return formatMilliseconds(translator, milliseconds, {
+      unit: "s",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   }
   if (nanos >= 1_000_000) {
-    // The reader's unit and order: "12.3 ms", "۱۲٫۳ میلی‌ثانیه" (#7418).
-    return formatMilliseconds(translator, nanos / 1_000_000, {
+    return formatMilliseconds(translator, milliseconds, {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
     });
   }
-  if (nanos >= 1_000) {
-    return `${formatFixed(nanos / 1_000, 0, translator)}us`;
-  }
-  return `${formatFixed(nanos, 0, translator)}ns`;
+  return formatMilliseconds(translator, milliseconds, {
+    unit: nanos >= 1_000 ? "µs" : "ns",
+    maximumFractionDigits: 0,
+  });
 };
 
 const getPercentile: (arr: Array<number>, p: number) => number = (

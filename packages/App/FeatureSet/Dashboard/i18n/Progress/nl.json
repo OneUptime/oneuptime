@@ -824,6 +824,7 @@
     "{{inQuorum}}/{{count}} mons in quorum",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{monitorName}} is offline",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
@@ -834,6 +835,8 @@
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",
-    "{{value}} s"
+    "{{value}} ns",
+    "{{value}} s",
+    "{{value}} µs"
   ]
 }

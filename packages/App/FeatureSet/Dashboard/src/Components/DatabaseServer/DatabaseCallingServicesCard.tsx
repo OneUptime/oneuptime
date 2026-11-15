@@ -57,13 +57,16 @@ export function getCallingServicesFooter(
   );
 }
 
-// A service's p95: "850 µs", "12 ms" in the reader's words (#7418), "1.25 s".
+// A service's p95: "850 µs", "12 ms", "1.25 s", each in the reader's words (#7418, #8348).
 function formatMs(value: number | null, translator: Translator): string {
   if (value === null || !Number.isFinite(value)) {
     return "—";
   }
   if (value < 1) {
-    return `${(value * 1000).toFixed(0)} µs`;
+    return formatMilliseconds(translator, value, {
+      unit: "µs",
+      maximumFractionDigits: 0,
+    });
   }
   if (value < 1000) {
     const decimals: number = value < 10 ? 1 : 0;
@@ -73,7 +76,11 @@ function formatMs(value: number | null, translator: Translator): string {
       maximumFractionDigits: decimals,
     });
   }
-  return `${(value / 1000).toFixed(2)} s`;
+  return formatMilliseconds(translator, value, {
+    unit: "s",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function formatErrorRate(value: number | null): string {

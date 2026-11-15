@@ -146,9 +146,9 @@ function formatErrorRate(value: number | null): string {
 }
 
 /*
- * A query's p95: its milliseconds in the reader's words on the tile
- * (issue #7418), and in English on the chart's value axis, as every
- * chart's axis writes its figures (no translator).
+ * A query's p95: its milliseconds and seconds in the reader's words on the
+ * tile (issues #7418, #8348), and in English on the chart's value axis, as
+ * every chart's axis writes its figures (no translator).
  */
 function formatMs(
   value: number | null,
@@ -157,18 +157,16 @@ function formatMs(
   if (value === null || !Number.isFinite(value)) {
     return "—";
   }
-  if (value < 1000) {
-    const decimals: number = value < 10 ? 1 : 0;
-    const options: MillisecondsOptions = {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    };
+  const decimals: number = value < 10 ? 1 : value < 1000 ? 0 : 2;
+  const options: MillisecondsOptions = {
+    unit: value < 1000 ? "ms" : "s",
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  };
 
-    return translator
-      ? formatMilliseconds(translator, value, options)
-      : formatMillisecondsInEnglish(value, options);
-  }
-  return `${(value / 1000).toFixed(2)} s`;
+  return translator
+    ? formatMilliseconds(translator, value, options)
+    : formatMillisecondsInEnglish(value, options);
 }
 
 /*

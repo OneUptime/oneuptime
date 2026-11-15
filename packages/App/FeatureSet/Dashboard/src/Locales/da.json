@@ -38166,7 +38166,7 @@
   "Guest Down or Replication Failing misses some guests": "Guest Down or Replication Failing misses some guests",
   "Turn on {{enabled}} and point {{endpoints}} at etcd on the control-plane nodes: http:// for its plain metrics port, or its HTTPS client port with {{secret}} naming a Secret that holds the client certificate etcd asks for. Managed clusters such as EKS, GKE and AKS don't expose etcd.": "Slå {{enabled}} til, og lad {{endpoints}} pege på etcd på control plane-noderne: http:// til dens ukrypterede metrikport eller dens HTTPS-klientport, med {{secret}} som navnet på en Secret med det klientcertifikat, etcd beder om. Administrerede klynger som EKS, GKE og AKS eksponerer ikke etcd.",
   "{{matches}} of {{sampled}}": "{{matches}} af {{sampled}}",
-  "{{minutes}} min {{seconds}} s": "{{minutes}} min {{seconds}} s",
+  "{{minutes}} min {{seconds}} s": "{{minutes}} min. {{seconds}} s",
   "{{on}} of {{total}} on": "{{on}} af {{total}} slået til",
   "{{percent}}% of values": "{{percent}} % af værdierne",
   "{{region}} is not a region. Write regions as your cloud names them, such as eu-west-1, europe-west4 or westeurope; * matches any characters.": "{{region}} er ikke en region. Skriv regioner, som din cloud navngiver dem, f.eks. eu-west-1, europe-west4 eller westeurope; * matcher alle tegn.",
@@ -53491,5 +53491,8 @@
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
   "The whole {{name}}": "{{name}} i sin helhed",
-  "Backfill Cursor ID": "Backfill Cursor ID"
+  "Backfill Cursor ID": "Backfill Cursor ID",
+  "{{value}} µs": "{{value}} µs",
+  "{{value}} ns": "{{value}} ns",
+  "{{value}} h": "{{value}} t"
 }

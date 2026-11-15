@@ -1105,9 +1105,15 @@ function formatInteger(value: number): string {
   return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+// "2 min 5 s": a duration of a minute or more, in the reader's units.
+export const EVIDENCE_MINUTES_AND_SECONDS_TEMPLATE: string = translationKey(
+  "{{minutes}} min {{seconds}} s",
+);
+
 /*
  * "340 ms", "1.2 s", "2 min 5 s". Undefined for a missing/invalid duration.
- * Its milliseconds are the reader's ("۳۴۰ میلی‌ثانیه"; issue #7418).
+ * Every unit is the reader's, in the reader's digits ("۳۴۰ میلی‌ثانیه",
+ * "۱٫۲ ثانیه", "2 Min. 5 s"; issues #7418, #8348).
  */
 export function formatEvidenceDuration(
   durationInMs: number | null | undefined,
@@ -1130,14 +1136,29 @@ export function formatEvidenceDuration(
   if (durationInMs < 60_000) {
     const seconds: number = Math.round(durationInMs / 100) / 10;
 
-    return seconds >= 60 ? "1 min" : `${seconds} s`;
+    return formatMilliseconds(
+      translator,
+      seconds >= 60 ? 60_000 : seconds * 1000,
+      {
+        unit: seconds >= 60 ? "min" : "s",
+        maximumFractionDigits: 1,
+      },
+    );
   }
 
   const totalSeconds: number = Math.round(durationInMs / 1000);
   const minutes: number = Math.floor(totalSeconds / 60);
   const seconds: number = totalSeconds % 60;
 
-  return seconds > 0 ? `${minutes} min ${seconds} s` : `${minutes} min`;
+  return seconds > 0
+    ? translator.translateTemplate(EVIDENCE_MINUTES_AND_SECONDS_TEMPLATE, {
+        minutes: translator.formatNumber(minutes),
+        seconds: translator.formatNumber(seconds),
+      })
+    : formatMilliseconds(translator, minutes * 60_000, {
+        unit: "min",
+        maximumFractionDigits: 0,
+      });
 }
 
 const ISO_DATE_PREFIX_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}/;

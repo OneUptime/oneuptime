@@ -1,5 +1,6 @@
 import {
   getGlobalTranslator,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatMilliseconds } from "../../Utils/Milliseconds";
@@ -9,11 +10,31 @@ import { formatMilliseconds } from "../../Utils/Milliseconds";
  * rules are pinned by tests and every surface (the list, the replay, the
  * alert cards) writes "2.3 s" and "$0.0012" the same way.
  *
- * A latency under a second is the Dashboard's duration in milliseconds, in
- * the reader's language ("850 ms", "۸۵۰ میلی‌ثانیه", "850 ملي ث"; issue
- * #7418), its translator the page's unless one is handed in. The other
- * units and symbols are not routed through translation yet.
+ * A latency is the Dashboard's duration, in the reader's language and
+ * digits, in every unit ("850 ms", "۸۵۰ میلی‌ثانیه", "850 ملي ث"; "۲٫۳
+ * ثانیه", "4 min 05 s"; issues #7418, #8348), its translator the page's
+ * unless one is handed in. The cost's dollar sign is not routed through
+ * translation yet.
  */
+
+// "4m 05s" and "1h 02m": the Dashboard's short minutes and hours.
+export const LLM_MINUTES_AND_SECONDS_TEMPLATE: string = translationKey(
+  "{{minutes}}m {{seconds}}s",
+);
+
+export const LLM_HOURS_AND_MINUTES_TEMPLATE: string = translationKey(
+  "{{hours}}h {{minutes}}m",
+);
+
+/*
+ * A count under 60 in two digits, as a clock writes it: "05", "۰۵" - the
+ * reader's zero before the reader's digit.
+ */
+function writeTwoDigits(value: number, translator: Translator): string {
+  return value < 10
+    ? `${translator.formatNumber(0)}${translator.formatNumber(value)}`
+    : translator.formatNumber(value);
+}
 
 // "850 ms", "2.3 s", "42 s", "4m 05s", "1h 02m".
 export function formatLlmDuration(
@@ -36,26 +57,35 @@ export function formatLlmDuration(
   const tenths: number = Math.round(ms / 100);
 
   if (tenths < 100) {
-    return `${(tenths / 10).toFixed(1)} s`;
+    return formatMilliseconds(translator, tenths * 100, {
+      unit: "s",
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
   }
 
   const totalSeconds: number = Math.round(ms / 1000);
 
   if (totalSeconds < 60) {
-    return `${totalSeconds} s`;
+    return formatMilliseconds(translator, totalSeconds * 1000, {
+      unit: "s",
+      maximumFractionDigits: 0,
+    });
   }
 
   if (totalSeconds < 3600) {
-    const minutes: number = Math.floor(totalSeconds / 60);
-    const seconds: number = totalSeconds % 60;
-    return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+    return translator.translateTemplate(LLM_MINUTES_AND_SECONDS_TEMPLATE, {
+      minutes: translator.formatNumber(Math.floor(totalSeconds / 60)),
+      seconds: writeTwoDigits(totalSeconds % 60, translator),
+    });
   }
 
   const totalMinutes: number = Math.round(totalSeconds / 60);
-  const hours: number = Math.floor(totalMinutes / 60);
-  const minutes: number = totalMinutes % 60;
 
-  return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  return translator.translateTemplate(LLM_HOURS_AND_MINUTES_TEMPLATE, {
+    hours: translator.formatNumber(Math.floor(totalMinutes / 60)),
+    minutes: writeTwoDigits(totalMinutes % 60, translator),
+  });
 }
 
 /*

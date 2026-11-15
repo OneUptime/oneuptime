@@ -3,6 +3,7 @@ import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import { formatMillisecondsInEnglish } from "../../../Utils/Milliseconds";
 import { translationKey } from "Common/Types/Translator";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import {
   formatReaderFigure,
   isEnglishDateLanguage,
@@ -637,6 +638,11 @@ export function formatDatabaseBytes(value: number | null | undefined): string {
   return `${scaled.toFixed(index > 0 && Math.abs(scaled) < 10 ? 1 : 0)} ${units[index]}`;
 }
 
+/*
+ * A metric's seconds, in English as the metric's other units are (bytes,
+ * rows, a chart's ticks): "4.2 s", "12 min", "3.5 h", "2 d", each figure
+ * held to its unit with a no-break space (#8303, #8348).
+ */
 export function formatDatabaseSeconds(
   value: number | null | undefined,
 ): string {
@@ -644,15 +650,21 @@ export function formatDatabaseSeconds(
     return "—";
   }
   if (value < 60) {
-    return `${value < 10 ? value.toFixed(1) : Math.round(value)} s`;
-  }
-  if (value < 3600) {
-    return `${(value / 60).toFixed(1).replace(/\.0$/, "")} min`;
+    const decimals: number = value < 10 ? 1 : 0;
+
+    return formatMillisecondsInEnglish(value * 1000, {
+      unit: "s",
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
   if (value < 86400) {
-    return `${(value / 3600).toFixed(1).replace(/\.0$/, "")} h`;
+    return formatMillisecondsInEnglish(value * 1000, {
+      unit: value < 3600 ? "min" : "h",
+      maximumFractionDigits: 1,
+    });
   }
-  return `${(value / 86400).toFixed(1).replace(/\.0$/, "")} d`;
+  return `${(value / 86400).toFixed(1).replace(/\.0$/, "")}${NO_BREAK_SPACE}d`;
 }
 
 /**

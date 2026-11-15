@@ -77,6 +77,7 @@ import {
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import { OpenStackPart } from "./UseOpenStackPart";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 /*
  * A service's page: the same questions in the same places as every part of a cloud. What
@@ -405,7 +406,11 @@ const OpenStackServiceOverview: FunctionComponent<ComponentProps> = (
       details.push({
         key: "collection",
         label: "Last collection took",
-        value: `${translator.formatNumber(Math.round(seconds * 100) / 100)} s`,
+        // "1.25 s", "۱٫۲۵ ثانیه" (issue #8348).
+        value: formatMilliseconds(translator, seconds * 1000, {
+          unit: "s",
+          maximumFractionDigits: 2,
+        }),
         description: OPENSTACK_METRIC_DESCRIPTIONS.apiCollectionTime,
       });
     }

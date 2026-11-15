@@ -437,11 +437,14 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{percent}} full",
     "{{rate}}/min",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",
-    "{{value}} s"
+    "{{value}} ns",
+    "{{value}} s",
+    "{{value}} µs"
   ]
 }

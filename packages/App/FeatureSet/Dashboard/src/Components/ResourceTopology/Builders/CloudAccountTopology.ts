@@ -209,30 +209,41 @@ export function formatCloudTopologyCount(value: number): string {
 }
 
 /*
- * A time from seconds: "230 ms" under a second, in the reader's words
- * ("۲۳۰ میلی‌ثانیه"; issue #7418), then "1.8 s", "12 min", "3.5 h".
+ * A time from seconds: "230 ms" under a second, then "1.8 s", "12 min",
+ * "3.5 h" - each in the reader's words and digits ("۲۳۰ میلی‌ثانیه", "۱٫۸
+ * ثانیه"; issues #7418, #8348).
  */
 export function formatCloudTopologySeconds(
   seconds: number,
   translator: Translator = getGlobalTranslator(),
 ): string {
   const magnitude: number = Math.abs(seconds);
+  const milliseconds: number = seconds * 1000;
 
   if (magnitude < 1) {
-    return formatMilliseconds(translator, seconds * 1000, {
+    return formatMilliseconds(translator, milliseconds, {
       maximumFractionDigits: 0,
     });
   }
 
   if (magnitude < 120) {
-    return `${Math.round(seconds * 10) / 10} s`;
+    return formatMilliseconds(translator, milliseconds, {
+      unit: "s",
+      maximumFractionDigits: 1,
+    });
   }
 
   if (magnitude < 2 * 3600) {
-    return `${Math.round(seconds / 60)} min`;
+    return formatMilliseconds(translator, milliseconds, {
+      unit: "min",
+      maximumFractionDigits: 0,
+    });
   }
 
-  return `${Math.round((seconds / 3600) * 10) / 10} h`;
+  return formatMilliseconds(translator, milliseconds, {
+    unit: "h",
+    maximumFractionDigits: 1,
+  });
 }
 
 /*

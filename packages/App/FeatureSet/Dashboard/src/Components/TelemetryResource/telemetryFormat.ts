@@ -36,7 +36,7 @@ export const formatPercent: (n: number | null) => string = (
 
 /*
  * A span's duration in the unit that reads best ("850 µs", "12 ms", "1.25
- * s"). Its milliseconds are written by `writeMilliseconds`: the reader's
+ * s"). It is written by `writeMilliseconds`, in every unit: the reader's
  * words on a tile (formatDurationMsInLanguage), English on a chart's value
  * axis (formatDurationMs).
  */
@@ -57,7 +57,7 @@ const writeDurationMs: (
     return "—";
   }
   if (ms < 1) {
-    return `${(ms * 1000).toFixed(0)} µs`;
+    return writeMilliseconds(ms, { unit: "µs", maximumFractionDigits: 0 });
   }
   if (ms < 1000) {
     // One decimal under ten ("5.0 ms"), none from ten up ("42 ms").
@@ -68,7 +68,11 @@ const writeDurationMs: (
       maximumFractionDigits: decimals,
     });
   }
-  return `${(ms / 1000).toFixed(2)} s`;
+  return writeMilliseconds(ms, {
+    unit: "s",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
 
 /*

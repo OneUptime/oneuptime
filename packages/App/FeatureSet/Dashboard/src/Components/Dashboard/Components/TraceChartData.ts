@@ -166,9 +166,9 @@ export function isDurationMetric(metric: string): boolean {
 }
 
 /*
- * A span's duration in the unit that reads best. Its milliseconds are
- * written by `writeMilliseconds`: the reader's words in a table, English on
- * a chart's value axis (formatDurationMs).
+ * A span's duration in the unit that reads best. It is written by
+ * `writeMilliseconds`, in every unit: the reader's words in a table, English
+ * on a chart's value axis (formatDurationMs).
  */
 function writeDurationMs(
   ms: number,
@@ -181,7 +181,7 @@ function writeDurationMs(
     return "-";
   }
   if (ms < 1) {
-    return `${Math.round(ms * 1000)} µs`;
+    return writeMilliseconds(ms, { unit: "µs", maximumFractionDigits: 0 });
   }
   if (ms < 1000) {
     // "5.0 ms" under ten, "42 ms" from ten up.
@@ -193,9 +193,17 @@ function writeDurationMs(
       : writeMilliseconds(ms, { maximumFractionDigits: 0 });
   }
   if (ms < 60000) {
-    return `${(ms / 1000).toFixed(2)} s`;
+    return writeMilliseconds(ms, {
+      unit: "s",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   }
-  return `${(ms / 60000).toFixed(1)} min`;
+  return writeMilliseconds(ms, {
+    unit: "min",
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 }
 
 /*

@@ -229,6 +229,8 @@
     "{{format}} JSON",
     "{{gigabytes}} GB",
     "{{in}} in",
-    "{{value}} ms"
+    "{{value}} ms",
+    "{{value}} ns",
+    "{{value}} µs"
   ]
 }

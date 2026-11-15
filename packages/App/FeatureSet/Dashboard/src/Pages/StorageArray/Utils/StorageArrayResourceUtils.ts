@@ -157,7 +157,7 @@ export function formatBytes(bytes: number | null | undefined): string {
     return "—";
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
   let value: number = bytes / 1024;
@@ -210,7 +210,8 @@ export function formatIops(value: number | null | undefined): string {
 /*
  * Pure reports latency in microseconds per operation. Below a millisecond
  * it reads best in µs (a FlashArray read is usually 150–500 µs); above,
- * in ms, in the reader's words ("2.35 ms", "۲٫۳۵ میلی‌ثانیه": #7418).
+ * in ms - each in the reader's words ("420 µs", "۴۲۰ میکروثانیه", "2.35
+ * ms", "۲٫۳۵ میلی‌ثانیه": #7418, #8348).
  */
 export function formatLatencyUsec(
   value: number | null | undefined,
@@ -220,7 +221,10 @@ export function formatLatencyUsec(
     return "—";
   }
   if (value < 1000) {
-    return `${Math.round(value)} µs`;
+    return formatMilliseconds(translator, value / 1000, {
+      unit: "µs",
+      maximumFractionDigits: 0,
+    });
   }
 
   const decimals: number = value >= 100_000 ? 0 : 2;
@@ -255,7 +259,7 @@ export function formatTemperature(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
-  return `${Math.round(value)} °C`;
+  return `${Math.round(value)}\u00A0°C`;
 }
 
 export function formatLastSeen(date: Date | undefined | null): string {

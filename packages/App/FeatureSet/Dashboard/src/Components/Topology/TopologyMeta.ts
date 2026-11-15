@@ -341,9 +341,10 @@ export function edgeWidthForCalls(callCount: number | undefined): number {
 }
 
 /*
- * A call's average duration: "1.25s" from a second up, and under it the
- * reader's milliseconds ("42 ms", "۴۲ میلی‌ثانیه"; issue #7418). Without a
- * translator it writes English, as a chart's value axis does.
+ * A call's average duration: the reader's seconds from a second up ("1.25
+ * s", "۱٫۲۵ ثانیه"; issue #8348), and under it the reader's milliseconds
+ * ("42 ms", "۴۲ میلی‌ثانیه"; issue #7418). Without a translator it writes
+ * English, as a chart's value axis does.
  */
 export function formatDurationMs(
   avgDurationMs: number | undefined,
@@ -353,7 +354,11 @@ export function formatDurationMs(
     return "—";
   }
   if (avgDurationMs >= 1000) {
-    return `${(avgDurationMs / 1000).toFixed(2)}s`;
+    return formatMilliseconds(translator, avgDurationMs, {
+      unit: "s",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   }
   return formatMilliseconds(translator, avgDurationMs, {
     maximumFractionDigits: 0,

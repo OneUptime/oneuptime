@@ -226,6 +226,8 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{itemName}} ID",
-    "{{value}} ms"
+    "{{value}} ms",
+    "{{value}} ns",
+    "{{value}} µs"
   ]
 }

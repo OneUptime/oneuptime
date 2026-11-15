@@ -16,6 +16,7 @@ import useOpenStackPart, {
   OpenStackPart,
 } from "../../../Components/OpenStack/Part/UseOpenStackPart";
 import { ResourcePartChip } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import {
   getOpenStackCollectionSeconds,
   getOpenStackServiceTitle,
@@ -62,9 +63,11 @@ const OpenStackCloudServiceDetail: FunctionComponent<
       key: "collection",
       icon: IconProp.Clock,
       label: translator.translateTemplate("Collected in {{seconds}}", {
-        seconds: `${translator.formatNumber(
-          Math.round(seconds * 100) / 100,
-        )} s`,
+        // "1.25 s", "۱٫۲۵ ثانیه" (issue #8348).
+        seconds: formatMilliseconds(translator, seconds * 1000, {
+          unit: "s",
+          maximumFractionDigits: 2,
+        }),
       }),
     });
   }

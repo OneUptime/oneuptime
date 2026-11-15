@@ -12,12 +12,15 @@
  * "{{value}} ms" key with the figure as the reader's language writes a
  * number ("411 ms", "1.234 ms", "۴۱۱ میلی‌ثانیه", "411 ملي ث");
  * roundMilliseconds rounds as Math.round did; minimumFractionDigits keeps
- * the decimals toFixed wrote ("5.0 ms"). formatMillisecondsInEnglish is for
- * the text that stays English on purpose: a chart's value axis and tooltip,
- * and the PDF export. A guard (Common
- * Tests/UI/MillisecondsInReadersLanguageGuard) refuses a duration built as
- * `x + " ms"` anywhere in the Dashboard, and any "ms" written beside a
- * figure in any of its files (issue #7418).
+ * the decimals toFixed wrote ("5.0 ms"); unit writes the duration in
+ * another unit, through that unit's key ({ unit: "s" }: "1.25 s", "۱٫۲۵
+ * ثانیه"; "ns", "µs", "min" and "h" too, issue #8348).
+ * formatMillisecondsInEnglish is for the text that stays English on
+ * purpose: a chart's value axis and tooltip, and the PDF export. A guard
+ * (Common Tests/UI/MillisecondsInReadersLanguageGuard) refuses a duration
+ * built as `x + " ms"` anywhere in the Dashboard, and any "ms", "s", "µs",
+ * "ns" or "min" written beside a figure in any of its files (issues #7418,
+ * #8348).
  */
 export {
   formatMilliseconds,
@@ -25,4 +28,7 @@ export {
   MILLISECONDS_TEMPLATE,
   roundMilliseconds,
 } from "Common/Utils/Milliseconds";
-export type { MillisecondsOptions } from "Common/Utils/Milliseconds";
+export type {
+  DurationUnit,
+  MillisecondsOptions,
+} from "Common/Utils/Milliseconds";

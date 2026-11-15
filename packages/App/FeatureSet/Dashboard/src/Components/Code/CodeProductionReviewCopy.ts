@@ -941,7 +941,7 @@ export function getProductionReviewNothingSentence(
   );
 }
 
-// A duration in milliseconds, short: "840 ms", "1.2 s".
+// A duration in milliseconds, short, in the reader's units: "840 ms", "1.2 s" (#8348).
 export function formatReviewDuration(
   milliseconds: number,
   translator: Translator,
@@ -950,13 +950,10 @@ export function formatReviewDuration(
     return "";
   }
 
-  if (milliseconds < 1000) {
-    return formatMilliseconds(translator, milliseconds, {
-      maximumFractionDigits: 0,
-    });
-  }
-
-  return `${translator.formatNumber(Math.round(milliseconds / 100) / 10)} s`;
+  return formatMilliseconds(translator, milliseconds, {
+    unit: milliseconds < 1000 ? "ms" : "s",
+    maximumFractionDigits: milliseconds < 1000 ? 0 : 1,
+  });
 }
 
 // A share, short: "12%", "0.4%".

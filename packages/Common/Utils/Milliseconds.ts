@@ -43,11 +43,90 @@ import {
  * decimals toFixed wrote ("5.0 ms"), so English reads exactly as it did,
  * a figure of a thousand or more aside.
  *
+ * The same formatters wrote their other units by hand (issue #8348): a
+ * second `${(ms / 1000).toFixed(2)} s`, a microsecond `${ms * 1000} µs`, a
+ * minute `${(ms / 60000).toFixed(1)} min` - "1.25 s" in Latin digits on a
+ * Persian page beside "۴۲ میلی‌ثانیه" on the next row. The option `unit`
+ * writes a duration in milliseconds in another unit, through that unit's
+ * key and with the same figure: formatMilliseconds(translator, 1250, {
+ * unit: "s", minimumFractionDigits: 2 }) is "1.25 s", "1,25 s", "۱٫۲۵
+ * ثانیه". Each key's English is the unit's symbol after a space, so
+ * English reads as the code wrote it, a no-break space between the figure
+ * and its unit aside (#8302).
+ *
  * A guard (Common Tests/UI/MillisecondsInReadersLanguageGuard) refuses a
- * duration built as `x + " ms"` anywhere in the Dashboard, and any "ms"
- * written beside a figure in any of the Dashboard's files.
+ * duration built as `x + " ms"` anywhere in the Dashboard, and any "ms",
+ * "s", "µs", "ns" or "min" written beside a figure in any of the
+ * Dashboard's files.
  */
 export const MILLISECONDS_TEMPLATE: string = translationKey("{{value}} ms");
+
+// The units a duration in milliseconds is written in.
+export type DurationUnit = "ns" | "µs" | "ms" | "s" | "min" | "h";
+
+export interface DurationUnitKey {
+  // The unit's key: the figure, a space and the unit's symbol.
+  template: string;
+  // The key's placeholder for the figure.
+  placeholder: string;
+  // The figure a duration in milliseconds is in this unit.
+  toFigure: (milliseconds: number) => number;
+}
+
+/*
+ * Each unit's key, as every Dashboard locale words it: Intl's short unit,
+ * or the word the language writes its milliseconds with ("۱۲ میکروثانیه",
+ * "12 мкс", "12 م.ث."). Seconds and minutes are the keys the Dashboard
+ * already wrote them with ("{{value}} s" in the exception breadcrumbs,
+ * "{{minutes}} min" in an escalation rule). A small unit is multiplied,
+ * never divided by a fraction, so 0.5 ms is exactly 500 µs.
+ */
+export const DURATION_UNIT_KEYS: Readonly<
+  Record<DurationUnit, DurationUnitKey>
+> = {
+  ns: {
+    template: translationKey("{{value}} ns"),
+    placeholder: "value",
+    toFigure: (milliseconds: number): number => {
+      return milliseconds * 1000000;
+    },
+  },
+  µs: {
+    template: translationKey("{{value}} µs"),
+    placeholder: "value",
+    toFigure: (milliseconds: number): number => {
+      return milliseconds * 1000;
+    },
+  },
+  ms: {
+    template: MILLISECONDS_TEMPLATE,
+    placeholder: "value",
+    toFigure: (milliseconds: number): number => {
+      return milliseconds;
+    },
+  },
+  s: {
+    template: translationKey("{{value}} s"),
+    placeholder: "value",
+    toFigure: (milliseconds: number): number => {
+      return milliseconds / 1000;
+    },
+  },
+  min: {
+    template: translationKey("{{minutes}} min"),
+    placeholder: "minutes",
+    toFigure: (milliseconds: number): number => {
+      return milliseconds / 60000;
+    },
+  },
+  h: {
+    template: translationKey("{{value}} h"),
+    placeholder: "value",
+    toFigure: (milliseconds: number): number => {
+      return milliseconds / 3600000;
+    },
+  },
+};
 
 export interface MillisecondsOptions {
   /*
@@ -70,6 +149,13 @@ export interface MillisecondsOptions {
    * signs stand on the same side of their digits.
    */
   showsSign?: boolean | undefined;
+  /*
+   * The unit the duration is written in, its figure the milliseconds
+   * counted in that unit: 1250 in "s" is "1.25 s", 0.25 in "µs" is "250
+   * µs". Left out, milliseconds. The decimals above are the figure's in
+   * that unit.
+   */
+  unit?: DurationUnit | undefined;
 }
 
 // The minus a language writes: "-" in most, U+2212 in Persian and Swedish.
@@ -167,7 +253,8 @@ export const roundMilliseconds: (
 };
 
 /*
- * "411 ms" in the reader's language. A value that is not a number (a
+ * "411 ms" in the reader's language, or the duration in the unit the
+ * options ask for ("1.25 s", "250 µs"). A value that is not a number (a
  * reading the probe did not make) reads "-", as every missing fact does.
  */
 export const formatMilliseconds: (
@@ -183,10 +270,16 @@ export const formatMilliseconds: (
     return "-";
   }
 
-  return translator.translateTemplate(MILLISECONDS_TEMPLATE, {
-    value: formatFigure(
+  const unit: DurationUnitKey =
+    DURATION_UNIT_KEYS[options?.unit || "ms"] || DURATION_UNIT_KEYS.ms;
+
+  return translator.translateTemplate(unit.template, {
+    [unit.placeholder]: formatFigure(
       translator,
-      roundMilliseconds(milliseconds, options?.maximumFractionDigits),
+      roundMilliseconds(
+        unit.toFigure(milliseconds),
+        options?.maximumFractionDigits,
+      ),
       options,
     ),
   });

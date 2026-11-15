@@ -510,12 +510,16 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{up}}/{{count}} OSDs up",
+    "{{value}} h",
     "{{value}} ms",
-    "{{value}} s"
+    "{{value}} ns",
+    "{{value}} s",
+    "{{value}} µs"
   ]
 }

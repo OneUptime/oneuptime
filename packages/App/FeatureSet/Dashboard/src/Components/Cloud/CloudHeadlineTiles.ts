@@ -232,26 +232,51 @@ export function formatCloudAmount(
   return translator.formatNumber(rounded);
 }
 
-// A time from seconds: milliseconds under one second ("230 ms"), else "1.8 s".
+/*
+ * The decimals formatCloudAmount rounds a figure to: none from a hundred
+ * up, one from one up, two under one.
+ */
+function cloudAmountDecimals(value: number): number {
+  const magnitude: number = Math.abs(value);
+
+  return magnitude >= 100 ? 0 : magnitude >= 1 ? 1 : 2;
+}
+
+/*
+ * A time from seconds: milliseconds under one second ("230 ms"), else "1.8
+ * s", "12 min" or "2.5 h" - each unit in the reader's words and digits
+ * ("۱٫۸ ثانیه", "12 Min."; issues #7418, #8348).
+ */
 export function formatCloudSeconds(
   seconds: number,
   translator: Translator,
 ): string {
+  const milliseconds: number = seconds * 1000;
+
   if (Math.abs(seconds) < 1) {
-    return formatMilliseconds(translator, seconds * 1000, {
+    return formatMilliseconds(translator, milliseconds, {
       maximumFractionDigits: 0,
     });
   }
 
   if (Math.abs(seconds) < 120) {
-    return `${formatCloudAmount(seconds, translator)} s`;
+    return formatMilliseconds(translator, milliseconds, {
+      unit: "s",
+      maximumFractionDigits: cloudAmountDecimals(seconds),
+    });
   }
 
   if (Math.abs(seconds) < 2 * 3600) {
-    return `${translator.formatNumber(Math.round(seconds / 60))} min`;
+    return formatMilliseconds(translator, milliseconds, {
+      unit: "min",
+      maximumFractionDigits: 0,
+    });
   }
 
-  return `${formatCloudAmount(seconds / 3600, translator)} h`;
+  return formatMilliseconds(translator, milliseconds, {
+    unit: "h",
+    maximumFractionDigits: cloudAmountDecimals(seconds / 3600),
+  });
 }
 
 function formatValue(data: {

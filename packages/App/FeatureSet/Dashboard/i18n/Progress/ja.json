@@ -373,6 +373,8 @@
     "{{name}} ID",
     "{{value}} Mbps",
     "{{value}} ms",
+    "{{value}} ns",
+    "{{value}} µs",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",
