@@ -1,0 +1,70 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks on its own: the tests in
+   * Tests/Server/Utils whose names start with P to Z, and the server sources
+   * they import; a folder there goes by its name too. A to O are
+   * tsconfig.tests.server-utils-a-o.json, the AI folder
+   * tsconfig.tests.server-utils-ai.json, and tsconfig.tests.server-utils.json
+   * is the whole folder, the program editors and ESLint use for it. Split on
+   * 2026-11-15 (#8664), when the folder as one part used 85% of its heap.
+   * TypeScript's globs know * and ?, not ranges, so each letter is listed.
+   * Why the program is checked in parts: Scripts/compile-tests.js.
+   *
+   * Everything but "include" is inherited, so these tests are held to
+   * exactly the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/Server/Utils/P*.ts",
+    "Tests/Server/Utils/P*.tsx",
+    "Tests/Server/Utils/P*/**/*.ts",
+    "Tests/Server/Utils/P*/**/*.tsx",
+    "Tests/Server/Utils/Q*.ts",
+    "Tests/Server/Utils/Q*.tsx",
+    "Tests/Server/Utils/Q*/**/*.ts",
+    "Tests/Server/Utils/Q*/**/*.tsx",
+    "Tests/Server/Utils/R*.ts",
+    "Tests/Server/Utils/R*.tsx",
+    "Tests/Server/Utils/R*/**/*.ts",
+    "Tests/Server/Utils/R*/**/*.tsx",
+    "Tests/Server/Utils/S*.ts",
+    "Tests/Server/Utils/S*.tsx",
+    "Tests/Server/Utils/S*/**/*.ts",
+    "Tests/Server/Utils/S*/**/*.tsx",
+    "Tests/Server/Utils/T*.ts",
+    "Tests/Server/Utils/T*.tsx",
+    "Tests/Server/Utils/T*/**/*.ts",
+    "Tests/Server/Utils/T*/**/*.tsx",
+    "Tests/Server/Utils/U*.ts",
+    "Tests/Server/Utils/U*.tsx",
+    "Tests/Server/Utils/U*/**/*.ts",
+    "Tests/Server/Utils/U*/**/*.tsx",
+    "Tests/Server/Utils/V*.ts",
+    "Tests/Server/Utils/V*.tsx",
+    "Tests/Server/Utils/V*/**/*.ts",
+    "Tests/Server/Utils/V*/**/*.tsx",
+    "Tests/Server/Utils/W*.ts",
+    "Tests/Server/Utils/W*.tsx",
+    "Tests/Server/Utils/W*/**/*.ts",
+    "Tests/Server/Utils/W*/**/*.tsx",
+    "Tests/Server/Utils/X*.ts",
+    "Tests/Server/Utils/X*.tsx",
+    "Tests/Server/Utils/X*/**/*.ts",
+    "Tests/Server/Utils/X*/**/*.tsx",
+    "Tests/Server/Utils/Y*.ts",
+    "Tests/Server/Utils/Y*.tsx",
+    "Tests/Server/Utils/Y*/**/*.ts",
+    "Tests/Server/Utils/Y*/**/*.tsx",
+    "Tests/Server/Utils/Z*.ts",
+    "Tests/Server/Utils/Z*.tsx",
+    "Tests/Server/Utils/Z*/**/*.ts",
+    "Tests/Server/Utils/Z*/**/*.tsx",
+    // jest runs it before every test file (setupFilesAfterEnv), so the
+    // global types it brings in belong to every part, not only to the one
+    // whose include happens to match it.
+    "Tests/jest.setup.ts",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ]
+}
