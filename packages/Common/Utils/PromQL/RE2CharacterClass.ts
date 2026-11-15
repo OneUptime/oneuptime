@@ -3,24 +3,28 @@ import {
   closeOverCase,
   getCaseVariants,
 } from "../LinearRegExp/CaseCanonicalization";
+import {
+  PatternProblemError,
+  PatternProblemReason,
+} from "../LinearRegExp/PatternProblem";
 import lookupTable from "../LookupTable";
 
 /*
  * RE2'S CHARACTER CLASSES, WRITTEN FOR JAVASCRIPT'S RegExp.
  *
- * A bracket such as [a-z[:digit:]], an escape such as \s or \W, and a
+ * A bracket such as [a-z[:digit:]], an escape such as \s, \W or \pL, and a
  * letter matched under (?i) each stand for a set of code points in RE2
  * (Go's regexp/syntax, which Prometheus matches with). This file holds RE2's
  * named sets, computes a class's set as RE2 does (parseClass, parse.go), and
  * writes a set as JavaScript's RegExp without the u flag reads one: a
- * character class of UTF-16 code units, and each code point beyond U+FFFF
- * as its two code units.
+ * character class of UTF-16 code units.
  *
- * A set that holds every code point beyond U+FFFF - [^a], \S, \W - is
- * written as a class of single code units, surrogates included, as "."
- * reads text here: a character beyond U+FFFF, such as an emoji, is two
- * characters to it, where RE2 reads one. A set that holds some of them -
- * [\x{1F600}-\x{1F64F}] - matches each as one character, as RE2 does.
+ * A character beyond U+FFFF, such as an emoji, is two code units in
+ * JavaScript and one character in RE2, which reads UTF-8. So the text a
+ * pattern reads is written with each such character as one code unit, a
+ * surrogate, which no other character of the text is (AstralAlphabet,
+ * below): "." and [^a] read it as one character, as RE2 does, and a set
+ * holds the surrogates of the characters beyond U+FFFF it holds.
  */
 
 export const MAX_CODE_POINT: number = 0x10ffff;
@@ -29,9 +33,9 @@ const BMP_LAST: number = 0xffff;
 const ASTRAL_FIRST: number = 0x10000;
 const SURROGATE_FIRST: number = 0xd800;
 const SURROGATE_LAST: number = 0xdfff;
-const HIGH_SURROGATE_FIRST: number = 0xd800;
+const HIGH_SURROGATE_LAST: number = 0xdbff;
 const LOW_SURROGATE_FIRST: number = 0xdc00;
-const LOW_SURROGATE_LAST: number = 0xdfff;
+const REPLACEMENT_CHARACTER: number = 0xfffd;
 
 /*
  * The highest code point Go's case folding reaches (maxFold, parse.go):
@@ -121,6 +125,13 @@ const partOf: (
   return part;
 };
 
+// The part of the set from U+0000 to U+FFFF.
+export const partUpToFFFF: (set: CodePointRanges) => Array<number> = (
+  set: CodePointRanges,
+): Array<number> => {
+  return partOf(set, 0, BMP_LAST);
+};
+
 const holdsAll: (
   set: CodePointRanges,
   first: number,
@@ -129,6 +140,50 @@ const holdsAll: (
   const part: Array<number> = partOf(set, first, last);
 
   return part.length === 2 && part[0] === first && part[1] === last;
+};
+
+/*
+ * Every code point of either set, in time in line with their ranges: a
+ * bracket of many classes, [\pL\pN\pL...], adds each in turn.
+ */
+export const unionOf: (
+  one: CodePointRanges,
+  other: CodePointRanges,
+) => Array<number> = (
+  one: CodePointRanges,
+  other: CodePointRanges,
+): Array<number> => {
+  const union: Array<number> = [];
+  let inOne: number = 0;
+  let inOther: number = 0;
+
+  while (inOne < one.length || inOther < other.length) {
+    let first: number;
+    let last: number;
+
+    if (
+      inOther >= other.length ||
+      (inOne < one.length && one[inOne]! <= other[inOther]!)
+    ) {
+      first = one[inOne]!;
+      last = one[inOne + 1]!;
+      inOne += 2;
+    } else {
+      first = other[inOther]!;
+      last = other[inOther + 1]!;
+      inOther += 2;
+    }
+
+    const end: number = union.length;
+
+    if (end > 0 && first <= union[end - 1]! + 1) {
+      union[end - 1] = Math.max(union[end - 1]!, last);
+    } else {
+      union.push(first, last);
+    }
+  }
+
+  return union;
 };
 
 /*
@@ -426,9 +481,19 @@ export const perlClass: (letter: string) => CodePointRanges | undefined = (
 };
 
 /*
- * A named set as RE2 adds it to a class (appendGroup, parse.go): folded
- * under (?i), then turned inside out when negated, so (?i)[[:^upper:]]
- * holds no letter at all.
+ * Each named set folded under (?i), kept by the set: a Unicode class such as
+ * \pL holds hundreds of ranges, and a pattern may name it many times.
+ */
+const foldedNamedSets: WeakMap<CodePointRanges, Array<number>> = new WeakMap<
+  CodePointRanges,
+  Array<number>
+>();
+
+/*
+ * A named set as RE2 adds it to a class (appendGroup and parseUnicodeClass,
+ * parse.go): folded under (?i), then turned inside out when negated, so
+ * (?i)[[:^upper:]] holds no letter at all, and (?i)\P{Lu} no letter that
+ * has an upper case.
  */
 export const namedSet: (data: {
   set: CodePointRanges;
@@ -439,11 +504,22 @@ export const namedSet: (data: {
   negated: boolean;
   ignoreCase: boolean;
 }): Array<number> => {
-  const set: Array<number> = data.ignoreCase
-    ? foldCase(data.set)
-    : [...data.set];
+  let set: Array<number>;
 
-  return data.negated ? complementOf(set) : set;
+  if (data.ignoreCase) {
+    let folded: Array<number> | undefined = foldedNamedSets.get(data.set);
+
+    if (folded === undefined) {
+      folded = foldCase(data.set);
+      foldedNamedSets.set(data.set, folded);
+    }
+
+    set = folded;
+  } else {
+    set = [...data.set];
+  }
+
+  return data.negated ? complementOf(set) : [...set];
 };
 
 // A code unit as it is written inside a JavaScript class: [...].
@@ -558,179 +634,340 @@ const unitClass: (units: CodePointRanges) => string = (
   return negative.length < positive.length ? negative : positive;
 };
 
-// A code point beyond U+FFFF as its two code units.
-const surrogatePairOf: (codePoint: number) => [number, number] = (
-  codePoint: number,
-): [number, number] => {
-  const offset: number = codePoint - ASTRAL_FIRST;
-
-  return [
-    HIGH_SURROGATE_FIRST + (offset >> 10),
-    LOW_SURROGATE_FIRST + (offset & 0x3ff),
-  ];
-};
-
-/*
- * Code points beyond U+FFFF as alternatives of two code units each, the
- * code points that share a high surrogate together:
- * \ud83d[\ude00-\ude4f], [\ud800-\udbff][\udc00-\udfff]. Read range by
- * range, so a set's alternatives cost in line with its ranges.
- */
-const astralAlternatives: (set: CodePointRanges) => Array<string> = (
-  set: CodePointRanges,
-): Array<string> => {
-  // High surrogates from `first` to `last`, each with these low ones.
-  interface Block {
-    first: number;
-    last: number;
-    lows: Array<number>;
-  }
-
-  const blocks: Array<Block> = [];
-  const add: (first: number, last: number, lows: Array<number>) => void = (
-    first: number,
-    last: number,
-    lows: Array<number>,
-  ): void => {
-    const previous: Block | undefined = blocks[blocks.length - 1];
-
-    if (
-      previous !== undefined &&
-      previous.first === previous.last &&
-      first === last &&
-      previous.last === first
-    ) {
-      // Another range under the same high surrogate.
-      previous.lows.push(...lows);
-      return;
-    }
-
-    blocks.push({ first, last, lows });
-  };
-
-  for (let index: number = 0; index < set.length; index += 2) {
-    const [firstHigh, firstLow] = surrogatePairOf(set[index]!);
-    const [lastHigh, lastLow] = surrogatePairOf(set[index + 1]!);
-
-    if (firstHigh === lastHigh) {
-      add(firstHigh, firstHigh, [firstLow, lastLow]);
-      continue;
-    }
-
-    add(firstHigh, firstHigh, [firstLow, LOW_SURROGATE_LAST]);
-
-    if (lastHigh - firstHigh > 1) {
-      add(firstHigh + 1, lastHigh - 1, [
-        LOW_SURROGATE_FIRST,
-        LOW_SURROGATE_LAST,
-      ]);
-    }
-
-    add(lastHigh, lastHigh, [LOW_SURROGATE_FIRST, lastLow]);
-  }
-
-  // Neighbouring high surrogates with the same low surrogates go together.
-  const merged: Array<{ first: number; last: number; lows: string }> = [];
-
-  for (const block of blocks) {
-    const lows: string = unitClass(toCodePointRanges(block.lows));
-    const previous: { first: number; last: number; lows: string } | undefined =
-      merged[merged.length - 1];
-
-    if (
-      previous !== undefined &&
-      previous.lows === lows &&
-      previous.last + 1 === block.first
-    ) {
-      previous.last = block.last;
-      continue;
-    }
-
-    merged.push({ first: block.first, last: block.last, lows });
-  }
-
-  return merged.map(
-    (block: { first: number; last: number; lows: string }): string => {
-      return `${unitClass([block.first, block.last])}${block.lows}`;
-    },
-  );
-};
-
-export interface WrittenSet {
-  // The set as JavaScript reads it.
-  source: string;
-  /*
-   * Whether a repeat of it needs a group around it: a code point beyond
-   * U+FFFF written as its two code units.
-   */
-  needsGroup: boolean;
+// How much of U+10000 to U+10FFFF a set holds.
+export enum AstralPart {
+  None = "None",
+  All = "All",
+  Some = "Some",
 }
 
-/*
- * A set of code points, written for JavaScript's RegExp without u: as one
- * class of code units when it holds every code point beyond U+FFFF or none
- * of them, and otherwise as alternatives that match each code point beyond
- * U+FFFF whole, as its two code units, beside a class of the rest.
- */
-export const writeSet: (set: CodePointRanges) => WrittenSet = (
+export const astralPartOf: (set: CodePointRanges) => AstralPart = (
   set: CodePointRanges,
-): WrittenSet => {
-  if (
-    holdsAll(set, ASTRAL_FIRST, MAX_CODE_POINT) &&
-    holdsAll(set, SURROGATE_FIRST, SURROGATE_LAST)
-  ) {
-    /*
-     * A set that leaves out only some of U+0000 to U+FFFF, [^a] or \S:
-     * each code unit of a character beyond U+FFFF, as "." reads it.
-     */
-    return { source: unitClass(partOf(set, 0, BMP_LAST)), needsGroup: false };
-  }
-
-  /*
-   * Any other set's surrogates go: as code points, RE2 matches them in no
-   * text, and as code units they are halves of a character beyond U+FFFF.
-   */
-  const units: Array<number> = toCodePointRanges([
-    ...partOf(set, 0, SURROGATE_FIRST - 1),
-    ...partOf(set, SURROGATE_LAST + 1, BMP_LAST),
-  ]);
+): AstralPart => {
   const astral: Array<number> = partOf(set, ASTRAL_FIRST, MAX_CODE_POINT);
 
   if (astral.length === 0) {
-    return {
-      source: units.length === 0 ? "[]" : unitClass(units),
-      needsGroup: false,
-    };
+    return AstralPart.None;
   }
 
-  const alternatives: Array<string> = [];
-
-  if (units.length > 0) {
-    alternatives.push(unitClass(units));
-  }
-
-  alternatives.push(...astralAlternatives(astral));
-
-  if (alternatives.length === 1) {
-    // One code point beyond U+FFFF, or one high surrogate's: two code units.
-    return { source: alternatives[0]!, needsGroup: true };
-  }
-
-  return { source: `(?:${alternatives.join("|")})`, needsGroup: false };
+  return holdsAll(set, ASTRAL_FIRST, MAX_CODE_POINT)
+    ? AstralPart.All
+    : AstralPart.Some;
 };
 
-// A code point as a literal: one code unit, or two beyond U+FFFF.
-export const writeCodePoint: (codePoint: number) => WrittenSet = (
+/*
+ * How many classes of characters beyond U+FFFF a pattern can tell apart:
+ * one surrogate each, U+D800 to U+DFFF.
+ */
+export const MAX_ASTRAL_CLASSES: number = SURROGATE_LAST - SURROGATE_FIRST + 1;
+
+// The last run that starts at or before the code point.
+const runAt: (starts: ReadonlyArray<number>, codePoint: number) => number = (
+  starts: ReadonlyArray<number>,
   codePoint: number,
-): WrittenSet => {
-  if (codePoint <= BMP_LAST) {
-    return { source: literalCodeUnit(codePoint), needsGroup: false };
+): number => {
+  let low: number = 0;
+  let high: number = starts.length - 1;
+
+  while (low < high) {
+    const middle: number = (low + high + 1) >>> 1;
+
+    if (starts[middle]! <= codePoint) {
+      low = middle;
+    } else {
+      high = middle - 1;
+    }
   }
 
-  const [high, low] = surrogatePairOf(codePoint);
+  return low;
+};
 
-  return {
-    source: `${plainCodeUnit(high)}${plainCodeUnit(low)}`,
-    needsGroup: true,
-  };
+// Whether a text holds a surrogate: a character beyond U+FFFF, or half of one.
+const HOLDS_SURROGATE: RegExp = /[\ud800-\udfff]/;
+
+// A text of these code units, written in slices: each is an argument.
+const fromCodeUnits: (units: ReadonlyArray<number>) => string = (
+  units: ReadonlyArray<number>,
+): string => {
+  let text: string = "";
+
+  for (let start: number = 0; start < units.length; start += 8192) {
+    text += String.fromCharCode(...units.slice(start, start + 8192));
+  }
+
+  return text;
+};
+
+/*
+ * A text as a pattern reads it (AstralAlphabet.read), and where each of its
+ * code units came from in the text itself.
+ */
+export interface AstralText {
+  text: string;
+  /*
+   * Asked for, and the text holds a surrogate: for each code unit of
+   * `text`, and for its end, the position it stands for in the text read,
+   * so a match from i to j is `wellFormed` from positions[i] to
+   * positions[j]. Null otherwise: `text` is the text itself.
+   */
+  positions: ReadonlyArray<number> | null;
+  // The text read, a lone surrogate as U+FFFD, as Go holds it.
+  wellFormed: string;
+}
+
+/*
+ * THE CHARACTERS BEYOND U+FFFF, ONE CODE UNIT EACH.
+ *
+ * JavaScript's RegExp without u, and the linear-time matcher, which reads as
+ * it does, read a text as UTF-16 code units, where a character beyond
+ * U+FFFF (an emoji, a letter of Deseret) is two of them, a surrogate pair.
+ * RE2 reads UTF-8, where it is one character (issue #8215). So the text a
+ * pattern reads is written with each such character as one code unit: a
+ * surrogate, which no other character of the text is. A lone surrogate,
+ * half a character, is read as U+FFFD, as Go reads a byte that is not
+ * UTF-8.
+ *
+ * Which surrogate: the sets of the pattern that hold some characters beyond
+ * U+FFFF and leave out others - \x{1F600}, [\x{1F600}-\x{1F64F}], \pL -
+ * split them into classes, each the characters no set of the pattern tells
+ * apart, and each class is one surrogate. A set holds the surrogates of the
+ * classes it holds; ".", [^a] and \S, which hold every character beyond
+ * U+FFFF, hold every surrogate. So "." reads "😀" as one character, as RE2
+ * does, and so does \x{1F600}.
+ */
+export class AstralAlphabet {
+  // Where each run of characters of one class starts, from U+10000 up.
+  private readonly starts: Array<number> = [];
+  // The code unit each run's characters are written as.
+  private readonly codeUnits: Array<number> = [];
+  // How many classes there are.
+  public readonly size: number;
+
+  /*
+   * The classes the sets tell apart. Throws PatternProblemError when they
+   * are more than MAX_ASTRAL_CLASSES: a pattern that names more than 2,000
+   * characters beyond U+FFFF apart is too large to run.
+   */
+  public constructor(sets: ReadonlyArray<CodePointRanges>) {
+    const parts: Array<Array<number>> = sets.map(
+      (set: CodePointRanges): Array<number> => {
+        return partOf(set, ASTRAL_FIRST, MAX_CODE_POINT);
+      },
+    );
+    const cuts: Set<number> = new Set<number>([ASTRAL_FIRST]);
+
+    for (const part of parts) {
+      for (let index: number = 0; index < part.length; index += 2) {
+        cuts.add(part[index]!);
+
+        if (part[index + 1]! < MAX_CODE_POINT) {
+          cuts.add(part[index + 1]! + 1);
+        }
+      }
+    }
+
+    const starts: Array<number> = Array.from(cuts).sort(
+      (one: number, other: number): number => {
+        return one - other;
+      },
+    );
+    // Each run's class, refined set by set: the runs a set holds move apart.
+    const classes: Int32Array = new Int32Array(starts.length);
+    let nextClass: number = 1;
+
+    for (const part of parts) {
+      const moved: Map<number, number> = new Map<number, number>();
+
+      for (let index: number = 0; index < part.length; index += 2) {
+        for (
+          let run: number = runAt(starts, part[index]!);
+          run < starts.length && starts[run]! <= part[index + 1]!;
+          run++
+        ) {
+          let renamed: number | undefined = moved.get(classes[run]!);
+
+          if (renamed === undefined) {
+            renamed = nextClass++;
+            moved.set(classes[run]!, renamed);
+          }
+
+          classes[run] = renamed;
+        }
+      }
+    }
+
+    // Numbered as they first come, neighbouring runs of one class as one.
+    const numbers: Map<number, number> = new Map<number, number>();
+
+    for (let run: number = 0; run < starts.length; run++) {
+      let number: number | undefined = numbers.get(classes[run]!);
+
+      if (number === undefined) {
+        number = numbers.size;
+        numbers.set(classes[run]!, number);
+      }
+
+      const codeUnit: number = SURROGATE_FIRST + number;
+
+      if (this.codeUnits[this.codeUnits.length - 1] !== codeUnit) {
+        this.starts.push(starts[run]!);
+        this.codeUnits.push(codeUnit);
+      }
+    }
+
+    this.size = numbers.size;
+
+    if (this.size > MAX_ASTRAL_CLASSES) {
+      throw new PatternProblemError(
+        PatternProblemReason.TooLarge,
+        `The pattern tells apart more than ${MAX_ASTRAL_CLASSES} kinds of characters beyond U+FFFF.`,
+      );
+    }
+  }
+
+  // The code unit a character beyond U+FFFF is read as.
+  public codeUnitOf(codePoint: number): number {
+    return this.codeUnits[runAt(this.starts, codePoint)]!;
+  }
+
+  /*
+   * The code units of the characters beyond U+FFFF a set holds, as ranges:
+   * one of the sets the alphabet was built from.
+   */
+  public codeUnitsOf(set: CodePointRanges): Array<number> {
+    const astral: Array<number> = partOf(set, ASTRAL_FIRST, MAX_CODE_POINT);
+    const units: Array<number> = [];
+
+    for (let index: number = 0; index < astral.length; index += 2) {
+      for (
+        let run: number = runAt(this.starts, astral[index]!);
+        run < this.starts.length && this.starts[run]! <= astral[index + 1]!;
+        run++
+      ) {
+        units.push(this.codeUnits[run]!, this.codeUnits[run]!);
+      }
+    }
+
+    return toCodePointRanges(units);
+  }
+
+  /*
+   * The text as the pattern reads it: each character beyond U+FFFF as its
+   * class's code unit, a lone surrogate as U+FFFD, the rest as it is. With
+   * positions, where each code unit came from, for what a group captured.
+   */
+  public read(value: string, withPositions: boolean): AstralText {
+    if (!HOLDS_SURROGATE.test(value)) {
+      return { text: value, positions: null, wellFormed: value };
+    }
+
+    const units: Array<number> = [];
+    const positions: Array<number> = [];
+    // Where the value holds a lone surrogate, which reads as U+FFFD.
+    const loneSurrogates: Array<number> = [];
+
+    for (let index: number = 0; index < value.length; index++) {
+      const unit: number = value.charCodeAt(index);
+
+      positions.push(index);
+
+      if (unit < SURROGATE_FIRST || unit > SURROGATE_LAST) {
+        units.push(unit);
+        continue;
+      }
+
+      const next: number = value.charCodeAt(index + 1);
+
+      if (
+        unit <= HIGH_SURROGATE_LAST &&
+        next >= LOW_SURROGATE_FIRST &&
+        next <= SURROGATE_LAST
+      ) {
+        units.push(this.codeUnitOf(value.codePointAt(index)!));
+        index++;
+        continue;
+      }
+
+      units.push(REPLACEMENT_CHARACTER);
+      loneSurrogates.push(index);
+    }
+
+    positions.push(value.length);
+
+    let wellFormed: string = value;
+
+    if (withPositions && loneSurrogates.length > 0) {
+      wellFormed = "";
+      let from: number = 0;
+
+      for (const index of loneSurrogates) {
+        wellFormed += `${value.slice(from, index)}${String.fromCharCode(REPLACEMENT_CHARACTER)}`;
+        from = index + 1;
+      }
+
+      wellFormed += value.slice(from);
+    }
+
+    return {
+      text: fromCodeUnits(units),
+      positions: withPositions ? positions : null,
+      wellFormed,
+    };
+  }
+}
+
+/*
+ * A set of code points as a class of code units for JavaScript's RegExp:
+ * its characters up to U+FFFF as themselves, the surrogates left out (RE2
+ * matches them in no text), and its characters beyond U+FFFF as the
+ * alphabet reads them - every surrogate, for a set that holds all of them.
+ * A set that holds some characters beyond U+FFFF and leaves out others
+ * needs the alphabet built from the pattern's such sets.
+ */
+export const writeSet: (
+  set: CodePointRanges,
+  alphabet?: AstralAlphabet | undefined,
+) => string = (
+  set: CodePointRanges,
+  alphabet?: AstralAlphabet | undefined,
+): string => {
+  const units: Array<number> = partOf(set, 0, SURROGATE_FIRST - 1);
+
+  switch (astralPartOf(set)) {
+    case AstralPart.All:
+      units.push(SURROGATE_FIRST, SURROGATE_LAST);
+      break;
+    case AstralPart.Some:
+      if (alphabet === undefined) {
+        throw new Error(
+          "A set that holds some characters beyond U+FFFF is written with the pattern's alphabet.",
+        );
+      }
+
+      units.push(...alphabet.codeUnitsOf(set));
+      break;
+    default:
+      break;
+  }
+
+  units.push(...partOf(set, SURROGATE_LAST + 1, BMP_LAST));
+
+  const ranges: Array<number> = toCodePointRanges(units);
+
+  return ranges.length === 0 ? "[]" : unitClass(ranges);
+};
+
+/*
+ * A code point up to U+FFFF as a literal: one code unit, or a class that
+ * matches nothing for a surrogate, which RE2 reads in no text. A code point
+ * beyond U+FFFF is a set, written with the pattern's alphabet.
+ */
+export const writeCodePoint: (codePoint: number) => string = (
+  codePoint: number,
+): string => {
+  if (codePoint >= SURROGATE_FIRST && codePoint <= SURROGATE_LAST) {
+    return "[]";
+  }
+
+  return literalCodeUnit(codePoint);
 };

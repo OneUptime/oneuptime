@@ -35,9 +35,9 @@ import {
   CompiledPromQLRegex,
   compilePromQLRegex,
   describePromQLPatternProblem,
+  PromQLRegexMatch,
   readNamedCapture,
 } from "./PromQLRegex";
-import { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
 import lookupTable, { copyOwnValues, writeOwnValue } from "../LookupTable";
 
@@ -625,11 +625,11 @@ const DIGITS_ONLY_REGEX: RegExp = /^\d+$/;
  */
 const expandTemplate: (
   template: string,
-  match: LinearRegExpMatch,
+  match: PromQLRegexMatch,
   groupNames: ReadonlyArray<string | null>,
 ) => string = (
   template: string,
-  match: LinearRegExpMatch,
+  match: PromQLRegexMatch,
   groupNames: ReadonlyArray<string | null>,
 ): string => {
   let result: string = "";
@@ -1041,7 +1041,10 @@ export const evaluatePromQLFunction: (
 
       try {
         // Compiled once for every series below, with what its groups capture.
-        compiled = compilePromQLRegex(pattern, { captures: true });
+        compiled = compilePromQLRegex(pattern, {
+          captures: true,
+          unicodeClassAliases: true,
+        });
       } catch (error: unknown) {
         // Why the pattern cannot be matched, or null.
         const problem: string | null = describePromQLPatternProblem(error);
@@ -1065,12 +1068,10 @@ export const evaluatePromQLFunction: (
 
       return vectorValue(
         samples.map((sample: PromQLSample): PromQLSample => {
-          let match: LinearRegExpMatch | null;
+          let match: PromQLRegexMatch | null;
 
           try {
-            match = compiled.regex.exec(
-              promQLLabelValue(sample.labels, source),
-            );
+            match = compiled.exec(promQLLabelValue(sample.labels, source));
           } catch (error: unknown) {
             if (error instanceof PatternWorkLimitError) {
               throw new PromQLError(

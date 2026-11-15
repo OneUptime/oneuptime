@@ -593,6 +593,56 @@ describe("running queries", () => {
     expect(series).toEqual([{ __name__: "up", instance: "a", job: "api" }]);
   });
 
+  test("a Unicode class reads as Prometheus reads it, and a name only label_replace() reads is a bad query that says what to write", async () => {
+    const answer: JSONObject = await runPrometheusInstantQuery({
+      engine,
+      params: {
+        query: 'up{job=~"\\\\pL{3}", job!~"\\\\p{Lu}.*"}',
+        time: "180",
+      },
+      nowMs: 0,
+    });
+
+    expect(
+      (
+        answer["data"] as unknown as {
+          result: Array<{ metric: { job: string } }>;
+        }
+      ).result.map((item: { metric: { job: string } }): string => {
+        return item.metric.job;
+      }),
+    ).toEqual(["api", "web"]);
+
+    const expected: PrometheusErrorAnswer = {
+      statusCode: 400,
+      body: {
+        status: "error",
+        errorType: "bad_data",
+        error:
+          'The pattern "\\p{Letter}" for the label "job" uses the Unicode class \\p{Letter}, which Prometheus reads in label_replace() but not in a label matcher, where a class has the name Go\'s Unicode tables give it. Write \\p{L} instead.',
+      },
+    };
+
+    expect(
+      toPrometheusErrorAnswer(
+        await errorOf(() => {
+          return runPrometheusInstantQuery({
+            engine,
+            params: { query: 'up{job=~"\\\\p{Letter}"}', time: "180" },
+            nowMs: 0,
+          });
+        }),
+      ),
+    ).toEqual(expected);
+    expect(
+      toPrometheusErrorAnswer(
+        await errorOf(() => {
+          return readMatchSelectors({ "match[]": 'up{job=~"\\\\p{Letter}"}' });
+        }),
+      ),
+    ).toEqual(expected);
+  });
+
   test.each([
     [{ start: "0", end: "1", step: "1" }, "The query parameter is required."],
     [{ query: "up", end: "1", step: "1" }, "The start parameter is required."],
@@ -730,6 +780,10 @@ describe("series, label names and label values", () => {
       "\u{FFFF}",
       "\u{1F600}",
     ]);
-    expect(labelValuesOf(series, "zone")).toEqual(["a~", "a\u{FFFF}", "a\u{1F600}"]);
+    expect(labelValuesOf(series, "zone")).toEqual([
+      "a~",
+      "a\u{FFFF}",
+      "a\u{1F600}",
+    ]);
   });
 });

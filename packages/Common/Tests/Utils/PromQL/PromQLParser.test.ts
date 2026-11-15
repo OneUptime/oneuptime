@@ -876,10 +876,14 @@ describe("PromQL regular expressions", () => {
   ])(
     "RE2's spelling: %s matching %j is %s, as in Prometheus",
     (pattern: string, value: string, matches: boolean) => {
-      const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(pattern);
+      const regex: LinearRegExp = compiled.regex;
 
-      expect(regex.test(value)).toBe(matches);
-      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+      expect(compiled.test(value)).toBe(matches);
+      // JavaScript's own engine reads the text the pattern reads the same way.
+      expect(
+        new RegExp(regex.source, regex.flags).test(compiled.textOf(value)),
+      ).toBe(matches);
     },
   );
 
@@ -982,13 +986,56 @@ describe("PromQL regular expressions", () => {
       "{2}",
       "has the repeat {2} with nothing before it to repeat, which Prometheus does not read either. Write \\{ to match the character itself.",
     ],
+    // A Unicode class Go has no table for (unicodeTable, parse.go).
     [
-      "\\pL",
-      "uses the Unicode class \\pL, which OneUptime cannot match yet, though Prometheus can. Write the characters it stands for in a bracket instead, such as [a-zA-Z].",
+      "\\p{Nosuch}",
+      "uses the Unicode class \\p{Nosuch}, which Prometheus does not read either. A Unicode class names a general category, such as \\pL or \\p{Lu}, or a script, such as \\p{Greek} or \\p{Han}.",
     ],
-    ["\\p{Greek}", "uses the Unicode class \\p{Greek},"],
-    ["\\PL", "uses the Unicode class \\PL,"],
-    ["[\\p{L}]", "uses the Unicode class \\p{L},"],
+    ["\\pX", "uses the Unicode class \\pX, which Prometheus does not"],
+    ["\\p", "uses the Unicode class \\p, which Prometheus does not"],
+    ["a\\P", "uses the Unicode class \\P, which Prometheus does not"],
+    ["\\p{}", "uses the Unicode class \\p{}, which Prometheus does not"],
+    ["\\p{^}", "uses the Unicode class \\p{^}, which Prometheus does not"],
+    ["\\p^L", "uses the Unicode class \\p^, which Prometheus does not"],
+    ["[\\p{Nosuch}]", "uses the Unicode class \\p{Nosuch},"],
+    ["[a\\PX]", "uses the Unicode class \\PX,"],
+    // A script's ISO 15924 code is no name Go reads, in label_replace() either.
+    ["\\p{Grek}", "uses the Unicode class \\p{Grek}, which Prometheus does"],
+    ["\\p{Zzzz}", "uses the Unicode class \\p{Zzzz}, which Prometheus does"],
+    ["\\p{L&}", "uses the Unicode class \\p{L&}, which Prometheus does"],
+    [
+      "\\p{Greek",
+      'uses the Unicode class \\p{Greek without the "}" that ends its name, which Prometheus does not read either. Write a class as \\pL or \\p{Greek}.',
+    ],
+    ["[\\p{L]", 'uses the Unicode class \\p{L] without the "}"'],
+    /*
+     * Names Go 1.25 and later read, as Prometheus' label_replace() does, and
+     * its label matchers' older copy of regexp/syntax does not: the sentence
+     * names the class as a matcher writes it.
+     */
+    [
+      "\\p{Letter}",
+      "uses the Unicode class \\p{Letter}, which Prometheus reads in label_replace() but not in a label matcher, where a class has the name Go's Unicode tables give it. Write \\p{L} instead.",
+    ],
+    ["\\P{Letter}", "Write \\P{L} instead."],
+    ["\\p{^Letter}", "Write \\P{L} instead."],
+    ["\\P{^Letter}", "Write \\p{L} instead."],
+    ["\\p{greek}", "Write \\p{Greek} instead."],
+    ["\\p{GREEK}", "Write \\p{Greek} instead."],
+    ["\\p{old italic}", "Write \\p{Old_Italic} instead."],
+    ["\\p{OldItalic}", "Write \\p{Old_Italic} instead."],
+    ["\\p{Uppercase_Letter}", "Write \\p{Lu} instead."],
+    ["\\p{lu}", "Write \\p{Lu} instead."],
+    ["\\p{lc}", "Write \\p{LC} instead."],
+    ["\\p{Lc}", "Write \\p{LC} instead."],
+    ["\\p{digit}", "Write \\p{Nd} instead."],
+    ["\\p{any}", "Write \\p{Any} instead."],
+    ["\\p{Assigned}", "Write \\P{Cn} instead."],
+    ["\\P{Assigned}", "Write \\p{Cn} instead."],
+    ["\\p{ASCII}", "Write [[:ascii:]] instead."],
+    ["\\P{ascii}", "Write [[:^ascii:]] instead."],
+    ["[\\p{Letter}\\d]", "Write \\p{L} instead."],
+    ["\\pl", "uses the Unicode class \\pl, which Prometheus reads in"],
   ])(
     "%s is refused, as Prometheus refuses it, with a sentence",
     (pattern: string, problem: string) => {
@@ -1037,54 +1084,54 @@ describe("PromQL regular expressions", () => {
   ])(
     "%s matching %j is %s, each character beyond U+FFFF one, as in Prometheus",
     (pattern: string, value: string, matches: boolean) => {
-      const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(pattern);
+      const regex: LinearRegExp = compiled.regex;
 
-      expect(regex.test(value)).toBe(matches);
-      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+      expect(compiled.test(value)).toBe(matches);
+      expect(
+        new RegExp(regex.source, regex.flags).test(compiled.textOf(value)),
+      ).toBe(matches);
     },
   );
 
   test("a code point beyond U+FFFF is one character to a repeat, as in RE2", () => {
-    // Written as its two code units, in a group for the repeat.
+    /*
+     * Read as one code unit, a surrogate no other character is
+     * (AstralAlphabet): repeated as any one character is.
+     */
     expect(compilePromQLRegex("\\x{1F600}{2}").regex.source).toBe(
-      "^(?s:(?:\\ud83d\\ude00){2})$",
+      "^(?s:\\ud801{2})$",
     );
     expect(
-      compilePromQLRegex("\\x{1F600}{2}").regex.test(
-        "\ud83d\ude00\ud83d\ude00",
-      ),
+      compilePromQLRegex("\\x{1F600}{2}").test("\ud83d\ude00\ud83d\ude00"),
     ).toBe(true);
+    expect(compilePromQLRegex("\\x{1F600}{2}").test("\ud83d\ude00")).toBe(
+      false,
+    );
     // Written in the pattern itself, it is one character as well.
     expect(
-      compilePromQLRegex("\ud83d\ude00+").regex.test(
-        "\ud83d\ude00\ud83d\ude00",
-      ),
+      compilePromQLRegex("\ud83d\ude00+").test("\ud83d\ude00\ud83d\ude00"),
     ).toBe(true);
-    expect(
-      compilePromQLRegex("\ud83d\ude00+").regex.test("\ud83d\ude00\ude00"),
-    ).toBe(false);
+    expect(compilePromQLRegex("\ud83d\ude00+").test("\ud83d\ude00\ude00")).toBe(
+      false,
+    );
   });
 
   /*
-   * Decided, not matched as Prometheus does (PromQLRegex.ts's header): "."
-   * and a negated class read a character beyond U+FFFF as two, where RE2
-   * reads one; and a repeat whose iteration can match nothing captures as
-   * JavaScript's does.
+   * Decided, not matched as Prometheus does (PromQLRegex.ts's header): a
+   * repeat whose iteration can match nothing captures as JavaScript's does,
+   * and a surrogate named by its code matches nothing.
    */
   test("what still differs from Prometheus, as decided", () => {
-    const emoji: string = "\ud83d\ude00";
-
-    // Prometheus: ^.$ matches an emoji, ^..$ does not.
-    expect(compilePromQLRegex(".").regex.test(emoji)).toBe(false);
-    expect(compilePromQLRegex("..").regex.test(emoji)).toBe(true);
-    expect(compilePromQLRegex("[^a]{2}").regex.test(emoji)).toBe(true);
-    // Either way, .* and .+ match every value, emoji or not.
-    expect(compilePromQLRegex(".+").regex.test(`a${emoji}`)).toBe(true);
     // Prometheus captures "xx": its automaton leaves the repeat for "".
     expect(
-      compilePromQLRegex("(?:|x)+(\\w*)", { captures: true }).regex.exec("xx")
+      compilePromQLRegex("(?:|x)+(\\w*)", { captures: true }).exec("xx")
         ?.captures,
     ).toEqual([""]);
+    // Prometheus matches \x{D83D} with U+FFFD, and .\x{D83D} with nothing.
+    expect(compilePromQLRegex("\\x{D83D}").test("\ufffd")).toBe(false);
+    expect(compilePromQLRegex("\\x{D83D}").test("\ud83d")).toBe(false);
+    expect(compilePromQLRegex(".\\x{D83D}").test("a\ufffd")).toBe(false);
   });
 
   /*
