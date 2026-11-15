@@ -140,7 +140,7 @@ La página de la clave también lleva la cuenta: **Telemetría rechazada** muest
 Para las demás respuestas que puede recibir un exportador OTLP, consulte [Respuestas](/docs/telemetry/open-telemetry#respuestas).
 
 :::details Siguen llegando datos un minuto después de desactivar la clave
-Cada servidor de OneUptime guarda lo que sabe de una clave durante un minuto como máximo, así que un cambio llega a todos en un minuto aproximadamente. Las solicitudes posteriores se rechazan.
+Cada servidor de OneUptime guarda lo que sabe de una clave durante un minuto como máximo, así que un cambio llega a todos en un minuto aproximadamente. Las solicitudes posteriores se rechazan. Un cliente MQTT que se conectó con la clave queda desconectado en pocos segundos.
 :::
 
 :::details Una clave de navegador funciona en mi portátil pero no en producción

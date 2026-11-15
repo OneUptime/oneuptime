@@ -380,7 +380,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.ProductPinned,
     description:
-      "Somebody pinned a product to the nav bar (from the products menu or the product's page), and how many they have pinned now.",
+      "Somebody pinned a product to the nav bar (from the products menu), and how many they have pinned now.",
     properties: [token("product"), token("source"), { name: "pin_count" }],
   },
   {

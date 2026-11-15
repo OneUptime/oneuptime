@@ -395,7 +395,7 @@ describe("UserSessionService.decideRenewal", () => {
     });
   });
 
-  test("without a report (the mobile app, an older page), the session's own last activity decides, and the renewal is the activity", async () => {
+  test("without a report (a mobile app or a page from before it said one), the session's own last activity decides, and the renewal is the activity", async () => {
     fake.userSessionLengths = lengths({ idle: 30 });
 
     await expect(

@@ -52,7 +52,7 @@ flowchart TB
 
 - El servidor cuenta ambas duraciones a partir de la propia sesión: cuándo se inició y cuándo estuvo activa su persona por última vez. Las comprueba en cada solicitud, cada renovación y cada actualización en directo, y nunca deja el cierre de sesión en manos del navegador.
 - El tiempo de inactividad cuenta desde el último clic, pulsación de tecla o desplazamiento en cualquier pestaña del panel o del Admin Dashboard. Una pestaña abierta no mantiene viva una sesión. Volver a abrir OneUptime tampoco la recupera: quien estuvo fuera más tiempo que el tiempo de inactividad, con el navegador cerrado o el equipo en suspensión, vuelve a iniciar sesión.
-- La aplicación móvil cuenta como activa cada vez que se usa.
+- En la aplicación móvil, el tiempo de inactividad cuenta desde el último toque o pulsación de tecla. El tiempo que la aplicación pasa en segundo plano o cerrada cuenta como tiempo sin uso: quien la vuelve a abrir después del tiempo de inactividad vuelve a iniciar sesión.
 - Cuando termina una sesión, el navegador va a la página de inicio de sesión, que dice por qué. Tras volver a iniciar sesión, la persona regresa a la página en la que estaba.
 
 | Cambio | Qué pasa con las personas que tienen la sesión iniciada ahora |

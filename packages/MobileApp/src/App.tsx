@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -11,12 +11,29 @@ import RootNavigator from "./navigation/RootNavigator";
 import OfflineBanner from "./components/OfflineBanner";
 import { WindowLayoutProvider } from "./layout/WindowLayout";
 import { ProjectSwitcherHost } from "./components/ProjectSwitcher";
+import {
+  recordUserActivity,
+  startUserActivityTracking,
+} from "./auth/userActivity";
+
+/*
+ * A touch anywhere in the app is its person using it (auth/userActivity),
+ * which the server's idle timeout counts from. Touch events bubble through
+ * every view an element is in, sheets and modals included, so the frame
+ * around everything hears them all, and never takes one from the view it
+ * was meant for.
+ */
+function onAnyTouch(): void {
+  recordUserActivity();
+}
 
 function AppContent(): React.JSX.Element {
   const { theme } = useTheme();
 
   return (
     <View
+      testID="app-frame"
+      onTouchStart={onAnyTouch}
       style={{
         flex: 1,
         overflow: "hidden",
@@ -37,6 +54,14 @@ function AppContent(): React.JSX.Element {
 }
 
 export default function App(): React.JSX.Element {
+  /*
+   * From the first moment: the app opened is activity, coming back to the
+   * screen is, and leaving it writes the newest activity down.
+   */
+  useEffect((): (() => void) => {
+    return startUserActivityTracking();
+  }, []);
+
   return (
     <SafeAreaProvider>
       {/*
