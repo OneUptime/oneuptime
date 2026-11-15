@@ -52398,5 +52398,7 @@
   "Change (schema change)": "التغيير",
   "Table (database object)": "جدول",
   "View (database object)": "طريقة عرض",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة.",
+  "Array (storage array)": "المصفوفة",
+  "No network sites with coordinates. Add latitude and longitude to a site to pin it on the map.": "لا توجد مواقع شبكة لها إحداثيات. أضف خط العرض وخط الطول إلى موقع لتثبيته على الخريطة."
 }

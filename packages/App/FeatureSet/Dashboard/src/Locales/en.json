@@ -52398,5 +52398,7 @@
   "Change (schema change)": "Change (schema change)",
   "Table (database object)": "Table (database object)",
   "View (database object)": "View (database object)",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent.",
+  "Array (storage array)": "Array (storage array)",
+  "No network sites with coordinates. Add latitude and longitude to a site to pin it on the map.": "No network sites with coordinates. Add latitude and longitude to a site to pin it on the map."
 }
