@@ -172,7 +172,7 @@ describe("the link's name holds the word it shows, in every locale", () => {
       "Voorbeeld van de melding",
     );
     expect(readLocale("no")["Preview notification"]).toBe(
-      "Forhåndsvisning av varsel",
+      "Forhåndsvisning av varsling",
     );
     expect(readLocale("pt")["Preview notification"]).toBe(
       "Pré-visualização da notificação",
