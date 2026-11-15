@@ -52,6 +52,13 @@ export interface RuntimeLocalesPluginOptions {
    * holds as they are (the Dashboard's i18n/Progress).
    */
   progressDirectory?: string | undefined;
+  /*
+   * Ship every locale whole, as its file holds it, adding only the marks
+   * (getMarkedLocale) - for a frontend that bundles its locales whole (the
+   * Admin Dashboard). Left out, each locale ships without what the fallback
+   * reads the same (getRuntimeLocale), as the Dashboard's do.
+   */
+  shipsWholeLocales?: boolean | undefined;
 }
 
 export interface RuntimeLocalesPlugin {
@@ -91,6 +98,14 @@ export function getSameAsEnglishMarks(
 ): Record<string, string>;
 
 export function getRuntimeLocale(
+  options: RuntimeLocaleOptions,
+): RuntimeLocaleTree;
+
+/*
+ * The copy of one locale bundled whole: every entry its file holds, with the
+ * mark of each "_one" form it words as the fallback does right after it.
+ */
+export function getMarkedLocale(
   options: RuntimeLocaleOptions,
 ): RuntimeLocaleTree;
 

@@ -49,6 +49,13 @@
  * reads as the language's own wording (SAME_AS_ENGLISH_MARK in
  * Common/Types/Translator.ts). The page never reads the lists themselves.
  *
+ * A frontend that bundles every locale whole (the Admin Dashboard, whose
+ * i18n.ts imports all eighteen statically) passes shipsWholeLocales: each
+ * locale then ships every entry its file holds, and the build only adds the
+ * marks (getMarkedLocale). The trimmed copies are safe only where every
+ * lookup has been shown to read the same from them as from the full files,
+ * which Tests/App/Dashboard/DashboardRuntimeLocales does for the Dashboard.
+ *
  * CommonJS, like esbuild-config.js: the frontends' esbuild.config.js files
  * are plain node scripts. Types for TypeScript callers are in
  * esbuild-locales.d.ts.
@@ -314,6 +321,61 @@ function getRuntimeLocale(options) {
   return result;
 }
 
+/**
+ * The copy of one locale that is bundled whole: every entry its file holds,
+ * in its order, and right after each "_one" form the language words exactly
+ * as the fallback does on purpose, that form's mark (getSameAsEnglishMarks).
+ * The fallback language ships as its file holds it. For a frontend that
+ * bundles its locales whole (shipsWholeLocales): only the marks are added.
+ * @param {Object} options
+ * @param {string} options.language - The locale's code, e.g. "pt"
+ * @param {string} options.fallbackLanguage - The language i18next falls back to, e.g. "en"
+ * @param {Object} options.locale - The parsed locale file
+ * @param {Object} [options.fallback] - The parsed fallback locale file; required unless language is the fallback
+ * @param {Array<string>} [options.sameAsEnglish] - The fallback's texts the language holds as they are, on purpose (its same-as-English list)
+ * @returns {Object} A new object; neither input is changed
+ */
+function getMarkedLocale(options) {
+  const { language, fallbackLanguage, locale, fallback, sameAsEnglish } =
+    options || {};
+
+  if (!isLocaleTree(locale)) {
+    throw new Error(
+      `getMarkedLocale: the ${language} locale is not a JSON object.`,
+    );
+  }
+
+  if (language === fallbackLanguage) {
+    return { ...locale };
+  }
+
+  if (!isLocaleTree(fallback)) {
+    throw new Error(
+      `getMarkedLocale: the ${fallbackLanguage} locale is needed to mark ${language}.`,
+    );
+  }
+
+  const marks = getSameAsEnglishMarks({
+    language: language,
+    locale: locale,
+    fallback: fallback,
+    sameAsEnglish: sameAsEnglish,
+  });
+  const result = {};
+
+  for (const key of Object.keys(locale)) {
+    result[key] = locale[key];
+
+    const mark = `${key}${SAME_AS_ENGLISH_MARK}`;
+
+    if (hasOwn(marks, mark)) {
+      result[mark] = marks[mark];
+    }
+  }
+
+  return result;
+}
+
 function parseJsonText(text, filePath) {
   try {
     return JSON.parse(text);
@@ -383,6 +445,14 @@ function assertAbsolutePath(value, name) {
   }
 }
 
+function assertOptionalBoolean(value, name) {
+  if (value !== undefined && typeof value !== "boolean") {
+    throw new Error(
+      `createRuntimeLocalesPlugin: "${name}" must be true or false when given.`,
+    );
+  }
+}
+
 function assertOptionalAbsolutePath(value, name) {
   if (value === undefined) {
     return;
@@ -399,14 +469,16 @@ function assertOptionalAbsolutePath(value, name) {
 
 /**
  * The esbuild plugin: every <code>.json directly in localesDirectory is
- * bundled as getRuntimeLocale() makes it, whether it is imported statically
- * (en.json) or through a template-literal dynamic import (the lazy chunks).
- * Other JSON files are left to esbuild.
+ * bundled as getRuntimeLocale() makes it - or, with shipsWholeLocales, as
+ * getMarkedLocale() does - whether it is imported statically (en.json) or
+ * through a template-literal dynamic import (the lazy chunks). Other JSON
+ * files are left to esbuild.
  * @param {Object} options
  * @param {string} options.localesDirectory - Absolute path of the directory holding <code>.json
  * @param {string} options.fallbackLanguage - The statically bundled language i18next falls back to, e.g. "en"
  * @param {string} [options.sameAsEnglishFile] - Absolute path of the JSON array of the fallback's texts every language holds as they are
  * @param {string} [options.progressDirectory] - Absolute path of the directory holding each language's <code>.json progress file, whose "sameAsEnglish" array lists the texts that language holds as they are
+ * @param {boolean} [options.shipsWholeLocales] - Ship every locale whole, adding only the marks (getMarkedLocale), rather than without what the fallback reads the same (getRuntimeLocale)
  * @returns {{ name: string, setup: Function }}
  */
 function createRuntimeLocalesPlugin(options) {
@@ -415,6 +487,7 @@ function createRuntimeLocalesPlugin(options) {
     fallbackLanguage,
     sameAsEnglishFile,
     progressDirectory,
+    shipsWholeLocales,
   } = options || {};
 
   assertNonEmptyString(localesDirectory, "localesDirectory");
@@ -422,6 +495,9 @@ function createRuntimeLocalesPlugin(options) {
   assertAbsolutePath(localesDirectory, "localesDirectory");
   assertOptionalAbsolutePath(sameAsEnglishFile, "sameAsEnglishFile");
   assertOptionalAbsolutePath(progressDirectory, "progressDirectory");
+  assertOptionalBoolean(shipsWholeLocales, "shipsWholeLocales");
+
+  const shipLocale = shipsWholeLocales ? getMarkedLocale : getRuntimeLocale;
 
   /*
    * In watch mode esbuild calls onLoad again on every rebuild, and parsing
@@ -539,7 +615,7 @@ function createRuntimeLocalesPlugin(options) {
 
         const result = {
           contents: JSON.stringify(
-            getRuntimeLocale({
+            shipLocale({
               language: language,
               fallbackLanguage: fallbackLanguage,
               locale: parseLocaleText(text, args.path),
@@ -569,5 +645,6 @@ module.exports = {
   SAME_AS_ENGLISH_MARK,
   getSameAsEnglishMarks,
   getRuntimeLocale,
+  getMarkedLocale,
   createRuntimeLocalesPlugin,
 };
