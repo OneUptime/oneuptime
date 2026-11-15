@@ -294,7 +294,7 @@ const RuleCriteriaBuilder: <TEntity>(
   const addButton: ReactElement = (
     <Button
       title={RuleCriteriaCopy.addCondition}
-      ariaLabel={tx(RuleCriteriaCopy.addCondition)}
+      ariaLabel={RuleCriteriaCopy.addCondition}
       dataTestId="rule-criteria-add"
       icon={IconProp.Add}
       buttonSize={ButtonSize.Normal}
@@ -492,6 +492,7 @@ const RuleCriteriaBuilder: <TEntity>(
               "Criteria for condition {{number}}",
               { number: index + 1 },
             )}
+            isAriaLabelTranslated={true}
             dataTestId={`rule-criteria-field-${index}`}
             className="relative w-full"
             isClearable={false}
@@ -529,6 +530,7 @@ const RuleCriteriaBuilder: <TEntity>(
               "Operator for condition {{number}}",
               { number: index + 1 },
             )}
+            isAriaLabelTranslated={true}
             dataTestId={`rule-criteria-operator-${index}`}
             className="relative w-full"
             isClearable={false}
@@ -580,6 +582,7 @@ const RuleCriteriaBuilder: <TEntity>(
                 number: index + 1,
               },
             )}
+            isAriaLabelTranslated={true}
             dataTestId={`rule-criteria-delete-${index}`}
             icon={IconProp.Trash}
             buttonSize={ButtonSize.Small}

@@ -19,7 +19,14 @@ export interface ComponentProps {
   onMouseOut?: (() => void) | undefined;
   onMouseLeave?: (() => void) | undefined;
   id?: string | undefined;
+  /*
+   * Its hover tip and its name for a screen reader, in English: looked up
+   * here. One in the reader's words already - a front end's own keyed
+   * text, a sentence built around a name - is said so with
+   * isTitleTranslated and drawn as given (#7790).
+   */
   title?: string | undefined;
+  isTitleTranslated?: boolean | undefined;
   dataTestId?: string | undefined;
   /*
    * The link is to the page (or the section) the user is on, as the nav
@@ -47,7 +54,9 @@ const Link: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const title: string | undefined = translateString(props.title);
+  const title: string | undefined = props.isTitleTranslated
+    ? props.title
+    : translateString(props.title);
   const ariaCurrent: LinkAriaCurrent | undefined =
     props.ariaCurrent || (props.isCurrentPage ? "page" : undefined);
   let children: ReactNode;

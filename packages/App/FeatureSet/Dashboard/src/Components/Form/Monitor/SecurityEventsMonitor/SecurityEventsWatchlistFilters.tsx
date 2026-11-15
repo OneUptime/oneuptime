@@ -311,7 +311,7 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
                     },
                   )}
                   placeholder={WATCHLIST_FILTER_FIELD_PLACEHOLDER}
-                  ariaLabel={translator.translateText(WATCHLIST_FILTER_FIELD)}
+                  ariaLabel={WATCHLIST_FILTER_FIELD}
                   isClearable={false}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
@@ -325,7 +325,7 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
                   value={
                     matchOptions[filter.isNotOnList ? 1 : 0] as DropdownOption
                   }
-                  ariaLabel={translator.translateText(WATCHLIST_FILTER_MATCH)}
+                  ariaLabel={WATCHLIST_FILTER_MATCH}
                   isClearable={false}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
@@ -340,9 +340,7 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
                   options={listOptions}
                   value={findOption(listOptions, filter.watchlist)}
                   placeholder={WATCHLIST_FILTER_WATCHLIST_PLACEHOLDER}
-                  ariaLabel={translator.translateText(
-                    WATCHLIST_FILTER_WATCHLIST,
-                  )}
+                  ariaLabel={WATCHLIST_FILTER_WATCHLIST}
                   isClearable={false}
                   onChange={(
                     value: DropdownValue | Array<DropdownValue> | null,
@@ -357,7 +355,7 @@ const SecurityEventsWatchlistFilters: FunctionComponent<ComponentProps> = (
                   title={WATCHLIST_FILTER_REMOVE}
                   buttonStyle={ButtonStyleType.ICON}
                   icon={IconProp.Close}
-                  ariaLabel={translator.translateText(WATCHLIST_FILTER_REMOVE)}
+                  ariaLabel={WATCHLIST_FILTER_REMOVE}
                   dataTestId={WATCHLISTS_TEST_IDS.monitorFilterRemove}
                   onClick={() => {
                     update(

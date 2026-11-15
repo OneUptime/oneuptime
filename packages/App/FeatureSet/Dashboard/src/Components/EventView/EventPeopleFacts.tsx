@@ -288,6 +288,7 @@ export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
       searchPlaceholder={ASSIGN_SEARCH_PLACEHOLDER}
       emptyText={ASSIGN_EMPTY_TEXT}
       ariaLabel={assignText}
+      isAriaLabelTranslated={true}
     />
   ) : (
     <></>
