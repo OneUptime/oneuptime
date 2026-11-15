@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ResourceTable, {
@@ -156,7 +157,7 @@ const VMwareVCenterClusters: FunctionComponent<
               "effectiveHostCount",
             );
             if (total === null) {
-              return "-";
+              return EMPTY_VALUE_MARK;
             }
             return effective === null
               ? String(total)
@@ -172,7 +173,7 @@ const VMwareVCenterClusters: FunctionComponent<
             const total: number | null = readCount(resource, "vmCount");
             const on: number | null = readCount(resource, "poweredOnVmCount");
             if (total === null) {
-              return "-";
+              return EMPTY_VALUE_MARK;
             }
             return on === null ? String(total) : `${on} / ${total}`;
           },

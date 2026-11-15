@@ -4,6 +4,7 @@ import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
 import { DETAIL_VALUE_CLASS_NAME } from "Common/UI/Components/Detail/Detail";
+import EmptyValue, { isNoValue } from "Common/UI/Components/Detail/EmptyValue";
 import { DETAIL_FIELD_LABEL_CLASS_NAME } from "Common/UI/Components/Detail/DetailFieldLabel";
 import {
   getDetailCellClassNames,
@@ -32,7 +33,11 @@ export interface ResourcePartDetailRow {
   key: string;
   // English.
   label: string;
-  value: ReactElement | string;
+  /*
+   * None - or a formatter's mark for nothing - and the row draws the card's
+   * quiet dash, read out as "Not set" (EmptyValue, #8262).
+   */
+  value?: ReactElement | string | undefined;
   // What the value means, in an (i) beside the label.
   description?: string | undefined;
   mono?: boolean | undefined;
@@ -110,7 +115,9 @@ const ResourcePartDetailsCard: FunctionComponent<ComponentProps> = (
                         dir={typeof row.value === "string" ? "auto" : undefined}
                         className={`min-w-0 [overflow-wrap:anywhere]${row.mono ? " font-mono" : ""}`}
                       >
-                        {typeof row.value === "string" ? (
+                        {isNoValue(row.value) ? (
+                          <EmptyValue />
+                        ) : typeof row.value === "string" ? (
                           <BreakableName text={row.value} />
                         ) : (
                           row.value

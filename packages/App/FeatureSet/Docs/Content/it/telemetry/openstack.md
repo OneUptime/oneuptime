@@ -1643,7 +1643,7 @@ La pagina **Agente IA** del cloud propone un runbook per ciascuno di questi, da 
 
 ### Correzioni da un flusso di lavoro
 
-Un flusso di lavoro può partire da un avviso OpenStack e proporre una correzione: il passaggio **Propose an OpenStack fix** prende l'avviso o l'incidente, e il comando. Passa per la stessa policy, lo stesso scope di scrittura e la stessa lettura di ciò che una modifica tocca di una correzione proposta da OneUptime AI, non richiede alcun modello IA, e una persona la approva sull'avviso. Un flusso di lavoro non può fare la modifica da sé né approvare ciò che propone, qualunque sia la modalità di correzione del cloud. Il template **Propose taking a failing OpenStack compute service out of scheduling** è un punto di partenza.
+Un flusso di lavoro può partire da un avviso OpenStack e proporre una correzione: il passaggio **Proponi una correzione OpenStack** prende l'avviso o l'incidente, e il comando. Passa per la stessa policy, lo stesso scope di scrittura e la stessa lettura di ciò che una modifica tocca di una correzione proposta da OneUptime AI, non richiede alcun modello IA, e una persona la approva sull'avviso. Un flusso di lavoro non può fare la modifica da sé né approvare ciò che propone, qualunque sia la modalità di correzione del cloud. Il template **Propose taking a failing OpenStack compute service out of scheduling** è un punto di partenza.
 
 ## Esegui come servizio systemd
 

@@ -85,15 +85,15 @@ Fanen **Custom Metric** tilbyr disse målingene, gruppert etter ressurstype:
 
 | Kategori | Målinger |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Arbeidsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Podens CPU-forbruk, Pod minnebruk, Podens fase (kode), Podens filsystembruk, Podens utnyttelse av minnegrensen, Podens utnyttelse av CPU-grensen, Podens nettverks-I/O (akkumulert, begge retninger) |
+| Node | Nodens CPU-forbruk, Nodens allokerbare CPU, Node minnebruk, Nodens working set for minne, Node filsystembruk, Nodens allokerbare minne, Nodens Ready-betingelse, Nodens MemoryPressure-betingelse, Nodens DiskPressure-betingelse, Nodens PIDPressure-betingelse, Nodens tilgjengelige filsystem |
+| Container | Containerens omstarter, Containerens omstarter (økning), Containerens CPU-grense, Containerens CPU-forespørsel, Containerens minnegrense, Containerens minneforespørsel, Container klar |
+| Arbeidsbelastning | Deploymentens tilgjengelige replikaer, Deploymentens ønskede replikaer, DaemonSetets ønskede noder, DaemonSetets feilplanlagte noder, DaemonSetets klare noder, StatefulSetets ønskede replikaer, StatefulSetets klare replikaer, Jobbens mislykkede poder, Jobbens mislykkede poder (økning), Jobbens vellykkede poder |
+| HPA | HPA-ens gjeldende replikaer, HPA-ens ønskede replikaer, HPA-ens maksimale replikaer, HPA-ens minimale replikaer |
+| Kontrollplan | etcd har en leder, API-serverens pågående forespørsler, Planleggerens ventende poder |
 
 > [!NOTE]
-> **Pod CPU Usage** og **Node CPU Usage** er i kjerner, ikke prosent: `0.18` er 0,18 av en kjerne. **Pod Phase (Code)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggreger den med Maksimum eller Minimum, aldri Sum. Kontrollplanmålinger kommer bare når agentens innsamling fra kontrollplanet er slått på. **Node Ready Condition** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det en node som har gått ned, rapporterer: varsle ved mindre enn 1. **Container Restarts** er containerens løpende omstartteller; **Container Restarts (Increase)** er det agenten sender med hver måling: omstartene siden dens forrige måling av containeren, så summen over et vindu er omstartene i det. Den bærer det **Container Restarts** bærer, også navnene på arbeidsbelastningene til containerens pod, men ikke containerens ID, som endres ved hver omstart. **Job Failed Pods** er en Jobs løpende teller for mislykkede poder; **Job Failed Pods (Increase)** er det agenten sender med hver måling: Jobbens poder som har mislyktes siden dens forrige måling av Jobben, så summen over et vindu er feilene i det. Den bærer det **Job Failed Pods** bærer: Jobbens navn og navnerom.
+> **Podens CPU-forbruk** og **Nodens CPU-forbruk** er i kjerner, ikke prosent: `0.18` er 0,18 av en kjerne. **Podens fase (kode)** er en kode (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggreger den med Maksimum eller Minimum, aldri Sum. Kontrollplanmålinger kommer bare når agentens innsamling fra kontrollplanet er slått på. **Nodens Ready-betingelse** er 1 ved Ready, 0 ved NotReady og -1 ved Unknown, som er det en node som har gått ned, rapporterer: varsle ved mindre enn 1. **Containerens omstarter** er containerens løpende omstartteller; **Containerens omstarter (økning)** er det agenten sender med hver måling: omstartene siden dens forrige måling av containeren, så summen over et vindu er omstartene i det. Den bærer det **Containerens omstarter** bærer, også navnene på arbeidsbelastningene til containerens pod, men ikke containerens ID, som endres ved hver omstart. **Jobbens mislykkede poder** er en Jobs løpende teller for mislykkede poder; **Jobbens mislykkede poder (økning)** er det agenten sender med hver måling: Jobbens poder som har mislyktes siden dens forrige måling av Jobben, så summen over et vindu er feilene i det. Den bærer det **Jobbens mislykkede poder** bærer: Jobbens navn og navnerom.
 
 ## Overvåkingskriterier
 
@@ -191,7 +191,7 @@ Klynger registrerer seg selv fra agentens data, under det `clusterName` agenten 
 :::
 
 :::details En CPU-terskel utløses aldri
-**Pod CPU Usage** og **Node CPU Usage** er i kjerner, ikke prosent, så en terskel på `80` betyr 80 kjerner. Angi terskelen i kjerner, eller start fra **High Node CPU Utilization** eller **Pod CPU Saturating Container Limit**, som sammenligner en prosentandel.
+**Podens CPU-forbruk** og **Nodens CPU-forbruk** er i kjerner, ikke prosent, så en terskel på `80` betyr 80 kjerner. Angi terskelen i kjerner, eller start fra **High Node CPU Utilization** eller **Pod CPU Saturating Container Limit**, som sammenligner en prosentandel.
 :::
 
 :::details CrashLoopBackOff Detection ble ikke utløst ved en omstart

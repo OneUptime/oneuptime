@@ -1,4 +1,5 @@
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   getGlobalTranslator,
   translationKey,
@@ -70,7 +71,7 @@ export function getCephShortVersion(version: string): string {
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
     return `${Math.round(bytes)}\u00A0B`;
@@ -87,14 +88,14 @@ export function formatBytes(bytes: number | null | undefined): string {
 
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 }
 
 export function formatCount(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(1)}M`;

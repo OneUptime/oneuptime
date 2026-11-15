@@ -169,6 +169,7 @@ import {
   AZURE_MONITOR_OPEN_RESOURCE,
   AZURE_MONITOR_SECTION_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/CloudAppAzureMonitorCard";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const MINUTE_MS: number = 60 * 1000;
 const APP_ID: string = "76000000-0000-4000-8000-000000000001";
@@ -715,7 +716,7 @@ describe("an app that sends traces, names its instances and its version", () => 
 
     expect(requests).toEqual(
       expect.objectContaining({
-        value: "—",
+        value: QUIET_DASH_TEXT,
         note: null,
         sublabel: "could not load",
       }),

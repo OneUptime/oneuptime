@@ -1,4 +1,5 @@
 import OpenStackResource from "Common/Models/DatabaseModels/OpenStackResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
@@ -404,17 +405,17 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
               vcpus:
                 flavor.vcpuCapacity === undefined ||
                 flavor.vcpuCapacity === null
-                  ? "—"
+                  ? EMPTY_VALUE_MARK
                   : translator.formatNumber(flavor.vcpuCapacity),
               memory:
                 flavor.memoryCapacityBytes === undefined ||
                 flavor.memoryCapacityBytes === null
-                  ? "—"
+                  ? EMPTY_VALUE_MARK
                   : formatOpenStackBytes(flavor.memoryCapacityBytes),
               disk:
                 flavor.diskCapacityBytes === undefined ||
                 flavor.diskCapacityBytes === null
-                  ? "—"
+                  ? EMPTY_VALUE_MARK
                   : formatOpenStackBytes(flavor.diskCapacityBytes),
             },
             // Each value set apart: "۴٫۰ GiB" keeps its number first in a Persian sentence.

@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -20,7 +21,7 @@ export function getDatabaseLastSeenText(
   const date: Date =
     lastSeenAt instanceof Date ? lastSeenAt : new Date(lastSeenAt);
   if (Number.isNaN(date.getTime())) {
-    return { text: "—", title: "" };
+    return { text: EMPTY_VALUE_MARK, title: "" };
   }
   return {
     text: OneUptimeDate.fromNow(date),

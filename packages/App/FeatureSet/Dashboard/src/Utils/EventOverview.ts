@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   EventDurationPart,
   EventStateTimelineDate,
@@ -237,7 +238,7 @@ export const getTimeToStateText: (
   }
 
   if (!input.startedAt) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   const endDate: Date =

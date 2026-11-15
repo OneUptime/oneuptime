@@ -15,6 +15,7 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   getReadingDirection,
   setApartInSentence,
@@ -185,7 +186,7 @@ export function formatLatencyUsec(
 ): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (numeric < 1000) {
     return formatDurationInUnit(translator || ENGLISH, numeric, "microsecond", {
@@ -248,7 +249,7 @@ export function getTotalIops(
 export function formatIops(value: unknown, translator?: Translator): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (numeric >= 1_000_000) {
     return `${writeFigure(numeric / 1_000_000, 1, translator)}M`;
@@ -313,7 +314,7 @@ export function formatStorageBytes(
 ): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
   let scaled: number = numeric;
@@ -434,7 +435,7 @@ export function getHardwareStatusState(
  */
 export function humanizeArrayValue(value: unknown): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const trimmed: string = value.trim();
   if (trimmed.toLowerCase() === "ok") {
@@ -500,7 +501,7 @@ export function getHardwareKindLabel(
       ),
     ) as string;
   }
-  return typeof kind === "string" && kind.length > 0 ? kind : "—";
+  return typeof kind === "string" && kind.length > 0 ? kind : EMPTY_VALUE_MARK;
 }
 
 /*
@@ -664,5 +665,5 @@ export function getHardwareDetail(
     }
   }
 
-  return parts.length > 0 ? formatInline(parts, translator) : "—";
+  return parts.length > 0 ? formatInline(parts, translator) : EMPTY_VALUE_MARK;
 }

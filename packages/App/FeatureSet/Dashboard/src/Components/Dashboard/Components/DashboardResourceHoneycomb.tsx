@@ -18,7 +18,11 @@ import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 
 export interface HoneycombTileDetail {
   label: string;
-  value: string;
+  /*
+   * None - a host or a cluster the tile's resource has not reported - and
+   * the tooltip draws the quiet dash beside the label (#8262).
+   */
+  value?: string | null | undefined;
 }
 
 export interface HoneycombTile {
@@ -464,7 +468,7 @@ const HoneycombTooltip: FunctionComponent<{
               </span>
               <DashboardWidgetLine
                 as="span"
-                text={d.value}
+                text={d.value || undefined}
                 className="font-medium text-gray-700 truncate"
               />
             </div>

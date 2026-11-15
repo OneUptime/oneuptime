@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -50,7 +51,7 @@ const bytesToReadable: (value: unknown) => string = (
   const bytes: number | null = toNumberOrNull(value);
 
   if (bytes === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes === 0) {
     return "0 B";
@@ -69,7 +70,7 @@ const bytesToReadable: (value: unknown) => string = (
 
 const formatPercent: (value: unknown) => string = (value: unknown): string => {
   const percent: number | null = toNumberOrNull(value);
-  return percent === null ? "—" : `${percent.toFixed(1)}%`;
+  return percent === null ? EMPTY_VALUE_MARK : `${percent.toFixed(1)}%`;
 };
 
 const humanize: (value: unknown) => string = (value: unknown): string => {

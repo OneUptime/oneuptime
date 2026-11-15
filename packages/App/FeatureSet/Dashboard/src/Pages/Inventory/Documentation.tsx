@@ -11,6 +11,7 @@ import {
   getInventorySourceDescriptor,
 } from "../../Components/Inventory/InventorySource";
 import {
+  INVENTORY_CATEGORY_NAMES,
   INVENTORY_CATEGORY_ORDER,
   InventoryCategory,
   InventoryTypeDescriptor,
@@ -195,7 +196,9 @@ const InventoryDocumentation: FunctionComponent<
                   className="rounded-lg border border-gray-200 p-4"
                 >
                   <h3 className="text-sm font-semibold text-gray-900">
-                    {translator.translateText(category)}
+                    {translator.translateText(
+                      INVENTORY_CATEGORY_NAMES[category],
+                    )}
                   </h3>
                   <ul className="mt-3 space-y-2">
                     {getEntityTypesInCategory(category).map(

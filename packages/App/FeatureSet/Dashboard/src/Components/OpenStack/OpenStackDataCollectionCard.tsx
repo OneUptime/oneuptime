@@ -34,7 +34,9 @@ import {
   readOpenStackNames,
 } from "./OpenStackProbeCollectionView";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * How this cloud's data reaches OneUptime, on its Settings page: collected by a probe with the
@@ -246,13 +248,17 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
                           ? translator.translateTemplate(
                               "User {{user}}, on project {{project}}",
                               {
-                                user: item.keystoneUsername || "—",
-                                project: item.projectName || "—",
+                                user: item.keystoneUsername || EMPTY_VALUE_MARK,
+                                project: item.projectName || EMPTY_VALUE_MARK,
                               },
                             )
                           : translator.translateTemplate(
                               "Application credential {{id}}",
-                              { id: item.applicationCredentialId || "—" },
+                              {
+                                id:
+                                  item.applicationCredentialId ||
+                                  EMPTY_VALUE_MARK,
+                              },
                             )}
                       </span>
                     );

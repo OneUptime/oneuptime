@@ -1,4 +1,5 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   ProfileValueUnit,
   formatProfileValue as formatCommonProfileValue,
@@ -543,7 +544,7 @@ export default class ProfileUtil {
    */
   public static formatPercent(pct: number): string {
     if (!isFinite(pct)) {
-      return "—";
+      return EMPTY_VALUE_MARK;
     }
     if (pct === 0) {
       return "0%";

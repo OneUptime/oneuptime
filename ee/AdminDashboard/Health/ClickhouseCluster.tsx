@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -54,7 +55,7 @@ const toNum: (value: unknown) => number = (value: unknown): number => {
 
 const formatNumber: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
-  return isNaN(parsed) ? "—" : parsed.toLocaleString();
+  return isNaN(parsed) ? EMPTY_VALUE_MARK : parsed.toLocaleString();
 };
 
 const toNumOrNull: (value: unknown) => number | null = (
@@ -72,7 +73,7 @@ const bytesToReadable: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value === 0) {
     return "0 B";
@@ -102,23 +103,33 @@ type MetricInfoKey =
 const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   overallStatus: {
     title: "Overall status",
-    body: "A roll-up of the cluster signals below. Degraded (yellow) fires when a shard replica is still rebuilding — its estimated recovery time is above zero. Needs attention (red) fires on a hard problem: unfinished distributed-DDL tasks, an expired Keeper/ZooKeeper session, or a table that is read-only, lagging, or missing replicas.",
+    body: translationKey(
+      "A roll-up of the cluster signals below. Degraded (yellow) fires when a shard replica is still rebuilding — its estimated recovery time is above zero. Needs attention (red) fires on a hard problem: unfinished distributed-DDL tasks, an expired Keeper/ZooKeeper session, or a table that is read-only, lagging, or missing replicas.",
+    ),
   },
   distributedDdlQueue: {
     title: "Distributed DDL queue",
-    body: "Schema changes marked ON CLUSTER run through a shared queue that every node must complete. Unfinished tasks mean the change is stuck on at least one host — schema sync and the migrate job will hang until the queue drains.",
+    body: translationKey(
+      "Schema changes marked ON CLUSTER run through a shared queue that every node must complete. Unfinished tasks mean the change is stuck on at least one host — schema sync and the migrate job will hang until the queue drains.",
+    ),
   },
   shards: {
     title: "Shards",
-    body: "Each shard-replica node in the cluster, with its data footprint and disk headroom. 'Recovering' means the node is still rebuilding its parts from peers; 'Online' means it is serving normally.",
+    body: translationKey(
+      "Each shard-replica node in the cluster, with its data footprint and disk headroom. 'Recovering' means the node is still rebuilding its parts from peers; 'Online' means it is serving normally.",
+    ),
   },
   keeperCoordination: {
     title: "Keeper coordination",
-    body: "ClickHouse Keeper (or ZooKeeper) coordinates replication and distributed DDL. An expired session means this node has lost coordination and can't replicate or run ON CLUSTER statements until it reconnects.",
+    body: translationKey(
+      "ClickHouse Keeper (or ZooKeeper) coordinates replication and distributed DDL. An expired session means this node has lost coordination and can't replicate or run ON CLUSTER statements until it reconnects.",
+    ),
   },
   unhealthyReplicas: {
     title: "Unhealthy replicas",
-    body: "Replicated tables that are read-only, have an expired session, are missing active replicas, or are lagging behind (absolute delay). Any of these blocks writes or leaves replicas out of sync.",
+    body: translationKey(
+      "Replicated tables that are read-only, have an expired session, are missing active replicas, or are lagging behind (absolute delay). Any of these blocks writes or leaves replicas out of sync.",
+    ),
   },
 };
 
@@ -130,7 +141,7 @@ const readerCount: (value: unknown, translator: Translator) => string = (
   const parsed: number = Number(value);
 
   return value === null || value === undefined || value === "" || isNaN(parsed)
-    ? "—"
+    ? EMPTY_VALUE_MARK
     : translator.formatNumber(parsed);
 };
 

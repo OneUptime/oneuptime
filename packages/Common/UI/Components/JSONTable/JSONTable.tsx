@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import CopyableButton from "../CopyableButton/CopyableButton";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -26,7 +27,7 @@ interface FlatItem {
 
 function normalizeValue(value: unknown): string {
   if (value === null || value === undefined) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   if (typeof value === "object") {
     try {

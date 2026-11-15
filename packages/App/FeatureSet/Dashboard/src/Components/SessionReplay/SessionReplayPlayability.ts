@@ -1,4 +1,5 @@
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { SESSION_REPLAY_FLUSH_INTERVAL_MS } from "Common/Types/Rum/SessionReplay";
 import {
   createTranslator,
@@ -407,7 +408,7 @@ export function formatSessionDuration(
   translator: Translator = ENGLISH,
 ): string {
   if (!Number.isFinite(durationMs) || durationMs <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const totalSeconds: number = Math.round(durationMs / 1000);

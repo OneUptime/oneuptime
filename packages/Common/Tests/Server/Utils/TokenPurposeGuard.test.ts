@@ -25,6 +25,9 @@ import ts from "typescript";
  *     session only by CookieUtil;
  *   - signUserLoginToken is called only by the sign-ins that make or renew a
  *     UserSession, and by CookieUtil.setUserCookie that they call;
+ *   - a browser's sign-out cookie (UserSessionSignOut) is made only by
+ *     CookieUtil.setUserCookie and read only by POST /logout, through
+ *     JSONWebToken.decodeSessionToSignOut - never by decode;
  *   - nothing that signs or reads a token spells a purpose itself;
  *   - every other reader of a token's raw claims is listed with what it
  *     reads, none of which is a person's token;
@@ -78,6 +81,25 @@ const EXPIRED_TOKEN_READERS: Record<string, string> = {
 // The options a decode may pass: only the expired-token read above.
 const ACCEPT_EXPIRED_OPTIONS: string = "{ acceptExpired: true }";
 
+/*
+ * The only reads of a browser's sign-out cookie
+ * (JSONWebToken.decodeSessionToSignOut), with why. It names a person's
+ * session and holds no address, so JSONWebToken.decode never reads one:
+ * it is read for ending that session, here, and nowhere else.
+ */
+const SESSION_SIGN_OUT_READERS: Record<string, string> = {
+  "packages/App/FeatureSet/Identity/API/Authentication.ts":
+    "POST /logout ends the session a browser's sign-out cookie names when neither its refresh token nor its access token ends one: a renewal whose answer was lost rotated the one, and the other's cookie had gone (issue #8638)",
+};
+
+/*
+ * Where a browser's sign-out cookie is made
+ * (JSONWebToken.signSessionSignOutToken): CookieUtil.setUserCookie, beside
+ * the refresh token of the session every sign-in and renewal hands a
+ * browser.
+ */
+const SESSION_SIGN_OUT_MINTERS: Array<string> = [COOKIE_MODULE];
+
 // Where each kind of token is signed: the `purpose` handed to JSONWebToken.sign.
 const SIGNERS: Record<string, Array<string>> = {
   // signUserLoginToken.
@@ -86,6 +108,8 @@ const SIGNERS: Record<string, Array<string>> = {
   SsoSignIn: [COOKIE_MODULE],
   // setStatusPagePrivateUserCookie.
   StatusPageSession: [COOKIE_MODULE],
+  // signSessionSignOutToken.
+  UserSessionSignOut: [JSON_WEB_TOKEN_MODULE],
 };
 
 /*
@@ -276,6 +300,9 @@ interface Scan {
   decodeCalls: Array<DecodeCall>;
   purposeUses: Array<PurposeUse>;
   sessionMinters: Array<string>;
+  // The files that read, and that make, a browser's sign-out cookie.
+  sessionSignOutReaders: Array<string>;
+  sessionSignOutMinters: Array<string>;
   rawClaimReaders: Array<string>;
   rawClaimSignings: Array<RawClaimSigning>;
   spelledPurposes: Array<{ file: string; line: number; text: string }>;
@@ -456,6 +483,8 @@ function scanProductCode(): Scan {
     decodeCalls: [],
     purposeUses: [],
     sessionMinters: [],
+    sessionSignOutReaders: [],
+    sessionSignOutMinters: [],
     rawClaimReaders: [],
     rawClaimSignings: [],
     spelledPurposes: [],
@@ -482,6 +511,8 @@ function scanProductCode(): Scan {
     const sourceFile: ts.SourceFile = sourceOf(file);
     let mintsSessions: boolean = false;
     let readsRawClaims: boolean = false;
+    let readsSessionSignOut: boolean = false;
+    let mintsSessionSignOut: boolean = false;
 
     visit(sourceFile, (node: ts.Node): void => {
       if (file !== JSON_WEB_TOKEN_MODULE) {
@@ -528,6 +559,14 @@ function scanProductCode(): Scan {
         mintsSessions = true;
       }
 
+      if (isJsonWebTokenCall(node, "decodeSessionToSignOut")) {
+        readsSessionSignOut = true;
+      }
+
+      if (isJsonWebTokenCall(node, "signSessionSignOutToken")) {
+        mintsSessionSignOut = true;
+      }
+
       if (isJsonWebTokenCall(node, "decodeJsonPayload")) {
         readsRawClaims = true;
       }
@@ -571,6 +610,14 @@ function scanProductCode(): Scan {
 
     if (mintsSessions) {
       scan.sessionMinters.push(file);
+    }
+
+    if (readsSessionSignOut && file !== JSON_WEB_TOKEN_MODULE) {
+      scan.sessionSignOutReaders.push(file);
+    }
+
+    if (mintsSessionSignOut && file !== JSON_WEB_TOKEN_MODULE) {
+      scan.sessionSignOutMinters.push(file);
     }
 
     if (readsRawClaims && file !== JSON_WEB_TOKEN_MODULE) {
@@ -647,6 +694,38 @@ describe("every reader of a person's token says which kind it reads", () => {
       }).toEqual({ file, readsExpired: true });
       expect(EXPIRED_TOKEN_READERS[file]!.length).toBeGreaterThan(20);
     }
+  });
+
+  /*
+   * A browser's sign-out cookie names a person's session and can end it
+   * (issue #8638). It is read only where listed - and never by
+   * JSONWebToken.decode, which takes the tokens that are someone's
+   * identity - and made only where a session's cookies are set.
+   */
+  test("a browser's sign-out cookie is read only where listed, and each listed file still reads it", () => {
+    expect([...SCAN.sessionSignOutReaders].sort()).toEqual(
+      Object.keys(SESSION_SIGN_OUT_READERS).filter(isCheckedOut).sort(),
+    );
+
+    for (const file of Object.keys(SESSION_SIGN_OUT_READERS)) {
+      expect(SESSION_SIGN_OUT_READERS[file]!.length).toBeGreaterThan(20);
+    }
+
+    expect(
+      SCAN.decodeCalls
+        .filter((call: DecodeCall): boolean => {
+          return call.purpose === "UserSessionSignOut";
+        })
+        .map((call: DecodeCall): string => {
+          return `${call.file}:${call.line}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("a browser's sign-out cookie is made only where a session's cookies are set", () => {
+    expect([...SCAN.sessionSignOutMinters].sort()).toEqual(
+      [...SESSION_SIGN_OUT_MINTERS].sort(),
+    );
   });
 
   test("each file reads only the kinds listed for it, and every listed file still reads them", () => {
@@ -860,6 +939,8 @@ describe("JSONWebToken is only ever called, under its own name", () => {
       ...Object.keys(RAW_CLAIM_READERS),
       ...SESSION_MINTERS,
       ...Object.keys(RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS),
+      ...Object.keys(SESSION_SIGN_OUT_READERS),
+      ...SESSION_SIGN_OUT_MINTERS,
     ].filter((file: string): boolean => {
       return file !== JSON_WEB_TOKEN_MODULE && isCheckedOut(file);
     });

@@ -5,6 +5,7 @@ import {
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   isUnclassifiedNode,
   roleDisplayLabelForNode,
@@ -75,7 +76,7 @@ export interface ExportTable {
   rows: Array<Array<ExportTableCell>>;
 }
 
-const NOT_AVAILABLE: string = "-";
+const NOT_AVAILABLE: string = EMPTY_VALUE_MARK;
 
 const STATUS_LABELS: Record<NetworkTopologyNodeStatus, string> = {
   up: "Up",
