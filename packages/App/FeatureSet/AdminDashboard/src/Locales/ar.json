@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "أقصى عدد من المراقبات النشطة يمكن أن يملكه هذا المشروع. اتركه فارغًا لعدم وضع حد.",
       "noMonitorLimit": "بلا حد",
       "overMonitorLimit": "تجاوز الحد بمقدار {{over}}",
-      "atMonitorLimit": "عند الحد"
+      "atMonitorLimit": "عند الحد",
+      "userLimitCardTitle": "المستخدمون",
+      "userLimitCardDescription": "يُحتسب كل من في المشروع، بما في ذلك الدعوات المعلّقة. عند بلوغ الحد لا يمكن لأحد جديد الانضمام، ويبقى من هم فيه بالفعل. يؤدي تغيير الموزّع التالي للفئة إلى استبدال هذا الحد. وتقتصر مشاريع خطة Free أيضًا على شخص واحد.",
+      "userLimitEditButton": "تعديل حد المستخدمين",
+      "fieldUsers": "المستخدمون",
+      "fieldUserLimit": "حد المستخدمين",
+      "fieldUserLimitDescription": "أقصى عدد من المستخدمين يمكن أن يضمه هذا المشروع، بما في ذلك الدعوات المعلّقة. اتركه فارغًا لعدم وضع حد.",
+      "noUserLimit": "بلا حد",
+      "overUserLimit": "تجاوز الحد بمقدار {{over}}",
+      "atUserLimit": "عند الحد"
     },
     "projectSupport": {
       "title": "وصول دعم العملاء",
