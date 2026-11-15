@@ -126,10 +126,15 @@ export function isSessionReplayStringMap(
  * - Once maxKeys distinct keys are kept, further NEW keys are dropped;
  *   a repeated key still overwrites, so the count never exceeds the cap.
  * - Insertion order is the input's own key order.
+ * - readValue, when given, rewrites each value before it is held to
+ *   maxValueLength, so it reads the value whole: product analytics scrubs an
+ *   address there (toProductAnalyticsPropertyValue), and an email the cap
+ *   had cut in two would no longer look like one. It must never throw.
  */
 export function sanitizeSessionReplayStringMap(
   input: unknown,
   limits: SessionReplayStringMapLimits,
+  readValue?: (value: string, maxValueLength: number) => string,
 ): Record<string, string> {
   const result: Record<string, string> = {};
   const keys: Array<string> | null = readOwnKeys(input);
@@ -170,7 +175,10 @@ export function sanitizeSessionReplayStringMap(
       continue;
     }
 
-    result[key] = truncate(stringValue, limits.maxValueLength);
+    result[key] = truncate(
+      readValue ? readValue(stringValue, limits.maxValueLength) : stringValue,
+      limits.maxValueLength,
+    );
 
     if (isNewKey) {
       keptCount++;

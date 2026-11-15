@@ -39,16 +39,16 @@ En blok kører, når blokken før den tager den udgang, der er forbundet til den
 
 ```mermaid title="En blok tager en af sine udgange"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| post["API Post (JSON)"]
-    post -->|"Success: et 2xx-svar"| slack["Send Message to Slack"]
-    post -->|"Error: intet svar, eller ikke 2xx"| log["Log"]
+    trigger["On Create Incident"] -->|"Succes"| post["API Post (JSON)"]
+    post -->|"Succes: et 2xx-svar"| slack["Send Message to Slack"]
+    post -->|"Fejl: intet svar, eller ikke 2xx"| log["Log"]
 ```
 
 - **Indstillinger** er det, du udfylder. Indstillinger mærket **(Valgfrit)** kan stå tomme. Mindre brugte indstillinger er foldet sammen under **Flere felter**.
-- **Outputs** er punkterne på den nederste kant. De fleste blokke har **Success** og **Error**; [Conditions](#conditions) har **Yes** og **No**, og [Switch / Case](#switch-case) har én for hvert af sine tilfælde og desuden **Default**.
-- **Returns** er de værdier, en blok giver videre til senere blokke, som en API's **Response Body**. En senere blok læser en med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en indstilling indsætter den for dig. Se [Variabler](/docs/workflows/variables#komponent-output-data-fra-tidligere-blokke).
+- **Outputs** er punkterne på den nederste kant. De fleste blokke har **Succes** og **Fejl**; [Conditions](#conditions) har **Ja** og **Nej**, og [Switch / Case](#switch-case) har én for hvert af sine tilfælde og desuden **Standard**.
+- **Returns** er de værdier, en blok giver videre til senere blokke, som en API's **Svarets brødtekst**. En senere blok læser en med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en indstilling indsætter den for dig. Se [Variabler](/docs/workflows/variables#komponent-output-data-fra-tidligere-blokke).
 
-En blok, der tager **Error**, giver fejlen videre til de blokke, der er forbundet til **Error**, og kørslen fortsætter der. Er intet forbundet til **Error**, mislykkes kørslen: det, den ellers var i gang med, kører videre, derefter slutter den med status **Fejl**, og blokkens post under kørslens **Trin** siger hvorfor. En påkrævet indstilling, der er efterladt tom, eller en indstilling, der aldrig kan virke, stopper derimod kørslen med en fejl.
+En blok, der tager **Fejl**, giver fejlen videre til de blokke, der er forbundet til **Fejl**, og kørslen fortsætter der. Er intet forbundet til **Fejl**, mislykkes kørslen: det, den ellers var i gang med, kører videre, derefter slutter den med status **Fejl**, og blokkens post under kørslens **Trin** siger hvorfor. En påkrævet indstilling, der er efterladt tom, eller en indstilling, der aldrig kan virke, stopper derimod kørslen med en fejl.
 
 ## API
 
@@ -57,19 +57,19 @@ Lav en HTTP-forespørgsel til enhver URL. Der er én blok pr. metode: **API Get 
 | Indstilling         | Hvad den gør                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **URL**             | Adressen, der skal kaldes, `http` eller `https`.                                                                                     |
-| **Request Body**    | Den JSON, der skal sendes. Som regel er det kun `POST`-, `PUT`- og `PATCH`-forespørgsler, der har brug for en.                      |
-| **Request Headers** | Headere, der skal sendes med, som en API-nøgle. Under **Flere felter**. Deres værdier er skjult i kørslens log.                      |
+| **Anmodningsbrødtekst**    | Den JSON, der skal sendes. Som regel er det kun `POST`-, `PUT`- og `PATCH`-forespørgsler, der har brug for en.                      |
+| **Anmodningsheadere** | Headere, der skal sendes med, som en API-nøgle. Under **Flere felter**. Deres værdier er skjult i kørslens log.                      |
 
 | Udgang      | Hvornår                                                                                        |
 | ----------- | ---------------------------------------------------------------------------------------------- |
-| **Success** | Serveren svarede med en 2xx-status.                                                            |
-| **Error**   | Forespørgslen mislykkedes: serveren kunne ikke nås, eller den svarede med en anden status.     |
+| **Succes** | Serveren svarede med en 2xx-status.                                                            |
+| **Fejl**   | Forespørgslen mislykkedes: serveren kunne ikke nås, eller den svarede med en anden status.     |
 
-Uanset hvad returnerer blokken **Response Status**, **Response Headers** og **Response Body**, plus **Error** med årsagen, når den mislykkedes. Læs et felt i et JSON-svar ved at tilføje dets navn til referencen, som i `{{local.components.api-get-1.returnValues.response-body.id}}`.
+Uanset hvad returnerer blokken **Response Status**, **Svar-headere** og **Svarets brødtekst**, plus **Fejl** med årsagen, når den mislykkedes. Læs et felt i et JSON-svar ved at tilføje dets navn til referencen, som i `{{local.components.api-get-1.returnValues.response-body.id}}`.
 
 Omdirigeringer følges ikke, så peg blokken på den adresse, der svarer. Forespørgsler sendes fra OneUptime: en URL, der peger på en privat netværksadresse, afvises, medmindre en administrator af en selvhostet installation tillader det, og kørslen stopper med årsagen. Se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 
-**API Get By ID (JSON)** læser ét element ud fra et ID, der kom et andet sted fra, for eksempel den issue-nøgle, som et webhook sendte. Sæt `{id}` i dens **URL**, hvor ID'et skal stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, og ID'et i **ID**. Blokken sætter kun ID'et ind, når det er et rent ID, højst 200 bogstaver, cifre, bindestreger og understregninger, og procentkoder det alligevel: alt andet, for eksempel `x/../users`, tager **Error**, før nogen forespørgsel sendes, så tekst udefra ikke kan sende forespørgslen et andet sted hen. Ellers virker den som **API Get (JSON)** og returnerer de samme værdier.
+**API Get By ID (JSON)** læser ét element ud fra et ID, der kom et andet sted fra, for eksempel den issue-nøgle, som et webhook sendte. Sæt `{id}` i dens **URL**, hvor ID'et skal stå, som i `https://your-domain.atlassian.net/rest/api/3/issue/{id}`, og ID'et i **ID**. Blokken sætter kun ID'et ind, når det er et rent ID, højst 200 bogstaver, cifre, bindestreger og understregninger, og procentkoder det alligevel: alt andet, for eksempel `x/../users`, tager **Fejl**, før nogen forespørgsel sendes, så tekst udefra ikke kan sende forespørgslen et andet sted hen. Ellers virker den som **API Get (JSON)** og returnerer de samme værdier.
 
 ## AI
 
@@ -81,15 +81,15 @@ Generér ét tekstsvar ud fra en prompt og valgfri JSON-kontekst. Blokken bruger
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **System Instructions**   | Valgfri vejledning om modellens rolle, tone og begrænsninger.                                                                                                    |
 | **Prompt**                | Opgaven. Den sendes præcis, som du skriver den, så Markdown er fint, og den kan indeholde variabler og værdier fra tidligere blokke.                              |
-| **Context**               | Valgfri JSON, du bevidst sender med. Den tilføjes efter en eksplicit markering for beskedens slutning og behandles som upålidelige data.                          |
-| **Temperature**           | Under **Flere felter**. Variation fra `0` til `1`; standardværdien er `0.2`, for forudsigelig automatik. Nuværende Claude-modeller, Opus 4.7 og nyere og alle Claude 5-modeller, vælger selv deres sampling: OneUptime udelader **Temperature** fra deres forespørgsler, så den har ingen virkning på dem. |
+| **Kontekst**               | Valgfri JSON, du bevidst sender med. Den tilføjes efter en eksplicit markering for beskedens slutning og behandles som upålidelige data.                          |
+| **Temperatur**           | Under **Flere felter**. Variation fra `0` til `1`; standardværdien er `0.2`, for forudsigelig automatik. Nuværende Claude-modeller, Opus 4.7 og nyere og alle Claude 5-modeller, vælger selv deres sampling: OneUptime udelader **Temperatur** fra deres forespørgsler, så den har ingen virkning på dem. |
 | **Maximum Output Tokens** | Under **Flere felter**. Fra `1` til `4096`; standardværdien er `1024`.                                                                                           |
 
 System Instructions, Prompt og den serialiserede Context er tilsammen begrænset til 50.000 tegn. Et billede, der er indlejret i dem som base64, som et skærmbillede fra en syntetisk monitor i en hændelses beskrivelse, erstattes af en kort note som `[image omitted: PNG, 340 KB]`, før de måles, fordi modellen læser tekst, ikke billeder. Kørslens log siger, hvad der blev udeladt. Forespørgslen til udbyderen varer højst 60 sekunder og forsøges én gang. Højst tre AI-forespørgsler fra workflows kan køre samtidig pr. projekt.
 
-Den returnerer **Response** (den genererede tekst), **Provider** og **Model** (det, der svarede), **Total Tokens** og **Completion Tokens** (forbruget, som udbyderen rapporterede), **LLM Log ID** (kaldets post i AI-loggene) og **Error**.
+Den returnerer **Svar** (den genererede tekst), **Udbyder** og **Model** (det, der svarede), **Total Tokens** og **Completion Tokens** (forbruget, som udbyderen rapporterede), **LLM Log ID** (kaldets post i AI-loggene) og **Fejl**.
 
-Forbind **Success** til de blokke, der bruger svaret, og **Error** til en reserveløsning: fejl i validering, adgang, udbyder, budget, fakturering og timeout tager alle den vej. Blokken sender ingen værktøjer, så modellen kan ikke selv forespørge OneUptime, kalde API'er eller ændre data.
+Forbind **Succes** til de blokke, der bruger svaret, og **Fejl** til en reserveløsning: fejl i validering, adgang, udbyder, budget, fakturering og timeout tager alle den vej. Blokken sender ingen værktøjer, så modellen kan ikke selv forespørge OneUptime, kalde API'er eller ændre data.
 
 > [!WARNING]
 > Modellens output er upålidelig tekst. Gennemgå det, før det når kunder, og lad aldrig fri AI-tekst alene afgøre en destruktiv handling. Se [AI-komponenter](/docs/workflows/configuration#ai-komponenter) for, hvad der sendes til udbyderen, hvad der logges, og hvad det koster.
@@ -100,10 +100,10 @@ Post en besked i en Slack-kanal via en indgående webhook.
 
 | Indstilling                    | Hvad den gør                                                                                                                                                                                                 |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Slack Incoming Webhook URL** | Webhooken for den kanal, der skal postes i. Den skal begynde med `https://hooks.slack.com/services/`. Slacks vejledning til at [oprette en](https://api.slack.com/messaging/webhooks) tager et par minutter. |
+| **URL til indgående webhook for Slack** | Webhooken for den kanal, der skal postes i. Den skal begynde med `https://hooks.slack.com/services/`. Slacks vejledning til at [oprette en](https://api.slack.com/messaging/webhooks) tager et par minutter. |
 | **Message Text**               | Teksten, der skal sendes. Den sendes præcis, som du skriver den, så brug Slacks egen formatering: `*bold*`, `_italic_`, `~strikethrough~` og `<https://example.com|a link>`. En tekst, der er længere end én Slack-sektion (3.000 tegn), sendes som flere; ud over ti sektioner afkortes den og slutter med "… (truncated — see OneUptime for the full text)". |
 
-**Success** udløses, når Slack tog imod beskeden, og **Error**, når Slack afviste den, med Slacks årsag i **Error**. Disse blokke poster gennem webhooken i deres indstillinger, ikke gennem dit projekts Slack-forbindelse.
+**Succes** udløses, når Slack tog imod beskeden, og **Fejl**, når Slack afviste den, med Slacks årsag i **Fejl**. Disse blokke poster gennem webhooken i deres indstillinger, ikke gennem dit projekts Slack-forbindelse.
 
 ## Microsoft Teams
 
@@ -133,7 +133,7 @@ Send en besked til en Telegram-chat med en bot.
 | **Chat ID**            | Chatten, der skal postes i: dens ID, eller en kanals `@username`. Tilføj først botten til gruppen eller kanalen. For at skrive til en person skal personen have startet en chat med botten. |
 | **Message Text**       | Teksten, der skal sendes. En besked på mere end 4.096 tegn, Telegrams grænse, afkortes og slutter med "… (truncated — see OneUptime for the full text)". |
 
-Når Telegram afviser beskeden, udløses **Error** med Telegrams årsag.
+Når Telegram afviser beskeden, udløses **Fejl** med Telegrams årsag.
 
 ## IRC
 
@@ -142,7 +142,7 @@ Post en besked i en IRC-kanal på et hvilket som helst IRC-netværk: Libera.Chat
 | Indstilling      | Hvad den gør                                                                                                                                                                                                                                       |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **IRC Server**   | Serverens værtsnavn, som `irc.libera.chat`. Kun navnet: intet `ircs://` og ingen port.                                                                                                                                                             |
-| **Channel**      | Kanalen, der skal postes i, som `#ops`. Det skal være en kanal: et kaldenavn, der skrives her, afvises i stedet for at få en privat besked.                                                                                                         |
+| **Kanal**      | Kanalen, der skal postes i, som `#ops`. Det skal være en kanal: et kaldenavn, der skrives her, afvises i stedet for at få en privat besked.                                                                                                         |
 | **Message Text** | Teksten, der skal sendes. Hver linje sendes som sin egen IRC-besked, og en lang linje deles, så den passer. En besked sendes som højst 15 IRC-linjer: en længere afkortes, og dens sidste linje siger det. IRC har ingen Markdown, så teksten sendes, som den er skrevet; IRC's egne formateringskoder, som fed og farver, virker. |
 
 Under **Flere felter**:
@@ -157,11 +157,11 @@ Under **Flere felter**:
 | **Server Password**                      | En adgangskode, som serveren eller din bouncer beder om ved forbindelse.                                                                                                                                          |
 | **SASL Username** og **SASL Password**   | Log ind på din konto på netværk, der bruger SASL, som Libera.Chat, der kræver det for forbindelser fra visse cloud- og VPN-adresser. Udfyld begge eller ingen.                                                     |
 
-**Success** udløses, når serveren har taget imod hver linje. Blokken tjekker det ved at bede serveren om at svare på et ping efter den sidste linje: en server svarer i rækkefølge, så en eventuel afvisning af beskeden kommer først. En bouncer som ZNC svarer selv på pinget, så blokken lytter et sekund længere efter svaret fra netværket bag den.
+**Succes** udløses, når serveren har taget imod hver linje. Blokken tjekker det ved at bede serveren om at svare på et ping efter den sidste linje: en server svarer i rækkefølge, så en eventuel afvisning af beskeden kommer først. En bouncer som ZNC svarer selv på pinget, så blokken lytter et sekund længere efter svaret fra netværket bag den.
 
-**Error** udløses, når serveren ikke kan nås, afviser forbindelsen, kaldenavnet, en adgangskode eller kanalen, eller afviser beskeden. Den videregiver årsagen, med serverens egne ord, hvor den gav dem. En manglende **IRC Server**, **Channel** eller **Message Text**, eller en indstilling, der aldrig kunne virke, stopper derimod kørslen.
+**Fejl** udløses, når serveren ikke kan nås, afviser forbindelsen, kaldenavnet, en adgangskode eller kanalen, eller afviser beskeden. Den videregiver årsagen, med serverens egne ord, hvor den gav dem. En manglende **IRC Server**, **Kanal** eller **Message Text**, eller en indstilling, der aldrig kunne virke, stopper derimod kørslen.
 
-Hver kørsel af blokken er sin egen forbindelse, og IRC-netværk begrænser, hvor ofte én adresse må forbinde: en byge af beskeder kan afvises med en årsag som "Reconnecting too fast", og tager **Error** som enhver anden afvisning. For et workflow, der kan udløses mange gange i minuttet, så saml det, det har at sige, i én besked, eller send det gennem din egen server.
+Hver kørsel af blokken er sin egen forbindelse, og IRC-netværk begrænser, hvor ofte én adresse må forbinde: en byge af beskeder kan afvises med en årsag som "Reconnecting too fast", og tager **Fejl** som enhver anden afvisning. For et workflow, der kan udløses mange gange i minuttet, så saml det, det har at sige, i én besked, eller send det gennem din egen server.
 
 Opbevar adgangskoderne i [hemmelige globale variabler](/docs/workflows/variables#globale-variabler), og brug variablen i indstillingen; de er skjult i kørselsloggene under alle omstændigheder. Forbindelser til loopback- (`localhost`, `127.0.0.1`), link-local- og cloudmetadata-adresser afvises. I OneUptime Cloud afvises også en server på en privat netværksadresse eller et navn, der peger på en. Selvhostede installationer kan nå en IRC-server på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`.
 
@@ -178,11 +178,11 @@ Under **Flere felter**:
 
 | Indstilling  | Hvad den gør                                                                                                                                                                                                  |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Channel**  | Poster et andet sted end i webhookens egen kanal: kanalens navn, som det står i dens URL, for eksempel `town-square`, eller `@` efterfulgt af et brugernavn for at sende en direkte besked. En webhook, der er låst til sin kanal, afviser alle andre. |
-| **Username** | Navnet, der skal postes under. Mattermost bruger det kun, hvor en systemadministrator lader integrationer tilsidesætte brugernavne.                                                                           |
+| **Kanal**  | Poster et andet sted end i webhookens egen kanal: kanalens navn, som det står i dens URL, for eksempel `town-square`, eller `@` efterfulgt af et brugernavn for at sende en direkte besked. En webhook, der er låst til sin kanal, afviser alle andre. |
+| **Brugernavn** | Navnet, der skal postes under. Mattermost bruger det kun, hvor en systemadministrator lader integrationer tilsidesætte brugernavne.                                                                           |
 | **Icon URL** | Billedet, der skal postes med, en `https`-adresse. Mattermost bruger det kun, hvor en systemadministrator lader integrationer tilsidesætte profilbilleder.                                                    |
 
-**Success** udløses, når Mattermost tog imod beskeden. **Error** udløses, når serveren ikke kan nås, eller Mattermost afviser beskeden, og videregiver Mattermosts årsag. En manglende **Mattermost Incoming Webhook URL** eller **Message Text**, en URL, der ikke tilhører en indgående webhook, eller en indstilling, der aldrig kunne virke, stopper derimod kørslen.
+**Succes** udløses, når Mattermost tog imod beskeden. **Fejl** udløses, når serveren ikke kan nås, eller Mattermost afviser beskeden, og videregiver Mattermosts årsag. En manglende **Mattermost Incoming Webhook URL** eller **Message Text**, en URL, der ikke tilhører en indgående webhook, eller en indstilling, der aldrig kunne virke, stopper derimod kørslen.
 
 Opbevar webhook-URL'en i en [hemmelig global variabel](/docs/workflows/variables#globale-variabler): alle, der har den, kan poste i kanalen. Den er skjult i kørselsloggene under alle omstændigheder. Beskeden sendes fra OneUptime, og en omdirigering følges ikke. En webhook på en loopback- (`localhost`, `127.0.0.1`), link-local- eller cloudmetadata-adresse afvises, og det samme gælder en webhook på en privat netværksadresse, medmindre en administrator af en selvhostet installation tillader det med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 
@@ -192,19 +192,19 @@ Send en e-mail gennem en SMTP-server, som du angiver på blokken. Blokken hedder
 
 | Indstilling                             | Hvad den gør                                                                                          |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **From Email**                          | Afsenderen, for eksempel `Alerts <alerts@company.com>`.                                               |
+| **E-mail fra**                          | Afsenderen, for eksempel `Alerts <alerts@company.com>`.                                               |
 | **To Email**                            | Modtagerens adresse. Adskil flere adresser med kommaer eller semikoloner.                             |
-| **Subject**                             | Emnelinjen.                                                                                           |
-| **Email Body**                          | Beskeden, sendt som HTML.                                                                             |
+| **Emne**                             | Emnelinjen.                                                                                           |
+| **E-mailens brødtekst**                          | Beskeden, sendt som HTML.                                                                             |
 | **SMTP HOST** og **SMTP Port**          | Den mailserver, der skal forbindes til.                                                               |
 | **SMTP Username** og **SMTP Password**  | Valgfrie. Udfyld begge eller ingen.                                                                   |
 | **Use Implicit TLS**                    | Slå til for implicit TLS, som regel på port 465. Lad den være slået fra for STARTTLS, som regel på port 587. |
 
-**Success** udløses, når SMTP-serveren tog imod beskeden. **Error** udløses, når SMTP-værten afvises, serveren ikke kan nås, eller den afviser beskeden, og videregiver fejlmeddelelsen. En manglende **To Email**, **From Email**, **SMTP HOST** eller **SMTP Port** stopper derimod kørslen.
+**Succes** udløses, når SMTP-serveren tog imod beskeden. **Fejl** udløses, når SMTP-værten afvises, serveren ikke kan nås, eller den afviser beskeden, og videregiver fejlmeddelelsen. En manglende **To Email**, **E-mail fra**, **SMTP HOST** eller **SMTP Port** stopper derimod kørslen.
 
 Blokken forbinder direkte til serveren i sine indstillinger. Den bruger ikke dit projekts [SMTP](/docs/emails/smtp)-indstillinger eller OneUptimes egen mailserver, og de e-mails, den sender, vises ikke i notifikationsloggene. For at tjekke, hvad den gjorde, ser du på workflowets [Kørsler](/docs/workflows/runs-and-logs).
 
-Forbindelser til loopback- (`localhost`, `127.0.0.1`), link-local- og cloudmetadata-adresser afvises. I OneUptime Cloud afvises også en SMTP-vært på en privat netværksadresse eller et navn, der peger på en. Selvhostede installationer kan nå en mailserver på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`. En afvist vært tager udgangen **Error**, og intet sendes.
+Forbindelser til loopback- (`localhost`, `127.0.0.1`), link-local- og cloudmetadata-adresser afvises. I OneUptime Cloud afvises også en SMTP-vært på en privat netværksadresse eller et navn, der peger på en. Selvhostede installationer kan nå en mailserver på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`. En afvist vært tager udgangen **Fejl**, og intet sendes.
 
 ## Paging
 
@@ -223,24 +223,24 @@ Vil du kun tilkalde, når noget er sandt, så sæt [If / Else](#conditions) fora
 
 ```mermaid title="Tilkald den, der har vagt, men kun ved kritiske hændelser"
 flowchart TB
-    trigger["On Create Incident"] -->|"Success"| check["If / Else"]
-    check -->|"Yes"| page["Page Whoever Is On Call"]
+    trigger["On Create Incident"] -->|"Succes"| check["If / Else"]
+    check -->|"Ja"| page["Page Whoever Is On Call"]
 ```
 
 Når du opretter et workflow, har skabelonerne under **Vagt** dette klar, og et, der tilkalder efter alvorlighed med **Switch / Case**. Dialogen **Opret en arbejdsgang** spørger, hvem hver af en skabelons tilkaldeblokke tilkalder, så workflowet åbner med det valgt. En tilkaldeblok, du tilføjer i Byggeren, siger **Click to set up**, indtil du vælger, hvem den tilkalder.
 
 | Indstilling | Hvad den gør |
 | ----------- | ------------ |
-| **Users**, **Teams**, **On-Call Schedules** eller **On-Call Policies** | Hvem der tilkaldes: hver blok har den, der hører til dens navn. Vælg efter navn, eller tryk på **{ }** for enden af rækken for at tilføje en værdi fra en tidligere blok. En værdi kan indeholde ét ID eller flere og, for **Users**, en e-mailadresse. |
+| **Brugere**, **Teams**, **Vagtplaner** eller **Vagtpolitikker** | Hvem der tilkaldes: hver blok har den, der hører til dens navn. Vælg efter navn, eller tryk på **{ }** for enden af rækken for at tilføje en værdi fra en tidligere blok. En værdi kan indeholde ét ID eller flere og, for **Brugere**, en e-mailadresse. |
 | **Page About** | Hvad tilkaldet handler om: **A new alert**, **An incident** eller **An alert**. At kvittere for tilkaldet kvitterer også for det. |
-| **Title** og **Message** | Til en ny advarsel. OneUptime opretter en advarsel ud fra dem, og den bliver blandt dine advarsler som enhver anden. |
-| **Incident ID** eller **Alert ID** | Til en hændelse eller en advarsel, der allerede findes, som regel den, workflowet startede på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
-| **Page As** | Til en hændelse eller en advarsel, der allerede findes, under **Flere felter**. **Responders** tager sig af den. **Observers** holdes orienteret, mens andre håndterer den: når de kvitterer for deres tilkaldelse, siger det kun, at de har set den, og hændelsen eller advarslen bliver ikke kvitteret. |
-| **Severity** | Til en ny advarsel, under **Flere felter**. Den afgør, hvilke af hver persons vagtregler der tilkalder personen. Står den tom, er det projektets mest alvorlige. |
+| **Titel** og **Besked** | Til en ny advarsel. OneUptime opretter en advarsel ud fra dem, og den bliver blandt dine advarsler som enhver anden. |
+| **Hændelses-ID** eller **Advarsels-ID** | Til en hændelse eller en advarsel, der allerede findes, som regel den, workflowet startede på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Page As** | Til en hændelse eller en advarsel, der allerede findes, under **Flere felter**. **Modtagere** tager sig af den. **Observatører** holdes orienteret, mens andre håndterer den: når de kvitterer for deres tilkaldelse, siger det kun, at de har set den, og hændelsen eller advarslen bliver ikke kvitteret. |
+| **Alvorlighed** | Til en ny advarsel, under **Flere felter**. Den afgør, hvilke af hver persons vagtregler der tilkalder personen. Står den tom, er det projektets mest alvorlige. |
 
 En blok, der føjes til et workflow, som starter på en hændelse eller en advarsel, er allerede sat til at tilkalde om den post, så den kun spørger, hvem der skal tilkaldes.
 
-**Success** kører, så snart mindst én person er tilkaldt, eller én politik er startet. **Error** kører, når ingen blev tilkaldt, og blokkens værdi **Error** siger hvorfor, for eksempel at ingen har vagt i vagtplanen. **Summary** siger i én sætning, hvem der blev tilkaldt, og hvem der blev udeladt, klar til at slå op i en kanal, og **Paged Users** oplister de tilkaldte personer.
+**Succes** kører, så snart mindst én person er tilkaldt, eller én politik er startet. **Fejl** kører, når ingen blev tilkaldt, og blokkens værdi **Fejl** siger hvorfor, for eksempel at ingen har vagt i vagtplanen. **Oversigt** siger i én sætning, hvem der blev tilkaldt, og hvem der blev udeladt, klar til at slå op i en kanal, og **Paged Users** oplister de tilkaldte personer.
 
 En person, der er fraværende, tilkaldes ikke: i stedet tilkaldes den, personens brugeroverride nævner som dækning. Et tilkald nævner højst 100 personer, teams og vagtplaner. Se [Sådan nås hver person](/docs/on-call/escalation-rules#sådan-nås-hver-person).
 
@@ -255,7 +255,7 @@ Kør et par linjer JavaScript, når de andre blokke ikke kan det, du har brug fo
 
 | Indstilling         | Hvad den gør                                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **JavaScript Code** | Din kode. Det, den returnerer med `return`, bliver blokkens **Value**. Den kan bruge `await`.                                       |
+| **JavaScript-kode** | Din kode. Det, den returnerer med `return`, bliver blokkens **Værdi**. Den kan bruge `await`.                                       |
 | **Arguments**       | Et JSON-objekt med værdier til koden, som læser dem som `args`. Sæt variabler og værdier fra tidligere blokke her; selve koden kan ikke læse dem. |
 
 ```json title="Arguments"
@@ -275,15 +275,15 @@ En senere blok læser den korte titel som `{{local.components.javascript-1.retur
 
 Koden kører i en sandkasse med `args`, `console.log` (skrevet til kørslens log), `axios` til HTTP-forespørgsler, `crypto` og `sleep`. Den har intet filsystem og ingen proces, og dens forespørgsler er underlagt de samme adresseregler som API-blokken. Den har 5 sekunder som standard; en selvhostet installation ændrer det med `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
-**Success** udløses med den returnerede **Value**, og **Error**, når koden kaster en fejl eller løber tør for tid, med meddelelsen i **Error**. Til tungere scripts bruger du i stedet en [Runbook](/docs/runbooks/index).
+**Succes** udløses med den returnerede **Værdi**, og **Fejl**, når koden kaster en fejl eller løber tør for tid, med meddelelsen i **Fejl**. Til tungere scripts bruger du i stedet en [Runbook](/docs/runbooks/index).
 
 ## Check With JavaScript
 
-Kør et par linjer JavaScript, og tag derefter **Yes** eller **No** efter det, de returnerer: en [Custom Code](#custom-code)-blok og en [If / Else](#conditions) efter den, i én blok. Brug den, når én sammenligning ikke er nok til at afgøre det, for eksempel for at læse, hvad et andet værktøj sendte, og springe over det, workflowet skal lade være.
+Kør et par linjer JavaScript, og tag derefter **Ja** eller **Nej** efter det, de returnerer: en [Custom Code](#custom-code)-blok og en [If / Else](#conditions) efter den, i én blok. Brug den, når én sammenligning ikke er nok til at afgøre det, for eksempel for at læse, hvad et andet værktøj sendte, og springe over det, workflowet skal lade være.
 
 | Indstilling         | Hvad den gør |
 | ------------------- | ------------ |
-| **JavaScript Code** | Din kode. `return true` tager **Yes**. For også at give værdier videre returnerer du et objekt med `proceed: true`, værdierne og en `reason`. |
+| **JavaScript-kode** | Din kode. `return true` tager **Ja**. For også at give værdier videre returnerer du et objekt med `proceed: true`, værdierne og en `reason`. |
 | **Arguments**       | Et JSON-objekt med værdier til koden, som læser dem som `args`, som i **Run Custom JavaScript**. |
 
 ```javascript title="JavaScript Code"
@@ -294,9 +294,9 @@ if (args.environment !== "production") {
 return { proceed: true, title: args.title.toUpperCase() };
 ```
 
-Kun `true`, eller et objekt, hvis `proceed` er `true`, tager **Yes**: alt andet tager **No**, også et tal eller en tekst. Blokken returnerer **Value**, det koden returnerede, som en senere blok læser som `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, og **Reason**, kodens `reason` eller det, den returnerede, i én sætning, som kørslens fane **Trin** viser ved siden af den udgang, der blev taget.
+Kun `true`, eller et objekt, hvis `proceed` er `true`, tager **Ja**: alt andet tager **Nej**, også et tal eller en tekst. Blokken returnerer **Værdi**, det koden returnerede, som en senere blok læser som `{{local.components.javascript-check-1.returnValues.returnValue.title}}`, og **Årsag**, kodens `reason` eller det, den returnerede, i én sætning, som kørslens fane **Trin** viser ved siden af den udgang, der blev taget.
 
-Koden kører, som **Run Custom JavaScript** kører den: i den samme sandkasse, med de samme `args`, `console.log` og `axios`, og med den samme tidsgrænse. Når den kaster en fejl eller løber tør for tid, tager blokken **Error**.
+Koden kører, som **Run Custom JavaScript** kører den: i den samme sandkasse, med de samme `args`, `console.log` og `axios`, og med den samme tidsgrænse. Når den kaster en fejl eller løber tør for tid, tager blokken **Fejl**.
 
 ## JSON
 
@@ -304,24 +304,24 @@ Konvertér mellem tekst og JSON, eller kombiner to JSON-objekter.
 
 | Blok             | Tager                                    | Returnerer                                                                                                 |
 | ---------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **JSON to Text** | **JSON**, et objekt                      | **Text**: objektet som en streng. Praktisk, når den næste blok forventer tekst.                            |
-| **Text to JSON** | **Text**, der kan fylde flere linjer     | **JSON**: det fortolkede objekt, så du kan læse dets felter. Brug den på JSON, der kom som tekst.          |
+| **JSON to Text** | **JSON**, et objekt                      | **Tekst**: objektet som en streng. Praktisk, når den næste blok forventer tekst.                            |
+| **Text to JSON** | **Tekst**, der kan fylde flere linjer     | **JSON**: det fortolkede objekt, så du kan læse dets felter. Brug den på JSON, der kom som tekst.          |
 | **Merge JSON**   | **JSON 1** og **JSON 2**                 | **JSON**: ét objekt med nøglerne fra begge. Hvor begge har en nøgle, vinder **JSON 2**.                    |
 
-**Text to JSON** tager **Error**, når teksten ikke er JSON. Et manglende input, eller et input til **Merge JSON**, der ikke er et objekt, stopper kørslen.
+**Text to JSON** tager **Fejl**, når teksten ikke er JSON. Et manglende input, eller et input til **Merge JSON**, der ikke er et objekt, stopper kørslen.
 
 ## Conditions
 
 Forgren på en sammenligning. I panelet **Tilføj komponent** hedder denne blok **If / Else**, under **Populære**. Brug [Switch / Case](#switch-case) for at vælge mellem mere end to veje.
 
-Dens indstillinger læses som en sætning: **Hvis** *værdi, der skal tjekkes* *sammenligning* *værdi, der sammenlignes med*, fortsæt på **Yes**, ellers på **No**. Under indstillingerne læses betingelsen tilbage med ord, så du kan se, at den siger det, du mener. På lærredet viser blokken også sin betingelse, for eksempel *Hvis environment is equal to “production”*.
+Dens indstillinger læses som en sætning: **Hvis** *værdi, der skal tjekkes* *sammenligning* *værdi, der sammenlignes med*, fortsæt på **Ja**, ellers på **Nej**. Under indstillingerne læses betingelsen tilbage med ord, så du kan se, at den siger det, du mener. På lærredet viser blokken også sin betingelse, for eksempel *Hvis environment is equal to “production”*.
 
 | Indstilling        | Hvad den gør                                                                                                                             |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | **Værdi, der skal tjekkes** | Som regel en værdi fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`.                                    |
 | **Sammenligning**     | Hvordan der sammenlignes, med ord. Sammenligningerne står nedenfor.                                                                      |
 | **Sammenlign med**   | Det, der sammenlignes med, skrevet eller valgt på samme måde. **er tom**, **er ikke tom**, **er sand** og **er falsk** bruger det ikke.   |
-| **Sammenlign som**     | Foldet væk under sammenligningen: **Text**, **Tal** eller **Sand / Falsk**. Vælg **Text** for at sortere datoer skrevet `2026-10-01`, eller **Tal** for at gøre `200` og `200.0` ens. |
+| **Sammenlign som**     | Foldet væk under sammenligningen: **Tekst**, **Tal** eller **Sand / Falsk**. Vælg **Tekst** for at sortere datoer skrevet `2026-10-01`, eller **Tal** for at gøre `200` og `200.0` ens. |
 
 Sammenligningerne:
 
@@ -338,32 +338,32 @@ Talsammenligningerne sammenligner tal, og tekstsammenligningerne sammenligner te
 - Som sand eller falsk tæller kun `true` som sand.
 - **er tom** opfyldes af slet ingenting, blank tekst, en tom liste eller et tomt objekt, eller en værdi, som den tidligere blok ikke havde, som et felt, webhooken ikke sendte. `0` og `false` er værdier, så de er ikke tomme.
 
-**Yes** kører, når betingelsen er opfyldt, og **No**, når den ikke er. Blokke, der blev sat op, før indstillingerne havde disse navne, kører præcis som før. Et gammelt valg tilbydes ikke længere: at sammenligne en værdi som **Null** eller **Udefineret**, hvilket ignorerede, hvad værdien indeholdt. En blok, der stadig bruger det, siger det, når du åbner den; vælg **er tom** for at tjekke for en manglende værdi.
+**Ja** kører, når betingelsen er opfyldt, og **Nej**, når den ikke er. Blokke, der blev sat op, før indstillingerne havde disse navne, kører præcis som før. Et gammelt valg tilbydes ikke længere: at sammenligne en værdi som **Null** eller **Udefineret**, hvilket ignorerede, hvad værdien indeholdt. En blok, der stadig bruger det, siger det, når du åbner den; vælg **er tom** for at tjekke for en manglende værdi.
 
 ## Switch / Case
 
 Tag én af flere veje afhængigt af en værdi. I panelet **Tilføj komponent** hedder denne blok **Switch / Case**, under **Populære**.
 
-Den sammenligner én værdi med hvert af sine tilfælde efter tur, fra toppen, og fortsætter ad det første tilfælde, der passer, eller ad **Default**, når intet passer. Kun én vej kører: en værdi, der passer med to tilfælde, tager det første af dem.
+Den sammenligner én værdi med hvert af sine tilfælde efter tur, fra toppen, og fortsætter ad det første tilfælde, der passer, eller ad **Standard**, når intet passer. Kun én vej kører: en værdi, der passer med to tilfælde, tager det første af dem.
 
 | Indstilling        | Hvad den gør |
 | ------------------ | ------------ |
 | **Værdi, der skal tjekkes** | Den værdi, hvert tilfælde sammenlignes med, som regel fra en tidligere blok. Tryk på **{ }** i feltet for at vælge en, eller skriv `{{`. |
-| **Cases**          | En sammenligning og en værdi for hver vej, tjekket fra toppen. Tryk på **Tilføj tilfælde** for at tilføje et til, og træk et tilfælde i dets greb for at flytte det. En blok kan have højst 25 tilfælde. |
+| **Tilfælde**          | En sammenligning og en værdi for hver vej, tjekket fra toppen. Tryk på **Tilføj tilfælde** for at tilføje et til, og træk et tilfælde i dets greb for at flytte det. En blok kan have højst 25 tilfælde. |
 
-Hvert tilfælde er en udgang på lærredet, opkaldt efter sin værdi: et tilfælde, der spørger **er lig med** `production`, er udgangen *production*, og et, der spørger **er større end** `500`, er *is greater than 500*. **Default** er altid den sidste udgang. Forbind hver udgang med det, der skal køre bagefter.
+Hvert tilfælde er en udgang på lærredet, opkaldt efter sin værdi: et tilfælde, der spørger **er lig med** `production`, er udgangen *production*, og et, der spørger **er større end** `500`, er *is greater than 500*. **Standard** er altid den sidste udgang. Forbind hver udgang med det, der skal køre bagefter.
 
-Et tilfælde passer præcis, når en [If / Else](#conditions) med samme sammenligning og værdi ville tage **Yes**: sammenligningerne er de samme, og værdierne sammenlignes på samme måde. **Sammenlign som** er foldet væk under tilfældene, med et valg for hvert tilfælde.
+Et tilfælde passer præcis, når en [If / Else](#conditions) med samme sammenligning og værdi ville tage **Ja**: sammenligningerne er de samme, og værdierne sammenlignes på samme måde. **Sammenlign som** er foldet væk under tilfældene, med et valg for hvert tilfælde.
 
 Når du fjerner et tilfælde, der har en forbindelse, viser indstillingerne, hvilke blokke det førte til, og **Gendan** henter tilfældet tilbage. Når du gemmer, fjernes forbindelsen sammen med tilfældet. Byggerens tjek gør opmærksom på et tilfælde, som intet er forbundet til, og på et tilfælde, der aldrig bliver valgt, fordi et tilfælde ovenover spørger om det samme.
 
-En kørsel, der tager en udgang, som intet er forbundet til, **Default** medregnet, slutter der uden fejl. Kørslens fane **Trin** viser, hvilket tilfælde der passede og hvorfor, for eksempel *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
+En kørsel, der tager en udgang, som intet er forbundet til, **Standard** medregnet, slutter der uden fejl. Kørslens fane **Trin** viser, hvilket tilfælde der passede og hvorfor, for eksempel *Case 2 matched: the value is equal to “staging”. Case 1 did not.*
 
 ## Sleep
 
 Sæt kørslen på pause før den næste blok, for at give et andet system et øjeblik til at indhente sig eller for at følge op senere.
 
-**Days**, **Hours**, **Minutes** og **Seconds** lægges sammen. Den længste ventetid er 30 dage: en længere afkortes til 30 dage, og kørslens log siger det.
+**Dage**, **Timer**, **Minutter** og **Sekunder** lægges sammen. Den længste ventetid er 30 dage: en længere afkortes til 30 dage, og kørslens log siger det.
 
 Mens den venter, lægges kørslen til side med status **Venter** og samles op igen, når tiden er gået, så en lang ventetid holder intet op. En kørsel, hvis workflow i mellemtiden blev slået fra eller arkiveret, annulleres, når den vågner. En testkørsel, startet mens workflowet var slået fra, annulleres ikke, fordi det er slået fra.
 
@@ -371,7 +371,7 @@ Mens den venter, lægges kørslen til side med status **Venter** og samles op ig
 
 Skriv en værdi til kørslens log. Den ændrer intet andet sted, hvilket gør den til den nemmeste måde at se, hvad en værdi indeholdt.
 
-**Value** er det, der skal skrives. Den kan fylde flere linjer og indeholde værdier fra tidligere blokke, som `{{local.components.webhook-1.returnValues.request-body}}`. Blokken tager **Out**, når den er færdig.
+**Værdi** er det, der skal skrives. Den kan fylde flere linjer og indeholde værdier fra tidligere blokke, som `{{local.components.webhook-1.returnValues.request-body}}`. Blokken tager **Ud**, når den er færdig.
 
 ## Execute Workflow
 
@@ -379,10 +379,10 @@ Start et andet workflow i samme projekt. Dit workflow fortsætter uden at vente 
 
 | Indstilling   | Hvad den gør                                                                                                                              |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Workflow**  | Det workflow, der skal startes. Det skal være aktiveret og, for at modtage argumenter, have en **Manual**-trigger.                        |
+| **Arbejdsgang**  | Det workflow, der skal startes. Det skal være aktiveret og, for at modtage argumenter, have en **Manuel**-trigger.                        |
 | **Arguments** | JSON, der skal sendes med. Det andet workflows Manual-trigger giver hver nøgle videre som en værdi for sig: med `{"customerId": "42"}` læser det `{{local.components.manual-1.returnValues.customerId}}`. |
 
-**Out** udløses, så snart det andet workflow står i kø. **Error** udløses, når det ikke kan: det findes ikke, er slået fra eller arkiveret, eller at starte det ville give en løkke.
+**Ud** udløses, så snart det andet workflow står i kø. **Fejl** udløses, når det ikke kan: det findes ikke, er slået fra eller arkiveret, eller at starte det ville give en løkke.
 
 Brug det til at dele fælles logik: byg et «post i hændelseskanalen»-workflow én gang, og start det fra hvert workflow, der har brug for det. En kæde af workflows, der starter hinanden, kan ikke gå i ring tilbage til sig selv og er højst 10 led dyb. Se [Konfiguration og sikkerhed](/docs/workflows/configuration#grænse-for-at-kalde-andre-workflows).
 
@@ -390,11 +390,11 @@ Brug det til at dele fælles logik: byg et «post i hændelseskanalen»-workflow
 
 Hold én hændelse, eller én advarsel, for hvert problem, et andet værktøj fortæller dig om, parret via det værktøjs eget ID for det. **Incident From Another Tool** og **Alert From Another Tool** er det, skabelonerne til Zabbix, Huntress, Jira og Dynamics 365 er bygget på, og de virker for ethvert værktøj, der kan kalde et workflows [Webhook-trigger](/docs/workflows/triggers#webhook). I panelet **Tilføj komponent** ligger de under **From Other Tools**.
 
-Hver kørsel giver blokken én begivenhed: **What Happened**, og **Outside ID**, værktøjets ID for problemet. Blokken leder efter den post, der har det ID, og gør, hvad **What Happened** siger:
+Hver kørsel giver blokken én begivenhed: **Hvad der skete**, og **Outside ID**, værktøjets ID for problemet. Blokken leder efter den post, der har det ID, og gør, hvad **Hvad der skete** siger:
 
 | What Happened | Hvad blokken gør |
 | ------------- | ---------------- |
-| `open`, `problem`, `firing`, `triggered` eller `created` | Åbner en hændelse, eller opretter en advarsel, ud fra **Title**, **Description** og **Severity**, medmindre en post allerede har ID'et. |
+| `open`, `problem`, `firing`, `triggered` eller `created` | Åbner en hændelse, eller opretter en advarsel, ud fra **Titel**, **Beskrivelse** og **Alvorlighed**, medmindre en post allerede har ID'et. |
 | `acknowledge` eller `acknowledged` | Flytter posten til din første kvitterede tilstand, med **Note** som årsag i dens historik. |
 | `resolve`, `resolved`, `recovery`, `ok` eller `closed` | Flytter posten til din første løste tilstand, med **Note** som årsag i dens historik. |
 | `note`, `update` eller `comment` | Tilføjer **Note** til posten som en privat note. |
@@ -402,16 +402,16 @@ Hver kørsel giver blokken én begivenhed: **What Happened**, og **Outside ID**,
 
 | Udgang | Hvornår |
 | ------ | ------- |
-| **Opened**, eller **Created** på blokken til advarsler | Den åbnede en ny post. Forbind en tilkaldeblok her, så kun et nyt problem tilkalder nogen. |
-| **Updated** | Den flyttede posten til en anden tilstand eller tilføjede noten. |
-| **Unchanged** | Der var intet at gøre: ingen post har ID'et, posten er allerede i den tilstand eller længere fremme, eller **What Happened** er tom. |
-| **Error** | Den kunne ikke læse eller ændre posten. Er intet forbundet her, mislykkes kørslen. |
+| **Åbnet**, eller **Oprettet** på blokken til advarsler | Den åbnede en ny post. Forbind en tilkaldeblok her, så kun et nyt problem tilkalder nogen. |
+| **Opdateret** | Den flyttede posten til en anden tilstand eller tilføjede noten. |
+| **Uændret** | Der var intet at gøre: ingen post har ID'et, posten er allerede i den tilstand eller længere fremme, eller **Hvad der skete** er tom. |
+| **Fejl** | Den kunne ikke læse eller ændre posten. Er intet forbundet her, mislykkes kørslen. |
 
-En post bevæger sig kun fremad, og en løst post slet ikke, så når begge værktøjer ændrer den, gør ingen af dem det om, som det andet gjorde. Den gemmer ID'et i et brugerdefineret felt, `externalId`, medmindre **Outside ID Field** nævner et andet, og kun det felt skrives, så postens øvrige brugerdefinerede felter beholder deres værdier. Et ID, som en post har, åbnes aldrig igen, heller ikke når posten er løst: brug et ID, der er nyt for hvert problem, som et Zabbix-hændelses-ID eller et Huntress-rapportnummer er. For i stedet at handle på en post ud fra dens eget ID, som Jira-skabelonerne gør med det ID, en issues etiketter bærer, sætter du det i **Incident ID** eller **Alert ID**.
+En post bevæger sig kun fremad, og en løst post slet ikke, så når begge værktøjer ændrer den, gør ingen af dem det om, som det andet gjorde. Den gemmer ID'et i et brugerdefineret felt, `externalId`, medmindre **Outside ID Field** nævner et andet, og kun det felt skrives, så postens øvrige brugerdefinerede felter beholder deres værdier. Et ID, som en post har, åbnes aldrig igen, heller ikke når posten er løst: brug et ID, der er nyt for hvert problem, som et Zabbix-hændelses-ID eller et Huntress-rapportnummer er. For i stedet at handle på en post ud fra dens eget ID, som Jira-skabelonerne gør med det ID, en issues etiketter bærer, sætter du det i **Hændelses-ID** eller **Advarsels-ID**.
 
-**Severity** nævner en af dine alvorligheder ved dens navn eller ID, uanset store og små bogstaver, eller ved dens plads blandt dem: `most severe`, `middle` eller `least severe`. Sådan fordeles et værktøjs egne niveauer over de alvorligheder, du selv har navngivet. Står den tom, eller nævner den ingen af dem, er det din mest alvorlige, og kørslens log siger det. En ny hændelse holdes væk fra dine statussider, og deres abonnenter får ikke besked, fordi et andet værktøjs tekst er skrevet til det værktøjs brugere: slå **Show On Status Pages** til for at vise den.
+**Alvorlighed** nævner en af dine alvorligheder ved dens navn eller ID, uanset store og små bogstaver, eller ved dens plads blandt dem: `most severe`, `middle` eller `least severe`. Sådan fordeles et værktøjs egne niveauer over de alvorligheder, du selv har navngivet. Står den tom, eller nævner den ingen af dem, er det din mest alvorlige, og kørslens log siger det. En ny hændelse holdes væk fra dine statussider, og deres abonnenter får ikke besked, fordi et andet værktøjs tekst er skrevet til det værktøjs brugere: slå **Show On Status Pages** til for at vise den.
 
-Under **Flere felter** er **Reason** årsagen i postens historik, når den flytter sig, og **Note** tilføjes så ved siden af som en privat note, til et værktøj, der siger noget, når det kvitterer eller løser. **Custom Fields** giver en ny post flere brugerdefinerede felter, som et JSON-objekt, **Labels** ID'erne på dens etiketter, adskilt af kommaer, og **Berørte ressourcer** de ressourcer, den handler om, som på **Create One Incident**. **Note Instead Of Resolving** tilføjer noten og lader dit team løse posten. Blokken returnerer **Summary**, det den gjorde, i én sætning, og posten, så en senere blok læser dens ID som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Under **Flere felter** er **Årsag** årsagen i postens historik, når den flytter sig, og **Note** tilføjes så ved siden af som en privat note, til et værktøj, der siger noget, når det kvitterer eller løser. **Brugerdefinerede felter** giver en ny post flere brugerdefinerede felter, som et JSON-objekt, **Etiketter** ID'erne på dens etiketter, adskilt af kommaer, og **Berørte ressourcer** de ressourcer, den handler om, som på **Create One Incident**. **Note Instead Of Resolving** tilføjer noten og lader dit team løse posten. Blokken returnerer **Oversigt**, det den gjorde, i én sætning, og posten, så en senere blok læser dens ID som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -420,15 +420,15 @@ Kvitter for eller luk et problem i Zabbix, eller tilføj en besked til det, genn
 | Indstilling | Hvad den gør |
 | ----------- | ------------ |
 | **Zabbix URL** | Den adresse, du åbner Zabbix på, for eksempel `https://zabbix.example.com`. Forespørgsler går til dens `api_jsonrpc.php`. |
-| **API Token** | Et API-token for en Zabbix-bruger, der må kvittere for, kommentere og lukke problemer. Gem det i en hemmelig variabel. |
-| **Event ID** | Problemets hændelses-ID, som regel det, en hændelse eller en advarsel gemmer i sine brugerdefinerede felter. |
+| **API-token** | Et API-token for en Zabbix-bruger, der må kvittere for, kommentere og lukke problemer. Gem det i en hemmelig variabel. |
+| **Begivenheds-ID** | Problemets hændelses-ID, som regel det, en hændelse eller en advarsel gemmer i sine brugerdefinerede felter. |
 | **What To Do** | `acknowledge`, `close` eller `message`. Står den tom, opdateres Zabbix ikke. |
-| **Message** | Det, Zabbix gemmer på problemet, højst 2.048 tegn: en længere besked bliver afkortet. |
+| **Besked** | Det, Zabbix gemmer på problemet, højst 2.048 tegn: en længere besked bliver afkortet. |
 | **Zabbix 6.0** | Under **Flere felter**. Zabbix 6.0 læser tokenet fra forespørgslens body, ikke fra dens `Authorization`-header: slå dette til for den, og fra igen, når du opgraderer, for Zabbix 7.2 og senere afviser et token i body. |
 
-For at kvittere eller lukke læser blokken først problemet. Et problem, som Zabbix allerede har løst, eller allerede har kvitteret for, når det er alt, du beder om, bliver ladt, som det er, og blokken tager **Unchanged**, ligesom for et problem, Zabbix ikke har, eller som tokenets bruger ikke kan se. Et problem, hvis trigger ikke tillader, at problemer lukkes manuelt, bliver kvitteret for i stedet, og dets besked siger, at det forbliver åbent, indtil Zabbix ser det komme sig.
+For at kvittere eller lukke læser blokken først problemet. Et problem, som Zabbix allerede har løst, eller allerede har kvitteret for, når det er alt, du beder om, bliver ladt, som det er, og blokken tager **Uændret**, ligesom for et problem, Zabbix ikke har, eller som tokenets bruger ikke kan se. Et problem, hvis trigger ikke tillader, at problemer lukkes manuelt, bliver kvitteret for i stedet, og dets besked siger, at det forbliver åbent, indtil Zabbix ser det komme sig.
 
-**Updated** udløses, når Zabbix tog imod opdateringen, og **Error**, når Zabbix ikke kunne nås eller afviste den, med Zabbix' begrundelse: Zabbix besvarer en afvist forespørgsel med en successtatus, så blokken læser, hvad Zabbix svarede, i stedet for statussen. Den returnerer **Summary**, det den gjorde, i én sætning.
+**Opdateret** udløses, når Zabbix tog imod opdateringen, og **Fejl**, når Zabbix ikke kunne nås eller afviste den, med Zabbix' begrundelse: Zabbix besvarer en afvist forespørgsel med en successtatus, så blokken læser, hvad Zabbix svarede, i stedet for statussen. Den returnerer **Oversigt**, det den gjorde, i én sætning.
 
 ## OpenStack
 
@@ -477,9 +477,9 @@ Disse komponenter handler som Project Admin for workflowets projekt: det, en Pro
 
 ### Erklær en hændelse ud fra en skabelon
 
-**Create One Incident** kan erklære hændelsen ud fra en af dine [hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner): vælg den under **Incident Template**, trinnets første indstilling. Skabelonen udfylder alle de felter, som **JSON Object** udelader — titlen, beskrivelsen, alvorligheden, starttilstanden, monitorerne og andre ressourcer, vagtpolitikkerne, etiketterne, statussiderne og de brugerdefinerede felter — og dens ejere bliver hændelsens ejere. Alt, hvad du angiver i **JSON Object**, går forud for skabelonens, også tilstanden, så med en valgt skabelon behøver **JSON Object** kun det, der skal være anderledes, og kan stå tomt.
+**Create One Incident** kan erklære hændelsen ud fra en af dine [hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner): vælg den under **Hændelsesskabelon**, trinnets første indstilling. Skabelonen udfylder alle de felter, som **JSON Object** udelader — titlen, beskrivelsen, alvorligheden, starttilstanden, monitorerne og andre ressourcer, vagtpolitikkerne, etiketterne, statussiderne og de brugerdefinerede felter — og dens ejere bliver hændelsens ejere. Alt, hvad du angiver i **JSON Object**, går forud for skabelonens, også tilstanden, så med en valgt skabelon behøver **JSON Object** kun det, der skal være anderledes, og kan stå tomt.
 
-Hændelsen registrerer den skabelon, den blev erklæret ud fra, i `createdIncidentTemplateId`. Den kolonne sætter OneUptime selv: et trin, der sender den i **JSON Object**, afvises, og dets kørselslog henviser dig til **Incident Template**. En skabelon fra et andet projekt, eller en, der er slettet, får trinnet til at tage sin udgang **Error**, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, der kræves. Se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon).
+Hændelsen registrerer den skabelon, den blev erklæret ud fra, i `createdIncidentTemplateId`. Den kolonne sætter OneUptime selv: et trin, der sender den i **JSON Object**, afvises, og dets kørselslog henviser dig til **Hændelsesskabelon**. En skabelon fra et andet projekt, eller en, der er slettet, får trinnet til at tage sin udgang **Fejl**, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, der kræves. Se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon).
 
 ### Knyt de ressourcer til, det handler om
 
@@ -495,7 +495,7 @@ Hvert felt på en datakomponent bruger postens egne **kolonne**navne — de samm
 { "_id": "00000000-0000-0000-0000-000000000000" }
 ```
 
-**Query** afgør, hvilke poster komponenten arbejder på. Nøgler er kolonner, værdier er det, der skal matches:
+**Forespørgsel** afgør, hvilke poster komponenten arbejder på. Nøgler er kolonner, værdier er det, der skal matches:
 
 ```json
 { "monitorType": "Website", "isEnabled": true }
@@ -527,11 +527,11 @@ Et felt, der peger på en anden post, for eksempel en hændelses alvorlighed, vi
 
 Felter, som OneUptime selv udfylder, tilbydes ikke, når du skriver en post: postens `_id`, **Oprettet den**, **Opdateret den**, **Oprettet af bruger**, slugs, postnumre og notifikationsstatusser. Hvem der oprettede, arkiverede eller løste en post, og hvornår, er aldrig et workflows at sætte: en post, som et workflow opretter, er oprettet af ingen, en værdi, et workflow sender for et af de felter ved siden af andre felter, ignoreres, og en Update, der ikke sender andet, mislykkes med en meddelelse, der nævner dem. En opdatering tilbyder kun felter, der kan ændres, efter at en post findes. En forespørgsel tilbyder stadig ID'et, tidsstemplerne og **Oprettet af bruger**, fordi de er nyttige at filtrere på. **Deleted At** tilbydes ingen steder: poster slettes helt, så det er altid tomt.
 
-**Skip** og **Limit** er to talfelter på Find Many, Update Many og Delete Many, under **Flere felter** — `Skip: 0` med `Limit: 100` tager de første hundrede match. **Limit** er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk skrives, ikke kun hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Hæv **Limit**, når du vil ændre mere end ti.
+**Spring over** og **Limit** er to talfelter på Find Many, Update Many og Delete Many, under **Flere felter** — `Skip: 0` med `Limit: 100` tager de første hundrede match. **Limit** er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk skrives, ikke kun hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Hæv **Limit**, når du vil ændre mere end ti.
 
 Delete One og Delete Many efter forespørgsel tømmer aldrig en historik. På en monitors statusbegivenheder og på tilstandshistorikken for hændelser, advarsler, vedligeholdelseshændelser og episoder fjerner de aldrig en posts aktuelle tilstand, og de beholder hver statusbegivenhed for en monitor, der dækker en del af de seneste 90 dage, så en statusside aldrig viser en monitor grå. Kørslens log siger, hvor mange der blev beholdt. For at slette én bestemt begivenhed skal du forespørge den på dens `_id`.
 
-**Success** og **Error** siger, om forespørgslen kørte, ikke hvad den fandt. En forespørgsel, der ikke matcher noget, returnerer `0` og går stadig ud via **Success** — det er ikke en fejl. For at forgrene på, om noget matchede, læser du det returnerede antal i en **If / Else**-blok.
+**Succes** og **Fejl** siger, om forespørgslen kørte, ikke hvad den fandt. En forespørgsel, der ikke matcher noget, returnerer `0` og går stadig ud via **Succes** — det er ikke en fejl. For at forgrene på, om noget matchede, læser du det returnerede antal i en **If / Else**-blok.
 
 ## Næste trin
 

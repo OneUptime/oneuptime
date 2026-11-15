@@ -329,6 +329,7 @@ describe("IncidentMeasurementService", () => {
       expect(data["backfillRequestedAt"]).toBeInstanceOf(Date);
       // Cleared, or the restarted backfill would resume mid-way through.
       expect(data["backfillCursorCreatedAt"]).toBeNull();
+      expect(data["backfillCursorId"]).toBeNull();
       expect(data["backfillCompletedAt"]).toBeNull();
     });
 

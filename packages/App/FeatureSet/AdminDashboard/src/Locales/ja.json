@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "このプロジェクトが持てるアクティブなモニターの最大数です。上限なしにするには空欄のままにしてください。",
       "noMonitorLimit": "上限なし",
       "overMonitorLimit": "上限を {{over}} 超過",
-      "atMonitorLimit": "上限に到達"
+      "atMonitorLimit": "上限に到達",
+      "userLimitCardTitle": "ユーザー",
+      "userLimitCardDescription": "保留中の招待を含め、プロジェクトの全員が数えられます。上限に達すると新しい人は参加できませんが、すでに参加している人はそのまま残ります。リセラーが次にティアを変更すると上書きされます。Free プランのプロジェクトは、さらに1人までに制限されます。",
+      "userLimitEditButton": "ユーザー上限を編集",
+      "fieldUsers": "ユーザー",
+      "fieldUserLimit": "ユーザーの上限",
+      "fieldUserLimitDescription": "保留中の招待を含め、このプロジェクトが持てるユーザーの最大数です。上限なしにするには空欄のままにしてください。",
+      "noUserLimit": "上限なし",
+      "overUserLimit": "上限を {{over}} 超過",
+      "atUserLimit": "上限に到達"
     },
     "projectSupport": {
       "title": "カスタマーサポートのアクセス",
@@ -2681,7 +2690,7 @@
   "Color picker: {{color}}": "カラーピッカー: {{color}}",
   "Copy {{name}}": "{{name}} をコピー",
   "+{{count}} more": "ほか {{count}} 件",
-  "+{{count}} more_one": "+{{count}} more",
+  "+{{count}} more_one": "ほか {{count}} 件",
   "Download {{name}}": "{{name}} をダウンロード",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP（最大 {{size}}）。",
   "Upload a file": "ファイルをアップロード",

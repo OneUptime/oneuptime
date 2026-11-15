@@ -129,11 +129,11 @@ Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y 
 
 ### Comprueba el título
 
-Haz clic en **Añadir componente**, elige **If / Else** y conecta el punto **Success** del desencadenante con él. Pon **Valor que comprobar** en el título de la alerta (haz clic en **{ }** y elígelo), **Comparación** en **contiene** y **Comparar con** en el comienzo que comparten los títulos de tus detonantes, como `LLM budget exceeded`.
+Haz clic en **Añadir componente**, elige **If / Else** y conecta el punto **Éxito** del desencadenante con él. Pon **Valor que comprobar** en el título de la alerta (haz clic en **{ }** y elígelo), **Comparación** en **contiene** y **Comparar con** en el comienzo que comparten los títulos de tus detonantes, como `LLM budget exceeded`.
 
 ### Llama a tu endpoint
 
-Añade **API Post (JSON)** y conecta el punto **Yes** del **If / Else** con él. Pon su **URL** en tu endpoint, como `https://agents.example.com/circuit-breaker`, y rellena las cabeceras y el cuerpo de abajo.
+Añade **API Post (JSON)** y conecta el punto **Sí** del **If / Else** con él. Pon su **URL** en tu endpoint, como `https://agents.example.com/circuit-breaker`, y rellena las cabeceras y el cuerpo de abajo.
 
 ### Avisa de un fallo
 
@@ -144,7 +144,7 @@ Añade **Send Message to Slack**, o **Send Email**, y conecta el punto **Error**
 Activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
-Las **Request Headers** del bloque de API:
+Las **Encabezados de la solicitud** del bloque de API:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ Las **Request Headers** del bloque de API:
 }
 ```
 
-Su **Request Body**:
+Su **Cuerpo de la solicitud**:
 
 ```json title="Request Body"
 {

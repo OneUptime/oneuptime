@@ -11,8 +11,10 @@ import {
   DataStoreContentScanStop,
   DataStoreContentScanner,
   DataStoreNextContentScan,
+  DataStoreScanNowRefusal,
   getDataStoreContentScanStop,
   getDataStoreNextContentScan,
+  getDataStoreScanNowRefusal,
 } from "Common/Utils/DataSecurity/DataStoreContentScanSchedule";
 import { ClaimDue, ClaimDueState } from "Common/Utils/Probe/ClaimDueTime";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -182,11 +184,11 @@ export function getStoreNextContentScanWords(
 }
 
 /*
- * Why Scan Now would scan nothing, or undefined when it scans. Scan Now
- * makes the store due now and asks a worker to scan it: a probe's store is
- * scanned only if its claim hands it out, and a worker scans none for a
- * project whose content scanning is off, nor a kind it cannot sample. A
- * worker scans an archived store it is asked to, so that one is allowed. A
+ * Why Scan Now would scan nothing, or undefined when it scans: the rule
+ * the server's route refuses by (getDataStoreScanNowRefusal). Scan Now
+ * makes the store due now and asks a worker to scan it: a store is scanned
+ * only if its claim would hand it out - an archived one never is, and the
+ * workers' scan reads the claim's rule before it reads anything. A
  * service's telemetry is read by the hourly telemetry scan, never by Scan
  * Now, which recorded a skipped scan for it.
  */
@@ -195,33 +197,39 @@ export function getStoreScanNowRefusal(
   translator: Translator,
   probeName?: string | null | undefined,
 ): string | undefined {
-  const next: DataStoreNextContentScan = getDataStoreNextContentScan(
-    facts,
-    new Date(),
-  );
+  const refusal: DataStoreScanNowRefusal | null =
+    getDataStoreScanNowRefusal(facts);
 
-  if (next.scanner === DataStoreContentScanner.TelemetryScan) {
-    return next.stop
-      ? getStoreScanStopDetail(next.stop, translator, probeName)
-      : (translator.translateText(
-          "A service's telemetry is scanned every hour, with the project's telemetry scan.",
-        ) as string);
+  if (!refusal) {
+    return undefined;
   }
 
-  let stop: DataStoreContentScanStop | null = next.due.stop;
+  return refusal.stop
+    ? getStoreScanStopDetail(refusal.stop, translator, probeName)
+    : (translator.translateText(
+        "A service's telemetry is scanned every hour, with the project's telemetry scan.",
+      ) as string);
+}
 
-  // A worker asked to scan an archived store scans it, unless more stops it.
-  if (
-    stop === DataStoreContentScanStop.Archived &&
-    next.scanner === DataStoreContentScanner.Workers
-  ) {
-    stop = getDataStoreContentScanStop({
-      ...facts,
-      store: { ...facts.store, isArchived: false },
-    });
-  }
+/*
+ * Why the store's Scan Content switch cannot do anything, or undefined
+ * when it can: OneUptime samples no store of its kind, or none of its kind
+ * from a probe. Read by the server's own rule (getDataStoreContentScanStop)
+ * whatever the switches say, so a SQL Server database a probe scans is not
+ * said to be one OneUptime cannot sample (OneUptime issue #8322).
+ */
+export function getStoreContentScanKindRefusal(
+  store: DataStoreContentScanFacts["store"],
+  translator: Translator,
+): string | undefined {
+  const stop: DataStoreContentScanStop | null = getDataStoreContentScanStop({
+    store: { ...store, isContentScanEnabled: true, isArchived: false },
+  });
 
-  return stop ? getStoreScanStopDetail(stop, translator, probeName) : undefined;
+  return stop === DataStoreContentScanStop.KindNotScannable ||
+    stop === DataStoreContentScanStop.KindNotScannableByProbe
+    ? getStoreScanStopDetail(stop, translator)
+    : undefined;
 }
 
 export interface ComponentProps {

@@ -52,6 +52,27 @@ export interface ClaimedDataStore {
 }
 
 /*
+ * Whether the project `p` is served (ProjectService.getActiveProjectStatusQuery):
+ * not deleted, not blocked, not a sample, and its subscriptions not
+ * inactive, with the served subscription statuses bound as the parameter
+ * named. Every Data Security path that reads a store's content holds a
+ * project to it - the probe's claim, the workers' claim and their scan
+ * (DataSecurityWorkerClaim), and the hourly telemetry scan
+ * (DataSecurityTelemetryScanRule) - so nothing of a suspended, blocked or
+ * sample project is read. Read through a LEFT JOIN, a missing project is
+ * NULL here, never true.
+ */
+export function getServedProjectSql(statusesParameter: string): Array<string> {
+  return [
+    `p."deletedAt" IS NULL`,
+    `p."isBlocked" = false`,
+    `p."isSampleProject" = false`,
+    `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+    `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+  ];
+}
+
+/*
  * Whether a store's content may be handed to its probe to scan now, as SQL
  * over the aliases the claim's statements use - `ds` (the DataStore), `p`
  * (its Project), `pr` (its scan Probe) and `s` (the project's Data Security
@@ -66,9 +87,7 @@ export interface ClaimedDataStore {
  *   a probe samples, with the connection variable the probe reads.
  * - The project scans content (on unless its settings say otherwise).
  * - The project's own probe: a global probe never reads a store.
- * - The project is served (ProjectService.getActiveProjectStatusQuery):
- *   not deleted, not blocked, not a sample, and its subscriptions not
- *   inactive.
+ * - The project is served (getServedProjectSql).
  */
 export function getContentScannableSql(parameters: {
   providerParameter: string;
@@ -87,11 +106,7 @@ export function getContentScannableSql(parameters: {
     `pr."isGlobalProbe" = false`,
     `pr."projectId" = ds."projectId"`,
     `pr."deletedAt" IS NULL`,
-    `p."deletedAt" IS NULL`,
-    `p."isBlocked" = false`,
-    `p."isSampleProject" = false`,
-    `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
-    `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+    ...getServedProjectSql(parameters.statusesParameter),
   ].join("\n    AND ");
 }
 

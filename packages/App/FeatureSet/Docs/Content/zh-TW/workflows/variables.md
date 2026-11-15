@@ -142,7 +142,7 @@ sequenceDiagram
    - **其他參數**：權杖請求的額外表單欄位，例如 Auth0 的 `audience`（Client Credentials 必需）或 Azure AD v1 的 `resource`。能讀取該變數的任何人都能讀取它們，所以不要把密鑰放在這裡。
    - **用戶端驗證**：用戶端 ID 和密鑰要放在 HTTP Basic 標頭中傳送（預設），還是放在請求內文中傳送。如果你的提供者回覆 `invalid_client`，請試試另一種。
 
-在部分欄位下方，表單會針對你選擇的提供者加上一行說明，例如 Microsoft Entra ID 在哪裡顯示你的租用戶 ID，以及它的用戶端密鑰是密鑰的 **Value**，而不是它的 **Secret ID**。
+在部分欄位下方，表單會針對你選擇的提供者加上一行說明，例如 Microsoft Entra ID 在哪裡顯示你的租用戶 ID，以及它的用戶端密鑰是密鑰的 **值**，而不是它的 **Secret ID**。
 
 儲存新的 OAuth 2.0 變數時，OneUptime 會立即取得它的第一個權杖，並告訴你提供者的回覆。密鑰或 URL 中的拼寫錯誤會當場暴露，而不是在幾小時後一次失敗的執行中才發現。取得權杖會寫入變數，所以需要編輯工作流程變數的權限；如果你能建立變數但不能編輯，就由第一個使用該變數的工作流程執行來取得它的權杖。
 
@@ -210,7 +210,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 - 標頭和內文欄位（在字串值內）。
 - **If / Else** 區塊的兩側。
 
-在 JSON 欄位中——記錄元件上的 **Data (JSON Object)** 和 **Query**，API 區塊的 **Request Body**，**Run Custom JavaScript** 上的 **Arguments**——參照會依它所在的位置被填入：
+在 JSON 欄位中——記錄元件上的 **Data (JSON Object)** 和 **查詢**，API 區塊的 **請求內文**，**Run Custom JavaScript** 上的 **Arguments**——參照會依它所在的位置被填入：
 
 - **在引號內，它是文字。** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` 會把值放進字串裡。值中的引號、反斜線和換行會被跳脫，所以 JSON 仍然有效，值仍是一個字串。
 - **單獨出現時，它就是值本身。** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` 會插入整個物件，清單仍是清單，數字仍是數字。本身就是 JSON 的文字——`5`、`true`，或區塊以 JSON 文字傳回的物件——會作為那個值插入。其他任何文字都會作為字串插入。
@@ -239,7 +239,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 
 1. 一個 ID 為 `ci-webhook` 的 **Webhook** 觸發器。
 2. 一個 **If / Else** 區塊：**要檢查的值** 是 Webhook 的 Request Body 中的 `status` 欄位（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比較** 是 **等於**，**比較對象** 是 `failed`。
-3. 從 **Yes** 分支接一個 **Create One Incident** 區塊，其中：
+3. 從 **是** 分支接一個 **Create One Incident** 區塊，其中：
    - 標題：`CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 描述：`See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 1. **API** 元件 `lookup-order`：在它的 **URL** 中，於 `/orders?email=` 之後，用 **{ }** 插入手動觸發器的 JSON，路徑為 `email`。
 2. **API** 元件 `cancel-order`：`POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`。
 
-如果 `lookup-order` 失敗，觸發的是它的 **Error** 輸出而不是 **Success**。把它連接到一個 Email 或 Slack 區塊，免得失敗沒有人注意到。
+如果 `lookup-order` 失敗，觸發的是它的 **錯誤** 輸出而不是 **成功**。把它連接到一個 Email 或 Slack 區塊，免得失敗沒有人注意到。
 
 ## 從工作流程更新變數
 
@@ -290,7 +290,7 @@ API 金鑰需要 **Edit Workflow Variables**。不需要讀取權限——更新
 
 - **使用 { }（或輸入 `{{`）。** 它會插入執行器預期的確切元件、傳回值和變數 ID，並且只提供區塊執行時會存在的值。
 - **變數名稱區分大小寫。** `{{global.variables.MyKey}}` 和 `{{global.variables.mykey}}` 是不同的。
-- **無法解析的參照會原樣保留，而不是變成空的。** 參照不存在的東西不是錯誤，也不會得到空字串：大括號會原樣往下傳，所以步驟 ID 拼錯的 `{{local.components.api-get-1.returnValues.body}}` 會一字不差地出現在你的 Slack 訊息、URL 或請求內文中，而執行仍然回報 **已執行**。執行的 **步驟** 分頁會在該步驟上顯示一則警告，列出每個漏過去的參照，並把它所在的設定標記為 **Did not resolve**；執行的日誌中也有同樣的警告行。例外是資料元件讀取或寫入的 ID，例如其 **Query** 中的 `_id`：這時該步驟會在讀取或寫入任何內容之前停止，走 **Error** 輸出，並說明哪個參照沒有解析以及要檢查什麼。
+- **無法解析的參照會原樣保留，而不是變成空的。** 參照不存在的東西不是錯誤，也不會得到空字串：大括號會原樣往下傳，所以步驟 ID 拼錯的 `{{local.components.api-get-1.returnValues.body}}` 會一字不差地出現在你的 Slack 訊息、URL 或請求內文中，而執行仍然回報 **已執行**。執行的 **步驟** 分頁會在該步驟上顯示一則警告，列出每個漏過去的參照，並把它所在的設定標記為 **Did not resolve**；執行的日誌中也有同樣的警告行。例外是資料元件讀取或寫入的 ID，例如其 **查詢** 中的 `_id`：這時該步驟會在讀取或寫入任何內容之前停止，走 **錯誤** 輸出，並說明哪個參照沒有解析以及要檢查什麼。
 - **沒有內容的欄位到達時為空。** 並非每筆記錄都有每個欄位。不是由監測器產生的警示（例如來自 SLO 或手動建立的警示）沒有監測器，所以 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 沒有值可給：在訊息中那裡什麼也沒有，單獨作為 JSON 值時是 `null`。沒人寫的描述、記錄沒有的自訂欄位、沒有找到記錄的 **Find One**、沒有該項目的清單，以及區塊沒有傳下去的欄位也是如此；對於區塊沒有傳下去的欄位，步驟上還會顯示警告，說明要往 **Fields to pass on** 新增什麼。URL 和讀寫記錄的區塊是例外，因為空值會改變區塊所作用的對象：那裡的參照會原樣保留，而 ID 會使區塊停止。要走另一條路徑，請在 **If / Else** 中用 **為空** 檢查該值。要寫出警示背後的 SLO，請傳下它的名稱並使用 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`。
 - **問題面板無法檢查變數名稱。** 它會在你儲存前標出它無法比對的元件參照——未知的步驟 ID、未知的傳回值、無效的根——但看不出變數是否存在。區塊的設定可以：對缺少之變數的參照會在那裡顯示為橘色標籤。除此之外，改了名稱的變數只有執行的日誌才能發現。
 - **大括號內的空格不會被去除。** `{{ local.variables.NAME }}` 與 `{{local.variables.NAME}}` 是不同的查詢，永遠不會被解析。唯一的例外是在 `{{#each}}` 區塊內，那裡的名稱會去除前後空白。

@@ -58,7 +58,7 @@ Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y 
 
 ### Crear el registro
 
-Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Success** del disparador. Pon su **URL** en `https://your-instance.service-now.com/api/now/table/incident`. En **Más campos**, pon sus **Request Headers** en:
+Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://your-instance.service-now.com/api/now/table/incident`. En **Más campos**, pon sus **Encabezados de la solicitud** en:
 
 ```json
 {
@@ -67,7 +67,7 @@ Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conec
 }
 ```
 
-Y su **Request Body** en:
+Y su **Cuerpo de la solicitud** en:
 
 ```json
 {
@@ -101,11 +101,11 @@ Crea un flujo de trabajo llamado `Resolve ServiceNow incidents` y elige **On Upd
 
 ### Comprobar que el incidente está resuelto
 
-Añade un bloque **If / Else** después del disparador. Pon **Value to check** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparison** en **is true**.
+Añade un bloque **If / Else** después del disparador. Pon **Valor que comprobar** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparación** en **es verdadero**.
 
 ### Encontrar el registro
 
-Añade un bloque **API Get (JSON)** después del lado **Yes**, con los mismos **Request Headers** y esta **URL**:
+Añade un bloque **API Get (JSON)** después del lado **Sí**, con los mismos **Encabezados de la solicitud** y esta **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Resolver el registro
 
-Añade un bloque **API Patch (JSON)** después del **Success** del bloque de búsqueda, con los mismos **Request Headers** y esta **URL**:
+Añade un bloque **API Patch (JSON)** después del **Éxito** del bloque de búsqueda, con los mismos **Encabezados de la solicitud** y esta **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Pon su **Request Body** en:
+Pon su **Cuerpo de la solicitud** en:
 
 ```json
 {

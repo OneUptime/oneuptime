@@ -66,7 +66,7 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Aprire la issue
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Success** del trigger. Imposta il suo **URL** su `https://api.github.com/repos/your-org/your-repo/issues`, con il proprietario e il nome del tuo repository. In **Altri campi**, imposta le sue **Request Headers** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://api.github.com/repos/your-org/your-repo/issues`, con il proprietario e il nome del tuo repository. In **Altri campi**, imposta le sue **Intestazioni della richiesta** su:
 
 ```json
 {
@@ -76,7 +76,7 @@ Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e co
 }
 ```
 
-E il suo **Request Body** su:
+E il suo **Corpo della Richiesta** su:
 
 ```json
 {
@@ -97,11 +97,11 @@ La issue resta aperta quando l'incidente viene risolto, perché il lavoro che ne
 
 - **GitHub Enterprise Server.** Invia invece la richiesta al tuo server: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Un server su un indirizzo di rete privato ha bisogno di un OneUptime self-hosted il cui amministratore lo consenta: vedi [Accesso alla rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
 - **Assegnala.** Aggiungi `"assignees": ["octocat"]` o `"milestone": 3` al corpo. GitHub scarta senza dire nulla etichette, assegnatari e milestone quando il token non può fare push nel repository.
-- **Solo alcuni incidenti.** Metti un blocco **If / Else** tra il trigger e il blocco API, e apri issue solo sul suo lato **Yes**, per esempio per una gravità.
+- **Solo alcuni incidenti.** Metti un blocco **If / Else** tra il trigger e il blocco API, e apri issue solo sul suo lato **Sì**, per esempio per una gravità.
 
 ## Risoluzione dei problemi
 
-Il passo **API Post (JSON)** prende **Error** quando GitHub rifiuta la richiesta. I suoi **Response Status** e **Response Body** nell'esecuzione dicono perché.
+Il passo **API Post (JSON)** prende **Errore** quando GitHub rifiuta la richiesta. I suoi **Response Status** e **Corpo della Risposta** nell'esecuzione dicono perché.
 
 :::details GitHub risponde 401
 Il token è sbagliato, scaduto o revocato. Creane uno nuovo e sostituisci il contenuto di `GITHUB_TOKEN`.

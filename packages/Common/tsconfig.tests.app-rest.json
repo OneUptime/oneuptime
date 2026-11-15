@@ -2,12 +2,14 @@
   /*
    * A part of tsconfig.tests.json that `npm run compile-tests`
    * (Scripts/compile-tests.js) type-checks on its own: every Tests/App test
-   * but the Dashboard ones whose names start with A to M
-   * (tsconfig.tests.app-dashboard-a-m.json), and the frontend sources they
-   * import. Its "include" is tsconfig.tests.app.json's, so a new App test
-   * lands here unless its name puts it in the other part. Split from
-   * tsconfig.tests.app.json on 2026-10-27, when its check used 7.64 GB of its
-   * 8 GiB heap. Why the program is checked in parts: Scripts/compile-tests.js.
+   * outside Tests/App/Dashboard, whose tests are in the five
+   * tsconfig.tests.app-dashboard-*.json parts by the first letter of their
+   * names, and the frontend sources they import. Its "include" is
+   * tsconfig.tests.app.json's, so a new App test outside Tests/App/Dashboard
+   * lands here. Split from tsconfig.tests.app.json on 2026-10-27, when its
+   * check used 7.64 GB of its 8 GiB heap; it held the Dashboard tests N to Z
+   * until 2026-11-15, when its check ran out of that heap. Why the program
+   * is checked in parts: Scripts/compile-tests.js.
    *
    * Everything but "exclude" is inherited, so these tests are held to exactly
    * the rules of the whole program.
@@ -28,6 +30,19 @@
     "Tests/App/Dashboard/J*",
     "Tests/App/Dashboard/K*",
     "Tests/App/Dashboard/L*",
-    "Tests/App/Dashboard/M*"
+    "Tests/App/Dashboard/M*",
+    "Tests/App/Dashboard/N*",
+    "Tests/App/Dashboard/O*",
+    "Tests/App/Dashboard/P*",
+    "Tests/App/Dashboard/Q*",
+    "Tests/App/Dashboard/R*",
+    "Tests/App/Dashboard/S*",
+    "Tests/App/Dashboard/T*",
+    "Tests/App/Dashboard/U*",
+    "Tests/App/Dashboard/V*",
+    "Tests/App/Dashboard/W*",
+    "Tests/App/Dashboard/X*",
+    "Tests/App/Dashboard/Y*",
+    "Tests/App/Dashboard/Z*"
   ]
 }

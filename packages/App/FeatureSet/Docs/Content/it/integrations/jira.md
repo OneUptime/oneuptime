@@ -87,8 +87,8 @@ Ogni modello per gli avvisi è costruito come il suo gemello per gli incidenti, 
 **I monitor generano avvisi da soli, e possono generarne molti.** **Create a Jira issue when an alert is created** apre un ticket per ognuno. A meno che ogni avviso meriti un ticket, metti una condizione davanti al passaggio Jira. Per aprire ticket solo per gli avvisi High:
 
 1. Apri il **Costruttore** del workflow e aggiungi un blocco **If / Else**.
-2. Imposta **Value to check** su `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** su **is equal to** e **Compare with** su `High`.
-3. Rimuovi la linea da `alert-on-create-1` a `prepare-issue-1` trascinandone l'estremità fuori dal punto (vedi [Mettere in ordine](/docs/workflows/authoring#mettere-in-ordine)). Collega il **Success** del trigger al blocco **If / Else**, e il suo **Yes** a `prepare-issue-1`.
+2. Imposta **Valore da verificare** su `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Confronto** su **è uguale a** e **Confronta con** su `High`.
+3. Rimuovi la linea da `alert-on-create-1` a `prepare-issue-1` trascinandone l'estremità fuori dal punto (vedi [Mettere in ordine](/docs/workflows/authoring#mettere-in-ordine)). Collega il **Successo** del trigger al blocco **If / Else**, e il suo **Sì** a `prepare-issue-1`.
 
 Un avviso che prende il lato **No** termina lì l'esecuzione, e per esso non viene aperto alcun ticket.
 
@@ -129,7 +129,7 @@ Funziona anche un **account di servizio** Atlassian. Un amministratore dell'orga
 4. Fai clic su **Crea flusso di lavoro**. Ogni workflow viene creato disattivato: attiva **Abilitato** in cima al suo **Costruttore**.
 :::
 
-Inizia con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** per gli avvisi: ogni altro modello OneUptime → Jira dello stesso tipo trova il ticket tramite l'etichetta che questo aggiunge. Attivalo, dichiara un incidente di prova o crea un avviso di prova, e apri **Registri → Esecuzioni** del workflow. L'esecuzione dovrebbe terminare come **Eseguito**, e il **Response Body** del suo ultimo passaggio, `create-issue-1`, nomina il nuovo ticket.
+Inizia con **Create a Jira issue when an incident is declared**, o con **Create a Jira issue when an alert is created** per gli avvisi: ogni altro modello OneUptime → Jira dello stesso tipo trova il ticket tramite l'etichetta che questo aggiunge. Attivalo, dichiara un incidente di prova o crea un avviso di prova, e apri **Registri → Esecuzioni** del workflow. L'esecuzione dovrebbe terminare come **Eseguito**, e il **Corpo della Risposta** del suo ultimo passaggio, `create-issue-1`, nomina il nuovo ticket.
 
 Ogni workflow conserva la propria copia di questi valori. Quando sostituisci il token, aggiorna `jiraBasicAuthToken` in **Variabili del flusso** in ogni workflow Jira che lo ha chiesto. Se Jira cambia indirizzo, aggiorna `jiraSiteUrl` e `jiraBaseUrl` allo stesso modo.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Cambiare cosa fa un modello
 
-Apri il **Costruttore** del workflow e fai clic sul blocco che vuoi cambiare. Le impostazioni che vorrai più probabilmente toccare sono costanti vicino all'inizio di uno script, il **JavaScript Code** di un blocco **Check With JavaScript**, subito sotto il blocco di supporto condiviso. Le versioni per incidenti e per avvisi di un modello tengono le stesse costanti negli stessi blocchi:
+Apri il **Costruttore** del workflow e fai clic sul blocco che vuoi cambiare. Le impostazioni che vorrai più probabilmente toccare sono costanti vicino all'inizio di uno script, il **Codice JavaScript** di un blocco **Check With JavaScript**, subito sotto il blocco di supporto condiviso. Le versioni per incidenti e per avvisi di un modello tengono le stesse costanti negli stessi blocchi:
 
 | Costante | Modello e blocco | Cosa controlla |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ Apri il **Costruttore** del workflow e fai clic sul blocco che vuoi cambiare. Le
 
 I nomi di stato usati come chiavi vanno scritti esattamente come si chiamano, maiuscole comprese. Evita `{{` nel codice: uno script viene compilato come qualsiasi altra impostazione prima di essere eseguito, quindi due parentesi graffe aperte di seguito verrebbero lette come un riferimento.
 
-Per inviare più campi sui nuovi ticket, modifica il **Request Body** del blocco `create-issue-1` dei modelli che creano un ticket. Contiene progetto, tipo, riepilogo, etichette e descrizione del ticket, e puoi aggiungere una priorità, dei componenti, un assegnatario o dei campi personalizzati dentro `fields`, nelle forme descritte in [Compilare altri campi](#compilare-altri-campi). Mantieni entrambe le etichette. Il testo del riepilogo e della descrizione è nello script `prepare-issue-1`. La descrizione riporta gravità, stato e descrizione del record, poi la sua causa principale e le note di rimedio quando ci sono: un monitor le compila quando genera un incidente o un avviso, e spesso lo spiegano.
+Per inviare più campi sui nuovi ticket, modifica il **Corpo della Richiesta** del blocco `create-issue-1` dei modelli che creano un ticket. Contiene progetto, tipo, riepilogo, etichette e descrizione del ticket, e puoi aggiungere una priorità, dei componenti, un assegnatario o dei campi personalizzati dentro `fields`, nelle forme descritte in [Compilare altri campi](#compilare-altri-campi). Mantieni entrambe le etichette. Il testo del riepilogo e della descrizione è nello script `prepare-issue-1`. La descrizione riporta gravità, stato e descrizione del record, poi la sua causa principale e le note di rimedio quando ci sono: un monitor le compila quando genera un incidente o un avviso, e spesso lo spiegano.
 
-Le note private e i commenti di modifica sono segnati come interni dalla voce `properties`, `sd.public.comment`, nel **Request Body** del loro blocco `post-comment-1`. Solo Jira Service Management la legge. Eliminala solo se i clienti devono vedere quei commenti.
+Le note private e i commenti di modifica sono segnati come interni dalla voce `properties`, `sd.public.comment`, nel **Corpo della Richiesta** del loro blocco `post-comment-1`. Solo Jira Service Management la legge. Eliminala solo se i clienti devono vedere quei commenti.
 
 ### Limitazioni
 
@@ -307,8 +307,8 @@ I token scadono dopo un anno per impostazione predefinita e non si rinnovano. Pe
 
 :::steps
 1. Crea da zero un workflow chiamato `Incidents to Jira`. Fai clic sul blocco tratteggiato e aggiungi il trigger **On Create Incident**. I suoi **Fields to pass on** iniziano con **Titolo**: fai clic su **Aggiungi campo** e scegli **Descrizione** e **Numero dell'incidente**. L'ID viene sempre trasmesso. Lascia il suo **Identifier** come `incident-on-create-1`.
-2. Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Success** del trigger. Imposta il suo **Identifier** su `create-issue`, il suo **URL** su `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, in **Altri campi**, i suoi **Request Headers** su `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
-3. Imposta il suo **Request Body** sul ticket, e sostituisci `OPS` e `Bug` con la chiave del tuo progetto e un tipo di ticket di quel progetto:
+2. Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **Identifier** su `create-issue`, il suo **URL** su `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, in **Altri campi**, i suoi **Intestazioni della richiesta** su `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+3. Imposta il suo **Corpo della Richiesta** sul ticket, e sostituisci `OPS` e `Bug` con la chiave del tuo progetto e un tipo di ticket di quel progetto:
 
    ```json
    {
@@ -391,8 +391,8 @@ Costruiscilo come secondo workflow, così un errore qui non impedisce mai l'aper
 
 :::steps
 1. Crea un workflow chiamato `Incident updates to Jira`, con il trigger **On Update Incident**. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**. In **Fields to pass on**, fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Nome**.
-2. Aggiungi un blocco **If / Else**: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, o il nome del tuo stato risolto.
-3. Dopo il suo lato **Yes**, trova il ticket con un blocco **API Post (JSON)** il cui **Identifier** sia `find-issue`, che pubblichi su `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+2. Aggiungi un blocco **If / Else**: **Valore da verificare** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Confronto** **è uguale a**, **Confronta con** `Resolved`, o il nome del tuo stato risolto.
+3. Dopo il suo lato **Sì**, trova il ticket con un blocco **API Post (JSON)** il cui **Identifier** sia `find-issue`, che pubblichi su `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -447,7 +447,7 @@ Attivalo, poi fai in modo che Jira lo chiami, da una regola di automazione o da 
 
 4. Attiva la regola e sposta un ticket di prova a Done. Controlla il log di audit della regola in Jira, e **Registri → Esecuzioni** in OneUptime.
 
-Per essere sicuro che una richiesta venga dalla tua regola, aggiungi una seconda intestazione, `X-OneUptime-Secret`, con un valore che inventi tu, e usa su di essa l'opzione **Hide** dell'azione. Nel workflow, metti un blocco **If / Else** prima dell'aggiornamento: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to** e **Compare with** lo stesso valore, conservato in una variabile globale segreta.
+Per essere sicuro che una richiesta venga dalla tua regola, aggiungi una seconda intestazione, `X-OneUptime-Secret`, con un valore che inventi tu, e usa su di essa l'opzione **Hide** dell'azione. Nel workflow, metti un blocco **If / Else** prima dell'aggiornamento: **Valore da verificare** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Confronto** **è uguale a** e **Confronta con** lo stesso valore, conservato in una variabile globale segreta.
 
 Send web request chiama solo le porte 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 e 9900. Jira Cloud conta le esecuzioni delle regole su una quota mensile che dipende dal tuo piano, quindi una regola su ogni transizione di un progetto molto attivo pesa.
 @tab Jira webhook
@@ -476,7 +476,7 @@ Parti dai modelli per gli avvisi di [Partire da un modello](#partire-da-un-model
 | Etichetta `oneuptime-incident-<incident id>` | Etichetta `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Un workflow ha esattamente un trigger, quindi incidenti e avvisi hanno bisogno di un workflow ciascuno. Per fare lo stesso lavoro su Jira per entrambi, costruiscilo una volta in un workflow con un trigger **Manual** e avvialo da entrambi con un blocco **Execute Workflow**.
+Un workflow ha esattamente un trigger, quindi incidenti e avvisi hanno bisogno di un workflow ciascuno. Per fare lo stesso lavoro su Jira per entrambi, costruiscilo una volta in un workflow con un trigger **Manuale** e avvialo da entrambi con un blocco **Execute Workflow**.
 
 ## Jira Data Center
 

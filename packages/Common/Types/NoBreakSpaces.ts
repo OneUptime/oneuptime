@@ -1,3 +1,5 @@
+import { escapeRegExp } from "../Utils/RegExpEscape";
+
 /*
  * WHERE A LINE MAY NOT BREAK.
  *
@@ -347,7 +349,7 @@ const UNIT_PATTERN: string = [...ENGLISH_UNITS]
     return b.length - a.length;
   })
   .map((unit: string): string => {
-    return unit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return escapeRegExp(unit);
   })
   .join("|");
 

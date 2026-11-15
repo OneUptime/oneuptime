@@ -361,7 +361,7 @@ export default class FirstPagedAt {
 
       result.measurementsRequeued += readIds(
         await kind.query(
-          `WITH "requeued" AS (UPDATE "${kind.measurementTableName}" SET "backfillRequestedAt" = now(), "backfillCursorCreatedAt" = NULL, "backfillCompletedAt" = NULL WHERE "startAnchorType" = $1 OR "endAnchorType" = $1 RETURNING "_id") SELECT "_id"::text AS "_id" FROM "requeued"`,
+          `WITH "requeued" AS (UPDATE "${kind.measurementTableName}" SET "backfillRequestedAt" = now(), "backfillCursorCreatedAt" = NULL, "backfillCursorId" = NULL, "backfillCompletedAt" = NULL WHERE "startAnchorType" = $1 OR "endAnchorType" = $1 RETURNING "_id") SELECT "_id"::text AS "_id" FROM "requeued"`,
           [FIRST_PAGED_AT_ANCHOR_TYPE],
         ),
       ).length;

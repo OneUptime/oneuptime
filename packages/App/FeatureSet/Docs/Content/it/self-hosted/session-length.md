@@ -52,7 +52,7 @@ flowchart TB
 
 - Il server conta entrambe le durate dalla sessione stessa: quando è stato fatto l'accesso, e quando la sua persona è stata attiva l'ultima volta. Le controlla a ogni richiesta, a ogni rinnovo e a ogni aggiornamento in tempo reale, e non lascia mai la disconnessione al browser.
 - Il tempo di inattività conta dall'ultimo clic, tasto premuto o scorrimento in una qualsiasi scheda della dashboard o dell'Admin Dashboard. Una scheda lasciata aperta non tiene in vita una sessione. Nemmeno riaprire OneUptime la riporta indietro: chi è stato via più a lungo del tempo di inattività, con il browser chiuso o il computer in sospensione, accede di nuovo.
-- L'app mobile conta come attiva ogni volta che viene usata.
+- Nell'app mobile, il tempo di inattività conta dall'ultimo tocco o tasto premuto. Il tempo che l'app passa in background o chiusa conta come tempo senza utilizzo: chi la riapre dopo il tempo di inattività accede di nuovo.
 - Quando una sessione finisce, il browser passa alla pagina di accesso, che dice perché. Dopo aver effettuato di nuovo l'accesso, la persona torna alla pagina in cui si trovava.
 
 | Modifica | Cosa succede alle persone connesse ora |

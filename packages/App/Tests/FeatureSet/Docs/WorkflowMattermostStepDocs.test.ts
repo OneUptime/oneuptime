@@ -9,6 +9,7 @@ import { TRUNCATED_TEXT_NOTE } from "Common/Utils/MessageFit";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 
 /*
  * The Mattermost step's section of the workflow Components guide, and the
@@ -121,15 +122,20 @@ describe("the Mattermost section of the Components guide", () => {
         read(language, "workflows/components"),
       );
 
+      // The form and the canvas draw them in the reader's words (#7511).
       for (const argument of ARGUMENTS) {
         expect({
           language,
           setting: argument.name,
-          named: section.includes(`**${argument.name}**`),
+          named: section.includes(
+            `**${drawnStepName(language, argument.name)}**`,
+          ),
         }).toEqual({ language, setting: argument.name, named: true });
       }
 
-      for (const output of ["**Success**", "**Error**"]) {
+      for (const name of ["Success", "Error"]) {
+        const output: string = `**${drawnStepName(language, name)}**`;
+
         expect({ language, output, named: section.includes(output) }).toEqual({
           language,
           output,

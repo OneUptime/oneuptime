@@ -602,6 +602,7 @@ describe("a Database monitor's summary, under each group of metrics", () => {
       metrics: {},
       collectedGroups: Object.values(DatabaseMetricGroup),
       unavailableGroups: [],
+      connectionError: null,
     } as DatabaseMonitorResponse,
   } as unknown as ProbeMonitorResponse;
 

@@ -84,7 +84,7 @@ Na de trigger **Webhook** leest de stap **Check With JavaScript** `read-event-1`
 | `recovery` | Lost het incident van het probleem op, tenzij het al is opgelost. Waarom staat op de tijdlijn ervan. |
 | `update` | Voegt wat in Zabbix is gedaan als privénotitie aan het incident toe: wie het deed, wat diegene deed en wat diegene schreef. Als de update het probleem bevestigde, bevestigt hij ook het incident, waardoor de dienst niet verder escaleert. |
 
-Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid: `read-event-1` neemt **No**, en de **Stappen** van de uitvoering zeggen waarom. Een stap die mislukt, laat de uitvoering mislukken, en zijn vermelding in **Stappen** zegt waarom.
+Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid: `read-event-1` neemt **Nee**, en de **Stappen** van de uitvoering zeggen waarom. Een stap die mislukt, laat de uitvoering mislukken, en zijn vermelding in **Stappen** zegt waarom.
 
 ### Ernstniveaus
 
@@ -102,7 +102,7 @@ In een nieuw project wijst het sjabloon de zes ernstniveaus van Zabbix toe aan d
 Met eigen ernstniveaus gaan Disaster en High naar je ernstigste, Average en Warning naar het middelste, en Information en Not classified naar je minst ernstige. Zabbix nummert zijn ernstniveaus van 0 (Not classified) tot 5 (Disaster), en het sjabloon leest het nummer, dus een ernstniveau in Zabbix hernoemen verandert niets.
 
 - Om een ernstniveau op naam aan een van de jouwe toe te wijzen, bewerk je `SEVERITY_BY_NAME` in de stap `read-event-1`, zoals `{ 2: 'Minor Incident' }` voor Warning.
-- Om ook voor Average-problemen op te roepen, zet je **Compare with** van de stap `if-page-1` **If / Else** op `3`.
+- Om ook voor Average-problemen op te roepen, zet je **Vergelijken met** van de stap `if-page-1` **If / Else** op `3`.
 
 ### Bevestigingen en notities terugsturen naar Zabbix
 

@@ -4,6 +4,7 @@ import { useTheme } from "../../theme";
 import { radius, spacing, typography } from "../../theme/tokens";
 import { rgbToHex } from "../../utils/color";
 import { toPlainText } from "../../utils/text";
+import { countTypingAsActivity } from "../../auth/userActivity";
 import GradientButton from "../GradientButton";
 import CaseSheet, {
   CaseSheetOption,
@@ -252,7 +253,7 @@ export function CloseCaseSheet({
         testID="close-case-note"
         accessibilityLabel="Closing note"
         value={closingNote}
-        onChangeText={setClosingNote}
+        onChangeText={countTypingAsActivity(setClosingNote)}
         placeholder="What was found and what was done."
         placeholderTextColor={theme.colors.textTertiary}
         selectionColor={theme.colors.actionPrimary}

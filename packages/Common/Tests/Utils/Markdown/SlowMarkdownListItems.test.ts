@@ -104,7 +104,7 @@ const SETEXT_STOP: RegExp =
 const BLOCK_START: RegExp =
   /^(?:(?:[*+-]|\d{1,9}[.)]) | {4}| {0,3}(?:`{3,}|~{3,})| {0,3}>| {0,3}#{1,6}| {0,3}<[^\n>]+>\n)/;
 
-let setextSpy: SpyInstance | null = null;
+let setextSpy: SpyInstance<Tokenizer["lheading"]> | null = null;
 
 afterEach(() => {
   setextSpy?.mockRestore();
@@ -116,7 +116,7 @@ const setextReadingIn: (text: string) => number = (text: string): number => {
   let read: number = 0;
   const original: Tokenizer["lheading"] = Tokenizer.prototype.lheading;
 
-  setextSpy = jest
+  const spy: SpyInstance<Tokenizer["lheading"]> = jest
     .spyOn(Tokenizer.prototype, "lheading")
     .mockImplementation(function (
       this: Tokenizer,
@@ -130,11 +130,12 @@ const setextReadingIn: (text: string) => number = (text: string): number => {
 
       return original.call(this, src);
     });
+  setextSpy = spy;
 
   try {
     new Lexer({ gfm: true, breaks: false, pedantic: false }).lex(text);
   } finally {
-    setextSpy.mockRestore();
+    spy.mockRestore();
     setextSpy = null;
   }
 

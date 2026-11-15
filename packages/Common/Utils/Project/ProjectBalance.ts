@@ -1,3 +1,4 @@
+import { escapeRegExp } from "../RegExpEscape";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import Permission from "../../Types/Permission";
 import {
@@ -256,10 +257,6 @@ export const getProjectBalanceMessageNotSentReason: (data: {
   return `${getProjectBalanceShortfallSentence(data)} ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall)}`;
 };
 
-const escapeForRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
-
 /*
  * What getProjectBalanceMessageNotSentReason said, read back from a line
  * that is it, whole: the balance used up, or how much was left against
@@ -304,7 +301,7 @@ export const readProjectBalanceMessageNotSentReason: (data: {
   }
 
   const less: RegExpExecArray | null = new RegExp(
-    `^This project's balance \\(([^()]+)\\) is less than ${escapeForRegExp(oneMessage)} costs \\(([^()]+)\\)\\.$`,
+    `^This project's balance \\(([^()]+)\\) is less than ${escapeRegExp(oneMessage)} costs \\(([^()]+)\\)\\.$`,
   ).exec(shortfall);
 
   if (!less) {

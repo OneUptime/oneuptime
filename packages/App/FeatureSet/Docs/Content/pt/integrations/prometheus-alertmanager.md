@@ -193,11 +193,11 @@ Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e esco
 
 ### Verificar que a notificação está disparando
 
-Clique em **Adicionar componente**, adicione um bloco **If / Else** e ligue a ele o ponto **Out** do gatilho. Defina **Value to check** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** como **is equal to** e **Compare with** como `firing`.
+Clique em **Adicionar componente**, adicione um bloco **If / Else** e ligue a ele o ponto **Saída** do gatilho. Defina **Valor a verificar** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparação** como **é igual a** e **Comparar com** como `firing`.
 
 ### Declarar o incidente
 
-Adicione um bloco **Create One Incident** e ligue a ele o lado **Yes** do bloco **If / Else**. Em **Incident Template**, escolha um modelo que defina a gravidade e as políticas de plantão a acionar (veja [Modelos de incidentes](/docs/incidents/settings#modelos-de-incidentes)). Em **JSON Object**, defina o que vem do Alertmanager:
+Adicione um bloco **Create One Incident** e ligue a ele o lado **Sim** do bloco **If / Else**. Em **Modelo de incidente**, escolha um modelo que defina a gravidade e as políticas de plantão a acionar (veja [Modelos de incidentes](/docs/incidents/settings#modelos-de-incidentes)). Em **JSON Object**, defina o que vem do Alertmanager:
 
 ```json
 {
@@ -213,7 +213,7 @@ Sem modelo, **JSON Object** também precisa de `incidentSeverityId`, o ID de uma
 Ative **Habilitado** no topo do **Construtor**. Um workflow desativado responde ao Alertmanager com `400`.
 :::
 
-Uma execução trata uma notificação, então declara um único incidente, não importa quantos alertas a notificação tenha. Uma notificação `resolved` segue pelo lado **No** do bloco **If / Else**, onde nada está ligado, então a execução termina ali. Para um incidente por alerta, resolvido na recuperação, use o monitor.
+Uma execução trata uma notificação, então declara um único incidente, não importa quantos alertas a notificação tenha. Uma notificação `resolved` segue pelo lado **Não** do bloco **If / Else**, onde nada está ligado, então a execução termina ali. Para um incidente por alerta, resolvido na recuperação, use o monitor.
 
 ## Vigiar o próprio Alertmanager
 

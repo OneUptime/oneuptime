@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "Det største antal aktive monitorer, projektet må have. Lad feltet være tomt for ingen grænse.",
       "noMonitorLimit": "Ingen grænse",
       "overMonitorLimit": "{{over}} over grænsen",
-      "atMonitorLimit": "Ved grænsen"
+      "atMonitorLimit": "Ved grænsen",
+      "userLimitCardTitle": "Brugere",
+      "userLimitCardDescription": "Alle i projektet tæller med, også ventende invitationer. Ved grænsen kan ingen nye komme med; de, der allerede er med, bliver. En forhandlers næste niveauændring overskriver den. Projekter på Free-abonnementet er også begrænset til én person.",
+      "userLimitEditButton": "Rediger brugergrænse",
+      "fieldUsers": "Brugere",
+      "fieldUserLimit": "Brugergrænse",
+      "fieldUserLimitDescription": "Det største antal brugere, projektet må have, ventende invitationer medregnet. Lad feltet være tomt for ingen grænse.",
+      "noUserLimit": "Ingen grænse",
+      "overUserLimit": "{{over}} over grænsen",
+      "atUserLimit": "Ved grænsen"
     },
     "projectSupport": {
       "title": "Kundesupportadgang",

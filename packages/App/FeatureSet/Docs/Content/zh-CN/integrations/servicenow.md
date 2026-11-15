@@ -58,7 +58,7 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 
 ### 创建记录
 
-点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **URL** 设为 `https://your-instance.service-now.com/api/now/table/incident`。在 **更多字段** 下，把 **Request Headers** 设为：
+点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://your-instance.service-now.com/api/now/table/incident`。在 **更多字段** 下，把 **请求标头** 设为：
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 }
 ```
 
-把 **Request Body** 设为：
+把 **请求主体** 设为：
 
 ```json
 {
@@ -101,11 +101,11 @@ Table API 使用 Basic 身份验证：把用户名和密码编码在一起。
 
 ### 检查事件是否已解决
 
-在触发器之后添加一个 **If / Else** 块。把 **Value to check** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**Comparison** 设为 **is true**。
+在触发器之后添加一个 **If / Else** 块。把 **要检查的值** 设为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比较** 设为 **为真**。
 
 ### 查找记录
 
-在 **Yes** 一侧之后添加一个 **API Get (JSON)** 块，使用相同的 **Request Headers** 和以下 **URL**：
+在 **是** 一侧之后添加一个 **API Get (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### 解决记录
 
-在查找块的 **Success** 之后添加一个 **API Patch (JSON)** 块，使用相同的 **Request Headers** 和以下 **URL**：
+在查找块的 **成功** 之后添加一个 **API Patch (JSON)** 块，使用相同的 **请求标头** 和以下 **URL**：
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-把它的 **Request Body** 设为：
+把它的 **请求主体** 设为：
 
 ```json
 {

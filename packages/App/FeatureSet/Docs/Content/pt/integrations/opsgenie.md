@@ -53,13 +53,13 @@ Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e esco
 
 ### Criar o alerta
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Success** do gatilho. Defina a **URL** dele como `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` na Europa. Em **Mais campos**, defina os **Request Headers** dele como:
+Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` na Europa. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-E o **Request Body** como:
+E o **Corpo da Requisição** como:
 
 ```json
 {
@@ -93,17 +93,17 @@ Crie um workflow chamado `Close Opsgenie alerts` e escolha **On Update Incident*
 
 ### Verificar que o incidente está resolvido
 
-Adicione um bloco **If / Else** depois do gatilho. Defina **Value to check** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparison** como **is true**.
+Adicione um bloco **If / Else** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
 
 ### Fechar o alerta
 
-Adicione um bloco **API Post (JSON)** depois do lado **Yes**, com os mesmos **Request Headers** e esta **URL**:
+Adicione um bloco **API Post (JSON)** depois do lado **Sim**, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Defina o **Request Body** dele como `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Defina o **Corpo da Requisição** dele como `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Ativá-lo
 
@@ -117,7 +117,7 @@ Ative **Habilitado** e depois resolva um incidente de teste no OneUptime. O Opsg
 Para enviar a gravidade de cada incidente como prioridade do Opsgenie, adicione um bloco **Run Custom JavaScript** entre o gatilho e o bloco **API Post (JSON)**.
 
 1. Em **Fields to pass on** do gatilho, clique em **Adicionar campo**, abra **Severidade do incidente** e escolha **Nome**.
-2. Defina os **Arguments** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **JavaScript Code** dele como:
+2. Defina os **Arguments** do bloco como `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e o **Código JavaScript** dele como:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ O Opsgenie responde `202` antes de processar a requisição, então uma requisi�
 :::
 
 :::details O workflow nunca roda
-Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **No** do bloco **If / Else** é uma atualização que não era uma resolução.
+Verifique se ele está ativado: **Habilitado**, no topo do **Construtor** dele. Depois abra **Registros → Execuções**: uma execução que seguiu o lado **Não** do bloco **If / Else** é uma atualização que não era uma resolução.
 :::
 
 ## Próximos passos

@@ -3436,6 +3436,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/Utils/EpisodeAutoResolvePostgres.test.ts --forceExit
 
+      # #8171: Measurement:Backfill walks a project's records after a
+      # (createdAt, _id) cursor, so a run of records one statement inserted
+      # (one now(), to the microsecond) longer than a page no longer stalls
+      # it. The job itself runs - its page read, its writes held to the
+      # request (#8105), its read of the measurements still to backfill -
+      # on clones of the migrated Incident, Alert, ScheduledMaintenance and
+      # three measurement tables: runs at the start, middle and end, across
+      # ticks, microseconds apart, deleted cursors, and edits mid-walk.
+      - name: Test the measurement backfill's walk through runs of one createdAt on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_MEASUREMENT_BACKFILL_WALK_TESTS: "true"
+          MEASUREMENT_BACKFILL_WALK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MEASUREMENT_BACKFILL_WALK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MEASUREMENT_BACKFILL_WALK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/Jobs/Measurement/BackfillMeasurementsPostgres.test.ts
+          --forceExit
+
       # An Incoming Request monitor's latest request, kept twice (#6402): the
       # column 1809080466402 adds is a nullable jsonb; a request is written
       # as it came and cut in one statement; changing Keep request content

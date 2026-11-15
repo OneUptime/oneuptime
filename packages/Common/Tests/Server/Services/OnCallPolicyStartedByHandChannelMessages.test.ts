@@ -1006,11 +1006,11 @@ describe("reading whether a delivery is a policy started by hand", () => {
     ).toBe("alice@example.com");
   });
 
-  test.each([
-    ["no level was named", undefined, "never asked"],
-    ["the level cannot be read", "throws", "throws"],
-    ["the level is gone", "gone", "gone"],
-    ["the level has no order", "no order", "no order"],
+  test.each<[string, string | undefined]>([
+    ["no level was named", undefined],
+    ["the level cannot be read", "throws"],
+    ["the level is gone", "gone"],
+    ["the level has no order", "no order"],
   ])(
     "%s: the notice names the policy without a level",
     async (_name: string, setup: string | undefined) => {

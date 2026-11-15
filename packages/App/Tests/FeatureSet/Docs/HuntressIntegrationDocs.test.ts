@@ -224,8 +224,12 @@ const ROLE_WORDS: ReadonlyArray<string> = [
 ];
 
 /*
- * The Builder draws a step's title, a template's name and a value's name as
- * they are, in every language, so every page names them in English.
+ * The Builder draws these step titles and the template's name as they are,
+ * in every language (no locale has a word for them), so every page names
+ * them in English. The trigger's values it looks up in the Dashboard's
+ * locale, as the settings panel's Returns list and the value picker name
+ * them (ReturnValueNames, #8316), so a page names each as its language's
+ * Builder draws it (#7511).
  */
 const BUILDER_WORDS: ReadonlyArray<string> = [
   "Huntress Incident Report",
@@ -883,7 +887,12 @@ describe("the Huntress page names the Dashboard as it reads in each language", (
         },
       );
 
-      for (const word of [...BUILDER_WORDS, ...values]) {
+      for (const word of [
+        ...BUILDER_WORDS,
+        ...values.map((value: string): string => {
+          return drawnDashboardLabel(language, value);
+        }),
+      ]) {
         expect({ language, word, named: bold.has(word) }).toEqual({
           language,
           word,

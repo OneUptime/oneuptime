@@ -33,8 +33,10 @@
  * it renews the session, and the longest time they went without since its
  * last renewal - a browser closed, a computer asleep - so opening
  * OneUptime again after the idle timeout does not bring the session back
- * (issue #6789); anything else (the mobile app, an older page) is active
- * whenever it renews. The server decides at every renewal
+ * (issue #6789). The mobile app says the same of its person's touches, and
+ * of the time it spent in the background or closed (issue #8187,
+ * MobileApp/src/auth/userActivity.ts). Anything else (an older app or
+ * page) is active whenever it renews. The server decides at every renewal
  * (decideSessionRenewal) and on every request (getSessionEnd), never the
  * browser, and a change applies to the sessions there are: a shorter
  * length signs out everyone it is past.
@@ -502,7 +504,8 @@ export const readSessionEndReason: (
 /*
  * The field of a renewal (POST /identity/refresh-token) in which the
  * Dashboard and the Admin Dashboard say how long their person has not
- * clicked, typed or scrolled, in whole seconds.
+ * clicked, typed or scrolled, and the mobile app how long its person has
+ * not touched it or typed in it, in whole seconds.
  */
 export const INACTIVE_FOR_IN_SECONDS_FIELD: string = "inactiveForInSeconds";
 
@@ -652,6 +655,12 @@ export const getActivityAtRenewal: (data: {
  * the browser's clock. The server ends the session when it reached the
  * idle timeout, counting it only from what the session knew of its
  * person's activity already: activity the server heard of cuts it short.
+ *
+ * The mobile app says the same (issue #8187): the longest time it spent in
+ * the background, or closed, or on the screen untouched. Without it the app
+ * was decided from its last renewal alone, and under the 15-minute idle
+ * timeout - whose end the access token runs out at - it was signed out at
+ * every renewal, however much it was used.
  */
 export const LONGEST_INACTIVITY_FIELD: string = "longestInactivity";
 

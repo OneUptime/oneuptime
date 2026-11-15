@@ -53,13 +53,13 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Creare l'alert
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Success** del trigger. Imposta il suo **URL** su `https://api.opsgenie.com/v2/alerts`, o `https://api.eu.opsgenie.com/v2/alerts` in Europa. In **Altri campi**, imposta i suoi **Request Headers** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://api.opsgenie.com/v2/alerts`, o `https://api.eu.opsgenie.com/v2/alerts` in Europa. In **Altri campi**, imposta i suoi **Intestazioni della richiesta** su:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-E il suo **Request Body** su:
+E il suo **Corpo della Richiesta** su:
 
 ```json
 {
@@ -93,17 +93,17 @@ Crea un workflow chiamato `Close Opsgenie alerts` e scegli **On Update Incident*
 
 ### Controllare che l'incidente sia risolto
 
-Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Value to check** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparison** su **is true**.
+Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
 
 ### Chiudere l'alert
 
-Aggiungi un blocco **API Post (JSON)** dopo il lato **Yes**, con gli stessi **Request Headers** e questo **URL**:
+Aggiungi un blocco **API Post (JSON)** dopo il lato **Sì**, con gli stessi **Intestazioni della richiesta** e questo **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Imposta il suo **Request Body** su `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Imposta il suo **Corpo della Richiesta** su `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Attivarlo
 
@@ -117,7 +117,7 @@ Attiva **Abilitato**, poi risolvi un incidente di prova in OneUptime. Opsgenie c
 Per inviare la gravità di ogni incidente come priorità di Opsgenie, aggiungi un blocco **Run Custom JavaScript** tra il trigger e il blocco **API Post (JSON)**.
 
 1. Nei **Fields to pass on** del trigger, fai clic su **Aggiungi campo**, apri **Gravità incidente** e scegli **Nome**.
-2. Imposta gli **Arguments** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **JavaScript Code** su:
+2. Imposta gli **Arguments** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **Codice JavaScript** su:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.

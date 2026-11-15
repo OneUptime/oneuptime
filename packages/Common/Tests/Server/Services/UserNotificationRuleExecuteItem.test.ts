@@ -25,6 +25,10 @@ import UserOnCallLog from "../../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import {
+  ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE,
+  OnCallPageRecordGoneException,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageRecordGone";
 import Email from "../../../Types/Email";
 import Phone from "../../../Types/Phone";
 import ObjectID from "../../../Types/ObjectID";
@@ -469,7 +473,15 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
    */
 
   describe("a rule id that resolves to nothing", () => {
-    test('throws BadDataException("Notification rule item not found.")', async () => {
+    /*
+     * The rule was deleted after the page read it: its owner removed "SMS
+     * after 5 minutes" while they were being paged. It used to throw a
+     * BadDataException, which ends the person's whole on-call log in Error
+     * (UserOnCallLog:ExecutePendingExecutions), so every rule of theirs
+     * still due - the call after 10 minutes - was never run (issue #8168).
+     * Now it sends nothing and resolves, and the person's other rules run.
+     */
+    test("REGRESSION: resolves, so the worker does not end the person's page in Error", async () => {
       spies.findRule.mockResolvedValue(null as never);
 
       await expect(
@@ -477,64 +489,104 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           RULE_ID,
           executeOptions(),
         ),
-      ).rejects.toThrow(BadDataException);
-
-      await expect(
-        UserNotificationRuleService.executeNotificationRuleItem(
-          RULE_ID,
-          executeOptions(),
-        ),
-      ).rejects.toThrow("Notification rule item not found.");
+      ).resolves.toBeUndefined();
     });
 
-    test("the throw happens before the Twilio config and incident lookups", async () => {
+    test("nothing is read or sent past the rule lookup", async () => {
       spies.findRule.mockResolvedValue(null as never);
 
-      await expect(
-        UserNotificationRuleService.executeNotificationRuleItem(
-          RULE_ID,
-          executeOptions(),
-        ),
-      ).rejects.toThrow(BadDataException);
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
 
       expect(spies.twilio).not.toHaveBeenCalled();
       expect(spies.incidentFind).not.toHaveBeenCalled();
+      expect(spies.alertFind).not.toHaveBeenCalled();
       expect(spies.timelineCreate).not.toHaveBeenCalled();
-    });
-
-    test("nothing is sent when the rule is missing", async () => {
-      spies.findRule.mockResolvedValue(null as never);
-
-      await expect(
-        UserNotificationRuleService.executeNotificationRuleItem(
-          RULE_ID,
-          executeOptions(),
-        ),
-      ).rejects.toThrow(BadDataException);
+      expect(spies.timelineUpdate).not.toHaveBeenCalled();
 
       for (const sender of everySender()) {
         expect(sender).not.toHaveBeenCalled();
       }
     });
 
-    test("the claim has ALREADY been consumed when the rule turns out to be missing", async () => {
+    test("a repeat of a deleted rule resolves the same way", async () => {
       spies.findRule.mockResolvedValue(null as never);
 
       await expect(
         UserNotificationRuleService.executeNotificationRuleItem(
           RULE_ID,
-          executeOptions(),
+          executeOptions({ repeatNumber: 2 }),
         ),
-      ).rejects.toThrow(BadDataException);
+      ).resolves.toBeUndefined();
+
+      for (const sender of everySender()) {
+        expect(sender).not.toHaveBeenCalled();
+      }
+    });
+
+    test("the claim stays taken, so no later tick tries the deleted rule again", async () => {
+      spies.findRule.mockResolvedValue(null as never);
+
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
 
       /*
-       * Current behaviour, worth knowing: the claim is written before the rule
-       * is read, so a rule deleted between scheduling and execution burns its
-       * claim and is never retried by a later tick. That is deliberate (a
-       * missing rule is permanent), but it means the claim is not released on
-       * failure.
+       * The claim is written before the rule is read, and is not released:
+       * the rule's slot on the log is used up, so even a stale read of the
+       * person's rules that still lists it sends nothing for it.
        */
       expect(spies.claim).toHaveBeenCalledTimes(1);
+      expect(spies.claim.mock.invocationCallOrder[0]).toBeLessThan(
+        spies.findRule.mock.invocationCallOrder[0] as number,
+      );
+    });
+
+    test("says in the log which rule was skipped, without an error", async () => {
+      const info: jest.SpyInstance = jest
+        .spyOn(logger, "info")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+      spies.findRule.mockResolvedValue(null as never);
+
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
+
+      expect(info).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `Notification rule ${RULE_ID.toString()} was deleted before it was sent for on-call log ${LOG_ID.toString()}`,
+        ),
+        expect.objectContaining({
+          projectId: PROJECT_ID.toString(),
+          userNotificationRuleId: RULE_ID.toString(),
+        }),
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    test("a rule that is there is still sent, as before", async () => {
+      spies.findRule.mockResolvedValue(
+        ruleItem({
+          userEmail: {
+            email: new Email("responder@example.com"),
+            isVerified: true,
+            userId: USER_ID,
+          },
+        } as unknown as JSONObject) as never,
+      );
+
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(),
+      );
+
+      expect(spies.mail).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1053,6 +1105,75 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       }
     });
 
+    /*
+     * A record deleted after the page read where it stands: the throw says
+     * which kind it was (OnCallPageRecordGoneException), so the person's log
+     * ends Completed, "Execution completed because incident is deleted.",
+     * not in Error with these words (issue #8168).
+     */
+    test.each([
+      {
+        kind: "incident",
+        options: {},
+      },
+      {
+        kind: "alert",
+        options: {
+          userNotificationEventType: UserNotificationEventType.AlertCreated,
+          triggeredByIncidentId: undefined,
+          triggeredByAlertId: ALERT_ID,
+        },
+      },
+      {
+        kind: "alert episode",
+        options: {
+          userNotificationEventType:
+            UserNotificationEventType.AlertEpisodeCreated,
+          triggeredByIncidentId: undefined,
+          triggeredByAlertEpisodeId: ALERT_EPISODE_ID,
+        },
+      },
+      {
+        kind: "incident episode",
+        options: {
+          userNotificationEventType:
+            UserNotificationEventType.IncidentEpisodeCreated,
+          triggeredByIncidentId: undefined,
+          triggeredByIncidentEpisodeId: INCIDENT_EPISODE_ID,
+        },
+      },
+    ])(
+      "a $kind that is gone throws the record-gone error, naming its kind",
+      async (data: { kind: string; options: Partial<ExecuteOptions> }) => {
+        spies.incidentFind.mockResolvedValue(null as never);
+        spies.alertFind.mockResolvedValue(null as never);
+
+        let thrown: unknown = null;
+
+        try {
+          await UserNotificationRuleService.executeNotificationRuleItem(
+            RULE_ID,
+            executeOptions(data.options),
+          );
+        } catch (err) {
+          thrown = err;
+        }
+
+        expect(thrown).toBeInstanceOf(OnCallPageRecordGoneException);
+        expect(thrown).toBeInstanceOf(BadDataException);
+        expect((thrown as OnCallPageRecordGoneException).recordKind).toBe(
+          data.kind,
+        );
+        expect((thrown as Error).message).toBe(
+          ON_CALL_PAGE_RECORD_NOT_FOUND_MESSAGE,
+        );
+
+        for (const sender of everySender()) {
+          expect(sender).not.toHaveBeenCalled();
+        }
+      },
+    );
+
     test("an IncidentCreated event with no triggeredByIncidentId never even queries the incident", async () => {
       await expect(
         UserNotificationRuleService.executeNotificationRuleItem(
@@ -1062,6 +1183,22 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
       ).rejects.toThrow(BadDataException);
 
       expect(spies.incidentFind).not.toHaveBeenCalled();
+    });
+
+    test("a page that names no record of its event type is bad data, not a record gone", async () => {
+      let thrown: unknown = null;
+
+      try {
+        await UserNotificationRuleService.executeNotificationRuleItem(
+          RULE_ID,
+          executeOptions({ triggeredByIncidentId: undefined }),
+        );
+      } catch (err) {
+        thrown = err;
+      }
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect(thrown).not.toBeInstanceOf(OnCallPageRecordGoneException);
     });
 
     test("the event type - not the supplied ids - picks which entity is loaded", async () => {

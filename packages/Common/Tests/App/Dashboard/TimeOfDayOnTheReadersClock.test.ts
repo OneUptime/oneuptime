@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import OneUptimeDate from "../../../Types/Date";
 import {
   forgetRememberedDateTexts,
@@ -156,7 +157,7 @@ const onTheReadersClock: (
   use12HourClock: boolean,
   write: () => string,
 ) => string = (use12HourClock: boolean, write: () => string): string => {
-  const prefers: jest.SpiedFunction<() => boolean> = jest
+  const prefers: SpyInstance<() => boolean> = jest
     .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
     .mockReturnValue(use12HourClock);
 
@@ -520,15 +521,22 @@ describe("a feed's time when Intl cannot write the zone", () => {
     jest.isolateModules(() => {
       // A fresh FeedTime, whose formatters are not built yet.
       const isolated: { formatFeedTime: typeof formatFeedTime } =
-        jest.requireActual("../../../UI/Components/Feed/FeedTime");
+        jest.requireActual("../../../UI/Components/Feed/FeedTime") as {
+          formatFeedTime: typeof formatFeedTime;
+        };
       const RealDateTimeFormat: typeof Intl.DateTimeFormat =
         Intl.DateTimeFormat;
 
-      const refusing: jest.SpiedFunction<typeof Intl.DateTimeFormat> = jest
+      const refusing: SpyInstance<
+        (
+          locales?: Intl.LocalesArgument,
+          options?: Intl.DateTimeFormatOptions,
+        ) => Intl.DateTimeFormat
+      > = jest
         .spyOn(Intl, "DateTimeFormat")
         .mockImplementation(
           (
-            locales?: string | Array<string>,
+            locales?: Intl.LocalesArgument,
             options?: Intl.DateTimeFormatOptions,
           ): Intl.DateTimeFormat => {
             if (options?.timeZone) {

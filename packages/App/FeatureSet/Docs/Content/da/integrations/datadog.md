@@ -64,7 +64,7 @@ Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event
 | `Warn`, `Re-Warn`, `No Data`, `Re-No Data` | Tilføjer en privat note til advarslens hændelse, der siger, hvad monitorens tilstand er nu. |
 | `Renotify` | Intet: advarslen er stadig åben. |
 
-En notifikation om Warn eller en genopretning for en advarsel uden hændelse ændrer intet. Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være: `read-event-1` tager **No**, og kørslens **Trin** siger hvorfor. Intet går tilbage til Datadog: det løser selv sine advarsler, når signalet kommer sig, og det er det, der løser hændelsen.
+En notifikation om Warn eller en genopretning for en advarsel uden hændelse ændrer intet. Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være: `read-event-1` tager **Nej**, og kørslens **Trin** siger hvorfor. Intet går tilbage til Datadog: det løser selv sine advarsler, når signalet kommer sig, og det er det, der løser hændelsen.
 
 ### Prioriteter og opkald
 
@@ -82,7 +82,7 @@ En ny hændelse kalder de vagtpolitikker op, du valgte, når dens monitor er P1 
 Med egne alvorligheder går P1, P2 og ingen prioritet til din mest alvorlige, P3 til den midterste, og P4 og P5 til din mindst alvorlige.
 
 - For at knytte en prioritet til en af dine efter navn skal du redigere `SEVERITY_BY_NAME` i trinnet `read-event-1`, f.eks. `{ P3: 'Minor Incident' }`.
-- For også at kalde op for P3 skal du sætte **Compare with** i trinnet `if-page-1` **If / Else** til `3`.
+- For også at kalde op for P3 skal du sætte **Sammenlign med** i trinnet `if-page-1` **If / Else** til `3`.
 
 ## Modtag advarsler med en monitor
 
@@ -211,7 +211,7 @@ Test derefter fra Datadog: åbn en monitor, der nævner webhooken, klik på **Te
 :::
 
 :::details Workflowet kører, men åbner intet
-Åbn kørslen i **Protokoller → Kørsler**. Posten `read-event-1` under **Trin** siger, hvorfor den tog **No**.
+Åbn kørslen i **Protokoller → Kørsler**. Posten `read-event-1` under **Trin** siger, hvorfor den tog **Nej**.
 
 - `Datadog named no alert cycle key`: tilføj `"alert_cycle_key": "$ALERT_CYCLE_KEY"` til webhookens payload i Datadog.
 - `Datadog named no transition`: tilføj `"transition": "$ALERT_TRANSITION"` til webhookens payload i Datadog.

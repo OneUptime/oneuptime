@@ -129,22 +129,22 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 제목 확인하기
 
-**구성 요소 추가** 를 클릭하고 **If / Else** 를 고른 뒤, 트리거의 **Success** 점을 거기에 연결합니다. **확인할 값** 을 알림 제목으로( **{ }** 를 클릭해 고릅니다), **비교** 를 **포함** 으로, **비교 대상** 을 트립 와이어 제목들이 공통으로 시작하는 문구, 예를 들어 `LLM budget exceeded` 로 설정합니다.
+**구성 요소 추가** 를 클릭하고 **If / Else** 를 고른 뒤, 트리거의 **성공** 점을 거기에 연결합니다. **확인할 값** 을 알림 제목으로( **{ }** 를 클릭해 고릅니다), **비교** 를 **포함** 으로, **비교 대상** 을 트립 와이어 제목들이 공통으로 시작하는 문구, 예를 들어 `LLM budget exceeded` 로 설정합니다.
 
 ### 엔드포인트 호출하기
 
-**API Post (JSON)** 를 추가하고 **If / Else** 의 **Yes** 점을 거기에 연결합니다. **URL** 을 엔드포인트, 예를 들어 `https://agents.example.com/circuit-breaker` 로 설정하고, 아래의 헤더와 본문을 채웁니다.
+**API Post (JSON)** 를 추가하고 **If / Else** 의 **예** 점을 거기에 연결합니다. **URL** 을 엔드포인트, 예를 들어 `https://agents.example.com/circuit-breaker` 로 설정하고, 아래의 헤더와 본문을 채웁니다.
 
 ### 실패 알리기
 
-**Send Message to Slack** 또는 **Send Email** 을 추가하고 API 블록의 **Error** 점을 거기에 연결합니다. 작동에 실패한 브레이커야말로 사람이 반드시 봐야 하는 알림입니다.
+**Send Message to Slack** 또는 **Send Email** 을 추가하고 API 블록의 **오류** 점을 거기에 연결합니다. 작동에 실패한 브레이커야말로 사람이 반드시 봐야 하는 알림입니다.
 
 ### 켜기
 
 **빌더** 상단에서 **활성화됨** 을 켭니다.
 :::
 
-API 블록의 **Request Headers**:
+API 블록의 **요청 헤더**:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ API 블록의 **Request Headers**:
 }
 ```
 
-그리고 **Request Body**:
+그리고 **요청 본문**:
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ API 블록의 **Request Headers**:
 }
 ```
 
-여러 트립 와이어에 반응하려면 모든 제목을 같은 방식으로 시작하거나, **No** 점에서 **If / Else** 블록을 더 이어 붙이세요. 캔버스는 [워크플로 작성](/docs/workflows/authoring) 을, `{{…}}` 참조는 [변수](/docs/workflows/variables) 를 참고하세요.
+여러 트립 와이어에 반응하려면 모든 제목을 같은 방식으로 시작하거나, **아니오** 점에서 **If / Else** 블록을 더 이어 붙이세요. 캔버스는 [워크플로 작성](/docs/workflows/authoring) 을, `{{…}}` 참조는 [변수](/docs/workflows/variables) 를 참고하세요.
 
 ## 브레이커 테스트하기
 

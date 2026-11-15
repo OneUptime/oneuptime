@@ -51,7 +51,7 @@ Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de trava
 
 ### Ouvrir l'issue
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://gitlab.com/api/v4/projects/12345678/issues`, avec l'ID de votre projet à la place de `12345678`. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://gitlab.com/api/v4/projects/12345678/issues`, avec l'ID de votre projet à la place de `12345678`. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 {
@@ -59,7 +59,7 @@ Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et rel
 }
 ```
 
-Et son **Request Body** sur :
+Et son **Corps de la requête** sur :
 
 ```json
 {
@@ -81,11 +81,11 @@ Le bloc envoie du JSON, il n'a donc besoin d'aucun en-tête `Content-Type`. GitL
 - **Votre propre GitLab.** Envoyez plutôt la requête à votre serveur : `https://gitlab.example.com/api/v4/projects/12345678/issues`. Un serveur sur une adresse de réseau privé exige un OneUptime auto-hébergé dont l'administrateur l'autorise : voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 - **Le chemin du projet à la place de son ID.** Le chemin fonctionne à la place de l'ID, avec son `/` écrit `%2F` : `projects/your-group%2Fyour-project/issues`. L'URL est envoyée exactement telle qu'elle est écrite : encodez-la donc vous-même.
 - **L'assigner.** Ajoutez `"assignee_ids": [42]` ou `"due_date": "2026-12-31"` au corps, ou `"confidential": true` pour ne la montrer qu'aux membres du projet.
-- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Yes**, par exemple pour une gravité.
+- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Oui**, par exemple pour une gravité.
 
 ## Dépannage
 
-L'étape **API Post (JSON)** prend **Error** quand GitLab refuse la requête. Ses **Response Status** et **Response Body** dans l'exécution disent pourquoi.
+L'étape **API Post (JSON)** prend **Erreur** quand GitLab refuse la requête. Ses **Response Status** et **Corps de la réponse** dans l'exécution disent pourquoi.
 
 :::details GitLab répond 401
 Le jeton est faux, expiré ou révoqué. Créez-en un nouveau, et remplacez le contenu de `GITLAB_TOKEN`.

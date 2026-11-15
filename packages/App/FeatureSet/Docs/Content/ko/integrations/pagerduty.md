@@ -52,7 +52,7 @@ flowchart TB
 
 ### trigger 이벤트 보내기
 
-**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **Success** 점을 이 블록에 연결합니다. **URL**을 `https://events.pagerduty.com/v2/enqueue`로, **Request Body**를 다음으로 설정합니다:
+**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://events.pagerduty.com/v2/enqueue`로, **요청 본문**을 다음으로 설정합니다:
 
 ```json
 {
@@ -92,11 +92,11 @@ flowchart TB
 
 ### 인시던트가 해결되었는지 확인하기
 
-트리거 뒤에 **If / Else** 블록을 추가합니다. **Value to check**를 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **Comparison**을 **is true**로 설정합니다.
+트리거 뒤에 **If / Else** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
 
 ### resolve 이벤트 보내기
 
-**Yes** 쪽 뒤에 같은 **URL**과 다음 **Request Body**를 가진 **API Post (JSON)** 블록을 추가합니다:
+**예** 쪽 뒤에 같은 **URL**과 다음 **요청 본문**을 가진 **API Post (JSON)** 블록을 추가합니다:
 
 ```json
 {
@@ -118,7 +118,7 @@ flowchart TB
 인시던트마다 그 심각도를 보내려면 트리거와 **API Post (JSON)** 블록 사이에 **Run Custom JavaScript** 블록을 추가하고, 그 응답을 본문에서 읽습니다.
 
 1. 트리거의 **Fields to pass on**에서 **필드 추가**를 클릭하고 **인시던트 심각도**를 연 다음 **이름**을 고릅니다.
-2. 블록의 **Arguments**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript Code**를 다음으로 설정합니다:
+2. 블록의 **Arguments**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript 코드**를 다음으로 설정합니다:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details 워크플로가 실행되지 않음
-켜져 있는지 확인하세요. **빌더** 상단의 **활성화됨**입니다. 그런 다음 **로그 → 실행 기록**을 여세요. **If / Else** 블록의 **No** 쪽으로 간 실행은 해결이 아닌 업데이트입니다.
+켜져 있는지 확인하세요. **빌더** 상단의 **활성화됨**입니다. 그런 다음 **로그 → 실행 기록**을 여세요. **If / Else** 블록의 **아니오** 쪽으로 간 실행은 해결이 아닌 업데이트입니다.
 :::
 
 :::details PagerDuty에 값 대신 참조가 표시됨

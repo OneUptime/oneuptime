@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Waarde                   | Wat erin zit                                                                                                          |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Elke header van het verzoek, op naam in kleine letters, zoals `content-type`.                                         |
+| **Aanvraagheaders**      | Elke header van het verzoek, op naam in kleine letters, zoals `content-type`.                                         |
 | **Request Query Params** | De queryparameters in de URL, op naam.                                                                                |
-| **Request Body**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json`, kun je veld voor veld lezen. |
+| **Verzoeklichaam**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json`, kun je veld voor veld lezen. |
 
 Lees één veld door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,14 +125,14 @@ Elke e-mail start een eigen uitvoering. E-mail bereikt de workflow of het adres 
 
 | Waarde          | Wat erin zit                                                                                            |
 | --------------- | ------------------------------------------------------------------------------------------------------- |
-| **From**        | Het adres van de afzender.                                                                              |
-| **To**          | Iedereen aan wie de e-mail was gericht, op één regel, zoals `ops@example.com, oncall@example.com`.      |
+| **Van**        | Het adres van de afzender.                                                                              |
+| **Aan**          | Iedereen aan wie de e-mail was gericht, op één regel, zoals `ops@example.com, oncall@example.com`.      |
 | **CC**          | Iedereen die een kopie kreeg, op één regel.                                                             |
-| **Subject**     | De onderwerpregel.                                                                                      |
+| **Onderwerp**     | De onderwerpregel.                                                                                      |
 | **Body**        | De platte tekst van de e-mail.                                                                          |
 | **HTML Body**   | De HTML van de e-mail, als die er is. Body en HTML Body worden elk op 1 MB afgekapt.                     |
 | **Headers**     | Elke header van de e-mail, op naam in kleine letters, zoals `message-id`.                               |
-| **Attachments** | De naam, het type en de grootte van elk bijgevoegd bestand. De bestanden zelf worden niet bewaard.      |
+| **Bijlagen** | De naam, het type en de grootte van elk bijgevoegd bestand. De bestanden zelf worden niet bewaard.      |
 | **Received At** | Wanneer OneUptime de e-mail ontving.                                                                    |
 
 Zodra er een e-mail is binnengekomen, weet de waardekiezer in elk blok na de trigger wat erin zat: hij toont elke header en elke bijlage van de e-mail, met de inhoud, zodat je `headers.message-id` kiest in plaats van een pad te typen. Tot die tijd zegt hij dat er nog geen e-mail op het adres is binnengekomen. Zie [Waarden uit eerdere blokken gebruiken](/docs/workflows/authoring#waarden-uit-eerdere-blokken-gebruiken).
@@ -148,7 +148,7 @@ Het deel van het adres vóór de `@` bevat de geheime sleutel van de workflow, e
 Lekt het adres uit, klik dan op dezelfde plek op **Adres opnieuw instellen**: de workflow krijgt een nieuw adres, en e-mail naar het oude wordt vanaf dan genegeerd, dus geef het nieuwe aan alles wat de workflow mailt. Alleen mensen die de workflow mogen bewerken, kunnen het adres zien of opnieuw instellen — zie [Beveiliging van binnenkomende e-mail](/docs/workflows/configuration#beveiliging-van-binnenkomende-e-mail).
 
 > [!WARNING]
-> Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **From** bewijst niet wie hem stuurde. Controleer iets wat alleen de echte afzender weet voordat een stap iets belangrijks doet.
+> Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **Van** bewijst niet wie hem stuurde. Controleer iets wat alleen de echte afzender weet voordat een stap iets belangrijks doet.
 
 > [!NOTE]
 > Op een zelf gehoste installatie ontvangt OneUptime e-mail via een provider voor inkomende e-mail die je beheerder instelt — zie [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Tot die tijd heeft de trigger geen adres, en de instellingen ervan zeggen dat.
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**, **On Update** en **On Create or Update** geven het record door aan het volgende blok, met de velden die je in **Fields to pass on** van de trigger kiest. Zo geeft de trigger **Incident → On Create** het nieuwe incident door, zodat het volgende blok de titel, de beschrijving, de ernst of elk ander geselecteerd veld kan lezen, zoals `{{local.components.incident-on-create-1.returnValues.model.title}}`. Een veld dat je niet selecteerde, komt leeg aan. Dat geldt ook voor een veld waarin het record niets heeft, zoals de monitor van een waarschuwing die geen monitor heeft gegeven.
 
-**On Create or Update** geeft ook **What Happened** door: `created` als een nieuw record de uitvoering startte, en `updated` als een wijziging dat deed, zoals in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Om die twee verschillend te behandelen, vergelijk je het in een **If / Else**-blok, of neem je met **Switch / Case** voor elk een eigen pad.
+**On Create or Update** geeft ook **Wat er gebeurde** door: `created` als een nieuw record de uitvoering startte, en `updated` als een wijziging dat deed, zoals in `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. Om die twee verschillend te behandelen, vergelijk je het in een **If / Else**-blok, of neem je met **Switch / Case** voor elk een eigen pad.
 
 Eén keer opslaan laat hem één keer afgaan. Wat OneUptime invult terwijl het een record aanmaakt, hoort bij het aanmaken, dus een nieuw record laat hem één keer afgaan, als `created`. Wijzigingen die OneUptime later maakt, zoals het koppelen van het Slack-kanaal van een incident, zijn updates zoals elke andere: om ze buiten te houden, zet je alleen de velden die ertoe doen in **Fields to watch**.
 

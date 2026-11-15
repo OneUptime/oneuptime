@@ -3,6 +3,12 @@ import { PRODUCT_ANALYTICS, SESSION_REPLAY } from "./RumDocsPages";
 import { PRODUCT_ANALYTICS_DIMENSIONS } from "Common/Types/Rum/ProductAnalytics";
 import { PRODUCT_ANALYTICS_EVENT_FIELDS } from "Common/Types/Rum/ProductAnalyticsEventReads";
 import CommonMasking from "Common/Utils/Rum/Masking";
+import {
+  PRODUCT_ANALYTICS_PROPERTY_LIMITS,
+  parseProductAnalyticsBatch,
+  toProductAnalyticsPage,
+  toProductAnalyticsPropertyValue,
+} from "Common/Types/Rum/ProductAnalyticsEvents";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -247,6 +253,98 @@ describe("the docs say it, on both pages, in every language", () => {
         bulletMode: true,
         bulletTag: true,
         bulletSearch: true,
+      });
+    }
+  });
+});
+
+/*
+ * #8197: the bullet's last sentences say how a page and a property that is
+ * an address are scrubbed, by the recorder and again by OneUptime when the
+ * events arrive. Held to the code that does it, and every translation to
+ * the English line.
+ */
+describe("the docs say how a page and an address are scrubbed", () => {
+  const SCRUBBED: string =
+    "A page is sent as its path, without its query or fragment (a hash route, `#/orders`, is part of the path), and every segment that looks like an identifier (a UUID, an email, a long run of digits, a long opaque token) is replaced with `[redacted]`, as in every address Session Replay keeps; a property, attribute or user property whose value is an address is scrubbed the same way. OneUptime scrubs them again when the events arrive, so the events your own code sends with the ingestion key are held to the same rule.";
+
+  it("ends the bullet on Send events and metrics", () => {
+    expect(maskedBullet().line.endsWith(SCRUBBED)).toBe(true);
+  });
+
+  it("is what the ingest does, to a page sent as an address with a hash route and to a property", () => {
+    // A hash route is part of the path; each identifier is redacted.
+    expect(
+      toProductAnalyticsPage(
+        "https://shop.example.com/app/#/orders/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f?tab=1",
+      ),
+    ).toBe("/app/orders/[redacted]");
+
+    for (const segment of [
+      "3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f",
+      "someone@example.com",
+      "4111111111111111",
+      "Zx8_kQ2-vT9mL4pR7sW1yB6nC3dF5gH0jK",
+    ]) {
+      expect(toProductAnalyticsPage(`/users/${segment}`)).toBe(
+        "/users/[redacted]",
+      );
+    }
+
+    expect(
+      toProductAnalyticsPropertyValue(
+        "https://shop.example.com/users/someone@example.com?token=abc",
+        PRODUCT_ANALYTICS_PROPERTY_LIMITS.maxValueLength,
+      ),
+    ).toBe("https://shop.example.com/users/[redacted]");
+
+    // Again when the events arrive, whoever sent them.
+    const parsed: ReturnType<typeof parseProductAnalyticsBatch> =
+      parseProductAnalyticsBatch(
+        {
+          v: 1,
+          batchId: "a".repeat(32),
+          sessionId: "b".repeat(32),
+          visitorId: "",
+          consentState: "NotRequired",
+          sentAt: Date.now(),
+          context: {},
+          events: [
+            {
+              kind: "page",
+              name: "/users/someone@example.com",
+              at: Date.now(),
+            },
+          ],
+          metrics: [],
+        },
+        { receivedAtUnixMs: Date.now(), allowedUserPropertyKeys: [] },
+      );
+
+    expect(parsed.isValid && parsed.batch.events[0]?.name).toBe(
+      "/users/[redacted]",
+    );
+  });
+
+  it("every translation says it on the line the English says it, keeping its code", () => {
+    const bullet: number = maskedBullet().index;
+
+    for (const language of DOCS_LANGUAGES) {
+      const line: string =
+        readPage(language, PRODUCT_ANALYTICS).split("\n")[bullet] || "";
+
+      expect({
+        language,
+        route: line.includes("`#/orders`"),
+        redacted: line.includes("`[redacted]`"),
+        replay: line.includes("Session Replay"),
+        oneuptime: line.includes("OneUptime"),
+      }).toEqual({
+        language,
+        route: true,
+        redacted: true,
+        replay: true,
+        oneuptime: true,
       });
     }
   });
