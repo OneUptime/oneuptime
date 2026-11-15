@@ -1032,7 +1032,8 @@ describe("the titles every resource repeats, worded alike", () => {
  * an HTTP monitor's form read "وقفه درخواست", the same field's row on the
  * Template sync settings card "مهلت درخواست" - and وقفه is a pause, not a
  * time limit. Every text whose English says timeout now says مهلت, and وقفه
- * is left only where its English means a pause, for the reason listed.
+ * is left only where its English means a pause, or a break in what a
+ * processor runs (an interrupt), for the reason listed.
  */
 describe("a timeout is مهلت, never وقفه", () => {
   const DEADLINE: string = "مهلت";
@@ -1042,11 +1043,15 @@ describe("a timeout is مهلت, never وقفه", () => {
   // The noun: a setting, a label, the timeouts a probe counts.
   const SAYS_A_TIMEOUT: RegExp = /\btime-?outs?\b/i;
 
-  // Where Persian keeps وقفه, because the English means a pause.
+  // Where Persian keeps وقفه, because the English means a pause or an interrupt.
   const PAUSES: ReadonlyArray<{ english: RegExp; why: string }> = [
     {
       english: /\bcool-?down\b/i,
       why: "the AI re-investigation cooldown is a wait before an alert or incident on the same monitor is investigated again: a pause",
+    },
+    {
+      english: /\b(?:un)?interrupt(?:s|ible)?\b/i,
+      why: "a processor's interrupts, and the processes the kernel will not interrupt that a load average counts: Persian computing calls an interrupt وقفه (وقفه‌ناپذیر, uninterruptible), a break in what the processor runs, never a time limit",
     },
   ];
 
@@ -1099,7 +1104,7 @@ describe("a timeout is مهلت, never وقفه", () => {
     ).toEqual([]);
   });
 
-  test("وقفه is left only where the English means a pause", () => {
+  test("وقفه is left only where the English means a pause or an interrupt", () => {
     const pauses: Array<[string, string, string]> = WORDED.filter(
       ([, , persian]: [string, string, string]): boolean => {
         return persian.includes(PAUSE);
