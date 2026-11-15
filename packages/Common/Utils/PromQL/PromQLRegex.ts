@@ -204,6 +204,16 @@ class RE2Translation {
   private readonly output: Array<string> = [];
   // The groups open where the reading is, the whole pattern first.
   private readonly groups: Array<OpenGroup> = [openGroup(PROMETHEUS_FLAGS)];
+  /*
+   * Whether the last thing read is a repeat, with nothing after it but flag
+   * groups. RE2 refuses a repeat of a repeat, x** or x*??, as a nested
+   * repetition (repeat, parse.go), and so does JavaScript's RegExp, but for
+   * the "?" (?U) adds or takes away: under (?U), x*??? would be written as
+   * the one repeat x*?. RE2 reads a flag group between the two, x*(?U)??,
+   * as a repeat of the repeat, (?:x*)?, which is not written here: the
+   * repeat after it is refused too, rather than joined to the first.
+   */
+  private afterRepeat: boolean = false;
 
   public constructor(pattern: string) {
     this.pattern = pattern;
@@ -243,6 +253,7 @@ class RE2Translation {
   private write(text: string): void {
     this.output.push(text);
     this.group().alternativeStarted = true;
+    this.afterRepeat = false;
   }
 
   private readNext(): void {
@@ -427,6 +438,11 @@ class RE2Translation {
    * (?U), RE2 reads x* as lazy and x*? as greedy (repeat, parse.go).
    */
   private readRepeat(length: number): void {
+    if (this.afterRepeat) {
+      throw this.syntaxError("Nothing to repeat");
+    }
+
+    this.afterRepeat = true;
     this.output.push(this.pattern.slice(this.position, this.position + length));
     this.position += length;
 
@@ -612,10 +628,14 @@ class RE2Translation {
     this.output.push("|");
     this.position++;
     group.alternativeStarted = false;
+    this.afterRepeat = false;
     this.openRestModifierGroup(group);
   }
 
-  // ")": the flags go back to those the group opened under.
+  /*
+   * ")": the flags go back to those the group opened under, and the group
+   * is what a repeat after it repeats.
+   */
   private readGroupEnd(): void {
     if (this.groups.length === 1) {
       throw this.syntaxError("Unmatched ')'");
@@ -624,6 +644,7 @@ class RE2Translation {
     this.closeModifierGroups(this.groups.pop()!);
     this.output.push(")");
     this.position++;
+    this.afterRepeat = false;
   }
 
   // Closes the modifier groups opened inside a group, at its end.

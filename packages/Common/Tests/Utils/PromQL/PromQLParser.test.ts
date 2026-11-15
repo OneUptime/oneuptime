@@ -474,11 +474,49 @@ describe("PromQL regular expressions", () => {
     expect(regex.test("host-200")).toBe(false);
   });
 
-  test("a bracket's class names one of RE2's POSIX classes, never what every object inherits", () => {
-    // Not a POSIX class: read as the characters it is written with.
-    expect(compilePromQLRegex("[[:constructor:]]").regex.source).toBe(
-      "^(?s:[[:constructor:]])$",
-    );
+  /*
+   * RE2 refuses a repeat of a repeat: "invalid nested repetition operator"
+   * (repeat, parse.go). Under (?U) the "?" that swaps a repeat's greed is
+   * written or left out, so x*??? would otherwise reach JavaScript as the
+   * one lazy repeat x*?.
+   */
+  test.each([
+    "a**",
+    "a+*",
+    "a{2}{3}",
+    "a*??",
+    "(?U)a*???",
+    "(?U)a+??",
+    "(?U)a{1,2}???",
+    "(a)(?U)*???",
+  ])(
+    "%s, a repeat of a repeat, is refused as RE2 refuses it",
+    (pattern: string) => {
+      const refusal: unknown = refusalOf(pattern);
+
+      expect(refusal).toBeInstanceOf(SyntaxError);
+      expect((refusal as SyntaxError).message).toContain("Nothing to repeat");
+    },
+  );
+
+  test("a repeat after a flag group after a repeat is refused, never joined to the first", () => {
+    /*
+     * RE2 reads x*(?U)?? as a repeat of the repeat, (?:x*)?. Read as the
+     * one lazy repeat x*?, the groups after it would capture otherwise: on
+     * "aa", Prometheus' (a)*(?U)??(a*) captures "a" and "", and (a)*?(a*)
+     * captures nothing and "aa".
+     */
+    expect(refusalOf("a*(?U)??")).toBeInstanceOf(SyntaxError);
+    expect(refusalOf("(a)*(?U)??(a*)")).toBeInstanceOf(SyntaxError);
+  });
+
+  test("a repeat after an atom, a group or a bar is read", () => {
+    expect(compilePromQLRegex("(a*)*").regex.test("aa")).toBe(true);
+    expect(compilePromQLRegex("a*(b)*").regex.test("aab")).toBe(true);
+    expect(compilePromQLRegex("a*|b*").regex.test("bb")).toBe(true);
+    expect(compilePromQLRegex("a*|b*").regex.test("ab")).toBe(false);
+    // (?U) writes nothing of its own: the repeat after it repeats the "a".
+    expect(compilePromQLRegex("a(?U)*").regex.source).toBe("^(?s:a*?)$");
   });
 
   test("a pattern that is not a regular expression throws a SyntaxError", () => {
