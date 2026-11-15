@@ -463,9 +463,9 @@ För varje typ av post i OneUptime (monitorer, incidenter, larm, statussidor, jo
 | **Create One Monitor**   | Lägger till en post utifrån ett JSON-objekt.                                   |
 | **Create Many Monitors** | Lägger till flera poster utifrån en JSON-array.                                |
 | **Update One Monitor**   | Tillämpar data som ska skrivas på en matchande post.                           |
-| **Update Many Monitors** | Tillämpar data som ska skrivas på matchande poster, upp till **Limit**.        |
+| **Update Many Monitors** | Tillämpar data som ska skrivas på matchande poster, upp till **Gräns**.        |
 | **Delete One Monitor**   | Tar bort en matchande post.                                                    |
-| **Delete Many Monitors** | Tar bort matchande poster, upp till **Limit**.                                 |
+| **Delete Many Monitors** | Tar bort matchande poster, upp till **Gräns**.                                 |
 
 Samma uppsättning ger dig fyra utlösare — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** och **On Delete Monitor**. Se [Utlösare](/docs/workflows/triggers#utlösare-för-oneuptime-händelser).
 
@@ -533,7 +533,7 @@ Ett fält som pekar på en annan post, till exempel en incidents allvarlighetsgr
 
 Fält som OneUptime fyller i själv erbjuds inte när du skriver en post: postens `_id`, **Skapad den**, **Uppdaterad den**, **Skapad av användare**, slugs, postnummer och aviseringsstatusar. Vem som skapade, arkiverade eller löste en post, och när, är aldrig något ett arbetsflöde sätter: en post som ett arbetsflöde skapar är skapad av ingen, ett värde som ett arbetsflöde skickar för något av de fälten bredvid andra fält ignoreras, och en Update som inte skickar något annat misslyckas med ett meddelande som nämner dem. En uppdatering erbjuder bara fält som kan ändras efter att en post finns. En fråga erbjuder fortfarande ID:t, tidsstämplarna och **Skapad av användare**, eftersom de är användbara att filtrera på. **Deleted At** erbjuds ingenstans: poster tas bort helt, så det är alltid tomt.
 
-**Hoppa över** och **Limit** är två talfält på Find Many, Update Many och Delete Many, under **Fler fält** — `Skip: 0` med `Limit: 100` tar de första hundra träffarna. **Limit** är `10` som standard, och på Update Many och Delete Many begränsar den hur många poster som faktiskt skrivs, inte bara hur många som kommer tillbaka. Så `Items Deleted: 10` betyder att tio poster togs bort, inte att tio matchade. Höj **Limit** när du vill ändra fler än tio.
+**Hoppa över** och **Gräns** är två talfält på Find Many, Update Many och Delete Many, under **Fler fält** — `Skip: 0` med `Limit: 100` tar de första hundra träffarna. **Gräns** är `10` som standard, och på Update Many och Delete Many begränsar den hur många poster som faktiskt skrivs, inte bara hur många som kommer tillbaka. Så `Items Deleted: 10` betyder att tio poster togs bort, inte att tio matchade. Höj **Gräns** när du vill ändra fler än tio.
 
 Delete One och Delete Many efter fråga tömmer aldrig en historik. För en monitors statushändelser, och för tillståndshistoriken för incidenter, larm, underhållshändelser och episoder, tar de aldrig bort en posts aktuella tillstånd, och de behåller varje statushändelse för en monitor som täcker en del av de senaste 90 dagarna, så att en statussida aldrig visar en monitor grå. Körningens logg säger hur många som behölls. För att ta bort en viss händelse frågar du efter den med dess `_id`.
 

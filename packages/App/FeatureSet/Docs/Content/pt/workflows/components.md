@@ -463,9 +463,9 @@ Para cada tipo de registro do OneUptime (monitores, incidentes, alertas, página
 | **Create One Monitor**   | Adiciona um registro a partir de um objeto JSON.                               |
 | **Create Many Monitors** | Adiciona vários registros a partir de um array JSON.                           |
 | **Update One Monitor**   | Aplica os dados a gravar a um registro correspondente.                         |
-| **Update Many Monitors** | Aplica os dados a gravar aos registros correspondentes, até **Limit**.         |
+| **Update Many Monitors** | Aplica os dados a gravar aos registros correspondentes, até **Limite**.         |
 | **Delete One Monitor**   | Exclui um registro correspondente.                                             |
-| **Delete Many Monitors** | Exclui os registros correspondentes, até **Limit**.                            |
+| **Delete Many Monitors** | Exclui os registros correspondentes, até **Limite**.                            |
 
 O mesmo conjunto dá a você quatro gatilhos — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** e **On Delete Monitor**. Veja [Gatilhos](/docs/workflows/triggers#gatilhos-de-eventos-do-oneuptime).
 
@@ -533,7 +533,7 @@ Um campo que aponta para outro registro, como a gravidade de um incidente, lista
 
 Os campos que o próprio OneUptime preenche não são oferecidos quando você grava um registro: o `_id` do registro, **Criado em**, **Atualizado em**, **Criado pelo usuário**, slugs, números de registro e status de notificação. Quem criou, arquivou ou resolveu um registro, e quando, nunca cabe a um workflow definir: um registro criado por um workflow não tem criador, um valor que um workflow envia para um desses campos junto com outros campos é ignorado, e um Update que não envia mais nada falha com uma mensagem que os nomeia. Uma atualização só oferece os campos que podem mudar depois que um registro existe. Uma consulta ainda oferece o ID, os carimbos de data e hora e **Criado pelo usuário**, porque são úteis para filtrar. **Deleted At** não é oferecido em lugar nenhum: os registros são excluídos de vez, então ele está sempre vazio.
 
-**Pular** e **Limit** são dois campos numéricos em Find Many, Update Many e Delete Many, em **Mais campos** — `Skip: 0` com `Limit: 100` pega os cem primeiros resultados. **Limit** vale `10` por padrão, e em Update Many e Delete Many ele limita quantos registros são de fato gravados, não só quantos voltam. Então `Items Deleted: 10` significa que dez registros foram excluídos, não que dez corresponderam. Aumente **Limit** quando quiser alterar mais de dez.
+**Pular** e **Limite** são dois campos numéricos em Find Many, Update Many e Delete Many, em **Mais campos** — `Skip: 0` com `Limit: 100` pega os cem primeiros resultados. **Limite** vale `10` por padrão, e em Update Many e Delete Many ele limita quantos registros são de fato gravados, não só quantos voltam. Então `Items Deleted: 10` significa que dez registros foram excluídos, não que dez corresponderam. Aumente **Limite** quando quiser alterar mais de dez.
 
 Delete One e Delete Many por consulta nunca esvaziam um histórico. Nos eventos de status de um monitor, e nos históricos de estados de incidentes, alertas, eventos de manutenção e episódios, eles nunca removem o estado atual de um registro, e mantêm cada evento de status de um monitor que cobre parte dos últimos 90 dias, para que uma página de status nunca mostre um monitor em cinza. O log da execução diz quantos foram mantidos. Para excluir um evento específico, consulte-o pelo seu `_id`.
 

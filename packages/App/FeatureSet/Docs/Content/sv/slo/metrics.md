@@ -98,7 +98,7 @@ Använd aggregeringen från tabellen ovan: Avg för procentsatserna och varaktig
 | Inställning | Hur den beter sig |
 | --- | --- |
 | **Tjänstenivåmål** | Fäster widgeten vid ett SLO. Väljaren listar SLO:er som inte är arkiverade. |
-| **Follow SLO Variable** | Visar det SLO som valts i en variabel på instrumentpanelen: en variabel av typen **Telemetriattribut** på nyckeln `sloName`. Ignoreras så länge ett SLO är fäst. |
+| **Följ SLO-variabel** | Visar det SLO som valts i en variabel på instrumentpanelen: en variabel av typen **Telemetriattribut** på nyckeln `sloName`. Ignoreras så länge ett SLO är fäst. |
 
 På en [offentlig instrumentpanel](/docs/dashboards/sharing) låter en widget som följer en variabel tittarna välja vilket icke-arkiverat SLO som helst i projektet efter namn. En fäst widget visar bara sitt eget SLO, och fortsätter att visa de senaste siffrorna för ett SLO som arkiveras senare.
 

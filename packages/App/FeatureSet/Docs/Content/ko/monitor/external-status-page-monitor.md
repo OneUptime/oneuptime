@@ -48,7 +48,7 @@ flowchart TB
 
 ### 자동 감지
 
-**자동** 로 설정하면 OneUptime은 다음 순서로 상태 페이지 형식을 자동으로 감지합니다.
+**자동** 으로 설정하면 OneUptime은 다음 순서로 상태 페이지 형식을 자동으로 감지합니다.
 
 1. 먼저 incident.io 상태 페이지 API(`/proxy/<host>`)를 시도합니다.
 2. 다음으로 Atlassian Statuspage JSON API(`/api/v2/status.json`, `/api/v2/components.json`, `/api/v2/incidents/unresolved.json`)를 시도합니다.
@@ -70,7 +70,7 @@ flowchart TB
 
 ### 상태 페이지 URL 입력
 
-**상태 페이지 URL** 을 입력합니다. 형식을 알고 있는 경우가 아니면 **공급자** 는 **자동** 로 둡니다.
+**상태 페이지 URL** 을 입력합니다. 형식을 알고 있는 경우가 아니면 **공급자** 는 **자동** 으로 둡니다.
 
 ### 필요하면 구성 요소 고르기
 
@@ -152,7 +152,7 @@ OneUptime은 기본적으로 상태 페이지에서 정말 중요한 것, 즉 �
 
 ## OneUptime 상태 페이지
 
-OneUptime으로 만든 상태 페이지(다른 팀의 프로젝트, 또는 OneUptime Cloud나 셀프 호스팅 OneUptime에 있는 공급업체의 페이지)를 지켜보려면 공급자로 **OneUptime Status Page** 를 선택하거나 **자동** 로 두세요. **상태 페이지 URL** 에는 페이지 자체의 주소를 입력합니다. 도메인이 있으면 `https://status.example.com` 같은 도메인을, 없으면 `https://oneuptime.com/status-page/<status-page-id>` 를 입력하세요.
+OneUptime으로 만든 상태 페이지(다른 팀의 프로젝트, 또는 OneUptime Cloud나 셀프 호스팅 OneUptime에 있는 공급업체의 페이지)를 지켜보려면 공급자로 **OneUptime Status Page** 를 선택하거나 **자동** 으로 두세요. **상태 페이지 URL** 에는 페이지 자체의 주소를 입력합니다. 도메인이 있으면 `https://status.example.com` 같은 도메인을, 없으면 `https://oneuptime.com/status-page/<status-page-id>` 를 입력하세요.
 
 모니터는 페이지의 요약 `/status-page-api/summary/<page>` 를 읽습니다([요약 읽기](/docs/status-pages/public-api#요약-읽기) 참고). 페이지가 방문자에게 보여 주는 것만 읽고, 다른 프로젝트의 그 밖의 내용은 읽지 않습니다. 페이지의 각 리소스(모니터 또는 모니터 그룹)는 페이지가 붙인 이름으로, 페이지의 그룹 안에 있는 구성 요소가 됩니다. 다른 그룹 안의 그룹은 `Core / Databases` 처럼 표시됩니다. 리소스는 **구성 요소** 에서 고르고, 그룹 하나를 지켜보려면 **구성 요소 그룹 필터** 를 사용하세요.
 

@@ -224,7 +224,7 @@ Zie [Topologie](/docs/telemetry/topology).
 
 Een betrouwbaarheidsdoel voor wat u bewaakt, zoals 99,9% van de tijd beschikbaar over 30 dagen. OneUptime meet elke SLO elke 5 minuten aan de hand van zijn monitoren.
 
-Ook wel: **Service Level Objective**. Zie [SLO's – Overzicht](/docs/slo/introduction).
+Ook wel: **Serviceniveaudoelstelling**. Zie [SLO's – Overzicht](/docs/slo/introduction).
 
 ### Foutbudget
 

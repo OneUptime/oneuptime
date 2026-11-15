@@ -98,7 +98,7 @@ Il [widget SLO](/docs/dashboards/widgets#slo) mostra lo SLI, il budget rimanente
 | Impostazione | Come si comporta |
 | --- | --- |
 | **Obiettivo del livello di servizio** | Fissa il widget a uno SLO. Il selettore elenca gli SLO non archiviati. |
-| **Follow SLO Variable** | Mostra lo SLO scelto in una variabile della dashboard: una variabile **Attributo di telemetria** sulla chiave `sloName`. Ignorato finché uno SLO è fissato. |
+| **Segui variabile SLO** | Mostra lo SLO scelto in una variabile della dashboard: una variabile **Attributo di telemetria** sulla chiave `sloName`. Ignorato finché uno SLO è fissato. |
 
 In una [dashboard pubblica](/docs/dashboards/sharing), un widget che segue una variabile permette ai visitatori di scegliere per nome qualsiasi SLO non archiviato del progetto. Un widget fissato mostra sempre e solo il suo SLO, e continua a mostrare gli ultimi numeri di uno SLO archiviato in seguito.
 

@@ -86,10 +86,10 @@ Elke log wordt opgeslagen met een van zeven ernstniveaus. Bij logs van OpenTelem
 | --- | --- |
 | **Trace** | 1–4 |
 | **Debug** | 5–8 |
-| **Information** | 9–12 |
+| **Informatie** | 9–12 |
 | **Waarschuwing** | 13–16 |
 | **Fout** | 17–20 |
-| **Fatal** | 21–24 |
+| **Fataal** | 21–24 |
 | **Niet gespecificeerd** | Al het andere |
 
 Een log zonder ernstnummer krijgt zijn ernst uit zijn ernsttekst, in hoofd- of kleine letters: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` en `FATAL`, hun genummerde stappen zoals `WARN2`, en spellingen zoals `warning`, `notice`, `critical` en `emerg`. Elke andere tekst laat de ernst ongespecificeerd.
@@ -125,7 +125,7 @@ Een logs-monitor die in Monitor maken is aangemaakt, begint met de regel van wat
 
 | Keuze | Regel | Wat er gebeurt |
 | --- | --- | --- |
-| **Te veel fouten** | **Logernst** **Fout** en **Fatal**, **Meer dan** `10` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Te veel fouten** | **Logernst** **Fout** en **Fataal**, **Meer dan** `10` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
 | **Er verschijnt een bericht** | **Meer dan** `0` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
 | **Logs blijven weg** | **Precies** `0` in **Laatste 10 minuten** | Meldt een incident, dat zichzelf oplost |
 

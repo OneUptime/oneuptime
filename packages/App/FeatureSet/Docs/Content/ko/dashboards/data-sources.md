@@ -62,7 +62,7 @@ flowchart TB
 
 ### 로그인 방법 알려 주기
 
-**인증**에서 **사용자 이름**과 **비밀번호**를 입력하거나, HTTP 소스라면 Bearer 토큰으로 보내는 **API 토큰**을 입력합니다. **추가 필드**에는 `{ "X-Scope-OrgID": "tenant-1" }` 같은 **사용자 지정 HTTP 헤더**와 **추가 옵션**가 있습니다. Additional Options는 데이터베이스용 `sslEnabled`와 `sslRejectUnauthorized`, Elasticsearch용 `elasticsearchIndex`이며, Elasticsearch는 이것이 없으면 모든 인덱스(`*`)를 읽습니다.
+**인증**에서 **사용자 이름**과 **비밀번호**를 입력하거나, HTTP 소스라면 Bearer 토큰으로 보내는 **API 토큰**을 입력합니다. **추가 필드**에는 `{ "X-Scope-OrgID": "tenant-1" }` 같은 **사용자 지정 HTTP 헤더**와 **추가 옵션**이 있습니다. Additional Options는 데이터베이스용 `sslEnabled`와 `sslRejectUnauthorized`, Elasticsearch용 `elasticsearchIndex`이며, Elasticsearch는 이것이 없으면 모든 인덱스(`*`)를 읽습니다.
 
 ### 테스트하기
 
@@ -77,7 +77,7 @@ flowchart TB
 
 - **데이터 소스**를 고르고 **쿼리**를 작성합니다. 편집기는 쿼리 언어 이름과 그 유형의 예시를 보여 줍니다.
 - 차트에서는 **쿼리 추가**로 같은 축에 쿼리를 더 겹치고, **Legend (optional)** 설정으로 각 계열의 이름을 레이블에서 만듭니다. `{{instance}} — errors`는 계열의 `instance` 레이블을 앞에 씁니다.
-- 값이나 게이지에서는 **Reduce**가 점들을 숫자 하나로 줄입니다. 마지막 값(기본값), 첫 값, 평균, 합계, 최솟값, 최댓값 중 하나입니다. **단위**는 접미사를 붙이고, 알려진 단위는 크기도 맞춥니다. `Bytes`는 1.5 MB로, `ms`는 2.4 s로 읽힙니다.
+- 값이나 게이지에서는 **집계**가 점들을 숫자 하나로 줄입니다. 마지막 값(기본값), 첫 값, 평균, 합계, 최솟값, 최댓값 중 하나입니다. **단위**는 접미사를 붙이고, 알려진 단위는 크기도 맞춥니다. `Bytes`는 1.5 MB로, `ms`는 2.4 s로 읽힙니다.
 - 테이블에서는 읽기 전용 쿼리라면 무엇이든 쓸 수 있고, 행은 돌아온 그대로 표시됩니다.
 
 ## 쿼리 작성

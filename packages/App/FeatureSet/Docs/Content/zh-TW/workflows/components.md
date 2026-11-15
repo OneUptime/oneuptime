@@ -463,9 +463,9 @@ Zabbix 接受了更新時觸發 **已更新**；無法連線到 Zabbix 或 Zabbi
 | **Create One Monitor**   | 依據一個 JSON 物件新增一筆記錄。                                               |
 | **Create Many Monitors** | 依據一個 JSON 陣列新增多筆記錄。                                               |
 | **Update One Monitor**   | 把要寫入的資料套用到一筆相符的記錄。                                           |
-| **Update Many Monitors** | 把要寫入的資料套用到相符的記錄，最多 **Limit** 筆。                            |
+| **Update Many Monitors** | 把要寫入的資料套用到相符的記錄，最多 **上限** 筆。                            |
 | **Delete One Monitor**   | 刪除一筆相符的記錄。                                                           |
-| **Delete Many Monitors** | 刪除相符的記錄，最多 **Limit** 筆。                                            |
+| **Delete Many Monitors** | 刪除相符的記錄，最多 **上限** 筆。                                            |
 
 同一組還會給你四個觸發器——**On Create Monitor**、**On Update Monitor**、**On Create or Update Monitor** 和 **On Delete Monitor**。請參閱 [觸發器](/docs/workflows/triggers#oneuptime-事件觸發器)。
 
@@ -533,7 +533,7 @@ Create One 上的 **JSON Object**、Create Many 上的 **JSON Array** 以及 Upd
 
 OneUptime 自己填寫的欄位在你寫入記錄時不會提供：記錄的 `_id`、**建立於**、**更新於**、**建立者**、slug、記錄編號和通知狀態。誰在何時建立、封存或解決了一筆記錄，從來不由工作流程設定：工作流程建立的記錄沒有建立者；工作流程在其他欄位旁為這些欄位之一傳送的值會被忽略；而一個除此之外什麼都不傳送的 Update 會失敗，並給出提到這些欄位的訊息。更新只會提供記錄存在之後還可以變更的欄位。查詢仍然會提供 ID、時間戳記和 **建立者**，因為它們便於篩選。**Deleted At** 在任何地方都不提供：記錄會被完全刪除，所以它總是空的。
 
-**略過** 和 **Limit** 是 Find Many、Update Many 和 Delete Many 上的兩個數字欄位，位於 **更多欄位** 底下——`Skip: 0` 搭配 `Limit: 100` 會取前一百個相符項目。**Limit** 預設是 `10`，在 Update Many 和 Delete Many 上，它限制的是實際寫入的記錄數，而不只是傳回的數量。所以 `Items Deleted: 10` 表示刪除了十筆記錄，而不是相符了十筆。想變更超過十筆時，請調高 **Limit**。
+**略過** 和 **上限** 是 Find Many、Update Many 和 Delete Many 上的兩個數字欄位，位於 **更多欄位** 底下——`Skip: 0` 搭配 `Limit: 100` 會取前一百個相符項目。**上限** 預設是 `10`，在 Update Many 和 Delete Many 上，它限制的是實際寫入的記錄數，而不只是傳回的數量。所以 `Items Deleted: 10` 表示刪除了十筆記錄，而不是相符了十筆。想變更超過十筆時，請調高 **上限**。
 
 依查詢執行的 Delete One 和 Delete Many 從不清空一段歷史。對於監測器的狀態事件，以及事件、警示、維護事件和事件分組的狀態歷史，它們從不刪除記錄的目前狀態，並會保留涵蓋最近 90 天中任何一部分的每個監測器狀態事件，這樣狀態頁面就不會把監測器顯示為灰色。執行的日誌會說明保留了多少筆。要刪除某一個特定事件，請依它的 `_id` 查詢。
 

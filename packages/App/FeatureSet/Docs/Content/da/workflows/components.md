@@ -463,9 +463,9 @@ For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, 
 | **Create One Monitor**   | Tilføjer én post ud fra et JSON-objekt.                                        |
 | **Create Many Monitors** | Tilføjer flere poster ud fra et JSON-array.                                    |
 | **Update One Monitor**   | Anvender de data, der skal skrives, på én matchende post.                      |
-| **Update Many Monitors** | Anvender de data, der skal skrives, på matchende poster, op til **Limit**.     |
+| **Update Many Monitors** | Anvender de data, der skal skrives, på matchende poster, op til **Grænse**.     |
 | **Delete One Monitor**   | Sletter én matchende post.                                                     |
-| **Delete Many Monitors** | Sletter matchende poster, op til **Limit**.                                    |
+| **Delete Many Monitors** | Sletter matchende poster, op til **Grænse**.                                    |
 
 Det samme sæt giver dig fire triggere — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** og **On Delete Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhedstriggere).
 
@@ -533,7 +533,7 @@ Et felt, der peger på en anden post, for eksempel en hændelses alvorlighed, vi
 
 Felter, som OneUptime selv udfylder, tilbydes ikke, når du skriver en post: postens `_id`, **Oprettet den**, **Opdateret den**, **Oprettet af bruger**, slugs, postnumre og notifikationsstatusser. Hvem der oprettede, arkiverede eller løste en post, og hvornår, er aldrig en arbejdsgangs at sætte: en post, som en arbejdsgang opretter, er oprettet af ingen, en værdi, en arbejdsgang sender for et af de felter ved siden af andre felter, ignoreres, og en Update, der ikke sender andet, mislykkes med en meddelelse, der nævner dem. En opdatering tilbyder kun felter, der kan ændres, efter at en post findes. En forespørgsel tilbyder stadig ID'et, tidsstemplerne og **Oprettet af bruger**, fordi de er nyttige at filtrere på. **Deleted At** tilbydes ingen steder: poster slettes helt, så det er altid tomt.
 
-**Spring over** og **Limit** er to talfelter på Find Many, Update Many og Delete Many, under **Flere felter** — `Skip: 0` med `Limit: 100` tager de første hundrede match. **Limit** er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk skrives, ikke kun hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Hæv **Limit**, når du vil ændre mere end ti.
+**Spring over** og **Grænse** er to talfelter på Find Many, Update Many og Delete Many, under **Flere felter** — `Skip: 0` med `Limit: 100` tager de første hundrede match. **Grænse** er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk skrives, ikke kun hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Hæv **Grænse**, når du vil ændre mere end ti.
 
 Delete One og Delete Many efter forespørgsel tømmer aldrig en historik. På en monitors statusbegivenheder og på tilstandshistorikken for hændelser, advarsler, vedligeholdelseshændelser og episoder fjerner de aldrig en posts aktuelle tilstand, og de beholder hver statusbegivenhed for en monitor, der dækker en del af de seneste 90 dage, så en statusside aldrig viser en monitor grå. Kørslens log siger, hvor mange der blev beholdt. For at slette én bestemt begivenhed skal du forespørge den på dens `_id`.
 
