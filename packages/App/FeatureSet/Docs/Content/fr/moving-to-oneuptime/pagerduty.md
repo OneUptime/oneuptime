@@ -25,7 +25,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les propriétaires et administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
+- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les Propriétaires du projet et les Administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
 - **Une clé API REST PagerDuty en lecture seule.** Les administrateurs et propriétaires de compte PagerDuty peuvent en créer une. L'import n'écrit jamais dans PagerDuty : la clé n'a besoin que d'un accès en lecture.
 - **Votre région PagerDuty.** Si vous vous connectez sur une adresse qui se termine par `eu.pagerduty.com`, votre compte est en Europe. Sinon, il est aux États-Unis.
 
@@ -77,7 +77,7 @@ Un import crée au plus 2 000 enregistrements : au plus 500 personnes, 200 équi
 
 Sur OneUptime Cloud, les enregistrements que votre offre n'inclut pas sont affichés comme non importés, avec l'offre nécessaire.
 
-Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les propriétaires et administrateurs du projet voient la progression et le rapport de chaque import.
+Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les Propriétaires du projet et les Administrateurs du projet voient la progression et le rapport de chaque import.
 
 ## Terminer la migration
 

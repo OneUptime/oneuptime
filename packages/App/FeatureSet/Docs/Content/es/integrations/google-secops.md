@@ -22,7 +22,7 @@ Cada camino normaliza lo que llega a [OCSF](https://schema.ocsf.io/), el Open Cy
 
 ## Antes de empezar
 
-- Para el conector gestionado, en OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden leer las conexiones, pero no crearlas.
+- Para el conector gestionado, en OneUptime, el rol Propietario del proyecto, Administrador del proyecto o Administrador de seguridad. Los roles Miembro de seguridad y Visor de seguridad pueden leer las conexiones, pero no crearlas.
 - Para el webhook y el reenvío de UDM, una clave de ingesta: abre **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** y haz clic en **Crear clave de ingesta**.
 - Para el conector gestionado, permiso para crear una cuenta de servicio de Google Cloud en el proyecto al que está vinculada tu instancia de SecOps.
 

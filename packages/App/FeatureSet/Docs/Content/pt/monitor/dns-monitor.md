@@ -28,7 +28,7 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma sonda que alcance o servidor DNS.** As sondas padrão do seu projeto são escolhidas para cada monitor novo. Para consultar um servidor DNS em uma rede privada, como um resolvedor interno, use uma [sonda personalizada](/docs/probe/custom-probe) dentro dessa rede.
 
 ## Criar um monitor de DNS

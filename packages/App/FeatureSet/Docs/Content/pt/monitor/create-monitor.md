@@ -3,7 +3,7 @@
 Um monitor verifica algo que você opera, como um site, uma API, um host ou um cluster Kubernetes, e avisa quando isso para de funcionar. **Criar monitor** pergunta primeiro o que monitorar, depois o que verificar e então com que frequência. Tudo, exceto o tipo, o nome e o que verificar, começa com padrões que servem para a maioria dos monitores.
 
 > [!NOTE]
-> Para criar um monitor, você precisa da função Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou de uma função personalizada com a permissão Create Monitor.
+> Para criar um monitor, você precisa da função Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou de uma função personalizada com a permissão Create Monitor.
 
 ## Informações do Monitor
 

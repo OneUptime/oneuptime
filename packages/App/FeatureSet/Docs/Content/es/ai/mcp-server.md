@@ -430,7 +430,7 @@ Estas funcionan sin credenciales, solo con las herramientas de páginas de estad
 | Lo que hace el agente | Elegir en **Acceso** |
 | --- | --- |
 | Solo lee | **Visor**, o añade permisos de lectura en la página de la clave |
-| También crea, actualiza y elimina | **Administrador del proyecto**, o añade el rol Project Admin en la página de la clave |
+| También crea, actualiza y elimina | **Administrador del proyecto**, o añade el rol Administrador del proyecto en la página de la clave |
 
 Da a cada clave lo mínimo que necesita, rota las claves con regularidad, usa una clave distinta para cada entorno y vigila en OneUptime lo que hace cada clave.
 

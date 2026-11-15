@@ -23,7 +23,7 @@ Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo
 
 ## Antes de empezar
 
-- En OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
+- En OneUptime, el rol Propietario del proyecto, Administrador del proyecto o Administrador de seguridad. Los roles Miembro de seguridad y Visor de seguridad pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
 - Un superadministrador de Google Workspace, para permitir la delegación de todo el dominio, y un administrador como el que actúa la cuenta de servicio, con el privilegio Reports. Un superadministrador lo tiene.
 - Un proyecto de Google Cloud en el que puedas crear una cuenta de servicio y activar la Admin SDK API.
 - Para la actividad de Drive, una edición con el registro de auditoría de Drive, como Business Standard, Business Plus, Enterprise o Education.

@@ -217,7 +217,7 @@ Haz clic en **Continuar**. Si el proyecto ha verificado el dominio en el que est
 
 El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otra dirección, añádela y elimina la antigua. Se rechaza un nombre que ya use un panel o un formulario, en cualquier proyecto: un dominio muestra una sola página de estado, un solo panel o un solo formulario.
 
-Añadir un dominio al proyecto requiere permiso para crear dominios del proyecto (**Create Domain**, o Project Owner o Project Admin), y verificarlo requiere **Edit Domain**. Sin ellos, el cuadro de diálogo dice quién puede hacerlo.
+Añadir un dominio al proyecto requiere permiso para crear dominios del proyecto (**Create Domain**, o Propietario del proyecto o Administrador del proyecto), y verificarlo requiere **Edit Domain**. Sin ellos, el cuadro de diálogo dice quién puede hacerlo.
 
 ### Configuración de DNS y verificación
 
@@ -301,9 +301,9 @@ Busca en tu dominio un registro CAA que deje fuera `letsencrypt.org` y, en una i
 
 ### Quién puede comprobar y volver a emitir
 
-**Comprobar ahora**, pedir el certificado de un dominio y **Volver a emitir SSL** cambian el dominio, así que necesitan permiso para editarlo: **Edit Status Page Domain**, o un rol que lo incluya (Project Owner, Project Admin, Project Member, Status Page Admin o Status Page Member).
+**Comprobar ahora**, pedir el certificado de un dominio y **Volver a emitir SSL** cambian el dominio, así que necesitan permiso para editarlo: **Edit Status Page Domain**, o un rol que lo incluya (Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de páginas de estado o Miembro de páginas de estado).
 
-Alguien que solo puede leer el dominio, como un Viewer o un Status Page Viewer, sigue viendo la columna **Estado** y el registro que hay que añadir en **Configuración de DNS**. Para esa persona, **Comprobar ahora** y **Volver a emitir SSL** están bloqueados y dicen qué permiso necesita. OneUptime sigue comprobando cada dominio y pidiendo su certificado por su cuenta de todos modos.
+Alguien que solo puede leer el dominio, como un Visor o un Visor de páginas de estado, sigue viendo la columna **Estado** y el registro que hay que añadir en **Configuración de DNS**. Para esa persona, **Comprobar ahora** y **Volver a emitir SSL** están bloqueados y dicen qué permiso necesita. OneUptime sigue comprobando cada dominio y pidiendo su certificado por su cuenta de todos modos.
 
 Lo mismo vale para las claves de API. Una clave que solo puede leer los dominios de páginas de estado no puede llamar a `verify-cname`, `check-dns`, `order-ssl` ni `reissue-ssl` en `/status-page-domain`. Dale **Read Status Page Domain** y **Edit Status Page Domain** si lo necesita. Cuando no se encuentra el registro, `verify-cname` se niega indicando lo que buscó y lo que obtuvo, con las mismas palabras que muestra **Configuración de DNS**; `check-dns` responde en cualquier caso por cada registro que buscó.
 

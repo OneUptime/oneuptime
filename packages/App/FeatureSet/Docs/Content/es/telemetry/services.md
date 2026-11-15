@@ -43,7 +43,7 @@ Cada vez que llega telemetría, el **Visto por última vez** del servicio avanza
 ## Antes de empezar
 
 - **Telemetría que llega** con un `service.name`. Consulte [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` lo establece.
-- **Un rol que pueda leer servicios.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member o Settings Viewer, o un rol personalizado con el permiso Read Service. Crear, cambiar y eliminar servicios requiere Project Owner, Project Admin, Project Member, Settings Admin o Settings Member, o los permisos de servicio correspondientes.
+- **Un rol que pueda leer servicios.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de ajustes, Miembro de ajustes o Visor de ajustes, o un rol personalizado con el permiso Read Service. Crear, cambiar y eliminar servicios requiere Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de ajustes o Miembro de ajustes, o los permisos de servicio correspondientes.
 
 ## Encontrar un servicio
 

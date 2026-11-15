@@ -176,7 +176,7 @@ Arrastre el estado por su asa. Un estado más abajo en la lista cuenta como peor
 Un estado no hace nada hasta que un criterio lleva monitores a él. Elíjalo en **Cambiar estado del monitor a** en el criterio que debe fijarlo.
 :::
 
-Los estados operativo y sin conexión están marcados como **Predefinido**: puede cambiarles el nombre y el color, pero no eliminarlos. En OneUptime Cloud, crear o cambiar un estado requiere el plan Growth. Gestionar los estados requiere el rol Project Owner, Project Admin o Monitor Admin, o un rol personalizado con el permiso de estado de monitor correspondiente.
+Los estados operativo y sin conexión están marcados como **Predefinido**: puede cambiarles el nombre y el color, pero no eliminarlos. En OneUptime Cloud, crear o cambiar un estado requiere el plan Growth. Gestionar los estados requiere el rol Propietario del proyecto, Administrador del proyecto o Administrador de monitores, o un rol personalizado con el permiso de estado de monitor correspondiente.
 
 ### La cronología de estados
 

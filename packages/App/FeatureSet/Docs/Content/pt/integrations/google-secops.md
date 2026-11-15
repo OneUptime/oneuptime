@@ -22,7 +22,7 @@ Cada caminho normaliza o que chega para [OCSF](https://schema.ocsf.io/), o Open 
 
 ## Antes de começar
 
-- Para o conector gerenciado, no OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer podem ler as conexões, mas não criá-las.
+- Para o conector gerenciado, no OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança podem ler as conexões, mas não criá-las.
 - Para o webhook e o encaminhamento de UDM, uma chave de ingestão: abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**.
 - Para o conector gerenciado, permissão para criar uma conta de serviço do Google Cloud no projeto ao qual a sua instância do SecOps está vinculada.
 

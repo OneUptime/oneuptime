@@ -26,7 +26,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un rôle qui peut inviter.** Project Owner, Project Admin, ou un rôle avec l'autorisation **Invite New Members**. Vous ne pouvez inviter des personnes que dans une équipe dont vous détenez vous-même les autorisations, car une invitation leur donne l'accès de l'équipe.
+- **Un rôle qui peut inviter.** Propriétaire du projet, Administrateur du projet, ou un rôle avec l'autorisation **Invite New Members**. Vous ne pouvez inviter des personnes que dans une équipe dont vous détenez vous-même les autorisations, car une invitation leur donne l'accès de l'équipe.
 - **Sur OneUptime Cloud, de la place dans votre forfait.** Chaque personne du projet est un siège sur sa facture, dès le moment où elle est invitée. Le forfait Free a de la place pour une personne. Voir [Facturation et utilisation](/docs/configuration/billing#votre-forfait-et-vos-sièges).
 - **Pas de SCIM Push Groups.** Tant que votre fournisseur d'identité gère les équipes du projet via SCIM Push Groups, vous invitez et retirez les personnes là-bas, pas dans OneUptime.
 
@@ -47,7 +47,7 @@ Saisissez son adresse dans **E-mail**. Si aucun compte OneUptime ne l'utilise en
 
 ### Choisir son équipe
 
-**Équipe** commence sur l'équipe des membres du projet : l'équipe qui détient Project Member pour tout le projet, ou sinon celle nommée Members. Choisissez une autre équipe pour lui donner plus d'accès, ou moins. **Équipe** reste vide quand le projet n'a pas une telle équipe, ou quand vous ne pourriez y inviter personne vous-même.
+**Équipe** commence sur l'équipe des membres du projet : l'équipe qui détient Membre du projet pour tout le projet, ou sinon celle nommée Members. Choisissez une autre équipe pour lui donner plus d'accès, ou moins. **Équipe** reste vide quand le projet n'a pas une telle équipe, ou quand vous ne pourriez y inviter personne vous-même.
 
 ### Envoyer l'invitation
 
@@ -86,7 +86,7 @@ Filtrez la liste par **Utilisateur**, **Statut** ou **Équipe**. Cliquez sur une
 | --- | --- |
 | **Profil** | Son nom, son adresse e-mail, sa photo et son ID utilisateur. |
 | **Équipes** | Les équipes dont elle fait partie. Ajoutez ou retirez une équipe ici. |
-| **Disponibilité**, **Méthodes de notification**, **Comment me joindre** | Si elle peut être appelée, et comment. Visible par les Project Owners, les Project Admins, la personne elle-même et toute personne qui peut lire les règles de notification des autres. Voir [Disponibilité et rapports](/docs/on-call/readiness). |
+| **Disponibilité**, **Méthodes de notification**, **Comment me joindre** | Si elle peut être appelée, et comment. Visible par les Propriétaires du projet, les Administrateurs du projet, la personne elle-même et toute personne qui peut lire les règles de notification des autres. Voir [Disponibilité et rapports](/docs/on-call/readiness). |
 | **Champs personnalisés** | Les champs personnalisés du projet pour les personnes, s'il en a. |
 | **Retirer du projet** | La retirer du projet. |
 

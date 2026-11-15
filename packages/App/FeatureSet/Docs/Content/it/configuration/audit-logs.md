@@ -32,7 +32,7 @@ flowchart TB
 
 - **Su OneUptime Cloud, il piano Enterprise.** Con gli altri piani, le pagine del registro di audit mostrano che cosa fa la funzionalità e come ottenerla.
 - **Quando ospiti OneUptime in proprio, l'Enterprise Edition**, con una licenza che includa i registri di audit. Vedi [Edizione Enterprise](/docs/self-hosted/enterprise).
-- **Un ruolo che può leggere il registro di audit.** Project Owner, Project Admin, Settings Admin o l'autorizzazione **Read Audit Log**. Per attivare il registro di audit e cambiarne le impostazioni serve un Project Owner, un Project Admin o il permesso di modificare il progetto.
+- **Un ruolo che può leggere il registro di audit.** Proprietario del progetto, Amministratore del progetto, Amministratore delle impostazioni o l'autorizzazione **Read Audit Log**. Per attivare il registro di audit e cambiarne le impostazioni serve un Proprietario del progetto, un Amministratore del progetto o il permesso di modificare il progetto.
 
 ## Attivare il registro di audit
 

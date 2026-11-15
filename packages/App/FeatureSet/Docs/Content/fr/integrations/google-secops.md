@@ -22,7 +22,7 @@ Chaque méthode normalise ce qui arrive en [OCSF](https://schema.ocsf.io/), l'Op
 
 ## Avant de commencer
 
-- Pour le connecteur géré, dans OneUptime, le rôle Project Owner, Project Admin ou Security Admin. Les rôles Security Member et Security Viewer peuvent lire les connexions, mais pas en créer.
+- Pour le connecteur géré, dans OneUptime, le rôle Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité. Les rôles Membre de la sécurité et Lecteur de la sécurité peuvent lire les connexions, mais pas en créer.
 - Pour le webhook et le transfert UDM, une clé d'ingestion : ouvrez **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et cliquez sur **Créer une clé d'ingestion**.
 - Pour le connecteur géré, le droit de créer un compte de service Google Cloud, dans le projet auquel votre instance SecOps est liée.
 

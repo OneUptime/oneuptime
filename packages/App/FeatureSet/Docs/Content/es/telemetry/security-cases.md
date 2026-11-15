@@ -33,13 +33,13 @@ Abre **Productos → Eventos de seguridad → Casos de seguridad → Casos abier
 
 ## Antes de empezar
 
-Los permisos sobre casos y playbooks dependen de los tres roles de seguridad. Project Owner y Project Admin pueden hacerlo todo.
+Los permisos sobre casos y playbooks dependen de los tres roles de seguridad. Propietario del proyecto y Administrador del proyecto pueden hacerlo todo.
 
 | Rol | Qué puede hacer |
 | --- | --- |
-| Security Admin | Todo, incluido eliminar casos, quitar evidencias y configurar playbooks |
-| Security Member | Abrir, asignar, cambiar y cerrar casos, escribir notas, trabajar tareas, añadir evidencias, ejecutar playbooks y aprobar o rechazar sus pasos |
-| Security Viewer | Leer casos, detecciones, notas, tareas, evidencias, playbooks y sus ejecuciones |
+| Administrador de seguridad | Todo, incluido eliminar casos, quitar evidencias y configurar playbooks |
+| Miembro de seguridad | Abrir, asignar, cambiar y cerrar casos, escribir notas, trabajar tareas, añadir evidencias, ejecutar playbooks y aprobar o rechazar sus pasos |
+| Visor de seguridad | Leer casos, detecciones, notas, tareas, evidencias, playbooks y sus ejecuciones |
 
 Cada uno de estos permisos también se puede conceder por separado, desde crear un caso hasta aprobar los pasos de un playbook; consulta [Referencia de permisos](/docs/permissions/reference).
 
@@ -105,7 +105,7 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
 - **Señales conectadas**: los hosts, clústeres, servicios y miembros que nombra el caso, tal como OneUptime los conoce, y lo que ocurría en cada uno en torno a sus detecciones: sus registros, trazas y métricas, lo que está abierto en ellos y lo que cambió. Consulta [Señales conectadas](/docs/telemetry/security-connected-signals).
-- **Evidencias**: los archivos, enlaces y eventos de seguridad guardados en el caso, cada uno con quién lo añadió y cuándo. El botón **Añadir archivo** sube un archivo de hasta 10 MB y guarda el SHA-256 de lo que se subió, para que quien lo descargue después pueda comprobar que es lo que se guardó; el botón **Añadir enlace** apunta a evidencias guardadas en otro lugar. Solo un Security Admin puede quitar una evidencia, y la **Cronología** del caso dice qué se añadió y qué se quitó. Un evento de seguridad se guarda aquí tal como era, con **Añadir al caso** en **Eventos** o en la página de una [cacería](/docs/telemetry/security-events#cacerías), y **Ver evento** lo abre. El paso **Preserve the evidence** de un playbook también guarda aquí los eventos detrás de las detecciones del caso.
+- **Evidencias**: los archivos, enlaces y eventos de seguridad guardados en el caso, cada uno con quién lo añadió y cuándo. El botón **Añadir archivo** sube un archivo de hasta 10 MB y guarda el SHA-256 de lo que se subió, para que quien lo descargue después pueda comprobar que es lo que se guardó; el botón **Añadir enlace** apunta a evidencias guardadas en otro lugar. Solo un Administrador de seguridad puede quitar una evidencia, y la **Cronología** del caso dice qué se añadió y qué se quitó. Un evento de seguridad se guarda aquí tal como era, con **Añadir al caso** en **Eventos** o en la página de una [cacería](/docs/telemetry/security-events#cacerías), y **Ver evento** lo abre. El paso **Preserve the evidence** de un playbook también guarda aquí los eventos detrás de las detecciones del caso.
 - **Tareas**: lo que hay que hacer en el caso, quién lo hace y si está hecho. Añade una tarea en una línea, entrégasela a alguien y márcala cuando esté hecha. Se avisa a la persona a la que se entrega, salvo que la tomara ella misma, y el menú muestra cuántas tareas quedan abiertas junto a **Tareas**. El paso **Añadir tareas** de un playbook también añade tareas y omite las que el caso ya tiene.
 - **Playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Playbooks**.
 - **Notas privadas**: lo que el equipo escribió sobre el caso. El menú **Plantillas** del editor pone una de las plantillas de notas del proyecto en una nota.
@@ -195,7 +195,7 @@ Tres ajustes más hacen que los casos sean propios de tu proyecto, en **Producto
 - **Plantillas de notas**: texto listo para usar en las notas que tu equipo escribe caso tras caso, como una lista de comprobación de contención o un relevo para el siguiente turno. En las **Notas privadas** de un caso, el menú **Plantillas** del editor pone una en la nota, para editarla antes de publicarla, y **Gestionar plantillas** abre la lista.
 - **Numeración**: el texto delante de los números de caso, `CASE-` en `CASE-42` salvo que elijas el tuyo, y el número que recibe el próximo caso. ¿Vienes de otra herramienta? Empieza después de su último número de caso, para que un número nunca designe dos casos. Un prefijo o un inicio nuevo solo se aplica a los casos nuevos, y un inicio debe ser mayor que el número más alto usado hasta ahora.
 
-Un Security Admin gestiona los campos personalizados y las plantillas de notas, y un Security Member rellena los campos de un caso; en OneUptime Cloud requieren el plan Growth o superior. La numeración la define un Project Owner o un Project Admin, como en los incidentes y las alertas.
+Un Administrador de seguridad gestiona los campos personalizados y las plantillas de notas, y un Miembro de seguridad rellena los campos de un caso; en OneUptime Cloud requieren el plan Growth o superior. La numeración la define un Propietario del proyecto o un Administrador del proyecto, como en los incidentes y las alertas.
 
 ## Notificaciones
 
@@ -209,7 +209,7 @@ OneUptime avisa a las personas de cinco cosas de un caso. Nadie tiene que config
 | Objetivo de respuesta de un caso de seguridad | Las personas que se ocupan del caso: la persona a la que está asignado y los miembros de su equipo. Si nadie se ocupa de él, las personas a las que se avisa de los casos nuevos con su prioridad | Por correo y por push |
 | Tarea de un caso de seguridad asignada a mí | La persona a la que se entrega una tarea del caso, salvo que la tomara ella misma | Por correo y por push |
 
-- Solo se avisa a las personas que pueden ver el caso: Project Owner, Project Admin y los roles Security Admin, Security Member y Security Viewer. A un rol limitado a algunas etiquetas solo se le avisa de los casos con esas etiquetas.
+- Solo se avisa a las personas que pueden ver el caso: Propietario del proyecto, Administrador del proyecto y los roles Administrador de seguridad, Miembro de seguridad y Visor de seguridad. A un rol limitado a algunas etiquetas solo se le avisa de los casos con esas etiquetas.
 - A nadie se le avisa de lo que hizo: quien abre un caso a mano, lo asigna o inicia una ejecución no recibe una notificación de ello.
 - Cada persona se entera de un caso una sola vez. Un caso que se abre con prioridad Medium y después sube a Crítico llega, al subir, a las personas que eligieron Alta y Crítica o Solo Crítica, y no otra vez a las que eligieron Media y superior, que ya se enteraron cuando se abrió.
 - El ataque de prueba de **Enviar un ataque de prueba** abre un caso que no avisa a nadie.
@@ -310,7 +310,7 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 
 Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando ha terminado el anterior. Además, cada paso puede:
 
-- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los ocho pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook**, **Post a status page announcement** y los dos pasos de almacenes de datos empiezan con la aprobación activada, porque ejecutan comandos en tus sistemas, hablan con tus clientes o cambian los ajustes de una nube; quien añade el paso puede desactivarla.
+- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los ocho pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Administrador de seguridad lo desactive. **Run a runbook**, **Post a status page announcement** y los dos pasos de almacenes de datos empiezan con la aprobación activada, porque ejecutan comandos en tus sistemas, hablan con tus clientes o cambian los ajustes de una nube; quien añade el paso puede desactivarla.
 - **Ejecutar este paso**: **Siempre**, o solo después de resultados de pasos anteriores, como que **Comprobar las entidades con la inteligencia de amenazas** encuentre una entidad maliciosa conocida; consulta [Ramificar según el resultado de un paso](#ramificar-según-el-resultado-de-un-paso).
 - **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución. Está en **Más campos**, junto con **Ejecutar este paso**.
 
@@ -365,11 +365,11 @@ Los dos pasos de almacenes de datos actúan sobre los almacenes de datos de los 
 
 #### Entidades protegidas
 
-**Entidades protegidas**, en **Playbooks** en el menú, lista los usuarios y hosts a los que ningún playbook aplica contención, como las cuentas de acceso de emergencia, los controladores de dominio y las puertas de enlace VPN. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Security Admins.
+**Entidades protegidas**, en **Playbooks** en el menú, lista los usuarios y hosts a los que ningún playbook aplica contención, como las cuentas de acceso de emergencia, los controladores de dominio y las puertas de enlace VPN. Un valor coincide sin distinguir mayúsculas de minúsculas, y `*` representa cualquier secuencia de caracteres: `svc-*` protege todas las cuentas de servicio. Un paso informa de un usuario o host protegido como protegido y no lo toca. La lista la mantienen los Administradores de seguridad.
 
 #### Aprobación
 
-Los ocho pasos que dejan a alguien sin acceso esperan aprobación. Solo un Security Admin puede desactivar **Requiere aprobación** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Actuar sobre** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
+Los ocho pasos que dejan a alguien sin acceso esperan aprobación. Solo un Administrador de seguridad puede desactivar **Requiere aprobación** en uno de ellos, y OneUptime registra quién lo hizo. La aprobación lista en **Actuar sobre** los usuarios o hosts sobre los que actuaría el paso, todos marcados: desmarca los que deba dejar intactos. Los protegidos no se ofrecen. Quien inició una ejecución no puede aprobar sus pasos: lo hace otra persona, aunque sí puede rechazarlos.
 
 #### Deshacer
 
@@ -440,7 +440,7 @@ Comprueba **Abrir un caso al coincidir** en el paso **Al coincidir** de la regla
 :::
 
 :::details No se avisó a nadie de un caso
-Mira la **Cronología** del caso, que indica a quién se notificó. Una notificación **Nuevo caso de seguridad** va a las personas cuya prioridad elegida alcanza el caso, así que un caso Medium no avisa a nadie que haya mantenido la opción predeterminada, **Alta y superior**. Comprueba que las personas que deberían enterarse pueden ver los casos de seguridad (con un rol de seguridad, o como Project Owner o Project Admin) y que tienen la notificación activada en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**.
+Mira la **Cronología** del caso, que indica a quién se notificó. Una notificación **Nuevo caso de seguridad** va a las personas cuya prioridad elegida alcanza el caso, así que un caso Medium no avisa a nadie que haya mantenido la opción predeterminada, **Alta y superior**. Comprueba que las personas que deberían enterarse pueden ver los casos de seguridad (con un rol de seguridad, o como Propietario del proyecto o Administrador del proyecto) y que tienen la notificación activada en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**.
 :::
 
 :::details Un caso no muestra ningún vencimiento

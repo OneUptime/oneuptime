@@ -25,7 +25,7 @@ L'utilisation d'un compte est ce qui lui a été facturé, jour après jour. Ell
 
 ## Avant de commencer
 
-- Le rôle Project Owner ou Project Admin. Eux seuls peuvent connecter, modifier ou retirer un compte ; tous ceux qui lisent la télémétrie du projet voient les connexions et l'utilisation.
+- Le rôle Propriétaire du projet ou Administrateur du projet. Eux seuls peuvent connecter, modifier ou retirer un compte ; tous ceux qui lisent la télémétrie du projet voient les connexions et l'utilisation.
 - Un identifiant pour le compte, fourni par quelqu'un qui l'administre. La section de chaque fournisseur, plus bas, indique lequel et où il se crée.
 - Rien à installer : OneUptime appelle l'API du fournisseur depuis ses propres serveurs.
 
