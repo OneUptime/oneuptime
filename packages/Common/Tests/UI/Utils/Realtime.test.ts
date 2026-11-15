@@ -778,7 +778,9 @@ describe("Realtime (UI) subscriptions", () => {
     });
 
     test("the room is named as the server names it: the project's id first, in lower case", () => {
-      expect(usageRoom).toBe(`${TENANT_ID.toString().toLowerCase()}-ProjectUsage`);
+      expect(usageRoom).toBe(
+        `${TENANT_ID.toString().toLowerCase()}-ProjectUsage`,
+      );
       expect(
         RealtimeUtil.getProjectUsageRoomId(TENANT_ID.toString().toUpperCase()),
       ).toBe(usageRoom);
@@ -853,7 +855,10 @@ describe("Realtime (UI) subscriptions", () => {
       stop();
       stop();
 
-      mockSocket.deliver(RealtimeUtil.getProjectUsageRoomId(OTHER_TENANT_ID), {});
+      mockSocket.deliver(
+        RealtimeUtil.getProjectUsageRoomId(OTHER_TENANT_ID),
+        {},
+      );
       mockSocket.deliver(usageRoom, {});
       expect([kept, stopped]).toEqual([1, 0]);
 

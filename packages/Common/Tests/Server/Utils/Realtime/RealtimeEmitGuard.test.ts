@@ -215,7 +215,7 @@ describe("every live update goes through the one check", () => {
     }
   });
 
-  test("a project's usage change says only \"ask again\", to those who read in the project", () => {
+  test('a project\'s usage change says only "ask again", to those who read in the project', () => {
     const usage: string = methodBody(realtime, "deliverProjectUsageChanged");
 
     // The project's usage room, and nothing in the event.

@@ -92,7 +92,10 @@ let asks: Array<{ projectId: string; at: number }>;
 let currentProjectId: string;
 
 const fakeLiveConnection: {
-  listenToProjectUsage: (tenantId: ObjectID, onChange: () => void) => () => void;
+  listenToProjectUsage: (
+    tenantId: ObjectID,
+    onChange: () => void,
+  ) => () => void;
 } = {
   listenToProjectUsage: (
     tenantId: ObjectID,

@@ -223,11 +223,9 @@ export default abstract class Realtime {
        * it, and ask for its products again.
        */
       RealtimeAccessChanges.onProjectUsageChanged((projectId: string): void => {
-        Realtime.deliverProjectUsageChanged(projectId).catch(
-          (err: unknown) => {
-            logger.error(err);
-          },
-        );
+        Realtime.deliverProjectUsageChanged(projectId).catch((err: unknown) => {
+          logger.error(err);
+        });
       });
 
       this.socketServer!.on("connection", (socket: Socket) => {
@@ -248,16 +246,13 @@ export default abstract class Realtime {
           );
         });
 
-        socket.on(
-          EventName.ListenToProjectUsage,
-          (data: JSONObject): void => {
-            Realtime.handleListenToProjectUsageRequest(socket, data).catch(
-              (err: unknown) => {
-                logger.error(err);
-              },
-            );
-          },
-        );
+        socket.on(EventName.ListenToProjectUsage, (data: JSONObject): void => {
+          Realtime.handleListenToProjectUsageRequest(socket, data).catch(
+            (err: unknown) => {
+              logger.error(err);
+            },
+          );
+        });
       });
     }
 
@@ -1331,9 +1326,9 @@ export default abstract class Realtime {
 
     const tenantId: string = normalizeRealtimeId(projectId);
     const roomId: string = RealtimeUtil.getProjectUsageRoomId(tenantId);
-    const listening: Array<ListeningSocket> = await this.fetchListeningSockets(
-      [roomId],
-    );
+    const listening: Array<ListeningSocket> = await this.fetchListeningSockets([
+      roomId,
+    ]);
 
     const listeners: Map<
       string,

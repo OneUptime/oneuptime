@@ -325,9 +325,7 @@ describe("who hears that what a project uses changed", () => {
     expect(heard(ended)).toEqual([]);
     expect(heard(anonymous)).toEqual([]);
     expect(heard(member)).toHaveLength(1);
-    expect(server.sends).toEqual([
-      { targets: [member.id], event: USAGE_ROOM },
-    ]);
+    expect(server.sends).toEqual([{ targets: [member.id], event: USAGE_ROOM }]);
   });
 
   test("a person whose permissions cannot be read now hears nothing; the others still do", async () => {
@@ -630,11 +628,11 @@ describe("how often: a burst is announced at most once per ANNOUNCE_EVERY_MS", (
   });
 
   test("an announcement that fails is a log line, not a failed delete", async () => {
-    (
-      RealtimeAccessChanges.announce as unknown as jest.Mock
-    ).mockImplementation((): void => {
-      throw new Error("the channel is gone");
-    });
+    (RealtimeAccessChanges.announce as unknown as jest.Mock).mockImplementation(
+      (): void => {
+        throw new Error("the channel is gone");
+      },
+    );
 
     await expect(deleted()).resolves.toBeUndefined();
   });

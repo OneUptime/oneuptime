@@ -116,10 +116,7 @@ describe("the realtime join runs the API's own checks", () => {
         name,
         true,
       ]);
-      expect([name, join.includes("this.admitToRoom(")]).toEqual([
-        name,
-        true,
-      ]);
+      expect([name, join.includes("this.admitToRoom(")]).toEqual([name, true]);
     }
 
     const admit: string = code(methodBody(REALTIME, "admitToRoom"));

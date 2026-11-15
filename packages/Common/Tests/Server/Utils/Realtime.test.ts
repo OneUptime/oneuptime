@@ -2222,9 +2222,9 @@ describe("Realtime (server) ListenToModelEvent", () => {
 
     test("no model's read is asked: a member whose roles read no model joins all the same", async () => {
       memberOf([TENANT_ID]);
-      (Realtime.hasPermissionsByModelName as unknown as jest.Mock).mockReturnValue(
-        false,
-      );
+      (
+        Realtime.hasPermissionsByModelName as unknown as jest.Mock
+      ).mockReturnValue(false);
 
       const socket: FakeServerSocket = new FakeServerSocket(
         cookieWith(validToken()),
@@ -2393,7 +2393,9 @@ describe("Realtime (server) ListenToModelEvent", () => {
 
       await listen(socket);
       await listenToUsage(socket);
-      expect(socket.subscribedRooms().sort()).toEqual([ROOM_ID, USAGE_ROOM].sort());
+      expect(socket.subscribedRooms().sort()).toEqual(
+        [ROOM_ID, USAGE_ROOM].sort(),
+      );
 
       heldSockets = [socket];
       projectRequiresSso.mockResolvedValue(true);
