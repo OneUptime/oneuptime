@@ -139,7 +139,7 @@ function renderComponentRow(r: StorageArrayResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = getComponentDisplayName(r);
   const state: StorageArrayWidgetState = getHardwareStatusState(r.status);
-  const arrayName: string = (r.storageArray?.name as string) || "—";
+  const arrayName: string | undefined = r.storageArray?.name as string;
   const route: Route | undefined = getHardwareRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -211,7 +211,7 @@ function buildComponentTile(r: StorageArrayResource): HoneycombTile {
       details: [
         {
           label: "Array (storage array)",
-          value: (r.storageArray?.name as string) || "—",
+          value: r.storageArray?.name as string,
         },
         { label: "Type", value: getHardwareTypeText(r, translator) },
         {

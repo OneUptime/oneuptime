@@ -158,7 +158,8 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
                     text={
                       translator.translateText(item.title || "") ||
                       item.title ||
-                      "—"
+                      translator.translateText("Untitled") ||
+                      "Untitled"
                     }
                   />
                 </AppLink>

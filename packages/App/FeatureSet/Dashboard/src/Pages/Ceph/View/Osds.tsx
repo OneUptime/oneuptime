@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import OneUptimeDate from "Common/Types/Date";
@@ -54,7 +55,7 @@ export const formatOsdLatency: (
   translator: Translator,
 ) => string = (milliseconds: number | null, translator: Translator): string => {
   return milliseconds === null
-    ? "—"
+    ? EMPTY_VALUE_MARK
     : formatMilliseconds(translator, milliseconds, {
         maximumFractionDigits: 0,
       });
@@ -114,20 +115,20 @@ const CephClusterOsds: FunctionComponent<
               age: CephResourceUtils.formatAge(row.createdAt),
               additionalAttributes: {
                 in: getOsdPlacementText(row.isIn),
-                deviceClass: row.deviceClass || "—",
+                deviceClass: row.deviceClass || EMPTY_VALUE_MARK,
                 used:
                   readings.usedPercent !== null
                     ? `${CephResourceUtils.formatBytes(readings.usedBytes)} / ${CephResourceUtils.formatBytes(readings.totalBytes)} (${readings.usedPercent.toFixed(1)}%)`
-                    : "—",
+                    : EMPTY_VALUE_MARK,
                 pgs:
                   readings.pgCount !== null
                     ? Math.round(readings.pgCount).toString()
-                    : "—",
+                    : EMPTY_VALUE_MARK,
                 latency:
                   readings.applyLatencyMs !== null ||
                   readings.commitLatencyMs !== null
                     ? `${formatOsdLatency(readings.applyLatencyMs, translator)} / ${formatOsdLatency(readings.commitLatencyMs, translator)}`
-                    : "—",
+                    : EMPTY_VALUE_MARK,
                 [CEPH_USED_PERCENT_ATTRIBUTE]: formatCephReadingNumber(
                   readings.usedPercent,
                 ),

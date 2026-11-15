@@ -45,7 +45,7 @@ function renderNodeRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = (r.name as string) || getUnnamedText();
   const isReady: boolean | undefined = r.isReady as boolean | undefined;
-  const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.kubernetesCluster?.name as string;
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
 
   let detailLink: ReactElement = <span>{name}</span>;

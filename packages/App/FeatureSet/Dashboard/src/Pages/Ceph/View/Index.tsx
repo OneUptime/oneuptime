@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
@@ -186,7 +187,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -195,7 +196,7 @@ const formatInt: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return Math.round(value).toString();
 };
@@ -301,7 +302,7 @@ const CephClusterOverview: FunctionComponent<
     value: number | null,
   ): string => {
     if (value === null || !isFinite(value)) {
-      return "—";
+      return EMPTY_VALUE_MARK;
     }
     return translator.formatNumber(Math.round(value));
   };

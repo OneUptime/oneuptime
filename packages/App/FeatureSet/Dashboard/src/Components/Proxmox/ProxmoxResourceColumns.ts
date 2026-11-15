@@ -1,4 +1,5 @@
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   composedValue,
   Translator,
@@ -44,7 +45,7 @@ const BACKUP_NOT_IN_JOB: string = translationKey("In no backup job");
 const STORAGE_SHARED: string = translationKey("Shared");
 const STORAGE_LOCAL: string = translationKey("Local");
 
-const NO_VALUE: string = "-";
+const NO_VALUE: string = EMPTY_VALUE_MARK;
 
 /*
  * A guest's backup cell needs a look when its last backup failed (red) or no

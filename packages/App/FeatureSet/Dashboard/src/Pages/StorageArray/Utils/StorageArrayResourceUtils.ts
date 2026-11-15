@@ -1,4 +1,5 @@
 import StorageArrayResourceModel from "Common/Models/DatabaseModels/StorageArrayResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -189,7 +190,7 @@ export function formatBytes(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
     return writeInLanguage(`${Math.round(bytes)}\u00A0B`, translator);
@@ -212,7 +213,7 @@ export function formatBytesPerSec(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${formatBytes(value, translator)}/s`;
 }
@@ -222,7 +223,7 @@ export function formatPercent(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(value, {
     decimals: 1,
@@ -236,7 +237,7 @@ export function formatCount(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value >= 1_000_000) {
     return writeInLanguage(`${(value / 1_000_000).toFixed(1)}M`, translator);
@@ -253,7 +254,7 @@ export function formatIops(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 10 && value > 0) {
     return writeInLanguage(`${value.toFixed(1)}/s`, translator);
@@ -272,7 +273,7 @@ export function formatLatencyUsec(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value < 1000) {
     return formatDurationInUnit(translator, value, "microsecond", {
@@ -296,7 +297,7 @@ export function formatLatencyUsec(
  */
 export function formatDurationMs(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return formatStorageArrayLag(value);
 }
@@ -328,7 +329,7 @@ export function formatRatio(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${formatReaderFigure(value, {
     decimals: 1,
@@ -341,14 +342,14 @@ export function formatTemperature(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return writeInLanguage(`${Math.round(value)}\u00A0°C`, translator);
 }
 
 export function formatLastSeen(date: Date | undefined | null): string {
   if (!date) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return OneUptimeDate.fromNow(new Date(date));
 }

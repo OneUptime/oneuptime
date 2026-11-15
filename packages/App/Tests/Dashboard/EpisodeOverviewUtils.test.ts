@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -336,8 +337,8 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("-");
-    expect(timing.timeToResolve).toBe("-");
+    expect(timing.timeToAcknowledge).toBe(EMPTY_VALUE_MARK);
+    expect(timing.timeToResolve).toBe(EMPTY_VALUE_MARK);
     expect(timing.durationStartsAt).toBeUndefined();
   });
 

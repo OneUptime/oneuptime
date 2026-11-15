@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -59,7 +60,7 @@ export const formatBytes: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value === 0) {
     return "0 B";

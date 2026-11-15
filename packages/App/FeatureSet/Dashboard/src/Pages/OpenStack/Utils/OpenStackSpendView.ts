@@ -1,4 +1,5 @@
 import { getNumberLocale } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -96,7 +97,7 @@ export function formatOpenStackSpendMoney(data: {
   translator: Translator;
 }): string {
   if (data.amount === null || data.amount === undefined) {
-    return "–";
+    return EMPTY_VALUE_MARK;
   }
 
   const rounded: number = Math.round(data.amount * 100) / 100;
@@ -124,7 +125,7 @@ export function formatOpenStackUsageNumber(
   translator: Translator,
 ): string {
   if (value === null || value === undefined) {
-    return "–";
+    return EMPTY_VALUE_MARK;
   }
 
   return (Math.round(value * 100) / 100).toLocaleString(

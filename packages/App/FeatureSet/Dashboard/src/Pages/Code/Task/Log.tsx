@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import React, {
   Fragment,
   FunctionComponent,
@@ -183,7 +185,7 @@ const formatTimestamp: FormatTimestampFunction = (
   date: Date | undefined,
 ): string => {
   if (!date) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   return OneUptimeDate.getDateAsLocalFormattedString(date, false);
@@ -342,7 +344,9 @@ const LogEntryRow: FunctionComponent<{
       />
       <div className="flex min-w-0 flex-1 items-center gap-x-3 gap-y-0.5 max-sm:flex-wrap">
         <span className="shrink-0 font-mono text-xs text-gray-400">
-          {formatTimestamp(entry.createdAt)}
+          {getValueOrQuietDash(formatTimestamp(entry.createdAt), {
+            isSmall: true,
+          })}
         </span>
         <Pill
           text={getEntryLabel(entry)}
@@ -551,7 +555,9 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
   return (
     <div className="flex items-center gap-x-3 gap-y-0.5 border-b border-gray-100 py-2 max-sm:flex-wrap">
       <span className="shrink-0 font-mono text-xs text-gray-400">
-        {formatTimestamp(call.startedAt)}
+        {getValueOrQuietDash(formatTimestamp(call.startedAt), {
+          isSmall: true,
+        })}
       </span>
       <Pill
         text={call.status || "Unknown"}
