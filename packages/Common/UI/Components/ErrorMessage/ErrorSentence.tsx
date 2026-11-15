@@ -5,6 +5,7 @@ import { ADMIN_DASHBOARD_URL } from "../../Config";
 import {
   ErrorInSentenceWords,
   getErrorInSentenceWords,
+  isServerFailureKind,
 } from "../../Utils/ErrorInSentence";
 import { registerPageErrorReader } from "../../Utils/ErrorReader";
 import { useSentenceLanguage } from "../../Utils/SentenceLanguage";
@@ -86,6 +87,18 @@ export const ErrorWhereToLook: FunctionComponent<ErrorWhereToLookProps> = (
 
   if (!words.isUnexplained || !words.whereToLook) {
     return <></>;
+  }
+
+  /*
+   * OneUptime Health beside the logs of a server failure. What was too
+   * large is a proxy's limit (#8278), which Health does not show.
+   */
+  if (!isServerFailureKind(words.kind)) {
+    return (
+      <span className="mt-1 block" data-testid="error-where-to-look">
+        {words.whereToLook}
+      </span>
+    );
   }
 
   return (

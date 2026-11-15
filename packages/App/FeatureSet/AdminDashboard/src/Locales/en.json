@@ -3145,5 +3145,9 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "The NTP server's name did not resolve to an address, so no request was sent.",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.",
-  "The NTP check failed because of a network error.": "The NTP check failed because of a network error."
+  "The NTP check failed because of a network error.": "The NTP check failed because of a network error.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.",
+  "What was sent was too large for the server to accept.": "What was sent was too large for the server to accept.",
+  "Try again with less at once, such as a smaller file.": "Try again with less at once, such as a smaller file.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M)."
 }

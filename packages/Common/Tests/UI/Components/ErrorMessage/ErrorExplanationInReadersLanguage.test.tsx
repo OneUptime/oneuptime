@@ -139,6 +139,8 @@ const MESSAGES: Array<string> = [
   SERVER_DOWN_MESSAGE,
   UNEXPLAINED_ERROR_MESSAGES.unreachable,
   UNEXPLAINED_ERROR_MESSAGES.page,
+  // A proxy's 413 (#8278), with the proxy's limit for this master admin.
+  UNEXPLAINED_ERROR_MESSAGES.tooLarge,
 ];
 
 beforeAll(async () => {
