@@ -63,6 +63,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DockerSwarm: { way: "a setup guide's words" },
   OpenStack: { way: "a setup guide's words" },
   VMware: { way: "a setup guide's words" },
+  Host: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
@@ -100,7 +101,6 @@ const PAGES: Readonly<Record<string, PageReading>> = {
  */
 const STILL_IN_ENGLISH: ReadonlyArray<string> = [
   "Database",
-  "Host",
   "MessageQueue",
   "Proxmox",
 ];

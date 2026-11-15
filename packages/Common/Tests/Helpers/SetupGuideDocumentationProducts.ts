@@ -20,8 +20,11 @@ import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/sr
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
+import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getHostSetupGuideWays,
   getVMwareSetupGuideWays,
   getStorageArraySetupGuideWays,
   getKubernetesSetupGuideWays,
@@ -278,6 +281,33 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "How VM power state is worked out",
         "vCenter rejects the login",
         "x509 or other TLS errors",
+      ],
+    }),
+    product({
+      name: "Host",
+      translations: HOST_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "HOST_DOCUMENTATION_TRANSLATIONS",
+      ways: getHostSetupGuideWays,
+      options: HOST_INSTALL_METHODS,
+      dashboardWords: [
+        "Hosts",
+        "Inventory",
+        "Details",
+        "Overview",
+        "Metrics",
+        "Processes",
+        "Logs",
+        "Systemd Units",
+        "Services",
+        "AI",
+        "AI agent",
+        "Agent Version",
+        "Kubernetes",
+        "Nodes",
+        // The guide's own topics, named from other topics.
+        "Record the serial number, make, model and firmware version",
+        "Enable the Systemd Units tab",
+        "Enable the Windows Services tab",
       ],
     }),
   ];
