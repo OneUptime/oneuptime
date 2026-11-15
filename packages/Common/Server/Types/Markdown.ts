@@ -190,12 +190,16 @@ export const MAX_EMAIL_COPIED_HTML_IN_REFERENCES: number =
  * long for it is held back (Utils/Markdown/SlowMarkdown): blocks whose
  * emphasis, code spans, links or escapes would make it look ahead through
  * them for too long, and blocks nested too deep, are written as text.
- * marked reads lines, lists and tables in linear time, so their number is
- * not limited. A block is counted as marked reads it (countAsMarked,
- * #7228): a link or a reference whose label closes costs it a copy of the
- * block, and a link's address and title, or a definition's, are read once -
- * so a paragraph of a thousand references, or a link to an address with a
- * long query, reaches marked and renders as links.
+ * marked reads paragraphs, quotes, tables and lists of short items in
+ * linear time, so their lines are not limited - but it reads a list item's
+ * text a line at a time, looking through the rest of the item from each
+ * line, so each line of a long item counts as a look through half of it
+ * (#7598). A block is counted as marked reads it (countAsMarked, #7228): a
+ * link or a reference whose label closes costs it a copy of the block, and
+ * a link's address and title, or a definition's, are read once - so a
+ * paragraph of a thousand references, or a link to an address with a long
+ * query, reaches marked and renders as links. And however many definitions
+ * a text has, each paragraph is read with only those it names (#7597).
  */
 export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
