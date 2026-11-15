@@ -456,15 +456,23 @@ describe("every nav title, menu word, aria label and empty value's words written
         );
       }).length,
     ).toBeGreaterThanOrEqual(26);
+    /*
+     * The Subscription page's "no limit" values: the Active Monitors card's
+     * and the Users card's (d685c940983). Each is found, and each is looked
+     * up once; a card the page gains later is held to the same.
+     */
+    const subscriptionPlaceholders: Array<PlaceholderSite> = sitesIn(
+      "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Subscription.tsx",
+    ).filter((site: PlaceholderSite): boolean => {
+      return site.handedTo === "<PlaceholderText text>";
+    });
+
+    expect(subscriptionPlaceholders.length).toBeGreaterThanOrEqual(2);
     expect(
-      sitesIn(
-        "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Subscription.tsx",
-      ).filter((site: PlaceholderSite): boolean => {
-        return site.handedTo === "<PlaceholderText text>";
+      subscriptionPlaceholders.filter((site: PlaceholderSite): boolean => {
+        return !site.isLookedUp || !site.isSaidTranslated;
       }),
-    ).toEqual([
-      expect.objectContaining({ isLookedUp: true, isSaidTranslated: true }),
-    ]);
+    ).toEqual([]);
   });
 });
 
