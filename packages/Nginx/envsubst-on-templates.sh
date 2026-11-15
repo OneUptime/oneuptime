@@ -206,10 +206,10 @@ esac
 # nginx, once for each: under the default HOST=localhost the name read
 # "localhost ingress localhost", and every start logged
 # 'conflicting server name "localhost" on 0.0.0.0:7849, ignored' for 7849
-# and 7850, IPv4 and IPv6, four warnings a real problem hid among (#8023).
-# The second "localhost" answered no request the first did not, so leaving
-# it out changes nothing nginx routes. nginx reads server names in lower case,
-# so "LOCALHOST" is "localhost" too.
+# and 7850, IPv4 and IPv6: four warnings in every install's log, where a real
+# problem was easy to miss (#8023). nginx ignored the second "localhost", so
+# leaving it out changes nothing nginx routes. nginx reads server names in
+# lower case, so "LOCALHOST" is "localhost" too.
 HOST_WITHOUT_PORT_LOWER=$(printf '%s' "${HOST_WITHOUT_PORT}" | tr '[:upper:]' '[:lower:]')
 case "${HOST_WITHOUT_PORT_LOWER}" in
   localhost | ingress) export HOST_SERVER_NAME="" ;;
