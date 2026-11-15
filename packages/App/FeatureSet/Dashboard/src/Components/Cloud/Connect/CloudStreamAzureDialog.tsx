@@ -59,6 +59,7 @@ import {
   getCloudStreamSourceWords,
   getCloudStreamStatusWords,
 } from "./CloudStreamWords";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Stream metrics and logs, for an Azure connection - laid out as AWS's
@@ -296,7 +297,7 @@ const CloudStreamAzureDialog: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid={cloudStreamPart("start-error")}
           >
-            {startError}
+            <ErrorInSentence message={startError} showWhereToLook={true} />
           </p>
         ) : (
           <></>

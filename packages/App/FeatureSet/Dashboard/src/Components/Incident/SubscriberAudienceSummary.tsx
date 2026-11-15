@@ -12,6 +12,7 @@ import useSubscriberAudience, {
   SubscriberAudienceRequest,
   SubscriberAudienceState,
 } from "./useSubscriberAudience";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Will notify: Site 03 (up to 41 email), Site 07 (up to 18 email)".
@@ -119,7 +120,11 @@ const SubscriberAudienceSummary: FunctionComponent<ComponentProps> = (
         className={`${containerClass} border-gray-200 bg-gray-50 text-gray-600`}
       >
         <p>{translate(IncidentStatusPageScopeCopy.audienceError)}</p>
-        {error ? <p className="mt-0.5 text-xs text-gray-500">{error}</p> : null}
+        {error ? (
+          <p className="mt-0.5 text-xs text-gray-500">
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </p>
+        ) : null}
       </div>
     );
   }

@@ -30,6 +30,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -244,7 +245,7 @@ const WifiEmptyState: FunctionComponent<ComponentProps> = (
           className="max-w-xl text-sm text-red-700"
           data-testid="network-device-wifi-apply-error"
         >
-          {applyError}
+          <ErrorInSentence message={applyError} showWhereToLook={true} />
         </p>
       ) : (
         <></>

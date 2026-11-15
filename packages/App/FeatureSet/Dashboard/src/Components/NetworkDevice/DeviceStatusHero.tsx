@@ -56,6 +56,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -215,7 +216,10 @@ export const DeviceMonitorNotCheckedActions: FunctionComponent<
           data-testid={TURN_MONITORING_ON_ERROR_TEST_ID}
           className="mt-1 text-xs text-red-700"
         >
-          {turnMonitoringOn.error}
+          <ErrorInSentence
+            message={turnMonitoringOn.error}
+            showWhereToLook={true}
+          />
         </p>
       ) : (
         <></>

@@ -36,6 +36,7 @@ import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle"
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Record this user's next session."
@@ -437,7 +438,9 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
               icon={IconProp.Alert}
               className="mt-0.5 h-4 w-4 shrink-0 text-rose-600"
             />
-            <div className="text-sm text-rose-700">{error}</div>
+            <div className="text-sm text-rose-700">
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </div>
           </div>
         )}
 

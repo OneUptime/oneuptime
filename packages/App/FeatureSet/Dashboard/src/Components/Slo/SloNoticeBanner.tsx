@@ -39,6 +39,7 @@ import SloEvaluationSwitchCopy, {
   TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID,
   TURN_SLO_EVALUATION_ON_ERROR_TEST_ID,
 } from "./SloEvaluationSwitchCopy";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -130,7 +131,10 @@ const getTurnEvaluationOnBanner: (
             role="alert"
             data-testid={TURN_SLO_EVALUATION_ON_ERROR_TEST_ID}
           >
-            {turnEvaluationOn.error}
+            <ErrorInSentence
+              message={turnEvaluationOn.error}
+              showWhereToLook={true}
+            />
           </p>
         ) : (
           <></>

@@ -22,6 +22,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Runbooks for the common failures of an OpenStack cloud, ready to add: what to check and
@@ -140,7 +141,7 @@ const TemplateRow: FunctionComponent<{
         </div>
         {error ? (
           <p className="text-red-700" data-testid="openstack-runbook-error">
-            {error}
+            <ErrorInSentence message={error} showWhereToLook={true} />
           </p>
         ) : (
           <></>

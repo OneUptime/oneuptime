@@ -108,6 +108,7 @@ import React, {
   useState,
 } from "react";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export type TraceViewMode =
   | "waterfall"
@@ -1524,7 +1525,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             >
               {error && spans.length > 0 ? (
                 <span className="text-red-700" role="alert">
-                  {error}
+                  <ErrorInSentence message={error} showWhereToLook={true} />
                 </span>
               ) : (
                 <span>

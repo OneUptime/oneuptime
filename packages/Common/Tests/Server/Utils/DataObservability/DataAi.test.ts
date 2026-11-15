@@ -17,6 +17,16 @@ import {
 } from "../../../../Types/Dashboard/DashboardLanguage";
 import { DataAssetFreshness } from "../../../../Types/DataObservability/DataAssetFreshness";
 import { DataCheckAlertCondition } from "../../../../Types/DataObservability/DataCheckType";
+import {
+  CustomSqlRefusal,
+  DataCheckFromSentenceRefusal,
+  MongoPipelineRefusal,
+  RULE_NOT_A_CHECK_REFUSAL,
+} from "../../../../Types/DataObservability/DataCheckRefusals";
+import {
+  getRefusalText,
+  readRefusalValues,
+} from "../../../../Types/Exception/RefusalWithValues";
 
 /*
  * DATA OBSERVABILITY, FOR AI AND THE PEOPLE WHO ASK IN A SENTENCE.
@@ -243,6 +253,114 @@ describe("a rule in a sentence, as a check", () => {
     }).toThrow("not a check");
   });
 
+  /*
+   * #7530: each refusal is one of the sentences the Dashboard says in the
+   * reader's language (DataCheckRefusals), exactly - not a copy of it that
+   * could drift - and the model's why is read back out of its own.
+   */
+  test("each refusal is one of the sentences the Dashboard can say in the reader's language", () => {
+    const thrown: (run: () => unknown) => string = (
+      run: () => unknown,
+    ): string => {
+      try {
+        run();
+      } catch (error) {
+        return (error as Error).message;
+      }
+
+      return "";
+    };
+
+    expect(
+      thrown(() => {
+        return readCheckSuggestion("Sure! Here is a query.");
+      }),
+    ).toBe(DataCheckFromSentenceRefusal.answerNotACheck);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion("[1, 2]");
+      }),
+    ).toBe(DataCheckFromSentenceRefusal.answerNotACheck);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion(
+          '{"name": "x", "sql": "SELECT COUNT(*) FROM orders", "alertCondition": "Above", "alertThreshold": 0}',
+        );
+      }),
+    ).toBe(DataCheckFromSentenceRefusal.queryNamesNoValue);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion(
+          '{"name": "x", "pipeline": [{"$count": "n"}], "alertCondition": "Above", "alertThreshold": 0}',
+          "mongodb",
+        );
+      }),
+    ).toBe(DataCheckFromSentenceRefusal.pipelineNamesNoValue);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion(
+          '{"name": "x", "sql": "DELETE FROM orders WHERE total < 0", "alertCondition": "Above", "alertThreshold": 0}',
+        );
+      }),
+    ).toBe(CustomSqlRefusal.notARead);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion(
+          '{"name": "x", "sql": "SELECT COUNT(*) AS value FROM orders; DROP TABLE orders", "alertCondition": "Above", "alertThreshold": 0}',
+        );
+      }),
+    ).toBe(CustomSqlRefusal.notSingleQuery);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion(
+          '{"name": "x", "sql": "", "alertCondition": "Above", "alertThreshold": 0}',
+        );
+      }),
+    ).toBe(CustomSqlRefusal.noQuery);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion(
+          '{"name": "x", "pipeline": [{"$match": {}}, {"$out": "copy"}], "alertCondition": "Above", "alertThreshold": 0}',
+          "mongodb",
+        );
+      }),
+    ).toBe(MongoPipelineRefusal.writes);
+    expect(
+      thrown(() => {
+        return readCheckSuggestion(
+          '{"name": "x", "pipeline": "", "alertCondition": "Above", "alertThreshold": 0}',
+          "mongodb",
+        );
+      }),
+    ).toBe(MongoPipelineRefusal.noPipeline);
+    expect(
+      thrown(() => {
+        return buildCheckFromSentencePrompt({
+          sentence: "   ",
+          engine: "postgresql",
+          schemaName: "public",
+          tableName: "orders",
+          columns: [],
+        });
+      }),
+    ).toBe(DataCheckFromSentenceRefusal.noRule);
+
+    const refused: string = thrown(() => {
+      return readCheckSuggestion(
+        '{"error": "Die Tabelle hat keine Spalte für Erstattungen."}',
+      );
+    });
+
+    expect(refused).toBe(
+      getRefusalText(RULE_NOT_A_CHECK_REFUSAL, {
+        reason: "Die Tabelle hat keine Spalte für Erstattungen.",
+      }),
+    );
+    expect(readRefusalValues(RULE_NOT_A_CHECK_REFUSAL, refused)).toEqual({
+      reason: "Die Tabelle hat keine Spalte für Erstattungen.",
+    });
+  });
+
   test("a MongoDB collection's check is an aggregation pipeline, held to a custom pipeline's rules", () => {
     const prompt: { system: string; user: string } =
       buildCheckFromSentencePrompt({
@@ -334,7 +452,7 @@ describe("a rule in a sentence, answered in the reader's language", () => {
       });
 
       expect(line).toContain(
-        "Write the name and the explanation in this language: German, Deutsch.",
+        "Write the name, the explanation and the why of an error in this language: German, Deutsch.",
       );
       expect(line).toContain(
         engine === "mongodb"
@@ -342,6 +460,14 @@ describe("a rule in a sentence, answered in the reader's language", () => {
           : "the SQL, with the table and column names as listed",
       );
       expect(line).toContain('"Above" or "Below"');
+      /*
+       * The why of an error is the reader's too (#7530): the Dashboard says
+       * the sentence around it in their language.
+       */
+      expect(line).toContain(
+        "Write the name, the explanation and the why of an error in this language",
+      );
+      expect(line).not.toContain("the why of an error, in English");
 
       const englishLines: Array<string> = english.system.split("\n");
       const answerShape: number = englishLines.findIndex(
@@ -373,7 +499,7 @@ describe("a rule in a sentence, answered in the reader's language", () => {
 
     for (const language of languages) {
       expect(prompt("postgresql", language.code).system).toContain(
-        `Write the name and the explanation in this language: ${language.englishName}, ${language.nativeName}.`,
+        `Write the name, the explanation and the why of an error in this language: ${language.englishName}, ${language.nativeName}.`,
       );
     }
   });

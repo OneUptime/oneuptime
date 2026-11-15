@@ -80,6 +80,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import Dictionary from "Common/Types/Dictionary";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { getTelemetryMonitorLinkParams } from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -711,7 +712,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             <span className="font-medium">
               {translator.translateText("Could not update this exception.")}
             </span>{" "}
-            {actionError}
+            <ErrorInSentence message={actionError} />
           </p>
           <button
             type="button"
