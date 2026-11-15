@@ -40,6 +40,8 @@ import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import { isArchivedValue } from "Common/Utils/ArchivableValues";
 import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { DetailValueContext } from "Common/UI/Components/Detail/DetailValueContext";
 import Icon from "Common/UI/Components/Icon/Icon";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -349,7 +351,12 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                     return (
                       <MoreMenuItem
                         key={`priority-${candidate.id?.toString() || name}`}
-                        text={translator.translateText(name) || name}
+                        text={name}
+                        // A priority the project named itself reads as written.
+                        isUserContent={isRecordNameAsWritten(
+                          StateListType.SecurityCasePriority,
+                          name,
+                        )}
                         color={candidate.color}
                         isChecked={isCurrent}
                         rightElement={

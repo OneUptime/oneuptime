@@ -40,7 +40,7 @@ Integrasjonen er for OneUptime Cloud (`oneuptime.com`). En selvhostet OneUptime 
 
 ### Velg et abonnement
 
-Velg **Gratis**, **Growth** eller **Scale**. Abonnementene er OneUptimes egne, til prisene på [oneuptime.com/pricing](https://oneuptime.com/pricing).
+Velg **Free**, **Growth** eller **Scale**. Abonnementene er OneUptimes egne, til prisene på [oneuptime.com/pricing](https://oneuptime.com/pricing).
 
 ### Gi ressursen et navn, og velg innstillingene
 
@@ -148,7 +148,7 @@ Finnes det allerede en OneUptime-konto med den e-postadressen, er det den du log
 
 | | Slik fungerer det |
 | --- | --- |
-| Abonnementer | **Gratis**, **Growth** og **Scale**, til prisene på oneuptime.com: abonnementets pris per bruker, aktive monitorer til $1 per monitor per måned, og telemetri per GB. |
+| Abonnementer | **Free**, **Growth** og **Scale**, til prisene på oneuptime.com: abonnementets pris per bruker, aktive monitorer til $1 per monitor per måned, og telemetri per GB. |
 | Hvor du betaler | På Vercel-fakturaen din, én gang i måneden, for hver ressurs. Vercel viser månedens bruk så langt på ressursen, oppdatert hver time. |
 | Prøveperioder | Ingen belastning så lenge abonnementets prøveperiode varer: verken for brukerne, monitorene eller telemetrien. |
 | Bytte abonnement | I Vercel, på ressursen, eller i OneUptime under **Prosjektinnstillinger → Fakturering og fakturaer → Fakturering**. En endring på det ene stedet gjelder begge steder. |

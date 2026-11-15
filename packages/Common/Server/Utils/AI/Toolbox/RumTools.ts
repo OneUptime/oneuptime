@@ -34,6 +34,18 @@ import WidgetBuilder from "./WidgetBuilder";
 import { getMetricReadPermissions } from "../../Telemetry/MetricReadPermissions";
 import { translationKey } from "../../../../Types/Translator";
 import {
+  AIActionTableCell,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_TELEMETRY_TABLE_LINES,
+  AI_READ_TELEMETRY_TABLE_TITLES,
+  AI_READ_WEB_VITAL_RATINGS,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure, windowValues } from "./ReadTableWords";
+import {
   getRumApplicationStatus,
   getRumApplicationStatusWords,
 } from "../../../../Types/Rum/RumApplicationStatus";
@@ -168,14 +180,29 @@ export const QueryRumApplicationsTool: ObservabilityTool = {
           ? "\nThe result may contain more applications; increase skip to read the next page."
           : ""),
       rowCount: serialized.rowCount,
-      citationLabel: `RUM applications (${rows.length} found)`,
+      // In the reader's language (issues #7979, #7980).
+      ...citationSentence(AI_READ_CITATIONS.rumApplications, {
+        count: countFigure(rows.length),
+      }),
       citationTarget: target,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated || reachedLimit,
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: "RUM applications",
+              words: {
+                title: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_TITLES.rumApplications,
+                ),
+                // Each status as the RUM pages' pill says it.
+                cells: rows.map(
+                  (row: JSONObject): Record<string, AIActionTableCell> => {
+                    return typeof row["status"] === "string"
+                      ? { status: aiActionTerm(row["status"]) }
+                      : {};
+                  },
+                ),
+              },
               columns: [
                 {
                   key: "name",
@@ -218,9 +245,11 @@ function valuesByName(result: AggregatedResult): Map<string, number> {
 
 function rating(value: number, definition: WebVitalDefinition): string {
   if (value < definition.thresholds.warn) {
-    return "Good";
+    return AI_READ_WEB_VITAL_RATINGS.good;
   }
-  return value < definition.thresholds.danger ? "Needs improvement" : "Poor";
+  return value < definition.thresholds.danger
+    ? AI_READ_WEB_VITAL_RATINGS.needsImprovement
+    : AI_READ_WEB_VITAL_RATINGS.poor;
 }
 
 export const QueryRumWebVitalsTool: ObservabilityTool = {
@@ -433,15 +462,33 @@ export const QueryRumWebVitalsTool: ObservabilityTool = {
     return {
       dataForLlm: `${serialized.text}\nCurrent window: ${startTime.toISOString()} – ${endTime.toISOString()}. Previous window: ${previousStart.toISOString()} – ${startTime.toISOString()}. Window ends are exclusive.\nMissing vitals: ${missing.length > 0 ? missing.join(", ") : "none"}. Ratings apply to range averages, not p75. Percentage change is unavailable when the same metric has no previous data or its previous average is zero.`,
       rowCount: serialized.rowCount,
-      citationLabel: `RUM web vitals, ${startTime.toISOString()} – ${endTime.toISOString()}`,
+      ...citationSentence(
+        AI_READ_CITATIONS.rumWebVitals,
+        windowValues(startTime, endTime),
+      ),
       citationTarget: target,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: "RUM web vitals",
-              description: `Averages · ${startTime.toISOString()} – ${endTime.toISOString()}`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_TITLES.rumWebVitals,
+                ),
+                description: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_LINES.averages,
+                  windowValues(startTime, endTime),
+                ),
+                // Each vital's rating, as the RUM overview says it.
+                cells: rows.map(
+                  (row: JSONObject): Record<string, AIActionTableCell> => {
+                    return typeof row["rating"] === "string"
+                      ? { rating: aiActionTerm(row["rating"]) }
+                      : {};
+                  },
+                ),
+              },
               columns: [
                 { key: "vital", title: translationKey("Vital"), type: "text" },
                 {

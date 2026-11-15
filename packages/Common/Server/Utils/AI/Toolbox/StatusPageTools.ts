@@ -34,6 +34,18 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AI_READ_CARD_VALUES,
+  AIActionTableCell,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -469,7 +481,9 @@ export const QueryStatusPagesTool: ObservabilityTool = {
             ? `${ARCHIVED_STATUS_PAGE_NOTE}\n${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Status page "${statusPage.name || statusPageId.toString()}"`,
+        ...citationSentence(AI_READ_CITATIONS.statusPage, {
+          name: statusPage.name || statusPageId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.StatusPageView,
           params: { statusPageId: statusPageId.toString() },
@@ -558,7 +572,10 @@ export const QueryStatusPagesTool: ObservabilityTool = {
     return {
       dataForLlm: `${pagingPrefix}${serialized.text}`,
       rowCount: serialized.rowCount,
-      citationLabel: `Status pages (${totalCount.toNumber()} total)`,
+      // In the reader's language (issue #7980).
+      ...citationSentence(AI_READ_CITATIONS.statusPages, {
+        count: countFigure(totalCount.toNumber()),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.StatusPages,
       },
@@ -567,7 +584,27 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Status pages (${totalCount.toNumber()})`,
+              /*
+               * In the reader's language (issue #7977): its title, and each
+               * page's Public or Private as a status page's card says it.
+               */
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.statusPages,
+                  { count: countFigure(totalCount.toNumber()) },
+                ),
+                cells: rows.map(
+                  (row: JSONObject): Record<string, AIActionTableCell> => {
+                    return {
+                      visibility: aiActionTerm(
+                        row["visibility"] === "Private"
+                          ? AI_READ_CARD_VALUES.private
+                          : AI_READ_CARD_VALUES.public,
+                      ),
+                    };
+                  },
+                ),
+              },
               columns: [
                 { key: "name", title: translationKey("Name"), type: "text" },
                 {
@@ -728,7 +765,10 @@ export const QueryStatusPageAnnouncementsTool: ObservabilityTool = {
     return {
       dataForLlm: `${pagingPrefix}${serialized.text}`,
       rowCount: serialized.rowCount,
-      citationLabel: `Status page announcements, last ${withinDays}d (${totalCount.toNumber()} total)`,
+      ...citationSentence(AI_READ_CITATIONS.statusPageAnnouncements, {
+        days: countFigure(withinDays),
+        count: countFigure(totalCount.toNumber()),
+      }),
       citationTarget: statusPageId
         ? {
             type: AIChatCitationTargetType.StatusPageView,
@@ -742,8 +782,17 @@ export const QueryStatusPageAnnouncementsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Status page announcements (${rows.length})`,
-              description: `Shown in the last ${withinDays}d`,
+              // In the reader's language (issue #7977).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.statusPageAnnouncements,
+                  { count: countFigure(rows.length) },
+                ),
+                description: aiActionSentence(
+                  AI_READ_RECORD_TABLE_LINES.announcementsShownInDays,
+                  { days: countFigure(withinDays) },
+                ),
+              },
               columns: [
                 { key: "title", title: translationKey("Title"), type: "text" },
                 {

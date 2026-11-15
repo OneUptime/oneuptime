@@ -471,5 +471,7 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "No options available": "没有可用选项",
+  "No matches found": "未找到匹配项"
 }

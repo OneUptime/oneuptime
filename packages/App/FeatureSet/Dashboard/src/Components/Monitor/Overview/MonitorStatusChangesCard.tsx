@@ -18,6 +18,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
@@ -142,7 +144,11 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
                   <div className="flex flex-wrap items-center gap-2">
                     <MonitorStatusDot color={row.statusColor} />
                     <span className="text-sm font-medium text-gray-900">
-                      {row.statusName}
+                      {translateRecordName(
+                        translator,
+                        StateListType.MonitorStatus,
+                        row.statusName,
+                      )}
                     </span>
                     {row.isMonitoringOff ? <MonitoringOffIndicator /> : <></>}
                     {row.isOngoing ? <CurrentlyActiveIndicator /> : <></>}

@@ -866,6 +866,7 @@ describe("BulkAddUsersToProjectModal", () => {
     expect(capturedDropdownProps!.isMultiSelect).toBe(false);
     expect(capturedDropdownProps!.value).toEqual({
       label: "Members",
+      isUserContent: true,
       value: TEAM_MEMBERS_ID,
     });
 
@@ -875,6 +876,7 @@ describe("BulkAddUsersToProjectModal", () => {
       () => {
         expect(capturedDropdownProps!.value).toEqual({
           label: "Support",
+          isUserContent: true,
           value: TEAM_SUPPORT_ID,
         });
       },

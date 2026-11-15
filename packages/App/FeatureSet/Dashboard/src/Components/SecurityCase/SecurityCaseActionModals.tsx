@@ -34,6 +34,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -197,7 +199,10 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
     ...(!props.isProjectClosedStatus
       ? [
           translator.translateTemplate(CLOSE_INTO_STATUS, {
-            status: translatableTerm(props.closeToStatus.name || ""),
+            status: recordNameInSentence(
+              StateListType.SecurityCaseStatus,
+              props.closeToStatus.name || "",
+            ),
           }),
         ]
       : []),

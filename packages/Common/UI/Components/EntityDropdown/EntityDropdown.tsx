@@ -15,7 +15,9 @@ import {
   DropdownOptionGroup,
   DropdownOptionLabel,
   DropdownValue,
+  getDropdownOptionText,
 } from "../Dropdown/Dropdown";
+import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import { DropdownChange } from "../Dropdown/DropdownChange";
 import React, {
   FunctionComponent,
@@ -373,6 +375,53 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     return undefined;
   }, [modelType]);
   const colorField: string | undefined = props.colorField || detectedColorField;
+
+  /*
+   * The table its entries are records of, which says how each one's name
+   * reads (Common/Utils/DefaultRecordNames). Unknown for a list of static
+   * options, which no table names.
+   */
+  const tableName: string | undefined = useMemo(() => {
+    if (!modelType) {
+      return undefined;
+    }
+    try {
+      return new modelType().tableName || undefined;
+    } catch {
+      return undefined;
+    }
+  }, [modelType]);
+
+  /*
+   * AN ENTRY'S LABEL, AS ITS READER READS IT - by the rule a Dropdown's
+   * option reads by (getDropdownOptionText), decided entry by entry:
+   *
+   *   - an option that says how it reads (isUserContent) reads so: true,
+   *     drawn as written; false, looked up in the reader's language;
+   *   - any other entry is a record of the dropdown's table, and its name
+   *     reads by that table's list (isRecordNameAsWritten): a label named
+   *     "Network" as written, never "Red", and the default state
+   *     "Resolved" in the reader's words ("Resuelto"), as its badge reads
+   *     it. A list of static options names no table, so its labels are
+   *     drawn as written, as they always were here.
+   *
+   * The chips, the value picked, the list and a label's preview all draw an
+   * entry through this, so they never disagree.
+   */
+  const getOptionText: (option: DropdownOption) => string = useCallback(
+    (option: DropdownOption): string => {
+      return getDropdownOptionText(
+        {
+          label: option.label,
+          isUserContent:
+            option.isUserContent ??
+            isRecordNameAsWritten(tableName, option.label),
+        },
+        translator.translateText,
+      );
+    },
+    [tableName, translator],
+  );
 
   /*
    * The query is read from a ref when a request goes out, and the search
@@ -1037,7 +1086,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (q === "") {
         return true;
       }
-      return opt.label.toLowerCase().includes(q);
+      // The English finds an entry, and so does what the list shows for it.
+      return (
+        opt.label.toLowerCase().includes(q) ||
+        getOptionText(opt).toLowerCase().includes(q)
+      );
     };
     const seen: Set<string> = new Set();
     const out: Array<DropdownOption> = [];
@@ -1060,7 +1113,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
     }
     return out;
-  }, [modelType, searchResults, searchQuery, initialFlat]);
+  }, [modelType, searchResults, searchQuery, initialFlat, getOptionText]);
 
   /*
    * Filter out the currently-selected key(s) ONLY in multi-select. For
@@ -1526,7 +1579,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   data-testid="entity-dropdown-chip-label"
                   className="min-w-0 [overflow-wrap:anywhere]"
                 >
-                  {opt.label}
+                  {getOptionText(opt)}
                 </span>
                 {opt.isArchived && (
                   <ArchivedTag
@@ -1539,7 +1592,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     type="button"
                     aria-label={translator.translateTemplate(
                       "Remove {{option}}",
-                      { option: opt.label },
+                      { option: getOptionText(opt) },
                     )}
                     onClick={(): void => {
                       removeKey(key);
@@ -1659,7 +1712,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   );
                 })()}
                 <span id={valueLabelId} className="font-medium text-gray-900">
-                  {selectedOptions[0]!.label}
+                  {getOptionText(selectedOptions[0]!)}
                 </span>
                 {selectedOptions[0]!.isArchived && (
                   <ArchivedTag dataTestId="entity-dropdown-archived-tag" />
@@ -2034,7 +2087,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                          * "in..." beside a long description on a phone.
                          */}
                         <span className="min-w-0 flex-1 truncate">
-                          {opt.label}
+                          {getOptionText(opt)}
                         </span>
                         {opt.description && (
                           <span
@@ -2295,7 +2348,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                                         className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-700"
                                       >
                                         <span className="max-w-[10rem] truncate">
-                                          {item.label}
+                                          {getOptionText(item)}
                                         </span>
                                       </span>
                                     );

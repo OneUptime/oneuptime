@@ -25,6 +25,13 @@ export interface HoneycombTile {
   id: string;
   label?: string | undefined;
   status: string;
+  /*
+   * The status is drawn as given, never looked up (Pill.isUserContent): a
+   * state's name the list already put in the reader's words - an incident
+   * state a project named "Open" stays "Open", never "Abrir". Left out, the
+   * status is the product's words, looked up ("Connected").
+   */
+  isStatusUserContent?: boolean | undefined;
   color: string;
   textColor?: string | undefined;
   route?: Route | undefined;
@@ -441,7 +448,9 @@ const HoneycombTooltip: FunctionComponent<{
             {translator.translateText("Status")}
           </span>
           <span className="font-medium text-gray-700 truncate">
-            {translator.translateText(state.tile.status)}
+            {state.tile.isStatusUserContent
+              ? state.tile.status
+              : translator.translateText(state.tile.status)}
           </span>
         </div>
         {details.map((d: HoneycombTileDetail, i: number) => {

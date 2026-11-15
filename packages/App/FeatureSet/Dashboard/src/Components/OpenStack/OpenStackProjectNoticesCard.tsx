@@ -83,6 +83,7 @@ const OpenStackProjectNoticesCard: FunctionComponent<ComponentProps> = (
       return {
         value: row.externalId || "",
         label: row.name || row.externalId || "",
+        isUserContent: true,
       };
     });
   }, [props.openStackCloudId.toString(), props.openStackProjectId || ""]);

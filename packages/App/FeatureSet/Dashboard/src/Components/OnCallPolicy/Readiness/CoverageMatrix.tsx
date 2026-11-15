@@ -15,6 +15,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * The coverage grid: severities down, rule types across, one grid per severity
@@ -65,6 +67,27 @@ interface CoverageSectionDefinition {
  * the page, which is most of what this view is for. The two lifecycle rule types
  * carry no severity at all and get their own short list under the grids.
  */
+/*
+ * The list a section's severities are of, which says how each one's name
+ * reads (Common/Utils/DefaultRecordNames): "Critical Incident" and "High" in
+ * the reader's words, a severity the project named itself as written.
+ */
+const getSeverityList: (
+  kind: SeverityKindValue,
+) => StateListType | undefined = (
+  kind: SeverityKindValue,
+): StateListType | undefined => {
+  if (kind === "Incident") {
+    return StateListType.IncidentSeverity;
+  }
+
+  if (kind === "Alert") {
+    return StateListType.AlertSeverity;
+  }
+
+  return undefined;
+};
+
 const COVERAGE_SECTION_DEFINITIONS: Array<CoverageSectionDefinition> = [
   {
     kind: "Incident",
@@ -431,7 +454,11 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
               return (
                 <tr key={`row-${section.kind}-${severity.severityId}`}>
                   <td className="sticky left-0 z-10 whitespace-nowrap border-t border-gray-200 bg-gray-50 py-2 pr-4 text-sm text-gray-900">
-                    {severity.severityName}
+                    {translateRecordName(
+                      translator,
+                      getSeverityList(section.kind),
+                      severity.severityName,
+                    )}
                   </td>
                   {section.ruleTypes.map(
                     (ruleType: NotificationRuleType): ReactElement => {
@@ -478,7 +505,11 @@ const CoverageSectionView: FunctionComponent<CoverageSectionViewProps> = (
                 className="flex w-full items-center justify-between gap-3 py-3 text-left"
               >
                 <span className="text-sm font-medium text-gray-900">
-                  {severity.severityName}
+                  {translateRecordName(
+                    translator,
+                    getSeverityList(section.kind),
+                    severity.severityName,
+                  )}
                 </span>
                 <span className="flex items-center gap-2">
                   {severityGapCount > 0 ? (

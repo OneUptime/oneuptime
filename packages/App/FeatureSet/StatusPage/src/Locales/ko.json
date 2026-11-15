@@ -471,5 +471,7 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "No options available": "사용 가능한 옵션 없음",
+  "No matches found": "일치하는 항목이 없습니다"
 }

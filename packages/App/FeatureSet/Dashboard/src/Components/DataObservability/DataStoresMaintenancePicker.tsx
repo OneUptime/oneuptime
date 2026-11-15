@@ -41,7 +41,11 @@ const DataStoresMaintenancePicker: FunctionComponent<ComponentProps> = (
           setOptions(
             stores.map(
               (store: DataObservabilityStoreSummary): DropdownOption => {
-                return { value: store.dataStoreId, label: store.name };
+                return {
+                  value: store.dataStoreId,
+                  label: store.name,
+                  isUserContent: true,
+                };
               },
             ),
           );

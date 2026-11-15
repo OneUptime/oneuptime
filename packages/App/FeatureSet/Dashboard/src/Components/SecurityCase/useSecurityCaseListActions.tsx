@@ -59,10 +59,9 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import {
-  Translator,
-  translatableTerm,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
@@ -226,19 +225,25 @@ export default function useSecurityCaseListActions(
     });
   };
 
-  // Why a case was left alone, in the reader's words.
+  /*
+   * Why a case was left alone, in the reader's words: the status or the
+   * priority it already has named by its list (Common/Utils/DefaultRecordNames),
+   * one a project starts with in the reader's words, its own as written.
+   */
   type SkipTextFunction = (
     reason: SecurityCaseSkipReason,
+    valueList?: StateListType,
     valueName?: string,
   ) => string;
 
   const skipText: SkipTextFunction = (
     reason: SecurityCaseSkipReason,
+    valueList?: StateListType,
     valueName?: string,
   ): string => {
     if (reason === SecurityCaseSkipReason.SameValue) {
       return translator.translateTemplate(SKIP_REASON_TEXT[reason], {
-        value: translatableTerm(valueName || ""),
+        value: recordNameInSentence(valueList, valueName || ""),
       });
     }
 
@@ -307,7 +312,11 @@ export default function useSecurityCaseListActions(
 
       if (reason) {
         return bulkItemUnchanged(
-          skipText(reason, getSecurityCaseValueName(statuses, pick.statusId)),
+          skipText(
+            reason,
+            StateListType.SecurityCaseStatus,
+            getSecurityCaseValueName(statuses, pick.statusId),
+          ),
         );
       }
 
@@ -338,7 +347,11 @@ export default function useSecurityCaseListActions(
 
       if (reason) {
         return bulkItemUnchanged(
-          skipText(reason, getSecurityCaseValueName(priorities, priorityId)),
+          skipText(
+            reason,
+            StateListType.SecurityCasePriority,
+            getSecurityCaseValueName(priorities, priorityId),
+          ),
         );
       }
 

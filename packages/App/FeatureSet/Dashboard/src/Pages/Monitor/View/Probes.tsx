@@ -266,6 +266,8 @@ const MonitorProbes: FunctionComponent<
               return {
                 label: probe.name,
                 value: probe._id,
+                // A probe's name is its owner's, drawn as written.
+                isUserContent: true,
               };
             }),
             required: true,
