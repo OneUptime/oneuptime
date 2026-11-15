@@ -54,7 +54,9 @@ const ExplainedPill: FunctionComponent<ComponentProps> = (
   return (
     <span className="inline-flex max-w-full">
       <Tooltip
-        text={props.explanation}
+        text={explanation}
+        // Looked up once, above, for the tooltip and the description alike.
+        isTextTranslated={true}
         isShownOnPress={true}
         isTriggerAlreadyDescribed={true}
       >

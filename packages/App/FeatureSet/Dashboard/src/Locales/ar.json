@@ -54322,5 +54322,9 @@
   "{{name}} acknowledged the alert episode.": "أقرّ {{name}} بحلقة التنبيهات.",
   "{{name}} acknowledged the alert.": "أقرّ {{name}} بالتنبيه.",
   "{{name}} acknowledged the incident episode.": "أقرّ {{name}} بحلقة الحوادث.",
-  "{{name}} acknowledged the incident.": "أقرّ {{name}} بالحادثة."
+  "{{name}} acknowledged the incident.": "أقرّ {{name}} بالحادثة.",
+  "Active · seen {{time}}": "نشط · آخر ظهور {{time}}",
+  "Inactive · seen {{time}}": "غير نشط · آخر ظهور {{time}}",
+  "Runs on {{count}} of these": "يعمل على {{count}} منها",
+  "Runs on {{count}} of these_one": "يعمل على {{count}} منها"
 }

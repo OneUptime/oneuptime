@@ -54322,5 +54322,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} heeft de waarschuwingsepisode bevestigd.",
   "{{name}} acknowledged the alert.": "{{name}} heeft de waarschuwing bevestigd.",
   "{{name}} acknowledged the incident episode.": "{{name}} heeft de incidentepisode bevestigd.",
-  "{{name}} acknowledged the incident.": "{{name}} heeft het incident bevestigd."
+  "{{name}} acknowledged the incident.": "{{name}} heeft het incident bevestigd.",
+  "Active · seen {{time}}": "Actief · laatst gezien {{time}}",
+  "Inactive · seen {{time}}": "Inactief · laatst gezien {{time}}",
+  "Runs on {{count}} of these": "Draait op {{count}} hiervan",
+  "Runs on {{count}} of these_one": "Draait op {{count}} hiervan"
 }

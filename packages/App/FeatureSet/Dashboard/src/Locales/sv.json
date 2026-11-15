@@ -54322,5 +54322,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} bekräftade larmepisoden.",
   "{{name}} acknowledged the alert.": "{{name}} bekräftade larmet.",
   "{{name}} acknowledged the incident episode.": "{{name}} bekräftade incidentepisoden.",
-  "{{name}} acknowledged the incident.": "{{name}} bekräftade incidenten."
+  "{{name}} acknowledged the incident.": "{{name}} bekräftade incidenten.",
+  "Active · seen {{time}}": "Aktiv · senast sedd {{time}}",
+  "Inactive · seen {{time}}": "Inaktiv · senast sedd {{time}}",
+  "Runs on {{count}} of these": "Körs på {{count}} av dessa",
+  "Runs on {{count}} of these_one": "Körs på {{count}} av dessa"
 }

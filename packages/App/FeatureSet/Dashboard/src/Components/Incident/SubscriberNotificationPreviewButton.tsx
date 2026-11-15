@@ -86,8 +86,14 @@ const SubscriberNotificationPreviewButton: FunctionComponent<ComponentProps> = (
   const dataTestId: string =
     props.dataTestId || "subscriber-notification-preview-button";
   const isDisabled: boolean = Boolean(props.isDisabled);
+  /*
+   * Looked up once, here, for the tooltip and the screen reader alike: the
+   * tooltip looked it up a second time (#8423).
+   */
   const disabledReason: string =
-    isDisabled && props.disabledReason ? props.disabledReason : "";
+    isDisabled && props.disabledReason
+      ? translate(props.disabledReason) || props.disabledReason
+      : "";
 
   const link: ReactElement = (
     <button
@@ -129,7 +135,11 @@ const SubscriberNotificationPreviewButton: FunctionComponent<ComponentProps> = (
            * The reason sits outside the link, so it describes the link
            * without becoming part of its name.
            */}
-          <Tooltip text={disabledReason} isTriggerAlreadyDescribed={true}>
+          <Tooltip
+            text={disabledReason}
+            isTextTranslated={true}
+            isTriggerAlreadyDescribed={true}
+          >
             {link}
           </Tooltip>
           <span
@@ -137,7 +147,7 @@ const SubscriberNotificationPreviewButton: FunctionComponent<ComponentProps> = (
             className="sr-only"
             data-testid={`${dataTestId}-reason`}
           >
-            {translate(disabledReason)}
+            {disabledReason}
           </span>
         </>
       ) : (

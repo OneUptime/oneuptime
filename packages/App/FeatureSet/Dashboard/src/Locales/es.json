@@ -54322,5 +54322,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} reconoció el episodio de alerta.",
   "{{name}} acknowledged the alert.": "{{name}} reconoció la alerta.",
   "{{name}} acknowledged the incident episode.": "{{name}} reconoció el episodio de incidente.",
-  "{{name}} acknowledged the incident.": "{{name}} reconoció el incidente."
+  "{{name}} acknowledged the incident.": "{{name}} reconoció el incidente.",
+  "Active · seen {{time}}": "Activo · visto {{time}}",
+  "Inactive · seen {{time}}": "Inactivo · visto {{time}}",
+  "Runs on {{count}} of these": "Se ejecuta en {{count}} de estos",
+  "Runs on {{count}} of these_one": "Se ejecuta en {{count}} de estos"
 }

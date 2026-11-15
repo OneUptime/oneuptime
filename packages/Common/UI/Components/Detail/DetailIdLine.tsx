@@ -188,7 +188,14 @@ const DetailIdLine: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Once unclipped, the ID itself is what there is to read. */}
-      {isFailed ? value : <Tooltip text={props.recordId}>{value}</Tooltip>}
+      {/* An ID, drawn as it is: never looked up as words. */}
+      {isFailed ? (
+        value
+      ) : (
+        <Tooltip text={props.recordId} isTextUserContent={true}>
+          {value}
+        </Tooltip>
+      )}
 
       <Tooltip
         text={isCopied ? "Copied!" : "Copy ID to clipboard"}

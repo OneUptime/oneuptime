@@ -76,6 +76,11 @@ export interface ComponentProps {
   // Opens a tool's connection form (Cursor's); absent: no button.
   onConnect?: ((provider: LlmConnectionProvider) => void) | undefined;
   canConnect?: boolean | undefined;
+  /*
+   * Why connecting is refused, as the permission check (PermissionGate)
+   * words it: in the reader's language already, so its tooltip draws it as
+   * given (#8423).
+   */
   connectDisabledReason?: string | undefined;
 }
 
@@ -150,7 +155,10 @@ const LlmOtherAiTools: FunctionComponent<ComponentProps> = (
               <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                 {connects ? (
                   !canConnect && props.connectDisabledReason ? (
-                    <Tooltip text={props.connectDisabledReason}>
+                    <Tooltip
+                      text={props.connectDisabledReason}
+                      isTextTranslated={true}
+                    >
                       {connectButton}
                     </Tooltip>
                   ) : (

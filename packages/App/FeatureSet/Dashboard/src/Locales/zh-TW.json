@@ -54322,5 +54322,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} 已確認警示片段。",
   "{{name}} acknowledged the alert.": "{{name}} 已確認警示。",
   "{{name}} acknowledged the incident episode.": "{{name}} 已確認事件片段。",
-  "{{name}} acknowledged the incident.": "{{name}} 已確認事件。"
+  "{{name}} acknowledged the incident.": "{{name}} 已確認事件。",
+  "Active · seen {{time}}": "使用中 · 最近出現於 {{time}}",
+  "Inactive · seen {{time}}": "不活躍 · 最近出現於 {{time}}",
+  "Runs on {{count}} of these": "在其中 {{count}} 個上執行",
+  "Runs on {{count}} of these_one": "在其中 {{count}} 個上執行"
 }

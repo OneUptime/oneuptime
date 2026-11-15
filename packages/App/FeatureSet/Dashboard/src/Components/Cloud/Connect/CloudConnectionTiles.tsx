@@ -28,6 +28,11 @@ export const CLOUD_TILES_GRID_CLASS: string =
 export interface ComponentProps {
   connectionCounts: Partial<Record<CloudProvider, number>>;
   canConnect: boolean;
+  /*
+   * Why connecting is refused, as the permission check (PermissionGate)
+   * words it: in the reader's language already, so its tooltip draws it as
+   * given (#8423).
+   */
   connectDisabledReason?: string | undefined;
   onConnect: (provider: CloudProvider) => void;
 }
@@ -99,7 +104,12 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
           return (
             <li key={definition.provider} className="min-w-0">
               {!props.canConnect && props.connectDisabledReason ? (
-                <Tooltip text={props.connectDisabledReason}>{tile}</Tooltip>
+                <Tooltip
+                  text={props.connectDisabledReason}
+                  isTextTranslated={true}
+                >
+                  {tile}
+                </Tooltip>
               ) : (
                 tile
               )}
