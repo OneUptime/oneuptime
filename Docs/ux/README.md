@@ -654,20 +654,32 @@ then `npm run i18n:validate` from the root.
   [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx)
   and
   [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx).
-- **A name reads as written, in a badge and in a picker.** A label, a monitor or a state is named by
-  its project, and a name is never looked up: in Spanish a label named "Network" read "Red", and a
-  state a project named "Open" read "Abrir", the verb. Only the names a new project starts with, such
-  as "Resolved", "Operational" or "Critical Incident", are OneUptime's words, read in the reader's
-  language. A badge or an option that draws a record's name takes `isRecordNameAsWritten` or
-  `translateRecordName` from `Common/Utils/DefaultRecordNames`, which know those names list by list.
-  A status page, an on-call page and a status page's messages decide by the same rule, each handed
-  its record's list: an incident state a project named "Degraded" read "Beeinträchtigt" on a German
+- **A name reads as written, in a badge, a menu, a picker, a sentence and a line of text.** A label,
+  a monitor or a state is named by its project, and a name is never looked up: in Spanish a label
+  named "Network" read "Red", and a state a project named "Open" read "Abrir", the verb, in its badge,
+  in Mark as and in the incident page's "Abrir en". Only the names a new project starts with, such as
+  "Resolved", "Operational" or "Critical Incident", are OneUptime's words, read in the reader's
+  language - in every place the name is drawn, not only its badge: a German page read "Critical
+  Incident" in Needs attention and a chart's marker beside a badge that said "Kritischer Vorfall". A
+  badge, a menu's item or an option that draws a record's name takes `isRecordNameAsWritten`, a line
+  of text `translateRecordName` and a sentence's value `recordNameInSentence`, all from
+  `Common/Utils/DefaultRecordNames`, which know those names list by list. An option built by hand
+  says how its label reads (`isUserContent`), and an `EntityDropdown` reads each entry of a record's
+  table by that table's list. A severity is set in brackets where its name could repeat the word
+  beside it: "opens an incident (Critical Incident)", never "a Critical Incident incident". A status
+  page, an on-call page and a status page's messages decide by the same rule, each handed its
+  record's list: an incident state a project named "Degraded" read "Beeinträchtigt" on a German
   status page and in its emails, because Degraded is a default monitor status, while the Dashboard
   drew it as written. Enforced by
   [StatusPageNamesByTheirList](../../packages/Common/Tests/App/StatusPage/StatusPageNamesByTheirList.test.ts),
   [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
+  [RecordNamesInOptionsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInOptionsGuard.test.ts),
+  [RecordNamesInTextGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInTextGuard.test.ts),
   [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx),
-  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx)
+  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx),
+  [RecordNamesInEntityPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInEntityPickersInSpanish.test.tsx),
+  [RecordNamesInSentencesInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInSentencesInSpanish.test.tsx),
+  [RecordNamesAsTextInGerman](../../packages/Common/Tests/App/Dashboard/RecordNamesAsTextInGerman.test.tsx)
   and
   [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
