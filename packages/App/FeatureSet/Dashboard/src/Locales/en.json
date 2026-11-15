@@ -52425,6 +52425,7 @@
   "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent.",
   "Affects": "Affects",
   "Array (storage array)": "Array (storage array)",
+  "CPU per pod (cores)": "CPU per pod (cores)",
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.",

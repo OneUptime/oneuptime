@@ -52425,6 +52425,7 @@
   "{{wait}}. Change when this step is sent.": "{{wait}}. تعیین کنید این گام کی فرستاده شود.",
   "Affects": "تأثیر بر",
   "Array (storage array)": "آرایه",
+  "CPU per pod (cores)": "CPU برای هر پاد (هسته)",
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "اتصال قطع شد. درخواست لغو شد، شاید به‌خاطر پایان مهلت یا بسته‌شدن ناگهانی اتصال.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "اتصال رد شد. سرور اتصال را آگاهانه رد کرد. معمولاً یعنی هیچ سرویسی روی پورت مشخص‌شده گوش نمی‌دهد، یا یک فایروال جلوی اتصال را می‌گیرد.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "اتصال بازنشانی شد. سرور یا یک دستگاه شبکه اتصال را به‌اجبار بست. این ممکن است به‌خاطر راه‌اندازی دوبارهٔ سرور، پایان مهلت یک متعادل‌کننده بار یا مشکلات شبکه رخ دهد.",
