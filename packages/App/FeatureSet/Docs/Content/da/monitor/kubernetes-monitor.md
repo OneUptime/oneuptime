@@ -44,7 +44,7 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal ad
 | --- | --- |
 | **Hvad der skal advares om** | En [færdig advarselsskabelon](#færdige-advarselsskabeloner). Den udfylder metrikken, omfanget, tidsintervallet og kriterierne; du kan stadig ændre **Tidsinterval**. |
 | **Custom Metric** | Én metrik fra [metrikkataloget](#metrikkatalog), derefter dens **Ressourceomfang**, filtre, **Aggregering** (Gennemsnit, Maksimum, Minimum, Sum eller Antal) og **Tidsinterval**. |
-| **Avanceret** | **Ressourceomfang**, filtre og **Tidsinterval** samt dine egne metrikforespørgsler og formler under **Vælg målinger**, med et livediagram over resultatet. |
+| **Avanceret** | **Ressourceomfang**, filtre og **Tidsinterval** samt dine egne metrikforespørgsler og formler under **Vælg metrikker**, med et livediagram over resultatet. |
 
 ### Angiv kriterierne
 

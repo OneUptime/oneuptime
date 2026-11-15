@@ -64,12 +64,12 @@ De fleste regler virker på varsler og episoder som opprettes etter at du har la
 
 ### Betingelser
 
-Betingelsene i en regel avgjør hvilke varsler den virker på, og leses som setninger: "Hvis **Varseltittel** inneholder `database`", "Og **Overvåkingsetiketter** har en av *Production*". En regel uten betingelser samsvarer med hvert varsel.
+Betingelsene i en regel avgjør hvilke varsler den virker på, og leses som setninger: "Hvis **Varseltittel** inneholder `database`", "Og **Monitoretiketter** har en av *Production*". En regel uten betingelser samsvarer med hvert varsel.
 
 | Betingelse                                                    | Sammenligner med                                                                                               |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Alvorlighetsgrader for varsler**, **Varseletiketter**, **Overvåkingsetiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
-| **Varseltittel**, **Varselbeskrivelse**, **Overvåkingsnavn**, **Overvåkingsbeskrivelse** | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** og **Samsvarer ikke med mønster** for et regulært uttrykk eller et `*`-jokertegn. |
+| **Monitorer**, **Alvorlighetsgrader for varsler**, **Varseletiketter**, **Monitoretiketter** | **Har en av**, **Har alle** eller **Har ingen av** verdiene du velger.                         |
+| **Varseltittel**, **Varselbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | **Inneholder**, **Inneholder ikke**, **Er lik**, **Er ikke lik**, **Starter med**, **Slutter med**, uten hensyn til store og små bokstaver, eller **Samsvarer med mønster** og **Samsvarer ikke med mønster** for et regulært uttrykk eller et `*`-jokertegn. |
 
 Med to eller flere betingelser velger du **Samsvar med alle**, der hver må stemme, eller **Samsvar med én**, der én er nok. Episoderegler samsvarer i stedet med en episodes alvorlighetsgrad, etiketter, tittel og beskrivelse.
 

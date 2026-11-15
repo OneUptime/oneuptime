@@ -65,7 +65,7 @@ Kortet viser hvert felt på den nye hendelsen og hvor verdien kommer fra:
 Velg en **Hendelsesmal** i innstillingene, så opprettes hver hendelse skjemaet oppretter, ut fra den, på samme måte som serveren bruker en mal overalt — se [Slik brukes en mal](/docs/incidents/settings#slik-brukes-en-mal). Svarene og skjemaets innstillinger kommer først, og malen fyller ut alt annet: den innledende tilstanden, beskrivelsen, alvorlighetsgraden, de berørte ressursene, vaktpolicyene, eierne, etikettene, verdiene i egendefinerte felt og en endring av monitorstatus.
 
 > [!WARNING]
-> **Pass på monitorene.** Å opprette en hendelse på en monitor via et skjema påvirker monitoren nøyaktig som å opprette en hendelse på den manuelt: den aktive overvåkingen av monitoren settes på pause til hendelsen er løst, og en mals **Endre overvåkingsstatus til** endrer monitorens status med en gang — på hver statusside som viser monitoren, selv mens selve hendelsen er skjult. Med et skjema kan alle med lenken gjøre dette. Knytt bare monitorer til via et skjema når hver innsending skal sette dem på pause.
+> **Pass på monitorene.** Å opprette en hendelse på en monitor via et skjema påvirker monitoren nøyaktig som å opprette en hendelse på den manuelt: den aktive overvåkingen av monitoren settes på pause til hendelsen er løst, og en mals **Endre monitorstatus til** endrer monitorens status med en gang — på hver statusside som viser monitoren, selv mens selve hendelsen er skjult. Med et skjema kan alle med lenken gjøre dette. Knytt bare monitorer til via et skjema når hver innsending skal sette dem på pause.
 
 ### Slik ser hendelsen ut
 

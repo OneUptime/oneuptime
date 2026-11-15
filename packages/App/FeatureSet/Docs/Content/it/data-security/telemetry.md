@@ -74,7 +74,7 @@ Per escludere qualcosa, aggiungilo alle **Esclusioni dalla scansione** dell'arch
 :::steps
 ### Apri il risultato
 
-Apri l'archivio di telemetria - i **Registri** di un servizio, per esempio - e il risultato.
+Apri l'archivio di telemetria - i **Log** di un servizio, per esempio - e il risultato.
 
 ### Premi Ripulisci
 

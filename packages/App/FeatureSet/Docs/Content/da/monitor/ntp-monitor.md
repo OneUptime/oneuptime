@@ -53,7 +53,7 @@ I **NTP-server** indtaster du serverens værtsnavn eller IP-adresse, f.eks. `tim
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde** og klik på **Kør test**. **Overvågningstestresultat** viser, om serveren svarede, om den er synkroniseret, dens stratum, og hvor meget dens ur afviger.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde** og klik på **Kør test**. **Monitortestresultat** viser, om serveren svarede, om den er synkroniseret, dens stratum, og hvor meget dens ur afviger.
 
 ### Gennemgå kriterierne
 

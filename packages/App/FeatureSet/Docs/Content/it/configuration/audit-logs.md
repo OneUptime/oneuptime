@@ -39,11 +39,11 @@ flowchart TB
 :::steps
 ### Aprire le impostazioni del registro di audit
 
-Vai a **Impostazioni del progetto → Registri di audit → Impostazioni**. **Registri di audit** è chiuso all'inizio nel menu laterale: fai clic per aprirlo.
+Vai a **Impostazioni del progetto → Log di audit → Impostazioni**. **Log di audit** è chiuso all'inizio nel menu laterale: fai clic per aprirlo.
 
 ### Modificare le impostazioni
 
-Fai clic su **Modifica le impostazioni dei registri di audit**.
+Fai clic su **Modifica le impostazioni dei log di audit**.
 
 ### Attivarlo
 
@@ -60,7 +60,7 @@ Una modifica di queste impostazioni vale entro un minuto.
 
 ## Leggere il registro di audit
 
-**Impostazioni del progetto → Registri di audit → Registri di audit** elenca ogni voce del progetto, le più recenti per prime:
+**Impostazioni del progetto → Log di audit → Log di audit** elenca ogni voce del progetto, le più recenti per prime:
 
 | Colonna | Che cosa mostra |
 | --- | --- |
@@ -74,7 +74,7 @@ Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email uten
 
 Una risorsa senza un nome proprio prende il nome da ciò che la nomina in OneUptime: un'eccezione dal suo tipo e dall'inizio del suo messaggio, con identificatori, indirizzi e tutto ciò che sembra un segreto mascherati, un'esecuzione di un runbook dal suo runbook, il numero di telefono di una politica chiamate in arrivo dal numero stesso, e un modello o un dominio dal proprio nome.
 
-Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anche una propria pagina **Registri di audit**, in una sezione chiusa del loro menu laterale come **Avanzato**. Elenca solo le voci di quella risorsa, con quelle di ciò che le appartiene: la pagina di uno SLO mostra anche le sue regole e i suoi proprietari.
+Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anche una propria pagina **Log di audit**, in una sezione chiusa del loro menu laterale come **Avanzato**. Elenca solo le voci di quella risorsa, con quelle di ciò che le appartiene: la pagina di uno SLO mostra anche le sue regole e i suoi proprietari.
 
 ## Che cosa viene registrato
 
@@ -105,7 +105,7 @@ Ciò che OneUptime fa perché qualcuno gliel'ha chiesto è registrato anch'esso 
 
 Ciò che una regola fa da sé è una modifica di OneUptime stesso, registrata con **Memorizza eventi di sistema** attivo: le etichette e i proprietari che una regola aggiunge quando viene creato un record, e un record che rende privato in quel momento; i dispositivi e i monitor che una regola di importazione automatica crea da nuovi risultati di scansione; e ciò che una regola dei monitor di una pagina di stato o di uno SLO cambia quando si salva una regola, un monitor o un'etichetta.
 
-La reimpostazione dell'agente IA di un host, di un cluster o di un account cloud è registrata nella pagina **Registri di audit** della risorsa stessa, come la modifica di `aiAgentResetAt` fatta da chi l'ha reimpostato: chi, e quando. Lo stesso vale per la creazione di una chiave per l'agente IA di un account cloud: le chiavi risultano modificate, mai con una chiave o un hash. Ciò che un agente segnala quando si connette e si fa sentire resta escluso, come prima.
+La reimpostazione dell'agente IA di un host, di un cluster o di un account cloud è registrata nella pagina **Log di audit** della risorsa stessa, come la modifica di `aiAgentResetAt` fatta da chi l'ha reimpostato: chi, e quando. Lo stesso vale per la creazione di una chiave per l'agente IA di un account cloud: le chiavi risultano modificate, mai con una chiave o un hash. Ciò che un agente segnala quando si connette e si fa sentire resta escluso, come prima.
 
 ## Accessi e sessioni
 

@@ -69,7 +69,7 @@ En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas 
 
 - **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Host Metric** och ange sedan **Aggregering** och **Tidsintervall**.
-- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mätvärden**, till exempel ett filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollera kriterierna
 
@@ -91,7 +91,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Host Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden), grupperat som CPU, minne, disk, nätverk, belastning och processer. |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 ## Färdiga larmmallar
 

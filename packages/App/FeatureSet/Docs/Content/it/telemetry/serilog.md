@@ -1,6 +1,6 @@
 # Serilog (.NET)
 
-[Serilog](https://serilog.net) è la libreria di logging strutturato più diffusa per .NET. Con il sink ufficiale [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry), ogni evento che la tua applicazione registra tramite Serilog viene inviato a OneUptime con l'OpenTelemetry Protocol (OTLP) e diventa ricercabile in **Prodotti → Registri** con le sue proprietà strutturate, la gravità e la correlazione con le tracce.
+[Serilog](https://serilog.net) è la libreria di logging strutturato più diffusa per .NET. Con il sink ufficiale [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry), ogni evento che la tua applicazione registra tramite Serilog viene inviato a OneUptime con l'OpenTelemetry Protocol (OTLP) e diventa ricercabile in **Prodotti → Log** con le sue proprietà strutturate, la gravità e la correlazione con le tracce.
 
 Non c'è alcun pacchetto specifico di OneUptime da installare: il sink parla con lo stesso endpoint OTLP che OneUptime espone per tutti i dati OpenTelemetry. Funziona con applicazioni console, worker service, applicazioni ASP.NET Core e qualunque altra cosa giri su .NET.
 
@@ -222,11 +222,11 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Ogni proprietà con nome (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) viene inviata come attributo del log, così puoi filtrarle e cercarle nell'explorer **Prodotti → Registri**.
+Ogni proprietà con nome (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) viene inviata come attributo del log, così puoi filtrarle e cercarle nell'explorer **Prodotti → Log**.
 
 ### Verificare che i log arrivino
 
-Avvia la tua applicazione e scrivi qualche evento di log. In pochi secondi compaiono in **Prodotti → Registri** e nella pagina del tuo servizio in **Prodotti → Servizi**: il servizio prende il nome dal `service.name` che hai impostato (`my-service`). Le loro proprietà strutturate sono disponibili come filtri.
+Avvia la tua applicazione e scrivi qualche evento di log. In pochi secondi compaiono in **Prodotti → Log** e nella pagina del tuo servizio in **Prodotti → Servizi**: il servizio prende il nome dal `service.name` che hai impostato (`my-service`). Le loro proprietà strutturate sono disponibili come filtri.
 :::
 
 ## Eccezioni

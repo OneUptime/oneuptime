@@ -65,7 +65,7 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal ad
 
 - **Skift** — vælg en anden [skabelon](#færdige-alarmskabeloner). Den indstiller metrikker, filtre, aggregering, tidsinterval og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) — vælg én metrik i **Ceph Metric**, og indstil derefter **Aggregering** og **Tidsinterval**. **OSD** og **Pool-ID** indsnævrer den til én dæmon eller pool. En metrik, der føres pr. pool eller pr. daemon, bedømmes pool for pool eller daemon for daemon med én hændelse hver.
-- **Avanceret** (under **Flere felter**) — byg selv forespørgsler og formler under **Vælg målinger**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
+- **Avanceret** (under **Flere felter**) — byg selv forespørgsler og formler under **Vælg metrikker**, for eksempel et forhold for brugt kapacitet ud fra `ceph_cluster_total_used_bytes / ceph_cluster_total_bytes`. Brug **Gruppér efter** `ceph_daemon` eller `pool_id` for at vurdere hver dæmon eller pool for sig.
 
 ### Tjek kriterierne
 
@@ -89,7 +89,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Ceph Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum** eller **Minimum**. Starter med metrikkens sædvanlige aggregering. En sum eller en optælling ville lægge alle skrab i et minut sammen, så de er overladt til **Avanceret**. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; skabeloner sætter deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 Pools dataserier har kun labelen `pool_id`: Poolens navn findes kun på `ceph_pool_metadata`. Filtrér og gruppér poolserier efter `pool_id`, og slå navnet op i `ceph_pool_metadata`, når du har brug for det.
 

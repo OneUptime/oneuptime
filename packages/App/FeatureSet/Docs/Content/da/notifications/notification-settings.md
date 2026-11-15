@@ -49,14 +49,14 @@ Når du bliver medlem af et projekt, er disse begivenheder slået til, via e-mai
 | --- | --- | --- |
 | **Hændelser** | **Hændelse oprettet**, **Hændelsestilstand ændret**, **Påmindelse om hændelse**, **Hændelsens SLA overskredet**, **Hændelsesepisode oprettet**, **Tilstand for hændelsesepisode ændret**, **Hændelse tilføjet til hændelsesepisode** | **Hændelsesnote oprettet**, **Tilføjet som hændelsesejer**, **Tildelt en hændelse**, **Note til hændelsesepisode oprettet**, **Tilføjet som ejer af hændelsesepisode** |
 | **Advarsler** | **Advarsel oprettet**, **Advarselstilstand ændret**, **Påmindelse om advarsel**, **Advarselsepisode oprettet**, **Tilstand for advarselsepisode ændret**, **Advarsel tilføjet til advarselsepisode** | **Advarselsnote offentliggjort**, **Tilføjet som advarselsejer**, **Note til advarselsepisode offentliggjort**, **Tilføjet som ejer af advarselsepisode** |
-| **Overvågning** | **Sondestatus ændret for din overvågning**, **Overvågning har ingen aktive sonder**, **SLO-status ændret**, **Tilføjet som SLO-ejer**, **Undtagelse tildelt mig**, **Sondestatus ændret**, **Tilføjet som sondeejer** | **Overvågning oprettet**, **Overvågningsstatus ændret**, **Tilføjet som overvågningsejer**, **AI-agentstatus ændret**, **Tilføjet som AI-agentejer** |
+| **Overvågning** | **Sondestatus ændret for din monitor**, **Monitor har ingen aktive sonder**, **SLO-status ændret**, **Tilføjet som SLO-ejer**, **Undtagelse tildelt mig**, **Sondestatus ændret**, **Tilføjet som sondeejer** | **Monitor oprettet**, **Monitorstatus ændret**, **Tilføjet som monitorejer**, **AI-agentstatus ændret**, **Tilføjet som AI-agentejer** |
 | **Statussider** | **Min offentlige note godkendt eller afvist**, og også via push: **Offentlig note venter på min godkendelse** | **Statusside oprettet**, **Statusside-meddelelse offentliggjort**, **Tilføjet som statussideejer** |
 | **Planlagt vedligeholdelse** | **Påmindelse om vedligeholdelse** | **Vedligeholdelseshændelse oprettet**, **Vedligeholdelsestilstand ændret**, **Vedligeholdelsesnote oprettet**, **Tilføjet som vedligeholdelsesejer** |
 | **Vagt** | **Du går på vagt**, **Du er den næste på vagt**, **Du går af vagt**, **Tilføjet til vagtordningspolitik**, **Fjernet fra vagtordningspolitik**, **Ubesvaret opkald**, og også via push: **Før min vagt starter**, **Min kommende vagt bliver tildelt en anden** | Ingen |
 | **Sikkerhed** | Også via push: **Ny sikkerhedssag** (sager med prioritet High og Kritisk), **Sikkerhedssag tildelt mig**, **Playbook-trin venter på min godkendelse**, **Responsmål for sikkerhedssag**, **Opgave i sikkerhedssag tildelt mig**, **En hunt fandt sikkerhedsbegivenheder** | Ingen |
 
 > [!IMPORTANT]
-> **Overvågningsstatus ændret** starter slået fra. Vil du vide, når en overvågning, du ejer, går ned eller kommer op igen, så slå den til på fanen **Overvågning**.
+> **Monitorstatus ændret** starter slået fra. Vil du vide, når en overvågning, du ejer, går ned eller kommer op igen, så slå den til på fanen **Overvågning**.
 
 ## Dine vagter
 
@@ -102,7 +102,7 @@ Tjek, at du har en bekræftet metode på den kanal under **Brugerindstillinger �
 :::
 
 :::details Jeg ejer en overvågning, men hører aldrig, når den går ned
-**Overvågningsstatus ændret** starter slået fra. Slå en kanal til for den, på fanen **Overvågning**.
+**Monitorstatus ændret** starter slået fra. Slå en kanal til for den, på fanen **Overvågning**.
 :::
 
 :::details Jeg får stadig e-mails, efter at jeg har slået alt fra

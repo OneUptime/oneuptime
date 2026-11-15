@@ -25,7 +25,7 @@ flowchart TB
     ack["Riconoscete"] -.->|"ferma il resto"| third
 ```
 
-La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messaggi WhatsApp, Telegram, Slack, Microsoft Teams e Mattermost contengono un link per riconoscerla, e una telefonata vi chiede di premere 1. Se non potete gestire una chiamata, gli stessi messaggi vi permettono di escalarla, e una telefonata vi chiede di premere 2: la policy avvisa subito il livello successivo, e non venite più avvisati al riguardo. Vedi [Escalare un avviso](/docs/on-call/escalation-rules#escalare-un-avviso). Ogni chiamata ricevuta compare in **Impostazioni utente → Registri di reperibilità**, dove **Visualizza cronologia** mostra ogni messaggio inviato e se è stato consegnato.
+La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messaggi WhatsApp, Telegram, Slack, Microsoft Teams e Mattermost contengono un link per riconoscerla, e una telefonata vi chiede di premere 1. Se non potete gestire una chiamata, gli stessi messaggi vi permettono di escalarla, e una telefonata vi chiede di premere 2: la policy avvisa subito il livello successivo, e non venite più avvisati al riguardo. Vedi [Escalare un avviso](/docs/on-call/escalation-rules#escalare-un-avviso). Ogni chiamata ricevuta compare in **Impostazioni utente → Log di reperibilità**, dove **Visualizza cronologia** mostra ogni messaggio inviato e se è stato consegnato.
 
 ## Una sola sequenza per tutto
 
@@ -148,7 +148,7 @@ Ogni metodo verificato ha una regola per ogni gravità, inviata subito. Eliminat
 :::
 
 :::details Ho ricevuto un'e-mail anche se la mia regola dice SMS
-La chiamata non ha trovato una regola per il suo tipo o la sua gravità, ed è ripiegata sui vostri metodi gratuiti: aggiungete la regola nella scheda e nel riquadro giusti. Oppure l'e-mail era un aggiornamento su un elemento vostro, che segue le **Impostazioni notifiche**, non le vostre regole. I vostri **Registri di reperibilità** elencano solo le chiamate.
+La chiamata non ha trovato una regola per il suo tipo o la sua gravità, ed è ripiegata sui vostri metodi gratuiti: aggiungete la regola nella scheda e nel riquadro giusti. Oppure l'e-mail era un aggiornamento su un elemento vostro, che segue le **Impostazioni notifiche**, non le vostre regole. I vostri **Log di reperibilità** elencano solo le chiamate.
 :::
 
 ## Passi successivi

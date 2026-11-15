@@ -51,7 +51,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 | Declare an incident for each Zabbix problem | Zabbix가 모든 이벤트를 보내는 워크플로입니다. 문제마다 인시던트를 선언하고, High와 Disaster에는 온콜을 호출하고, Zabbix에서 한 업데이트를 기록하고, 복구 시 인시던트를 해결합니다. | Zabbix URL |
 | Acknowledge or close the Zabbix problem with the incident | 인시던트가 인지되면 그 문제를 인지합니다. 해결되면 문제를 닫거나, Zabbix가 수동으로 닫는 것을 허용하지 않으면 인지합니다. | Zabbix URL, Zabbix API Token |
 | Copy incident private notes to the Zabbix problem | 인시던트의 각 비공개 메모를 그 문제에 메시지로 추가합니다. | Zabbix URL, Zabbix API Token |
-| **알림** | | |
+| **경고** | | |
 | Create an alert for each Zabbix problem | 인시던트와 같지만, 문제마다 알림을 만듭니다. | Zabbix URL |
 | Acknowledge or close the Zabbix problem with the alert | 인시던트와 같지만, 알림의 상태를 따릅니다. | Zabbix URL, Zabbix API Token |
 | Copy alert private notes to the Zabbix problem | 알림의 각 비공개 메모를 그 문제에 메시지로 추가합니다. | Zabbix URL, Zabbix API Token |

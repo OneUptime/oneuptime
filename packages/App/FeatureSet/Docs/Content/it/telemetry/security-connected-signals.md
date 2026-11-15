@@ -59,8 +59,8 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 
 ## Cosa mostra ogni record
 
-- I suoi segnali, ciascuno aperto sul record e sull'intervallo del caso: **Registri**, **Tracce** e **Metriche**, le **Eccezioni** di un servizio, gli **Eventi Kubernetes** di un cluster, la **Topologia** del record e il suo elemento in **Inventario** quando l'inventario ne ha uno.
-- Gli incidenti e gli avvisi aperti ora su di esso e i monitor che lo controllano, ciascuno con la propria pagina. Un monitor mostra il suo stato accanto al nome, e i suoi **Registri** sono ciò che ha visto a ogni controllo.
+- I suoi segnali, ciascuno aperto sul record e sull'intervallo del caso: **Log**, **Tracce** e **Metriche**, le **Eccezioni** di un servizio, gli **Eventi Kubernetes** di un cluster, la **Topologia** del record e il suo elemento in **Inventario** quando l'inventario ne ha uno.
+- Gli incidenti e gli avvisi aperti ora su di esso e i monitor che lo controllano, ciascuno con la propria pagina. Un monitor mostra il suo stato accanto al nome, e i suoi **Log** sono ciò che ha visto a ogni controllo.
 - Le pianificazioni di reperibilità di un membro, con **Reperibile ora** accanto a quelle per cui è reperibile adesso, e i team di cui fa parte.
 - Cosa vi è cambiato nell'intervallo: i deploy di un servizio, i rollout di un cluster e le correzioni di un host.
 
@@ -80,9 +80,9 @@ Sotto i record, Segnali collegati cerca nei tuoi registri e nelle tue tracce, su
 | Il messaggio di una riga di registro | Contiene il valore intero, maiuscole o minuscole che siano: `10.0.0.1` in `from 10.0.0.1:52144`, mai in `10.0.0.12` o `110.0.0.1` |
 | Un attributo di una riga di registro o di uno span | Il suo valore è esattamente il valore: come scritto, in minuscolo o in maiuscolo, o un indirizzo IPv6 nella sua forma breve |
 
-- Ogni valore trovato mostra quante righe di registro e quanti span lo nominano, dove si trovava in essi - **Nel messaggio** o un attributo per la sua chiave -, ciascuno dei quali apre **Registri** o **Tracce** su quelle righe o quegli span e sulla finestra, e i record che li hanno inviati, prima quelli che ne hanno inviati di più.
+- Ogni valore trovato mostra quante righe di registro e quanti span lo nominano, dove si trovava in essi - **Nel messaggio** o un attributo per la sua chiave -, ciascuno dei quali apre **Log** o **Tracce** su quelle righe o quegli span e sulla finestra, e i record che li hanno inviati, prima quelli che ne hanno inviati di più.
 - Un attributo di risorsa, come `resource.host.name`, dice solo quale record ha inviato una riga, e non viene mai contato.
-- I valori cercati che nessuno dei due nomina sono elencati in **Non è nei tuoi registri né nelle tue tracce**.
+- I valori cercati che nessuno dei due nomina sono elencati in **Non è nei tuoi log né nelle tue tracce**.
 - Vengono cercati con il tuo ruolo: i registri o le tracce che il tuo ruolo non può leggere vengono indicati e non cercati; quelli che al momento non è stato possibile cercare lo dicono, con **Riprova**. Una ricerca che dura più di 15 secondi viene interrotta, e lo dice.
 
 ## Chi vede cosa

@@ -36,7 +36,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**. Oppure, nell'esploratore 
 
 ### Scegliere Logs
 
-In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Registri** sotto **Telemetria**, oppure digitate `logs` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Log** sotto **Telemetria**, oppure digitate `logs` nella casella di ricerca. Inserite un **Nome**, poi fate clic su **Avanti**.
 
 ### Scegliere di cosa vi informa il monitor
 
@@ -212,7 +212,7 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Create un monitor **Registri** e scegliete **Compare un messaggio**.
+1. Create un monitor **Log** e scegliete **Compare un messaggio**.
 2. Impostate **Il messaggio contiene** su `terminated` e la **Finestra temporale** su **Ultimi 5 minuti**.
 3. In **Altri campi**, aggiungete il filtro di attributo `log_component` = `IPSec`.
 4. In **Raggruppa per attributi**, aggiungete `con_name`.

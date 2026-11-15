@@ -81,10 +81,10 @@ Il menu laterale della pagina raggruppa ciò che fate con un'eccezione:
 | **Stack trace** | I frame dello stack. Per il codice del browser, i file e le righe originali, una volta caricate le [Source map](/docs/telemetry/source-maps) per la release. |
 | **Occorrenze** | Ogni occorrenza, con l'ora, il messaggio e la traccia in cui si è verificata. |
 | **Contesto** | Gli attributi dell'ultima occorrenza, la sua registrazione della sessione quando c'è, e i passaggi che hanno portato a essa. |
-| **Registri** | I log scritti intorno all'ultima occorrenza. |
+| **Log** | I log scritti intorno all'ultima occorrenza. |
 | **Correggi con l'IA** | Un'attività di IA che corregge l'eccezione con una pull request e, compresse sotto di essa, le altre. |
 | **Impostazioni** | Risolvere o archiviare l'eccezione. Si trova sotto **Gestisci**, inizialmente compresso. |
-| **Registri di audit** | Chi ha risolto, archiviato, assegnato o unito l'eccezione, e quando. Si trova anch'essa sotto **Gestisci**. |
+| **Log di audit** | Chi ha risolto, archiviato, assegnato o unito l'eccezione, e quando. Si trova anch'essa sotto **Gestisci**. |
 
 **Dove è successo** mostra il primo frame del vostro codice, il punto più probabile in cui l'errore è stato sollevato: il file e la riga originali una volta che una source map li ha risolti, il codice intorno quando la source map lo conteneva, e fino a tre frame del vostro codice che lo hanno chiamato. Senza alcun frame nel vostro codice, la scheda mostra il frame più interno dello stack trace. **Visualizza lo stack trace completo** apre tutti i frame nella pagina **Stack trace**. Quando l'ultima occorrenza non ha registrato frame strutturati, la scheda mostra le prime righe dello stack trace così come sono (le ultime righe di un traceback Python, dove si trova l'errore), e un'eccezione senza stack trace non ha la scheda.
 
@@ -144,7 +144,7 @@ ID, indirizzi email e IP e token vengono tolti da tutto ciò che viene inviato, 
 
 Sotto le schede, **Eccezioni simili** elenca fino a cinque altre eccezioni che somigliano a questa: lo **Stesso messaggio** una volta tolti i valori, la **Stessa posizione nel codice** del vostro codice, o un **Messaggio simile** con quasi tutte le stesse parole. Una stessa causa può finire in più eccezioni, quindi **Verifica con OneUptime AI** dice di ciascuna se è **Probabilmente lo stesso bug**, **Un bug correlato** o **Un bug diverso**, e perché. La verifica usa i crediti IA del progetto e non viene offerta finché **Abilita IA** è disattivato. La sua risposta viene conservata fino alla prossima occorrenza.
 
-Unite a questa eccezione una che OneUptime AI definisce **Probabilmente lo stesso bug**, dello stesso servizio, con **Unisci** accanto: le sue occorrenze, quelle finora e ogni nuova, da allora contano su questa eccezione e compaiono nella sua pagina, ed esce dall'elenco. **Unite a questa eccezione**, sotto, elenca ciò che è stato unito, e **Separa** accanto a ciascuna, o nella pagina di un'eccezione unita, le restituisce il suo posto nell'elenco, con le sue occorrenze da allora. Unire e separare richiedono il permesso di modificare le eccezioni. Chi ha unito un'eccezione, e chi l'ha separata, è nella sua pagina **Registri di audit**; l'eccezione a cui è stata unita non riceve alcuna voce, perché non è cambiato nulla di ciò che qualcuno vi aveva impostato.
+Unite a questa eccezione una che OneUptime AI definisce **Probabilmente lo stesso bug**, dello stesso servizio, con **Unisci** accanto: le sue occorrenze, quelle finora e ogni nuova, da allora contano su questa eccezione e compaiono nella sua pagina, ed esce dall'elenco. **Unite a questa eccezione**, sotto, elenca ciò che è stato unito, e **Separa** accanto a ciascuna, o nella pagina di un'eccezione unita, le restituisce il suo posto nell'elenco, con le sue occorrenze da allora. Unire e separare richiedono il permesso di modificare le eccezioni. Chi ha unito un'eccezione, e chi l'ha separata, è nella sua pagina **Log di audit**; l'eccezione a cui è stata unita non riceve alcuna voce, perché non è cambiato nulla di ciò che qualcuno vi aveva impostato.
 
 ## Correggerla con l'IA
 
@@ -202,12 +202,12 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 ### Vedere cosa ha fatto
 
 - **Eccezioni → IA → Insight** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove, compresi i frame del vostro codice nel suo stack trace. **View Exception Group** apre l'eccezione e, sugli stack trace mancanti di un servizio, **Apri in Eccezioni** apre le sue eccezioni non risolte dell'ultimo giorno.
-- **Eccezioni → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
+- **Eccezioni → IA → Log** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - La pull request spiega perché è stata aperta, con un link al suo rilevamento. Quella di un'eccezione nuova o in aumento rimanda anche all'eccezione e compare sulla sua pagina **Correggi con l'IA**. In Codice, la sua attività nomina l'eccezione che corregge, o il rilevamento da cui è nata.
 
 ## Informazioni sulle eccezioni
 
-La scheda **Insight** conta le vostre eccezioni **Non risolto**, **Risolto** e **Archiviato** e il vostro tasso di risoluzione, ed elenca le eccezioni più frequenti, i servizi che colpiscono e quelle viste più di recente.
+La scheda **Analisi** conta le vostre eccezioni **Non risolto**, **Risolto** e **Archiviato** e il vostro tasso di risoluzione, ed elenca le eccezioni più frequenti, i servizi che colpiscono e quelle viste più di recente.
 
 **Novità**, in cima alla scheda, chiede a OneUptime AI, con **Riepiloga con OneUptime AI**, di riassumere le eccezioni viste per la prima volta nelle ultime 24 ore e quelle tornate dopo essere state risolte: qualche frase su tutte, poi ciascuna in una riga, la più urgente per prima, con un link all'eccezione. Il riepilogo viene scritto quando lo chiedete e conservato fino alla prossima occorrenza, quindi chiederlo di nuovo non costa nulla; usa i crediti IA del progetto e non viene offerto finché **Abilita IA** è disattivato.
 

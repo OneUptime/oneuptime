@@ -50,7 +50,7 @@ Fai clic su **Avvia attività**, oppure premi Invio. Si apre la pagina dell'atti
 | **Eccezione** | Il suo messaggio e lo stack trace. |
 | **Monitor** | Il suo tipo, lo stato e la descrizione. |
 | **Traccia** | I suoi span: nomi, tempi ed errori. |
-| **Registri** | Le ultime 20 righe di log che contengono la tua ricerca, dell'ultima ora, dell'ultimo giorno o dell'ultima settimana. |
+| **Log** | Le ultime 20 righe di log che contengono la tua ricerca, dell'ultima ora, dell'ultimo giorno o dell'ultima settimana. |
 | **Profilo di prestazioni** | Dove va il tempo di una funzione nei profili del suo servizio: chi la chiama, cosa chiama e le sue righe più calde. |
 
 Una richiesta porta al massimo 10 elementi di contesto. Token, chiavi, password e indirizzi email in ciò che OneUptime legge vengono oscurati prima che l'IA li veda, come ovunque OneUptime AI legga i tuoi dati.
@@ -69,7 +69,7 @@ La pagina di un'attività è una conversazione: cosa è stato chiesto e il conte
 | **Non riuscito** | Il turno non è riuscito a finire, e dice perché, e dopo quanti tentativi quando l'IA lo ha riprovato da sola. **Riprova** chiede di nuovo la stessa cosa. |
 | **Arrestato** | Qualcuno l'ha fermata. **Riprova** chiede di nuovo la stessa cosa. |
 
-Per continuare, scrivi nella casella in fondo, che resta visibile mentre la conversazione scorre: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Registro** di ogni turno è la registrazione fedele di ciò che ha fatto. In un'attività con più di un turno, un selettore in cima alla pagina **Registro** passa da un turno all'altro. Un'attività con più di 200 turni mostra il primo turno e i 199 più recenti, con una linea in mezzo che dice quanti turni precedenti non sono mostrati. In cima alla pagina si contano comunque tutti i turni.
+Per continuare, scrivi nella casella in fondo, che resta visibile mentre la conversazione scorre: rispondi all'IA, aggiungi contesto o chiedi modifiche. Ogni risposta è il turno successivo della stessa attività: lavora sullo stesso branch e fa il push nella stessa pull request finché è aperta. Un'attività fa un turno alla volta, quindi la casella aspetta mentre l'IA lavora. Il **Log** di ogni turno è la registrazione fedele di ciò che ha fatto. In un'attività con più di un turno, un selettore in cima alla pagina **Log** passa da un turno all'altro. Un'attività con più di 200 turni mostra il primo turno e i 199 più recenti, con una linea in mezzo che dice quanti turni precedenti non sono mostrati. In cima alla pagina si contano comunque tutti i turni.
 
 Chi può leggere un repository ne legge le attività. Chiedere all'IA, rispondere e fermare un'attività richiedono il permesso di modificare il repository, e così vedere il diff di una modifica: tutti gli altri vedono quali file sono cambiati. Anche le attività che OneUptime avvia da solo (sotto) sono nel loro repository, come conversazioni in cui puoi rispondere.
 
@@ -96,7 +96,7 @@ flowchart TB
 6. Su un Runner tuo, l'agente di codice compila e testa la sua modifica come dice l'`AGENTS.md` del repository prima che venga fatto qualsiasi commit, e ripara ciò che fallisce (vedi [Verifica prima della pull request](#verifica-prima-della-pull-request)).
 7. Il Runner fa il commit, il push del branch, apre la pull request (per una richiesta, solo se ha modificato il codice) ed elimina lo spazio di lavoro.
 
-La pagina da cui è stata avviata l'attività ne mostra lo stato in tempo reale. Ogni attività è elencata nel suo repository, in **Prodotti → Codice**: la sua pagina è la sua conversazione, e il **Registro** di ogni turno ha una riga per ogni file che il Runner ha letto o scritto e per ogni comando che ha eseguito.
+La pagina da cui è stata avviata l'attività ne mostra lo stato in tempo reale. Ogni attività è elencata nel suo repository, in **Prodotti → Codice**: la sua pagina è la sua conversazione, e il **Log** di ogni turno ha una riga per ogni file che il Runner ha letto o scritto e per ogni comando che ha eseguito.
 
 Un'esecuzione fa tutte le chiamate al LLM e le query sulla telemetria di produzione di cui il suo lavoro ha bisogno, entro il suo limite di tempo: 120 minuti, a meno che il progetto non ne imposti uno proprio. Il progetto può contenere di più ogni esecuzione in **Limiti per esecuzione**, sotto **Altre impostazioni** in **Impostazioni del progetto → IA → Funzionalità IA**; un'esecuzione che raggiunge un limite termina con un riepilogo del lavoro svolto fin lì. Un Runner precedente a questa release ferma ancora un'esecuzione a 40 chiamate al LLM e 100.000 token di output: aggiornalo per eliminare questi limiti. Le esecuzioni di correzione contano anche per i limiti giornalieri di IA del progetto, quando il progetto li imposta.
 
@@ -109,7 +109,7 @@ Un'esecuzione fa tutte le chiamate al LLM e le query sulla telemetria di produzi
 | **Altre attività di IA** nella pagina **Correggi con l'IA** di un'eccezione | **Avvia** su **Correggi il codice** o **Gestisci meglio l'errore** | Il tipo di correzione che **Correggi con l'IA** non fa per l'eccezione. |
 | Il passaggio **Rimedio** della scheda **OneUptime AI** di un incidente o di un avviso | **Apri la pull request di correzione** | Corregge la causa principale pubblicata dall'indagine (vedi [Correzioni di codice automatiche dalle indagini](#correzioni-di-codice-automatiche-dalle-indagini)). |
 | Una traccia che vale la pena correggere | **Velocizza con l'IA** | Corregge lo schema lento indicato dal pulsante, come una query N+1 o chiamate che potrebbero procedere in parallelo. |
-| La pagina **Registri** di un servizio | **Migliora i log** | Rende i log del servizio strutturati, con la severità giusta e collegati alle sue tracce, senza cambiare il comportamento. |
+| La pagina **Log** di un servizio | **Migliora i log** | Rende i log del servizio strutturati, con la severità giusta e collegati alle sue tracce, senza cambiare il comportamento. |
 | La pagina **Tracce** di un servizio | **Migliora il tracciamento** | Aggiunge span e attributi dove manca il tracing del servizio, senza cambiare il comportamento. |
 | Una funzione in **Profili** | **Correggi con l'IA** | Fa svolgere alla funzione lo stesso lavoro con meno tempo o memoria, con il suo profilo come prova. |
 
@@ -127,7 +127,7 @@ OneUptime conserva ciò che il tuo codice fa in produzione, quindi una correzion
 | --- | --- |
 | **Eccezioni** | I gruppi di eccezioni sollevate in determinati file o in una funzione: quanto spesso negli ultimi giorni, da quale versione, e la traccia di un'occorrenza recente. |
 | **Tracce** | Il profilo di latenza e di errori di un endpoint o di un'operazione, e gli span di una traccia. |
-| **Registri** | Le righe di log di un servizio, per periodo, severità, testo o traccia. |
+| **Log** | Le righe di log di un servizio, per periodo, severità, testo o traccia. |
 | **Metriche** | Una metrica che un servizio invia, nel tempo; senza un nome, le metriche che invia. |
 | **Incidenti** | Gli incidenti che hanno colpito i servizi, o per cui è stata aperta una correzione OneUptime in questo repository, con la loro causa principale e il loro post-mortem. |
 | **Deploy** | I deploy recenti e le altre modifiche dei servizi, ognuno con il verdetto di OneUptime sul fatto che abbia danneggiato o meno il suo servizio. |
@@ -329,7 +329,7 @@ Tutto il resto è come il pulsante:
 ## Quando una correzione non riesce
 
 :::details L'esecuzione va in errore
-La correzione non si è potuta applicare, il repository o il branch da cui partiva una richiesta non era raggiungibile, o la chiamata al LLM è fallita. Un errore passeggero (il fornitore del modello di IA occupato o non disponibile, una chiamata scaduta, la rete) viene riprovato da solo, fino a 3 tentativi in tutto, il secondo dopo 1 minuto e il terzo dopo 4, a meno che l'esecuzione non possa aver già fatto il push di un branch o aperto una pull request. Un errore che si ripeterebbe, come una chiave che il fornitore rifiuta o i crediti esauriti, non viene riprovato. Quando un turno fallisce del tutto, la conversazione dell'attività, e la pagina da cui è stata avviata, mostrano il motivo e offrono di riprovare. Il **Registro** del turno contiene il log completo dell'esecuzione.
+La correzione non si è potuta applicare, il repository o il branch da cui partiva una richiesta non era raggiungibile, o la chiamata al LLM è fallita. Un errore passeggero (il fornitore del modello di IA occupato o non disponibile, una chiamata scaduta, la rete) viene riprovato da solo, fino a 3 tentativi in tutto, il secondo dopo 1 minuto e il terzo dopo 4, a meno che l'esecuzione non possa aver già fatto il push di un branch o aperto una pull request. Un errore che si ripeterebbe, come una chiave che il fornitore rifiuta o i crediti esauriti, non viene riprovato. Quando un turno fallisce del tutto, la conversazione dell'attività, e la pagina da cui è stata avviata, mostrano il motivo e offrono di riprovare. Il **Log** del turno contiene il log completo dell'esecuzione.
 :::
 
 :::details Il Runner si ferma a metà di un'esecuzione

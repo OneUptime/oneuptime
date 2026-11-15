@@ -40,7 +40,7 @@ stateDiagram-v2
 Runbook 執行有五種建立方式：
 
 1. **透過規則自動啟動**：當相符的事件、警示或維護事件被建立時，[Runbook 規則](/docs/runbooks/rules) 會啟動執行。AI 規則也可以啟動執行；請參閱 [AI SRE](/docs/ai/ai-sre)。
-2. **從事件手動啟動**：在事件、警示或維護事件上點選 **執行操作手冊** 。執行會關聯到該事件。
+2. **從事件手動啟動**：在事件、警示或維護事件上點選 **執行運行手冊** 。執行會關聯到該事件。
 3. **從 Runbook 頁面手動啟動**：在 Runbook 的 **概覽** 頁面上點選 **立即執行** 。這次執行不會關聯到任何事件、警示或維護事件。
 4. **依排程**：Runbook 的排程會在設定的時間啟動它。請參閱[依排程執行](/docs/runbooks/triggers#依排程執行)。
 5. **從其他工具**：向 Runbook 的 Webhook URL 傳送 `POST` 即可啟動它，並帶上呼叫傳送的值。請參閱[呼叫 Webhook](/docs/runbooks/triggers#呼叫-webhook)。
@@ -50,7 +50,7 @@ Runbook 執行有五種建立方式：
 :::tabs
 @tab 從事件啟動
 1. 開啟事件、警示或維護事件，進入其 **運行手冊** 頁面。
-2. 點選 **執行操作手冊** 。 **執行操作手冊** 對話方塊會列出專案中已啟用的 Runbook。
+2. 點選 **執行運行手冊** 。 **執行運行手冊** 對話方塊會列出專案中已啟用的 Runbook。
 3. 點選 Runbook 旁邊的 **Run** 。這次執行會出現在該事件的清單中：點選 **檢視** 開啟它。
 @tab 從 Runbook 啟動
 1. 從 **運行手冊** 開啟 Runbook。
@@ -115,7 +115,7 @@ Runbook 的 **稽核日誌** 頁面會記錄每次執行由誰啟動、每個步
 
 ## 再次執行 Runbook
 
-執行是一次性、不可變更的紀錄。要再次執行，請在已結束的執行上點選 **再次執行** ，或在 Runbook 上點選 **立即執行** 。兩者都會依據 Runbook 目前的步驟建立一次新的執行，且不關聯任何事件。若要在某個事件上再次執行，請在該事件的 **運行手冊** 頁面上使用 **執行操作手冊** 。原本的執行保持不變，作為稽核軌跡。
+執行是一次性、不可變更的紀錄。要再次執行，請在已結束的執行上點選 **再次執行** ，或在 Runbook 上點選 **立即執行** 。兩者都會依據 Runbook 目前的步驟建立一次新的執行，且不關聯任何事件。若要在某個事件上再次執行，請在該事件的 **運行手冊** 頁面上使用 **執行運行手冊** 。原本的執行保持不變，作為稽核軌跡。
 
 ## 尋找過去的執行
 
@@ -128,11 +128,11 @@ Runbook 的 **稽核日誌** 頁面會記錄每次執行由誰啟動、每個步
 ## 疑難排解
 
 :::details Run Now 被鎖定
-您的角色可以讀取 Runbook，但無法執行它們：按鈕顯示「您沒有在此專案中啟動操作手冊執行的權限。」請申請操作手冊成員角色或 **Create Runbook Execution** 權限。
+您的角色可以讀取 Runbook，但無法執行它們：按鈕顯示「您沒有在此專案中啟動運行手冊執行的權限。」請申請操作手冊成員角色或 **Create Runbook Execution** 權限。
 :::
 
 :::details 啟動執行時失敗，顯示「Runbook is disabled」或「Runbook has no steps to run」
-Runbook 的 **執行此操作手冊** 開關在其 **設定** 頁面上被關閉了，或者它沒有已儲存的步驟。請開啟開關或新增步驟，然後點選 **儲存步驟** 。Runbook 的 **概覽** 會說明是哪一種，並提供 **開啟執行手冊** 或 **新增步驟** 。
+Runbook 的 **執行此運行手冊** 開關在其 **設定** 頁面上被關閉了，或者它沒有已儲存的步驟。請開啟開關或新增步驟，然後點選 **儲存步驟** 。Runbook 的 **概覽** 會說明是哪一種，並提供 **開啟運行手冊** 或 **新增步驟** 。
 :::
 
 :::details 步驟因缺少 Runner 而失敗
@@ -144,7 +144,7 @@ Runbook 的 **執行此操作手冊** 開關在其 **設定** 頁面上被關閉
 :::
 
 :::details 步驟因沒有 Runbook 代理程式認領而失敗
-訊息是「No runbook agent picked up this step before the wait window expired.」該步驟的 Runner 沒有在其 claim timeout 內認領工作。請在 **運行手冊 → Runbook 代理程式** 中確認 Runner 為 **已連線** ，且 **執行操作手冊** 已開啟。請參閱 [Runbook 代理程式](/docs/runbooks/agents#疑難排解)。 全域 Runner 上的步驟則會顯示「No global Runner picked up this step before the wait window expired.」：請再次執行 Runbook、調高該步驟的 claim timeout，或選擇您自己的某個 Runner。
+訊息是「No runbook agent picked up this step before the wait window expired.」該步驟的 Runner 沒有在其 claim timeout 內認領工作。請在 **運行手冊 → Runbook 代理程式** 中確認 Runner 為 **已連線** ，且 **執行運行手冊** 已開啟。請參閱 [Runbook 代理程式](/docs/runbooks/agents#疑難排解)。 全域 Runner 上的步驟則會顯示「No global Runner picked up this step before the wait window expired.」：請再次執行 Runbook、調高該步驟的 claim timeout，或選擇您自己的某個 Runner。
 :::
 
 :::details 執行已經等待了好幾個小時

@@ -22,7 +22,7 @@ Start med det spørgsmål, flisen skal besvare:
 | Hvad er ét bestemt tal lige nu? | **Værdi**, eller **Måler** når det har et kendt interval |
 | Hvilke værter, tjenester eller endpoints skiller sig ud? | **Tabel** eller **Sportabel** |
 | Hvad sker der lige nu? | **Logstrøm**, **Sporliste**, **Hændelsesliste** eller **Advarselsliste** |
-| Er alle vores sites oppe? | **Overvågningsliste** |
+| Er alle vores sites oppe? | **Monitorliste** |
 | Holder vi den pålidelighed, vi har lovet? | **SLO** eller **SLO-liste** |
 | Kommer folk igennem et forløb, og kommer de tilbage? | **Tragt** eller **Fastholdelse af brugere** |
 | Hvilken tilstand er vores klynger og værter i? | En widget fra gruppen Infrastruktur |
@@ -148,7 +148,7 @@ Trace-widgets tæller kun rod-spans, som trace-udforskeren gør, medmindre du me
 | --- | --- | --- |
 | **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
 | **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
-| **Overvågningsliste** | Overvågninger med deres aktuelle status. | I drift eller ej, status, overvågningstype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
+| **Monitorliste** | Overvågninger med deres aktuelle status. | I drift eller ej, status, overvågningstype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet efter status i stedet for en tabel: vælg det under **Visningstilstand**. De viser den aktuelle tilstand, uanset dashboardets tidsinterval.
 

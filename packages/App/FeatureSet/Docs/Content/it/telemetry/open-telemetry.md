@@ -1,6 +1,6 @@
 # OpenTelemetry
 
-OneUptime acquisisce log, metriche e tracce tramite l'OpenTelemetry Protocol (OTLP). Punta qualsiasi SDK OpenTelemetry, o un OpenTelemetry Collector, verso OneUptime con una chiave di acquisizione, e i tuoi dati compaiono in **Registri**, **Tracce**, **Metriche** ed **Eccezioni**. Questa pagina fa inviare dati a un servizio in pochi minuti, poi descrive gli endpoint, i limiti e gli errori che ti servono in produzione.
+OneUptime acquisisce log, metriche e tracce tramite l'OpenTelemetry Protocol (OTLP). Punta qualsiasi SDK OpenTelemetry, o un OpenTelemetry Collector, verso OneUptime con una chiave di acquisizione, e i tuoi dati compaiono in **Log**, **Tracce**, **Metriche** ed **Eccezioni**. Questa pagina fa inviare dati a un servizio in pochi minuti, poi descrive gli endpoint, i limiti e gli errori che ti servono in produzione.
 
 :::cards
 - [Avvio rapido](#avvio-rapido): Crea una chiave, imposta quattro variabili d'ambiente e aggiungi l'SDK.
@@ -246,7 +246,7 @@ curl -i -H "x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY" \
 
 Una chiave valida restituisce `200` con `"valid": true`. Qualsiasi altra cosa restituisce `401` con un messaggio che dice cosa non va: sconosciuta, disattivata o scaduta.
 
-Poi avvia la tua app e usala per un minuto. Apri **Prodotti → Servizi**: il tuo servizio è elencato con il nome impostato in `OTEL_SERVICE_NAME`, con i suoi log, tracce, metriche ed eccezioni. **Prodotti → Registri**, **Prodotti → Tracce** e **Prodotti → Metriche** mostrano gli stessi dati per tutti i servizi.
+Poi avvia la tua app e usala per un minuto. Apri **Prodotti → Servizi**: il tuo servizio è elencato con il nome impostato in `OTEL_SERVICE_NAME`, con i suoi log, tracce, metriche ed eccezioni. **Prodotti → Log**, **Prodotti → Tracce** e **Prodotti → Metriche** mostrano gli stessi dati per tutti i servizi.
 :::
 
 :::details Inviare un log di prova senza SDK
@@ -273,7 +273,7 @@ curl -i https://oneuptime.com/otlp/v1/logs \
   }'
 ```
 
-Un `200` significa che il log è stato accettato. Compare in **Prodotti → Registri** entro pochi secondi, nel servizio `my-service`.
+Un `200` significa che il log è stato accettato. Compare in **Prodotti → Log** entro pochi secondi, nel servizio `my-service`.
 :::
 
 ## Inviare tramite un OpenTelemetry Collector
@@ -424,7 +424,7 @@ Tutto ciò che è in questa pagina funziona allo stesso modo con la tua installa
 
 ## Eccezioni dai log
 
-OneUptime trova le eccezioni nei tuoi **registri** e le riunisce nella stessa vista **Eccezioni** alimentata dagli errori delle tracce. Ogni log appartiene già a un servizio o a un host, quindi l'eccezione viene attribuita a esso. Le eccezioni dei log e delle tracce condividono il raggruppamento per impronta, così un errore segnalato sia da una traccia sia da un log diventa un unico problema.
+OneUptime trova le eccezioni nei tuoi **log** e le riunisce nella stessa vista **Eccezioni** alimentata dagli errori delle tracce. Ogni log appartiene già a un servizio o a un host, quindi l'eccezione viene attribuita a esso. Le eccezioni dei log e delle tracce condividono il raggruppamento per impronta, così un errore segnalato sia da una traccia sia da un log diventa un unico problema.
 
 Un log diventa un'eccezione in due modi:
 

@@ -38,7 +38,7 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 
 Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
 
-Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første overvågning**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**. Kun personer, der har lov til at oprette monitorer, ser den.
+Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første monitor**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**. Kun personer, der har lov til at oprette monitorer, ser den.
 
 ### De fem tal
 
@@ -63,7 +63,7 @@ Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og
 | Trin | Gennemført, når | Åbner |
 | --- | --- | --- |
 | **Importér fra dit nuværende værktøj** | En import fra et andet værktøj er gennemført. | **Importér fra et andet værktøj** |
-| **Opret din første overvågning** | Den første kontrol kommer ind. | Den guidede opsætning **Vide, når mit website eller API er nede**, eller listen **Monitorer** for den, der ikke må oprette overvågninger. |
+| **Opret din første monitor** | Den første kontrol kommer ind. | Den guidede opsætning **Vide, når mit website eller API er nede**, eller listen **Monitorer** for den, der ikke må oprette overvågninger. |
 | **Forbind en server eller en klynge** | De første metrikker kommer ind. | **Værter** |
 | **Send dine første logs, metrikker eller traces** | Projektets første logs, metrikker, traces, undtagelser eller profiler kommer ind. | Den guidede opsætning **Send protokoller, metrikker og spor, og få derefter advarsler** |
 | **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel kører en politik, der kan nå nogen. | Den guidede opsætning **Tilkalde den rette person, når noget går ned** |

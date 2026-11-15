@@ -131,7 +131,7 @@ Une règle peut publier chaque changement de la politique de budget d'erreur d'u
 :::steps
 ### Ouvrir la section Espace de travail des SLO
 
-Allez dans **SLOs** → **Espace de travail** → **Slack**, **Microsoft Teams** ou **Mattermost**. La section **Espace de travail** ne liste que les espaces de discussion que votre projet a connectés.
+Allez dans **SLO** → **Espace de travail** → **Slack**, **Microsoft Teams** ou **Mattermost**. La section **Espace de travail** ne liste que les espaces de discussion que votre projet a connectés.
 
 ### Créer une règle
 
@@ -154,7 +154,7 @@ Le message décrit le changement avec les mots du **Fil d'activité** du SLO : l
 
 | Condition | Ce qu'elle cible |
 | --- | --- |
-| **SLOs** | Les SLO que vous choisissez, ou tous les SLO sauf ceux-là. |
+| **SLO** | Les SLO que vous choisissez, ou tous les SLO sauf ceux-là. |
 | **Étiquettes du SLO** | Les étiquettes du SLO : l'une de celles que vous choisissez, toutes, ou aucune. |
 | **Nom du SLO** | Le nom du SLO : égal à votre texte ou non, le contenant ou non, commençant ou se terminant par ce texte. |
 | **Changement de la politique de budget d'erreur** | Ce qui a changé : **Entré dans un palier plus sévère**, **Revenu à un palier moins sévère**, **Sorti de tous les paliers**, **Déploiements gelés** ou **Déploiements de nouveau autorisés**. |

@@ -398,7 +398,7 @@ Sotto **Scale**, **Impostazioni del progetto** > **Sicurezza** > **SCIM**, e la 
 
 ## Risoluzione dei problemi
 
-Parti dalla scheda **Registri** di **Impostazioni del progetto** > **Sicurezza** > **SCIM** (o della pagina **SCIM** della pagina di stato). Elenca le richieste SCIM inviate dal tuo provider di identità, con il loro stato, e **Visualizza dettagli** mostra la richiesta e la risposta di OneUptime.
+Parti dalla scheda **Log** di **Impostazioni del progetto** > **Sicurezza** > **SCIM** (o della pagina **SCIM** della pagina di stato). Elenca le richieste SCIM inviate dal tuo provider di identità, con il loro stato, e **Visualizza dettagli** mostra la richiesta e la risposta di OneUptime.
 
 :::details Entra ID: Test Connection non riesce
 Verifica che **Tenant URL** sia la **URL di base SCIM** esattamente come la mostra OneUptime, e che **Secret Token** sia il **Bearer Token** attuale. Dopo **Reimposta il token Bearer**, il vecchio token smette di funzionare.

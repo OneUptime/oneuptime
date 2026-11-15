@@ -55,8 +55,8 @@ Välj värden i **Docker-värd** under **Docker-monitorkonfiguration**. Varje v�
 En ny monitor börjar med **Host Stopped Reporting** under **Vad som ska larmas om**. Så här övervakar du något annat:
 
 - **Ändra** – välj en annan [mall](#färdiga-larmmallar). Den anger mätvärdet, aggregeringen, tidsintervallet och trösklarna och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
-- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Docker-mått** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
-- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mått**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
+- **Custom Metric** (under **Fler fält**) – välj ett mätvärde i **Docker-mätvärde** och ange sedan **Aggregering** och **Tidsintervall**. **Containernamn** och **Container-avbildning** begränsar det till vissa containrar.
+- **Avancerad** (under **Fler fält**) – bygg frågor och formler själv under **Välj mätvärden**. Använd **Gruppera efter** `resource.container.name` för att bedöma varje container för sig.
 
 ### Kontrollera kriterierna
 
@@ -75,12 +75,12 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
 | **Docker-värd** | Alla | Krävs. Begränsar varje fråga till värdens `resource.host.name`. OneUptime lägger också till `resource.container.runtime = docker` i varje fråga. |
-| **Docker-mått** | Custom Metric | Ett mätvärde från agentens katalog, grupperat som CPU, minne, nätverk, block-I/O och container. |
+| **Docker-mätvärde** | Custom Metric | Ett mätvärde från agentens katalog, grupperat som CPU, minne, nätverk, block-I/O och container. |
 | **Containernamn** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.name`, till exempel `my-container`. |
 | **Container-avbildning** | Custom Metric, Avancerad | Valfritt. Exakt matchning mot `resource.container.image.name`, till exempel `nginx:latest`. |
 | **Aggregering** | Custom Metric | Hur mätningar kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 ## Färdiga larmmallar
 

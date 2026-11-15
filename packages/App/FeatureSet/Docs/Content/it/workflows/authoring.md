@@ -134,7 +134,7 @@ Il modo più rapido per prendere confidenza con la tela è un flusso di lavoro d
 
 :::steps
 1. Fai clic sul blocco segnaposto tratteggiato, poi su **Manuale** nel pannello **Aggiungi trigger**.
-2. Fai clic su **Aggiungi componente**, poi su **Registro** sotto **Popolari**. Il nuovo blocco compare sotto il trigger. Collega il punto **Esegui** del trigger al punto di ingresso del blocco Log, più in basso.
+2. Fai clic su **Aggiungi componente**, poi su **Log** sotto **Popolari**. Il nuovo blocco compare sotto il trigger. Collega il punto **Esegui** del trigger al punto di ingresso del blocco Log, più in basso.
 3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Valore**. Fai clic su **{ }**, poi su **JSON** sotto **Manuale**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
 4. Di nuovo nel **Costruttore**, fai clic su **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il flusso di lavoro è ancora disattivato, e non serve che sia attivo: un'esecuzione che avvii tu stesso è un'**Esecuzione di prova**.
 5. Si apre da solo un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. In cima dice **Esecuzione di prova**, e il registro mostra `Value:` seguito da `Hello from` e dal JSON che hai scritto.

@@ -60,7 +60,7 @@ Indtast **Domænenavn**, for eksempel `example.com`. Lad **Opslagsmetode** stå 
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser den registreringspost, sonden læste, og om RDAP eller WHOIS svarede.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser den registreringspost, sonden læste, og om RDAP eller WHOIS svarede.
 
 ### Gennemgå kriterierne
 
@@ -137,7 +137,7 @@ Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet
 
 1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger kriterier**.
 2. Klik på **Tilføj kriterier**. Sæt dets filter til **Domænet er udløbet** / **Falsk**, klik på **Tilføj filter**, og sæt det andet til **Dage til domænets udløb** / **Mindre end eller lig med** / `30`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
-3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres overvågningsstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
+3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres monitorstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
 4. Træk det nye kriterium op over det kriterium, der markerer monitoren som online, og gem derefter.
 :::
 

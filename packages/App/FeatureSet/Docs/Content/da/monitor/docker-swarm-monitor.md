@@ -63,7 +63,7 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal ad
 
 - **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) – vælg én metrik i **Docker Swarm Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til bestemte opgaver.
-- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver opgave for sig.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg metrikker**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver opgave for sig.
 
 ### Kontrollér kriterierne
 
@@ -89,7 +89,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Docker Swarm Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner angiver deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 > [!NOTE]
 > **Tjenestenavn** og **Nodenavn** kræver agentens filer fra version 0.161.2 og frem: ældre filer sender hverken tjenesten eller noden. [Opgradér agenten](/docs/telemetry/docker-swarm#opgradering-af-agenten) på hver node, den kører på.

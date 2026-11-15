@@ -159,7 +159,7 @@ L'app di OneUptime li aggiunge, come aggiunge le persone del canale di una regol
 
 - **Chi può aggiungere persone.** Chi può modificare il record: **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore degli incidenti** e **Membro degli incidenti** per un incidente, oppure **Edit Incident** in un ruolo personalizzato, e lo stesso permesso per un avviso, un episodio o un evento (per esempio **Edit Alert**). Gli altri vedono chi è nel canale e come entrarci.
 - **Chi può essere aggiunto.** Qualcuno che OneUptime trova in Slack: dall'account Slack che ha collegato, oppure dall'indirizzo email che Slack ha per lui. La scheda nomina chi non ha potuto aggiungere, e perché, come un ospite che Slack tiene fuori dal canale.
-- **Cosa viene registrato.** Chi è stato aggiunto, e da chi, nel feed del record (**Membro aggiunto al canale**) e in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**.
+- **Cosa viene registrato.** Chi è stato aggiunto, e da chi, nel feed del record (**Membro aggiunto al canale**) e in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**.
 - **Togliere qualcuno.** OneUptime aggiunge soltanto: togli qualcuno dal canale in Slack.
 
 ## Provare una regola
@@ -359,7 +359,7 @@ Ciò che OneUptime ne conserva — il nome dell'area di lavoro, i suoi canali, g
 ## Risoluzione dei problemi
 
 :::details Una regola non pubblica nulla
-Controlla le condizioni della regola con **Testa la regola**: se la prova arriva, le condizioni della regola non corrispondevano all'evento. Se non arriva, la pagina Slack dice perché. Per un canale privato, invita prima l'app di OneUptime in Slack. Ogni messaggio che OneUptime pubblica, e ognuno che Slack ha rifiutato, è elencato in **Impostazioni del progetto** > **Notifiche** > **Registri di notifica**, nella scheda **Area di lavoro**.
+Controlla le condizioni della regola con **Testa la regola**: se la prova arriva, le condizioni della regola non corrispondevano all'evento. Se non arriva, la pagina Slack dice perché. Per un canale privato, invita prima l'app di OneUptime in Slack. Ogni messaggio che OneUptime pubblica, e ognuno che Slack ha rifiutato, è elencato in **Impostazioni del progetto** > **Notifiche** > **Log di notifica**, nella scheda **Area di lavoro**.
 :::
 
 :::details Manca qualcuno nel canale di una regola

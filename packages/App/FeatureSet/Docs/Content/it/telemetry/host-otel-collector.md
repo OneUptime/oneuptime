@@ -33,7 +33,7 @@ flowchart TB
 | --- | --- |
 | **Panoramica** e **Metriche** | Il receiver `hostmetrics`: CPU, memoria, dischi, file system, rete, carico, paginazione, tempo di attività. |
 | **Processi** | Lo scraper `process` di `hostmetrics`: un insieme di serie per processo. |
-| **Registri** | I receiver `filelog`, `journald` e `windowseventlog`. |
+| **Log** | I receiver `filelog`, `journald` e `windowseventlog`. |
 | **Unità systemd** (Linux) | Il receiver `systemd`. |
 | **Servizi** (Windows) | Il receiver `windows_service`. |
 | L'elemento di inventario | Il processor `resourcedetection`, più gli [attributi che applichi](#attributi-di-inventario-ip-mac-numero-di-serie-produttore-modello-firmware). |
@@ -487,7 +487,7 @@ Il nome dell'asset deve iniziare con `otelcol-contrib_`. L'archivio core `otelco
 
 ### Verifica che l'host compaia
 
-Apri **Prodotti → Infrastruttura → Host → Tutti gli host**. L'host compare con il suo nome host non appena arrivano le prime metriche, di solito entro 30 secondi, e le sue pagine **Panoramica**, **Metriche**, **Processi** e **Registri** si riempiono. Se non compare, leggi i log del collector stesso:
+Apri **Prodotti → Infrastruttura → Host → Tutti gli host**. L'host compare con il suo nome host non appena arrivano le prime metriche, di solito entro 30 secondi, e le sue pagine **Panoramica**, **Metriche**, **Processi** e **Log** si riempiono. Se non compare, leggi i log del collector stesso:
 
 :::tabs
 @tab Linux
@@ -505,7 +505,7 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 :::
 :::
 
-Per generare una riga di log di prova, esegui `logger "hello from oneuptime"` (Linux, macOS) o `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` (Windows, con privilegi elevati), poi guarda la pagina **Registri** dell'host.
+Per generare una riga di log di prova, esegui `logger "hello from oneuptime"` (Linux, macOS) o `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` (Windows, con privilegi elevati), poi guarda la pagina **Log** dell'host.
 
 ## Scegli cosa raccogliere
 

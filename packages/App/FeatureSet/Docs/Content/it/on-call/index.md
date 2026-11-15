@@ -31,7 +31,7 @@ flowchart TB
 4. Ogni persona viene raggiunta tramite le sue regole di reperibilità personali: quale metodo viene provato e dopo quanto tempo. Un avviso senza regola la raggiunge comunque sui metodi che ha verificato.
 5. Se nessuno riconosce prima che scada l'attesa della regola, avvisa la regola successiva. Dopo l'ultima, la policy ricomincia se si ripete, altrimenti si ferma.
 
-Riconoscere o risolvere l'incidente, l'avviso o l'episodio ferma ogni policy che sta ancora avvisando per esso. OneUptime fa avanzare le policy in corso ogni minuto e registra ogni esecuzione, regola per regola, nei **Registri di esecuzione**.
+Riconoscere o risolvere l'incidente, l'avviso o l'episodio ferma ogni policy che sta ancora avvisando per esso. OneUptime fa avanzare le policy in corso ogni minuto e registra ogni esecuzione, regola per regola, nei **Log di esecuzione**.
 
 La prima volta che una chiamata raggiunge qualcuno, OneUptime la registra sull'incidente, sull'avviso o sull'episodio come `First Paged At`. Una misurazione può contare da quel momento: **Tempo di riconoscimento dopo la chiamata** misura quanto ci hanno messo le persone a rispondere una volta chiamate, non quanto si è atteso prima che qualcuno lo fosse. Vedi [Tempo di riconoscimento dopo la chiamata](/docs/incidents/settings#tempo-di-riconoscimento-dopo-la-chiamata).
 
@@ -89,7 +89,7 @@ Aprite **Reperibilità** dal menu **Prodotti** nella barra superiore. Si apre su
 | **Policy** | **Policy di reperibilità** e **Prontezza**: chi le vostre policy raggiungono davvero |
 | **Pianificazioni** | **Pianificazioni di reperibilità**, **Cronologia delle reperibilità** e **Feed calendario** |
 | **Chiamate in entrata** | **Policy chiamate in entrata**: un numero di telefono che fa squillare chi è reperibile |
-| **Avanzato** | **Sostituzioni utente**, **Registri di esecuzione** e **Policy archiviate** |
+| **Avanzato** | **Sostituzioni utente**, **Log di esecuzione** e **Policy archiviate** |
 | **Report** | **Tempo di reperibilità dell'utente**: per quanto tempo ogni persona è stata reperibile |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**: regole che pubblicano gli eventi di reperibilità in un canale |
 | **Impostazioni** | **Campi personalizzati**, **Regole etichette** e **Regole del proprietario** |

@@ -39,7 +39,7 @@ Skriv en **Titel**, og tilføj en **Beskrivelse**, hvis det hjælper: den er i M
 
 ### Vælg, hvad det påvirker
 
-Klik på **Næste** for at komme til **Berørte ressourcer**. Vælg de **Monitorer**, arbejdet rører. Så snart du vælger én, vises **Skift overvågningsstatus til** under dem: den status, monitorerne skifter til, når begivenheden starter. Vælg derefter eventuelle **Andre berørte ressourcer**, såsom værter, klynger, databaser, netværkslokationer eller tjenester.
+Klik på **Næste** for at komme til **Berørte ressourcer**. Vælg de **Monitorer**, arbejdet rører. Så snart du vælger én, vises **Skift monitorstatus til** under dem: den status, monitorerne skifter til, når begivenheden starter. Vælg derefter eventuelle **Andre berørte ressourcer**, såsom værter, klynger, databaser, netværkslokationer eller tjenester.
 
 ### Vælg, hvem der hører om det
 
@@ -63,7 +63,7 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 | **Ejere**                            | **Detaljer om vedligeholdelse**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
 | **Etiketter**                        | **Detaljer om vedligeholdelse**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
 | **Monitorer**                        | **Berørte ressourcer** | Ingen                       | De monitorer, der ikke kontrolleres, mens begivenheden står på.                  |
-| **Skift overvågningsstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
+| **Skift monitorstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
 | **Vis begivenhed på disse statussider** | **Berørte ressourcer** | Ingen                    | De statussider, der viser begivenheden og giver deres abonnenter besked.         |
 | **Notifikationer til abonnenter**    | **Berørte ressourcer** | Offentliggjort med det samme, alle tre tidspunkter slået til, ingen påmindelser | Hvornår begivenheden vises på de sider, og hvornår deres abonnenter får besked. |
@@ -119,7 +119,7 @@ Alt fra formularen kan ændres på begivenhedens egne sider, undtagen de tre abo
 | Beskrivelsen                                | **Beskrivelse** i dens sidemenu                                                |
 | Ejerne                                      | **Ejere** i dens sidemenu                                                      |
 
-**Skift overvågningsstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Feed for planlagt vedligeholdelse**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
+**Skift monitorstatus til** kan ændres, indtil begivenheden starter. Derefter viser kortet den skrivebeskyttet, fordi monitorerne allerede er i den status. En redigering tilføjer en post i **Feed for planlagt vedligeholdelse**, der nævner, hvad den ændrede; at gemme uden ændringer tilføjer ingen.
 
 ## Post noter, mens arbejdet skrider frem
 

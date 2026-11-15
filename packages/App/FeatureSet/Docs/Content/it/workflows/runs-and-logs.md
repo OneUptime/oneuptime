@@ -12,8 +12,8 @@ Ogni volta che un flusso di lavoro viene eseguito, OneUptime salva un resoconto 
 
 | Pagina                                               | Cosa vedi                                                                                          |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Flussi di lavoro → Registri → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
-| **Flusso di lavoro → Registri → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
+| **Flussi di lavoro → Log → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
+| **Flusso di lavoro → Log → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
 | **Una singola esecuzione**                           | Si apre con il pulsante **Visualizza log** su una riga: le righe in sé non sono cliccabili.         |
 
 Avviare un'esecuzione dal **Costruttore** apre la stessa vista **Esecuzione del flusso di lavoro**, che già segue l'esecuzione, così la vedi accadere invece di doverla cercare dopo.
@@ -89,7 +89,7 @@ I valori mostrati sono quelli che il blocco ha ricevuto, dopo la compilazione de
 
 ### La scheda Full Log
 
-Il registro grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Registro** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
+Il registro grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Log** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
 
 ## Copiare e scaricare un'esecuzione
 

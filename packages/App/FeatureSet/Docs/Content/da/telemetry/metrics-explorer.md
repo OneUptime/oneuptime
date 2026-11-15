@@ -109,7 +109,7 @@ Træk hen over et diagram for at zoome ind på et øjeblik, og dobbeltklik for a
 
 ## Indsigter i metrikker
 
-Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive målinger**, **Rapporterende tjenester** og gennemsnittet pr. tjeneste. Den inddeler metrikkerne i kategorier og viser de tjenester, der rapporterer dem.
+Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive metrikker**, **Rapporterende tjenester** og gennemsnittet pr. tjeneste. Den inddeler metrikkerne i kategorier og viser de tjenester, der rapporterer dem.
 
 ## Forbedr metrikker og tilføj de manglende med AI
 
@@ -146,7 +146,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 
 ### Se, hvad den gjorde
 
-- **Metrikker → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
+- **Metrikker → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Metrikker**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
 - **Metrikker → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
@@ -183,7 +183,7 @@ Genstart collectoren. Hver tjeneste, hvis traces går gennem den, sender derefte
 | --- | --- |
 | Filter (tilladelsesliste) | Beholder kun de datapunkter, der passer, og kasserer resten. |
 | Kassér | Kasserer de datapunkter, der passer. |
-| Omdøb måling | Omdøber metrikken. |
+| Omdøb metrik | Omdøber metrikken. |
 | Omdøb attribut | Omdøber en attributs nøgle på de datapunkter, der passer. |
 | Tilføj attribut | Tilføjer en attribut til de datapunkter, der passer. |
 | Fjern attribut | Fjerner en attribut, for eksempel en med for mange værdier til at være nyttig. |

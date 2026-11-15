@@ -69,7 +69,7 @@ En ny monitor starter med **Host Stopped Reporting** under **Hvad der skal advar
 
 - **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) – vælg én metrik i **Host Metric**, og angiv derefter **Aggregering** og **Tidsinterval**.
-- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg metrikker**, f.eks. et filter på `state` eller en gruppering efter `mountpoint`.
 
 ### Kontrollér kriterierne
 
@@ -91,7 +91,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Host Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker), grupperet som CPU, hukommelse, disk, netværk, belastning og processer. |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner angiver deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 ## Færdige advarselsskabeloner
 

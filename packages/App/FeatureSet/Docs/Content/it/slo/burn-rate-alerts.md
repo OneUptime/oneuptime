@@ -260,7 +260,7 @@ Mentre un monitor dello SLO è in un evento di manutenzione in corso, le sue reg
 
 ## Il feed dello SLO
 
-Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Registri di audit** dello SLO. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
+Il **Feed** dello SLO pubblica ogni avviso generato da una regola e ogni incidente che dichiara, con un link e i tassi di consumo che lo spiegano, e quando ognuno si risolve, automaticamente o a mano. Un record che la regola riprende perché era ancora aperto non viene pubblicato due volte. Anche creare, modificare ed eliminare una regola viene pubblicato, e registrato nei **Log di audit** dello SLO. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
 
 ## Risoluzione dei problemi
 

@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Opprett sonden
 
-Åpne **Monitorer → Innstillinger → Sonder** og klikk på **Opprett Sonde**. Gi den et **Navn** og en **Beskrivelse**: begge er påkrevd. **Flere felt** inneholder **Sondelogo**, **Legg til på nye overvåkere**, som gjør at hver ny overvåker starter med denne sonden valgt, og **Etiketter**.
+Åpne **Monitorer → Innstillinger → Sonder** og klikk på **Opprett Sonde**. Gi den et **Navn** og en **Beskrivelse**: begge er påkrevd. **Flere felt** inneholder **Sondelogo**, **Legg til på nye monitorer**, som gjør at hver ny overvåker starter med denne sonden valgt, og **Etiketter**.
 
 ### Kopier ID-en og nøkkelen
 

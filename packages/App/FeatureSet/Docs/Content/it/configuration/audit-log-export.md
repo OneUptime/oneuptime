@@ -34,7 +34,7 @@ flowchart TB
 :::steps
 ### Apri la pagina di esportazione
 
-Per un progetto, vai a **Impostazioni del progetto → Registri di audit → Esporta**. Per l'intera istanza, vai a **Impostazioni → Esportazione del registro di audit** nell'Admin Dashboard.
+Per un progetto, vai a **Impostazioni del progetto → Log di audit → Esporta**. Per l'intera istanza, vai a **Impostazioni → Esportazione del log di audit** nell'Admin Dashboard.
 
 ### Scegli una destinazione
 

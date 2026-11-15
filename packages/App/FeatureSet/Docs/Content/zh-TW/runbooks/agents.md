@@ -100,7 +100,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 | --- | --- | --- |
 | **名稱** | 頁面上 | 易讀的名稱，通常寫明它在哪裡執行、能連到什麼，例如 `prod-eu-west-1`。撰寫步驟時您選擇的就是這個名稱。 |
 | **描述** | 頁面上 | 選用。用一句話說明這台主機能連到什麼。 |
-| **執行操作手冊** | **更多欄位** 下 | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
+| **執行運行手冊** | **更多欄位** 下 | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
 | **標籤** | **更多欄位** 下 | 選用。 |
 
 Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。AI 不是一項功能。程式碼儲存庫會在程式碼的設定中選擇 AI 在其中工作所用的 Runner，Runner 的頁面會列出選擇了它的儲存庫。AI 規則選擇 OneUptime AI 執行其指令所用的 Runner：正是在那裡選擇 Runner，才讓 OneUptime AI 的指令可以在其上執行。Runner 的頁面也會列出選擇了它的 AI 規則。
@@ -175,7 +175,7 @@ Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中
 
 選擇了 Runner 的步驟無論預設是什麼都會保留它，JavaScript 步驟仍然可以自己選擇 **全域 Runner** 。設定預設 Runner 不會變更任何已儲存的步驟。
 
-預設 Runner 必須是專案自己的、執行運行手冊步驟的 Runner：不能是全域 Runner，不能是 Kubernetes 代理程式安裝的叢集內 Runner，也不能是關閉了 **執行操作手冊** 的 Runner。只要某個 Runner 是預設 Runner，它的 **執行操作手冊** 就保持開啟。預設 Runner 未連線時，步驟的下拉式清單會提示這一點，在它上面的步驟會像對待任何 Runner 一樣等待它，直到 claim timeout 結束。
+預設 Runner 必須是專案自己的、執行運行手冊步驟的 Runner：不能是全域 Runner，不能是 Kubernetes 代理程式安裝的叢集內 Runner，也不能是關閉了 **執行運行手冊** 的 Runner。只要某個 Runner 是預設 Runner，它的 **執行運行手冊** 就保持開啟。預設 Runner 未連線時，步驟的下拉式清單會提示這一點，在它上面的步驟會像對待任何 Runner 一樣等待它，直到 claim timeout 結束。
 
 未選擇 Runner 的運行手冊步驟和程式碼儲存庫使用預設 Runner，並在另一個 Runner 成為預設時隨之轉移。AI 規則選擇自己的 Runner，新規則從預設 Runner 開始。
 
@@ -320,7 +320,7 @@ docker rm -f oneuptime-runner
 :::
 
 :::details 步驟失敗，顯示「No runbook agent picked up this step before the wait window expired.」
-步驟的 Runner 沒有在其 claim timeout 內認領工作。請確認 Runner 為 **已連線** 、已為它開啟 **執行操作手冊** ，以及它沒有被長步驟佔用：除非您調高 `ONEUPTIME_RUNNER_CONCURRENCY`，否則它一次只執行一項工作。短於輪詢間隔的 claim timeout 也會以同樣方式失敗。
+步驟的 Runner 沒有在其 claim timeout 內認領工作。請確認 Runner 為 **已連線** 、已為它開啟 **執行運行手冊** ，以及它沒有被長步驟佔用：除非您調高 `ONEUPTIME_RUNNER_CONCURRENCY`，否則它一次只執行一項工作。短於輪詢間隔的 claim timeout 也會以同樣方式失敗。
 :::
 
 :::details 步驟失敗，顯示「The runbook agent stopped responding while this step was running.」
@@ -328,7 +328,7 @@ Runner 認領了工作，然後停止續約：它當機了、重新啟動了或�
 :::
 
 :::details Runner 記錄顯示「No capability is enabled」
-此 Runner 的所有功能都已關閉。請在 OneUptime 中 Runner 的頁面上開啟 **執行操作手冊** 。它會在下一次心跳時取得此變更。
+此 Runner 的所有功能都已關閉。請在 OneUptime 中 Runner 的頁面上開啟 **執行運行手冊** 。它會在下一次心跳時取得此變更。
 :::
 
 :::details 步驟失敗，因為其 Runner 不能使用某個機密變數

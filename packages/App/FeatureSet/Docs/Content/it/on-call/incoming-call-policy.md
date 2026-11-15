@@ -68,7 +68,7 @@ Ogni persona che una regola può far squillare aggiunge e verifica il proprio nu
 
 ### Chiama il numero
 
-Quando i tre passaggi sono completati, la scheda diventa **Numeri di telefono e configurazione Twilio**. Chiama il numero da un telefono qualsiasi, poi apri i **Registri chiamate** della policy per vedere chi ha squillato.
+Quando i tre passaggi sono completati, la scheda diventa **Numeri di telefono e configurazione Twilio**. Chiama il numero da un telefono qualsiasi, poi apri i **Log chiamate** della policy per vedere chi ha squillato.
 :::
 
 ## Come viene instradata una chiamata
@@ -182,7 +182,7 @@ Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che su
 
 ## Registri chiamate
 
-Ogni chiamata compare nella pagina **Registri chiamate** della policy, in **Registri** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
+Ogni chiamata compare nella pagina **Log chiamate** della policy, in **Log** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
 
 | Stato | Che cosa è successo |
 | --- | --- |
@@ -275,7 +275,7 @@ L'account può cambiare solo finché la policy non ha numeri di telefono: la pag
 :::
 
 :::details Il codice per il numero di una persona non arriva
-Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto senza una propria configurazione Twilio predefinita paga gli SMS con il suo saldo, che deve superare 1 USD. I codici possono impiegare un minuto ad arrivare; fai clic su **Invia un nuovo codice** per inviarne un altro, e **Impostazioni del progetto** > **Notifiche** > **Registri di notifica** mostra che cosa gli è successo.
+Gli SMS devono essere attivi per il progetto. Su OneUptime Cloud, un progetto senza una propria configurazione Twilio predefinita paga gli SMS con il suo saldo, che deve superare 1 USD. I codici possono impiegare un minuto ad arrivare; fai clic su **Invia un nuovo codice** per inviarne un altro, e **Impostazioni del progetto** > **Notifiche** > **Log di notifica** mostra che cosa gli è successo.
 :::
 
 ## Passaggi successivi

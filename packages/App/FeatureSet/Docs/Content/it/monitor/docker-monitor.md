@@ -207,7 +207,7 @@ L'agente segue anche il file `*-json.log` di ogni container e invia ogni riga co
 | `body` | La riga scritta dal container. Le righe che iniziano con uno spazio o una parentesi chiusa, come le righe di uno stack trace, vengono unite alla riga precedente. |
 | `time` | Il timestamp del demone Docker per la riga. |
 
-I log compaiono nella pagina **Registri** dell'host e nella pagina di ogni container.
+I log compaiono nella pagina **Log** dell'host e nella pagina di ogni container.
 
 ### Requisito del driver di log
 

@@ -38,7 +38,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 
 Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
 
-Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første overvåker**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
+Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første monitor**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
 
 ### De fem tallene
 
@@ -63,7 +63,7 @@ Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og 
 | Steg | Fullført når | Åpner |
 | --- | --- | --- |
 | **Importer fra verktøyet du bruker nå** | En import fra et annet verktøy er fullført. | **Importer fra et annet verktøy** |
-| **Opprett din første overvåker** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
+| **Opprett din første monitor** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
 | **Koble til en server eller en klynge** | De første målingene kommer inn. | **Verter** |
 | **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | Det veiledede oppsettet **Send logger, målinger og spor, og få deretter varsler** |
 | **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | Det veiledede oppsettet **Varsle rett person når noe går ned** |

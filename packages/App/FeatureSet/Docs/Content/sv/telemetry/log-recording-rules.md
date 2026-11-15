@@ -11,7 +11,7 @@ En **Log Recording Rule** gör loggar till ett mått. Varje minut tar den de log
 
 ## Översikt
 
-Resultatet är ett vanligt mått. Visa det i **Måttutforskare** och på instrumentpaneler, och få larm på det med en monitor av typen **Mätvärden**, även larm per serie med **Gruppera efter**.
+Resultatet är ett vanligt mått. Visa det i **Mätvärdesutforskare** och på instrumentpaneler, och få larm på det med en monitor av typen **Mätvärden**, även larm per serie med **Gruppera efter**.
 
 Använd en inspelningsregel för loggar när talet du bryr dig om bara finns i dina loggar: en brandväggs SLA-sammanfattningar, ett batchjobb som loggar hur lång tid det tog, svarsstorlekarna i en åtkomstlogg, eller helt enkelt hur många felloggar en tjänst skriver varje minut.
 
@@ -33,7 +33,7 @@ flowchart TB
 - **Beräknas 30 sekunder efter att minuten är slut.** Den korta väntan låter loggar som kommer lite sent ändå hamna i sin minut. En logg som kommer senare än så räknas inte.
 - **Inga luckor, ingen dubbelräkning.** Varje regel kommer ihåg den senaste minut den skrev (visas som **Computed Until** i regellistan). Efter en omstart av workern eller annat avbrott kör den ikapp de minuter den missade, upp till 60 minuter bakåt, och skriver aldrig samma minut två gånger.
 - **En räkning utan gruppering har aldrig luckor.** En minut utan matchande loggar skrivs som `0`. Alla andra regler skriver ingenting för en minut utan något att aggregera, så diagram och monitorer ser inga data i stället för en påhittad nolla.
-- **Skrivs som vilket annat härlett mått som helst.** Punkterna är Gauge-datapunkter med regelns **Namn på utdatamått**, de bär grupperingsattributen och `oneuptime.derived.log_rule_id` (regelns ID), och de följer samma lagring som punkterna från inspelningsreglerna för mätvärden och spår: 15 dagar.
+- **Skrivs som vilket annat härlett mått som helst.** Punkterna är Gauge-datapunkter med regelns **Namn på utdatamätvärde**, de bär grupperingsattributen och `oneuptime.derived.log_rule_id` (regelns ID), och de följer samma lagring som punkterna från inspelningsreglerna för mätvärden och spår: 15 dagar.
 
 En ändring av en regels definition gäller från nästa minut den skriver; redan skrivna punkter skrivs inte om. Att stänga av en regel stoppar den; påslagen igen kör den ikapp de minuter den missade medan den var avstängd, upp till samma 60 minuter.
 
@@ -46,7 +46,7 @@ Gå till **Loggar → Inställningar → Inspelningsregler** och välj **Skapa L
 
 ### Ge regeln ett namn
 
-Skriv ett **Namn**. **Namn på utdatamått** under det bildas från namnet medan du skriver; välj **Redigera** bredvid för att skriva ett eget.
+Skriv ett **Namn**. **Namn på utdatamätvärde** under det bildas från namnet medan du skriver; välj **Redigera** bredvid för att skriva ett eget.
 
 ### Välj loggarna och vad som ska beräknas
 
@@ -60,7 +60,7 @@ Lägg eventuellt till attribut under **Gruppera efter** och en **Enhet**. Kontro
 | Fält | Vad det gör |
 | --- | --- |
 | Namn | Vad regeln beräknar, t.ex. *SD-WAN gateway latency*. |
-| Namn på utdatamått | Måttet som regeln skriver. Bildas från namnet (*SD-WAN gateway latency* skriver `sd_wan_gateway_latency`) om du inte väljer **Redigera** och skriver ett eget. Det måste vara unikt bland projektets inspelningsregler. |
+| Namn på utdatamätvärde | Måttet som regeln skriver. Bildas från namnet (*SD-WAN gateway latency* skriver `sd_wan_gateway_latency`) om du inte väljer **Redigera** och skriver ett eget. Det måste vara unikt bland projektets inspelningsregler. |
 | Which Logs | Valfria filter, alla kombinerade med AND: telemetritjänster, allvarlighetsgrader, text som loggkroppen innehåller och attributfilter (ett attribut lika med ett värde). |
 | Aggregering | `Count of logs`, eller en aggregering av ett numeriskt attribut (se nedan). |
 | Numeric Attribute | För alla aggregeringar utom räkning: attributet vars värden aggregeras, t.ex. `latency`. |
@@ -135,7 +135,7 @@ flowchart TB
 Skapa en regel under **Loggar → Inställningar → Inspelningsregler**:
 
 - **Namn:** SD-WAN gateway latency
-- **Namn på utdatamått:** välj **Redigera** och skriv `sdwan.gateway.latency.ms`
+- **Namn på utdatamätvärde:** välj **Redigera** och skriv `sdwan.gateway.latency.ms`
 - **Which Logs:** attributfilter `log_type` = `SD-WAN` och `log_component` = `SLA`
 - **Aggregering:** Genomsnitt, **Numeric Attribute:** `latency`
 - **Gruppera efter:** `gw_name` och `profile_name`

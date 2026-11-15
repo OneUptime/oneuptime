@@ -44,7 +44,7 @@ En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larm
 | --- | --- |
 | **Vad som ska larmas om** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
 | **Custom Metric** | Ett mätvärde från [måttkatalogen](#måttkatalog), sedan dess **Resursomfattning**, filter, **Aggregering** (Genomsnitt, Maximum, Minimum, Summa eller Antal) och **Tidsintervall**. |
-| **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna måttfrågor och formler under **Välj mått**, med ett livediagram över resultatet. |
+| **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna måttfrågor och formler under **Välj mätvärden**, med ett livediagram över resultatet. |
 
 ### Ange kriterierna
 

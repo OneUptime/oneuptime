@@ -112,7 +112,7 @@ Quando un caso dichiara un incidente, anche l'indagine IA dell'incidente legge i
 
 ## Costi e limiti
 
-Una classificazione è lavoro di OneUptime AI, come l'indagine di un incidente. Su OneUptime Cloud viene pagata con i crediti IA del progetto, e conta nei limiti giornalieri di IA propri del progetto (**Limiti giornalieri**, in **Impostazioni del progetto → IA → Funzionalità IA**). I limiti giornalieri di incidenti e avvisi non si applicano. Un caso ha una sola classificazione alla volta, e i registri IA (**Impostazioni del progetto → IA → Registri IA**) ne elencano le chiamate.
+Una classificazione è lavoro di OneUptime AI, come l'indagine di un incidente. Su OneUptime Cloud viene pagata con i crediti IA del progetto, e conta nei limiti giornalieri di IA propri del progetto (**Limiti giornalieri**, in **Impostazioni del progetto → IA → Funzionalità IA**). I limiti giornalieri di incidenti e avvisi non si applicano. Un caso ha una sola classificazione alla volta, e i registri IA (**Impostazioni del progetto → IA → Log IA**) ne elencano le chiamate.
 
 Quando il progetto ha esaurito i crediti IA o ha raggiunto un limite giornaliero di IA, i nuovi casi non vengono classificati: la scheda dice perché, e **Classifica con l'IA** torna a funzionare appena vengono aggiunti crediti o il limite si azzera.
 

@@ -50,7 +50,7 @@
     "items": {
       "monitorsTitle": "مانیتورها",
       "monitorsDescription": "وب‌سایت‌ها، APIها و سرورها را بررسی کنید و از خرابی آن‌ها باخبر شوید.",
-      "slosTitle": "SLOs",
+      "slosTitle": "SLOها",
       "slosDescription": "اهداف پایداری، و این‌که چقدر از بودجهٔ خطا باقی مانده است.",
       "statusPagesTitle": "صفحات وضعیت",
       "storageArraysDescription": "آرایه‌های ذخیره‌سازی مانند Pure Storage FlashArray و FlashBlade را پایش کنید.",
@@ -15413,7 +15413,7 @@
   "SLO status changed": "وضعیت SLO تغییر کرد",
   "SLO status summary": "خلاصه وضعیت SLOها",
   "SLO summary": "خلاصه SLO",
-  "SLOs": "SLOs",
+  "SLOs": "SLOها",
   "SLOs are evaluated every few minutes. Widen the time range, or wait for the next evaluation if this SLO was created recently.": "SLOها هر چند دقیقه یک بار ارزیابی می‌شوند. بازه زمانی را گسترده‌تر کنید یا اگر این SLO تازه ساخته شده، منتظر ارزیابی بعدی بمانید.",
   "SLOs you have archived. They are hidden from the SLO list and are not evaluated, so their numbers stay frozen as of their last evaluation. Select SLOs to unarchive them and resume measuring.": "SLOهایی که بایگانی کرده‌اید. این‌ها در فهرست SLOها پنهان‌اند و ارزیابی نمی‌شوند، پس اعدادشان در آخرین ارزیابی ثابت می‌ماند. برای خروج از بایگانی و ادامه سنجش، SLOها را انتخاب کنید.",
   "SMS": "پیامک",

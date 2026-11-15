@@ -32,7 +32,7 @@ En gruppe personer i et prosjekt, der tillatelsene avgjør hva medlemmene kan gj
 
 Se [Brukere, team og tillatelser](/docs/permissions/index).
 
-### Overvåking
+### Monitor
 
 Sjekker én ting du kjører, for eksempel et nettsted, et API, en server eller en Kubernetes-klynge, og avgjør om den virker. Når kriteriene treffer, endrer den status og kan erklære en hendelse eller opprette et varsel.
 

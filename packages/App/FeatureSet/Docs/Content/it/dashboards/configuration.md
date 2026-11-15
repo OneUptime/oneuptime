@@ -102,7 +102,7 @@ Se la dashboard è pubblica su un dominio personalizzato, l'indirizzo smette di 
 
 ## Registri di audit
 
-La pagina **Registri di audit** della dashboard elenca ogni modifica fatta alla dashboard, e chi l'ha fatta. I registri di audit fanno parte del piano Enterprise e dell'[Edizione Enterprise](/docs/self-hosted/enterprise).
+La pagina **Log di audit** della dashboard elenca ogni modifica fatta alla dashboard, e chi l'ha fatta. I registri di audit fanno parte del piano Enterprise e dell'[Edizione Enterprise](/docs/self-hosted/enterprise).
 
 ## Conservazione dei dati e backup
 

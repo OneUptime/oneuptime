@@ -473,7 +473,7 @@ Le richieste della stessa origine non fanno richiesta preliminare CORS, quindi q
 
 L'SDK OpenTelemetry del tuo backend estrae entrambe le intestazioni, ogni span che registra per la richiesta eredita il trace state, e ogni chiamata che fa a un altro servizio lo inoltra. Così, all'acquisizione, OneUptime marca con l'id di sessione gli span di **ogni servizio che prosegue il contesto di traccia W3C**, e le eccezioni registrate su quegli span. I record di log OTLP non portano trace state, quindi i log del backend, e le eccezioni segnalate tramite log, si uniscono alla registrazione **per id di traccia** quando la apri. Quando il registratore ha creato il `traceparent`, il membro porta anche il suo id padre (`;p:<parent id>`): quello span del browser non viene mai esportato, e l'acquisizione usa l'id per mantenere lo span di ingresso del tuo backend come span radice invece che come uno a cui manca il padre. Uno span che porta sia il membro sia un attributo `session.id` viene archiviato sotto l'id del membro, perché `session.id` è anche la chiave di conversazione di diversi SDK per LLM.
 
-Le schede **Registri**, **Tracce** ed **Errori** del lettore mostrano allora quelle righe sull'orologio della registrazione, e la riga di ogni richiesta nella scheda **Rete** porta alla sua traccia del backend. Cosa significano queste intestazioni per la privacy è in [Cosa portano le tue richieste](#cosa-portano-le-tue-richieste).
+Le schede **Log**, **Tracce** ed **Errori** del lettore mostrano allora quelle righe sull'orologio della registrazione, e la riga di ogni richiesta nella scheda **Rete** porta alla sua traccia del backend. Cosa significano queste intestazioni per la privacy è in [Cosa portano le tue richieste](#cosa-portano-le-tue-richieste).
 
 ### API su un'altra origine
 
@@ -750,7 +750,7 @@ Accanto alla scena, il pannello elenca tutto ciò che è successo, sull'orologio
 | **Interazioni** | Clic con il selettore e l'etichetta dell'elemento, più rage click, dead click ed error click, e rage reload. Le registrazioni fatte prima che esistessero le etichette dei clic mostrano solo le coordinate. Anche i tuoi segnali sono elencati qui, con i nomi che hai dato loro. |
 | **Perf** | Web vitals (LCP, CLS, INP, FCP, TTFB con le loro valutazioni) e gli eventi di budget di prestazioni che sono scattati. |
 | **Errori** | Gli errori lato client della registrazione uniti alle eccezioni lato server collegate alla sessione, marcate con il suo id o in una delle sue tracce; un errore del client e un'eccezione del server con lo stesso messaggio a meno di due secondi di distanza vengono messi in relazione, mai uniti. |
-| **Registri** | I log del tuo backend nelle tracce di questa sessione, uniti per id di traccia, più qualsiasi log che porti esso stesso l'id di sessione, dall'esploratore dei log. Vedi [Correlare con il resto della tua telemetria](#correlare-con-il-resto-della-tua-telemetria). |
+| **Log** | I log del tuo backend nelle tracce di questa sessione, uniti per id di traccia, più qualsiasi log che porti esso stesso l'id di sessione, dall'esploratore dei log. Vedi [Correlare con il resto della tua telemetria](#correlare-con-il-resto-della-tua-telemetria). |
 | **Tracce** | Le tracce del tuo backend collegate a questa sessione: gli span marcati con il suo id all'acquisizione, e le tracce portate dalle sue richieste. Una riga per traccia con una piccola cascata nel dettaglio. |
 
 Logs, Traces e la metà server di Errors vengono letti con le stesse autorizzazioni delle pagine Logs, Traces ed Exceptions; un ruolo senza di esse vede una scheda bloccata che indica l'autorizzazione. Le righe marcate dal server vengono collocate sull'orologio della registrazione ancorandole alle tracce che la registrazione stessa ha osservato; il pannello dice se quell'ancoraggio ha funzionato («server times anchored via 6 traces») o se l'ora della riga è approssimativa.
@@ -1098,13 +1098,13 @@ Guardare una registrazione è un'autorizzazione separata da quella di elencare l
 | --- | --- |
 | `ReadRumSessionReplay` (_List Session Replays_) | L'elenco delle sessioni, la pagina Utenti e i metadati di ogni sessione: conteggi, segnali, dispositivo, l'id visitatore — ma non la registrazione, e non chi era l'utente. Un tecnico del supporto può smistare le sessioni che hanno avuto errori senza riprodurre lo schermo di nessuno. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Riprodurre una registrazione, e leggere il riferimento e gli attributi dell'utente identificato nell'elenco, nel lettore e nel filtro `user:`. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Il **Registro degli accessi alle riproduzioni** — chi ha guardato cosa. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Il **Log degli accessi alle riproduzioni** — chi ha guardato cosa. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | Eliminare le registrazioni. |
 | `CreateRumSessionErasureRequest` / `ReadRumSessionErasureRequest` | Presentare ed esaminare richieste di cancellazione. |
 
 Si applica l'accesso basato sulle etichette: un membro limitato a un insieme di etichette può raggiungere solo le applicazioni che ne portano una, e la barriera dell'identità rispetta la stessa portata. Un membro la cui autorizzazione è limitata a **Owned** raggiunge le applicazioni di cui lui o uno dei suoi team è proprietario, e un blocco con etichette su una di queste autorizzazioni toglie le applicazioni che portano quelle etichette, qualunque altra cosa il membro abbia. Vedi [Telemetria](/docs/permissions/index) in Utenti, team e autorizzazioni.
 
-Ogni riproduzione viene registrata in un audit trail nella pagina **Registro degli accessi alle riproduzioni** dell'applicazione: chi ha guardato quale sessione, quando, da quale indirizzo IP e user agent, per quanto tempo (riportato in blocchi di 15 secondi mentre il lettore sta effettivamente riproducendo, quindi «< 15s» significa che è stato aperto e chiuso), e il motivo — l'incidente o l'eccezione da cui è arrivato chi guardava, quando c'era. Aggiornare una sessione live non aggiunge voci; ogni apertura del lettore ne aggiunge una.
+Ogni riproduzione viene registrata in un audit trail nella pagina **Log degli accessi alle riproduzioni** dell'applicazione: chi ha guardato quale sessione, quando, da quale indirizzo IP e user agent, per quanto tempo (riportato in blocchi di 15 secondi mentre il lettore sta effettivamente riproducendo, quindi «< 15s» significa che è stato aperto e chiuso), e il motivo — l'incidente o l'eccezione da cui è arrivato chi guardava, quando c'era. Aggiornare una sessione live non aggiunge voci; ogni apertura del lettore ne aggiunge una.
 
 ## Risoluzione dei problemi
 

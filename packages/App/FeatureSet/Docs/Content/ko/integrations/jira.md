@@ -153,7 +153,7 @@ Jira → OneUptime 템플릿(인시던트용 4개, 알림용 4개)은 [Webhook �
 | Acknowledge or resolve the incident when its Jira issue moves | **Issue updated** | `project = OPS` |
 | Add Jira comments to the incident as private notes | **Comment created** | `project = OPS` |
 | Add Jira issue changes to the incident as private notes | **Issue updated** | `project = OPS` |
-| **알림** | | |
+| **경고** | | |
 | Create an alert when a Jira issue is created | **Issue created** | `project = OPS AND (labels is EMPTY OR labels != oneuptime)` |
 | Acknowledge or resolve the alert when its Jira issue moves | **Issue updated** | `project = OPS` |
 | Add Jira comments to the alert as private notes | **Comment created** | `project = OPS` |

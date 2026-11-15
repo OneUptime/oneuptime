@@ -50,7 +50,7 @@
     "items": {
       "monitorsTitle": "Moniteurs",
       "monitorsDescription": "Vérifiez vos sites web, API et serveurs, et soyez prévenu en cas de panne.",
-      "slosTitle": "SLOs",
+      "slosTitle": "SLO",
       "slosDescription": "Objectifs de fiabilité, et ce qu'il reste du budget d'erreur.",
       "statusPagesTitle": "Pages de statut",
       "storageArraysDescription": "Surveillez les baies de stockage comme Pure Storage FlashArray et FlashBlade.",
@@ -15413,7 +15413,7 @@
   "SLO status changed": "Statut du SLO modifié",
   "SLO status summary": "Résumé du statut des SLO",
   "SLO summary": "Résumé du SLO",
-  "SLOs": "SLOs",
+  "SLOs": "SLO",
   "SLOs are evaluated every few minutes. Widen the time range, or wait for the next evaluation if this SLO was created recently.": "Les SLO sont évalués toutes les quelques minutes. Élargissez la période ou attendez la prochaine évaluation si ce SLO a été créé récemment.",
   "SLOs you have archived. They are hidden from the SLO list and are not evaluated, so their numbers stay frozen as of their last evaluation. Select SLOs to unarchive them and resume measuring.": "Les SLO que vous avez archivés. Ils sont masqués de la liste des SLO et ne sont pas évalués, leurs chiffres restent donc figés à leur dernière évaluation. Sélectionnez des SLO pour les désarchiver et reprendre la mesure.",
   "SMS": "SMS",

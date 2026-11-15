@@ -279,7 +279,7 @@ Poi usa **Invia e-mail di prova** per verificarla.
 ### Altri problemi
 
 :::details "Cannot send email. Please check your SMTP config."
-**Invia e-mail di prova** mostra questo messaggio quando un server a cui si accede con nome utente e password, o senza accesso, non accetta la posta. Controlla **Nome host**, **Porta**, **Nome utente** e **Password**. Se il tuo server non offre TLS, o il suo certificato non è valido per il suo hostname, disattiva **Richiedi TLS** sotto **Altri campi** e riprova. La risposta del server viene conservata con la prova: apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Registri di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
+**Invia e-mail di prova** mostra questo messaggio quando un server a cui si accede con nome utente e password, o senza accesso, non accetta la posta. Controlla **Nome host**, **Porta**, **Nome utente** e **Password**. Se il tuo server non offre TLS, o il suo certificato non è valido per il suo hostname, disattiva **Richiedi TLS** sotto **Altri campi** e riprova. La risposta del server viene conservata con la prova: apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Log di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
 :::
 
 :::details "Cannot send email with OAuth authentication"

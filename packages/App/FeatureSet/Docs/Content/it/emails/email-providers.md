@@ -173,7 +173,7 @@ OneUptime legge le variabili all'avvio. Se una è errata, per esempio una porta 
 
 ## Risoluzione dei problemi
 
-Un'e-mail di prova che non parte dice perché. Per qualsiasi altra e-mail, apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Registri di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
+Un'e-mail di prova che non parte dice perché. Per qualsiasi altra e-mail, apri la scheda **E-mail** di **Impostazioni del progetto > Notifiche > Log di notifica** e seleziona **Visualizza messaggio di stato** sulla sua riga.
 
 :::details "Amazon SES needs a verified identity in …"
 L'**Email mittente**, o il suo dominio, non è verificato nella regione impostata nella configurazione, oppure l'account è nella sandbox di SES e il destinatario non è verificato. Verificalo in quella regione, oppure richiedi l'accesso in produzione.

@@ -40,7 +40,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Spor** 
 
 ### Vælg, hvad monitoren skal fortælle dig om
 
-Under **Hvad skal denne overvågning fortælle dig om?** vælger du **For mange fejlede forespørgsler** eller **Forespørgsler udebliver**. Hvert valg udfylder de spans, der skal holdes øje med, og reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte dem op.
+Under **Hvad skal denne monitor fortælle dig om?** vælger du **For mange fejlede forespørgsler** eller **Forespørgsler udebliver**. Hvert valg udfylder de spans, der skal holdes øje med, og reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte dem op.
 
 ### Vælg de spans, der skal tælles
 
@@ -116,7 +116,7 @@ En trace-monitors kriterier har én **Filtertype**: **Antal spans**, antallet af
 
 Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med vinduer af samme længde omkring samme tidspunkt i tidligere uger, så langt tilbage som **Baseline-vindue** rækker; det, der sker nu, indgår aldrig i sammenligningen. Baselinen dækker kun monitorens tjenester og span-statusser: dens filtre på span-navn og attributter indgår ikke. Minutter uden spans tæller også med, så en tjeneste, der ofte er stille, ikke regnes for usædvanligt lav, fordi den er stille. Et vindue regnes kun for usædvanligt højt i forhold til de vinduer, der indeholdt spans, og kun med mindst 20, 10 eller 5 spans ved følsomheden Lav, Middel eller Høj, så hverken et jobs sædvanlige udbrud eller en stille tjenestes første få spans udløser det. Indtil monitorens tjenester har to ugers historik, er kriteriet stadig ved at lære og udløses ikke.
 
-En trace-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
+En trace-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne monitor fortælle dig om?**:
 
 | Valg | Regel | Hvad der sker |
 | --- | --- | --- |

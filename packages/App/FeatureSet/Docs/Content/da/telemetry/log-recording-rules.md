@@ -11,7 +11,7 @@ En **Log Recording Rule** gør logs til en metrik. Hvert minut tager den de logs
 
 ## Overblik
 
-Resultatet er en almindelig metrik. Vis den i **Måleudforsker** og på dashboards, og få alarmer på den med en monitor af typen **Metrikker**, også alarmer pr. serie med **Gruppér efter**.
+Resultatet er en almindelig metrik. Vis den i **Metrikudforsker** og på dashboards, og få alarmer på den med en monitor af typen **Metrikker**, også alarmer pr. serie med **Gruppér efter**.
 
 Brug en optagelsesregel for logs, når det tal, du interesserer dig for, kun findes i dine logs: en firewalls SLA-opsummeringer, et batchjob, der logger, hvor lang tid det tog, svarstørrelserne i en adgangslog, eller bare hvor mange fejllogs en tjeneste skriver hvert minut.
 
@@ -33,7 +33,7 @@ flowchart TB
 - **Beregnes 30 sekunder efter minuttets afslutning.** Den korte ventetid lader logs, der ankommer lidt for sent, stadig lande i deres minut. En log, der ankommer senere end det, tælles ikke med.
 - **Ingen huller, ingen dobbelttælling.** Hver regel husker det sidste minut, den skrev (vist som **Computed Until** i reglelisten). Efter en genstart af workeren eller anden nedetid indhenter den de minutter, den gik glip af, op til 60 minutter tilbage, og den skriver aldrig det samme minut to gange.
 - **En optælling uden gruppering har aldrig huller.** Et minut uden matchende logs skrives som `0`. Enhver anden regel skriver intet for et minut uden noget at aggregere, så grafer og monitorer ser manglende data i stedet for et opdigtet nul.
-- **Skrives som enhver anden afledt metrik.** Punkterne er Gauge-datapunkter med reglens **Navn på outputmåling**, de bærer grupperingsattributterne og `oneuptime.derived.log_rule_id` (reglens ID) og følger samme opbevaring som punkterne fra optagelsesreglerne for metrikker og spor: 15 dage.
+- **Skrives som enhver anden afledt metrik.** Punkterne er Gauge-datapunkter med reglens **Navn på outputmetrik**, de bærer grupperingsattributterne og `oneuptime.derived.log_rule_id` (reglens ID) og følger samme opbevaring som punkterne fra optagelsesreglerne for metrikker og spor: 15 dage.
 
 En ændring af en regels definition gælder fra det næste minut, den skriver; allerede skrevne punkter skrives ikke om. Slås en regel fra, stopper den; slås den til igen, indhenter den de minutter, den gik glip af, mens den var slået fra, op til de samme 60 minutter.
 
@@ -46,7 +46,7 @@ Gå til **Protokoller → Indstillinger → Optagelsesregler**, og vælg **Opret
 
 ### Navngiv reglen
 
-Skriv et **Navn**. **Navn på outputmåling** nedenunder dannes ud fra navnet, mens du skriver; vælg **Rediger** ved siden af for at skrive dit eget.
+Skriv et **Navn**. **Navn på outputmetrik** nedenunder dannes ud fra navnet, mens du skriver; vælg **Rediger** ved siden af for at skrive dit eget.
 
 ### Vælg logs, og hvad der skal beregnes
 
@@ -60,7 +60,7 @@ Tilføj eventuelt attributter under **Gruppér efter** og en **Enhed**. Tjek lin
 | Felt | Hvad det gør |
 | --- | --- |
 | Navn | Hvad reglen beregner, f.eks. *SD-WAN gateway latency*. |
-| Navn på outputmåling | Den metrik, reglen skriver. Dannes ud fra navnet (*SD-WAN gateway latency* skriver `sd_wan_gateway_latency`), medmindre du vælger **Rediger** og skriver dit eget. Det skal være unikt blandt projektets optagelsesregler. |
+| Navn på outputmetrik | Den metrik, reglen skriver. Dannes ud fra navnet (*SD-WAN gateway latency* skriver `sd_wan_gateway_latency`), medmindre du vælger **Rediger** og skriver dit eget. Det skal være unikt blandt projektets optagelsesregler. |
 | Which Logs | Valgfrie filtre, alle kombineret med AND: telemetritjenester, alvorligheder, tekst, som brødteksten indeholder, og attributfiltre (en attribut lig med en værdi). |
 | Aggregering | `Count of logs` eller en aggregering af en numerisk attribut (se nedenfor). |
 | Numeric Attribute | For enhver aggregering undtagen optælling: den attribut, hvis værdier aggregeres, f.eks. `latency`. |
@@ -135,7 +135,7 @@ flowchart TB
 Opret en regel under **Protokoller → Indstillinger → Optagelsesregler**:
 
 - **Navn:** SD-WAN gateway latency
-- **Navn på outputmåling:** vælg **Rediger**, og skriv `sdwan.gateway.latency.ms`
+- **Navn på outputmetrik:** vælg **Rediger**, og skriv `sdwan.gateway.latency.ms`
 - **Which Logs:** attributfiltre `log_type` = `SD-WAN` og `log_component` = `SLA`
 - **Aggregering:** Gennemsnit, **Numeric Attribute:** `latency`
 - **Gruppér efter:** `gw_name` og `profile_name`

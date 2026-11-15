@@ -22,7 +22,7 @@ Start med spørsmålet flisen skal svare på:
 | Hva er ett bestemt tall akkurat nå? | **Verdi**, eller **Måler** når det har et kjent område |
 | Hvilke verter, tjenester eller endepunkter skiller seg ut? | **Tabell** eller **Sportabell** |
 | Hva skjer akkurat nå? | **Loggstrøm**, **Sporliste**, **Hendelsesliste** eller **Varselliste** |
-| Er alle nettstedene våre oppe? | **Overvåkingsliste** |
+| Er alle nettstedene våre oppe? | **Monitorliste** |
 | Holder vi påliteligheten vi har lovet? | **SLO** eller **SLO-liste** |
 | Kommer folk gjennom en flyt, og kommer de tilbake? | **Trakt** eller **Brukerlojalitet** |
 | Hvilken tilstand er klyngene og vertene våre i? | En widget fra gruppen Infrastruktur |
@@ -148,7 +148,7 @@ Sporwidgetene teller bare rotspenn, slik sporutforskeren gjør, med mindre du ta
 | --- | --- | --- |
 | **Hendelsesliste** | Hendelser med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
 | **Varselliste** | Varsler med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
-| **Overvåkingsliste** | Overvåkinger med nåværende status. | I drift eller ikke, status, overvåkingstype og etiketter, eller en **Etikettvariabel** som seerne velger i verktøylinjen. |
+| **Monitorliste** | Overvåkinger med nåværende status. | I drift eller ikke, status, overvåkingstype og etiketter, eller en **Etikettvariabel** som seerne velger i verktøylinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en bikube av celler farget etter status i stedet for en tabell: velg det under **Visningsmodus**. De viser den nåværende tilstanden, uansett dashbordets tidsintervall.
 

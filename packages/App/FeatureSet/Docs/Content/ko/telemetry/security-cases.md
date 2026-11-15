@@ -136,7 +136,7 @@ flowchart TB
 
 케이스에 열린 작업이 남아 있는 동안 **케이스 종료** 대화 상자에 그 수가 표시됩니다.
 
-Google SecOps 알림에서 열린 케이스는 연결에 **케이스가 닫히면 알림도 닫기** 가 켜져 있으면, 판정과 종료 메모와 함께 Google SecOps에서도 그 알림을 닫습니다. [Google SecOps](/docs/integrations/google-secops#케이스가-닫히면-알림도-닫기) 를 참조하세요.
+Google SecOps 알림에서 열린 케이스는 연결에 **케이스가 닫히면 경고도 닫기** 가 켜져 있으면, 판정과 종료 메모와 함께 Google SecOps에서도 그 알림을 닫습니다. [Google SecOps](/docs/integrations/google-secops#케이스가-닫히면-알림도-닫기) 를 참조하세요.
 
 ### 인시던트 선언하기
 

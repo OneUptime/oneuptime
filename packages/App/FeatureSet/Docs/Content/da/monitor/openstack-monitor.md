@@ -53,7 +53,7 @@ En ny monitor starter på **Cloud Stopped Reporting** under **Hvad der skal adva
 
 - **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, attributfiltrene, aggregeringen, tidsintervallet, gruppering og tærskler og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) - vælg én metrik i **OpenStack-metrik**, indstil derefter **Aggregering** og **Tidsinterval**, og afgræns med [filtrene](#monitorindstillinger).
-- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, med filtre på attributter som `status`, `adminState` eller `resourcetype`. Brug **Gruppér efter** en [identitetsattribut](#identitetsattributter) for at bedømme hver del for sig.
+- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg metrikker**, med filtre på attributter som `status`, `adminState` eller `resourcetype`. Brug **Gruppér efter** en [identitetsattribut](#identitetsattributter) for at bedømme hver del for sig.
 
 ### Kontrollér kriterierne
 
@@ -80,7 +80,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **OpenStack-metrik** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter på metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Seneste 15 minutter**; skabeloner sætter deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 Et filter afgrænser kun en serie, der har dets label: `openstack_nova_up` har intet projekt, så et projektfilter lader den være uændret.
 

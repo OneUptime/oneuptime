@@ -92,7 +92,7 @@ Un caso ha un proprio menu laterale, come un incidente, e ogni parte del caso è
 | **Panoramica** | **Panoramica**, **Cronologia** |
 | **Indagine** | **Svolgimento**, **Rilevamenti**, **Entità**, **Segnali collegati**, **Prove**, **Attività**, **Playbook** |
 | **Note** | **Note private** |
-| **Avanzato** | **Campi personalizzati**, **Registri di audit**, **Elimina caso**, chiuse finché non clicchi su **Avanzato** |
+| **Avanzato** | **Campi personalizzati**, **Log di audit**, **Elimina caso**, chiuse finché non clicchi su **Avanzato** |
 
 Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e titolo, **Assegna a me**, **Esegui il playbook**, **Dichiara incidente** e **Chiudi caso** e, nel menu ⋯ accanto, **Imposta la priorità**, **Assegna a qualcun altro**, **Cambia stato**, **Modifica caso** e **Elimina caso**. Così il caso si gestisce da qualsiasi sua pagina, e un link al caso apre ancora la sua **Panoramica**. Quando la priorità del caso ha obiettivi di risposta, l'intestazione dice anche quando scade il prossimo ([Obiettivi di risposta](#obiettivi-di-risposta)).
 
@@ -110,7 +110,7 @@ Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e ti
 - **Playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione. Finché ci sono esecuzioni in attesa, il menu ne mostra il numero accanto a **Playbook**.
 - **Note private**: cosa ha scritto il team sul caso. Il menu **Modelli** dell'editor inserisce in una nota uno dei modelli di note del progetto.
 - **Campi personalizzati**: i campi propri del progetto, compilati per questo caso, e **Modifica campi** per modificarli. Quando il progetto ha un campo, anche la **Panoramica** li mostra, nella sua ultima scheda. Vedi [Campi personalizzati, modelli di note e numerazione](#campi-personalizzati-modelli-di-note-e-numerazione).
-- **Registri di audit**: ogni modifica fatta al caso, e chi l'ha fatta. Vedi [Registri di audit](/docs/configuration/audit-logs).
+- **Log di audit**: ogni modifica fatta al caso, e chi l'ha fatta. Vedi [Registri di audit](/docs/configuration/audit-logs).
 - **Elimina caso**: elimina per sempre il caso, con i suoi rilevamenti, le note, la cronologia e le esecuzioni dei playbook. Per conservarne la traccia, chiudilo invece con un verdetto.
 
 ### Gestire i casi dalla coda

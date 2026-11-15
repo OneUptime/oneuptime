@@ -58,7 +58,7 @@ En ny monitor börjar med **Device Offline** under **Vad som ska larmas om**. S�
 
 - **Ändra** - välj en annan [mall](#färdiga-larmmallar). Den sätter mätvärdet, aggregeringen, tidsintervallet, en gruppering på `device.id` och tröskelvärdena och ersätter kriterierna nedan med sina egna. Du kan fortfarande ändra **Tidsintervall**.
 - **Custom Metric** (under **Fler fält**) - välj ett mätvärde i **IoT Metric** och sätt sedan **Aggregering** och **Tidsintervall**. [Filtren](#monitorinställningar) begränsar det till en enhet eller en enhetstyp. Ett anpassat mätvärde grupperas inte: det bedömer flottan som helhet.
-- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mått**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Gruppera efter** `device.id` för att bedöma varje enhet för sig.
+- **Avancerad** (under **Fler fält**) - bygg frågor och formler själv under **Välj mätvärden**, även över dina egna mätvärdesnamn, till exempel använt minne i procent av en enhets minnesstorlek. Använd **Gruppera efter** `device.id` för att bedöma varje enhet för sig.
 
 ### Kontrollera kriterierna
 
@@ -82,7 +82,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **IoT Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mätvärden** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Filtren verkar tillsammans: med ett **Device ID** och en **Enhetstyp** matchar en enhet av en annan typ ingenting.
 

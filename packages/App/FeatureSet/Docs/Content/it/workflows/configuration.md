@@ -141,7 +141,7 @@ Cosa viene registrato:
 
 - Il registro dell'esecuzione nasconde le **Istruzioni di sistema**, il **Prompt**, il **Contesto** e la **Risposta** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
 - Il provider, il modello, il numero di token, il **ID del log LLM** e un messaggio di errore sicuro restano visibili, per l'operatività e la fatturazione. L'errore grezzo di un provider resta fuori da ogni registro, perché un provider può ripetervi la richiesta.
-- Ogni chiamata compare in **Impostazioni del progetto → IA → Registri IA** con provider, modello, stato, token, costo e fatturazione, senza il prompt, la risposta o l'errore grezzo.
+- Ogni chiamata compare in **Impostazioni del progetto → IA → Log IA** con provider, modello, stato, token, costo e fatturazione, senza il prompt, la risposta o l'errore grezzo.
 
 Di cosa ha bisogno il blocco, e quanto costa:
 

@@ -82,7 +82,7 @@ Fyll i **Titel** och välj en **Larmallvar**; båda krävs. Lägg till en **Besk
 
 ### Välj vad det påverkar och vem som larmas
 
-Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Övervakning** det gäller och eventuella **Andra påverkade resurser**, till exempel värdar, nätverksenheter, Kubernetes-kluster eller tjänster. Under **Jourpolicy** väljer du de policyer som ska köras när larmet skapas.
+Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Monitor** det gäller och eventuella **Andra påverkade resurser**, till exempel värdar, nätverksenheter, Kubernetes-kluster eller tjänster. Under **Jourpolicy** väljer du de policyer som ska köras när larmet skapas.
 
 ### Skapa det
 

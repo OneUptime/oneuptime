@@ -12,7 +12,7 @@ Første trinn spør hva som skal overvåkes, og hva monitoren skal hete.
 :::steps
 ### Åpne Opprett monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Skjemaet åpner på første trinn, **Overvåkingsinfo**.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Skjemaet åpner på første trinn, **Monitorinfo**.
 
 ### Velg monitortypen
 
@@ -40,7 +40,7 @@ Andre trinn spør hva som skal sjekkes, og avgjør hva som regnes som et problem
 
 Dette trinnet åpner på det som skal sjekkes. For et nettsted er det URL-en, med et eksempel i feltet; andre typer ber om en vert, en spørring, en klynge eller et loggfilter. Innstillinger de fleste monitorer aldri endrer, som tidsavbrudd og nye forsøk, er brettet sammen under **Flere felt**.
 
-For en monitor som sonder sjekker, kjører **Test monitor** sjekken én gang før du lagrer: velg en sonde under **Velg sonde**, og klikk på **Kjør test**. Svaret åpner i **Resultat av overvåkingstest**.
+For en monitor som sonder sjekker, kjører **Test monitor** sjekken én gang før du lagrer: velg en sonde under **Velg sonde**, og klikk på **Kjør test**. Svaret åpner i **Resultat av monitortest**.
 
 ### Gå gjennom kriteriene
 
@@ -57,7 +57,7 @@ Klikk på **Neste**. Ingenting på dette trinnet merkes som manglende før du kl
 
 ### Slik evalueres kriterier
 
-Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Når ingenting samsvarer, viser monitoren sin **Standard overvåkingsstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
+Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Når ingenting samsvarer, viser monitoren sin **Standard monitorstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
 
 ```mermaid title="Fra en sjekk til en status, en hendelse eller et varsel"
 flowchart TB

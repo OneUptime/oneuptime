@@ -39,7 +39,7 @@ Skriv inn en **Tittel**, og legg til en **Beskrivelse** hvis det hjelper: den er
 
 ### Velg hva det berører
 
-Klikk på **Neste** for å komme til **Berørte ressurser**. Velg **Monitorer** som arbeidet berører. Så snart du velger én, vises **Endre overvåkingsstatus til** under dem: statusen monitorene går over til når hendelsen starter. Velg deretter eventuelle **Andre berørte ressurser**, for eksempel verter, klynger, databaser, nettverkslokasjoner eller tjenester.
+Klikk på **Neste** for å komme til **Berørte ressurser**. Velg **Monitorer** som arbeidet berører. Så snart du velger én, vises **Endre monitorstatus til** under dem: statusen monitorene går over til når hendelsen starter. Velg deretter eventuelle **Andre berørte ressurser**, for eksempel verter, klynger, databaser, nettverkslokasjoner eller tjenester.
 
 ### Velg hvem som får høre om det
 
@@ -63,7 +63,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 | **Eiere**                            | **Detaljer om vedlikehold**       | Ingen                           | Personer og team som eier hendelsen og får beskjed om den.                       |
 | **Etiketter**                        | **Detaljer om vedlikehold**       | Ingen                           | Etiketter som regler og filtre kan matche på.                                    |
 | **Monitorer**                        | **Berørte ressurser** | Ingen                        | Monitorene som ikke sjekkes mens hendelsen pågår.                                |
-| **Endre overvåkingsstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
+| **Endre monitorstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
 | **Vis hendelse på disse statussidene** | **Berørte ressurser** | Ingen                      | Statussidene som viser hendelsen og gir abonnentene sine beskjed.                |
 | **Varsler til abonnenter**           | **Berørte ressurser** | Publisert med en gang, alle tre tidspunktene på, ingen påminnelser | Når hendelsen vises på disse sidene, og når abonnentene deres får beskjed. |
@@ -119,7 +119,7 @@ Alt i skjemaet kan endres på hendelsens egne sider, unntatt de tre abonnenttids
 | Beskrivelsen                                | **Beskrivelse** i sidemenyen                                                   |
 | Eierne                                      | **Eiere** i sidemenyen                                                         |
 
-**Endre overvåkingsstatus til** kan endres til hendelsen starter. Etter det viser kortet den skrivebeskyttet, fordi monitorene allerede har den statusen. En redigering legger til en oppføring i **Feed for planlagt vedlikehold** som nevner hva den endret; å lagre uten endringer legger ikke til noen.
+**Endre monitorstatus til** kan endres til hendelsen starter. Etter det viser kortet den skrivebeskyttet, fordi monitorene allerede har den statusen. En redigering legger til en oppføring i **Feed for planlagt vedlikehold** som nevner hva den endret; å lagre uten endringer legger ikke til noen.
 
 ## Skriv notater mens arbeidet pågår
 
