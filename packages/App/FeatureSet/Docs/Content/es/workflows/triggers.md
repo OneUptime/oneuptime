@@ -6,7 +6,7 @@ Un disparador es el primer bloque de un flujo de trabajo: decide cuándo se ejec
 - [Manual](#manual): Inicia el flujo de trabajo desde el Constructor o desde otro flujo de trabajo.
 - [Programación](#schedule): Ejecútalo según una programación periódica, escrita como expresión cron.
 - [Webhook](#webhook): Deja que otro sistema lo inicie llamando a una URL.
-- [Correo entrante](#correo-entrante): Inícialo con cada correo enviado a su propia dirección.
+- [Correo entrante](#incoming-email): Inícialo con cada correo enviado a su propia dirección.
 - [Huntress](#huntress): Inícialo por cada evento que Huntress envía sobre un informe de incidente.
 - [Disparadores de eventos de OneUptime](#disparadores-de-eventos-de-oneuptime): Reacciona cuando se crea, actualiza o elimina un registro.
 :::
@@ -111,7 +111,7 @@ Si la URL se filtra, haz clic en **Restablecer URL** en el mismo lugar: el flujo
 > [!WARNING]
 > Trata la URL como una contraseña. Cualquiera que la tenga puede iniciar tu flujo de trabajo, sin iniciar sesión.
 
-## Correo entrante
+## Incoming Email
 
 OneUptime le da al flujo de trabajo una dirección de correo propia. Cada correo enviado a esa dirección inicia el flujo de trabajo, con el correo: quién lo envió, para quién era, el asunto, el texto y el HTML, las cabeceras y los nombres de los adjuntos.
 

@@ -6,7 +6,7 @@ Un trigger è il primo blocco di un flusso di lavoro: decide quando il flusso di
 - [Manuale](#manual): Avvia il flusso di lavoro dal Costruttore o da un altro flusso di lavoro.
 - [Pianificazione](#schedule): Eseguilo con una pianificazione ricorrente, scritta come espressione cron.
 - [Webhook](#webhook): Lascia che un altro sistema lo avvii chiamando un URL.
-- [Email in arrivo](#email-in-arrivo): Avvialo con ogni email inviata al suo indirizzo.
+- [Email in arrivo](#incoming-email): Avvialo con ogni email inviata al suo indirizzo.
 - [Huntress](#huntress): Avvialo per ogni evento che Huntress invia su un rapporto di incidente.
 - [Trigger di eventi OneUptime](#trigger-di-eventi-oneuptime): Reagisci quando un record viene creato, aggiornato o eliminato.
 :::
@@ -111,7 +111,7 @@ Se l'URL trapela, fai clic su **Reimposta URL** nello stesso punto: il flusso di
 > [!WARNING]
 > Tratta l'URL come una password. Chiunque lo abbia può avviare il tuo flusso di lavoro, senza accedere.
 
-## Email in arrivo
+## Incoming Email
 
 OneUptime assegna al flusso di lavoro un indirizzo email tutto suo. Ogni email inviata a quell'indirizzo avvia il flusso di lavoro, passandogli l'email: chi l'ha inviata, a chi era destinata, l'oggetto, il testo e l'HTML, gli header e i nomi degli allegati.
 

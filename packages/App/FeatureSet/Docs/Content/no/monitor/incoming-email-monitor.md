@@ -266,7 +266,7 @@ Disse hendelsene forblir åpne til noen løser dem. Med **Løs hendelse automati
 > [!WARNING]
 > **Alle som kjenner adressen, kan åpne hendelser.** Hold adressen privat, filtrer på avsenderen som over, og [tilbakestill adressen](#tilbakestill-eller-tilpass-e-postadressen) hvis den lekker. En avsenders adresse kan forfalskes, så filteret holder borte bortkommen e-post, ikke noen som er fast bestemt på å komme inn.
 
-For mer kontroll, som en alvorlighetsgrad lest fra emnet eller et team valgt etter avsender, starter du heller en arbeidsflyt fra hver e-post: se [Incoming Email-utløseren](/docs/workflows/triggers#innkommende-e-post).
+For mer kontroll, som en alvorlighetsgrad lest fra emnet eller et team valgt etter avsender, starter du heller en arbeidsflyt fra hver e-post: se [Incoming Email-utløseren](/docs/workflows/triggers#incoming-email).
 
 ## Bruksområder
 

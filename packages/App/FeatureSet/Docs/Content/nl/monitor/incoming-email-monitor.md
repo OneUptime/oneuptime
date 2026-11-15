@@ -266,7 +266,7 @@ Deze incidenten blijven open tot iemand ze oplost. Met **Incident automatisch op
 > [!WARNING]
 > **Iedereen die het adres kent, kan incidenten openen.** Houd het adres privé, filter op de afzender zoals hierboven en [stel het adres opnieuw in](#het-e-mailadres-opnieuw-instellen-of-aanpassen) als het uitlekt. Het adres van een afzender kan worden vervalst, dus het filter houdt verdwaalde e-mail tegen, niet iemand die vastbesloten is binnen te komen.
 
-Voor meer controle, zoals een ernst die uit het onderwerp wordt gelezen of een team dat op afzender wordt gekozen, start u in plaats daarvan met elke e-mail een workflow: zie de [Incoming Email-trigger](/docs/workflows/triggers#inkomende-e-mail).
+Voor meer controle, zoals een ernst die uit het onderwerp wordt gelezen of een team dat op afzender wordt gekozen, start u in plaats daarvan met elke e-mail een workflow: zie de [Incoming Email-trigger](/docs/workflows/triggers#incoming-email).
 
 ## Toepassingen
 

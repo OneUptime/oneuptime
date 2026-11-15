@@ -6,7 +6,7 @@ En utlösare är det första blocket i ett arbetsflöde — den avgör när arbe
 - [Manuell](#manual): Starta arbetsflödet från Byggare eller från ett annat arbetsflöde.
 - [Schema](#schedule): Kör det enligt ett återkommande schema, skrivet som ett cron-uttryck.
 - [Webhook](#webhook): Låt ett annat system starta det genom att anropa en URL.
-- [Inkommande e-post](#inkommande-e-post): Starta det med varje e-postmeddelande som skickas till dess egen adress.
+- [Inkommande e-post](#incoming-email): Starta det med varje e-postmeddelande som skickas till dess egen adress.
 - [Huntress](#huntress): Starta det för varje händelse som Huntress skickar om en incidentrapport.
 - [Utlösare för OneUptime-händelser](#utlösare-för-oneuptime-händelser): Reagera när en post skapas, uppdateras eller tas bort.
 :::
@@ -111,7 +111,7 @@ Om URL:en läcker klickar du på **Återställ URL** på samma ställe: arbetsfl
 > [!WARNING]
 > Behandla URL:en som ett lösenord. Alla som har den kan starta ditt arbetsflöde utan att logga in.
 
-## Inkommande e-post
+## Incoming Email
 
 OneUptime ger arbetsflödet en egen e-postadress. Varje e-postmeddelande som skickas till den adressen startar arbetsflödet och skickar med meddelandet: vem som skickade det, vem det var till, ämnet, texten och HTML:en, headers och namnen på eventuella bilagor.
 

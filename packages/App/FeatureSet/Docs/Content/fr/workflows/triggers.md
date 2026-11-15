@@ -6,7 +6,7 @@ Un déclencheur est le premier bloc d'un flux de travail : il décide quand le f
 - [Manuel](#manual): Démarrez le flux de travail depuis le Constructeur, ou depuis un autre flux de travail.
 - [Planification](#schedule): Exécutez-le selon une planification récurrente, écrite sous forme d'expression cron.
 - [Webhook](#webhook): Laissez un autre système le démarrer en appelant une URL.
-- [E-mail entrant](#e-mail-entrant): Démarrez-le à chaque e-mail envoyé à sa propre adresse.
+- [E-mail entrant](#incoming-email): Démarrez-le à chaque e-mail envoyé à sa propre adresse.
 - [Huntress](#huntress): Démarrez-le pour chaque événement que Huntress envoie à propos d'un rapport d'incident.
 - [Déclencheurs d'événements OneUptime](#déclencheurs-dévénements-oneuptime): Réagissez quand un enregistrement est créé, modifié ou supprimé.
 :::
@@ -111,7 +111,7 @@ Si l'URL fuite, cliquez sur **Réinitialiser l'URL** au même endroit : le flux 
 > [!WARNING]
 > Traitez l'URL comme un mot de passe. Quiconque la possède peut démarrer votre flux de travail, sans se connecter.
 
-## E-mail entrant
+## Incoming Email
 
 OneUptime donne au flux de travail une adresse e-mail qui lui est propre. Chaque e-mail envoyé à cette adresse démarre le flux de travail, en lui transmettant l'e-mail : qui l'a envoyé, à qui il était destiné, l'objet, le texte et le HTML, les en-têtes et le nom des pièces jointes.
 

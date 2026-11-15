@@ -2,7 +2,7 @@
 
 OneUptimes **Incoming Email Monitor** lader dig oprette og løse alarmer ud fra e-mails, der sendes til unikke, monitorspecifikke e-mailadresser. Det er nyttigt til at integrere ældre systemer, alarmeringsværktøjer eller enhver tjeneste, der kan sende e-mails.
 
-Den samme opsætning lader også arbejdsgange modtage e-mail: En arbejdsgang med triggeren **Indgående e-mail** får sin egen adresse på det samme domæne, og hver e-mail til den starter arbejdsgangen. Se [Triggere](/docs/workflows/triggers#indgående-e-mail).
+Den samme opsætning lader også arbejdsgange modtage e-mail: En arbejdsgang med triggeren **Indgående e-mail** får sin egen adresse på det samme domæne, og hver e-mail til den starter arbejdsgangen. Se [Triggere](/docs/workflows/triggers#incoming-email).
 
 Denne vejledning forklarer, hvordan du sætter SendGrid Inbound Parse op til at videresende indgående e-mails til din selvhostede OneUptime-instans. OneUptime Cloud har ikke brug for noget af det: Dér virker adresserne med det samme.
 

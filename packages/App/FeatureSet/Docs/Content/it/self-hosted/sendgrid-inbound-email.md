@@ -2,7 +2,7 @@
 
 L'**Incoming Email Monitor** di OneUptime ti permette di creare e risolvere avvisi in base alle email inviate a indirizzi univoci, specifici di ogni monitor. È utile per integrare sistemi legacy, strumenti di allerta o qualsiasi servizio in grado di inviare email.
 
-La stessa configurazione permette anche ai flussi di lavoro di ricevere email: un flusso di lavoro con il trigger **Email in arrivo** ottiene un proprio indirizzo sullo stesso dominio, e ogni email inviata a quell'indirizzo avvia il flusso di lavoro. Vedi [Trigger](/docs/workflows/triggers#email-in-arrivo).
+La stessa configurazione permette anche ai flussi di lavoro di ricevere email: un flusso di lavoro con il trigger **Email in arrivo** ottiene un proprio indirizzo sullo stesso dominio, e ogni email inviata a quell'indirizzo avvia il flusso di lavoro. Vedi [Trigger](/docs/workflows/triggers#incoming-email).
 
 Questa guida spiega come configurare SendGrid Inbound Parse per inoltrare le email in arrivo alla tua istanza self-hosted di OneUptime. OneUptime Cloud non ne ha bisogno: i suoi indirizzi funzionano subito.
 

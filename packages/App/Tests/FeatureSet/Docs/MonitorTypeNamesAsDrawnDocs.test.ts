@@ -1,4 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
+import { WorkflowDocsPaths } from "Common/Types/Workflow/Documentation/DocumentationLinks";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -106,6 +108,23 @@ const ENGLISH: string = [
   ...Object.keys(readLocale("en")!),
 ].join("\n");
 
+/*
+ * The sections the product's own help links open by their English anchor in
+ * every language, such as the builder's /docs/workflows/triggers#incoming-email
+ * (WorkflowDocsPaths): their headings keep the English title, so the anchor
+ * stays.
+ */
+const ANCHORS_THE_PRODUCT_OPENS: Set<string> = new Set<string>(
+  Object.values(WorkflowDocsPaths)
+    .filter((target: string): boolean => {
+      return target.includes("#");
+    })
+    .map((target: string): string => {
+      return target.replace(/^\//, "");
+    }),
+);
+const HEADING: RegExp = /^#{1,6}\s+(.*)$/;
+
 // A code fence's line, and a title glued to a letter: inside a longer word.
 const FENCE: RegExp = /^\s*```/;
 const ENDS_IN_A_LETTER: RegExp = /[A-Za-z]$/;
@@ -137,6 +156,18 @@ function englishTitles(
       }
 
       if (fenced) {
+        return;
+      }
+
+      // A heading the product links to by its English anchor keeps it.
+      const heading: RegExpMatchArray | null = line.match(HEADING);
+
+      if (
+        heading &&
+        ANCHORS_THE_PRODUCT_OPENS.has(
+          `${page.replace(/\.md$/, "")}#${slugifyMarkdownHeading(heading[1] as string)}`,
+        )
+      ) {
         return;
       }
 
@@ -243,6 +274,25 @@ describe("the monitor types in the translated docs", () => {
 
     expect(page).toContain(drawnTitles("de")["External Status Page"]!);
     expect(page).toContain(drawnTitles("de")["Custom JavaScript Code"]!);
+  });
+
+  test("a heading the builder's step help opens keeps its English anchor in every language", () => {
+    expect(ANCHORS_THE_PRODUCT_OPENS).toContain(
+      "workflows/triggers#incoming-email",
+    );
+
+    for (const language of LANGUAGES) {
+      expect({
+        language,
+        kept: fs
+          .readFileSync(
+            path.join(DOCS, language, "workflows", "triggers.md"),
+            "utf8",
+          )
+          .split("\n")
+          .includes("## Incoming Email"),
+      }).toEqual({ language, kept: true });
+    }
   });
 
   // What the check would see if a page went back to an English title.

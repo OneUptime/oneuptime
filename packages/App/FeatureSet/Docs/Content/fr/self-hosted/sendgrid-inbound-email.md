@@ -2,7 +2,7 @@
 
 Le **Incoming Email Monitor** de OneUptime vous permet de créer et de résoudre des alertes à partir d'e-mails envoyés à des adresses uniques, propres à chaque moniteur. C'est utile pour intégrer des systèmes anciens, des outils d'alerte ou tout service capable d'envoyer des e-mails.
 
-La même configuration permet aussi aux flux de travail de recevoir des e-mails : un flux de travail doté du déclencheur **E-mail entrant** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le flux de travail. Voir [Déclencheurs](/docs/workflows/triggers#e-mail-entrant).
+La même configuration permet aussi aux flux de travail de recevoir des e-mails : un flux de travail doté du déclencheur **E-mail entrant** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le flux de travail. Voir [Déclencheurs](/docs/workflows/triggers#incoming-email).
 
 Ce guide explique comment configurer SendGrid Inbound Parse pour transférer les e-mails entrants vers votre instance OneUptime auto-hébergée. OneUptime Cloud n'en a pas besoin : ses adresses fonctionnent d'emblée.
 

@@ -2,7 +2,7 @@
 
 Mit dem **Incoming Email Monitor** von OneUptime können Sie Alarme anhand von E-Mails erstellen und auflösen, die an eindeutige, monitorspezifische E-Mail-Adressen gesendet werden. Das ist nützlich für die Anbindung von Altsystemen, Alarmierungswerkzeugen oder jedem Dienst, der E-Mails senden kann.
 
-Dieselbe Einrichtung lässt auch Workflows E-Mails empfangen: Ein Workflow mit dem Trigger **Eingehende E-Mail** erhält eine eigene Adresse auf derselben Domain, und jede E-Mail an diese Adresse startet den Workflow. Siehe [Trigger](/docs/workflows/triggers#eingehende-e-mail).
+Dieselbe Einrichtung lässt auch Workflows E-Mails empfangen: Ein Workflow mit dem Trigger **Eingehende E-Mail** erhält eine eigene Adresse auf derselben Domain, und jede E-Mail an diese Adresse startet den Workflow. Siehe [Trigger](/docs/workflows/triggers#incoming-email).
 
 Diese Anleitung erklärt, wie Sie SendGrid Inbound Parse so einrichten, dass eingehende E-Mails an Ihre selbst gehostete OneUptime-Instanz weitergeleitet werden. OneUptime Cloud braucht nichts davon: Dort funktionieren die Adressen sofort.
 

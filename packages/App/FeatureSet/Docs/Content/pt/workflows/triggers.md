@@ -6,7 +6,7 @@ Um gatilho é o primeiro bloco de um workflow: ele decide quando o workflow roda
 - [Manual](#manual): Inicie o workflow pelo Construtor ou a partir de outro workflow.
 - [Agendamento](#schedule): Rode-o em um agendamento recorrente, escrito como expressão cron.
 - [Webhook](#webhook): Deixe outro sistema iniciá-lo chamando uma URL.
-- [E-mail recebido](#e-mail-recebido): Inicie-o com cada e-mail enviado ao endereço dele.
+- [E-mail recebido](#incoming-email): Inicie-o com cada e-mail enviado ao endereço dele.
 - [Huntress](#huntress): Inicie-o para cada evento que o Huntress envia sobre um relatório de incidente.
 - [Gatilhos de eventos do OneUptime](#gatilhos-de-eventos-do-oneuptime): Reaja quando um registro é criado, atualizado ou excluído.
 :::
@@ -111,7 +111,7 @@ Se a URL vazar, clique em **Redefinir URL** no mesmo lugar: o workflow recebe um
 > [!WARNING]
 > Trate a URL como uma senha. Qualquer pessoa com ela pode iniciar o seu workflow, sem fazer login.
 
-## E-mail recebido
+## Incoming Email
 
 O OneUptime dá ao workflow um endereço de e-mail próprio. Cada e-mail enviado a esse endereço inicia o workflow, repassando o e-mail: quem enviou, para quem era, o assunto, o texto e o HTML, os cabeçalhos e os nomes dos anexos.
 

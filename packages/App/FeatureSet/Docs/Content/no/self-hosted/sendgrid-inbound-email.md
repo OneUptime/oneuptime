@@ -2,7 +2,7 @@
 
 OneUptimes **Incoming Email Monitor** lar deg opprette og løse varsler basert på e-poster som sendes til unike, monitorspesifikke e-postadresser. Det er nyttig for å integrere eldre systemer, varslingsverktøy eller enhver tjeneste som kan sende e-post.
 
-Det samme oppsettet lar også arbeidsflyter motta e-post: En arbeidsflyt med utløseren **Innkommende e-post** får sin egen adresse på det samme domenet, og hver e-post til den starter arbeidsflyten. Se [Utløsere](/docs/workflows/triggers#innkommende-e-post).
+Det samme oppsettet lar også arbeidsflyter motta e-post: En arbeidsflyt med utløseren **Innkommende e-post** får sin egen adresse på det samme domenet, og hver e-post til den starter arbeidsflyten. Se [Utløsere](/docs/workflows/triggers#incoming-email).
 
 Denne veiledningen forklarer hvordan du setter opp SendGrid Inbound Parse til å videresende innkommende e-poster til din selvhostede OneUptime-instans. OneUptime Cloud trenger ingenting av dette: Der virker adressene med en gang.
 

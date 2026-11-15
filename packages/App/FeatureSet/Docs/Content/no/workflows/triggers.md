@@ -6,7 +6,7 @@ En trigger er den første blokken i en arbeidsflyt — den avgjør når arbeidsf
 - [Manuell](#manual): Start arbeidsflyten fra Bygger eller fra en annen arbeidsflyt.
 - [Tidsplan](#schedule): Kjør den etter en gjentakende tidsplan, skrevet som et cron-uttrykk.
 - [Webhook](#webhook): La et annet system starte den ved å kalle en URL.
-- [Innkommende e-post](#innkommende-e-post): Start den med hver e-post som sendes til dens egen adresse.
+- [Innkommende e-post](#incoming-email): Start den med hver e-post som sendes til dens egen adresse.
 - [Huntress](#huntress): Start den for hver begivenhet Huntress sender om en hendelsesrapport.
 - [OneUptime-begivenhetstriggere](#oneuptime-begivenhetstriggere): Reager når en post opprettes, oppdateres eller slettes.
 :::
@@ -111,7 +111,7 @@ Lekker URL-en, klikker du på **Tilbakestill URL** på samme sted: arbeidsflyten
 > [!WARNING]
 > Behandle URL-en som et passord. Alle som har den, kan starte arbeidsflyten din uten å logge inn.
 
-## Innkommende e-post
+## Incoming Email
 
 OneUptime gir arbeidsflyten sin egen e-postadresse. Hver e-post som sendes til den adressen, starter arbeidsflyten og sender e-posten med: hvem som sendte den, hvem den var til, emnet, teksten og HTML-en, headerne og navnene på eventuelle vedlegg.
 

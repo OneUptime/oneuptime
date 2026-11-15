@@ -6,7 +6,7 @@ Een trigger is het eerste blok van een workflow: hij bepaalt wanneer de workflow
 - [Handmatig](#manual): Start de workflow vanuit de Bouwer, of vanuit een andere workflow.
 - [Schema](#schedule): Laat hem draaien volgens een terugkerend schema, geschreven als cron-expressie.
 - [Webhook](#webhook): Laat een ander systeem hem starten door een URL aan te roepen.
-- [Binnenkomende e-mail](#inkomende-e-mail): Start hem met elke e-mail die naar zijn eigen adres wordt gestuurd.
+- [Binnenkomende e-mail](#incoming-email): Start hem met elke e-mail die naar zijn eigen adres wordt gestuurd.
 - [Huntress](#huntress): Start hem voor elke gebeurtenis die Huntress over een incidentrapport stuurt.
 - [OneUptime-gebeurtenistriggers](#oneuptime-gebeurtenistriggers): Reageer als een record wordt aangemaakt, bijgewerkt of verwijderd.
 :::
@@ -111,7 +111,7 @@ Lekt de URL uit, klik dan op dezelfde plek op **URL opnieuw instellen**: de work
 > [!WARNING]
 > Behandel de URL als een wachtwoord. Iedereen die hem heeft, kan je workflow starten, zonder in te loggen.
 
-## Inkomende e-mail
+## Incoming Email
 
 OneUptime geeft de workflow een eigen e-mailadres. Elke e-mail naar dat adres start de workflow en geeft de e-mail door: wie hem stuurde, voor wie hij was, het onderwerp, de tekst en de HTML, de headers en de namen van eventuele bijlagen.
 

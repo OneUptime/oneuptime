@@ -266,7 +266,7 @@ Esses incidentes ficam abertos até alguém resolvê-los. Com **Resolver inciden
 > [!WARNING]
 > **Qualquer pessoa que conheça o endereço pode abrir incidentes.** Mantenha o endereço privado, filtre pelo remetente como acima e [redefina o endereço](#redefinir-ou-personalizar-o-endereço-de-e-mail) se ele vazar. O endereço de um remetente pode ser falsificado, então o filtro barra e-mails perdidos, não alguém determinado a entrar.
 
-Para ter mais controle, como uma gravidade lida do assunto ou uma equipe escolhida pelo remetente, inicie em vez disso um workflow a partir de cada e-mail: veja o [gatilho Incoming Email](/docs/workflows/triggers#e-mail-recebido).
+Para ter mais controle, como uma gravidade lida do assunto ou uma equipe escolhida pelo remetente, inicie em vez disso um workflow a partir de cada e-mail: veja o [gatilho Incoming Email](/docs/workflows/triggers#incoming-email).
 
 ## Casos de uso
 

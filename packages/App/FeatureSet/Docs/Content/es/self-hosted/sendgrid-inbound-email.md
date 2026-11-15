@@ -2,7 +2,7 @@
 
 El **Incoming Email Monitor** de OneUptime te permite crear y resolver alertas a partir de correos enviados a direcciones únicas, específicas de cada monitor. Es útil para integrar sistemas heredados, herramientas de alertas o cualquier servicio capaz de enviar correos.
 
-La misma configuración permite que los workflows reciban correo: un workflow con el disparador **Correo entrante** obtiene su propia dirección en el mismo dominio, y cada correo enviado a ella inicia el workflow. Consulta [Disparadores](/docs/workflows/triggers#correo-entrante).
+La misma configuración permite que los workflows reciban correo: un workflow con el disparador **Correo entrante** obtiene su propia dirección en el mismo dominio, y cada correo enviado a ella inicia el workflow. Consulta [Disparadores](/docs/workflows/triggers#incoming-email).
 
 Esta guía explica cómo configurar SendGrid Inbound Parse para reenviar los correos entrantes a tu instancia autoalojada de OneUptime. OneUptime Cloud no necesita nada de esto: sus direcciones funcionan desde el primer momento.
 
