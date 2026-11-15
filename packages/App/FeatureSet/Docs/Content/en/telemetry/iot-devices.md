@@ -179,7 +179,7 @@ OneUptime has an MQTT endpoint of its own, so devices that speak MQTT publish re
 
 A device credential can publish only under its own `oneuptime/<fleet>/<device>/` topics. You can revoke one device without touching the rest of the fleet: turn its **Enabled** switch off, or delete it, and a connected device is cut off within about a minute. A registered device that goes silent stays in the inventory as offline, and the Device Offline alert template fires for it, even if it dies without a Last Will.
 
-OneUptime refuses bad credentials at CONNECT with return code 4 (bad username or password), so a misconfigured device fails loudly. Browser keys are refused over MQTT.
+OneUptime refuses bad credentials at CONNECT with return code 4 (bad username or password), so a misconfigured device fails loudly. Browser keys are refused over MQTT. A client that connected with the ingestion key is cut off within a few seconds once the key is turned off, expires, has its secret reset or is deleted, and is refused when it connects again.
 
 ### Topics and payloads
 

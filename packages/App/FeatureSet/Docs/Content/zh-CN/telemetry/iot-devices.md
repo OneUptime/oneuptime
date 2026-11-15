@@ -179,7 +179,7 @@ OneUptime 有自己的 MQTT 端点，因此使用 MQTT 的设备可以直接向�
 
 设备凭据只能在它自己的 `oneuptime/<fleet>/<device>/` 主题下发布。你可以撤销单台设备，而不影响机群中的其他设备：关闭它的 **已启用** 开关或删除它，已连接的设备会在大约一分钟内被断开。已注册的设备沉默后会以离线状态留在清单中，即使它在没有 Last Will 的情况下宕掉，Device Offline 警报模板也会为它触发。
 
-OneUptime 在 CONNECT 阶段以返回码 4（bad username or password）拒绝错误的凭据，因此配置错误的设备会明确地失败。浏览器密钥在 MQTT 上会被拒绝。
+OneUptime 在 CONNECT 阶段以返回码 4（bad username or password）拒绝错误的凭据，因此配置错误的设备会明确地失败。浏览器密钥在 MQTT 上会被拒绝。使用摄取密钥连接的客户端会在密钥被停用、过期、重置密钥值或被删除后的几秒内断开，再次连接时会被拒绝。
 
 ### 主题和负载
 
