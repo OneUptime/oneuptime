@@ -541,7 +541,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
         }
       ).feedInfoInMarkdown,
     ).toBe(
-      "The project's owners were notified that this incident was created, as it has no owners yet.",
+      "The Project Owners were notified that this incident was created, as it has no owners yet.",
     );
     expect(
       (

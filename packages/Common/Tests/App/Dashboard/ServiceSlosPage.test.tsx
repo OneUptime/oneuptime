@@ -165,6 +165,8 @@ describe("a service's SLOs page", () => {
       "sliType",
       "services",
       "latencyThresholdInMilliseconds",
+      // Which of the service's requests count (#8444).
+      "requestFilter",
       "name",
       "targetPercentage",
       "description",

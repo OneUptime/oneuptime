@@ -73,7 +73,7 @@ An incident declared through a form is an ordinary incident, with a few settings
 
 - **Hidden from status pages.** **Visible on Status Page** is off, and so is **Notify Status Page Subscribers**. Until a responder publishes it, nothing about the incident reaches a status page or a subscriber — apart from a template's monitor status change, above.
 - **Declared by nobody.** The submitter is not a OneUptime user, so no user is recorded as having declared the incident.
-- **Its owners are told.** The owners the settings and the template name are added once the incident's Slack and Microsoft Teams channels exist, and are notified — the incident's **Incident created** notification waits until they are its owners, so it goes to them rather than to the project's owners.
+- **Its owners are told.** The owners the settings and the template name are added once the incident's Slack and Microsoft Teams channels exist, and are notified — the incident's **Incident created** notification waits until they are its owners, so it goes to them rather than to the Project Owners.
 - **A private note records the submission** — see [The private note](#the-private-note).
 
 Everything that runs for a new incident runs for these too: privacy, owner, label, on-call and runbook rules, on-call policies, and **On Create Incident** workflows. On-call rules match a form's incidents like any others — including on their title and description, which the submitter wrote.

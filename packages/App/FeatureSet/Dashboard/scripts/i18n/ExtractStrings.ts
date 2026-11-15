@@ -562,6 +562,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Utils/Slo/SloHealth.ts",
     kind: "keys",
   },
+  // What the SLO forms say of a request filter they cannot read (#8444).
+  {
+    directory: "packages/Common/Utils/Slo/SloRequestFilter.ts",
+    kind: "keys",
+  },
   /*
    * A serverless function's status - Receiving data, No recent
    * invocations, Waiting for data - and a service's - Receiving data, No

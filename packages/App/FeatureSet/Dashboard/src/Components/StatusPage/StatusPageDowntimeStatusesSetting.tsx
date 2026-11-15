@@ -324,7 +324,9 @@ const StatusPageDowntimeStatusesSetting: FunctionComponent<ComponentProps> = (
             {updateGate.isAllowed ? (
               picker
             ) : (
-              <Tooltip text={updateGate.disabledReason}>{picker}</Tooltip>
+              <Tooltip text={updateGate.disabledReason} isTextTranslated={true}>
+                {picker}
+              </Tooltip>
             )}
             <SaveStatus
               state={setting.saveState}

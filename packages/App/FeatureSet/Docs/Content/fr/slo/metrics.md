@@ -98,7 +98,7 @@ Le [widget SLO](/docs/dashboards/widgets#slo) affiche le SLI, le budget restant 
 | Réglage | Comportement |
 | --- | --- |
 | **Objectif de niveau de service** | Épingle le widget à un SLO. Le sélecteur liste les SLO qui ne sont pas archivés. |
-| **Follow SLO Variable** | Affiche le SLO choisi dans une variable du tableau de bord : une variable **Attribut de télémétrie** sur la clé `sloName`. Ignoré tant qu'un SLO est épinglé. |
+| **Suivre une variable SLO** | Affiche le SLO choisi dans une variable du tableau de bord : une variable **Attribut de télémétrie** sur la clé `sloName`. Ignoré tant qu'un SLO est épinglé. |
 
 Sur un [tableau de bord public](/docs/dashboards/sharing), un widget qui suit une variable permet aux visiteurs de choisir par son nom n'importe quel SLO non archivé du projet. Un widget épinglé n'affiche jamais que son propre SLO, et continue d'afficher les derniers chiffres d'un SLO archivé plus tard.
 

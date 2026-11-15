@@ -795,7 +795,7 @@ describe("the Custom Probes page: how OneUptime knows a probe is running", () =>
 
     expect(minutes).toBe(3);
     expect(howItWorks).toContain(
-      "After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the project's owners.",
+      "After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the Project Owners.",
     );
     expect(service).toMatch(
       /let owners: Array<User> = await this\.getOwners\(probe\.id!\);[\s\S]{0,200}if \(owners\.length === 0\) \{[\s\S]{0,200}owners = await ProjectService\.getOwners\(probe\.projectId!\);/,

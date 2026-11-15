@@ -95,7 +95,7 @@ A page can reach you for a kind and severity you have no rule for: a severity ad
 2. If you have none of those, one paid method, in this order: SMS, a phone call, WhatsApp, Telegram. It is the first one you have verified, on a channel the project has turned on.
 3. If you have none of those either, a webhook.
 
-You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none. With nothing verified at all, the page cannot be delivered, and the email says that instead. These emails are held back while pages keep coming, so a storm of pages is not a storm of mail. To add the missing rule, see [How to Reach Me](/docs/notifications/on-call-rules#when-a-severity-has-no-rule).
+You get an email saying so, and so do the on-call policy's owners, or the Project Owners when the policy has none. With nothing verified at all, the page cannot be delivered, and the email says that instead. These emails are held back while pages keep coming, so a storm of pages is not a storm of mail. To add the missing rule, see [How to Reach Me](/docs/notifications/on-call-rules#when-a-severity-has-no-rule).
 
 ## The language of your pages
 

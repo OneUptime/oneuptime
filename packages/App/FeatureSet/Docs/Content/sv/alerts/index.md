@@ -106,7 +106,7 @@ I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i d
 
 Ett bakgrundsjobb meddelar larmets ägare ungefär en minut efter att det skapats, alla ägare det har då, och arbetsflödesutlösaren **On Create Alert** startar alla arbetsflöden som bygger på den.
 
-För att göra personer och team till larmets ägare redan när det skapas, så att den här aviseringen når dem och inte projektets ägare, lämnar du dem med när det skapas: via API:t skickar du deras id:n i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i ett arbetsflöde väljer du dem under **Ägaranvändare** och **Ägarteam** i **Create One Alert**; via MCP skickar du `ownerUsers` och `ownerTeams` till `create_alert`. En begäran vars avsändare inte får lägga till de ägarna avvisas innan något sparas. Ägare som en separat begäran lägger till efter att larmet skapats får bara veta om det om de läggs till inom den minuten.
+För att göra personer och team till larmets ägare redan när det skapas, så att den här aviseringen når dem och inte Projektägare, lämnar du dem med när det skapas: via API:t skickar du deras id:n i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i ett arbetsflöde väljer du dem under **Ägaranvändare** och **Ägarteam** i **Create One Alert**; via MCP skickar du `ownerUsers` och `ownerTeams` till `create_alert`. En begäran vars avsändare inte får lägga till de ägarna avvisas innan något sparas. Ägare som en separat begäran lägger till efter att larmet skapats får bara veta om det om de läggs till inom den minuten.
 
 ### Skapat redan bekräftat eller löst
 
@@ -152,7 +152,7 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 ## Privata larm
 
-Ett privat larm syns bara för dess ägare, det vill säga ägaranvändarna och medlemmarna i dess ägarteam, och för projektets administratörer och ägare. Ingen annan i projektet kan öppna det.
+Ett privat larm syns bara för dess ägare, det vill säga ägaranvändarna och medlemmarna i dess ägarteam, och för Projektadministratörer och Projektägare. Ingen annan i projektet kan öppna det.
 
 Gör ett larm privat med **Privat larm** under **Fler fält** i formuläret för att skapa eller i en monitors kriterier, med **Larm → Regler → Sekretessregler**, eller senare på dess sida **Inställningar**, som frågar **Göra det här larmet privat?** innan larmet döljs. Är du ingen av de personerna förlorar du också själv åtkomsten.
 
@@ -161,7 +161,7 @@ En episod som ett privat larm öppnar är inte privat, så den visar aldrig larm
 ## Vem som får veta om ett larm
 
 - **Jouren.** Larmets jourpolicyer larmar sina personer, var och en på det sätt de har ställt in under **Användarinställningar → Så når man mig** på fliken **Larm**. Den som svarar på larmanropet bekräftar larmet, och larmningen upphör.
-- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Påminnelse om larm** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället projektets ägare. Om OneUptime stannar medan det skickar en avisering får de personer det ännu inte hade nått den när OneUptime är tillbaka, några minuter försenad, och ingen får den två gånger.
+- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Påminnelse om larm** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället Projektägare. Om OneUptime stannar medan det skickar en avisering får de personer det ännu inte hade nått den när OneUptime är tillbaka, några minuter försenad, och ingen får den två gånger.
 - **Dina chattverktyg.** **Larm → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Felsökning

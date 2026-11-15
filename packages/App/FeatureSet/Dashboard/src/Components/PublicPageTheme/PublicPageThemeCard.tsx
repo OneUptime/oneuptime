@@ -156,6 +156,7 @@ const ThemeSetting: <TBaseModel extends BaseModel>(
         lockedReason={
           updateGate.isAllowed ? undefined : updateGate.disabledReason
         }
+        isLockedReasonTranslated={true}
         status={<SaveStatus state={setting.saveState} />}
         ariaLabel={props.copy.ariaLabel}
         dataTestId={getPublicPageThemeChoicesTestId(props.testId)}
