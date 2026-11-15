@@ -54427,7 +54427,7 @@
   "Merge two JSON Objects into one": "Объединить два JSON-объекта в один",
   "Message to send to Discord.": "Сообщение для отправки в Discord.",
   "Message to send to Mattermost, sent exactly as typed. Mattermost's Markdown works: **bold**, _italic_, [link](https://example.com).": "Сообщение для отправки в Mattermost, отправляется как написано. Markdown Mattermost работает: **жирный**, _курсив_, [ссылка](https://example.com).",
-  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Сообщение для отправки в Slack, отправляется как написано. Форматирование Slack работает: *жирный*, _курсив_, <https://example.com|ссылка>.",
+  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Сообщение для отправки в Slack, отправляется как написано. Форматирование Slack работает: *жирный*, _курсив_, <https://example.com|link>.",
   "Message to send to Teams.": "Сообщение для отправки в Teams.",
   "Message to send to Telegram.": "Сообщение для отправки в Telegram.",
   "Message to send. Each line is sent as an IRC message of its own, at most 15 of them, and IRC formatting codes work.": "Сообщение для отправки. Каждая строка отправляется отдельным сообщением IRC, не больше 15, и коды форматирования IRC работают.",

@@ -54427,7 +54427,7 @@
   "Merge two JSON Objects into one": "두 JSON 객체를 하나로 병합합니다",
   "Message to send to Discord.": "Discord에 보낼 메시지입니다.",
   "Message to send to Mattermost, sent exactly as typed. Mattermost's Markdown works: **bold**, _italic_, [link](https://example.com).": "Mattermost에 보낼 메시지로, 입력한 그대로 보냅니다. Mattermost의 Markdown을 쓸 수 있습니다: **굵게**, _기울임_, [링크](https://example.com).",
-  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Slack에 보낼 메시지로, 입력한 그대로 보냅니다. Slack 서식을 쓸 수 있습니다: *굵게*, _기울임_, <https://example.com|링크>.",
+  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Slack에 보낼 메시지로, 입력한 그대로 보냅니다. Slack 서식을 쓸 수 있습니다: *굵게*, _기울임_, <https://example.com|link>.",
   "Message to send to Teams.": "Teams에 보낼 메시지입니다.",
   "Message to send to Telegram.": "Telegram에 보낼 메시지입니다.",
   "Message to send. Each line is sent as an IRC message of its own, at most 15 of them, and IRC formatting codes work.": "보낼 메시지입니다. 각 줄은 별도의 IRC 메시지로 보내며 최대 15줄이고, IRC 서식 코드를 쓸 수 있습니다.",

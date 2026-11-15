@@ -54427,7 +54427,7 @@
   "Merge two JSON Objects into one": "Slå ihop två JSON-objekt till ett",
   "Message to send to Discord.": "Meddelande att skicka till Discord.",
   "Message to send to Mattermost, sent exactly as typed. Mattermost's Markdown works: **bold**, _italic_, [link](https://example.com).": "Meddelande att skicka till Mattermost, precis som det skrivs. Mattermosts Markdown fungerar: **fet**, _kursiv_, [länk](https://example.com).",
-  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Meddelande att skicka till Slack, precis som det skrivs. Slack-formatering fungerar: *fet*, _kursiv_, <https://example.com|länk>.",
+  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Meddelande att skicka till Slack, precis som det skrivs. Slack-formatering fungerar: *fet*, _kursiv_, <https://example.com|link>.",
   "Message to send to Teams.": "Meddelande att skicka till Teams.",
   "Message to send to Telegram.": "Meddelande att skicka till Telegram.",
   "Message to send. Each line is sent as an IRC message of its own, at most 15 of them, and IRC formatting codes work.": "Meddelande att skicka. Varje rad skickas som ett eget IRC-meddelande, högst 15 stycken, och IRC-formateringskoder fungerar.",

@@ -54427,7 +54427,7 @@
   "Merge two JSON Objects into one": "Combinar dos objetos JSON en uno",
   "Message to send to Discord.": "Mensaje que enviar a Discord.",
   "Message to send to Mattermost, sent exactly as typed. Mattermost's Markdown works: **bold**, _italic_, [link](https://example.com).": "Mensaje que enviar a Mattermost, enviado tal como se escribe. El Markdown de Mattermost funciona: **negrita**, _cursiva_, [enlace](https://example.com).",
-  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Mensaje que enviar a Slack, enviado tal como se escribe. El formato de Slack funciona: *negrita*, _cursiva_, <https://example.com|enlace>.",
+  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Mensaje que enviar a Slack, enviado tal como se escribe. El formato de Slack funciona: *negrita*, _cursiva_, <https://example.com|link>.",
   "Message to send to Teams.": "Mensaje que enviar a Teams.",
   "Message to send to Telegram.": "Mensaje que enviar a Telegram.",
   "Message to send. Each line is sent as an IRC message of its own, at most 15 of them, and IRC formatting codes work.": "Mensaje que enviar. Cada línea se envía como un mensaje de IRC propio, 15 como máximo, y los códigos de formato de IRC funcionan.",

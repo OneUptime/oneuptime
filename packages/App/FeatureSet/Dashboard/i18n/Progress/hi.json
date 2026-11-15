@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54234,
-    "untranslated": 8638
+    "keys": 54659,
+    "untranslated": 8575
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -22,6 +22,7 @@
     "Apache Kafka · kafka-1:9092",
     "Atmosphere",
     "Brute force detected",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -153,6 +154,7 @@
     "VMware VM",
     "VMware vCenter",
     "Vital",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

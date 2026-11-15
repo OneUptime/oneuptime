@@ -54427,7 +54427,7 @@
   "Merge two JSON Objects into one": "2 つの JSON オブジェクトを 1 つにマージします",
   "Message to send to Discord.": "Discord に送るメッセージ。",
   "Message to send to Mattermost, sent exactly as typed. Mattermost's Markdown works: **bold**, _italic_, [link](https://example.com).": "Mattermost に送るメッセージ。入力したとおりに送られます。Mattermost の Markdown が使えます: **太字**、_斜体_、[リンク](https://example.com)。",
-  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Slack に送るメッセージ。入力したとおりに送られます。Slack の書式が使えます: *太字*、_斜体_、<https://example.com|リンク>。",
+  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "Slack に送るメッセージ。入力したとおりに送られます。Slack の書式が使えます: *太字*、_斜体_、<https://example.com|link>。",
   "Message to send to Teams.": "Teams に送るメッセージ。",
   "Message to send to Telegram.": "Telegram に送るメッセージ。",
   "Message to send. Each line is sent as an IRC message of its own, at most 15 of them, and IRC formatting codes work.": "送るメッセージ。各行が個別の IRC メッセージとして送られ (最大 15 行)、IRC の書式コードが使えます。",

@@ -54427,7 +54427,7 @@
   "Merge two JSON Objects into one": "将两个 JSON 对象合并为一个",
   "Message to send to Discord.": "要发送到 Discord 的消息。",
   "Message to send to Mattermost, sent exactly as typed. Mattermost's Markdown works: **bold**, _italic_, [link](https://example.com).": "要发送到 Mattermost 的消息，按输入原样发送。支持 Mattermost 的 Markdown：**粗体**、_斜体_、[链接](https://example.com)。",
-  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "要发送到 Slack 的消息，按输入原样发送。支持 Slack 格式：*粗体*、_斜体_、<https://example.com|链接>。",
+  "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.": "要发送到 Slack 的消息，按输入原样发送。支持 Slack 格式：*粗体*、_斜体_、<https://example.com|link>。",
   "Message to send to Teams.": "要发送到 Teams 的消息。",
   "Message to send to Telegram.": "要发送到 Telegram 的消息。",
   "Message to send. Each line is sent as an IRC message of its own, at most 15 of them, and IRC formatting codes work.": "要发送的消息。每行作为一条单独的 IRC 消息发送，最多 15 条，支持 IRC 格式代码。",
