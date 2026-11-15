@@ -949,11 +949,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 : getFoldedValuesOf(column);
 
               /*
-               * An Actions column with a key and an element of its own draws
-               * that element before the row's buttons.
+               * An Actions column with an element of its own draws that
+               * element before the row's buttons, with a key or without, as
+               * a phone's card does (getColumnContent, #7457).
                */
               const columnContent: React.ReactNode = isActions
-                ? column.key && column.getElement
+                ? column.getElement
                   ? column.getElement(props.item)
                   : null
                 : getCellContent(column, foldedValues);

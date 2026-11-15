@@ -305,3 +305,56 @@ describe("an element column with no key, folded under another column", () => {
     );
   });
 });
+
+/*
+ * An Actions column's own element - a library rule's Add, a hunt's Run -
+ * stands before the row's buttons. A phone's card drew it whether the
+ * column had a key or not, and a row only with one: the same column read
+ * one way on a phone and another on a desk.
+ */
+describe("an Actions column with an element of its own and no key", () => {
+  const ACTIONS: Column<Answer> = {
+    title: "Actions",
+    type: FieldType.Actions,
+    disableSort: true,
+    getElement: (row: Answer): ReactElement => {
+      return (
+        <button data-testid="row-action">{`Reply to ${row.topic}`}</button>
+      );
+    },
+  };
+
+  test("draws its element in the row's Actions cell", () => {
+    renderRows([ABOUT, ACTIONS]);
+
+    const action: HTMLElement = screen.getByTestId("row-action");
+
+    expect(action).toHaveTextContent(
+      "Reply to Know when my website or API is down",
+    );
+    expect(action.closest("td")).toBe(bodyCells()[1]);
+  });
+
+  test("draws it in a phone's card too", () => {
+    renderRows([ABOUT, ACTIONS], { isMobile: true });
+
+    expect(screen.getByTestId("row-action")).toBeInTheDocument();
+  });
+
+  test("draws it with a key, as before", () => {
+    renderRows([ABOUT, { ...ACTIONS, key: "topic" }]);
+
+    expect(screen.getByTestId("row-action")).toBeInTheDocument();
+  });
+
+  test("an Actions column with no element draws only the row's buttons", () => {
+    renderRows([
+      ABOUT,
+      { title: "Actions", type: FieldType.Actions, key: null },
+    ]);
+
+    expect(screen.queryByTestId("row-action")).not.toBeInTheDocument();
+    expect(bodyCells()).toHaveLength(2);
+    expect(bodyCells()[1]?.textContent).toBe("");
+  });
+});
