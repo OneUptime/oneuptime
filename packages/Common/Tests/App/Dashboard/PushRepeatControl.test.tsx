@@ -800,10 +800,11 @@ describe("PushRepeatControl - changing the interval", () => {
     expect(control()).toHaveAttribute("data-repeat-every-minutes", "15");
     /*
      * "Server Error" says only that the change failed: since #6836 it is
-     * said as a problem the server could not explain.
+     * said as a problem the server could not explain - after the card's
+     * own words, why and what to do next (#7537).
      */
     expect(errorNote()!.textContent).toBe(
-      `${SAVE_FAILED} The server ran into a problem it could not explain, so this did not finish. Try again in a moment.`,
+      `${SAVE_FAILED} The server ran into a problem it could not explain. Try again in a moment.`,
     );
   });
 

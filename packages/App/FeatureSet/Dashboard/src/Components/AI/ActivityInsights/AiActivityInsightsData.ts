@@ -876,9 +876,15 @@ export function getProblemTitle(problem: AiActivityProblem): string {
   return problem.title || describeSubject(problem.latestSubject);
 }
 
-// "Deployment: oneuptime-home" — the way alert titles name a part.
+/*
+ * "Deployment: oneuptime-home" — the way alert titles name a part, with the
+ * reader's own colon ("Déploiement : oneuptime-home").
+ */
 export function describeObject(object: AiActivityObject): string {
-  return `${translateTerm(object.name)}: ${object.value}`;
+  return translateTemplate("{{label}}: {{identifier}}", {
+    label: translatableTerm(object.name),
+    identifier: object.value,
+  });
 }
 
 // "Node gke-pool-3" — a part as a sentence names it.

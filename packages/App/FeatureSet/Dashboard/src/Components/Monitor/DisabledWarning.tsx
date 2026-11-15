@@ -27,6 +27,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -271,7 +272,10 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid={TURN_MONITORING_ON_ERROR_TEST_ID}
           >
-            {turnMonitoringOn.error}
+            <ErrorInSentence
+              message={turnMonitoringOn.error}
+              showWhereToLook={true}
+            />
           </p>
         ) : (
           <></>

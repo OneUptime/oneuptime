@@ -67,6 +67,7 @@ import {
   getOpenStackSpendCsv,
 } from "../Utils/OpenStackSpendView";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * WHO'S USING WHAT, AND WHAT COULD BE RECLAIMED.
@@ -418,7 +419,7 @@ const OpenStackCloudSpend: FunctionComponent<
           className="mb-4 text-sm text-red-700"
           data-testid="openstack-spend-csv-error"
         >
-          {csvError}
+          <ErrorInSentence message={csvError} showWhereToLook={true} />
         </p>
       ) : (
         <></>

@@ -173,6 +173,6 @@ De server bij **DNS-server (optioneel)** valideert DNSSEC niet en zet dus nooit 
 :::cards
 - [DNSSEC-monitor](/docs/monitor/dnssec-monitor): De vertrouwensketen van een ondertekende zone valideren.
 - [Domein-monitor](/docs/monitor/domain-monitor): De registratie en het verlopen van het domein in de gaten houden.
-- [Aangepaste probes](/docs/probe/custom-probe): Interne DNS-servers vanuit uw eigen netwerk opvragen.
+- [Aangepaste sondes](/docs/probe/custom-probe): Interne DNS-servers vanuit uw eigen netwerk opvragen.
 - [Incidenten – Overzicht](/docs/incidents/index): Wat er gebeurt nadat de monitor er een heeft gemeld.
 :::

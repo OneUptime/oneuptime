@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 5087
+    "keys": 52416,
+    "untranslated": 5026
   },
   "sameAsEnglish": [
     " incidents",
@@ -266,6 +266,7 @@
     "Important",
     "In",
     "Incident",
+    "Incident {{incident}}",
     "Incident {{number}}",
     "IncidentTemplate",
     "IncidentTemplate ID",
@@ -447,6 +448,7 @@
     "Quota",
     "Quotas",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
@@ -460,11 +462,13 @@
     "Routes",
     "Runbook",
     "Runbooks",
+    "Runbooks ({{count}})",
     "SCIM (System for Cross-domain Identity Management)",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SSH",
     "ScheduledMaintenance",
@@ -507,6 +511,8 @@
     "Total",
     "Trace",
     "Trace {{traceId}}",
+    "Trace {{traceId}} ({{count}} spans)",
+    "Trace {{traceId}} ({{count}}+ spans)",
     "Traces",
     "Traits",
     "Transition",

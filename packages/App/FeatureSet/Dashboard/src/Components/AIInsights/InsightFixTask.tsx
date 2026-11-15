@@ -35,6 +35,7 @@ import {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   taskId: string;
@@ -303,7 +304,7 @@ const InsightFixTask: FunctionComponent<ComponentProps> = (
 
       {actionError ? (
         <p role="alert" className="text-sm text-red-700">
-          {actionError}
+          <ErrorInSentence message={actionError} showWhereToLook={true} />
         </p>
       ) : (
         <></>

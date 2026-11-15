@@ -37,6 +37,7 @@ import {
   getChannelGatedMethodList,
   ProjectNotificationChannel,
 } from "./ProjectNotificationChannelsCopy";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 interface VerificationInfo {
   verificationCode: string;
@@ -324,7 +325,12 @@ const Telegram: () => JSX.Element = (): ReactElement => {
               </p>
             ) : null}
             {verificationError ? (
-              <p className="text-sm text-red-600">{verificationError}</p>
+              <p className="text-sm text-red-600">
+                <ErrorInSentence
+                  message={verificationError}
+                  showWhereToLook={true}
+                />
+              </p>
             ) : null}
             {verificationInfo ? (
               <>

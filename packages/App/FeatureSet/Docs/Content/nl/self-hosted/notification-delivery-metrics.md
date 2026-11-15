@@ -153,7 +153,7 @@ Statussen komen alleen binnen waar de provider ze kan melden:
 
 | `notification.page.start` | De tijd loopt vanaf |
 | --- | --- |
-| `monitor_data_received` | Wanneer OneUptime de gegevens ontving die de monitor deden afgaan: een inkomend verzoek, het rapport van een serveragent, een inkomende e-mail, de controle van een probe, een SNMP-trap of een poll van een netwerkapparaat. Inclusief de tijd die de gegevens in de wachtrij wachtten om te worden beoordeeld. |
+| `monitor_data_received` | Wanneer OneUptime de gegevens ontving die de monitor deden afgaan: een inkomend verzoek, het rapport van een serveragent, een inkomende e-mail, de controle van een sonde, een SNMP-trap of een poll van een netwerkapparaat. Inclusief de tijd die de gegevens in de wachtrij wachtten om te worden beoordeeld. |
 | `record_created` | Wanneer het incident, de waarschuwing of de episode werd aangemaakt: door een telemetriemonitor, een regel of een persoon, en bij een controle op afwezigheid, zoals een heartbeat die stopte. |
 | `page_started` | Wanneer een oproep later begon: een persoon, een workflow of een regel die nu overeenkomt startte hem, of het is een directe oproep. Voor een oproep die zijn bereikbaarheidsregel of OneUptime AI vasthield, wanneer de pauze afliep, of wanneer hij begon als dat eerder was. Voor een nieuwe oproep, wanneer de time-out na bevestiging afliep. Zo is een worker die een van beide te laat oppakte te zien in de tijd. |
 

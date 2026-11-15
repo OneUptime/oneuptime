@@ -50,6 +50,11 @@ import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { useTranslation } from "react-i18next";
 import { LayoutPoint } from "../../Utils/LayeredGraphLayout";
 import computeCorrelationLayout from "../../Utils/CorrelationGraphLayout";
@@ -107,6 +112,7 @@ import {
   CorrelateResultStats,
 } from "./CorrelateResultSummary";
 import SecurityEventDetail from "./SecurityEventDetail";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Entity-neighborhood graph over security events: the applied filter in the
@@ -404,6 +410,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+  const translator: Translator = useTranslator();
 
   const [quickValue, setQuickValue] = useState<string>("");
   const [draftConditions, setDraftConditions] = useState<
@@ -817,16 +824,28 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
           if (single) {
             eyebrow = quickValueForFilter(resultFilter)
               ? t("Your filter")
-              : `${t(getCorrelationFieldDefinition(single.field).label)} ${t(
-                  CorrelationOperatorLabels[single.operator],
-                )}`;
+              : // The field and its operator, in the order the reader's language puts them.
+                translator.translateTemplate("{{field}} {{operator}}", {
+                  field: translatableTerm(
+                    getCorrelationFieldDefinition(single.field).label,
+                  ),
+                  operator: translatableTerm(
+                    CorrelationOperatorLabels[single.operator],
+                  ),
+                });
           }
           data = {
             ...baseData,
             eyebrow,
             title: isSingle
               ? resultFilter.conditions[0]!.value
-              : `${resultFilter.conditions.length} ${t("conditions")}`,
+              : translator.translatePlural(
+                  {
+                    one: "{{count}} condition",
+                    other: "{{count}} conditions",
+                  },
+                  resultFilter.conditions.length,
+                ),
             isMonospace: isSingle,
             tooltip: describeCorrelationFilter(resultFilter),
           };
@@ -902,9 +921,17 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
           type: "straight",
           focusable: false,
           // React Flow's default reads "Edge from class:X to observable:Y".
-          ariaLabel: `${nodeLabels.get(edge.from) || edge.from} – ${
-            nodeLabels.get(edge.to) || edge.to
-          }: ${edge.count} ${t(edge.count === 1 ? "event" : "events")}`,
+          ariaLabel: translator.translatePlural(
+            {
+              one: "{{from}} – {{to}}: {{count}} event",
+              other: "{{from}} – {{to}}: {{count}} events",
+            },
+            edge.count,
+            {
+              from: nodeLabels.get(edge.from) || edge.from,
+              to: nodeLabels.get(edge.to) || edge.to,
+            },
+          ),
           style: {
             stroke,
             strokeWidth: getEdgeWidth(edge.count),
@@ -1865,7 +1892,9 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
               )
             }
           >
-            <p>{error}</p>
+            <p>
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </p>
           </AlertBanner>
         </div>
       );
@@ -1889,7 +1918,9 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
               />
             }
           >
-            <p>{error}</p>
+            <p>
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </p>
           </AlertBanner>
         </div>
       );

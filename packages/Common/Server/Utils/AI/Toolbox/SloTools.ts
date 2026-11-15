@@ -39,6 +39,21 @@ import {
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
 import {
+  AI_READ_CARD_SLO_STATUSES,
+  AI_READ_CARD_VALUES,
+  AIActionSentenceValue,
+  AIActionTableCell,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_CELLS,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
+import {
   SloRecommendedAlertSeverity,
   SloRecommendedBurnRateRule,
   getMissingSloRecommendedBurnRateRules,
@@ -110,6 +125,35 @@ function describeWindow(slo: ServiceLevelObjective): string {
     return SloWindowType.CalendarMonth;
   }
   return `${SloWindowType.Rolling} ${slo.windowDays ?? 30}d`;
+}
+
+/*
+ * An SLO's row's cells that are OneUptime's words (issue #7977): its window
+ * - "Calendar Month", "Rolling 30d", as describeWindow writes them - and
+ * its status, as the SLO list names it. A status the worker has not
+ * written yet is no cell of words.
+ */
+export function getSloTableCells(
+  slo: ServiceLevelObjective,
+): Record<string, AIActionTableCell> {
+  const status: unknown = slo.sloStatus;
+
+  return {
+    window:
+      slo.windowType === SloWindowType.CalendarMonth
+        ? aiActionTerm(AI_READ_CARD_VALUES.calendarMonth)
+        : aiActionSentence(AI_READ_RECORD_TABLE_CELLS.rollingWindow, {
+            days: countFigure(slo.windowDays ?? 30),
+          }),
+    ...(typeof status === "string" &&
+    Object.values(SloStatus).includes(status as SloStatus)
+      ? {
+          sloStatus: aiActionTerm(
+            AI_READ_CARD_SLO_STATUSES[status as SloStatus],
+          ),
+        }
+      : {}),
+  };
 }
 
 /*
@@ -765,7 +809,9 @@ export const QuerySlosTool: ObservabilityTool = {
             ? `${slo?.isArchived === true ? ARCHIVED_NOTE : ""}${areMonitorRulesVisible ? "" : MONITOR_RULES_NOT_VISIBLE_NOTE}${areBurnRateRulesVisible ? "" : BURN_RATE_RULES_NOT_VISIBLE_NOTE}${arePolicyTiersVisible ? "" : POLICY_TIERS_NOT_VISIBLE_NOTE}${policyTiers.length > 0 ? POLICY_TIERS_NOTE : ""}${slo ? DEPLOYMENT_GATE_NOTE : ""}${getMissingRecommendedRulesNote(missingRecommendedRules, slo?.isArchived === true)}${COMPLIANCE_NOTE}${serialized.text}`
             : serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `SLO ${slo?.name || sloId.toString()}`,
+        ...citationSentence(AI_READ_CITATIONS.slo, {
+          name: slo?.name || sloId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.SloView,
           params: { sloId: sloId.toString() },
@@ -958,12 +1004,22 @@ export const QuerySlosTool: ObservabilityTool = {
       prefix += COMPLIANCE_NOTE;
     }
 
-    const filterLabel: string = statusFilter ? `${statusFilter} ` : "";
+    /*
+     * The status the list was filtered to, as the SLO list names it: the
+     * table's title and the chip say it in the reader's language (issues
+     * #7977, #7980) - "At Risk SLOs (2)" in English, as they always did.
+     */
+    const statusValue: Record<string, AIActionSentenceValue> = statusFilter
+      ? { status: aiActionTerm(AI_READ_CARD_SLO_STATUSES[statusFilter]) }
+      : {};
 
     return {
       dataForLlm: `${prefix}${serialized.text}`,
       rowCount: serialized.rowCount,
-      citationLabel: `${filterLabel}SLOs (${total} found)`,
+      ...citationSentence(
+        statusFilter ? AI_READ_CITATIONS.slosInStatus : AI_READ_CITATIONS.slos,
+        { ...statusValue, count: countFigure(total) },
+      ),
       citationTarget: {
         type: AIChatCitationTargetType.Slos,
       },
@@ -972,9 +1028,19 @@ export const QuerySlosTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `${filterLabel}SLOs (${total})`,
-              description:
-                "Compliance columns are as of each SLO's last evaluation.",
+              words: {
+                title: aiActionSentence(
+                  statusFilter
+                    ? AI_READ_RECORD_TABLE_TITLES.slosInStatus
+                    : AI_READ_RECORD_TABLE_TITLES.slos,
+                  { ...statusValue, count: countFigure(total) },
+                ),
+                description: aiActionSentence(
+                  AI_READ_RECORD_TABLE_LINES.sloCompliance,
+                ),
+                // Each SLO's window and status, as the SLO list says them.
+                cells: slos.map(getSloTableCells),
+              },
               columns: [
                 { key: "name", title: translationKey("Name"), type: "text" },
                 {

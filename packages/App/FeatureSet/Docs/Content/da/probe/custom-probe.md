@@ -1,4 +1,4 @@
-# Brugerdefinerede probes
+# Brugerdefinerede sonder
 
 En brugerdefineret sonde er en lille agent, som du kører i dit eget netværk. Den tjekker de overvågninger, du føjer den til, for eksempel interne websteder, API'er og servere bag din firewall, og sender resultaterne til OneUptime. Den åbner kun udgående forbindelser over HTTPS, så intet i dit netværk behøver at tage imod forbindelser fra internettet. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#sonde-agent-collector-eller-runner) for at vælge mellem en sonde, en agent, en collector og en Runner.
 
@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **Sonden forbinder udad.** Hver forespørgsel går fra sonden til `ONEUPTIME_URL` over HTTPS. Intet udefra behøver at kunne nå sonden.
 - **Den tjekker kun sine egne overvågninger.** Sonden spørger OneUptime om de overvågninger, den er føjet til, tjekker hver enkelt, når det er tid, og sender resultatet tilbage. OneUptime afgør ud fra resultaterne, om en overvågnings status ændres.
-- **OneUptime holder øje med, at den kører.** Hver forespørgsel fra sonden tæller som et livstegn, og sonden sender mindst én i minuttet. Efter cirka tre minutter uden nogen viser sonden **Afbrudt**, og dens ejere får besked. Har en sonde ingen ejere, får projektets ejere besked. For at blive kaldt ud som ved ethvert nedbrud, med én hændelse, indtil sonden er tilbage, skal du tilføje en [probestatusmonitor](/docs/monitor/probe-status-monitor): **Overvåg denne probe** på sondens side opretter en.
+- **OneUptime holder øje med, at den kører.** Hver forespørgsel fra sonden tæller som et livstegn, og sonden sender mindst én i minuttet. Efter cirka tre minutter uden nogen viser sonden **Afbrudt**, og dens ejere får besked. Har en sonde ingen ejere, får projektets ejere besked. For at blive kaldt ud som ved ethvert nedbrud, med én hændelse, indtil sonden er tilbage, skal du tilføje en [sondestatusmonitor](/docs/monitor/probe-status-monitor): **Overvåg denne sonde** på sondens side opretter en.
 
 ## Før du begynder
 
@@ -42,7 +42,7 @@ sequenceDiagram
 
 ### Kopiér dens ID og nøgle
 
-Sonden skal bruge sit ID og sin nøgle for at forbinde. For at kopiere dem skal du åbne sondens menu i tabellen **Brugerdefinerede probes** og vælge **Vis ID og nøgle**. Alle, der kan se tabellen, kan kopiere en sondes ID; dens nøgle vises kun for projektejere og -administratorer, som ser **Vis ID og nøgle**, hvor de andre ser **Vis ID**.
+Sonden skal bruge sit ID og sin nøgle for at forbinde. For at kopiere dem skal du åbne sondens menu i tabellen **Brugerdefinerede sonder** og vælge **Vis ID og nøgle**. Alle, der kan se tabellen, kan kopiere en sondes ID; dens nøgle vises kun for projektejere og -administratorer, som ser **Vis ID og nøgle**, hvor de andre ser **Vis ID**.
 
 Projektejere og -administratorer kan også klikke på sonden: kortet **Set up your Custom Probe** på dens side viser Docker-kommandoen med ID og nøgle allerede udfyldt.
 
@@ -108,7 +108,7 @@ Med værtsnetværk (`--network host`, `network_mode: host`) bruger sonden værte
 
 ### Tjek, at den forbinder
 
-Inden for et minut eller to viser sondens **Status** i tabellen **Brugerdefinerede probes** **Forbundet**. Viser den stadig **Afbrudt**, står årsagen i sondens log: se [Undersøg en afbrudt sonde](#undersøg-en-afbrudt-sonde).
+Inden for et minut eller to viser sondens **Status** i tabellen **Brugerdefinerede sonder** **Forbundet**. Viser den stadig **Afbrudt**, står årsagen i sondens log: se [Undersøg en afbrudt sonde](#undersøg-en-afbrudt-sonde).
 
 ### Lad sonden tjekke en overvågning
 

@@ -145,7 +145,9 @@ describe("a dropdown that is not creatable", () => {
     await type("Webhook");
 
     expect(screen.queryAllByRole("option")).toHaveLength(0);
-    expect(screen.getByText("No options")).toBeInTheDocument();
+    // The product's own words after a search (#7805), not react-select's.
+    expect(screen.getByText("No matches found")).toBeInTheDocument();
+    expect(screen.queryByText("No options")).not.toBeInTheDocument();
   });
 });
 
@@ -195,8 +197,9 @@ describe("the open menu's words", () => {
    * A message of the caller's own is a sentence or two: centred line by
    * line, a phone's narrow menu set it as a ragged column ("Could not load
    * the components of status.example.com. Type a component's name...").
-   * It starts where the options start; react-select's own short "No
-   * options" stays centred, as every other dropdown draws it.
+   * It starts where the options start; the product's own short line ("No
+   * options available", in the reader's language) stays centred, as every
+   * other dropdown draws it.
    */
   test("a message of the caller's own starts where the options start; the stock one stays centred", async () => {
     const sentence: string =
@@ -224,9 +227,9 @@ describe("the open menu's words", () => {
 
     await openMenu();
 
-    expect(getComputedStyle(screen.getByText("No options")).textAlign).toBe(
-      "center",
-    );
+    expect(
+      getComputedStyle(screen.getByText("No options available")).textAlign,
+    ).toBe("center");
   });
 
   test("the loading line is drawn as the no-options line is, and starts where the options start", async () => {

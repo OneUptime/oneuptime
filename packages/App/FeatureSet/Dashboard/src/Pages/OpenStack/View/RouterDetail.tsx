@@ -51,6 +51,7 @@ import {
 } from "../Utils/OpenStackPartFacts";
 import { getOpenStackFactText } from "../Utils/OpenStackResourceUtils";
 import { OpenStackPartRoutes } from "../../../Components/OpenStack/Part/OpenStackPartRoutes";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * One router: its status and admin state, which L3 agents hold it and in what HA state, its
@@ -364,6 +365,7 @@ const RouterOverview: FunctionComponent<{
 const OpenStackCloudRouterDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Router);
   const backend: OpenStackNetworkBackend = useOpenStackNetworkBackend(
     part.openStackCloudId,
@@ -400,18 +402,21 @@ const OpenStackCloudRouterDetail: FunctionComponent<
                 description="Whether each agent holding this router was alive, over the selected time range."
               >
                 <ResourceMetricsTab
-                  queryConfigs={[
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "router_agent_alive",
-                      title: "L3 agent alive",
-                      description:
-                        "1 while an agent holding this router is alive, 0 when it is not. On OVN there are no such agents, so this stays empty.",
-                      metricName: "openstack_neutron_l3_agent_of_router",
-                      legend: "Alive",
-                      attributes: { router_id: part.externalId },
-                    }),
-                  ]}
+                  queryConfigs={chartWordsInReadersLanguage(
+                    [
+                      getOpenStackMetricQuery({
+                        part,
+                        variable: "router_agent_alive",
+                        title: "L3 agent alive",
+                        description:
+                          "1 while an agent holding this router is alive, 0 when it is not. On OVN there are no such agents, so this stays empty.",
+                        metricName: "openstack_neutron_l3_agent_of_router",
+                        legend: "Alive",
+                        attributes: { router_id: part.externalId },
+                      }),
+                    ],
+                    translator,
+                  )}
                 />
               </Card>
             ),

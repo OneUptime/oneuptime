@@ -8,6 +8,12 @@ import {
   navigateToCitationTarget,
   targetTypeToIcon,
 } from "./CitationTargetNav";
+import {
+  getDrawnCitationLabel,
+  getCitationRowCountText,
+} from "./CitationWords";
+import ToolActionSentence from "./ToolActionSentence";
+import { DrawnActionSentence } from "./ToolActionWords";
 
 export interface ComponentProps {
   citations: Array<AIChatCitation>;
@@ -17,6 +23,8 @@ export interface ComponentProps {
  * Server-minted citation chips. A chip with rowCount 0 is proof of absence —
  * the query ran and found nothing — and renders muted. Target-to-route and
  * target-to-icon mapping is shared with the widgets via CitationTargetNav.
+ * Each label is in the reader's language when the citation carries its
+ * words, and its count in the reader's digits (issue #7980, CitationWords).
  */
 const CitationChips: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -45,6 +53,11 @@ const CitationChips: FunctionComponent<ComponentProps> = (
           const icon: IconProp = citation.target
             ? targetTypeToIcon[citation.target.type]
             : IconProp.Search;
+          const drawnLabel: DrawnActionSentence | null = getDrawnCitationLabel(
+            citation,
+            translator,
+          );
+          const label: string = drawnLabel?.text ?? citation.label;
 
           return (
             <button
@@ -55,9 +68,9 @@ const CitationChips: FunctionComponent<ComponentProps> = (
                 isEmpty
                   ? translator.translateTemplate(
                       "{{label}} — checked, found nothing",
-                      { label: citation.label },
+                      { label },
                     )
-                  : citation.label
+                  : label
               }
               onClick={() => {
                 navigateToCitation(citation);
@@ -87,7 +100,13 @@ const CitationChips: FunctionComponent<ComponentProps> = (
                 icon={icon}
                 className="h-3 w-3 flex-shrink-0 text-gray-400"
               />
-              <span className="truncate">{citation.label}</span>
+              <span className="truncate" data-testid="ai-chat-citation-label">
+                {drawnLabel ? (
+                  <ToolActionSentence sentence={drawnLabel} />
+                ) : (
+                  citation.label
+                )}
+              </span>
               <span
                 className={`rounded-full px-1.5 text-[10px] font-medium ${
                   isEmpty
@@ -100,7 +119,7 @@ const CitationChips: FunctionComponent<ComponentProps> = (
                       { one: "{{count}} row", other: "{{count}} rows" },
                       0,
                     )
-                  : `${citation.rowCount}`}
+                  : getCitationRowCountText(citation, translator)}
               </span>
             </button>
           );

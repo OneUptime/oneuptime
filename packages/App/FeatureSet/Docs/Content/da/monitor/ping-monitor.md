@@ -152,6 +152,6 @@ Sonden, der kørte tjekket, kan ikke sende ping, så den tjekkede i stedet TCP-p
 :::cards
 - [IP-monitor](/docs/monitor/ip-monitor): Overvåg en fast IPv4- eller IPv6-adresse.
 - [Port-monitor](/docs/monitor/port-monitor): Tjek en tjeneste på værten, ikke kun værten.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Ping værter på dit eget netværk.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Ping værter på dit eget netværk.
 - [Hændelser](/docs/incidents/index): Hvad der sker, efter at monitoren har erklæret en.
 :::

@@ -46,6 +46,7 @@ import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   networkDeviceId: ObjectID;
@@ -515,8 +516,13 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
     if (result.kind === "error") {
       return (
         <p className="text-sm text-red-700">
-          {result.message ||
-            translateString("The diagnostic could not be started.")}
+          <ErrorInSentence
+            message={
+              result.message ||
+              translateString("The diagnostic could not be started.")
+            }
+            showWhereToLook={true}
+          />
         </p>
       );
     }
@@ -650,7 +656,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
           className="text-sm text-red-700"
           data-testid="network-device-diagnostics-error"
         >
-          {deviceError}
+          <ErrorInSentence message={deviceError} showWhereToLook={true} />
         </p>
       );
     }

@@ -49,6 +49,7 @@ import {
   PROFILE_MONITOR_PREVIEW_SHARE,
   PROFILE_MONITOR_PREVIEW_TITLE,
 } from "./ProfileMonitorCopy";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A PROFILES MONITOR'S SETTINGS, AND WHAT IT WOULD READ NOW.
@@ -327,7 +328,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
           className="text-sm text-red-700"
           data-testid="profile-monitor-preview-error"
         >
-          {previewError}
+          <ErrorInSentence message={previewError} showWhereToLook={true} />
         </p>
       );
     }

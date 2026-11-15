@@ -39,6 +39,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The Session Length page's rows: a dropdown for each length, and the
@@ -234,7 +235,7 @@ export const SessionLengthDropdownRow: FunctionComponent<DropdownRowProps> = (
           role="alert"
           data-testid={`${testId}-error`}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

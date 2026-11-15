@@ -8,7 +8,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import WorkflowStatus from "../../../../Types/Workflow/WorkflowStatus";
+import WorkflowStatus, {
+  getWorkflowStatusLabel,
+} from "../../../../Types/Workflow/WorkflowStatus";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import MonitorProbeService from "../../../Services/MonitorProbeService";
 import ProbeService from "../../../Services/ProbeService";
@@ -35,6 +37,25 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AIActionTableCell,
+  aiActionPluralSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATION_PLURALS,
+  AI_READ_CITATIONS,
+  AI_READ_PROBE_STATUSES,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  citationOf,
+  citationSentence,
+  countFigure,
+  yesOrNo,
+} from "./ReadTableWords";
 import { getDraftFromGraph } from "../../../../Types/Workflow/WorkflowDraft";
 import { readWorkflowGraphRevision } from "../../../../Types/Workflow/WorkflowGraphRevision";
 import { AIChatRecordSeen } from "../../../../Types/AI/AIChatRecordSeen";
@@ -273,7 +294,22 @@ interface WorkflowRunOutcome {
  * is still returned, flagged, so "why did this stop running?" has its answer.
  */
 export const ARCHIVED_WORKFLOW_NOTE: string =
-  "This workflow is archived, so it does not run from any trigger. Unarchive it to run it again.";
+  AI_READ_RECORD_TABLE_LINES.workflowArchived;
+
+/*
+ * A run's status, as the workflow's runs and the Workflows list say it
+ * (Types/Workflow/WorkflowStatus): a cell of the chat's tables in the
+ * reader's language (issue #7977). A status this version does not know
+ * is data, as stored.
+ */
+function workflowRunStatusCell(
+  status: unknown,
+): Record<string, AIActionTableCell> {
+  return typeof status === "string" &&
+    Object.values(WorkflowStatus).includes(status as WorkflowStatus)
+    ? { status: aiActionTerm(getWorkflowStatusLabel(status)) }
+    : {};
+}
 
 // More than this is more than a model can read and write back whole.
 const MAX_WORKFLOW_STEPS_TEXT_LENGTH: number = 48 * 1024;
@@ -499,7 +535,16 @@ export const QueryWorkflowsTool: ObservabilityTool = {
             : serialized.text
         }${steps.text}`,
         rowCount: serialized.rowCount,
-        citationLabel: `Workflow "${workflow.name}" (${runs.length} recent runs)`,
+        // In the reader's language (issues #7977, #7980).
+        ...citationOf(
+          aiActionPluralSentence(
+            AI_READ_CITATION_PLURALS.workflow,
+            runs.length,
+            {
+              name: workflow.name || "",
+            },
+          ),
+        ),
         citationTarget: {
           type: AIChatCitationTargetType.WorkflowView,
           params: { workflowId: workflowId.toString() },
@@ -510,13 +555,28 @@ export const QueryWorkflowsTool: ObservabilityTool = {
         widget:
           runRows.length > 0
             ? WidgetBuilder.table({
-                title: `Workflow "${workflow.name}" — recent runs`,
-                description:
-                  workflow.isArchived === true
-                    ? ARCHIVED_WORKFLOW_NOTE
+                words: {
+                  title: aiActionSentence(
+                    AI_READ_RECORD_TABLE_TITLES.workflowRecentRuns,
+                    { name: workflow.name || "" },
+                  ),
+                  ...(workflow.isArchived === true
+                    ? {
+                        description: aiActionSentence(
+                          AI_READ_RECORD_TABLE_LINES.workflowArchived,
+                        ),
+                      }
                     : workflow.isEnabled
-                      ? undefined
-                      : "This workflow is disabled.",
+                      ? {}
+                      : {
+                          description: aiActionSentence(
+                            AI_READ_RECORD_TABLE_LINES.workflowDisabled,
+                          ),
+                        }),
+                  cells: runRows.map((row: JSONObject) => {
+                    return workflowRunStatusCell(row["status"]);
+                  }),
+                },
                 columns: [
                   {
                     key: "status",
@@ -693,10 +753,15 @@ export const QueryWorkflowsTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel:
-        totalCount > rows.length
-          ? `Workflows (showing ${rows.length} of ${totalCount})`
-          : `Workflows (${serialized.rowCount} found)`,
+      // In the reader's language (issues #7977, #7980).
+      ...(totalCount > rows.length
+        ? citationSentence(AI_READ_CITATIONS.workflowsPaged, {
+            count: countFigure(rows.length),
+            total: countFigure(totalCount),
+          })
+        : citationSentence(AI_READ_CITATIONS.workflows, {
+            count: countFigure(serialized.rowCount),
+          })),
       citationTarget: {
         type: AIChatCitationTargetType.Workflows,
       },
@@ -705,8 +770,29 @@ export const QueryWorkflowsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Workflows (${rows.length})`,
-              description: `Run outcomes from the last ${RECENT_RUNS_LOOKBACK} runs across these workflows`,
+              words: {
+                title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.workflows, {
+                  count: countFigure(rows.length),
+                }),
+                description: aiActionSentence(
+                  AI_READ_RECORD_TABLE_LINES.workflowRunOutcomes,
+                  { count: countFigure(RECENT_RUNS_LOOKBACK) },
+                ),
+                // Enabled as Yes or No, and the last run's status by its word.
+                cells: rows.map(
+                  (row: JSONObject): Record<string, AIActionTableCell> => {
+                    const lastRun: Record<string, AIActionTableCell> =
+                      workflowRunStatusCell(row["lastRunStatus"]);
+
+                    return {
+                      enabled: yesOrNo(row["enabled"] === true),
+                      ...(lastRun["status"]
+                        ? { lastRunStatus: lastRun["status"] }
+                        : {}),
+                    };
+                  },
+                ),
+              },
               columns: [
                 { key: "name", title: translationKey("Name"), type: "text" },
                 {
@@ -902,10 +988,13 @@ export const QueryProbesTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel:
-        rows.length > 0
-          ? `Probes (${serialized.rowCount} found, ${disconnectedCount} disconnected)`
-          : "Probes (0 found)",
+      // In the reader's language (issues #7977, #7980).
+      ...(rows.length > 0
+        ? citationSentence(AI_READ_CITATIONS.probes, {
+            count: countFigure(serialized.rowCount),
+            disconnected: countFigure(disconnectedCount),
+          })
+        : citationSentence(AI_READ_CITATIONS.probesNone)),
       citationTarget: {
         type: AIChatCitationTargetType.Probes,
       },
@@ -914,8 +1003,27 @@ export const QueryProbesTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Probes (${rows.length})`,
-              description: `Disconnected = no heartbeat in the last ${PROBE_STALE_CUTOFF_IN_MINUTES} minutes`,
+              words: {
+                title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.probes, {
+                  count: countFigure(rows.length),
+                }),
+                description: aiActionSentence(
+                  AI_READ_RECORD_TABLE_LINES.probesDisconnected,
+                  { minutes: countFigure(PROBE_STALE_CUTOFF_IN_MINUTES) },
+                ),
+                // Connected or Disconnected, as the Probes page says it.
+                cells: rows.map(
+                  (row: JSONObject): Record<string, AIActionTableCell> => {
+                    return {
+                      status: aiActionTerm(
+                        row["status"] === ProbeConnectionStatus.Connected
+                          ? AI_READ_PROBE_STATUSES.connected
+                          : AI_READ_PROBE_STATUSES.disconnected,
+                      ),
+                    };
+                  },
+                ),
+              },
               columns: [
                 { key: "name", title: translationKey("Name"), type: "text" },
                 {

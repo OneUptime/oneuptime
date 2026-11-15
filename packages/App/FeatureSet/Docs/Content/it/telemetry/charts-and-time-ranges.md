@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Suggerimenti sui grafici
 
-La maggior parte dei grafici che ingrandiscono indica il gesto sopra l'area del grafico, **Trascina per ingrandire** oppure **Fai clic o trascina per ingrandire**, e, mentre è attivo uno zoom, aggiunge il promemoria **fai doppio clic per reimpostare**. Le schede delle metriche, l'explorer delle metriche e i grafici di volume degli explorer mostrano sempre il suggerimento. Sulle schede dei grafici delle panoramiche delle risorse e degli SLO, e su alcuni widget delle dashboard, compare solo mentre puntate sulla scheda o ci entrate con il tasto Tab.
+La maggior parte dei grafici che ingrandiscono indica il gesto sopra l'area del grafico, **Trascina per ingrandire** oppure **Fai clic o trascina per ingrandire**, e, mentre è attivo uno zoom, aggiunge il promemoria **fai doppio clic per reimpostare**. Le schede delle metriche, l'explorer delle metriche e i grafici di volume degli explorer mostrano sempre il suggerimento. Sulle schede dei grafici delle panoramiche delle risorse e degli SLO, e su alcuni widget delle dashboard, compare solo mentre puntate sulla scheda o ci entrate con il tasto Tab. Su un telefono o un tablet le schede delle metriche e dei grafici non mostrano il suggerimento: con un dito non si può trascinare un'area di zoom.
 
 ## Dove funziona
 

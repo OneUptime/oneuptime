@@ -137,7 +137,11 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           windowEnd={props.windowEnd}
           syncId={`database-${props.modelId.toString()}`}
           yFormatter={(value: number): string => {
-            return formatDatabaseRuntimeAxisValue(value, metrics.cpu.unit);
+            return formatDatabaseRuntimeAxisValue(
+              value,
+              metrics.cpu.unit,
+              translator.language,
+            );
           }}
           loading={props.isLoading && props.cpuSeries.length === 0}
         />
@@ -155,7 +159,11 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           windowEnd={props.windowEnd}
           syncId={`database-${props.modelId.toString()}`}
           yFormatter={(value: number): string => {
-            return formatDatabaseRuntimeAxisValue(value, metrics.memory.unit);
+            return formatDatabaseRuntimeAxisValue(
+              value,
+              metrics.memory.unit,
+              translator.language,
+            );
           }}
           loading={props.isLoading && props.memorySeries.length === 0}
         />

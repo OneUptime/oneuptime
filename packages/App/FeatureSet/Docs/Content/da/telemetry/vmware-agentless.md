@@ -113,7 +113,7 @@ Sondens netværk kan ikke nå vCenter på TCP 443. Tillad trafikken gennem firew
 :::
 
 :::details Sonden tog ikke imod dette
-Sonden er offline eller kører en OneUptime-version, der er ældre end VMware-indsamling. Kontrollér, at den er forbundet i tabellen **Brugerdefinerede probes**, og opdater den.
+Sonden er offline eller kører en OneUptime-version, der er ældre end VMware-indsamling. Kontrollér, at den er forbundet i tabellen **Brugerdefinerede sonder**, og opdater den.
 :::
 
 :::details Denne vCenter er for stor til at blive indsamlet af en sonde

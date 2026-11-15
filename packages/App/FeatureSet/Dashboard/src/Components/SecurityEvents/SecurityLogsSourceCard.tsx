@@ -37,7 +37,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const SECURITY_LOGS_SOURCE_CARD_ID: string = "security-logs-source";
 
@@ -461,7 +463,7 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
             className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
             data-testid="security-logs-source-error"
           >
-            {error}
+            <ErrorInSentence message={error} showWhereToLook={true} />
           </p>
         ) : (
           <></>

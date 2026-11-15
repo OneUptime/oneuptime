@@ -1449,10 +1449,12 @@ const IncidentCreate: FunctionComponent<
                         title={getAcknowledgeAlertsTitle(
                           alertsToAcknowledge,
                           alertsToLink.length,
+                          translator,
                         )}
                         description={getAcknowledgeAlertsDescription(
                           alertsToAcknowledge,
                           acknowledgeGate.disabledReason,
+                          translator,
                         )}
                         value={willAcknowledgeAlerts}
                         disabled={!acknowledgeGate.isAllowed}
@@ -1471,6 +1473,7 @@ const IncidentCreate: FunctionComponent<
                       {getAlertsKeepEscalatingNote(
                         alertsToAcknowledge,
                         alertsToLink.length,
+                        translator,
                       )}
                     </p>
                   )}

@@ -25,6 +25,7 @@ import {
   getCloudTestWords,
   getResourceCountWords,
 } from "./CloudConnectionWords";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Test connection": sign in with the settings as they are, and count a
@@ -144,7 +145,7 @@ export const CloudConnectionTestAnswer: FunctionComponent<
         data-testid="cloud-connection-test-error"
         className="rounded-md bg-red-50 p-3 text-sm text-red-800 ring-1 ring-inset ring-red-200"
       >
-        {props.state.message}
+        <ErrorInSentence message={props.state.message} showWhereToLook={true} />
       </div>
     );
   }

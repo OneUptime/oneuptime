@@ -3,6 +3,7 @@ import ValueFormatter, {
   ValueFormatterOptions,
 } from "../../Utils/ValueFormatter";
 import { DASHBOARD_LANGUAGES } from "../Helpers/TranslatedLanguages";
+import { getNumberLocale } from "../../Types/DateLanguage";
 
 describe("ValueFormatter", () => {
   describe("formatValue - bytes", () => {
@@ -159,10 +160,9 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2 KB/s");
     });
 
-    test("falls back to readable form for unknown numerator", () => {
-      expect(ValueFormatter.formatValue(5, "requests/s")).toBe(
-        "5 requests per Second",
-      );
+    test("keeps the slash for a numerator it cannot scale, never the words (#8049)", () => {
+      expect(ValueFormatter.formatValue(5, "requests/s")).toBe("5 requests/s");
+      expect(ValueFormatter.formatValue(100, "req/s")).toBe("100 req/s");
     });
   });
 
@@ -558,7 +558,7 @@ describe("ValueFormatter", () => {
 
     const cases: Array<NoDriftCase> = [
       { value: 23.5, unit: "Cel", expected: "23.5 Celsius" },
-      { value: 12, unit: "ug/m3", expected: "12 ug per m3" },
+      { value: 12, unit: "ug/m3", expected: "12 ug/m3" },
       { value: 23.5, unit: "%", expected: "23.50%" },
       { value: 1536, unit: "By", expected: "1.54 KB" },
       { value: 0, unit: "By", expected: "0 B" },
@@ -580,7 +580,7 @@ describe("ValueFormatter", () => {
       { value: 42, unit: "{thread}", expected: "42" },
       { value: 1500000, unit: "By/s", expected: "1.5 MB/s" },
       { value: 2000, unit: "bytes/s", expected: "2 KB/s" },
-      { value: 5, unit: "requests/s", expected: "5 requests per Second" },
+      { value: 5, unit: "requests/s", expected: "5 requests/s" },
       { value: 98.6, unit: "[degF]", expected: "98.6 Fahrenheit" },
       { value: 10, unit: "hz", expected: "10 Hertz" },
       { value: 5, unit: "v", expected: "5 Volts" },
@@ -956,9 +956,12 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValue(-4.25, "%", de)).toBe(`-4,25${NBSP}%`);
       expect(ValueFormatter.formatValue(1536, "By", de)).toBe("1,54 KB");
       expect(ValueFormatter.formatValue(-2000, "bytes", de)).toBe("-2 KB");
-      expect(ValueFormatter.formatValue(3600, "seconds", de)).toBe("1 hours");
-      expect(ValueFormatter.formatValue(1234, "1", de)).toBe("1,23K");
-      expect(ValueFormatter.formatValue(119250000000, "", de)).toBe("119,25B");
+      // A span of time in German's words, and a big number in its scale (#7518).
+      expect(ValueFormatter.formatValue(3600, "seconds", de)).toBe("1 Stunde");
+      expect(ValueFormatter.formatValue(1234, "1", de)).toBe("1230");
+      expect(ValueFormatter.formatValue(119250000000, "", de)).toBe(
+        `119,25${NBSP}Mrd.`,
+      );
       expect(ValueFormatter.formatValue(0.000123, "", de)).toBe("0,00012");
       expect(ValueFormatter.formatValue(42, "", de)).toBe("42");
       expect(
@@ -999,7 +1002,7 @@ describe("ValueFormatter", () => {
       });
       expect(ValueFormatter.isUnitSetApart(parts)).toBe(false);
       expect(ValueFormatter.formatValue(1536, "By", fa)).toBe("۱٫۵۴ KB");
-      expect(ValueFormatter.formatValue(1234, "1", fa)).toBe("۱٫۲۳K");
+      expect(ValueFormatter.formatValue(1234, "1", fa)).toBe(`۱٫۲۳${NBSP}هزار`);
       expect(ValueFormatter.formatValue(42, "", fa)).toBe("۴۲");
 
       for (const languageCase of CASES) {
@@ -1133,17 +1136,379 @@ describe("ValueFormatter", () => {
       }
     });
 
-    test("the unit's words stay as the formatter names them", () => {
+    test("the unit stays as the formatter names it", () => {
       expect(
         ValueFormatter.formatValueInParts(5, "requests/s", { language: "de" }),
       ).toEqual({
         value: "5",
-        unit: "requests per Second",
-        formatted: "5 requests per Second",
+        unit: "requests/s",
+        formatted: "5 requests/s",
+      });
+    });
+
+    /*
+     * A unit the formatter names in English words it has no translation
+     * of ("Hertz", "Celsius") is named by its caller, who knows the reader
+     * (unitName). Left to itself, it writes the English. A rate keeps its
+     * slash, as a chart writes it (#8049), whatever the caller names.
+     */
+    test("a unit's name in words is the caller's to give, English when it gives none", () => {
+      const naming: ValueFormatterOptions = {
+        language: "de",
+        unitName: (unit: string): string => {
+          return `«${unit}»`;
+        },
+      };
+
+      expect(
+        ValueFormatter.formatValueInParts(5, "Hz", { language: "de" }),
+      ).toEqual({ value: "5", unit: "Hertz", formatted: "5 Hertz" });
+      expect(ValueFormatter.formatValueInParts(5, "Hz", naming)).toEqual({
+        value: "5",
+        unit: "«Hz»",
+        formatted: "5 «Hz»",
       });
       expect(
+        ValueFormatter.formatValueInParts(5, "requests/s", naming),
+      ).toEqual({
+        value: "5",
+        unit: "requests/s",
+        formatted: "5 requests/s",
+      });
+    });
+  });
+
+  /*
+   * THE SCALE AND A SPAN OF TIME, IN THE READER'S LANGUAGE (#7518).
+   *
+   * A Gauge or a Value widget wrote a big number with English's scale
+   * letter after the reader's digits ("1,2K", "۱٫۲K") and a span of time
+   * in English's words ("12,5 hours", "۱ hours"). A language writes them
+   * its own way now: "1,2 Mio.", "۱٫۲ هزار", "120万"; "6,91 Stunden", "۶٫۹۱
+   * ساعت". The symbols every language writes alike stay as they are.
+   */
+  describe("the scale and the time words, in the reader's language", () => {
+    const NBSP: string = String.fromCharCode(0xa0);
+    const LATIN_DIGIT: RegExp = /[0-9]/;
+    const SCALE_LETTER: RegExp = /\d[KMBTP](?![\p{L}])/u;
+    const ENGLISH_TIME_WORD: RegExp = /\b(hours|days)\b/;
+
+    test.each([
+      [1234, "1.23K"],
+      [15300, "15.3K"],
+      [1200000, "1.2M"],
+      [119250000000, "119.25B"],
+      [2.5e12, "2.5T"],
+      [1.5e15, "1.5P"],
+      [-1500, "-1.5K"],
+    ])(
+      "English writes %d as %s, as it always did",
+      (value: number, english: string) => {
+        for (const language of [undefined, "en", "en-GB"]) {
+          expect(ValueFormatter.formatValue(value, "", { language })).toBe(
+            english,
+          );
+          expect(
+            ValueFormatter.formatValueCompact(value, "", { language }).value,
+          ).toBe(english);
+        }
+      },
+    );
+
+    test.each([
+      ["de", 1200000, "1,2 Mio."],
+      ["de", 119250000000, "119,25 Mrd."],
+      ["de", 15300, "15.300"],
+      ["fa", 1200, "۱٫۲ هزار"],
+      ["fa", 1200000, "۱٫۲ میلیون"],
+      ["ar", 1200000, "1.2 مليون"],
+      ["ja", 1200000, "120万"],
+      ["ja", 15300, "1.53万"],
+      ["fr", 1500, "1,5 k"],
+      ["ru", 1500, "1,5 тыс."],
+      ["zh-CN", 1200000, "120万"],
+    ])(
+      "%s writes %d in its own scale: %s",
+      (language: string, value: number, written: string) => {
+        const NARROW_NBSP: string = String.fromCharCode(0x202f);
+        const normalized: (text: string) => string = (text: string) => {
+          return text.split(NBSP).join(" ").split(NARROW_NBSP).join(" ");
+        };
+
+        expect(
+          normalized(ValueFormatter.formatValue(value, "", { language })),
+        ).toBe(written);
+        expect(
+          normalized(
+            ValueFormatter.formatValueCompact(value, "", { language }).value,
+          ),
+        ).toBe(written);
+      },
+    );
+
+    test("a scaled number keeps the two decimals English keeps, rounded as English rounds it", () => {
+      expect(
+        ValueFormatter.formatValue(119254000000, "", { language: "de" }),
+      ).toBe(`119,25${NBSP}Mrd.`);
+      expect(ValueFormatter.formatValue(119250000000, "")).toBe("119.25B");
+    });
+
+    /*
+     * Each language's own short scale, as Intl writes it: a letter only
+     * where the language writes one itself (Italian's and Dutch's "K"
+     * for a thousand, Spanish's "B" for a billón), never English's
+     * letters after a German or a Persian number.
+     */
+    test("every Dashboard language writes a big number in its own short scale", () => {
+      for (const language of DASHBOARD_LANGUAGES) {
+        const own: Intl.NumberFormat = new Intl.NumberFormat(
+          getNumberLocale(language),
+          {
+            notation: "compact",
+            maximumFractionDigits: 2,
+          } as Intl.NumberFormatOptions,
+        );
+
+        for (const value of [1234, 15300, 1.2e6, 119.25e9, 2.5e12, -1500]) {
+          // Rounded to English's two decimals of its scale first.
+          const english: string = ValueFormatter.formatValue(value, "");
+          const scale: Record<string, number> = {
+            K: 1e3,
+            M: 1e6,
+            B: 1e9,
+            T: 1e12,
+          };
+          const rounded: number =
+            Number(english.slice(0, -1)) * (scale[english.slice(-1)] || 1);
+
+          expect({
+            language,
+            value,
+            written: ValueFormatter.formatValue(value, "", { language }),
+          }).toEqual({ language, value, written: own.format(rounded) });
+        }
+      }
+    });
+
+    test("German, French, Russian, Persian, Arabic, Japanese and Chinese write no scale letter of English's", () => {
+      for (const language of ["de", "fr", "ru", "fa", "ar", "ja", "zh-CN"]) {
+        for (const value of [1.2e6, 119.25e9, 2.5e12]) {
+          const written: string = ValueFormatter.formatValue(value, "", {
+            language,
+          });
+
+          expect({
+            language,
+            value,
+            written,
+            letter: SCALE_LETTER.test(written),
+          }).toEqual({ language, value, written, letter: false });
+        }
+      }
+    });
+
+    test("a Persian big number has no Latin digit or letter in it", () => {
+      for (const value of [1234, 15300, 1.2e6, 119.25e9]) {
+        const written: string = ValueFormatter.formatValue(value, "1", {
+          language: "fa",
+        });
+
+        expect(written).not.toMatch(LATIN_DIGIT);
+        expect(written).not.toMatch(/[A-Za-z]/);
+      }
+    });
+
+    test("in German, a span of time in German's words and the form its number takes", () => {
+      const de: ValueFormatterOptions = { language: "de" };
+
+      expect(ValueFormatter.formatValueInParts(3600, "s", de)).toEqual({
+        value: "1",
+        unit: "Stunde",
+        formatted: "1 Stunde",
+      });
+      expect(ValueFormatter.formatValueInParts(6.91 * 3600, "s", de)).toEqual({
+        value: "6,91",
+        unit: "Stunden",
+        formatted: "6,91 Stunden",
+      });
+      expect(ValueFormatter.formatValue(2 * 86400, "s", de)).toBe("2 Tage");
+      expect(ValueFormatter.formatValue(120, "sec", de)).toBe("2 Min.");
+      expect(ValueFormatter.formatValue(1500, "ms", de)).toBe("1,5 Sek.");
+      // A symbol reads as it is: milliseconds, bytes, a percentage.
+      expect(ValueFormatter.formatValue(12, "ms", de)).toBe("12 ms");
+    });
+
+    test("in Persian and Arabic, its words; in Japanese and Chinese, set as they set them", () => {
+      expect(
         ValueFormatter.formatValueInParts(3600, "seconds", { language: "fa" }),
-      ).toEqual({ value: "۱", unit: "hours", formatted: "۱ hours" });
+      ).toEqual({ value: "۱", unit: "ساعت", formatted: "۱ ساعت" });
+      expect(
+        ValueFormatter.formatValue(6.91 * 3600, "s", { language: "fa" }),
+      ).toBe("۶٫۹۱ ساعت");
+      expect(
+        ValueFormatter.formatValue(6.91 * 3600, "s", { language: "ar" }),
+      ).toBe("6.91 ساعة");
+      expect(
+        ValueFormatter.formatValue(6.91 * 3600, "s", { language: "ja" }),
+      ).toBe("6.91 時間");
+
+      const chinese: FormattedValue = ValueFormatter.formatValueInParts(
+        6.91 * 3600,
+        "s",
+        { language: "zh-CN" },
+      );
+
+      expect(chinese).toEqual({
+        value: "6.91",
+        unit: "小时",
+        formatted: "6.91小时",
+      });
+      // Chinese sets no space between them, so the widgets leave none.
+      expect(ValueFormatter.isUnitSetApart(chinese)).toBe(false);
+    });
+
+    test("Arabic's one hour and two, named by a word with no number in it, keep their number", () => {
+      for (const hours of [1, 2]) {
+        const parts: FormattedValue = ValueFormatter.formatValueInParts(
+          hours * 3600,
+          "s",
+          { language: "ar" },
+        );
+
+        expect(parts.value).toBe(String(hours));
+        expect(parts.formatted).toBe(`${hours} ساعة`);
+      }
+    });
+
+    /*
+     * "hours" and "days" are English's words in every other language; "min"
+     * and "sec" are what Intl shortens a minute and a second to - French,
+     * Spanish and Italian write "min" themselves - so those are held to
+     * Intl's own short unit for the language.
+     */
+    test("every Dashboard language names a span of time in its own words", () => {
+      const intlUnitOf: (
+        language: string,
+        unit: string,
+        display: "long" | "short",
+        value: number,
+        decimals: number,
+      ) => string = (
+        language: string,
+        unit: string,
+        display: "long" | "short",
+        value: number,
+        decimals: number,
+      ): string => {
+        return new Intl.NumberFormat(getNumberLocale(language), {
+          style: "unit",
+          unit: unit,
+          unitDisplay: display,
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        } as Intl.NumberFormatOptions)
+          .formatToParts(value)
+          .filter((part: Intl.NumberFormatPart): boolean => {
+            return part.type === "unit";
+          })
+          .map((part: Intl.NumberFormatPart): string => {
+            return part.value;
+          })
+          .join(" ");
+      };
+
+      for (const language of DASHBOARD_LANGUAGES) {
+        for (const [value, unit, intlUnit, display, shown, decimals] of [
+          [6.91 * 3600, "s", "hour", "long", 6.91, 2],
+          [2.5 * 86400, "s", "day", "long", 2.5, 1],
+          [90, "s", "minute", "short", 1.5, 1],
+          [1500, "ms", "second", "short", 1.5, 1],
+        ] as Array<
+          [number, string, string, "long" | "short", number, number]
+        >) {
+          const parts: FormattedValue = ValueFormatter.formatValueInParts(
+            value,
+            unit,
+            { language },
+          );
+
+          expect({ language, value, unit: parts.unit }).toEqual({
+            language,
+            value,
+            unit: intlUnitOf(language, intlUnit, display, shown, decimals),
+          });
+          // The number is found in what it writes, as the widgets draw it apart.
+          expect(parts.formatted.includes(parts.value)).toBe(true);
+          expect(parts.formatted.includes(parts.unit)).toBe(true);
+        }
+
+        for (const [value, unit] of [
+          [3600, "seconds"],
+          [6.91 * 3600, "s"],
+          [2 * 86400, "s"],
+          [1500 * 86400, "s"],
+        ] as Array<[number, string]>) {
+          const written: string = ValueFormatter.formatValue(value, unit, {
+            language,
+          });
+
+          expect({
+            language,
+            written,
+            english: ENGLISH_TIME_WORD.test(written),
+          }).toEqual({ language, written, english: false });
+        }
+      }
+    });
+
+    test("the compact style keeps the symbol: 2 min, 1 h, in every language", () => {
+      for (const language of ["de", "fa", "ar", "ja"]) {
+        expect(
+          ValueFormatter.formatValueCompact(3600, "s", { language }).unit,
+        ).toBe("h");
+        expect(
+          ValueFormatter.formatValueCompact(120, "s", { language }).unit,
+        ).toBe("min");
+      }
+    });
+
+    test("a long span, scaled: in the language's scale and its words", () => {
+      expect(
+        ValueFormatter.formatValue(1500 * 86400, "s", { language: "de" }),
+      ).toBe("1500 Tage");
+      expect(
+        ValueFormatter.formatValue(1500 * 86400, "s", { language: "fa" }),
+      ).toBe(`۱٫۵${NBSP}هزار روز`);
+      expect(ValueFormatter.formatValue(1500 * 86400, "s")).toBe("1.5K days");
+    });
+
+    test("a language Intl cannot read keeps English's letter and words", () => {
+      expect(ValueFormatter.formatValue(1234, "", { language: "!!" })).toBe(
+        "1.23K",
+      );
+      expect(ValueFormatter.formatValue(3600, "s", { language: "!!" })).toBe(
+        "1 hours",
+      );
+    });
+  });
+
+  describe("a rate of a dimensionless count", () => {
+    /*
+     * Its unit chip names it per its period, where it read " per Second"
+     * with a space before it; a value keeps the slash a chart writes it
+     * with (#8049).
+     */
+    test("is named per its period, with no space before it, and written with its slash", () => {
+      expect(ValueFormatter.getReadableUnit("1/s")).toBe("per Second");
+      expect(ValueFormatter.getReadableUnit("1/min")).toBe("per Minute");
+      expect(ValueFormatter.formatValue(12.5, "1/s")).toBe("12.5/s");
+    });
+
+    test("a rate with a numerator reads as it always did", () => {
+      expect(ValueFormatter.getReadableUnit("{request}/s")).toBe(
+        "{request} per Second",
+      );
+      expect(ValueFormatter.getReadableUnit("By/s")).toBe("Bytes per Second");
     });
   });
 

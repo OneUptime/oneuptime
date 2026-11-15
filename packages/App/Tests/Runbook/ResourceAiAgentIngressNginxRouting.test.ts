@@ -210,12 +210,12 @@ const SERVERS: Array<NginxServer> = parseServers(NGINX_SOURCE);
 // The public-facing server block.
 const MAIN_SERVER: NginxServer = ((): NginxServer => {
   const server: NginxServer | undefined = SERVERS.find((s: NginxServer) => {
-    return s.serverName.includes("${HOST_WITHOUT_PORT}");
+    return s.serverName.includes("${HOST_SERVER_NAME}");
   });
 
   if (!server) {
     throw new Error(
-      "No server block with server_name containing ${HOST_WITHOUT_PORT}.",
+      "No server block with server_name containing ${HOST_SERVER_NAME}.",
     );
   }
 

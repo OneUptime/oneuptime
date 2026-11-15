@@ -104,6 +104,9 @@ import {
   buildDefaultTestStatuses,
 } from "../../Helpers/SecurityCaseValues";
 import { stubDashboardSecurityCaseValues } from "./SecurityCaseValuesStub";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -726,5 +729,94 @@ describe("the Playbooks page", () => {
 
     expect(onPill.props).toMatchObject({ text: "Enabled", color: Green });
     expect(offPill.props).toMatchObject({ text: "Disabled", color: Red });
+  });
+});
+
+/*
+ * A tile's buttons are named in one sentence with the template's name
+ * (#8076): "View" or "Add Playbook" and a colon were looked up apart and
+ * joined in English's order, so Japanese, which puts the name first, and
+ * French, which sets its colon apart, could not.
+ */
+describe("the buttons' names, in the reader's language", () => {
+  const inLanguage: (language: string) => i18n = (language: string): i18n => {
+    const instance: i18n = createInstance();
+
+    instance.init({
+      lng: language,
+      fallbackLng: "en",
+      resources: {
+        en: { translation: readDashboardLocale("en") },
+        [language]: { translation: readDashboardLocale(language) },
+      },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+      initImmediate: false,
+    });
+
+    return instance;
+  };
+
+  const renderPickerIn: (language: string) => Promise<void> = async (
+    language: string,
+  ): Promise<void> => {
+    await act(async () => {
+      render(
+        <I18nextProvider i18n={inLanguage(language)}>
+          <MemoryRouter>
+            <SecurityPlaybookTemplatePicker />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+    });
+  };
+
+  test("Japanese names the template first, in its own words", async () => {
+    await renderPickerIn("ja");
+
+    const japanese: Record<string, string> = readDashboardLocale("ja");
+
+    for (const template of SECURITY_PLAYBOOK_TEMPLATES) {
+      const name: string = japanese[template.name] || template.name;
+
+      expect(
+        within(
+          screen.getByTestId(`security-playbook-template-tile-${template.key}`),
+        ).getByRole("button", {
+          name: `プレイブック「${name}」を追加`,
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  test("French sets its colon apart, and an added template's View reads as one sentence", async () => {
+    const french: Record<string, string> = readDashboardLocale("fr");
+    const name: string = french[TEMPLATE.name] || TEMPLATE.name;
+
+    givePlaybooks([name]);
+    await renderPickerIn("fr");
+
+    const tile: HTMLElement = screen.getByTestId(
+      `security-playbook-template-tile-${TEMPLATE.key}`,
+    );
+
+    expect(
+      within(tile).getByTestId(
+        `security-playbook-template-view-${TEMPLATE.key}`,
+      ),
+    ).toHaveAccessibleName(`Voir ${name}`);
+
+    const other: SecurityPlaybookTemplate = SECURITY_PLAYBOOK_TEMPLATES.find(
+      (template: SecurityPlaybookTemplate): boolean => {
+        return template.key !== TEMPLATE.key;
+      },
+    )!;
+
+    expect(
+      screen.getByTestId(`security-playbook-template-${other.key}`),
+    ).toHaveAccessibleName(
+      `Ajouter le playbook : ${french[other.name] || other.name}`,
+    );
   });
 });

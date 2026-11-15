@@ -181,5 +181,5 @@ sequenceDiagram
 - [Ping 監控](/docs/monitor/ping-monitor): 檢查主機本身是否可以連線。
 - [SSL 憑證監控](/docs/monitor/ssl-certificate-monitor): 檢查 TLS 連接埠上的憑證。
 - [資料庫健康狀態監控](/docs/monitor/database-health-monitor): 不止於開放的連接埠，監測資料庫的健康狀態。
-- [自訂探針](/docs/probe/custom-probe): 檢查您自己網路中的連接埠。
+- [自訂探測器](/docs/probe/custom-probe): 檢查您自己網路中的連接埠。
 :::

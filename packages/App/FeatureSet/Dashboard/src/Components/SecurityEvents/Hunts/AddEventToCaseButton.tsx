@@ -24,9 +24,8 @@ import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
@@ -49,7 +48,6 @@ interface AddOutcome {
 const AddEventToCaseButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [isPicking, setIsPicking] = useState<boolean>(false);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [outcome, setOutcome] = useState<AddOutcome | null>(null);
@@ -160,7 +158,7 @@ const AddEventToCaseButton: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid={HUNTS_TEST_IDS.addToCaseResult}
         >
-          {translator.translateText(outcome.message) || outcome.message}
+          <ErrorInSentence message={outcome.message} showWhereToLook={true} />
         </p>
       ) : (
         <></>
