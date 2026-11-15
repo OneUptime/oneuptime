@@ -1,4 +1,5 @@
 import { listPages, readPage } from "./DocsContentSupport";
+import { stripHtmlTags } from "./DocsHtmlText";
 
 /*
  * A docs page read block by block, for the checks that read a translation
@@ -85,13 +86,14 @@ export function blocksOf(markdown: string): Array<DocsBlock> {
 
 // What a block says: no bold labels, code, link targets or markup.
 export function proseOf(text: string): string {
-  return text
-    .replace(/-<br\s*\/?>/g, "")
-    .replace(/<br\s*\/?>/g, " ")
-    .replace(/\*\*[^*]+\*\*/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/\]\([^)]*\)/g, "]")
-    .replace(/<[^>]+>/g, " ");
+  return stripHtmlTags(
+    text
+      .replace(/-<br\s*\/?>/g, "")
+      .replace(/<br\s*\/?>/g, " ")
+      .replace(/\*\*[^*]+\*\*/g, " ")
+      .replace(/`[^`]*`/g, " ")
+      .replace(/\]\([^)]*\)/g, "]"),
+  );
 }
 
 // A sequence diagram's message ("P->>O: text") or note ("Note over P: text").

@@ -7,6 +7,7 @@ import {
   droppedMaintenanceWordIn,
 } from "../../Dashboard/MaintenanceEventWords";
 import { DocsBlock, blocksOf, proseOf } from "./DocsBlocks";
+import { stripHtmlTags } from "./DocsHtmlText";
 import {
   TRANSLATED_LANGUAGES,
   listPages,
@@ -50,12 +51,13 @@ import { describe, expect, test } from "@jest/globals";
 
 // What a block says with its bold labels, for the words of maintenance.
 function wordsOf(text: string): string {
-  return text
-    .replace(/-<br\s*\/?>/g, "")
-    .replace(/<br\s*\/?>/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/\]\([^)]*\)/g, "]")
-    .replace(/<[^>]+>/g, " ");
+  return stripHtmlTags(
+    text
+      .replace(/-<br\s*\/?>/g, "")
+      .replace(/<br\s*\/?>/g, " ")
+      .replace(/`[^`]*`/g, " ")
+      .replace(/\]\([^)]*\)/g, "]"),
+  );
 }
 
 function count(pattern: RegExp, text: string): number {
