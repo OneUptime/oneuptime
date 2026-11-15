@@ -59,6 +59,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   /*
@@ -441,7 +442,10 @@ const PacketCapturesTable: FunctionComponent<ComponentProps> = (
                   role="alert"
                   data-testid="packet-capture-action-error"
                 >
-                  {actionError}
+                  <ErrorInSentence
+                    message={actionError}
+                    showWhereToLook={true}
+                  />
                 </p>
               ) : (
                 <></>

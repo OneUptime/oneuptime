@@ -238,6 +238,8 @@ const VMwareMonitorStepForm: FunctionComponent<ComponentProps> = (
       toOption: (vcenter: VMwareVCenter): DropdownOption => {
         return {
           label: vcenter.name || "Unknown",
+          // Its own name as written; "Unknown" in the reader's words.
+          isUserContent: Boolean(vcenter.name),
           value: vcenter.name || "",
         };
       },

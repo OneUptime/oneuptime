@@ -157,6 +157,6 @@ sequenceDiagram
 :::cards
 - [Ping 監控](/docs/monitor/ping-monitor): 檢查主機本身是否可以連線。
 - [連接埠監控](/docs/monitor/port-monitor): 檢查同一主機上的 TCP 服務。
-- [自訂探針](/docs/probe/custom-probe): 檢查您自己網路中的時間伺服器。
+- [自訂探測器](/docs/probe/custom-probe): 檢查您自己網路中的時間伺服器。
 - [事件與警示範本](/docs/monitor/incident-alert-templating): 將階層和偏差放進事件標題。
 :::

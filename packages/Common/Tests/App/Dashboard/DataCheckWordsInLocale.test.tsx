@@ -45,6 +45,7 @@ const mockCapturedTableProps: Array<Record<string, unknown>> = [];
 const getListMock: MockFunction = getJestMockFunction();
 const createMock: MockFunction = getJestMockFunction();
 const getDismissalsMock: MockFunction = getJestMockFunction();
+const dismissMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
@@ -79,6 +80,9 @@ jest.mock(
         getDismissals: (...args: Array<any>) => {
           return getDismissalsMock(...args);
         },
+        dismiss: (...args: Array<any>) => {
+          return dismissMock(...args);
+        },
       },
     };
   },
@@ -109,7 +113,25 @@ import SuggestedDataChecks, {
   SUGGESTED_CHECK_ROW_CLASS_NAME,
   SUGGESTED_CHECKS_ERROR_TEST_ID,
   SUGGESTED_CHECKS_LIST_CLASS_NAME,
+  SuggestedChecksWhatFailed,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/SuggestedDataChecks";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import {
+  CustomSqlRefusal,
+  DataReconciliationRefusal,
+  MongoPipelineRefusal,
+} from "../../../Types/DataObservability/DataCheckRefusals";
+import APIException from "../../../Types/Exception/ApiException";
+import {
+  getExplanationWords,
+  getUnexplainedServerErrorMessage,
+  readUnexplainedError,
+  SERVER_DOWN_MESSAGE,
+  UNEXPLAINED_ERROR_MESSAGES,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
+import { BILLING_ENABLED } from "../../../UI/Config";
+import { joinSentences } from "../../../UI/Utils/SentenceSeparator";
 import DataObservabilityReconciliationsPage, {
   RECONCILIATION_MEASURES_LINE_CLASS_NAME,
   RECONCILIATION_STATUS_MESSAGE_CLASS_NAME,
@@ -580,6 +602,8 @@ beforeEach(async () => {
   getListMock.mockReset();
   createMock.mockReset();
   getDismissalsMock.mockReset();
+  dismissMock.mockReset();
+  dismissMock.mockResolvedValue(undefined);
   getListMock.mockImplementation(async (...args: Array<unknown>) => {
     const request: { modelType?: unknown } = args[0] as {
       modelType?: unknown;
@@ -967,6 +991,315 @@ describe("Suggested Checks (#7221)", () => {
       );
     },
   );
+});
+
+/*
+ * WHY SUGGESTED CHECKS DID NOT DO WHAT WAS ASKED, IN THE READER'S LANGUAGE
+ * (#7530).
+ *
+ * The card's red line was API.getFriendlyMessage's answer drawn as it
+ * came: the server's refusals in English on every page, and a failure
+ * nobody explained as its English sentence with no reference to copy. A
+ * refusal of the server's is a key of the locales now, and an unexplained
+ * failure is ErrorExplanation: what did not happen (the suggestions were
+ * not loaded, the check was not added, the suggestion was not dismissed),
+ * why, what to do next and the reference.
+ */
+describe("why Suggested Checks did not do what was asked (#7530)", () => {
+  // The words of `language`'s locale: English for a key it has no words for.
+  function wordsOf(language: string): (text: string) => string {
+    const words: Record<string, string> =
+      language === "en" ? {} : readDashboardLocale(language);
+
+    return (text: string): string => {
+      return words[text] || text;
+    };
+  }
+
+  // The words ErrorExplanation says for `message`, in `language`.
+  function explanationIn(language: string, message: string): string {
+    const said: (text: string) => string = wordsOf(language);
+    const words: { why: string; next: string } = getExplanationWords({
+      error: readUnexplainedError(message)!,
+      isCloud: BILLING_ENABLED,
+      isMasterAdmin: false,
+      isVisitor: false,
+    });
+
+    return joinSentences([said(words.why), said(words.next)]);
+  }
+
+  // Add on the first suggestion, failing with `rejection`; the card's error.
+  async function addFailsWith(
+    language: string,
+    rejection: unknown,
+  ): Promise<HTMLElement> {
+    createMock.mockRejectedValue(rejection);
+
+    const items: Array<HTMLElement> = await drawSuggestions(language);
+
+    await act(async () => {
+      fireEvent.click(within(items[0]!).getAllByRole("button")[0]!);
+    });
+
+    return await screen.findByTestId(SUGGESTED_CHECKS_ERROR_TEST_ID);
+  }
+
+  test.each([
+    [
+      "de",
+      new HTTPErrorResponse(502, "<html>Bad Gateway</html>" as never, {}),
+      SERVER_DOWN_MESSAGE,
+    ],
+    [
+      "de",
+      new HTTPErrorResponse(500, {}, {}),
+      UNEXPLAINED_ERROR_MESSAGES.server,
+    ],
+    [
+      "ar",
+      new APIException(
+        "Request failed to https://oneuptime.example.com/api/data-check. Network Error",
+      ),
+      UNEXPLAINED_ERROR_MESSAGES.unreachable,
+    ],
+    [
+      "fa",
+      new HTTPErrorResponse(
+        503,
+        "<html><body><h1>503 Service Temporarily Unavailable</h1></body></html>" as never,
+        {},
+      ),
+      SERVER_DOWN_MESSAGE,
+    ],
+  ])(
+    "in %s, an Add nobody explained says the check was not added, why and what to do next",
+    async (language: string, rejection: unknown, message: string) => {
+      const error: HTMLElement = await addFailsWith(language, rejection);
+      const said: (text: string) => string = wordsOf(language);
+
+      expect(error.tagName).toBe("P");
+      expect(error).toHaveClass("mb-3", "text-sm", "text-red-600");
+      expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+        said(SuggestedChecksWhatFailed.add),
+      );
+      expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+        explanationIn(language, message),
+      );
+      expect(error.textContent).not.toContain(message);
+      expect(error.textContent).not.toContain("<");
+      expect(said(SuggestedChecksWhatFailed.add)).not.toBe(
+        SuggestedChecksWhatFailed.add,
+      );
+      // The suggestion stays, to add again.
+      expect(screen.getAllByTestId(SUGGESTED_CHECK_NAME_TEST_ID)).toHaveLength(
+        ENGLISH_AS_BEFORE.length,
+      );
+    },
+  );
+
+  test("in Persian, an Add nobody explained leaves no English word in the line", async () => {
+    const error: HTMLElement = await addFailsWith(
+      "fa",
+      new HTTPErrorResponse(504, {}, {}),
+    );
+
+    expect(error).not.toHaveAttribute("dir");
+    // The product's name and the command to run are the only Latin letters.
+    expect(
+      (error.textContent || "").replace(
+        /OneUptime|npm run doctor|oneuptime/g,
+        "",
+      ),
+    ).not.toMatch(/[A-Za-z]/);
+  });
+
+  test("a server failure's reference is code, with a Copy button", async () => {
+    const error: HTMLElement = await addFailsWith(
+      "en",
+      new HTTPErrorResponse(
+        500,
+        {
+          error: getUnexplainedServerErrorMessage("1f0c9a2b"),
+          reference: "1f0c9a2b",
+        },
+        {},
+      ),
+    );
+    const reference: HTMLElement = within(error).getByTestId("error-reference");
+
+    expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+      "The check was not added.",
+    );
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
+  });
+
+  test.each([
+    CustomSqlRefusal.notARead,
+    CustomSqlRefusal.writes,
+    MongoPipelineRefusal.noPipeline,
+  ])(
+    "in German, the server's refusal %j reads in German, a line of the page's",
+    async (refusal: string) => {
+      const error: HTMLElement = await addFailsWith(
+        "de",
+        new HTTPErrorResponse(400, { message: refusal }, {}),
+      );
+      const said: string = wordsOf("de")(refusal);
+
+      expect(said).not.toBe(refusal);
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(said);
+      expect(
+        within(error).queryByTestId("error-explanation"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("in German, suggestions that could not be read say so, and why", async () => {
+    getListMock.mockRejectedValue(new HTTPErrorResponse(502, "" as never, {}));
+
+    await inLanguage("de");
+    await act(async () => {
+      render(
+        <SuggestedDataChecks
+          dataAssetId={new ObjectID(TABLE)}
+          dataStoreId={new ObjectID(STORE)}
+          tableName="orders"
+          columns={ORDERS}
+          onChecksAdded={() => {}}
+        />,
+      );
+    });
+
+    const error: HTMLElement = await screen.findByTestId(
+      SUGGESTED_CHECKS_ERROR_TEST_ID,
+    );
+    const said: (text: string) => string = wordsOf("de");
+
+    expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+      said(SuggestedChecksWhatFailed.read),
+    );
+    expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+      explanationIn("de", SERVER_DOWN_MESSAGE),
+    );
+    expect(said(SuggestedChecksWhatFailed.read)).not.toBe(
+      SuggestedChecksWhatFailed.read,
+    );
+  });
+
+  test("in German, a suggestion that could not be dismissed says so, and stays", async () => {
+    dismissMock.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const items: Array<HTMLElement> = await drawSuggestions("de");
+    const said: (text: string) => string = wordsOf("de");
+
+    await act(async () => {
+      fireEvent.click(
+        within(items[0]!).getByRole("button", { name: said("Dismiss") }),
+      );
+    });
+
+    const error: HTMLElement = await screen.findByTestId(
+      SUGGESTED_CHECKS_ERROR_TEST_ID,
+    );
+
+    expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+      said(SuggestedChecksWhatFailed.dismiss),
+    );
+    expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+      explanationIn("de", UNEXPLAINED_ERROR_MESSAGES.unreachable),
+    );
+    expect(said(SuggestedChecksWhatFailed.dismiss)).not.toBe(
+      SuggestedChecksWhatFailed.dismiss,
+    );
+    expect(screen.getAllByTestId(SUGGESTED_CHECK_NAME_TEST_ID)).toHaveLength(
+      ENGLISH_AS_BEFORE.length,
+    );
+  });
+});
+
+/*
+ * The Reconciliations page said why a reconciliation's checks were not set
+ * up with the failure's raw message: a gateway's HTML page, or an empty
+ * body's nothing. It says API.getFriendlyMessage's answer now, inside its
+ * own sentence, in the reader's language (#7530).
+ */
+describe("why a reconciliation was not set up (#7530)", () => {
+  async function saveFailsWith(
+    language: string,
+    rejection: unknown,
+  ): Promise<HTMLElement> {
+    jest
+      .spyOn(DataObservabilityApi, "syncReconciliation")
+      .mockRejectedValue(rejection);
+
+    await inLanguage(language);
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <DataObservabilityReconciliationsPage
+            pageRoute={new Route("/")}
+            currentProject={null}
+            hasPaymentMethod={false}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    const onCreateSuccess: (item: DataReconciliation) => Promise<unknown> =
+      latestProps()["onCreateSuccess"] as (
+        item: DataReconciliation,
+      ) => Promise<unknown>;
+    const item: DataReconciliation = new DataReconciliation();
+    item.id = new ObjectID(TABLE);
+
+    await act(async () => {
+      await onCreateSuccess(item);
+    });
+
+    const notice: HTMLElement | null =
+      document.querySelector<HTMLElement>("p.bg-yellow-50");
+
+    expect(notice).not.toBeNull();
+
+    return notice!;
+  }
+
+  test("a gateway's page is never shown as its markup", async () => {
+    const notice: HTMLElement = await saveFailsWith(
+      "en",
+      new HTTPErrorResponse(
+        502,
+        "<html><head><title>502 Bad Gateway</title></head></html>" as never,
+        {},
+      ),
+    );
+
+    expect(notice.textContent).not.toContain("<");
+    expect(notice.textContent).toContain(UnexplainedErrorWords.serverDownWhy);
+  });
+
+  test("in German, a refusal of the server's reads in German inside the page's sentence", async () => {
+    const notice: HTMLElement = await saveFailsWith(
+      "de",
+      new HTTPErrorResponse(
+        400,
+        { message: DataReconciliationRefusal.sourceNeedsTable },
+        {},
+      ),
+    );
+    const words: Record<string, string> = readDashboardLocale("de");
+
+    expect(notice.textContent).toContain(
+      words[DataReconciliationRefusal.sourceNeedsTable]!,
+    );
+    expect(notice.textContent).not.toContain(
+      DataReconciliationRefusal.sourceNeedsTable,
+    );
+  });
 });
 
 describe("what a check measures, under its name (#7223)", () => {

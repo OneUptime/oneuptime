@@ -218,3 +218,102 @@ describe("the full list of permissions", () => {
     expect(rowOf(Permission.ProjectAdmin)).toBeInTheDocument();
   });
 });
+
+/*
+ * The four Service Telemetry Link permissions guard nothing (#7637), so the
+ * Services group no longer lists them, and no search finds them - while the
+ * group's permissions that guard something are listed as before.
+ */
+describe("the Services group", () => {
+  const RETIRED: Array<Permission> = [
+    Permission.CreateServiceTelemetryService,
+    Permission.ReadServiceTelemetryService,
+    Permission.EditServiceTelemetryService,
+    Permission.DeleteServiceTelemetryService,
+  ];
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("lists the service permissions, and no Service Telemetry Link one", () => {
+    // Opened on Read Service: its group, Services, is the one shown.
+    render(
+      <PermissionPicker
+        onChange={() => {}}
+        initialValue={Permission.ReadService}
+      />,
+    );
+
+    for (const permission of [
+      Permission.CreateService,
+      Permission.ReadService,
+      Permission.EditService,
+      Permission.DeleteService,
+    ]) {
+      expect(rowOf(permission)).toBeInTheDocument();
+    }
+
+    for (const permission of RETIRED) {
+      expect({ permission, row: findRow(permission) }).toEqual({
+        permission,
+        row: null,
+      });
+    }
+
+    expect(screen.queryByText(/Service Telemetry Link/)).toBeNull();
+  });
+
+  // Each group in the side list, with the count it shows beside its name.
+  function groupCounts(): Record<string, string> {
+    const counts: Record<string, string> = {};
+
+    for (const button of screen.getAllByRole("button")) {
+      const name: Element | null = button.querySelector("span.truncate");
+
+      if (name) {
+        counts[name.textContent || ""] =
+          button.querySelectorAll("span")[1]?.textContent || "";
+      }
+    }
+
+    return counts;
+  }
+
+  test("a search for them finds none, in any group", () => {
+    // Opened on Read Service, so the search reads the Services group.
+    render(
+      <PermissionPicker
+        onChange={() => {}}
+        initialValue={Permission.ReadService}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Search permissions..."), {
+      target: { value: "Telemetry Link" },
+    });
+
+    for (const permission of RETIRED) {
+      expect(findRow(permission)).toBeNull();
+    }
+    expect(screen.queryByText(/Service Telemetry Link/)).toBeNull();
+    expect(
+      screen.getByText("No permissions match your search."),
+    ).toBeInTheDocument();
+
+    const counts: Record<string, string> = groupCounts();
+    expect(counts["Services"]).toBe("0");
+    expect(
+      Object.values(counts).every((count: string): boolean => {
+        return count === "0";
+      }),
+    ).toBe(true);
+
+    // The search itself works: a service permission is found by its name.
+    fireEvent.change(screen.getByPlaceholderText("Search permissions..."), {
+      target: { value: "Read Service" },
+    });
+    expect(rowOf(Permission.ReadService)).toBeInTheDocument();
+    expect(Number(groupCounts()["Services"])).toBeGreaterThan(0);
+  });
+});

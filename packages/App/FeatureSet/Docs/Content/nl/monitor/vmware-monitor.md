@@ -1,6 +1,6 @@
 # VMware-monitor
 
-Een VMware-monitor houdt één vCenter in de gaten - de datacenters, clusters, ESXi-hosts, virtuele machines, datastores, resourcepools en vSAN ervan - en laat je weten wanneer een host verzadigd raakt, een VM te weinig CPU of geheugen krijgt, een datastore volloopt of vSphere een alarm geeft. Hij leest de metrieken `vcenter.*` die de OneUptime VMware Agent verzamelt, of die een van je probes zonder agent verzamelt.
+Een VMware-monitor houdt één vCenter in de gaten - de datacenters, clusters, ESXi-hosts, virtuele machines, datastores, resourcepools en vSAN ervan - en laat je weten wanneer een host verzadigd raakt, een VM te weinig CPU of geheugen krijgt, een datastore volloopt of vSphere een alarm geeft. Hij leest de metrieken `vcenter.*` die de OneUptime VMware Agent verzamelt, of die een van je sondes zonder agent verzamelt.
 
 :::cards
 - [De monitor maken](#een-vmware-monitor-maken): Zes stappen in het dashboard.
@@ -14,14 +14,14 @@ Een VMware-monitor houdt één vCenter in de gaten - de datacenters, clusters, E
 De metrieken komen uit de API van vCenter, gelezen met een alleen-lezen account, op een van twee manieren:
 
 - **De VMware Agent**, een OpenTelemetry Collector met zijn receiver `vcenter`, die je draait op een machine die vCenter kan bereiken. Zie [VMware-agent](/docs/telemetry/vmware).
-- **Een probe**, zonder iets te installeren: je koppelt het vCenter in OneUptime en kiest de probe die het bereikt. Zie [VMware zonder agent](/docs/telemetry/vmware-agentless).
+- **Een sonde**, zonder iets te installeren: je koppelt het vCenter in OneUptime en kiest de sonde die het bereikt. Zie [VMware zonder agent](/docs/telemetry/vmware-agentless).
 
 Beide sturen elk verzamelinterval (standaard 2 minuten) dezelfde reeksen, voorzien van de naam van het vCenter, `vmware.vcenter.name`. Een vCenter is één vSphere-endpoint: een vCenter Server of een losse ESXi-host. Een VMware-monitor hoort bij één vCenter. Elke minuut voert hij zijn query uit op de metrieken van dat vCenter en vergelijkt hij het resultaat met zijn criteria.
 
 ```mermaid title="Van een vCenter naar een incident"
 flowchart TB
     vcenter["vCenter Server of ESXi-host"] --> agent["VMware Agent"]
-    vcenter --> probe["Je probe"]
+    vcenter --> probe["Je sonde"]
     agent -->|"vcenter-metrieken<br/>via OTLP"| oneuptime["OneUptime"]
     probe --> oneuptime
     oneuptime --> monitor["VMware-monitor"]
@@ -112,7 +112,7 @@ Templates lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 
 | Template | Categorie | Ernst | Houdt in de gaten | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- | --- |
-| vCenter Stopped Reporting | Beschikbaarheid | Kritiek | `vcenter.datacenter.cpu.limit`, Count over het hele vCenter, **laatste 10 minuten** | Geen gegevens gedurende het hele venster: de agent of probe is gestopt, of het vCenter antwoordt hem niet meer | Er komen weer gegevens binnen |
+| vCenter Stopped Reporting | Beschikbaarheid | Kritiek | `vcenter.datacenter.cpu.limit`, Count over het hele vCenter, **laatste 10 minuten** | Geen gegevens gedurende het hele venster: de agent of sonde is gestopt, of het vCenter antwoordt hem niet meer | Er komen weer gegevens binnen |
 | Host Not Responding | Host | Kritiek | `vcenter.host.memory.usage`, Max per `resource.vcenter.host.name` | Op 0, geen geheugen in gebruik: vCenter heeft het contact met de host verloren (hij crashte, verloor stroom of zijn beheernetwerk, of werd losgekoppeld), of hij is uitgeschakeld of in stand-by. Waar vSphere DPM hosts in stand-by zet, gebruik je **Datacenter Hosts Not Responding**, dat die buiten beschouwing laat | Boven 0 |
 | Host CPU Saturation | Host | Waarschuwing | `vcenter.host.cpu.utilization`, Avg per host | Boven 90 %: elke VM op de host concurreert om cores en toont CPU-ready-tijd | Op 81 % of lager |
 | Host Memory Saturation | Host | Waarschuwing | `vcenter.host.memory.utilization`, Avg per host | Boven 90 %: de host begint geheugen terug te nemen via ballooning, compressie en swapping | Op 81 % of lager |
@@ -368,7 +368,7 @@ vCenter wordt één keer per verzamelinterval gelezen, standaard 2 minuten en va
 
 :::cards
 - [VMware-agent](/docs/telemetry/vmware): De agent installeren die uit vCenter verzamelt.
-- [VMware zonder agent](/docs/telemetry/vmware-agentless): Laat in plaats daarvan een probe verzamelen.
+- [VMware zonder agent](/docs/telemetry/vmware-agentless): Laat in plaats daarvan een sonde verzamelen.
 - [Proxmox-monitor](/docs/monitor/proxmox-monitor): Hetzelfde soort monitor voor Proxmox VE.
 - [Incidenten – Overzicht](/docs/incidents/index): Wat er gebeurt nadat een criterium een incident verklaart.
 :::

@@ -6,7 +6,10 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import {
+  isRecordNameAsWritten,
+  recordNameInSentence,
+} from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -28,6 +31,7 @@ import {
   getPickablePostmortemStatusChoices,
 } from "./PostmortemStatusChoices";
 import Color from "Common/Types/Color";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const POSTMORTEM_STATUS_MENU_TITLE: string =
   translationKey("Move postmortem to");
@@ -166,16 +170,12 @@ const PostmortemStatusPicker: FunctionComponent<ComponentProps> = (
                 "Postmortem status: {{status}}. Change it.",
                 {
                   // Named as the pill draws it: a project's own as written.
-                  status:
-                    current &&
-                    isRecordNameAsWritten(
-                      StateListType.IncidentPostmortemStatus,
-                      current.name,
-                    )
-                      ? current.name
-                      : translatableTerm(
-                          current ? current.name : POSTMORTEM_STATUS_UNKNOWN,
-                        ),
+                  status: current
+                    ? recordNameInSentence(
+                        StateListType.IncidentPostmortemStatus,
+                        current.name,
+                      )
+                    : translatableTerm(POSTMORTEM_STATUS_UNKNOWN),
                 },
               )}
               aria-busy={isSaving}
@@ -246,7 +246,8 @@ const PostmortemStatusPicker: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid={`${testId}-error`}
         >
-          {translator.translateText(POSTMORTEM_STATUS_SAVE_FAILED)} {error}
+          {translator.translateText(POSTMORTEM_STATUS_SAVE_FAILED)}{" "}
+          <ErrorInSentence message={error} />
         </p>
       ) : (
         <></>

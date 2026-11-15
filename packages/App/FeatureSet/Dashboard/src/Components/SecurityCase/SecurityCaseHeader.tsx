@@ -40,6 +40,8 @@ import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import { isArchivedValue } from "Common/Utils/ArchivableValues";
 import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { DetailValueContext } from "Common/UI/Components/Detail/DetailValueContext";
 import Icon from "Common/UI/Components/Icon/Icon";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -57,6 +59,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   securityCase: SecurityCase;
@@ -348,7 +351,12 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                     return (
                       <MoreMenuItem
                         key={`priority-${candidate.id?.toString() || name}`}
-                        text={translator.translateText(name) || name}
+                        text={name}
+                        // A priority the project named itself reads as written.
+                        isUserContent={isRecordNameAsWritten(
+                          StateListType.SecurityCasePriority,
+                          name,
+                        )}
                         color={candidate.color}
                         isChecked={isCurrent}
                         rightElement={
@@ -581,7 +589,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                   {securityCase.assignedToTeam.name}
                 </span>
               ) : (
-                <span className="text-gray-400">-</span>
+                <EmptyValue />
               )}
             </MetaItem>
             <MetaItem label="Opened By">
@@ -590,22 +598,28 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                   icon={getSecurityDetectionSourceIcon(securityCase.source)}
                   className="h-4 w-4 text-gray-400"
                 />
-                {securityCase.source
-                  ? translator.translateText(securityCase.source)
-                  : "-"}
+                {securityCase.source ? (
+                  translator.translateText(securityCase.source)
+                ) : (
+                  <EmptyValue />
+                )}
               </span>
             </MetaItem>
             <MetaItem label="Opened">
-              {securityCase.createdAt
-                ? OneUptimeDate.getDateAsLocalFormattedString(
-                    securityCase.createdAt,
-                  )
-                : "-"}
+              {securityCase.createdAt ? (
+                OneUptimeDate.getDateAsLocalFormattedString(
+                  securityCase.createdAt,
+                )
+              ) : (
+                <EmptyValue />
+              )}
             </MetaItem>
             <MetaItem label="Last Detection">
-              {securityCase.lastDetectedAt
-                ? OneUptimeDate.fromNow(securityCase.lastDetectedAt)
-                : "-"}
+              {securityCase.lastDetectedAt ? (
+                OneUptimeDate.fromNow(securityCase.lastDetectedAt)
+              ) : (
+                <EmptyValue />
+              )}
             </MetaItem>
           </dl>
 

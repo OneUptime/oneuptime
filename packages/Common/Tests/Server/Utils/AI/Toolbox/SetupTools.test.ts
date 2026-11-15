@@ -809,6 +809,97 @@ describe("set_up_website_monitoring", () => {
     );
   });
 
+  /*
+   * "You own this monitor, so you are emailed when its status changes" was
+   * said to a master admin, whom the server never makes the owner of what
+   * they create (#7409): the action makes them one, as the guided setup
+   * does.
+   */
+  test("approved by a master admin, it makes them the monitor's owner, quietly, as the card says", async () => {
+    stubSeeds();
+    stubLocations();
+    stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    const addOwners: Spy = jest
+      .spyOn(MonitorService, "addOwners")
+      .mockResolvedValue(undefined as never);
+    const asMasterAdmin: ToolContext = {
+      ...ctx,
+      props: { ...ctx.props, isMasterAdmin: true },
+    };
+
+    const result: ToolExecutionResult =
+      await SetUpWebsiteMonitoringTool.execute(
+        { address: "example.com" },
+        asMasterAdmin,
+      );
+
+    expect(addOwners).toHaveBeenCalledTimes(1);
+    const [
+      projectId,
+      monitorId,
+      userIds,
+      teamIds,
+      notifyOwners,
+      props,
+    ]: Array<unknown> = addOwners.mock.calls[0] as Array<unknown>;
+
+    expect(String(projectId)).toBe(PROJECT_ID.toString());
+    expect(String(monitorId)).toBe(MONITOR_ID);
+    expect((userIds as Array<ObjectID>).map(String)).toEqual([
+      USER_ID.toString(),
+    ]);
+    expect(teamIds).toEqual([]);
+    // Their own row: nobody is told they were made an owner.
+    expect(notifyOwners).toBe(false);
+    expect(props).toBe(asMasterAdmin.props);
+    expect(result.dataForLlm).toContain(
+      "The person owns it, so they are emailed when its status changes.",
+    );
+  });
+
+  test("approved by anyone else, the server made them the owner already: nothing more is added", async () => {
+    stubSeeds();
+    stubLocations();
+    stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    const addOwners: Spy = jest
+      .spyOn(MonitorService, "addOwners")
+      .mockResolvedValue(undefined as never);
+
+    await SetUpWebsiteMonitoringTool.execute({ address: "example.com" }, ctx);
+
+    expect(addOwners).not.toHaveBeenCalled();
+  });
+
+  test("a master admin who cannot be made the owner still gets the monitor", async () => {
+    stubSeeds();
+    stubLocations();
+    const create: Spy = stubMonitorCreate();
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(MonitorService, "addOwners")
+      .mockRejectedValue(new Error("not a member") as never);
+
+    const result: ToolExecutionResult =
+      await SetUpWebsiteMonitoringTool.execute(
+        { address: "example.com" },
+        { ...ctx, props: { ...ctx.props, isMasterAdmin: true } },
+      );
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(result.citationTarget).toEqual({
+      type: AIChatCitationTargetType.MonitorView,
+      params: { monitorId: MONITOR_ID },
+    });
+  });
+
   test("approved with an address that is not one, or without the project's statuses, it makes nothing and says why", async () => {
     const create: Spy = stubMonitorCreate();
 

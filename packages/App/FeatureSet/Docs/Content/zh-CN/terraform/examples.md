@@ -604,9 +604,9 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 
 要在事件进行期间让其监视器处于某个状态，请用 `monitors` 关联这些监视器，并把 `change_monitor_status_to_id` 设为你的某个监视器状态：事件开始时监视器切换到该状态，事件结束时恢复为正常运行。在事件开始之前，Terraform 会就地修改 `change_monitor_status_to_id`。事件开始后，其监视器已经处于该状态，修改它的 apply 会以“Change Monitor Status to can no longer be changed: this event has already started.”失败。
 
-## 探针
+## 探测器
 
-你自己的探针从你的网络发起检查。给它起个名字，OneUptime 就会生成它的 `key`，也就是探针登录时使用的机密。Terraform 不会在计划和日志中显示这个密钥，输出它的 output 必须标记为 sensitive：
+你自己的探测器从你的网络发起检查。给它起个名字，OneUptime 就会生成它的 `key`，也就是探测器登录时使用的机密。Terraform 不会在计划和日志中显示这个密钥，输出它的 output 必须标记为 sensitive：
 
 ```hcl
 resource "oneuptime_probe" "eu_west" {
@@ -622,7 +622,7 @@ output "eu_west_probe_key" {
 }
 ```
 
-运行探针时，把 `PROBE_ID` 设为探针的 `id`，把 `PROBE_KEY` 设为密钥，`terraform output -raw eu_west_probe_key` 会打印它：参见 [自定义探针](/docs/probe/custom-probe)。要自己选择密钥，请用一个 sensitive 变量设置 `key`。端到端测试 `23-probe-crud` 和 `61-name-only-and-choices` 会应用探针。
+运行探测器时，把 `PROBE_ID` 设为探测器的 `id`，把 `PROBE_KEY` 设为密钥，`terraform output -raw eu_west_probe_key` 会打印它：参见 [自定义探测器](/docs/probe/custom-probe)。要自己选择密钥，请用一个 sensitive 变量设置 `key`。端到端测试 `23-probe-crud` 和 `61-name-only-and-choices` 会应用探测器。
 
 ## 后续步骤
 

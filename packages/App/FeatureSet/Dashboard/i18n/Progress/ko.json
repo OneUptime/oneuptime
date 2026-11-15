@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9077
+    "keys": 52416,
+    "untranslated": 8957
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -84,6 +84,7 @@
     "Mirantis MOSK",
     "MySQL",
     "NAA ID",
+    "OID Collection Template",
     "OK",
     "OR",
     "OS",
@@ -108,6 +109,7 @@
     "PromQL",
     "Proxmox ID",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
@@ -132,6 +134,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Up · In",

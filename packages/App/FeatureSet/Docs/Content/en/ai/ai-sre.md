@@ -451,6 +451,15 @@ With it on, such a fix runs only once two different people approve it. The first
 
 The rule is read when someone approves: turned on, it holds the fixes that already wait; turned off, the next approval runs them. A fix of safe changes only, a runbook and a fix through MCP servers need one approval, as before. A change a cluster or a resource runs on its own, in **Automatic** or **Bypass approval** mode or because its allowlist names it, waits for no approval at all.
 
+### Save a fix that worked as a runbook
+
+When a fix OneUptime AI ran on its own is verified - commands on a Runner, a change through a cluster's or a resource's AI agent, or calls to MCP servers - its card offers **Save as Runbook**. OneUptime writes a runbook of the steps that ran and worked, in the order they ran:
+
+- a command on a Runner becomes a Bash step on that Runner, as written, with the same time limit; one that needed approval waits for an approval in the runbook too;
+- a change through an AI agent or an MCP server becomes a manual step that holds the exact command or call, since a runbook's own steps cannot reach those agents.
+
+Each step says why OneUptime AI ran it, what it does and how to undo it. The runbook is named for the incident or alert it fixed, and starts turned off: nobody can run it, and OneUptime AI never picks it, until someone reviews its steps and turns it on. The card then links to the runbook, and the feed says it was saved. A fix that is not verified, or that ran a runbook already, offers nothing to save, and saving takes the permission to create runbooks.
+
 ## OneUptime AI responds first
 
 An incident or alert on-call rule can let OneUptime AI take the page first. Set the rule's **When should this rule page?** to **After OneUptime AI tries**, under **More fields**. When OneUptime AI may fix what a matching incident or alert is about, the rule's policies wait while AI investigates, fixes and checks its fix, for at most the time set in **Wait for OneUptime AI for up to (minutes)**: 10 minutes by default, from 1 to 30. If AI's fix is verified, OneUptime AI resolves the record and nobody is paged.

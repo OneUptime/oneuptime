@@ -31,14 +31,14 @@ OneUptime 在生产环境中需要三个数据存储。它们各自随不同的�
 ```mermaid title="每个数据存储随什么增长"
 flowchart TB
     Tel["日志、指标、追踪"] -->|"摄取速率<br/>× 保留期"| CH[("ClickHouse")]
-    State["监控器、<br/>事件、用户"] -->|"实体数量和历史"| PG[("PostgreSQL")]
+    State["监视器、<br/>事件、用户"] -->|"实体数量和历史"| PG[("PostgreSQL")]
     Work["队列、缓存、会话"] -->|"队列深度"| VK[("Valkey")]
 ```
 
 | 数据存储 | 存储的内容 | 决定其大小的因素 |
 | --- | --- | --- |
 | **ClickHouse** | 所有遥测数据（日志、指标、追踪、异常、性能剖析） | 遥测的 **摄取速率 × 保留期**。这约占您存储的 95%，是最主要的成本。 |
-| **PostgreSQL** | 配置和状态（监控器、事件、告警、用户、团队、项目、工作流、状态页面、仪表板） | **实体数量和历史**，而不是遥测数据量。增长缓慢。 |
+| **PostgreSQL** | 配置和状态（监视器、事件、告警、用户、团队、项目、工作流、状态页面、仪表板） | **实体数量和历史**，而不是遥测数据量。增长缓慢。 |
 | **Valkey** | 缓存、工作队列和会话 | **队列深度和活跃会话**。受内存限制，规模不大。不是权威数据源。 |
 
 OneUptime 运行时从不需要对象存储（S3、MinIO），也不会把较旧的遥测数据移到对象存储。只有当您选择备份到对象存储时才需要它：CloudNativePG 的 Barman Cloud 插件，或 ClickHouse 的 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup)。Chart 自带的 CloudNativePG 备份（`postgresOperator.cnpg.backup`）会创建卷快照，不需要对象存储。CloudNativePG 从不删除旧快照：请自行清理，否则它们会不断增加。
@@ -96,7 +96,7 @@ PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因
 | --- | --- | --- |
 | App：仪表板、API 和摄取 | `app` | 用户、API 调用和传入的遥测数据 |
 | Worker（与应用拆分时） | `worker` | 遥测数据和后台任务处理 |
-| 探测器 | `probes` | 活跃监控器的数量 |
+| 探测器 | `probes` | 活跃监视器的数量 |
 | 入口网关 | `nginx` | 请求量 |
 | 遥测写入器（开启时） | `telemetryWriter` | 不随负载增长：它把每次遥测插入批量写入 ClickHouse，因此按 ClickHouse 能承受的量确定规模 |
 

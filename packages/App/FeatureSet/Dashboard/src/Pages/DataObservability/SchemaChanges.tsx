@@ -17,6 +17,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const SCHEMA_EVENTS: Array<DataAssetFeedEventType> = [
   DataAssetFeedEventType.ColumnAdded,
@@ -117,11 +118,11 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
           getElement: (item: DataAssetFeed): ReactElement => {
             return (
               <span className="whitespace-nowrap text-sm text-gray-700">
-                {item.postedAt
-                  ? OneUptimeDate.fromNow(
-                      OneUptimeDate.fromString(item.postedAt),
-                    )
-                  : "-"}
+                {item.postedAt ? (
+                  OneUptimeDate.fromNow(OneUptimeDate.fromString(item.postedAt))
+                ) : (
+                  <TableEmptyValue />
+                )}
               </span>
             );
           },
@@ -136,7 +137,7 @@ const DataObservabilitySchemaChangesPage: FunctionComponent<
           },
           getElement: (item: DataAssetFeed): ReactElement => {
             if (!item.dataAssetId) {
-              return <span>-</span>;
+              return <TableEmptyValue />;
             }
 
             return (

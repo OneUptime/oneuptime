@@ -47,6 +47,7 @@ import {
   getOpenStackFact,
   getOpenStackFactText,
 } from "../Utils/OpenStackResourceUtils";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * One volume: its status in Cinder's word, how long it has been there, what holds it and
@@ -290,6 +291,7 @@ const VolumeOverview: FunctionComponent<{
 const OpenStackCloudVolumeDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Volume);
   const row: OpenStackResource | null = part.row;
 
@@ -323,18 +325,22 @@ const OpenStackCloudVolumeDetail: FunctionComponent<
                 description="What this volume has held room for, over the selected time range. It moves when it is extended."
               >
                 <ResourceMetricsTab
-                  queryConfigs={[
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "volume_size",
-                      title: "Volume size",
-                      description: "This volume's size, as Cinder reports it.",
-                      metricName: "openstack_cinder_volume_gb",
-                      legend: "Size",
-                      legendUnit: "GiB",
-                      attributes: { id: part.externalId },
-                    }),
-                  ]}
+                  queryConfigs={chartWordsInReadersLanguage(
+                    [
+                      getOpenStackMetricQuery({
+                        part,
+                        variable: "volume_size",
+                        title: "Volume size",
+                        description:
+                          "This volume's size, as Cinder reports it.",
+                        metricName: "openstack_cinder_volume_gb",
+                        legend: "Size",
+                        legendUnit: "GiB",
+                        attributes: { id: part.externalId },
+                      }),
+                    ],
+                    translator,
+                  )}
                 />
               </Card>
             ),

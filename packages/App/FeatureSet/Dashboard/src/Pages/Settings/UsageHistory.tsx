@@ -27,6 +27,7 @@ import {
 import ModelTableColumn from "Common/UI/Components/ModelTable/Column";
 import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
 import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export type ComponentProps = PageComponentProps;
 
@@ -222,7 +223,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 );
               }
 
-              return <div className="text-gray-400">—</div>;
+              return <TableEmptyValue />;
             },
           },
           /*

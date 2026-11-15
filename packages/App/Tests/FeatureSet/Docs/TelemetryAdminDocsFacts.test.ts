@@ -2849,11 +2849,12 @@ describe("Topology (telemetry/topology)", () => {
       "Components/Topology/NetworkTopologyToolbar.tsx",
     );
 
-    expect(infrastructure).toContain(
-      '{ id: "list", label: "List", icon: IconProp.TableCells },',
+    // Each view's name is a key the toggle looks up (#7725).
+    expect(infrastructure).toMatch(
+      /id: "list",\s+label: translationKey\("List"\),\s+icon: IconProp\.TableCells,/,
     );
-    expect(infrastructure).toContain(
-      '{ id: "map", label: "Map", icon: IconProp.FlowDiagram },',
+    expect(infrastructure).toMatch(
+      /id: "map",\s+label: translationKey\("Map"\),\s+icon: IconProp\.FlowDiagram,/,
     );
     expect(infrastructure).toContain('t("View details")');
     expect(infrastructure).toContain(

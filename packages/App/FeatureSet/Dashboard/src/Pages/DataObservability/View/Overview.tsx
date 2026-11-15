@@ -21,6 +21,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * One database at a glance: how many of its tables are watched and late,
@@ -180,7 +181,13 @@ const StoreOverviewPage: FunctionComponent<
           ) : (
             <></>
           )}
-          {actionError ? <p className="text-red-600">{actionError}</p> : <></>}
+          {actionError ? (
+            <p className="text-red-600">
+              <ErrorInSentence message={actionError} showWhereToLook={true} />
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
       </Card>
 

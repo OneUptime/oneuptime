@@ -40,6 +40,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 /*
  * One field for several kinds of pick - owners are people and teams - in
@@ -417,7 +418,9 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
       </div>
 
       {lookup.error && (
-        <p className="mt-1 text-sm text-gray-500">{lookup.error}</p>
+        <p className="mt-1 text-sm text-gray-500">
+          <ErrorInSentence message={lookup.error} showWhereToLook={true} />
+        </p>
       )}
 
       {props.error && <FieldError id={errorId} message={props.error} />}

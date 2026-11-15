@@ -312,6 +312,7 @@ import ActionButtonSchema, {
   RowActionConfirmation,
 } from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const SWITCH_TITLE: string = "Set as Project Default";
 const SMS_TITLE: string = "Set as Project Default for SMS";
@@ -1396,7 +1397,9 @@ describe("the Project Default column", () => {
         row(CONFIG_ID, true, TwilioConfigUse.CallsAndSms, "calls"),
       ),
     ).toBe("Default for calls");
-    expect(projectDefaultCell(row(OTHER_CONFIG_ID, false))).toBe("-");
+    expect(projectDefaultCell(row(OTHER_CONFIG_ID, false))).toBe(
+      QUIET_DASH_TEXT,
+    );
   });
 
   test("exports what the row says", async () => {

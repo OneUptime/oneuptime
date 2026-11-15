@@ -6,7 +6,7 @@
 - [安装 OneUptime](#安装-oneuptime): 在一台服务器上用 Docker Compose，或在 Kubernetes 上用 Helm chart。
 - [完成服务器设置](#完成服务器设置): 先是邮件，然后是短信和电话，每一项都带测试。
 - [检查你的安装](#检查你的安装): 一条命令，指出哪里有问题。
-- [快速开始](/docs/introduction/quickstart): 你的第一个监控器、第一个值班策略和第一个状态页。
+- [快速开始](/docs/introduction/quickstart): 你的第一个监视器、第一个值班策略和第一个状态页。
 :::
 
 ## 你需要什么
@@ -103,7 +103,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ## 完成服务器设置
 
-Admin Dashboard 的 **服务器设置** 页面位于 `/admin/setup`，按重要程度列出新服务器需要的东西。邮件、HTTPS 和谁可以注册是必需的。短信和电话、一个全局探针、备份和更新检查是推荐的。每一项都有一个按钮，打开设置它的地方，而 `npm start` 最后会输出这个页面的地址。
+Admin Dashboard 的 **服务器设置** 页面位于 `/admin/setup`，按重要程度列出新服务器需要的东西。邮件、HTTPS 和谁可以注册是必需的。短信和电话、一个全局探测器、备份和更新检查是推荐的。每一项都有一个按钮，打开设置它的地方，而 `npm start` 最后会输出这个页面的地址。
 
 :::steps
 ### 设置邮件
@@ -137,7 +137,7 @@ Admin Dashboard 的 **服务器设置** 页面位于 `/admin/setup`，按重要�
 npm run doctor
 ```
 
-它会检查每个容器、`config.env`、`HOST` 能否到达这台服务器、证书和剩余磁盘，并询问 OneUptime 它看到的自身状态，例如邮件和探针。每个问题都附带修复方法：参见[检查你的安装](/docs/installation/docker-compose#检查你的安装)。
+它会检查每个容器、`config.env`、`HOST` 能否到达这台服务器、证书和剩余磁盘，并询问 OneUptime 它看到的自身状态，例如邮件和探测器。每个问题都附带修复方法：参见[检查你的安装](/docs/installation/docker-compose#检查你的安装)。
 @tab Kubernetes
 按 [chart 的故障排除指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it)中的步骤，针对你的集群运行 chart 的诊断脚本。它只读取，最后按严重程度给出它发现的问题摘要。
 :::
@@ -146,7 +146,7 @@ npm run doctor
 
 ## 监控点什么并接收告警
 
-现在你的服务器可以发邮件并向人们发送告警了。[快速开始](/docs/introduction/quickstart)在产品中继续：一个监控你网站的监控器，一个在网站宕机时向你告警的值班策略，以及一个状态页，大约十五分钟完成。它的最后一部分会宣布一次测试事件，让你看到告警到达。
+现在你的服务器可以发邮件并向人们发送告警了。[快速开始](/docs/introduction/quickstart)在产品中继续：一个监控你网站的监视器，一个在网站宕机时向你告警的值班策略，以及一个状态页，大约十五分钟完成。它的最后一部分会宣布一次测试事件，让你看到告警到达。
 
 ## 故障排除
 
@@ -165,7 +165,7 @@ Let's Encrypt 需要能从互联网访问的端口 80 和 443，以及指向这�
 ## 后续步骤
 
 :::cards
-- [快速开始](/docs/introduction/quickstart): 十五分钟内建好一个监控器、一个值班策略和一个状态页。
+- [快速开始](/docs/introduction/quickstart): 十五分钟内建好一个监视器、一个值班策略和一个状态页。
 - [Docker Compose](/docs/installation/docker-compose): 你自己的代理、备份、更新和生产环境清单。
 - [升级](/docs/installation/upgrading): 升级到新版本，一次只升一个主版本。
 - [架构](/docs/self-hosted/architecture): OneUptime 的各部分如何协同工作。

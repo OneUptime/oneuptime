@@ -218,11 +218,9 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
         <SummaryFact
           isWide={true}
           title="URL"
-          value={
-            props.probeMonitorResponse.monitorDestination?.toString() || "-"
-          }
+          value={props.probeMonitorResponse.monitorDestination?.toString()}
         />
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         {/*
          * Reports the VALIDATION verdict, not just how the certificate was
          * signed. "Signed by a CA" was shown for any certificate that was
@@ -247,7 +245,7 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   sslResponse.createdAt,
                 )
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -257,7 +255,7 @@ const CertificateSummary: FunctionComponent<CertificateSummaryProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   sslResponse.expiresAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {/*

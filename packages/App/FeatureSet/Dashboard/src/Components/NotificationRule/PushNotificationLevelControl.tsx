@@ -19,6 +19,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The two ways an on-call push can sound, as the On-Call Rules page offers
@@ -297,7 +298,8 @@ const PushNotificationLevelControl: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid="push-notification-level-error"
         >
-          {translator.translateText(SAVE_FAILED_MESSAGE)} {error}
+          {translator.translateText(SAVE_FAILED_MESSAGE)}{" "}
+          <ErrorInSentence message={error} />
         </p>
       ) : (
         <></>

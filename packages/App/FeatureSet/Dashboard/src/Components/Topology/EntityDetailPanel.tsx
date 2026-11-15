@@ -28,6 +28,8 @@ import PageMap from "../../Utils/PageMap";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   formatInline,
   translatableTerm,
@@ -72,6 +74,7 @@ import {
 } from "../Inventory/ResolveTypedRowLink";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -98,6 +101,10 @@ import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 export interface EntityTrafficSummary {
   inbound: TrafficTotals;
   outbound: TrafficTotals;
+  /*
+   * The map's status line, in the reader's language already ("2 aktive
+   * Vorfälle"): drawn as given, since a line with a count in it is no key.
+   */
   statusLabel: string;
   statusColor: string;
   subtitle: string;
@@ -309,11 +316,16 @@ function toInventoryItem(entity: EntityDetail): InventoryItem {
   return item;
 }
 
-/** One active incident/alert row: title link + severity line. */
+/*
+ * One active incident/alert row: title link + severity line, the severity
+ * read by its list (Common/Utils/DefaultRecordNames): "Critical Incident" in
+ * the reader's words, one the project named itself as written.
+ */
 function renderStatusItem(
   item: ServiceStatusItem,
   viewRoute: Route,
   fallbackColor: string,
+  severityText: string,
 ): ReactElement {
   return (
     <li key={item.id} className="py-2">
@@ -325,12 +337,12 @@ function renderStatusItem(
       >
         {item.title}
       </Link>
-      {item.severityName ? (
+      {severityText ? (
         <p
           className="mt-0.5 text-xs font-medium"
           style={{ color: item.severityColor || fallbackColor }}
         >
-          {item.severityName}
+          {severityText}
         </p>
       ) : (
         <></>
@@ -842,21 +854,27 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           <div className="mt-1 grid grid-cols-3 gap-2">
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatCallRate(totals.calls, props.metricsWindowSeconds)}
+                {formatCallRate(
+                  totals.calls,
+                  props.metricsWindowSeconds,
+                  translator,
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("requests")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatErrorRate(totals.calls, totals.errors)}
+                {formatErrorRate(totals.calls, totals.errors, translator)}
               </p>
               <p className="text-[11px] text-gray-400">{t("errors")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {totals.avgDurationMs === null
-                  ? "—"
-                  : formatDurationMs(totals.avgDurationMs)}
+                {totals.avgDurationMs === null ? (
+                  <EmptyValue />
+                ) : (
+                  formatDurationMs(totals.avgDurationMs)
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
             </div>
@@ -962,9 +980,17 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             {hasMetrics
               ? formatInline(
                   [
-                    formatCallRate(row.callCount!, props.metricsWindowSeconds),
+                    formatCallRate(
+                      row.callCount!,
+                      props.metricsWindowSeconds,
+                      translator,
+                    ),
                     translator.translateTemplate("{{rate}} errors", {
-                      rate: formatErrorRate(row.callCount, row.errorCount),
+                      rate: formatErrorRate(
+                        row.callCount,
+                        row.errorCount,
+                        translator,
+                      ),
                     }),
                     translator.translateTemplate("avg {{duration}}", {
                       duration: formatDurationMs(row.avgDurationMs),
@@ -1065,7 +1091,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className={actionClassNameOf("reload")}
-              aria-label={`${t("Reload list")}: ${title}`}
+              aria-label={translator.translateTemplate(
+                "Reload list: {{title}}",
+                { title: translatableTerm(config.title) },
+              )}
               disabled={Boolean(pending)}
               aria-busy={pending === "reload"}
               ref={registerFocusable(reloadFocusId(config.section))}
@@ -1088,7 +1117,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className={actionClassNameOf("more")}
-              aria-label={`${t("Show more")}: ${title}`}
+              aria-label={translator.translateTemplate("Show more: {{title}}", {
+                title: translatableTerm(config.title),
+              })}
               disabled={Boolean(pending)}
               aria-busy={pending === "more"}
               onClick={() => {
@@ -1274,7 +1305,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   aria-hidden={true}
                 />
                 <span data-testid="entity-detail-status">
-                  {t(props.traffic.statusLabel)}
+                  {props.traffic.statusLabel}
                 </span>
               </div>
             )}
@@ -1321,6 +1352,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                         item,
                         RouteMap[PageMap.INCIDENT_VIEW] as Route,
                         "#dc2626",
+                        translateRecordName(
+                          translator,
+                          StateListType.IncidentSeverity,
+                          item.severityName,
+                        ),
                       );
                     },
                   )}
@@ -1343,6 +1379,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                         item,
                         RouteMap[PageMap.ALERT_VIEW] as Route,
                         "#f59e0b",
+                        translateRecordName(
+                          translator,
+                          StateListType.AlertSeverity,
+                          item.severityName,
+                        ),
                       );
                     },
                   )}

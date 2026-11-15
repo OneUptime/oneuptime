@@ -26,6 +26,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The tables nobody has read for 90 days, biggest first: what they hold,
@@ -212,11 +213,13 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
             return (
               <div className="min-w-0">
                 <span className="block whitespace-nowrap text-sm text-gray-700">
-                  {asset.lastChangedAt
-                    ? OneUptimeDate.fromNow(
-                        OneUptimeDate.fromString(asset.lastChangedAt),
-                      )
-                    : "-"}
+                  {asset.lastChangedAt ? (
+                    OneUptimeDate.fromNow(
+                      OneUptimeDate.fromString(asset.lastChangedAt),
+                    )
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
                 {isStillWritten ? (
                   <span className="block whitespace-nowrap text-xs font-medium text-yellow-700">

@@ -187,6 +187,11 @@ describe("toSentenceTerm", () => {
     ["Vorfälle", "de", "Vorfälle"],
     ["Vorfall-Gruppierungsregeln", "de-AT", "Vorfall-Gruppierungsregeln"],
     ["インシデント", "ja", "インシデント"],
+    // A script without case keeps its Latin words' capitals (#7951).
+    ["Kubernetes Pod", "ja", "Kubernetes Pod"],
+    ["Deployment در Kubernetes", "fa", "Deployment در Kubernetes"],
+    ["Pod في Kubernetes", "ar", "Pod في Kubernetes"],
+    ["Kubernetes Pod", "en", "Kubernetes pod"],
   ])(
     "%s in %s reads %s mid-sentence",
     (label: string, language: string, expected: string) => {

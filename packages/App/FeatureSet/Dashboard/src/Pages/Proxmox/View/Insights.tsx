@@ -33,6 +33,7 @@ import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescripti
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -311,7 +312,10 @@ const ProxmoxClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.CPUChip, "Compute")}
         description="CPU and memory usage across all nodes in the cluster."
-        queryConfigs={getComputeQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getComputeQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -320,7 +324,10 @@ const ProxmoxClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.Cube, "Guests")}
         description="CPU and memory usage across all VMs and containers."
-        queryConfigs={getGuestQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getGuestQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -329,7 +336,10 @@ const ProxmoxClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.Database, "Storage")}
         description="Storage volume usage plus per-second disk read/write throughput across the cluster."
-        queryConfigs={getStorageQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getStorageQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -365,7 +375,10 @@ const ProxmoxClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.ArrowPath, "Replication")}
         description="Storage replication job duration and failed sync counts (pvesr). Charts are empty when this cluster has no replication jobs configured."
-        queryConfigs={getReplicationQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getReplicationQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}

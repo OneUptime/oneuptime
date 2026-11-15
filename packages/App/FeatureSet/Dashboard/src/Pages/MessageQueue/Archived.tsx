@@ -23,6 +23,7 @@ import {
 } from "./Utils/MessageQueuePresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Archived queues. A discovered queue that is not seen for a while is
@@ -141,7 +142,7 @@ const MessageQueueArchivedPage: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || destination || "—"}
+                    {name || destination || <TableEmptyValue />}
                   </AppLink>
                   {destination && destination !== name && (
                     <div className="text-xs text-gray-500 font-mono truncate">
@@ -180,7 +181,7 @@ const MessageQueueArchivedPage: FunctionComponent<
               const broker: MessageQueueBrokerLabel =
                 getMessageQueueBrokerLabel(item);
               if (!broker.text) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span
@@ -259,7 +260,7 @@ const MessageQueueArchivedPage: FunctionComponent<
                   </span>
                 );
               }
-              return <span className="text-gray-400">—</span>;
+              return <TableEmptyValue />;
             },
           },
         ]}

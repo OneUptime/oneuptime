@@ -230,7 +230,7 @@ terraform destroy
 :::
 
 :::details 消息“No monitor status matches {name = "Offline"}”
-你项目的监视器状态使用了其他名称。请使用你在 **监控 → 设置 → 监视器状态** 中看到的名称，或改为按 `is_offline_state = true` 查找状态。
+你项目的监视器状态使用了其他名称。请使用你在 **监视器 → 设置 → 监视器状态** 中看到的名称，或改为按 `is_offline_state = true` 查找状态。
 :::
 
 ## 后续步骤

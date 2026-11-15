@@ -129,7 +129,7 @@ Båda finns på raden **Upptidshistorik** på kortet **Vad din statussida visar*
 - **Visa total upptidsprocent**: ett reglage, av som standard. Medan det är på väljer **Precision** bredvid hur många decimaler procenten visar: `99%`, `99.9%`, `99.99%` (standard) eller `99.999%`. På OneUptime Cloud kräver det planen **Scale** att aktivera procenten; dess precision kan ändras på alla planer.
 - **Räknas som driftstopp**: monitorstatusarna, som färgade märken, vars tid räknas mot upptiden på den här sidan. Här avgör du till exempel om en försämrad status räknas mot upptiden. Minst en status förblir vald.
 
-De var tidigare två egna kort, **Total upptidsprocent** och **Statusar för driftstoppsövervakare**, vart och ett bakom en knapp **Redigera**. Se [Välja vad som visas på sidan](/docs/status-pages/index#välja-vad-som-visas-på-sidan) för resten av kortet.
+De var tidigare två egna kort, **Total upptidsprocent** och **Monitorstatusar för driftstopp**, vart och ett bakom en knapp **Redigera**. Se [Välja vad som visas på sidan](/docs/status-pages/index#välja-vad-som-visas-på-sidan) för resten av kortet.
 
 ## Anpassad HTML, CSS och JavaScript
 

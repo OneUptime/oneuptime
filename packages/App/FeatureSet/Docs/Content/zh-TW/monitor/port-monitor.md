@@ -98,7 +98,7 @@ sequenceDiagram
 | **DNS 查詢** | 檢查開始 | 第一次 TCP 連線嘗試 |
 | **TCP 連線** | 第一次 TCP 連線嘗試 | 連線被接受，包括在 IPv6 和 IPv4 位址之間切換所花的時間 |
 
-**Total Connection Time (DNS + TCP)** 從檢查開始一直計算到連線被接受。它也是連接埠監測器的回應時間，因此使用回應時間的現有條件、警示和圖表都能繼續運作。
+**總連線時間（DNS + TCP）** 從檢查開始一直計算到連線被接受。它也是連接埠監測器的回應時間，因此使用回應時間的現有條件、警示和圖表都能繼續運作。
 
 當目標是 IP 位址時，不需要 DNS 查詢，因此會省略該階段。在有分階段計時之前的檢查結果只會顯示總連線時間。
 
@@ -181,5 +181,5 @@ sequenceDiagram
 - [Ping 監控](/docs/monitor/ping-monitor): 檢查主機本身是否可以連線。
 - [SSL 憑證監控](/docs/monitor/ssl-certificate-monitor): 檢查 TLS 連接埠上的憑證。
 - [資料庫健康狀態監控](/docs/monitor/database-health-monitor): 不止於開放的連接埠，監測資料庫的健康狀態。
-- [自訂探針](/docs/probe/custom-probe): 檢查您自己網路中的連接埠。
+- [自訂探測器](/docs/probe/custom-probe): 檢查您自己網路中的連接埠。
 :::

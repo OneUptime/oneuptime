@@ -11,11 +11,11 @@
 
 ## 運作方式
 
-每次檢查時，探測器會依 **Lookup Method** 透過 RDAP 或 WHOIS 查詢網域的註冊記錄，並將查到的內容正規化：到期日、註冊商、名稱伺服器和狀態碼。查詢失敗時會重試，最多重試您設定的次數。接著 OneUptime 會以監測器的條件評估該記錄。
+每次檢查時，探測器會依 **查詢方式** 透過 RDAP 或 WHOIS 查詢網域的註冊記錄，並將查到的內容正規化：到期日、註冊商、名稱伺服器和狀態碼。查詢失敗時會重試，最多重試您設定的次數。接著 OneUptime 會以監測器的條件評估該記錄。
 
 ```mermaid title="查詢如何讀取註冊資訊"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto 或 RDAP"| rdap["詢問該 TLD 的<br/>RDAP 伺服器"]
+    method{"查詢方式"} -->|"Auto 或 RDAP"| rdap["詢問該 TLD 的<br/>RDAP 伺服器"]
     method -->|"WHOIS"| whois["詢問該 TLD 的<br/>WHOIS 伺服器"]
     rdap -->|"找到記錄"| record["註冊記錄"]
     rdap -->|"沒有 RDAP 或發生錯誤，<br/>使用 Auto 時"| whois
@@ -56,7 +56,7 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 
 ### 輸入網域
 
-輸入 **網域名稱**，例如 `example.com`。除非有理由，否則請讓 **Lookup Method** 保持為 **Auto**（請參閱 [查詢方式](#查詢方式)）。
+輸入 **網域名稱**，例如 `example.com`。除非有理由，否則請讓 **查詢方式** 保持為 **Auto**（請參閱 [查詢方式](#查詢方式)）。
 
 ### 測試
 
@@ -76,7 +76,7 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 | 欄位 | 預設值 | 要填寫的內容 |
 | --- | --- | --- |
 | **網域名稱** | 無 | 已註冊的網域，例如 `example.com`。貼上的位址也可以：`https://example.com/pricing` 會被讀作 `example.com`。 |
-| **Lookup Method** | **Auto** | **Auto**、**RDAP** 或 **WHOIS**。請參閱 [查詢方式](#查詢方式)。 |
+| **查詢方式** | **Auto** | **Auto**、**RDAP** 或 **WHOIS**。請參閱 [查詢方式](#查詢方式)。 |
 | **逾時（ms）**（在 **更多欄位** 下） | `10000` | 等待每次註冊查詢的時間，單位為毫秒。 |
 | **重試**（在 **更多欄位** 下） | `3` | 第一次嘗試失敗後的重試次數。`0` 表示只嘗試一次。 |
 
@@ -163,11 +163,11 @@ RDAP 請求會遵循探測器的 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROX
 ## 疑難排解
 
 :::details WHOIS 伺服器「answered without any registration data」
-該 TLD 的 WHOIS 主機已停用、正在對探測器限速，或暫時故障。已停用的主機（例如 Identity Digital 的 TLD 仍對應到的那台）每次都回答 `TLD is not supported.`。如果在 **Lookup Method** 為 **WHOIS** 時故障持續發生，請切換到 **Auto**，讓探測器在有 RDAP 服務的地方讀取該 TLD 的 RDAP 服務。
+該 TLD 的 WHOIS 主機已停用、正在對探測器限速，或暫時故障。已停用的主機（例如 Identity Digital 的 TLD 仍對應到的那台）每次都回答 `TLD is not supported.`。如果在 **查詢方式** 為 **WHOIS** 時故障持續發生，請切換到 **Auto**，讓探測器在有 RDAP 服務的地方讀取該 TLD 的 RDAP 服務。
 :::
 
 :::details 檢查失敗，並顯示「No RDAP service is published」
-監測器使用的是 **RDAP**，而該 TLD 沒有發布 RDAP 服務，許多 ccTLD 都是如此。請將 **Lookup Method** 切換為會改用 WHOIS 的 **Auto**。
+監測器使用的是 **RDAP**，而該 TLD 沒有發布 RDAP 服務，許多 ccTLD 都是如此。請將 **查詢方式** 切換為會改用 WHOIS 的 **Auto**。
 :::
 
 :::details 網域被回報為未註冊

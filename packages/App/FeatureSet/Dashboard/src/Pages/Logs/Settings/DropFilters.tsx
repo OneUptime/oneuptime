@@ -23,6 +23,7 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
 ### How Log Drop Filters Work
@@ -257,7 +258,10 @@ const LogDropFilters: FunctionComponent<
                 />
               );
             }
-            return <Pill color={Red} text={item.action || "-"} />;
+            if (!item.action) {
+              return <TableEmptyValue />;
+            }
+            return <Pill color={Red} text={item.action} />;
           },
         },
         {

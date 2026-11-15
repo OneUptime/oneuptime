@@ -53,6 +53,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Device Overview — the "is it OK, and what is it?" page. Health hero on
@@ -90,7 +91,7 @@ function effectiveDetailElement(
   const detail: NetworkDeviceEffectiveInput = effectiveDetail(item, key);
 
   if (!detail.value) {
-    return <span>-</span>;
+    return <TableEmptyValue />;
   }
 
   return (

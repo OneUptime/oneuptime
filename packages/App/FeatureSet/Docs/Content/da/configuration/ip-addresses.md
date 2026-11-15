@@ -1,10 +1,10 @@
 # IP-adresser
 
-OneUptime Clouds probes tjekker dine websites, API'er og servere fra et fast sæt IP-adresser. Står der en firewall eller en tilladelsesliste foran det, du overvåger, så tillad disse adresser, så tjekkene kommer igennem.
+OneUptime Clouds sonder tjekker dine websites, API'er og servere fra et fast sæt IP-adresser. Står der en firewall eller en tilladelsesliste foran det, du overvåger, så tillad disse adresser, så tjekkene kommer igennem.
 
 ```mermaid title="Hvor tilladelseslisten gælder"
 flowchart TB
-    P["OneUptime-probes"] -->|"tjekker fra de angivne IP'er"| F["Din firewall"]
+    P["OneUptime-sonder"] -->|"tjekker fra de angivne IP'er"| F["Din firewall"]
     F -->|"tilladt"| S["Dit website, API eller din server"]
 ```
 
@@ -39,7 +39,7 @@ curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
 
 ## Selvhostet OneUptime
 
-På din egen instans viser denne side og endepunktet `/ip-whitelist` adresserne fra instansens indstilling `IP_WHITELIST`, en kommasepareret liste. Angiv de adresser, dine egne probes sender deres tjek fra.
+På din egen instans viser denne side og endepunktet `/ip-whitelist` adresserne fra instansens indstilling `IP_WHITELIST`, en kommasepareret liste. Angiv de adresser, dine egne sonder sender deres tjek fra.
 
 :::tabs
 @tab Kubernetes
@@ -64,6 +64,6 @@ Når intet er angivet, viser denne side **No IP addresses configured.**, og ende
 ## Næste trin
 
 :::cards
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Kør en probe i dit eget netværk i stedet for at åbne firewallen.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Kør en sonde i dit eget netværk i stedet for at åbne firewallen.
 - [Opret en monitor](/docs/monitor/create-monitor): Begynd at tjekke et website, et API eller en server.
 :::

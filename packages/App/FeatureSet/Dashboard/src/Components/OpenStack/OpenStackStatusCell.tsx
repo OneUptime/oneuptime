@@ -10,6 +10,7 @@ import {
   OpenStackStatusReading,
   getOpenStackStatusReading,
 } from "./OpenStackStatus";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * A row's state in an OpenStack list: the shared status pill (ResourceStatusCell),
@@ -81,7 +82,7 @@ const OpenStackStatusCell: FunctionComponent<ComponentProps> = (
     : ownReading;
 
   if (!reading) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const resource: ReturnType<typeof toOpenStackStatusResource> =

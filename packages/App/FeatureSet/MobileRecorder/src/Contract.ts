@@ -407,4 +407,10 @@ export interface SessionReplayIdlePausedPayload {
 export interface SessionReplayIdleResumedPayload {
   pausedAtUnixMs: number;
   resumedAtUnixMs: number;
+  /*
+   * The reason of the pause this ends, as its paused marker gave it
+   * (issue #7498). Never set here, as reason is never set on a paused
+   * marker of this recorder's.
+   */
+  reason?: "page";
 }

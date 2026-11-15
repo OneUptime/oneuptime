@@ -52,12 +52,15 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
   BurnRateRuleWindowsText,
   formatBurnRateRuleWindows,
   getNamesOrNothingPicked,
+  getSeverityOrNothingPicked,
 } from "../Utils/BurnRateRuleLines";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
 ### How Burn Rate Rules Work
@@ -202,7 +205,7 @@ const renderLines: RenderLinesFunction = (
   lines: Array<string>,
 ): ReactElement => {
   if (lines.length === 0) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -437,7 +440,7 @@ const SloBurnRateRules: FunctionComponent<
               );
 
               if (threshold === null) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <span className="text-sm text-gray-900">{threshold}</span>;
             },
@@ -581,25 +584,34 @@ const SloBurnRateRules: FunctionComponent<
 
               if (willCreateAlert(item)) {
                 lines.push(
-                  translator.translateTemplate("Alert: {{severity}}", {
-                    severity: getNamesOrNothingPicked(
-                      [item.alertSeverity?.name],
-                      BURN_RATE_RULE_NOTHING_PICKED.severity,
-                      translator,
-                    ),
-                  }),
+                  translator.translateTemplate(
+                    "Alert: {{severity}}",
+                    {
+                      severity: getSeverityOrNothingPicked(
+                        StateListType.AlertSeverity,
+                        item.alertSeverity?.name,
+                        translator,
+                      ),
+                    },
+                    // A Latin name stays in order on a right-to-left page.
+                    { setsValuesApart: true },
+                  ),
                 );
               }
 
               if (willDeclareIncident(item)) {
                 lines.push(
-                  translator.translateTemplate("Incident: {{severity}}", {
-                    severity: getNamesOrNothingPicked(
-                      [item.incidentSeverity?.name],
-                      BURN_RATE_RULE_NOTHING_PICKED.severity,
-                      translator,
-                    ),
-                  }),
+                  translator.translateTemplate(
+                    "Incident: {{severity}}",
+                    {
+                      severity: getSeverityOrNothingPicked(
+                        StateListType.IncidentSeverity,
+                        item.incidentSeverity?.name,
+                        translator,
+                      ),
+                    },
+                    { setsValuesApart: true },
+                  ),
                 );
               }
 
@@ -760,7 +772,7 @@ const SloBurnRateRules: FunctionComponent<
               }
 
               if (labels.length === 0) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
 
               return <LabelsElement labels={labels} />;

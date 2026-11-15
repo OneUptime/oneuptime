@@ -22,6 +22,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   // The dropped tables, kept with their history; or the tables still there.
@@ -213,11 +214,13 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
           getElement: (asset: DataAsset): ReactElement => {
             return (
               <span className="whitespace-nowrap text-sm text-gray-700">
-                {asset.lastChangedAt
-                  ? OneUptimeDate.fromNow(
-                      OneUptimeDate.fromString(asset.lastChangedAt),
-                    )
-                  : "-"}
+                {asset.lastChangedAt ? (
+                  OneUptimeDate.fromNow(
+                    OneUptimeDate.fromString(asset.lastChangedAt),
+                  )
+                ) : (
+                  <TableEmptyValue />
+                )}
               </span>
             );
           },

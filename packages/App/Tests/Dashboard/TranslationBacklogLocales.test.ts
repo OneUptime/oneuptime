@@ -20,6 +20,7 @@ import {
   getPermissionTitlesText,
 } from "../../FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import { getNotYetInStateText } from "../../FeatureSet/Dashboard/src/Utils/EventOverview";
+import { StateListType } from "Common/Utils/StateOrder";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import { SLO_WINDOW_TYPE_NAMES } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
@@ -736,25 +737,45 @@ describe("Japanese Dismiss", () => {
 
 describe("a stat tile before its state is reached", () => {
   test("is one sentence in the reader's language, the state named in it", () => {
-    expect(getNotYetInStateText("Acknowledged", translatorFor("en"))).toBe(
-      "Not yet acknowledged",
-    );
-    expect(getNotYetInStateText("Acknowledged", translatorFor("de"))).toBe(
-      "Noch nicht „Bestätigt“",
-    );
-    expect(getNotYetInStateText("Resolved", translatorFor("fr"))).toBe(
-      "Pas encore résolu",
-    );
-    expect(getNotYetInStateText("Acknowledged", translatorFor("ru"))).toBe(
-      "Ещё не подтверждён",
-    );
+    expect(
+      getNotYetInStateText(
+        StateListType.IncidentState,
+        "Acknowledged",
+        translatorFor("en"),
+      ),
+    ).toBe("Not yet acknowledged");
+    expect(
+      getNotYetInStateText(
+        StateListType.IncidentState,
+        "Acknowledged",
+        translatorFor("de"),
+      ),
+    ).toBe("Noch nicht „Bestätigt“");
+    expect(
+      getNotYetInStateText(
+        StateListType.IncidentState,
+        "Resolved",
+        translatorFor("fr"),
+      ),
+    ).toBe("Pas encore résolu");
+    expect(
+      getNotYetInStateText(
+        StateListType.IncidentState,
+        "Acknowledged",
+        translatorFor("ru"),
+      ),
+    ).toBe("Ещё не подтверждён");
   });
 
   test.each(LANGUAGES)(
     "never reads the English 'Not yet' in %s",
     (code: string) => {
       expect(
-        getNotYetInStateText("Acknowledged", translatorFor(code)),
+        getNotYetInStateText(
+          StateListType.IncidentState,
+          "Acknowledged",
+          translatorFor(code),
+        ),
       ).not.toMatch(/^Not yet/);
     },
   );

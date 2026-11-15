@@ -130,11 +130,11 @@ I criteri predefiniti non sorvegliano da soli la scadenza delle firme né la coe
 ## Risoluzione dei problemi
 
 :::details La catena risulta interrotta, ma la zona si convalida con `dig`
-Uno dei resolver in **Risolutori** non ha restituito il flag AD: non era raggiungibile dalla sonda, oppure non convalida DNSSEC. La tabella **Resolver Checks**, in **Risultato del test del monitor** e nel riepilogo di ogni controllo, mostra la risposta e l'errore di ogni resolver. Togliete i resolver che la sonda non raggiunge, e indicate solo resolver di convalida.
+Uno dei resolver in **Risolutori** non ha restituito il flag AD: non era raggiungibile dalla sonda, oppure non convalida DNSSEC. La tabella **Controlli dei resolver**, in **Risultato del test del monitor** e nel riepilogo di ogni controllo, mostra la risposta e l'errore di ogni resolver. Togliete i resolver che la sonda non raggiunge, e indicate solo resolver di convalida.
 :::
 
 :::details I nameserver risultano incoerenti subito dopo una modifica
-I secondari possono restare indietro rispetto al primario per un po' dopo una modifica della zona. La tabella **Nameserver Consistency** nel riepilogo del controllo mostra il numero di serie SOA di ogni nameserver. Se uno resta indietro, quel secondario ha smesso di ricevere i trasferimenti. Se ogni nameserver mostra un errore, alla sonda potrebbe essere impedito di interrogarli direttamente: disattivate **Verifica la coerenza dei nameserver**.
+I secondari possono restare indietro rispetto al primario per un po' dopo una modifica della zona. La tabella **Coerenza dei name server** nel riepilogo del controllo mostra il numero di serie SOA di ogni nameserver. Se uno resta indietro, quel secondario ha smesso di ricevere i trasferimenti. Se ogni nameserver mostra un errore, alla sonda potrebbe essere impedito di interrogarli direttamente: disattivate **Verifica la coerenza dei nameserver**.
 :::
 
 :::details Il controllo segnala un timeout

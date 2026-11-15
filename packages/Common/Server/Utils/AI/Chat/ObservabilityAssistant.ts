@@ -770,6 +770,9 @@ export default class ObservabilityAssistant {
             id: citationId,
             toolName: toolCall.name,
             label: outcome.result.citationLabel,
+            ...(outcome.result.citationWords
+              ? { words: outcome.result.citationWords }
+              : {}),
             queryArguments: toolCall.arguments,
             rowCount: outcome.result.rowCount,
             target: outcome.result.citationTarget,

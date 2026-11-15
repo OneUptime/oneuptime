@@ -16,6 +16,7 @@ import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const OpenStackArchivedPage: FunctionComponent<
   PageComponentProps
@@ -118,7 +119,7 @@ const OpenStackArchivedPage: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -180,7 +181,7 @@ const OpenStackArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: OpenStackCloud): ReactElement => {
               if (!item["archivedByUser"]) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
             },

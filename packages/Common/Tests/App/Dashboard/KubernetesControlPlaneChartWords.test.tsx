@@ -98,7 +98,7 @@ jest.mock(
 );
 
 import KubernetesClusterControlPlane from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/ControlPlane";
-import { chartWordsInReadersLanguage } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesChartWords";
+import { chartWordsInReadersLanguage } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/ChartWordsInReadersLanguage";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 // The page reads its cluster from the address, not from its props.

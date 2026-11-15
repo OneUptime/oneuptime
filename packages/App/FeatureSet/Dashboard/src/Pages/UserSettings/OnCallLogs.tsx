@@ -31,6 +31,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -212,7 +213,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
               // A direct page has no rules to name.
               if (isOnCallDirectPage(item)) {
-                return <p>-</p>;
+                return <TableEmptyValue />;
               }
 
               return <p>{translator.translateText("No escalation rule.")}</p>;

@@ -154,7 +154,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
           title="NTP Server"
           value={serverAddress ? `${server} (${serverAddress})` : server}
         />
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -169,7 +169,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
               ? translator.translateTemplate(
                   ntpResponse?.isSynchronized ? "Yes" : "No",
                 )
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -179,7 +179,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   response.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {response.failureCause ? (
@@ -210,7 +210,7 @@ const NtpMonitorView: FunctionComponent<ComponentProps> = (
           <SummaryFact
             title="Reference"
             tooltip="What the server synchronizes to: a source such as GPS at stratum 1, or its upstream server's address."
-            value={ntpResponse.referenceId || "-"}
+            value={ntpResponse.referenceId}
           />
           <SummaryFact
             title="Response Time"

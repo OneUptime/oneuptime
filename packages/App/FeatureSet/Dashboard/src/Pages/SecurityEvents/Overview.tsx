@@ -68,6 +68,8 @@ import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -346,7 +348,12 @@ const SecurityOverviewPage: FunctionComponent<
     .map((priority: SecurityOverviewValue): RankedBarItem => {
       return {
         key: priority._id,
-        label: translator.translateText(priority.name) || priority.name,
+        // By its list: a priority the project named "Open" as written.
+        label: translateRecordName(
+          translator,
+          StateListType.SecurityCasePriority,
+          priority.name,
+        ),
         count: metrics.openByPriority[priority._id] || 0,
         color: priority.color || Gray500.toString(),
       };
@@ -362,7 +369,11 @@ const SecurityOverviewPage: FunctionComponent<
       .map((status: SecurityOverviewValue): RankedBarItem => {
         return {
           key: status._id,
-          label: translator.translateText(status.name) || status.name,
+          label: translateRecordName(
+            translator,
+            StateListType.SecurityCaseStatus,
+            status.name,
+          ),
           count: metrics.openByStatus[status._id] || 0,
           color: status.color || Gray500.toString(),
         };

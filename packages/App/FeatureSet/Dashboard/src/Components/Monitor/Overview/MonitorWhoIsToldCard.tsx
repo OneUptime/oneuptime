@@ -9,11 +9,14 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import WhoIsToldApi from "./WhoIsToldApi";
 import {
   ADMIN_DASHBOARD_FIX_WORDS,
+  FALLBACK_CHANNELS_NOTE,
   WhoIsToldFixLink,
   getBreakSentence,
   getChannelName,
   getFixLink,
+  getWhoIsToldSeverityValue,
   getWhoIsToldSummary,
+  OPENS_CHAIN_LINES,
 } from "./WhoIsToldWords";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -48,6 +51,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -139,6 +144,11 @@ const ChainRow: FunctionComponent<{
  * code, as the test page's dialog words it ("Team Platform", "Schedule
  * Primary (next in rotation)"), the name set apart from the words around
  * it; a server that sends no code has its English shown (#7261).
+ *
+ * Somebody no rule of theirs covers the severity for is reached by what the
+ * project's fallback picks (#7528): often their email alone, though they
+ * verified a number too. The line says so after the channels, so "Email"
+ * never reads as a gap in their own rules.
  */
 const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
   person: WhoIsToldPerson;
@@ -178,14 +188,26 @@ const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
         )}
         {separator}
         {person.isReachable ? (
-          <span className="text-gray-600">
-            {formatList(
-              person.channels.map((channel: OnCallPageChannel): string => {
-                return getChannelName(channel, translator);
-              }),
-              translator,
+          <>
+            <span className="text-gray-600">
+              {formatList(
+                person.channels.map((channel: OnCallPageChannel): string => {
+                  return getChannelName(channel, translator);
+                }),
+                translator,
+              )}
+            </span>
+            {person.isFallback ? (
+              <>
+                {separator}
+                <span data-testid="who-is-told-fallback">
+                  {translator.translateText(FALLBACK_CHANNELS_NOTE)}
+                </span>
+              </>
+            ) : (
+              <></>
             )}
-          </span>
+          </>
         ) : (
           <span className="text-amber-700">
             {translator.translateText("Can't be paged")}
@@ -330,9 +352,14 @@ const EventBlock: FunctionComponent<{
     >
       <ChainRow label={translator.translateText("Opens") || "Opens"}>
         <span>
+          {/*
+           * Its severity in brackets, by its list: "An incident (Critical
+           * Incident)", never "A Critical Incident incident" (#7368).
+           */}
           {translator.translateTemplate(
-            isAlert ? "A {{severity}} alert" : "A {{severity}} incident",
-            { severity: event.severityName },
+            isAlert ? OPENS_CHAIN_LINES.alert : OPENS_CHAIN_LINES.incident,
+            { severity: getWhoIsToldSeverityValue(event) },
+            { setsValuesApart: true },
           )}
         </span>
         {event.title ? (
@@ -441,7 +468,17 @@ const Chain: FunctionComponent<{ result: WhoIsToldResult }> = (props: {
                     className="inline-block h-2 w-2 rounded-full"
                     style={{ backgroundColor: item.statusColor || "#9ca3af" }}
                   />
-                  <span dir="auto">{item.statusName}</span>
+                  {/*
+                   * By its list: the default "Offline" in the reader's
+                   * words, a status the project named itself as written.
+                   */}
+                  <span dir="auto">
+                    {translateRecordName(
+                      translator,
+                      StateListType.MonitorStatus,
+                      item.statusName,
+                    )}
+                  </span>
                 </span>
               </ChainRow>
             ) : (

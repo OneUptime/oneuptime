@@ -44,6 +44,7 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const KubernetesClusters: FunctionComponent<
   PageComponentProps
@@ -204,7 +205,7 @@ const KubernetesClusters: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -227,7 +228,9 @@ const KubernetesClusters: FunctionComponent<
             getElement: (item: KubernetesCluster): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {getKubernetesClusterProviderLabel(item.provider) || "—"}
+                  {getKubernetesClusterProviderLabel(item.provider) || (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },

@@ -22,6 +22,7 @@ import {
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -79,7 +80,7 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="dns-monitor-summary">
       <SummaryFacts>
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -91,7 +92,7 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -101,7 +102,7 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -190,7 +191,11 @@ const DnsMonitorView: FunctionComponent<ComponentProps> = (
                           {record.value}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500">
-                          {record.ttl !== undefined ? record.ttl : "-"}
+                          {record.ttl !== undefined ? (
+                            record.ttl
+                          ) : (
+                            <TableEmptyValue />
+                          )}
                         </td>
                       </tr>
                     );

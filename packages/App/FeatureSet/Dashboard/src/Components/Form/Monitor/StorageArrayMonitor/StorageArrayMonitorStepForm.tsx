@@ -219,6 +219,8 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
       toOption: (storageArray: StorageArray): DropdownOption => {
         return {
           label: storageArray.name || "Unknown",
+          // Its own name as written; "Unknown" in the reader's words.
+          isUserContent: Boolean(storageArray.name),
           value: storageArray.name || "",
         };
       },

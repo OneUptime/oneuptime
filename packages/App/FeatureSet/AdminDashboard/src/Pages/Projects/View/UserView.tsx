@@ -40,6 +40,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ProjectUserView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -249,6 +250,8 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                       return {
                         label: team.name?.toString() || "",
                         value: team._id?.toString() || "",
+                        // A team's name is its project's, drawn as written.
+                        isUserContent: true,
                       };
                     });
                   },
@@ -298,9 +301,11 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                   type: FieldType.Element,
                   getElement: (item: TeamMember): ReactElement => {
                     if (!item.team) {
-                      return <p>-</p>;
+                      return <TableEmptyValue />;
                     }
-                    return <p>{item.team.name?.toString() || "-"}</p>;
+                    return (
+                      <p>{item.team.name?.toString() || <TableEmptyValue />}</p>
+                    );
                   },
                 },
                 {

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 2706
+    "keys": 52416,
+    "untranslated": 2660
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -511,6 +511,7 @@
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "Réunion",
     "SCIM (System for Cross-domain Identity Management)",
@@ -520,7 +521,9 @@
     "SHA-512",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
+    "SLOs ({{count}})",
     "SMS: ",
     "SNMP:",
     "SSH",
@@ -584,7 +587,9 @@
     "Task · 52% CPU · 512 MB",
     "Team",
     "Team {{name}}",
+    "Team: {{name}}",
     "Teams",
+    "Teams ({{count}})",
     "Telegram: ",
     "Text",
     "Thailand",
@@ -710,7 +715,6 @@
     "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
     "hh",
     "host:port",
-    "in",
     "in {{name}}",
     "info",
     "internal-probe",
@@ -743,7 +747,6 @@
     "ops@example.com",
     "orders",
     "orders-prod",
-    "out",
     "p90 (ms)",
     "p95",
     "p95 (ms)",

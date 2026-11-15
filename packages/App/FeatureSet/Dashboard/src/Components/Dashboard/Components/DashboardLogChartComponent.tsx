@@ -33,6 +33,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DashboardWidgetError from "./DashboardWidgetError";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -59,8 +60,6 @@ import DashboardWidgetTimeRangeZoom, {
 } from "../Utils/DashboardWidgetTimeRangeZoom";
 import useDashboardHistogramZoom from "../Utils/UseDashboardHistogramZoom";
 import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogChartComponent;
@@ -69,7 +68,6 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [buckets, setBuckets] = useState<Array<LogHistogramBucket>>([]);
   const [chartTimeRange, setChartTimeRange] =
     useState<LogChartTimeRange | null>(null);
@@ -421,12 +419,15 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
           ) : (
             <DashboardWidgetError icon={IconProp.Logs} error={error} />
           ))}
+        {/*
+         * Nothing in the window: the widget's icon over the shared no-data
+         * line (#8038), inside the box that still takes the double-click.
+         */}
         {!isLoading && !error && pivotedData.length === 0 && (
-          <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            {translator.translateText(
-              "No logs for the selected time range and filters",
-            )}
-          </div>
+          <DashboardWidgetEmpty
+            icon={IconProp.Logs}
+            message="No logs for the selected time range and filters"
+          />
         )}
         {isChartShown && (
           /*

@@ -1,3 +1,4 @@
+import EmptyValue, { isDashText } from "Common/UI/Components/Detail/EmptyValue";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -227,13 +228,38 @@ export const getSummaryFactShareClassName: (data: {
 export interface SummaryFactProps {
   // English; looked up when drawn (InfoCard).
   title: string;
-  value: string | ReactElement;
+  /*
+   * What the check found. Left out, blank or a dash when it found nothing:
+   * the fact then draws the quiet dash every empty value is (EmptyValue),
+   * read out as "Not set" - not a hyphen of the page's own, as dark as a
+   * value, which some seventy facts wrote (#7603).
+   */
+  value?: string | ReactElement | undefined;
   // A fact that reads as a sentence - an address, an error - takes the row.
   isWide?: boolean | undefined;
   // What the value means, in an (i) beside the title.
   tooltip?: string | undefined;
   dataTestId?: string | undefined;
 }
+
+/*
+ * A fact's value as drawn: the value, or the quiet dash for one that is not
+ * there - none, blank, or only a dash ("-", "\u2014").
+ */
+export const getSummaryFactValue: (
+  value: string | ReactElement | undefined,
+) => string | ReactElement = (
+  value: string | ReactElement | undefined,
+): string | ReactElement => {
+  if (
+    !value ||
+    (typeof value === "string" && (!value.trim() || isDashText(value)))
+  ) {
+    return <EmptyValue />;
+  }
+
+  return value;
+};
 
 // One fact: its share of a row of its SummaryFacts, or the whole row.
 export const SummaryFact: FunctionComponent<SummaryFactProps> = (
@@ -251,7 +277,7 @@ export const SummaryFact: FunctionComponent<SummaryFactProps> = (
       )}`}
       textClassName={SUMMARY_FACT_VALUE_CLASS_NAME}
       title={props.title}
-      value={props.value}
+      value={getSummaryFactValue(props.value)}
       tooltip={props.tooltip}
       dataTestId={props.dataTestId || SUMMARY_FACT_TEST_ID}
       paddingClassName={SUMMARY_FACT_PADDING_CLASS_NAME}

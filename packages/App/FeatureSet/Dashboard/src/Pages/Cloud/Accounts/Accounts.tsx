@@ -31,6 +31,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Cloud > Accounts: the AWS accounts, Azure subscriptions and Google Cloud
@@ -168,7 +169,7 @@ const CloudAccounts: FunctionComponent<
                     to={viewRoute(item)}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || accountId || "—"}
+                    {name || accountId || <TableEmptyValue />}
                   </AppLink>
                   {/*
                    * Cut at 16rem with the whole line on hover: an Azure

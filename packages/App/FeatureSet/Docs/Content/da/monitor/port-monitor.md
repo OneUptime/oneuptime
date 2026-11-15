@@ -98,7 +98,7 @@ For et værtsnavn måler sonden tjekket i to faser:
 | **DNS-opslag** | Starten af tjekket | Det første TCP-forbindelsesforsøg |
 | **TCP-forbindelse** | Det første TCP-forbindelsesforsøg | At forbindelsen accepteres, inklusive den tid, der går med at skifte mellem IPv6- og IPv4-adresser |
 
-**Total Connection Time (DNS + TCP)** løber fra starten af tjekket, til forbindelsen accepteres. Det er også port-monitorens svartid, så eksisterende kriterier, advarsler og diagrammer, der bruger svartiden, fortsætter med at virke.
+**Samlet forbindelsestid (DNS + TCP)** løber fra starten af tjekket, til forbindelsen accepteres. Det er også port-monitorens svartid, så eksisterende kriterier, advarsler og diagrammer, der bruger svartiden, fortsætter med at virke.
 
 Når målet er en IP-adresse, er der intet DNS-opslag, så den fase udelades. Tjekresultater fra før fasetiderne fandtes, viser kun den samlede forbindelsestid.
 
@@ -181,5 +181,5 @@ Port-monitorer åbner kun TCP-forbindelser. Til en DNS-server bruger du en [DNS-
 - [Ping-monitor](/docs/monitor/ping-monitor): Tjek, at selve værten kan nås.
 - [SSL-certifikat-monitor](/docs/monitor/ssl-certificate-monitor): Tjek certifikatet på en TLS-port.
 - [Databasetilstands-monitor](/docs/monitor/database-health-monitor): Gå videre end en åben port, og hold øje med en databases tilstand.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Tjek porte på dit eget netværk.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Tjek porte på dit eget netværk.
 :::

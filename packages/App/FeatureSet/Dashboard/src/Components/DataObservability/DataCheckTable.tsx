@@ -60,6 +60,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
@@ -174,7 +175,7 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
   const isPipeline: boolean = props.dataStoreKind === DataStoreKind.MongoDb;
   const columnOptions: Array<DropdownOption> = (props.columns || []).map(
     (column: DataAssetColumn): DropdownOption => {
-      return { value: column.name, label: column.name };
+      return { value: column.name, label: column.name, isUserContent: true };
     },
   );
 
@@ -701,9 +702,11 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
             getElement: (check: DataCheck): ReactElement => {
               return (
                 <span className="whitespace-nowrap text-sm text-gray-700">
-                  {check.lastValue === undefined || check.lastValue === null
-                    ? "-"
-                    : translator.formatNumber(Number(check.lastValue))}
+                  {check.lastValue === undefined || check.lastValue === null ? (
+                    <TableEmptyValue />
+                  ) : (
+                    translator.formatNumber(Number(check.lastValue))
+                  )}
                 </span>
               );
             },

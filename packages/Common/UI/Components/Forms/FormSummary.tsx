@@ -11,8 +11,9 @@ import FieldType from "../Types/FieldType";
 import { FormStep } from "./Types/FormStep";
 import HorizontalRule from "../HorizontalRule/HorizontalRule";
 import {
-  translateTemplate,
+  getGlobalTranslator,
   translateText,
+  Translator,
 } from "../../Utils/TranslateTemplate";
 import { PeopleListFromIds } from "../PeoplePicker/PeopleList";
 import {
@@ -68,12 +69,26 @@ const getFileSummaryElement: <T extends GenericObject>(
     return undefined;
   }
 
+  /*
+   * "File 2" for a file with no name of its own, counted in the reader's
+   * digits: "فایل ۲" in Persian, as BasicForm's "Step 1 of 2" (#7933).
+   */
+  const nameFileByNumber: (index: number) => string = (
+    index: number,
+  ): string => {
+    const translator: Translator = getGlobalTranslator();
+
+    return translator.translateTemplate("File {{number}}", {
+      number: translator.formatNumber(index + 1),
+    });
+  };
+
   const formatFileName: (
     file: FileSummaryItem | string,
     index: number,
   ) => string = (file: FileSummaryItem | string, index: number): string => {
     if (!file) {
-      return translateTemplate("File {{number}}", { number: index + 1 });
+      return nameFileByNumber(index);
     }
 
     if (typeof file === "string") {
@@ -87,7 +102,7 @@ const getFileSummaryElement: <T extends GenericObject>(
       fileObject.fileName ||
       fileObject.slug ||
       fileObject._id ||
-      translateTemplate("File {{number}}", { number: index + 1 })
+      nameFileByNumber(index)
     );
   };
 

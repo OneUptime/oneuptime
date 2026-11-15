@@ -15,10 +15,10 @@ flowchart TB
     OU["OneUptime"] -->|"立即收集，每隔几分钟"| P["您的探测器"]
     P -->|"HTTPS 443，只读 vSphere API"| VC["vCenter Server 或 ESXi 主机"]
     P -->|"指标，与 VMware 代理发送的一致"| OU
-    OU --> V["VMware 页面、监控器、告警和 AI"]
+    OU --> V["VMware 页面、监视器、告警和 AI"]
 ```
 
-探测器每隔几分钟使用您保存的账户登录 vCenter，读取清单、性能计数器和 vSAN 统计信息，并将其发送到 OneUptime。这些数据的到达方式与 VMware 代理的完全相同，因此每个 VMware 页面、[VMware 监控器](/docs/monitor/vmware-monitor)、告警模板和 OneUptime AI 都以相同方式读取它们。探测器在两次收集之间保持 vCenter 会话，因此 vCenter 的事件日志不会被登录记录填满。
+探测器每隔几分钟使用您保存的账户登录 vCenter，读取清单、性能计数器和 vSAN 统计信息，并将其发送到 OneUptime。这些数据的到达方式与 VMware 代理的完全相同，因此每个 VMware 页面、[VMware 监视器](/docs/monitor/vmware-monitor)、告警模板和 OneUptime AI 都以相同方式读取它们。探测器在两次收集之间保持 vCenter 会话，因此 vCenter 的事件日志不会被登录记录填满。
 
 ## 探测器还是代理？
 
@@ -113,7 +113,7 @@ vCenter 出示的是其自有证书颁发机构签发的证书。将显示的指
 :::
 
 :::details 探测器未领取此任务
-探测器处于离线状态，或运行的 OneUptime 版本早于 VMware 收集功能。请在 **自定义探针** 表中确认它已连接，并更新它。
+探测器处于离线状态，或运行的 OneUptime 版本早于 VMware 收集功能。请在 **自定义探测器** 表中确认它已连接，并更新它。
 :::
 
 :::details 此 vCenter 太大，无法由探测器收集
@@ -123,7 +123,7 @@ vCenter 出示的是其自有证书颁发机构签发的证书。将显示的指
 ## 后续步骤
 
 :::cards
-- [VMware 监控器](/docs/monitor/vmware-monitor)：针对主机、虚拟机、数据存储和集群的告警。
+- [VMware 监视器](/docs/monitor/vmware-monitor)：针对主机、虚拟机、数据存储和集群的告警。
 - [自定义探测器](/docs/probe/custom-probe)：在 vCenter 网络中运行探测器。
 - [VMware 代理](/docs/telemetry/vmware)：改用代理收集 vCenter。
 :::

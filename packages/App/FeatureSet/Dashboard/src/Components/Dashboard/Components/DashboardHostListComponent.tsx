@@ -37,7 +37,6 @@ import PageMap from "../../../Utils/PageMap";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import OneUptimeDate from "Common/Types/Date";
 import {
   getDashboardDateTime,
   getDashboardDateTimeLabel,
@@ -48,6 +47,8 @@ import DashboardModelQueryInterpolation, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import DashboardWidgetLine from "./DashboardWidgetLine";
+import { formatHostCpuMemory, formatHostLastSeen } from "./HostListFigures";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardHostListComponent;
@@ -72,44 +73,6 @@ const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "resource.host.name": "name",
   "resource.host.id": "hostIdentifier",
 };
-
-function formatBytes(bytes: number): string {
-  if (!bytes || bytes <= 0) {
-    return "—";
-  }
-  const units: Array<string> = ["B", "KB", "MB", "GB", "TB"];
-  let i: number = 0;
-  let value: number = bytes;
-  while (value >= 1024 && i < units.length - 1) {
-    value /= 1024;
-    i++;
-  }
-  return `${value.toFixed(value >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
-}
-
-function formatRelative(date: Date | undefined | null): string {
-  if (!date) {
-    return "—";
-  }
-  const now: Date = OneUptimeDate.getCurrentDate();
-  const diffSeconds: number = Math.max(
-    0,
-    Math.floor((now.getTime() - date.getTime()) / 1000),
-  );
-  if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
-  }
-  const diffMinutes: number = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  }
-  const diffHours: number = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-  const diffDays: number = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
-}
 
 const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -244,10 +207,12 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
           })
         : undefined;
 
-      const cpuMem: string =
-        cpuCores || totalMemory
-          ? `${cpuCores ? `${cpuCores}c` : "—"} / ${formatBytes(totalMemory || 0)}`
-          : "—";
+      // The cores and the memory, and when it was last seen, in the reader's words (#7519).
+      const cpuMem: string = formatHostCpuMemory(
+        cpuCores,
+        totalMemory,
+        translator,
+      );
 
       return {
         id: id || name,
@@ -262,9 +227,12 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
               value: `${osType}${osVersion ? ` ${osVersion}` : ""}`,
             },
             { label: "CPU / Mem", value: cpuMem },
-            { label: "Last Seen", value: formatRelative(lastSeenAt) },
+            {
+              label: "Last Seen",
+              value: formatHostLastSeen(lastSeenAt, translator),
+            },
             /*
-             * formatRelative buckets to whole days, so "2d ago" covers a
+             * formatHostLastSeen buckets to whole days, so "2d ago" covers a
              * 24-hour spread. The tooltip is itself a hover surface and has
              * nowhere to hang a title, so the exact instant gets its own row.
              */
@@ -294,10 +262,11 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
       { modelId: new ObjectID(id) },
     );
 
-    const cpuMem: string =
-      cpuCores || totalMemory
-        ? `${cpuCores ? `${cpuCores}c` : "—"} / ${formatBytes(totalMemory || 0)}`
-        : "—";
+    const cpuMem: string = formatHostCpuMemory(
+      cpuCores,
+      totalMemory,
+      translator,
+    );
 
     return (
       <tr
@@ -343,15 +312,22 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
           name={osVersion ? `${osType} ${osVersion}` : osType}
           className="px-3 py-2 text-xs text-gray-500 truncate"
         />
-        <td className="px-3 py-2 text-xs text-gray-600 tabular-nums truncate">
-          {cpuMem}
-        </td>
+        {/*
+         * Read the way its words are written: a cell that reads left to
+         * right ("— / 64.0 GB") on an Arabic or Persian board is cut at its
+         * own end, where it cut away the core count at its start.
+         */}
+        <DashboardWidgetLine
+          as="td"
+          text={cpuMem}
+          className="px-3 py-2 text-xs text-gray-600 tabular-nums truncate"
+        />
         {/* The column has no room for the instant; hover gives it up. */}
         <td
           className="px-3 py-2 text-xs text-gray-500 tabular-nums truncate"
           title={getDashboardDateTime(lastSeenAt).title}
         >
-          {formatRelative(lastSeenAt)}
+          {formatHostLastSeen(lastSeenAt, translator)}
         </td>
       </tr>
     );

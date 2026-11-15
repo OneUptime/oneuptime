@@ -177,10 +177,12 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
       : undefined,
     eventTypeColor: Blue500,
     eventSecondDescription: announcement.showAnnouncementAt!
-      ? i18n.t("announcements.announcedAt") +
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          announcement.showAnnouncementAt!,
-        )
+      ? // One sentence, the date where the reader's language puts it (#8076).
+        i18n.t("announcements.announcedAtTime", {
+          time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            announcement.showAnnouncementAt!,
+          ),
+        })
       : "",
     ...(attachments.length > 0
       ? {

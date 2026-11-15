@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import OneUptimeDate from "Common/Types/Date";
+import { StateListType } from "Common/Utils/StateOrder";
 import Timezone from "Common/Types/Timezone";
 import { EventStateTimelineDate } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 import {
@@ -361,6 +362,7 @@ describe("getTimeToStateText", () => {
   test("formats the time from the start to the state", () => {
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         startedAt: START,
         reachedAt: minutesAfterStart(65),
         fallbackStateName: "acknowledged",
@@ -371,6 +373,7 @@ describe("getTimeToStateText", () => {
   test("says less than a minute for an immediate response", () => {
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         startedAt: START,
         reachedAt: new Date(START.getTime() + 20 * 1000),
         fallbackStateName: "acknowledged",
@@ -381,6 +384,7 @@ describe("getTimeToStateText", () => {
   test("never reports a gap for a state entry stamped before the start", () => {
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         startedAt: START,
         reachedAt: minutesAfterStart(-90),
         fallbackStateName: "resolved",
@@ -388,19 +392,44 @@ describe("getTimeToStateText", () => {
     ).toBe("less than a minute");
   });
 
-  test("uses the project's own state name, lowercased, before the state is reached", () => {
+  /*
+   * A name the project gave its state is its own and reads as written
+   * (Common/Utils/DefaultRecordNames, #8064); only OneUptime's own names
+   * are cased for the middle of the sentence.
+   */
+  test("uses the project's own state name, as written, before the state is reached", () => {
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         startedAt: START,
         stateName: "Mitigated",
         fallbackStateName: "resolved",
       }),
-    ).toBe("Not yet mitigated");
+    ).toBe("Not yet Mitigated");
+  });
+
+  test("a default name is OneUptime's word, cased for the middle of the sentence", () => {
+    expect(
+      getTimeToStateText({
+        stateList: StateListType.IncidentState,
+        startedAt: START,
+        stateName: "Acknowledged",
+        fallbackStateName: "Acknowledged",
+      }),
+    ).toBe("Not yet acknowledged");
+    expect(
+      getTimeToStateText({
+        stateList: StateListType.AlertState,
+        stateName: " Resolved ",
+        fallbackStateName: "Resolved",
+      }),
+    ).toBe("Not yet resolved");
   });
 
   test("falls back to the default name when the project has no such state", () => {
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         startedAt: START,
         stateName: "   ",
         fallbackStateName: "acknowledged",
@@ -408,6 +437,7 @@ describe("getTimeToStateText", () => {
     ).toBe("Not yet acknowledged");
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         fallbackStateName: "resolved",
       }),
     ).toBe("Not yet resolved");
@@ -416,6 +446,7 @@ describe("getTimeToStateText", () => {
   test("shows a dash when the state was reached but there is no start to count from", () => {
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         reachedAt: START,
         fallbackStateName: "resolved",
       }),
@@ -540,6 +571,7 @@ describe("the time to acknowledge after paging", () => {
   test("keeps the time from the start, and adds the time from the first page", () => {
     expect(
       getTimeToStateText({
+        stateList: StateListType.IncidentState,
         startedAt: pagedInTheMorning.startedAt,
         reachedAt: pagedInTheMorning.acknowledgedAt,
         fallbackStateName: "acknowledged",

@@ -34,6 +34,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // How many standby / slot / table rows to list before truncating.
 const MAX_ROWS_TO_SHOW: number = 10;
@@ -475,14 +476,18 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-gray-900 font-mono truncate">
-                    {String(standby["applicationName"] ?? "—")}
+                    {String(standby["applicationName"] ?? "") || (
+                      <TableEmptyValue />
+                    )}
                     {standby["clientAddr"]
                       ? ` · ${String(standby["clientAddr"])}`
                       : ""}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {String(standby["syncState"] ?? "—")} · replay lag{" "}
-                    {formatDuration(lag)}
+                    {String(standby["syncState"] ?? "") || (
+                      <TableEmptyValue isSmall={true} />
+                    )}{" "}
+                    · replay lag {formatDuration(lag)}
                     {isNum(standby["bytesBehind"])
                       ? ` · ${bytesToReadable(standby["bytesBehind"])} behind`
                       : ""}
@@ -542,10 +547,13 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-gray-900 font-mono truncate">
-                    {String(slot["slotName"] ?? "—")}
+                    {String(slot["slotName"] ?? "") || <TableEmptyValue />}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {String(slot["slotType"] ?? "—")} · wal_status {walStatus}
+                    {String(slot["slotType"] ?? "") || (
+                      <TableEmptyValue isSmall={true} />
+                    )}{" "}
+                    · wal_status {walStatus}
                     {isNum(slot["retainedBytes"])
                       ? ` · retains ${bytesToReadable(slot["retainedBytes"])}`
                       : ""}
@@ -680,7 +688,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           <div className="text-sm text-gray-600">
             Cluster{" "}
             <span className="font-mono text-gray-900">
-              {String(data?.["clusterName"] || "—")}
+              {String(data?.["clusterName"] || "") || <TableEmptyValue />}
             </span>{" "}
             · {topology}
             {data?.["serverVersion"]
@@ -992,7 +1000,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                   <tr key={`postgres-table-by-size-${index}`}>
                     <td className="py-2 pr-4">
                       <div className="text-sm text-gray-900 font-mono whitespace-nowrap">
-                        {String(table["name"] || "—")}
+                        {String(table["name"] || "") || <TableEmptyValue />}
                       </div>
                       {share ? (
                         <div className="text-xs text-gray-500 whitespace-nowrap">
@@ -1099,7 +1107,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                         className="text-xs font-mono text-gray-900 truncate"
                         title={String(pair["blockedQuery"] ?? "")}
                       >
-                        {String(pair["blockedQuery"] ?? "—")}
+                        {String(pair["blockedQuery"] ?? "") || (
+                          <TableEmptyValue isSmall={true} />
+                        )}
                       </div>
                       <div className="text-xs text-gray-600">
                         blocked by PID {formatNumber(pair["blockingPid"])}
@@ -1114,7 +1124,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                         className="text-xs font-mono text-gray-700 truncate"
                         title={String(pair["blockingQuery"] ?? "")}
                       >
-                        {String(pair["blockingQuery"] ?? "—")}
+                        {String(pair["blockingQuery"] ?? "") || (
+                          <TableEmptyValue isSmall={true} />
+                        )}
                       </div>
                     </div>
                   );
@@ -1217,7 +1229,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                           </td>
                           <td className="py-2 px-4">
                             <div className="text-sm text-gray-900 whitespace-nowrap">
-                              {String(session["state"] ?? "—")}
+                              {String(session["state"] ?? "") || (
+                                <TableEmptyValue />
+                              )}
                             </div>
                             {session["waitEventType"] ? (
                               <div className="text-xs text-gray-500 whitespace-nowrap">
@@ -1234,16 +1248,20 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                             {formatDuration(session["queryAgeSeconds"])}
                           </td>
                           <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                            {isNum(session["transactionAgeSeconds"])
-                              ? formatDuration(session["transactionAgeSeconds"])
-                              : "—"}
+                            {isNum(session["transactionAgeSeconds"]) ? (
+                              formatDuration(session["transactionAgeSeconds"])
+                            ) : (
+                              <TableEmptyValue />
+                            )}
                           </td>
                           <td className="py-2 pl-4">
                             <div
                               className="text-xs font-mono text-gray-900 truncate max-w-lg"
                               title={String(session["query"] ?? "")}
                             >
-                              {String(session["query"] ?? "—")}
+                              {String(session["query"] ?? "") || (
+                                <TableEmptyValue isSmall={true} />
+                              )}
                             </div>
                             {sessionMeta ? (
                               <div className="text-xs text-gray-500 truncate max-w-lg">
@@ -1455,7 +1473,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                         className="text-xs font-mono text-gray-900 truncate max-w-lg"
                         title={String(statement["query"] ?? "")}
                       >
-                        {String(statement["query"] ?? "—")}
+                        {String(statement["query"] ?? "") || (
+                          <TableEmptyValue isSmall={true} />
+                        )}
                       </div>
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
@@ -1474,9 +1494,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       {formatNumber(statement["rows"])}
                     </td>
                     <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
-                      {isNum(statement["cacheHitRatio"])
-                        ? `${toNum(statement["cacheHitRatio"]).toFixed(1)}%`
-                        : "—"}
+                      {isNum(statement["cacheHitRatio"]) ? (
+                        `${toNum(statement["cacheHitRatio"]).toFixed(1)}%`
+                      ) : (
+                        <TableEmptyValue />
+                      )}
                     </td>
                   </tr>
                 );

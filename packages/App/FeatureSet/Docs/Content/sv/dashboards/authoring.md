@@ -104,7 +104,7 @@ För att ändra en widget senare klickar du på den medan du redigerar. Dess ins
 
 I visningsläge anger verktygsfältets tidsintervallväljare fönstret som alla diagram-, tal-, logg- och spårwidgetar läser. Välj en förinställning från de senaste 5 minuterna till de senaste 3 månaderna, eller en egen start och ett eget slut. Instrumentpanelen öppnas på sitt standardtidsintervall: den senaste timmen, om inte någon som redigerar den väljer ett annat.
 
-Listor över incidenter, larm, övervakare och resurser visar sitt aktuella tillstånd, oavsett tidsintervall.
+Listor över incidenter, larm, monitorer och resurser visar sitt aktuella tillstånd, oavsett tidsintervall.
 
 Bredvid tidsintervallet läser menyn för automatisk uppdatering varje widget igen med 5, 10 eller 30 sekunders eller 1, 5 eller 15 minuters mellanrum, med en nedräkning till nästa uppdatering. Låt den vara av medan du felsöker, så att vyn står still. Instrumentpanelen öppnas med sin standard för automatisk uppdatering: av, om inte någon som redigerar den väljer en annan.
 

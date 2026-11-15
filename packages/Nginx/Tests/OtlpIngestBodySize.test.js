@@ -1068,7 +1068,7 @@ test("the unnamed hosts are not names the primary ingress answers to", () => {
     .replace(/;$/, "")
     .split(/\s+/)
     .map((name) => {
-      return name === "${HOST_WITHOUT_PORT}" ? INGRESS_HOST : name;
+      return name === "${HOST_SERVER_NAME}" ? INGRESS_HOST : name;
     });
 
   assert.deepEqual(names, ["localhost", "ingress", INGRESS_HOST]);

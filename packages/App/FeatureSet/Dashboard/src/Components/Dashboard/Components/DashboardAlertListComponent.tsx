@@ -47,6 +47,7 @@ import { getSeverityPillProps } from "../Utils/SeverityPillStyle";
 import DashboardWidgetIds from "Common/Utils/Dashboard/DashboardWidgetIds";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
 } from "../Utils/UseDashboardListWidgetSort";
@@ -263,12 +264,27 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     (alert: Alert): HoneycombTile => {
       const alertId: string = (alert._id as string) || "";
       const title: string = (alert.title as string) || "Untitled";
+      /*
+       * The state and the severity by their lists
+       * (Common/Utils/DefaultRecordNames): the ones a project starts with in
+       * the reader's words, a project's own as written - so the tile reads
+       * them as written from here on, never looking them up again.
+       */
       const stateName: string =
-        (alert.currentAlertState?.name as string) || "—";
+        translateRecordName(
+          translator,
+          StateListType.AlertState,
+          alert.currentAlertState?.name,
+        ) || "—";
       const stateColor: Color | undefined = alert.currentAlertState?.color as
         | Color
         | undefined;
-      const severityName: string = (alert.alertSeverity?.name as string) || "—";
+      const severityName: string =
+        translateRecordName(
+          translator,
+          StateListType.AlertSeverity,
+          alert.alertSeverity?.name,
+        ) || "—";
       const severityColor: Color | undefined = alert.alertSeverity?.color as
         | Color
         | undefined;
@@ -282,6 +298,7 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
       return {
         id: alertId || title,
         status: stateName,
+        isStatusUserContent: true,
         color: severityColor
           ? severityColor.toString()
           : stateColor
@@ -311,11 +328,22 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
 
   const rows: Array<ReactElement> = alerts.map((alert: Alert): ReactElement => {
     const alertId: string = (alert._id as string) || "";
-    const stateName: string = (alert.currentAlertState?.name as string) || "—";
+    // By their lists, as the tiles read them.
+    const stateName: string =
+      translateRecordName(
+        translator,
+        StateListType.AlertState,
+        alert.currentAlertState?.name,
+      ) || "—";
     const stateColor: Color | undefined = alert.currentAlertState?.color as
       | Color
       | undefined;
-    const severityName: string = (alert.alertSeverity?.name as string) || "—";
+    const severityName: string =
+      translateRecordName(
+        translator,
+        StateListType.AlertSeverity,
+        alert.alertSeverity?.name,
+      ) || "—";
     const severityColor: Color | undefined = alert.alertSeverity?.color as
       | Color
       | undefined;

@@ -23,6 +23,7 @@ import {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -101,7 +102,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="dnssec-monitor-summary">
       <SummaryFacts>
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Chain Valid"
           value={yesNo(dnssecResponse?.isChainValid)}
@@ -138,7 +139,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                     ),
                   },
                 )
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -146,7 +147,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         {props.probeMonitorResponse.failureCause ? (
@@ -242,7 +243,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                           <td
                             className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
                           >
-                            {check.error || "-"}
+                            {check.error || <TableEmptyValue />}
                           </td>
                         </tr>
                       );
@@ -322,7 +323,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                             {check.nameServer}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900 font-mono">
-                            {check.soaSerial || "-"}
+                            {check.soaSerial || <TableEmptyValue />}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
                             {formatDateText(check.rrsigExpiration)}
@@ -330,7 +331,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                           <td
                             className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
                           >
-                            {check.error || "-"}
+                            {check.error || <TableEmptyValue />}
                           </td>
                         </tr>
                       );

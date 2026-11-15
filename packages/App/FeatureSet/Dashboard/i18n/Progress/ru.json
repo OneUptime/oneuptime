@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9274
+    "keys": 52416,
+    "untranslated": 9139
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -78,6 +78,7 @@
     "Mirantis MOSK",
     "MySQL",
     "Null",
+    "OID Collection Template",
     "OK",
     "OSD",
     "OnCallDutyPolicy",
@@ -97,6 +98,7 @@
     "PromQL",
     "Push",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
@@ -107,6 +109,7 @@
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SSH",
     "ScheduledMaintenance",
@@ -121,6 +124,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "VIP",

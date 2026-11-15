@@ -19,10 +19,12 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+  isRecordNameAsWritten,
+  recordNameInSentence,
+} from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import MonitorStatusHistoryUtil from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
 import React, {
@@ -295,7 +297,10 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
         setChangedToId(picked.id);
         setAnnouncement(
           translator.translateTemplate("Status changed to {{status}}.", {
-            status: translatableTerm(picked.name),
+            status: recordNameInSentence(
+              StateListType.MonitorStatus,
+              picked.name,
+            ),
           }),
         );
         props.onStatusChanged?.();
@@ -362,6 +367,10 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
             <MoreMenuItem
               key={choice.id}
               text={choice.name}
+              isUserContent={isRecordNameAsWritten(
+                StateListType.MonitorStatus,
+                choice.name,
+              )}
               color={choice.color}
               isDisabled={!gate.isAllowed}
               tooltip={gate.isAllowed ? undefined : gate.disabledReason}
@@ -393,11 +402,19 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
       {picked ? (
         <ConfirmModal
           title={translator.translateTemplate("Change status to {{status}}?", {
-            status: translatableTerm(picked.name),
+            status: recordNameInSentence(
+              StateListType.MonitorStatus,
+              picked.name,
+            ),
           })}
           description={translator.translateTemplate(
             "The monitor shows {{status}} from now on, here and on every status page that lists it.",
-            { status: translatableTerm(picked.name) },
+            {
+              status: recordNameInSentence(
+                StateListType.MonitorStatus,
+                picked.name,
+              ),
+            },
           )}
           submitButtonText="Change status"
           onSubmit={changeStatus}

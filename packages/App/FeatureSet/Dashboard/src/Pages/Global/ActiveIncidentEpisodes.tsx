@@ -23,6 +23,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveIncidentEpisodes: FunctionComponent<
   PageComponentProps
@@ -140,6 +141,8 @@ const ActiveIncidentEpisodes: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },
@@ -191,7 +194,7 @@ const ActiveIncidentEpisodes: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: IncidentEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>

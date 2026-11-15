@@ -60,11 +60,13 @@ import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
 import useDashboardWidgetColumns, {
   DashboardWidgetColumn,
   DashboardWidgetColumns,
+  WIDGET_TABLE_NAME_LINE_CLASS_NAME,
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { getUnsetText } from "./DashboardWidgetFallbackWords";
 import DashboardWidgetError from "./DashboardWidgetError";
 import {
+  DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
@@ -972,18 +974,28 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                               key={`attr-${attrIndex}`}
                               as="td"
                               text={value}
-                              className="px-3 py-2 text-gray-700 text-xs truncate"
+                              className="px-3 py-2 text-gray-700 text-xs"
+                              title={value || undefined}
                             >
                               {/*
-                               * In the gray every table draws a missing value
-                               * in (TableEmptyValue): gray-300 was 1.5:1 on
-                               * the card, too faint to read.
+                               * One line that gives way to the numbers on a
+                               * narrow widget, cut at its own end
+                               * (WIDGET_TABLE_NAME_LINE_CLASS_NAME, #7524).
                                */}
-                              {value || (
-                                <span className="text-gray-400">
-                                  {getUnsetText(translator)}
-                                </span>
-                              )}
+                              <div
+                                className={WIDGET_TABLE_NAME_LINE_CLASS_NAME}
+                              >
+                                {/*
+                                 * In the gray every table draws a missing
+                                 * value in (TableEmptyValue): gray-300 was
+                                 * 1.5:1 on the card, too faint to read.
+                                 */}
+                                {value || (
+                                  <span className="text-gray-400">
+                                    {getUnsetText(translator)}
+                                  </span>
+                                )}
+                              </div>
                             </DashboardWidgetLine>
                           );
                         },
@@ -1055,7 +1067,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
               <tr>
                 <td
                   colSpan={totalColumnCount}
-                  className="px-4 py-8 text-center text-gray-400 text-sm"
+                  className={DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME}
                 >
                   {translator.translateText(
                     "No data available for the selected time range.",

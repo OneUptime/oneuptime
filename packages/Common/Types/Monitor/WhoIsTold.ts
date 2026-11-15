@@ -97,8 +97,10 @@ export interface WhoIsToldPerson {
   // The channels a page of this severity reaches them by, in order.
   channels: Array<OnCallPageChannel>;
   /*
-   * A page falls back to every verified method of theirs, as no rule of
-   * theirs covers the severity.
+   * No rule of theirs covers the severity, so a page goes to what the
+   * project's fallback picks of their methods (#7528): every free verified
+   * one, or else one paid one, or else a webhook - never every verified
+   * method. `channels` are what it picks.
    */
   isFallback: boolean;
   isReachable: boolean;
@@ -236,6 +238,12 @@ export enum WhoIsToldFix {
   MonitorCriteria = "MonitorCriteria",
   IncidentOnCallRules = "IncidentOnCallRules",
   AlertOnCallRules = "AlertOnCallRules",
+  /*
+   * The project has no on-call policy yet, so an on-call rule would have
+   * nothing to page: the on-call guided setup makes the first policy, with
+   * the on-call rules that run it for every new incident and alert (#7369).
+   */
+  OnCallGuidedSetup = "OnCallGuidedSetup",
   OnCallPolicy = "OnCallPolicy",
   OnCallReadiness = "OnCallReadiness",
   ProjectNotificationSettings = "ProjectNotificationSettings",
@@ -337,9 +345,13 @@ export function getChannelsSwitchedOff(
 /*
  * HOW A PAGE OF ONE SEVERITY REACHES ONE PERSON - as the real page does
  * (UserOnCallLogService): through their rules for that kind and severity;
- * with none, through every verified method of theirs, unless the project
- * turned that fallback off or they opted out of the severity. A channel the
- * project switched off sends nothing.
+ * with none, unless the project turned the fallback off or they opted out
+ * of the severity, through what the fallback picks of their methods
+ * (UserNotificationRuleService.executeFallbackNotification): every free
+ * verified one, or else one paid one, or else a webhook (#7528). Listing
+ * every verified method there said a person with an email, a number and a
+ * phone was texted and called too, when a page only emails them. A channel
+ * the project switched off sends nothing.
  */
 export function getWhoIsToldPersonReach(data: {
   // The verified and unverified methods their rules for the severity use.
@@ -349,7 +361,17 @@ export function getWhoIsToldPersonReach(data: {
   }>;
   hasNoRule: boolean;
   isOptedOut: boolean;
-  // Every method of theirs that is verified, whatever rule uses it.
+  /*
+   * What the fallback picks of their methods, in the order it sends them
+   * (UserNotificationRuleService.getFallbackRules): what a page goes to
+   * when no rule of theirs covers the severity.
+   */
+  fallbackChannels: ReadonlyArray<OnCallPageChannel>;
+  /*
+   * Every method of theirs that is verified, whatever rule uses it: when
+   * the fallback picks nothing, a verified method on a channel the project
+   * switched off says which switch would let it page them.
+   */
   verifiedChannels: ReadonlyArray<OnCallPageChannel>;
   isFallbackEnabled: boolean;
   channelsOff: ReadonlyArray<OnCallPageChannel>;
@@ -375,10 +397,8 @@ export function getWhoIsToldPersonReach(data: {
     };
   }
 
-  const verified: Array<OnCallPageChannel> = [];
-
   const candidates: ReadonlyArray<OnCallPageChannel> = data.hasNoRule
-    ? data.verifiedChannels
+    ? data.fallbackChannels
     : data.ruleMethods
         .filter((method: { isVerified: boolean }): boolean => {
           return method.isVerified;
@@ -387,13 +407,32 @@ export function getWhoIsToldPersonReach(data: {
           return method.channel;
         });
 
-  for (const channel of candidates) {
-    if (!verified.includes(channel)) {
-      verified.push(channel);
-    }
-  }
+  const verified: Array<OnCallPageChannel> = eachOnce(candidates);
 
   if (verified.length === 0) {
+    /*
+     * The fallback picks nothing, while a method of theirs is verified on
+     * a channel the project switched off (a text number, with SMS off):
+     * the fallback skips a paid channel that is off, and would page them
+     * by it once it is on. That switch is the break, as it is for a rule.
+     */
+    const switchedOff: Array<OnCallPageChannel> = data.hasNoRule
+      ? eachOnce(data.verifiedChannels).filter(
+          (channel: OnCallPageChannel): boolean => {
+            return data.channelsOff.includes(channel);
+          },
+        )
+      : [];
+
+    if (switchedOff.length > 0) {
+      return {
+        channels: switchedOff,
+        isFallback: true,
+        isReachable: false,
+        problem: WhoIsToldPersonProblem.ChannelsOff,
+      };
+    }
+
     return {
       channels: [],
       isFallback: data.hasNoRule,
@@ -422,6 +461,21 @@ export function getWhoIsToldPersonReach(data: {
     isFallback: data.hasNoRule,
     isReachable: true,
   };
+}
+
+// Each channel once, in the order first met.
+function eachOnce(
+  channels: ReadonlyArray<OnCallPageChannel>,
+): Array<OnCallPageChannel> {
+  const once: Array<OnCallPageChannel> = [];
+
+  for (const channel of channels) {
+    if (!once.includes(channel)) {
+      once.push(channel);
+    }
+  }
+
+  return once;
 }
 
 // "incidents" or "alerts", in a sentence.
@@ -457,7 +511,9 @@ export function getWhoIsToldBreakMessage(
     case WhoIsToldBreakKind.NothingHappens:
       return "No criteria of this monitor changes its status or opens an incident or an alert, so nobody is told when it goes down. Add one on the Criteria page.";
     case WhoIsToldBreakKind.NobodyPaged:
-      return `Nobody is paged: no on-call rule matches ${recordsWord(brk.recordKind)} from this monitor, and its criteria names no on-call policy. Add an on-call rule for ${recordsWord(brk.recordKind)}.`;
+      return brk.fix === WhoIsToldFix.OnCallGuidedSetup
+        ? "Nobody is paged: this project has no on-call policy yet. Set up paging to make one that pages someone for every new incident and alert."
+        : `Nobody is paged: no on-call rule matches ${recordsWord(brk.recordKind)} from this monitor, and its criteria names no on-call policy. Add an on-call rule for ${recordsWord(brk.recordKind)}.`;
     case WhoIsToldBreakKind.OnlyIncidentsHaveRules:
       return "Nobody is paged for this monitor's alerts: only incidents have on-call rules. Add an on-call rule for alerts, or have the criteria open an incident.";
     case WhoIsToldBreakKind.PolicyHasNoLevels:
@@ -539,13 +595,17 @@ function getChannelsInUse(
  *
  * `projectHasIncidentOnCallRules` tells a monitor that opens alerts while
  * only incidents have on-call rules (the most common silent break) from one
- * that has no rules at all.
+ * that has no rules at all. `projectHasOnCallPolicies` tells a project with
+ * no on-call policy yet - whose fix is the on-call guided setup, which
+ * makes the first one with the rules that run it - from one whose rules
+ * leave this monitor out (#7369): an on-call rule needs a policy to page.
  */
 export function getWhoIsToldBreaks(data: {
   criteria: ReadonlyArray<WhoIsToldCriteria>;
   channels: WhoIsToldChannels;
   projectHasIncidentOnCallRules: boolean;
   projectHasAlertOnCallRules: boolean;
+  projectHasOnCallPolicies: boolean;
 }): Array<WhoIsToldBreak> {
   const breaks: Array<WhoIsToldBreak> = [];
   const seen: Set<string> = new Set<string>();
@@ -579,7 +639,17 @@ export function getWhoIsToldBreaks(data: {
   for (const item of data.criteria) {
     for (const event of item.events) {
       if (event.policies.length === 0) {
-        if (
+        if (!data.projectHasOnCallPolicies) {
+          /*
+           * No policy at all: whatever rules the project has page nothing,
+           * so the first policy is what is missing (#7369).
+           */
+          add({
+            kind: WhoIsToldBreakKind.NobodyPaged,
+            fix: WhoIsToldFix.OnCallGuidedSetup,
+            recordKind: event.kind,
+          });
+        } else if (
           event.kind === OnCallTestPageRecordKind.Alert &&
           data.projectHasIncidentOnCallRules &&
           !data.projectHasAlertOnCallRules

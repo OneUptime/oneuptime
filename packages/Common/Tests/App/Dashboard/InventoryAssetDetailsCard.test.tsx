@@ -71,6 +71,7 @@ import {
   INVENTORY_ASSET_FIELDS,
   InventoryAssetField,
 } from "../../../Utils/Inventory/InventoryAssetDetails";
+import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../UI/Components/Table/TableEmptyValue";
 
 /*
  * Issue #4569 in the Dashboard: an Inventory host and network device show
@@ -536,7 +537,10 @@ describe("the Inventory list's asset columns", () => {
     cleanup();
 
     cellOf(InventoryAssetField.SerialNumber, MERAKI);
-    expect(screen.getByText("-")).toHaveClass("text-gray-400");
+    // The quiet dash every empty cell is (#7603).
+    expect(screen.getByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toHaveClass(
+      "text-gray-400",
+    );
   });
 });
 

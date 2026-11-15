@@ -121,7 +121,7 @@ OneUptime اعتبارنامه‌های سرور را همان‌جایی می�
 | `GLOBAL_EMAIL_FROM_NAME` | `email.fromName` | نامی که هر ایمیل با آن فرستاده می‌شود. برای `custom-smtp` و `sendgrid` لازم است |
 | `GLOBAL_EMAIL_SMTP_TRANSPORT` | `email.smtp.transport` | `smtp` (وقتی خالی است هم همین)، یا `microsoft-graph` برای فرستادن از راه Microsoft Graph با برنامهٔ OAuth |
 | `GLOBAL_EMAIL_SMTP_HOST` | `email.smtp.host` | سرور ایمیل، مانند `smtp.example.com` |
-| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | درگاه آن، مانند `587` |
+| `GLOBAL_EMAIL_SMTP_PORT` | `email.smtp.port` | پورت آن، مانند `587` |
 | `GLOBAL_EMAIL_SMTP_REQUIRE_TLS` | `email.smtp.requireTls` | `true` برای فرستادن فقط از راه اتصال رمزگذاری‌شده با گواهی معتبر، یا `false` (وقتی خالی است هم همین) |
 | `GLOBAL_EMAIL_SMTP_AUTH_TYPE` | `email.smtp.authType` | `username-and-password` (وقتی خالی است هم همین)، `oauth` یا `none` |
 | `GLOBAL_EMAIL_SMTP_USERNAME` | `email.smtp.username` | صندوق پستی‌ای که با آن وارد می‌شود، برای `oauth` هم. آن را همراه با گذرواژه خالی بگذارید تا بدون ورود فرستاده شود |
@@ -169,7 +169,7 @@ email:
 
 با Docker Compose، تنظیمات `GLOBAL_EMAIL_` را در `config.env` تعیین کنید و سپس `npm run start` را اجرا کنید تا کانتینرها دوباره ساخته شوند.
 
-OneUptime متغیرها را هنگام شروع می‌خواند. اگر یکی از آن‌ها نادرست باشد، مثلاً درگاهی که عدد نیست یا گذرواژه‌ای که داده نشده، سرور تا وقتی درست نشده هیچ ایمیلی نمی‌فرستد؛ لاگ سرور، تنظیمات ایمیل در Admin Dashboard و چک‌لیست `/admin/setup` نام متغیر را می‌گویند. گذرواژه‌ها و کلیدها هرگز نشان داده نمی‌شوند. برای تغییر تنظیمات، متغیرها را تغییر دهید و OneUptime را دوباره راه‌اندازی کنید: Admin Dashboard آن‌ها را تغییر نمی‌دهد.
+OneUptime متغیرها را هنگام شروع می‌خواند. اگر یکی از آن‌ها نادرست باشد، مثلاً پورتی که عدد نیست یا گذرواژه‌ای که داده نشده، سرور تا وقتی درست نشده هیچ ایمیلی نمی‌فرستد؛ لاگ سرور، تنظیمات ایمیل در Admin Dashboard و چک‌لیست `/admin/setup` نام متغیر را می‌گویند. گذرواژه‌ها و کلیدها هرگز نشان داده نمی‌شوند. برای تغییر تنظیمات، متغیرها را تغییر دهید و OneUptime را دوباره راه‌اندازی کنید: Admin Dashboard آن‌ها را تغییر نمی‌دهد.
 
 ## عیب‌یابی
 

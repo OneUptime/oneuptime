@@ -173,19 +173,32 @@ jest.mock(
         target: { kind: string; policyId?: string };
         title?: string;
         onSent?: (id: string) => void;
+        onClose?: () => void;
       }) => {
         return (
-          <button
-            type="button"
-            data-testid="send-test-page"
-            data-target={props.target.kind}
-            data-policy={props.target.policyId || ""}
-            onClick={() => {
-              props.onSent?.("log-1");
-            }}
-          >
-            {props.title || "Test this policy"}
-          </button>
+          <>
+            <button
+              type="button"
+              data-testid="send-test-page"
+              data-target={props.target.kind}
+              data-policy={props.target.policyId || ""}
+              onClick={() => {
+                props.onSent?.("log-1");
+              }}
+            >
+              {props.title || "Test this policy"}
+            </button>
+            {/* The dialog closed, whatever became of the test. */}
+            <button
+              type="button"
+              data-testid="close-test-page"
+              onClick={() => {
+                props.onClose?.();
+              }}
+            >
+              Close the test dialog
+            </button>
+          </>
         );
       },
     };
@@ -447,7 +460,10 @@ import {
 } from "../../../Types/ServerSending/ServerSendingStatus";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006805";
@@ -1914,6 +1930,621 @@ describe("a policy made meanwhile, in another tab or on another device (#7252)",
 });
 
 /*
+ * THE RUN'S POLICY DELETED WHILE THE PAGE IS OPEN (#7516) - in another tab,
+ * or by a teammate. Continue on "Who else is on call?" read the policy
+ * again, found it gone, and opened "What if nobody answers?" anyway, whose
+ * Save then did nothing at all: the person was stuck until they reloaded.
+ * Every step that needs the policy reads it again just before it moves on;
+ * gone, the run forgets it (as the page does when it opens on a policy
+ * that is gone), the project's policies are read again, and step 2 opens
+ * on making or picking one, saying why first, in its polite live region.
+ */
+describe("the run's policy deleted in another tab or by a teammate (#7516)", () => {
+  const DELETED: string =
+    "The on-call policy this setup was using was deleted, so pick or make one again.";
+  const OTHER_POLICY_ID: string = "60000000-0000-4000-8000-000000000002";
+
+  const NO_POLICY_LEFT: Record<string, unknown> = {
+    policies: [],
+    mayCreatePolicy: true,
+    mayAddRules: true,
+    mayEditLevels: true,
+  };
+
+  const ONLY_THE_RUNS_POLICY: Record<string, unknown> = {
+    policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+    mayCreatePolicy: true,
+    mayAddRules: true,
+    mayEditLevels: true,
+  };
+
+  // What the run keeps once it has forgotten its policy: who is reached.
+  const FORGOTTEN: Record<string, unknown> = { reachConfirmed: true };
+
+  // Step 2 open on the run's policy, as it is after Save and continue.
+  const atWhoElse: (policy?: OnCallPolicyRecord) => Promise<void> = async (
+    policy?: OnCallPolicyRecord,
+  ): Promise<void> => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    api["loadPolicyChoices"]!.mockResolvedValue(ONLY_THE_RUNS_POLICY);
+    api["loadPolicy"]!.mockResolvedValue(policy || policyRecord());
+    await renderSetup();
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
+    });
+    expect(stepState("who_else")).toBe("open");
+    expect(screen.getByTestId("on-call-setup-who-continue")).toBeVisible();
+  };
+
+  // Another tab, or a teammate, deletes the policy; nothing is left.
+  const deleteThePolicy: (choicesAfter?: Record<string, unknown>) => void = (
+    choicesAfter?: Record<string, unknown>,
+  ): void => {
+    api["loadPolicy"]!.mockResolvedValue(null);
+    api["loadPolicyChoices"]!.mockResolvedValue(choicesAfter || NO_POLICY_LEFT);
+  };
+
+  // The run forgot its policy, and step 2 is open on making one, saying why.
+  const expectStepTwoAgain: () => void = (): void => {
+    expect(storedRun()).toEqual(FORGOTTEN);
+    expect(stepState("reach_you")).toBe("done");
+    expect(stepState("who_else")).toBe("open");
+    expect(stepState("no_answer")).toBe("upcoming");
+    expect(stepState("test")).toBe("upcoming");
+    expect(
+      screen.getByTestId("on-call-setup-policy-deleted"),
+    ).toHaveTextContent(DELETED);
+    expect(
+      screen
+        .getByTestId("on-call-setup-who-help")
+        .contains(screen.getByTestId("on-call-setup-policy-deleted")),
+    ).toBe(true);
+    expect(screen.queryByRole("alert")).toBeNull();
+  };
+
+  test("Continue with rules to add: none is added, the run forgets the policy, and step 2 opens on making one, saying why", async () => {
+    await atWhoElse(policyRecord({ alertRuleCount: 0 }));
+    expect(screen.getByTestId("on-call-setup-who-continue")).toHaveTextContent(
+      "Page this policy for every new incident and alert",
+    );
+
+    deleteThePolicy();
+    await press("on-call-setup-who-continue");
+
+    expect(api["addEveryNewEventRules"]).not.toHaveBeenCalled();
+    expectStepTwoAgain();
+    // The project's policies were read again: making one is offered.
+    expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByText(
+        'This makes the on-call policy "Default on-call policy". It pages these people first, for every new incident and alert in this project.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("on-call-setup-who-save")).toBeVisible();
+    expect(screen.queryByTestId("on-call-setup-who-continue")).toBeNull();
+    // Nothing of the policy is left on the page.
+    expect(screen.queryByTestId("on-call-setup-policy")).toBeNull();
+    expect(screen.queryByTestId("on-call-setup-readiness")).toBeNull();
+  });
+
+  test("Continue with no rule missing: the same, and step 3 never opens on a policy that is gone", async () => {
+    await atWhoElse();
+    expect(screen.getByTestId("on-call-setup-who-continue")).toHaveTextContent(
+      "Continue",
+    );
+
+    deleteThePolicy();
+    await press("on-call-setup-who-continue");
+
+    expect(api["loadPolicy"]).toHaveBeenLastCalledWith(POLICY_ID);
+    expectStepTwoAgain();
+    expect(screen.queryByTestId("on-call-setup-no-answer-save")).toBeNull();
+  });
+
+  /*
+   * Continue stays where Save and continue is, so nothing else tells a
+   * screen reader why the step changed: the region it reads out is the one
+   * that held the policy's line before, and now holds why and what to do.
+   */
+  test("the sentence is read out: the step's polite live region, there before Continue, says it", async () => {
+    await atWhoElse();
+    const region: HTMLElement = screen.getByTestId("on-call-setup-who-help");
+
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).toHaveTextContent('"Default on-call policy" pages');
+    expect(region).not.toHaveTextContent(DELETED);
+
+    deleteThePolicy();
+    await press("on-call-setup-who-continue");
+
+    expect(screen.getByTestId("on-call-setup-who-help")).toBe(region);
+    expect(region).toHaveTextContent(DELETED);
+    expect(region).toHaveTextContent(
+      'This makes the on-call policy "Default on-call policy".',
+    );
+    // Why first, then what to do.
+    expect(region.firstElementChild).toBe(
+      screen.getByTestId("on-call-setup-policy-deleted"),
+    );
+    // The picker and the button are not read out with it.
+    expect(region.contains(screen.getByTestId("on-call-setup-who-save"))).toBe(
+      false,
+    );
+  });
+
+  test("deleted, while the project has other policies: step 2 turns to them, the deleted one not among them", async () => {
+    await atWhoElse();
+    deleteThePolicy({
+      policies: [{ id: OTHER_POLICY_ID, name: "Ops" }],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await press("on-call-setup-who-continue");
+
+    expectStepTwoAgain();
+    expect(
+      Array.from(
+        screen
+          .getByTestId("on-call-setup-policy-choice")
+          .querySelectorAll("option"),
+      ).map((option: HTMLOptionElement): string => {
+        return option.value;
+      }),
+    ).toEqual([OTHER_POLICY_ID]);
+    expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+      OTHER_POLICY_ID,
+    );
+
+    // Picking it sets the run up again, and the reason is said no more.
+    api["loadPolicy"]!.mockResolvedValue(
+      policyRecord({ id: OTHER_POLICY_ID, name: "Ops" }),
+    );
+    await press("on-call-setup-who-save");
+
+    expect(storedRun()).toEqual({
+      reachConfirmed: true,
+      policyId: OTHER_POLICY_ID,
+      policyIsExisting: true,
+    });
+    expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+    expect(stepState("no_answer")).toBe("open");
+  });
+
+  test("the project's policies that cannot be read again: the ones read before, without the deleted one", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [
+        { id: POLICY_ID, name: "Default on-call policy" },
+        { id: OTHER_POLICY_ID, name: "Ops" },
+      ],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await renderSetup();
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
+    });
+
+    api["loadPolicy"]!.mockResolvedValue(null);
+    api["loadPolicyChoices"]!.mockRejectedValue(new Error("offline"));
+    await press("on-call-setup-who-continue");
+
+    expectStepTwoAgain();
+    expect(
+      Array.from(
+        screen
+          .getByTestId("on-call-setup-policy-choice")
+          .querySelectorAll("option"),
+      ).map((option: HTMLOptionElement): string => {
+        return option.value;
+      }),
+    ).toEqual([OTHER_POLICY_ID]);
+  });
+
+  test("a policy picked from the project's, deleted since they were read: nothing is added to it, and the step offers them as they are now", async () => {
+    keepRun({ reachConfirmed: true });
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [
+        { id: POLICY_ID, name: "Default on-call policy" },
+        { id: OTHER_POLICY_ID, name: "Ops" },
+      ],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await renderSetup();
+    expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+      POLICY_ID,
+    );
+
+    deleteThePolicy({
+      policies: [{ id: OTHER_POLICY_ID, name: "Ops" }],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    await pressText("Add Ben to on-call-setup-people");
+    await press("on-call-setup-who-save");
+
+    expect(api["addToFirstLevel"]).not.toHaveBeenCalled();
+    expectStepTwoAgain();
+    expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+      OTHER_POLICY_ID,
+    );
+  });
+
+  test("a policy read that fails on Continue: nothing is forgotten, and the step says why and stays", async () => {
+    await atWhoElse(policyRecord({ alertRuleCount: 0 }));
+
+    api["loadPolicy"]!.mockRejectedValue(
+      new Error("The server could not be reached."),
+    );
+    await press("on-call-setup-who-continue");
+
+    expect(storedRun()).toEqual({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The server could not be reached.",
+    );
+    expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-who-continue")).toBeVisible();
+    expect(stepState("who_else")).toBe("open");
+  });
+
+  test("someone who may not make a policy, its only one deleted: told why, and who can", async () => {
+    await atWhoElse();
+    deleteThePolicy({
+      policies: [],
+      mayCreatePolicy: false,
+      mayAddRules: false,
+      mayEditLevels: false,
+    });
+    await press("on-call-setup-who-continue");
+
+    expect(storedRun()).toEqual(FORGOTTEN);
+    expect(stepState("who_else")).toBe("open");
+
+    const cannot: HTMLElement = screen.getByTestId(
+      "on-call-setup-cannot-create",
+    );
+
+    expect(cannot).toHaveTextContent(DELETED);
+    expect(cannot).toHaveTextContent("Ask a project owner or admin");
+    expect(screen.getByTestId("on-call-setup-who-help")).toHaveAttribute(
+      "aria-live",
+      "polite",
+    );
+    expect(screen.queryByTestId("on-call-setup-who-save")).toBeNull();
+  });
+
+  test("made again, the reason is said no more; nor after Set up another policy", async () => {
+    await atWhoElse();
+    deleteThePolicy();
+    await press("on-call-setup-who-continue");
+    expect(screen.getByTestId("on-call-setup-policy-deleted")).toBeVisible();
+
+    api["loadPolicy"]!.mockResolvedValue(policyRecord());
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(storedRun()["policyId"]).toBe(POLICY_ID);
+    expect(stepState("no_answer")).toBe("open");
+
+    // Back to step 2, now done: its policy, and no reason.
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
+    });
+    expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+  });
+
+  describe("on step 3, what if nobody answers", () => {
+    const atNoAnswer: () => Promise<void> = async (): Promise<void> => {
+      keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+      await renderSetup();
+      expect(stepState("no_answer")).toBe("open");
+    };
+
+    test("Save, to page someone else: nothing is written, the run forgets the policy, and step 2 opens with why", async () => {
+      await atNoAnswer();
+      await pressText("Add Ben to on-call-setup-next-people");
+
+      deleteThePolicy();
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["addSecondLevel"]).not.toHaveBeenCalled();
+      expectStepTwoAgain();
+    });
+
+    test("Save, to page again: nothing is written to a policy that is gone", async () => {
+      await atNoAnswer();
+      await press("choice-repeat");
+
+      deleteThePolicy();
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["setRepeat"]).not.toHaveBeenCalled();
+      expectStepTwoAgain();
+    });
+
+    test("Do nothing more: what if nobody answers is not saved as done, and step 2 opens with why", async () => {
+      await atNoAnswer();
+      await press("choice-nothing");
+
+      deleteThePolicy();
+      await press("on-call-setup-no-answer-save");
+
+      expect(storedRun()["noAnswerDone"]).toBeUndefined();
+      expectStepTwoAgain();
+    });
+
+    test("a policy that already escalates, deleted: Continue opens step 2 with why", async () => {
+      const policy: OnCallPolicyRecord = policyRecord();
+      policy.levels.push({
+        id: "level-2",
+        order: 2,
+        escalateAfterInMinutes: 30,
+        userIds: ["user-ben"],
+        names: ["Ben Ito"],
+        responderCount: 1,
+      });
+      api["loadPolicy"]!.mockResolvedValue(policy);
+      await atNoAnswer();
+      expect(screen.getByTestId("on-call-setup-has-levels")).toBeVisible();
+
+      deleteThePolicy();
+      await press("on-call-setup-no-answer-save");
+
+      expectStepTwoAgain();
+    });
+
+    test("deleted just after the second level was saved: forgotten, and the test step never opens", async () => {
+      await atNoAnswer();
+      await pressText("Add Ben to on-call-setup-next-people");
+
+      // Read just before: there. Read again once saved: gone.
+      api["loadPolicy"]!.mockResolvedValueOnce(policyRecord());
+      api["loadPolicy"]!.mockResolvedValue(null);
+      api["loadPolicyChoices"]!.mockResolvedValue(NO_POLICY_LEFT);
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["addSecondLevel"]).toHaveBeenCalledTimes(1);
+      expectStepTwoAgain();
+    });
+
+    test("a policy read that fails: nothing is written or forgotten, and the step says why", async () => {
+      await atNoAnswer();
+      await press("choice-repeat");
+
+      api["loadPolicy"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["setRepeat"]).not.toHaveBeenCalled();
+      expect(storedRun()).toEqual({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+      });
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The server could not be reached.",
+      );
+      expect(stepState("no_answer")).toBe("open");
+    });
+
+    test("saved, and the read after it fails: saved once, and the step moves on", async () => {
+      await atNoAnswer();
+      await press("choice-repeat");
+
+      api["loadPolicy"]!.mockResolvedValueOnce(policyRecord());
+      api["loadPolicy"]!.mockRejectedValue(new Error("offline"));
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["setRepeat"]).toHaveBeenCalledTimes(1);
+      expect(storedRun()["noAnswerDone"]).toBe(true);
+      expect(stepState("test")).toBe("open");
+    });
+  });
+
+  describe("on step 4, the test page", () => {
+    const atTest: () => Promise<void> = async (): Promise<void> => {
+      keepRun({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        noAnswerDone: true,
+      });
+      await renderSetup();
+      expect(stepState("test")).toBe("open");
+    };
+
+    test("Skip: no summary of a policy that is gone; step 2 opens with why", async () => {
+      await atTest();
+
+      deleteThePolicy();
+      await press("on-call-setup-skip-test");
+
+      expect(storedRun()["testSkipped"]).toBeUndefined();
+      expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+      expectStepTwoAgain();
+    });
+
+    test("the test dialog closes on a policy deleted meanwhile: step 2 opens with why", async () => {
+      await atTest();
+
+      deleteThePolicy();
+      await press("close-test-page");
+
+      await waitFor(() => {
+        expect(stepState("who_else")).toBe("open");
+      });
+      expectStepTwoAgain();
+    });
+
+    test("the test dialog closes on a policy still there: nothing changes", async () => {
+      await atTest();
+      await press("close-test-page");
+
+      expect(stepState("test")).toBe("open");
+      expect(storedRun()).toEqual({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        noAnswerDone: true,
+      });
+      expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+    });
+
+    test("the test dialog closes and the read fails: nothing changes, and nothing is said", async () => {
+      await atTest();
+      api["loadPolicy"]!.mockRejectedValue(new Error("offline"));
+      await press("close-test-page");
+
+      expect(stepState("test")).toBe("open");
+      expect(storedRun()["policyId"]).toBe(POLICY_ID);
+      expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    test("Skip, with the policy still there: the summary, as before", async () => {
+      await atTest();
+      await press("on-call-setup-skip-test");
+
+      expect(api["loadPolicy"]).toHaveBeenLastCalledWith(POLICY_ID);
+      expect(storedRun()["testSkipped"]).toBe(true);
+      expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+    });
+  });
+
+  describe("coming back", () => {
+    test("to a run whose policy was deleted: step 2, saying why", async () => {
+      keepRun({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        noAnswerDone: true,
+        testExecutionLogId: "log-1",
+        testSkipped: true,
+      });
+      api["loadPolicy"]!.mockResolvedValue(null);
+      await renderSetup();
+
+      expectStepTwoAgain();
+      expect(getResultMock).not.toHaveBeenCalled();
+    });
+
+    test("a policy read that fails as the page opens: the page says so, and the run is kept", async () => {
+      const run: Record<string, unknown> = {
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        noAnswerDone: true,
+      };
+      keepRun(run);
+      api["loadPolicy"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+
+      await act(async () => {
+        render(<OnCallGuidedSetup />);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("The server could not be reached."),
+        ).toBeInTheDocument();
+      });
+      expect(storedRun()).toEqual(run);
+      expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+    });
+
+    test("a run whose policy is there says nothing of a deleted one", async () => {
+      keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+      await renderSetup();
+
+      expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+    });
+  });
+});
+
+/*
+ * THE SENTENCE FOR A DELETED POLICY IS WORDED IN EVERY DASHBOARD LANGUAGE
+ * (#7516): a value of its own in each, its full stop kept - never the
+ * English left as a placeholder.
+ */
+describe("the sentence for a deleted policy, in every Dashboard language (#7516)", () => {
+  // Every language the Dashboard offers, English aside.
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
+
+  const isWorded: (text: string | undefined, english: string) => boolean = (
+    text: string | undefined,
+    english: string,
+  ): boolean => {
+    return Boolean(text && text.trim() && text !== english);
+  };
+
+  test("English has it, as itself", () => {
+    expect(readDashboardLocale("en")[ON_CALL_SETUP_COPY.policyDeleted]).toBe(
+      ON_CALL_SETUP_COPY.policyDeleted,
+    );
+  });
+
+  test.each(LANGUAGES)("%s words it", (language: string) => {
+    const text: string | undefined =
+      readDashboardLocale(language)[ON_CALL_SETUP_COPY.policyDeleted];
+
+    expect({
+      language,
+      worded: isWorded(text, ON_CALL_SETUP_COPY.policyDeleted),
+    }).toEqual({ language, worded: true });
+    // A sentence, ended as its language ends one.
+    expect(text).toMatch(/[.。।]$/u);
+  });
+
+  test("the languages read are all seventeen, right-to-left ones among them", () => {
+    expect(LANGUAGES).toHaveLength(17);
+    expect(LANGUAGES).toEqual(expect.arrayContaining(["de", "ar", "fa"]));
+    expect(LANGUAGES).not.toContain("en");
+  });
+
+  // The check itself tells an English placeholder, and a key left out, apart.
+  test("negative control: the English as a placeholder, or no value, is not worded", () => {
+    expect(
+      isWorded(
+        ON_CALL_SETUP_COPY.policyDeleted,
+        ON_CALL_SETUP_COPY.policyDeleted,
+      ),
+    ).toBe(false);
+    expect(isWorded(undefined, ON_CALL_SETUP_COPY.policyDeleted)).toBe(false);
+    expect(isWorded("  ", ON_CALL_SETUP_COPY.policyDeleted)).toBe(false);
+    expect(
+      readDashboardLocale("de")[
+        `${ON_CALL_SETUP_COPY.policyDeleted} (no such key)`
+      ],
+    ).toBeUndefined();
+  });
+});
+
+/*
  * READ IN ANOTHER LANGUAGE (#7252): the sentence that a policy appeared
  * while the page was open, and the one asking to try again when the
  * project's policies could not be read, are in the reader's words - in
@@ -1989,6 +2620,41 @@ describe("read in another language (#7252)", () => {
       );
       expect(sentence).not.toContain("while this page was open");
       expect(api["createPolicy"]).not.toHaveBeenCalled();
+    });
+
+    // #7516: Continue that finds the run's policy deleted says so in their words.
+    test("the run's policy deleted meanwhile: the step says why in their words", async () => {
+      keepRun({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        policyIsExisting: true,
+      });
+      await renderSetup();
+      await act(async () => {
+        fireEvent.click(
+          screen
+            .getByTestId("guided-setup-step-who_else")
+            .querySelector("button")!,
+        );
+      });
+      api["loadPolicy"]!.mockResolvedValue(null);
+      await press("on-call-setup-who-continue");
+
+      const sentence: string = withoutIsolateMarks(
+        screen.getByTestId("on-call-setup-policy-deleted").textContent || "",
+      );
+
+      expect(sentence).toBe(worded(language, ON_CALL_SETUP_COPY.policyDeleted));
+      expect(sentence).not.toMatch(/deleted|pick or make/u);
+      // No English is left in the step's live region, but the policy's name.
+      expect(
+        withoutIsolateMarks(
+          screen.getByTestId("on-call-setup-who-help").textContent || "",
+        )
+          .split("Default on-call policy")
+          .join(""),
+      ).not.toMatch(/\b(the|this|was|policy|setup)\b/iu);
+      expect(storedRun()).toEqual({ reachConfirmed: true });
     });
 
     test("policies that cannot be read: try again, in their words", async () => {

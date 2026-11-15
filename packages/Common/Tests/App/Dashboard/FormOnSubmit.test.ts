@@ -474,7 +474,7 @@ describe("the On Submit settings dialog", () => {
       "owners:owners",
     ]);
     expect(fields[1]!.dropdownOptions).toEqual([
-      { value: SEVERITY_ID, label: "Major" },
+      { value: SEVERITY_ID, label: "Major", isUserContent: true },
     ]);
     expect(fields[3]!.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
 
@@ -709,7 +709,7 @@ describe("naming records", () => {
 
   test("as dropdown options", () => {
     expect(toDropdownOptions(records([TEAM_ID, "SRE"]))).toEqual([
-      { value: TEAM_ID, label: "SRE" },
+      { value: TEAM_ID, label: "SRE", isUserContent: true },
     ]);
     expect(toDropdownOptions(undefined)).toEqual([]);
   });

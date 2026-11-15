@@ -22,6 +22,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveIncidents: FunctionComponent<
   PageComponentProps
@@ -136,6 +137,8 @@ const ActiveIncidents: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },
@@ -187,7 +190,7 @@ const ActiveIncidents: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: Incident): ReactElement => {
               if (!item.incidentNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>

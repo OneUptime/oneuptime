@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 9171
+    "keys": 52416,
+    "untranslated": 9136
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -103,6 +103,7 @@
     "PromQL",
     "Proxmox ID",
     "RTT",
+    "RX",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",

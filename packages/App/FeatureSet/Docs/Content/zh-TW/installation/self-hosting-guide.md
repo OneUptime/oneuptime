@@ -6,7 +6,7 @@
 - [安裝 OneUptime](#安裝-oneuptime): 在一台伺服器上用 Docker Compose，或在 Kubernetes 上用 Helm chart。
 - [完成伺服器設定](#完成伺服器設定): 先是電子郵件，然後是簡訊和電話，每一項都附測試。
 - [檢查你的安裝](#檢查你的安裝): 一個指令，指出哪裡有問題。
-- [快速開始](/docs/introduction/quickstart): 你的第一個監控器、第一個值班政策和第一個狀態頁面。
+- [快速開始](/docs/introduction/quickstart): 你的第一個監測器、第一個值班政策和第一個狀態頁面。
 :::
 
 ## 你需要什麼
@@ -103,7 +103,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ## 完成伺服器設定
 
-Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要程度列出新伺服器需要的東西。電子郵件、HTTPS 和誰可以註冊是必要的。簡訊和電話、一個全域探針、備份和更新檢查是建議的。每一項都有一個按鈕，開啟設定它的地方，而 `npm start` 最後會輸出這個頁面的位址。
+Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要程度列出新伺服器需要的東西。電子郵件、HTTPS 和誰可以註冊是必要的。簡訊和電話、一個全域探測器、備份和更新檢查是建議的。每一項都有一個按鈕，開啟設定它的地方，而 `npm start` 最後會輸出這個頁面的位址。
 
 :::steps
 ### 設定電子郵件
@@ -137,7 +137,7 @@ Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要�
 npm run doctor
 ```
 
-它會檢查每個容器、`config.env`、`HOST` 能否連到這台伺服器、憑證和剩餘磁碟，並詢問 OneUptime 它看到的自身狀態，例如電子郵件和探針。每個問題都附帶修正方法：請參閱[檢查你的安裝](/docs/installation/docker-compose#檢查你的安裝)。
+它會檢查每個容器、`config.env`、`HOST` 能否連到這台伺服器、憑證和剩餘磁碟，並詢問 OneUptime 它看到的自身狀態，例如電子郵件和探測器。每個問題都附帶修正方法：請參閱[檢查你的安裝](/docs/installation/docker-compose#檢查你的安裝)。
 @tab Kubernetes
 依 [chart 的疑難排解指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it)中的步驟，針對你的叢集執行 chart 的診斷指令碼。它只讀取，最後依嚴重程度列出它發現的問題摘要。
 :::
@@ -146,7 +146,7 @@ npm run doctor
 
 ## 監控些什麼並接收告警
 
-現在你的伺服器可以寄送電子郵件並向大家傳送告警了。[快速開始](/docs/introduction/quickstart)在產品中繼續：一個監控你網站的監控器，一個在網站停擺時向你告警的值班政策，以及一個狀態頁面，大約十五分鐘完成。它的最後一部分會宣告一次測試事件，讓你看到告警送達。
+現在你的伺服器可以寄送電子郵件並向大家傳送告警了。[快速開始](/docs/introduction/quickstart)在產品中繼續：一個監控你網站的監測器，一個在網站停擺時向你告警的值班政策，以及一個狀態頁面，大約十五分鐘完成。它的最後一部分會宣告一次測試事件，讓你看到告警送達。
 
 ## 疑難排解
 
@@ -165,7 +165,7 @@ Let's Encrypt 需要能從網際網路連線的連接埠 80 和 443，以及指�
 ## 後續步驟
 
 :::cards
-- [快速開始](/docs/introduction/quickstart): 十五分鐘內建好一個監控器、一個值班政策和一個狀態頁面。
+- [快速開始](/docs/introduction/quickstart): 十五分鐘內建好一個監測器、一個值班政策和一個狀態頁面。
 - [Docker Compose](/docs/installation/docker-compose): 你自己的代理、備份、更新和正式環境清單。
 - [升級](/docs/installation/upgrading): 升級到新版本，一次只升一個主要版本。
 - [架構](/docs/self-hosted/architecture): OneUptime 的各部分如何協同運作。
