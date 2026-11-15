@@ -26,22 +26,26 @@ import { ClaimDue, readClaimDue } from "../Probe/ClaimDueTime";
  *   string, the project scans content, and the probe is the project's own.
  *   Any other store the claim sets aside, a quarter of an hour at a time.
  *   A probe that is disconnected asks for nothing.
- * - From OneUptime's workers: they claim the stores with content scanning
- *   on, not archived, of the kinds they claim
- *   (DataSecurityRunner.claimDueStores), and then scan nothing for a
- *   project whose content scanning is off, nor sample a kind its info does
- *   not call scannable (DataSecurityRunner.scanStore and sampleStore).
- *   Their hold on a store moves its due time an hour on, scan or not.
+ * - From OneUptime's workers: their claim
+ *   (Server/Utils/DataSecurity/DataSecurityWorkerClaim,
+ *   getWorkerContentScannableSql) hands out the stores with content
+ *   scanning on, not archived, of a kind a worker samples, of a project
+ *   that scans content; the scan reads the same rule again before it
+ *   reads any content. Their hold on a store moves its due time an hour
+ *   on; a store they may not scan keeps its due time.
  * - A service's telemetry: the project's hourly telemetry scan reads every
- *   service's last hour, unless the project's telemetry scanning is off. It
- *   has no claim, and the store's own switches do not stop it
- *   (DataSecurityRunner.scanTelemetry).
+ *   service's last hour, unless the project's telemetry scanning is off,
+ *   and leaves out the services whose store turned content scanning off
+ *   (Server/Utils/DataSecurity/DataSecurityTelemetryScanRule). It has no
+ *   claim, and a store archived is found again, so archiving it does not
+ *   stop it.
  *
- * The project's being served (paid, not blocked) is the claim's rule too,
- * but a page in a project nobody may use is not shown, so it is not here.
+ * The project's being served (paid, not blocked) is every one of those
+ * rules too, but a page in a project nobody may use is not shown, so it is
+ * not here.
  *
  * Keep this in step with those rules: DataStoreContentScanSchedule's test
- * reads the probe claim's conditions and fails on one this does not know.
+ * reads each rule's conditions and fails on one this does not know.
  */
 
 export enum DataStoreContentScanner {
@@ -151,6 +155,11 @@ export function getDataStoreContentScanStop(
   const scanner: DataStoreContentScanner = getDataStoreContentScanner(store);
 
   if (scanner === DataStoreContentScanner.TelemetryScan) {
+    // Its own switch first, as for every store.
+    if (store.isContentScanEnabled === false) {
+      return DataStoreContentScanStop.StoreScanOff;
+    }
+
     return facts.projectSetting?.isTelemetryScanEnabled === false
       ? DataStoreContentScanStop.ProjectTelemetryScanOff
       : null;
@@ -254,4 +263,101 @@ export function getDataStoreNextContentScan(
       overdueAfterInMs: DATA_STORE_CONTENT_SCAN_OVERDUE_AFTER_IN_MS,
     }),
   };
+}
+
+/*
+ * WHAT SCAN NOW DOES FOR A STORE, BY THE SAME RULES.
+ *
+ * Scan Now makes a store due now and, for one OneUptime's workers scan,
+ * queues its scan: it scans only what the claim would hand out. It is
+ * refused, with the reason, for a store nothing will scan (the stop), and
+ * for a service's telemetry, which the hourly telemetry scan reads and
+ * Scan Now never does (stop null). An archived store is refused like any
+ * other: no claim hands one out, and the workers' scan reads the claim's
+ * rule before it reads anything. The server's route
+ * (DATA_SECURITY_API_ROUTES.scanNow) and the store's Overview, which turns
+ * the button off, read this one rule.
+ */
+export interface DataStoreScanNowRefusal {
+  // Why nothing will scan the store, or null for a service's telemetry.
+  stop: DataStoreContentScanStop | null;
+}
+
+export function getDataStoreScanNowRefusal(
+  facts: DataStoreContentScanFacts,
+): DataStoreScanNowRefusal | null {
+  const stop: DataStoreContentScanStop | null =
+    getDataStoreContentScanStop(facts);
+
+  if (
+    getDataStoreContentScanner(facts.store) ===
+    DataStoreContentScanner.TelemetryScan
+  ) {
+    return { stop: stop };
+  }
+
+  return stop ? { stop: stop } : null;
+}
+
+/*
+ * Why, in English, for the server's answers: the sentences the Overview
+ * shows in the reader's language (StoreNextContentScan, whose test holds
+ * the two to each other).
+ */
+export const DATA_STORE_CONTENT_SCAN_STOP_SENTENCES: Readonly<
+  Record<
+    Exclude<
+      DataStoreContentScanStop,
+      DataStoreContentScanStop.ProbeDisconnected
+    >,
+    string
+  >
+> = {
+  [DataStoreContentScanStop.StoreScanOff]:
+    "Content scanning is off for this store. Turn it on in its Settings.",
+  [DataStoreContentScanStop.Archived]:
+    "A store that is no longer found is not scanned. It is scanned again once it is found.",
+  [DataStoreContentScanStop.ProjectScanOff]:
+    "Content scanning is off for this project. Turn it on in Data Security's Settings.",
+  [DataStoreContentScanStop.ProjectTelemetryScanOff]:
+    "Telemetry scanning is off for this project. Turn it on in Data Security's Settings.",
+  [DataStoreContentScanStop.KindNotScannable]:
+    "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+  [DataStoreContentScanStop.KindNotScannableByProbe]:
+    "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.",
+  [DataStoreContentScanStop.NoProbeConnectionVariable]:
+    "Name the probe's environment variable that holds the connection string, in its Settings.",
+  [DataStoreContentScanStop.ProbeNotAllowed]:
+    "Only a probe of this project's own scans a store. Pick one in its Settings.",
+};
+
+export const TELEMETRY_SCAN_NOW_REFUSAL_SENTENCE: string =
+  "A service's telemetry is scanned every hour, with the project's telemetry scan.";
+
+export function getDataStoreContentScanStopSentence(
+  stop: DataStoreContentScanStop,
+  probeName?: string | null | undefined,
+): string {
+  if (stop === DataStoreContentScanStop.ProbeDisconnected) {
+    return `Nothing scans this store while ${probeName || "its probe"} is disconnected.`;
+  }
+
+  return DATA_STORE_CONTENT_SCAN_STOP_SENTENCES[stop];
+}
+
+// Why Scan Now scans nothing, in English, or null when it scans.
+export function getDataStoreScanNowRefusalSentence(
+  facts: DataStoreContentScanFacts,
+  probeName?: string | null | undefined,
+): string | null {
+  const refusal: DataStoreScanNowRefusal | null =
+    getDataStoreScanNowRefusal(facts);
+
+  if (!refusal) {
+    return null;
+  }
+
+  return refusal.stop
+    ? getDataStoreContentScanStopSentence(refusal.stop, probeName)
+    : TELEMETRY_SCAN_NOW_REFUSAL_SENTENCE;
 }
