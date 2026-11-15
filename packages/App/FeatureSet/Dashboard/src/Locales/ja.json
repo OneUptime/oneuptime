@@ -55180,6 +55180,7 @@
   "The request filter can be at most {{max}} characters long.": "リクエストフィルターは {{max}} 文字以内にしてください。",
   "The request filter can have at most {{max}} terms.": "リクエストフィルターの条件は {{max}} 個までです。",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "リクエストフィルターに使えるのはスパンの属性とスパン名です（例: @http.route:/checkout*、name:\"POST /checkout\"）。「{{text}}」はどちらでもありません。",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone の監査証跡と各 API の監査フィルターを、セキュリティイベントへ。",
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "「{{rule}}」はこのチームから削除されます。この操作は元に戻せません。ルールを残すには、代わりに編集して新しい重大度を選んでください。",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "「{{rule}}」はこのチームの誰に対してもチェックされなくなります。この操作は元に戻せません。しばらくチェックを止めるだけなら、代わりに一時停止してください。",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "ルールは、このチームの全員が設定しておくべきこと (重大なインシデントでの電話など) を定めます。下のおすすめから始めるか、独自に作成してください。",

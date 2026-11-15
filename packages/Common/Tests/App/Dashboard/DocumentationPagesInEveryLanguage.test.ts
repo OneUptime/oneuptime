@@ -60,6 +60,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   IoT: { way: "a setup guide's words" },
   Ceph: { way: "a setup guide's words" },
   DockerSwarm: { way: "a setup guide's words" },
+  OpenStack: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
@@ -99,7 +100,6 @@ const STILL_IN_ENGLISH: ReadonlyArray<string> = [
   "Database",
   "Host",
   "MessageQueue",
-  "OpenStack",
   "Proxmox",
   "StorageArray",
   "VMware",
