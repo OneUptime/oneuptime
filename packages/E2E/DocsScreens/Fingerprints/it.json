@@ -139,7 +139,7 @@
     "text": [
       "1",
       "Cosa dobbiamo controllare?",
-      "OneUptime lo controlla ogni 5 minuti da più posizioni. Se non risponde, o risponde con un errore, viene aperto un incidente.",
+      "OneUptime lo controlla ogni 5 minuti. Viene aperto un incidente quando ogni posizione che lo controlla lo trova non disponibile: nessuna risposta, o una risposta con un errore.",
       "Indirizzo del sito web o dell'API",
       "Questo è un endpoint API",
       "Inizia il controllo",
@@ -165,7 +165,7 @@
       "Aggiungi membri del team",
       "AL",
       "Ada Lovelace",
-      "Questo crea la policy di reperibilità «Default on-call policy», che li chiama per ogni nuovo incidente e nuovo avviso in questo progetto.",
+      "Questo crea la policy di reperibilità «Policy di reperibilità predefinita», che li chiama per ogni nuovo incidente e nuovo avviso in questo progetto.",
       "Salva e continua"
     ],
     "outline": [
@@ -197,9 +197,9 @@
       "Controllato",
       "Ogni 5 minuti, da 2 posizioni.",
       "In caso di interruzione",
-      "Se non risponde, o risponde con un errore, OneUptime apre un incidente (Critical Incident).",
+      "Se non risponde, o risponde con un errore, OneUptime apre un incidente (Incidente critico). Un cambio di stato richiede l'accordo di entrambe le sonde connesse.",
       "Chi viene avvisato",
-      "La policy di reperibilità «Default on-call policy» chiama Ada Lovelace per ogni nuovo incidente e nuovo avviso. Sei il proprietario di questo monitor, quindi ricevi un'e-mail quando il suo stato cambia.",
+      "La policy di reperibilità «Policy di reperibilità predefinita» chiama Ada Lovelace per ogni nuovo incidente e nuovo avviso. Sei il proprietario di questo monitor, quindi ricevi un'e-mail quando il suo stato cambia.",
       "Testato",
       "Ada Lovelace l'ha riconosciuto via email dopo 14 secondi.",
       "Prossimi passi",
@@ -217,7 +217,7 @@
       "button: Controlla un altro indirizzo"
     ],
     "width": 768,
-    "height": 511
+    "height": 531
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "Chi altro è reperibile?",
-      "Questo crea la policy di reperibilità «Default on-call policy». Chiama per prime queste persone, per ogni nuovo incidente e avviso di questo progetto.",
+      "Questo crea la policy di reperibilità «Policy di reperibilità predefinita». Chiama per prime queste persone, per ogni nuovo incidente e avviso di questo progetto.",
       "Chiamati per primi",
       "Aggiungi membri del team",
       "AL",
@@ -349,7 +349,7 @@
     "text": [
       "Le chiamate sono configurate",
       "Chi viene chiamato",
-      "Ogni nuovo incidente o avviso esegue «Default on-call policy», che chiama Ada Lovelace (E-mail, SMS, Chiamata telefonica).",
+      "Ogni nuovo incidente o avviso esegue «Policy di reperibilità predefinita», che chiama Ada Lovelace (E-mail, SMS, Chiamata telefonica).",
       "Se nessuno risponde",
       "Se nessuno conferma entro 30 minuti, viene chiamato Grace Hopper.",
       "Testato",
@@ -386,7 +386,7 @@
       "Cancella",
       "1 di 1 selezionato",
       "Acme website",
-      "Operational",
+      "Operativo",
       "La pagina è pubblica non appena la crei: chiunque abbia il link vede lo stato dei monitor che hai scelto.",
       "Crea la pagina di stato",
       "value: Stato di Acme Commerce",
@@ -410,7 +410,7 @@
       "Stato di Acme Commerce",
       "MOSTRA",
       "Acme website",
-      "Operational",
+      "Operativo",
       "Link pubblico",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "Un incidente su uno di questi monitor compare qui da solo e gli iscritti ricevono un'e-mail.",
@@ -607,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "Risolvi",
-      "Creato",
+      "Created",
       "Riconosciuto",
       "Risolto",
       "IN CORSO DA",

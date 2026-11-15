@@ -139,7 +139,7 @@
     "text": [
       "1",
       "Vad ska vi kontrollera?",
-      "OneUptime kontrollerar den var 5:e minut från flera platser. Om det inte kommer något svar, eller svaret är ett fel, öppnas en incident.",
+      "OneUptime kontrollerar den var 5:e minut. En incident öppnas när alla platser som kontrollerar den finner den nere: inget svar, eller ett svar med ett fel.",
       "Adress till webbplats eller API",
       "Det här är en API-endpoint",
       "Börja kontrollera",
@@ -165,7 +165,7 @@
       "Lägg till teammedlemmar",
       "AL",
       "Ada Lovelace",
-      "Detta skapar jourpolicyn ”Default on-call policy”, som larmar dem vid varje ny incident och varje nytt larm i det här projektet.",
+      "Detta skapar jourpolicyn ”Standardjourpolicy”, som larmar dem vid varje ny incident och varje nytt larm i det här projektet.",
       "Spara och fortsätt"
     ],
     "outline": [
@@ -197,9 +197,9 @@
       "Kontrollerad",
       "Var 5:e minut, från 2 platser.",
       "När den går ner",
-      "Om det inte kommer något svar, eller svaret är ett fel, öppnar OneUptime en incident (Critical Incident).",
+      "Om det inte kommer något svar, eller svaret är ett fel, öppnar OneUptime en incident (Kritisk incident). En statusändring kräver att båda anslutna sonderna är överens.",
       "Vem som får veta",
-      "Jourpolicyn ”Default on-call policy” larmar Ada Lovelace vid varje ny incident och varje nytt larm. Du äger den här övervakningen, så du får e-post när dess status ändras.",
+      "Jourpolicyn ”Standardjourpolicy” larmar Ada Lovelace vid varje ny incident och varje nytt larm. Du äger den här övervakningen, så du får e-post när dess status ändras.",
       "Testat",
       "Ada Lovelace bekräftade det via e-post efter 14 sekunder.",
       "Nästa steg",
@@ -217,7 +217,7 @@
       "button: Kontrollera en annan adress"
     ],
     "width": 768,
-    "height": 511
+    "height": 531
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "Vem mer har jour?",
-      "Detta skapar jourpolicyn ”Default on-call policy”. Den larmar först de här personerna, vid varje ny incident och varje nytt larm i det här projektet.",
+      "Detta skapar jourpolicyn ”Standardjourpolicy”. Den larmar först de här personerna, vid varje ny incident och varje nytt larm i det här projektet.",
       "Larmas först",
       "Lägg till teammedlemmar",
       "AL",
@@ -349,7 +349,7 @@
     "text": [
       "Larmningen är konfigurerad",
       "Vem som larmas",
-      "Varje ny incident och varje nytt larm kör ”Default on-call policy”, som larmar Ada Lovelace (E-post, SMS, Telefonsamtal).",
+      "Varje ny incident och varje nytt larm kör ”Standardjourpolicy”, som larmar Ada Lovelace (E-post, SMS, Telefonsamtal).",
       "Om ingen svarar",
       "Om ingen kvitterar inom 30 minuter larmas Grace Hopper.",
       "Testat",
@@ -386,7 +386,7 @@
       "Rensa",
       "1 av 1 vald",
       "Acme website",
-      "Operational",
+      "Fungerar",
       "Sidan är offentlig så fort du skapar den: alla med länken ser statusen för de monitorer du valde.",
       "Skapa statussidan",
       "value: Status för Acme Commerce",
@@ -410,7 +410,7 @@
       "Status för Acme Commerce",
       "DEN VISAR",
       "Acme website",
-      "Operational",
+      "Fungerar",
       "Offentlig länk",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "En incident på någon av dessa monitorer visas här av sig själv, och prenumeranterna får e-post.",
@@ -607,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "Lös",
-      "Skapad",
+      "Created",
       "Bekräftad",
       "Löst",
       "PÅGÅTT I",
