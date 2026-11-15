@@ -29,6 +29,10 @@ import {
   SETUP_GUIDE_DOCUMENTATION_PRODUCTS,
   SetupGuideDocumentationProduct,
 } from "../../Helpers/SetupGuideDocumentationProducts";
+import {
+  ONE_WORD_RULES,
+  SentenceRule,
+} from "../../Helpers/OneWordPerThingRules";
 import { SetupGuideWay } from "../../Helpers/SetupGuideWays";
 
 /*
@@ -68,6 +72,46 @@ const BOLD_MARK: RegExp = /\*\*/g;
 const MARKDOWN_SPACE: RegExp = /\s/u;
 
 const MARKDOWN_PUNCTUATION: RegExp = /[\p{P}\p{S}]/u;
+
+/*
+ * What a piece quotes rather than says: code, a link (its text is the title
+ * of the page it opens), a quote, an address and a placeholder - as the
+ * docs check reads a docs line (OneWordInSentencesPerThing). Its bold runs
+ * are its words: a Dashboard word among them is held to the locale below.
+ */
+const QUOTED: RegExp =
+  /`[^`]*`|\[[^\]]*\]\([^)]*\)|«[^»]*»|“[^”]*”|„[^“”]*[“”]|「[^」]*」|『[^』]*』|"[^"]*"|https?:\/\/\S+|\{\{[^}]*\}\}/g;
+
+/*
+ * The rules of `language` a piece breaks: its English names the thing (in
+ * its words, not its code) and its words still say the word the language
+ * dropped for it. A bold run that is the locale's word for something the
+ * Dashboard draws (`localeWords`) names that thing, as the locale words it
+ * - the Device Registry is Italian's Registro dei dispositivi - and is held
+ * to the locale by its own check.
+ */
+function droppedWordsIn(
+  english: string,
+  translated: string,
+  language: string,
+  localeWords: ReadonlySet<string>,
+): Array<SentenceRule> {
+  const named: string = english.replace(CODE_SPAN, " ");
+  const said: string = translated
+    .replace(/\*\*([^*]+)\*\*/g, (run: string, words: string): string => {
+      return localeWords.has(words) ? " " : run;
+    })
+    .replace(QUOTED, " ");
+
+  return ONE_WORD_RULES.filter((rule: SentenceRule): boolean => {
+    return (
+      rule.language === language &&
+      rule.english.test(named) &&
+      !(rule.except && rule.except.test(named)) &&
+      rule.dropped.test(said)
+    );
+  });
+}
 
 // Each language's words for each product, as its module exports them.
 const MODULES: Record<string, Record<string, SetupGuideTranslation>> = {};
@@ -592,6 +636,34 @@ describe.each(
         expect(showing).toEqual([]);
       });
 
+      /*
+       * A guide says a thing with the one word its language's Dashboard
+       * says (#8714, #8691): "log" for an Italian log, 경고 for a Korean
+       * alert, "måling" for a Norwegian metric, and so on, as the locale
+       * files and the docs are held to the same rules.
+       */
+      test("says each thing with the one word its language says for it", () => {
+        const localeWords: ReadonlySet<string> = new Set(
+          Object.values(readDashboardLocale(language)),
+        );
+        const saidOtherwise: Array<{ english: string; thing: string }> = [];
+
+        for (const [english, translated] of Object.entries(
+          MODULES[product.name]![language]!,
+        )) {
+          for (const rule of droppedWordsIn(
+            english,
+            translated,
+            language,
+            localeWords,
+          )) {
+            saidOtherwise.push({ english, thing: rule.thing });
+          }
+        }
+
+        expect(saidOtherwise).toEqual([]);
+      });
+
       test("Advanced and Troubleshooting are named as the guide's own sections are", () => {
         const locale: Record<string, string> = readDashboardLocale(language);
 
@@ -729,6 +801,93 @@ describe("the checks above (negative control)", () => {
       locale["Overview"],
     );
     expect(isWordedInDashboardLocale("Overview", "de")).toBe(true);
+  });
+
+  test("a word a language dropped for a thing is caught where the English names the thing, and its other senses are not", () => {
+    const none: ReadonlySet<string> = new Set<string>();
+    const korean: string = "Investigate incidents and alerts on this cluster";
+
+    expect(
+      droppedWordsIn(
+        korean,
+        "이 클러스터의 인시던트와 알림을 조사합니다",
+        "ko",
+        none,
+      ),
+    ).toHaveLength(1);
+    expect(
+      droppedWordsIn(
+        korean,
+        "이 클러스터의 인시던트와 경고를 조사합니다",
+        "ko",
+        none,
+      ),
+    ).toEqual([]);
+    // A notification's 알림 stays, as the locale's does.
+    expect(
+      droppedWordsIn(
+        "Email alerts go to the team",
+        "이메일 알림은 팀에 갑니다",
+        "ko",
+        none,
+      ),
+    ).toEqual([]);
+
+    const logs: string =
+      "Its logs, and the devices on the **Device Registry** tab";
+
+    expect(
+      droppedWordsIn(
+        logs,
+        "I suoi registri e i dispositivi nella scheda **Registro dei dispositivi**",
+        "it",
+        new Set(["Registro dei dispositivi"]),
+      ),
+    ).toHaveLength(1);
+    // The Device Registry is a registro, as the locale words it.
+    expect(
+      droppedWordsIn(
+        logs,
+        "I suoi log e i dispositivi nella scheda **Registro dei dispositivi**",
+        "it",
+        new Set(["Registro dei dispositivi"]),
+      ),
+    ).toEqual([]);
+    // A bold run the locale does not word is the guide's own words.
+    expect(
+      droppedWordsIn(
+        "The **Container Logs** row",
+        "La riga **Registri dei container**",
+        "it",
+        none,
+      ),
+    ).toHaveLength(1);
+    // What a piece quotes in code is not its words.
+    expect(
+      droppedWordsIn(
+        "Check the logs: `docker logs agent`",
+        "Controlla i log: `registri`",
+        "it",
+        none,
+      ),
+    ).toEqual([]);
+
+    expect(
+      droppedWordsIn(
+        "Stamped on every metric",
+        "Satt på hver metrikk",
+        "no",
+        none,
+      ),
+    ).toHaveLength(1);
+    expect(
+      droppedWordsIn(
+        "Stamped on every metric",
+        "Satt på hver måling",
+        "no",
+        none,
+      ),
+    ).toEqual([]);
   });
 
   test("a bold mark glued to a word on its punctuation side is caught, and one set apart is not", () => {

@@ -24,7 +24,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Once the agent connects, the host appears automatically in the **Podman** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
     "Så snart agenten kobler til, vises verten automatisk i delen **Podman**, vanligvis innen et minutt eller så. OneUptime KI-agenten vises som Tilkoblet på vertens side **KI → AI-agent** og nederst i dens **Oversikt**.",
   "**Metrics but no logs?** Rootful Podman writes container logs to `journald` by default, which the agent cannot read. Run your containers with `--log-driver k8s-file` — see **Collect logs from every container (k8s-file log driver)** under Advanced.":
-    "**Metrikker, men ingen logger?** Rootful Podman skriver som standard containerlogger til `journald`, som agenten ikke kan lese. Kjør containerne dine med `--log-driver k8s-file`; se **Samle inn logger fra alle containere (loggdriver k8s-file)** under Avansert.",
+    "**Målinger, men ingen logger?** Rootful Podman skriver som standard containerlogger til `journald`, som agenten ikke kan lese. Kjør containerne dine med `--log-driver k8s-file`; se **Samle inn logger fra alle containere (loggdriver k8s-file)** under Avansert.",
   "| Variable | Required | Description |":
     "| Variabel | Påkrevd | Beskrivelse |",
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
@@ -48,7 +48,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Or change the default for every container created afterwards, in `containers.conf` (`/etc/containers/containers.conf` rootful, `~/.config/containers/containers.conf` rootless):":
     "Eller endre standarden for alle containere som opprettes etterpå, i `containers.conf` (`/etc/containers/containers.conf` for rootful, `~/.config/containers/containers.conf` for rootless):",
   "Then **recreate** (not just restart) the affected containers: a container keeps the log driver it was created with. Must keep `journald`? The agent still collects metrics through the socket; only container logs need the file-based driver.":
-    "**Opprett** deretter de berørte containerne på nytt (en omstart er ikke nok): en container beholder loggdriveren den ble opprettet med. Må du beholde `journald`? Agenten samler fortsatt inn metrikker gjennom socketen; bare containerlogger trenger den filbaserte driveren.",
+    "**Opprett** deretter de berørte containerne på nytt (en omstart er ikke nok): en container beholder loggdriveren den ble opprettet med. Må du beholde `journald`? Agenten samler fortsatt inn målinger gjennom socketen; bare containerlogger trenger den filbaserte driveren.",
   "`oneuptime-podman-ai-agent`, the second container step 2 starts, runs the `docker` commands OneUptime AI asks for — through Podman's Docker-compatible socket — while it investigates an incident or alert on this host. **AI investigations are on by default**: once it connects, OneUptime AI investigates with it, and the host's **AI → AI agent** page and **Overview** show its status. To turn investigation off, use **What AI may do** on that page; to run the collector without the AI agent, remove it with `podman rm -f oneuptime-podman-ai-agent`.":
     "`oneuptime-podman-ai-agent`, den andre containeren som trinn 2 starter, kjører `docker`-kommandoene OneUptime AI ber om (gjennom Podmans Docker-kompatible socket) mens den undersøker en hendelse eller et varsel på denne verten. **KI-undersøkelser er slått på som standard**: så snart den kobler til, undersøker OneUptime AI med den, og vertens side **KI → AI-agent** og dens **Oversikt** viser statusen dens. Bruk **Hva AI kan gjøre** på den siden for å slå av undersøkelser; for å kjøre innsamleren uten KI-agenten fjerner du den med `podman rm -f oneuptime-podman-ai-agent`.",
   "- **Read-only by default.** It runs commands such as `docker ps`, `docker logs --tail 200 NAME`, `docker inspect` and `docker stats --no-stream` — never `exec`, `run`, `rm` or `prune`. Environment values in `docker inspect` output are masked before anything leaves the host.":
@@ -77,19 +77,19 @@ const TRANSLATION: SetupGuideTranslation = {
   "**Uninstall:**": "**Avinstaller:**",
   "| Category | Data |": "| Kategori | Data |",
   "| **CPU Metrics** | Usage total, usage percentage, throttling time (per container) |":
-    "| **CPU-metrikker** | Totalt forbruk, forbruk i prosent, strupetid (per container) |",
+    "| **CPU-målinger** | Totalt forbruk, forbruk i prosent, strupetid (per container) |",
   "| **Memory Metrics** | Usage, limit, percentage, RSS, cache (per container) |":
-    "| **Minnemetrikker** | Forbruk, grense, prosent, RSS, hurtigbuffer (per container) |",
+    "| **Minnemålinger** | Forbruk, grense, prosent, RSS, hurtigbuffer (per container) |",
   "| **Network Metrics** | Bytes and packets received/transmitted (per container) |":
-    "| **Nettverksmetrikker** | Mottatte/sendte byte og pakker (per container) |",
+    "| **Nettverksmålinger** | Mottatte/sendte byte og pakker (per container) |",
   "| **Block I/O Metrics** | Read/write bytes and operations (per container) |":
-    "| **Blokk-I/O-metrikker** | Leste/skrevne byte og operasjoner (per container) |",
+    "| **Blokk-I/O-målinger** | Leste/skrevne byte og operasjoner (per container) |",
   "| **Container Info** | Uptime, restart count, process count |":
     "| **Containerinfo** | Oppetid, antall omstarter, antall prosesser |",
   "| **Container Logs** | stdout/stderr logs from all containers that use the `k8s-file` log driver |":
     "| **Containerlogger** | stdout/stderr-logger fra alle containere som bruker loggdriveren `k8s-file` |",
   'The metrics come from the collector\'s `docker_stats` receiver, through Podman\'s Docker-compatible socket, so their names are the same as the Docker agent\'s. Each log line gets a severity from the level it names (`[ERROR]`, `level=warn`, `{"level":"info"}`); a line without one falls back to its stream — stderr is `ERROR`, stdout is `INFO`.':
-    'Metrikkene kommer fra innsamlerens receiver `docker_stats` gjennom Podmans Docker-kompatible socket, så navnene deres er de samme som Docker-agentens. Hver logglinje får en alvorlighetsgrad fra nivået den nevner (`[ERROR]`, `level=warn`, `{"level":"info"}`); en linje uten nivå faller tilbake på strømmen sin: stderr er `ERROR`, stdout er `INFO`.',
+    'Målingene kommer fra innsamlerens receiver `docker_stats` gjennom Podmans Docker-kompatible socket, så navnene deres er de samme som Docker-agentens. Hver logglinje får en alvorlighetsgrad fra nivået den nevner (`[ERROR]`, `level=warn`, `{"level":"info"}`); en linje uten nivå faller tilbake på strømmen sin: stderr er `ERROR`, stdout er `INFO`.',
   "The agent must run as root to read `/run/podman/podman.sock`. Make sure the `--user 0:0` flag is in your `podman run` command, and that the socket is on:":
     "Agenten må kjøre som root for å lese `/run/podman/podman.sock`. Sørg for at flagget `--user 0:0` står i `podman run`-kommandoen din, og at socketen er slått på:",
   "That is rootful Podman's socket, the one the agent reads. Running Podman rootless? Its socket is `/run/user/<uid>/podman/podman.sock` (turn it on with `systemctl --user enable --now podman.socket`) and its storage `~/.local/share/containers/storage`: mount those at `/run/podman/podman.sock` and `/var/lib/containers/storage` in the agent's container instead — see the Podman agent documentation.":
@@ -114,7 +114,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Then look for export errors in the agent's logs — `podman logs oneuptime-podman-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
     "Se deretter etter eksportfeil i agentens logger (`podman logs oneuptime-podman-agent 2>&1 | grep -i error`), og sørg for at ingestion-nøkkelen er gyldig og ikke har utløpt.",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using a file-based log driver (`k8s-file` or `json-file`) — rootful Podman defaults to `journald`, which the agent cannot read.":
-    "Kommer det metrikker, men fanen **Logger** er tom eller viser bare agentens egne logger? Containerne dine bruker mest sannsynlig ikke en filbasert loggdriver (`k8s-file` eller `json-file`): rootful Podman bruker som standard `journald`, som agenten ikke kan lese.",
+    "Kommer det målinger, men fanen **Logger** er tom eller viser bare agentens egne logger? Containerne dine bruker mest sannsynlig ikke en filbasert loggdriver (`k8s-file` eller `json-file`): rootful Podman bruker som standard `journald`, som agenten ikke kan lese.",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `k8s-file`. Switch them (see **Collect logs from every container (k8s-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
     "Hvis trinn 1 viser `no files match the configured criteria`, eller trinn 3 ikke viser noen filer for containerne dine, bruker de ikke `k8s-file`. Bytt dem (se **Samle inn logger fra alle containere (loggdriver k8s-file)** under Avansert), og opprett deretter hver enkelt på nytt: en container beholder loggdriveren den ble opprettet med:",
   "A host's page shows the data whose host name is that host's identifier, which the agent takes from `PODMAN_HOST_NAME`. Change `PODMAN_HOST_NAME` after the host registered, and OneUptime registers a second host under the new name — the logs are on that one. Check the name the agent reports:":
