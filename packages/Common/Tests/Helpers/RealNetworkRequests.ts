@@ -13,7 +13,8 @@ import path from "path";
  * of its 26 tests when one came back 200 ms late on a loaded runner (#8402),
  * and on a developer machine with OneUptime listening on port 80 the request
  * got a real answer instead. On 2026-11-15 the Common Test job's logs held
- * some 2,265 such refusals, from about a hundred suites (#8403).
+ * some 2,265 such refusals; the census below found 87 suites sending 2,470
+ * requests (#8403).
  *
  * So jest.setup.ts installs refuseRealRequests(): a request that would leave
  * is refused at once - the XMLHttpRequest fails as a refused connection does
@@ -55,16 +56,108 @@ export interface RealRequest {
 /*
  * Suites that start a server of their own and send to it through Common's
  * API, from packages/Common. Only their requests to a loopback address on a
- * port named in the URL are let through.
+ * port named in the URL are let through. None did through XMLHttpRequest
+ * when the rule came in: the suites that start one talk to it through
+ * Node's http, which this does not touch.
  */
 export const SUITES_THAT_TALK_TO_A_LOCAL_SERVER: ReadonlyArray<string> = [];
 
 /*
- * Suites that still sent real requests when the rule came in (#8403). Their
+ * Suites that still sent real requests when the rule came in (#8403): the
+ * census of 2026-11-15, run over every suite the Common Test job's logs
+ * showed sending one and every component suite changed since. Their
  * requests are refused at once; their tests do not fail for it. Take a suite
- * off when it stands in for what it reads.
+ * off when it stands in for what it reads (#8607); add none.
  */
-export const SUITES_STILL_SENDING_REQUESTS: ReadonlyArray<string> = [];
+export const SUITES_STILL_SENDING_REQUESTS: ReadonlyArray<string> = [
+  "Tests/App/Accounts/AccountsPagesDarkTheme.test.tsx",
+  "Tests/App/Accounts/LoginMagicLink.test.tsx",
+  "Tests/App/Accounts/LoginProductBranding.test.tsx",
+  "Tests/App/Accounts/RegisterPassword.test.tsx",
+  "Tests/App/Accounts/SignedInRedirect.test.tsx",
+  "Tests/App/AdminDashboard/AdminAddToProjectMembersTeam.test.tsx",
+  "Tests/App/AdminDashboard/AdminProjectPickerEveryProject.test.tsx",
+  "Tests/App/AdminDashboard/AdminSettingsFormsOnePage.test.tsx",
+  "Tests/App/AdminDashboard/AdminSharedComponentsInReadersLanguage.test.tsx",
+  "Tests/App/Dashboard/AdminNotificationRulesPage.test.tsx",
+  "Tests/App/Dashboard/AdminUserNotificationMethodsPage.test.tsx",
+  "Tests/App/Dashboard/AdminUserOnCallPages.test.tsx",
+  "Tests/App/Dashboard/AlertEpisodeViewFields.test.tsx",
+  "Tests/App/Dashboard/AppPlatformsSideMenus.test.tsx",
+  "Tests/App/Dashboard/CephMetricTooltips.test.tsx",
+  "Tests/App/Dashboard/CephTimeRangeZoom.test.tsx",
+  "Tests/App/Dashboard/CloudSideMenus.test.tsx",
+  "Tests/App/Dashboard/CodeProduct.test.tsx",
+  "Tests/App/Dashboard/CodeProductionReview.test.tsx",
+  "Tests/App/Dashboard/ColorFieldsPrefilledPages.test.tsx",
+  "Tests/App/Dashboard/ContainerHostMetricTooltips.test.tsx",
+  "Tests/App/Dashboard/ContainerHostOverviewTimeRangeZoom.test.tsx",
+  "Tests/App/Dashboard/ContainerMetricsTimeRangeZoom.test.tsx",
+  "Tests/App/Dashboard/DiscoveredResourceCreateForms.test.tsx",
+  "Tests/App/Dashboard/DiscoveryScanEditForm.test.tsx",
+  "Tests/App/Dashboard/DiscoveryScanMethodEditDialog.test.tsx",
+  "Tests/App/Dashboard/DiscoveryScanWizardValidation.test.tsx",
+  "Tests/App/Dashboard/EpisodeRootCauseMatchesOverview.test.tsx",
+  "Tests/App/Dashboard/EventMetricInvestigationPanel.test.tsx",
+  "Tests/App/Dashboard/FeedNoteComposerDialog.test.tsx",
+  "Tests/App/Dashboard/GeneratedKeyForms.test.tsx",
+  "Tests/App/Dashboard/GettingStartedKeyboardAndFailedChecks.test.tsx",
+  "Tests/App/Dashboard/IncidentEpisodeFeedPublicNoteNotifyDefault.test.tsx",
+  "Tests/App/Dashboard/IncidentEpisodeViewFields.test.tsx",
+  "Tests/App/Dashboard/IncidentFeedPublicNoteNotifyDefault.test.tsx",
+  "Tests/App/Dashboard/IncidentRolesSettingsPage.test.tsx",
+  "Tests/App/Dashboard/IncidentStatesPageTable.test.tsx",
+  "Tests/App/Dashboard/InfrastructureExplorer.test.tsx",
+  "Tests/App/Dashboard/InventoryAssetDetailsCard.test.tsx",
+  "Tests/App/Dashboard/InviteUserDefaultTeam.test.tsx",
+  "Tests/App/Dashboard/MessageQueueMonitorLinkMonitorCreate.test.tsx",
+  "Tests/App/Dashboard/MonitorCreateFirstRunDefaults.test.tsx",
+  "Tests/App/Dashboard/MonitorCreateFlow.test.tsx",
+  "Tests/App/Dashboard/MonitorCreateFromAIInsight.test.tsx",
+  "Tests/App/Dashboard/MonitorCreateFromMonitorBackedDevice.test.tsx",
+  "Tests/App/Dashboard/MonitorCreateFromNamespaceView.test.tsx",
+  "Tests/App/Dashboard/MonitorCreateFromPostmortemActionItem.test.tsx",
+  "Tests/App/Dashboard/MonitorCreateFromServiceScopedView.test.tsx",
+  "Tests/App/Dashboard/NetworkDeviceOverviewDiscoveredDetails.test.tsx",
+  "Tests/App/Dashboard/NetworkDeviceOverviewNameSource.test.tsx",
+  "Tests/App/Dashboard/NetworkDeviceViewSideMenu.test.tsx",
+  "Tests/App/Dashboard/NetworkQuickActionPages.test.tsx",
+  "Tests/App/Dashboard/NetworkStartScanDialog.test.tsx",
+  "Tests/App/Dashboard/OnCallRulesArchivedSeverities.test.tsx",
+  "Tests/App/Dashboard/OnCallRulesDeleteGuard.test.tsx",
+  "Tests/App/Dashboard/OnCallRulesPushRepeatCreateForm.test.tsx",
+  "Tests/App/Dashboard/OnCallRulesTable.test.tsx",
+  "Tests/App/Dashboard/OnCallRulesTablePushNotificationLevel.test.tsx",
+  "Tests/App/Dashboard/OnCallRulesTablePushRepeat.test.tsx",
+  "Tests/App/Dashboard/OpenStackComputePages.test.tsx",
+  "Tests/App/Dashboard/OpenStackNetworkPages.test.tsx",
+  "Tests/App/Dashboard/OpenStackStoragePages.test.tsx",
+  "Tests/App/Dashboard/PayAsYouGoConsentGate.test.tsx",
+  "Tests/App/Dashboard/PlanLeftoverGrowthPages.test.tsx",
+  "Tests/App/Dashboard/ProductsMenuSearchNamed.test.tsx",
+  "Tests/App/Dashboard/RecordMenusReadTheSame.test.tsx",
+  "Tests/App/Dashboard/RemediationCardTranslation.test.tsx",
+  "Tests/App/Dashboard/RemediationFixLines.test.tsx",
+  "Tests/App/Dashboard/RemediationFixStepsOnTheCard.test.tsx",
+  "Tests/App/Dashboard/RemediationSuggestionCardAiFold.test.tsx",
+  "Tests/App/Dashboard/RemediationSuggestionCardDecision.test.tsx",
+  "Tests/App/Dashboard/ScheduleOverviewFirstStep.test.tsx",
+  "Tests/App/Dashboard/ScheduledMaintenanceCreateForm.test.tsx",
+  "Tests/App/Dashboard/ScheduledMaintenanceFeedPublicNoteNotifyDefault.test.tsx",
+  "Tests/App/Dashboard/SecurityEventConnectionsTable.test.tsx",
+  "Tests/App/Dashboard/SecurityEventsDetectionStatusTables.test.tsx",
+  "Tests/App/Dashboard/ServiceSlosPage.test.tsx",
+  "Tests/App/Dashboard/SloSettings.test.tsx",
+  "Tests/App/Dashboard/StatusPageBrandingPage.test.tsx",
+  "Tests/App/Dashboard/TeamMembershipRemovalPages.test.tsx",
+  "Tests/App/Dashboard/TeamOwnersPages.test.tsx",
+  "Tests/App/Dashboard/TelemetryIngestionKeyEdit.test.tsx",
+  "Tests/App/Dashboard/UsersInviteOwnTeams.test.tsx",
+  "Tests/App/Dashboard/VMwareOverviewTooltips.test.tsx",
+  "Tests/Server/Services/StatusPagePrivateUserNewPassword.test.ts",
+  "Tests/UI/Components/Forms/IncidentEpisodePublicNoteNotifyPayload.test.tsx",
+  "Tests/UI/Components/Workflow/ArgumentsFormAdvancedSettings.test.tsx",
+];
 
 export const CENSUS_ENVIRONMENT_VARIABLE: string = "ONEUPTIME_NETWORK_CENSUS";
 export const CENSUS_LINE_PREFIX: string = "[network census] ";
