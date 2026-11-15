@@ -30,6 +30,7 @@ import {
   promQLQuantile,
 } from "./PromQLMath";
 import { sortPromQLByLabels } from "./PromQLLabelOrder";
+import { matchesEmptyValue } from "./PromQLParser";
 import { compilePromQLRegex } from "./PromQLRegex";
 import LinearRegExp, { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { describePatternProblem } from "../LinearRegExp/PatternCache";
@@ -495,48 +496,114 @@ const DATE_FUNCTIONS: ReadonlyMap<string, DateFunction> = lookupTable({
 });
 
 /*
- * The labels absent() and absent_over_time() give their 1: the selector's
- * equality matchers, as Prometheus derives them. A label matched for
- * equality twice is left out, since no one value is right.
+ * Labels Prometheus never writes into absent()'s answer (schema.IsMetadataLabel):
+ * the metric name, and the type and unit of its type-and-unit labels.
+ */
+const ABSENT_METADATA_LABELS: ReadonlySet<string> = new Set<string>([
+  PROMQL_METRIC_NAME_LABEL,
+  "__type__",
+  "__unit__",
+]);
+
+/*
+ * A selector's matchers in the order Prometheus' storage leaves them in.
+ * Reading a selector, the TSDB sorts its matchers in place, the syntax
+ * tree's own (tsdb.PostingsForMatchers): those that pick series out first,
+ * those that take series away after, each kind in the order it was written.
+ * A matcher takes away when it is != or !~ and an empty value passes it, or
+ * when no matcher on its label needs the label set. absent() reads the
+ * matchers after that, so `x{job!="b", job="a"}` is read as
+ * `x{job="a", job!="b"}`.
+ *
+ * (A Prometheus that stores no data in the query's time range reads no
+ * index, so nothing sorts the matchers, and it answers in the written order:
+ * there, x{job!="b", job="a"} answers {job="a"}. A server that scrapes
+ * anything stores its latest data, so the sorted order is the one absent()
+ * alerts see.)
+ */
+const matchersInStorageOrder: (
+  matchers: Array<PromQLLabelMatcher>,
+) => Array<PromQLLabelMatcher> = (
+  matchers: Array<PromQLLabelMatcher>,
+): Array<PromQLLabelMatcher> => {
+  const labelMustBeSet: Set<string> = new Set<string>();
+
+  for (const matcher of matchers) {
+    if (!matchesEmptyValue(matcher)) {
+      labelMustBeSet.add(matcher.name);
+    }
+  }
+
+  const takesAway: (matcher: PromQLLabelMatcher) => boolean = (
+    matcher: PromQLLabelMatcher,
+  ): boolean => {
+    if (!labelMustBeSet.has(matcher.name)) {
+      return true;
+    }
+
+    return (
+      (matcher.type === PromQLMatchType.NotEqual ||
+        matcher.type === PromQLMatchType.RegexNoMatch) &&
+      matchesEmptyValue(matcher)
+    );
+  };
+
+  return [
+    ...matchers.filter((matcher: PromQLLabelMatcher): boolean => {
+      return !takesAway(matcher);
+    }),
+    ...matchers.filter(takesAway),
+  ];
+};
+
+/*
+ * The labels absent() and absent_over_time() give their 1, as Prometheus
+ * derives them (createLabelsForAbsentFunction, promql/functions.go): the
+ * selector's matchers in the order its storage leaves them in
+ * (matchersInStorageOrder), the first = on a label setting it, and any other
+ * matcher on it, a second = among them, deleting it. A label deleted before
+ * it is set is set. So x{job="a", job!="b"} answers {}, x{job=~"a",
+ * job="a"} answers {job="a"}, and x{job="a", job="b"} answers {}, since no
+ * one value is right. An empty value is no label. Anything but a selector,
+ * once its parentheses are read through as Prometheus reads them, names no
+ * labels.
  */
 const absentLabels: (expression: PromQLExpression) => PromQLLabels = (
   expression: PromQLExpression,
 ): PromQLLabels => {
+  let argument: PromQLExpression = expression;
+
+  while (argument.kind === PromQLNodeKind.Paren) {
+    argument = argument.expression;
+  }
+
   let selectorMatchers: Array<PromQLLabelMatcher> = [];
 
-  if (expression.kind === PromQLNodeKind.VectorSelector) {
-    selectorMatchers = expression.matchers;
-  } else if (expression.kind === PromQLNodeKind.MatrixSelector) {
-    selectorMatchers = (expression as PromQLMatrixSelector).vectorSelector
+  if (argument.kind === PromQLNodeKind.VectorSelector) {
+    selectorMatchers = argument.matchers;
+  } else if (argument.kind === PromQLNodeKind.MatrixSelector) {
+    selectorMatchers = (argument as PromQLMatrixSelector).vectorSelector
       .matchers;
   }
 
   const labels: PromQLLabels = {};
-  const repeated: Set<string> = new Set<string>();
+  const set: Set<string> = new Set<string>();
 
-  for (const matcher of selectorMatchers) {
-    if (
-      matcher.type !== PromQLMatchType.Equal ||
-      matcher.name === PROMQL_METRIC_NAME_LABEL
-    ) {
+  for (const matcher of matchersInStorageOrder(selectorMatchers)) {
+    if (ABSENT_METADATA_LABELS.has(matcher.name)) {
       continue;
     }
 
-    if (Object.prototype.hasOwnProperty.call(labels, matcher.name)) {
-      repeated.add(matcher.name);
+    if (matcher.type === PromQLMatchType.Equal && !set.has(matcher.name)) {
+      set.add(matcher.name);
+
+      if (matcher.value !== "") {
+        labels[matcher.name] = matcher.value;
+        continue;
+      }
     }
 
-    labels[matcher.name] = matcher.value;
-  }
-
-  for (const name of repeated) {
-    delete labels[name];
-  }
-
-  for (const name of Object.keys(labels)) {
-    if (labels[name] === "") {
-      delete labels[name];
-    }
+    delete labels[matcher.name];
   }
 
   return labels;
