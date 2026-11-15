@@ -43,7 +43,7 @@ New Relic のワークフローは、フィルターで送信する課題を選�
 
 ### ワークフローの動作
 
-**Webhook** トリガーの後、**Check With JavaScript** ステップ `read-event-1` が New Relic の送る `state` を読み取り、**Incident From Another Tool**（アラートのテンプレートでは **Alert From Another Tool**）が、課題の ID をもとにその意味どおりに処理します。インシデントは ID をカスタムフィールド `newRelicIssueId` に保持します。
+**Webhook** トリガーの後、**JavaScript でチェック** ステップ `read-event-1` が New Relic の送る `state` を読み取り、**ほかのツールからのインシデント**（アラートのテンプレートでは **ほかのツールからのアラート**）が、課題の ID をもとにその意味どおりに処理します。インシデントは ID をカスタムフィールド `newRelicIssueId` に保持します。
 
 | New Relic が送るもの | ワークフローの動作 |
 | --- | --- |

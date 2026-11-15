@@ -1,6 +1,6 @@
 # Telegram
 
-알림이 발생하거나 인시던트가 열리면 [Telegram](https://telegram.org) 채팅, 그룹 또는 채널에 메시지를 보냅니다. OneUptime의 워크플로 단계 **Send Message to Telegram**은 직접 만든 봇으로 메시지를 보내며, 미리 만들어진 템플릿이 알림용 워크플로를 만들어 줍니다. 이 통합은 **아웃바운드**입니다. 봇은 메시지를 보내기만 하고, 채팅에서 오가는 말은 읽지 않습니다.
+알림이 발생하거나 인시던트가 열리면 [Telegram](https://telegram.org) 채팅, 그룹 또는 채널에 메시지를 보냅니다. OneUptime의 워크플로 단계 **Telegram에 메시지 보내기**는 직접 만든 봇으로 메시지를 보내며, 미리 만들어진 템플릿이 알림용 워크플로를 만들어 줍니다. 이 통합은 **아웃바운드**입니다. 봇은 메시지를 보내기만 하고, 채팅에서 오가는 말은 읽지 않습니다.
 
 :::cards
 - [작동 방식](#작동-방식): 알림이 발생할 때 워크플로가 하는 일.
@@ -19,7 +19,7 @@ flowchart TB
     step -->|"오류"| failed["실행이 실패하고<br/>이유를 알림"]
 ```
 
-단계는 Telegram의 Bot API를 통해 봇으로서 **Message Text**를 채팅에 보냅니다. Telegram이 메시지를 받으면 **성공** 출력으로, Telegram이 거부하면 Telegram의 이유와 함께 **오류** 출력으로 진행합니다. 템플릿처럼 **오류**에 아무것도 연결되어 있지 않으면, 보내지 못한 실행은 실패하고 그 **단계**에 이유가 나옵니다.
+단계는 Telegram의 Bot API를 통해 봇으로서 **메시지 텍스트**를 채팅에 보냅니다. Telegram이 메시지를 받으면 **성공** 출력으로, Telegram이 거부하면 Telegram의 이유와 함께 **오류** 출력으로 진행합니다. 템플릿처럼 **오류**에 아무것도 연결되어 있지 않으면, 보내지 못한 실행은 실패하고 그 **단계**에 이유가 나옵니다.
 
 ## 사전 요건
 
@@ -51,15 +51,15 @@ Telegram에서 [@BotFather](https://t.me/BotFather)에게 `/newbot`을 보내고
 1. **워크플로**를 열고 **워크플로 생성**을 클릭합니다.
 2. **템플릿 검색…** 상자에 `Telegram`을 입력하고 **Tell Telegram when an alert fires**를 클릭한 다음 **이 템플릿 사용**을 클릭합니다.
 3. 이름은 **Notify Telegram on new alert** 그대로 두거나 바꾸고, **다음**을 클릭합니다.
-4. 토큰을 **Telegram Bot Token**에, ID를 **Telegram Chat ID**에 붙여 넣고 **워크플로 생성**을 클릭합니다.
+4. 토큰을 **Telegram 봇 토큰**에, ID를 **Telegram Chat ID**에 붙여 넣고 **워크플로 생성**을 클릭합니다.
 
-워크플로는 두 단계로 **빌더**에서 열립니다. **On Create Alert**와, 알림의 번호, 제목, 심각도, 상태를 보내는 **Send Message to Telegram**입니다. 토큰은 워크플로의 시크릿 변수 `telegramBotToken`으로, ID는 `telegramChatId`로 저장됩니다.
+워크플로는 두 단계로 **빌더**에서 열립니다. **On Create Alert**와, 알림의 번호, 제목, 심각도, 상태를 보내는 **Telegram에 메시지 보내기**입니다. 토큰은 워크플로의 시크릿 변수 `telegramBotToken`으로, ID는 `telegramChatId`로 저장됩니다.
 @tab 처음부터
 1. 토큰을 시크릿 전역 변수로 저장합니다. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기**를 클릭하고, 이름을 `TELEGRAM_BOT_TOKEN`으로 지정한 뒤 **다음**을 클릭합니다. 토큰을 **콘텐츠**에 붙여 넣고 **시크릿**을 켠 뒤 **워크플로 변수 만들기**를 클릭합니다.
 2. **워크플로**로 이동해 **워크플로 생성**을 클릭하고 **처음부터 시작**을 고른 뒤, 워크플로 이름을 지정하고 **워크플로 생성**을 클릭합니다.
-3. **빌더**에서 **이 워크플로를 시작할 항목 선택**을 클릭하고 **인기** 아래의 **On Create Alert**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 메시지에 표시할 다른 필드(예: **Alert Number With Prefix**)를 고릅니다.
-4. **구성 요소 추가**를 클릭하고 `telegram`을 검색한 뒤 **Send Message to Telegram**을 클릭합니다. 트리거의 **성공** 출력을 이 단계에 연결합니다.
-5. 새 단계를 클릭합니다. **Telegram Bot Token**에서 **{ }** 버튼을 클릭하고 **Global variables** 아래의 `TELEGRAM_BOT_TOKEN`을 고릅니다. 채팅 ID를 **Chat ID**에 입력하고, **Message Text**에 메시지를 쓴 뒤, **{ }** 버튼으로 알림의 필드를 넣습니다.
+3. **빌더**에서 **이 워크플로를 시작할 항목 선택**을 클릭하고 **인기** 아래의 **On Create Alert**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 메시지에 표시할 다른 필드(예: **Alert Number With Prefix**)를 고릅니다.
+4. **구성 요소 추가**를 클릭하고 `telegram`을 검색한 뒤 **Telegram에 메시지 보내기**를 클릭합니다. 트리거의 **성공** 출력을 이 단계에 연결합니다.
+5. 새 단계를 클릭합니다. **Telegram 봇 토큰**에서 **{ }** 버튼을 클릭하고 **Global variables** 아래의 `TELEGRAM_BOT_TOKEN`을 고릅니다. 채팅 ID를 **채팅 ID**에 입력하고, **메시지 텍스트**에 메시지를 쓴 뒤, **{ }** 버튼으로 알림의 필드를 넣습니다.
 :::
 
 처음부터 만든 메시지는 다음과 같은 참조로 알림의 필드를 읽습니다:
@@ -80,7 +80,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 - **일반 텍스트.** 단계는 Telegram 서식 없이 입력한 그대로 텍스트를 보내므로, `*`와 `_`는 그대로 표시됩니다.
 - **4,096자 한도에 유의하기.** Telegram은 최대 4,096자의 메시지를 받습니다. 더 긴 메시지는 거부되지 않고 잘리며, 끝에 "… (truncated — see OneUptime for the full text)"가 붙습니다.
-- **인시던트에도.** 같은 워크플로를 **On Create Incident**로, 또는 상태 변경에는 **On Update Incident**로 만드세요. 일부 알림만 보내려면 단계 앞에 **If / Else** 블록을 두세요.
+- **인시던트에도.** 같은 워크플로를 **On Create Incident**로, 또는 상태 변경에는 **On Update Incident**로 만드세요. 일부 알림만 보내려면 단계 앞에 **조건 분기** 블록을 두세요.
 - **토큰 형식을 검사합니다.** `123456789:ABCdef…` 형식이 아닌 토큰은 아무것도 보내기 전에 실행을 멈추며, 토큰은 절대 로그에 기록되지 않습니다.
 
 ## 문제 해결
@@ -88,7 +88,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 단계가 **오류**로 진행하면 실행이 실패하고, 실행의 **단계**에 있는 그 단계의 항목에 Telegram의 이유가 나옵니다. 봇이 채팅에 있어야 하므로 먼저 그것부터 확인하세요.
 
 :::details Telegram이 "Bad Request: chat not found"로 응답함
-**Chat ID**가 잘못되었거나 봇이 채팅을 볼 수 없습니다. 봇을 그룹에 추가하거나, 채널의 관리자로 만들거나, 상대에게 봇과 채팅을 시작해 달라고 하세요. 그룹의 ID는 `-`로 시작합니다.
+**채팅 ID**가 잘못되었거나 봇이 채팅을 볼 수 없습니다. 봇을 그룹에 추가하거나, 채널의 관리자로 만들거나, 상대에게 봇과 채팅을 시작해 달라고 하세요. 그룹의 ID는 `-`로 시작합니다.
 :::
 
 :::details Telegram이 "Forbidden: bot was blocked by the user" 또는 "bot is not a member"로 응답함
