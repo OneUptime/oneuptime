@@ -40,7 +40,7 @@ import { STATUS_PAGE_LANGUAGES } from "../../Helpers/TranslatedLanguages";
  * files of its own: the Dashboard; a public status page (its statusNames,
  * StatusPage/src/Utils/StatusTranslation); and the server's messages - a
  * status page's notifications to its subscribers and a person's on-call
- * pages (Common/Server/Locales, translateStateName). Translated apart, they
+ * pages (Common/Server/Locales, translateRecordName). Translated apart, they
  * drifted apart in 15 places, and three were wrong: a Japanese status page
  * wrote Identified as 確認済み, the Dashboard's word for Acknowledged; a
  * Russian one wrote Ended and Completed alike, Завершено; a Hindi one wrote

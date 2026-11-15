@@ -1,3 +1,4 @@
+import { StateListType } from "../../../../../Utils/StateOrder";
 import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import { getServerTranslator } from "../../../../../Server/Utils/ServerTranslation";
 import SubscriberMessageText, {
@@ -299,8 +300,16 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: STATUS_PAGE_URL, 
         }),
       ).toEqual([
         "Checkout API",
-        SubscriberMessageText.nameInLanguage(translator, "Major Incident"),
-        SubscriberMessageText.nameInLanguage(translator, "Resolved"),
+        SubscriberMessageText.nameInLanguage(
+          translator,
+          StateListType.IncidentSeverity,
+          "Major Incident",
+        ),
+        SubscriberMessageText.nameInLanguage(
+          translator,
+          StateListType.IncidentState,
+          "Resolved",
+        ),
       ]);
     });
   },
@@ -333,9 +342,19 @@ describe("a subscriber's Teams card read from the right", () => {
     ).toEqual([
       isolated("Checkout API (EU)"),
       isolated(
-        SubscriberMessageText.nameInLanguage(translator, "Major Incident"),
+        SubscriberMessageText.nameInLanguage(
+          translator,
+          StateListType.IncidentSeverity,
+          "Major Incident",
+        ),
       ),
-      isolated(SubscriberMessageText.nameInLanguage(translator, "Resolved")),
+      isolated(
+        SubscriberMessageText.nameInLanguage(
+          translator,
+          StateListType.IncidentState,
+          "Resolved",
+        ),
+      ),
     ]);
 
     // A description of two paragraphs: the one beside its label is isolated.
@@ -373,7 +392,13 @@ ${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, Sub
     ).toEqual([
       isolated("Checkout API (EU)"),
       isolated("حادثة كبرى"),
-      isolated(SubscriberMessageText.nameInLanguage(translator, "Resolved")),
+      isolated(
+        SubscriberMessageText.nameInLanguage(
+          translator,
+          StateListType.IncidentState,
+          "Resolved",
+        ),
+      ),
     ]);
     expect(
       sentFactsOf(card).map((fact: Fact): string => {

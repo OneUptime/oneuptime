@@ -2,10 +2,9 @@ import {
   describeOnCallAcknowledgementTimeout,
   OnCallPageAgainNotice,
 } from "./OnCallAcknowledgementTimeout";
-import {
-  DEFAULT_ALERT_SEVERITY_NAMES,
-  isDefaultStatusName,
-} from "../StatusPage/DefaultStatusNames";
+import { DEFAULT_ALERT_SEVERITY_NAMES } from "../StatusPage/DefaultStatusNames";
+import { translateRecordName } from "../../Utils/DefaultRecordNames";
+import { StateListType } from "../../Utils/StateOrder";
 import {
   composedValue,
   createTranslator,
@@ -235,32 +234,32 @@ export const ON_CALL_PAGE_KINDS: ReadonlyArray<OnCallPageKind> = [
  */
 export { DEFAULT_ALERT_SEVERITY_NAMES };
 
+// The lists whose records a page names: its record's state and severity.
+export type OnCallPageNameList =
+  | StateListType.IncidentState
+  | StateListType.IncidentSeverity
+  | StateListType.AlertState
+  | StateListType.AlertSeverity;
+
 /*
  * A state's or a severity's name as a page shows it: OneUptime's own
  * default names in the person's language ("Identifiziert", "Kritischer
- * Vorfall", "Hoch"), a name the project gave it as written.
+ * Vorfall", "Hoch"), a name the project gave it as written. Which names
+ * are defaults goes by the record's own list, as on the Dashboard
+ * (Utils/DefaultRecordNames): an incident severity a project named "High"
+ * is its own and reads as written, while the default alert severity High
+ * reads "Hoch" (#8066).
  */
 export const getOnCallPageStateName: (
   translator: Translator,
+  list: OnCallPageNameList,
   name: string | null | undefined,
 ) => string = (
   translator: Translator,
+  list: OnCallPageNameList,
   name: string | null | undefined,
 ): string => {
-  if (!name) {
-    return "";
-  }
-
-  const trimmed: string = name.trim();
-
-  if (
-    !isDefaultStatusName(trimmed) &&
-    !DEFAULT_ALERT_SEVERITY_NAMES.includes(trimmed)
-  ) {
-    return name;
-  }
-
-  return translator.translateText(trimmed) || name;
+  return translateRecordName(translator, list, name);
 };
 
 // "Incident", "Alert episode": a record's kind as a label.

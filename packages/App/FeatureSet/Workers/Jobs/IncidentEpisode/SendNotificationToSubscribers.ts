@@ -67,6 +67,7 @@ import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/Sub
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
 import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
+import { StateListType } from "Common/Utils/StateOrder";
 import SubscriberMessageText, {
   SubscriberChatText,
   SubscriberEmailText,
@@ -555,6 +556,7 @@ RunCron(
                   detailsUrl: episodeDetailsUrl,
                   // A default severity name in the page's language.
                   episodeSeverity: SubscriberTemplateValues.stateName(
+                    StateListType.IncidentSeverity,
                     episode.incidentSeverity?.name,
                     " - ",
                   ),
@@ -793,6 +795,7 @@ RunCron(
                                       (translator: Translator): string => {
                                         return SubscriberMessageText.nameInLanguage(
                                           translator,
+                                          StateListType.IncidentSeverity,
                                           episode.incidentSeverity!.name,
                                         );
                                       },
@@ -880,6 +883,7 @@ RunCron(
                                     title: episode.title || "",
                                     severity: episode.incidentSeverity?.name
                                       ? SubscriberMessageText.stateName(
+                                          StateListType.IncidentSeverity,
                                           episode.incidentSeverity.name,
                                         )
                                       : "-",
@@ -956,7 +960,7 @@ RunCron(
                         (translator: Translator): string => {
                           return mdText`## 🚨 ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: episode.title || "" })}
 
-${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, episode.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, episode.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, episode.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, StateListType.IncidentSeverity, episode.incidentSeverity.name) : " - ")}
 
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 
@@ -1017,7 +1021,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
                         language,
                         (translator: Translator): string => {
                           return mdText`## 🚨 ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: episode.title || "" })}
-${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, episode.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, episode.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, episode.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, StateListType.IncidentSeverity, episode.incidentSeverity.name) : " - ")}
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, FeedMarkdown.asMarkdown(episode.description || ""))}
 ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
