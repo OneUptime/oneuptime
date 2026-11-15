@@ -248,6 +248,112 @@ describe("a Fluentd log's time", () => {
     expect(attributesOf(word!)["fluentd.timestamp"]).toBe("soon");
   });
 
+  /*
+   * Fluentd's json parser dropped such a line before the guide's file
+   * stopped it reading a line's time (issue #8241). Now the line arrives
+   * with its "time" as written, beside the time Fluentd read it.
+   */
+  test("a time that is null, true, a list or an object: stored at the time Fluentd read the line, and kept as an attribute", async () => {
+    // What the stub of /fluentd/logs got from the guide's Compose files, in the run.
+    const rows: Array<JSONObject> = await ingest([
+      {
+        time: null,
+        message: "b1 null time",
+        fluentd_time: "2026-11-15T17:39:28.041016696Z",
+      },
+      {
+        time: true,
+        message: "b1 true time",
+        fluentd_time: "2026-11-15T17:39:28.041037898Z",
+      },
+      {
+        time: [1, 2],
+        message: "b1 list time",
+        fluentd_time: "2026-11-15T17:39:28.041039701Z",
+      },
+      {
+        time: { s: 1 },
+        message: "b1 object time",
+        fluentd_time: "2026-11-15T17:39:28.041041193Z",
+      },
+    ]);
+
+    expect(
+      rows.map((row: JSONObject): [unknown, unknown, unknown] => {
+        return [row["body"], row["time"], row["timeUnixNano"]];
+      }),
+    ).toEqual([
+      ["b1 null time", "2026-11-15 17:39:28.041016696", "1794764368041016696"],
+      ["b1 true time", "2026-11-15 17:39:28.041037898", "1794764368041037898"],
+      ["b1 list time", "2026-11-15 17:39:28.041039701", "1794764368041039701"],
+      [
+        "b1 object time",
+        "2026-11-15 17:39:28.041041193",
+        "1794764368041041193",
+      ],
+    ]);
+    expect(
+      rows.map((row: JSONObject): JSONObject => {
+        return Object.fromEntries(
+          Object.entries(attributesOf(row)).filter(
+            ([key]: [string, unknown]): boolean => {
+              return key.startsWith("fluentd.");
+            },
+          ),
+        ) as JSONObject;
+      }),
+    ).toEqual([
+      // A null is no attribute, as for any field; fluentd_time, the time read, is none either.
+      {},
+      { "fluentd.time": true },
+      { "fluentd.time": "[1,2]" },
+      { "fluentd.time.s": 1 },
+    ]);
+  });
+
+  test("a time that is null, true, a list or an object, and no time from Fluentd: stored at the time it is taken in", async () => {
+    const rows: Array<JSONObject> = await ingest([
+      { time: null, message: "a" },
+      { time: false, message: "b" },
+      { time: [], message: "c" },
+      { time: {}, message: "d" },
+      { time: { seconds: 1763107202 }, message: "e" },
+      { time: [1763107202], message: "f" },
+    ]);
+
+    expect(
+      rows.map((row: JSONObject): [unknown, unknown, unknown] => {
+        return [row["body"], row["time"], row["timeUnixNano"]];
+      }),
+    ).toEqual(
+      ["a", "b", "c", "d", "e", "f"].map(
+        (body: string): [string, string, string] => {
+          return [body, NOW_COLUMN, NOW_NANOS];
+        },
+      ),
+    );
+    expect(attributesOf(rows[1]!)["fluentd.time"]).toBe(false);
+    expect(attributesOf(rows[2]!)["fluentd.time"]).toBe("[]");
+    expect(attributesOf(rows[4]!)["fluentd.time.seconds"]).toBe(1763107202);
+  });
+
+  test("a time that is null falls through to the next time field the record has", async () => {
+    const [row] = await ingest([
+      {
+        time: null,
+        timestamp: "2026-11-14T08:00:06.000Z",
+        message: "x",
+        fluentd_time: "2026-11-15T17:39:28.041016696Z",
+      },
+    ]);
+
+    expect(row!["time"]).toBe("2026-11-14 08:00:06.000000000");
+    expect(attributesOf(row!)["fluentd.timestamp"]).toBeUndefined();
+    expect(attributesOf(row!)["fluentd.fluentd_time"]).toBe(
+      "2026-11-15T17:39:28.041016696Z",
+    );
+  });
+
   test("the other time fields stay attributes; only the one read is taken out", async () => {
     const [row] = await ingest([
       {
