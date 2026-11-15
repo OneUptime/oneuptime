@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 1923
+    "keys": 55650,
+    "untranslated": 1917
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -243,6 +243,7 @@
     "Kelvin",
     "Kernel",
     "Kernel · {{kernel}}",
+    "Key Manager",
     "Keystone",
     "Kibibytes",
     "Kilobits",

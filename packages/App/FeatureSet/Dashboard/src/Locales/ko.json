@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "이 모니터에 대해 팀이 알아야 할 모든 것.",
   "Archived Storage Arrays": "보관된 스토리지 어레이",
   "Array": "배열",
-  "Array Health": "Array Health",
+  "Array Health": "어레이 상태",
   "Array appears under the wrong name": "어레이가 잘못된 이름으로 나타남",
   "Array shows as \"Disconnected\"": "어레이가 \"연결 끊김\"으로 표시됨",
   "Asks for approval": "승인을 요청함",
@@ -55689,5 +55689,8 @@
   "Yes / No": "예 / 아니오",
   "which led to {{steps}}": "그 뒤 {{steps}}(으)로 이어짐",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}}은(는) 아직 실행되지 않았습니다. 실행되면 여기에 필드가 표시됩니다.",
-  "Insights (explorer analytics)": "인사이트"
+  "HA": "HA",
+  "Insights (explorer analytics)": "인사이트",
+  "Key Manager": "키 매니저",
+  "PG": "PG"
 }

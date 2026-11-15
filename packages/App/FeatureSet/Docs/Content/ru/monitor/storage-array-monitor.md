@@ -118,8 +118,8 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | Шаблон | Категория | Серьёзность | Что отслеживает | Срабатывает, когда |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | Доступность | Критический | `purefa_info`, Count, последние 10 минут | Нет данных за всё окно — Storage Array Agent остановился, потерял маршрут до OneUptime или у него отозвали токен, либо массив перестал ему отвечать; восстанавливается, когда данные снова поступают |
-| Critical Array Alert | Array Health | Критический | `purefa_alerts_open` с фильтром `severity=critical`, Max по `summary`, последние 5 минут | > 0 — у массива есть открытое критическое оповещение (отказавший компонент, критическая нехватка ёмкости, сбой репликации). Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
-| Warning Array Alert | Array Health | Предупреждение | `purefa_alerts_open` с фильтром `severity=warning`, Max по `summary`, последние 5 минут | > 0 — у массива есть открытое оповещение уровня warning. Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
+| Critical Array Alert | Состояние системы хранения | Критический | `purefa_alerts_open` с фильтром `severity=critical`, Max по `summary`, последние 5 минут | > 0 — у массива есть открытое критическое оповещение (отказавший компонент, критическая нехватка ёмкости, сбой репликации). Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
+| Warning Array Alert | Состояние системы хранения | Предупреждение | `purefa_alerts_open` с фильтром `severity=warning`, Max по `summary`, последние 5 минут | > 0 — у массива есть открытое оповещение уровня warning. Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
 | Capacity Above 80% | Ёмкость | Предупреждение | `purefa_array_space_utilization`, Max, последние 15 минут | > 80 — собственный первый порог ёмкости Pure; восстанавливается при ≤ 72 |
 | Capacity Above 90% | Ёмкость | Критический | `purefa_array_space_utilization`, Max, последние 5 минут | > 90 — массив близок к отказу в записи; восстанавливается при ≤ 81 |
 | High Read Latency | Производительность | Предупреждение | `purefa_array_performance_latency_usec` с фильтром `dimension=usec_per_read_op`, Avg, последние 10 минут | > 5000 мкс (5 мс) — чтение на FlashArray обычно занимает намного меньше 1 мс; восстанавливается при ≤ 4500 |
@@ -135,8 +135,8 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | Шаблон | Категория | Серьёзность | Что отслеживает | Срабатывает, когда |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | Доступность | Критический | `purefb_info`, Count, последние 10 минут | Нет данных за всё окно — агент, его экспортер или FlashBlade перестали отвечать; восстанавливается, когда данные снова поступают |
-| Critical Array Alert | Array Health | Критический | `purefb_alerts_open` с фильтром `severity=critical`, Max по `summary`, последние 5 минут | > 0 — у FlashBlade есть открытое критическое оповещение. Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
-| Warning Array Alert | Array Health | Предупреждение | `purefb_alerts_open` с фильтром `severity=warning`, Max по `summary`, последние 5 минут | > 0 — у FlashBlade есть открытое оповещение уровня warning. Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
+| Critical Array Alert | Состояние системы хранения | Критический | `purefb_alerts_open` с фильтром `severity=critical`, Max по `summary`, последние 5 минут | > 0 — у FlashBlade есть открытое критическое оповещение. Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
+| Warning Array Alert | Состояние системы хранения | Предупреждение | `purefb_alerts_open` с фильтром `severity=warning`, Max по `summary`, последние 5 минут | > 0 — у FlashBlade есть открытое оповещение уровня warning. Один инцидент на оповещение; восстанавливается, когда оповещение закрывается |
 | Capacity Above 80% | Ёмкость | Предупреждение | `purefb_array_space_utilization` с фильтром `type=array`, Max, последние 15 минут | > 80; восстанавливается при ≤ 72 |
 | Capacity Above 90% | Ёмкость | Критический | `purefb_array_space_utilization` с фильтром `type=array`, Max, последние 5 минут | > 90 — когда он заполнится, запись перестанет работать для всех клиентов; восстанавливается при ≤ 81 |
 | Hardware Component Unhealthy | Оборудование | Критический | `purefb_hardware_health`, Min по `name`, последние 5 минут | < 1 — блейд, модуль фабрики, блок питания или вентилятор неисправен (неиспользуемый слот сообщает 2). Один инцидент на компонент; восстанавливается при ≥ 1 |
@@ -157,14 +157,14 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 
 Агент отправляет всё, что экспортирует массив; серии ниже — это каталог, который предлагает форма монитора. Каждое значение — это gauge, который вычисляет сам массив, — задержки в микросекундах на операцию, пропускная способность в секунду, — поэтому вычислять скорость не нужно. **Фильтр** — это фильтр по метке, который придаёт серии смысл, указанный в её строке; форма применяет его за вас.
 
-### Array Health
+### Состояние системы хранения
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | Одна серия на каждое открытое оповещение массива (значение 1) с метками `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` и `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | Одна серия на каждое открытое оповещение FlashBlade (значение 1) с метками `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` и `kburl` (статья базы знаний Pure) |
 
-### Capacity
+### Ёмкость
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | Неиспользуемая ёмкость FlashBlade |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | Сокращение данных по всему FlashBlade |
 
-### Performance
+### Производительность
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Байт прочитано в секунду по всем протоколам |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Байт записано в секунду по всем протоколам |
 
-### Volumes
+### Тома
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | Физическое место, которое занимает каждый том после сокращения данных |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | Коэффициент сокращения данных каждого тома |
 
-### Hosts
+### Хосты
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec` | FlashArray | `ops/s` | Операций чтения в секунду для каждого хоста |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec` | FlashArray | `ops/s` | Операций записи в секунду для каждого хоста |
 
-### Replication
+### Репликация
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | Трафик репликации каждого пода с метками `direction` и `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | Средняя задержка зеркалированной записи каждого пода ActiveCluster |
 
-### Hardware
+### Оборудование
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Ошибок в секунду на каждом интерфейсе Ethernet и Fibre Channel — постоянные ошибки обычно означают плохой кабель, оптику или порт коммутатора |
 | `purefb_hardware_health` | — | FlashBlade | — | Состояние каждого аппаратного компонента (блейды, модули фабрики, блоки питания, вентиляторы, ...): 1 = исправен, 2 = не используется, 0 = неисправен. Берите минимум по `name` |
 
-### File Systems
+### Файловые системы
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | Физическое место, которое занимает каждая файловая система |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | Доля выделенного размера каждой файловой системы, которая ещё свободна, от 0 до 1 — около 0 файловая система вот-вот исчерпает свою квоту |
 
-### Buckets
+### Бакеты
 
 | Метрика | Фильтр | Платформа | Единица | Описание |
 | --- | --- | --- | --- | --- |

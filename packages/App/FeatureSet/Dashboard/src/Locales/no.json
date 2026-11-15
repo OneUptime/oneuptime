@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Alt teamet ditt bør vite om denne monitoren.",
   "Archived Storage Arrays": "Arkiverte lagringsarrayer",
   "Array": "Matrise",
-  "Array Health": "Array Health",
+  "Array Health": "Arrayets helse",
   "Array appears under the wrong name": "Arrayet vises under feil navn",
   "Array shows as \"Disconnected\"": "Arrayet vises som \"Frakoblet\"",
   "Asks for approval": "Ber om godkjenning",
@@ -55689,5 +55689,8 @@
   "Yes / No": "Ja / Nei",
   "which led to {{steps}}": "som førte til {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} har ikke kjørt ennå. Feltene vises her når det har kjørt.",
-  "Insights (explorer analytics)": "Innsikt"
+  "HA": "HA",
+  "Insights (explorer analytics)": "Innsikt",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

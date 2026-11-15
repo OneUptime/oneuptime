@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Allt ditt team bör veta om den här monitorn.",
   "Archived Storage Arrays": "Arkiverade lagringsarrayer",
   "Array": "Array",
-  "Array Health": "Array Health",
+  "Array Health": "Arrayhälsa",
   "Array appears under the wrong name": "Arrayen visas under fel namn",
   "Array shows as \"Disconnected\"": "Arrayen visas som \"Frånkopplad\"",
   "Asks for approval": "Ber om godkännande",
@@ -55689,5 +55689,8 @@
   "Yes / No": "Ja / Nej",
   "which led to {{steps}}": "vilket ledde till {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} har inte körts ännu. Dess fält visas här när det har körts.",
-  "Insights (explorer analytics)": "Insikter"
+  "HA": "HA",
+  "Insights (explorer analytics)": "Insikter",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

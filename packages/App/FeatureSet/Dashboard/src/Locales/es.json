@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Todo lo que tu equipo debería saber sobre este monitor.",
   "Archived Storage Arrays": "Cabinas de almacenamiento archivadas",
   "Array": "Matriz",
-  "Array Health": "Array Health",
+  "Array Health": "Salud de la cabina",
   "Array appears under the wrong name": "La cabina aparece con un nombre incorrecto",
   "Array shows as \"Disconnected\"": "La cabina aparece como \"Desconectado\"",
   "Asks for approval": "Pide aprobación",
@@ -55689,5 +55689,8 @@
   "Yes / No": "Sí / No",
   "which led to {{steps}}": "que llevó a {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} aún no se ha ejecutado. Sus campos aparecen aquí cuando se ejecute.",
-  "Insights (explorer analytics)": "Análisis"
+  "HA": "HA",
+  "Insights (explorer analytics)": "Análisis",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

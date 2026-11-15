@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Alles wat uw team over deze monitor moet weten.",
   "Archived Storage Arrays": "Gearchiveerde opslagarrays",
   "Array": "Array",
-  "Array Health": "Array Health",
+  "Array Health": "Arraygezondheid",
   "Array appears under the wrong name": "Array verschijnt onder de verkeerde naam",
   "Array shows as \"Disconnected\"": "Array staat op \"Verbinding verbroken\"",
   "Asks for approval": "Vraagt om goedkeuring",
@@ -55689,5 +55689,8 @@
   "Yes / No": "Ja / Nee",
   "which led to {{steps}}": "wat leidde naar {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} is nog niet uitgevoerd. De velden verschijnen hier zodra dat gebeurd is.",
-  "Insights (explorer analytics)": "Inzichten"
+  "HA": "HA",
+  "Insights (explorer analytics)": "Inzichten",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

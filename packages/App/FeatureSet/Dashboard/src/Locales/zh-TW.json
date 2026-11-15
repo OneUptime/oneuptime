@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "團隊需要知道的關於此監測器的一切。",
   "Archived Storage Arrays": "已封存的儲存陣列",
   "Array": "陣列",
-  "Array Health": "Array Health",
+  "Array Health": "陣列健康狀況",
   "Array appears under the wrong name": "陣列以錯誤的名稱出現",
   "Array shows as \"Disconnected\"": "陣列顯示為「已中斷」",
   "Asks for approval": "要求核准",
@@ -55689,5 +55689,8 @@
   "Yes / No": "是 / 否",
   "which led to {{steps}}": "隨後進入 {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} 尚未執行。執行後，其欄位會顯示在這裡。",
-  "Insights (explorer analytics)": "洞察"
+  "HA": "HA",
+  "Insights (explorer analytics)": "洞察",
+  "Key Manager": "金鑰管理員",
+  "PG": "PG"
 }

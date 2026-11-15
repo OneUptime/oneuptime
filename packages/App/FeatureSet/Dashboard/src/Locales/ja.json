@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "このモニターについてチームが知っておくべきこと。",
   "Archived Storage Arrays": "アーカイブ済みのストレージアレイ",
   "Array": "配列",
-  "Array Health": "Array Health",
+  "Array Health": "アレイのヘルス",
   "Array appears under the wrong name": "アレイが誤った名前で表示される",
   "Array shows as \"Disconnected\"": "アレイが「切断済み」と表示される",
   "Asks for approval": "承認を求める",
@@ -55689,5 +55689,8 @@
   "Yes / No": "はい / いいえ",
   "which led to {{steps}}": "その後 {{steps}} に進みました",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。",
-  "Insights (explorer analytics)": "インサイト"
+  "HA": "HA",
+  "Insights (explorer analytics)": "インサイト",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

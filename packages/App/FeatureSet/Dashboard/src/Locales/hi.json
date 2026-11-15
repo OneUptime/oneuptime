@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "इस मॉनिटर के बारे में आपकी टीम को जो कुछ भी जानना चाहिए।",
   "Archived Storage Arrays": "संग्रहीत स्टोरेज ऐरे",
   "Array": "ऐरे",
-  "Array Health": "Array Health",
+  "Array Health": "ऐरे स्वास्थ्य",
   "Array appears under the wrong name": "ऐरे ग़लत नाम से दिखता है",
   "Array shows as \"Disconnected\"": "ऐरे \"डिस्कनेक्टेड\" दिखता है",
   "Asks for approval": "मंज़ूरी मांगता है",
@@ -55689,5 +55689,8 @@
   "Yes / No": "हाँ / नहीं",
   "which led to {{steps}}": "जिससे आगे {{steps}} चले",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} अभी तक नहीं चला है। चलने के बाद इसके फ़ील्ड यहाँ दिखते हैं।",
-  "Insights (explorer analytics)": "इनसाइट्स"
+  "HA": "HA",
+  "Insights (explorer analytics)": "इनसाइट्स",
+  "Key Manager": "की मैनेजर",
+  "PG": "PG"
 }

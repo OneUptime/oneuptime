@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Tudo o que a sua equipe deve saber sobre este monitor.",
   "Archived Storage Arrays": "Arrays de armazenamento arquivados",
   "Array": "Array",
-  "Array Health": "Array Health",
+  "Array Health": "Saúde do array",
   "Array appears under the wrong name": "O array aparece com o nome errado",
   "Array shows as \"Disconnected\"": "O array aparece como \"Desconectado\"",
   "Asks for approval": "Pede aprovação",
@@ -55689,5 +55689,8 @@
   "Yes / No": "Sim / Não",
   "which led to {{steps}}": "que levou a {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ainda não foi executado. Os campos dele aparecem aqui depois que ele for executado.",
-  "Insights (explorer analytics)": "Insights"
+  "HA": "HA",
+  "Insights (explorer analytics)": "Insights",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

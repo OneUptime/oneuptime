@@ -24346,7 +24346,7 @@
   "Anything your team should know about this monitor.": "Всё, что вашей команде стоит знать об этом мониторе.",
   "Archived Storage Arrays": "Архивные системы хранения",
   "Array": "Массив",
-  "Array Health": "Array Health",
+  "Array Health": "Состояние системы хранения",
   "Array appears under the wrong name": "Система хранения отображается под неверным именем",
   "Array shows as \"Disconnected\"": "Система хранения отображается как «Отключено»",
   "Asks for approval": "Запрашивает одобрение",
@@ -55689,5 +55689,8 @@
   "Yes / No": "Да / Нет",
   "which led to {{steps}}": "что привело к {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ещё не выполнялся. Его поля появятся здесь после выполнения.",
-  "Insights (explorer analytics)": "Аналитика"
+  "HA": "HA",
+  "Insights (explorer analytics)": "Аналитика",
+  "Key Manager": "Менеджер ключей",
+  "PG": "PG"
 }
