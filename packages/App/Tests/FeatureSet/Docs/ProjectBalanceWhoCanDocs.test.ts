@@ -87,7 +87,7 @@ function readDashboardLocale(lang: string): Record<string, string> {
  * keeps its English name, as the dashboard shows it.
  */
 const WHO_MAY_ADD: Record<string, string> = {
-  en: "project owner or someone with",
+  en: "Project Owner or someone with",
   da: "Projektejer eller nogen med",
   de: "Projektinhaber oder jemand mit",
   es: "Propietario del proyecto o alguien con",
@@ -173,7 +173,7 @@ describe("the people the docs name", () => {
     }
 
     expect(WHO_CAN_ADD_PROJECT_BALANCE).toBe(
-      "a project owner or someone with Manage Billing",
+      "a Project Owner or someone with Manage Billing",
     );
   });
 
@@ -213,7 +213,7 @@ describe("Users, Teams & Permissions (English)", () => {
 
   test("says recharging either balance is billing: an owner or Manage Billing, not a project admin", () => {
     expect(balances).toBe(
-      "Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a Project Admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.",
+      "Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a Project Owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a Project Admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.",
     );
   });
 

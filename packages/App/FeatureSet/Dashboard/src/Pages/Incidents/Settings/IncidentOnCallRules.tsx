@@ -65,7 +65,7 @@ Every rule that matches runs: there is no order and no first match. Their polici
 
 ### Rules That Belong to Teams
 
-Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and project admins can edit or delete it. Everyone else who can see rules still sees it, read-only. A rule with no owning teams can be changed by everyone who can edit rules.
+Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and Project Admins can edit or delete it. Everyone else who can see rules still sees it, read-only. A rule with no owning teams can be changed by everyone who can edit rules.
 `;
 
 const incidentEpisodeOnCallDocumentation: string = `

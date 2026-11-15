@@ -501,7 +501,7 @@ export class ToolImportAPIAccess {
     }
 
     throw new NotAuthorizedException(
-      "You may not create anything an import brings over. Ask a project owner or admin to run the import.",
+      "You may not create anything an import brings over. Ask a Project Owner or Project Admin to run the import.",
     );
   }
 }

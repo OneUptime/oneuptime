@@ -481,7 +481,7 @@ describePostgres(
     });
 
     describe("adding somebody who is already in the project", () => {
-      test("a project admin adds a member to another team, and they are on it at once", async () => {
+      test("a Project Admin adds a member to another team, and they are on it at once", async () => {
         await insertMembership({
           userId: ALICE_ID,
           teamId: OPERATIONS_TEAM_ID,
@@ -595,7 +595,7 @@ describePostgres(
         ).toBe(false);
       });
 
-      test("a project admin who asks for the invitation to be accepted is refused that", async () => {
+      test("a Project Admin who asks for the invitation to be accepted is refused that", async () => {
         await addToTeam({
           teamId: DATABASE_TEAM_ID,
           userId: ALICE_ID,

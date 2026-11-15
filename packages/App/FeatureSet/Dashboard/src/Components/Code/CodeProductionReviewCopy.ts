@@ -322,7 +322,7 @@ export const PRODUCTION_REVIEW_COPY: {
     "Its author cannot write to this repository, so it is reviewed again only when someone asks.",
   ),
   cannotReviewAgain: translationKey(
-    "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
+    "You can read this review. Reviewing it again takes permission to edit the repository - ask a Project Admin for it.",
   ),
   notConnected: translationKey(
     "This repository is no longer connected through the GitHub App, so its pull requests cannot be reviewed again.",

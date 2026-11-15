@@ -72,7 +72,7 @@ export default class SlackCommandActions {
    */
   public static getNotConnectedAnswer(): WorkspaceAnswer {
     const productName: string = ProductBrandingText.getProductName();
-    const message: string = `This Slack workspace is not connected to a ${productName} project yet. A project admin can connect it in ${productName} under Project Settings → Workspace → Slack.`;
+    const message: string = `This Slack workspace is not connected to a ${productName} project yet. A Project Admin can connect it in ${productName} under Project Settings → Workspace → Slack.`;
 
     return {
       markdown: mdText`${message}`.toString(),

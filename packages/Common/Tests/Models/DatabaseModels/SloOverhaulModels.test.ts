@@ -247,7 +247,7 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
     ]);
   });
 
-  test("gates CRUD on its own granular permissions plus the project admins", () => {
+  test("gates CRUD on its own granular permissions plus the Project Admins", () => {
     expect(model.getCreatePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

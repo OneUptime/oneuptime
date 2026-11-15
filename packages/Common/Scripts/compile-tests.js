@@ -82,12 +82,29 @@
  * added here gets a tsconfig.json of its own in its directory, the same way
  * (Tests/Scripts/LintTestPrograms.test.ts checks it).
  *
+ * How close each part is to its heap. The first sign of a part outgrowing
+ * its heap used to be a red Compile job with an out-of-memory trace and no
+ * type errors, and finding which part, and how close the others were, took
+ * a 25-minute run (#8404). So every part runs with tsc's --diagnostics, and
+ * after it this prints the "Memory used" tsc reports - its heap at the end
+ * of the check, which is when a tsc program is largest - next to the
+ * part's result, and a table of every part at the end:
+ *   - a part past WARN_AT (85%) of HEAP_MB gets a warning (a GitHub
+ *     ::warning:: annotation in CI) naming it and saying to split it, the
+ *     way the paragraphs above did, before it runs out;
+ *   - a part killed by a signal is reported as having run out of memory
+ *     (SIGABRT is V8 reaching its heap limit, SIGKILL most likely the
+ *     runner's kernel out of memory), not as type errors, and by name (a
+ *     ::error:: annotation in CI).
+ * Tests/Scripts/CompileTestsReport.test.ts runs it with a stub tsc.
+ *
  * Arguments are passed on to every tsc run, e.g.
- * `npm run compile-tests -- --extendedDiagnostics`.
+ * `npm run compile-tests -- --extendedDiagnostics` (which reports "Memory
+ * used" too, so --diagnostics is then not added).
  */
 
 const path = require("path");
-const { spawnSync } = require("child_process");
+const { spawn } = require("child_process");
 const ts = require("typescript");
 
 const COMMON_DIRECTORY = path.resolve(__dirname, "..");
@@ -110,6 +127,8 @@ const PARTS = [
  * these 8 GiB, so it is two (see above).
  */
 const HEAP_MB = 8192;
+// The share of HEAP_MB past which a part is warned about: time to split it.
+const WARN_AT = 0.85;
 const TSC = path.join(
   COMMON_DIRECTORY,
   "node_modules",
@@ -161,64 +180,308 @@ const readRootFiles = (configName) => {
   });
 };
 
-const coveredFiles = new Set();
+// Every root file of the whole program must be in one of the parts.
+const checkPartsCoverTheProgram = () => {
+  const coveredFiles = new Set();
 
-for (const part of PARTS) {
-  for (const fileName of readRootFiles(part)) {
-    coveredFiles.add(fileName);
+  for (const part of PARTS) {
+    for (const fileName of readRootFiles(part)) {
+      coveredFiles.add(fileName);
+    }
   }
-}
 
-const uncheckedFiles = readRootFiles(WHOLE_PROGRAM).filter((fileName) => {
-  return !coveredFiles.has(fileName);
-});
-
-if (uncheckedFiles.length > 0) {
-  const shown = uncheckedFiles.slice(0, 20).map((fileName) => {
-    return `  ${path.relative(COMMON_DIRECTORY, fileName)}`;
+  const uncheckedFiles = readRootFiles(WHOLE_PROGRAM).filter((fileName) => {
+    return !coveredFiles.has(fileName);
   });
 
-  if (uncheckedFiles.length > shown.length) {
-    shown.push(`  ... and ${uncheckedFiles.length - shown.length} more`);
+  if (uncheckedFiles.length > 0) {
+    const shown = uncheckedFiles.slice(0, 20).map((fileName) => {
+      return `  ${path.relative(COMMON_DIRECTORY, fileName)}`;
+    });
+
+    if (uncheckedFiles.length > shown.length) {
+      shown.push(`  ... and ${uncheckedFiles.length - shown.length} more`);
+    }
+
+    console.error(
+      `compile-tests: ${uncheckedFiles.length} file(s) of ${WHOLE_PROGRAM} are in none of its parts (${PARTS.join(", ")}), so nothing would type-check them:\n` +
+        shown.join("\n") +
+        `\nInclude them in one of the parts (see Scripts/compile-tests.js).`,
+    );
+    process.exit(1);
+  }
+};
+
+/*
+ * ---------------------------------------------------------------------------
+ * Each part's memory, read from tsc and reported.
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * tsc's --diagnostics line "Memory used:  6123456K": its heap in use when the
+ * check ended, in thousands of bytes (statisticValue in tsc).
+ */
+const MEMORY_USED_LINE = /^Memory used:\s+(\d+)K\s*$/;
+const BYTES_PER_MIB = 1024 * 1024;
+const BYTES_PER_GIB = 1024 * BYTES_PER_MIB;
+
+// The bytes a line of tsc's output says were used, or null when it is not that line.
+const memoryUsedOf = (line) => {
+  const match = MEMORY_USED_LINE.exec(line);
+
+  return match ? Number(match[1]) * 1000 : null;
+};
+
+const gibibytes = (bytes) => {
+  return `${(bytes / BYTES_PER_GIB).toFixed(2)} GiB`;
+};
+
+const heapOf = (heapMb) => {
+  return `${Number((heapMb / 1024).toFixed(2))} GiB`;
+};
+
+const percentOf = (bytes, heapMb) => {
+  return Math.round((bytes / (heapMb * BYTES_PER_MIB)) * 100);
+};
+
+// Whether the arguments given already have tsc report its statistics.
+const reportsStatistics = (args) => {
+  return args.some((arg) => {
+    return /^--(?:extended)?diagnostics$/i.test(arg);
+  });
+};
+
+/*
+ * Type-checks one part: tsc with the part's heap, its output passed on as
+ * it comes and read for "Memory used". Resolves to what happened.
+ */
+const runPart = ({ part, tsc, heapMb, args, cwd, env, stdout }) => {
+  return new Promise((resolve) => {
+    let memoryUsed = null;
+    let partialLine = "";
+    const readLine = (line) => {
+      const bytes = memoryUsedOf(line.replace(/\r$/, ""));
+
+      if (bytes !== null) {
+        memoryUsed = bytes;
+      }
+    };
+    const child = spawn(
+      process.execPath,
+      [
+        `--max-old-space-size=${heapMb}`,
+        tsc,
+        "-p",
+        part,
+        ...(reportsStatistics(args) ? [] : ["--diagnostics"]),
+        ...args,
+      ],
+      { cwd: cwd, env: env, stdio: ["ignore", "pipe", "inherit"] },
+    );
+
+    child.stdout.on("data", (chunk) => {
+      stdout.write(chunk);
+
+      const lines = (partialLine + chunk.toString("utf8")).split("\n");
+
+      partialLine = lines.pop();
+      lines.forEach(readLine);
+    });
+
+    child.on("error", (error) => {
+      resolve({ part, status: null, signal: null, error, memoryUsed });
+    });
+
+    child.on("close", (status, signal) => {
+      readLine(partialLine);
+      resolve({ part, status, signal, error: null, memoryUsed });
+    });
+  });
+};
+
+/*
+ * What to say about a part that ran: its result and its memory on one line,
+ * and a warning or an error of its own when it is near its heap or ran out
+ * of it - as GitHub annotations when `annotate`, so the job's summary names
+ * the part. Returns the lines and whether the part failed.
+ */
+const reportPart = (result, { heapMb, warnAt, annotate }) => {
+  const { part, status, signal, error, memoryUsed } = result;
+  const heap = heapOf(heapMb);
+  const lines = [];
+  const say = (level, title, message) => {
+    lines.push(
+      annotate
+        ? `::${level} title=${title}::${message}`
+        : `compile-tests: ${level}: ${message}`,
+    );
+  };
+  const used =
+    memoryUsed === null
+      ? "tsc did not say how much memory it used"
+      : `it used ${gibibytes(memoryUsed)} of its ${heap} heap (${percentOf(memoryUsed, heapMb)}%)`;
+  const splitIt =
+    "split it the way Scripts/compile-tests.js explains: a tsconfig.tests.<name>.json of its own for some of its tests, listed in PARTS";
+  /*
+   * V8 aborts (SIGABRT, or 134 through a shell) when it reaches its heap
+   * limit; the kernel kills (SIGKILL) a process when the runner runs out.
+   */
+  const outOfMemory =
+    signal === "SIGABRT" || signal === "SIGKILL" || status === 134;
+
+  if (error) {
+    lines.push(`compile-tests: ${part} did not run: ${error.message}`);
+
+    return { failed: true, lines };
   }
 
-  console.error(
-    `compile-tests: ${uncheckedFiles.length} file(s) of ${WHOLE_PROGRAM} are in none of its parts (${PARTS.join(", ")}), so nothing would type-check them:\n` +
-      shown.join("\n") +
-      `\nInclude them in one of the parts (see Scripts/compile-tests.js).`,
-  );
-  process.exit(1);
-}
+  if (outOfMemory) {
+    const how =
+      signal === "SIGKILL"
+        ? "was killed (SIGKILL), most likely because the machine ran out of memory,"
+        : `ran out of its ${heap} heap (${signal ? `killed by ${signal}` : `exit code ${status}`})`;
 
-const failedParts = [];
+    lines.push(
+      `compile-tests: ${part} ${how} before it finished type-checking: that is not a type error in its tests`,
+    );
+    say(
+      "error",
+      `${part} ran out of memory`,
+      `${part} ${how} before it finished type-checking, so its tests were not checked: ${splitIt}.`,
+    );
 
-for (const part of PARTS) {
-  console.log(`compile-tests: type-checking ${part}`);
+    return { failed: true, lines };
+  }
 
-  const result = spawnSync(
-    process.execPath,
-    [
-      `--max-old-space-size=${HEAP_MB}`,
-      TSC,
-      "-p",
-      part,
-      ...process.argv.slice(2),
-    ],
-    { cwd: COMMON_DIRECTORY, stdio: "inherit" },
-  );
+  let failed = true;
 
-  if (result.error) {
-    failedParts.push(`${part} (${result.error.message})`);
-  } else if (result.status !== 0) {
-    failedParts.push(
-      `${part} (${result.signal ? `killed by ${result.signal}` : `exit code ${result.status}`})`,
+  if (signal) {
+    lines.push(
+      `compile-tests: ${part} was stopped by ${signal} before it finished type-checking`,
+    );
+  } else if (status !== 0) {
+    lines.push(
+      `compile-tests: ${part} does not type-check (exit code ${status}; tsc says why above); ${used}`,
+    );
+  } else {
+    failed = false;
+    lines.push(`compile-tests: ${part} type-checks; ${used}`);
+  }
+
+  if (memoryUsed !== null && memoryUsed > warnAt * heapMb * BYTES_PER_MIB) {
+    say(
+      "warning",
+      `${part} is near its heap`,
+      `${part} used ${gibibytes(memoryUsed)} of its ${heap} heap (${percentOf(memoryUsed, heapMb)}%, past ${Math.round(warnAt * 100)}%): ${splitIt}, before it runs out.`,
     );
   }
-}
 
-if (failedParts.length > 0) {
-  console.error(`compile-tests: failed: ${failedParts.join(", ")}`);
-  process.exit(1);
-}
+  return { failed, lines };
+};
 
-console.log(`compile-tests: every part of ${WHOLE_PROGRAM} type-checks`);
+// The table after every part has run: each one's memory, and its share of the heap.
+const memoryTable = (results, { heapMb }) => {
+  const width = Math.max(
+    0,
+    ...results.map((result) => {
+      return result.part.length;
+    }),
+  );
+
+  return [
+    `compile-tests: memory each part used, of its ${heapOf(heapMb)} heap:`,
+    ...results.map((result) => {
+      const memory =
+        result.memoryUsed === null
+          ? "not reported"
+          : `${gibibytes(result.memoryUsed).padStart(9)} ${`${percentOf(result.memoryUsed, heapMb)}%`.padStart(4)}`;
+
+      return `  ${result.part.padEnd(width)}  ${memory}`;
+    }),
+  ];
+};
+
+/*
+ * Runs every part, one after another, even after one fails, so one run
+ * reports every error, and says what each did. Resolves to whether any
+ * failed, and each part's result.
+ */
+const runParts = async ({
+  parts,
+  tsc = TSC,
+  heapMb = HEAP_MB,
+  warnAt = WARN_AT,
+  args = [],
+  cwd = COMMON_DIRECTORY,
+  env = process.env,
+  stdout = process.stdout,
+  log = console.log,
+}) => {
+  const annotate = env.GITHUB_ACTIONS === "true";
+  const results = [];
+  const failedParts = [];
+
+  for (const part of parts) {
+    log(`compile-tests: type-checking ${part}`);
+
+    const result = await runPart({
+      part,
+      tsc,
+      heapMb,
+      args,
+      cwd,
+      env,
+      stdout,
+    });
+    const report = reportPart(result, { heapMb, warnAt, annotate });
+
+    results.push(result);
+    report.lines.forEach((line) => {
+      log(line);
+    });
+
+    if (report.failed) {
+      failedParts.push(part);
+    }
+  }
+
+  memoryTable(results, { heapMb }).forEach((line) => {
+    log(line);
+  });
+
+  if (failedParts.length > 0) {
+    log(`compile-tests: failed: ${failedParts.join(", ")}`);
+  }
+
+  return { failed: failedParts.length > 0, results };
+};
+
+const main = async () => {
+  checkPartsCoverTheProgram();
+
+  const { failed } = await runParts({
+    parts: PARTS,
+    args: process.argv.slice(2),
+  });
+
+  if (failed) {
+    process.exit(1);
+  }
+
+  console.log(`compile-tests: every part of ${WHOLE_PROGRAM} type-checks`);
+};
+
+module.exports = {
+  HEAP_MB,
+  PARTS,
+  WARN_AT,
+  memoryTable,
+  memoryUsedOf,
+  reportPart,
+  runParts,
+};
+
+if (require.main === module) {
+  main();
+}

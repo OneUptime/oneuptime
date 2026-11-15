@@ -965,7 +965,7 @@ describe.each(SUBJECT_TYPES)(
         // The switches are at the top of the page, not under More settings.
         expect(linked.link?.route.toString()).toBe(settingsPath(subjectType));
         expect(linked.whoCanChange).toBe(
-          `A project owner or admin can make these changes in ${
+          `A Project Owner or Project Admin can make these changes in ${
             subjectType === "incident" ? "Incidents" : "Alerts"
           } → AI → Settings.`,
         );
@@ -1065,7 +1065,7 @@ describe.each(SUBJECT_TYPES)(
         `/dashboard/${PROJECT_ID}/settings/ai-features`,
       );
       expect(enableAi.whoCanChange).toBe(
-        "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+        "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
       );
       expect(AI_OFF_WHO_CAN_CHANGE.aiSwitch).toBe(EnableAiCopy.whoCanTurnOn);
     });
@@ -1147,7 +1147,7 @@ describe.each(SUBJECT_TYPES)(
         `${settingsPath(subjectType)}#AiRules`,
       );
       expect(rules.whoCanChange).toBe(
-        `A project owner or admin, or someone who may edit AI rules, can change them in ${
+        `A Project Owner or Project Admin, or someone who may edit AI rules, can change them in ${
           subjectType === "incident" ? "Incidents" : "Alerts"
         } → AI → Settings.`,
       );
@@ -1408,14 +1408,14 @@ describe("who may make each change: what the server accepts", () => {
     });
 
     expect(permissionsOf(summary, "enable-ai")).toEqual(updateOf("enableAi"));
-    // "A project owner or someone with Manage Billing can turn AI on".
+    // "A Project Owner or someone with Manage Billing can turn AI on".
     expect(updateOf("enableAi")).toEqual(
       [Permission.ProjectOwner, Permission.ManageProjectBilling].sort(),
     );
   });
 
   test.each(SUBJECT_TYPES)(
-    "the %s switches and minimum severity: a project owner or admin, as the sentence says",
+    "the %s switches and minimum severity: a Project Owner or Project Admin, as the sentence says",
     (subjectType: AiOffSubjectType) => {
       const columns: { investigate: string; fix: string } =
         getAiLaneSwitchColumns(subjectType);
@@ -1473,7 +1473,7 @@ describe("who may make each change: what the server accepts", () => {
         ]),
       ).sort(),
     );
-    // "A project owner or admin, or someone who may edit AI rules".
+    // "A Project Owner or Project Admin, or someone who may edit AI rules".
     expect(permissionsOf(summary, "investigate-rules")).toEqual(
       expect.arrayContaining([
         Permission.ProjectOwner,

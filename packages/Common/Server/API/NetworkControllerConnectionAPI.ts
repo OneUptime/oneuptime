@@ -280,7 +280,7 @@ export default class NetworkControllerConnectionAPI extends BaseAPI<
       allowedPermissions:
         new NetworkControllerConnection().getUpdatePermissions(),
       errorMessage:
-        "Project owners and project administrators can connect, test and read Meraki organizations.",
+        "Project Owners and project administrators can connect, test and read Meraki organizations.",
     });
   }
 

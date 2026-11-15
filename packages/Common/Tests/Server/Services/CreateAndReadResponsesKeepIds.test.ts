@@ -151,7 +151,7 @@ describe("create and read responses keep their _id", () => {
     jest.restoreAllMocks();
   });
 
-  test("a project owner creating and then listing a tenant-scoped model (the incident's shape; the create path's tenant guard already covered this one)", async () => {
+  test("a Project Owner creating and then listing a tenant-scoped model (the incident's shape; the create path's tenant guard already covered this one)", async () => {
     mockRepository(ProjectSCIMService, ProjectSCIM, { name: "listed scim" });
 
     /*
@@ -200,7 +200,7 @@ describe("create and read responses keep their _id", () => {
     expect((listResponse[0] as JSONObject)["name"]).toBe("listed scim");
   });
 
-  test("an isRoot caller creating, then a project owner listing", async () => {
+  test("an isRoot caller creating, then a Project Owner listing", async () => {
     /*
      * isRoot returns from enforceTenantRelationMatchesScalar before it can
      * warm the column cache, so on master this create was the first thing to

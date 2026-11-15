@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Require a secret on every request
 
-Anyone who has a monitor's URL can send it requests. A project owner or admin can make every Incoming Request monitor in the project also require one of the project's own secrets, whoever set the monitor up: turn on **Require a secret on every request**. A request without one is refused with `401` and the reason, before it counts as a heartbeat, is kept as the monitor's latest request or reaches any criteria. A request with one goes on to the monitor's own criteria, as before.
+Anyone who has a monitor's URL can send it requests. A Project Owner or Project Admin can make every Incoming Request monitor in the project also require one of the project's own secrets, whoever set the monitor up: turn on **Require a secret on every request**. A request without one is refused with `401` and the reason, before it counts as a heartbeat, is kept as the monitor's latest request or reaches any criteria. A request with one goes on to the monitor's own criteria, as before.
 
 :::steps
 ### Create a secret

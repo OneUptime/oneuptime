@@ -1304,7 +1304,7 @@ describe("a review's page", () => {
     drawTask(taskAnswer({ canAsk: false }));
     expect(screen.queryByTestId("production-review-again")).toBeNull();
     expect(screen.getByTestId("production-review-read-only")).toHaveTextContent(
-      "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
+      "You can read this review. Reviewing it again takes permission to edit the repository - ask a Project Admin for it.",
     );
 
     cleanup();
@@ -1334,7 +1334,7 @@ describe("a review's page", () => {
   test("a refused Review again says why, at the top", () => {
     drawTask(taskAnswer(), {
       actionError:
-        "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+        "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.",
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
@@ -1412,7 +1412,7 @@ describe("the task's page draws a production review as a review, not a conversat
     getTaskMock.mockResolvedValue(taskAnswer() as never);
     reviewAgainMock.mockRejectedValue(
       new Error(
-        "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+        "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.",
       ) as never,
     );
 

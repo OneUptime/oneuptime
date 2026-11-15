@@ -76,7 +76,7 @@ export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH: string =
  * role and the Manage Billing permission.
  */
 export const WHO_MAY_TURN_THEM_ON: string =
-  "a project owner, a Billing Admin or someone with Manage Billing";
+  "a Project Owner, a Billing Admin or someone with Manage Billing";
 
 interface ChannelWords {
   // How a sentence starts with the channel: "SMS", "Phone calls".

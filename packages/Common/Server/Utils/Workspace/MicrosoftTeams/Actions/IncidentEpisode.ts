@@ -32,7 +32,7 @@ import FeedMarkdown, {
 export default class MicrosoftTeamsIncidentEpisodeActions {
   // What a change-state card says instead of opening with nothing to pick.
   public static readonly NO_STATES_MESSAGE: string =
-    "No incident states are available to you in this project. Ask a project admin for access to them.";
+    "No incident states are available to you in this project. Ask a Project Admin for access to them.";
 
   @CaptureSpan()
   public static isIncidentEpisodeAction(data: { actionType: string }): boolean {
@@ -344,7 +344,7 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         );
       if (!card) {
         await turnContext.sendActivity(
-          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.",
+          "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a Project Admin for access to one.",
         );
         return;
       }

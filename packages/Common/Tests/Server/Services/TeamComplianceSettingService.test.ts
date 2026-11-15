@@ -3025,7 +3025,7 @@ const EDITORS_OF_EMPTIED_RULES: Array<
   [string, DatabaseCommonInteractionProps]
 > = [
   ["a team editor", EDITOR_PROPS],
-  ["a project admin", memberProps([Permission.ProjectAdmin])],
+  ["a Project Admin", memberProps([Permission.ProjectAdmin])],
 ];
 
 describe("TeamComplianceSettingService - the caller's permission is checked before anything is read", () => {
@@ -3158,8 +3158,8 @@ describe("TeamComplianceSettingService - the caller's permission is checked befo
 
   const EDITORS: Array<[string, DatabaseCommonInteractionProps]> = [
     ["a team editor", EDITOR_PROPS],
-    ["a project admin", memberProps([Permission.ProjectAdmin])],
-    ["a project owner", memberProps([Permission.ProjectOwner])],
+    ["a Project Admin", memberProps([Permission.ProjectAdmin])],
+    ["a Project Owner", memberProps([Permission.ProjectOwner])],
   ];
 
   test.each(EDITORS)(

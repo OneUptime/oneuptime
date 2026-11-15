@@ -182,7 +182,7 @@ describe("every kind of record the lists' Delete dialogs speak about", () => {
   );
 
   test.each(KINDS)(
-    "%s: a project owner's DELETE is let through",
+    "%s: a Project Owner's DELETE is let through",
     (_tableName: string, modelType: ModelType) => {
       expect(deleteRefusal(modelType, [Permission.ProjectOwner])).toBeNull();
     },
@@ -199,7 +199,7 @@ describe("the kinds only a master admin deletes", () => {
   });
 
   test.each(MASTER_ADMIN_KINDS)(
-    "%s: a project owner's DELETE is refused",
+    "%s: a Project Owner's DELETE is refused",
     (_tableName: string, modelType: ModelType) => {
       expect(
         deleteRefusal(modelType, [
