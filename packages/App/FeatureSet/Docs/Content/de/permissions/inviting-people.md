@@ -26,7 +26,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Personen einladen darf.** Project Owner, Project Admin oder eine Rolle mit der Berechtigung **Invite New Members**. Sie können Personen nur in ein Team einladen, dessen Berechtigungen Sie selbst haben, denn eine Einladung gibt ihnen den Zugriff des Teams.
+- **Eine Rolle, die Personen einladen darf.** Projektinhaber, Projektadministrator oder eine Rolle mit der Berechtigung **Invite New Members**. Sie können Personen nur in ein Team einladen, dessen Berechtigungen Sie selbst haben, denn eine Einladung gibt ihnen den Zugriff des Teams.
 - **In OneUptime Cloud, Platz in Ihrem Tarif.** Jede Person im Projekt ist ein Platz auf seiner Rechnung, ab dem Moment der Einladung. Der Free-Tarif hat Platz für eine Person. Siehe [Abrechnung & Nutzung](/docs/configuration/billing#ihr-tarif-und-ihre-plätze).
 - **Keine SCIM Push Groups.** Solange Ihr Identitätsanbieter die Teams des Projekts über SCIM Push Groups verwaltet, laden Sie Personen dort ein und entfernen sie dort, nicht in OneUptime.
 
@@ -47,7 +47,7 @@ Geben Sie die Adresse unter **E-Mail** ein. Verwendet noch kein OneUptime-Konto 
 
 ### Das Team wählen
 
-**Team** beginnt mit dem Mitglieder-Team des Projekts: dem Team, das Project Member für das ganze Projekt hat, sonst dem Team namens Members. Wählen Sie ein anderes Team, um mehr oder weniger Zugriff zu geben. **Team** bleibt leer, wenn das Projekt kein solches Team hat oder wenn Sie selbst niemanden in dieses Team einladen dürften.
+**Team** beginnt mit dem Mitglieder-Team des Projekts: dem Team, das Projektmitglied für das ganze Projekt hat, sonst dem Team namens Members. Wählen Sie ein anderes Team, um mehr oder weniger Zugriff zu geben. **Team** bleibt leer, wenn das Projekt kein solches Team hat oder wenn Sie selbst niemanden in dieses Team einladen dürften.
 
 ### Die Einladung senden
 
@@ -86,7 +86,7 @@ Filtern Sie die Liste nach **Benutzer**, **Status** oder **Team**. Klicken Sie a
 | --- | --- |
 | **Profil** | Name, E-Mail-Adresse, Bild und Benutzer-ID. |
 | **Teams** | Die Teams, in denen die Person ist. Hier fügen Sie ein Team hinzu oder entfernen es. |
-| **Einsatzbereitschaft**, **Benachrichtigungsmethoden**, **Wie ich erreichbar bin** | Ob die Person alarmiert werden kann, und wie. Sichtbar für Project Owners, Project Admins, die Person selbst und alle, die die Benachrichtigungsregeln anderer lesen dürfen. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). |
+| **Einsatzbereitschaft**, **Benachrichtigungsmethoden**, **Wie ich erreichbar bin** | Ob die Person alarmiert werden kann, und wie. Sichtbar für Projektinhaber, Projektadministratoren, die Person selbst und alle, die die Benachrichtigungsregeln anderer lesen dürfen. Siehe [Einsatzbereitschaft & Berichte](/docs/on-call/readiness). |
 | **Benutzerdefinierte Felder** | Die benutzerdefinierten Felder des Projekts für Personen, wenn es welche hat. |
 | **Aus Projekt entfernen** | Die Person aus dem Projekt nehmen. |
 

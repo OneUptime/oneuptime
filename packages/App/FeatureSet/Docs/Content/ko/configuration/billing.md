@@ -35,7 +35,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **OneUptime Cloud.** **프로젝트 설정**의 **결제 및 청구서** 섹션은 OneUptime Cloud에만 있으며 처음에는 접혀 있습니다. 제목을 클릭해 엽니다.
-- **결제를 읽을 수 있는 역할.** Project Owner, **Manage Billing** 권한이 있는 사람, 그리고 세 가지 결제 역할은 모든 결제 페이지를 읽습니다. [누가 무엇을 할 수 있는지](#누가-무엇을-할-수-있는지)를 참조하세요.
+- **결제를 읽을 수 있는 역할.** 프로젝트 소유자, **Manage Billing** 권한이 있는 사람, 그리고 세 가지 결제 역할은 모든 결제 페이지를 읽습니다. [누가 무엇을 할 수 있는지](#누가-무엇을-할-수-있는지)를 참조하세요.
 
 ## 요금제와 좌석
 
@@ -144,13 +144,13 @@ SMS, 전화, WhatsApp 및 Telegram 메시지는 프로젝트 잔액에서, OneUp
 
 | 하려는 일 | 필요한 것 |
 | --- | --- |
-| 결제 페이지 읽기: 요금제, 청구서, 사용량, 잔액, 결제 방법 | Project Owner, **Manage Billing**, **결제 관리자**, **결제 구성원** 또는 **결제 뷰어** |
-| 청구서 다운로드 | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **결제 관리자** 또는 **결제 구성원** |
-| 청구지 주소와 청구서 이메일 변경 | Project Owner, **Manage Billing**, **결제 관리자** 또는 **결제 구성원** |
-| SMS, 전화, WhatsApp 또는 Telegram 켜기 및 끄기 | Project Owner, **Manage Billing** 또는 **결제 관리자** |
-| 결제 수단 추가 | Project Owner, **Manage Billing** 또는 **Create Payment Method** |
-| 청구서 결제 | Project Owner, **Manage Billing** 또는 **Edit Invoices** |
-| 요금제 변경, 잔액 충전, 자동 충전 변경 | Project Owner 또는 **Manage Billing** |
+| 결제 페이지 읽기: 요금제, 청구서, 사용량, 잔액, 결제 방법 | 프로젝트 소유자, **Manage Billing**, **결제 관리자**, **결제 구성원** 또는 **결제 뷰어** |
+| 청구서 다운로드 | 프로젝트 소유자, 프로젝트 관리자, **Manage Billing**, **Read Invoices**, **결제 관리자** 또는 **결제 구성원** |
+| 청구지 주소와 청구서 이메일 변경 | 프로젝트 소유자, **Manage Billing**, **결제 관리자** 또는 **결제 구성원** |
+| SMS, 전화, WhatsApp 또는 Telegram 켜기 및 끄기 | 프로젝트 소유자, **Manage Billing** 또는 **결제 관리자** |
+| 결제 수단 추가 | 프로젝트 소유자, **Manage Billing** 또는 **Create Payment Method** |
+| 청구서 결제 | 프로젝트 소유자, **Manage Billing** 또는 **Edit Invoices** |
+| 요금제 변경, 잔액 충전, 자동 충전 변경 | 프로젝트 소유자 또는 **Manage Billing** |
 
 사용할 수 없는 버튼은 잠긴 상태로 표시되며 누가 사용할 수 있는지 알려 줍니다. 결제 역할은 [사용자, 팀 및 권한](/docs/permissions/index#팀)을 참조하세요.
 

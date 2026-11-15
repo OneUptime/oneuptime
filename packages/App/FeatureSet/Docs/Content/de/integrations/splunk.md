@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Ein Search Head mit Splunk Enterprise 9.0.1 oder neuer, oder Splunk Cloud Platform. OneUptime spricht mit seiner REST-API auf dem Management-Port, meist `8089`. Splunk Web auf Port `8000` stellt die REST-API nicht bereit.
 - Ein Splunk-Benutzer für OneUptime, dessen Rolle die Fähigkeit `search` hat und den Index lesen darf, den die Suche liest: `notable` für Notable Events. Die Rollen `ess_analyst` und `ess_user` von Enterprise Security gewähren beides. Die Verbindung liest nur, die Rolle braucht also nichts weiter.
 - Ein Search Head, den OneUptime über HTTPS erreicht. OneUptime Cloud verbindet sich aus dem Internet, der Search Head braucht also eine öffentliche Adresse: Private Adressen werden abgelehnt. Ein selbst gehostetes OneUptime verbindet sich aus seinen App- und Worker-Containern und erreicht einen Search Head in Ihrem privaten Netz, außer wenn `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` auf `true` steht.

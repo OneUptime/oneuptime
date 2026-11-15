@@ -152,6 +152,8 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "when the person last used OneUptime in any tab: the idle timeout counts from it across tabs (UserActivity)",
   "oneuptime-longest-inactivity":
     "the longest time the person went without OneUptime in any tab since the session was last renewed - a browser closed, a computer asleep - which the next renewal says, so the idle timeout ends a session that was away too long (UserActivity)",
+  "oneuptime-reported-activity-at":
+    "the newest activity a renewal from any tab told the server of: a tab in use renews once it is a few minutes old, so the server knows the person is here and never records an idle timeout while they work (UserActivity)",
   // Which project a new tab opens (UI/Utils/Project).
   last_accessed_project_id:
     "the project this browser opened last - what a new tab opens at /dashboard; each tab then keeps its own in session storage",

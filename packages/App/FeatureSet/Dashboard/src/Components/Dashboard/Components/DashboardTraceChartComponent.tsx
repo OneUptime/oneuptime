@@ -50,7 +50,7 @@ import {
   TimeseriesRow,
   buildTraceAnalyticsRequest,
   formatCount,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatTickTime,
   formatTraceSeriesLabel,
   hexToRgba,
@@ -59,6 +59,10 @@ import {
   resolveTraceSeriesColor,
 } from "./TraceChartData";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getChartRowValues,
+  getYAxisWidthForValuesInPx,
+} from "Common/UI/Components/Charts/Utils/YAxisWidth";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -222,9 +226,28 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
     return formatTraceSeriesLabel(seriesKey, groupByAttribute, translator);
   };
 
-  const valueFormatter: (value: number) => string = isDuration
-    ? formatDurationMs
-    : formatCount;
+  /*
+   * The value axis and the tooltip write a figure as the tiles of a board
+   * do, in the reader's language ("۴۲ میلی‌ثانیه", "1,5K"), and the axis is
+   * as wide as its widest tick, never narrower than it was (#8349).
+   */
+  const valueFormatter: (value: number) => string = useMemo(() => {
+    return isDuration
+      ? (value: number): string => {
+          return formatDurationMsInLanguage(value, translator);
+        }
+      : formatCount;
+  }, [isDuration, translator.language]);
+
+  const yAxisWidth: number = useMemo(() => {
+    return getYAxisWidthForValuesInPx({
+      values: getChartRowValues(pivotedData, seriesKeys, {
+        isStacked: !isDuration,
+      }),
+      formatter: valueFormatter,
+      minWidthInPx: 56,
+    });
+  }, [pivotedData, seriesKeys, isDuration, valueFormatter]);
 
   const renderChart: () => ReactElement = (): ReactElement => {
     const sharedAxes: ReactElement = (
@@ -248,7 +271,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
           tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #94a3b8)" }}
           axisLine={false}
           tickLine={false}
-          width={56}
+          width={yAxisWidth}
           allowDecimals={isDuration}
           tickFormatter={valueFormatter}
         />

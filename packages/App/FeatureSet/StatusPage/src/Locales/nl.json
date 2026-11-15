@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% uptime",
-    "uptimePercent": "{{percent}}% beschikbaarheid",
+    "uptimePercent": "{{percent}} beschikbaarheid",
     "operational": "Operationeel",
     "notMonitored": "Niet bewaakt",
     "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",

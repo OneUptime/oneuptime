@@ -25,6 +25,7 @@ import { MAINTENANCE_MARK_COLOR } from "Common/Utils/StatusPage/HistoryChartBarC
 import StatusPageGroupNestingLayoutUtil from "Common/Utils/StatusPage/GroupNestingLayout";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatUptimePercentFigure } from "../../Utils/UptimeFigure";
 import { translateStatusName } from "../../Utils/StatusTranslation";
 import { StateListType } from "Common/Utils/StateOrder";
 import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
@@ -98,7 +99,7 @@ export interface ComponentProps {
 const MonitorOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedDayIncidents, setSelectedDayIncidents] = useState<
     Array<UptimeBarTooltipIncident>
@@ -244,7 +245,13 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           )}
         >
           {/* One phrase, the figure where the reader's language puts it (#8076). */}
-          {t("overview.uptimePercent", { percent: String(uptimePercent) })}
+          {t("overview.uptimePercent", {
+            // In the page's digits and percent sign (#8292).
+            percent: formatUptimePercentFigure(
+              uptimePercent,
+              i18n.resolvedLanguage || i18n.language || "en",
+            ),
+          })}
         </div>
       );
     }

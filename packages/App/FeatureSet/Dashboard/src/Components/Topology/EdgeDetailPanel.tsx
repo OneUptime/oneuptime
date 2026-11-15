@@ -498,7 +498,8 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
-                return `${Math.round(value)}`;
+                // In the reader's digits, as the time axis under it (#8349).
+                return translator.formatNumber(Math.round(value));
               },
               precision: YAxisPrecision.NoDecimals,
               min: 0,
@@ -523,7 +524,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
-                return formatDurationMs(value);
+                return formatDurationMs(value, translator);
               },
               precision: YAxisPrecision.NoDecimals,
               min: 0,

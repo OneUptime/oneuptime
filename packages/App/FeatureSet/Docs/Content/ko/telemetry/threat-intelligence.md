@@ -27,7 +27,7 @@ flowchart TB
 - TAXII 피드라면 STIX 2.1 `indicator` 객체를 게시하는 TAXII 2.1 서버와, 폴링할 컬렉션의 ID. TAXII 피드는 익명, bearer 토큰, 또는 HTTP Basic 인증으로 로그인합니다.
 - Google SecOps 피드라면 서비스 계정이 지표 일치를 검색할 수 있는 [Google SecOps 연결](/docs/integrations/google-secops#관리형-커넥터-설정). `roles/chronicle.viewer` 역할이면 검색할 수 있습니다.
 - CISA AIS처럼 TLS 클라이언트 인증서(상호 TLS)를 요구하는 서버는 지원하지 않습니다. MITRE의 공개 ATT&CK 서버는 지표가 아니라 기법과 그룹을 게시하므로, 그 서버를 가리키는 피드는 비어 있게 됩니다.
-- 피드를 만들 수 있는 역할: Project Owner, Project Admin, Security Admin, Security Member. Security Viewer는 피드와 지표를 읽을 수 있습니다. [역할](/docs/permissions/reference#역할) 을 참고하세요.
+- 피드를 만들 수 있는 역할: 프로젝트 소유자, 프로젝트 관리자, 보안 관리자, 보안 구성원. 보안 뷰어는 피드와 지표를 읽을 수 있습니다. [역할](/docs/permissions/reference#역할) 을 참고하세요.
 
 ## 무료 목록 추가하기
 

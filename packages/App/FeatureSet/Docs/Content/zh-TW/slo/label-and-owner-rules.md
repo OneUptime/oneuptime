@@ -98,7 +98,7 @@ SLO 的擁有者是會收到其狀態變化通知的人：請參閱[錯誤預算
 | 執行標籤規則 | **Edit SLO Label Rule** 和 **Edit Service Level Objective** |
 | 執行擁有者規則 | **Edit SLO Owner Rule**、**Edit Service Level Objective**、**Create SLO User Owner** 和 **Create SLO Team Owner** |
 
-這些權限位於角色的 SLO 群組中，Project Owner 和 Project Admin 角色擁有全部權限。一次執行會變更專案中的每個 SLO，因此僅限於部分標籤或您擁有的 SLO 的權限不足以執行規則。
+這些權限位於角色的 SLO 群組中，專案擁有者和專案管理員角色擁有全部權限。一次執行會變更專案中的每個 SLO，因此僅限於部分標籤或您擁有的 SLO 的權限不足以執行規則。
 
 ## 後續步驟
 

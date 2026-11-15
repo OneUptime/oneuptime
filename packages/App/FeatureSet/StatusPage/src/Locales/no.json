@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
-    "uptimePercent": "{{percent}}% oppetid",
+    "uptimePercent": "{{percent}} oppetid",
     "operational": "I drift",
     "notMonitored": "Ikke overvåket",
     "noResourcesInGroup": "Ingen ressurser lagt til i denne gruppen.",

@@ -27,7 +27,7 @@ flowchart TB
 - 对于 TAXII 情报源：一个发布 STIX 2.1 `indicator` 对象的 TAXII 2.1 服务器，以及要轮询的集合的 ID。TAXII 情报源可以匿名登录，也可以使用 bearer 令牌或 HTTP 基本身份验证登录。
 - 对于 Google SecOps 情报源：一个服务账户能够搜索指标匹配的 [Google SecOps 连接](/docs/integrations/google-secops#设置托管连接器)，`roles/chronicle.viewer` 角色可以做到。
 - 不支持要求 TLS 客户端证书（双向 TLS）的服务器，例如 CISA AIS。MITRE 的公共 ATT&CK 服务器发布的是技术和组织，而不是指标，所以指向它的情报源会一直为空。
-- 一个可以创建情报源的角色：Project Owner、Project Admin、Security Admin 或 Security Member。Security Viewer 可以读取情报源和指标。请参阅 [角色](/docs/permissions/reference#角色)。
+- 一个可以创建情报源的角色：项目所有者、项目管理员、安全管理员或安全成员。安全查看者可以读取情报源和指标。请参阅 [角色](/docs/permissions/reference#角色)。
 
 ## 添加免费列表
 

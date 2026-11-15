@@ -98,7 +98,7 @@ Immer wenn eine Regel ein SLO ändert, hält der **Feed** des SLO fest, welche R
 | Eine Beschriftungsregel auszuführen | **Edit SLO Label Rule** und **Edit Service Level Objective** |
 | Eine Eigentümerregel auszuführen | **Edit SLO Owner Rule**, **Edit Service Level Objective**, **Create SLO User Owner** und **Create SLO Team Owner** |
 
-Diese Berechtigungen stehen in der Gruppe SLO einer Rolle, und die Rollen Project Owner und Project Admin haben sie alle. Eine Ausführung ändert jedes SLO des Projekts, daher reicht eine Berechtigung, die auf einige Beschriftungen oder auf Ihre eigenen SLOs beschränkt ist, nicht aus, um eine Regel auszuführen.
+Diese Berechtigungen stehen in der Gruppe SLO einer Rolle, und die Rollen Projektinhaber und Projektadministrator haben sie alle. Eine Ausführung ändert jedes SLO des Projekts, daher reicht eine Berechtigung, die auf einige Beschriftungen oder auf Ihre eigenen SLOs beschränkt ist, nicht aus, um eine Regel auszuführen.
 
 ## Nächste Schritte
 

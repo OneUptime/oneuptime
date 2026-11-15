@@ -798,7 +798,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **저절로 해소되는 거부** — 이전 에이전트 Pod가 아직 보고하고 있거나(정상 종료 없이 교체된 Pod), 업그레이드 중에 이전 클러스터 내 Runner가 아직 종료되고 있는 경우입니다. 에이전트는 서버가 알려 주는 대기 시간 뒤에 다시 시도합니다.
 - **조치가 필요한 거부** — `clusterName`이 비어 있거나 너무 긴 경우, 또는 프로젝트가 AI 에이전트 한도에 도달한 경우입니다. 로그에 바꿀 내용이 나옵니다. 에이전트가 전혀 연결되지 않고 로그에 `Another Kubernetes AI agent for cluster "<name>" is online`이 나오면 두 설치가 하나의 `clusterName`을 공유하는 것입니다(AI 에이전트 페이지에서도 경고합니다). 이미 연결된 쪽이 실행되는 동안 계속 유지하므로, 클러스터마다 고유한 `clusterName`을 주거나 여분의 릴리스를 제거하세요. **고정된 서비스 이름**이 있는 수집 키로는 에이전트를 등록할 수 없습니다. 차트에는 그것이 없는 키를 주세요.
 
-AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴의 **에이전트 재설정**은 확인 후 서버가 에이전트의 키를 잊게 합니다(Project Owner, Project Admin, 또는 **Edit AI Rule** 권한이 있으면 편집할 수 있는 클러스터에서 할 수 있습니다). Pod는 몇 분 안에 스스로 다시 연결합니다. 에이전트의 준비 상태는 OneUptime에 의존하지 않으므로, 잘못 구성된 AI 에이전트가 `helm upgrade --wait`를 실패시키는 일은 없습니다. 실패시키는 것은 이미지를 가져올 수 없는 Pod뿐입니다.
+AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴의 **에이전트 재설정**은 확인 후 서버가 에이전트의 키를 잊게 합니다(프로젝트 소유자, 프로젝트 관리자, 또는 **Edit AI Rule** 권한이 있으면 편집할 수 있는 클러스터에서 할 수 있습니다). Pod는 몇 분 안에 스스로 다시 연결합니다. 에이전트의 준비 상태는 OneUptime에 의존하지 않으므로, 잘못 구성된 AI 에이전트가 `helm upgrade --wait`를 실패시키는 일은 없습니다. 실패시키는 것은 이미지를 가져올 수 없는 Pod뿐입니다.
 
 ## 에이전트 업그레이드
 
@@ -840,7 +840,7 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 - `aiAccess.image`와 `aiAccess.resources`는 이어지지 않습니다. AI 에이전트는 다른 이미지이며 자체 `aiAgent.image`와 `aiAgent.resources`가 있습니다.
 - OneUptime에서는 각 클러스터가 AI 설정을 유지하지만, 서버를 업그레이드할 때 두 가지가 바뀝니다. 누군가 Runner(클러스터 내 Runner든 다른 Runner든)의 바인딩을 해제하거나 삭제한 클러스터는 **kubectl로 조사**와 수정이 꺼진 상태로 시작합니다(AI 에이전트 페이지에서 다시 켜세요). 그리고 프로젝트에서 **Enable AI Command Execution**을 한 번도 켜지 않은 클러스터의 **자동** 또는 **승인 건너뛰기**는 **승인 요청**이 됩니다. 이 스위치는 예전에 그런 수정을 막고 있었지만, AI 에이전트를 통한 수정에는 더 이상 필요하지 않습니다.
 
-되돌리려면 `helm upgrade --version <older version>`이 아니라 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`를 사용하세요(`helm history`로 리비전을 나열할 수 있습니다). 이전 차트의 스키마는 릴리스에 저장된 `aiAgent` 값을 거부하기 때문입니다. 업그레이드 후 일주일 안이면 롤백으로 클러스터 내 Runner가 돌아오며, AI 에이전트가 멈추면 스스로 다시 연결됩니다. 그 이후에는 OneUptime이 이전 Runner를 제거했을 수 있습니다(클러스터의 **피드**에 언제인지 나옵니다). 그러면 롤백된 Runner는 연결되지만, API나 Terraform으로 클러스터에 다시 바인딩하거나(클러스터의 **AI Access Runner**. Project Owner, Project Admin, 또는 **Edit AI Rule** 권한이 있으면 할 수 있습니다) 차트를 다시 업그레이드할 때까지 사용되지 않습니다.
+되돌리려면 `helm upgrade --version <older version>`이 아니라 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`를 사용하세요(`helm history`로 리비전을 나열할 수 있습니다). 이전 차트의 스키마는 릴리스에 저장된 `aiAgent` 값을 거부하기 때문입니다. 업그레이드 후 일주일 안이면 롤백으로 클러스터 내 Runner가 돌아오며, AI 에이전트가 멈추면 스스로 다시 연결됩니다. 그 이후에는 OneUptime이 이전 Runner를 제거했을 수 있습니다(클러스터의 **피드**에 언제인지 나옵니다). 그러면 롤백된 Runner는 연결되지만, API나 Terraform으로 클러스터에 다시 바인딩하거나(클러스터의 **AI Access Runner**. 프로젝트 소유자, 프로젝트 관리자, 또는 **Edit AI Rule** 권한이 있으면 할 수 있습니다) 차트를 다시 업그레이드할 때까지 사용되지 않습니다.
 
 Kubernetes AI 에이전트는 OneUptime 12에서 폐지된 AI Agent와 관련이 없습니다.
 

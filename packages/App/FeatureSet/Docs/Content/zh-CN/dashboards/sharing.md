@@ -139,9 +139,9 @@ OneUptime 每 15 分钟检查一次所有未验证的域名，检查找到记录
 
 ### 谁可以检查和重新签发
 
-**立即检查** 、订购域名证书和 **Reissue SSL** 都会更改域名，因此需要编辑域名的权限： **Edit Dashboard Domain** ，或包含该权限的角色（Project Owner、Project Admin、Project Member、Settings Admin 或 Settings Member）。
+**立即检查** 、订购域名证书和 **Reissue SSL** 都会更改域名，因此需要编辑域名的权限： **Edit Dashboard Domain** ，或包含该权限的角色（项目所有者、项目管理员、项目成员、设置管理员或设置成员）。
 
-只能读取域名的人，例如 Viewer 或 Settings Viewer，仍然可以看到 **状态** 列以及 **DNS 设置** 中要添加的记录。对他们来说， **立即检查** 和 **Reissue SSL** 处于锁定状态，并说明需要哪个权限。无论如何，OneUptime 都会自行持续检查每个域名并为其订购证书。
+只能读取域名的人，例如查看者或设置查看者，仍然可以看到 **状态** 列以及 **DNS 设置** 中要添加的记录。对他们来说， **立即检查** 和 **Reissue SSL** 处于锁定状态，并说明需要哪个权限。无论如何，OneUptime 都会自行持续检查每个域名并为其订购证书。
 
 API 密钥也是如此。只能读取仪表板域名的密钥无法调用 `/dashboard-domain` 上的 `verify-cname` 、 `order-ssl` 或 `reissue-ssl` 。如有需要，请为它授予 **Read Dashboard Domain** 和 **Edit Dashboard Domain** 。
 

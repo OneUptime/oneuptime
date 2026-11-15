@@ -23,7 +23,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ## 開始之前
 
-- 在 OneUptime 中擁有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以檢視連線及其執行歷史，但不能更改它們。
+- 在 OneUptime 中擁有專案擁有者、專案管理員或安全性管理員角色。安全性成員和安全性檢視者可以檢視連線及其執行歷史，但不能更改它們。
 - Elastic Security 8.x 或更高版本，位於 Elastic Cloud 或你自己的 Elastic 堆疊上，並且偵測規則在某個 Kibana 空間中執行。
 - 能檢視該空間中偵測警示的 Kibana 存取權限：對 `.alerts-security.alerts-<space-id>` 的索引權限 `read` 和 `view_index_metadata`，以及允許在那裡讀取警示的 Kibana Security 功能權限。
 - 一個 OneUptime 能透過 HTTPS 存取到的 Kibana。OneUptime Cloud 從網際網路連線，所以 Kibana 需要一個公開位址，就像 Elastic Cloud 部署那樣：私有位址會被拒絕。自行託管的 OneUptime 從它的應用程式和工作程序容器連線，可以存取你私有網路中的 Kibana，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 為 `true`。

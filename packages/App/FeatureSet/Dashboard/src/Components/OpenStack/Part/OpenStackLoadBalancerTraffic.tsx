@@ -4,6 +4,11 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import ResourceMetricsTab from "../../Infrastructure/ResourceMetricsTab";
 import { formatOpenStackChartBytes } from "../OpenStackResourceList";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+  writeFigureInLanguage,
+} from "Common/Types/DateLanguage";
 import { getOpenStackMetricQuery } from "./OpenStackMetricQueries";
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import { OpenStackPart } from "./UseOpenStackPart";
@@ -26,13 +31,19 @@ const OVN_ZEROES: string = translationKey(
   "The OVN provider reports 0 for every counter, so its charts are flat. That is no fault.",
 );
 
-// A chart's axis and tooltip keep Latin digits, as every chart does.
+/*
+ * A chart's axis and tooltip write a figure as the tiles beside them do, in
+ * the page's digits and decimal sign: "۱٫۵ KiB/s", "2,5/s" (#8349).
+ */
 function formatBytesPerSecond(value: number): string {
   return `${formatOpenStackChartBytes(value)}/s`;
 }
 
 function formatPerSecond(value: number): string {
-  return `${Math.round(value * 100) / 100}/s`;
+  return writeFigureInLanguage(
+    `${Math.round(value * 100) / 100}/s`,
+    getDateDisplayLanguage(),
+  );
 }
 
 interface ChartSpec {
@@ -66,7 +77,7 @@ const CHARTS: ReadonlyArray<ChartSpec> = [
      */
     legend: translationKey("Open connections"),
     format: (value: number): string => {
-      return String(Math.round(value));
+      return formatReaderFigure(Math.round(value), { decimals: 0 });
     },
   },
   {

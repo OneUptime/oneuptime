@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% وقت التشغيل",
-    "uptimePercent": "{{percent}}% وقت التشغيل",
+    "uptimePercent": "{{percent}} وقت التشغيل",
     "operational": "يعمل بشكل طبيعي",
     "notMonitored": "غير مراقَب",
     "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",

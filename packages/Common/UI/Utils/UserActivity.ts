@@ -1,6 +1,7 @@
 import LocalStorage from "./LocalStorage";
 import { JSONValue } from "../../Types/JSON";
 import {
+  ACTIVITY_REPORTED_WITHIN_IN_MINUTES,
   MAX_REPORTED_INACTIVITY_IN_SECONDS,
   MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES,
   ReportedInactivity,
@@ -42,6 +43,23 @@ import {
  * forgets it (forgetInactivityReportedBy). One shorter than the shortest
  * idle timeout ends no session, and is not kept.
  *
+ * And the server must hear of it while the person is here (issue #8188).
+ * A tab renews only when it must - a request after its access token ran
+ * out, its live updates' notice before then - so a page that asks the
+ * server nothing, a long note being typed, an Admin Dashboard page without
+ * live updates, could be in use for an hour while the server's record of
+ * the person's last activity stood still. So a page that installs with
+ * reportActivity (the Dashboard and the Admin Dashboard) asks for a
+ * renewal as its person uses it, once the activity the server last heard
+ * of is ACTIVITY_REPORT_INTERVAL_IN_MS old (isActivityReportDue), at most
+ * once every MIN_TIME_BETWEEN_ACTIVITY_REPORTS_IN_MS. The activity each
+ * renewal reported is kept for every tab (noteActivityReported), so
+ * someone working in one tab renews from it however many tabs they left
+ * open, and a tab nobody uses asks for nothing. The server then knows a
+ * session it has heard nothing of for a while is not in use, and records
+ * its idle timeout within minutes (Common/Types/UserSession/SessionLength,
+ * ACTIVITY_REPORTED_WITHIN_IN_MINUTES).
+ *
  * Opening a page counts as activity (install). Anything this cannot read -
  * storage refused in a private window, say - falls back to what this tab
  * saw itself. Nothing here signs anyone out; what it keeps is cleared with
@@ -72,6 +90,40 @@ export const ACTIVITY_WRITE_INTERVAL_IN_MS: number = 15 * 1000;
  */
 export const MIN_KEPT_INACTIVITY_IN_MS: number =
   MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES * 60 * 1000;
+
+/*
+ * Where every tab keeps the newest activity a renewal told the server of,
+ * in milliseconds since 1970.
+ */
+export const REPORTED_ACTIVITY_STORAGE_KEY: string =
+  "oneuptime-reported-activity-at";
+
+/*
+ * How old the activity the server last heard of may grow while the person
+ * uses OneUptime before a renewal tells it of newer activity: the interval
+ * the server counts on (ACTIVITY_REPORTED_WITHIN_IN_MINUTES).
+ */
+export const ACTIVITY_REPORT_INTERVAL_IN_MS: number =
+  ACTIVITY_REPORTED_WITHIN_IN_MINUTES * 60 * 1000;
+
+/*
+ * The least time between two renewals asked for to report activity: one
+ * that got no answer (the network down) is asked for again a minute later,
+ * not at every key press.
+ */
+export const MIN_TIME_BETWEEN_ACTIVITY_REPORTS_IN_MS: number = 60 * 1000;
+
+// What the page installs to have activity reported: asks for a renewal.
+export type ActivityReporter = () => void;
+
+export interface UserActivityInstallOptions {
+  /*
+   * Asks for a renewal of the session, which says how long the person has
+   * not used OneUptime (API.reportActivityWhileInUse). Without it, the page
+   * renews only as it did, and says nothing of renewing while in use.
+   */
+  reportActivity?: ActivityReporter | undefined;
+}
 
 // What counts as someone using the page.
 export const ACTIVITY_EVENTS: ReadonlyArray<string> = [
@@ -121,6 +173,18 @@ export default class UserActivity {
    */
   private static ownLongestInactivity: InactiveTime | null = null;
 
+  /*
+   * The newest activity a renewal from this tab told the server of, when
+   * local storage refused to keep it for every tab.
+   */
+  private static ownReportedActivityAtMs: number | null = null;
+
+  // When this tab last asked for a renewal to report activity.
+  private static lastReportAskedAtMs: number | null = null;
+
+  // What asks for a renewal to report activity, when the page installed one.
+  private static activityReporter: ActivityReporter | null = null;
+
   private static target: ActivityTarget | null = null;
 
   private static visibilityTarget: ActivityTarget | null = null;
@@ -153,13 +217,18 @@ export default class UserActivity {
    * or the Admin Dashboard starts. Opening the page is activity too - and
    * ends the time without use since the last activity of any tab, a browser
    * closed or a computer asleep, which is kept for the next renewal to say.
-   * Harmless when called again.
+   * With reportActivity, a renewal is asked for while its person uses the
+   * page, once the server's record of their activity is getting old - and
+   * at once when the server has heard of none from this browser, so a new
+   * sign-in says from its first page that it renews while in use. Harmless
+   * when called again.
    */
-  public static install(): void {
+  public static install(options?: UserActivityInstallOptions): void {
     if (UserActivity.target || typeof window === "undefined") {
       return;
     }
 
+    UserActivity.activityReporter = options?.reportActivity || null;
     UserActivity.target = window;
 
     for (const eventName of ACTIVITY_EVENTS) {
@@ -192,6 +261,76 @@ export default class UserActivity {
     return UserActivity.target !== null;
   }
 
+  /*
+   * Whether this page renews the session while its person uses it, within
+   * ACTIVITY_REPORT_INTERVAL_IN_MS of their activity: what its renewals
+   * tell the server (REPORTS_ACTIVITY_WHILE_IN_USE_FIELD).
+   */
+  public static isReportingActivityWhileInUse(): boolean {
+    return UserActivity.isTracking() && UserActivity.activityReporter !== null;
+  }
+
+  /*
+   * A renewal went through that told the server of activity at
+   * `activityAtMs` - kept for every tab, so none of them asks for another
+   * until that activity is ACTIVITY_REPORT_INTERVAL_IN_MS old.
+   */
+  public static noteActivityReported(activityAtMs: number): void {
+    if (!Number.isFinite(activityAtMs) || activityAtMs <= 0) {
+      return;
+    }
+
+    UserActivity.ownReportedActivityAtMs = activityAtMs;
+
+    try {
+      LocalStorage.setItem(REPORTED_ACTIVITY_STORAGE_KEY, String(activityAtMs));
+    } catch {
+      // Storage refused: this tab keeps it itself.
+    }
+  }
+
+  /*
+   * The newest activity a renewal told the server of, from any tab, in
+   * milliseconds, or null when none has yet.
+   */
+  public static getReportedActivityAtMs(): number | null {
+    let stored: number | null = null;
+
+    try {
+      stored = UserActivity.readStoredTime(REPORTED_ACTIVITY_STORAGE_KEY);
+    } catch {
+      stored = null;
+    }
+
+    const own: number | null = UserActivity.ownReportedActivityAtMs;
+
+    if (own === null) {
+      return stored;
+    }
+
+    if (stored === null) {
+      return own;
+    }
+
+    return Math.max(own, stored);
+  }
+
+  /*
+   * Whether activity at `nowMs` should be told to the server: it has heard
+   * of none from this browser, or the newest it heard of is
+   * ACTIVITY_REPORT_INTERVAL_IN_MS old, or later than now (a clock that
+   * moved back, which only a new report sets right).
+   */
+  public static isActivityReportDue(nowMs: number = Date.now()): boolean {
+    const reportedAtMs: number | null = UserActivity.getReportedActivityAtMs();
+
+    if (reportedAtMs === null || nowMs < reportedAtMs) {
+      return true;
+    }
+
+    return nowMs - reportedAtMs >= ACTIVITY_REPORT_INTERVAL_IN_MS;
+  }
+
   // The person did something now.
   public static recordActivity(nowMs: number = Date.now()): void {
     UserActivity.noteInactivityEndingAt(nowMs);
@@ -213,6 +352,7 @@ export default class UserActivity {
 
     UserActivity.lastWrittenAtMs = nowMs;
     UserActivity.writeActivity(nowMs);
+    UserActivity.reportActivityIfDue(nowMs);
   }
 
   /*
@@ -364,6 +504,45 @@ export default class UserActivity {
     UserActivity.lastActivityAtMs = null;
     UserActivity.lastWrittenAtMs = null;
     UserActivity.ownLongestInactivity = null;
+    UserActivity.ownReportedActivityAtMs = null;
+    UserActivity.lastReportAskedAtMs = null;
+    UserActivity.activityReporter = null;
+  }
+
+  /*
+   * Asks for a renewal to tell the server of activity at `nowMs`, when the
+   * page installed a reporter, a report is due, and none was asked for in
+   * the last MIN_TIME_BETWEEN_ACTIVITY_REPORTS_IN_MS. Never fails the event
+   * it came from.
+   */
+  private static reportActivityIfDue(nowMs: number): void {
+    const reporter: ActivityReporter | null = UserActivity.activityReporter;
+
+    if (!reporter || !UserActivity.isTracking()) {
+      return;
+    }
+
+    const askedAtMs: number | null = UserActivity.lastReportAskedAtMs;
+
+    if (
+      askedAtMs !== null &&
+      nowMs >= askedAtMs &&
+      nowMs - askedAtMs < MIN_TIME_BETWEEN_ACTIVITY_REPORTS_IN_MS
+    ) {
+      return;
+    }
+
+    if (!UserActivity.isActivityReportDue(nowMs)) {
+      return;
+    }
+
+    UserActivity.lastReportAskedAtMs = nowMs;
+
+    try {
+      reporter();
+    } catch {
+      // Asked again at the next activity after the pause.
+    }
   }
 
   /*
@@ -470,7 +649,12 @@ export default class UserActivity {
 
   // What local storage holds, if it is a time; throws when storage cannot be read.
   private static readStoredActivityAtMs(): number | null {
-    const value: JSONValue = LocalStorage.getItem(LAST_ACTIVITY_STORAGE_KEY);
+    return UserActivity.readStoredTime(LAST_ACTIVITY_STORAGE_KEY);
+  }
+
+  // The time local storage holds under `key`, if it is one; throws when storage cannot be read.
+  private static readStoredTime(key: string): number | null {
+    const value: JSONValue = LocalStorage.getItem(key);
     const asNumber: number =
       typeof value === "number" ? value : Number(value ?? NaN);
 

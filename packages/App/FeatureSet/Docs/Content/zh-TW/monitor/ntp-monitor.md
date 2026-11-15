@@ -33,7 +33,7 @@ sequenceDiagram
 
 ## 開始之前
 
-- **可以建立監測器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者擁有 Create Monitor 權限的自訂角色。
+- **可以建立監測器的角色**：專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員，或者擁有 Create Monitor 權限的自訂角色。
 - **能夠連到伺服器 UDP 連接埠 123 的探測器。** 任何探測器都可以檢查公用時間伺服器。對於私有網路中的伺服器，請在該網路內使用 [自訂探測器](/docs/probe/custom-probe)。伺服器前面的防火牆必須放行來自 [OneUptime Cloud 探測器 IP 位址](/docs/configuration/ip-addresses) 或您的自訂探測器的 UDP 流量，而不只是 TCP。
 
 ## 建立 NTP 監測器
