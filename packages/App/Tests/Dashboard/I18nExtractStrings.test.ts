@@ -1651,6 +1651,15 @@ describe("the real source roots", () => {
       "ui ee/Dashboard/EnterpriseSettings",
       // The compliance rules' catalog: only the words it marks, not the server's English.
       "keys packages/Common/Types/Team/ComplianceRule.ts",
+      // What the compliance page says is wrong with a rule, and why a member fails one (#8632).
+      "keys packages/Common/Types/Team/TeamComplianceFindings.ts",
+      // The rest of the Enterprise screens (#8634).
+      "ui ee/Dashboard/CustomRoles",
+      "ui ee/Dashboard/AuditLogExport",
+      "ui ee/Dashboard/IpAllowlists",
+      "ui ee/Dashboard/License",
+      "ui ee/Dashboard/StatusPageAccessControls",
+      "ui ee/Dashboard/StatusPageBranding",
       "ui packages/Common/UI",
       "models packages/Common/Models/DatabaseModels",
       "models packages/Common/Models/AnalyticsModels",
