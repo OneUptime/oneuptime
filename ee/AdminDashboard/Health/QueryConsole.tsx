@@ -33,6 +33,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type QueryEngine = "postgres" | "clickhouse" | "redis";
 
@@ -828,7 +829,12 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                             : String(item.reply)}
                       </pre>
                     ) : (
-                      <span className="text-sm text-red-600">{item.error}</span>
+                      <span className="text-sm text-red-600">
+                        <ErrorInSentence
+                          message={item.error}
+                          showWhereToLook={true}
+                        />
+                      </span>
                     )}
                   </div>
                 </div>
@@ -860,7 +866,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
           strongTitle="Query failed"
           title={
             <span className="font-mono whitespace-pre-wrap break-words">
-              {result.error}
+              <ErrorInSentence message={result.error} showWhereToLook={true} />
             </span>
           }
         />

@@ -79,7 +79,7 @@ Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om 
 
 ### Waar globale Runners vandaan komen
 
-Op OneUptime Cloud draait OneUptime ze. Een zelf gehoste installatie draait standaard een eigen exemplaar, zoals ze haar eigen globale probes draait: de service `global-runner` in Docker Compose en de deployment `globalRunner` in de Helm-chart. Die heeft een eigen sleutel, `GLOBAL_RUNNER_KEY`, en verder niets van de server.
+Op OneUptime Cloud draait OneUptime ze. Een zelf gehoste installatie draait standaard een eigen exemplaar, zoals ze haar eigen globale sondes draait: de service `global-runner` in Docker Compose en de deployment `globalRunner` in de Helm-chart. Die heeft een eigen sleutel, `GLOBAL_RUNNER_KEY`, en verder niets van de server.
 
 Een hoofdbeheerder kan er meer toevoegen, om stappen en codecorrecties vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt.
 

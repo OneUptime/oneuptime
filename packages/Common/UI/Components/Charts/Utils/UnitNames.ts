@@ -1,4 +1,6 @@
-import ValueFormatter from "../../../../Utils/ValueFormatter";
+import ValueFormatter, {
+  ValueFormatterOptions,
+} from "../../../../Utils/ValueFormatter";
 import {
   translatableTerm,
   translationKey,
@@ -76,7 +78,15 @@ export const UNIT_RATE_TEMPLATE: string = translationKey(
   "{{numerator}} per {{denominator}}",
 );
 
+/*
+ * A rate of a dimensionless count ("1/s"), which has no numerator to
+ * name: "per Second", "pro Sekunde" (#7518).
+ */
+export const UNIT_PER_TEMPLATE: string = translationKey("per {{denominator}}");
+
 const RATE_SEPARATOR: string = " per ";
+
+const RATE_PREFIX: string = "per ";
 
 /*
  * The unit's name as getReadableUnit gives it, in the reader's language.
@@ -94,9 +104,21 @@ export function getUnitNameInLanguage(
     return "";
   }
 
-  const rateAt: number = (unit || "").includes("/")
-    ? english.indexOf(RATE_SEPARATOR)
-    : -1;
+  const isRate: boolean = (unit || "").includes("/");
+
+  if (isRate && english.startsWith(RATE_PREFIX)) {
+    if (!translator.hasTranslation(UNIT_PER_TEMPLATE)) {
+      return english;
+    }
+
+    return translator.translateTemplate(UNIT_PER_TEMPLATE, {
+      denominator: translatableTerm(english.slice(RATE_PREFIX.length), {
+        inSentence: true,
+      }),
+    });
+  }
+
+  const rateAt: number = isRate ? english.indexOf(RATE_SEPARATOR) : -1;
 
   if (rateAt > 0) {
     if (!translator.hasTranslation(UNIT_RATE_TEMPLATE)) {
@@ -113,4 +135,28 @@ export function getUnitNameInLanguage(
   }
 
   return translator.translateText(english) || english;
+}
+
+/*
+ * What a widget that writes a value for its reader hands ValueFormatter
+ * (#7518): their language, for the number, its scale and a span of time's
+ * words ("1,2 Mio.", "6,91 Stunden"), and their words for a unit the
+ * formatter names in words ("50 هرتز", "230 Volt"). English reads
+ * exactly as the formatter writes it.
+ */
+export function getValueFormatterOptionsForReader(
+  translator: Translator,
+  metricName?: string | undefined,
+): ValueFormatterOptions {
+  return {
+    ...(metricName !== undefined ? { metricName: metricName } : {}),
+    language: translator.language,
+    unitName: (unit: string): string => {
+      return getUnitNameInLanguage(
+        unit,
+        translator,
+        metricName !== undefined ? { metricName: metricName } : undefined,
+      );
+    },
+  };
 }

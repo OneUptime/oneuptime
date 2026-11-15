@@ -97,6 +97,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   // The devices and the OID the page's address names.
@@ -1799,7 +1800,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
           className="text-sm text-red-700"
           data-testid="multi-snmp-walk-load-error"
         >
-          {loadError}
+          <ErrorInSentence message={loadError} showWhereToLook={true} />
         </p>
       );
     }
@@ -1833,7 +1834,7 @@ const MultiDeviceSnmpWalkCard: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.Alert} className="h-5 w-5 text-red-600" />
             </div>
             <p className="min-w-0 text-sm text-gray-700 [overflow-wrap:anywhere]">
-              {walkError}
+              <ErrorInSentence message={walkError} showWhereToLook={true} />
             </p>
           </div>
         ) : (

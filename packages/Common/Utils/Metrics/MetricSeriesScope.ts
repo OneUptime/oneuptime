@@ -263,10 +263,15 @@ export default class MetricSeriesScope {
    *
    * Returns "" when nothing was narrowed, which is exactly the condition
    * for the card to say nothing.
+   *
+   * An empty group reads `unsetLabel`: the reader's word for "(unset)"
+   * where the summary is drawn for them ("service.name = (nicht
+   * gesetzt)"), "(unset)" when none is given.
    */
   public static getAppliedSeriesLabelSummary(input: {
     queryConfigs: Array<MetricQueryConfigData> | undefined | null;
     seriesLabels: JSONObject | null | undefined;
+    unsetLabel?: string | undefined;
   }): string {
     const parts: Array<string> = [];
     const seen: Set<string> = new Set<string>();
@@ -290,7 +295,7 @@ export default class MetricSeriesScope {
           `${key} = ${
             typeof filterValue === "string"
               ? filterValue
-              : MetricSeriesScope.UnsetLabelDisplayValue
+              : input.unsetLabel || MetricSeriesScope.UnsetLabelDisplayValue
           }`,
         );
       }

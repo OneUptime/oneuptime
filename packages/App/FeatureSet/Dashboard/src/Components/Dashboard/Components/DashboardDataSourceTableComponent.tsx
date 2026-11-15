@@ -49,6 +49,7 @@ import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
 import useDashboardWidgetColumns, {
   DashboardWidgetColumn,
   DashboardWidgetColumns,
+  WIDGET_TABLE_TEXT_CELL_CLASS_NAME,
 } from "./DashboardWidgetColumns";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
@@ -459,7 +460,10 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
                             <td
                               key={column.key}
                               className={`px-3 py-1.5 text-xs text-gray-600 ${
-                                isNumeric ? "text-right tabular-nums" : ""
+                                isNumeric
+                                  ? "text-right tabular-nums"
+                                  : // A long word breaks before it pushes the numbers out (#7524).
+                                    WIDGET_TABLE_TEXT_CELL_CLASS_NAME
                               }`}
                             >
                               {formatCell(row[column.key] ?? null, column)}

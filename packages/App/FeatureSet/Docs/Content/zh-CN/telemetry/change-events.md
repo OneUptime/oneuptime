@@ -35,7 +35,7 @@ flowchart LR
 | 运行手册 | OneUptime 运行的运行手册在开始后完成、失败或被取消 | `runbook` |
 | 云变更 | 已连接云账户的活动日志记录了一项变更：AWS CloudTrail、Azure 活动日志或 Google Cloud 的 Admin Activity 审核日志 | `cloud` |
 | 提供商事件 | 云提供商发布了关于该账户的健康事件：AWS Health、Azure Service Health 或 Resource Health，或 Google Cloud Service Health | `cloud-health` |
-| OpenStack 变更 | OpenStack 云自身的通知说明了其某个部分发生了什么，或者探测对 Nova 的读取说明了：参见[生命周期事件](/docs/telemetry/openstack#生命周期事件) | `openstack` |
+| OpenStack 变更 | OpenStack 云自身的通知说明了其某个部分发生了什么，或者探测器对 Nova 的读取说明了：参见[生命周期事件](/docs/telemetry/openstack#生命周期事件) | `openstack` |
 
 - **服务上报的第一个版本是它的基线，而不是一次部署。** 一个已经运行了数月的服务，并不是在 OneUptime 开始接收其遥测数据的那一刻才部署的。
 - **回滚到过去 30 天内出现过的版本不会被记录，** 因为那个版本并不新。OneUptime AI 执行的回滚会作为修复被记录。

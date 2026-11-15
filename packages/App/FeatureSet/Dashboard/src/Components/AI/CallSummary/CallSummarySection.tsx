@@ -55,6 +55,7 @@ import {
 import { describeTranscriptLength } from "../../VideoCall/CallTranscriptBlock";
 import InvestigationNotice, { noticeFailedIcon } from "../InvestigationNotice";
 import UseCallRootCauseModal from "./UseCallRootCauseModal";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * WHAT ONEUPTIME AI READ IN THE INCIDENT'S CALLS, on the AI Investigation
@@ -399,7 +400,7 @@ const CallSummaryOfCall: FunctionComponent<{
               indicator={noticeFailedIcon}
               title="Could not start reading it again"
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </InvestigationNotice>
           </div>
         ) : (
@@ -598,7 +599,7 @@ const CallSummaryOfCall: FunctionComponent<{
                   indicator={noticeFailedIcon}
                   title="Could not save your decision"
                 >
-                  {error}
+                  <ErrorInSentence message={error} showWhereToLook={true} />
                 </InvestigationNotice>
               </div>
             ) : (

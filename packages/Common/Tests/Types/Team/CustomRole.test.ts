@@ -1,5 +1,6 @@
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Permission, {
+  PermissionGroup,
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
@@ -79,6 +80,13 @@ describe("what a custom role may hold", () => {
     [Permission.Public, false],
     [Permission.User, false],
     [Permission.CurrentUser, false],
+    // Retired: nothing checks them (#7637). The Services group's own stay.
+    [Permission.CreateServiceTelemetryService, false],
+    [Permission.ReadServiceTelemetryService, false],
+    [Permission.EditServiceTelemetryService, false],
+    [Permission.DeleteServiceTelemetryService, false],
+    [Permission.ReadService, true],
+    [Permission.CreateService, true],
     ["NotAPermission", false],
     ["", false],
     [undefined, false],
@@ -214,6 +222,60 @@ describe("what a custom role may hold", () => {
     expect(getCustomRolePermissionProblem({ permission: undefined })).toBe(
       "Pick a permission.",
     );
+  });
+
+  test.each([
+    [Permission.CreateServiceTelemetryService, "Create Service Telemetry Link"],
+    [Permission.ReadServiceTelemetryService, "Read Service Telemetry Link"],
+    [Permission.EditServiceTelemetryService, "Edit Service Telemetry Link"],
+    [Permission.DeleteServiceTelemetryService, "Delete Service Telemetry Link"],
+  ])(
+    "%s, which nothing checks, is refused by its title, whatever its scope",
+    (permission: Permission, title: string) => {
+      for (const scope of [
+        undefined,
+        PermissionScope.All,
+        PermissionScope.Owned,
+        PermissionScope.Labels,
+      ]) {
+        expect(
+          getCustomRolePermissionProblem({
+            permission,
+            scope,
+            labelIds: scope === PermissionScope.Labels ? [LABEL] : [],
+          }),
+        ).toBe(
+          `${title} can't be given to a team, so it can't be part of a custom role.`,
+        );
+      }
+
+      // Still a permission with a title, for a row an API call still sends.
+      expect(getPermissionTitleForSentence(permission)).toBe(title);
+    },
+  );
+
+  test("the Services group still offers what it guards", () => {
+    const services: Array<Permission> = getPermissionPropsAllowedInCustomRole()
+      .filter((props: PermissionProps): boolean => {
+        return props.group === PermissionGroup.ServiceCatalog;
+      })
+      .map((props: PermissionProps): Permission => {
+        return props.permission;
+      });
+
+    expect(services).toEqual(
+      expect.arrayContaining([
+        Permission.CreateService,
+        Permission.ReadService,
+        Permission.EditService,
+        Permission.DeleteService,
+      ]),
+    );
+    expect(
+      services.filter((permission: Permission): boolean => {
+        return permission.toString().endsWith("ServiceTelemetryService");
+      }),
+    ).toEqual([]);
   });
 });
 

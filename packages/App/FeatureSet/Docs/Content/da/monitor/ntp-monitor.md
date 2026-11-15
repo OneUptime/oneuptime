@@ -157,6 +157,6 @@ Sonden er langt fra serveren, eller vejen er langsommere den ene vej end den and
 :::cards
 - [Ping-monitor](/docs/monitor/ping-monitor): Kontrollér, at selve værten kan nås.
 - [Port-monitor](/docs/monitor/port-monitor): Kontrollér TCP-tjenesterne på samme vært.
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Kontrollér tidsservere på dit eget netværk.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Kontrollér tidsservere på dit eget netværk.
 - [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating): Sæt stratum og afvigelse i en hændelses titel.
 :::

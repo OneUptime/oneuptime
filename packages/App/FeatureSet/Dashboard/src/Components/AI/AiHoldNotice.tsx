@@ -36,6 +36,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * WHILE ONEUPTIME AI HOLDS THE PAGE (OnCallPolicyAiHold): the AI Investigation
@@ -295,7 +296,7 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
                 role="alert"
                 data-testid="ai-hold-page-now-error"
               >
-                {error}
+                <ErrorInSentence message={error} showWhereToLook={true} />
               </p>
             ) : (
               <></>

@@ -79,7 +79,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 مرورگر به‌ندرت دسته‌هایی چنین بزرگ می‌فرستد، مگر آنکه اسپن‌ها صفت‌های بزرگی حمل کنند، مانند کل یک stack trace یا بدنه پاسخ. کوتاه کردن آن‌ها راه‌حل بهتری است.
 
-**`422`.** OneUptime کلید را اینجا رد کرد، و پیام می‌گوید چرا. `Origin https://app.example.com is not allowed for this browser ingestion key.` یعنی مبدأ دقیق صفحه، با طرح و هر درگاهی، در **مبداهای مجاز** کلید نیست. `This telemetry ingestion key has been disabled.` یعنی کسی کلید را خاموش کرده است.
+**`422`.** OneUptime کلید را اینجا رد کرد، و پیام می‌گوید چرا. `Origin https://app.example.com is not allowed for this browser ingestion key.` یعنی مبدأ دقیق صفحه، با طرح و هر پورتی، در **مبداهای مجاز** کلید نیست. `This telemetry ingestion key has been disabled.` یعنی کسی کلید را خاموش کرده است.
 
 **`429`.** **محدودیت درخواست در دقیقه** کلید مصرف شده است: `Too many telemetry requests for this ingestion key. Please retry later.` کلید Browser برای همه بازدیدکنندگانتان با هم ۶۰۰۰ درخواست در دقیقه اجازه می‌دهد، مگر آنکه محدودیت خودتان را روی کلید بگذارید.
 

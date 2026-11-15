@@ -54,7 +54,7 @@ Se [Kriterier og statusser](/docs/monitor/criteria-and-statuses).
 
 En maskine, der kører monitorernes tjek efter en tidsplan: den henter en side, kalder et API eller pinger en vært. OneUptime Cloud kører sonder i flere regioner, og en brugerdefineret sonde, du kører i dit eget netværk, tjekker det, som kun det netværk kan nå.
 
-Også kaldet: **Brugerdefinerede probes**. Se [Brugerdefinerede probes](/docs/probe/custom-probe).
+Også kaldet: **Brugerdefinerede sonder**. Se [Brugerdefinerede sonder](/docs/probe/custom-probe).
 
 ### Hændelse
 

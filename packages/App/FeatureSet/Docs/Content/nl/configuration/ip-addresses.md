@@ -1,10 +1,10 @@
 # IP-adressen
 
-De probes van OneUptime Cloud controleren uw websites, API's en servers vanaf een vaste set IP-adressen. Staat er een firewall of een allowlist voor wat u bewaakt, sta deze adressen dan toe zodat de controles erdoor komen.
+De sondes van OneUptime Cloud controleren uw websites, API's en servers vanaf een vaste set IP-adressen. Staat er een firewall of een allowlist voor wat u bewaakt, sta deze adressen dan toe zodat de controles erdoor komen.
 
 ```mermaid title="Waar de allowlist geldt"
 flowchart TB
-    P["OneUptime-probes"] -->|"controleren vanaf de vermelde IP's"| F["Uw firewall"]
+    P["OneUptime-sondes"] -->|"controleren vanaf de vermelde IP's"| F["Uw firewall"]
     F -->|"toegestaan"| S["Uw website, API of server"]
 ```
 
@@ -39,7 +39,7 @@ curl -s https://oneuptime.com/ip-whitelist | jq -r '.ipWhitelist[]'
 
 ## Zelf gehoste OneUptime
 
-Op uw eigen instantie tonen deze pagina en het eindpunt `/ip-whitelist` de adressen uit de instelling `IP_WHITELIST` van de instantie, een door komma's gescheiden lijst. Vul de adressen in waarvandaan uw eigen probes hun controles versturen.
+Op uw eigen instantie tonen deze pagina en het eindpunt `/ip-whitelist` de adressen uit de instelling `IP_WHITELIST` van de instantie, een door komma's gescheiden lijst. Vul de adressen in waarvandaan uw eigen sondes hun controles versturen.
 
 :::tabs
 @tab Kubernetes
@@ -64,6 +64,6 @@ Is er niets ingesteld, dan toont deze pagina **No IP addresses configured.** en 
 ## Volgende stappen
 
 :::cards
-- [Aangepaste probes](/docs/probe/custom-probe): Een probe in uw eigen netwerk draaien in plaats van de firewall te openen.
+- [Aangepaste sondes](/docs/probe/custom-probe): Een sonde in uw eigen netwerk draaien in plaats van de firewall te openen.
 - [Een monitor maken](/docs/monitor/create-monitor): Beginnen met het controleren van een website, API of server.
 :::

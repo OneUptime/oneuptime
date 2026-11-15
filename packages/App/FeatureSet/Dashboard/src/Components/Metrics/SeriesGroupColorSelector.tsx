@@ -6,6 +6,11 @@ import SeriesColorSelector, {
 } from "./SeriesColorSelector";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getSeriesGroupValueForReader,
+  getSeriesGroupValueFromReader,
+  UNSET_GROUP_VALUE,
+} from "./SeriesNameForReader";
 
 export interface ComponentProps {
   // Attribute keys the query groups by (e.g. ["service.name"]).
@@ -27,10 +32,12 @@ export interface ComponentProps {
 }
 
 /*
- * The value MetricCharts uses for a null/empty group. Offered as a pinnable
- * option so those series can be colored too.
+ * The value MetricCharts names a null/empty group by, "(unset)" on every
+ * board (UNSET_GROUP_VALUE). Offered as a pinnable option so those series
+ * can be colored too. A pin keeps it so, whatever the reader's language:
+ * a chart matches its series by it. The reader reads and types their own
+ * word for it (#7523).
  */
-const UNSET_VALUE: string = "(unset)";
 
 /*
  * Per-group color editor for GROUP-BY queries. Cardinality-safe: it renders one
@@ -80,7 +87,11 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
   };
 
   const addValue: (key: string) => void = (key: string): void => {
-    const raw: string = (drafts[key] || "").trim();
+    // The reader's word for an empty group is pinned as "(unset)".
+    const raw: string = getSeriesGroupValueFromReader(
+      (drafts[key] || "").trim(),
+      translator,
+    );
     setDrafts((d: Record<string, string>) => {
       return { ...d, [key]: "" };
     });
@@ -130,7 +141,7 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
         const suggestions: Array<string> = props.valueSuggestions[key] || [];
         const datalistId: string = `${idPrefix}-${key}`;
         const availableSuggestions: Array<string> = [
-          ...(props.offerEmptyGroupValue === false ? [] : [UNSET_VALUE]),
+          ...(props.offerEmptyGroupValue === false ? [] : [UNSET_GROUP_VALUE]),
           ...suggestions,
         ].filter((v: string): boolean => {
           return !pinnedValues.has(v);
@@ -155,7 +166,11 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
             {pinnedSegments.length > 0 ? (
               <div className="space-y-2 mb-2">
                 {pinnedSegments.map((segment: string): ReactElement => {
-                  const val: string = valueOfSegment(key, segment);
+                  // The pin's value as the reader reads it; the pin keeps its own.
+                  const val: string = getSeriesGroupValueForReader(
+                    valueOfSegment(key, segment),
+                    translator,
+                  );
                   return (
                     <div key={segment} className="flex items-center gap-2">
                       <div className="min-w-0 flex-1">
@@ -225,7 +240,13 @@ const SeriesGroupColorSelector: FunctionComponent<ComponentProps> = (
               />
               <datalist id={datalistId}>
                 {availableSuggestions.map((v: string) => {
-                  return <option key={v} value={v} />;
+                  // Picked, the reader's word is pinned as "(unset)" (addValue).
+                  return (
+                    <option
+                      key={v}
+                      value={getSeriesGroupValueForReader(v, translator)}
+                    />
+                  );
                 })}
               </datalist>
               <button

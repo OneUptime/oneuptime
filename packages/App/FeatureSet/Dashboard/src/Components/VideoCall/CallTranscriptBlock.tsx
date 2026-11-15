@@ -52,6 +52,7 @@ import {
   getCallTranscriptView,
 } from "./CallTranscriptState";
 import { videoCallDocsUrl } from "./VideoCallApi";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A call's transcript, under the call on the Video Call card (issue #4875).
@@ -524,11 +525,16 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
             data-testid="call-transcript-outcome-headline"
             className="break-words text-gray-700"
           >
-            {error ||
-              translator.translateTemplate(
-                getTranscriptUnavailableHeadline(unavailable!.reason),
-                { provider: providerName },
-              )}
+            <ErrorInSentence
+              message={
+                error ||
+                translator.translateTemplate(
+                  getTranscriptUnavailableHeadline(unavailable!.reason),
+                  { provider: providerName },
+                )
+              }
+              showWhereToLook={true}
+            />
           </p>
           {!error && unavailable ? (
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">

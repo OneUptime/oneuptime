@@ -41,7 +41,7 @@ flowchart TB
 
 ## 开始之前
 
-- **一个正在运行的自定义探测器。** 它的 **状态** 显示 **已连接** 。安装方法参见 [自定义探针](/docs/probe/custom-probe)。
+- **一个正在运行的自定义探测器。** 它的 **状态** 显示 **已连接** 。安装方法参见 [自定义探测器](/docs/probe/custom-probe)。
 - **一个入站请求监视器。** 它的心跳 URL 中包含你的服务要发送的密钥：参见 [入站请求监控](/docs/monitor/incoming-request-monitor)。
 - **探测器主机上一个服务能访问到的端口。** 示例中使用 `3875`。
 
@@ -176,7 +176,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | 每次转发到 OneUptime 可用的时间，单位为毫秒。小于 `1000` 的值会回退到默认值。 |
 | `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | 失败的转发重试的次数。`0` 关闭重试。 |
 
-探测器的常规变量（`PROBE_KEY`、`PROBE_ID`、`ONEUPTIME_URL` 和代理变量）全部适用：完整列表参见 [自定义探针](/docs/probe/custom-probe)。
+探测器的常规变量（`PROBE_KEY`、`PROBE_ID`、`ONEUPTIME_URL` 和代理变量）全部适用：完整列表参见 [自定义探测器](/docs/probe/custom-probe)。
 
 ## 安全注意事项
 
@@ -192,7 +192,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 :::
 
 :::details 探测器记录 `Probe ingress: failed to forward to <url> after N attempts`
-探测器在重试之后仍无法访问 OneUptime。检查探测器的出站连接、代理设置和 `ONEUPTIME_URL` 的值。如果探测器也显示 **已断开** ，请参见 [自定义探针](/docs/probe/custom-probe)，找出它的请求卡在哪里。
+探测器在重试之后仍无法访问 OneUptime。检查探测器的出站连接、代理设置和 `ONEUPTIME_URL` 的值。如果探测器也显示 **已断开** ，请参见 [自定义探测器](/docs/probe/custom-probe)，找出它的请求卡在哪里。
 :::
 
 :::details 探测器记录 `Probe ingress: probe ID not available, forwarding without it`
@@ -211,5 +211,5 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 
 :::cards
 - [入站请求监控](/docs/monitor/incoming-request-monitor): 决定什么样的心跳算正常。
-- [自定义探针](/docs/probe/custom-probe): 安装探测器，并查看它读取的每个设置。
+- [自定义探测器](/docs/probe/custom-probe): 安装探测器，并查看它读取的每个设置。
 :::

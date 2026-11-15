@@ -11,7 +11,7 @@ Kør en komplet, gratis OneUptime-instans på én Linux-server med Docker Compos
 
 ## Sådan fungerer det
 
-Docker Compose kører hver del af OneUptime som en container på din server. Al trafik kommer ind gennem containeren `ingress`, som sender den videre til `app`. Appen gemmer sine data i PostgreSQL, ClickHouse og Valkey. En medfølgende probe kører dine monitorers tjek og melder tilbage gennem ingressen.
+Docker Compose kører hver del af OneUptime som en container på din server. Al trafik kommer ind gennem containeren `ingress`, som sender den videre til `app`. Appen gemmer sine data i PostgreSQL, ClickHouse og Valkey. En medfølgende sonde kører dine monitorers tjek og melder tilbage gennem ingressen.
 
 ```mermaid title="Installationen med Docker Compose"
 flowchart TB
@@ -48,7 +48,7 @@ flowchart TB
 | --- | --- | --- |
 | `ingress` | `oneuptime/nginx` | Modtager al trafik på port 80 og 443 og sender den videre til appen. Leverer HTTPS, når OneUptime administrerer certifikatet. |
 | `app` | `oneuptime/app` | Dashboardet, API'et, statussider, indtag af telemetri og baggrundsworkerne. |
-| `probe-1` | `oneuptime/probe` | En global probe, der kører dine monitorers tjek. Den bruger værtens netværk. |
+| `probe-1` | `oneuptime/probe` | En global sonde, der kører dine monitorers tjek. Den bruger værtens netværk. |
 | `global-runner` | `oneuptime/runner` | Den medfølgende globale Runner, der kører runbooks' JavaScript-trin og OneUptime AI's koderettelser for alle projekter. |
 | `postgres` | `postgres:15` | Konfiguration og tilstand: monitorer, hændelser, brugere. Gemt i volumet `postgres`. |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetri: logs, metrikker, traces og exceptions. Gemt i volumet `clickhouse`. |
@@ -85,7 +85,7 @@ Du har også brug for:
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Dashboardet, API'et, indtag af telemetri og validering hos Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS til din instans, når OneUptime administrerer certifikatet, og til statussider og dashboards på egne domæner. |
 | 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Lader `npm run backup` og `restore.sh` nå PostgreSQL fra selve serveren. Den er kun udgivet på `127.0.0.1`. |
-| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Probens egen server. Intet uden for serveren har brug for den. |
+| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Sondens egen server. Intet uden for serveren har brug for den. |
 
 Der findes også en [videogennemgang](https://youtu.be/j1SWmMW2oL4) af installationen.
 
@@ -157,8 +157,8 @@ Gør derefter opsætningen af serveren færdig på `/admin/setup`, hvor e-mail, 
 | `ONEUPTIME_SECRET` | Kald mellem OneUptimes egne tjenester. |
 | `ENCRYPTION_SECRET` | De hemmeligheder, OneUptime gemmer, som integrationstokens og SMTP-adgangskoder, og de login-tokens, den udsteder. |
 | `DATABASE_PASSWORD`, `CLICKHOUSE_PASSWORD`, `VALKEY_PASSWORD` | De tre datalagre. |
-| `REGISTER_PROBE_KEY` | Registrering af prober hos din instans. |
-| `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale prober, Docker Compose kan køre (`probe-1` kører som standard). |
+| `REGISTER_PROBE_KEY` | Registrering af sonder hos din instans. |
+| `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale sonder, Docker Compose kan køre (`probe-1` kører som standard). |
 | `GLOBAL_RUNNER_KEY` | Den medfølgende globale Runner, der kører alle projekters JavaScript-trin og AI-koderettelser. |
 
 > [!IMPORTANT]
@@ -234,7 +234,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-Proben bruger værtens netværk og når OneUptime gennem `http://localhost`. `npm start` flytter den til ingressens nye port, `http://localhost:8080`, og siger det.
+Sonden bruger værtens netværk og når OneUptime gennem `http://localhost`. `npm start` flytter den til ingressens nye port, `http://localhost:8080`, og siger det.
 
 #### Fortæl OneUptime, at den står bag en proxy
 
@@ -518,7 +518,7 @@ Når noget ikke virker, så kør doctor i mappen `oneuptime`:
 npm run doctor
 ```
 
-Den viser, hvad der er galt, det alvorligste først, hver linje med den præcise løsning, og slutter med **Everything looks right.** eller antallet af ting, der skal rettes. Den tjekker hver container og viser de sidste linjer af loggen for dem, der ikke kører, `config.env`, at `HOST` når denne server, certifikatet, når `PROVISION_SSL` er slået til, og ledig diskplads. Den spørger også OneUptime, hvad den ser af sig selv: PostgreSQL, ClickHouse og Valkey, migreringerne, køerne, versionen og serverens opsætningstrin, såsom e-mail og prober. `npm start` slutter med de samme tjek og nævner kun det, der kræver opmærksomhed.
+Den viser, hvad der er galt, det alvorligste først, hver linje med den præcise løsning, og slutter med **Everything looks right.** eller antallet af ting, der skal rettes. Den tjekker hver container og viser de sidste linjer af loggen for dem, der ikke kører, `config.env`, at `HOST` når denne server, certifikatet, når `PROVISION_SSL` er slået til, og ledig diskplads. Den spørger også OneUptime, hvad den ser af sig selv: PostgreSQL, ClickHouse og Valkey, migreringerne, køerne, versionen og serverens opsætningstrin, såsom e-mail og sonder. `npm start` slutter med de samme tjek og nævner kun det, der kræver opmærksomhed.
 
 For også at se de seneste fejl fra hver tjeneste, hver med tjenestens navn:
 
@@ -592,8 +592,8 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
-:::details Den medfølgende probe viser Afbrudt, efter at du har flyttet ingressens port
-Admin Dashboard viser proben under **Indstillinger > Overvågning > Globale probes**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som som standard er `http://localhost` (port 80). `npm start` flytter den til ingressens port, så længe den peger på `localhost`. Har du sat den til en anden adresse eller startet OneUptime med Docker CLI, så sæt den til ingressens nye port, for eksempel `http://localhost:8080`, og genstart OneUptime.
+:::details Den medfølgende sonde viser Afbrudt, efter at du har flyttet ingressens port
+Admin Dashboard viser sonden under **Indstillinger > Overvågning > Globale sonder**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som som standard er `http://localhost` (port 80). `npm start` flytter den til ingressens port, så længe den peger på `localhost`. Har du sat den til en anden adresse eller startet OneUptime med Docker CLI, så sæt den til ingressens nye port, for eksempel `http://localhost:8080`, og genstart OneUptime.
 :::
 
 ## Næste trin

@@ -7,6 +7,7 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
+import { DataReconciliationRefusal } from "../../../Types/DataObservability/DataCheckRefusals";
 import { DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES } from "../../../Types/DataObservability/DataCheckType";
 import {
   DataReconciliationMeasure,
@@ -99,7 +100,7 @@ export default class DataReconciliationSync {
       });
 
     if (!reconciliation?.id) {
-      throw new BadDataException("Reconciliation not found.");
+      throw new BadDataException(DataReconciliationRefusal.notFound);
     }
 
     const sourceCheckId: ObjectID = await this.syncSide({
@@ -162,7 +163,11 @@ export default class DataReconciliationSync {
       : reconciliation.targetDataCheckId;
 
     if (!dataAssetId) {
-      throw new BadDataException(`The reconciliation's ${side} needs a table.`);
+      throw new BadDataException(
+        side === "source"
+          ? DataReconciliationRefusal.sourceNeedsTable
+          : DataReconciliationRefusal.targetNeedsTable,
+      );
     }
 
     const definition: Record<string, unknown> = {
@@ -340,9 +345,7 @@ export default class DataReconciliationSync {
       !incidentSeverity?.id ||
       !alertSeverity?.id
     ) {
-      throw new BadDataException(
-        "This project is missing an operational or offline monitor status, or an incident or alert severity. Add them in Settings, then save the reconciliation again.",
-      );
+      throw new BadDataException(DataReconciliationRefusal.missingStatuses);
     }
 
     return {

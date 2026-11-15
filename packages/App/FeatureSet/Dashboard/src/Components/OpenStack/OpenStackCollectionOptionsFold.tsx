@@ -37,6 +37,7 @@ import {
   readOpenStackOptions,
   validateOpenStackOptions,
 } from "./OpenStackProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * What a collection reads beyond the defaults, on the Settings page's Data Collection card.
@@ -207,7 +208,7 @@ const OpenStackCollectionOptionsFold: FunctionComponent<ComponentProps> = (
           )}
           {error ? (
             <p className="mt-2 text-sm text-red-700" role="alert">
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </p>
           ) : (
             <></>

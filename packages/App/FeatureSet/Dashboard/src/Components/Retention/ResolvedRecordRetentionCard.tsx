@@ -50,6 +50,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Resolved Incidents (Incidents -> Settings -> Data Retention) and Resolved
@@ -217,7 +218,7 @@ const RetentionSetting: FunctionComponent<SettingProps> = (
           role="alert"
           data-testid={`${RESOLVED_RECORD_RETENTION_SETTING_TEST_ID}-error`}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

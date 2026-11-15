@@ -76,6 +76,7 @@ import {
   getCloudStreamSourceWords,
   getCloudStreamStatusWords,
 } from "./CloudStreamWords";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Stream metrics and logs, for an AWS connection - laid out as every
@@ -332,7 +333,7 @@ const CloudStreamDialog: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid={`${CLOUD_STREAM_DIALOG_TEST_ID}-key-error`}
           >
-            {keyError}
+            <ErrorInSentence message={keyError} showWhereToLook={true} />
           </p>
         ) : (
           <></>
