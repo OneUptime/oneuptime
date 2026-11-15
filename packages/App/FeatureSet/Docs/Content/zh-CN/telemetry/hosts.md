@@ -260,7 +260,7 @@ OneUptime 宁可不显示数字，也不显示旧数字：主机已 15 分钟没
 
 :::cards
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 改为自行安装收集器并编写其配置。
-- [主机监视器](/docs/monitor/host-monitor): 根据主机上报的内容发出告警。
+- [主机监视器](/docs/monitor/host-monitor): 根据主机上报的内容发出警报。
 - [摄取密钥](/docs/telemetry/ingestion-keys): 创建、限定和轮换主机发送时使用的密钥。
 - [Kubernetes Agent](/docs/telemetry/kubernetes-agent): 监控集群的节点和工作负载。
 :::

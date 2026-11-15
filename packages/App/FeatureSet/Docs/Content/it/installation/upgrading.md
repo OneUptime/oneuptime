@@ -80,7 +80,7 @@ Poi verificate di nuovo la vostra versione, come nel primo passaggio. Se non ave
 
 | Aggiornamento | Cosa dovete fare |
 | --- | --- |
-| [13 → 14](#aggiornamento-da-oneuptime-13-14) | Scegliere un'edizione. Le installazioni Docker Compose che impostano `IS_ENTERPRISE_EDITION=true` passano a `APP_TAG=enterprise-release`. Attivare una licenza sulla Enterprise Edition. Salvare di nuovo i monitor IPv6 Ping, Port e SSL. Le correzioni di codice AI passano al Runner globale: tenerlo attivo e, su Helm, spostare `runner.keda` in `globalRunner.keda`. |
+| [13 → 14](#aggiornamento-da-oneuptime-13-14) | Scegliere un'edizione. Le installazioni Docker Compose che impostano `IS_ENTERPRISE_EDITION=true` passano a `APP_TAG=enterprise-release`. Attivare una licenza sulla Enterprise Edition. Salvare di nuovo i monitor IPv6 Ping, Port e SSL. Le correzioni di codice IA passano al Runner globale: tenerlo attivo e, su Helm, spostare `runner.keda` in `globalRunner.keda`. |
 | [12 → 13](#aggiornamento-da-oneuptime-12-13) | Di solito nulla: Redis diventa Valkey, e i vecchi nomi delle impostazioni continuano a funzionare. Eseguite Docker Compose a mano? Aggiungete `--remove-orphans`. Usate una cache vostra? Leggete [Se gestite una cache vostra](#se-gestite-una-cache-vostra). |
 | [11 → 12](#aggiornamento-da-oneuptime-11-12) | Ridistribuire i Runbook Agent come Runner. Con Docker Compose, impostare `ONEUPTIME_RUNNER_KEY`. Con Helm, rinominare `aiAgent:` in `runner:`. Riassegnare i permessi Runner che le chiavi API avevano direttamente. |
 | [10 → 11](#aggiornamento-da-oneuptime-10-11) | SCIM e le impostazioni di conformità dei team richiedono la Enterprise Edition. Per conservare lo storico della telemetria, rinominate le vecchie tabelle ClickHouse prima di aggiornare. |

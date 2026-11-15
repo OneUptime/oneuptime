@@ -4,7 +4,7 @@ Un runbook si scrive come elenco ordinato di passaggi nella sua pagina **Passagg
 
 :::cards
 - [Creare un runbook](#creare-un-runbook): Da un runbook vuoto ai passaggi salvati.
-- [Tipi di passaggio](#tipi-di-passaggio): Manual, JavaScript, HTTP request, Bash, SSH, kubectl e AI.
+- [Tipi di passaggio](#tipi-di-passaggio): Manual, JavaScript, HTTP request, Bash, SSH, kubectl e IA.
 - [Gestione degli errori e approvazioni](#gestione-degli-errori-e-approvazioni): Cosa succede quando un passaggio fallisce o attende un'approvazione.
 - [Un esempio completo](#un-esempio-completo): Un failover del database in cinque passaggi.
 :::
@@ -62,7 +62,7 @@ Ogni passaggio ha questi campi. Un passaggio automatico mostra il suo **Titolo**
 | [Bash](#bash) | Un Runner | Un Runner |
 | [SSH](#ssh) | Un Runner | Un Runner e una variabile segreta per accedere |
 | [kubectl](#kubectl) | Un Runner | Un Runner, e una variabile kubeconfig o l'accesso proprio del Runner |
-| [AI](#ai) | Il Worker di OneUptime | Un provider LLM |
+| [IA](#ia) | Il Worker di OneUptime | Un provider LLM |
 
 In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima il suo **Runner**, per un passaggio che viene eseguito su uno, poi **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header di una chiamata HTTP, la porta, la passphrase della chiave e la chiave host di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout. Chiuso, indica il Runner del passaggio, così vedi dove viene eseguito un passaggio senza aprirlo.
 
@@ -189,7 +189,7 @@ kubectl rollout status deployment/checkout-api --namespace checkout --timeout=12
 
 **Esempi — clicca per inserire**, sotto ogni script, inserisce script comuni come questi. Dai all'utente del kubeconfig solo ciò che fanno i tuoi script: un Role nei namespace in cui agiscono, con i verbi che usano. Se il server API rifiuta un comando, il messaggio di kubectl compare nell'output del passaggio, così un errore di autorizzazione ti dice quale role binding ampliare.
 
-### AI
+### IA
 
 Chiedi all'IA di analizzare, riassumere o decidere qualcosa durante l'esecuzione. La risposta diventa l'output del passaggio sull'esecuzione. I passaggi IA vengono eseguiti sul Worker di OneUptime; non serve alcun Runner.
 

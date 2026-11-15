@@ -117,7 +117,7 @@ Questi pulsanti compaiono solo dove possono avviare un'attività. Con l'IA disat
 
 Per aprire la pagina **Correggi con l'IA** di un'eccezione, apri l'eccezione in **Prodotti → Osservabilità → Eccezioni** e scegli **Correggi con l'IA** nel suo menu laterale. Un'eccezione risolta o archiviata deve prima essere contrassegnata come non risolta.
 
-OneUptime AI avvia anche attività di correzione da solo: da un'indagine che trova una modifica al codice, da una che termina senza conclusioni perché mancava telemetria, e dagli AI Insights su eccezioni e tracce lente. Ognuna ha il suo interruttore; vedi [Correzioni di codice automatiche](/docs/ai/ai-sre#correzioni-automatiche-del-codice).
+OneUptime AI avvia anche attività di correzione da solo: da un'indagine che trova una modifica al codice, da una che termina senza conclusioni perché mancava telemetria, e dagli IA Insights su eccezioni e tracce lente. Ognuna ha il suo interruttore; vedi [Correzioni di codice automatiche](/docs/ai/ai-sre#correzioni-automatiche-del-codice).
 
 ## Telemetria di produzione in una correzione
 
@@ -249,7 +249,7 @@ Un'attività ha bisogno di tre cose. La casella delle richieste di Codice e la p
 | Un provider LLM | Niente da configurare: un progetto senza un proprio provider usa il provider globale, pagato con i crediti IA del progetto. Un tuo provider, in **Impostazioni del progetto → IA → Provider LLM**, ha la precedenza. | Imposta una volta sul server le variabili d'ambiente `GLOBAL_LLM_PROVIDER_*`, oppure aggiungi un provider al progetto. |
 | Un repository collegato tramite la GitHub App | **Prodotti → Codice**, poi **Connetti GitHub**. Se l'app è già installata sull'account GitHub, fai invece clic su **Collega un'installazione esistente**: installarla di nuovo non la collega. Richiede il piano Growth. | Lo stesso, una volta che la tua istanza ha una GitHub App (vedi [Integrazione con GitHub](/docs/self-hosted/github-integration)). |
 | Oppure un repository su GitLab, Forgejo o Gitea, o su qualsiasi server Git | **Repository** in Codice, poi **Connetti repository** (vedi [Collegare un repository](#collegare-un-repository)). Richiede il piano Growth. | Lo stesso, senza GitHub App da configurare. |
-| Un Runner che esegue le correzioni di codice AI | Niente da gestire: un repository che non ne sceglie nessuno lavora sul Runner predefinito del progetto o, se non c'è, sui Runner globali di OneUptime. | Niente da gestire: il Runner globale incluso (`global-runner` in Docker Compose, `globalRunner` nel chart Helm, attivo per impostazione predefinita), e ogni Runner globale che aggiunge un amministratore principale, eseguono le correzioni di codice AI in ogni repository che lavora su un Runner globale. |
+| Un Runner che esegue le correzioni di codice IA | Niente da gestire: un repository che non ne sceglie nessuno lavora sul Runner predefinito del progetto o, se non c'è, sui Runner globali di OneUptime. | Niente da gestire: il Runner globale incluso (`global-runner` in Docker Compose, `globalRunner` nel chart Helm, attivo per impostazione predefinita), e ogni Runner globale che aggiunge un amministratore principale, eseguono le correzioni di codice IA in ogni repository che lavora su un Runner globale. |
 
 Su un'istanza self-hosted, il provider globale è un blocco di `config.env` (Docker Compose) o dei tuoi valori Helm. Per un Ollama self-hosted:
 
@@ -311,7 +311,7 @@ Qualsiasi modo di eseguire il container funziona (Docker Compose, Kubernetes e c
 | `ONEUPTIME_URL` | L'indirizzo della tua istanza OneUptime (`https://oneuptime.com` su OneUptime Cloud). |
 
 > [!NOTE]
-> Prima di OneUptime 12, le correzioni di codice AI giravano su un componente AI Agent separato (l'immagine `oneuptime/ai-agent` con variabili `AI_AGENT_*`). È confluito nel Runner: se ne esegui ancora uno, la [guida all'aggiornamento da v11 a v12](/docs/installation/upgrading) spiega come sostituirlo.
+> Prima di OneUptime 12, le correzioni di codice IA giravano su un componente IA Agent separato (l'immagine `oneuptime/ai-agent` con variabili `AI_AGENT_*`). È confluito nel Runner: se ne esegui ancora uno, la [guida all'aggiornamento da v11 a v12](/docs/installation/upgrading) spiega come sostituirlo.
 
 ## Correzioni di codice automatiche dalle indagini
 
@@ -322,7 +322,7 @@ Finché la correzione è attiva, un'indagine che termina con una causa principal
 Tutto il resto è come il pulsante:
 
 - La pull request si apre pronta per la revisione, scritta a partire dall'analisi pubblicata, e richiede un repository collegato, uno di quelli indicati dalle regole corrispondenti quando ne indicano, e un Runner online per lavorarci: quello scelto dal repository, o un Runner globale.
-- Conta per il limite giornaliero di attività di correzione di quel segnale (**Limite giornaliero di attività di correzione AI per gli incidenti** o **Limite giornaliero di attività di correzione AI per gli avvisi**, in **Altre impostazioni** nella sua pagina delle impostazioni IA) e per il tetto di pull request aperte del repository, quando uno dei due è impostato. Se non sono impostati, nessuno dei due limita nulla.
+- Conta per il limite giornaliero di attività di correzione di quel segnale (**Limite giornaliero di attività di correzione IA per gli incidenti** o **Limite giornaliero di attività di correzione IA per gli avvisi**, in **Altre impostazioni** nella sua pagina delle impostazioni IA) e per il tetto di pull request aperte del repository, quando uno dei due è impostato. Se non sono impostati, nessuno dei due limita nulla.
 - Ogni trigger cerca prima un'attività di correzione già in coda o in esecuzione per lo stesso incidente o avviso, così un trigger automatico e un clic diventano di solito un'unica attività, non due pull request. Il controllo è una lettura prima della scrittura, non un blocco, quindi due trigger nello stesso istante possono comunque passare entrambi.
 - L'esecuzione è scritta dal sistema, non è attribuita a nessuno, e niente viene unito da solo.
 
@@ -352,6 +352,6 @@ Il clone del tuo repository vive in uno spazio di lavoro dentro il container del
 
 :::cards
 - [GitHub App](/docs/ai/github-app): Chiedi una modifica, una revisione o una review direttamente da GitHub.
-- [AI SRE](/docs/ai/ai-sre): Le indagini le cui analisi le attività di correzione possono trasformare in pull request.
+- [IA SRE](/docs/ai/ai-sre): Le indagini le cui analisi le attività di correzione possono trasformare in pull request.
 - [Agenti di runbook](/docs/runbooks/agents): Il worker che svolge ogni esecuzione di correzione.
 :::

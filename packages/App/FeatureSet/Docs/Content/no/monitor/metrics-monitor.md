@@ -152,11 +152,11 @@ En ny målingsmonitor som er opprettet via API-et eller Terraform uten kriterier
 
 | Kriterium | Betingelse | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is offline | **Lik** `0` | Setter monitoren som offline og erklærer en hendelse som løses automatisk |
 | Check if … is online | **Større enn** `0` | Setter monitoren som tilkoblet |
 
 > [!NOTE]
-> Frakoblet-kriteriet utløses av en rapportert verdi på 0, ikke av stillhet. For å bli varslet når en måling slutter å komme, setter du **Hvis ingen data** for den til **Utløser**.
+> Offline-kriteriet utløses av en rapportert verdi på 0, ikke av stillhet. For å bli varslet når en måling slutter å komme, setter du **Hvis ingen data** for den til **Utløser**.
 
 ## Gjennomgått eksempel: en kø som vokser
 

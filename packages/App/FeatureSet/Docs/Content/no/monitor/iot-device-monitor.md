@@ -118,7 +118,7 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 
 En registrert enhet beholdes også som offline i flåtens inventar, mens en uregistrert fjernes etter 15 minutter med stillhet. Deteksjon av stillhet krever regelen **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer opprettet fra malen har. En Device Offline-monitor som ble opprettet før enhetsregistrering fantes, må få den satt manuelt eller opprettes på nytt fra malen.
 
-**Device Offline** vurderer hver enhet ut fra den siste målingen, så en enhet som meldte seg nede og deretter oppe igjen, er oppe ved neste kontroll. En Device Offline-monitor som forblir frakoblet til målingen om nede er 30 minutter gammel, ble opprettet før malen gjorde dette: velg malen på nytt under **Hva det skal varsles om** for å oppdatere den.
+**Device Offline** vurderer hver enhet ut fra den siste målingen, så en enhet som meldte seg nede og deretter oppe igjen, er oppe ved neste kontroll. En Device Offline-monitor som forblir offline til målingen om nede er 30 minutter gammel, ble opprettet før malen gjorde dette: velg malen på nytt under **Hva det skal varsles om** for å oppdatere den.
 
 > [!NOTE]
 > En uregistrert enhet som blir taus uten en Last Will eller en gatewayrapport, slutter bare å sende data, og en monitor som grupperer per enhet, kan ikke peke den ut. Registrer enhetene dine, eller gi en kritisk enhet sin egen monitor (**Custom Metric**, med dens **Device ID**), og sett **Hvis ingen data** til **Utløser**. Deteksjon av stillhet krever også at minst én annen enhet i flåten fortsatt rapporterer: en flåte som blir helt mørk, for eksempel under et gatewaybrudd, sender ut én hendelse for monitoren, ikke én per enhet.
@@ -160,11 +160,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Så |
 | --- | --- | --- | --- |
-| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen "_monitornavn_ er frakoblet", som løser seg selv når monitoren kommer seg. |
+| 1 | Sjekk om _monitornavn_ er offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hendelsen "_monitornavn_ er offline", som løser seg selv når monitoren kommer seg. |
 | 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 

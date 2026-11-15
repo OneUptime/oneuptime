@@ -18,7 +18,7 @@ La GitHub App di OneUptime è più di una connessione al tuo codice: puoi parlar
 ```
 
 > [!NOTE]
-> Sostituisci `@oneuptime` con l'handle della tua app. Su OneUptime Cloud è `@oneuptime`. Su un'istanza self-hosted è il nome che hai dato alla tua GitHub App, in minuscolo e con trattini al posto degli spazi: un'app chiamata "Acme AI" si menziona come `@acme-ai`. Se le menzioni non fanno nulla, controlla prima questo.
+> Sostituisci `@oneuptime` con l'handle della tua app. Su OneUptime Cloud è `@oneuptime`. Su un'istanza self-hosted è il nome che hai dato alla tua GitHub App, in minuscolo e con trattini al posto degli spazi: un'app chiamata "Acme IA" si menziona come `@acme-ai`. Se le menzioni non fanno nulla, controlla prima questo.
 
 ## Come funziona
 

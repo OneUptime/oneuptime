@@ -34,7 +34,7 @@ flowchart TB
 
 | 功能 | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| 监控、告警、事件、值班、状态页、日志、指标、追踪、异常、仪表板、工作流、AI 功能、API 和 Terraform | 是 | 是 | 所有套餐 |
+| 监控、警报、事件、值班、状态页、日志、指标、追踪、异常、仪表板、工作流、AI 功能、API 和 Terraform | 是 | 是 | 所有套餐 |
 | 密码登录、双因素认证、团队、内置角色和 API 密钥 | 是 | 是 | 所有套餐 |
 | 用于项目登录的 [SAML SSO 和 OpenID Connect](/docs/identity/sso) | 是 | 是 | Scale 套餐及以上 |
 | 用于私有状态页登录的 SAML SSO 和 OpenID Connect | 是 | 是 | Scale 套餐及以上 |
@@ -49,11 +49,11 @@ flowchart TB
 | 在状态页上隐藏“Powered by OneUptime” | 否 | 是 | Scale 套餐及以上 |
 | 管理端的 **Health** 仪表板：实例概览、后台队列、实例日志、PostgreSQL、Valkey、ClickHouse 集群、诊断日志和遥测接收 | 否 | 是 | 不适用 |
 | 管理端的 **Query Console** | 否 | 是 | 不可用 |
-| PostgreSQL 和 Valkey（Redis）健康告警 | 否 | 是 | 不适用 |
+| PostgreSQL 和 Valkey（Redis）健康警报 | 否 | 是 | 不适用 |
 | 按计划将 PostgreSQL 和 ClickHouse [备份](/docs/installation/backups)到你自己的存储，并可恢复 | 否 | 是 | 不适用 |
 | [自定义通知渠道](/docs/self-hosted/custom-notification-channels)：通过你自己的服务（例如你公司的应用）呼叫人员 | 否 | 是 | 不适用 |
 | [会话时长](/docs/self-hosted/session-length)：用户保持登录的时长，以及不使用 OneUptime 时保持登录的时长 | 否 | 是 | 不适用 |
-| ClickHouse 容量视图、容量告警和磁盘自动清理 | 是 | 是 | 不适用 |
+| ClickHouse 容量视图、容量警报和磁盘自动清理 | 是 | 是 | 不适用 |
 | 管理员仪表板中的迁移状态、支持包和全局探测器 | 是 | 是 | 不适用 |
 | Enterprise 许可证、席位和实例管理 | 否 | 是 | 不适用 |
 
@@ -201,7 +201,7 @@ stateDiagram-v2
 **不会** 停止的内容：
 
 - **单点登录。** 项目、私有状态页、整个实例（全局 SSO）和移动应用的 SAML 与 OIDC 登录，以及“Require SSO for login”，都属于每个版本。许可证失效不会改变其中任何一项，单点登录配置也仍可编辑。
-- **核心监控永远不受影响**：监视器、告警、事件、值班、状态页和遥测都会继续工作。
+- **核心监控永远不受影响**：监视器、警报、事件、值班、状态页和遥测都会继续工作。
 - **主管理员始终可以用自己的密码登录。**
 - **自定义角色、IP 允许列表和状态页访问控制继续生效。** 你可以移除它们，但不能创建或更改它们。
 - **会话时长继续生效。** 你可以移除它们，但不能设置或更改它们。
@@ -224,7 +224,7 @@ stateDiagram-v2
 - **自定义角色、IP 允许列表和状态页访问控制继续生效。** 它们的设置处会显示升级提示，以及仍在生效的设置和移除它的按钮。
 - **会话时长不再生效。** 每次登录的时长与 Community Edition 相同。这些时长保留在数据库中，切换回来后会再次生效。
 - **企业设置页面显示升级提示。** 通过 API，你仍然可以读取和删除企业配置、重置 SCIM 持有者令牌，但不能创建或更改其他任何内容。审计日志记录无法开启。
-- **企业版 Health 仪表板、Query Console 以及 PostgreSQL 和 Valkey 健康告警停止。** ClickHouse 容量监控与清理、迁移状态和支持包会继续工作。
+- **企业版 Health 仪表板、Query Console 以及 PostgreSQL 和 Valkey 健康警报停止。** ClickHouse 容量监控与清理、迁移状态和支持包会继续工作。
 
 > [!CAUTION]
 > **在把一个身份提供商通过 SCIM 取消预配用户的安装切换到 Community 镜像之前，请检查谁拥有访问权限。** 没有 SCIM，你在身份提供商处移除的人员会保留他们的 OneUptime 账户，除非“Require SSO for login”适用于他们，否则任何仍能访问此类账户电子邮件收件箱的人都可以设置密码并登录。请先移除这些用户。

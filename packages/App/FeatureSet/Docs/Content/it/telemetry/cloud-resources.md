@@ -486,8 +486,8 @@ Ogni punto dati porta l'ID risorsa Azure della sua risorsa (`azuremonitor.resour
 | `Microsoft.Synapse/workspaces` | Synapse Workspace | PaaS |
 | `Microsoft.Kusto/clusters` | Data Explorer Cluster | PaaS |
 | `Microsoft.StreamAnalytics/streamingjobs` | Stream Analytics Job | PaaS |
-| `Microsoft.CognitiveServices/accounts` | Azure AI Services or OpenAI | PaaS |
-| `Microsoft.Search/searchServices` | AI Search Service | PaaS |
+| `Microsoft.CognitiveServices/accounts` | Azure IA Services or OpenAI | PaaS |
+| `Microsoft.Search/searchServices` | IA Search Service | PaaS |
 | `Microsoft.MachineLearningServices/workspaces` | Machine Learning Workspace | PaaS |
 | `Microsoft.KeyVault/vaults` | Key Vault | PaaS |
 | `Microsoft.Insights/components` | Application Insights | PaaS |
@@ -592,7 +592,7 @@ Cloud Monitoring nomina la risorsa monitorata di ogni metrica con un tipo e dell
 | `cloud_tasks_queue` | `project_id`, `location`, `queue_id` | Cloud Tasks Queue | PaaS |
 | `cloud_composer_environment` | `project_id`, `location`, `environment_name` | Cloud Composer Environment | PaaS |
 | `dataproc_cluster` | `project_id`, `region`, `cluster_name` | Dataproc Cluster | PaaS |
-| `aiplatform.googleapis.com/Endpoint` | `resource_container`, `location`, `endpoint_id` | Vertex AI Endpoint | PaaS |
+| `aiplatform.googleapis.com/Endpoint` | `resource_container`, `location`, `endpoint_id` | Vertex IA Endpoint | PaaS |
 :::
 
 ### Nomi
@@ -642,7 +642,7 @@ Un namespace di Service Bus riporta le sue metriche una volta per coda e topic, 
 
 ## Inventario e regole
 
-- **Inventario:** le risorse cloud sono elencate nell'[Inventario](/docs/inventory/overview) come elementi di tipo **Risorsa cloud**, con l'ID del provider come `cloud.resource.id` e il tipo come `cloud.resource.type`. Anche gli strumenti delle risorse dell'agente AI le elencano.
+- **Inventario:** le risorse cloud sono elencate nell'[Inventario](/docs/inventory/overview) come elementi di tipo **Risorsa cloud**, con l'ID del provider come `cloud.resource.id` e il tipo come `cloud.resource.type`. Anche gli strumenti delle risorse dell'agente IA le elencano.
 - **Regole:** **Cloud → Impostazioni → Regole etichette** e **Regole del proprietario** si applicano a esse. Piattaforme applicative ha le sue per gli ambienti cloud, e una regola creata prima che i due venissero separati vale per entrambi.
 
 ## Risoluzione dei problemi

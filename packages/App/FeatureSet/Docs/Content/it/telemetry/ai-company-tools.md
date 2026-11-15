@@ -150,7 +150,7 @@ Per Copilot, concedi il consenso amministratore per le autorizzazioni Graph dell
 
 :::cards
 - [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability): Leggi e riproduci le conversazioni, e scopri quando le risposte vanno storte.
-- [Account dei provider di IA](/docs/telemetry/ai-provider-accounts): Utilizzo e costo dei tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex AI e Cursor.
+- [Account dei provider di IA](/docs/telemetry/ai-provider-accounts): Utilizzo e costo dei tuoi account OpenAI, Anthropic, Azure, Bedrock, Vertex IA e Cursor.
 - [Assistenti di programmazione IA](/docs/telemetry/ai-coding-assistants): Spesa per ingegnere degli strumenti di programmazione.
 - [Conservazione dei dati](/docs/telemetry/data-retention): Per quanto tempo restano le conversazioni.
 :::

@@ -1,6 +1,6 @@
 # Account dei provider di IA
 
-Guarda cosa hanno consumato i tuoi account dei provider di IA e quanto sono costati, senza cambiare le tue app. Collega un account di OpenAI, Anthropic, Azure OpenAI e Microsoft Foundry, Amazon Bedrock o Google Vertex AI con una credenziale che può solo leggere, e OneUptime ne legge l'utilizzo ogni 15 minuti in **Utilizzo**, **Budget** e metriche su cui puoi creare avvisi. Un team Cursor si collega allo stesso modo, con la sua chiave API di amministrazione, e viene letto ogni ora.
+Guarda cosa hanno consumato i tuoi account dei provider di IA e quanto sono costati, senza cambiare le tue app. Collega un account di OpenAI, Anthropic, Azure OpenAI e Microsoft Foundry, Amazon Bedrock o Google Vertex IA con una credenziale che può solo leggere, e OneUptime ne legge l'utilizzo ogni 15 minuti in **Utilizzo**, **Budget** e metriche su cui puoi creare avvisi. Un team Cursor si collega allo stesso modo, con la sua chiave API di amministrazione, e viene letto ogni ora.
 
 :::cards
 - [Collegare un account](#collegare-un-account): Scegli il provider, incolla la credenziale, provala e collega.
@@ -59,7 +59,7 @@ Gli account collegati compaiono sotto i riquadri, con il loro **Stato** e la lor
 | Anthropic | Quanto riporta Anthropic | Workspace, chiave API, persona e modello | Una chiave di amministrazione |
 | Azure OpenAI e Microsoft Foundry | Stimato dai token | Risorsa e modello | Un'app con Monitoring Reader |
 | Amazon Bedrock | Stimato dai token | Regione e modello | Una chiave di accesso che legge CloudWatch |
-| Google Vertex AI | Stimato dai token | Regione e modello | Un account di servizio con Monitoring Viewer |
+| Google Vertex IA | Stimato dai token | Regione e modello | Un account di servizio con Monitoring Viewer |
 | Cursor | Quanto riporta Cursor | Persona, modello e account di servizio, per ora | La chiave API di amministrazione di un team |
 
 Tutti i provider tranne Anthropic contano anche le richieste: il report di utilizzo di Anthropic non ne ha. Un costo stimato usa il listino di [Quanto costa una chiamata](/docs/telemetry/ai-llm-observability#quanto-costa-una-chiamata) e i tuoi prezzi in **Prezzi**, ed è segnato come stima. Un modello che il listino non conosce non ha costo finché non gli dai un prezzo lì.
@@ -126,16 +126,16 @@ Crea un utente o un ruolo IAM la cui policy consenta `cloudwatch:GetMetricData` 
 Compila **ID chiave di accesso**, **Chiave di accesso segreta** e **Regioni**, separate da virgole: `us-east-1` se non lo cambi.
 :::
 
-## Google Vertex AI
+## Google Vertex IA
 
-OneUptime legge le metriche di Cloud Monitoring che Vertex AI pubblica per i suoi modelli, Gemini e modelli partner come Claude: token di input e di output, e invocazioni, per giorno, regione e modello. Cloud Monitoring conta token, non denaro, e non indica né persona né chiave: il costo è la stima di OneUptime.
+OneUptime legge le metriche di Cloud Monitoring che Vertex IA pubblica per i suoi modelli, Gemini e modelli partner come Claude: token di input e di output, e invocazioni, per giorno, regione e modello. Cloud Monitoring conta token, non denaro, e non indica né persona né chiave: il costo è la stima di OneUptime.
 
 :::steps
 ### Crea un account di servizio
 
 Nel progetto, crea un account di servizio con il ruolo Monitoring Viewer e una chiave JSON per esso.
 
-### Collega Vertex AI
+### Collega Vertex IA
 
 Compila **ID Progetto** e incolla l'intero file della chiave come **Chiave dell'account di servizio (JSON)**.
 :::

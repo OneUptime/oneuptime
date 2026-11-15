@@ -260,7 +260,7 @@ OneUptime visar hellre ingen siffra än en gammal: värden har inte rapporterat 
 
 :::cards
 - [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Installera insamlaren och skriv dess konfiguration själv i stället.
-- [Värdmonitor](/docs/monitor/host-monitor): Få aviseringar om det dina värdar rapporterar.
+- [Värdmonitor](/docs/monitor/host-monitor): Få larm om det dina värdar rapporterar.
 - [Intagningsnycklar](/docs/telemetry/ingestion-keys): Skapa, avgränsa och rotera nycklarna som värdar skickar med.
 - [Kubernetes Agent](/docs/telemetry/kubernetes-agent): Övervaka ett klusters noder och arbetsbelastningar.
 :::

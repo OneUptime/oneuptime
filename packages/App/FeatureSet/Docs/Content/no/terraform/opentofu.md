@@ -137,6 +137,6 @@ resource "oneuptime_escalation_rule_team" "storefront" {
 :::cards
 - [Hurtigstart](/docs/terraform/quick-start): Opprett en API-nøkkel, og ta i bruk de første ressursene dine.
 - [Registerbruk](/docs/terraform/registry): Hvordan versjoner nummereres, og låsefilen.
-- [Selv-hostet oppsett](/docs/terraform/self-hosted): Din egen OneUptime, og et speil for frakoblede maskiner.
+- [Selv-hostet oppsett](/docs/terraform/self-hosted): Din egen OneUptime, og et speil for offline maskiner.
 - [Feilsøking](/docs/terraform/troubleshooting): Vanlige feil og hvordan du retter dem.
 :::

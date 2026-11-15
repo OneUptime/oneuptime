@@ -26,7 +26,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. Le sezioni **Rego
 
 La sezione **Impostazioni** contiene **Stato avviso** e **Gravità avviso**, trattati in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities), poi **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi**, **Numerazione** e **Conservazione dei dati**, trattati più sotto.
 
-Altre due sezioni agiscono sugli avvisi. **Avvisi → IA → Impostazioni** decide che cosa fa OneUptime AI da solo: **Indaga sui nuovi avvisi**, attivo nei nuovi progetti, e **Correggi automaticamente i nuovi avvisi**, disattivato finché non lo attivate. Vedere [AI SRE](/docs/ai/ai-sre). **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali, e la sua scheda **Riepilogo**. Vedere [Slack](/docs/workspace-connections/slack).
+Altre due sezioni agiscono sugli avvisi. **Avvisi → IA → Impostazioni** decide che cosa fa OneUptime AI da solo: **Indaga sui nuovi avvisi**, attivo nei nuovi progetti, e **Correggi automaticamente i nuovi avvisi**, disattivato finché non lo attivate. Vedere [IA SRE](/docs/ai/ai-sre). **Avvisi → Area di lavoro** contiene le regole di Slack e Microsoft Teams che pubblicano avvisi ed episodi nei canali, e la sua scheda **Riepilogo**. Vedere [Slack](/docs/workspace-connections/slack).
 
 ## Le regole che un nuovo avviso attraversa
 
@@ -190,5 +190,5 @@ Regole, campi personalizzati e misurazioni richiedono un Proprietario del proget
 - [Episodi di avvisi e regole di raggruppamento](/docs/alerts/episodes): Le regole di raggruppamento, nel dettaglio.
 - [Regole di escalation](/docs/on-call/escalation-rules): Che cosa succede quando una regola di reperibilità esegue una policy.
 - [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules): Il modulo delle regole, passo per passo.
-- [AI SRE](/docs/ai/ai-sre): Indagare e correggere automaticamente i nuovi avvisi.
+- [IA SRE](/docs/ai/ai-sre): Indagare e correggere automaticamente i nuovi avvisi.
 :::

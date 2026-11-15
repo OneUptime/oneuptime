@@ -1,12 +1,12 @@
 # Grafana
 
-把 [Grafana](https://grafana.com) 告警发送到 OneUptime，让每个触发的告警都成为一个呼叫值班团队的事件，并在告警恢复时解决。Grafana 通过 Webhook 联系点发送告警，因此两边都无需安装任何东西。
+把 [Grafana](https://grafana.com) 警报发送到 OneUptime，让每个触发的警报都成为一个呼叫值班团队的事件，并在警报恢复时解决。Grafana 通过 Webhook 联系点发送警报，因此两边都无需安装任何东西。
 
 :::cards
-- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): 入站请求监视器，或你自己的工作流。
-- [用监视器接收告警](#用监视器接收告警): 每个告警一个事件，恢复时自动解决。
+- [选择 OneUptime 接收警报的方式](#选择-oneuptime-接收警报的方式): 入站请求监视器，或你自己的工作流。
+- [用监视器接收警报](#用监视器接收警报): 每个警报一个事件，恢复时自动解决。
 - [配置 Grafana](#配置-grafana): 一个 Webhook 联系点，以及使用它的策略。
-- [故障排除](#故障排除): 告警没有到达，或事件一直未关闭时。
+- [故障排除](#故障排除): 警报没有到达，或事件一直未关闭时。
 :::
 
 ## 工作方式
@@ -20,25 +20,25 @@ flowchart TB
     status -->|"resolved"| resolve["事件已解决"]
 ```
 
-Grafana 的通知策略对触发的告警分组，Webhook 联系点把每个组作为一个 JSON 通知发布出去。它的结构与 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) 的通知相同：一个 `status`，一个 `alerts` 列表（其中每个告警都有自己的 `status` 和 `fingerprint`），以及告警共有的 `commonLabels` 和 `commonAnnotations`。Grafana 还会加上写给人看的 `title` 和 `message`。
+Grafana 的通知策略对触发的警报分组，Webhook 联系点把每个组作为一个 JSON 通知发布出去。它的结构与 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) 的通知相同：一个 `status`，一个 `alerts` 列表（其中每个警报都有自己的 `status` 和 `fingerprint`），以及警报共有的 `commonLabels` 和 `commonAnnotations`。Grafana 还会加上写给人看的 `title` 和 `message`。
 
 ## 开始之前
 
 - Grafana 9 或更高版本，并使用 Grafana Alerting（自 Grafana 9 起为默认）。它必须能够通过 HTTPS 访问你的 OneUptime。
 - 在 OneUptime 中创建监视器的权限；如果选择工作流方式，则需要创建工作流的权限。
 
-## 选择 OneUptime 接收告警的方式
+## 选择 OneUptime 接收警报的方式
 
 先设置 OneUptime：它会给你 Grafana 要发送到的 URL。
 
 | 方式 | 适用情况 |
 | --- | --- |
-| 入站请求监视器（推荐） | 你希望每个告警都成为一个呼叫值班人员的事件，并在告警恢复时解决。无需构建任何东西。 |
-| 带 Webhook 触发器的工作流 | 你需要自己的逻辑：先过滤告警、转换格式或调用其他系统。工作流为每个通知（而不是每个告警）打开一个事件，并且不会在恢复时解决它。 |
+| 入站请求监视器（推荐） | 你希望每个警报都成为一个呼叫值班人员的事件，并在警报恢复时解决。无需构建任何东西。 |
+| 带 Webhook 触发器的工作流 | 你需要自己的逻辑：先过滤警报、转换格式或调用其他系统。工作流为每个通知（而不是每个警报）打开一个事件，并且不会在恢复时解决它。 |
 
 两者从同一个联系点收到相同的 JSON，所以你可以先用其中一种，之后只需修改 Grafana 中的一个 URL 就能切换。
 
-## 用监视器接收告警
+## 用监视器接收警报
 
 [入站请求监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个通知做什么。
 
@@ -47,19 +47,19 @@ Grafana 的通知策略对触发的告警分组，Webhook 联系点把每个组�
 
 前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **传入请求**，将其命名为 `Grafana`，然后点击 **下一步**。
 
-### 为每个触发的告警声明事件
+### 为每个触发的警报声明事件
 
 在 **标准** 步骤中，打开第一个条件，也就是把监视器标记为离线的那个。把它的过滤器设为 **请求主体**、**包含**、`"status":"firing"`。这个条件在过滤器匹配时已经会声明事件。填写事件信息：
 
 - **事件标题**：`{{requestBody.commonLabels.alertname}}`。
 - **描述** 下的 **事件描述**：`{{requestBody.message}}`，即 Grafana 为通知撰写的文本。
-- **严重程度**：这些告警应有的事件严重程度。
+- **严重程度**：这些警报应有的事件严重程度。
 - **值班** 下的 **值班策略**：要呼叫的策略。
 - **更多字段** 下的 **自动解决事件**：保持开启，它默认就是开启的。关闭后会忽略恢复，事件将一直保持打开。
 
-### 每个告警一个事件
+### 每个警报一个事件
 
-在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个告警都有自己的事件，并由它的恢复来解决：
+在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
 
 | 字段 | 值 |
 | --- | --- |
@@ -82,12 +82,12 @@ https://oneuptime.com/heartbeat/<secret key>
 自托管安装使用自己的主机来代替 `oneuptime.com`。
 :::
 
-通知中的每个告警都会打开自己的事件，数量最多为 **Max incidents per request**（不修改则为 `100`），每个告警自己的 `status` 决定它的事件何时被解决。Grafana 的 `fingerprint` 通过标签来标识告警，所以它正是用来分组的值。每项设置的作用请参见 [接收来自其他系统的告警](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警)。
+通知中的每个警报都会打开自己的事件，数量最多为 **Max incidents per request**（不修改则为 `100`），每个警报自己的 `status` 决定它的事件何时被解决。Grafana 的 `fingerprint` 通过标签来标识警报，所以它正是用来分组的值。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。
 
 > [!WARNING]
-> 不要按通知中所有告警共有的标签分组。Grafana 的默认通知策略按 `grafana_folder` 和 `alertname` 对告警分组，所以同一个通知中的每个告警都有相同的 `alertname`：按 `requestBody.alerts[*].labels.alertname` 分组会把整个通知合并成一个事件。
+> 不要按通知中所有警报共有的标签分组。Grafana 的默认通知策略按 `grafana_folder` 和 `alertname` 对警报分组，所以同一个通知中的每个警报都有相同的 `alertname`：按 `requestBody.alerts[*].labels.alertname` 分组会把整个通知合并成一个事件。
 
-`{{requestBody.commonLabels.alertname}}` 和 `{{requestBody.message}}` 描述的是整个通知，在默认策略下就是一条告警规则。分组键也是一个变量 `{{fingerprint}}`，但它是一个哈希，对响应者毫无意义。可以使用的所有变量请参见 [事件与告警模板](/docs/monitor/incident-alert-templating)。
+`{{requestBody.commonLabels.alertname}}` 和 `{{requestBody.message}}` 描述的是整个通知，在默认策略下就是一条警报规则。分组键也是一个变量 `{{fingerprint}}`，但它是一个哈希，对响应者毫无意义。可以使用的所有变量请参见 [事件与警报模板](/docs/monitor/incident-alert-templating)。
 
 ## 配置 Grafana
 
@@ -98,19 +98,19 @@ https://oneuptime.com/heartbeat/<secret key>
 
 把联系点命名为 `OneUptime`，在 **Integration** 下选择 **Webhook**，并把复制的 URL 粘贴到 **URL** 中。**HTTP Method** 保持为 `POST`，然后点击 **Save contact point**。
 
-### 把告警发送到它
+### 把警报发送到它
 
-前往 **Alerting → Notification policies**。把默认策略的联系点设为 `OneUptime`，或者添加一个匹配 OneUptime 应收到的告警的子策略，并把 `OneUptime` 设为它的联系点。
+前往 **Alerting → Notification policies**。把默认策略的联系点设为 `OneUptime`，或者添加一个匹配 OneUptime 应收到的警报的子策略，并把 `OneUptime` 设为它的联系点。
 :::
 
-Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取通知中的字段。联系点的 **Max Alerts** 设置会限制一个通知中的告警数：请保持为 `0`（不限制），或者不超过监视器的 **Max incidents per request**。
+Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取通知中的字段。联系点的 **Max Alerts** 设置会限制一个通知中的警报数：请保持为 `0`（不限制），或者不超过监视器的 **Max incidents per request**。
 
 ## 测试
 
-1. 在 Grafana 中打开 `OneUptime` 联系点，点击 **Test**。Grafana 会发送一个触发中的测试告警，OneUptime 中会打开一个事件。测试告警永远不会恢复，所以请手动解决该事件。
-2. 让一条真实的告警规则触发，例如暂时调低它的阈值，观察它的事件被打开，并在你恢复阈值后被解决。
+1. 在 Grafana 中打开 `OneUptime` 联系点，点击 **Test**。Grafana 会发送一个触发中的测试警报，OneUptime 中会打开一个事件。测试警报永远不会恢复，所以请手动解决该事件。
+2. 让一条真实的警报规则触发，例如暂时调低它的阈值，观察它的事件被打开，并在你恢复阈值后被解决。
 
-## 用工作流接收告警
+## 用工作流接收警报
 
 当你需要在 Grafana 和事件之间加入自己的步骤时，请使用 [工作流](/docs/workflows/index)。
 
@@ -145,7 +145,7 @@ Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取
 在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Grafana。
 :::
 
-一次运行处理一个通知，所以无论通知包含多少个告警，它都只声明一个事件。`resolved` 的通知会走向 **如果 / 否则** 块的 **否** 一侧，那里没有连接任何东西，因此运行到此结束。要让每个告警一个事件并在恢复时解决，请使用监视器。
+一次运行处理一个通知，所以无论通知包含多少个警报，它都只声明一个事件。`resolved` 的通知会走向 **如果 / 否则** 块的 **否** 一侧，那里没有连接任何东西，因此运行到此结束。要让每个警报一个事件并在恢复时解决，请使用监视器。
 
 ## 故障排除
 
@@ -161,8 +161,8 @@ Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取
 - 分组路径必须以 `requestBody.` 开头，并且路径中只有第一个 `[*]` 会读取列表。违反任一规则的路径不会匹配任何内容，也不会报错。
 :::
 
-:::details 一个装满告警的通知只得到一个事件
-你按一个在通知内所有告警中都相同的标签分组了，例如默认策略下的 `alertname`。请改为按 `requestBody.alerts[*].fingerprint` 分组。
+:::details 一个装满警报的通知只得到一个事件
+你按一个在通知内所有警报中都相同的标签分组了，例如默认策略下的 `alertname`。请改为按 `requestBody.alerts[*].fingerprint` 分组。
 :::
 
 :::details 事件显示的是引用而不是值
@@ -179,8 +179,8 @@ Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取
 ## 后续步骤
 
 :::cards
-- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收告警的监视器的所有设置。
-- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): 相同的设置，外加一个监控告警系统本身的失效开关。
-- [指标监控](/docs/monitor/metrics-monitor): 直接在 OneUptime 中对相同的指标发出告警。
+- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收警报的监视器的所有设置。
+- [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): 相同的设置，外加一个监控警报系统本身的失效开关。
+- [指标监控](/docs/monitor/metrics-monitor): 直接在 OneUptime 中对相同的指标发出警报。
 - [集成概述](/docs/integrations/index): 你可以连接的其他工具。
 :::

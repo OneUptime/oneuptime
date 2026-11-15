@@ -68,7 +68,7 @@ flowchart TB
 | **Indagini** | Usati, insieme ai dati di OneUptime | Mai usati: OneUptime rifiuta la chiamata |
 | **Correzioni** | Usati per elaborare la correzione | Proposti per l'approvazione, o usati subito, come dice la **Correzione** della regola IA |
 
-**In un'indagine**, OneUptime AI elenca gli strumenti dei server che può usare e chiama quelli che leggono, per guardare ciò che OneUptime non vede da sé: il tuo account cloud, un deployment, un issue tracker. Usa ciò che rispondono nella sua analisi della causa principale. Vedi [AI SRE](/docs/ai/ai-sre).
+**In un'indagine**, OneUptime AI elenca gli strumenti dei server che può usare e chiama quelli che leggono, per guardare ciò che OneUptime non vede da sé: il tuo account cloud, un deployment, un issue tracker. Usa ciò che rispondono nella sua analisi della causa principale. Vedi [IA SRE](/docs/ai/ai-sre).
 
 **In una correzione**, quando un server che può usare offre uno strumento che può modificare qualcosa, OneUptime AI elabora una correzione tramite esso, dopo l'analisi della causa principale quando c'è:
 
@@ -108,7 +108,7 @@ Controlla che **Consenti a OneUptime AI di usare questo server** sia attivo, che
 ## Prossimi passi
 
 :::cards
-- [AI SRE](/docs/ai/ai-sre): Come OneUptime AI indaga e corregge, e le regole che decidono quali incidenti.
+- [IA SRE](/docs/ai/ai-sre): Come OneUptime AI indaga e corregge, e le regole che decidono quali incidenti.
 - [Provider LLM](/docs/ai/llm-provider): Il modello che usa gli strumenti dei server.
 - [Server MCP](/docs/ai/mcp-server): Collegare invece un assistente IA a OneUptime.
 :::

@@ -1,13 +1,13 @@
 # OneUptime AI nella sicurezza
 
-OneUptime AI legge ogni caso di sicurezza come farebbe un analista: i suoi rilevamenti, eventi, entità e la threat intelligence, e gli host e le persone che lo circondano. Dice che cosa è successo e se sembra reale, suggerisce una priorità e un playbook, e cita le prove dietro ogni affermazione. Da solo non cambia nulla: una persona decide il verdetto e la priorità, ed esegue il playbook. Scrive anche bozze di regole di rilevamento a partire da una frase, e in Ask AI risponde alle tue domande sui dati di sicurezza.
+OneUptime AI legge ogni caso di sicurezza come farebbe un analista: i suoi rilevamenti, eventi, entità e la threat intelligence, e gli host e le persone che lo circondano. Dice che cosa è successo e se sembra reale, suggerisce una priorità e un playbook, e cita le prove dietro ogni affermazione. Da solo non cambia nulla: una persona decide il verdetto e la priorità, ed esegue il playbook. Scrive anche bozze di regole di rilevamento a partire da una frase, e in Ask IA risponde alle tue domande sui dati di sicurezza.
 
 :::cards
 - [Classificare un caso](#classificare-un-caso): Che cosa legge OneUptime AI, che cosa conclude e che cosa non fa mai.
 - [Classificare automaticamente i nuovi casi](#classificare-automaticamente-i-nuovi-casi): Ogni caso aperto da un rilevamento, classificato appena si apre.
 - [Eseguire un playbook dopo una classificazione](#eseguire-un-playbook-dopo-una-classificazione): Agire su un caso letto come Probabilmente dannoso.
 - [Scrivere la bozza di una regola di rilevamento](#scrivere-la-bozza-di-una-regola-di-rilevamento): Descrivi che cosa rilevare e leggi la regola Sigma.
-- [Ask AI nelle pagine di sicurezza](#ask-ai-nelle-pagine-di-sicurezza): Domande su casi ed eventi, con parole semplici.
+- [Ask IA nelle pagine di sicurezza](#ask-ia-nelle-pagine-di-sicurezza): Domande su casi ed eventi, con parole semplici.
 :::
 
 ## Come funziona
@@ -68,7 +68,7 @@ La lettura è di OneUptime AI, mai il verdetto del caso: **Chiudi caso** parte d
 - **Playbook suggerito**, con **Esegui il playbook**, che lo esegue a tuo nome, con ogni approvazione che richiede. Mentre quel playbook è già in esecuzione sul caso, lo stato della sua esecuzione, come **In attesa di approvazione**, prende il posto di **Esegui il playbook**: l'esecuzione è in **Playbook** del caso, e una seconda chiederebbe di nuovo la stessa approvazione.
 - Il rapporto: che cosa è successo, quanto è sicura e che cosa fare dopo, ogni affermazione seguita da un riferimento come C1.
 - **Prove controllate**: ogni query eseguita dalla classificazione. Un riferimento apre la sua query, e aprendone una la si esegue di nuovo con i tuoi permessi, sull'intervallo letto dalla classificazione.
-- **Chiedi di questo caso**, che apre Ask AI sul caso.
+- **Chiedi di questo caso**, che apre Ask IA sul caso.
 
 Ogni elenco di casi mostra la lettura accanto al titolo di ogni caso, e filtra in base a essa con **Valutazione dell'IA**.
 
@@ -102,11 +102,11 @@ In **Regole di rilevamento**, sotto il campo **Regola Sigma (YAML)**, fai clic s
 
 Per scrivere una bozza serve un ruolo che possa creare regole di rilevamento.
 
-## Ask AI nelle pagine di sicurezza
+## Ask IA nelle pagine di sicurezza
 
 **Chiedi all'IA** sa in quale pagina di sicurezza ti trovi. Su un caso legge prima il caso e propone domande come **È reale?**. Nelle altre pagine degli eventi di sicurezza, una domanda con parole semplici cerca nei tuoi eventi di sicurezza. Può anche confrontare valori con la tua threat intelligence, vedere quanto è stato attivo un utente, un host o un indirizzo, ed elencare i playbook adatti a un caso.
 
-Ask AI può aggiungere una nota a un caso ed eseguire un playbook su di esso, a tuo nome, e chiede prima di ogni azione. Un playbook che esegue attende l'approvazione come qualsiasi altro.
+Ask IA può aggiungere una nota a un caso ed eseguire un playbook su di esso, a tuo nome, e chiede prima di ogni azione. Un playbook che esegue attende l'approvazione come qualsiasi altro.
 
 Quando un caso dichiara un incidente, anche l'indagine IA dell'incidente legge il caso: che cosa è stato rilevato, su chi, e la classificazione di OneUptime AI.
 
@@ -138,7 +138,7 @@ Controlla che il playbook sia abilitato, che la classificazione abbia letto il c
 
 :::cards
 - [Casi di sicurezza e playbook](/docs/telemetry/security-cases): Lavorare i casi, chiuderli con un verdetto e costruire playbook.
-- [AI SRE](/docs/ai/ai-sre): Come OneUptime AI indaga su incidenti e avvisi, e i suoi limiti.
+- [IA SRE](/docs/ai/ai-sre): Come OneUptime AI indaga su incidenti e avvisi, e i suoi limiti.
 - [Chiedi all'IA](/docs/ai/ask-ai): Fai domande sul tuo progetto con parole semplici.
 - [Provider LLM](/docs/ai/llm-provider): Scegli il modello che usa OneUptime AI.
 :::

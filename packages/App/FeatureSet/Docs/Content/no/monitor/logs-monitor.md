@@ -133,7 +133,7 @@ En loggmonitor som er opprettet via API-et eller Terraform uten kriterier, start
 
 | Kriterium | Filter | Virkning |
 | --- | --- | --- |
-| Check if … is offline | **Antall logger** **Lik** `0` | Setter monitoren som frakoblet og erklærer en hendelse som løses automatisk |
+| Check if … is offline | **Antall logger** **Lik** `0` | Setter monitoren som offline og erklærer en hendelse som løses automatisk |
 | Check if … is online | **Antall logger** **Større enn** `0` | Setter monitoren som tilkoblet |
 
 ## Gjennomgått eksempel: en økning i feil
@@ -151,8 +151,8 @@ Fire evalueringer etter hverandre:
 | Tid | Feillogger de siste 5 minuttene | Samsvarer regelen? | Hva som skjer |
 | --- | --- | --- | --- |
 | 10:00 | 12 | Nei | Monitoren er tilkoblet. |
-| 10:01 | 64 | Ja | Monitoren blir frakoblet, og en hendelse erklæres. |
-| 10:02 | 81 | Ja | Forblir frakoblet. Hendelsen er allerede åpen, så ingen ny erklæres. |
+| 10:01 | 64 | Ja | Monitoren blir offline, og en hendelse erklæres. |
+| 10:02 | 81 | Ja | Forblir offline. Hendelsen er allerede åpen, så ingen ny erklæres. |
 | 10:06 | 9 | Nei | Monitoren er tilkoblet igjen, og hendelsen løser seg selv fordi **Løs hendelse automatisk** er slått på. |
 
 Fordi vinduene overlapper, holder én bølge av feil antallet høyt i opptil fem minutter etter at den er over. Bruk et kortere vindu for en monitor som skal komme seg raskere.
@@ -241,7 +241,7 @@ Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-
 
 ## Feilsøking
 
-:::details Monitoren er frakoblet, men tjenesten min logger
+:::details Monitoren er offline, men tjenesten min logger
 Antallet var 0, så filtrene samsvarer ikke med noen av loggene tjenesten sender. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Rediger kriterier**: **Samsvarende logger** viser hva filtrene velger ut akkurat nå, og diagrammet i **Når det skal varsles** teller dem i hvert vindu. De vanligste årsakene er en alvorlighetsgrad valgt etter teksten loggeren skriver ut i stedet for alvorlighetsnummeret (se [Loggalvorlighetsgrad](#loggalvorlighetsgrad)), et tjeneste- eller attributtfilter som ikke samsvarer, og et tidsvindu som er kortere enn pausen mellom tjenestens logger.
 :::
 

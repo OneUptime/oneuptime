@@ -1,12 +1,12 @@
 # Prometheus Alertmanager
 
-把 [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) 告警发送到 OneUptime，让每个触发的告警都成为一个呼叫值班团队的事件，并在告警恢复时解决。Alertmanager 把通知发布到 Webhook 接收器，因此两边都无需安装任何东西。
+把 [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) 警报发送到 OneUptime，让每个触发的警报都成为一个呼叫值班团队的事件，并在警报恢复时解决。Alertmanager 把通知发布到 Webhook 接收器，因此两边都无需安装任何东西。
 
 :::cards
-- [选择 OneUptime 接收告警的方式](#选择-oneuptime-接收告警的方式): 入站请求监视器，或你自己的工作流。
-- [用监视器接收告警](#用监视器接收告警): 每个告警一个事件，恢复时自动解决。
+- [选择 OneUptime 接收警报的方式](#选择-oneuptime-接收警报的方式): 入站请求监视器，或你自己的工作流。
+- [用监视器接收警报](#用监视器接收警报): 每个警报一个事件，恢复时自动解决。
 - [配置 Alertmanager](#配置-alertmanager): 一个 Webhook 接收器，以及使用它的路由。
-- [故障排除](#故障排除): 告警没有到达，或事件一直未关闭时。
+- [故障排除](#故障排除): 警报没有到达，或事件一直未关闭时。
 :::
 
 ## 工作方式
@@ -20,25 +20,25 @@ flowchart TB
     status -->|"resolved"| resolve["事件已解决"]
 ```
 
-Prometheus 评估你的告警规则，并把触发的告警发送给 Alertmanager。Alertmanager 按路由 `group_by` 中的标签对告警分组，并把每个组作为一个 JSON 通知发布到 Webhook 接收器。通知的 `alerts` 列表包含该组的每个告警，每个告警都有自己的 `status`（`firing` 或 `resolved`）、标签和注解，以及标识它的 `fingerprint`。
+Prometheus 评估你的警报规则，并把触发的警报发送给 Alertmanager。Alertmanager 按路由 `group_by` 中的标签对警报分组，并把每个组作为一个 JSON 通知发布到 Webhook 接收器。通知的 `alerts` 列表包含该组的每个警报，每个警报都有自己的 `status`（`firing` 或 `resolved`）、标签和注解，以及标识它的 `fingerprint`。
 
 ## 开始之前
 
 - 一个你可以编辑其 `alertmanager.yml`，并且能够通过 HTTPS 访问你的 OneUptime 的 Alertmanager。
 - 在 OneUptime 中创建监视器的权限；如果选择工作流方式，则需要创建工作流的权限。
 
-## 选择 OneUptime 接收告警的方式
+## 选择 OneUptime 接收警报的方式
 
 先设置 OneUptime：它会给你 Alertmanager 要发送到的 URL。
 
 | 方式 | 适用情况 |
 | --- | --- |
-| 入站请求监视器（推荐） | 你希望每个告警都成为一个呼叫值班人员的事件，并在告警恢复时解决。无需构建任何东西。 |
-| 带 Webhook 触发器的工作流 | 你需要自己的逻辑：先过滤告警、转换格式或调用其他系统。工作流为每个通知（而不是每个告警）打开一个事件，并且不会在恢复时解决它。 |
+| 入站请求监视器（推荐） | 你希望每个警报都成为一个呼叫值班人员的事件，并在警报恢复时解决。无需构建任何东西。 |
+| 带 Webhook 触发器的工作流 | 你需要自己的逻辑：先过滤警报、转换格式或调用其他系统。工作流为每个通知（而不是每个警报）打开一个事件，并且不会在恢复时解决它。 |
 
 两者从同一个接收器收到相同的 JSON，所以你可以先用其中一种，之后只需修改 `alertmanager.yml` 中的一个 URL 就能切换。
 
-## 用监视器接收告警
+## 用监视器接收警报
 
 [入站请求监视器](/docs/monitor/incoming-request-monitor) 会给你一个 URL，它的条件决定每个通知做什么。
 
@@ -47,18 +47,18 @@ Prometheus 评估你的告警规则，并把触发的告警发送给 Alertmanage
 
 前往 **监视器**，点击 **创建监视器**。在 **监视器类型** 下选择 **传入请求**，将其命名为 `Alertmanager`，然后点击 **下一步**。
 
-### 为每个触发的告警声明事件
+### 为每个触发的警报声明事件
 
 在 **标准** 步骤中，打开第一个条件，也就是把监视器标记为离线的那个。把它的过滤器设为 **请求主体**、**包含**、`"status":"firing"`。这个条件在过滤器匹配时已经会声明事件。填写事件信息：
 
 - **事件标题**：`{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`。
-- **严重程度**：这些告警应有的事件严重程度。
+- **严重程度**：这些警报应有的事件严重程度。
 - **值班** 下的 **值班策略**：要呼叫的策略。
 - **更多字段** 下的 **自动解决事件**：保持开启，它默认就是开启的。关闭后会忽略恢复，事件将一直保持打开。
 
-### 每个告警一个事件
+### 每个警报一个事件
 
-在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个告警都有自己的事件，并由它的恢复来解决：
+在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
 
 | 字段 | 值 |
 | --- | --- |
@@ -81,16 +81,16 @@ https://oneuptime.com/heartbeat/<secret key>
 自托管安装使用自己的主机来代替 `oneuptime.com`。
 :::
 
-`[*]` 会读取通知中的每个告警，因此包含三个告警的通知可以打开三个事件，数量最多为 **Max incidents per request**（不修改则为 `100`）。每个告警自己的 `status` 决定它的事件如何处理：当通知中的一个告警已解决、另外两个仍在触发时，只有已解决告警的事件会被关闭。每项设置的作用请参见 [接收来自其他系统的告警](/docs/monitor/incoming-request-monitor#接收来自其他系统的告警)。
+`[*]` 会读取通知中的每个警报，因此包含三个警报的通知可以打开三个事件，数量最多为 **Max incidents per request**（不修改则为 `100`）。每个警报自己的 `status` 决定它的事件如何处理：当通知中的一个警报已解决、另外两个仍在触发时，只有已解决警报的事件会被关闭。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。
 
 > [!WARNING]
-> 请按同一个通知内各告警之间互不相同的值分组。Alertmanager 的 `fingerprint` 是告警整个标签集的哈希，所以总是不同。路由 `group_by` 中的标签则永远相同：正是它们把告警放进了同一个通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分组，会把通知中的所有告警合并成一个事件，而该事件会跟随第一个告警的状态。
+> 请按同一个通知内各警报之间互不相同的值分组。Alertmanager 的 `fingerprint` 是警报整个标签集的哈希，所以总是不同。路由 `group_by` 中的标签则永远相同：正是它们把警报放进了同一个通知。在下面的路由中按 `requestBody.alerts[*].labels.alertname` 分组，会把通知中的所有警报合并成一个事件，而该事件会跟随第一个警报的状态。
 
 在 OpenStack 云上，还要把监视器关联到该云。入站请求监视器自身的设置不指明任何云，因此它的事件只会出现在 **事件** 中，而不会出现在云上。打开监视器的 **概览 → 已关联资源** 并添加该 OpenStack 云：之后每个事件也会出现在该云的 **事件** 页面上。[按部署工具配置 OpenStack](/docs/telemetry/openstack-deployment-tools) 为每个运行 Alertmanager 的工具提供了接收器，位于该工具读取它的位置。
 
 ## 为事件命名
 
-上面的标题读取通知中所有告警共有的标签：`commonLabels` 包含这些标签，`commonAnnotations` 包含它们共有的注解。下面的路由按 `alertname` 和 `instance` 分组，因此两者都有。在 **描述** 下，为事件设置一个 **事件描述**，例如：
+上面的标题读取通知中所有警报共有的标签：`commonLabels` 包含这些标签，`commonAnnotations` 包含它们共有的注解。下面的路由按 `alertname` 和 `instance` 分组，因此两者都有。在 **描述** 下，为事件设置一个 **事件描述**，例如：
 
 ```text
 {{requestBody.commonAnnotations.summary}}
@@ -101,10 +101,10 @@ Alertmanager: {{requestBody.externalURL}}
 ```
 
 - 分组键也是一个变量，以其路径的最后一段命名：`{{fingerprint}}`。它是一个哈希，所以对响应者毫无意义。
-- `{{requestBody.alerts[0].annotations.summary}}` 读取通知中的第一个告警，而它并不总是打开该事件的那个告警。
+- `{{requestBody.alerts[0].annotations.summary}}` 读取通知中的第一个警报，而它并不总是打开该事件的那个警报。
 - 引用通知中不存在的字段时，该引用会连同花括号按原样保留，而不会被清空。
 
-可以使用的所有变量请参见 [事件与告警模板](/docs/monitor/incident-alert-templating)。
+可以使用的所有变量请参见 [事件与警报模板](/docs/monitor/incident-alert-templating)。
 
 ## 配置 Alertmanager
 
@@ -125,7 +125,7 @@ receivers:
         send_resolved: true
 ```
 
-`send_resolved: true` 是 Alertmanager 的默认值，写出来是为了让它保持开启：没有它，OneUptime 永远不会得知告警已恢复。Alertmanager 发送 `Content-Type: application/json`，监视器需要它才能读取通知中的字段。
+`send_resolved: true` 是 Alertmanager 的默认值，写出来是为了让它保持开启：没有它，OneUptime 永远不会得知警报已恢复。Alertmanager 发送 `Content-Type: application/json`，监视器需要它才能读取通知中的字段。
 
 ### 重新加载 Alertmanager
 
@@ -136,11 +136,11 @@ curl -X POST http://localhost:9093/-/reload
 ```
 :::
 
-该路由保留 Alertmanager 的默认时间设置。它在发送新组之前等待 `30s`（`group_wait`），在发送带有新告警的组之前等待 `5m`（`group_interval`），在重复未变化的通知之前等待 `4h`（`repeat_interval`）。
+该路由保留 Alertmanager 的默认时间设置。它在发送新组之前等待 `30s`（`group_wait`），在发送带有新警报的组之前等待 `5m`（`group_interval`），在重复未变化的通知之前等待 `4h`（`repeat_interval`）。
 
 ## 测试
 
-像 Alertmanager 那样，向 OneUptime 发送一个包含两个触发告警的通知：
+像 Alertmanager 那样，向 OneUptime 发送一个包含两个触发警报的通知：
 
 ```bash
 curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
@@ -170,7 +170,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
 
 会打开两个事件，每个 `fingerprint` 一个，标题都是 `DiskFull on web-1`，后面再跟上能区分它们的内容，如 `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001`。把每个 `status` 都设为 `resolved` 后发送同样的请求，两个事件都会被解决。
 
-要测试从 Alertmanager 开始的完整路径，请用 `amtool` 触发一个告警。Alertmanager 会在 `group_wait` 之后发送它，并在几分钟后告警过期时发送它的恢复：
+要测试从 Alertmanager 开始的完整路径，请用 `amtool` 触发一个警报。Alertmanager 会在 `group_wait` 之后发送它，并在几分钟后警报过期时发送它的恢复：
 
 ```bash
 amtool alert add test_alert severity=warning \
@@ -178,7 +178,7 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## 用工作流接收告警
+## 用工作流接收警报
 
 当你需要在 Alertmanager 和事件之间加入自己的步骤时，请使用 [工作流](/docs/workflows/index)。
 
@@ -213,20 +213,20 @@ amtool alert add test_alert severity=warning \
 在 **生成器** 顶部打开 **已启用**。处于关闭状态的工作流会以 `400` 回应 Alertmanager。
 :::
 
-一次运行处理一个通知，所以无论通知包含多少个告警，它都只声明一个事件。`resolved` 的通知会走向 **如果 / 否则** 块的 **否** 一侧，那里没有连接任何东西，因此运行到此结束。要让每个告警一个事件并在恢复时解决，请使用监视器。
+一次运行处理一个通知，所以无论通知包含多少个警报，它都只声明一个事件。`resolved` 的通知会走向 **如果 / 否则** 块的 **否** 一侧，那里没有连接任何东西，因此运行到此结束。要让每个警报一个事件并在恢复时解决，请使用监视器。
 
 ## 监控 Alertmanager 本身
 
-两种方式都不会察觉 Prometheus 或 Alertmanager 停止工作：没有告警到达，看起来和一切正常完全一样。因此，请把一个始终在触发的告警路由到第二个监视器，当该告警不再到达时由它声明事件。[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) 自带这样一个名为 `Watchdog` 的告警。在普通的 Prometheus 上，添加一条名为 `Watchdog`、表达式始终为真的告警规则，例如 `vector(1)`。
+两种方式都不会察觉 Prometheus 或 Alertmanager 停止工作：没有警报到达，看起来和一切正常完全一样。因此，请把一个始终在触发的警报路由到第二个监视器，当该警报不再到达时由它声明事件。[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) 自带这样一个名为 `Watchdog` 的警报。在普通的 Prometheus 上，添加一条名为 `Watchdog`、表达式始终为真的警报规则，例如 `vector(1)`。
 
 :::steps
 ### 创建看门狗监视器
 
 创建第二个入站请求监视器，命名为 `Alertmanager watchdog`。把它第一个条件（把监视器标记为离线的那个）的过滤器设为 **传入请求**、**在指定分钟内未收到**、`10`，把第二个条件的过滤器设为 **传入请求**、**在指定分钟内收到**、`10`。仪表板上这两项就是这样拼写的。复制新监视器的 **Heartbeat URL**。
 
-### 把看门狗告警路由到它
+### 把看门狗警报路由到它
 
-为看门狗监视器的 URL 添加一个接收器，并添加一个每五分钟把 `Watchdog` 发送给它的路由。子路由会先于父路由的接收器匹配，因此 `Watchdog` 会发往看门狗监视器，其他所有告警仍发往第一个监视器：
+为看门狗监视器的 URL 添加一个接收器，并添加一个每五分钟把 `Watchdog` 发送给它的路由。子路由会先于父路由的接收器匹配，因此 `Watchdog` 会发往看门狗监视器，其他所有警报仍发往第一个监视器：
 
 ```yaml title="alertmanager.yml"
 route:
@@ -251,7 +251,7 @@ receivers:
 ```
 :::
 
-当看门狗告警十分钟没有到达时，看门狗监视器会变为离线并声明事件。下一个看门狗通知会让监视器恢复在线并解决该事件。
+当看门狗警报十分钟没有到达时，看门狗监视器会变为离线并声明事件。下一个看门狗通知会让监视器恢复在线并解决该事件。
 
 ## 故障排除
 
@@ -265,28 +265,28 @@ receivers:
 - 检查没有接收器设置了 `send_resolved: false`：那样 Alertmanager 永远不会发送恢复。
 - 条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
 - **Field that signals recovery** 必须是 `requestBody.alerts[*].status`，**Value that means recovered** 必须恰好是 `resolved`。比较区分大小写。
-- 通知中超出 **Max incidents per request** 的告警根本不会被读取，所以它们的恢复也会丢失。
-- 在突发中被跳过的恢复（见下文）会让它的事件永远保持打开：Alertmanager 会重复发送触发中的告警，但从不重复发送恢复。请手动解决这样的事件。
+- 通知中超出 **Max incidents per request** 的警报根本不会被读取，所以它们的恢复也会丢失。
+- 在突发中被跳过的恢复（见下文）会让它的事件永远保持打开：Alertmanager 会重复发送触发中的警报，但从不重复发送恢复。请手动解决这样的事件。
 :::
 
 :::details 完全没有打开事件
 分组路径必须以 `requestBody.` 开头，并且路径中只有第一个 `[*]` 会读取列表。违反任一规则的路径不会匹配任何内容，也不会报错。
 :::
 
-:::details 一个装满告警的通知只得到一个事件
-你按一个在通知内所有告警中都相同的标签分组了，最常见的是路由 `group_by` 中的标签。请改为按 `requestBody.alerts[*].fingerprint` 分组。
+:::details 一个装满警报的通知只得到一个事件
+你按一个在通知内所有警报中都相同的标签分组了，最常见的是路由 `group_by` 中的标签。请改为按 `requestBody.alerts[*].fingerprint` 分组。
 :::
 
 :::details 事件显示的是引用而不是值
-引用了通知中不存在的字段时，该引用会连同花括号按原样保留。不同的规则设置不同的注解，所以请使用你的规则实际设置的字段：`commonAnnotations` 中的字段，或每个告警 `annotations` 中的字段。
+引用了通知中不存在的字段时，该引用会连同花括号按原样保留。不同的规则设置不同的注解，所以请使用你的规则实际设置的字段：`commonAnnotations` 中的字段，或每个警报 `annotations` 中的字段。
 :::
 
 :::details 事件太多
-让路由按更少的标签分组，或调大 `group_interval`，让 Alertmanager 把相关告警一起发送。调低 **Max incidents per request** 可以限制一个通知产生的事件数，但超出上限的告警不会被读取，所以它们的恢复也会丢失。
+让路由按更少的标签分组，或调大 `group_interval`，让 Alertmanager 把相关警报一起发送。调低 **Max incidents per request** 可以限制一个通知产生的事件数，但超出上限的警报不会被读取，所以它们的恢复也会丢失。
 :::
 
 :::details 突发中有些通知被跳过
-当较新的请求在较早的请求被评估之前到达监视器时，OneUptime 只评估较新的那个，以免单个发送方压垮监视器。突发中的最后一个通知总会被评估，但关于其他告警的较早通知可能被跳过，因为 Alertmanager 把每个组都发送到同一个 URL。请调大 `group_wait` 和 `group_interval`，拉开通知之间的间隔。在自托管安装中，请在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，以评估每个请求。
+当较新的请求在较早的请求被评估之前到达监视器时，OneUptime 只评估较新的那个，以免单个发送方压垮监视器。突发中的最后一个通知总会被评估，但关于其他警报的较早通知可能被跳过，因为 Alertmanager 把每个组都发送到同一个 URL。请调大 `group_wait` 和 `group_interval`，拉开通知之间的间隔。在自托管安装中，请在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，以评估每个请求。
 :::
 
 ## 安全
@@ -297,8 +297,8 @@ receivers:
 ## 后续步骤
 
 :::cards
-- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收告警的监视器的所有设置。
-- [Grafana](/docs/integrations/grafana): 适用于 Grafana 告警的相同设置。
+- [入站请求监控](/docs/monitor/incoming-request-monitor): 接收警报的监视器的所有设置。
+- [Grafana](/docs/integrations/grafana): 适用于 Grafana 警报的相同设置。
 - [升级规则](/docs/on-call/escalation-rules): 决定值班策略呼叫谁、何时呼叫。
 - [集成概述](/docs/integrations/index): 你可以连接的其他工具。
 :::

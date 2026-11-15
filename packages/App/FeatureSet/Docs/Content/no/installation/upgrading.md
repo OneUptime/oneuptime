@@ -110,7 +110,7 @@ Enterprise Edition kontrollerer nå lisensen sin:
 
 - **En installasjon med en lisensnøkkel** fortsetter å kjøre. Den kontrollerer lisensen hos OneUptime ved oppstart og én gang om dagen. Hvis lisensen utløper, fortsetter alt å virke i en frist på 30 dager, og deretter skjer det samme som for en installasjon uten lisens.
 - **En installasjon uten lisens**, for eksempel en som kjørte Enterprise Edition bare med `IS_ENTERPRISE_EDITION=true`, får en prøveperiode på 14 dager fra første oppstart av denne versjonen. **Hvis du bruker SCIM eller revisjonslogging, må du aktivere en lisens før prøveperioden slutter.** Etter prøveperioden stopper SCIM-klargjøring, og revisjonsloggingen slutter å registrere. Enterprise-konfigurasjonen blir også skrivebeskyttet, og Health-dashbordene for enterprise låses. Enkel pålogging påvirkes ikke. Alt fortsetter igjen, uten omstart, så snart du aktiverer en lisens. Prøveperioden er for evaluering: bruk av Enterprise Edition i produksjon krever et OneUptime Enterprise-abonnement. Se [Når en lisens utløper eller mangler](/docs/self-hosted/enterprise#når-en-lisens-utløper-eller-mangler).
-- **Installasjoner uten nettverkstilgang** kan aktivere med et signert lisenstoken i stedet for en nøkkel. Se [Frakoblet aktivering](/docs/self-hosted/enterprise#frakoblet-aktivering-installasjoner-uten-nettverkstilgang).
+- **Installasjoner uten nettverkstilgang** kan aktivere med et signert lisenstoken i stedet for en nøkkel. Se [Frakoblet aktivering](/docs/self-hosted/enterprise#offline-aktivering-installasjoner-uten-nettverkstilgang).
 
 ### Kunder på OneUptime Cloud
 

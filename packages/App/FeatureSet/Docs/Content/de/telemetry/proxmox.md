@@ -177,7 +177,7 @@ Der Collector scrapt den Exporter alle 30 Sekunden: seine Cluster-Collectors ein
 | Start beim Booten | `pve_onboot_status`, eine Serie pro Gast: 1, wenn der Gast beim Booten starten soll. **Guest Down** alarmiert nur für diese Gäste. |
 | Replikation | `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`, pro Speicher-Replikationsjob. Ihr Label `id` ist die Job-ID (etwa `100-0`), keine Ressource. |
 
-Monitorkriterien und Attributfilter vergleichen auf Gleichheit, nicht auf ein Präfix; der Processor `transform/pve-identity` des Collectors teilt `id` daher zusätzlich in drei Attribute auf. Die eingebauten Proxmox-Alarmvorlagen filtern darauf; behalten Sie den Processor also, wenn Sie die Konfiguration anpassen:
+Monitorkriterien und Attributfilter vergleichen auf Gleichheit, nicht auf ein Präfix; der Processor `transform/pve-identity` des Collectors teilt `id` daher zusätzlich in drei Attribute auf. Die eingebauten Proxmox-Warnungsvorlagen filtern darauf; behalten Sie den Processor also, wenn Sie die Konfiguration anpassen:
 
 | Attribut | Werte | Für `qemu/100` |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ Jede Benachrichtigung kommt mit diesen Attributen an:
 | `pve.notification.job_id` | Die ID des Backup-Jobs, bei einem Backup-Job |
 | `proxmox.node.name` | Der Knoten, der sie gesendet hat |
 
-Aus der Benachrichtigung eines Backup-Jobs hält OneUptime das letzte Backup jedes Gasts fest: ob es erfolgreich war, wann es endete, wie groß es war und wie lange es dauerte. Die Seite eines Gasts zeigt es, die Liste **Gäste** hat es in ihrer Spalte Backup, die **Übersicht** des Clusters zählt die Ergebnisse, und ein fehlgeschlagenes bleibt unter **Erfordert Aufmerksamkeit**, bis ein späteres Backup dieses Gasts erfolgreich ist. Die Alarme **Backup Job Failed** und **Node Fenced** lesen dieselben Logs.
+Aus der Benachrichtigung eines Backup-Jobs hält OneUptime das letzte Backup jedes Gasts fest: ob es erfolgreich war, wann es endete, wie groß es war und wie lange es dauerte. Die Seite eines Gasts zeigt es, die Liste **Gäste** hat es in ihrer Spalte Backup, die **Übersicht** des Clusters zählt die Ergebnisse, und ein fehlgeschlagenes bleibt unter **Erfordert Aufmerksamkeit**, bis ein späteres Backup dieses Gasts erfolgreich ist. Die Warnungen **Backup Job Failed** und **Node Fenced** lesen dieselben Logs.
 
 Um das Senden zu beenden:
 
@@ -298,7 +298,7 @@ Ab Proxmox VE 9.0 gibt es einen OpenTelemetry-Metrikserver, der Knoten-, Gast- u
 Fügen Sie ihn einmal hinzu: Jeder Knoten des Clusters sendet seine eigenen Metriken. OneUptime erkennt den Push und übersetzt ihn in dieselben `pve_*`-Serien, die der Agent sendet; daher gilt:
 
 - Der Cluster registriert sich unter Ihrem Proxmox-Clusternamen (ein einzelner Knoten unter seinem Knotennamen), und ein `proxmox.cluster.name`, das Sie unter *Resource Attributes* setzen, wird stattdessen weiter verwendet;
-- die Seiten Knoten, Gäste und Speicher, die Übersichtsdiagramme, der Metrikkatalog und die Alarmvorlagen für CPU, Speicher und Storage funktionieren wie mit dem Agent;
+- die Seiten Knoten, Gäste und Speicher, die Übersichtsdiagramme, der Metrikkatalog und die Warnungsvorlagen für CPU, Speicher und Storage funktionieren wie mit dem Agent;
 - die ursprünglichen Serien `proxmox_node_*`, `proxmox_vm_*` und `proxmox_storage_*` bleiben im [Metrik-Explorer](/docs/monitor/metrics-monitor) für alles andere, was Proxmox VE meldet (Load Average, Swap, Pressure Stall, Verkehr pro NIC).
 
 ### Wenn ein Knoten nicht mehr meldet
@@ -307,18 +307,18 @@ Jeder Knoten sendet nur seinen eigenen Status; ein Knoten, der ausfällt, kann d
 
 - Etwa 2 Minuten nach seiner letzten Meldung zeigt der Knoten auf der Seite Knoten **Offline**. **Zuletzt gesehen** auf der eigenen Seite des Knotens behält den Zeitpunkt seiner letzten eigenen Meldung.
 - Nach etwa 5 Minuten löst **Node Offline** für ihn aus. **Cluster Quorum at Risk** zählt ihn ebenfalls als offline; weil diese Vorlage ein volles 5-Minuten-Fenster an Meldungen braucht, löst sie etwa 7–9 Minuten nach dem Verstummen des Knotens aus.
-- Mit seiner nächsten Meldung ist er wieder **Online**, und sein Alarm erholt sich.
+- Mit seiner nächsten Meldung ist er wieder **Online**, und seine Warnung erholt sich.
 
 Offline bedeutet hier, dass der Knoten nicht mehr meldet, nicht unbedingt, dass er ausgefallen ist. Ein Knoten, der läuft, dessen `pvestatd` aber hängt oder beendet wurde, dessen Cluster-Dateisystem (`pmxcfs`) ausgefallen ist oder dessen Netzwerkverbindung zu OneUptime unterbrochen ist, wird genauso gemeldet.
 
 Was das nicht abdecken kann:
 
-- Einen einzelnen Host oder einen ganzen Cluster, der auf einmal verstummt: Es ist niemand mehr da, der es meldet, daher löst kein Alarm pro Knoten aus. Der Cluster wird stattdessen **Getrennt**, wie wenn der Agent stoppt.
-- Ein Knoten, der länger als 7 Tage verstummt ist, wird nicht mehr gemeldet: Sein Alarm wird aufgelöst, und er verschwindet von der Seite Knoten. Ein selbst gehostetes OneUptime ändert die 7 Tage mit `PVE_SILENT_NODE_RETENTION_HOURS`.
-- Ein Knoten, den Sie aus dem Cluster nehmen, sieht genauso aus wie ein ausgefallener. Verwenden Sie **Knoten entfernen** auf seiner Seite: Er verschwindet, und sein Alarm wird aufgelöst. Andernfalls bleibt er bis zu 7 Tage Offline.
+- Einen einzelnen Host oder einen ganzen Cluster, der auf einmal verstummt: Es ist niemand mehr da, der es meldet, daher löst keine Warnung pro Knoten aus. Der Cluster wird stattdessen **Getrennt**, wie wenn der Agent stoppt.
+- Ein Knoten, der länger als 7 Tage verstummt ist, wird nicht mehr gemeldet: Seine Warnung wird aufgelöst, und er verschwindet von der Seite Knoten. Ein selbst gehostetes OneUptime ändert die 7 Tage mit `PVE_SILENT_NODE_RETENTION_HOURS`.
+- Ein Knoten, den Sie aus dem Cluster nehmen, sieht genauso aus wie ein ausgefallener. Verwenden Sie **Knoten entfernen** auf seiner Seite: Er verschwindet, und seine Warnung wird aufgelöst. Andernfalls bleibt er bis zu 7 Tage Offline.
 - Die Gäste und den Speicher des Knotens: Nur der Knoten selbst wird als Offline geführt. Seine VMs, Container und sein Speicher verschwinden etwa 15 Minuten nach seiner letzten Meldung von ihren Seiten, und Gäste, die HA auf einem anderen Knoten neu startet, erscheinen unter diesem Knoten wieder.
 
-Nach einem Ausfall der OneUptime-Ingestion wird ein neu verstummter Knoten erst gemeldet, wenn einer der anderen wieder 2 Minuten lang gesendet hat; der Ausfall selbst alarmiert daher nie für jeden Knoten. Ein Knoten, der bereits Offline war, bleibt während eines kurzen Ausfalls Offline und behält seinen Alarm; nach einem Ausfall von mehr als 5 Minuten wird er erneut gemeldet, sobald die anderen 2 Minuten lang gesendet haben.
+Nach einem Ausfall der OneUptime-Ingestion wird ein neu verstummter Knoten erst gemeldet, wenn einer der anderen wieder 2 Minuten lang gesendet hat; der Ausfall selbst alarmiert daher nie für jeden Knoten. Ein Knoten, der bereits Offline war, bleibt während eines kurzen Ausfalls Offline und behält seine Warnung; nach einem Ausfall von mehr als 5 Minuten wird er erneut gemeldet, sobald die anderen 2 Minuten lang gesendet haben.
 
 Im [Metrik-Explorer](/docs/monitor/metrics-monitor) sind diese Meldungen die Punkte `pve_up` = 0 mit dem Label `oneuptime.proxmox.inferred` = `not-reporting`, sodass Sie sie immer von dem unterscheiden können, was ein Knoten über sich selbst gesagt hat.
 
@@ -377,9 +377,9 @@ Löschen Sie dann das API-Token unter *Datacenter → Permissions → API Tokens
 
 ## KI-Agent
 
-Die `docker-compose.yml` des Agents führt außerdem den **Proxmox-KI-Agent** aus, `oneuptime-proxmox-ai-agent` (Image `oneuptime/resource-ai-agent:release`). Während OneUptime AI einen Vorfall oder Alarm auf diesem Cluster untersucht, führt sie darüber lesende `pvesh`-Befehle aus — `pvesh get /cluster/status`, `pvesh get /nodes/pve1/qemu/101/status/current`, `pvesh get /nodes/pve1/tasks --errors 1 --limit 20` — und wendet, nur wenn Sie es erlauben, Korrekturen an, etwa einen Gast zu starten oder neu zu starten. Er enthält kein `pvesh`-Binary: Jeder Befehl wird zu genau einem Aufruf der Proxmox-VE-API unter `PVE_HOST`, mit einem Token aus derselben `.env`. Er registriert sich wie der Collector als der Cluster namens `PROXMOX_CLUSTER_NAME` und erscheint in OneUptime auf der Seite **KI-Agent** des Clusters.
+Die `docker-compose.yml` des Agents führt außerdem den **Proxmox-KI-Agent** aus, `oneuptime-proxmox-ai-agent` (Image `oneuptime/resource-ai-agent:release`). Während OneUptime AI einen Vorfall oder eine Warnung auf diesem Cluster untersucht, führt sie darüber lesende `pvesh`-Befehle aus — `pvesh get /cluster/status`, `pvesh get /nodes/pve1/qemu/101/status/current`, `pvesh get /nodes/pve1/tasks --errors 1 --limit 20` — und wendet, nur wenn Sie es erlauben, Korrekturen an, etwa einen Gast zu starten oder neu zu starten. Er enthält kein `pvesh`-Binary: Jeder Befehl wird zu genau einem Aufruf der Proxmox-VE-API unter `PVE_HOST`, mit einem Token aus derselben `.env`. Er registriert sich wie der Collector als der Cluster namens `PROXMOX_CLUSTER_NAME` und erscheint in OneUptime auf der Seite **KI-Agent** des Clusters.
 
-- **KI-Untersuchungen sind standardmäßig aktiviert.** Sobald der Agent verbunden ist, untersucht OneUptime AI Vorfälle und Alarme auf diesem Cluster mit ihm, und die **Übersicht** des Clusters zeigt den Status des Agents an. Zum Beenden setzen Sie `ONEUPTIME_AI_INVESTIGATION=false` dort, wo der Agent läuft (**Ändern** unter **Was die KI tun darf** auf der Seite des KI-Agents zeigt, wie), oder lassen den Agent weg.
+- **KI-Untersuchungen sind standardmäßig aktiviert.** Sobald der Agent verbunden ist, untersucht OneUptime AI Vorfälle und Warnungen auf diesem Cluster mit ihm, und die **Übersicht** des Clusters zeigt den Status des Agents an. Zum Beenden setzen Sie `ONEUPTIME_AI_INVESTIGATION=false` dort, wo der Agent läuft (**Ändern** unter **Was die KI tun darf** auf der Seite des KI-Agents zeigt, wie), oder lassen den Agent weg.
 - Das API-Token ist die harte Grenze. Untersuchungen verwenden das PVEAuditor-Token des Collectors (`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`), das lesen kann und sonst nichts; betreiben Sie einen eigenen Exporter und haben kein Token in `.env`, fügen Sie eines hinzu. Korrekturen brauchen ein eigenes Token des KI-Agents, das Gäste ein- und ausschalten darf (`VM.PowerMgmt`, zum Beispiel die Rolle `PVEVMUser` auf `/vms` oder auf einem Pool), gesetzt als `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`.
 - Er ist schreibgeschützt, sofern Sie nicht `ONEUPTIME_AI_ALLOW_WRITES=true` setzen; `ONEUPTIME_AI_WRITE_TARGETS` (VMIDs wie `100,101` und `<node>/<service>` für Knotendienste) begrenzt, was eine Korrektur antasten darf. Läuft der Agent in einem Gast dieses Clusters, tragen Sie die VMID dieses Gasts in `ONEUPTIME_AI_PROTECTED_TARGETS` ein. `ONEUPTIME_AI_FIXES` in derselben `.env` legt fest, wie Korrekturen ablaufen — `ask-for-approval` (ein Mensch genehmigt jede), `automatic` oder `bypass-approval` —, und die Seite des KI-Agents zeigt es schreibgeschützt an ([Was die KI tun darf, vom Agent festgelegt](/docs/ai/infrastructure-ai-agents#was-die-ki-tun-darf-vom-agenten-festgelegt)).
 - Wie der Exporter prüft er das selbstsignierte Zertifikat der API nicht, sofern Sie nicht `PVE_VERIFY_SSL=true` setzen oder `PVE_CA_FILE` auf die CA des Clusters verweisen (`/etc/pve/pve-root-ca.pem`, in den Container eingehängt).
@@ -430,7 +430,7 @@ OneUptime registriert einen Proxmox-Cluster über sein `proxmox.cluster.name`, d
 Er meldet nicht mehr: Ein ausgefallener Knoten, ein hängendes `pvestatd`, ein gestopptes `pmxcfs` oder eine unterbrochene Netzwerkverbindung zu OneUptime sehen gleich aus. Seine nächste Meldung bringt ihn zurück. Haben Sie den Knoten aus dem Cluster genommen, verwenden Sie **Knoten entfernen** auf seiner Seite; andernfalls bleibt er bis zu 7 Tage Offline. Siehe [Wenn ein Knoten nicht mehr meldet](#wenn-ein-knoten-nicht-mehr-meldet).
 :::
 
-:::details Mit nativem Push lösen Guest Down, HA- oder Backup-Alarme nie aus
+:::details Mit nativem Push lösen Guest Down, HA- oder Backup-Warnungen nie aus
 Der native Push sendet keinen HA-Zustand, kein Start beim Booten, keine Backup-Abdeckung und keine Replikation. [Installieren Sie dafür den Agent](#agent-installieren) und entfernen Sie den Metrikserver: Beides zu betreiben meldet jede Ressource doppelt.
 :::
 

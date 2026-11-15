@@ -199,6 +199,6 @@ Le scorciatoie non ti intralciano. `?`, `/` e `g` non fanno nulla mentre digiti 
 :::cards
 - [Guida rapida](/docs/introduction/quickstart): Seguire l'elenco di benvenuto, passaggio per passaggio.
 - [Il tuo account](/docs/introduction/your-account): Il tuo profilo, la sicurezza dell'accesso, la lingua e il tema.
-- [Chiedi all'IA](/docs/ai/ask-ai): Cosa può rispondere e fare per te Ask AI.
+- [Chiedi all'IA](/docs/ai/ask-ai): Cosa può rispondere e fare per te Ask IA.
 - [Concetti fondamentali](/docs/introduction/core-concepts): Cosa sono monitor, incidenti, avvisi e reperibilità.
 :::

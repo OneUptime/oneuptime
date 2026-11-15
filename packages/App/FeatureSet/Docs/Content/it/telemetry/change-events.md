@@ -118,7 +118,7 @@ OneUptime decide quale modifica è sospetta in base a questi numeri, non a ciò 
 
 Quando la modifica sospetta è un rollout Kubernetes su un cluster le cui [correzioni IA](/docs/ai/ai-sre#come-funzionano-le-correzioni) sono attive, OneUptime AI ne fa prima il rollback, con un `kubectl rollout undo` che OneUptime costruisce a partire dalla modifica registrata. Un deploy che rilascia codice viene annullato tramite i suoi commit: l'indagine indica il commit o la pull request che ha causato il problema, così una [pull request di correzione](/docs/ai/ai-sre#correzioni-automatiche-del-codice) può annullare esattamente quello.
 
-OneUptime controlla anche ogni deploy da solo, che qualcuno venga avvisato o no. Trascorsi i 30 minuti dopo un deploy, li confronta con i 30 minuti prima secondo le stesse soglie e, quando il servizio è peggiorato, un [AI Insight](/docs/ai/ai-sre#insight-rilevamento-proattivo) indica il deploy su quel servizio.
+OneUptime controlla anche ogni deploy da solo, che qualcuno venga avvisato o no. Trascorsi i 30 minuti dopo un deploy, li confronta con i 30 minuti prima secondo le stesse soglie e, quando il servizio è peggiorato, un [IA Insight](/docs/ai/ai-sre#insight-rilevamento-proattivo) indica il deploy su quel servizio.
 
 Una pull request di correzione che OneUptime AI ha aperto viene verificata allo stesso modo: appena un deploy registrato contiene il suo commit, OneUptime osserva lì ciò per cui serviva la correzione - l'eccezione, l'operazione che ha reso più veloce, il monitor dietro l'incidente o l'avviso, la telemetria che aggiunge - e indica se la correzione ha funzionato (vedi [Correzioni automatiche del codice](/docs/ai/ai-sre#correzioni-automatiche-del-codice)). La correzione distribuita viene letta nella versione del deploy solo quando la telemetria del servizio riporta essa stessa quella versione, e altrimenti da 10 minuti dopo il deploy, quando le vecchie istanze si sono fermate.
 
@@ -163,7 +163,7 @@ Una modifica letta da un account cloud nomina l'account e la risorsa con i nomi 
 ## Passaggi successivi
 
 :::cards
-- [AI SRE](/docs/ai/ai-sre): Che cosa legge un'indagine e come corregge ciò che trova.
+- [IA SRE](/docs/ai/ai-sre): Che cosa legge un'indagine e come corregge ciò che trova.
 - [Riferimento dei comandi](/docs/cli/command-reference): Ogni comando della CLI.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Inviare la telemetria dei tuoi servizi, con le loro versioni.
 - [Collegare un account cloud](/docs/telemetry/cloud-accounts): Le modifiche e gli eventi di stato dei tuoi account AWS, Azure e Google Cloud.

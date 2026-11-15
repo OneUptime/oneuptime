@@ -1214,7 +1214,7 @@ Ogni istanza di OneUptime serve questo programma di installazione per la propria
 - Esegue i programmi dell'host stesso entrando nei namespace dell'host con `nsenter`, quindi viene eseguito con privilegi, come root, con `pid: host`: è root sull'host. Il limite è la policy dei comandi dell'agent: comandi in sola lettura a meno che tu non imposti `ONEUPTIME_AI_ALLOW_WRITES=true`, mai una shell, `sudo` o un programma fuori dal suo elenco, e mai sé stesso, l'unità di questo collector o qualsiasi cosa in `ONEUPTIME_AI_PROTECTED_TARGETS`.
 - Con `ONEUPTIME_AI_ALLOW_WRITES=true`, `ONEUPTIME_AI_WRITE_TARGETS` (nomi di unità completi come `nginx.service,app-*`) limita le unità che una correzione può toccare. `ONEUPTIME_AI_FIXES` indica come vengono eseguite le correzioni — `ask-for-approval` (una persona approva ciascuna), `automatic` o `bypass-approval` — e la pagina dell'agente IA lo mostra in sola lettura; il programma di installazione scrive entrambi, dal suo ambiente, nel `.env` dell'agent ([Cosa può fare l'IA, impostato dall'agent](/docs/ai/infrastructure-ai-agents#cosa-può-fare-lia-deciso-dallagente)).
 
-Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#host).
+Cosa può eseguire, come funzionano le correzioni e come risolverne i problemi: [Infrastructure IA Agents](/docs/ai/infrastructure-ai-agents#host).
 
 ## Risoluzione dei problemi
 

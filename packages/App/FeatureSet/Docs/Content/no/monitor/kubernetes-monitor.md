@@ -130,7 +130,7 @@ Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **
 
 ## Ferdige varslingsmaler
 
-Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kategori. Hver fyller inn to kriterier: ett som markerer monitoren som frakoblet og åpner en hendelse og et varsel mens betingelsen gjelder, og ett som setter den tilkoblet igjen når betingelsen opphører.
+Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kategori. Hver fyller inn to kriterier: ett som markerer monitoren som offline og åpner en hendelse og et varsel mens betingelsen gjelder, og ett som setter den tilkoblet igjen når betingelsen opphører.
 
 | Mal | Kategori | Utløses når | Alvorlighetsgrad |
 | --- | --- | --- | --- |

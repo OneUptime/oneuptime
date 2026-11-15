@@ -67,8 +67,8 @@ Eine Rotation mit mehreren Personen gleichzeitig in Bereitschaft wird zu einem O
 
 ## Was nicht übernommen wird
 
-- **Vorfälle, Alarme und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Vorfällen.
-- **Workflows, Statusseiten, Alert Routes und Integrationen.** Richten Sie stattdessen Ihre Monitore und Alarmquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
+- **Vorfälle, Warnungen und ihr Verlauf.** OneUptime beginnt mit Ihrer Einrichtung, nicht mit Ihren vergangenen Vorfällen.
+- **Workflows, Statusseiten, Alert Routes und Integrationen.** Richten Sie stattdessen Ihre Monitore und Warnungsquellen auf OneUptime aus, wie unter [Den Wechsel abschließen](#den-wechsel-abschließen) beschrieben.
 - **Benutzerdefinierte Felder, deren Optionen aus dem Katalog stammen,** und Status, für die OneUptime keinen Status hat: Declined, Merged, Canceled und Learning.
 - **Plan-Überschreibungen und für später geplante Änderungen an einer Rotation.** Die Vorschau nennt jede geplante Änderung, damit Sie sie in OneUptime vornehmen können, wenn sie fällig ist.
 - **Eskalationsschritte, für die OneUptime keine genaue Entsprechung hat.** Ein Schritt, der in einen Slack- oder Microsoft-Teams-Kanal postet, wird weggelassen, weil das in OneUptime die Benachrichtigungsregeln des Arbeitsbereichs tun, ebenso ein Schritt, der an einen anderen Eskalationspfad übergibt. Ein Schritt, der alarmiert, wer als Nächstes Bereitschaft hat, wird als das Nächstliegende übernommen, das OneUptime hat, und die Vorschau sagt, was sich ändert.
@@ -93,8 +93,8 @@ Eingeladene Personen nehmen ihre Einladung an und fügen dann eine Telefonnummer
 ### Ihre Vorfallnummern fortsetzen
 Wenn Ihr Team Vorfälle bei ihrer Nummer nennt, lassen Sie die Nummern von OneUptime nach Ihrer letzten in incident.io beginnen: Setzen Sie unter **Vorfälle** > **Einstellungen** > **Nummerierung** auf der Karte **Nächste Nummer** die **Nächste Vorfallnummer** auf die Nummer danach. Eine Nummer bezeichnet dann nie zwei verschiedene Vorfälle.
 
-### Alarme an OneUptime senden
-Richten Sie Ihre Monitore und die Tools, die Alarme auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
+### Warnungen an OneUptime senden
+Richten Sie Ihre Monitore und die Tools, die Warnungen auslösen, auf OneUptime aus, und alarmieren Sie sich zum Test einmal selbst.
 
 ### Die Alarmierung in incident.io ausschalten
 Sobald OneUptime die richtigen Personen alarmiert, schalten Sie die Benachrichtigungen in incident.io aus, damit niemand doppelt alarmiert wird.

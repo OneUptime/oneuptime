@@ -519,7 +519,7 @@ Un'ottica che manca da una porta abilitata compare subito come **Non rilevato** 
 
 Ogni lettura è anche una metrica del dispositivo, una serie per porta e corsia, nelle unità che mostra la pagina: `oneuptime.monitor.snmp.transceiver.temperature` (°C), `oneuptime.monitor.snmp.transceiver.voltage` (V), `oneuptime.monitor.snmp.transceiver.bias.current` (mA), `oneuptime.monitor.snmp.transceiver.tx.power` e `oneuptime.monitor.snmp.transceiver.rx.power` (dBm), con gli attributi `interfaceName`, `interfaceIndex` e `lane`. Una dashboard può tracciare la luce di un collegamento nell'arco di mesi, e un monitor di metriche può generare avvisi su di essa.
 
-Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispositivo di rete parte dalle ottiche delle porte interessate: se sono ancora rilevate o no, ogni lettura rispetto alle soglie del dispositivo e la potenza ricevuta delle ultime settimane. L'AI può anche leggere le ottiche di qualsiasi dispositivo quando gliele chiedi.
+Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispositivo di rete parte dalle ottiche delle porte interessate: se sono ancora rilevate o no, ogni lettura rispetto alle soglie del dispositivo e la potenza ricevuta delle ultime settimane. L'IA può anche leggere le ottiche di qualsiasi dispositivo quando gliele chiedi.
 
 ### Identità del dispositivo
 

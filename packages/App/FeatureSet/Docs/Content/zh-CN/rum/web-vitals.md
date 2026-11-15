@@ -6,7 +6,7 @@ RUM 应用程序概览上的 **核心 Web 指标** 卡片显示 LCP、INP、CLS�
 - [发送指标](#从应用发送指标): 将 web-vitals 库的值作为 OpenTelemetry 指标转发。
 - [OneUptime 读取的名称](#oneuptime-识别的指标名称): 每项指标可能使用的指标名称。
 - [单页应用](#单页应用): 每个视图一个 INP，而不是每次页面加载一个值。
-- [针对指标告警](#针对指标告警): 针对较差指标的现成监视器。
+- [针对指标警报](#针对指标警报): 针对较差指标的现成监视器。
 :::
 
 ## 工作原理
@@ -269,7 +269,7 @@ useEffect(() => startView(toRoutePattern(pathname)), [pathname]);
 你会得到：
 
 - 概览上的 **INP by route** ，按 `app.route` 从最慢开始排列；OneUptime 也会读取 OpenTelemetry 的 `url.template` 。
-- 用于告警的路由过滤器：在指标监视器中按 `app.route` 过滤 `web_vital.inp` ，即可单独监视一个流程，例如 `/checkout` 。
+- 用于警报的路由过滤器：在指标监视器中按 `app.route` 过滤 `web_vital.inp` ，即可单独监视一个流程，例如 `/checkout` 。
 - **核心 Web 指标** 卡片上的全应用 INP 照常工作：它还是同一个指标，只是现在每个视图一个值，而不是每次页面加载一个。
 
 Chromium 浏览器会上报这项功能所需的交互 ID。Safari 不上报，这也是 `onINP` 在那里什么都不上报的原因。Chrome 的实验性 Soft Navigations API 旨在原生实现这一点，但尚未全面推出；这个辅助函数现在就能用。
@@ -290,7 +290,7 @@ histogram.record(metric.value, {
 
 记录具体的 URL 而不是路由模式，会为每个商品页面创建一个时间序列，使 **指标** 页面变慢，存储费用变高。用户 ID、会话 ID 和屏幕尺寸也是如此。
 
-## 针对指标告警
+## 针对指标警报
 
 应用程序的 **建议** 页面为每项指标提供一个现成的监视器。每个监视器读取其指标的五分钟平均值，并在达到 Google 的较差阈值时触发：
 
@@ -302,7 +302,7 @@ histogram.record(metric.value, {
 | **Slow First Contentful Paint** | `web_vital.fcp` | 3000 毫秒 | **警告** |
 | **Slow Time to First Byte** | `web_vital.ttfb` | 1800 毫秒 | **警告** |
 
-这些监视器只读取 `web_vital.*` 名称。如果你的应用以其他名称发送某项指标，请编辑所创建监视器的指标。要针对单个路由告警，请为监视器添加 `app.route` 过滤器。你也可以基于这些指标中的任何一个构建自己的监视器：参见 [指标监控](/docs/monitor/metrics-monitor) 。
+这些监视器只读取 `web_vital.*` 名称。如果你的应用以其他名称发送某项指标，请编辑所创建监视器的指标。要针对单个路由警报，请为监视器添加 `app.route` 过滤器。你也可以基于这些指标中的任何一个构建自己的监视器：参见 [指标监控](/docs/monitor/metrics-monitor) 。
 
 ## 故障排除
 
@@ -329,7 +329,7 @@ histogram.record(metric.value, {
 
 :::cards
 - [浏览器端设置](/docs/rum/browser-setup): 承载这些指标的追踪、日志和指标管道。
-- [指标监控](/docs/monitor/metrics-monitor): 针对任何指标告警，可以面向整个应用或单个路由。
+- [指标监控](/docs/monitor/metrics-monitor): 针对任何指标警报，可以面向整个应用或单个路由。
 - [会话回放](/docs/telemetry/session-replay): 无需代码，在录制中按视图查看 INP。
 - [RUM 故障排除](/docs/rum/troubleshooting): 按问题通常发生的顺序列出的所有检查。
 :::

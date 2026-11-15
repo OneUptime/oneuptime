@@ -100,7 +100,7 @@ In **Condividi**, copia il link e invialo alle persone che devono usare il modul
 | **Log di audit** | In **Avanzato**: ogni modifica fatta al modulo, ai suoi domini personalizzati e ai suoi invii, chi l'ha fatta e quando. |
 | **Elimina modulo** | L'eliminazione del modulo, in **Avanzato**. I suoi invii vengono eliminati con lui; gli incidenti e gli eventi che ha creato no. |
 
-La sezione **Sviluppatori** del menu del modulo contiene le sue pagine Terraform, API e assistente AI, come per ogni altra risorsa.
+La sezione **Sviluppatori** del menu del modulo contiene le sue pagine Terraform, API e assistente IA, come per ogni altra risorsa.
 
 ## Moduli e modelli di incidente
 

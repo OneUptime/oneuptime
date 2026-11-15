@@ -1,6 +1,6 @@
 # Microsoft Foundry e Azure OpenAI
 
-Esegui le funzionalità di IA di OneUptime su modelli che distribuisci in Microsoft Foundry (in precedenza Azure AI Foundry) o in Azure OpenAI. OneUptime invia ogni richiesta direttamente alla tua risorsa nella tua sottoscrizione Azure, quindi prompt e risposte vengono elaborati dalla distribuzione che hai scelto, dove l'hai scelta. Questa pagina ti porta da una sottoscrizione vuota a un provider funzionante: la risorsa Azure, la distribuzione del modello, endpoint e chiave, le impostazioni di OneUptime, la rete e cosa fare quando una richiesta non riesce.
+Esegui le funzionalità di IA di OneUptime su modelli che distribuisci in Microsoft Foundry (in precedenza Azure IA Foundry) o in Azure OpenAI. OneUptime invia ogni richiesta direttamente alla tua risorsa nella tua sottoscrizione Azure, quindi prompt e risposte vengono elaborati dalla distribuzione che hai scelto, dove l'hai scelta. Questa pagina ti porta da una sottoscrizione vuota a un provider funzionante: la risorsa Azure, la distribuzione del modello, endpoint e chiave, le impostazioni di OneUptime, la rete e cosa fare quando una richiesta non riesce.
 
 :::cards
 - [Configurare Azure](#configurare-microsoft-foundry): Creare una risorsa, distribuire un modello, copiarne endpoint e chiave.
@@ -330,7 +330,7 @@ Azure ha risposto `DeploymentNotFound`. Imposta il **Nome modello** sul nome del
 :::
 
 :::details "Azure found nothing at this address" (404)
-L'URL di base non porta a nessuna API Azure OpenAI. Usa l'endpoint della risorsa con `/openai/v1`, come `https://contoso-ai.openai.azure.com/openai/v1`. L'endpoint di inferenza dei modelli dell'SDK Azure AI Inference ritirato (`/models`) non lo è: usa `/openai/v1` sulla stessa risorsa.
+L'URL di base non porta a nessuna API Azure OpenAI. Usa l'endpoint della risorsa con `/openai/v1`, come `https://contoso-ai.openai.azure.com/openai/v1`. L'endpoint di inferenza dei modelli dell'SDK Azure IA Inference ritirato (`/models`) non lo è: usa `/openai/v1` sulla stessa risorsa.
 :::
 
 :::details "This model needs api-version ... or later" (400)
@@ -357,6 +357,6 @@ La quota di token al minuto della distribuzione è esaurita. Le funzionalità di
 
 :::cards
 - [Provider LLM](/docs/ai/llm-provider): Tutti i tipi di provider e come un progetto ne sceglie uno.
-- [AI SRE](/docs/ai/ai-sre): Indagini che girano su questo provider.
-- [Ask AI](/docs/ai/ask-ai): Domande sul tuo sistema, con la risposta nella dashboard.
+- [IA SRE](/docs/ai/ai-sre): Indagini che girano su questo provider.
+- [Ask IA](/docs/ai/ask-ai): Domande sul tuo sistema, con la risposta nella dashboard.
 :::

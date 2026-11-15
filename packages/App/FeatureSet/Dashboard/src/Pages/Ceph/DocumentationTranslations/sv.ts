@@ -32,7 +32,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Docker Compose also runs **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. If the install script created its Ceph client it is already working; otherwise it waits for one — see **OneUptime AI agent** under Advanced.":
     "Docker Compose kör också **`oneuptime-ceph-ai-agent`**, OneUptime AI-agenten. Om installationsskriptet skapade dess Ceph-klient fungerar den redan; annars väntar den på en; se **OneUptime AI-agent** under Avancerad.",
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `ceph` commands, and changes nothing unless you allow fixes.":
-    "**OneUptime AI-agent (på som standard, skrivskyddad).** AI-utredningar är på: så snart den har sin Ceph-klient låter den OneUptime AI utreda incidenter och aviseringar på det här klustret med skrivskyddade `ceph`-kommandon, och den ändrar ingenting om du inte tillåter korrigeringar.",
+    "**OneUptime AI-agent (på som standard, skrivskyddad).** AI-utredningar är på: så snart den har sin Ceph-klient låter den OneUptime AI utreda incidenter och larm på det här klustret med skrivskyddade `ceph`-kommandon, och den ändrar ingenting om du inte tillåter korrigeringar.",
   "The install script writes these to `/opt/oneuptime-ceph-agent/.env`. After changing one, apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent`.":
     "Installationsskriptet skriver dessa till `/opt/oneuptime-ceph-agent/.env`. När du har ändrat en tillämpar du den med `docker compose up -d` i `/opt/oneuptime-ceph-agent`.",
   "| Variable | Required | Description |":
@@ -71,7 +71,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "Klustret visas med etiketterna `team:storage` och `env:production`. Etiketter jämförs utan hänsyn till skiftläge, så en befintlig etikett `Production` återanvänds; etiketter som lagts till i OneUptimes gränssnitt tas aldrig bort av agenten.",
   "The agent ships everything the mgr prometheus module exports. OneUptime's Ceph pages, metric catalog and alert templates are built on:":
-    "Agenten skickar allt som mgr:ens prometheus-modul exporterar. OneUptimes Ceph-sidor, mätvärdeskatalog och aviseringsmallar bygger på:",
+    "Agenten skickar allt som mgr:ens prometheus-modul exporterar. OneUptimes Ceph-sidor, mätvärdeskatalog och larmmallar bygger på:",
   "| Category | Data |": "| Kategori | Data |",
   "| **Cluster Health** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitor quorum, total and used raw capacity |":
     "| **Klusterhälsa** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitorkvorum, total och använd råkapacitet |",
@@ -82,7 +82,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **Placement Groups** | Active, degraded, and undersized PG counts |":
     "| **Placement Groups** | Antal aktiva, degraderade och underdimensionerade PG:er |",
   "`docker-compose.yml` also runs **`oneuptime-ceph-ai-agent`**. While OneUptime AI investigates an incident or alert on this cluster, it runs `ceph` commands through it — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. It registers as the cluster named `CEPH_CLUSTER_NAME` and appears on the cluster's **AI → AI agent** page.":
-    "`docker-compose.yml` kör också **`oneuptime-ceph-ai-agent`**. Medan OneUptime AI utreder en incident eller avisering på det här klustret kör den `ceph`-kommandon genom den: `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. Den registrerar sig som klustret med namnet `CEPH_CLUSTER_NAME` och visas på klustrets sida **AI → AI-agent**.",
+    "`docker-compose.yml` kör också **`oneuptime-ceph-ai-agent`**. Medan OneUptime AI utreder en incident eller larm på det här klustret kör den `ceph`-kommandon genom den: `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. Den registrerar sig som klustret med namnet `CEPH_CLUSTER_NAME` och visas på klustrets sida **AI → AI-agent**.",
   "It connects as its own Ceph client, `client.oneuptime-ai`, with the cluster's minimal `ceph.conf` and that client's keyring in a `ceph/` folder next to `docker-compose.yml`. The install script offers to create them on a fresh install, when `ceph` works with admin rights on the machine you run it on. Otherwise, or to add them later, on a Ceph admin node:":
     "Den ansluter som sin egen Ceph-klient, `client.oneuptime-ai`, med klustrets minimala `ceph.conf` och den klientens nyckelring i en mapp `ceph/` bredvid `docker-compose.yml`. Installationsskriptet erbjuder att skapa dem vid en ny installation, när `ceph` fungerar med administratörsbehörighet på maskinen där du kör det. Annars, eller för att lägga till dem senare, på en Ceph-administrationsnod:",
   "If the agent runs on another machine, copy the two files into its `ceph/` folder the same way. **Never put the admin keyring there.**":

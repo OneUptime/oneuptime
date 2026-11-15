@@ -1036,7 +1036,7 @@ Når du har dratt enheter, bytter en bryter øverst på kartet mellom **Tilpasse
 
 ### Eksporter kartet som PDF
 
-**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese frakoblet. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
+**Eksporter PDF**, øverst på kartet, laster ned kartet du ser på som en PDF du kan legge ved en vurdering, en endringsforespørsel eller en hendelsesgjennomgang, eller lese offline. Hver visning av enhetskartet har den: **Enhetstopologi**, en lokasjon på **Kart** og fanen **Nettverk** under **Topologi**.
 
 PDF-en inneholder:
 

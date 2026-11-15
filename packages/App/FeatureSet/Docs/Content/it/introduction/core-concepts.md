@@ -171,7 +171,7 @@ Una chiave di acquisizione serve solo a inviare telemetria. Una **chiave API** Ã
 
 :::cards
 - [Panoramica dei flussi di lavoro](/docs/workflows/index): Automatizzare azioni con trigger e componenti.
-- [AI SRE](/docs/ai/ai-sre): Come OneUptime AI indaga su incidenti e avvisi.
+- [IA SRE](/docs/ai/ai-sre): Come OneUptime AI indaga su incidenti e avvisi.
 :::
 
 ## Etichette e proprietari

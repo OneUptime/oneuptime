@@ -68,7 +68,7 @@ Menyn följer de frågor du ställer om dina data. Dess första avsnitt har sido
 
 ## Vad det kostar
 
-På OneUptime Cloud är de första 100 tabellerna i ett projekt gratis. Varje tabell därefter kostar 1 $ i månaden, och 0,25 $ över 1 000. Vyer är gratis, liksom tabellerna i en databas du slutar bevaka. En kontroll med en avisering faktureras som en aktiv monitor. **Databaser** och **Översikt** visar hur många tabeller ditt projekt bevakar och vad de kostar, och [Priser](https://oneuptime.com/pricing) har en kalkylator.
+På OneUptime Cloud är de första 100 tabellerna i ett projekt gratis. Varje tabell därefter kostar 1 $ i månaden, och 0,25 $ över 1 000. Vyer är gratis, liksom tabellerna i en databas du slutar bevaka. En kontroll med ett larm faktureras som en aktiv monitor. **Databaser** och **Översikt** visar hur många tabeller ditt projekt bevakar och vad de kostar, och [Priser](https://oneuptime.com/pricing) har en kalkylator.
 
 En egenhostad OneUptime betalar ingenting för tabeller.
 

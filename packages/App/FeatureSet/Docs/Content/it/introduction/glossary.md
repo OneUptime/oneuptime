@@ -268,7 +268,7 @@ Altri nomi: **Tracciamento delle eccezioni**, `/telemetry-exception`. Vedi [Ecce
 
 Problemi che OneUptime trova nella tua telemetria prima che scatti qualsiasi avviso: eccezioni nuove o in aumento, picchi di log di errore, tracce più lente, derive delle metriche e deploy che hanno peggiorato le cose. Gli insight non avvisano mai nessuno e non aprono mai incidenti; attendono in una casella finché qualcuno non li guarda. La pagina **Insight** nella sezione IA di un prodotto o di un record è ciò che OneUptime AI ha imparato lì.
 
-Altri nomi: **Insight**. Vedi [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
+Altri nomi: **Insight**. Vedi [IA SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo).
 
 ### Eventi di sicurezza
 
@@ -312,7 +312,7 @@ Altri nomi: **Profili di prestazioni**, **Profilazione continua**. Vedi [Profili
 
 Le conversazioni delle tue app e dei tuoi agenti di IA: ogni chiamata a un modello, con token, costo, latenza, prompt e risposta, ricostruita dagli span OpenTelemetry che la tua app invia.
 
-Altri nomi: **Osservabilità AI / LLM**. Vedi [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability).
+Altri nomi: **Osservabilità IA / LLM**. Vedi [Osservabilità IA / LLM](/docs/telemetry/ai-llm-observability).
 
 ### Osservabilità dei dati
 
@@ -362,13 +362,13 @@ Altri nomi: **Playbook di sicurezza**. Vedi [Casi di sicurezza e playbook (SOAR)
 
 Decide quali nuovi incidenti o avvisi OneUptime AI indaga e risolve, e come. Senza alcuna regola IA li indaga tutti, quindi alla maggior parte dei progetti non ne serve nessuna.
 
-Altri nomi: **Regola di correzione automatica**. Vedi [AI SRE](/docs/ai/ai-sre#quali-incidenti-vengono-indagati-e-corretti).
+Altri nomi: **Regola di correzione automatica**. Vedi [IA SRE](/docs/ai/ai-sre#quali-incidenti-vengono-indagati-e-corretti).
 
 ### OneUptime AI
 
 L'ingegnere di affidabilità dei siti basato sull'IA di OneUptime: indaga su ogni nuovo incidente e avviso in tutta la tua telemetria e pubblica ciò che ha trovato nella sua cronologia. L'interruttore **Abilita IA** in **Impostazioni del progetto** lo disattiva del tutto.
 
-Altri nomi: **AI SRE**. Vedi [AI SRE](/docs/ai/ai-sre).
+Altri nomi: **IA SRE**. Vedi [IA SRE](/docs/ai/ai-sre).
 
 ### Chiedi all'IA
 

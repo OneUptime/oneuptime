@@ -1,6 +1,6 @@
 # Hinter einem VPN oder einer Firewall
 
-Ein selbst gehostetes OneUptime kann vom öffentlichen Internet getrennt bleiben: Es versendet jeden Alarm über ausgehende Verbindungen. Ein paar Dinge kommen allerdings von außen herein. Eine alarmierte Person tippt in einer Nachricht auf **Acknowledge**, Twilio meldet eine bei einem Anruf gedrückte Taste, Slack meldet den Klick auf eine Schaltfläche. Diese Seite führt jedes davon auf, wer sich dafür mit Ihrem Server verbindet und über welchen Pfad, damit Sie nur veröffentlichen, was Sie nutzen, oder gar nichts.
+Ein selbst gehostetes OneUptime kann vom öffentlichen Internet getrennt bleiben: Es versendet jede Warnung über ausgehende Verbindungen. Ein paar Dinge kommen allerdings von außen herein. Eine alarmierte Person tippt in einer Nachricht auf **Acknowledge**, Twilio meldet eine bei einem Anruf gedrückte Taste, Slack meldet den Klick auf eine Schaltfläche. Diese Seite führt jedes davon auf, wer sich dafür mit Ihrem Server verbindet und über welchen Pfad, damit Sie nur veröffentlichen, was Sie nutzen, oder gar nichts.
 
 :::cards
 - [Wer sich mit Ihrem Server verbindet](#wer-sich-mit-ihrem-server-verbindet): Die Telefone der alarmierten Personen und die Anbieter, die zurückrufen.
@@ -66,7 +66,7 @@ Nachdem die Person bestätigt hat, öffnet die Seite die Warnung im Dashboard, d
 
 ### Telegram
 
-Das Senden von Alarmen braucht nur ausgehendes HTTPS zu `api.telegram.org`. Ein Konto zu verknüpfen heißt, dass Ihr Server die `/start`-Nachricht empfangen muss, die eine Person an Ihren Bot sendet, und dafür gibt es zwei Wege:
+Das Senden von Warnungen braucht nur ausgehendes HTTPS zu `api.telegram.org`. Ein Konto zu verknüpfen heißt, dass Ihr Server die `/start`-Nachricht empfangen muss, die eine Person an Ihren Bot sendet, und dafür gibt es zwei Wege:
 
 - **Abfrage**: Schalten Sie **Poll Telegram for Messages** unter **Admin Dashboard > Einstellungen > Telegram** ein. OneUptime ruft die Nachrichten des Bots alle paar Sekunden über ausgehendes HTTPS bei Telegram ab, sodass nichts Ihren Server erreichen muss.
 - **Webhook**: Telegram sendet jede Nachricht an `POST /api/notification/telegram/webhook`. Telegram [sendet Webhooks](https://core.telegram.org/bots/webhooks) von `149.154.160.0/20` und `91.108.4.0/22` aus, sodass Sie nur diese Adressen freigeben können.
@@ -77,7 +77,7 @@ Wenn eine alarmierte Person bei einem Anruf die 1 drückt, um zu bestätigen, se
 
 ### WhatsApp
 
-Alarme zu senden und zu bestätigen braucht keinen eingehenden Zugriff. Meta sendet Zustell- und Lesebestätigungen an `/api/notification/whatsapp/webhook`; ohne sie kann das WhatsApp-Protokoll von OneUptime nicht zeigen, ob eine Nachricht zugestellt oder gelesen wurde oder fehlgeschlagen ist, nachdem Meta sie angenommen hatte. Meta signiert jede Anfrage und veröffentlicht keine festen Adressen.
+Warnungen zu senden und zu bestätigen braucht keinen eingehenden Zugriff. Meta sendet Zustell- und Lesebestätigungen an `/api/notification/whatsapp/webhook`; ohne sie kann das WhatsApp-Protokoll von OneUptime nicht zeigen, ob eine Nachricht zugestellt oder gelesen wurde oder fehlgeschlagen ist, nachdem Meta sie angenommen hatte. Meta signiert jede Anfrage und veröffentlicht keine festen Adressen.
 
 ### Slack und Microsoft Teams
 

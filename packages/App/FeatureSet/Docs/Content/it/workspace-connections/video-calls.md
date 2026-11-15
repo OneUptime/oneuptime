@@ -139,7 +139,7 @@ Microsoft consente alle app di leggere solo le trascrizioni delle riunioni di Te
 
 | Chiamata | Come ottiene la sua trascrizione | Cosa le serve |
 | --- | --- | --- |
-| Zoom | **Ottieni da Zoom** | Una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di AI Companion attivo. La connessione ha bisogno degli scope per le trascrizioni (vedi [Zoom](#zoom)), e una creata con l'accesso prima di essi ha bisogno di **Reconnect**. Zoom prepara una trascrizione dopo la riunione, di solito entro il doppio della sua durata. |
+| Zoom | **Ottieni da Zoom** | Una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di IA Companion attivo. La connessione ha bisogno degli scope per le trascrizioni (vedi [Zoom](#zoom)), e una creata con l'accesso prima di essi ha bisogno di **Reconnect**. Zoom prepara una trascrizione dopo la riunione, di solito entro il doppio della sua durata. |
 | Google Meet | **Ottieni da Google Meet** | Trascrizioni attivate nella chiamata, in un'edizione di Google Workspace che le offre. Nient'altro da configurare: OneUptime legge le trascrizioni delle riunioni che ha creato. Google conserva una trascrizione leggibile dalle app per 30 giorni. |
 | Microsoft Teams | **Ottieni da Microsoft Teams** | Una riunione avviata da OneUptime mentre [ogni chiamata viene registrata e trascritta](#registrare-e-trascrivere-ogni-chiamata): Microsoft consente alle app di leggere solo le trascrizioni delle riunioni presenti in un calendario, e conserva una riunione per 60 giorni. Per qualsiasi altra riunione di Teams, **Aggiungi trascrizione**: in Teams, apri il riepilogo della riunione, poi la sua trascrizione, e scaricala come file `.vtt`. |
 | Link di riunione o huddle di Slack | **Aggiungi trascrizione** | La trascrizione che conservano lo strumento per riunioni o le note dell'huddle. |
@@ -150,7 +150,7 @@ Ottenere, aggiungere, sostituire e rimuovere una trascrizione, farla rileggere e
 
 ### Cosa legge OneUptime AI
 
-Leggere una trascrizione è lavoro di AI come un'indagine: viene eseguito solo mentre l'AI è attiva per il progetto, e conta nell'uso dell'AI e nei limiti giornalieri del progetto (vedi [Controllo dei costi](/docs/ai/ai-sre#controllo-dei-costi)). Una trascrizione lunga viene letta in parti. Quando l'AI è disattivata, la trascrizione viene conservata e la scheda dice che non è stata letta. Rimuovere una trascrizione rimuove ciò che OneUptime AI vi ha letto, e mantiene la causa principale dell'incidente. Anche una bozza di post-mortem dell'AI legge ciò che si è detto nelle chiamate dell'incidente (vedi [Post-mortem](/docs/incidents/postmortems)).
+Leggere una trascrizione è lavoro di IA come un'indagine: viene eseguito solo mentre l'IA è attiva per il progetto, e conta nell'uso dell'IA e nei limiti giornalieri del progetto (vedi [Controllo dei costi](/docs/ai/ai-sre#controllo-dei-costi)). Una trascrizione lunga viene letta in parti. Quando l'IA è disattivata, la trascrizione viene conservata e la scheda dice che non è stata letta. Rimuovere una trascrizione rimuove ciò che OneUptime AI vi ha letto, e mantiene la causa principale dell'incidente. Anche una bozza di post-mortem dell'IA legge ciò che si è detto nelle chiamate dell'incidente (vedi [Post-mortem](/docs/incidents/postmortems)).
 
 ## Provider
 
@@ -297,7 +297,7 @@ Cambia **Who can join** (Google Meet) o **Who skips the lobby** (Microsoft Teams
 :::
 
 :::details Ottieni da Zoom non trova nessuna trascrizione
-Zoom conserva una trascrizione solo di una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di AI Companion attivo, e la prepara dopo la fine della riunione. La scheda dice quale dei due casi: riprova più tardi, oppure attiva una delle due opzioni per le riunioni degli incidenti. Nel frattempo, **Aggiungi trascrizione** prende una trascrizione che hai salvato.
+Zoom conserva una trascrizione solo di una riunione registrata nel cloud con la trascrizione audio attiva, o con il riepilogo della riunione di IA Companion attivo, e la prepara dopo la fine della riunione. La scheda dice quale dei due casi: riprova più tardi, oppure attiva una delle due opzioni per le riunioni degli incidenti. Nel frattempo, **Aggiungi trascrizione** prende una trascrizione che hai salvato.
 :::
 
 :::details La scheda Video Call aspetta ancora una trascrizione
@@ -309,7 +309,7 @@ OneUptime non è riuscito a mettere la riunione nel calendario del suo organizza
 :::
 
 :::details OneUptime AI non è riuscita a leggere una trascrizione
-La scheda dice perché: l'AI è disattivata per il progetto, il progetto ha raggiunto un limite giornaliero di AI, o il [provider LLM](/docs/ai/llm-provider) del progetto ha rifiutato. Una volta risolto, **Riprova** sulla scheda la rilegge.
+La scheda dice perché: l'IA è disattivata per il progetto, il progetto ha raggiunto un limite giornaliero di IA, o il [provider LLM](/docs/ai/llm-provider) del progetto ha rifiutato. Una volta risolto, **Riprova** sulla scheda la rilegge.
 :::
 
 ## Passaggi successivi
