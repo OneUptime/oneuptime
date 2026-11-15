@@ -80,7 +80,7 @@ interface RiskRow {
   criticality: string | null;
   contributorCount: number;
   contributions: Array<Record<string, unknown>> | null;
-  riskHistory: Array<{ day: string; score: number }> | null;
+  riskHistory: Array<{ at: string; score: number }> | null;
   firstRiskAt: Date | null;
   lastRiskAt: Date | null;
   riskExpiresAt: Date | null;
@@ -295,7 +295,10 @@ describePostgres("entity risk, in Postgres", () => {
       points: 50,
       hits: 1,
     });
-    expect(rows[0]!.riskHistory).toEqual([{ day: "2026-10-14", score: 50 }]);
+    // When its score changed, and to what (issue #8207).
+    expect(rows[0]!.riskHistory).toEqual([
+      { at: "2026-10-14T12:00:00.000Z", score: 50 },
+    ]);
     // It next falls a week after its finding.
     expect(new Date(rows[0]!.riskExpiresAt!).getTime()).toBe(
       NOW.getTime() - HOUR_IN_MS + ENTITY_RISK_WINDOW_IN_DAYS * DAY_IN_MS,
