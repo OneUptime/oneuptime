@@ -135,6 +135,8 @@ describe("ProcessTelemetry worker — Incoming Request jobs", () => {
     ExceptionMessages.MonitorNotFound,
     ExceptionMessages.MonitorDisabled,
     ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
   ])(
     "completes the job when the monitor fails with '%s'",
     async (message: string) => {
@@ -164,10 +166,18 @@ describe("ProcessTelemetry worker — Incoming Request jobs", () => {
 });
 
 describe("isNonActionableIngestError", () => {
+  /*
+   * An unknown monitor, and every refusal MonitorResource gives for a monitor
+   * that is not being monitored: archived, disabled, or paused while a
+   * manually created incident is unresolved or a maintenance event it is
+   * attached to has not ended.
+   */
   test.each([
     ExceptionMessages.MonitorNotFound,
     ExceptionMessages.MonitorDisabled,
     ExceptionMessages.MonitorArchived,
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
   ])("is true for a BadDataException '%s'", (message: string) => {
     expect(isNonActionableIngestError(new BadDataException(message))).toBe(
       true,
@@ -185,6 +195,34 @@ describe("isNonActionableIngestError", () => {
       isNonActionableIngestError(new Error(ExceptionMessages.MonitorNotFound)),
     ).toBe(false);
   });
+
+  test.each([
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+  ])(
+    "is false for another kind of error with a paused monitor's refusal '%s'",
+    (message: string) => {
+      expect(isNonActionableIngestError(new Error(message))).toBe(false);
+    },
+  );
+
+  /*
+   * The refusals are matched exactly, so a failure that only reads like one
+   * - another "Monitor is disabled because ..." - is still retried.
+   */
+  test.each([
+    "Monitor is disabled because",
+    `${ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent} `,
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident.toLowerCase(),
+    "Monitor does not have a projectId",
+  ])(
+    "is false for a BadDataException that is not one of them: '%s'",
+    (message: string) => {
+      expect(isNonActionableIngestError(new BadDataException(message))).toBe(
+        false,
+      );
+    },
+  );
 
   test.each([undefined, null, ExceptionMessages.MonitorNotFound, {}])(
     "is false for %p, which is not an error",
