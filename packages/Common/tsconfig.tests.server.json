@@ -2,11 +2,13 @@
   /*
    * A part of tsconfig.tests.json that `npm run compile-tests`
    * (Scripts/compile-tests.js) type-checks on its own: Tests/Server but
-   * Tests/Server/Utils (tsconfig.tests.server-utils.json) - the tests of
-   * Common's server services, APIs, middleware and infrastructure, and the
+   * Tests/Server/Utils (tsconfig.tests.server-utils.json) and
+   * Tests/Server/Services (tsconfig.tests.server-services.json) - the tests
+   * of Common's server APIs, middleware, infrastructure and types, and the
    * server sources they import. Split from tsconfig.tests.rest.json on
-   * 2026-10-27, when the rest needed 10.6 GB against its 8 GiB heap. Why the
-   * program is checked in parts: Scripts/compile-tests.js.
+   * 2026-10-27, when the rest needed 10.6 GB against its 8 GiB heap, and its
+   * services' tests split from it on 2026-11-15 (#8631), when it used 87% of
+   * its heap. Why the program is checked in parts: Scripts/compile-tests.js.
    *
    * Everything but "include" and "exclude" is inherited, so these tests are
    * held to exactly the rules of the whole program.
@@ -22,5 +24,10 @@
     "Typings/**/*.d.ts",
     "UI/index.d.ts"
   ],
-  "exclude": ["node_modules", "build", "Tests/Server/Utils"]
+  "exclude": [
+    "node_modules",
+    "build",
+    "Tests/Server/Utils",
+    "Tests/Server/Services"
+  ]
 }

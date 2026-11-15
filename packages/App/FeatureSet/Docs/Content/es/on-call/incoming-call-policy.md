@@ -214,8 +214,8 @@ Los registros de llamadas entrantes están disponibles como disparadores de fluj
 Para actuar solo sobre las llamadas perdidas, por ejemplo para publicarlas en Slack o Microsoft Teams o abrir una incidencia:
 
 :::steps
-1. Añade el disparador **On Update Incoming Call Log**. Pon **Fields to watch** en **Ended At** y selecciona los campos que quieras usar, como **Status**, **Caller Phone Number** y **Routing Phone Number**.
-2. Añade un paso **If / Else**. Comprueba el **Status** del disparador, con la comparación **no es igual a** y `Completed`.
+1. Añade el disparador **On Update Incoming Call Log**. Pon **Campos que vigilar** en **Ended At** y selecciona los campos que quieras usar, como **Status**, **Caller Phone Number** y **Routing Phone Number**.
+2. Añade un paso **Si / Si no**. Comprueba el **Status** del disparador, con la comparación **no es igual a** y `Completed`.
 3. Conecta tus pasos al puerto **Sí**.
 :::
 

@@ -86,9 +86,9 @@ Cada plantilla para alertas está construida como su gemela para incidentes, pas
 
 **Los monitores generan alertas por sí solos, y pueden generar muchas.** **Create a Jira issue when an alert is created** abre una incidencia por cada una. Salvo que cada alerta merezca un ticket, pon una condición delante del paso de Jira. Para abrir incidencias solo para las alertas High:
 
-1. Abre el **Constructor** del flujo de trabajo y añade un bloque **If / Else**.
+1. Abre el **Constructor** del flujo de trabajo y añade un bloque **Si / Si no**.
 2. Pon **Valor que comprobar** en `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparación** en **es igual a** y **Comparar con** en `High`.
-3. Quita la línea de `alert-on-create-1` a `prepare-issue-1` arrastrando su extremo fuera del punto (consulta [Ordenar](/docs/workflows/authoring#ordenar-el-lienzo)). Conecta el **Éxito** del disparador al bloque **If / Else**, y su **Sí** a `prepare-issue-1`.
+3. Quita la línea de `alert-on-create-1` a `prepare-issue-1` arrastrando su extremo fuera del punto (consulta [Ordenar](/docs/workflows/authoring#ordenar-el-lienzo)). Conecta el **Éxito** del disparador al bloque **Si / Si no**, y su **Sí** a `prepare-issue-1`.
 
 Una alerta que toma el lado **No** termina ahí la ejecución, y no se abre ninguna incidencia para ella.
 
@@ -183,7 +183,7 @@ Antes de confiar en ello:
 Los **Pasos** de cada ejecución dicen qué hizo la plantilla, así que abre la ejecución en **Registros → Ejecuciones** y mira cómo terminó:
 
 - **Ejecutado**: hizo su trabajo, y su último paso nombra la incidencia, el incidente o la alerta.
-- **Ejecutado**, con su paso **Check With JavaScript** en **No**: omitió el evento a propósito, y el paso dice por qué: la incidencia no está vinculada a un registro de este tipo, la nota vino de Jira, el registro es privado o el nuevo estado no tiene ningún estado de Jira asignado.
+- **Ejecutado**, con su paso **Comprobar con JavaScript** en **No**: omitió el evento a propósito, y el paso dice por qué: la incidencia no está vinculada a un registro de este tipo, la nota vino de Jira, el registro es privado o el nuevo estado no tiene ningún estado de Jira asignado.
 - **Error**: falló un paso, y su entrada en **Pasos** dice por qué. Para una llamada a Jira, incluye la respuesta de Jira.
 - **Error** en `link-issue-1`: una plantilla que crea un registro a partir de una incidencia de Jira lo creó, pero Jira no aceptó las etiquetas de vínculo, así que las demás plantillas aún no pueden encontrarlo. Añade las etiquetas a mano.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Cambiar lo que hace una plantilla
 
-Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras cambiar. Los ajustes que más probablemente querrás tocar son constantes cerca del principio de un script, el **Código JavaScript** de un bloque **Check With JavaScript**, justo debajo del bloque auxiliar común. Las versiones para incidentes y para alertas de una plantilla guardan las mismas constantes en los mismos bloques:
+Abre el **Constructor** del flujo de trabajo y haz clic en el bloque que quieras cambiar. Los ajustes que más probablemente querrás tocar son constantes cerca del principio de un script, el **Código JavaScript** de un bloque **Comprobar con JavaScript**, justo debajo del bloque auxiliar común. Las versiones para incidentes y para alertas de una plantilla guardan las mismas constantes en los mismos bloques:
 
 | Constante | Plantilla y bloque | Qué controla |
 | --- | --- | --- |
@@ -271,7 +271,7 @@ Las notas privadas y los comentarios de edición se marcan como internos con la 
 ### Limitaciones
 
 - **Solo Jira Cloud.** Las plantillas llaman a la API REST v3 de Jira Cloud con autenticación Basic. Data Center no tiene v3 y acepta un token de acceso personal como `Bearer`, así que cada bloque de API necesita los cambios de [Jira Data Center](#jira-data-center): rutas `/rest/api/2/...`, cadenas simples en lugar de cuerpos en Atlassian Document Format, y la cabecera. Los bloques `find-issue-1` son los que más cambian: Data Center no tiene `/search/jql`, así que deben hacer un `POST` a `/rest/api/2/search` en su lugar.
-- **Los incidentes declarados desde Jira son discretos.** Se crean ocultos en tus páginas de estado, sin avisar a los suscriptores de las páginas de estado, porque el texto de una incidencia no se escribió para clientes. Para mostrar uno, activa **Visible en la página de estado** en la página **Ajustes** del incidente (consulta [Mantener un incidente fuera de la página de estado](/docs/incidents/states-and-severities#mantener-un-incidente-fuera-de-la-página-de-estado)), o activa **Show On Status Pages**, en **Más campos**, en el bloque `incident-from-another-tool-1` de la plantilla.
+- **Los incidentes declarados desde Jira son discretos.** Se crean ocultos en tus páginas de estado, sin avisar a los suscriptores de las páginas de estado, porque el texto de una incidencia no se escribió para clientes. Para mostrar uno, activa **Visible en la página de estado** en la página **Ajustes** del incidente (consulta [Mantener un incidente fuera de la página de estado](/docs/incidents/states-and-severities#mantener-un-incidente-fuera-de-la-página-de-estado)), o activa **Mostrar en páginas de estado**, en **Más campos**, en el bloque `incident-from-another-tool-1` de la plantilla.
 - **Los incidentes y alertas privados se quedan en OneUptime.** Las plantillas de OneUptime → Jira los omiten, y cada omisión lo dice en **Registros → Ejecuciones**. Para enviarlos de todos modos, pon `SYNC_PRIVATE_INCIDENTS` o `SYNC_PRIVATE_ALERTS` en `true`. Hacer privado un registro más adelante detiene la sincronización a partir de ese momento, pero no retira lo que Jira ya tiene. Las plantillas de Jira → OneUptime no lo comprueban, así que los comentarios, las ediciones y los cambios de estado de una incidencia vinculada siguen llegando a un registro privado.
 - **Nada retrocede.** Reabrir una incidencia de Jira no cambia nada en OneUptime, y un estado de la categoría To Do no corresponde a ningún estado. Consulta [El orden es una restricción real](/docs/incidents/states-and-severities#el-orden-es-una-restricción-real-no-una-preferencia-de-visualización). Las plantillas de transición tampoco mueven nunca una incidencia a una categoría de estado anterior.
 - **Cada alerta recibe una incidencia.** Salvo las alertas privadas, la plantilla de alertas que crea incidencias abre una por cada alerta, incluida cada una que genera un monitor. [Qué cambia para las alertas](#qué-cambia-para-las-alertas) muestra cómo añadir una condición.
@@ -306,8 +306,8 @@ Los tokens caducan al cabo de un año por defecto y no se renuevan. Para no tene
 ### Abrir una incidencia de Jira por cada incidente
 
 :::steps
-1. Crea desde cero un flujo de trabajo llamado `Incidents to Jira`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. Sus **Fields to pass on** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite. Deja su **Identificador** como `incident-on-create-1`.
-2. Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **Identificador** en `create-issue`, su **URL** en `{{global.variables.JIRA_URL}}/rest/api/3/issue` y, en **Más campos**, sus **Encabezados de la solicitud** en `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+1. Crea desde cero un flujo de trabajo llamado `Incidents to Jira`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. Sus **Campos que pasar** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite. Deja su **Identificador** como `incident-on-create-1`.
+2. Haz clic en **Añadir componente**, añade un bloque **Llamada a API POST (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **Identificador** en `create-issue`, su **URL** en `{{global.variables.JIRA_URL}}/rest/api/3/issue` y, en **Más campos**, sus **Encabezados de la solicitud** en `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Pon su **Cuerpo de la solicitud** en la incidencia, y sustituye `OPS` y `Bug` por la clave de tu proyecto y un tipo de incidencia de ese proyecto:
 
    ```json
@@ -371,7 +371,7 @@ Cada mitad de una sincronización bidireccional necesita que un sistema guarde e
 
 Un administrador de Jira puede añadir en su lugar un campo personalizado de texto corto, llamado por ejemplo OneUptime Incident ID, que rellenas como `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. Es más fácil de leer de vuelta que una etiqueta.
 
-Para dar a todos en Jira un camino de vuelta, añade después de `create-issue` un bloque **API Post (JSON)** que publique un enlace remoto en `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
+Para dar a todos en Jira un camino de vuelta, añade después de `create-issue` un bloque **Llamada a API POST (JSON)** que publique un enlace remoto en `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink`:
 
 ```json
 {
@@ -383,16 +383,16 @@ Para dar a todos en Jira un camino de vuelta, añade después de `create-issue` 
 }
 ```
 
-Para esto, en los **Fields to pass on** del disparador, haz clic en **Añadir campo** y elige **ID del proyecto**, y conserva el `.value`: una columna que contiene el ID de otro registro llega como `{"_type": "ObjectID", "value": "..."}`. El `globalId` hace que la llamada se pueda repetir sin riesgo: Jira actualiza el enlace que lo lleva en lugar de añadir un segundo.
+Para esto, en los **Campos que pasar** del disparador, haz clic en **Añadir campo** y elige **ID del proyecto**, y conserva el `.value`: una columna que contiene el ID de otro registro llega como `{"_type": "ObjectID", "value": "..."}`. El `globalId` hace que la llamada se pueda repetir sin riesgo: Jira actualiza el enlace que lo lleva en lugar de añadir un segundo.
 
 ### Comentar y hacer la transición a medida que avanza el incidente
 
 Constrúyelo como un segundo flujo de trabajo, para que un fallo aquí nunca impida abrir incidencias.
 
 :::steps
-1. Crea un flujo de trabajo llamado `Incident updates to Jira`, con el disparador **On Update Incident**. En **Fields to watch**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Fields to pass on**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Nombre**.
-2. Añade un bloque **If / Else**: **Valor que comprobar** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparación** **es igual a**, **Comparar con** `Resolved`, o el nombre de tu estado resuelto.
-3. Después de su lado **Sí**, encuentra la incidencia con un bloque **API Post (JSON)** cuyo **Identificador** sea `find-issue`, que publique en `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+1. Crea un flujo de trabajo llamado `Incident updates to Jira`, con el disparador **On Update Incident**. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Campos que pasar**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Nombre**.
+2. Añade un bloque **Si / Si no**: **Valor que comprobar** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparación** **es igual a**, **Comparar con** `Resolved`, o el nombre de tu estado resuelto.
+3. Después de su lado **Sí**, encuentra la incidencia con un bloque **Llamada a API POST (JSON)** cuyo **Identificador** sea `find-issue`, que publique en `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -407,8 +407,8 @@ Constrúyelo como un segundo flujo de trabajo, para que un fallo aquí nunca imp
 
 Envía la JQL en el cuerpo en lugar de ponerla en la URL: una URL se envía exactamente como está escrita, sin codificarla por ti, y la JQL está llena de espacios, comillas y signos `=`. Una consulta debe estar acotada, por eso está la cláusula `project =`. En Cloud el endpoint es `/rest/api/3/search/jql`; el antiguo `/rest/api/3/search` ya no existe.
 
-- **Comentario**: un bloque **API Post (JSON)** a `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, con un documento como su `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
-- **Transición**: un bloque **API Get (JSON)** sobre `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` enumera las transiciones abiertas desde el estado de la incidencia, cada una con un `id`, un `name` y el estado al que lleva, `to`. Un bloque **API Post (JSON)** a la misma URL con `{"transition": {"id": "31"}}` ejecuta una, y responde `204`.
+- **Comentario**: un bloque **Llamada a API POST (JSON)** a `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, con un documento como su `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
+- **Transición**: un bloque **Llamada a API GET (JSON)** sobre `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` enumera las transiciones abiertas desde el estado de la incidencia, cada una con un `id`, un `name` y el estado al que lleva, `to`. Un bloque **Llamada a API POST (JSON)** a la misma URL con `{"transition": {"id": "31"}}` ejecuta una, y responde `204`.
 
 Un ID de transición pertenece al flujo de trabajo de Jira de la incidencia, así que un administrador de Jira que edite ese flujo puede romper uno escrito a mano. Leer la lista en el momento de la ejecución, como hacen las plantillas, lo evita.
 
@@ -425,7 +425,7 @@ Primero construye el flujo de trabajo que recibe:
 
    Una instalación autoalojada usa su propio host. Trata la URL como una contraseña: quien la tenga puede iniciar el flujo de trabajo. Si se filtra, haz clic en **Restablecer URL** en el mismo lugar, y la URL antigua deja de funcionar al instante.
 
-3. Desde el disparador, añade un bloque **Update One Incident**. Pon su **Consulta** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Data (JSON Object)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Find One Incident State** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Desde el disparador, añade un bloque **Update One Incident**. Pon su **Consulta** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Datos (objeto JSON)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Find One Incident State** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Actívalo y luego haz que Jira lo llame, desde una regla de automatización o desde un webhook:
 
@@ -443,17 +443,17 @@ Actívalo y luego haz que Jira lo llame, desde una regla de automatización o de
    }
    ```
 
-   Con una etiqueta en lugar de un campo personalizado, envía `"labels": "{{issue.labels}}"` y extrae el ID con un bloque **Run Custom JavaScript**.
+   Con una etiqueta en lugar de un campo personalizado, envía `"labels": "{{issue.labels}}"` y extrae el ID con un bloque **Ejecutar JavaScript personalizado**.
 
 4. Activa la regla y mueve una incidencia de prueba a Done. Revisa el registro de auditoría de la regla en Jira, y **Registros → Ejecuciones** en OneUptime.
 
-Para asegurarte de que una solicitud viene de tu regla, añade una segunda cabecera, `X-OneUptime-Secret`, con un valor que te inventes, y usa en ella la opción **Hide** de la acción. En el flujo de trabajo, pon un bloque **If / Else** antes de la actualización: **Valor que comprobar** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparación** **es igual a** y **Comparar con** el mismo valor, guardado en una variable global secreta.
+Para asegurarte de que una solicitud viene de tu regla, añade una segunda cabecera, `X-OneUptime-Secret`, con un valor que te inventes, y usa en ella la opción **Hide** de la acción. En el flujo de trabajo, pon un bloque **Si / Si no** antes de la actualización: **Valor que comprobar** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparación** **es igual a** y **Comparar con** el mismo valor, guardado en una variable global secreta.
 
 Send web request solo llama a los puertos 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 y 9900. Jira Cloud cuenta las ejecuciones de reglas contra una cuota mensual que depende de tu plan, así que una regla en cada transición de un proyecto con mucho movimiento acaba sumando.
 @tab Jira webhook
 1. Como administrador de Jira, ve a **Settings → System → WebHooks** (en **Advanced**) y haz clic en **Create a WebHook**.
 2. Pega la URL del flujo de trabajo, marca **Issue updated** e introduce un filtro JQL, como `project = OPS AND labels = oneuptime`.
-3. En el flujo de trabajo, lee la carga útil propia de Jira: `issue` contiene la incidencia, y `changelog.items` contiene cada campo cambiado, antes y después. Para un cambio de estado, toma el elemento cuyo `field` es `status`. Un bloque **Run Custom JavaScript** es la forma más fácil de leerlo.
+3. En el flujo de trabajo, lee la carga útil propia de Jira: `issue` contiene la incidencia, y `changelog.items` contiene cada campo cambiado, antes y después. Para un cambio de estado, toma el elemento cuyo `field` es `status`. Un bloque **Ejecutar JavaScript personalizado** es la forma más fácil de leerlo.
 
 Un webhook puede llevar un secreto, y entonces Jira firma el cuerpo en una cabecera `X-Hub-Signature`. Un flujo de trabajo no puede comprobarla, porque el disparador Webhook entrega un cuerpo ya leído como JSON. Jira reintenta una entrega fallida hasta cinco veces, así que el flujo de trabajo debe soportar recibir el mismo evento dos veces.
 :::
@@ -476,7 +476,7 @@ Empieza con las plantillas para alertas de [Empezar con una plantilla](#empezar-
 | Etiqueta `oneuptime-incident-<incident id>` | Etiqueta `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Un flujo de trabajo tiene exactamente un disparador, así que los incidentes y las alertas necesitan un flujo de trabajo cada uno. Para hacer el mismo trabajo de Jira para ambos, constrúyelo una vez en un flujo de trabajo con un disparador **Manual**, e inícialo desde ambos con un bloque **Execute Workflow**.
+Un flujo de trabajo tiene exactamente un disparador, así que los incidentes y las alertas necesitan un flujo de trabajo cada uno. Para hacer el mismo trabajo de Jira para ambos, constrúyelo una vez en un flujo de trabajo con un disparador **Manual**, e inícialo desde ambos con un bloque **Ejecutar otro flujo de trabajo**.
 
 ## Jira Data Center
 
@@ -532,7 +532,7 @@ Comprueba la URL base y la versión de la API: `/rest/api/3/...` en Cloud, `/res
 :::
 
 :::details 429 Too Many Requests
-Jira está limitando la velocidad a la que lo llamas. La respuesta lleva `Retry-After`, en segundos. Las escrituras en una misma incidencia tienen un límite estricto, así que un flujo de trabajo que comenta y hace una transición seguidas puede alcanzarlo. Pon un bloque **Sleep** entre las llamadas, o mueve el trabajo masivo a un flujo de trabajo programado.
+Jira está limitando la velocidad a la que lo llamas. La respuesta lleva `Retry-After`, en segundos. Las escrituras en una misma incidencia tienen un límite estricto, así que un flujo de trabajo que comenta y hace una transición seguidas puede alcanzarlo. Pon un bloque **Pausa** entre las llamadas, o mueve el trabajo masivo a un flujo de trabajo programado.
 :::
 
 :::details La llamada de transición responde 400

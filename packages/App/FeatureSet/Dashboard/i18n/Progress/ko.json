@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 8369
+    "keys": 55409,
+    "untranslated": 8266
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -167,6 +167,7 @@
     "VMware VM",
     "VMware vCenter",
     "Vital",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

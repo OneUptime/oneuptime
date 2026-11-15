@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 2404
+    "keys": 55409,
+    "untranslated": 2399
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -131,6 +131,7 @@
     "Burn",
     "Burundi",
     "Bytes",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",

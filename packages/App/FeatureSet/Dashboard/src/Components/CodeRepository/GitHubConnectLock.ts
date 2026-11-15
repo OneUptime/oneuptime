@@ -12,7 +12,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * Whether "Connect with GitHub App" may be pressed: the dashboard's half of
+ * Whether "Connect GitHub" may be pressed: the dashboard's half of
  * the rule the server asks when a connection starts and again when GitHub
  * sends the browser back (Common/Server/API/GitHubConnectAccess). Connecting
  * imports the installation's repositories as the project's code

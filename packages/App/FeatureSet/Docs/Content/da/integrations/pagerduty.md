@@ -48,11 +48,11 @@ Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse**.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse**.
 
 ### Send trigger-begivenheden
 
-Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **URL** til `https://events.pagerduty.com/v2/enqueue` og dens **Anmodningsbrødtekst** til:
+Klik på **Tilføj komponent**, tilføj en **API-kald POST (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **URL** til `https://events.pagerduty.com/v2/enqueue` og dens **Anmodningsbrødtekst** til:
 
 ```json
 {
@@ -72,7 +72,7 @@ Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind 
 
 ### Test det, og slå det derefter til
 
-Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty opretter en hændelse. Slå derefter **Aktiveret** til øverst i **Bygger**.
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API-kald POST (JSON)** viser et `202`-svar med `"status": "success"`, og PagerDuty opretter en hændelse. Slå derefter **Aktiveret** til øverst i **Bygger**.
 :::
 
 Blokken sender JSON, så den behøver ingen `Content-Type`-header. PagerDutys `severity` er en af `critical`, `error`, `warning` og `info`: se [Tilknyt alvorligheder](#tilknyt-alvorligheder) for at sende hver hændelses egen.
@@ -84,7 +84,7 @@ En arbejdsgang har én trigger, så det kræver en anden arbejdsgang at løse de
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret en arbejdsgang med navnet `Resolve PagerDuty incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så den kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
+Opret en arbejdsgang med navnet `Resolve PagerDuty incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**, så den kun kører, når tilstanden ændres. Spørg i **Felter, der sendes videre**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ Opret en arbejdsgang med navnet `Resolve PagerDuty incidents`, og vælg **On Upd
 
 ### Kontrollér, at hændelsen er løst
 
-Tilføj en **If / Else**-blok efter triggeren. Sæt **Værdi, der skal tjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sand**.
+Tilføj en **Hvis / Ellers**-blok efter triggeren. Sæt **Værdi, der skal tjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sand**.
 
 ### Send resolve-begivenheden
 
-Tilføj en **API Post (JSON)**-blok efter **Ja**-siden, med samme **URL** og denne **Anmodningsbrødtekst**:
+Tilføj en **API-kald POST (JSON)**-blok efter **Ja**-siden, med samme **URL** og denne **Anmodningsbrødtekst**:
 
 ```json
 {
@@ -115,10 +115,10 @@ At kontrollere `isResolvedState` i stedet for navnet på en tilstand bliver ved 
 
 ## Tilknyt alvorligheder
 
-For at sende hver hændelses alvorlighed tilføjer du en **Run Custom JavaScript**-blok mellem triggeren og **API Post (JSON)**-blokken og læser dens svar i brødteksten.
+For at sende hver hændelses alvorlighed tilføjer du en **Kør egen JavaScript**-blok mellem triggeren og **API-kald POST (JSON)**-blokken og læser dens svar i brødteksten.
 
-1. Klik på **Tilføj felt** i triggerens **Fields to pass on**, åbn **Hændelsesalvor**, og vælg **Navn**.
-2. Sæt blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript-kode** til:
+1. Klik på **Tilføj felt** i triggerens **Felter, der sendes videre**, åbn **Hændelsesalvor**, og vælg **Navn**.
+2. Sæt blokkens **Argumenter** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og dens **JavaScript-kode** til:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ Navnene ovenfor er de tre alvorligheder, et nyt projekt starter med. Brug dine e
 ## Fejlfinding
 
 :::details PagerDuty svarer 400
-Svarets brødtekst siger, hvad PagerDuty afviste, og kørslens **API Post (JSON)**-trin viser det. Som regel er routing key'en ikke en Events API v2-integrationsnøgle: kopiér den igen fra tjenestens **Integrations**. En begivenhed uden `summary`, `source` eller `severity` afvises også.
+Svarets brødtekst siger, hvad PagerDuty afviste, og kørslens **API-kald POST (JSON)**-trin viser det. Som regel er routing key'en ikke en Events API v2-integrationsnøgle: kopiér den igen fra tjenestens **Integrations**. En begivenhed uden `summary`, `source` eller `severity` afvises også.
 :::
 
 :::details Resolve-begivenheden lukker ingenting
@@ -146,7 +146,7 @@ Begge begivenheder skal have præcis den samme `dedup_key`. Kontrollér, at begg
 :::
 
 :::details Arbejdsgangen kører aldrig
-Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **Hvis / Ellers**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 :::details PagerDuty viser en reference i stedet for en værdi

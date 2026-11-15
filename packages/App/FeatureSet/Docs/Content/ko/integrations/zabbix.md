@@ -76,7 +76,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 
 ### 워크플로가 하는 일
 
-**웹훅** 트리거 다음에는 **Check With JavaScript** 단계 `read-event-1`이 미디어 유형이 보내는 `event`를 읽고, **Incident From Another Tool**(경고 템플릿에서는 **Alert From Another Tool**)이 문제의 이벤트 ID로 그 뜻대로 처리합니다:
+**웹훅** 트리거 다음에는 **JavaScript로 확인** 단계 `read-event-1`이 미디어 유형이 보내는 `event`를 읽고, **다른 도구의 인시던트**(경고 템플릿에서는 **다른 도구의 경고**)이 문제의 이벤트 ID로 그 뜻대로 처리합니다:
 
 | 이벤트 | 워크플로가 하는 일 |
 | --- | --- |
@@ -102,7 +102,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 직접 만든 심각도가 있으면 Disaster와 High는 가장 심각한 것으로, Average와 Warning은 중간 것으로, Information과 Not classified는 가장 덜 심각한 것으로 갑니다. Zabbix는 심각도에 0(Not classified)부터 5(Disaster)까지 번호를 매기고 템플릿은 번호를 읽으므로, Zabbix에서 심각도 이름을 바꿔도 아무것도 바뀌지 않습니다.
 
 - 이름으로 심각도를 직접 만든 심각도에 매핑하려면 `read-event-1` 단계의 `SEVERITY_BY_NAME`을 편집하세요. 예를 들어 Warning이라면 `{ 2: 'Minor Incident' }`입니다.
-- Average 문제에도 호출하려면 `if-page-1` **If / Else** 단계의 **비교 대상**을 `3`으로 설정하세요.
+- Average 문제에도 호출하려면 `if-page-1` **조건 분기** 단계의 **비교 대상**을 `3`으로 설정하세요.
 
 ### 인지와 메모를 Zabbix로 돌려보내기
 
@@ -126,7 +126,7 @@ Zabbix는 사용자의 미디어를 통해 그 사용자에게 문제를 보냅�
 
 ### Zabbix 6.0에서
 
-Zabbix 6.0은 API 토큰을 `Authorization` 헤더가 아니라 요청 본문에서 읽습니다. Zabbix를 호출하는 각 템플릿의 **Update Zabbix Problem** 단계에서 **추가 필드** 아래의 **Zabbix 6.0**을 켜세요. Zabbix 7.2 이상은 본문의 토큰을 거부하므로 업그레이드할 때 다시 끄세요.
+Zabbix 6.0은 API 토큰을 `Authorization` 헤더가 아니라 요청 본문에서 읽습니다. Zabbix를 호출하는 각 템플릿의 **Zabbix 문제 업데이트** 단계에서 **추가 필드** 아래의 **Zabbix 6.0**을 켜세요. Zabbix 7.2 이상은 본문의 토큰을 거부하므로 업그레이드할 때 다시 끄세요.
 
 ## 모니터로 문제 받기
 
