@@ -10,7 +10,7 @@ Send OneUptime-hendelser til [PagerDuty](https://www.pagerduty.com). Én arbeids
 :::
 
 > [!TIP]
-> OneUptime varsler også folk, med vaktretningslinjer, vaktplaner og eskaleringsregler. For å flytte teamet ditt bort fra PagerDuty, se [Bytt fra PagerDuty](/docs/moving-to-oneuptime/pagerduty): en import henter over brukerne, vaktplanene og eskaleringsretningslinjene dine.
+> OneUptime varsler også folk, med vaktpolicyer, vaktplaner og eskaleringsregler. For å flytte teamet ditt bort fra PagerDuty, se [Bytt fra PagerDuty](/docs/moving-to-oneuptime/pagerduty): en import henter over brukerne, vaktplanene og eskaleringspolicyene dine.
 
 ## Slik fungerer det
 
@@ -156,7 +156,7 @@ En referanse som ikke kan løses opp, sendes slik den er skrevet, krøllparentes
 ## Neste trinn
 
 :::cards
-- [Bytt fra PagerDuty](/docs/moving-to-oneuptime/pagerduty): Hent over teamet ditt, vaktplanene og eskaleringsretningslinjene.
+- [Bytt fra PagerDuty](/docs/moving-to-oneuptime/pagerduty): Hent over teamet ditt, vaktplanene og eskaleringspolicyene.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Varsle folk fra OneUptime selv.
 - [Opsgenie](/docs/integrations/opsgenie): De samme to arbeidsflytene for Opsgenie.
 - [Oversikt over integrasjoner](/docs/integrations/index): Mønstrene bak hver integrasjon.

@@ -122,8 +122,8 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor del dominio parte con tre criteri, così vi avvisa prima che una registrazione scada senza configurare nulla:
 
-1. **Controllo del dominio fallito** — la registrazione è scaduta, oppure non è stato possibile leggerne i dati. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ domain check failed». L'incidente si risolve da solo appena la registrazione viene letta di nuovo ed è valida.
-2. **Il dominio scade presto** — la registrazione non è scaduta ma scade entro 30 giorni. Viene creato un **avviso** chiamato «_monitor name_ domain expires soon».
+1. **Controllo del dominio fallito** — la registrazione è scaduta, oppure non è stato possibile leggerne i dati. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «Il controllo del dominio _nome del monitor_ non è riuscito». L'incidente si risolve da solo appena la registrazione viene letta di nuovo ed è valida.
+2. **Il dominio scade presto** — la registrazione non è scaduta ma scade entro 30 giorni. Viene creato un **avviso** chiamato «Il dominio _nome del monitor_ scade a breve».
 3. **Il dominio non è scaduto** — il monitor viene segnato **Operativo**.
 
 L'avviso «scade presto» è un avviso, non un incidente: non compare sulle vostre pagine di stato, non chiama nessuno a meno che non gli aggiungiate una policy di reperibilità, e non cambia lo stato del monitor. Usa la seconda gravità di avviso del vostro progetto, **Basso** in un nuovo progetto. Appena il rinnovo compare nella registrazione, l'avviso si risolve da solo. Un registro che non pubblica una data di scadenza non dà nulla su cui basarsi all'avviso, che quindi resta silenzioso.

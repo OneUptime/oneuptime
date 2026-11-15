@@ -46,7 +46,7 @@ De er atskilt med vilje. Å slå på alle kanaler i **Varselinnstillinger** tilk
 | **Kom i gang** | **Oppsettsjekkliste**: hva som gjenstår å sette opp, i den rekkefølgen som teller |
 | **Varsler og notifikasjoner** | **Varselmetoder**, **Slik når man meg**, **Varselinnstillinger** og **E-postinnstillinger**, der du bestemmer hvor mange e-poster oppdateringene dine blir til |
 | **Vaktlogger** | **Vaktlogger**: hver gang du ble tilkalt i dette prosjektet, og hva som ble sendt |
-| **Retningslinjer for innkommende anrop** | **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
+| **Policy for innkommende anrop** | **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
 | **Kalender** | **Kalenderfeed**: vaktene dine i kalenderappen din, og påminnelser før de starter |
 | **Profil** | **Egendefinerte felt**: opplysninger prosjektet ditt ber medlemmene om |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: din egen konto, i hvert arbeidsområde prosjektet har koblet til |

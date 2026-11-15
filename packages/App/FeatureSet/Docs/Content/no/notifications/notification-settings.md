@@ -52,7 +52,7 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 | **Overvåking** | **Sondestatus endret for overvåkingen din**, **Overvåking har ingen aktive sonder**, **SLO-status endret**, **Lagt til som SLO-eier**, **Unntak tildelt meg**, **Sondestatus endret**, **Lagt til som sonde-eier** | **Overvåking opprettet**, **Overvåkingsstatus endret**, **Lagt til som overvåkingseier**, **AI-agentstatus endret**, **Lagt til som AI-agenteier** |
 | **Statussider** | **Mitt offentlige notat godkjent eller avvist**, og også via push: **Offentlig notat venter på min godkjenning** | **Statusside opprettet**, **Statusside-kunngjøring publisert**, **Lagt til som statussideeier** |
 | **Planlagt vedlikehold** | **Påminnelse om vedlikehold** | **Vedlikeholdshendelse opprettet**, **Vedlikeholdstilstand endret**, **Vedlikeholdsnotat publisert**, **Lagt til som vedlikeholdseier** |
-| **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vakttjeneste-retningslinje**, **Fjernet fra vaktordning-retningslinje**, **Tapt anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
+| **Vakt** | **Du går på vakt**, **Du er neste på vakt**, **Du går av vakt**, **Lagt til i vaktpolicy**, **Fjernet fra vaktpolicy**, **Tapt anrop**, og også via push: **Før vakten min starter**, **Min kommende vakt blir tildelt noen andre** | Ingen |
 | **Sikkerhet** | Også via push: **Ny sikkerhetssak** (saker med prioritet High og Kritisk), **Sikkerhetssak tildelt meg**, **Playbook-trinn venter på min godkjenning**, **Responsmål for sikkerhetssak**, **Oppgave i sikkerhetssak tildelt meg**, **En hunt fant sikkerhetshendelser** | Ingen |
 
 > [!IMPORTANT]
@@ -63,9 +63,9 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 Fanen **Vakt** handler om deg, ikke om det du eier:
 
 - **Du går på vakt**, **Du er neste på vakt** og **Du går av vakt** følger turene dine i vaktplanene du er med i.
-- **Lagt til i vakttjeneste-retningslinje** og **Fjernet fra vaktordning-retningslinje** forteller deg når en vaktpolicy begynner eller slutter å nevne deg.
+- **Lagt til i vaktpolicy** og **Fjernet fra vaktpolicy** forteller deg når en vaktpolicy begynner eller slutter å nevne deg.
 - **Før vakten min starter** sender påminnelser på tidspunktene du velger under **Brukerinnstillinger → Kalender → Kalenderfeed**, og **Min kommende vakt blir tildelt noen andre** forteller deg når noen andre dekker en vakt du er blitt minnet på. Se [Kalenderfeeder](/docs/on-call/calendar-feeds#påminnelser-og-meldinger-om-ny-tildeling).
-- **Tapt anrop**, på kortet **Retningslinjer for innkommende anrop**, forteller eierne av en policy for innkommende anrop at en som ringte, ikke nådde noen. Se [Policy for innkommende anrop](/docs/on-call/incoming-call-policy#tapte-anrop).
+- **Tapt anrop**, på kortet **Policyer for innkommende anrop**, forteller eierne av en policy for innkommende anrop at en som ringte, ikke nådde noen. Se [Policy for innkommende anrop](/docs/on-call/incoming-call-policy#tapte-anrop).
 
 ## Sikkerhetssaker
 

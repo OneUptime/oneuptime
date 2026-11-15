@@ -28,6 +28,11 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { pathWithArrows } from "./DocsPageShape";
+import {
+  defaultCriteriaNamesAsWritten,
+  defaultTitlesAsQuoted,
+  isQuotedIn,
+} from "./DocsDefaultTitles";
 import { getAllDockerAlertTemplates } from "Common/Types/Monitor/DockerAlertTemplates";
 import { getAllDockerSwarmAlertTemplates } from "Common/Types/Monitor/DockerSwarmAlertTemplates";
 import { getAllHostAlertTemplates } from "Common/Types/Monitor/HostAlertTemplates";
@@ -36,12 +41,9 @@ import {
   KubernetesMetricDefinition,
   getAllKubernetesMetrics,
 } from "Common/Types/Monitor/KubernetesMetricCatalog";
-import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
-import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { getAllPodmanAlertTemplates } from "Common/Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "Common/Types/Monitor/ProxmoxAlertTemplates";
-import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -78,8 +80,10 @@ import { describe, expect, it } from "@jest/globals";
  *     (DocsCriteriaConditions holds every page to the conditions).
  *
  * The criteria names and the incident title a new monitor's default
- * criteria create are English in every project, so every translation quotes
- * them as created. Bold words that are Dashboard labels only by coincidence
+ * criteria create are written with the reader's translator, so every
+ * translation names them in its Dashboard's words, with the monitor's name
+ * as an italic placeholder in the reader's words, and quotes the title
+ * (DocsDefaultTitles, #8526). Bold words that are Dashboard labels only by coincidence
  * are PROSE, with why; bold words that are neither labels nor shown in
  * English are the pages' own leads (PROSE_LEADS), which a translation words
  * freely.
@@ -380,8 +384,6 @@ const DECIMAL_MARK: RegExp = /(\d)[,٫](\d)/g;
 // Where a drawn sensitivity option's name ends: at its parenthesis.
 const OPTION_DETAIL: RegExp = /\s*[(（].*$/;
 
-const MONITOR_NAME: string = "Acme";
-
 function englishPage(page: string): string {
   return readPage("en", page);
 }
@@ -562,35 +564,40 @@ function numbersIn(text: string): Array<string> {
 }
 
 /*
- * The criteria names and the incident title a new monitor of this type gets,
- * as the English pages quote them: "_monitor name_ is offline".
+ * The criteria names and the incident title a new monitor of this type gets
+ * in this language, as the pages write them (#8526): the names as they are,
+ * the title quoted - "Check if _monitor name_ is offline" and
+ * "_monitor name_ is offline" in English, „_Monitorname_ ist offline“ in
+ * German.
  */
-function defaultCriteriaText(monitorType: MonitorType): Array<string> {
-  const instances: Array<MonitorCriteriaInstance> =
-    MonitorCriteria.getDefaultMonitorCriteria({
-      monitorType: monitorType,
-      monitorName: MONITOR_NAME,
-      onlineMonitorStatusId: ObjectID.generate(),
-      offlineMonitorStatusId: ObjectID.generate(),
-      defaultIncidentSeverityId: ObjectID.generate(),
-      defaultAlertSeverityId: ObjectID.generate(),
-    }).data?.monitorCriteriaInstanceArray || [];
+interface DefaultCriteriaText {
+  names: Array<string>;
+  titles: Array<string>;
+}
 
-  const text: Array<string> = [];
+function defaultCriteriaText(
+  monitorType: MonitorType,
+  language: string,
+): DefaultCriteriaText {
+  return {
+    names: defaultCriteriaNamesAsWritten(monitorType, language),
+    titles: defaultTitlesAsQuoted(monitorType, language),
+  };
+}
 
-  for (const instance of instances) {
-    text.push(
-      (instance.data?.name || "").replace(MONITOR_NAME, "_monitor name_"),
-    );
-
-    for (const incident of instance.data?.createIncidents
-      ? instance.data.incidents
-      : []) {
-      text.push(`"${incident.title.replace(MONITOR_NAME, "_monitor name_")}"`);
-    }
-  }
-
-  return text;
+// Whether a page names each default criteria and quotes each title.
+function missingDefaultCriteriaText(
+  markdown: string,
+  text: DefaultCriteriaText,
+): Array<string> {
+  return [
+    ...text.names.filter((name: string): boolean => {
+      return !markdown.includes(name);
+    }),
+    ...text.titles.filter((title: string): boolean => {
+      return !isQuotedIn(markdown, title);
+    }),
+  ];
 }
 
 describe("the lists this test keeps", () => {
@@ -714,15 +721,16 @@ describe("the lists this test keeps", () => {
     }
 
     for (const page of Object.keys(DEFAULT_CRITERIA_TYPES)) {
-      for (const text of defaultCriteriaText(
-        DEFAULT_CRITERIA_TYPES[page] as MonitorType,
-      )) {
-        expect({ page, text, quoted: true }).toEqual({
-          page,
-          text,
-          quoted: englishPage(page).includes(text),
-        });
-      }
+      expect({
+        page,
+        missing: missingDefaultCriteriaText(
+          englishPage(page),
+          defaultCriteriaText(
+            DEFAULT_CRITERIA_TYPES[page] as MonitorType,
+            "en",
+          ),
+        ),
+      }).toEqual({ page, missing: [] });
     }
   });
 });
@@ -922,17 +930,36 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("quotes the default criteria and their incident exactly as a new monitor creates them", () => {
+    it("names the default criteria and quotes their incident as a new monitor in this language creates them", () => {
       const monitorType: MonitorType | undefined =
         DEFAULT_CRITERIA_TYPES[entry.page];
-      const translated: string = readPage(language, entry.page);
-      const missing: Array<string> = (
-        monitorType ? defaultCriteriaText(monitorType) : []
-      ).filter((text: string): boolean => {
-        return !translated.includes(text.replace(/^"|"$/g, ""));
-      });
 
-      expect(missing).toEqual([]);
+      if (!monitorType) {
+        return;
+      }
+
+      const translated: string = readPage(language, entry.page);
+
+      expect(
+        missingDefaultCriteriaText(
+          translated,
+          defaultCriteriaText(monitorType, language),
+        ),
+      ).toEqual([]);
+
+      // And none in English, which this language words otherwise (#8526).
+      const english: DefaultCriteriaText = defaultCriteriaText(
+        monitorType,
+        "en",
+      );
+
+      expect(
+        [...english.names, ...english.titles].filter(
+          (text: string): boolean => {
+            return translated.includes(text);
+          },
+        ),
+      ).toEqual([]);
     });
 
     it("lists every template under the name the picker shows, with its numbers", () => {
@@ -1219,7 +1246,7 @@ describe("the helpers, on these pages' shapes", () => {
     ).toHaveLength(1);
     expect(
       await strayMarkers(
-        "# Title\n\n条件 “Check if _monitor name_ is offline”。",
+        "# Title\n\n条件 “检查 _监视器名称_ 是否离线”。",
         "zh-CN",
       ),
     ).toEqual([]);
@@ -1290,12 +1317,28 @@ describe("the helpers, on these pages' shapes", () => {
     expect(numbersIn("Über 2.000")).toEqual(["2.000"]);
   });
 
-  it("quote the criteria names and the incident a new Docker monitor creates", () => {
-    expect(defaultCriteriaText(MonitorType.Docker)).toEqual([
-      "Check if _monitor name_ is offline",
-      '"_monitor name_ is offline"',
-      "Check if _monitor name_ is online",
-    ]);
+  it("quote the criteria names and the incident a new Docker monitor creates, in the reader's words (#8526)", () => {
+    expect(defaultCriteriaText(MonitorType.Docker, "en")).toEqual({
+      names: [
+        "Check if _monitor name_ is offline",
+        "Check if _monitor name_ is online",
+      ],
+      titles: ["_monitor name_ is offline"],
+    });
+    expect(defaultCriteriaText(MonitorType.Docker, "de")).toEqual({
+      names: [
+        "Prüfen, ob _Monitorname_ offline ist",
+        "Prüfen, ob _Monitorname_ online ist",
+      ],
+      titles: ["_Monitorname_ ist offline"],
+    });
+    // The English row the German page had before #8526 misses all three.
+    expect(
+      missingDefaultCriteriaText(
+        "| 1 | Check if _monitor name_ is offline | Keine Daten | Meldet den Vorfall „_monitor name_ is offline“. |\n| 2 | Check if _monitor name_ is online | Daten | — |",
+        defaultCriteriaText(MonitorType.Docker, "de"),
+      ),
+    ).toHaveLength(3);
   });
 
   it("compare a flowchart by its nodes and arrows, not its words", () => {

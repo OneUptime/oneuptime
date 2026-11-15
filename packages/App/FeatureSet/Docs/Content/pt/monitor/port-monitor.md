@@ -122,7 +122,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de porta novo começa com dois critérios:
 
-- **Offline** — a porta não aceita uma conexão, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ is offline" é criado. O incidente se resolve sozinho quando a porta volta a aceitar conexões.
+- **Offline** — a porta não aceita uma conexão, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_nome do monitor_ está offline" é criado. O incidente se resolve sozinho quando a porta volta a aceitar conexões.
 - **No ar** — a porta aceita uma conexão. O monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Quando nenhum corresponde, o monitor mostra o status padrão: **Operacional**, a menos que você escolha outro em **Mais campos**, abaixo dos critérios.

@@ -774,8 +774,8 @@ Un monitor que no creas a partir de una plantilla empieza con dos criterios:
 
 | Orden | Criterio | Coincide cuando | Entonces |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente "_monitor name_ is offline", que se resuelve solo cuando el monitor se recupera. |
-| 2 | Check if _monitor name_ is online | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
+| 1 | Comprobar si _nombre del monitor_ está sin conexión | La primera consulta no tiene datos en toda la ventana | Marca el monitor como **Sin conexión** y declara el incidente "_nombre del monitor_ está sin conexión", que se resuelve solo cuando el monitor se recupera. |
+| 2 | Comprobar si _nombre del monitor_ está en línea | La primera consulta tiene datos | Marca el monitor como **Operativo**. |
 
 > [!IMPORTANT]
 > Un valor de `0` es un dato, así que una métrica que suele ser cero, como los reinicios o los errores, no deja el monitor sin conexión. Para alertar sobre un valor, parte de una plantilla o añade un criterio con un umbral. Cuando no llega ningún dato y ningún criterio coincide, el monitor mantiene su estado y los incidentes abiertos siguen abiertos: el silencio no es recuperación. El tiempo en que el propio OneUptime no estaba recibiendo nunca cuenta como falta de datos: una comprobación cuya ventana lo contiene espera en su lugar, como explica [Cuando OneUptime no está recibiendo datos](/docs/monitor/when-oneuptime-is-not-receiving).
