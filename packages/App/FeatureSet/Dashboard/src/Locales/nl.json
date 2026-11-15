@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "{{name}} heeft de waarschuwingsepisode bevestigd.",
   "{{name}} acknowledged the alert.": "{{name}} heeft de waarschuwing bevestigd.",
   "{{name}} acknowledged the incident episode.": "{{name}} heeft de incidentepisode bevestigd.",
-  "{{name}} acknowledged the incident.": "{{name}} heeft het incident bevestigd."
+  "{{name}} acknowledged the incident.": "{{name}} heeft het incident bevestigd.",
+  "Call ID: {{id}}.": "Gesprek-ID: {{id}}.",
+  "The call could not be connected.": "Het gesprek kon niet worden verbonden.",
+  "The call was answered and lasted {{count}} seconds.": "Het gesprek is beantwoord en duurde {{count}} seconden.",
+  "The call was answered and lasted {{count}} seconds._one": "Het gesprek is beantwoord en duurde {{count}} seconde.",
+  "The call was answered.": "Het gesprek is beantwoord.",
+  "The call was not answered: it rang out.": "Het gesprek is niet beantwoord: de telefoon ging over zonder antwoord.",
+  "The call was not answered: the line was busy, or the call was declined.": "Het gesprek is niet beantwoord: de lijn was bezet, of het gesprek is geweigerd."
 }

@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "{{name}} confirmou o episódio de alertas.",
   "{{name}} acknowledged the alert.": "{{name}} confirmou o alerta.",
   "{{name}} acknowledged the incident episode.": "{{name}} confirmou o episódio de incidentes.",
-  "{{name}} acknowledged the incident.": "{{name}} confirmou o incidente."
+  "{{name}} acknowledged the incident.": "{{name}} confirmou o incidente.",
+  "Call ID: {{id}}.": "ID da chamada: {{id}}.",
+  "The call could not be connected.": "Não foi possível conectar a chamada.",
+  "The call was answered and lasted {{count}} seconds.": "A chamada foi atendida e durou {{count}} segundos.",
+  "The call was answered and lasted {{count}} seconds._one": "A chamada foi atendida e durou {{count}} segundo.",
+  "The call was answered.": "A chamada foi atendida.",
+  "The call was not answered: it rang out.": "A chamada não foi atendida: tocou até cair.",
+  "The call was not answered: the line was busy, or the call was declined.": "A chamada não foi atendida: a linha estava ocupada ou a chamada foi recusada."
 }

@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "أقرّ {{name}} بحلقة التنبيهات.",
   "{{name}} acknowledged the alert.": "أقرّ {{name}} بالتنبيه.",
   "{{name}} acknowledged the incident episode.": "أقرّ {{name}} بحلقة الحوادث.",
-  "{{name}} acknowledged the incident.": "أقرّ {{name}} بالحادثة."
+  "{{name}} acknowledged the incident.": "أقرّ {{name}} بالحادثة.",
+  "Call ID: {{id}}.": "معرّف المكالمة: {{id}}.",
+  "The call could not be connected.": "تعذّر توصيل المكالمة.",
+  "The call was answered and lasted {{count}} seconds.": "تمت الإجابة عن المكالمة واستمرت {{count}} ث.",
+  "The call was answered and lasted {{count}} seconds._one": "تمت الإجابة عن المكالمة واستمرت {{count}} ثانية.",
+  "The call was answered.": "تمت الإجابة عن المكالمة.",
+  "The call was not answered: it rang out.": "لم تتم الإجابة عن المكالمة: رنّت دون رد.",
+  "The call was not answered: the line was busy, or the call was declined.": "لم تتم الإجابة عن المكالمة: كان الخط مشغولًا، أو رُفضت المكالمة."
 }

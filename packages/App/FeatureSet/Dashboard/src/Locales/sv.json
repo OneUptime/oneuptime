@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "{{name}} bekräftade larmepisoden.",
   "{{name}} acknowledged the alert.": "{{name}} bekräftade larmet.",
   "{{name}} acknowledged the incident episode.": "{{name}} bekräftade incidentepisoden.",
-  "{{name}} acknowledged the incident.": "{{name}} bekräftade incidenten."
+  "{{name}} acknowledged the incident.": "{{name}} bekräftade incidenten.",
+  "Call ID: {{id}}.": "Samtals-ID: {{id}}.",
+  "The call could not be connected.": "Samtalet kunde inte kopplas upp.",
+  "The call was answered and lasted {{count}} seconds.": "Samtalet besvarades och varade i {{count}} sekunder.",
+  "The call was answered and lasted {{count}} seconds._one": "Samtalet besvarades och varade i {{count}} sekund.",
+  "The call was answered.": "Samtalet besvarades.",
+  "The call was not answered: it rang out.": "Samtalet besvarades inte: det ringde ut.",
+  "The call was not answered: the line was busy, or the call was declined.": "Samtalet besvarades inte: linjen var upptagen, eller samtalet avvisades."
 }

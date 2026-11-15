@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "{{name}} 已確認警示片段。",
   "{{name}} acknowledged the alert.": "{{name}} 已確認警示。",
   "{{name}} acknowledged the incident episode.": "{{name}} 已確認事件片段。",
-  "{{name}} acknowledged the incident.": "{{name}} 已確認事件。"
+  "{{name}} acknowledged the incident.": "{{name}} 已確認事件。",
+  "Call ID: {{id}}.": "通話 ID：{{id}}。",
+  "The call could not be connected.": "無法接通電話。",
+  "The call was answered and lasted {{count}} seconds.": "電話已接聽，通話持續了 {{count}} 秒。",
+  "The call was answered and lasted {{count}} seconds._one": "電話已接聽，通話持續了 {{count}} 秒。",
+  "The call was answered.": "電話已接聽。",
+  "The call was not answered: it rang out.": "電話未接聽：一直響鈴無人接。",
+  "The call was not answered: the line was busy, or the call was declined.": "電話未接聽：線路忙碌，或電話被拒接。"
 }

@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "{{name}} bekræftede advarselsepisoden.",
   "{{name}} acknowledged the alert.": "{{name}} bekræftede advarslen.",
   "{{name}} acknowledged the incident episode.": "{{name}} bekræftede hændelsesepisoden.",
-  "{{name}} acknowledged the incident.": "{{name}} bekræftede hændelsen."
+  "{{name}} acknowledged the incident.": "{{name}} bekræftede hændelsen.",
+  "Call ID: {{id}}.": "Opkalds-ID: {{id}}.",
+  "The call could not be connected.": "Opkaldet kunne ikke forbindes.",
+  "The call was answered and lasted {{count}} seconds.": "Opkaldet blev besvaret og varede {{count}} sekunder.",
+  "The call was answered and lasted {{count}} seconds._one": "Opkaldet blev besvaret og varede {{count}} sekund.",
+  "The call was answered.": "Opkaldet blev besvaret.",
+  "The call was not answered: it rang out.": "Opkaldet blev ikke besvaret: det ringede ud.",
+  "The call was not answered: the line was busy, or the call was declined.": "Opkaldet blev ikke besvaret: linjen var optaget, eller opkaldet blev afvist."
 }

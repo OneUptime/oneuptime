@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "{{name}} ने अलर्ट एपिसोड को स्वीकार किया।",
   "{{name}} acknowledged the alert.": "{{name}} ने अलर्ट को स्वीकार किया।",
   "{{name}} acknowledged the incident episode.": "{{name}} ने घटना एपिसोड को स्वीकार किया।",
-  "{{name}} acknowledged the incident.": "{{name}} ने घटना को स्वीकार किया।"
+  "{{name}} acknowledged the incident.": "{{name}} ने घटना को स्वीकार किया।",
+  "Call ID: {{id}}.": "कॉल ID: {{id}}।",
+  "The call could not be connected.": "कॉल कनेक्ट नहीं हो सकी।",
+  "The call was answered and lasted {{count}} seconds.": "कॉल का जवाब दिया गया और यह {{count}} सेकंड चली।",
+  "The call was answered and lasted {{count}} seconds._one": "कॉल का जवाब दिया गया और यह {{count}} सेकंड चली।",
+  "The call was answered.": "कॉल का जवाब दिया गया।",
+  "The call was not answered: it rang out.": "कॉल का जवाब नहीं दिया गया: घंटी बजती रही।",
+  "The call was not answered: the line was busy, or the call was declined.": "कॉल का जवाब नहीं दिया गया: लाइन व्यस्त थी, या कॉल अस्वीकार कर दी गई।"
 }

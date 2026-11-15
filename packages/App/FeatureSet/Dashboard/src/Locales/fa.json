@@ -54322,5 +54322,12 @@
   "{{name}} acknowledged the alert episode.": "{{name}} اپیزود هشدار را تأیید کرد.",
   "{{name}} acknowledged the alert.": "{{name}} هشدار را تأیید کرد.",
   "{{name}} acknowledged the incident episode.": "{{name}} اپیزود حادثه را تأیید کرد.",
-  "{{name}} acknowledged the incident.": "{{name}} حادثه را تأیید کرد."
+  "{{name}} acknowledged the incident.": "{{name}} حادثه را تأیید کرد.",
+  "Call ID: {{id}}.": "شناسهٔ تماس: {{id}}.",
+  "The call could not be connected.": "تماس برقرار نشد.",
+  "The call was answered and lasted {{count}} seconds.": "به تماس پاسخ داده شد و {{count}} ثانیه طول کشید.",
+  "The call was answered and lasted {{count}} seconds._one": "به تماس پاسخ داده شد و {{count}} ثانیه طول کشید.",
+  "The call was answered.": "به تماس پاسخ داده شد.",
+  "The call was not answered: it rang out.": "به تماس پاسخ داده نشد: زنگ خورد و کسی پاسخ نداد.",
+  "The call was not answered: the line was busy, or the call was declined.": "به تماس پاسخ داده نشد: خط اشغال بود، یا تماس رد شد."
 }
