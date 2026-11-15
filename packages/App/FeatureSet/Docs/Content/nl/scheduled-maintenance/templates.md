@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### De sjablonen openen
 
-Ga naar **Geplande onderhoud → Instellingen → Onderhoudssjablonen**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit. Klik op **Sjabloon voor gepland onderhoud aanmaken**.
+Ga naar **Gepland onderhoud → Instellingen → Onderhoudssjablonen**. **Instellingen** is in het zijmenu eerst ingeklapt: klap het eerst uit. Klik op **Sjabloon voor gepland onderhoud aanmaken**.
 
 ### Het sjabloon een naam geven
 
@@ -68,7 +68,7 @@ Een sjabloon vraagt om **Monitorstatus wijzigen naar**, ook als het geen monitor
 :::steps
 ### Het sjabloon kiezen
 
-Klik op **Geplande onderhoud → Alle onderhoudsgebeurtenissen** op **Maken op basis van sjabloon** en kies een sjabloon onder **Selecteer sjabloon voor geplande onderhoud**.
+Klik op **Gepland onderhoud → Alle onderhoudsgebeurtenissen** op **Maken op basis van sjabloon** en kies een sjabloon onder **Selecteer sjabloon voor gepland onderhoud**.
 
 ### Het formulier nalopen
 
@@ -108,7 +108,7 @@ Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende 
 
 Open een sjabloon uit de lijst om de pagina ervan te zien:
 
-- **Sjabloondetails voor geplande onderhoud** toont waarmee nieuwe gebeurtenissen beginnen. Het **Bewerken** ervan loopt door **Sjablooninformatie**, **Onderhoudsgegevens**, **Statuspagina's** en **Terugkerend**.
+- **Sjabloondetails voor gepland onderhoud** toont waarmee nieuwe gebeurtenissen beginnen. Het **Bewerken** ervan loopt door **Sjablooninformatie**, **Onderhoudsgegevens**, **Statuspagina's** en **Terugkerend**.
 - **Getroffen resources** bevat de **Monitoren**, hun **Monitorstatus wijzigen naar** en de **Andere getroffen resources**, met een eigen **Bewerken**.
 - **Eigenaren** toont de personen en teams van wie elke gebeurtenis is die ermee wordt gepland.
 
@@ -134,5 +134,5 @@ Onder **Andere getroffen resources** neemt een sjabloon hosts, Kubernetes-cluste
 - [Onderhoudsgebeurtenissen maken](/docs/scheduled-maintenance/creating-events): Het formulier dat een sjabloon invult.
 - [Onderhoudsstatussen](/docs/scheduled-maintenance/states): Hoe elke gebeurtenis verdergaat zodra ze is gemaakt.
 - [Onderhoudsregels en instellingen](/docs/scheduled-maintenance/settings): Elke nieuwe gebeurtenis automatisch eigenaren en labels geven.
-- [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index): Waar sjablonen passen in de rest van het onderhoud.
+- [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index): Waar sjablonen passen in de rest van het onderhoud.
 :::

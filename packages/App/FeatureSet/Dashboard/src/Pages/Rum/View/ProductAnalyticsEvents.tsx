@@ -513,7 +513,7 @@ const RumApplicationProductAnalyticsEvents: FunctionComponent<
                   },
                 )}
                 isClearable={false}
-                ariaLabel={translator.translateText("Break down by") || ""}
+                ariaLabel="Break down by"
                 dataTestId="product-analytics-event-breakdown-field"
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,

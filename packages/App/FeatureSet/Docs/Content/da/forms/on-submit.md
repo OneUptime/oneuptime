@@ -1,6 +1,6 @@
 # Hvad en indsendelse opretter
 
-Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse** eller en **vedligeholdelsesbegivenhed**. En formulars side **Ved indsendelse** viser hvilken, og hvordan hvert felt på den nye post udfyldes — fra et svar, fra en standardværdi, fra en indstilling, der altid gælder, eller fra hændelsesskabelonen. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder.
+Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse** eller en **vedligeholdelseshændelse**. En formulars side **Ved indsendelse** viser hvilken, og hvordan hvert felt på den nye post udfyldes — fra et svar, fra en standardværdi, fra en indstilling, der altid gælder, eller fra hændelsesskabelonen. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder.
 
 :::cards
 - [Sådan bliver en indsendelse til en hændelse](#sådan-bliver-en-indsendelse-til-en-hændelse): Hvert felt på den nye hændelse, og hvor dets værdi kommer fra.
@@ -11,11 +11,11 @@ Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse
 
 ## Hvad der sker ved indsendelse
 
-```mermaid title="Fra en indsendelse til en hændelse eller en vedligeholdelsesbegivenhed"
+```mermaid title="Fra en indsendelse til en hændelse eller en vedligeholdelseshændelse"
 flowchart TB
     submit["Indsend"] --> checks["Beskyttelser og<br/>tjek af svarene"]
     checks --> fields["Hvert felt: svaret,<br/>ellers indstillingerne Ved indsendelse,<br/>ellers hændelsesskabelonen"]
-    fields --> record["Hændelsen eller<br/>vedligeholdelsesbegivenheden"]
+    fields --> record["Hændelsen eller<br/>vedligeholdelseshændelsen"]
     record --> note["En privat note: hvem der sendte den,<br/>og de andre svar"]
     record --> runs["Regler, vagtpolitikker<br/>og arbejdsgange kører"]
 ```
@@ -27,14 +27,14 @@ En indsendelse, der ikke består et tjek, opretter intet. Se [Hvad der beskytter
 Kortet **Hvad hver indsendelse opretter** indeholder det valg, du traf, da du oprettede formularen:
 
 - **Hændelse** — hver indsendelse opretter en hændelse, så dit vagthold får besked med det samme. Brug det til problemrapporter.
-- **Planlagt vedligeholdelse** — hver indsendelse planlægger en vedligeholdelsesbegivenhed. Brug det til anmodninger om ændringer og vedligeholdelse.
+- **Planlagt vedligeholdelse** — hver indsendelse planlægger en vedligeholdelseshændelse. Brug det til anmodninger om ændringer og vedligeholdelse.
 
 At vælge den anden beder dig bekræfte, fordi formularen ændrer sig med den:
 
 - Titlen, beskrivelsen, monitorerne og etiketterne forbliver knyttet: begge slags poster har dem.
 - Hvert andet tilknyttet spørgsmål — en alvorlighed, et valg af statusside, et brugerdefineret felt af den gamle slags — bliver et af formularens egne spørgsmål, med samme ordlyd, hvis svar vises i den private note.
 - Indstillingerne Ved indsendelse starter forfra, da en hændelses og en begivenheds indstillinger er forskellige.
-- En formular, der nu opretter vedligeholdelsesbegivenheder, spørger, hvornår vedligeholdelsen starter og slutter.
+- En formular, der nu opretter vedligeholdelseshændelser, spørger, hvornår vedligeholdelsen starter og slutter.
 
 Spørgsmålene gemmes med det samme, sammen med ændringen. Tjek dem på siden **Byg**.
 

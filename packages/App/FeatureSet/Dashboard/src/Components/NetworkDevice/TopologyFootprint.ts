@@ -94,6 +94,102 @@ export const NODE_COLLISION_PADDING: number = 8;
  */
 export const LABEL_VISIBILITY_MIN_SCALE: number = 0.55;
 
+// Characters a name's parts are joined with: a line may break after one.
+const NAME_SEPARATORS: string = "-_./:@";
+
+const isDigit: (character: string) => boolean = (
+  character: string,
+): boolean => {
+  return character >= "0" && character <= "9";
+};
+
+/*
+ * A letter has two cases; a CJK character has none but sits far above
+ * every separator, so both count. Written without Unicode property
+ * escapes, which the Dashboard's ES2017 target does not have.
+ */
+const isLetterOrDigit: (character: string) => boolean = (
+  character: string,
+): boolean => {
+  return (
+    isDigit(character) ||
+    character.toLowerCase() !== character.toUpperCase() ||
+    character.charCodeAt(0) >= 0x2e80
+  );
+};
+
+/*
+ * Whether a word reads well broken before its character at `index`: right
+ * after a separator ("core-" / "sw-01"), or where letters turn into digits
+ * or digits into letters ("WB0660RSVR" / "01", "WB0660TAB" / "010").
+ */
+const isNaturalBreak: (word: string, index: number) => boolean = (
+  word: string,
+  index: number,
+): boolean => {
+  const before: string = word.charAt(index - 1);
+  const after: string = word.charAt(index);
+  if (!before || !after) {
+    return false;
+  }
+  if (NAME_SEPARATORS.includes(before)) {
+    return true;
+  }
+  return (
+    isLetterOrDigit(before) &&
+    isLetterOrDigit(after) &&
+    isDigit(before) !== isDigit(after)
+  );
+};
+
+/**
+ * One word, cut into chunks no longer than `limit`.
+ *
+ * Cut every `limit` characters, a hostname one character too long put that
+ * character on a line of its own: "WB0660RSVR01" read "WB0660RSVR0" over
+ * "1" (issue #8152). A word that fits on two lines now breaks where its
+ * parts meet - after a separator, or between letters and digits - as late
+ * as both halves allow, and evenly when it has no such place. A word too
+ * long for two lines fills its first line and the rest is cut the same way,
+ * so the lines a label keeps, and the ellipsis it ends with, are unchanged.
+ */
+export const splitLongWord: (word: string, limit: number) => Array<string> = (
+  word: string,
+  limit: number,
+): Array<string> => {
+  const chunks: Array<string> = [];
+  let rest: string = word;
+  while (rest.length > limit) {
+    if (rest.length > 2 * limit) {
+      chunks.push(rest.slice(0, limit));
+      rest = rest.slice(limit);
+      continue;
+    }
+    // The first half is at most a line, and leaves at most a line behind.
+    const earliest: number = Math.max(1, rest.length - limit);
+    let cut: number = -1;
+    for (
+      let index: number = Math.min(limit, rest.length - 1);
+      index >= earliest;
+      index--
+    ) {
+      if (isNaturalBreak(rest, index)) {
+        cut = index;
+        break;
+      }
+    }
+    if (cut < 0) {
+      cut = Math.min(limit, Math.max(earliest, Math.ceil(rest.length / 2)));
+    }
+    chunks.push(rest.slice(0, cut));
+    rest = rest.slice(cut);
+  }
+  if (rest.length > 0) {
+    chunks.push(rest);
+  }
+  return chunks;
+};
+
 /*
  * Label wrapping. Device and endpoint names ("core-1.example.com", "Menu
  * Board 2") are long relative to node spacing, so they wrap onto a second
@@ -118,18 +214,13 @@ export const wrapNodeLabel: (
   const lineLimit: number = Math.max(1, Math.floor(maxLines));
 
   /*
-   * Split into chunks that each fit on a line: words normally, and a hard
-   * split for a single word longer than the limit (long hostnames).
+   * Split into chunks that each fit on a line: words normally, and a split
+   * of a single word longer than the limit (long hostnames) - see
+   * splitLongWord, which keeps a name's parts together.
    */
   const chunks: Array<string> = [];
   for (const word of text.split(/\s+/)) {
-    if (word.length <= limit) {
-      chunks.push(word);
-      continue;
-    }
-    for (let i: number = 0; i < word.length; i += limit) {
-      chunks.push(word.slice(i, i + limit));
-    }
+    chunks.push(...splitLongWord(word, limit));
   }
 
   const lines: Array<string> = [];

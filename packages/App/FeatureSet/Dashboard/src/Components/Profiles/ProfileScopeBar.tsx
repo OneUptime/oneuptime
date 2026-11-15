@@ -256,7 +256,7 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
               <Dropdown
                 options={serviceOptions}
                 value={selectedServiceOption}
-                ariaLabel={translator.translateText("Service")}
+                ariaLabel="Service"
                 isClearable={false}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
@@ -435,7 +435,7 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
             <Dropdown
               options={compareGroups}
               value={selectedCompareOption}
-              ariaLabel={translator.translateText("Compare with")}
+              ariaLabel="Compare with"
               isClearable={false}
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,

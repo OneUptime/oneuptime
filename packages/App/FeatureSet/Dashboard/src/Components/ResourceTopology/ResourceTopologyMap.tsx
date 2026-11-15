@@ -49,6 +49,12 @@ import {
 import ResourceTopologyCanvas, {
   ResourceTopologyFitRequest,
 } from "./ResourceTopologyCanvas";
+import ResourceTopologyConnectionsCanvas from "./ResourceTopologyConnectionsCanvas";
+import {
+  TOPOLOGY_CONNECTIONS_PHONE_LIMITS,
+  TopologyConnectionsView,
+  computeTopologyConnectionsView,
+} from "./ResourceTopologyConnections";
 import ResourceTopologyOutline from "./ResourceTopologyOutline";
 import ResourceTopologyDetailPanel from "./ResourceTopologyDetailPanel";
 import {
@@ -83,7 +89,12 @@ import {
  *   - "Focus on this" narrows the map to one part, what is inside it and
  *     what it is related to;
  *   - where a resource can be read more than one way (a cluster's pods by
- *     workload or by node), "Group by" switches between them.
+ *     workload or by node), "Group by" switches between them;
+ *   - where a product says how its parts are connected (a cloud account's
+ *     networks, balancers and databases), "Connections" draws them around
+ *     the part picked, or the search, or "Needs attention", or else the
+ *     resource's most connected parts (ResourceTopologyConnections), and a
+ *     click on a part moves it to the middle.
  *
  * What is open, picked, focused, filtered and searched lives in the address
  * bar, so a link opens the same view.
@@ -129,7 +140,7 @@ export interface ComponentProps {
   notices?: Array<ResourceTopologyNotice> | undefined;
 }
 
-type DisplayMode = "map" | "list";
+type DisplayMode = "map" | "connections" | "list";
 
 const QUERY_NODE: string = "node";
 const QUERY_FOCUS: string = "focus";
@@ -150,7 +161,7 @@ const SEARCH_URL_DELAY_MS: number = 300;
 function readInitialDisplay(): DisplayMode {
   const fromUrl: string | null = Navigation.getQueryStringByName(QUERY_VIEW);
 
-  if (fromUrl === "list" || fromUrl === "map") {
+  if (fromUrl === "list" || fromUrl === "map" || fromUrl === "connections") {
     return fromUrl;
   }
 
@@ -261,7 +272,20 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       return node && graph.nodes.has(node) ? node : null;
     },
   );
-  const [display, setDisplay] = useState<DisplayMode>(readInitialDisplay);
+  const [chosenDisplay, setDisplay] = useState<DisplayMode>(readInitialDisplay);
+  // Connections, where the product says how its parts are connected; else the map.
+  const offersConnections: boolean = graph.connections !== null;
+  const display: DisplayMode =
+    chosenDisplay === "connections" && !offersConnections
+      ? "map"
+      : chosenDisplay;
+  /*
+   * On Connections a click moves a part to the middle: its panel opens only
+   * when the part in the middle is clicked.
+   */
+  const [connectionsDetailsId, setConnectionsDetailsId] = useState<
+    string | null
+  >(null);
   const [fitRequest, setFitRequest] = useState<ResourceTopologyFitRequest>({
     token: 0,
     nodeIds: null,
@@ -546,6 +570,17 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
       };
     }, [graph, select, requestFit]);
 
+  /*
+   * On Connections the middle is the last thing asked for: a new filter or
+   * search takes it from the part that stood there.
+   */
+  const releaseConnectionsCenter: () => void = (): void => {
+    if (display === "connections" && selectedId) {
+      select(null);
+      setConnectionsDetailsId(null);
+    }
+  };
+
   const setFilter: (filter: ResourceTopologyFilter) => void = (
     filter: ResourceTopologyFilter,
   ): void => {
@@ -555,6 +590,11 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     Navigation.setQueryString({
       [QUERY_FILTER]: filter === "attention" ? "attention" : null,
     });
+
+    if (filter === "attention") {
+      releaseConnectionsCenter();
+    }
+
     requestFit(null, true);
   };
 
@@ -562,6 +602,10 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     setViewState((state: ResourceTopologyViewState) => {
       return { ...state, search: search };
     });
+
+    if (search.trim()) {
+      releaseConnectionsCenter();
+    }
 
     if (searchUrlTimer.current) {
       clearTimeout(searchUrlTimer.current);
@@ -604,14 +648,61 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
     mode: DisplayMode,
   ): void => {
     setDisplay(mode);
+    setConnectionsDetailsId(null);
     Navigation.setQueryString({
-      [QUERY_VIEW]: mode === "list" ? "list" : null,
+      [QUERY_VIEW]: mode === "map" ? null : mode,
     });
 
     if (mode === "map") {
       requestFit(null, false);
     }
   };
+
+  /*
+   * What Connections draws: the part picked, else the search, else "Needs
+   * attention", else the resource's most connected parts, in the middle.
+   */
+  const connectionsView: TopologyConnectionsView | null =
+    useMemo((): TopologyConnectionsView | null => {
+      if (display !== "connections" || !graph.connections) {
+        return null;
+      }
+
+      return computeTopologyConnectionsView(graph, {
+        selectedId,
+        search: viewState.search,
+        attentionOnly: viewState.filter === "attention",
+        kindLabel,
+        limits: isPhone ? TOPOLOGY_CONNECTIONS_PHONE_LIMITS : undefined,
+      });
+    }, [
+      display,
+      graph,
+      selectedId,
+      viewState.search,
+      viewState.filter,
+      kindLabel,
+      isPhone,
+    ]);
+
+  // A part moved to the middle of Connections: its panel stays closed.
+  const centerConnections: (nodeId: string) => void = (
+    nodeId: string,
+  ): void => {
+    setConnectionsDetailsId(null);
+    select(nodeId);
+  };
+
+  const connectionsCenter: ResourceTopologyNode | null =
+    connectionsView?.centerKind === "part"
+      ? graph.nodes.get(connectionsView.centerId) || null
+      : null;
+  const connectionsHidden: number = connectionsView
+    ? connectionsView.ringHidden + connectionsView.outerRingHidden
+    : 0;
+  // The panel open: the part picked on the map or the list, the middle's on Connections.
+  const panelNodeId: string | null =
+    display === "connections" ? connectionsDetailsId : selectedId;
 
   const partCount: number = getResourceTopologyPartCount(graph);
   const healthOptions: Array<StatusChipOption> = [
@@ -826,6 +917,15 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
             {(
               [
                 { id: "map", label: "Map", icon: IconProp.FlowDiagram },
+                ...(offersConnections
+                  ? [
+                      {
+                        id: "connections",
+                        label: "Connections",
+                        icon: IconProp.Share,
+                      },
+                    ]
+                  : []),
                 { id: "list", label: "List", icon: IconProp.List },
               ] as Array<{ id: DisplayMode; label: string; icon: IconProp }>
             ).map(
@@ -919,7 +1019,42 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
             )
           : null}
 
-      {focusNode
+      {connectionsCenter
+        ? renderNotice(
+            "resource-topology-connections-center",
+            <>
+              <span>
+                {translator.translateTemplate(
+                  "Showing what {{name}} is connected to.",
+                  { name: topologyNodeName(translator, connectionsCenter) },
+                )}
+              </span>
+              <button
+                type="button"
+                data-testid="resource-topology-connections-details"
+                className="font-semibold text-indigo-700 hover:text-indigo-900"
+                onClick={() => {
+                  setConnectionsDetailsId(connectionsCenter.id);
+                }}
+              >
+                {tx("Show details", translator)}
+              </button>
+              <button
+                type="button"
+                data-testid="resource-topology-connections-clear"
+                className="font-semibold text-indigo-700 hover:text-indigo-900"
+                onClick={() => {
+                  select(null);
+                  setConnectionsDetailsId(null);
+                }}
+              >
+                {tx("Show everything", translator)}
+              </button>
+            </>,
+          )
+        : null}
+
+      {focusNode && display !== "connections"
         ? renderNotice(
             "resource-topology-focus",
             <>
@@ -1005,7 +1140,49 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
         ref={frameRef}
         className="overflow-hidden rounded-xl border border-gray-200"
       >
-        {display === "map" ? (
+        {display === "connections" && connectionsView ? (
+          graph.connections && graph.connections.length === 0 ? (
+            <div
+              data-testid="resource-topology-connections-none"
+              className="flex flex-col items-center justify-center gap-2 bg-slate-50 px-6 text-center"
+              style={{ minHeight: Math.min(canvasHeight, 320) }}
+            >
+              <Icon icon={IconProp.Share} className="h-8 w-8 text-gray-400" />
+              <p className="text-sm font-semibold text-gray-900">
+                {tx("No connections yet", translator)}
+              </p>
+              <p className="max-w-md text-sm text-gray-500">
+                {tx(
+                  "Connections appear here once the inventory says what its parts run in, are attached to or send traffic to.",
+                  translator,
+                )}
+              </p>
+            </div>
+          ) : (
+            <ResourceTopologyConnectionsCanvas
+              graph={graph}
+              view={connectionsView}
+              height={canvasHeight}
+              filterTitle={
+                connectionsView.centerKind === "search"
+                  ? viewState.search.trim()
+                  : tx("Needs attention", translator)
+              }
+              emptyText={
+                connectionsCenter
+                  ? translator.translateTemplate(
+                      "Nothing is connected to {{name}}.",
+                      { name: topologyNodeName(translator, connectionsCenter) },
+                    )
+                  : undefined
+              }
+              onCenter={centerConnections}
+              onOpenDetails={(nodeId: string) => {
+                setConnectionsDetailsId(nodeId);
+              }}
+            />
+          )
+        ) : display === "map" ? (
           <ResourceTopologyCanvas
             graph={graph}
             visible={visible}
@@ -1084,7 +1261,49 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
               {tx("Related, for the part you pick", translator)}
             </span>
           ) : null}
-          {display === "map" ? (
+          {display === "connections" ? (
+            <span className="inline-flex items-center gap-1.5">
+              {/* A connection: a line whose arrow points the way its words read. */}
+              <svg
+                aria-hidden={true}
+                width="22"
+                height="10"
+                viewBox="0 0 22 10"
+                className="flex-shrink-0 rtl:-scale-x-100"
+              >
+                <path
+                  d="M1 5 H16"
+                  fill="none"
+                  stroke={RESOURCE_TOPOLOGY_RELATION_COLOR}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M15 1.5 L21 5 L15 8.5 Z"
+                  fill={RESOURCE_TOPOLOGY_RELATION_COLOR}
+                />
+              </svg>
+              {tx("What it is connected to", translator)}
+            </span>
+          ) : null}
+          {display === "connections" && connectionsHidden > 0 ? (
+            <span data-testid="resource-topology-connections-hidden">
+              {translator.translatePlural(
+                {
+                  one: "{{count}} more part is not drawn. Search to find it.",
+                  other:
+                    "{{count}} more parts are not drawn. Search to find one.",
+                },
+                connectionsHidden,
+              )}
+            </span>
+          ) : null}
+          {display === "connections" ? (
+            <span>
+              {tx("Pick a part to see what it is connected to.", translator)}
+            </span>
+          ) : null}
+          {display === "map" || display === "connections" ? (
             <span className="sm:ml-auto">
               {tx("Ctrl + scroll or pinch to zoom", translator)}
             </span>
@@ -1092,18 +1311,33 @@ const ResourceTopologyMap: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {selectedId && graph.nodes.has(selectedId) ? (
+      {panelNodeId && graph.nodes.has(panelNodeId) ? (
         <ResourceTopologyDetailPanel
           graph={graph}
-          nodeId={selectedId}
+          nodeId={panelNodeId}
           focusId={visible.focusId}
           onClose={() => {
+            if (display === "connections") {
+              setConnectionsDetailsId(null);
+              return;
+            }
+
             select(null);
           }}
           onSelect={(nodeId: string) => {
             select(nodeId);
+
+            // On Connections a part picked in the panel moves to the middle, its panel open.
+            if (display === "connections") {
+              setConnectionsDetailsId(nodeId);
+            }
           }}
           onFocus={(nodeId: string | null) => {
+            // Focus narrows the map: from Connections, it opens the map on the part.
+            if (display === "connections" && nodeId) {
+              changeDisplay("map");
+            }
+
             setFocus(nodeId);
           }}
         />

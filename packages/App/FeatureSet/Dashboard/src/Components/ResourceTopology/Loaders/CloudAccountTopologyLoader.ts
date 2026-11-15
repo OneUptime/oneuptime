@@ -24,10 +24,12 @@ import { ResourceTopologyData } from "../ResourceTopologyPage";
 
 /*
  * A cloud account's topology: the account, every live resource of its
- * cloud and account id (the columns the map needs), and the open incidents
- * and alerts linked to those resources - read in groups of
- * CLOUD_TOPOLOGY_ISSUE_ID_CHUNK ids, at most CLOUD_TOPOLOGY_ISSUE_ID_LIMIT
- * resources' worth, the map saying so when an account holds more.
+ * cloud and account id (the columns the map needs: what it is related to,
+ * and the last read's readings its health and its card's numbers come
+ * from), and the open incidents and alerts linked to those resources -
+ * read in groups of CLOUD_TOPOLOGY_ISSUE_ID_CHUNK ids, at most
+ * CLOUD_TOPOLOGY_ISSUE_ID_LIMIT resources' worth, the map saying so when
+ * an account holds more.
  */
 
 export const CLOUD_TOPOLOGY_ISSUE_ID_CHUNK: number = 500;
@@ -117,6 +119,10 @@ export async function loadCloudAccountTopology(
         cloudRelationships: true,
         lastSeenAt: true,
         otelCollectorStatus: true,
+        // How it is doing, judged as its own page judges it.
+        cloudReadings: true,
+        cloudReadingsAt: true,
+        cloudProperties: true,
       },
       sort: { _id: SortOrder.Ascending },
       skip: 0,
@@ -138,6 +144,9 @@ export async function loadCloudAccountTopology(
         relationships: readCloudRelationships(row.cloudRelationships),
         lastSeenAt: row.lastSeenAt || null,
         isReporting: row.otelCollectorStatus === "connected",
+        readings: row.cloudReadings,
+        readingsAt: row.cloudReadingsAt || null,
+        properties: row.cloudProperties,
       };
     });
 

@@ -33,7 +33,7 @@ Il sink raggruppa gli eventi di log e li invia in background. Ogni proprietà co
 
 Vai a **Prodotti → Impostazioni del progetto**, apri **Telemetria e APM** nel menu laterale e seleziona **Chiavi di acquisizione**.
 
-![La pagina delle chiavi di acquisizione della telemetria nelle impostazioni del progetto](/docs/static/images/TelemetryIngestionKeys.png)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
 
 ### Creare una chiave
 

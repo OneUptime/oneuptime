@@ -424,6 +424,74 @@ describe("running queries", () => {
     });
   });
 
+  /*
+   * A label pattern's flag groups, as Grafana sends them: Prometheus
+   * compiles ^(?s:<pattern>)$, so a flag group covers the rest of its group
+   * and never the anchors around the pattern.
+   */
+  test("an instant query reads a label pattern's flag groups as Prometheus does", async () => {
+    // The jobs of the series the query finds.
+    const jobsOf: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const answer: JSONObject = await runPrometheusInstantQuery({
+        engine,
+        params: { query, time: "180" },
+        nowMs: 0,
+      });
+      const result: Array<{ metric: { job: string } }> = (
+        answer["data"] as unknown as {
+          result: Array<{ metric: { job: string } }>;
+        }
+      ).result;
+
+      return result.map((item: { metric: { job: string } }): string => {
+        return item.metric.job;
+      });
+    };
+
+    expect(await jobsOf('up{job=~"a(?i)PI"}')).toEqual(["api"]);
+    // The "A" before the flag group is matched as written.
+    expect(await jobsOf('up{job=~"A(?i)PI"}')).toEqual([]);
+    expect(await jobsOf('up{job=~"(?i)API|(?-i)WEB"}')).toEqual(["api"]);
+    // (?m) leaves the anchors at the ends of the whole value.
+    expect(await jobsOf('up{job=~"(?m)ap"}')).toEqual([]);
+    expect(await jobsOf('up{job!~"(?m)ap"}')).toEqual(["api", "web"]);
+  });
+
+  test("match[] reads a label pattern's flag groups as Prometheus does", async () => {
+    const series: Array<PromQLLabels> = await listPrometheusSeries({
+      source: SOURCE,
+      selectors: readMatchSelectors({ "match[]": 'up{job=~"w(?i)EB"}' }),
+      startTimeMs: 0,
+      endTimeMs: 200000,
+      limit: 100,
+    });
+
+    expect(series).toEqual([{ __name__: "up", instance: "b", job: "web" }]);
+  });
+
+  test("a label pattern RE2 refuses is a bad query", async () => {
+    // A repeat of a repeat, which (?U) must not join into one.
+    const error: PromQLError = await errorOf(() => {
+      return runPrometheusInstantQuery({
+        engine,
+        params: { query: 'up{job=~"(?U)a*???"}', time: "180" },
+        nowMs: 0,
+      });
+    });
+
+    expect(toPrometheusErrorAnswer(error)).toEqual({
+      statusCode: 400,
+      body: {
+        status: "error",
+        errorType: "bad_data",
+        error:
+          '"(?U)a*???" is not a regular expression the label "job" can be matched with.',
+      },
+    });
+  });
+
   test.each([
     [{ start: "0", end: "1", step: "1" }, "The query parameter is required."],
     [{ query: "up", end: "1", step: "1" }, "The start parameter is required."],

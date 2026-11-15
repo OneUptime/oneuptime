@@ -364,6 +364,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                     { count: translator.formatNumber(selectableShownCount) },
                   )
             }
+            isAriaLabelTranslated={true}
             initialValue={areAllShownSelected}
             value={areAllShownSelected}
             isIndeterminate={!areAllShownSelected && shownSelectedCount > 0}
@@ -765,6 +766,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
                 address: entry.ipAddress || translatableTerm("no address"),
               },
             )}
+            isAriaLabelTranslated={true}
             hoverText={
               entry.isAlreadyRegistered
                 ? "Already added as a Network Device."

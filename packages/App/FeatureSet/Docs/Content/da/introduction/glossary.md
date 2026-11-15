@@ -126,7 +126,7 @@ Se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
 
 Planlagt arbejde, annonceret på forhånd. Hver vedligeholdelseshændelse går gennem vedligeholdelsestilstandene **Planlagt**, **Igangværende**, **Afsluttet** og **Fuldført**, og de statussider, den vises på, fortæller besøgende og abonnenter om den.
 
-Også kaldet: **Planlagt vedligeholdelsesbegivenhed**, **Planlagt hændelse**, **Begivenhed**. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
+Også kaldet: **Planlagt vedligeholdelseshændelse**, **Planlagt hændelse**, **Begivenhed**. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
 
 ### Telemetri
 
@@ -348,7 +348,7 @@ Se [Workflows – Oversigt](/docs/workflows/index).
 
 ### Runbook
 
-En genbrugelig responsprocedure: manuelle og automatiserede trin, som dit team kører på en hændelse, en advarsel eller en vedligeholdelsesbegivenhed, manuelt eller når en runbook-regel passer.
+En genbrugelig responsprocedure: manuelle og automatiserede trin, som dit team kører på en hændelse, en advarsel eller en vedligeholdelseshændelse, manuelt eller når en runbook-regel passer.
 
 Se [Runbooks – Oversigt](/docs/runbooks/index).
 

@@ -38,7 +38,7 @@ flowchart TB
 3. **수집 키 생성**을 클릭하고 **키 유형**으로 **브라우저**를 고릅니다.
 4. **브라우저 설정** 단계에서 **허용된 출처**에 출처를 JSON 배열로 입력하고(예: `["https://app.example.com"]`) 키를 만듭니다. OneUptime Cloud의 Free 요금제에서는 마지막 **결제** 단계에서 텔레메트리 가격을 먼저 보여 줍니다.
 
-![프로젝트 설정의 텔레메트리 수집 키 페이지](/docs/static/images/TelemetryIngestionKeys.png)
+![‘수집 키’ 목록, ‘수집 키 생성’ 강조 표시됨](screen:ingestion-keys)
 
 새 키는 자체 페이지에서 열립니다. **시크릿 키**를 복사하세요. SDK가 `x-oneuptime-token`으로 보내는 토큰입니다.
 

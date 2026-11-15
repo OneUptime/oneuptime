@@ -1022,6 +1022,18 @@ Een apparaat dat 30 dagen niet is gezien, wordt uit de lijst en van de kaart ver
 
 Projecteigenaren en projectbeheerders kiezen de standaard: wissel naar een indeling en selecteer **Make default for everyone**. Daarna opent elke weergave van de apparaatkaart ermee: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**. Op de standaardindeling zet **Clear default** elke kaart terug op haar eigen standaard. Versleepte posities worden per indeling in je browser opgeslagen, zodat de kaart opent met de schikking die je in die indeling hebt gemaakt.
 
+### Je weg vinden in een groot netwerk
+
+In de indeling **Parent and child** tekent een apparaat met zes of meer apparaten waaronder niets meer hangt die apparaten als een compact raster eronder in plaats van als één lange rij, verbonden met rechthoekige lijnen die geen apparaat of naam kruisen. De indeling kiest de rastervorm waarmee de hele kaart het grootst op het scherm past.
+
+Een apparaat waaronder iets hangt, heeft onder zijn naam een knop `−`: selecteer die om de tak samen te vouwen tot het apparaat en het aantal apparaten dat erin zit, zoals `+24`, en selecteer het aantal om de tak weer uit te vouwen. **Alle takken samenvouwen** en **Alle takken uitvouwen**, naast de zoomknoppen, vouwen de kaart samen tot de hoofdlijnen en weer open. Je browser onthoudt samengevouwen takken per locatie.
+
+Om één tak apart te bekijken, klik je op het apparaat en selecteer je **Alleen deze tak tonen**. De kaart toont dan dat apparaat en alles eronder, met bovenaan het pad vanaf de top van het netwerk: selecteer een stap om de weergave uit te breiden tot de tak van dat apparaat, of **Hele kaart tonen** om alles weer te zien.
+
+De zoekfunctie verplaatst de kaart naar de apparaten die worden gevonden. De pijlen naast het aantal overeenkomsten, of Enter in het zoekvak, gaan om de beurt naar elke overeenkomst en geven die een ring. In de indeling **Parent and child** blijft het pad vanaf de top van het netwerk naar elke overeenkomst gemarkeerd, en een overeenkomst in een samengevouwen tak wordt ook meegeteld, met een knop die de takken opent waarin die zit.
+
+Zodra je apparaten hebt versleept, wisselt een schakelaar boven aan de kaart tussen **Aangepaste indeling · 2 verplaatst** en **Oorspronkelijke indeling**: de oorspronkelijke indeling is de kaart zoals OneUptime die indeelt, en je aangepaste indeling blijft bewaard tot je terugschakelt. **Reset layout** verwijdert die.
+
 ### De kaart als pdf exporteren
 
 **PDF exporteren**, bovenaan de kaart, downloadt de kaart die je bekijkt als een pdf die je aan een assessment, een wijzigingsverzoek of een incidentreview kunt toevoegen, of offline kunt lezen. Elke weergave van de apparaatkaart heeft het: **Apparaattopologie**, een locatie op de **Kaart**, en het tabblad **Netwerk** van **Topologie**.

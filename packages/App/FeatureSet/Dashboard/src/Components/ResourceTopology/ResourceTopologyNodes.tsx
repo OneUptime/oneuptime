@@ -280,6 +280,15 @@ export function renderTopologyText(
     return "";
   }
 
+  // A count-dependent text, in the reader's plural form for its count.
+  if (value.plural) {
+    return translator.translatePlural(
+      { one: value.plural.one, other: value.text },
+      value.plural.count,
+      value.values,
+    );
+  }
+
   return value.values
     ? translator.translateTemplate(value.text, value.values)
     : tx(value.text, translator);
