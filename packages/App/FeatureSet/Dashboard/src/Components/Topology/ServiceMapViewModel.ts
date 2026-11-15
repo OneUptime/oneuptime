@@ -4,7 +4,7 @@ import {
   PLACEMENT_RELATIONSHIP_TYPES,
   SERVICE_MAP_DETAIL_ATTRIBUTE_KEYS,
 } from "Common/Types/Topology/TopologyTypeRules";
-import { Translator } from "Common/Types/Translator";
+import { Translator, translationKey } from "Common/Types/Translator";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
@@ -162,10 +162,33 @@ const DEPENDENCY_KIND_BY_TYPE: Partial<Record<string, ServiceMapNodeKind>> = {
   [EntityType.ExternalService]: "external",
 };
 
+/*
+ * The one friendly name below that is a word rather than a product's name:
+ * a browser (RUM) service's runtime. The map draws it in the reader's
+ * language (detailLabelInLanguage): "سرویس • مرورگر", never "سرویس •
+ * Browser" (#8260). Every other label is a product's name and reads as
+ * written - a lookup of them all would turn "Go" into German "Los".
+ */
+export const BROWSER_DETAIL_LABEL: string = translationKey("Browser");
+
+const DETAIL_LABELS_IN_PRODUCT_WORDS: ReadonlySet<string> = new Set<string>([
+  BROWSER_DETAIL_LABEL,
+]);
+
+// A node's detail label as the map draws it (see BROWSER_DETAIL_LABEL).
+export function detailLabelInLanguage(
+  label: string,
+  translator: Translator,
+): string {
+  return DETAIL_LABELS_IN_PRODUCT_WORDS.has(label)
+    ? translator.translateText(label) || label
+    : label;
+}
+
 /* Friendly names for the values semconv puts in these attributes. */
 const DETAIL_LABELS: Record<string, string> = {
   nodejs: "Node.js",
-  webjs: "Browser",
+  webjs: BROWSER_DETAIL_LABEL,
   python: "Python",
   java: "Java",
   go: "Go",

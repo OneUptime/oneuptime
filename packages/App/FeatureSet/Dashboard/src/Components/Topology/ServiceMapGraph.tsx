@@ -83,6 +83,7 @@ import {
   ServiceMapStatus,
   ServiceMapVisibility,
   buildServiceMapModel,
+  detailLabelInLanguage,
   layoutServiceMap,
   resolveServiceMapVisibility,
   summarizeRunsOn,
@@ -277,7 +278,9 @@ export function statusLabelForEntry(
  * What a node is, and the language or engine it reports when it does:
  * "Service · Node.js", "Datenbank · PostgreSQL". On a page read from the
  * right the name is set apart, so a name in Latin letters never takes the
- * separator into its run.
+ * separator into its run. A browser service's runtime is the one detail
+ * that is a word, not a product's name, and reads in the reader's
+ * language: "سرویس • مرورگر" (#8260).
  */
 export function subtitleForEntry(
   entry: ServiceMapEntry,
@@ -291,7 +294,7 @@ export function subtitleForEntry(
     [
       typeText,
       setApartInSentence(
-        entry.detailLabel,
+        detailLabelInLanguage(entry.detailLabel, translator),
         getReadingDirection(translator.language),
       ),
     ],

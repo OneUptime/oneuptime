@@ -33,6 +33,7 @@ import { StateListType } from "Common/Utils/StateOrder";
 import {
   composedValue,
   formatInline,
+  formatList,
   translatableTerm,
   translationKey,
   Translator,
@@ -1286,7 +1287,23 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       ? matchedDevice.value
       : null;
 
+  /*
+   * The SideOver looks its description up, so its own line is handed the
+   * type's English. The line a screen reader hears when the drawer moves
+   * to another entity is drawn here, so it is put in the reader's words
+   * here: the map's subtitle (already the reader's), or the type's label
+   * in the reader's language - "api, پاد Kubernetes" - joined as the
+   * language lists two things (formatList). A drawer opened from the
+   * explorer has no subtitle, and read "api, K8s Pod" in every language
+   * (#8260).
+   */
   const description: string = props.traffic?.subtitle || typeMeta.label;
+  const spokenDescription: string =
+    props.traffic?.subtitle || t(typeMeta.label);
+  const focusLine: string = formatList(
+    [displayName, spokenDescription],
+    translator,
+  );
 
   /*
    * One SideOver for every state and every entity, so it stays mounted
@@ -1310,7 +1327,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
           className="sr-only"
           data-testid="entity-detail-focus-target"
         >
-          {`${displayName}, ${description}`}
+          {focusLine}
         </div>
         {isMissing ? (
           <p
