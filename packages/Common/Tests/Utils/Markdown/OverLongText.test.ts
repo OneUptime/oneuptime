@@ -1078,6 +1078,14 @@ describe("OverLongText - a link's text across a cut, and a bare address across t
       "with a title",
       `[${"run ".repeat(400)}](https://example.com/x "Run") ${FILLER}`,
     ],
+    [
+      "with code open at the cut (#8238)",
+      `[run \`${"run ".repeat(400)}\` x](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "with brackets open at the cut (#8238)",
+      `[run [${"run ".repeat(400)}] x](https://example.com/x) ${FILLER}`,
+    ],
   ])(
     "a link's text across the start %s keeps its '](' in view",
     (_name: string, line: string) => {
@@ -1098,18 +1106,6 @@ describe("OverLongText - a link's text across a cut, and a bare address across t
       "a text closed by a ']' with no '(' after it",
       `${FILLER}see [${"run ".repeat(400)}] now`,
     ],
-    [
-      "a text with code open at the cut",
-      `${FILLER}see [run \`${"run ".repeat(400)}\` x${TAIL}`,
-    ],
-    [
-      "a text with brackets open at the cut",
-      `${FILLER}see [run [${"run ".repeat(400)}] x${TAIL}`,
-    ],
-    [
-      "a text with a backslash right before the cut",
-      `${FILLER}see [${"a".repeat(600)}\\*${"b".repeat(OVER_LONG_LINE_KEPT_LENGTH - 1 - TAIL.length)}${TAIL}`,
-    ],
     ["an escaped '['", `${FILLER}see \\[${"run ".repeat(400)}${TAIL}`],
     [
       "more labels open than are remembered",
@@ -1125,13 +1121,41 @@ describe("OverLongText - a link's text across a cut, and a bare address across t
     },
   );
 
+  /*
+   * Where the text is in nested brackets, a code span or an escape at the
+   * cut, the "[" stays in view too, and the middle's piece of the text runs
+   * on to where the text reads plainly (#8238; these were one piece).
+   */
+  test.each([
+    [
+      "a text with code open at the cut",
+      `${FILLER}see [run \`${"run ".repeat(400)}\` x${TAIL}`,
+      ` x${TAIL}`,
+    ],
+    [
+      "a text with brackets open at the cut",
+      `${FILLER}see [run [${"run ".repeat(400)}] x${TAIL}`,
+      ` x${TAIL}`,
+    ],
+    [
+      "a text with a backslash right before the cut",
+      `${FILLER}see [${"a".repeat(600)}\\*${"b".repeat(OVER_LONG_LINE_KEPT_LENGTH - 1 - TAIL.length)}${TAIL}`,
+      `\\*${"b".repeat(OVER_LONG_LINE_KEPT_LENGTH - 1 - TAIL.length)}${TAIL}`,
+    ],
+  ])(
+    "%s at the end keeps its '[' in view, and the kept end from where the text reads plainly",
+    (_name: string, line: string, keptEnd: string) => {
+      const heldLine: HeldLine = holdBackLine(line);
+
+      expect(heldLine.inView).toHaveLength(3);
+      expect(heldLine.inView[1]).toBe("[");
+      expect(heldLine.inView[2]).toBe(keptEnd);
+    },
+  );
+
   test.each([
     ["a text that never closes", `[${"run ".repeat(400)} ${FILLER}`],
     ["a text closed with no '(' after it", `[${"run ".repeat(400)}] ${FILLER}`],
-    [
-      "a text with code open at the cut",
-      `[run \`${"run ".repeat(400)}\` x](https://example.com/x) ${FILLER}`,
-    ],
     [
       "a text in code",
       `\`[${"run ".repeat(400)}\` x](https://example.com/x) ${FILLER}`,

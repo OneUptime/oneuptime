@@ -1702,3 +1702,113 @@ describe("the real MarkdownViewer shows a link's text across a cut, and a bare a
     },
   );
 });
+
+/*
+ * ISSUE #8238: a link whose text was in nested brackets, a code span or an
+ * escape exactly at a cut of an over-long line - or a reference whose text
+ * or label crossed one - showed as Markdown in the dashboard. Now the cut
+ * moves to where remark reads the text plainly - brackets nested as deep
+ * as they go - and a reference's label stays in view whole.
+ */
+describe("the real MarkdownViewer shows a link's text in nested brackets, code or an escape at a cut, and references across one (#8238)", () => {
+  const FILLER: string = "log line text ".repeat(5000);
+  const RUNS: string = "run ".repeat(400);
+  const ADDRESS: string = "https://example.com/runs/42";
+  const TAIL: string = `](${ADDRESS}) now`;
+  const DEFINITION: string = `\n\n[run-42]: ${ADDRESS}`;
+  const LABEL: string = `run 42 ${"of the nightly build ".repeat(12)}`;
+  const LABEL_DEFINITION: string = `\n\n[${LABEL}]: ${ADDRESS}`;
+  const PADDING: string = ` ${"z ".repeat(400)}now`;
+
+  const cases: Array<RenderCase> = [
+    {
+      name: "nested brackets at the end's cut",
+      text: `${FILLER}see [run [42 ${RUNS}run] x${TAIL}`,
+    },
+    {
+      name: "nested brackets at the start's cut",
+      text: `[run [42 ${RUNS}run] x](${ADDRESS}) ${FILLER}`,
+    },
+    {
+      name: "brackets nested three deep at the end's cut",
+      text: `${FILLER}see [run [a [b [42 ${RUNS}run] c] d] x${TAIL}`,
+    },
+    {
+      name: "brackets nested three deep at the start's cut",
+      text: `[run [a [b [42 ${RUNS}run] c] d] x](${ADDRESS}) ${FILLER}`,
+    },
+    {
+      name: "a code span at the end's cut",
+      text: `${FILLER}see [run \`code ${RUNS}code\` x${TAIL}`,
+    },
+    {
+      name: "a code span of two backticks at the start's cut",
+      text: `[run \`\`co\`de ${RUNS}code\`\` x](${ADDRESS}) ${FILLER}`,
+    },
+    {
+      name: "a backslash right before the end's cut",
+      text: `${FILLER}see [${"a".repeat(600)}\\*${"b".repeat(1024 - 1 - TAIL.length)}${TAIL}`,
+    },
+    {
+      name: "a backslash right before the start's cut",
+      text: `[${"a".repeat(1022)}\\*${"b".repeat(600)}](${ADDRESS}) ${FILLER}`,
+    },
+    {
+      name: "a full reference's text across the end",
+      text: `${FILLER}see [${RUNS}][run-42] now${DEFINITION}`,
+    },
+    {
+      name: "a full reference's text across the start",
+      text: `[${RUNS}][run-42] ${FILLER}${DEFINITION}`,
+    },
+    {
+      name: "a full reference's label across the end",
+      text: `${FILLER}see [${RUNS}][${LABEL}]${PADDING}${LABEL_DEFINITION}`,
+    },
+    {
+      name: "a collapsed reference across the start",
+      text: `${"x ".repeat(400)}[${LABEL}][] ${FILLER}${LABEL_DEFINITION}`,
+    },
+    {
+      name: "a shortcut reference across the end",
+      text: `${FILLER}see [${LABEL}]${PADDING}${LABEL_DEFINITION}`,
+    },
+    {
+      name: "a shortcut reference across the start",
+      text: `${"x ".repeat(400)}[${LABEL}] ${FILLER}${LABEL_DEFINITION}`,
+    },
+  ];
+
+  let report: RenderReport;
+
+  beforeAll(() => {
+    report = renderWithRealViewer(cases);
+  }, 600000);
+
+  test("the cases are lines over 64 KB", () => {
+    for (const item of cases) {
+      expect(item.text.split("\n")[0]!.length).toBeGreaterThan(
+        OVER_LONG_LINE_LENGTH,
+      );
+    }
+  });
+
+  test.each(
+    cases.map((item: RenderCase): [string] => {
+      return [item.name];
+    }),
+  )(
+    "%s is a link to its address, none of its Markdown shown",
+    (name: string) => {
+      const rendered: { ok: boolean; html?: string } = report.rendered[name]!;
+
+      expect({ name: name, ok: rendered.ok }).toEqual({ name: name, ok: true });
+
+      const html: string = rendered.html!;
+
+      expect(hrefsIn(html)).toEqual([ADDRESS]);
+      expect(html).not.toContain("](");
+      expect(html).not.toContain("][");
+    },
+  );
+});
