@@ -49,6 +49,8 @@ export interface ComponentProps {
   rightElement?: NavItem | undefined;
   // Heading of the recently visited products (NavBar's moreMenuRecentLabel).
   recentLabel?: string | undefined;
+  // In the reader's words already: drawn as given, never looked up again (#7790).
+  isRecentLabelTranslated?: boolean | undefined;
   /*
    * Drawn first, above Home, and last, below User Settings: the
    * Dashboard's Search and Help, which the header leaves out on a phone
@@ -165,6 +167,7 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
         <NavBarItem
           id={id}
           title={item.title}
+          isTitleTranslated={item.isTitleTranslated}
           icon={item.icon}
           exact={exact}
           route={item.route}
@@ -262,7 +265,9 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
             id={recentHeadingId}
             className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400"
           >
-            {translateString(recentLabel) || recentLabel}
+            {props.recentLabel && props.isRecentLabelTranslated
+              ? props.recentLabel
+              : translateString(recentLabel) || recentLabel}
           </p>
           {recentProducts.map((item: MoreMenuItem): ReactElement => {
             return row(item, `recent-${slug(item.title)}`, false);

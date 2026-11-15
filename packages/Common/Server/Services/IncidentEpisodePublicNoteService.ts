@@ -76,7 +76,6 @@ export class Service extends ProjectReferencesService<Model> {
       modelType: Model,
       service: this,
       parentIdColumn: "incidentEpisodeId",
-      recordNoun: "episode",
     };
   }
 
