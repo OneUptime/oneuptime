@@ -202,6 +202,33 @@ describe("LogSeverity", () => {
       expect(logSeverityFromNumber(18)).toBe(LogSeverity.Error);
     });
 
+    // Issue #8536: the short forms loggers write, at the level each abbreviates.
+    test.each([
+      ["TRC", 1, LogSeverity.Trace],
+      ["VRB", 5, LogSeverity.Debug],
+      ["DBG", 5, LogSeverity.Debug],
+      ["DBUG", 5, LogSeverity.Debug],
+      ["INF", 9, LogSeverity.Information],
+      ["WRN", 13, LogSeverity.Warning],
+      ["EROR", 17, LogSeverity.Error],
+      ["FTL", 21, LogSeverity.Fatal],
+    ])(
+      "the short form %s -> %i (%s)",
+      (word: string, severityNumber: number, severity: LogSeverity) => {
+        expect(logSeverityNumberFromText(word)).toBe(severityNumber);
+        expect(logSeverityNumberFromText(word.toLowerCase())).toBe(
+          severityNumber,
+        );
+        expect(normalizeLogSeverity(word)).toBe(severity);
+      },
+    );
+
+    test("knows no word Datadog, Sentry or a console write that is no logger's level", () => {
+      for (const word of ["ok", "success", "log", "unknown"]) {
+        expect(logSeverityNumberFromText(word)).toBe(0);
+      }
+    });
+
     test("is a Map: a word named like an Object.prototype member names nothing", () => {
       for (const written of [
         "constructor",
