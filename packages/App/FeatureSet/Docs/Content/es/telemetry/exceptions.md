@@ -201,7 +201,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 ### Ver lo que hizo
 
-- **Excepciones → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas, incluidos los frames de su código en su stack trace. **Ver grupo de excepciones** abre la excepción, y en los stack traces faltantes de un servicio, **Abrir en Excepciones** abre sus excepciones no resueltas del último día.
+- **Excepciones → IA → Hallazgos** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas, incluidos los frames de su código en su stack trace. **Ver grupo de excepciones** abre la excepción, y en los stack traces faltantes de un servicio, **Abrir en Excepciones** abre sus excepciones no resueltas del último día.
 - **Excepciones → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada uno y lo que encontró cada investigación.
 - El pull request explica por qué se abrió, con un enlace a su hallazgo. El de una excepción nueva o en aumento también enlaza la excepción y aparece en su página **Corregir con IA**. En Código, su tarea nombra la excepción que corrige, o el hallazgo del que vino.
 

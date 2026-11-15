@@ -95,7 +95,7 @@ Pour donner les règles recommandées à de nombreux SLO, partez de la liste des
 :::steps
 #### Sélectionner les SLO
 
-Ouvrez **SLOs** et sélectionnez les SLO à mettre à jour. Pour prendre tous les SLO qu'affiche un filtre, sélectionnez toute la page, puis toutes les correspondances que la liste propose.
+Ouvrez **SLO** et sélectionnez les SLO à mettre à jour. Pour prendre tous les SLO qu'affiche un filtre, sélectionnez toute la page, puis toutes les correspondances que la liste propose.
 
 #### Choisir l'action groupée
 

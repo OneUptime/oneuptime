@@ -46,7 +46,7 @@ Une requête est un span d'entrée de l'un des services du SLO : le span où une
 :::steps
 ### Ouvrir les SLO
 
-Ouvrez **SLOs** depuis le menu **Produits** de la barre supérieure, puis cliquez sur **Créer : Objectif de niveau de service**.
+Ouvrez **SLO** depuis le menu **Produits** de la barre supérieure, puis cliquez sur **Créer : Objectif de niveau de service**.
 
 ### Choisir ce qu'il mesure
 
@@ -61,7 +61,7 @@ Saisissez un **Nom**, par exemple « Checkout requests », et une **Cible (%)** 
 La première évaluation, dans les 5 minutes, compte les requêtes des 6 dernières heures : le SLO a donc des chiffres tout de suite. Les évaluations suivantes comptent aussi des requêtes plus anciennes, jusqu'à couvrir la fenêtre de conformité.
 :::
 
-La page **SLOs** propre à un service liste les SLO qui le mesurent, et son bouton **Créer : Objectif de niveau de service** ouvre le même formulaire avec le service déjà choisi. Pour modifier plus tard ce qu'un SLO mesure, ses services, son seuil ou son filtre, ouvrez ses **Paramètres** et cliquez sur **Modifier ce qui est mesuré**.
+La page **SLO** propre à un service liste les SLO qui le mesurent, et son bouton **Créer : Objectif de niveau de service** ouvre le même formulaire avec le service déjà choisi. Pour modifier plus tard ce qu'un SLO mesure, ses services, son seuil ou son filtre, ouvrez ses **Paramètres** et cliquez sur **Modifier ce qui est mesuré**.
 
 ## Ne compter que certaines requêtes
 

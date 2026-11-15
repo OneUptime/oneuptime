@@ -1,6 +1,6 @@
 # Måleudforsker
 
-Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: antal forespørgsler, latenser, CPU, kødybde. Måleudforskeren viser hver metrik, dit projekt modtager, viser en hvilken som helst af dem i et diagram, kombinerer dem med formler og gør et diagram til en monitor eller en dashboard-widget.
+Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: antal forespørgsler, latenser, CPU, kødybde. Metrikudforskeren viser hver metrik, dit projekt modtager, viser en hvilken som helst af dem i et diagram, kombinerer dem med formler og gør et diagram til en monitor eller en dashboard-widget.
 
 :::cards
 - [Find en metrik](#find-en-metrik): Søg i listen over metriknavne.
@@ -12,7 +12,7 @@ Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: a
 
 ## Sådan virker udforskeren
 
-Udforskeren har to niveauer. Fanen **Seer** viser de metrikker, dit projekt modtager. Klik på en, og måleudforskeren åbner med en forespørgsel til den: en metrik, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver forespørgsel er en variabel, `a`, `b` og så videre, som en formel kan bruge.
+Udforskeren har to niveauer. Fanen **Seer** viser de metrikker, dit projekt modtager. Klik på en, og metrikudforskeren åbner med en forespørgsel til den: en metrik, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver forespørgsel er en variabel, `a`, `b` og så videre, som en formel kan bruge.
 
 ```mermaid title="Fra metrikforespørgsler til et diagram, en monitor eller et dashboard"
 flowchart TB
@@ -45,7 +45,7 @@ Gå til **Produkter → Observabilitet → Metrikker**. **Seer** viser hver metr
 
 - Søg i navne med løse ord eller `name:`, for eksempel finder `name:http.server` metrikken `http.server.request.duration`. Se [Søgesyntaks](/docs/telemetry/search-syntax#metrikker).
 - Filtrér efter **Tjeneste** i sidepanelet for kun at se de metrikker, én tjeneste rapporterer. Klik på minustegnet ved siden af en tjeneste for i stedet at skjule de metrikker, den rapporterer.
-- Klik på en metrik for at vise den i måleudforskeren.
+- Klik på en metrik for at vise den i metrikudforskeren.
 
 ## Vis en metrik i et diagram
 
@@ -109,7 +109,7 @@ Træk hen over et diagram for at zoome ind på et øjeblik, og dobbeltklik for a
 
 ## Indsigter i metrikker
 
-Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive målinger**, **Rapporterende tjenester** og gennemsnittet pr. tjeneste. Den inddeler metrikkerne i kategorier og viser de tjenester, der rapporterer dem.
+Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive metrikker**, **Rapporterende tjenester** og gennemsnittet pr. tjeneste. Den inddeler metrikkerne i kategorier og viser de tjenester, der rapporterer dem.
 
 ## Forbedr metrikker og tilføj de manglende med AI
 
@@ -146,7 +146,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 
 ### Se, hvad den gjorde
 
-- **Metrikker → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
+- **Metrikker → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Metrikker**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker, eller uden metrikker for sine anmodninger, tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
 - **Metrikker → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
@@ -183,7 +183,7 @@ Genstart collectoren. Hver tjeneste, hvis traces går gennem den, sender derefte
 | --- | --- |
 | Filter (tilladelsesliste) | Beholder kun de datapunkter, der passer, og kasserer resten. |
 | Kassér | Kasserer de datapunkter, der passer. |
-| Omdøb måling | Omdøber metrikken. |
+| Omdøb metrik | Omdøber metrikken. |
 | Omdøb attribut | Omdøber en attributs nøgle på de datapunkter, der passer. |
 | Tilføj attribut | Tilføjer en attribut til de datapunkter, der passer. |
 | Fjern attribut | Fjerner en attribut, for eksempel en med for mange værdier til at være nyttig. |

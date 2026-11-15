@@ -140,7 +140,7 @@ Una regola convertita che elimini resta eliminata, a meno che i suoi monitor sia
 
 ## Cronologia
 
-Ogni collegamento e scollegamento, e ogni regola creata, modificata o eliminata, compare nel **Feed** dello SLO. Le modifiche alle regole vengono registrate anche nei suoi **Registri di audit**. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
+Ogni collegamento e scollegamento, e ogni regola creata, modificata o eliminata, compare nel **Feed** dello SLO. Le modifiche alle regole vengono registrate anche nei suoi **Log di audit**. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
 
 ## Risoluzione dei problemi
 

@@ -4672,7 +4672,7 @@ describe("MessageQueueAlertTemplates — the metric engine's folds (CloudWatch S
     );
 
     expect(rootCause).not.toBeNull();
-    expect(rootCause).toContain("7 messages");
+    expect(rootCause).toContain("7\u00A0messages");
   });
 
   test.each(CLOUDWATCH_COUNT_CASES)(

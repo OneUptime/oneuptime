@@ -174,7 +174,7 @@ describe("KubernetesContainersTab: every number on a container card is explained
       });
 
     expect(values).toContain("250m (0.25 CPU cores)");
-    expect(values).toContain("512Mi (512 MB)");
+    expect(values).toContain("512Mi (512\u00A0MB)");
   });
 
   test("a container with no status yet shows no State / Ready / Restarts (i)", () => {

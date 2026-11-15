@@ -35,6 +35,11 @@ import {
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { getAllIoTAlertTemplates } from "Common/Types/Monitor/IotAlertTemplates";
 import { getAllStorageArrayAlertTemplates } from "Common/Types/Monitor/StorageArrayAlertTemplates";
+import {
+  StorageArrayMetricCategory,
+  getAllStorageArrayMetricCategories,
+  getStorageArrayMetricCategoryLabel,
+} from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
 import { describe, expect, it } from "@jest/globals";
 
@@ -1148,6 +1153,37 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     }
 
     expect(getAllStorageArrayAlertTemplates().length).toBeGreaterThan(0);
+  });
+
+  /*
+   * The page lists the catalog the monitor form offers under one heading
+   * per group of its Custom Metric picker, in the picker's order. The
+   * picker heads its groups in the reader's words since the catalog's
+   * categories are keys (#8653), so each heading says it as the picker does.
+   */
+  it("heads each table of the storage array's metrics as the Custom Metric picker heads its group", () => {
+    const english: Array<DocsHeading> = sections(englishPage(STORAGE));
+    const translated: Array<DocsHeading> = sections(
+      readPage(language, STORAGE),
+    );
+    const start: number = english.findIndex((heading: DocsHeading): boolean => {
+      return heading.level === 2 && heading.text === "Collected Metrics";
+    });
+
+    expect(start).toBeGreaterThan(-1);
+    expect(translated.length).toBe(english.length);
+
+    getAllStorageArrayMetricCategories().forEach(
+      (category: StorageArrayMetricCategory, index: number) => {
+        const label: string = getStorageArrayMetricCategoryLabel(category);
+
+        expect(english[start + 1 + index]?.text).toBe(label);
+        expect({
+          category,
+          heading: translated[start + 1 + index]?.text,
+        }).toEqual({ category, heading: drawnActionLabel(language, label) });
+      },
+    );
   });
 
   describe("links into these pages from other pages", () => {

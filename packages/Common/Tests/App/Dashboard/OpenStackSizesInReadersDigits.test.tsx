@@ -15,6 +15,7 @@ import {
 } from "../../../Types/OpenStack/OpenStackCapacity";
 import { OPENSTACK_CAPACITY_RESOURCE_STORAGE_BYTES } from "../../../Types/OpenStack/OpenStackCapacitySnapshot";
 import { OpenStackTopConsumers } from "../../../Types/OpenStack/OpenStackOverview";
+import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
 import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
@@ -100,7 +101,8 @@ function writtenTheOldWay(bytes: number): string {
     value /= 1024;
     index++;
   }
-  return `${value.toFixed(index > 0 && value < 10 ? 1 : 0)} ${units[index]}`;
+  // The figure held to its unit by a no-break space (#8457).
+  return `${value.toFixed(index > 0 && value < 10 ? 1 : 0)}\u00A0${units[index]}`;
 }
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -203,19 +205,19 @@ describe("formatOpenStackBytes", () => {
         return formatOpenStackBytes(bytes, { language: "fa" });
       }),
     ).toEqual([
-      "۰ B",
-      "۵ B",
-      "۵۱۲ B",
-      "۱٬۰۲۳ B",
-      "۱٫۵ KiB",
-      "۱۰٫۰ KiB",
-      "۱۰۰ MiB",
-      "۴۸۰ GiB",
-      "۵۰۰ GiB",
-      "۱٫۰ TiB",
-      "۶٫۰ TiB",
-      "۱۲ TiB",
-      "۲٬۰۴۸ TiB",
+      "۰\u00A0B",
+      "۵\u00A0B",
+      "۵۱۲\u00A0B",
+      "۱٬۰۲۳\u00A0B",
+      "۱٫۵\u00A0KiB",
+      "۱۰٫۰\u00A0KiB",
+      "۱۰۰\u00A0MiB",
+      "۴۸۰\u00A0GiB",
+      "۵۰۰\u00A0GiB",
+      "۱٫۰\u00A0TiB",
+      "۶٫۰\u00A0TiB",
+      "۱۲\u00A0TiB",
+      "۲٬۰۴۸\u00A0TiB",
     ]);
 
     for (const bytes of SIZES) {
@@ -224,22 +226,32 @@ describe("formatOpenStackBytes", () => {
       expect(size).not.toMatch(LATIN_DIGIT);
       expect(size).toMatch(PERSIAN_DIGIT);
       // The same unit as English, after its number.
-      expect(size.split(" ")[1]).toBe(writtenTheOldWay(bytes).split(" ")[1]);
+      expect(size.split("\u00A0")[1]).toBe(
+        writtenTheOldWay(bytes).split("\u00A0")[1],
+      );
     }
   });
 
   test("German with its decimal comma; Arabic in the Latin digits it writes by choice", () => {
-    expect(formatOpenStackBytes(6 * TIB, { language: "de" })).toBe("6,0 TiB");
-    expect(formatOpenStackBytes(480 * GIB, { language: "de" })).toBe("480 GiB");
-    expect(formatOpenStackBytes(6 * TIB, { language: "ar" })).toBe("6.0 TiB");
-    expect(formatOpenStackBytes(480 * GIB, { language: "ar" })).toBe("480 GiB");
+    expect(formatOpenStackBytes(6 * TIB, { language: "de" })).toBe(
+      "6,0\u00A0TiB",
+    );
+    expect(formatOpenStackBytes(480 * GIB, { language: "de" })).toBe(
+      "480\u00A0GiB",
+    );
+    expect(formatOpenStackBytes(6 * TIB, { language: "ar" })).toBe(
+      "6.0\u00A0TiB",
+    );
+    expect(formatOpenStackBytes(480 * GIB, { language: "ar" })).toBe(
+      "480\u00A0GiB",
+    );
   });
 
   test("without a language, the page's", () => {
     setDateDisplayLanguage("fa");
-    expect(formatOpenStackBytes(6 * TIB)).toBe("۶٫۰ TiB");
+    expect(formatOpenStackBytes(6 * TIB)).toBe("۶٫۰\u00A0TiB");
     setDateDisplayLanguage("en");
-    expect(formatOpenStackBytes(6 * TIB)).toBe("6.0 TiB");
+    expect(formatOpenStackBytes(6 * TIB)).toBe("6.0\u00A0TiB");
   });
 
   test("no size for what is not one", () => {
@@ -294,16 +306,16 @@ describe("the rest of OpenStack's figures", () => {
 
     expect(
       formatOpenStackCapacityAmount(OPENSTACK_RESOURCE_MEMORY_MB, 1024),
-    ).toBe("۱٫۰ GiB");
+    ).toBe("۱٫۰\u00A0GiB");
     expect(
       formatOpenStackCapacityAmount(OPENSTACK_RESOURCE_DISK_GB, 6144),
-    ).toBe("۶٫۰ TiB");
+    ).toBe("۶٫۰\u00A0TiB");
     expect(
       formatOpenStackCapacityAmount(
         OPENSTACK_CAPACITY_RESOURCE_STORAGE_BYTES,
         480 * GIB,
       ),
-    ).toBe("۴۸۰ GiB");
+    ).toBe("۴۸۰\u00A0GiB");
     expect(formatOpenStackCapacityAmount(OPENSTACK_RESOURCE_VCPU, 1280)).toBe(
       "۱٬۲۸۰",
     );
@@ -312,10 +324,10 @@ describe("the rest of OpenStack's figures", () => {
 
     expect(
       formatOpenStackCapacityAmount(OPENSTACK_RESOURCE_MEMORY_MB, 1024),
-    ).toBe("1.0 GiB");
+    ).toBe("1.0\u00A0GiB");
     expect(
       formatOpenStackCapacityAmount(OPENSTACK_RESOURCE_DISK_GB, 6144),
-    ).toBe("6.0 TiB");
+    ).toBe("6.0\u00A0TiB");
   });
 
   test("the Capacity page's pair: each amount set apart on a page read from the right, as written in English", () => {
@@ -386,7 +398,7 @@ describe("the Overview's Top consumers card", () => {
       values.map((value: HTMLElement): string => {
         return value.textContent || "";
       }),
-    ).toEqual(["۶٫۰ TiB", "۲٫۰ TiB", "۵۰۰ GiB", "۲۰ GiB"]);
+    ).toEqual(["۶٫۰\u00A0TiB", "۲٫۰\u00A0TiB", "۵۰۰\u00A0GiB", "۲۰\u00A0GiB"]);
 
     for (const value of values) {
       expect(value.textContent).not.toMatch(LATIN_DIGIT);
@@ -414,7 +426,7 @@ describe("the Overview's Top consumers card", () => {
       values.map((value: HTMLElement): string => {
         return value.textContent || "";
       }),
-    ).toEqual(["6.0 TiB", "2.0 TiB", "500 GiB", "20 GiB"]);
+    ).toEqual(["6.0\u00A0TiB", "2.0\u00A0TiB", "500\u00A0GiB", "20\u00A0GiB"]);
   });
 
   test("de: the decimal comma", async () => {
@@ -480,10 +492,10 @@ describe("a list's amounts", () => {
     expect(pair.tagName).toBe("SPAN");
     expect(pair).not.toHaveAttribute("dir");
     expect(pair.textContent).toContain(
-      `${FIRST_STRONG_ISOLATE}۴۸۰ GiB${POP_DIRECTIONAL_ISOLATE}`,
+      `${FIRST_STRONG_ISOLATE}۴۸۰\u00A0GiB${POP_DIRECTIONAL_ISOLATE}`,
     );
     expect(pair.textContent).toContain(
-      `${FIRST_STRONG_ISOLATE}۱٫۰ TiB${POP_DIRECTIONAL_ISOLATE}`,
+      `${FIRST_STRONG_ISOLATE}۱٫۰\u00A0TiB${POP_DIRECTIONAL_ISOLATE}`,
     );
     expect(withoutIsolateMarks(pair.textContent || "")).not.toMatch(
       LATIN_DIGIT,
@@ -492,7 +504,9 @@ describe("a list's amounts", () => {
     const exported: string = String(MEMORY.getExportValue!(row));
 
     expect(exported).toBe(withoutIsolateMarks(exported));
-    expect(exported).toContain("۴۸۰ GiB");
+    expect(exported).toContain("۴۸۰\u00A0GiB");
+    // The file itself writes the plain space a spreadsheet splits at.
+    expect(TableColumnsToCsv.withPlainSpaces(exported)).toContain("۴۸۰ GiB");
   });
 
   test("fa: one size alone is a figure of its own", async () => {
@@ -520,7 +534,7 @@ describe("a list's amounts", () => {
         format: formatOpenStackBytes,
         setsValuesApart: true,
       }),
-    ).toBe("480 GiB of 1.0 TiB");
+    ).toBe("480\u00A0GiB of 1.0\u00A0TiB");
   });
 });
 

@@ -25,7 +25,7 @@ flowchart TB
 
 | 方式 | 作用 | 需要什么 |
 | --- | --- | --- |
-| GitHub App | 导入你的存储库。OneUptime AI 会在其中打开修复异常、慢跟踪以及其调查所发现原因的 pull request，并回应 issue 和 pull request 中的提及。 | 一个用于安装该应用的组织或账户。在 OneUptime Cloud 上需要 **Growth** 计划。 |
+| GitHub App | 导入你的存储库。OneUptime AI 会在其中打开修复异常、慢追踪以及其调查所发现原因的 pull request，并回应 issue 和 pull request 中的提及。 | 一个用于安装该应用的组织或账户。在 OneUptime Cloud 上需要 **Growth** 计划。 |
 | 工作流 | 为每个事件在你选择的存储库中打开一个 GitHub issue。 | 一个能创建 issue 的 GitHub 令牌，以及一个由两个块组成的工作流。 |
 
 ## 连接你的存储库

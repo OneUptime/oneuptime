@@ -22,7 +22,7 @@ Start med spørsmålet flisen skal svare på:
 | Hva er ett bestemt tall akkurat nå? | **Verdi**, eller **Måler** når det har et kjent område |
 | Hvilke verter, tjenester eller endepunkter skiller seg ut? | **Tabell** eller **Sportabell** |
 | Hva skjer akkurat nå? | **Loggstrøm**, **Sporliste**, **Hendelsesliste** eller **Varselliste** |
-| Er alle nettstedene våre oppe? | **Overvåkingsliste** |
+| Er alle nettstedene våre oppe? | **Monitorliste** |
 | Holder vi påliteligheten vi har lovet? | **SLO** eller **SLO-liste** |
 | Kommer folk gjennom en flyt, og kommer de tilbake? | **Trakt** eller **Brukerlojalitet** |
 | Hvilken tilstand er klyngene og vertene våre i? | En widget fra gruppen Infrastruktur |
@@ -146,9 +146,9 @@ Sporwidgetene teller bare rotspenn, slik sporutforskeren gjør, med mindre du ta
 
 | Widget | Hva den viser | Filtre |
 | --- | --- | --- |
-| **Hendelsesliste** | Hendelser med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
-| **Varselliste** | Varsler med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, overvåkinger og etiketter. |
-| **Overvåkingsliste** | Overvåkinger med nåværende status. | I drift eller ikke, status, overvåkingstype og etiketter, eller en **Etikettvariabel** som seerne velger i verktøylinjen. |
+| **Hendelsesliste** | Hendelser med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, monitorer og etiketter. |
+| **Varselliste** | Varsler med tilstand og alvorlighet. | Uløste, bekreftede eller løste; alvorlighet, tilstand, monitorer og etiketter. |
+| **Monitorliste** | Monitorer med nåværende status. | I drift eller ikke, status, monitortype og etiketter, eller en **Etikettvariabel** som seerne velger i verktøylinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en bikube av celler farget etter status i stedet for en tabell: velg det under **Visningsmodus**. De viser den nåværende tilstanden, uansett dashbordets tidsintervall.
 
@@ -165,7 +165,7 @@ Ett tjenestenivåmål (SLO), tegnet enten som ett tall eller som en linje over t
 
 Bruk den når dashbordet svarer på "holder vi det vi har lovet?" heller enn "hva skjer akkurat nå?".
 
-SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det som publiseres, er SLO-ets nøkkeltall (navn, mål, nåværende SLI, gjenstående feilbudsjett, burn rate og status), uansett hvilket av dem widgeten tegner. Definisjonen forblir privat: overvåkingene det følger med på, etikettene, beskrivelsen, spørringen og evalueringsplanen sendes aldri til en offentlig seer. En Tile-widget publiserer bare disse nåværende tallene; en Diagram-widget publiserer også historikken til den ene serien den tegner, og ingenting annet.
+SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det som publiseres, er SLO-ets nøkkeltall (navn, mål, nåværende SLI, gjenstående feilbudsjett, burn rate og status), uansett hvilket av dem widgeten tegner. Definisjonen forblir privat: monitorene det følger med på, etikettene, beskrivelsen, spørringen og evalueringsplanen sendes aldri til en offentlig seer. En Tile-widget publiserer bare disse nåværende tallene; en Diagram-widget publiserer også historikken til den ene serien den tegner, og ingenting annet.
 
 ### SLO List
 
@@ -200,7 +200,7 @@ Bruk dem til én side som blander tilstanden til infrastrukturen din med telemet
 
 ### Network Map
 
-Nettverkslokasjonene dine tegnet på verdenskartet, hver festet på sin egen breddegrad og lengdegrad og farget etter overvåkingsstatusen som er samlet på den. Lokasjoner nær hverandre deler en markør med antallet skrevet inni; en markør som står for nøyaktig én lokasjon, åpner den lokasjonen når du klikker på den.
+Nettverkslokasjonene dine tegnet på verdenskartet, hver festet på sin egen breddegrad og lengdegrad og farget etter monitorstatusen som er samlet på den. Lokasjoner nær hverandre deler en markør med antallet skrevet inni; en markør som står for nøyaktig én lokasjon, åpner den lokasjonen når du klikker på den.
 
 Kartet rammer seg selv inn rundt lokasjonene det tegnet: et nettverk innenfor ett land fyller rammen med det landet, og ett spredt over kontinenter åpnes på hele verden. Det finnes ingen kontroller for å zoome eller panorere: en dashbordflis er et bilde, og siden Network Map under Network er der du går gjennom hierarkiet.
 

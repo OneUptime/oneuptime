@@ -39,6 +39,16 @@ export default class TableColumnsToCsv {
   }
 
   /*
+   * A no-break space as the plain space it stands for. A page holds a figure
+   * to its unit with one ("1.5\u00A0GiB", #8457) so a narrow cell never
+   * wraps between them; a CSV is never wrapped, and the spreadsheet or the
+   * script that reads it splits a figure from its unit at a plain space.
+   */
+  public static withPlainSpaces(value: string): string {
+    return value.replace(/\u00A0/g, " ");
+  }
+
+  /*
    * Neutralizes spreadsheet formula injection. A field that begins with "=",
    * "+", "@", or a leading control character can be executed as a formula when
    * the CSV is opened in Excel / Google Sheets. Prefixing such a value with a
@@ -377,8 +387,8 @@ export default class TableColumnsToCsv {
 
   /*
    * Builds the full CSV text (header row + one row per item). Fields are
-   * sanitized against formula injection and escaped per RFC 4180, and rows are
-   * separated with CRLF.
+   * written with plain spaces (withPlainSpaces), sanitized against formula
+   * injection and escaped per RFC 4180, and rows are separated with CRLF.
    */
   public static convertToCsv<T extends GenericObject>(data: {
     items: Array<T>;
@@ -387,7 +397,9 @@ export default class TableColumnsToCsv {
     const exportColumns: Columns<T> = this.getExportableColumns(data.columns);
 
     const encodeField: (value: string) => string = (value: string): string => {
-      return this.escapeCsvValue(this.sanitizeForCsvInjection(value));
+      return this.escapeCsvValue(
+        this.sanitizeForCsvInjection(this.withPlainSpaces(value)),
+      );
     };
 
     const headerRow: string = exportColumns

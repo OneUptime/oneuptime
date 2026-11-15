@@ -30,7 +30,9 @@ import StatusPagePrivateUserSessionService, {
   SessionMetadata as StatusPageSessionMetadata,
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  StatusPageSessionToSignOut,
+} from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -64,6 +66,9 @@ import {
 const router: ExpressRouter = Express.getRouter();
 
 const ACCESS_TOKEN_EXPIRY_SECONDS: number = 15 * 60;
+
+// Why a session a reader signed out of ended, as the session records it.
+const SIGNED_OUT_REASON: string = "User logged out";
 
 type MasterPasswordAuthInput = {
   req: ExpressRequest;
@@ -238,17 +243,66 @@ router.post(
       const refreshToken: string | undefined =
         CookieUtil.getRefreshTokenFromExpressRequest(req, statusPageId);
 
-      if (refreshToken) {
-        await StatusPagePrivateUserSessionService.revokeSessionByRefreshToken(
-          refreshToken,
-          {
-            reason: "User logged out",
-          },
-        );
+      const hasEndedSession: boolean = refreshToken
+        ? await StatusPagePrivateUserSessionService.revokeSessionByRefreshToken(
+            refreshToken,
+            {
+              reason: SIGNED_OUT_REASON,
+            },
+          )
+        : false;
+
+      /*
+       * The refresh token matched no live session: a renewal whose answer
+       * never reached the browser may have rotated it - the refresh token
+       * is rotated at every renewal and only the new one kept - and the
+       * session would stay signed in though its reader signed out
+       * (issue #8671). The page's sign-out cookie still names it
+       * (CookieUtil.setStatusPagePrivateUserCookie): signed for that and
+       * nothing else, sent only to this page's sign-out, read from the
+       * cookie only, and ending only that live session of that reader on
+       * this page.
+       */
+      if (!hasEndedSession) {
+        const sessionSignOutToken: string | undefined =
+          CookieUtil.getStatusPageSessionSignOutTokenFromExpressRequest(
+            req,
+            statusPageId,
+          );
+        let sessionToSignOut: StatusPageSessionToSignOut | null = null;
+
+        if (sessionSignOutToken) {
+          try {
+            sessionToSignOut =
+              JSONWebToken.decodeStatusPageSessionToSignOut(
+                sessionSignOutToken,
+              );
+          } catch {
+            // Not a sign-out cookie OneUptime signed, or one that ran out.
+            sessionToSignOut = null;
+          }
+        }
+
+        if (
+          sessionToSignOut &&
+          sessionToSignOut.statusPageId.toString() === statusPageId.toString()
+        ) {
+          await StatusPagePrivateUserSessionService.revokeLiveSessionOfPrivateUser(
+            {
+              statusPageId: sessionToSignOut.statusPageId,
+              statusPagePrivateUserId: sessionToSignOut.userId,
+              sessionId: sessionToSignOut.sessionId,
+            },
+            {
+              reason: SIGNED_OUT_REASON,
+            },
+          );
+        }
       }
 
       CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
       CookieUtil.removeCookie(res, CookieUtil.getRefreshTokenKey(statusPageId));
+      CookieUtil.removeStatusPageSessionSignOutCookie(res, statusPageId);
       CookieUtil.removeStatusPageMasterPasswordCookie(res, statusPageId);
 
       return Response.sendEmptySuccessResponse(req, res);

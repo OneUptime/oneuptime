@@ -376,7 +376,7 @@ describe("PerEntityCriteriaFanOut - transceivers", () => {
       }),
     ).toEqual(["Te1/1/1", "Te1/1/3"]);
     expect(matches[1]!.rootCause).toContain(
-      "RX Power -19.50 dBm is below the low alarm threshold of -18.40 dBm",
+      "RX Power -19.50\u00A0dBm is below the low alarm threshold of -18.40\u00A0dBm",
     );
   });
 });

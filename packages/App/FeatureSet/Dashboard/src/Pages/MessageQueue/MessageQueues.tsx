@@ -604,7 +604,7 @@ const MessageQueues: FunctionComponent<
                   title={broker.title}
                   data-testid="message-queue-broker"
                 >
-                  {broker.text}
+                  {getValueOrQuietDash(broker.text)}
                 </span>
               );
             },
@@ -649,7 +649,7 @@ const MessageQueues: FunctionComponent<
                   title={lastSeen.title || undefined}
                   data-testid="message-queue-last-seen"
                 >
-                  {lastSeen.text}
+                  {getValueOrQuietDash(lastSeen.text)}
                 </span>
               );
             },

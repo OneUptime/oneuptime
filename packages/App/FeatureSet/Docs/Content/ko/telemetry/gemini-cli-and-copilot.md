@@ -151,7 +151,7 @@ service:
 
 로그 이벤트에는 `gemini_cli.user_prompt`, `gemini_cli.api_request`, `gemini_cli.api_response`, `gemini_cli.api_error`, `gemini_cli.tool_call`, `gemini_cli.file_operation` 이 있습니다. 모든 레코드에는 `session.id`, `installation.id`, `active_approval_mode`, 그리고 로그인한 경우 `user.email` 이 담깁니다. OneUptime은 `session.id` 를 대화 ID로 읽으므로, Gemini CLI 세션 전체가 트레이스가 몇 개이든 **대화** 아래에 하나의 대화로 표시됩니다.
 
-이 메트릭들은 일반적인 OpenTelemetry 메트릭입니다. 어느 것이든 대시보드의 차트로 만들거나 [메트릭 모니터](/docs/monitor/metrics-monitor) 로 알림을 받을 수 있습니다.
+이 메트릭들은 일반적인 OpenTelemetry 메트릭입니다. 어느 것이든 대시보드의 차트로 만들거나 [메트릭 모니터](/docs/monitor/metrics-monitor) 로 경고를 받을 수 있습니다.
 
 ## GitHub Copilot 설정하기
 

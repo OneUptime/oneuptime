@@ -64,12 +64,12 @@ De fleste regler handler på advarsler og episoder, der oprettes, efter at du ha
 
 ### Betingelser
 
-En regels betingelser afgør, hvilke advarsler den handler på, og læses som sætninger: "Hvis **Advarselstitel** indeholder `database`", "Og **Overvågningsetiketter** har en af *Production*". En regel uden betingelser matcher hver advarsel.
+En regels betingelser afgør, hvilke advarsler den handler på, og læses som sætninger: "Hvis **Advarselstitel** indeholder `database`", "Og **Monitoretiketter** har en af *Production*". En regel uden betingelser matcher hver advarsel.
 
 | Betingelse                                                    | Sammenligner med                                                                                               |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**, **Alvorlighedsgrader for advarsler**, **Advarselsmærkater**, **Overvågningsetiketter** | **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.                    |
-| **Advarselstitel**, **Beskrivelse af advarsel**, **Overvågningsnavn**, **Overvågningsbeskrivelse** | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** og **Matcher ikke mønster** for et regulært udtryk eller et `*`-jokertegn. |
+| **Monitorer**, **Alvorlighedsgrader for advarsler**, **Advarselsmærkater**, **Monitoretiketter** | **Har en af**, **Har alle** eller **Har ingen af** de værdier, du vælger.                    |
+| **Advarselstitel**, **Beskrivelse af advarsel**, **Monitornavn**, **Monitorbeskrivelse** | **Indeholder**, **Indeholder ikke**, **Er lig med**, **Er ikke lig med**, **Starter med**, **Slutter med**, uden hensyn til store og små bogstaver, eller **Matcher mønster** og **Matcher ikke mønster** for et regulært udtryk eller et `*`-jokertegn. |
 
 Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver skal holde, eller **Én skal matche**, hvor én er nok. Episoderegler matcher i stedet en episodes alvorsgrad, etiketter, titel og beskrivelse.
 

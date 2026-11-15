@@ -118,8 +118,8 @@ Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zij
 | Template                       | Categorie    | Ernst    | Houdt in de gaten                                                                               | Gaat af als                                                                                                                                      |
 | ------------------------------ | ------------ | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Array Stopped Reporting        | Beschikbaarheid | Kritiek  | `purefa_info`, Count, laatste 10 minuten                                                        | Geen gegevens gedurende het hele venster — de Storage Array Agent is gestopt, is zijn route naar OneUptime kwijtgeraakt of zijn token is ingetrokken, of de array antwoordt hem niet meer; herstelt als er weer gegevens binnenkomen |
-| Critical Array Alert           | Array Health | Kritiek  | `purefa_alerts_open` gefilterd op `severity=critical`, Max per `summary`, laatste 5 minuten     | > 0 — de array heeft een openstaande kritieke waarschuwing (een defect component, een capaciteitsnoodgeval, een replicatiefout). Eén incident per waarschuwing; herstelt als de waarschuwing sluit |
-| Warning Array Alert            | Array Health | Waarschuwing  | `purefa_alerts_open` gefilterd op `severity=warning`, Max per `summary`, laatste 5 minuten      | > 0 — de array heeft een openstaande waarschuwing van niveau warning. Eén incident per waarschuwing; herstelt als de waarschuwing sluit          |
+| Critical Array Alert           | Arraygezondheid | Kritiek  | `purefa_alerts_open` gefilterd op `severity=critical`, Max per `summary`, laatste 5 minuten     | > 0 — de array heeft een openstaande kritieke waarschuwing (een defect component, een capaciteitsnoodgeval, een replicatiefout). Eén incident per waarschuwing; herstelt als de waarschuwing sluit |
+| Warning Array Alert            | Arraygezondheid | Waarschuwing  | `purefa_alerts_open` gefilterd op `severity=warning`, Max per `summary`, laatste 5 minuten      | > 0 — de array heeft een openstaande waarschuwing van niveau warning. Eén incident per waarschuwing; herstelt als de waarschuwing sluit          |
 | Capacity Above 80%             | Capaciteit   | Waarschuwing  | `purefa_array_space_utilization`, Max, laatste 15 minuten                                       | > 80 — de eerste capaciteitsdrempel van Pure zelf; herstelt bij ≤ 72                                                                             |
 | Capacity Above 90%             | Capaciteit   | Kritiek  | `purefa_array_space_utilization`, Max, laatste 5 minuten                                        | > 90 — de array staat op het punt schrijfacties te weigeren; herstelt bij ≤ 81                                                                   |
 | High Read Latency              | Prestaties   | Waarschuwing  | `purefa_array_performance_latency_usec` gefilterd op `dimension=usec_per_read_op`, Avg, laatste 10 minuten  | > 5000 µs (5 ms) — leesacties van een FlashArray zijn normaal ruim binnen 1 ms klaar; herstelt bij ≤ 4500                            |
@@ -135,8 +135,8 @@ Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zij
 | Template                     | Categorie    | Ernst    | Houdt in de gaten                                                                                              | Gaat af als                                                                                                         |
 | ---------------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Array Stopped Reporting      | Beschikbaarheid | Kritiek  | `purefb_info`, Count, laatste 10 minuten                                                                       | Geen gegevens gedurende het hele venster — de agent, zijn exporter of de FlashBlade antwoordt niet meer; herstelt als er weer gegevens binnenkomen |
-| Critical Array Alert         | Array Health | Kritiek  | `purefb_alerts_open` gefilterd op `severity=critical`, Max per `summary`, laatste 5 minuten                    | > 0 — de FlashBlade heeft een openstaande kritieke waarschuwing. Eén incident per waarschuwing; herstelt als de waarschuwing sluit |
-| Warning Array Alert          | Array Health | Waarschuwing  | `purefb_alerts_open` gefilterd op `severity=warning`, Max per `summary`, laatste 5 minuten                     | > 0 — de FlashBlade heeft een openstaande waarschuwing van niveau warning. Eén incident per waarschuwing; herstelt als de waarschuwing sluit |
+| Critical Array Alert         | Arraygezondheid | Kritiek  | `purefb_alerts_open` gefilterd op `severity=critical`, Max per `summary`, laatste 5 minuten                    | > 0 — de FlashBlade heeft een openstaande kritieke waarschuwing. Eén incident per waarschuwing; herstelt als de waarschuwing sluit |
+| Warning Array Alert          | Arraygezondheid | Waarschuwing  | `purefb_alerts_open` gefilterd op `severity=warning`, Max per `summary`, laatste 5 minuten                     | > 0 — de FlashBlade heeft een openstaande waarschuwing van niveau warning. Eén incident per waarschuwing; herstelt als de waarschuwing sluit |
 | Capacity Above 80%           | Capaciteit   | Waarschuwing  | `purefb_array_space_utilization` gefilterd op `type=array`, Max, laatste 15 minuten                            | > 80; herstelt bij ≤ 72                                                                                             |
 | Capacity Above 90%           | Capaciteit   | Kritiek  | `purefb_array_space_utilization` gefilterd op `type=array`, Max, laatste 5 minuten                             | > 90 — schrijfacties mislukken voor elke client als hij vol raakt; herstelt bij ≤ 81                                |
 | Hardware Component Unhealthy | Hardware     | Kritiek  | `purefb_hardware_health`, Min per `name`, laatste 5 minuten                                                    | < 1 — een blade, fabric-module, voeding of ventilator is niet gezond (een ongebruikt slot meldt 2). Eén incident per component; herstelt bij ≥ 1 |
@@ -157,14 +157,14 @@ Er is geen template voor de latentie van elk volume, omdat de juiste drempel van
 
 De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de catalogus die het monitorformulier aanbiedt. Elke waarde is een gauge die de array zelf berekent - latenties zijn microseconden per operatie en doorvoer is per seconde -, dus er is geen rekenwerk met snelheden nodig. **Filter** is het labelfilter dat de reeks de betekenis geeft die haar rij noemt; het formulier past het voor je toe.
 
-### Array Health
+### Arraygezondheid
 
 | Metriek              | Filter | Platform   | Eenheid | Beschrijving                                                                                                                                                      |
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Eén reeks per openstaande waarschuwing op de array (waarde 1), met de labels `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` en `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Eén reeks per openstaande waarschuwing op de FlashBlade (waarde 1), met de labels `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` en `kburl` (het kennisbankartikel van Pure) |
 
-### Capacity
+### Capaciteit
 
 | Metriek                                   | Filter                       | Platform   | Eenheid | Beschrijving                                                                                                                          |
 | ----------------------------------------- | ---------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -177,7 +177,7 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Ongebruikte capaciteit van de FlashBlade                                                                                              |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Gegevensreductie over de hele FlashBlade                                                                                              |
 
-### Performance
+### Prestaties
 
 | Metriek                                    | Filter                                         | Platform   | Eenheid   | Beschrijving                                                                                                 |
 | ------------------------------------------ | ---------------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------ |
@@ -222,7 +222,7 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec`     | FlashArray | `ops/s` | Leesoperaties per seconde van elke host                                                                                                        |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec`    | FlashArray | `ops/s` | Schrijfoperaties per seconde van elke host                                                                                                     |
 
-### Replication
+### Replicatie
 
 | Metriek                                              | Filter                                 | Platform   | Eenheid   | Beschrijving                                                                                                                                                 |
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -241,7 +241,7 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Fouten per seconde op elke Ethernet- en Fibre Channel-interface — aanhoudende fouten betekenen meestal een slechte kabel, optiek of switchpoort                                                               |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Gezondheid van elk hardwarecomponent (blades, fabric-modules, voedingen, ventilatoren, ...): 1 = gezond, 2 = ongebruikt, 0 = ongezond. Neem het minimum per `name`                                             |
 
-### File Systems
+### Bestandssystemen
 
 | Metriek                                        | Filter                        | Platform   | Eenheid | Beschrijving                                                                                 |
 | ---------------------------------------------- | ----------------------------- | ---------- | ------- | -------------------------------------------------------------------------------------------- |

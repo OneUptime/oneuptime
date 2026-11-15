@@ -175,6 +175,6 @@ OpenAI의 플랫폼 API는 자체적으로 OpenTelemetry를 보내지 않습니�
 
 :::cards
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): 모든 코딩 어시스턴트에서 지출이 귀속되는 방식.
-- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 자체 AI 호출의 대화, 알림, 비용, 예산.
+- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 자체 AI 호출의 대화, 경고, 비용, 예산.
 - [AI 게이트웨이](/docs/telemetry/ai-gateways): 모든 모델 호출을 트레이스하고 가격을 매기는 게이트웨이 하나.
 :::

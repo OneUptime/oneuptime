@@ -45,7 +45,7 @@ Il vous faut un rôle autorisé à créer des SLO : Propriétaire du projet, Adm
 :::steps
 ### Ouvrir les SLO
 
-Ouvrez **SLOs** depuis le menu **Produits** de la barre supérieure. Il se trouve dans le premier groupe, à côté des moniteurs et des incidents. Cliquez sur **Créer : Objectif de niveau de service**.
+Ouvrez **SLO** depuis le menu **Produits** de la barre supérieure. Il se trouve dans le premier groupe, à côté des moniteurs et des incidents. Cliquez sur **Créer : Objectif de niveau de service**.
 
 ### Choisir ce qu'il mesure
 
@@ -146,7 +146,7 @@ Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel que
 
 ## La liste des SLO
 
-La page **SLOs** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires. Sa colonne **Ce qui est mesuré** affiche les services d'un SLO de requêtes là où elle affiche les moniteurs d'un SLO de disponibilité, et le filtre **Services** trouve les SLO qui mesurent un service.
+La page **SLO** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires. Sa colonne **Ce qui est mesuré** affiche les services d'un SLO de requêtes là où elle affiche les moniteurs d'un SLO de disponibilité, et le filtre **Services** trouve les SLO qui mesurent un service.
 
 - Les tuiles au-dessus de la liste comptent les SLO par statut : **Sain**, **À risque**, **Budget épuisé**, **Mal configuré**, **En pause** et **Désactivé**. Elles s'affichent dès qu'il existe un SLO non archivé. Cliquez sur une tuile pour n'afficher que ces SLO, puis de nouveau pour tous les revoir.
 - Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, leur donner les [règles de taux de consommation recommandées](/docs/slo/burn-rate-alerts#les-ajouter-à-plusieurs-slo-à-la-fois) qui leur manquent, les archiver ou les supprimer, tous en même temps.
@@ -241,7 +241,7 @@ Chaque alerte et chaque incident qu'une règle de taux de consommation crée est
 
 OneUptime établit ce lien quand une règle crée l'alerte ou l'incident ; vous ne pouvez pas l'ajouter à la main, et modifier l'alerte ou l'incident ne le retire jamais.
 
-Le menu latéral d'un moniteur a lui aussi une page **SLOs** : les SLO qui mesurent ce moniteur, pour savoir quels objectifs en dépendent avant de le mettre en pause ou de le modifier.
+Le menu latéral d'un moniteur a lui aussi une page **SLO** : les SLO qui mesurent ce moniteur, pour savoir quels objectifs en dépendent avant de le mettre en pause ou de le modifier.
 
 ## Les jeunes SLO et l'indicateur de remplissage de la fenêtre
 

@@ -1,4 +1,5 @@
 import EventStatBar from "../EventView/EventStatBar";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import EventStatTile from "../EventView/EventStatTile";
 import SloBudgetBar, { SLO_BUDGET_TIER_TEXT_CLASS } from "./SloBudgetBar";
@@ -424,7 +425,7 @@ const SloKpiStrip: FunctionComponent<ComponentProps> = (
              */
             isRunwayPlaceholder ? undefined : (
               <span className={RUNWAY_TONE_TEXT_CLASS[runway.tone]}>
-                {runwayText.value}
+                {getValueOrQuietDash(runwayText.value)}
               </span>
             )
           }

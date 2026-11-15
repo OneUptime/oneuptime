@@ -268,7 +268,7 @@ conf:
 
 打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 chart 所运行的集群，按 **Kubernetes → 文档** 操作：其 pod、日志和节点会进入 Kubernetes 页面。
 
-若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
+若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈追踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
 ```yaml title="Kubernetes agent values"
 logs:
@@ -346,7 +346,7 @@ kube_prometheus_stack_helm_values:
 
 打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对 Atmosphere 所运行的集群，按 **Kubernetes → 文档** 操作。
 
-若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
+若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈追踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
 ```yaml title="Kubernetes agent values"
 logs:
@@ -456,7 +456,7 @@ spec:
 
 打开 **OpenStack → 所有云**，点击 **连接云**，提供 Keystone 的地址、应用凭据和要使用的探测器。探测器只通过 HTTPS 与云通信。然后针对运行控制平面的集群，按 **Kubernetes → 文档** 操作，并选择 **Red Hat OpenShift**，这会设置 `preset=openshift`。
 
-若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈跟踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
+若要让这些服务的日志也出现在该云的 **日志** 页面上，并且每个堆栈追踪作为一条记录，请在代理的 values 中指定云的名称，以及其服务所运行的命名空间：
 
 ```yaml title="Kubernetes agent values"
 logs:

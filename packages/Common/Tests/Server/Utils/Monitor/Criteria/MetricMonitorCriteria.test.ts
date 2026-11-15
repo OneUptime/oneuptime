@@ -121,8 +121,8 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
      * ms is written "2.5 sec"; the threshold gets the same treatment so
      * the two halves of the sentence cannot disagree.
      */
-    expect(message).toContain("above the 2 sec threshold");
-    expect(message).toContain("2.5 sec");
+    expect(message).toContain("above the 2\u00A0sec threshold");
+    expect(message).toContain("2.5\u00A0sec");
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("ms");
     expect(criteriaFilter.metricCriteriaContext?.breachingSample?.value).toBe(
       2500,
@@ -152,8 +152,8 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
     expect(message).toBeTruthy();
-    expect(message).toContain("above the 2 sec threshold");
-    expect(message).toContain("2.5 sec");
+    expect(message).toContain("above the 2\u00A0sec threshold");
+    expect(message).toContain("2.5\u00A0sec");
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("sec");
     expect(criteriaFilter.metricCriteriaContext?.breachingSample?.value).toBe(
       2.5,
@@ -182,8 +182,8 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet(inputs);
 
     expect(message).toBeTruthy();
-    expect(message).toContain("above the 2 GB threshold");
-    expect(message).toContain("2.5 GB");
+    expect(message).toContain("above the 2\u00A0GB threshold");
+    expect(message).toContain("2.5\u00A0GB");
     expect(criteriaFilter.metricCriteriaContext?.unit).toBe("GB");
   });
 
@@ -523,9 +523,9 @@ describe("MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
      * enough apart.
      */
     expect(message).toContain(
-      "ranged from 110 ms to 200 ms across all 10 readings",
+      "ranged from 110\u00A0ms to 200\u00A0ms across all 10 readings",
     );
-    expect(message).toContain("above the 100 ms threshold");
+    expect(message).toContain("above the 100\u00A0ms threshold");
     // The raw comma-joined dump is no longer in the message
     expect(message).not.toContain("110, 120, 130, 140, 150, 160");
   });

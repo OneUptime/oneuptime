@@ -333,7 +333,9 @@ describe("Cloud Instances tab", () => {
     expect(cellText(cpu, {})).toBe("—");
     expect(cellText(cpu, { latestCpuPercent: undefined })).toBe("—");
     expect(cellText(memory, {})).toBe("—");
-    expect(cellText(memory, { latestMemoryBytes: 512 * MIB })).toBe("512 MiB");
+    expect(cellText(memory, { latestMemoryBytes: 512 * MIB })).toBe(
+      "512\u00A0MiB",
+    );
 
     expect(CLOUD.cpu).toContain("A dash means no CPU reading has arrived.");
     expect(CLOUD.memory).toContain(

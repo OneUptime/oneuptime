@@ -118,8 +118,8 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 嚴重 | `purefa_info`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — Storage Array Agent 已停止、失去通往 OneUptime 的路由或權杖被撤銷，或者陣列不再回應它；資料再次送達時復原 |
-| Critical Array Alert | Array Health | 嚴重 | `purefa_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的嚴重警示(元件故障、容量緊急、複寫失敗)。每個警示一個事件；警示關閉時復原 |
-| Warning Array Alert | Array Health | 警告 | `purefa_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
+| Critical Array Alert | 陣列健康狀況 | 嚴重 | `purefa_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的嚴重警示(元件故障、容量緊急、複寫失敗)。每個警示一個事件；警示關閉時復原 |
+| Warning Array Alert | 陣列健康狀況 | 警告 | `purefa_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
 | Capacity Above 80% | 容量 | 警告 | `purefa_array_space_utilization`，Max，過去 15 分鐘 | > 80 — Pure 自己的第一個容量臨界值；≤ 72 時復原 |
 | Capacity Above 90% | 容量 | 嚴重 | `purefa_array_space_utilization`，Max，過去 5 分鐘 | > 90 — 陣列即將拒絕寫入；≤ 81 時復原 |
 | High Read Latency | 效能 | 警告 | `purefa_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op`，Avg，過去 10 分鐘 | > 5000 µs (5 ms) — FlashArray 的讀取通常遠低於 1 ms；≤ 4500 時復原 |
@@ -135,8 +135,8 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 嚴重 | `purefb_info`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — 代理程式、其匯出器或 FlashBlade 不再回應；資料再次送達時復原 |
-| Critical Array Alert | Array Health | 嚴重 | `purefb_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的嚴重警示。每個警示一個事件；警示關閉時復原 |
-| Warning Array Alert | Array Health | 警告 | `purefb_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
+| Critical Array Alert | 陣列健康狀況 | 嚴重 | `purefb_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的嚴重警示。每個警示一個事件；警示關閉時復原 |
+| Warning Array Alert | 陣列健康狀況 | 警告 | `purefb_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
 | Capacity Above 80% | 容量 | 警告 | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 15 分鐘 | > 80；≤ 72 時復原 |
 | Capacity Above 90% | 容量 | 嚴重 | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 5 分鐘 | > 90 — 寫滿時每個用戶端的寫入都會失敗；≤ 81 時復原 |
 | Hardware Component Unhealthy | 硬體 | 嚴重 | `purefb_hardware_health`，依 `name` 取 Min，過去 5 分鐘 | < 1 — 某個刀鋒、交換模組、電源供應器或風扇不健康(未使用的插槽回報 2)。每個元件一個事件；≥ 1 時復原 |
@@ -157,14 +157,14 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 
 代理程式會傳送陣列匯出的所有內容；下面的序列是監測器表單提供的目錄。每個值都是陣列自己計算的量測值——延遲以每次作業的微秒計，輸送量以每秒計——因此不需要計算速率。**篩選器** 是賦予序列該列所述意義的標籤篩選器；表單會替你套用它。
 
-### Array Health
+### 陣列健康狀況
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 陣列上每個未關閉的警示一個序列(值為 1)，帶有標籤 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每個未關閉的警示一個序列(值為 1)，帶有標籤 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知識庫文章) |
 
-### Capacity
+### 容量
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefb_array_space_bytes` | `type=array`、`space=empty` | FlashBlade | `bytes` | FlashBlade 未使用的容量 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | 整個 FlashBlade 的資料縮減 |
 
-### Performance
+### 效能
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有通訊協定的每秒讀取位元組數 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有通訊協定的每秒寫入位元組數 |
 
-### Volumes
+### 磁碟區
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 每個磁碟區在資料縮減後佔用的實體空間 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 每個磁碟區的資料縮減比 |
 
-### Hosts
+### 主機
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec` | FlashArray | `ops/s` | 每台主機的每秒讀取作業數 |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec` | FlashArray | `ops/s` | 每台主機的每秒寫入作業數 |
 
-### Replication
+### 複寫
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每個 Pod 的複寫流量，帶有標籤 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每個 ActiveCluster Pod 的鏡像寫入平均延遲 |
 
-### Hardware
+### 硬體
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 每個乙太網路和光纖通道介面上的每秒錯誤數——持續出錯通常表示纜線、光纖模組或交換器連接埠有問題 |
 | `purefb_hardware_health` | — | FlashBlade | — | 每個硬體元件(刀鋒、交換模組、電源供應器、風扇……)的健康狀況：1 = 健康，2 = 未使用，0 = 不健康。依 `name` 取最小值 |
 
-### File Systems
+### 檔案系統
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 每個檔案系統佔用的實體空間 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 每個檔案系統佈建大小中仍然可用的比例，從 0 到 1——接近 0 時它即將用滿配額 |
 
-### Buckets
+### 儲存貯體
 
 | 指標 | 篩選器 | 平台 | 單位 | 描述 |
 | --- | --- | --- | --- | --- |
