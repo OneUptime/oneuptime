@@ -3,15 +3,26 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import {
   EVERY_NEW_ALERT_RULE_DESCRIPTION,
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
   EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
   PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
   RULE_NAME_MAX_LENGTH,
+  getEveryNewAlertRuleDescription,
   getEveryNewAlertRuleName,
+  getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
+  readEveryNewEventRulesLanguage,
   readPageForEveryNewIncidentAndAlert,
   shouldOfferEveryNewEventRules,
 } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import ColumnLength from "../../../Types/Database/ColumnLength";
+import { createTranslator, Translator } from "../../../Types/Translator";
+import {
+  FIRST_STRONG_ISOLATE,
+  getRecordWordsTranslator,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../Server/Utils/ServerTranslation";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
  * The shared rule of "Page this policy for every new incident and alert":
@@ -201,4 +212,266 @@ describe("shouldOfferEveryNewEventRules", () => {
       );
     },
   );
+});
+
+/*
+ * ISSUE #7995: THE TWO RULES IN THE LANGUAGE OF THE PERSON WHO MADE THEM.
+ *
+ * The rules were named "Page <policy> for every incident" in English for a
+ * German, an Arabic or a Japanese reader alike. They are now a whole
+ * sentence with the policy's name in it, worded by the creator's
+ * translator - the Dashboard's, or the server's copy of the same words -
+ * and cut to fit the column by the policy's name alone, the words around it
+ * whole in every language. No translator is English, byte for byte.
+ */
+const READER_LANGUAGES: Array<string> = ["de", "ar", "fa", "ja"];
+
+describe("the two rules' names and descriptions, in the creator's language (#7995)", () => {
+  test("English is the same as it always was, with a translator or without", () => {
+    const english: Translator = createTranslator(undefined);
+
+    for (const translator of [undefined, english, dashboardTranslator("en")]) {
+      expect(getEveryNewIncidentRuleName("Payments on-call", translator)).toBe(
+        "Page Payments on-call for every incident",
+      );
+      expect(getEveryNewAlertRuleName("Payments on-call", translator)).toBe(
+        "Page Payments on-call for every alert",
+      );
+      expect(getEveryNewIncidentRuleName(undefined, translator)).toBe(
+        "Page the new on-call policy for every incident",
+      );
+      expect(getEveryNewIncidentRuleDescription(translator)).toBe(
+        EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
+      );
+      expect(getEveryNewAlertRuleDescription(translator)).toBe(
+        EVERY_NEW_ALERT_RULE_DESCRIPTION,
+      );
+    }
+
+    // The server's English: no translator at all.
+    expect(getRecordWordsTranslator("en")).toBeUndefined();
+  });
+
+  test.each(READER_LANGUAGES)(
+    "in %s, each rule is the reader's whole sentence, with the policy's name in it as written",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const incident: string = getEveryNewIncidentRuleName(
+        "Payments on-call",
+        translator,
+      );
+      const alert: string = getEveryNewAlertRuleName(
+        "Payments on-call",
+        translator,
+      );
+
+      expect(incident).toBe(
+        translator.translateTemplate("Page {{policy}} for every incident", {
+          policy: "Payments on-call",
+        }),
+      );
+      expect(alert).toBe(
+        translator.translateTemplate("Page {{policy}} for every alert", {
+          policy: "Payments on-call",
+        }),
+      );
+
+      for (const name of [incident, alert]) {
+        expect(name).toContain("Payments on-call");
+        expect(name).not.toContain("for every");
+        expect(name).not.toContain("{{");
+        // A record's name keeps no invisible marks.
+        expect(name).not.toContain(FIRST_STRONG_ISOLATE);
+        expect(name).not.toContain(POP_DIRECTIONAL_ISOLATE);
+      }
+
+      expect(incident).not.toBe(alert);
+    },
+  );
+
+  test.each(READER_LANGUAGES)(
+    "in %s, a policy with no name is the new on-call policy in the reader's words",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const unnamed: string =
+        translator.translateText("the new on-call policy") || "";
+
+      expect(unnamed).not.toBe("the new on-call policy");
+
+      for (const name of [undefined, null, "", "  "]) {
+        expect(getEveryNewIncidentRuleName(name, translator)).toContain(
+          unnamed,
+        );
+        expect(getEveryNewAlertRuleName(name, translator)).toContain(unnamed);
+        expect(getEveryNewIncidentRuleName(name, translator)).not.toContain(
+          "the new on-call policy",
+        );
+      }
+    },
+  );
+
+  test.each(READER_LANGUAGES)(
+    "in %s, each description is the reader's",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+
+      for (const [description, english] of [
+        [
+          getEveryNewIncidentRuleDescription(translator),
+          EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
+        ],
+        [
+          getEveryNewAlertRuleDescription(translator),
+          EVERY_NEW_ALERT_RULE_DESCRIPTION,
+        ],
+      ]) {
+        expect(description).toBe(translator.translateText(english));
+        expect(description).not.toBe(english);
+        expect(description).not.toContain("Added when the policy");
+      }
+    },
+  );
+
+  test.each(["en", ...READER_LANGUAGES])(
+    "in %s, a long policy name is cut to fit the column, and the words around it stay whole",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const longName: string = "Payments platform primary on-call "
+        .repeat(6)
+        .trim();
+      const [before, after] = translator
+        .translateTemplate("Page {{policy}} for every incident", {
+          policy: "\u0000",
+        })
+        .split("\u0000");
+
+      const name: string = getEveryNewIncidentRuleName(longName, translator);
+
+      expect(Array.from(name).length).toBeLessThanOrEqual(RULE_NAME_MAX_LENGTH);
+      // The words around the name, whole: only the name gave way.
+      expect(name.startsWith(before!)).toBe(true);
+      expect(name.endsWith(after!)).toBe(true);
+      expect(name).toContain("…");
+
+      const shown: string = name.slice(
+        before!.length,
+        name.length - after!.length,
+      );
+
+      expect(shown.endsWith("…")).toBe(true);
+      expect(longName.startsWith(shown.slice(0, -1).trimEnd())).toBe(true);
+      // As much of the name as fits: one more character would not.
+      expect(
+        Array.from(before!).length +
+          Array.from(shown).length +
+          Array.from(after!).length,
+      ).toBeGreaterThanOrEqual(RULE_NAME_MAX_LENGTH - 1);
+    },
+  );
+
+  test.each(READER_LANGUAGES)(
+    "in %s, a name that just fits is not cut, and one character more is",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const around: number =
+        Array.from(
+          translator.translateTemplate("Page {{policy}} for every alert", {
+            policy: "",
+          }),
+        ).length - "{{policy}}".length;
+      const roomWithMarker: number =
+        RULE_NAME_MAX_LENGTH -
+        (Array.from(
+          translator.translateTemplate("Page {{policy}} for every alert", {
+            policy: "x",
+          }),
+        ).length -
+          1);
+      const fits: string = "y".repeat(roomWithMarker);
+
+      expect(around).toBeGreaterThan(0);
+      expect(getEveryNewAlertRuleName(fits, translator)).toContain(fits);
+      expect(
+        Array.from(getEveryNewAlertRuleName(fits, translator)).length,
+      ).toBe(RULE_NAME_MAX_LENGTH);
+      expect(getEveryNewAlertRuleName(`${fits}y`, translator)).toContain("…");
+    },
+  );
+
+  test.each(READER_LANGUAGES)(
+    "in %s, the server's copy of the words names the rules as the Dashboard does",
+    (language: string) => {
+      const server: Translator | undefined = getRecordWordsTranslator(language);
+      const dashboard: Translator = dashboardTranslator(language);
+
+      expect(server).toBeDefined();
+
+      for (const policyName of [
+        "Payments on-call",
+        "Bereitschaft Zahlungen",
+        undefined,
+        "Payments platform primary on-call ".repeat(6),
+      ]) {
+        expect(getEveryNewIncidentRuleName(policyName, server)).toBe(
+          getEveryNewIncidentRuleName(policyName, dashboard),
+        );
+        expect(getEveryNewAlertRuleName(policyName, server)).toBe(
+          getEveryNewAlertRuleName(policyName, dashboard),
+        );
+      }
+
+      expect(getEveryNewIncidentRuleDescription(server)).toBe(
+        getEveryNewIncidentRuleDescription(dashboard),
+      );
+      expect(getEveryNewAlertRuleDescription(server)).toBe(
+        getEveryNewAlertRuleDescription(dashboard),
+      );
+    },
+  );
+});
+
+describe("readEveryNewEventRulesLanguage (#7995)", () => {
+  function sent(value: unknown): JSONObject {
+    return { [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: value } as JSONObject;
+  }
+
+  test("the key is the one the Dashboard and Ask AI send beside the ask for the rules", () => {
+    expect(EVERY_NEW_EVENT_RULES_LANGUAGE_KEY).toBe(
+      "everyNewEventRulesLanguage",
+    );
+  });
+
+  test("a language OneUptime writes in is read exactly as written", () => {
+    for (const language of ["en", "de", "ar", "fa", "ja", "zh-TW", "zh-CN"]) {
+      expect(readEveryNewEventRulesLanguage(sent(language))).toBe(language);
+    }
+  });
+
+  test("anything else is no language at all: the caller decides", () => {
+    for (const value of [
+      undefined,
+      null,
+      "",
+      "xx",
+      "de-DE",
+      "DE",
+      " de",
+      7,
+      true,
+      ["de"],
+      { language: "de" },
+    ]) {
+      expect([value, readEveryNewEventRulesLanguage(sent(value))]).toEqual([
+        value,
+        undefined,
+      ]);
+    }
+
+    expect(readEveryNewEventRulesLanguage(undefined)).toBeUndefined();
+    expect(readEveryNewEventRulesLanguage(null)).toBeUndefined();
+    expect(readEveryNewEventRulesLanguage({})).toBeUndefined();
+    expect(
+      readEveryNewEventRulesLanguage(["de"] as unknown as JSONObject),
+    ).toBeUndefined();
+  });
 });
