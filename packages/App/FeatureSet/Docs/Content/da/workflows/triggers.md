@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Anmodningsheadere**      | Hver header i forespørgslen, ved navn med små bogstaver, som `content-type`.                                          |
 | **Request Query Params** | Forespørgselsparametrene i URL'en, ved navn.                                                                          |
-| **Anmodningsbrødtekst**         | Den body, kalderen sendte. En JSON-body, sendt med `Content-Type: application/json`, kan læses felt for felt.         |
+| **Anmodningsbrødtekst**         | Den body, kalderen sendte. En JSON-body, sendt med `Content-Type: application/json`, kan læses felt for felt, og det kan JSON sendt som ren tekst også, som Amazon SNS sender den. |
 
 Læs et enkelt felt ved at tilføje dets navn til referencen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

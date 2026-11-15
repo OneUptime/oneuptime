@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **요청 헤더**      | 요청의 모든 헤더. `content-type` 처럼 소문자 이름으로 표시됩니다.                                                      |
 | **Request Query Params** | URL의 쿼리 매개변수. 이름으로 표시됩니다.                                                                              |
-| **요청 본문**         | 호출한 쪽이 보낸 본문. `Content-Type: application/json` 으로 보낸 JSON 본문은 필드별로 읽을 수 있습니다.               |
+| **요청 본문**         | 호출한 쪽이 보낸 본문. `Content-Type: application/json` 으로 보낸 JSON 본문은 필드별로 읽을 수 있습니다. Amazon SNS가 보내는 것처럼 일반 텍스트로 보낸 JSON도 마찬가지입니다. |
 
 필드 하나를 읽으려면 `{{local.components.webhook-1.returnValues.request-body.message}}` 처럼 참조에 그 이름을 덧붙입니다.
 

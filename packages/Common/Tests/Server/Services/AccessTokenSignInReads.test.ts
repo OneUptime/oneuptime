@@ -308,6 +308,7 @@ jest.mock("../../../Server/Utils/Realtime/RealtimeAccessChanges", () => {
 });
 
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
+import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 
 const USER: ObjectID = new ObjectID("a1000000-0000-4000-8000-000000000001");
 const OTHER_USER: ObjectID = new ObjectID(
@@ -833,9 +834,18 @@ describe("every set a sign-in writes is the set the per-project path builds", ()
     const left: SeededProject = seedProject();
     join({ projectId: project.projectId, teamId: project.ownersTeamId });
 
+    // Cached by this release, from the permission rows as they are now.
     mockStore.set(
       tenantKey(USER, left.projectId),
-      JSON.stringify({ _type: "UserTenantAccessPermission", permissions: [] }),
+      JSON.stringify(
+        JSONFunctions.serialize(
+          UserPermissionUtil.toCachedTenantAccessPermission({
+            _type: "UserTenantAccessPermission",
+            projectId: left.projectId,
+            permissions: [],
+          }),
+        ),
+      ),
     );
 
     await AccessTokenService.refreshUserAllPermissions(USER);
@@ -1042,20 +1052,23 @@ describe("a request across projects reads every project's set at once (getUserTe
       join({ projectId: project.projectId, teamId: project.membersTeamId });
     }
 
+    // Left over from a membership since removed, cached by this release.
     const stale: string = JSON.stringify(
-      JSONFunctions.serialize({
-        _type: "UserTenantAccessPermission",
-        projectId: unlistedGone.projectId,
-        permissions: [
-          {
-            _type: "UserPermission",
-            permission: Permission.ProjectOwner,
-            labelIds: [],
-            isBlockPermission: false,
-            teamId: unlistedGone.ownersTeamId,
-          },
-        ],
-      }),
+      JSONFunctions.serialize(
+        UserPermissionUtil.toCachedTenantAccessPermission({
+          _type: "UserTenantAccessPermission",
+          projectId: unlistedGone.projectId,
+          permissions: [
+            {
+              _type: "UserPermission",
+              permission: Permission.ProjectOwner,
+              labelIds: [],
+              isBlockPermission: false,
+              teamId: unlistedGone.ownersTeamId,
+            },
+          ],
+        }),
+      ),
     );
 
     type ScenarioFunction = () => Promise<void>;
