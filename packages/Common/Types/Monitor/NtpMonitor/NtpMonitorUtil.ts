@@ -193,15 +193,16 @@ export default class NtpMonitorUtil {
   }
 
   /*
-   * 0.042 ms, 12.3 ms, 1,532 ms: three significant digits at most below 1 s,
-   * held to "ms" by a no-break space, so the incident's page never ends a
-   * line with the figure and starts the next with its unit (#8457).
+   * 0.042 ms, 12.3 ms, 1,532 ms: three significant digits at most below 1 s.
+   * Stored in the check's root cause, and read back exactly by RootCauseFacts,
+   * which writes the figure in the reader's words with its unit held to it:
+   * the stored text keeps its plain space (#8457).
    */
   public static formatMilliseconds(value: number): string {
     return `${value.toLocaleString("en-US", {
       maximumFractionDigits:
         NtpMonitorUtil.getMillisecondsFractionDigits(value),
-    })}\u00A0ms`;
+    })} ms`;
   }
 
   // "12.3 ms ahead of the probe", "1,532 ms behind the probe".

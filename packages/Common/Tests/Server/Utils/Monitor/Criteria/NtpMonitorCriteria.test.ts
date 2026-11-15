@@ -375,7 +375,7 @@ describe("NtpMonitorCriteria", () => {
 
       expect(result).toContain("1500");
       expect(result).toContain(
-        "The server's clock is 1,500\u00A0ms behind the probe.",
+        "The server's clock is 1,500 ms behind the probe.",
       );
     });
 
@@ -386,7 +386,7 @@ describe("NtpMonitorCriteria", () => {
       );
 
       expect(result).toContain(
-        "The server's clock is 250\u00A0ms ahead of the probe.",
+        "The server's clock is 250 ms ahead of the probe.",
       );
     });
 
