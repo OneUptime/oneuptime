@@ -21,7 +21,7 @@ OneUptime est une plateforme d'observabilité open source. Elle vérifie que vos
 - [Démarrage rapide](/docs/introduction/quickstart): Surveiller un site web, être alerté en cas de panne et publier une page de statut.
 - [Concepts clés](/docs/introduction/core-concepts): Les quelques idées sur lesquelles tout repose, et comment elles s'articulent.
 - [Glossaire](/docs/introduction/glossary): Chaque mot qu'utilise OneUptime, en une phrase ou deux, avec ses autres noms.
-- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, workflow ou runbook, et les autres sosies côte à côte.
+- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, flux de travail ou runbook, et les autres sosies côte à côte.
 :::
 
 Vous faites tourner OneUptime sur vos propres serveurs ? Suivez d'abord le [Guide de l'auto-hébergement](/docs/installation/self-hosting-guide) : il vous mène d'un serveur vide à un serveur qui envoie des e-mails et alerte les personnes.
@@ -126,7 +126,7 @@ La documentation est organisée comme la barre latérale, en neuf sections. Choi
 :::cards
 - [Runbooks](/docs/runbooks/index): Transformer vos procédures d'intervention en étapes que votre équipe peut exécuter.
 - [Formulaires](/docs/forms/index): Permettre à chacun de signaler un problème via un formulaire qui ouvre un incident.
-- [Workflows](/docs/workflows/index): Automatiser des actions quand quelque chose se produit dans OneUptime.
+- [Flux de travail](/docs/workflows/index): Automatiser des actions quand quelque chose se produit dans OneUptime.
 - [IA](/docs/ai/ai-sre): Laisser OneUptime AI enquêter sur les incidents et les alertes, et l'interroger sur vos systèmes.
 :::
 :::

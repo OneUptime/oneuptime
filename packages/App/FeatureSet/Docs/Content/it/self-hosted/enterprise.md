@@ -34,7 +34,7 @@ Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edi
 
 | Funzionalità | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| Monitoraggio, avvisi, incidenti, reperibilità, pagine di stato, log, metriche, trace, eccezioni, dashboard, workflow, funzionalità di IA, API e Terraform | Sì | Sì | Tutti i piani |
+| Monitoraggio, avvisi, incidenti, reperibilità, pagine di stato, log, metriche, trace, eccezioni, dashboard, flussi di lavoro, funzionalità di IA, API e Terraform | Sì | Sì | Tutti i piani |
 | Accesso con password, autenticazione a due fattori, team, ruoli predefiniti e chiavi API | Sì | Sì | Tutti i piani |
 | [SSO SAML e OpenID Connect](/docs/identity/sso) per l'accesso ai progetti | Sì | Sì | Piano Scale e superiori |
 | SSO SAML e OpenID Connect per l'accesso alle pagine di stato private | Sì | Sì | Piano Scale e superiori |
@@ -54,7 +54,7 @@ Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edi
 | [Canali di notifica personalizzati](/docs/self-hosted/custom-notification-channels): avvisare le persone tramite un vostro servizio, come l'app della vostra azienda | No | Sì | Non applicabile |
 | [Durata della sessione](/docs/self-hosted/session-length): per quanto tempo le persone restano connesse, e per quanto tempo senza usare OneUptime | No | Sì | Non applicabile |
 | Vista della capacità di ClickHouse, avvisi sulla capacità e pulizia automatica del disco | Sì | Sì | Non applicabile |
-| Stato delle migrazioni, pacchetto di supporto e probe globali nel pannello amministratore | Sì | Sì | Non applicabile |
+| Stato delle migrazioni, pacchetto di supporto e sonde globali nel pannello amministratore | Sì | Sì | Non applicabile |
 | Gestione della licenza Enterprise, dei posti e delle istanze | No | Sì | Non applicabile |
 
 Il single sign-on comprende «Require SSO for login» per i progetti, le pagine di stato private e l'intera istanza, in entrambe le edizioni.

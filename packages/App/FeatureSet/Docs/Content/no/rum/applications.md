@@ -173,7 +173,7 @@ RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RU
 
 For å lage din egen overvåking velger du den som leser signalet:
 
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): en Core Web Vital eller en annen måling appen din sender.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): en Core Web Vital eller en annen måling appen din sender.
 - [Trase-overvåking](/docs/monitor/traces-monitor): feilrate eller ventetid på klientsiden.
 - [Logg-overvåking](/docs/monitor/logs-monitor): et mønster i nettleserlogger.
 - [Unntak-overvåking](/docs/monitor/exceptions-monitor): nye eller raskt økende unntak på klientsiden.

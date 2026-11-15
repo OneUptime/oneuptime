@@ -21,7 +21,7 @@ OneUptime è una piattaforma di osservabilità open source. Controlla che i tuoi
 - [Guida rapida](/docs/introduction/quickstart): Monitorare un sito web, essere avvisati quando si guasta e pubblicare una pagina di stato.
 - [Concetti fondamentali](/docs/introduction/core-concepts): Le poche idee su cui si basa tutto il resto, e come si collegano.
 - [Glossario](/docs/introduction/glossary): Ogni parola che OneUptime usa, in una o due frasi, con i suoi altri nomi.
-- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, workflow o runbook, e gli altri elementi simili fianco a fianco.
+- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, flussi di lavoro o runbook, e gli altri elementi simili fianco a fianco.
 :::
 
 Esegui OneUptime sui tuoi server? Segui prima la [Guida al self-hosting](/docs/installation/self-hosting-guide): ti porta da un server vuoto a uno che invia email e avvisa le persone.
@@ -56,7 +56,7 @@ Invii già telemetria con Prometheus, un client Loki, un forwarder Splunk, il Da
 | Gestione degli incidenti | Segue gli incidenti dall'inizio alla fine, con note, proprietari e una cronologia. | incident.io |
 | Reperibilità e avvisi | Pianifica i turni di reperibilità ed esegue l'escalation finché qualcuno risponde. | PagerDuty, Opsgenie |
 | Gestione dei log | Raccoglie, cerca e visualizza i log. | Loggly |
-| Workflow | Automatizza azioni e collega OneUptime agli strumenti che usi già. | Zapier |
+| Flussi di lavoro | Automatizza azioni e collega OneUptime agli strumenti che usi già. | Zapier |
 | Monitoraggio delle prestazioni delle applicazioni | Segue tracce, tempi di risposta, throughput e tassi di errore. | New Relic, Datadog |
 | Tracciamento degli errori | Raggruppa le eccezioni con stack trace e contesto. | Sentry |
 :::
@@ -126,7 +126,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 :::cards
 - [Runbook](/docs/runbooks/index): Trasformare le procedure di intervento in passaggi che il tuo team può eseguire.
 - [Moduli](/docs/forms/index): Permettere a chiunque di segnalare un problema con un modulo che apre un incidente.
-- [Workflow](/docs/workflows/index): Automatizzare azioni quando succede qualcosa in OneUptime.
+- [Flussi di lavoro](/docs/workflows/index): Automatizzare azioni quando succede qualcosa in OneUptime.
 - [IA](/docs/ai/ai-sre): Lasciare che OneUptime AI indaghi su incidenti e avvisi, e interrogarla sui tuoi sistemi.
 :::
 :::

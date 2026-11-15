@@ -28,7 +28,7 @@ flowchart TB
 OneUptime svarar så snart meddelandena har lästs från requesten, och tolkar och sparar dem en stund senare. Meddelandetexten stannar i loggens innehåll; allt annat blir attribut.
 
 > [!TIP]
-> Nätverksenheter kan skicka sin syslog direkt till en OneUptime-probe över UDP eller TCP, utan relä – OneUptime läser då varje leverantörs meddelanden som händelser på enheten. Se [Nätverkshändelser](/docs/monitor/network-events).
+> Nätverksenheter kan skicka sin syslog direkt till en OneUptime-sond över UDP eller TCP, utan relä – OneUptime läser då varje leverantörs meddelanden som händelser på enheten. Se [Nätverkshändelser](/docs/monitor/network-events).
 
 ## Innan du börjar
 

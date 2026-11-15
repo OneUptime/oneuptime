@@ -28,7 +28,7 @@ flowchart TB
 OneUptime svarer så snart meldingene er lest fra requesten, og tolker og lagrer dem et øyeblikk senere. Meldingsteksten blir værende i logginnholdet; alt annet blir attributter.
 
 > [!TIP]
-> Nettverksenheter kan sende syslog direkte til en OneUptime-probe over UDP eller TCP, uten relé – OneUptime leser da meldingene fra hver leverandør som hendelser på enheten. Se [Nettverkshendelser](/docs/monitor/network-events).
+> Nettverksenheter kan sende syslog direkte til en OneUptime-sonde over UDP eller TCP, uten relé – OneUptime leser da meldingene fra hver leverandør som hendelser på enheten. Se [Nettverkshendelser](/docs/monitor/network-events).
 
 ## Før du begynner
 
@@ -250,6 +250,6 @@ Sett `x-oneuptime-service-name` for å overstyre standardgjenkjenningen, som bru
 
 :::cards
 - [Loggpipelines](/docs/telemetry/log-pipelines): Gjør `key=value`-meldinger om til attributter.
-- [Opptaksregler for logger](/docs/telemetry/log-recording-rules): Gjør tallene i syslog-en din om til metrikker.
+- [Opptaksregler for logger](/docs/telemetry/log-recording-rules): Gjør tallene i syslog-en din om til målinger.
 - [Logg-overvåking](/docs/monitor/logs-monitor): Varsle når samsvarende syslog-meldinger kommer inn.
 :::

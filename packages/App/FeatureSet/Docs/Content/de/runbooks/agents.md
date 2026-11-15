@@ -79,7 +79,7 @@ Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erre
 
 ### Woher globale Runner kommen
 
-In OneUptime Cloud betreibt OneUptime sie. Eine selbst gehostete Installation betreibt standardmäßig einen eigenen, so wie sie ihre eigenen globalen Probes betreibt: den Dienst `global-runner` in Docker Compose und das Deployment `globalRunner` im Helm-Chart. Er besitzt seinen eigenen Schlüssel, `GLOBAL_RUNNER_KEY`, und sonst nichts vom Server.
+In OneUptime Cloud betreibt OneUptime sie. Eine selbst gehostete Installation betreibt standardmäßig einen eigenen, so wie sie ihre eigenen globalen Sonden betreibt: den Dienst `global-runner` in Docker Compose und das Deployment `globalRunner` im Helm-Chart. Er besitzt seinen eigenen Schlüssel, `GLOBAL_RUNNER_KEY`, und sonst nichts vom Server.
 
 Ein Master-Admin kann weitere hinzufügen, um Schritte und Codekorrekturen von anderen Hosts aus auszuführen: Öffnen Sie im Admin-Dashboard **Einstellungen**, dann **Globale Runner**, legen Sie einen an und führen Sie den Befehl, den sein **ID und Schlüssel anzeigen** liefert, auf einem Host aus, der das Internet erreicht.
 

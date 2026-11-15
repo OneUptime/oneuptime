@@ -6,7 +6,7 @@ En syntetisk monitor styrer webappen din i en ekte nettleser, etter en tidsplan,
 - [Opprett monitoren](#opprett-en-syntetisk-monitor): Skriv et skript, og velg nettlesere og skjermstørrelser.
 - [Skriv skriptet](#skriv-skriptet): En kjørbar påloggingsreise å starte fra.
 - [Skjermbilder](#skjermbilder): Se hvordan siden så ut da en kjøring mislyktes.
-- [Hva skriptet kan bruke](#moduler-som-er-tilgjengelige-i-skriptet): Playwright, HTTP, kryptografi og metrikker.
+- [Hva skriptet kan bruke](#moduler-som-er-tilgjengelige-i-skriptet): Playwright, HTTP, kryptografi og målinger.
 :::
 
 ## Slik fungerer det
@@ -186,9 +186,9 @@ const verbose = {{monitorSecrets.Verbose}};
 
 Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
-## Egendefinerte metrikker
+## Egendefinerte målinger
 
-Du kan samle inn egendefinerte metrikker fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse metrikkene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
+Du kan samle inn egendefinerte målinger fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse målingene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
 
 ```javascript
 oneuptime.captureMetric(name, value, attributes);
@@ -196,8 +196,8 @@ oneuptime.captureMetric(name, value, attributes);
 
 | Parameter | Type | Beskrivelse |
 | --- | --- | --- |
-| `name` | string, påkrevd | Navnet på metrikken (f.eks. `"dashboard.load.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
-| `value` | number, påkrevd | Den numeriske verdien til metrikken. |
+| `name` | string, påkrevd | Navnet på målingen (f.eks. `"dashboard.load.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
+| `value` | number, påkrevd | Den numeriske verdien til målingen. |
 | `attributes` | object, valgfritt | Nøkkel-verdi-par med ekstra kontekst. |
 
 ### Eksempel
@@ -223,9 +223,9 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
+Når de er samlet inn, vises disse målingene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
 
-En kjøring kan samle inn høyst 100 metrikker, bare med numeriske verdier, og OneUptime beholder høyst 100 per kontroll på tvers av alle kjøringene. Som for en monitor med egendefinert kode er noen attributtnavn [reservert](/docs/monitor/custom-code-monitor#reserverte-attributtnøkler) og forkastes hvis et skript setter dem.
+En kjøring kan samle inn høyst 100 målinger, bare med numeriske verdier, og OneUptime beholder høyst 100 per kontroll på tvers av alle kjøringene. Som for en monitor med egendefinert kode er noen attributtnavn [reservert](/docs/monitor/custom-code-monitor#reserverte-attributtnøkler) og forkastes hvis et skript setter dem.
 
 ## Kriterier
 
@@ -252,7 +252,7 @@ I hendelses- og varslingsmaler ligger hver kjøring i `{{syntheticResponses}}`: 
 | `axios` | En promise-basert HTTP-klient som støtter Axios som funksjon pluss `request`, `get`, `head`, `options`, `post`, `put`, `patch`, `delete` og `create`. En forespørselstekst kan være opptil 1 MB og et svar opptil 5 MB; den følger opptil 5 omdirigeringer og får tidsavbrudd etter høyst 30 sekunder. Egendefinerte transporter, adaptere, sokler, agenter og overstyring av proxy er ikke tilgjengelige. |
 | `crypto` | En implementering i en nettleser-worker av SHA-256-hasher, HMAC-SHA-256, `randomBytes`, `randomInt` og `randomUUID`. |
 | `console` | `console.log`, `info`, `warn` og `error`. Meldingene beholdes sammen med hver kjøring. |
-| `oneuptime.captureMetric` | Samler inn en egendefinert metrikk. Se [Egendefinerte metrikker](#egendefinerte-metrikker). |
+| `oneuptime.captureMetric` | Samler inn en egendefinert måling. Se [Egendefinerte målinger](#egendefinerte-målinger). |
 | `http` | En bufret kompatibilitetsfasade bare for klienter, som støtter `request`, `get` og `Agent`. |
 | `https` | HTTPS-motstykket til fasaden `http` som bare er for klienter. |
 | `Buffer`, `setTimeout`, `setInterval` | Og `clear`-funksjonene deres. |

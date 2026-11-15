@@ -54,7 +54,7 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | [Canais de notificação personalizados](/docs/self-hosted/custom-notification-channels): acionar as pessoas pelo seu próprio serviço, como o app da sua empresa | Não | Sim | Não se aplica |
 | [Duração da sessão](/docs/self-hosted/session-length): por quanto tempo as pessoas permanecem conectadas, e por quanto tempo sem usar o OneUptime | Não | Sim | Não se aplica |
 | Visão de capacidade do ClickHouse, alertas de capacidade e limpeza automática de disco | Sim | Sim | Não se aplica |
-| Status das migrações, pacote de suporte e probes globais no painel do administrador | Sim | Sim | Não se aplica |
+| Status das migrações, pacote de suporte e sondas globais no painel do administrador | Sim | Sim | Não se aplica |
 | Gestão da licença Enterprise, de assentos e de instâncias | Não | Sim | Não se aplica |
 
 O login único inclui «Require SSO for login» para projetos, páginas de status privadas e a instância inteira, nas duas edições.

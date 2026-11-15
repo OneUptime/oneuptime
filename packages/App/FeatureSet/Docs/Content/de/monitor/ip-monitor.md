@@ -143,7 +143,7 @@ Die Adresse oder eine Firewall davor beantwortet keine ICMP-Echo-Anfragen der So
 :::
 
 :::details Eine IPv6-Adresse schlägt immer fehl
-Die Sonde, die die Prüfung ausgeführt hat, hat keine IPv6-Konnektivität; die Fehlermeldung sagt es. Führen Sie den Monitor auf einer Sonde mit IPv6 aus: siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+Die Sonde, die die Prüfung ausgeführt hat, hat keine IPv6-Konnektivität; die Fehlermeldung sagt es. Führen Sie den Monitor auf einer Sonde mit IPv6 aus: siehe [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
 :::
 
 :::details Paketverlust und Jitter sind leer
@@ -155,6 +155,6 @@ Die Sonde, die die Prüfung ausgeführt hat, kann keine Pings senden und hat des
 :::cards
 - [Ping-Überwachung](/docs/monitor/ping-monitor): Einen Host beim Namen anpingen und DNS-Änderungen folgen.
 - [Port-Überwachung](/docs/monitor/port-monitor): Einen Dienst an der Adresse prüfen, nicht nur die Adresse.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Private und IPv6-Adressen aus Ihrem eigenen Netzwerk prüfen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Private und IPv6-Adressen aus Ihrem eigenen Netzwerk prüfen.
 - [Vorfälle](/docs/incidents/index): Was passiert, nachdem der Monitor einen gemeldet hat.
 :::

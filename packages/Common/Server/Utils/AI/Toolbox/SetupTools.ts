@@ -60,6 +60,7 @@ import {
   GUIDED_SETUP_POLICY_NAME,
   WhoIsToldMode,
   buildFirstOnCallPolicy,
+  countRulesRunningPolicyInService,
   getFirstOnCallPolicyName,
   getWhoIsToldMode,
 } from "../../../../Utils/GuidedSetup/OnCallPolicyRecords";
@@ -587,17 +588,34 @@ async function countNewMonitorLocations(
   }
 }
 
-// How many of the project's on-call policies and rules the person can count.
+/*
+ * How many of the project's on-call policies in service, and of its
+ * on-call rules that run one, the person can count.
+ */
 export interface PagingCounts {
   policyCount: number;
   incidentRuleCount: number;
   alertRuleCount: number;
 }
 
+// What an on-call rule is read with: the policies it runs, archived or not.
+const RULE_WITH_POLICIES_SELECT: {
+  _id: true;
+  onCallDutyPolicies: { _id: true; isArchived: true };
+} = {
+  _id: true,
+  onCallDutyPolicies: { _id: true, isArchived: true },
+};
+
 /*
  * The project's on-call policies and rules, counted as the person, as the
- * guided setup counts them: null when they may not read them, which makes
- * nothing (WhoIsToldMode.OwnerEmailOnly).
+ * website-down guided setup counts them (WebsiteDownApi.loadWhoIsToldFacts):
+ * null when they may not read them, which makes nothing
+ * (WhoIsToldMode.OwnerEmailOnly). Only what pages people counts. An
+ * archived policy pages no one, so it is left out (#8234), and a rule
+ * counts only when it runs a policy in service (#8433): a project whose
+ * only policy was archived, with the rules that run it, was told it pages
+ * people already, and nothing was proposed (#8518).
  */
 async function readPagingCounts(
   ctx: ToolContext,
@@ -605,27 +623,33 @@ async function readPagingCounts(
   try {
     const [policies, incidentRules, alertRules]: [
       PositiveNumber,
-      PositiveNumber,
-      PositiveNumber,
+      Array<IncidentOnCallRule>,
+      Array<AlertOnCallRule>,
     ] = await Promise.all([
       OnCallDutyPolicyService.countBy({
-        query: { projectId: ctx.projectId },
+        query: { projectId: ctx.projectId, isArchived: false },
         props: ctx.props,
       }),
-      IncidentOnCallRuleService.countBy({
+      IncidentOnCallRuleService.findBy({
         query: { projectId: ctx.projectId },
+        select: RULE_WITH_POLICIES_SELECT,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
         props: ctx.props,
       }),
-      AlertOnCallRuleService.countBy({
+      AlertOnCallRuleService.findBy({
         query: { projectId: ctx.projectId },
+        select: RULE_WITH_POLICIES_SELECT,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
         props: ctx.props,
       }),
     ]);
 
     return {
       policyCount: policies.toNumber(),
-      incidentRuleCount: incidentRules.toNumber(),
-      alertRuleCount: alertRules.toNumber(),
+      incidentRuleCount: countRulesRunningPolicyInService(incidentRules || []),
+      alertRuleCount: countRulesRunningPolicyInService(alertRules || []),
     };
   } catch {
     return null;
@@ -1559,7 +1583,8 @@ const PAGING_PREPARED_ARGUMENTS: Array<string> = [
 
 /*
  * Whether the project pages people already, as the guided setup decides
- * it (getWhoIsToldMode): a policy or an on-call rule of any kind. The
+ * it (getWhoIsToldMode): a policy in service, or an on-call rule of any
+ * kind that runs one (readPagingCounts). The
  * person's permissions to make one were checked by the toolbox's gate
  * before this is asked (AIToolbox.checkBeforeApproval).
  */

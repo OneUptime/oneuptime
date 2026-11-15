@@ -46,7 +46,7 @@ Gli annunci sono trattati in [Iscritti e annunci](/docs/status-pages/subscribers
 - **Una pianificazione.** Un modello ricorrente crea un nuovo evento secondo una pianificazione, per esempio ogni settimana o ogni mese, senza che nessuno apra il modulo.
 - **Un modulo.** Un modulo i cui invii creano eventi di manutenzione trasforma una richiesta di modifica in un evento. Vedere [Cosa crea un invio](/docs/forms/on-submit#come-un-invio-diventa-un-evento-di-manutenzione).
 - **La chat.** `/oneuptime maintenance` in Slack, oppure `maintenance` scritto al bot di OneUptime in Microsoft Teams, apre il modulo nel vostro strumento di chat. Vedere [Slack](/docs/workspace-connections/slack#creare-incidenti-e-manutenzioni-da-slack).
-- **Il codice.** L'API in `/api/scheduled-maintenance`, la risorsa Terraform `oneuptime_scheduled_maintenance_event` e il passo **Create One Maintenance Event** di un workflow.
+- **Il codice.** L'API in `/api/scheduled-maintenance`, la risorsa Terraform `oneuptime_scheduled_maintenance_event` e il passo **Create One Maintenance Event** di un flusso di lavoro.
 
 ## Dove si trova la manutenzione nella dashboard
 

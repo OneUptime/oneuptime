@@ -51,7 +51,7 @@ Skriv ditt mobilnummer med landsnummer i **Ditt telefonnummer**, till exempel `+
 
 ![Steget ”Vem mer har jour?”, med ”Spara och fortsätt” markerad](screen:paging-who-else)
 
-Under **Vem mer har jour?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra tillsammans med dig, och klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget `Default on-call policy`, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
+Under **Vem mer har jour?** finns du redan i **Larmas först**. Klicka på **Lägg till teammedlemmar** för att larma andra tillsammans med dig, och klicka sedan på **Spara och fortsätt**. I ett projekt som ännu inte har någon jourpolicy skapar steget **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm. I ett projekt som redan har en väljer du den under **Jourpolicy** och lägger i stället till personer under **Lägg till i den första eskaleringsregeln**. Om någon inte kan nås än stannar steget öppet på **Når ett larm dem?**: klicka på **Skicka påminnelse om konfiguration** för dem och sedan på **Fortsätt**.
 
 ### Bestäm vad som händer om ingen svarar
 

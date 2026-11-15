@@ -307,7 +307,7 @@ Crea un [monitor metriche](/docs/monitor/metrics-monitor) su `oneuptime.llm.budg
 Imposta la finestra mobile del monitor a 30 minuti. Un budget pubblica un punto ogni 15 minuti, quindi la finestra predefinita di 1 minuto non troverebbe nulla tra due punti.
 :::
 
-Un avviso di budget può anche avviare un workflow che ferma un agente fuori controllo: vedi [Circuit breaker per agenti IA](/docs/telemetry/ai-agent-circuit-breaker).
+Un avviso di budget può anche avviare un flusso di lavoro che ferma un agente fuori controllo: vedi [Circuit breaker per agenti IA](/docs/telemetry/ai-agent-circuit-breaker).
 
 ## Dashboard e avvisi sulle metriche
 
