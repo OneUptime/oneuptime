@@ -65,6 +65,11 @@ export const TOPOLOGY_DRAWING_STYLE: {
   // A node or a link the reader is not focused on is drawn see-through.
   dimmedNodeOpacity: number;
   dimmedEdgeOpacity: number;
+  /*
+   * A leaf block's shared wiring - trunk, bus and spines (issue #6606) -
+   * a touch lighter than a link, since it belongs to no one link.
+   */
+  combStrokeWidth: number;
   // Glyph fills: a little translucent, so a link under a node still shows.
   deviceFillOpacity: number;
   endpointFillOpacity: number;
@@ -96,6 +101,7 @@ export const TOPOLOGY_DRAWING_STYLE: {
 } = {
   dimmedNodeOpacity: 0.2,
   dimmedEdgeOpacity: 0.15,
+  combStrokeWidth: 1.25,
   deviceFillOpacity: 0.9,
   endpointFillOpacity: 0.85,
   deviceStrokeWidth: 2,
@@ -229,6 +235,29 @@ export const computeTopologyLayoutModel: (
     TOPOLOGY_VIEW_HEIGHT,
   );
 };
+
+/**
+ * One leaf block's comb as a single SVG path: every segment its own
+ * "M x1 y1 L x2 y2" run, so a comb is one element however many columns it
+ * has.
+ */
+export function combPathData(
+  segments: ReadonlyArray<{ x1: number; y1: number; x2: number; y2: number }>,
+): string {
+  const parts: Array<string> = [];
+  for (const segment of segments) {
+    if (
+      !Number.isFinite(segment.x1) ||
+      !Number.isFinite(segment.y1) ||
+      !Number.isFinite(segment.x2) ||
+      !Number.isFinite(segment.y2)
+    ) {
+      continue;
+    }
+    parts.push(`M ${segment.x1} ${segment.y1} L ${segment.x2} ${segment.y2}`);
+  }
+  return parts.join(" ");
+}
 
 /** One soft hull behind the graph, in world (layout) coordinates. */
 export interface TopologyHullView {

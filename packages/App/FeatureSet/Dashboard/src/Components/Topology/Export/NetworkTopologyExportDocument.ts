@@ -4,6 +4,7 @@ import NetworkTopology, {
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { TopologyLayoutModel } from "../../NetworkDevice/TopologyLayout";
+import { branchNodeIdsOf } from "../TopologyBranches";
 import { TopologyPoint } from "../../NetworkDevice/TopologyGraphUtil";
 import {
   ALL_NODE_KINDS,
@@ -128,6 +129,13 @@ export interface NetworkTopologyExportInput {
   layoutModel?: TopologyLayoutModel | undefined;
   layoutMode: TopologyLayoutMode;
   positionOverrides: PositionOverrides;
+  /*
+   * Issue #6606, parent-child layout only: the branches folded away on
+   * screen, which the layout leaves out (and which `layoutModel` already
+   * reflects when it is given), and the branch the map is narrowed to.
+   */
+  collapsedNodeIds?: ReadonlySet<string> | undefined;
+  focusedBranchNodeId?: string | null | undefined;
   searchText: string;
   visibleKinds: ReadonlySet<TopologyNodeKind>;
   /*
@@ -454,6 +462,32 @@ const HEALTH_FILTER_LABELS: Record<TopologyHealthFilterMode, string> = {
   degraded: "Degraded",
 };
 
+/*
+ * What the parent-child layout left out on screen (issue #6606): the branch
+ * the map was narrowed to, and how many branches were folded away.
+ */
+export interface ExportHierarchyView {
+  branchName?: string | undefined;
+  collapsedBranchCount: number;
+}
+
+/*
+ * The positions of the nodes in one branch only: what a map narrowed to
+ * that branch draws.
+ */
+function filterPositionsToBranch(
+  positions: Map<string, TopologyPoint>,
+  branchNodeIds: ReadonlySet<string>,
+): Map<string, TopologyPoint> {
+  const inBranch: Map<string, TopologyPoint> = new Map<string, TopologyPoint>();
+  for (const [nodeId, point] of positions) {
+    if (branchNodeIds.has(nodeId)) {
+      inBranch.set(nodeId, point);
+    }
+  }
+  return inBranch;
+}
+
 /**
  * The header's "Filtered view" sentence, naming every filter that changes
  * what the map shows — or an empty string when the map is unfiltered.
@@ -464,8 +498,23 @@ export function describeExportFilters(
     "healthFilterMode" | "visibleKinds" | "vlanId" | "searchText"
   >,
   availableKinds: ReadonlySet<TopologyNodeKind>,
+  hierarchyView?: ExportHierarchyView | undefined,
 ): string {
   const parts: Array<string> = [];
+  /*
+   * Issue #6606: a page of one branch, or of a tree with branches folded
+   * away, says so first - it is the biggest thing missing from it.
+   */
+  if (hierarchyView?.branchName) {
+    parts.push(`Branch under ${hierarchyView.branchName} only`);
+  }
+  if (hierarchyView && hierarchyView.collapsedBranchCount > 0) {
+    parts.push(
+      hierarchyView.collapsedBranchCount === 1
+        ? "1 branch collapsed"
+        : `${hierarchyView.collapsedBranchCount} branches collapsed`,
+    );
+  }
   if (isHealthFilterActive(input.healthFilterMode)) {
     parts.push(`Health: ${HEALTH_FILTER_LABELS[input.healthFilterMode]}`);
   }
@@ -611,11 +660,30 @@ export function* layOutNetworkTopologyExport(
 
   const model: TopologyLayoutModel =
     input.layoutModel ||
-    computeTopologyLayoutModel(input.layoutMode, nodes, edges);
-  const positions: Map<string, TopologyPoint> = mergePositionOverrides(
+    computeTopologyLayoutModel(input.layoutMode, nodes, edges, {
+      collapsedNodeIds: input.collapsedNodeIds,
+    });
+  const mergedPositions: Map<string, TopologyPoint> = mergePositionOverrides(
     model.positions,
     input.positionOverrides,
   );
+  /*
+   * Narrowed to one branch, the page draws that branch, as the map does:
+   * where the whole map puts it, and nothing else.
+   */
+  const focusedBranchNodeId: string | null =
+    input.focusedBranchNodeId &&
+    model.hierarchy &&
+    model.hierarchy.childrenById.has(input.focusedBranchNodeId) &&
+    mergedPositions.has(input.focusedBranchNodeId)
+      ? input.focusedBranchNodeId
+      : null;
+  const positions: Map<string, TopologyPoint> = focusedBranchNodeId
+    ? filterPositionsToBranch(
+        mergedPositions,
+        branchNodeIdsOf(model.hierarchy!, focusedBranchNodeId),
+      )
+    : mergedPositions;
 
   /*
    * The frame the live map draws, minus everything about USING it: no hover
@@ -632,6 +700,9 @@ export function* layOutNetworkTopologyExport(
     selectedNodeId: null,
     selectedEdgeKey: null,
     pinnedNodeIds: new Set<string>(),
+    // The same leaf-block combs the map draws (issue #6606).
+    leafBlocks: model.leafBlocks,
+    layoutPositions: model.positions,
   });
   const hulls: Array<TopologyHullView> = buildTopologyHulls(
     model,
@@ -725,7 +796,16 @@ export function* layOutNetworkTopologyExport(
       }),
     );
   const filterText: string = strings.clean(
-    describeExportFilters(input, availableKinds),
+    describeExportFilters(input, availableKinds, {
+      branchName: focusedBranchNodeId
+        ? nodes.find((node: NetworkTopologyNode): boolean => {
+            return node.id === focusedBranchNodeId;
+          })?.name || focusedBranchNodeId
+        : undefined,
+      collapsedBranchCount: model.hierarchy
+        ? model.hierarchy.collapsedNodeIds.size
+        : 0,
+    }),
   );
 
   const legendEntries: Array<TopologyLegendEntry> = buildTopologyLegend(

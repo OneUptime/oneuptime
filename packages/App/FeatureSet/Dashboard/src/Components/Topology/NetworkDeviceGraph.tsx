@@ -12,7 +12,9 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import {
   TopologyGroupBox,
+  TopologyHierarchy,
   TopologyLayoutModel,
+  TopologyLeafBlock,
 } from "../NetworkDevice/TopologyLayout";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
 import {
@@ -22,6 +24,7 @@ import {
   TopologyHullView,
   attentionHaloRadiusFor,
   buildTopologyHulls,
+  combPathData,
   computeTopologyLayoutModel,
   glyphFillOpacityFor,
   glyphStrokeWidthFor,
@@ -38,18 +41,35 @@ import {
 } from "../NetworkDevice/TopologyFootprint";
 import {
   ALL_NODE_KINDS,
+  TopologyCombView,
   TopologyEdgeView,
   TopologyNodeKind,
   TopologyNodeView,
   TopologyViewModel,
   buildTopologyViewModel,
+  kindOfNode,
   topologyStructuralSignature,
 } from "./NetworkTopologyViewModel";
 import {
   TopologyLegendEntry,
   buildTopologyLegend,
   edgeKeyForEdge,
+  nodeMatchesSearch,
 } from "./NetworkTopologyMeta";
+import {
+  BranchToggleNode,
+  BranchToggleView,
+  EMPTY_COLLAPSED_BRANCHES,
+  ancestorIdsOf,
+  branchNodeIdsOf,
+  buildBranchToggles,
+  canCollapseMore,
+  collapseAllBranches,
+  collapsedBranchesSignature,
+  revealNodes,
+  searchPathNodeIdsFor,
+  toggleCollapsedBranch,
+} from "./TopologyBranches";
 import {
   TopologyShapeGeometry,
   cylinderBodyPathAt,
@@ -73,9 +93,12 @@ import {
   applyZoomAtPoint,
   computeGraphBounds,
   fitViewToBounds,
+  fitViewToBoundsWithin,
   normalizeWheelDeltaPx,
   panBy,
   screenToViewBox,
+  viewCenteredOn,
+  viewKeepingPointFixed,
   viewsMatch,
 } from "./TopologyViewport";
 import {
@@ -98,6 +121,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -172,6 +196,33 @@ export interface ComponentProps {
    * role changed since somewhere the map on screen does not.
    */
   onLayoutModelChange?: ((model: TopologyLayoutModel) => void) | undefined;
+  /*
+   * Issue #6606: the branches the reader folded away. Only the parent-child
+   * layout draws branches, so every other layout ignores the set. Owned by
+   * the parent so it survives a remount and can be remembered and pruned.
+   */
+  collapsedNodeIds?: ReadonlySet<string> | undefined;
+  onCollapsedNodeIdsChange?: ((next: ReadonlySet<string>) => void) | undefined;
+  /*
+   * Issue #6606: the device whose branch the map is narrowed to - the
+   * device and everything below it - or null for the whole map. Parent-
+   * child layout only. The device drawer sets it; the map's own path
+   * control moves it up the tree or clears it.
+   */
+  focusedBranchNodeId?: string | null | undefined;
+  onFocusedBranchChange?: ((nodeId: string | null) => void) | undefined;
+  /*
+   * Issue #6606: draw the layout as computed, without the reader's dragged
+   * positions - which are kept, not discarded, and come back the moment
+   * this is switched off. Devices cannot be dragged while it is on.
+   */
+  isShowingOriginalLayout?: boolean | undefined;
+  onShowOriginalLayoutChange?: ((isShowing: boolean) => void) | undefined;
+  /*
+   * Issue #6606: goes up by one each time the reader asks for the next
+   * search match from outside the map (Enter in the search box).
+   */
+  locateNextMatchRequest?: number | undefined;
 }
 
 /*
@@ -194,6 +245,25 @@ const KEYBOARD_PAN_FRACTION: number = 0.2;
 const DOT_GRID_SPACING: number = 16;
 // Padding, in world units, left around the graph when fitting it.
 const FIT_BOUNDS_PADDING: number = 40;
+/*
+ * Issue #6606: how long the search box rests before the map moves to what
+ * it found - long enough that typing a name does not drag the camera
+ * around letter by letter.
+ */
+const SEARCH_FRAME_DELAY_MS: number = 350;
+// The closest a search frames its matches: a lone match is not blown up.
+const SEARCH_FRAME_MAX_SCALE: number = 1.2;
+// The zoom "next match" moves in to at least: where a name can be read.
+const LOCATE_MIN_SCALE: number = 1;
+/*
+ * The fold control under a branch node, in screen pixels: it stays the
+ * size of a control however far the map is zoomed.
+ */
+const BRANCH_TOGGLE_RADIUS_PX: number = 8;
+const BRANCH_TOGGLE_GAP_PX: number = 5;
+const BRANCH_TOGGLE_FONT_PX: number = 10.5;
+// Mean digit advance at that size, for the folded count's pill.
+const BRANCH_TOGGLE_CHAR_PX: number = 6.6;
 
 /*
  * Unique per mount so two graphs on one page cannot share a <pattern> id.
@@ -202,6 +272,18 @@ const FIT_BOUNDS_PADDING: number = 40;
 let graphInstanceCounter: number = 0;
 
 const emptyOverrides: PositionOverrides = new Map<string, TopologyPoint>();
+
+// The ring around the search match "next match" moved to (issue #6606).
+const LOCATED_RING_COLOR: string = "#f59e0b";
+
+/*
+ * The plural sentences the map says about a search (issue #6606). Kept as
+ * constants so the lookups below read as sentences.
+ */
+const MATCH_COUNT: { one: string; other: string } = {
+  one: "{{count}} match",
+  other: "{{count}} matches",
+};
 
 /*
  * The node glyph, drawn as whatever silhouette its role earned it. The
@@ -396,6 +478,27 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   const layoutMode: TopologyLayoutMode = props.layoutMode || "force";
   const overrides: PositionOverrides =
     props.positionOverrides || emptyOverrides;
+  const isParentChild: boolean = layoutMode === "parentChild";
+  /*
+   * Issue #6606: the original layout is the map as computed. The reader's
+   * dragged positions are kept - they are the parent's - just not applied,
+   * so switching back puts every device where it was left.
+   */
+  const isShowingOriginalLayout: boolean = Boolean(
+    props.isShowingOriginalLayout && overrides.size > 0,
+  );
+  const drawnOverrides: PositionOverrides = isShowingOriginalLayout
+    ? emptyOverrides
+    : overrides;
+  // Folded branches mean something only where branches are drawn.
+  const collapsedNodeIds: ReadonlySet<string> = isParentChild
+    ? props.collapsedNodeIds || EMPTY_COLLAPSED_BRANCHES
+    : EMPTY_COLLAPSED_BRANCHES;
+  const collapsedSignature: string =
+    collapsedBranchesSignature(collapsedNodeIds);
+  const searchText: string = (props.searchText || "").trim();
+  const visibleKinds: ReadonlySet<TopologyNodeKind> =
+    props.visibleKinds || ALL_NODE_KINDS;
 
   const instanceIdRef: React.MutableRefObject<number | null> = useRef<
     number | null
@@ -444,13 +547,17 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   }, [nodes, edges]);
 
   const baseModel: TopologyLayoutModel = useMemo(() => {
-    return computeTopologyLayoutModel(layoutMode, nodes, edges);
+    return computeTopologyLayoutModel(layoutMode, nodes, edges, {
+      collapsedNodeIds: collapsedNodeIds,
+    });
     /*
      * `nodes`/`edges` are intentionally not dependencies: the signature
      * already captures every property of them the layout reads, and
      * depending on the arrays themselves would recompute on every poll.
+     * The folded branches are keyed by their signature for the same
+     * reason: a new set naming the same branches is the same layout.
      */
-  }, [structuralSignature, layoutMode]);
+  }, [structuralSignature, layoutMode, collapsedSignature]);
 
   /*
    * Report the model to the parent, which exports exactly what is drawn
@@ -469,12 +576,104 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
 
   const positions: Map<string, TopologyPoint> = useMemo(() => {
     const withUserPositions: Map<string, TopologyPoint> =
-      mergePositionOverrides(baseModel.positions, overrides);
+      mergePositionOverrides(baseModel.positions, drawnOverrides);
     if (!dragPositions) {
       return withUserPositions;
     }
     return mergePositionOverrides(withUserPositions, dragPositions);
-  }, [baseModel, overrides, dragPositions]);
+  }, [baseModel, drawnOverrides, dragPositions]);
+
+  // The hierarchy the parent-child layout drew; undefined in every other one.
+  const hierarchy: TopologyHierarchy | undefined = isParentChild
+    ? baseModel.hierarchy
+    : undefined;
+
+  /*
+   * Issue #6606: one branch on its own. The device and everything below it
+   * are drawn where the whole map puts them, and nothing else is - so the
+   * branch is the same picture as on the whole map, dragged positions and
+   * all, and the camera frames it. A device that has left the network, or
+   * that a folded branch above it hides, narrows nothing.
+   */
+  const focusedBranchNodeId: string | null =
+    hierarchy &&
+    props.focusedBranchNodeId &&
+    hierarchy.childrenById.has(props.focusedBranchNodeId) &&
+    positions.has(props.focusedBranchNodeId)
+      ? props.focusedBranchNodeId
+      : null;
+
+  const focusedBranchIds: ReadonlySet<string> | null = useMemo(() => {
+    if (!hierarchy || !focusedBranchNodeId) {
+      return null;
+    }
+    return branchNodeIdsOf(hierarchy, focusedBranchNodeId);
+  }, [hierarchy, focusedBranchNodeId]);
+
+  const drawnPositions: Map<string, TopologyPoint> = useMemo(() => {
+    if (!focusedBranchIds) {
+      return positions;
+    }
+    const inBranch: Map<string, TopologyPoint> = new Map<
+      string,
+      TopologyPoint
+    >();
+    for (const [nodeId, point] of positions) {
+      if (focusedBranchIds.has(nodeId)) {
+        inBranch.set(nodeId, point);
+      }
+    }
+    return inBranch;
+  }, [positions, focusedBranchIds]);
+
+  /*
+   * Issue #6606: every node the search matches, drawn or not. The drawn ones
+   * the view model counts; this list is for what the map cannot show - a
+   * match inside a folded branch, or outside the branch in focus - and for
+   * lighting the path down to each match.
+   */
+  const allSearchMatchIds: Array<string> = useMemo(() => {
+    if (!searchText) {
+      return [];
+    }
+    const matchIds: Array<string> = [];
+    for (const node of nodes) {
+      if (
+        node &&
+        typeof node.id === "string" &&
+        visibleKinds.has(kindOfNode(node)) &&
+        nodeMatchesSearch(node, searchText)
+      ) {
+        matchIds.push(node.id);
+      }
+    }
+    return matchIds;
+  }, [nodes, searchText, visibleKinds]);
+
+  /*
+   * In the parent-child layout a search keeps the path from the top of the
+   * tree down to each match bright: "where is it" is answered by where it
+   * hangs. A folded branch that holds a match is on that path, so it stays
+   * bright too.
+   */
+  const searchContextNodeIds: ReadonlySet<string> | undefined = useMemo(() => {
+    if (!hierarchy || allSearchMatchIds.length === 0) {
+      return undefined;
+    }
+    return searchPathNodeIdsFor(hierarchy, allSearchMatchIds);
+  }, [hierarchy, allSearchMatchIds]);
+
+  const hiddenSearchMatchIds: Array<string> = useMemo(() => {
+    if (!hierarchy) {
+      return [];
+    }
+    return allSearchMatchIds.filter((nodeId: string): boolean => {
+      return !drawnPositions.has(nodeId) && hierarchy.childrenById.has(nodeId);
+    });
+  }, [hierarchy, allSearchMatchIds, drawnPositions]);
+
+  // The search match "next match" last moved to, if any (issue #6606).
+  const [locatedMatchId, setLocatedMatchId] = useState<string | null>(null);
 
   const adjacency: Map<string, Set<string>> = useMemo(() => {
     return buildAdjacencyIndex(edges);
@@ -516,34 +715,72 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   }, [adjacency, hoveredNodeId, nodeById]);
 
   const pinnedNodeIds: ReadonlySet<string> = useMemo(() => {
-    return new Set<string>(overrides.keys());
-  }, [overrides]);
+    return new Set<string>(drawnOverrides.keys());
+  }, [drawnOverrides]);
 
   const viewModel: TopologyViewModel = useMemo(() => {
     return buildTopologyViewModel({
       nodes: nodes,
       edges: edges,
-      positions: positions,
+      positions: drawnPositions,
       searchText: props.searchText || "",
-      visibleKinds: props.visibleKinds || ALL_NODE_KINDS,
+      visibleKinds: visibleKinds,
       healthFilterMode: props.healthFilterMode || "all",
       focusNodeIds: focusNodeIds,
       selectedNodeId: props.selectedNodeId || null,
       selectedEdgeKey: props.selectedEdgeKey || null,
       pinnedNodeIds: pinnedNodeIds,
+      searchContextNodeIds: searchContextNodeIds,
+      locatedNodeId: locatedMatchId,
+      leafBlocks: baseModel.leafBlocks,
+      layoutPositions: baseModel.positions,
     });
   }, [
     nodes,
     edges,
-    positions,
+    drawnPositions,
     props.searchText,
-    props.visibleKinds,
+    visibleKinds,
     props.healthFilterMode,
     focusNodeIds,
     props.selectedNodeId,
     props.selectedEdgeKey,
     pinnedNodeIds,
+    searchContextNodeIds,
+    locatedMatchId,
+    baseModel,
   ]);
+
+  /*
+   * Issue #6606: the fold control under each branch node, counting what a
+   * folded one holds among the node types the reader has on.
+   */
+  const branchToggles: Array<BranchToggleView> = useMemo(() => {
+    if (!hierarchy) {
+      return [];
+    }
+    return buildBranchToggles({
+      hierarchy: hierarchy,
+      drawnNodes: viewModel.nodes.map(
+        (nodeView: TopologyNodeView): BranchToggleNode => {
+          return {
+            id: nodeView.id,
+            x: nodeView.x,
+            y: nodeView.y,
+            labelBottom: nodeView.footprint.labelBottom,
+            isDimmed: nodeView.isDimmed,
+          };
+        },
+      ),
+      nameOf: (nodeId: string): string => {
+        return nodeById.get(nodeId)?.name || nodeId;
+      },
+      isCounted: (nodeId: string): boolean => {
+        const node: NetworkTopologyNode | undefined = nodeById.get(nodeId);
+        return Boolean(node) && visibleKinds.has(kindOfNode(node!));
+      },
+    });
+  }, [hierarchy, viewModel, nodeById, visibleKinds]);
 
   /*
    * Built from the UNFILTERED node set on purpose: the key should explain
@@ -636,6 +873,14 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   }, [props.healthFilterMode]);
 
   /*
+   * Issue #6606: narrowing the map to one branch - or widening it again - is
+   * the same kind of question, and the answer is framed the same way.
+   */
+  useEffect(() => {
+    hasUserAdjustedView.current = false;
+  }, [focusedBranchNodeId]);
+
+  /*
    * Fit on first paint and whenever the node set changes — but never once
    * the user has framed the map themselves. Yanking the viewport out from
    * under somebody mid-investigation is worse than a slightly stale
@@ -660,8 +905,269 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     structuralSignature,
     layoutMode,
     props.healthFilterMode,
+    focusedBranchNodeId,
     viewModel.nodes.length,
   ]);
+
+  /*
+   * ------------------------------------------------------------------
+   * Finding a device (issue #6606)
+   * ------------------------------------------------------------------
+   *
+   * Search used to dim everything else and leave the camera where it was,
+   * so on a large map the one bright device could be off screen, or a dot
+   * too small to see. Now the camera goes to what the search found: once
+   * the reader stops typing it frames every match, and "next match" - the
+   * arrows on the map, or Enter in the search box - centres each one in
+   * turn at a size its name can be read, ringed so the eye lands on it.
+   */
+
+  // The latest of everything a timer or a callback reads, never stale.
+  const viewModelRef: React.MutableRefObject<TopologyViewModel> =
+    useRef<TopologyViewModel>(viewModel);
+  viewModelRef.current = viewModel;
+  const fitToGraphRef: React.MutableRefObject<() => void> =
+    useRef<() => void>(fitToGraph);
+  fitToGraphRef.current = fitToGraph;
+  const locatedMatchIdRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(locatedMatchId);
+  locatedMatchIdRef.current = locatedMatchId;
+
+  // True while the camera is where a search put it.
+  const isFramedBySearch: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const searchFrameTimer: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Frame the matches once the map has redrawn (after "Show N more").
+  const isSearchFramePending: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const frameSearchMatches: () => boolean = (): boolean => {
+    const current: TopologyViewModel = viewModelRef.current;
+    const matchIds: Set<string> = new Set<string>(current.searchMatchNodeIds);
+    if (matchIds.size === 0) {
+      return false;
+    }
+    const points: Array<WorldPoint> = [];
+    for (const nodeView of current.nodes) {
+      if (matchIds.has(nodeView.id)) {
+        points.push({ x: nodeView.x, y: nodeView.y });
+      }
+    }
+    hasUserAdjustedView.current = true;
+    isFramedBySearch.current = true;
+    applyView(
+      fitViewToBoundsWithin(
+        computeGraphBounds(points, FIT_BOUNDS_PADDING * 2),
+        VIEW_BOX,
+        SEARCH_FRAME_MAX_SCALE,
+      ),
+    );
+    return true;
+  };
+
+  useEffect(() => {
+    setLocatedMatchId(null);
+    if (searchFrameTimer.current) {
+      clearTimeout(searchFrameTimer.current);
+    }
+    searchFrameTimer.current = setTimeout(() => {
+      searchFrameTimer.current = null;
+      if (searchText) {
+        frameSearchMatches();
+        return;
+      }
+      /*
+       * The search was cleared: back to the whole map, if a search is what
+       * moved the camera. A reader who framed it themselves keeps theirs.
+       */
+      if (isFramedBySearch.current) {
+        isFramedBySearch.current = false;
+        hasUserAdjustedView.current = false;
+        fitToGraphRef.current();
+      }
+    }, SEARCH_FRAME_DELAY_MS);
+    return () => {
+      if (searchFrameTimer.current) {
+        clearTimeout(searchFrameTimer.current);
+        searchFrameTimer.current = null;
+      }
+    };
+    // Only the text decides when to look: the matches are read when it fires.
+  }, [searchText]);
+
+  useEffect(() => {
+    if (!isSearchFramePending.current) {
+      return;
+    }
+    isSearchFramePending.current = false;
+    frameSearchMatches();
+  }, [viewModel]);
+
+  const locateMatch: (direction: 1 | -1) => void = (
+    direction: 1 | -1,
+  ): void => {
+    const current: TopologyViewModel = viewModelRef.current;
+    const matchIds: Array<string> = current.searchMatchNodeIds;
+    if (matchIds.length === 0) {
+      return;
+    }
+    // A pending "frame them all" would undo the step the reader just took.
+    if (searchFrameTimer.current) {
+      clearTimeout(searchFrameTimer.current);
+      searchFrameTimer.current = null;
+    }
+    const currentIndex: number = locatedMatchIdRef.current
+      ? matchIds.indexOf(locatedMatchIdRef.current)
+      : -1;
+    const nextIndex: number =
+      currentIndex < 0
+        ? direction > 0
+          ? 0
+          : matchIds.length - 1
+        : (currentIndex + direction + matchIds.length) % matchIds.length;
+    const nextId: string = matchIds[nextIndex]!;
+    const nodeView: TopologyNodeView | undefined = current.nodes.find(
+      (candidate: TopologyNodeView): boolean => {
+        return candidate.id === nextId;
+      },
+    );
+    if (!nodeView) {
+      return;
+    }
+    locatedMatchIdRef.current = nextId;
+    setLocatedMatchId(nextId);
+    hasUserAdjustedView.current = true;
+    isFramedBySearch.current = true;
+    setView((view: ViewTransform): ViewTransform => {
+      return viewCenteredOn(
+        { x: nodeView.x, y: nodeView.y },
+        Math.max(view.scale, LOCATE_MIN_SCALE),
+        VIEW_BOX,
+      );
+    });
+  };
+
+  // Enter in the search box, from outside the map.
+  const lastLocateRequest: React.MutableRefObject<number | undefined> = useRef<
+    number | undefined
+  >(props.locateNextMatchRequest);
+  useEffect(() => {
+    if (
+      props.locateNextMatchRequest === undefined ||
+      props.locateNextMatchRequest === lastLocateRequest.current
+    ) {
+      return;
+    }
+    lastLocateRequest.current = props.locateNextMatchRequest;
+    locateMatch(1);
+  }, [props.locateNextMatchRequest]);
+
+  /*
+   * "Show N more": open the folded branches the hidden matches are in, and
+   * widen the map to all of it when they are outside the branch in focus -
+   * then frame the matches once the map has redrawn with them on it.
+   */
+  const revealHiddenMatches: () => void = (): void => {
+    if (!hierarchy || hiddenSearchMatchIds.length === 0) {
+      return;
+    }
+    const nextCollapsed: ReadonlySet<string> = revealNodes(
+      collapsedNodeIds,
+      hierarchy,
+      hiddenSearchMatchIds,
+    );
+    if (nextCollapsed !== collapsedNodeIds) {
+      props.onCollapsedNodeIdsChange?.(nextCollapsed);
+    }
+    if (
+      focusedBranchIds &&
+      hiddenSearchMatchIds.some((nodeId: string): boolean => {
+        return !focusedBranchIds.has(nodeId);
+      })
+    ) {
+      props.onFocusedBranchChange?.(null);
+    }
+    isSearchFramePending.current = true;
+  };
+
+  /*
+   * ------------------------------------------------------------------
+   * Folding branches (issue #6606)
+   * ------------------------------------------------------------------
+   */
+
+  /*
+   * Folding a branch gives its room back to its neighbours, so the tree
+   * re-flows - and the device the reader just pressed would slide away
+   * under the cursor. Its position before the fold is kept here, and once
+   * the map has redrawn the camera moves by however far it went, so it
+   * stays exactly where it was on screen. Only when the reader framed the
+   * map themselves: a map still fitted to the screen simply fits again.
+   */
+  const foldAnchor: React.MutableRefObject<{
+    nodeId: string;
+    before: WorldPoint;
+  } | null> = useRef<{ nodeId: string; before: WorldPoint } | null>(null);
+
+  useLayoutEffect(() => {
+    const anchor: { nodeId: string; before: WorldPoint } | null =
+      foldAnchor.current;
+    if (!anchor) {
+      return;
+    }
+    foldAnchor.current = null;
+    const after: TopologyPoint | undefined = drawnPositions.get(anchor.nodeId);
+    if (!after) {
+      return;
+    }
+    setView((view: ViewTransform): ViewTransform => {
+      return viewKeepingPointFixed(view, anchor.before, after);
+    });
+  }, [drawnPositions]);
+
+  const toggleBranch: (nodeId: string) => void = (nodeId: string): void => {
+    if (!props.onCollapsedNodeIdsChange) {
+      return;
+    }
+    const before: TopologyPoint | undefined = drawnPositions.get(nodeId);
+    foldAnchor.current =
+      before && hasUserAdjustedView.current
+        ? { nodeId: nodeId, before: { x: before.x, y: before.y } }
+        : null;
+    props.onCollapsedNodeIdsChange(
+      toggleCollapsedBranch(collapsedNodeIds, nodeId),
+    );
+  };
+
+  /*
+   * Collapse all folds every branch below the top of each tree, so the map
+   * becomes the network's outline, each branch with a count of what it
+   * holds. Narrowed to one branch, the branch in focus and the path above
+   * it stay open: folding the very branch being looked at would leave a
+   * single device on the screen.
+   */
+  const collapseAll: () => void = (): void => {
+    if (!hierarchy || !props.onCollapsedNodeIdsChange) {
+      return;
+    }
+    foldAnchor.current = null;
+    hasUserAdjustedView.current = false;
+    props.onCollapsedNodeIdsChange(
+      collapseAllBranches(hierarchy, focusedBranchNodeId),
+    );
+  };
+
+  const expandAll: () => void = (): void => {
+    if (!props.onCollapsedNodeIdsChange) {
+      return;
+    }
+    foldAnchor.current = null;
+    hasUserAdjustedView.current = false;
+    props.onCollapsedNodeIdsChange(EMPTY_COLLAPSED_BRANCHES);
+  };
 
   const applyView: (next: ViewTransform) => void = useCallback(
     (next: ViewTransform): void => {
@@ -745,8 +1251,8 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     useRef<ViewTransform>(view);
   viewRef.current = view;
   const positionsRef: React.MutableRefObject<Map<string, TopologyPoint>> =
-    useRef<Map<string, TopologyPoint>>(positions);
-  positionsRef.current = positions;
+    useRef<Map<string, TopologyPoint>>(drawnPositions);
+  positionsRef.current = drawnPositions;
 
   /*
    * Which nodes travel with a grabbed one. In tiered mode a switch brings
@@ -757,6 +1263,37 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   const nodeIdsMovedWith: (nodeId: string) => ReadonlyArray<string> = (
     nodeId: string,
   ): ReadonlyArray<string> => {
+    /*
+     * The original layout is for looking (issue #6606): it shows the map as
+     * computed while the reader's own arrangement waits, and a drag here
+     * would have to either change an arrangement nobody can see or throw
+     * it away. Nothing moves until the reader's layout is back.
+     */
+    if (isShowingOriginalLayout) {
+      return [];
+    }
+    /*
+     * In the parent-child layout a node brings its leaf block (issue #6606),
+     * for the same reason a switch brings its endpoints in tiered mode: the
+     * grid is that node's devices, and the comb that wires them to it stays
+     * drawn only while they keep their place beside it.
+     */
+    if (layoutMode === "parentChild") {
+      const block: TopologyLeafBlock | undefined = (
+        baseModel.leafBlocks || []
+      ).find((candidate: TopologyLeafBlock): boolean => {
+        return candidate.parentId === nodeId;
+      });
+      if (!block) {
+        return [nodeId];
+      }
+      return [
+        nodeId,
+        ...block.memberIds.filter((memberId: string): boolean => {
+          return positionsRef.current.has(memberId);
+        }),
+      ];
+    }
     if (layoutMode !== "tiered") {
       return [nodeId];
     }
@@ -1136,6 +1673,396 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   // Strokes that must stay a constant thickness on screen as the map zooms.
   const hairline: number = 1 / Math.max(view.scale, 0.01);
 
+  /*
+   * One fold control (issue #6606), hung under its node's name on the line
+   * down to its children - where an org chart puts it. Sized in screen
+   * pixels, so it stays a control at any zoom: an open branch is a small
+   * "−", a folded one a pill with how many devices it holds.
+   */
+  const renderBranchToggle: (toggle: BranchToggleView) => ReactElement = (
+    toggle: BranchToggleView,
+  ): ReactElement => {
+    const radius: number = BRANCH_TOGGLE_RADIUS_PX * hairline;
+    const centreY: number =
+      toggle.labelBottomY +
+      (BRANCH_TOGGLE_GAP_PX + BRANCH_TOGGLE_RADIUS_PX) * hairline;
+    // A sign and a count, in the reader's digits: nothing in it to word.
+    const countText: string = toggle.isCollapsed
+      ? `+${translator.formatNumber(toggle.hiddenCount)}`
+      : "";
+    const pillHalfWidth: number = toggle.isCollapsed
+      ? Math.max(
+          radius,
+          ((countText.length * BRANCH_TOGGLE_CHAR_PX) / 2 + 7) * hairline,
+        )
+      : radius;
+    const label: string = toggle.isCollapsed
+      ? translator.translatePlural(
+          {
+            one: "Expand {{name}}: {{count}} device below it",
+            other: "Expand {{name}}: {{count}} devices below it",
+          },
+          toggle.hiddenCount,
+          { name: toggle.name },
+        )
+      : translator.translateTemplate("Collapse {{name}}", {
+          name: toggle.name,
+        });
+
+    return (
+      <g
+        key={toggle.nodeId}
+        role="button"
+        tabIndex={0}
+        aria-expanded={!toggle.isCollapsed}
+        aria-label={label}
+        data-testid={`network-topology-branch-toggle-${toggle.nodeId}`}
+        data-collapsed={toggle.isCollapsed ? "true" : "false"}
+        opacity={toggle.isDimmed ? TOPOLOGY_DRAWING_STYLE.dimmedNodeOpacity : 1}
+        style={{ cursor: "pointer" }}
+        /*
+         * Kept from the canvas: a press here is a click on the control,
+         * never the start of a pan or of a drag of the node above it.
+         */
+        onPointerDown={(event: React.PointerEvent<SVGGElement>) => {
+          event.stopPropagation();
+        }}
+        onClick={(event: React.MouseEvent<SVGGElement>) => {
+          event.stopPropagation();
+          toggleBranch(toggle.nodeId);
+        }}
+        onKeyDown={(event: React.KeyboardEvent<SVGGElement>) => {
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          toggleBranch(toggle.nodeId);
+        }}
+      >
+        <title>{label}</title>
+        {toggle.isCollapsed ? (
+          <>
+            <rect
+              x={toggle.x - pillHalfWidth}
+              y={centreY - radius}
+              width={2 * pillHalfWidth}
+              height={2 * radius}
+              rx={radius}
+              fill="var(--ou-link, #4f46e5)"
+            />
+            <text
+              x={toggle.x}
+              y={centreY}
+              dy="0.35em"
+              textAnchor="middle"
+              direction="ltr"
+              fontSize={BRANCH_TOGGLE_FONT_PX * hairline}
+              fontWeight={600}
+              fill="#ffffff"
+              pointerEvents="none"
+            >
+              {countText}
+            </text>
+          </>
+        ) : (
+          <>
+            <circle
+              cx={toggle.x}
+              cy={centreY}
+              r={radius}
+              fill="var(--ou-surface-primary, #ffffff)"
+              stroke="var(--ou-border-strong, #9ca3af)"
+              strokeWidth={1.25 * hairline}
+            />
+            <line
+              x1={toggle.x - 3.5 * hairline}
+              y1={centreY}
+              x2={toggle.x + 3.5 * hairline}
+              y2={centreY}
+              stroke="var(--ou-text-secondary, #4b5563)"
+              strokeWidth={1.5 * hairline}
+              strokeLinecap="round"
+              pointerEvents="none"
+            />
+          </>
+        )}
+      </g>
+    );
+  };
+
+  /*
+   * The branch the map is narrowed to (issue #6606): the path from the top
+   * of its tree down to it - each step a way to widen the view to that
+   * device's branch - and the way back to the whole map.
+   */
+  const renderFocusedBranchChip: () => ReactElement = (): ReactElement => {
+    if (!hierarchy || !focusedBranchNodeId) {
+      return <></>;
+    }
+    const nameOf: (nodeId: string) => string = (nodeId: string): string => {
+      return nodeById.get(nodeId)?.name || nodeId;
+    };
+    return (
+      <nav
+        aria-label={translator.translateText("Branch shown on the map")}
+        data-testid="network-topology-focus-chip"
+        className="pointer-events-auto inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 rounded-2xl border border-indigo-200 bg-white/95 py-1 pl-2.5 pr-1 text-xs text-gray-600 shadow-sm backdrop-blur"
+      >
+        <Icon
+          className="h-3.5 w-3.5 flex-none text-indigo-500"
+          icon={IconProp.Funnel}
+        />
+        <ol className="flex min-w-0 flex-wrap items-center gap-x-1">
+          {ancestorIdsOf(hierarchy, focusedBranchNodeId).map(
+            (ancestorId: string): ReactElement => {
+              return (
+                <li key={ancestorId} className="flex items-center gap-x-1">
+                  <button
+                    type="button"
+                    data-testid={`network-topology-focus-ancestor-${ancestorId}`}
+                    title={translator.translateTemplate(
+                      "Show the branch under {{name}}",
+                      { name: nameOf(ancestorId) },
+                    )}
+                    className="max-w-[10rem] truncate rounded font-medium text-indigo-600 hover:text-indigo-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+                    onClick={() => {
+                      props.onFocusedBranchChange?.(ancestorId);
+                    }}
+                  >
+                    <bdi>{nameOf(ancestorId)}</bdi>
+                  </button>
+                  <span aria-hidden="true" className="text-gray-400">
+                    ›
+                  </span>
+                </li>
+              );
+            },
+          )}
+          <li
+            aria-current="location"
+            className="max-w-[12rem] truncate font-semibold text-gray-900"
+          >
+            <bdi>{nameOf(focusedBranchNodeId)}</bdi>
+          </li>
+        </ol>
+        <button
+          type="button"
+          data-testid="network-topology-focus-clear"
+          className="rounded-full bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700 hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+          onClick={() => {
+            props.onFocusedBranchChange?.(null);
+          }}
+        >
+          {translator.translateText("Show whole map")}
+        </button>
+      </nav>
+    );
+  };
+
+  /*
+   * Whose positions the map is drawn with, once the reader has dragged
+   * anything (issue #6606). Their custom layout is kept per layout on this
+   * browser; the original layout is the map as OneUptime lays it out, a
+   * click away and back, without throwing the custom one away - which is
+   * what Reset layout is for.
+   */
+  const renderLayoutChoiceChip: () => ReactElement = (): ReactElement => {
+    if (overrides.size === 0) {
+      return <></>;
+    }
+    const customText: string = translator.translateTemplate(
+      "Custom layout · {{count}} moved",
+      { count: translator.formatNumber(overrides.size) },
+    );
+    if (!props.onShowOriginalLayoutChange) {
+      return (
+        <div
+          className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
+          data-testid="network-topology-custom-layout-chip"
+        >
+          {customText}
+        </div>
+      );
+    }
+    const segmentClassName: (isActive: boolean) => string = (
+      isActive: boolean,
+    ): string => {
+      return `rounded-full px-2.5 py-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 ${
+        isActive
+          ? "bg-white text-indigo-700 shadow-sm"
+          : "text-indigo-600 hover:text-indigo-800"
+      }`;
+    };
+    return (
+      <div
+        role="group"
+        aria-label={translator.translateText("Device positions")}
+        className="pointer-events-auto inline-flex items-center gap-0.5 rounded-full border border-indigo-200 bg-indigo-50/95 p-0.5 text-xs font-medium shadow-sm backdrop-blur"
+        data-testid="network-topology-custom-layout-chip"
+      >
+        <button
+          type="button"
+          aria-pressed={!isShowingOriginalLayout}
+          data-testid="network-topology-show-custom-layout"
+          title={translator.translateText(
+            "Devices where you dragged them, saved on this browser.",
+          )}
+          className={segmentClassName(!isShowingOriginalLayout)}
+          onClick={() => {
+            props.onShowOriginalLayoutChange?.(false);
+          }}
+        >
+          {customText}
+        </button>
+        <button
+          type="button"
+          aria-pressed={isShowingOriginalLayout}
+          data-testid="network-topology-show-original-layout"
+          title={translator.translateText(
+            "The map as OneUptime lays it out. Your custom layout is kept.",
+          )}
+          className={segmentClassName(isShowingOriginalLayout)}
+          onClick={() => {
+            props.onShowOriginalLayoutChange?.(true);
+          }}
+        >
+          {translator.translateText("Original layout")}
+        </button>
+      </div>
+    );
+  };
+
+  /*
+   * What the search found (issue #6606): how many matches, the way to step
+   * through them, and the matches a folded branch - or the branch in
+   * focus - keeps off the map, with the way to bring them on.
+   */
+  const renderSearchChip: () => ReactElement = (): ReactElement => {
+    if (!searchText || viewModel.isFilteredEmpty) {
+      return <></>;
+    }
+    const matchIds: Array<string> = viewModel.searchMatchNodeIds;
+    const hiddenCount: number = hiddenSearchMatchIds.length;
+
+    if (matchIds.length > 0) {
+      const locatedIndex: number = locatedMatchId
+        ? matchIds.indexOf(locatedMatchId)
+        : -1;
+      const stepClassName: string =
+        "flex h-5 w-5 items-center justify-center rounded-full text-amber-800 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500";
+      return (
+        <div
+          role="group"
+          aria-label={translator.translateText("Search results on the map")}
+          data-testid="network-topology-search-matches"
+          className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50/95 py-0.5 pl-2.5 pr-1 text-xs font-medium text-amber-900 shadow-sm backdrop-blur"
+        >
+          <span
+            role="status"
+            aria-live="polite"
+            data-testid="network-topology-search-count"
+          >
+            {locatedIndex >= 0
+              ? translator.translateTemplate("{{position}} of {{count}}", {
+                  position: translator.formatNumber(locatedIndex + 1),
+                  count: translator.formatNumber(matchIds.length),
+                })
+              : translator.translatePlural(MATCH_COUNT, matchIds.length)}
+          </span>
+          <button
+            type="button"
+            data-testid="network-topology-previous-match"
+            aria-label={translator.translateText("Previous match")}
+            title={translator.translateText("Previous match")}
+            className={stepClassName}
+            onClick={() => {
+              locateMatch(-1);
+            }}
+          >
+            <Icon className="h-3.5 w-3.5" icon={IconProp.ChevronLeft} />
+          </button>
+          <button
+            type="button"
+            data-testid="network-topology-next-match"
+            aria-label={translator.translateText("Next match")}
+            title={translator.translateText("Next match")}
+            className={stepClassName}
+            onClick={() => {
+              locateMatch(1);
+            }}
+          >
+            <Icon className="h-3.5 w-3.5" icon={IconProp.ChevronRight} />
+          </button>
+          {hiddenCount > 0 ? (
+            <button
+              type="button"
+              data-testid="network-topology-show-hidden-matches"
+              title={translator.translateText(
+                "Opens the branches they are in.",
+              )}
+              className="rounded-full px-1.5 py-0.5 text-amber-800 underline hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
+              onClick={revealHiddenMatches}
+            >
+              {translator.translatePlural(
+                { one: "Show {{count}} more", other: "Show {{count}} more" },
+                hiddenCount,
+              )}
+            </button>
+          ) : (
+            <></>
+          )}
+        </div>
+      );
+    }
+
+    if (hiddenCount > 0) {
+      return (
+        <div
+          role="status"
+          data-testid="network-topology-hidden-search-matches"
+          className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50/95 py-0.5 pl-3 pr-1 text-xs font-medium text-amber-900 shadow-sm backdrop-blur"
+        >
+          <span>
+            {translator.translatePlural(
+              {
+                one: "{{count}} match isn't shown",
+                other: "{{count}} matches aren't shown",
+              },
+              hiddenCount,
+            )}
+          </span>
+          <button
+            type="button"
+            data-testid="network-topology-show-hidden-matches"
+            title={translator.translateText("Opens the branches they are in.")}
+            className="rounded-full bg-white px-2 py-0.5 text-amber-800 shadow-sm hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
+            onClick={revealHiddenMatches}
+          >
+            {translator.translateText("Show on map")}
+          </button>
+        </div>
+      );
+    }
+
+    if (viewModel.searchMatchCount > 0) {
+      return <></>;
+    }
+
+    return (
+      <div
+        role="status"
+        className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
+        data-testid="network-topology-no-search-matches"
+      >
+        {translator.translateTemplate(
+          'Nothing matches "{{search}}" — the whole map is dimmed',
+          { search: props.searchText || "" },
+        )}
+      </div>
+    );
+  };
+
   const controls: Array<{
     label: string;
     icon: IconProp;
@@ -1171,12 +2098,43 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
         fitToGraph();
       },
     },
+    /*
+     * Issue #6606: fold the whole tree to its outline, or open it all again.
+     * Offered only where branches are drawn, and only to a map whose folds
+     * the parent keeps.
+     */
+    ...(hierarchy && props.onCollapsedNodeIdsChange
+      ? [
+          {
+            label: "Collapse all branches",
+            icon: IconProp.MinusCircle,
+            testId: "network-topology-collapse-all",
+            disabled: !canCollapseMore(
+              hierarchy,
+              hierarchy.collapsedNodeIds,
+              focusedBranchNodeId,
+            ),
+            onClick: collapseAll,
+          },
+          {
+            label: "Expand all branches",
+            icon: IconProp.PlusCircle,
+            testId: "network-topology-expand-all",
+            disabled: hierarchy.collapsedNodeIds.size === 0,
+            onClick: expandAll,
+          },
+        ]
+      : []),
     {
       label: "Reset layout",
       icon: IconProp.Refresh,
       testId: "network-topology-reset-layout",
-      // Never advertise a control that would do nothing.
-      disabled: overrides.size === 0,
+      /*
+       * Never advertise a control that would do nothing - and while the
+       * original layout is shown, the arrangement it would throw away is not
+       * even on screen.
+       */
+      disabled: overrides.size === 0 || isShowingOriginalLayout,
       onClick: () => {
         if (props.onPositionOverridesChange) {
           props.onPositionOverridesChange(new Map<string, TopologyPoint>());
@@ -1266,19 +2224,6 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        {overrides.size > 0 ? (
-          <div
-            className="pointer-events-none absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
-            data-testid="network-topology-custom-layout-chip"
-          >
-            {translator.translateTemplate("Custom layout · {{count}} moved", {
-              count: translator.formatNumber(overrides.size),
-            })}
-          </div>
-        ) : (
-          <></>
-        )}
-
         {/*
          * Two different empty states, because two different controls can
          * cause them and each needs its own instruction. A kind or VLAN
@@ -1336,22 +2281,22 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {!viewModel.isFilteredEmpty &&
-        props.searchText &&
-        viewModel.searchMatchCount === 0 ? (
-          <div
-            role="status"
-            className="pointer-events-none absolute inset-x-0 top-2 z-10 mx-auto w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
-            data-testid="network-topology-no-search-matches"
-          >
-            {translator.translateTemplate(
-              'Nothing matches "{{search}}" — the whole map is dimmed',
-              { search: props.searchText },
-            )}
-          </div>
-        ) : (
-          <></>
-        )}
+        {/*
+         * What the map is showing, stacked at its top corner (issue #6606):
+         * the branch it is narrowed to, whose positions it is drawn with,
+         * and what the search found. One stack rather than a pill each in a
+         * place of its own, so on a narrow map they wrap rather than land
+         * on top of each other. Mounted after the filtered-empty scrim, so
+         * the way out of a narrowed branch stays on top of it.
+         */}
+        <div
+          className="pointer-events-none absolute left-2 top-2 z-10 flex max-w-[calc(100%-3.5rem)] flex-col items-start gap-1.5"
+          data-testid="network-topology-status-stack"
+        >
+          {renderFocusedBranchChip()}
+          {renderLayoutChoiceChip()}
+          {renderSearchChip()}
+        </div>
 
         {showLabels ? (
           <></>
@@ -1455,6 +2400,36 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                 );
               })}
             </g>
+
+            {/*
+             * Leaf-block combs (issue #6606): the shared wiring a grid of
+             * leaves hangs from, under the links' own stubs.
+             */}
+            {viewModel.combs.length > 0 ? (
+              <g aria-hidden={true} data-testid="network-topology-combs">
+                {viewModel.combs.map((comb: TopologyCombView): ReactElement => {
+                  return (
+                    <path
+                      key={comb.key}
+                      data-testid={`network-topology-comb-${comb.parentId}`}
+                      d={combPathData(comb.segments)}
+                      fill="none"
+                      stroke={comb.color}
+                      strokeWidth={TOPOLOGY_DRAWING_STYLE.combStrokeWidth}
+                      strokeDasharray={comb.strokeDashArray}
+                      strokeLinecap={comb.strokeDashArray ? "butt" : "square"}
+                      opacity={
+                        comb.isDimmed
+                          ? TOPOLOGY_DRAWING_STYLE.dimmedEdgeOpacity
+                          : 1
+                      }
+                    />
+                  );
+                })}
+              </g>
+            ) : (
+              <></>
+            )}
 
             {/* Edges below nodes so a node is never covered by a line. */}
             <g>
@@ -1561,7 +2536,9 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                           ? TOPOLOGY_DRAWING_STYLE.dimmedNodeOpacity
                           : 1
                       }
-                      style={{ cursor: "grab" }}
+                      style={{
+                        cursor: isShowingOriginalLayout ? "pointer" : "grab",
+                      }}
                       onPointerDown={(
                         event: React.PointerEvent<SVGGElement>,
                       ) => {
@@ -1641,6 +2618,32 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                           strokeWidth={1.5 * hairline}
                           pointerEvents="none"
                           data-testid={`network-topology-attention-halo-${nodeView.id}`}
+                        />
+                      ) : (
+                        <></>
+                      )}
+
+                      {/*
+                       * The search match "next match" moved to (issue
+                       * #6606): a warm ring a step wider than the selection
+                       * ring, so the two can be told apart when they meet.
+                       */}
+                      {nodeView.isLocated ? (
+                        <circle
+                          data-testid={`network-topology-located-${nodeView.id}`}
+                          cx={nodeView.x}
+                          cy={nodeView.y}
+                          r={
+                            Math.max(
+                              footprint.halfWidth,
+                              footprint.halfHeight,
+                            ) + 10
+                          }
+                          fill={LOCATED_RING_COLOR}
+                          fillOpacity={0.12}
+                          stroke={LOCATED_RING_COLOR}
+                          strokeWidth={2.5 * hairline}
+                          pointerEvents="none"
                         />
                       ) : (
                         <></>
@@ -1768,6 +2771,19 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                 },
               )}
             </g>
+
+            {/*
+             * The fold controls (issue #6606), last so nothing paints over
+             * them. Only while names are drawn: below that zoom a control
+             * per branch would be clutter nobody can aim at.
+             */}
+            {showLabels && branchToggles.length > 0 ? (
+              <g data-testid="network-topology-branch-toggles">
+                {branchToggles.map(renderBranchToggle)}
+              </g>
+            ) : (
+              <></>
+            )}
           </g>
         </svg>
       </div>

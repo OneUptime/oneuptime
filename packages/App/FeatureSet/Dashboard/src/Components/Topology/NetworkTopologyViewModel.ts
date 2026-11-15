@@ -46,11 +46,13 @@ import {
   resolveHealthVisibility,
 } from "./TopologyHealthFilter";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
+import { TopologyLeafBlock } from "../NetworkDevice/TopologyModel";
 import {
   EMPTY_LEAF_BLOCK_CONNECTORS,
   LeafBlockComb,
   LeafBlockConnectors,
   TopologyConnectorSegment,
+  buildLeafBlockConnectors,
 } from "./LeafBlockConnectors";
 
 /*
@@ -186,10 +188,14 @@ export interface TopologyViewModelInput {
   // The search match the reader stepped to, ringed on the map.
   locatedNodeId?: string | null | undefined;
   /*
-   * Leaf-block wiring (parent-child layout): the links that hang from a
-   * comb are drawn as their stubs, and the combs come back as views.
+   * Leaf-block wiring (parent-child layout, issue #6606): the grids the
+   * layout packed leaves into, and where it put every node before any was
+   * dragged. The links that still hang from a comb are drawn as their
+   * stubs, and the combs come back as views. Built here, after every
+   * filter, so a spine never reaches down to a device that is not drawn.
    */
-  connectors?: LeafBlockConnectors | undefined;
+  leafBlocks?: ReadonlyArray<TopologyLeafBlock> | undefined;
+  layoutPositions?: ReadonlyMap<string, TopologyPoint> | undefined;
 }
 
 export interface TopologyViewModel {
@@ -301,6 +307,51 @@ export const statusNoteForNode: (
 
 const NO_NODE_IDS: ReadonlySet<string> = new Set<string>();
 
+/*
+ * The leaf-block combs for the nodes actually drawn, from where they are
+ * drawn: only links between two drawn nodes can hang from one.
+ */
+const buildConnectorsFor: (
+  input: TopologyViewModelInput,
+  nodeViews: ReadonlyArray<TopologyNodeView>,
+  placedNodeIds: ReadonlySet<string>,
+) => LeafBlockConnectors = (
+  input: TopologyViewModelInput,
+  nodeViews: ReadonlyArray<TopologyNodeView>,
+  placedNodeIds: ReadonlySet<string>,
+): LeafBlockConnectors => {
+  if (
+    !input.leafBlocks ||
+    input.leafBlocks.length === 0 ||
+    !input.layoutPositions
+  ) {
+    return EMPTY_LEAF_BLOCK_CONNECTORS;
+  }
+  const drawnPositions: Map<string, TopologyPoint> = new Map<
+    string,
+    TopologyPoint
+  >();
+  for (const view of nodeViews) {
+    drawnPositions.set(view.id, { x: view.x, y: view.y });
+  }
+  const drawnEdgeKeys: Set<string> = new Set<string>();
+  for (const edge of input.edges || []) {
+    if (
+      edge &&
+      placedNodeIds.has(edge.fromNodeId) &&
+      placedNodeIds.has(edge.toNodeId)
+    ) {
+      drawnEdgeKeys.add(edgeKeyForEdge(edge));
+    }
+  }
+  return buildLeafBlockConnectors({
+    leafBlocks: input.leafBlocks,
+    basePositions: input.layoutPositions,
+    drawnPositions: drawnPositions,
+    drawnEdgeKeys: drawnEdgeKeys,
+  });
+};
+
 // The dash an FDB-learned link is drawn with.
 const LEARNED_LINK_DASH: string = "3 3";
 
@@ -391,8 +442,6 @@ export const buildTopologyViewModel: (
   const hasFocus: boolean = input.focusNodeIds.size > 0;
   const searchContextNodeIds: ReadonlySet<string> =
     input.searchContextNodeIds || NO_NODE_IDS;
-  const connectors: LeafBlockConnectors =
-    input.connectors || EMPTY_LEAF_BLOCK_CONNECTORS;
 
   const visibleNodes: Array<NetworkTopologyNode> = [];
   const nodeById: Map<string, NetworkTopologyNode> = new Map<
@@ -539,6 +588,12 @@ export const buildTopologyViewModel: (
     nodeViews.map((view: TopologyNodeView): string => {
       return view.id;
     }),
+  );
+
+  const connectors: LeafBlockConnectors = buildConnectorsFor(
+    input,
+    nodeViews,
+    placedNodeIds,
   );
 
   const edgeViews: Array<TopologyEdgeView> = [];
