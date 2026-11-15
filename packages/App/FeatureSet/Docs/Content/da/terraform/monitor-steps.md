@@ -11,7 +11,7 @@
 
 ## Sådan bedømmes et tjek
 
-Hvert tjek giver et resultat: en probes svar, et scripts returværdi eller den telemetri, tjekket læser. Trinnets kriterier bedømmer det derefter i deres rækkefølge. Det første kriterium, hvis filtre passer, bestemmer, hvad der sker: det kan ændre monitorens status, åbne hændelser og åbne advarsler. Kriterierne efter det bliver ikke set på for det tjek.
+Hvert tjek giver et resultat: en sondes svar, et scripts returværdi eller den telemetri, tjekket læser. Trinnets kriterier bedømmer det derefter i deres rækkefølge. Det første kriterium, hvis filtre passer, bestemmer, hvad der sker: det kan ændre monitorens status, åbne hændelser og åbne advarsler. Kriterierne efter det bliver ikke set på for det tjek.
 
 ```mermaid title="Sådan bedømmes hvert tjek"
 flowchart TB
@@ -26,7 +26,7 @@ Rækkefølgen af kriterierne betyder altså noget: sæt de kriterier, der advare
 
 ## Skriv trinnene
 
-`monitor_steps` er en liste af typede objekter, der skrives direkte i HCL. Der er ingen `jsonencode()`, ingen `{_type, value}`-indpakning, ingen camelCase-nøgle og intet ID at skrive: provideren laver din HCL om til API'ets format, og serveren giver hvert trin, kriterium, hændelsesskabelon og advarselsskabelon sit ID. Den beholder de ID'er ved hver apply ved at matche hvert kriterium og hver skabelon med den, de erstatter, ved navn og ellers ved position, så proberesultater bliver hos deres trin, og hændelser bliver ved med at pege på de kriterier, der udløste dem.
+`monitor_steps` er en liste af typede objekter, der skrives direkte i HCL. Der er ingen `jsonencode()`, ingen `{_type, value}`-indpakning, ingen camelCase-nøgle og intet ID at skrive: provideren laver din HCL om til API'ets format, og serveren giver hvert trin, kriterium, hændelsesskabelon og advarselsskabelon sit ID. Den beholder de ID'er ved hver apply ved at matche hvert kriterium og hver skabelon med den, de erstatter, ved navn og ellers ved position, så sonderesultater bliver hos deres trin, og hændelser bliver ved med at pege på de kriterier, der udløste dem.
 
 ```mermaid title="Delene af monitor_steps"
 flowchart TB
@@ -170,8 +170,8 @@ Hvert element i `monitor_steps` er én ting at tjekke:
 | `tls_client_certificate` | string | Website, API | Et klientcertifikat til gensidig TLS: PEM eller en henvisning `{{monitorSecrets.name}}`. |
 | `tls_client_key` | string (følsom) | Website, API | Klientcertifikatets private nøgle. Angiv den sammen med certifikatet. |
 | `tls_client_key_passphrase` | string (følsom) | Website, API | Den private nøgles adgangssætning. |
-| `request_timeout_in_ms` | number | Tjek, som en probe udfører | Hvor længe ét forsøg må tage, i millisekunder. Proben sænker alt over 60000 til 60000. |
-| `retry_count` | number | Tjek, som en probe udfører | Nye forsøg efter et mislykket første forsøg: `0` tjekker én gang, `3` op til fire gange. Proben sænker alt over 3 til 3. |
+| `request_timeout_in_ms` | number | Tjek, som en sonde udfører | Hvor længe ét forsøg må tage, i millisekunder. Sonden sænker alt over 60000 til 60000. |
+| `retry_count` | number | Tjek, som en sonde udfører | Nye forsøg efter et mislykket første forsøg: `0` tjekker én gang, `3` op til fire gange. Sonden sænker alt over 3 til 3. |
 | `custom_code` | string | Custom JavaScript Code, Synthetic | Det script, trinnet kører. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` og `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` og `Firefox`. |
@@ -401,7 +401,7 @@ Et tjek, der ikke passer med noget kriterium, sætter monitoren i dens standards
 
 ## En monitor uden trin
 
-`monitor_steps` er valgfri, men en monitor, der oprettes uden, har ingen kriterier at bedømme et resultat efter: prober springer en monitor uden trin over, og den bliver i den status, den startede i. Din state holder attributten tom, og planen forbliver ren. En manuel monitor har aldrig brug for trin: du sætter selv dens status. Alle andre typer har brug for mindst ét trin for at tjekke noget.
+`monitor_steps` er valgfri, men en monitor, der oprettes uden, har ingen kriterier at bedømme et resultat efter: sonder springer en monitor uden trin over, og den bliver i den status, den startede i. Din state holder attributten tom, og planen forbliver ren. En manuel monitor har aldrig brug for trin: du sætter selv dens status. Alle andre typer har brug for mindst ét trin for at tjekke noget.
 
 ## Wireformatet
 

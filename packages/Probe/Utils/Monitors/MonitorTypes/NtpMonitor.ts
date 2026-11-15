@@ -22,6 +22,10 @@ import RequestFailedDetails, {
 } from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
+import {
+  RequestFailureDescription,
+  writeRequestFailureDescription,
+} from "Common/Utils/Monitor/RequestFailureDescriptions";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkFailure,
   ProbeNetworkOperation,
@@ -655,8 +659,9 @@ export default class NtpMonitor {
         requestFailedDetails: {
           failedPhase: RequestFailedPhase.DNSResolution,
           errorCode: "TIMEOUT",
-          errorDescription:
-            "The DNS lookup of the NTP server did not finish before the timeout.",
+          errorDescription: writeRequestFailureDescription(
+            RequestFailureDescription.NtpLookupTimedOut,
+          ),
         },
       });
     }
@@ -673,8 +678,9 @@ export default class NtpMonitor {
       requestFailedDetails: {
         failedPhase: RequestFailedPhase.RequestTimeout,
         errorCode: "TIMEOUT",
-        errorDescription:
-          "The request was sent, but no NTP reply came back before the timeout. A firewall dropping UDP port 123, a server that is down, or a server that only answers some networks all look like this.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.NtpNoReply,
+        ),
       },
     });
   }
@@ -705,8 +711,9 @@ export default class NtpMonitor {
         requestFailedDetails: {
           failedPhase: RequestFailedPhase.DNSResolution,
           errorCode: code,
-          errorDescription:
-            "The NTP server's name did not resolve to an address, so no request was sent.",
+          errorDescription: writeRequestFailureDescription(
+            RequestFailureDescription.NtpNameDidNotResolve,
+          ),
           rawErrorMessage: rawErrorMessage,
         },
       });
@@ -719,8 +726,9 @@ export default class NtpMonitor {
         requestFailedDetails: {
           failedPhase: RequestFailedPhase.NetworkError,
           errorCode: code,
-          errorDescription:
-            "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.",
+          errorDescription: writeRequestFailureDescription(
+            RequestFailureDescription.NtpPortUnreachable,
+          ),
           rawErrorMessage: rawErrorMessage,
         },
       });
@@ -746,8 +754,9 @@ export default class NtpMonitor {
         requestFailedDetails: {
           failedPhase: RequestFailedPhase.NetworkError,
           errorCode: code,
-          errorDescription:
-            "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.",
+          errorDescription: writeRequestFailureDescription(
+            RequestFailureDescription.NtpProbeCouldNotSend,
+          ),
           rawErrorMessage: rawErrorMessage,
         },
       });
@@ -759,7 +768,9 @@ export default class NtpMonitor {
       requestFailedDetails: {
         failedPhase: RequestFailedPhase.NetworkError,
         errorCode: code,
-        errorDescription: "The NTP check failed because of a network error.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.NtpNetworkError,
+        ),
         rawErrorMessage: rawErrorMessage,
       },
     });

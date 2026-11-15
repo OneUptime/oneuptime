@@ -50,7 +50,7 @@ Start fra skabelonen, der bygger hele workflowet for dig, eller fra bunden.
 
 Workflowet åbner i **Bygger** med to trin: **On Create Incident** og **Send Message to Discord**, der poster hændelsens nummer, titel, alvorlighed og tilstand. URL'en gemmes som workflowets hemmelige variabel `discordWebhookUrl`.
 @tab Fra bunden
-1. Gem URL'en som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, giv den navnet `DISCORD_WEBHOOK_URL`, og klik på **Næste**. Indsæt URL'en i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+1. Gem URL'en som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, giv den navnet `DISCORD_WEBHOOK_URL`, og klik på **Næste**. Indsæt URL'en i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
 3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident** under **Populære**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Incident Number With Prefix**.
 4. Klik på **Tilføj komponent**, søg efter `discord`, og klik på **Send Message to Discord**. Forbind triggerens udgang **Success** til den.

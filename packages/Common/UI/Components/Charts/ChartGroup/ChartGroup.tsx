@@ -26,7 +26,25 @@ import {
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../../Utils/LineDirection";
 import { ReadingDirection } from "../../../../Types/ReadingDirection";
+import TimeRangeZoomHint from "../TimeRangeZoom/TimeRangeZoomHint";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+
+/*
+ * A CHART'S TITLE ROW: the title, its (i) and explorer icons, then the zoom
+ * hint. The title is the one thing the row must say. The title and its
+ * icons are one group that never wraps (the title is cut at its end only
+ * when it is wider than the whole row), and the row wraps: when the hint
+ * does not fit beside the title it goes on a line of its own under it,
+ * kept to the row's end. It never takes the title's room, as it did when
+ * the two shared one line and only the title could shrink (#8048).
+ */
+export const CHART_TITLE_ROW_TEST_ID: string = "chart-title-row";
+export const CHART_TITLE_ROW_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-x-3";
+export const CHART_TITLE_GROUP_CLASS_NAME: string =
+  "flex min-w-0 max-w-full items-center";
+export const CHART_TITLE_ROW_HINT_CLASS_NAME: string =
+  "ml-auto max-w-full truncate";
 
 export enum ChartType {
   LINE = "line",
@@ -194,17 +212,20 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * The way back out is only worth naming while there is something to
-     * reset — a reset handler is supplied exactly then.
+     * The shared hint, as every chart card draws it: never on a phone,
+     * where no finger drags or double-clicks. On a wider card it is the
+     * row's last item and gives way to the title: when the two do not fit
+     * side by side it goes under the title (the row wraps), rather than
+     * cut the title to a few letters (#8048). The way back out is named
+     * while there is something to reset (a reset handler is supplied
+     * exactly then), with the drag, since the chart can be dragged again.
      */
-    const canReset: boolean = Boolean(zoom.onTimeRangeReset);
-
     return (
-      <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400">
-        {translator.translateText(
-          canReset ? "Drag to zoom · double-click to reset" : "Drag to zoom",
-        )}
-      </span>
+      <TimeRangeZoomHint
+        zoom={zoom}
+        namesDragWhileZoomed={true}
+        className={CHART_TITLE_ROW_HINT_CLASS_NAME}
+      />
     );
   };
 
@@ -397,18 +418,23 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
               >
                 <div className="px-5 pt-4 pb-4 flex flex-col flex-1">
                   <div className="mb-3 pb-3 border-b border-gray-100">
-                    <div className="flex items-center">
-                      <h3
-                        className={`min-w-0 truncate text-sm font-semibold text-gray-800 tracking-tight${
-                          lineOf(chart.title).alignment
-                        }`}
-                        dir={lineOf(chart.title).dir}
-                        title={chart.title}
-                      >
-                        {chart.title}
-                      </h3>
-                      {getInfoIcon(chart)}
-                      {getExplorerIcon(chart)}
+                    <div
+                      data-testid={CHART_TITLE_ROW_TEST_ID}
+                      className={CHART_TITLE_ROW_CLASS_NAME}
+                    >
+                      <div className={CHART_TITLE_GROUP_CLASS_NAME}>
+                        <h3
+                          className={`min-w-0 truncate text-sm font-semibold text-gray-800 tracking-tight${
+                            lineOf(chart.title).alignment
+                          }`}
+                          dir={lineOf(chart.title).dir}
+                          title={chart.title}
+                        >
+                          {chart.title}
+                        </h3>
+                        {getInfoIcon(chart)}
+                        {getExplorerIcon(chart)}
+                      </div>
                       {getDragToZoomHint(chart)}
                     </div>
                     {chart.description && (
@@ -463,23 +489,28 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
             >
               {/* Header strip — title, meta icons, the always-visible zoom hint */}
               <div className="border-b border-gray-100 px-4 py-2.5">
-                <div className="flex items-center">
-                  {/*
-                   * No id: it was a card's, the same on every chart, and
-                   * repeated on every page with two charts.
-                   */}
-                  <h2
-                    data-testid="card-details-heading"
-                    className={`min-w-0 truncate text-sm font-semibold leading-6 text-gray-900${
-                      lineOf(chart.title).alignment
-                    }`}
-                    dir={lineOf(chart.title).dir}
-                    title={chart.title}
-                  >
-                    {chart.title}
-                  </h2>
-                  {getInfoIcon(chart)}
-                  {getExplorerIcon(chart)}
+                <div
+                  data-testid={CHART_TITLE_ROW_TEST_ID}
+                  className={CHART_TITLE_ROW_CLASS_NAME}
+                >
+                  <div className={CHART_TITLE_GROUP_CLASS_NAME}>
+                    {/*
+                     * No id: it was a card's, the same on every chart, and
+                     * repeated on every page with two charts.
+                     */}
+                    <h2
+                      data-testid="card-details-heading"
+                      className={`min-w-0 truncate text-sm font-semibold leading-6 text-gray-900${
+                        lineOf(chart.title).alignment
+                      }`}
+                      dir={lineOf(chart.title).dir}
+                      title={chart.title}
+                    >
+                      {chart.title}
+                    </h2>
+                    {getInfoIcon(chart)}
+                    {getExplorerIcon(chart)}
+                  </div>
                   {getDragToZoomHint(chart)}
                 </div>
                 {chart.description && (

@@ -22,6 +22,7 @@ import {
 } from "./Utils/DatabaseServerPresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Archived databases. A discovered database that is not seen for a while is
@@ -139,7 +140,7 @@ const DatabaseArchivedPage: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {(item.name as string) || "—"}
+                    {(item.name as string) || <TableEmptyValue />}
                   </AppLink>
                   {subtitle && (
                     <div className="text-xs text-gray-500 font-mono truncate">
@@ -232,7 +233,7 @@ const DatabaseArchivedPage: FunctionComponent<
                   </span>
                 );
               }
-              return <span className="text-gray-400">—</span>;
+              return <TableEmptyValue />;
             },
           },
         ]}

@@ -1,6 +1,6 @@
 # Docker Swarm-agent
 
-OneUptimes Docker Swarm-agent övervakar ett Docker Swarm-kluster: dess noder, tjänster, uppgifter, stackar, overlay-nätverk, secrets, configs och volymer, plus varje containers mätvärden och loggar. Du kör den med Docker Compose på en managernod i swarmen, och klustret visas i OneUptime med allt detta. [Docker Swarm-övervakare](/docs/monitor/docker-swarm-monitor) larmar utifrån det som kommer in.
+OneUptimes Docker Swarm-agent övervakar ett Docker Swarm-kluster: dess noder, tjänster, uppgifter, stackar, overlay-nätverk, secrets, configs och volymer, plus varje containers mätvärden och loggar. Du kör den med Docker Compose på en managernod i swarmen, och klustret visas i OneUptime med allt detta. [Docker Swarm-monitorer](/docs/monitor/docker-swarm-monitor) larmar utifrån det som kommer in.
 
 :::cards
 - [Installera agenten](#installera-agenten): Installationsskriptet eller Docker Compose, på en managernod.
@@ -113,7 +113,7 @@ Installationsskriptet skriver de fyra första till `/opt/oneuptime-docker-swarm-
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, till exempel `https://oneuptime.com` eller din självhostade instans. Använd `http://` och dess port om instansen bara använder HTTP. |
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Intagningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
 | `DOCKER_SWARM_CLUSTER_NAME` | Nej | Klustrets namn i OneUptime och nyckeln som varje nods data sammanförs på: stämplat på allt som resursattributet `docker.swarm.cluster.name`. Håll det stabilt: att ändra det senare registrerar ett andra kluster. Standard är `docker-swarm`. |
-| `DOCKER_SWARM_NODE_NAME` | Nej | Nodens namn, stämplat på dess containrars mätvärden och loggar som resursattributet `docker.swarm.node.name`, som en [Docker Swarm-övervakare](/docs/monitor/docker-swarm-monitor#monitorinställningar) filtrerar på. Installationsskriptet sätter det till nodens värdnamn, så som `docker node ls` visar det. Tomt: inget nodnamn stämplas. |
+| `DOCKER_SWARM_NODE_NAME` | Nej | Nodens namn, stämplat på dess containrars mätvärden och loggar som resursattributet `docker.swarm.node.name`, som en [Docker Swarm-monitor](/docs/monitor/docker-swarm-monitor#monitorinställningar) filtrerar på. Installationsskriptet sätter det till nodens värdnamn, så som `docker node ls` visar det. Tomt: inget nodnamn stämplas. |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | Nej | Hur ofta inventariepollern tar en ögonblicksbild, i sekunder. Standard är `300`. |
 | `DOCKER_API_VERSION` | Nej | Den Docker Engine-API-version som collectorn och inventariepollern talar. Tom som standard: de använder daemonens egen, så varje Docker Engine från 20.10 och framåt fungerar. Sätt den bara för att låsa en version (se [Felsökning](#felsökning)). AI-agenten förhandlar den om du inte anger en. |
 
@@ -129,7 +129,7 @@ AI-agentens egna inställningar finns under [AI-agent](#ai-agent).
 | Containerns CPU, minne, antal processer och drifttid | Mottagaren `docker_stats` | Sidan **Mätvärden** |
 | Containerns stdout- och stderr-loggar | Mottagaren `filelog` | Sidan **Loggar** |
 
-Varje uppgifts mätvärden bär dess containers identitet, som mottagaren `docker_stats` lägger till (`container.name`, `container.image.name`, `container.id` och `container.runtime=docker`), dess tjänst och dess nods ID, som collectorn kopierar från de etiketter som Swarm sätter på uppgiften (`docker.swarm.service.name` och `docker.swarm.node.id`), och dess nods namn från `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [Docker Swarm-övervakare](/docs/monitor/docker-swarm-monitor#monitorinställningar) filtrerar på dem.
+Varje uppgifts mätvärden bär dess containers identitet, som mottagaren `docker_stats` lägger till (`container.name`, `container.image.name`, `container.id` och `container.runtime=docker`), dess tjänst och dess nods ID, som collectorn kopierar från de etiketter som Swarm sätter på uppgiften (`docker.swarm.service.name` och `docker.swarm.node.id`), och dess nods namn från `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [Docker Swarm-monitorer](/docs/monitor/docker-swarm-monitor#monitorinställningar) filtrerar på dem.
 
 ### Så skiljer den sig från Docker-agenten
 

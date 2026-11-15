@@ -309,6 +309,27 @@ function normalizeStatus(status: string | null | undefined): string {
 }
 
 /*
+ * The key of a status word the rules know - "degraded" is "Degraded",
+ * however the array cases or pads it - or undefined for a word this list
+ * lacks, which is drawn as the array writes it. The dashboard's storage
+ * array widgets word a component's status by this list too (#7521), so a
+ * part reads the same on a board as on its array's pages. Only the list's
+ * own words count: "constructor" or "toString" from an array is a word it
+ * does not know, never a function of the object the list is kept in.
+ */
+export function getKnownStorageArrayStatusKey(
+  status: unknown,
+): string | undefined {
+  if (typeof status !== "string") {
+    return undefined;
+  }
+  const normalized: string = normalizeStatus(status);
+  return Object.prototype.hasOwnProperty.call(STATUS_WORDS, normalized)
+    ? STATUS_WORDS[normalized]
+    : undefined;
+}
+
+/*
  * A status word as the reader's language says it: the key of a word the
  * rules know, else the array's word made readable ("not_installed" -> "Not
  * Installed"), drawn as written.
@@ -318,7 +339,7 @@ export function getStorageArrayStatusWord(status: string | null | undefined): {
   values?: Record<string, string> | undefined;
 } {
   const normalized: string = normalizeStatus(status);
-  const known: string | undefined = STATUS_WORDS[normalized];
+  const known: string | undefined = getKnownStorageArrayStatusKey(normalized);
   if (known) {
     return { label: known };
   }

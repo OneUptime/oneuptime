@@ -12,6 +12,7 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../Utils/Milliseconds";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   hops: Array<TraceRouteHop>;
@@ -244,9 +245,11 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                   className="py-1 whitespace-nowrap"
                   data-testid="traceroute-hop-rtt"
                 >
-                  {hop.roundTripTimeInMS !== undefined
-                    ? formatMilliseconds(translator, hop.roundTripTimeInMS)
-                    : "-"}
+                  {hop.roundTripTimeInMS !== undefined ? (
+                    formatMilliseconds(translator, hop.roundTripTimeInMS)
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </td>
               </tr>
             );

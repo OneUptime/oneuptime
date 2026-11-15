@@ -191,8 +191,10 @@ function getApiQueries(
         title: translator.translateTemplate("{{service}} API answering", {
           service: title,
         }),
-        description: OPENSTACK_METRIC_DESCRIPTIONS.apiState,
-        legend: "Up",
+        description: translator.translateText(
+          OPENSTACK_METRIC_DESCRIPTIONS.apiState,
+        ),
+        legend: translator.translateText("Up"),
         legendUnit: "",
       },
       metricQueryData: {
@@ -213,8 +215,10 @@ function getApiQueries(
       title: translator.translateTemplate("{{service}} collection time", {
         service: title,
       }),
-      description: OPENSTACK_METRIC_DESCRIPTIONS.apiCollectionTime,
-      legend: "Collection",
+      description: translator.translateText(
+        OPENSTACK_METRIC_DESCRIPTIONS.apiCollectionTime,
+      ),
+      legend: translator.translateText("Collection"),
       legendUnit: "s",
     },
     metricQueryData: {
@@ -248,8 +252,10 @@ function getWorkerQueries(
         title: translator.translateTemplate("{{service}} state", {
           service: row.name || "",
         }),
-        description: OPENSTACK_METRIC_DESCRIPTIONS.workerState,
-        legend: "Up",
+        description: translator.translateText(
+          OPENSTACK_METRIC_DESCRIPTIONS.workerState,
+        ),
+        legend: translator.translateText("Up"),
         legendUnit: "",
       },
       metricQueryData: {

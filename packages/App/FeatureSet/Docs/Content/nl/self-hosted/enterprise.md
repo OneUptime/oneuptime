@@ -54,7 +54,7 @@ Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait
 | [Aangepaste meldingskanalen](/docs/self-hosted/custom-notification-channels): mensen oproepen via uw eigen dienst, zoals de app van uw bedrijf | Nee | Ja | Niet van toepassing |
 | [Sessieduur](/docs/self-hosted/session-length): hoe lang mensen aangemeld blijven, en hoe lang zonder OneUptime te gebruiken | Nee | Ja | Niet van toepassing |
 | Capaciteitsweergave van ClickHouse, capaciteitsalerts en automatisch opschonen van de schijf | Ja | Ja | Niet van toepassing |
-| Migratiestatus, supportbundel en globale probes in het Admin-dashboard | Ja | Ja | Niet van toepassing |
+| Migratiestatus, supportbundel en globale sondes in het Admin-dashboard | Ja | Ja | Niet van toepassing |
 | Beheer van de Enterprise-licentie, de plaatsen en de instanties | Nee | Ja | Niet van toepassing |
 
 Single sign-on omvat "Require SSO for login" voor projecten, privé-statuspagina's en de hele instantie, in beide edities.

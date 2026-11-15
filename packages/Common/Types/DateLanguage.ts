@@ -723,14 +723,19 @@ type ListFormatConstructor = new (
 const relativeTimeFormatCache: Map<string, RelativeTimeFormatter | null> =
   new Map<string, RelativeTimeFormatter | null>();
 
+// How much of a unit's name Intl writes: "5 minutes ago", or "5 min. ago".
+export type RelativeDateStyle = "long" | "short" | "narrow";
+
 const getRelativeTimeFormatter: (
   locale: string,
   numeric: "auto" | "always",
+  style?: RelativeDateStyle,
 ) => RelativeTimeFormatter | null = (
   locale: string,
   numeric: "auto" | "always",
+  style: RelativeDateStyle = "long",
 ): RelativeTimeFormatter | null => {
-  const key: string = `${locale}|${numeric}`;
+  const key: string = `${locale}|${numeric}|${style}`;
 
   if (relativeTimeFormatCache.has(key)) {
     return relativeTimeFormatCache.get(key) || null;
@@ -748,7 +753,7 @@ const getRelativeTimeFormatter: (
     if (RelativeTimeFormat) {
       formatter = new RelativeTimeFormat(getNumberLocale(locale) || locale, {
         numeric: numeric,
-        style: "long",
+        style: style,
       });
     }
   } catch {
@@ -891,22 +896,28 @@ export const formatRelativeDate: (data: {
  * "in 2 Stunden", "قبل 3 أيام" - `count` `unit`s ahead of now, or behind it
  * when `isFuture` is false, in `locale`: for a caller that counts its own
  * units (a maintenance window's "in 2 hours", its minutes floored). Null
- * when this engine has no Intl.RelativeTimeFormat.
+ * when this engine has no Intl.RelativeTimeFormat. `style` "short" writes
+ * the unit as its language shortens it, for a narrow column: "vor 5 Min.",
+ * "il y a 5 min"; "long" when left out. A count of 0 behind now is the
+ * past: "vor 0 Sek.", never "in 0 Sek.".
  */
 export const formatRelativeAmount: (data: {
   count: number;
   unit: RelativeDateUnit;
   isFuture: boolean;
   locale: string;
+  style?: RelativeDateStyle | undefined;
 }) => string | null = (data: {
   count: number;
   unit: RelativeDateUnit;
   isFuture: boolean;
   locale: string;
+  style?: RelativeDateStyle | undefined;
 }): string | null => {
   const always: RelativeTimeFormatter | null = getRelativeTimeFormatter(
     data.locale,
     "always",
+    data.style || "long",
   );
 
   if (!always) {

@@ -113,7 +113,7 @@ flowchart TB
 > `container.cpu.throttling_data.throttled_time` 只會成長，所以 **Container CPU Throttling** 會依它在視窗內成長了多少發出警示：每分鐘一個 Maximum 查詢和一個 Minimum 查詢，由公式相減後加總。依代理程式每 30 秒一次的擷取，這只能看到大約一半的實際節流，閾值已經考量到這一點。如果把代理程式的 `collection_interval` 調到 60 秒以上，每分鐘只會有一個樣本，該範本就會停止發出警示。
 
 > [!NOTE]
-> `container.restarts` 同樣只會成長，直到手動重新啟動或重新建立的容器讓它從 0 重新開始，所以代理程式還會在每個樣本裡傳送 `container.restarts.increase`：自它上一次對該容器取樣以來的重新啟動次數。**Container Restart Loop** 會把它們相加，因此無論樣本相隔多遠，每次重新啟動都會計入，而手動重新啟動不算在內。Docker 會把正在重新啟動的容器回報為正在執行，所以代理程式在重新啟動迴圈中的容器兩次執行之間也會繼續取樣。舊版代理程式不會傳送 `container.restarts.increase`：請先[升級它](/docs/telemetry/docker-host#升級代理程式)。在那之前用該範本建立的監控器讀取的是 `container.restarts` 在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動：請刪除它，再用範本重新建立。
+> `container.restarts` 同樣只會成長，直到手動重新啟動或重新建立的容器讓它從 0 重新開始，所以代理程式還會在每個樣本裡傳送 `container.restarts.increase`：自它上一次對該容器取樣以來的重新啟動次數。**Container Restart Loop** 會把它們相加，因此無論樣本相隔多遠，每次重新啟動都會計入，而手動重新啟動不算在內。Docker 會把正在重新啟動的容器回報為正在執行，所以代理程式在重新啟動迴圈中的容器兩次執行之間也會繼續取樣。舊版代理程式不會傳送 `container.restarts.increase`：請先[升級它](/docs/telemetry/docker-host#升級代理程式)。在那之前用該範本建立的監測器讀取的是 `container.restarts` 在每分鐘內成長了多少，會漏掉迴圈中大約一半的重新啟動：請刪除它，再用範本重新建立。
 
 > [!CAUTION]
 > `container.uptime` 只存在於正在執行的容器。停止後一直保持停止的容器不會傳送任何資料，所以 **Container Restarted (Low Uptime)** 範本捕捉的是重新啟動和重新部署，而不是永久關閉。設計為執行不到兩分鐘的容器，在整個生命週期內都會處於警示狀態。對於必須持續運作的服務，也要監控它提供的功能，例如使用 [API 監控](/docs/monitor/api-monitor)。
@@ -191,7 +191,7 @@ flowchart TB
 | 2 | Check if _monitor name_ is online | 第一個查詢有資料 | 將監測器標記為 **運作中**。 |
 
 > [!IMPORTANT]
-> 值為 `0` 也是資料，因此經常為零的指標（例如重新啟動次數或錯誤數）不會讓監控器離線。要針對某個值告警，請從範本開始，或新增帶有閾值的條件。當完全沒有資料到達且沒有任何條件符合時，監控器會保持原有狀態，未解決的事件也保持開啟：沉默不等於恢復。OneUptime 本身未接收資料的時間絕不算作無資料：視窗包含這段時間的檢查會改為等待，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
+> 值為 `0` 也是資料，因此經常為零的指標（例如重新啟動次數或錯誤數）不會讓監測器離線。要針對某個值告警，請從範本開始，或新增帶有閾值的條件。當完全沒有資料到達且沒有任何條件符合時，監測器會保持原有狀態，未解決的事件也保持開啟：沉默不等於恢復。OneUptime 本身未接收資料的時間絕不算作無資料：視窗包含這段時間的檢查會改為等待，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
 
 ## 收集的日誌
 
@@ -297,7 +297,7 @@ OneUptime 以 `resource.host.name` 識別主機，代理程式從 `DOCKER_HOST_N
 :::
 
 :::details 重新啟動迴圈範本從不觸發，或漏掉重新啟動
-它讀取 `container.restarts.increase`，而舊版代理程式不會傳送它：[升級代理程式](/docs/telemetry/docker-host#升級代理程式)。在那之前用該範本建立的監控器讀取的是 `container.restarts` 在同一分鐘內兩個樣本之間成長了多少，會漏掉不同分鐘的樣本之間發生的重新啟動：請刪除它，再用範本重新建立。
+它讀取 `container.restarts.increase`，而舊版代理程式不會傳送它：[升級代理程式](/docs/telemetry/docker-host#升級代理程式)。在那之前用該範本建立的監測器讀取的是 `container.restarts` 在同一分鐘內兩個樣本之間成長了多少，會漏掉不同分鐘的樣本之間發生的重新啟動：請刪除它，再用範本重新建立。
 :::
 
 ## 後續步驟

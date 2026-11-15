@@ -31,6 +31,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * A cloud account's Resources: every live Cloud Resource of its cloud and
@@ -225,7 +226,7 @@ const CloudAccountResources: FunctionComponent<
                     to={viewRoute(item)}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {(item.name as string) || "—"}
+                    {(item.name as string) || <TableEmptyValue />}
                   </AppLink>
                   {where ? (
                     <div

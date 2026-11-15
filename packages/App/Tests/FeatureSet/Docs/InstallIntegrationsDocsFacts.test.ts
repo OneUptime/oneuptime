@@ -1726,12 +1726,18 @@ describe("Docker Compose, against the compose files and scripts", () => {
   it("the ingress serves the whole application only on HOST and localhost", () => {
     const ingress: string = readSource("ingressConfig");
 
-    // HOST without its port: nginx compares a server name with the Host minus its port.
+    /*
+     * HOST without its port: nginx compares a server name with the Host minus
+     * its port. Left out when HOST is localhost or ingress, named already.
+     */
     expect(ingress).toContain(
-      "server_name localhost ingress ${HOST_WITHOUT_PORT};",
+      "server_name localhost ingress ${HOST_SERVER_NAME};",
     );
     expect(readSource("ingressTemplates")).toContain(
       '*) export HOST_WITHOUT_PORT="${HOST%:*}" ;;',
+    );
+    expect(readSource("ingressTemplates")).toContain(
+      '*) export HOST_SERVER_NAME="${HOST_WITHOUT_PORT}" ;;',
     );
     expect(ingress).toContain("server_name  _; # All domains.");
     expect(page).toContain(
@@ -1764,7 +1770,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(
       blockFrom(
         ingress,
-        "server_name localhost ingress ${HOST_WITHOUT_PORT};",
+        "server_name localhost ingress ${HOST_SERVER_NAME};",
         "\n}\n",
       ),
     ).toContain("rewrite ^/identity(.*)$ /api/identity$1 break;");

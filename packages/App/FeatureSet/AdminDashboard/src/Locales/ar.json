@@ -94,7 +94,8 @@
     "versionModalTitle": "إصدار OneUptime",
     "versionLabel": "الإصدار",
     "commitLabel": "الإيداع (Commit)",
-    "versionUnavailable": "بيانات الإصدار غير متاحة"
+    "versionUnavailable": "بيانات الإصدار غير متاحة",
+    "versionUnavailableWithError": "بيانات الإصدار غير متاحة: {{error}}"
   },
   "navbar": {
     "users": "المستخدمون",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "التصفية حسب {{field}}",
   "Something went wrong. Please try again.": "حدث خطأ ما. يُرجى المحاولة مرة أخرى.",
   "More actions": "المزيد من الإجراءات",
-  "More actions for": "المزيد من الإجراءات لـ",
+  "More actions for {{name}}": "مزيد من الإجراءات لـ {{name}}",
+  "Clear {{filter}} filter": "مسح عامل تصفية {{filter}}",
+  "Clear {{filter}}": "مسح {{filter}}",
   "Delete Error": "خطأ في الحذف",
   "Refresh?": "هل تريد التحديث؟",
   "Updated": "تاريخ التحديث",

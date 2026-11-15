@@ -1,12 +1,12 @@
 # Netwerkverkeer (NetFlow, IPFIX en sFlow)
 
-Routers, firewalls en switches kunnen het verkeer dat erdoorheen gaat beschrijven als **flowrecords**: wie met wie sprak, via welk protocol en welke poorten, via welke interfaces en met hoeveel bytes. Richt die export op een OneUptime-probe en de **Verkeer**-pagina's laten zien waar je verkeer naartoe gaat: de drukste adressen, gesprekken, applicaties en interfaces, over elke periode.
+Routers, firewalls en switches kunnen het verkeer dat erdoorheen gaat beschrijven als **flowrecords**: wie met wie sprak, via welk protocol en welke poorten, via welke interfaces en met hoeveel bytes. Richt die export op een OneUptime-sonde en de **Verkeer**-pagina's laten zien waar je verkeer naartoe gaat: de drukste adressen, gesprekken, applicaties en interfaces, over elke periode.
 
 Er is op drie plekken een Verkeer-pagina:
 
 - **Netwerk** -> **Verkeer**: het hele netwerk, de flows van elk apparaat op één pagina, en elk adres dat flows verstuurt zonder al een apparaat te zijn.
 - De **Verkeer**-pagina van een locatie: de apparaten op die locatie.
-- Het **Verkeer**-tabblad van een apparaat: dat ene apparaat, met zijn interfaces. Pakketcaptures die op de probe van het apparaat draaien, staan onder de flows, voor als je de pakketten zelf nodig hebt.
+- Het **Verkeer**-tabblad van een apparaat: dat ene apparaat, met zijn interfaces. Pakketcaptures die op de sonde van het apparaat draaien, staan onder de flows, voor als je de pakketten zelf nodig hebt.
 
 Een Cisco Meraki-omgeving is ook te lezen zonder iets te exporteren: koppel het Meraki-dashboard, en de Verkeer-pagina's tonen de uplinks, applicaties en clients van de appliances zoals Meraki ze rapporteert. Zie [Cisco Meraki zonder NetFlow](#cisco-meraki-zonder-netflow).
 
@@ -25,7 +25,7 @@ Een adres dat OneUptime kent, wordt met zijn naam getoond, met het adres ernaast
 
 ## Hoe de flows hier komen
 
-Elke probe draait een flowcollector. Die luistert op drie UDP-poorten, en elke poort leest elk formaat:
+Elke sonde draait een flowcollector. Die luistert op drie UDP-poorten, en elke poort leest elk formaat:
 
 | Poort    | Meestal gebruikt voor       |
 | -------- | --------------------------- |
@@ -33,22 +33,22 @@ Elke probe draait een flowcollector. Die luistert op drie UDP-poorten, en elke p
 | UDP 4739 | IPFIX                       |
 | UDP 6343 | sFlow v5                    |
 
-De probe decodeert de records, vermenigvuldigt gesamplede aantallen terug met de samplingfactor, telt de records van één gesprek om de paar seconden op en stuurt ze naar OneUptime. Elk record wordt aan een apparaat gekoppeld op basis van het adres waarvandaan het apparaat het stuurt - bij sFlow het agentadres in het datagram:
+De sonde decodeert de records, vermenigvuldigt gesamplede aantallen terug met de samplingfactor, telt de records van één gesprek om de paar seconden op en stuurt ze naar OneUptime. Elk record wordt aan een apparaat gekoppeld op basis van het adres waarvandaan het apparaat het stuurt - bij sFlow het agentadres in het datagram:
 
-1. een apparaat dat de probe bevraagt en waarvan de hostnaam dat adres is (of ernaar resolvet), of dat het vermeldt onder **Overige adressen** op zijn **Instellingen**-pagina;
-2. op je eigen (aangepaste) probe, elk apparaat in het project met dat adres als hostnaam of onder zijn overige adressen;
-3. anders worden de flows op je eigen probe bewaard voor de Verkeer-pagina van het netwerk, onder **Afzenders van flows**, tot je zegt bij welk apparaat ze horen. Een globale probe gooit ze weg.
+1. een apparaat dat de sonde bevraagt en waarvan de hostnaam dat adres is (of ernaar resolvet), of dat het vermeldt onder **Overige adressen** op zijn **Instellingen**-pagina;
+2. op je eigen (aangepaste) sonde, elk apparaat in het project met dat adres als hostnaam of onder zijn overige adressen;
+3. anders worden de flows op je eigen sonde bewaard voor de Verkeer-pagina van het netwerk, onder **Afzenders van flows**, tot je zegt bij welk apparaat ze horen. Een globale sonde gooit ze weg.
 
 Flows worden 30 dagen bewaard, en één pagina toont hooguit 31 dagen.
 
 ## Instellen
 
-1. **Gebruik een probe in het netwerk van het apparaat.** Flows zijn UDP-datagrammen die je apparaten versturen, dus ze hebben een [aangepaste probe](/docs/probe/custom-probe) nodig die ze kunnen bereiken. Een globale probe op het openbare internet ontvangt ze niet.
-2. **Laat de datagrammen de probe bereiken.** Sta UDP 2055, 4739 en 6343 toe van de apparaten naar de probe. Een probe in Docker die met hostnetwerk (`--network host`) is gestart, zoals de pagina over de aangepaste probe laat zien, ontvangt ze zoals hij is; zonder hostnetwerk publiceer je de poorten met `-p 2055:2055/udp -p 4739:4739/udp -p 6343:6343/udp`.
-3. **Schakel flowexport in op het apparaat** en stuur die naar het IP-adres van de probe. De commando's voor gangbare apparaten staan hieronder. Het eigen **Verkeer**-tabblad van het apparaat toont dezelfde stappen met de poorten van de probe tot de eerste flow binnenkomt.
+1. **Gebruik een sonde in het netwerk van het apparaat.** Flows zijn UDP-datagrammen die je apparaten versturen, dus ze hebben een [aangepaste sonde](/docs/probe/custom-probe) nodig die ze kunnen bereiken. Een globale sonde op het openbare internet ontvangt ze niet.
+2. **Laat de datagrammen de sonde bereiken.** Sta UDP 2055, 4739 en 6343 toe van de apparaten naar de sonde. Een sonde in Docker die met hostnetwerk (`--network host`) is gestart, zoals de pagina over de aangepaste sonde laat zien, ontvangt ze zoals hij is; zonder hostnetwerk publiceer je de poorten met `-p 2055:2055/udp -p 4739:4739/udp -p 6343:6343/udp`.
+3. **Schakel flowexport in op het apparaat** en stuur die naar het IP-adres van de sonde. De commando's voor gangbare apparaten staan hieronder. Het eigen **Verkeer**-tabblad van het apparaat toont dezelfde stappen met de poorten van de sonde tot de eerste flow binnenkomt.
 4. **Controleer het adres van het apparaat.** Records worden gekoppeld op basis van het adres waarvandaan het apparaat verstuurt. Verstuurt het vanaf een loopback of een beheerinterface die niet zijn hostnaam is, voeg dat adres dan toe aan de **Overige adressen** van het apparaat.
 
-De collector staat standaard aan. De instellingen zijn omgevingsvariabelen van de probe:
+De collector staat standaard aan. De instellingen zijn omgevingsvariabelen van de sonde:
 
 | Variabele                           | Wat ze doet                                                         | Standaard |
 | ----------------------------------- | ------------------------------------------------------------------- | ------- |
@@ -58,7 +58,7 @@ De collector staat standaard aan. De instellingen zijn omgevingsvariabelen van d
 | PROBE_SFLOW_RECEIVER_PORT           | De sFlow-poort; `0` stopt met luisteren erop                        | 6343    |
 | PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE | Geaccepteerde datagrammen per minuut, over alle apparaten en poorten | 6000    |
 
-Die 6.000 datagrammen per minuut worden gedeeld door alle apparaten die naar de probe exporteren. Met honderden apparaten verhoog je `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` of verdeel je de apparaten over meerdere probes: datagrammen boven de limiet worden weggegooid, en het logboek van de probe zegt hoeveel (zie [Problemen oplossen](#problemen-oplossen)). Een Meraki-omgeving heeft helemaal geen export nodig: zie [Cisco Meraki zonder NetFlow](#cisco-meraki-zonder-netflow).
+Die 6.000 datagrammen per minuut worden gedeeld door alle apparaten die naar de sonde exporteren. Met honderden apparaten verhoog je `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` of verdeel je de apparaten over meerdere sondes: datagrammen boven de limiet worden weggegooid, en het logboek van de sonde zegt hoeveel (zie [Problemen oplossen](#problemen-oplossen)). Een Meraki-omgeving heeft helemaal geen export nodig: zie [Cisco Meraki zonder NetFlow](#cisco-meraki-zonder-netflow).
 
 ### Cisco IOS XE (Flexible NetFlow)
 
@@ -115,7 +115,7 @@ MX-appliances en teleworker-gateways uit de Z-serie exporteren NetFlow v9 vanuit
 
 1. Open **Network-wide** > **General** en zoek **Reporting**.
 2. Zet **NetFlow traffic reporting** op **Enabled: send NetFlow traffic statistics**.
-3. Voer het IP-adres van de probe in als **NetFlow collector IP** en `2055` als **NetFlow collector port**, en sla op.
+3. Voer het IP-adres van de sonde in als **NetFlow collector IP** en `2055` als **NetFlow collector port**, en sla op.
 
 Een MX of Z ziet alleen het verkeer dat erdoorheen gaat. Verkeer dat een switch binnen een VLAN houdt, bereikt hem nooit, dus dat staat niet in de export.
 
@@ -156,7 +156,7 @@ end
 
 ### Palo Alto Networks
 
-1. Voeg onder **Device** > **Server Profiles** > **NetFlow** een profiel toe met het IP-adres van de probe en poort `2055`, en zet de **Active Timeout** op 1 minuut.
+1. Voeg onder **Device** > **Server Profiles** > **NetFlow** een profiel toe met het IP-adres van de sonde en poort `2055`, en zet de **Active Timeout** op 1 minuut.
 2. Open onder **Network** > **Interfaces** elke interface waarvan je het verkeer wilt zien en kies het profiel als **NetFlow Profile** op het tabblad **Advanced**.
 3. Voer een commit uit.
 
@@ -169,7 +169,7 @@ end
 
 ### pfSense en Linux-hosts
 
-Installeer op pfSense het pakket **softflowd** en kies onder **Services** > **softflowd** de interfaces, voer het IP-adres van de probe en poort `2055` in, en kies NetFlow-versie 9. Draai op een Linux-host softflowd op de interface waarvan je het verkeer wilt zien:
+Installeer op pfSense het pakket **softflowd** en kies onder **Services** > **softflowd** de interfaces, voer het IP-adres van de sonde en poort `2055` in, en kies NetFlow-versie 9. Draai op een Linux-host softflowd op de interface waarvan je het verkeer wilt zien:
 
 ```bash
 softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
@@ -177,11 +177,11 @@ softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
 
 ### Andere apparaten
 
-Stuur NetFlow v5, NetFlow v9 of IPFIX naar het IP-adres van de probe op UDP 2055 (of 4739), of sFlow v5 op UDP 6343. Zet de actieve flowtime-out van het apparaat op 60 seconden en stuur voor NetFlow v9 en IPFIX de templates elke 60 seconden. De [netwerkleveranciershandleidingen](/docs/monitor/network-vendor-guides) behandelen Sophos en Extreme Networks.
+Stuur NetFlow v5, NetFlow v9 of IPFIX naar het IP-adres van de sonde op UDP 2055 (of 4739), of sFlow v5 op UDP 6343. Zet de actieve flowtime-out van het apparaat op 60 seconden en stuur voor NetFlow v9 en IPFIX de templates elke 60 seconden. De [netwerkleveranciershandleidingen](/docs/monitor/network-vendor-guides) behandelen Sophos en Extreme Networks.
 
 ## Cisco Meraki zonder NetFlow
 
-Een Meraki-omgeving heeft een tweede ingang, zonder iets op de apparaten in te stellen en zonder probe ertussen: OneUptime leest het verkeer van de organisatie via de Meraki-dashboard-API. Dat past bij honderden of duizenden locaties, waar NetFlow op elke MX instellen het lastige deel is.
+Een Meraki-omgeving heeft een tweede ingang, zonder iets op de apparaten in te stellen en zonder sonde ertussen: OneUptime leest het verkeer van de organisatie via de Meraki-dashboard-API. Dat past bij honderden of duizenden locaties, waar NetFlow op elke MX instellen het lastige deel is.
 
 Kies op **Netwerk** -> **Verkeer** voor **Meraki koppelen**:
 
@@ -221,9 +221,9 @@ De koppelingen staan onderaan de Verkeer-pagina van het netwerk, onder **Meraki*
 
 ## Adressen die nog geen apparaten zijn
 
-Flows kunnen binnenkomen voordat het apparaat dat ze verstuurt aan OneUptime is toegevoegd. Op je eigen probe worden ze bewaard, en de Verkeer-pagina van het netwerk vermeldt hun adres onder **Afzenders van flows**, gemarkeerd als **Nog geen apparaat**:
+Flows kunnen binnenkomen voordat het apparaat dat ze verstuurt aan OneUptime is toegevoegd. Op je eigen sonde worden ze bewaard, en de Verkeer-pagina van het netwerk vermeldt hun adres onder **Afzenders van flows**, gemarkeerd als **Nog geen apparaat**:
 
-- **Toevoegen als apparaat** opent Apparaat toevoegen met het adres en de probe al ingevuld. De flows die al binnen zijn, blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
+- **Toevoegen als apparaat** opent Apparaat toevoegen met het adres en de sonde al ingevuld. De flows die al binnen zijn, blijven op de pagina van het netwerk; nieuwe gaan naar het apparaat.
 - **Het is een van mijn apparaten** voegt het adres toe aan de **Overige adressen** van een apparaat: gebruik dit als een apparaat dat je al hebt toegevoegd vanaf een ander adres verstuurt, zoals een loopback. De flows ervan gaan vanaf de volgende minuut naar dat apparaat.
 
 Meerdere apparaten achter één NAT-adres delen dat adres, dus hun flows gaan naar het ene apparaat dat het heeft.
@@ -241,7 +241,7 @@ Een naam komt uit de eerste van deze bronnen die het adres benoemt:
 | 3 | Hosts | Een host waarvan de agent het adres meldt |
 | 4 | Cloud-resources | Een cloud-resource waarvoor je cloudaccount het adres noemt |
 | 5 | Kubernetes | Een node met het adres, daarna een pod (een pod op het eigen netwerk van zijn node heeft het adres van de node) |
-| 6 | DNS | De reverse DNS-naam van het adres, opgezocht door de probe die de flows ontving |
+| 6 | DNS | De reverse DNS-naam van het adres, opgezocht door de sonde die de flows ontving |
 
 Een record benoemt alleen het verkeer uit een tijd waarin het bestond: een host die pas na de periode verscheen, of een pod die ervoor verdween, benoemt het verkeer van die periode niet. Een naam die iemand een subnet gaf - `10.18.167.0/24` is “Kantoor Mumbai” - staat naast elk adres erin, nooit in plaats van de eigen naam van het adres; waar benoemde subnetten overlappen, wordt het smalste getoond.
 
@@ -259,11 +259,11 @@ Klik op een adres, of zoek het, en de pagina beperkt zich ertoe, met een kaart b
 
 **Netwerk** -> **Instellingen** -> **Adresnamen** toont de namen die mensen gaven aan adressen en subnetten die verder niets benoemt: de VPN-gateway van een partner, een SaaS-endpoint, de gastenwifi. **Adresnaam aanmaken** vraagt om de naam en om één IP-adres (`10.0.0.5`, `2001:db8::5`) of een subnet (`10.18.167.0/24`). Een subnet wordt bewaard als zijn eerste adres en zijn lengte, dus `10.18.167.35/24` wordt opgeslagen als `10.18.167.0/24`. Elk adres of subnet heeft één naam.
 
-### DNS-namen van de probe
+### DNS-namen van de sonde
 
-DNS-namen worden opgezocht door de probe die de flows ontving, met de resolver die zijn host gebruikt: binnen je netwerk, waar privéadressen namen hebben. De probe houdt een naam alleen als de eigen A- of AAAA-records van de naam naar het adres terugwijzen, dus een verouderd of vervalst reverse record benoemt niets, en een naam uit het hosts-bestand van de host van de probe wordt gebruikt zoals hij is. Ze stuurt de namen mee met de flows, en ze worden ermee bewaard: een periode toont de namen die de adressen toen hadden.
+DNS-namen worden opgezocht door de sonde die de flows ontving, met de resolver die zijn host gebruikt: binnen je netwerk, waar privéadressen namen hebben. De sonde houdt een naam alleen als de eigen A- of AAAA-records van de naam naar het adres terugwijzen, dus een verouderd of vervalst reverse record benoemt niets, en een naam uit het hosts-bestand van de host van de sonde wordt gebruikt zoals hij is. Ze stuurt de namen mee met de flows, en ze worden ermee bewaard: een periode toont de namen die de adressen toen hadden.
 
-Het opzoeken houdt de flows nooit op. De drukste adressen worden eerst opgezocht, hooguit 300 per minuut en acht tegelijk; een naam blijft een uur bewaard, een adres zonder naam 30 minuten, en een opzoeking die mislukte wordt na 5 minuten opnieuw gedaan. Loopback-, link-local-, multicast- en broadcastadressen worden nooit opgezocht. De globale probes van een gehoste OneUptime, die alle accounts delen, zoeken alleen openbare adressen op; je eigen probes, en die van je eigen OneUptime-installatie, zoeken ook privéadressen op.
+Het opzoeken houdt de flows nooit op. De drukste adressen worden eerst opgezocht, hooguit 300 per minuut en acht tegelijk; een naam blijft een uur bewaard, een adres zonder naam 30 minuten, en een opzoeking die mislukte wordt na 5 minuten opnieuw gedaan. Loopback-, link-local-, multicast- en broadcastadressen worden nooit opgezocht. De globale sondes van een gehoste OneUptime, die alle accounts delen, zoeken alleen openbare adressen op; je eigen sondes, en die van je eigen OneUptime-installatie, zoeken ook privéadressen op.
 
 | Variabele                           | Wat ze doet                                                         | Standaard |
 | ----------------------------------- | ------------------------------------------------------------------- | --------- |
@@ -273,7 +273,7 @@ Het opzoeken houdt de flows nooit op. De drukste adressen worden eerst opgezocht
 
 ## De getallen lezen
 
-- **Sampling.** Een apparaat dat samplet - sFlow doet dat altijd, NetFlow of IPFIX kunnen het - meldt één pakket op de N. De probe vermenigvuldigt de aantallen met N, dus de pagina toont schattingen en zegt dat onder de vier getallen. Ze zijn nauwkeurig bij veel verkeer en grof bij een paar pakketten.
+- **Sampling.** Een apparaat dat samplet - sFlow doet dat altijd, NetFlow of IPFIX kunnen het - meldt één pakket op de N. De sonde vermenigvuldigt de aantallen met N, dus de pagina toont schattingen en zegt dat onder de vier getallen. Ze zijn nauwkeurig bij veel verkeer en grof bij een paar pakketten.
 - **Dubbel geteld.** Verkeer dat door twee exporterende apparaten gaat, wordt door beide gemeld. De pagina van een apparaat telt het één keer; de pagina van een locatie of van het netwerk telt het één keer per apparaat dat het meldde.
 - **Applicaties.** Een applicatie is het protocol en de servicepoort, genoemd naar de dienst die meestal op die poort draait. Het is geen deep packet inspection: HTTPS op poort 9443 verschijnt als TCP-poort 9443. De kortstondige poort van de client wordt weggelaten, dus duizend browserverbindingen naar één server zijn één applicatie.
 - **Piek** is de snelheid van het drukste deel van de grafiek, dus een kortere periode, met kortere delen, toont een scherpere piek. **Gemiddelde** zijn de bytes over de hele periode.
@@ -292,17 +292,17 @@ Het opzoeken houdt de flows nooit op. De drukste adressen worden eerst opgezocht
 
 Als de Verkeer-pagina nog steeds de installatiestappen toont:
 
-- **Ontvangt de probe iets?** De Verkeer-pagina van het netwerk vermeldt onder **Afzenders van flows** elk adres dat het afgelopen uur flows stuurde. Staat het apparaat daar als **Nog geen apparaat**, dan verstuurt het vanaf een adres dat niet zijn hostnaam is: voeg dat adres toe aan zijn **Overige adressen**.
-- **Firewalls en Docker.** Sta UDP 2055, 4739 en 6343 toe van het apparaat naar de probe, en publiceer de poorten als de probe in Docker draait.
-- **Het logboek van de probe.** Eén keer per minuut logt de probe wat hij niet kon lezen: datagrammen in een niet-ondersteund formaat (NetFlow v1, v6, v7 of v8, of sFlow van vóór versie 5), misvormde datagrammen, data die op een template wacht, en datagrammen die boven `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` zijn weggegooid.
-- **Templates.** NetFlow v9 en IPFIX sturen de opbouw van hun records als templates. De probe houdt data die vóór het template binnenkomt tot 10 minuten vast; laat het apparaat zijn templates elke 60 seconden sturen, zodat de pagina binnen een minuut gevuld is.
-- **Een globale probe.** Een apparaat dat door een globale probe wordt bevraagd, kan er vanuit een privénetwerk geen flows naartoe sturen. Draai een aangepaste probe in het netwerk van het apparaat en kies die in de instellingen van het apparaat.
+- **Ontvangt de sonde iets?** De Verkeer-pagina van het netwerk vermeldt onder **Afzenders van flows** elk adres dat het afgelopen uur flows stuurde. Staat het apparaat daar als **Nog geen apparaat**, dan verstuurt het vanaf een adres dat niet zijn hostnaam is: voeg dat adres toe aan zijn **Overige adressen**.
+- **Firewalls en Docker.** Sta UDP 2055, 4739 en 6343 toe van het apparaat naar de sonde, en publiceer de poorten als de sonde in Docker draait.
+- **Het logboek van de sonde.** Eén keer per minuut logt de sonde wat hij niet kon lezen: datagrammen in een niet-ondersteund formaat (NetFlow v1, v6, v7 of v8, of sFlow van vóór versie 5), misvormde datagrammen, data die op een template wacht, en datagrammen die boven `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` zijn weggegooid.
+- **Templates.** NetFlow v9 en IPFIX sturen de opbouw van hun records als templates. De sonde houdt data die vóór het template binnenkomt tot 10 minuten vast; laat het apparaat zijn templates elke 60 seconden sturen, zodat de pagina binnen een minuut gevuld is.
+- **Een globale sonde.** Een apparaat dat door een globale sonde wordt bevraagd, kan er vanuit een privénetwerk geen flows naartoe sturen. Draai een aangepaste sonde in het netwerk van het apparaat en kies die in de instellingen van het apparaat.
 
 Als een adres geen naam toont:
 
 - **Geef het er een.** Klik op het adres en daarna op **Dit adres een naam geven** op de kaart boven de getallen.
 - **Zijn DNS-namen.** Het eigen A- of AAAA-record van de naam moet naar het adres terugwijzen; een reverse record alleen is niet genoeg. Een naam die aan DNS wordt toegevoegd, benoemt de flows die daarna binnenkomen.
-- **De resolver van de probe.** Als de host van de probe je interne DNS niet ziet, stel `PROBE_FLOW_NAME_DNS_SERVERS` dan in op een DNS-server met je reverse zones.
+- **De resolver van de sonde.** Als de host van de sonde je interne DNS niet ziet, stel `PROBE_FLOW_NAME_DNS_SERVERS` dan in op een DNS-server met je reverse zones.
 
 Als een Meraki-koppeling zegt dat ze niet kan lezen:
 

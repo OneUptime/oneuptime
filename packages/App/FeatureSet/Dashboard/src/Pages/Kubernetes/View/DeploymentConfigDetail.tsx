@@ -195,12 +195,12 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "deploymentconfig_cpu",
-      title: "Pod CPU Utilization",
+      title: translator.translateText("Pod CPU Utilization"),
       description: translator.translateTemplate(
         "CPU usage as a percentage of node allocatable CPU for pods in DeploymentConfig {{deploymentConfigName}}",
         { deploymentConfigName: deploymentConfigName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -221,12 +221,12 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "deploymentconfig_memory",
-      title: "Pod Memory Usage",
+      title: translator.translateText("Pod Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for pods in DeploymentConfig {{deploymentConfigName}}",
         { deploymentConfigName: deploymentConfigName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {

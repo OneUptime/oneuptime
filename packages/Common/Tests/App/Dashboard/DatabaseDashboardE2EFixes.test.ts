@@ -23,7 +23,6 @@ import {
   formatDatabaseMetricUnitAxisValue,
   formatDatabaseMetricValue,
   formatDatabaseRuntimeAxisValue,
-  formatDatabaseRuntimeValue,
   getDatabaseEngineMetricsStatusLabel,
   getDatabaseHeaderIdentifier,
   getDatabaseLivenessLabel,
@@ -338,9 +337,9 @@ describe("chart axes", () => {
       getDatabaseRuntimeChartTitle(DATABASE_RUNTIME_METRICS.docker.memory),
     ).toBe("Memory per container");
 
-    // The tooltip-side values keep enough digits too.
-    expect(formatDatabaseRuntimeValue(0.024, "percent")).toBe("0.024%");
-    expect(formatDatabaseRuntimeValue(0.0234, "cores")).toBe("0.0234 cores");
+    // The tooltip shares the axis' formatter: enough digits there too.
+    expect(formatDatabaseRuntimeAxisValue(0.024, "percent")).toBe("0.024%");
+    expect(formatDatabaseRuntimeAxisValue(0.0234, "cores")).toBe("0.023");
     expect(formatDatabaseAxisNumber(2500)).toBe("2.5k");
     expect(formatDatabaseAxisNumber(250)).toBe("250");
   });

@@ -1,11 +1,11 @@
 # مانیتور OpenStack
 
-مانیتور OpenStack یک ابر را زیر نظر می‌گیرد - APIها، workerهای پشت آن‌ها، هایپروایزرها، instanceها، شبکه‌ها، استخرهای ذخیره‌سازی و سهمیه‌های پروژه - و وقتی یک API پاسخ نمی‌دهد، یک worker از کار می‌افتد، یک هایپروایزر ظرفیت خالی ندارد یا یک استخر پر می‌شود به شما خبر می‌دهد. این مانیتور سری‌های `openstack_*` را می‌خواند که عامل OpenStack در OneUptime از openstack-exporter جمع‌آوری می‌کند، یا probe از APIهای ابر جمع‌آوری می‌کند.
+مانیتور OpenStack یک ابر را زیر نظر می‌گیرد - APIها، workerهای پشت آن‌ها، هایپروایزرها، instanceها، شبکه‌ها، استخرهای ذخیره‌سازی و سهمیه‌های پروژه - و وقتی یک API پاسخ نمی‌دهد، یک worker از کار می‌افتد، یک هایپروایزر ظرفیت خالی ندارد یا یک استخر پر می‌شود به شما خبر می‌دهد. این مانیتور سری‌های `openstack_*` را می‌خواند که عامل OpenStack در OneUptime از openstack-exporter جمع‌آوری می‌کند، یا پراب از APIهای ابر جمع‌آوری می‌کند.
 
 :::cards
 - [ساخت مانیتور](#ساخت-مانیتور-openstack): شش مرحله در داشبورد.
 - [قالب‌ها](#قالبهای-هشدار-آماده): هشدارهای آماده، با یک حادثه برای هر worker، instance، شبکه یا منطقه.
-- [بررسی‌ها از بیرون](#بررسیها-از-بیرون): اینکه آیا کسی واقعاً می‌تواند یک instance بالا بیاورد، از یک probe بیرون از ابر.
+- [بررسی‌ها از بیرون](#بررسیها-از-بیرون): اینکه آیا کسی واقعاً می‌تواند یک instance بالا بیاورد، از یک پراب بیرون از ابر.
 - [ویژگی‌های هویتی](#ویژگیهای-هویتی): چگونه یک منطقه، میزبان یا پروژه را هدف بگیرید.
 - [متریک‌ها](#متریکهای-جمعآوریشده): هر سری‌ای که مانیتور می‌تواند برایش هشدار بدهد.
 :::
@@ -29,7 +29,7 @@ flowchart TB
 
 ## پیش از شروع
 
-- **متریک‌های ابر را جمع‌آوری کنید** با عامل OpenStack، یا [یک probe](/docs/telemetry/openstack-agentless). **مستندات**، در **محصولات** > **زیرساخت** > **OpenStack**، نصب عامل را مرحله به مرحله توضیح می‌دهد.
+- **متریک‌های ابر را جمع‌آوری کنید** با عامل OpenStack، یا [یک پراب](/docs/telemetry/openstack-agentless). **مستندات**، در **محصولات** > **زیرساخت** > **OpenStack**، نصب عامل را مرحله به مرحله توضیح می‌دهد.
 - **بررسی کنید ابر ثبت شده باشد.** پس از نخستین جمع‌آوری، ابر در **محصولات ← زیرساخت ← OpenStack** و با نامِ `OPENSTACK_CLOUD_NAME` عامل ظاهر می‌شود.
 
 ## ساخت مانیتور OpenStack
@@ -106,7 +106,7 @@ flowchart TB
 
 ## قالب‌های هشدار آماده
 
-OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد و فهرست **هشدار برای چه** آن‌ها را عرضه می‌کند. صفحه Recommendations یک ابر، قالب‌های Heat، Magnum، Ironic، Manila، Octavia، Trove، Designate، Gnocchi یا Swift را فقط به ابری پیشنهاد می‌دهد که آن سرویس را اجرا می‌کند؛ قالب مبتنی بر سری‌ای که فقط probe می‌فرستد را فقط به ابری که probe از آن جمع می‌کند؛ و قالب مبتنی بر [بررسی از بیرون](#بررسیها-از-بیرون) را فقط به ابری که آن بررسی را روشن دارد: در هر ابر دیگر سری‌های آن‌ها وجود ندارد، پس هرگز فعال نمی‌شود. هر قالب یک مانیتور کامل می‌سازد: کوئری متریک، فیلترهای ویژگی، یک group-by روی چیزی که یک حادثه درباره آن است، یک معیار برای فعال شدن و یک معیار برای بازیابی. آستانه‌ها همان خط‌هایی هستند که صفحه‌های خود ابر می‌کشند و نقطه شروع‌اند که می‌توانید ویرایششان کنید.
+OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد و فهرست **هشدار برای چه** آن‌ها را عرضه می‌کند. صفحه Recommendations یک ابر، قالب‌های Heat، Magnum، Ironic، Manila، Octavia، Trove، Designate، Gnocchi یا Swift را فقط به ابری پیشنهاد می‌دهد که آن سرویس را اجرا می‌کند؛ قالب مبتنی بر سری‌ای که فقط پراب می‌فرستد را فقط به ابری که پراب از آن جمع می‌کند؛ و قالب مبتنی بر [بررسی از بیرون](#بررسیها-از-بیرون) را فقط به ابری که آن بررسی را روشن دارد: در هر ابر دیگر سری‌های آن‌ها وجود ندارد، پس هرگز فعال نمی‌شود. هر قالب یک مانیتور کامل می‌سازد: کوئری متریک، فیلترهای ویژگی، یک group-by روی چیزی که یک حادثه درباره آن است، یک معیار برای فعال شدن و یک معیار برای بازیابی. آستانه‌ها همان خط‌هایی هستند که صفحه‌های خود ابر می‌کشند و نقطه شروع‌اند که می‌توانید ویرایششان کنید.
 
 هر قالب دست‌کم سه بار جمع‌آوری از چیزی که زیر نظر دارد می‌خواند و فقط وقتی فعال می‌شود که شرط در کل پنجره‌اش برقرار باشد. آستانه روی یک سهم، ۱۰٪ آن‌سوی خط خود بازیابی می‌شود، پس مقداری که حوالی آن می‌ماند نوسان نمی‌کند.
 
@@ -149,15 +149,15 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Image Stuck | ذخیره‌سازی | هشدار | `openstack_glance_image_created_at` برای هر واژه وضعیت گذرا، Max در هر image، **۱ ساعت گذشته** | در هر جمع‌آوری به مدت یک ساعت در آن وضعیت بوده | از آن خارج شده، یا حذف شده |
 | Orchestration API Down | دسترس‌پذیری | بحرانی | `openstack_heat_up` و `up` برای `orchestration`، Min در هر منطقه، **۱۵ دقیقه گذشته** | همه فراخوانی‌ها شکست خورده‌اند، که یک `heat-engine` متوقف هم همین‌طور خوانده می‌شود، یا exporter پاسخ نداده | هر دو ۱ هستند |
 | Kubernetes Clusters API Down | دسترس‌پذیری | بحرانی | `openstack_container_infra_up` و `up` برای `container-infra`، Min در هر منطقه، **۱۵ دقیقه گذشته** | همه فراخوانی‌ها شکست خورده‌اند، یا exporter پاسخ نداده | هر دو ۱ هستند |
-| Rating API Down | دسترس‌پذیری | بحرانی | `openstack_cloudkitty_up` و `up` برای `rating`، Min در هر منطقه، **۱۵ دقیقه گذشته**. فقط probe این را می‌فرستد | API مربوط به CloudKitty پاسخ نمی‌دهد، پس آنچه برای هر پروژه امتیازدهی شده پیش نمی‌رود | هر دو ۱ هستند |
-| Heat Engine Down | صفحه کنترل | هشدار | `openstack_heat_agent_state`، Min در هر میزبان، **۱۵ دقیقه گذشته**. فقط probe این را می‌فرستد | Heat یک `heat-engine` را down فهرست می‌کند. وقتی همه engineها متوقف باشند Heat نمی‌تواند آن‌ها را فهرست کند، و به‌جای آن Orchestration API Down فعال می‌شود | ۱ می‌خواند، یا Heat رکوردش را حذف می‌کند |
-| Magnum Conductor Down | صفحه کنترل | بحرانی | `openstack_container_infra_agent_state` با `adminState=enabled`، Min در هر میزبان، **۱۵ دقیقه گذشته**. فقط probe این را می‌فرستد | Magnum یک `magnum-conductor` فعال را down فهرست می‌کند. API مربوط به Magnum به پاسخ دادن ادامه می‌دهد، پس چیز دیگری این را نمی‌گوید | ۱ می‌خواند، یا کسی آن را غیرفعال می‌کند |
+| Rating API Down | دسترس‌پذیری | بحرانی | `openstack_cloudkitty_up` و `up` برای `rating`، Min در هر منطقه، **۱۵ دقیقه گذشته**. فقط پراب این را می‌فرستد | API مربوط به CloudKitty پاسخ نمی‌دهد، پس آنچه برای هر پروژه امتیازدهی شده پیش نمی‌رود | هر دو ۱ هستند |
+| Heat Engine Down | صفحه کنترل | هشدار | `openstack_heat_agent_state`، Min در هر میزبان، **۱۵ دقیقه گذشته**. فقط پراب این را می‌فرستد | Heat یک `heat-engine` را down فهرست می‌کند. وقتی همه engineها متوقف باشند Heat نمی‌تواند آن‌ها را فهرست کند، و به‌جای آن Orchestration API Down فعال می‌شود | ۱ می‌خواند، یا Heat رکوردش را حذف می‌کند |
+| Magnum Conductor Down | صفحه کنترل | بحرانی | `openstack_container_infra_agent_state` با `adminState=enabled`، Min در هر میزبان، **۱۵ دقیقه گذشته**. فقط پراب این را می‌فرستد | Magnum یک `magnum-conductor` فعال را down فهرست می‌کند. API مربوط به Magnum به پاسخ دادن ادامه می‌دهد، پس چیز دیگری این را نمی‌گوید | ۱ می‌خواند، یا کسی آن را غیرفعال می‌کند |
 | Stack Failed | ارکستراسیون | هشدار | `openstack_heat_stack_status` با هر وضعیت `*_FAILED`، برای هر stack، **۱۵ دقیقه گذشته** | یک stack در کل پنجره وضعیت ناموفق دارد | به‌روزرسانی یا حذف می‌شود |
 | Stack Stuck In Progress | ارکستراسیون | هشدار | `openstack_heat_stack_status` با هر وضعیت `*_IN_PROGRESS`، برای هر stack، **۲ ساعت گذشته** | یک stack در کل پنجره وضعیت در-حال-انجام دارد، بیش از ساعتی که Heat می‌دهد مگر اینکه کسی بیشتر انتخاب کرده باشد | به وضعیت بعدی می‌رسد، یا حذف می‌شود |
 | Kubernetes Cluster Failed | ارکستراسیون | هشدار | `openstack_container_infra_cluster_status` با هر وضعیت `*_FAILED`، برای هر cluster، **۱۵ دقیقه گذشته** | یک cluster در کل پنجره وضعیت ناموفق دارد | به‌روزرسانی یا حذف می‌شود |
 | Kubernetes Cluster Stuck | ارکستراسیون | هشدار | `openstack_container_infra_cluster_status` با هر وضعیت `*_IN_PROGRESS`، برای هر cluster، **۲ ساعت گذشته** | یک cluster در کل پنجره وضعیت در-حال-انجام دارد. فقط conductor مربوط به Magnum آن را جلو می‌برد | به وضعیت بعدی می‌رسد، یا حذف می‌شود |
 | Shared File Systems API Down | دسترس‌پذیری | بحرانی | `openstack_sharev2_up` و `up` برای `sharev2`، Min در هر منطقه، **۱۵ دقیقه گذشته** | همه فراخوانی‌ها شکست خورده‌اند، یا exporter پاسخ نداده. هر credential که بتواند وارد شود ۱ می‌خواند، پس این نمی‌تواند رد شدن credential باشد | هر دو ۱ هستند |
-| Manila Service Down | صفحه کنترل | هشدار | `openstack_sharev2_agent_state` با `adminState=enabled`، Min در هر میزبان و سرویس، **۱۵ دقیقه گذشته**. فقط probe این را می‌فرستد | Manila یک سرویس فعال را متوقف یا down فهرست می‌کند. API آن به پاسخ دادن ادامه می‌دهد، پس چیز دیگری این را نمی‌گوید | ۱ می‌خواند، یا کسی آن را غیرفعال می‌کند |
+| Manila Service Down | صفحه کنترل | هشدار | `openstack_sharev2_agent_state` با `adminState=enabled`، Min در هر میزبان و سرویس، **۱۵ دقیقه گذشته**. فقط پراب این را می‌فرستد | Manila یک سرویس فعال را متوقف یا down فهرست می‌کند. API آن به پاسخ دادن ادامه می‌دهد، پس چیز دیگری این را نمی‌گوید | ۱ می‌خواند، یا کسی آن را غیرفعال می‌کند |
 | Share in Error | ذخیره‌سازی | هشدار | `openstack_sharev2_share_gb` با هر وضعیت خطا، برای هر اشتراک فایل، **۱۵ دقیقه گذشته** | یک اشتراک فایل در کل پنجره وضعیت خطا دارد | رفع یا حذف می‌شود |
 | Share Stuck | ذخیره‌سازی | هشدار | `openstack_sharev2_share_gb` با هر وضعیت گذرا، برای هر اشتراک فایل، **۱ ساعت گذشته** | یک اشتراک فایل در کل پنجره وضعیت گذرا دارد. Manila برای backend کند timeout مخصوص خودش را ندارد. اشتراک فایلی که در حال migrate یا backup است پایش نمی‌شود | به وضعیت بعدی می‌رسد، یا حذف می‌شود |
 | Load Balancers API Down | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_up`، Min در هر منطقه، **۱۵ دقیقه گذشته** | کمتر از ۱. API متوقف Octavia به exporter عامل به‌جای ۰ یک پاسخ خالی می‌دهد، مثل ابری که Octavia ندارد، پس در ابر عامل ساکت می‌ماند و صفحه‌های ابر می‌گویند آخرین بار کِی از Octavia خبری رسیده | ۱ می‌خواند، یا رفته است |
@@ -166,7 +166,7 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Load Balancer With Two Masters | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_amphora_status` با `role=MASTER` و `status=ALLOCATED`، Count در هر متعادل‌کننده بار، **۱۵ دقیقه گذشته**. به credentialی نیاز دارد که اجازه فهرست کردن amphoraها را داشته باشد | بیش از یک amphora تخصیص‌یافته برای یک متعادل‌کننده بار MASTER می‌گوید | فقط یکی می‌گوید |
 | Amphora in Error | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_amphora_status` با `status=ERROR`، Count در هر amphora، **۱۵ دقیقه گذشته**. به credentialی نیاز دارد که اجازه فهرست کردن amphoraها را داشته باشد | یک amphora در کل پنجره ERROR دارد: health manager نتوانسته آن را جایگزین کند | جایگزین می‌شود |
 | Pool Has No Healthy Members | متعادل‌کننده‌های بار | بحرانی | `openstack_loadbalancer_pool_status` با `operating_status=ERROR`، Count در هر استخر، **۱۵ دقیقه گذشته** | همه اعضای یک استخر در health check شکست می‌خورند، در حالی که استخر و متعادل‌کننده بار آن هنوز ACTIVE provision می‌شوند | یک عضو دوباره سالم است |
-| DNS API Down | دسترس‌پذیری | بحرانی | `openstack_designate_up`، Min در هر منطقه، **۱۵ دقیقه گذشته**. فقط probe این را عرضه می‌کند | کمتر از ۱. Designate متوقف به exporter عامل یک پاسخ خالی می‌دهد، مثل ابری که Designate ندارد، پس ابری که عامل از آن جمع می‌کند فقط می‌تواند بگوید ساکت شده | ۱ می‌خواند |
+| DNS API Down | دسترس‌پذیری | بحرانی | `openstack_designate_up`، Min در هر منطقه، **۱۵ دقیقه گذشته**. فقط پراب این را عرضه می‌کند | کمتر از ۱. Designate متوقف به exporter عامل یک پاسخ خالی می‌دهد، مثل ابری که Designate ندارد، پس ابری که عامل از آن جمع می‌کند فقط می‌تواند بگوید ساکت شده | ۱ می‌خواند |
 | DNS Zone in Error | شبکه | هشدار | شمارش `openstack_designate_zone_status` با `status=ERROR`، برای هر زُن، **۱۵ دقیقه گذشته** | یک زُن در کل پنجره `ERROR` می‌خواند: worker آن از نوشتنش روی سرور DNS دست کشیده | چیز دیگری می‌خواند |
 | DNS Zone Stuck Pending | شبکه | هشدار | شمارش `openstack_designate_zone_status` با `status=PENDING`، برای هر زُن، **۳۰ دقیقه گذشته** | یک زُن در کل پنجره `PENDING` می‌خواند. worker آن در چند دقیقه دست می‌کشد، پس هیچ چیزی روی آن کار نمی‌کند | چیز دیگری می‌خواند |
 | DNS Recordset in Error | شبکه | هشدار | شمارش `openstack_designate_recordsets_status` با `status=ERROR` و هر نوعی که کسی بخواهد، برای هر زُن، **۱۵ دقیقه گذشته** | یک مجموعه‌رکورد غیر از SOA و NS خودِ زُن، `ERROR` می‌خواند. آن دو با زُن خود `ERROR` می‌خوانند، پس DNS Zone in Error آن را می‌گوید | چیز دیگری می‌خواند |
@@ -175,22 +175,22 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Gnocchi Backlog Growing | متریک‌ها | هشدار | `openstack_gnocchi_status_measures_to_process`، یک خط برازش‌شده روی **۲ ساعت گذشته** | خط در ساعت بعد از ۱۰٬۰۰۰ measure می‌گذرد. صف عقب‌افتاده‌ای که از آن گذشته و کم می‌شود فعال نمی‌شود | خط دیگر به ۹٬۰۰۰ نمی‌رسد |
 | Object Storage API Down | دسترس‌پذیری | بحرانی | `openstack_object_store_up` و `up` برای `object-store`، Min در هر منطقه، **۱۵ دقیقه گذشته** | خواندن exporter از Swift شکست خورده، یا exporter پاسخ نداده. credentialی که Swift رد کند همین‌طور خوانده می‌شود، پس ابری که credential آن هرگز Swift را نخوانده این قالب را پیشنهاد نمی‌گیرد | هر دو ۱ هستند |
 | Object Container Growth Forecast | ذخیره‌سازی | هشدار | `openstack_object_store_bytes`، یک خط برازش‌شده روی **۷ روز گذشته**، برای هر container | خط در هفته بعد از ۱ TiB می‌گذرد. آن را به چیزی که ابر شما باید از آن باخبر شود تغییر دهید | خط دیگر به ۹۰٪ آن نمی‌رسد |
-| Key Manager API Down | دسترس‌پذیری | بحرانی | `openstack_barbican_up`، Min در هر منطقه، **۱۵ دقیقه گذشته**. فقط probe این را عرضه می‌کند | کمتر از ۱. exporter اصلاً خواننده‌ای برای Barbican ندارد | ۱ می‌خواند |
-| Swift Storage Server Not Answering | ذخیره‌سازی | هشدار | `openstack_object_store_recon_up`، Min در هر سرور، **۱۵ دقیقه گذشته**. فقط probe این را عرضه می‌کند، آن هم جایی که تنظیمات ابر سرورهای ذخیره‌سازی‌اش را نام ببرد | سرور به `/recon` پاسخ نمی‌دهد. proxy مربوط به Swift بدون آن به پاسخ دادن ادامه می‌دهد | پاسخ می‌دهد |
-| Swift Rings Differ | ذخیره‌سازی | هشدار | `openstack_object_store_recon_rings_differ`، Min در هر ring، **۱۵ دقیقه گذشته**. فقط probe این را عرضه می‌کند | سرورهای نام‌برده برای یک ring checksum متفاوت گزارش می‌کنند | توافق دارند |
-| Swift Replication Stale | ذخیره‌سازی | هشدار | `openstack_object_store_recon_replication_age_seconds`، Min در هر سرور و ring، **۱۵ دقیقه گذشته**. فقط probe این را عرضه می‌کند | یک سرور آخرین بار بیش از ۶ ساعت پیش یک pass را تمام کرده | یکی تمام می‌کند |
+| Key Manager API Down | دسترس‌پذیری | بحرانی | `openstack_barbican_up`، Min در هر منطقه، **۱۵ دقیقه گذشته**. فقط پراب این را عرضه می‌کند | کمتر از ۱. exporter اصلاً خواننده‌ای برای Barbican ندارد | ۱ می‌خواند |
+| Swift Storage Server Not Answering | ذخیره‌سازی | هشدار | `openstack_object_store_recon_up`، Min در هر سرور، **۱۵ دقیقه گذشته**. فقط پراب این را عرضه می‌کند، آن هم جایی که تنظیمات ابر سرورهای ذخیره‌سازی‌اش را نام ببرد | سرور به `/recon` پاسخ نمی‌دهد. proxy مربوط به Swift بدون آن به پاسخ دادن ادامه می‌دهد | پاسخ می‌دهد |
+| Swift Rings Differ | ذخیره‌سازی | هشدار | `openstack_object_store_recon_rings_differ`، Min در هر ring، **۱۵ دقیقه گذشته**. فقط پراب این را عرضه می‌کند | سرورهای نام‌برده برای یک ring checksum متفاوت گزارش می‌کنند | توافق دارند |
+| Swift Replication Stale | ذخیره‌سازی | هشدار | `openstack_object_store_recon_replication_age_seconds`، Min در هر سرور و ring، **۱۵ دقیقه گذشته**. فقط پراب این را عرضه می‌کند | یک سرور آخرین بار بیش از ۶ ساعت پیش یک pass را تمام کرده | یکی تمام می‌کند |
 | Databases API Down | دسترس‌پذیری | بحرانی | `openstack_trove_up` و `up` برای `database`، Min در هر منطقه، **۱۵ دقیقه گذشته** | خواندن exporter از Trove شکست خورده، یا exporter پاسخ نداده. این قالب API مربوط به mgmt در Trove را می‌خواند، پس credential ردشده مثل API متوقف خوانده می‌شود، و ابری که credential آن هرگز Trove را نخوانده این قالب را پیشنهاد نمی‌گیرد | هر دو ۱ هستند |
 | Database Instance in Error | پایگاه‌های داده | هشدار | شمارش `openstack_trove_instance_status` با هر وضعیت خطا، برای هر instance، **۱۵ دقیقه گذشته** | یک instance در کل پنجره وضعیت خطا دارد | رفع یا حذف می‌شود |
 | Database Instance Stuck | پایگاه‌های داده | هشدار | شمارش `openstack_trove_instance_status` با هر وضعیت گذرا، برای هر instance، **۱ ساعت گذشته** | یک instance در کل پنجره وضعیت گذرا دارد. Trove فهرستی از workerهایش ندارد، پس این است که می‌گوید `trove-taskmanager` متوقف شده | به وضعیت بعدی می‌رسد، یا حذف می‌شود |
 | Database Volume Nearly Full | پایگاه‌های داده | هشدار | `openstack_trove_instance_volume_used_gb` روی `openstack_trove_instance_volume_size_gb`، برای هر instance، **۱۵ دقیقه گذشته** | در ۸۵٪ یا بیشتر. instanceی که اجرا نمی‌شود ۰ مصرف می‌خواند. هیچ ثبتی برای یک instance در حال اجرا وجود ندارد | اندازه‌اش تغییر می‌کند، یا کوچک می‌شود |
-| Bare Metal API Down | Bare Metal | بحرانی | `openstack_ironic_up`، Min در هر منطقه، **۱۵ دقیقه گذشته** | کمتر از ۱. فقط جایی حرف می‌زند که خواندن Ironic بتواند آن را بگوید: یک probe، یا exporter نسخه 1.7.0. Ironic متوقف به exporter عامل چیزی برای خواندن نمی‌دهد، مثل ابری که Ironic ندارد، پس آنجا ساکت می‌ماند و صفحه‌های ابر می‌گویند آخرین بار کِی از Ironic خبری رسیده | ۱ می‌خواند، یا رفته است |
-| Bare Metal Conductor Down | Bare Metal | هشدار | `openstack_ironic_agent_state`، Min در هر میزبان، **۱۵ دقیقه گذشته**. فقط probe این را می‌فرستد، آن هم فقط جایی که policy ابر به credential آن اجازه خواندن conductorهای Ironic را بدهد: به‌طور پیش‌فرض credential یک پروژه را رد می‌کند | Ironic یک conductor را زنده‌نبودن فهرست می‌کند. API آن به پاسخ دادن ادامه می‌دهد و هر node همان‌طور که بود می‌خواند، پس چیز دیگری این را نمی‌گوید | ۱ می‌خواند، یا Ironic رکوردش را حذف می‌کند |
+| Bare Metal API Down | Bare Metal | بحرانی | `openstack_ironic_up`، Min در هر منطقه، **۱۵ دقیقه گذشته** | کمتر از ۱. فقط جایی حرف می‌زند که خواندن Ironic بتواند آن را بگوید: یک پراب، یا exporter نسخه 1.7.0. Ironic متوقف به exporter عامل چیزی برای خواندن نمی‌دهد، مثل ابری که Ironic ندارد، پس آنجا ساکت می‌ماند و صفحه‌های ابر می‌گویند آخرین بار کِی از Ironic خبری رسیده | ۱ می‌خواند، یا رفته است |
+| Bare Metal Conductor Down | Bare Metal | هشدار | `openstack_ironic_agent_state`، Min در هر میزبان، **۱۵ دقیقه گذشته**. فقط پراب این را می‌فرستد، آن هم فقط جایی که policy ابر به credential آن اجازه خواندن conductorهای Ironic را بدهد: به‌طور پیش‌فرض credential یک پروژه را رد می‌کند | Ironic یک conductor را زنده‌نبودن فهرست می‌کند. API آن به پاسخ دادن ادامه می‌دهد و هر node همان‌طور که بود می‌خواند، پس چیز دیگری این را نمی‌گوید | ۱ می‌خواند، یا Ironic رکوردش را حذف می‌کند |
 | Bare Metal Node in Error | Bare Metal | هشدار | `openstack_ironic_node` برای هر `provision_state` ناموفق، Max در هر node، **۱۵ دقیقه گذشته** | در هر جمع‌آوری به مدت ۱۵ دقیقه در آن حالت بوده، در تعمیر و نگهداری باشد یا نه | از آن خارج شده، یا حذف شده |
 | Bare Metal Node Stuck Transitioning | Bare Metal | هشدار | `openstack_ironic_node` برای هر `provision_state` گذرا با `maintenance = false`، Max در هر node، **۲ ساعت گذشته** | در هر جمع‌آوری به مدت ۲ ساعت در آن حالت بوده. پاک کردن طولانی دیسک واقعاً می‌تواند این‌قدر طول بکشد، که صفحه node می‌تواند بگوید و این نمی‌تواند | از آن خارج شده، یا حذف شده |
 | Bare Metal Node in Maintenance Too Long | Bare Metal | هشدار | `openstack_ironic_node` با `maintenance = true`، Max در هر node، **۷ روز گذشته** | در هر جمع‌آوری به مدت ۷ روز در تعمیر و نگهداری بوده. لازم است متریک‌های شما این‌قدر نگه داشته شوند | از تعمیر و نگهداری خارج شده، یا حذف شده |
 | Bare Metal Power State Unexpected | Bare Metal | هشدار | `openstack_ironic_node` با `provision_state = active`، `power_state = power off` و `maintenance = false`، Max در هر node، **۱۵ دقیقه گذشته** | در هر جمع‌آوری به مدت ۱۵ دقیقه. instanceی که صاحبش متوقف کرده همین‌طور خوانده می‌شود، که صفحه node می‌تواند بگوید و این نمی‌تواند | روشن شده، یا دیگر deploy نیست |
 | Project Quota Nearly Reached | پروژه‌ها | هشدار | `openstack_nova_limits_*` و `openstack_cinder_limits_volume_*`، used / max در هر پروژه، **۳ ساعت گذشته** | بالای ۹۰٪ از سهمیه vCPU، حافظه، instance یا volume آن. به [روشن بودن سری‌های limits](#روشن-کردن-سریهای-limits) نیاز دارد | در ۸۱٪ یا پایین‌تر |
-| Token Issue Failing | دسترس‌پذیری | بحرانی | `openstack_check_token_success`، Min در هر منطقه، **۵ دقیقه گذشته**. به روشن بودن بررسی‌های API نیاز دارد | کمتر از ۱: Keystone به probe توکنی نداده | توکنی صادر می‌شود |
+| Token Issue Failing | دسترس‌پذیری | بحرانی | `openstack_check_token_success`، Min در هر منطقه، **۵ دقیقه گذشته**. به روشن بودن بررسی‌های API نیاز دارد | کمتر از ۱: Keystone به پراب توکنی نداده | توکنی صادر می‌شود |
 | Service API Check Failing | دسترس‌پذیری | بحرانی | `openstack_check_api_success`، Min در هر منطقه و `service_type`، **۵ دقیقه گذشته**. به روشن بودن بررسی‌های API نیاز دارد | کمتر از ۱: آن سرویس پاسخ نداده، برای هر سرویس در کاتالوگ | پاسخ می‌دهد، یا از کاتالوگ خارج می‌شود |
 | Public Certificate Expiring in 30 Days | دسترس‌پذیری | هشدار | `openstack_check_certificate_expiry_days`، Min در هر منطقه، میزبان و پورت، **۵ دقیقه گذشته**. به روشن بودن بررسی‌های API نیاز دارد | کمتر از ۳۰ روز مانده | ۳۳ روز یا بیشتر مانده، یا endpoint از کاتالوگ خارج می‌شود |
 | Public Certificate Expiring in 7 Days | دسترس‌پذیری | بحرانی | همان | کمتر از ۷ روز مانده | ۷٫۷ روز یا بیشتر مانده، یا endpoint از کاتالوگ خارج می‌شود |
@@ -233,7 +233,7 @@ OneUptime ‏۱۲۰ قالب برای مشکلات رایج OpenStack دارد �
 | Database Connection Lost | لاگ‌های سرویس | بحرانی | `DBConnectionError`، `SQL connection failed`، یا `Lost connection` و `Can't connect` از MySQL، **۵ دقیقه گذشته** | ۵ یا بیشتر | کمتر از ۵ |
 | Too Many Errors from a Service | لاگ‌های سرویس | هشدار | خط‌های `ERROR` و `CRITICAL`، برای هر سرویس و ماشین، **۵ دقیقه گذشته** | ۵۰ یا بیشتر | کمتر از ۵۰ |
 | Token Validation Failing | لاگ‌های سرویس | بحرانی | `Authorization failed for token` از یک سرویس، **۵ دقیقه گذشته** | ۱۰ یا بیشتر. یکی نشست قدیمی کسی است. controllerی که کلیدهای Fernet آن با بقیه فرق دارد همین‌طور خوانده می‌شود و هیچ خطی بیشتر نمی‌گوید، پس `/etc/keystone/fernet-keys` را روی هر کدام مقایسه کنید | کمتر از ۱۰ |
-| Instance Action Failed | رویدادها | هشدار | `compute.exception` و هر `instance.*.error`، برای هر instance، رویداد و دلیل، **۱۵ دقیقه گذشته**. به [notificationها](/docs/telemetry/openstack#اعلانها-را-روشن-کنید) یا یک probe نیاز دارد | یکی یا بیشتر | هیچ‌کدام در پنجره نمانده |
+| Instance Action Failed | رویدادها | هشدار | `compute.exception` و هر `instance.*.error`، برای هر instance، رویداد و دلیل، **۱۵ دقیقه گذشته**. به [notificationها](/docs/telemetry/openstack#اعلانها-را-روشن-کنید) یا یک پراب نیاز دارد | یکی یا بیشتر | هیچ‌کدام در پنجره نمانده |
 | Scheduling Failed | رویدادها | هشدار | خطای یک compute task که `NoValidHost` را نام ببرد، مانند `compute_task.build_instances.error` که همان چیزی است که Nova می‌فرستد. `scheduler.create_volume` مربوط به Cinder هم، و `scheduler.select_destinations.error` که مستندات Nova نامش را می‌برد و ابرهای آزمایشی ما هرگز نفرستادند. برای هر instance، رویداد و دلیل، **۱۵ دقیقه گذشته**. به همان نیاز دارد | یکی یا بیشتر | هیچ‌کدام در پنجره نمانده |
 
 ### آنچه ابر روی آن ایستاده
@@ -292,7 +292,7 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 
 سه قالب **ظرفیت** سری‌هایی را می‌خوانند که خود OneUptime از فهرست دارایی‌های ابر می‌نویسد، هر دو دقیقه تا وقتی ابر گزارش می‌دهد. هیچ سری exporter شمارش زُن یا flavor را ندارد. برای معنای آن‌ها [Capacity](/docs/telemetry/openstack#ظرفیت) را ببینید. هر سه درباره تخصیص‌اند، یعنی آنچه وعده داده شده، و هیچ‌کدام درباره بار نیستند.
 
-**Project Quota Nearly Reached** سری‌های `openstack_nova_limits_*` و `openstack_cinder_limits_*` را می‌خواند که به‌طور پیش‌فرض خاموش‌اند، چون برای هر پروژه هزینه فراخوانی API دارند. قالب تا وقتی آن‌ها را روشن نکنید ساکت می‌ماند: `install.sh` عامل را دوباره با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید. سپس یک exporter دوم آن‌ها را ساعتی یک بار می‌خواند، و قالب منتظر سه خواندن از این‌ها می‌ماند. در ابری که یک probe می‌خواند، **محدودیت‌های پروژه** را زیر **جمع‌آوری داده** در صفحه **تنظیمات** آن روشن کنید.
+**Project Quota Nearly Reached** سری‌های `openstack_nova_limits_*` و `openstack_cinder_limits_*` را می‌خواند که به‌طور پیش‌فرض خاموش‌اند، چون برای هر پروژه هزینه فراخوانی API دارند. قالب تا وقتی آن‌ها را روشن نکنید ساکت می‌ماند: `install.sh` عامل را دوباره با `OPENSTACK_COLLECT_QUOTAS=true` اجرا کنید. سپس یک exporter دوم آن‌ها را ساعتی یک بار می‌خواند، و قالب منتظر سه خواندن از این‌ها می‌ماند. در ابری که یک پراب می‌خواند، **محدودیت‌های پروژه** را زیر **جمع‌آوری داده** در صفحه **تنظیمات** آن روشن کنید.
 
 ### دستورهایی که باید بعد اجرا کنید
 
@@ -331,8 +331,8 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
-| `openstack_nova_agent_state` | - | Min | اینکه یک worker در Nova (nova-compute، nova-scheduler، nova-conductor) بالا است (۱) یا پایین (۰)، یک سری برای هر worker. adminState می‌گوید فعال است یا غیرفعال، و مورد غیرفعال کاری برنامه‌ریزی‌شده است، با دلیلش در disabledReason. hostname نام کوتاه میزبان در Nova است، در حالی که سری‌های هایپروایزر و Placement نام کامل را می‌گویند. forced_down می‌گوید اپراتور به Nova گفته که پایین است: فقط probe آن را می‌فرستد. |
-| `openstack_neutron_agent_state` | - | Min | اینکه یک agent در Neutron زنده است (۱) یا نه (۰)، یک سری برای هر میزبان و باینری. adminState می‌گوید up است یا down، و مورد down کاری برنامه‌ریزی‌شده است. dhcp_network_count می‌گوید یک agent مربوط به DHCP به چند شبکه خدمت می‌دهد: فقط probe آن را می‌فرستد. |
+| `openstack_nova_agent_state` | - | Min | اینکه یک worker در Nova (nova-compute، nova-scheduler، nova-conductor) بالا است (۱) یا پایین (۰)، یک سری برای هر worker. adminState می‌گوید فعال است یا غیرفعال، و مورد غیرفعال کاری برنامه‌ریزی‌شده است، با دلیلش در disabledReason. hostname نام کوتاه میزبان در Nova است، در حالی که سری‌های هایپروایزر و Placement نام کامل را می‌گویند. forced_down می‌گوید اپراتور به Nova گفته که پایین است: فقط پراب آن را می‌فرستد. |
+| `openstack_neutron_agent_state` | - | Min | اینکه یک agent در Neutron زنده است (۱) یا نه (۰)، یک سری برای هر میزبان و باینری. adminState می‌گوید up است یا down، و مورد down کاری برنامه‌ریزی‌شده است. dhcp_network_count می‌گوید یک agent مربوط به DHCP به چند شبکه خدمت می‌دهد: فقط پراب آن را می‌فرستد. |
 | `openstack_cinder_agent_state` | - | Min | اینکه یک سرویس Cinder (cinder-volume، cinder-scheduler، cinder-backup) بالا است (۱) یا پایین (۰)، یک سری برای هر میزبان و باینری. adminState می‌گوید فعال است یا غیرفعال، و مورد غیرفعال کاری برنامه‌ریزی‌شده است. label مربوط به uuid در هر جمع‌آوری از نو ساخته می‌شود، پس هرگز روی آن گروه‌بندی نکنید. |
 
 ### RabbitMQ
@@ -411,7 +411,7 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 | `openstack_placement_resource_usage` | - | Max | Placement چقدر از یک منبع را روی یک هایپروایزر به instanceها وعده داده است. این تخصیص است، نه بار: instance بی‌کار همه‌اش را نگه می‌دارد. |
 | `openstack_placement_resource_generation` | `count` | Max | موجودی یک هایپروایزر چند بار تغییر کرده، آن‌طور که Placement می‌شمارد. با هر تغییر بالا می‌رود، پس می‌گوید چیزی تغییر کرده، نه چه چیزی. |
 | `openstack_placement_resource_provider_allocations` | - | Max | یک مصرف‌کننده، یعنی uuid آن، چقدر از یک منبع را روی یک هایپروایزر نگه دارد. |
-| `openstack_placement_flavor_fits` | `count` | Max | Placement می‌گوید چند تای دیگر از یک flavor جا می‌شود، میزبان به میزبان شمرده، از `GET /allocation_candidates`: یک سری برای منطقه و یک سری برای هر زُن و aggregate. نوبتی خوانده می‌شود، چند flavor در هر جمع‌آوری، و در میان آن‌ها به‌صورت آخرین مقدار خوانده‌شده فرستاده می‌شود. فقط probe این را می‌پرسد. |
+| `openstack_placement_flavor_fits` | `count` | Max | Placement می‌گوید چند تای دیگر از یک flavor جا می‌شود، میزبان به میزبان شمرده، از `GET /allocation_candidates`: یک سری برای منطقه و یک سری برای هر زُن و aggregate. نوبتی خوانده می‌شود، چند flavor در هر جمع‌آوری، و در میان آن‌ها به‌صورت آخرین مقدار خوانده‌شده فرستاده می‌شود. فقط پراب این را می‌پرسد. |
 | `openstack_nova_vcpus_available` | `count` | Max | vCPUهایی که یک هایپروایزر دارد، هر چه نامش بگوید، پیش از هر allocation ratio. Nova از microversion 2.88 گزارش این را متوقف کرد، پس سری‌های Placement آن‌هایی هستند که باید به آن‌ها اعتماد کرد. |
 | `openstack_nova_vcpus_used` | `count` | Max | vCPUهایی که Nova روی یک هایپروایزر به instanceها وعده داده است. تخصیص، نه بار. |
 | `openstack_nova_memory_available_bytes` | `bytes` | Max | حافظه‌ای که یک هایپروایزر دارد، هر چه نامش بگوید، پیش از هر allocation ratio. |
@@ -421,7 +421,7 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 | `openstack_nova_free_disk_bytes` | `bytes` | Min | دیسک محلی‌ای که Nova روی یک هایپروایزر آزاد می‌شمارد. وقتی هایپروایزر بیش از آنچه دارد وعده داده باشد می‌تواند منفی شود. |
 | `openstack_nova_current_workload` | `count` | Max | چند عملیات build، resize، snapshot، migrate و rescue روی یک هایپروایزر در حال اجرا است. بار CPU نیست. |
 | `openstack_nova_running_vms` | `count` | Max | یک هایپروایزر چند instance در حالت ACTIVE دارد. hostname نام کامل هایپروایزر است. |
-| `openstack_nova_server_status` | - | Max | یک سری برای هر instance، که مقدارش یک کد عددی برای وضعیت آن است: ACTIVE برابر ۰، BUILD برابر ۱، ERROR برابر ۴. واژه را از label مربوط به status بخوانید و روی آن فیلتر کنید: کد نه شمارش است نه شدت. exporter عامل در ابر واقعی address_ipv4 و address_ipv6 را خالی می‌گذارد، و probe آن‌ها را از نشانی‌هایی که Nova فهرست می‌کند پر می‌کند. hypervisor_hostname، host_id و availability_zone تا زمانی که instance زمان‌بندی نشده خالی‌اند. image_id نام imageی را می‌دهد که از آن بالا آمده: فقط probe آن را می‌فرستد، و نه برای instanceی که از volume بالا آمده. network_names شبکه‌هایی را که در آن‌ها نشانی دارد، به‌صورت آرایه JSON از نام‌هایشان، فهرست می‌کند: فقط probe آن را می‌فرستد. |
+| `openstack_nova_server_status` | - | Max | یک سری برای هر instance، که مقدارش یک کد عددی برای وضعیت آن است: ACTIVE برابر ۰، BUILD برابر ۱، ERROR برابر ۴. واژه را از label مربوط به status بخوانید و روی آن فیلتر کنید: کد نه شمارش است نه شدت. exporter عامل در ابر واقعی address_ipv4 و address_ipv6 را خالی می‌گذارد، و پراب آن‌ها را از نشانی‌هایی که Nova فهرست می‌کند پر می‌کند. hypervisor_hostname، host_id و availability_zone تا زمانی که instance زمان‌بندی نشده خالی‌اند. image_id نام imageی را می‌دهد که از آن بالا آمده: فقط پراب آن را می‌فرستد، و نه برای instanceی که از volume بالا آمده. network_names شبکه‌هایی را که در آن‌ها نشانی دارد، به‌صورت آرایه JSON از نام‌هایشان، فهرست می‌کند: فقط پراب آن را می‌فرستد. |
 | `openstack_nova_server_local_gb` | `GiB` | Max | دیسک محلی‌ای که یک instance نگه دارد. _به‌طور پیش‌فرض خاموش:_ `--disable-metric=nova-server_local_gb` را از exporter حذف کنید. |
 | `openstack_nova_total_vms` | `count` | Max | منطقه چند instance دارد، در هر وضعیتی. |
 | `openstack_nova_instances_by_status` | `count` | Max | چند instance در هر وضعیت هستند، یک سری برای هر وضعیت در هر منطقه. ابری که از اندازه خلاصه گذشته باشد این را به‌جای یک سری برای هر instance نگه می‌دارد. ابرهای دیگر آن را نمی‌فرستند. |
@@ -489,12 +489,12 @@ exporter یک ماشین را با نشانی‌ای که به آن می‌رس�
 | `openstack_cinder_pool_capacity_total_gb` | `GiB` | Max | یک استخر ذخیره‌سازی Cinder چقدر نگه می‌دارد، آن‌طور که backend آن می‌گوید. |
 | `openstack_cinder_pool_capacity_free_gb` | `GiB` | Min | چقدر از یک استخر ذخیره‌سازی Cinder آزاد است، آن‌طور که backend آن می‌گوید. |
 | `openstack_cinder_volume_status_counter` | `count` | Max | چند volume در هر وضعیت هستند، یک سری برای هر واژه وضعیت در label مربوط به status. وضعیت شناخته‌شده‌ای که volumeی ندارد ۰ می‌خواند. |
-| `openstack_cinder_volume_gb` | `GiB` | Max | یک سری برای هر volume، که مقدارش اندازه آن است، با واژه وضعیتش در label مربوط به status. در ابری که probe از آن جمع می‌کند، label مربوط به pool می‌گوید کدام استخر آن را نگه دارد، برای credentialی که Cinder آن را ادمین می‌شمارد. |
+| `openstack_cinder_volume_gb` | `GiB` | Max | یک سری برای هر volume، که مقدارش اندازه آن است، با واژه وضعیتش در label مربوط به status. در ابری که پراب از آن جمع می‌کند، label مربوط به pool می‌گوید کدام استخر آن را نگه دارد، برای credentialی که Cinder آن را ادمین می‌شمارد. |
 | `openstack_cinder_volume_status` | - | Max | یک سری برای هر volume، که مقدارش یک کد عددی برای وضعیت آن است. exporter آن را منسوخ کرده: label مربوط به status در Volume Size، یا Volumes by Status را بخوانید. |
 | `openstack_cinder_volumes` | `count` | Max | منطقه چند volume دارد. |
 | `openstack_cinder_snapshots` | `count` | Max | منطقه چند snapshot از volume دارد. |
-| `openstack_cinder_snapshot_gb` | `GiB` | Max | یک سری برای هر snapshot از volume، که مقدارش اندازه آن است، با واژه وضعیتش در label مربوط به status. فقط probe این را می‌فرستد: exporter عامل فقط snapshotها را می‌شمارد. |
-| `openstack_cinder_backup_gb` | `GiB` | Max | یک سری برای هر backup از volume، که مقدارش اندازه آن است، با واژه وضعیتش در label مربوط به status، تا backupی که مدام شکست می‌خورد دیده شود. فقط probe این را می‌فرستد: exporter عامل backup ندارد. |
+| `openstack_cinder_snapshot_gb` | `GiB` | Max | یک سری برای هر snapshot از volume، که مقدارش اندازه آن است، با واژه وضعیتش در label مربوط به status. فقط پراب این را می‌فرستد: exporter عامل فقط snapshotها را می‌شمارد. |
+| `openstack_cinder_backup_gb` | `GiB` | Max | یک سری برای هر backup از volume، که مقدارش اندازه آن است، با واژه وضعیتش در label مربوط به status، تا backupی که مدام شکست می‌خورد دیده شود. فقط پراب این را می‌فرستد: exporter عامل backup ندارد. |
 
 ### ظرفیت
 
@@ -537,15 +537,15 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_heat_up` | | Min | اینکه API مربوط به Heat پاسخ داد. `heat-engine` متوقف هم ۰ می‌خواند، چون API مربوط به Heat فهرست‌هایش را از یک engine می‌پرسد. |
 | `openstack_heat_stack_status` | | Max | یک سری برای هر stack، با `id`، `name`، `project_id` و `status`. مقدارش یک کد است، پس label مربوط به `status` آن را بخوانید. `project_id` برای هر چیزی پایین‌تر از ادمین خالی است. |
 | `openstack_heat_stack_status_counter` | `count` | Max | چند stack هر وضعیت را دارند، در هر منطقه. |
-| `openstack_heat_agent_state` | | Min | اینکه Heat هر `heat-engine` را up فهرست می‌کند. فقط probe این را می‌فرستد. |
+| `openstack_heat_agent_state` | | Min | اینکه Heat هر `heat-engine` را up فهرست می‌کند. فقط پراب این را می‌فرستد. |
 | `openstack_container_infra_up` | | Min | اینکه API مربوط به Magnum پاسخ داد. `magnum-conductor` متوقف آن را روی ۱ می‌گذارد. |
-| `openstack_cloudkitty_up` | | Min | اینکه API مربوط به CloudKitty پاسخ داد، در ابری که آن را اجرا می‌کند. فقط probe این را می‌فرستد. |
-| `openstack_cloudkitty_rated` | | Max | CloudKitty برای یک پروژه در یک ماه چه امتیازی داده، ساعتی یک بار، بر اساس پروژه و ماه. یک عدد، به هر واحدی که نرخ‌هایش هستند. فقط probe این را می‌فرستد. |
+| `openstack_cloudkitty_up` | | Min | اینکه API مربوط به CloudKitty پاسخ داد، در ابری که آن را اجرا می‌کند. فقط پراب این را می‌فرستد. |
+| `openstack_cloudkitty_rated` | | Max | CloudKitty برای یک پروژه در یک ماه چه امتیازی داده، ساعتی یک بار، بر اساس پروژه و ماه. یک عدد، به هر واحدی که نرخ‌هایش هستند. فقط پراب این را می‌فرستد. |
 | `openstack_container_infra_total_clusters` | `count` | Max | Magnum برای این credential چند cluster فهرست کرد. |
 | `openstack_container_infra_cluster_status` | | Max | یک سری برای هر cluster، با `uuid`، `name`، `stack_id`، `status`، `node_count`، `master_count` و `project_id`. مقدارش یک کد است، پس label مربوط به `status` آن را بخوانید. `project_id` از exporter خالی می‌آید. |
 | `openstack_container_infra_cluster_masters` | `count` | Max | از هر cluster چند node مربوط به control plane خواسته شده است. |
 | `openstack_container_infra_cluster_nodes` | `count` | Max | از هر cluster چند node مربوط به worker خواسته شده است. |
-| `openstack_container_infra_agent_state` | | Min | اینکه Magnum هر `magnum-conductor` را up فهرست می‌کند. فقط probe این را می‌فرستد. |
+| `openstack_container_infra_agent_state` | | Min | اینکه Magnum هر `magnum-conductor` را up فهرست می‌کند. فقط پراب این را می‌فرستد. |
 
 ### Shared File Systems
 
@@ -558,7 +558,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_sharev2_share_status` | | Max | یک سری برای هر اشتراک فایل. مقدارش یک کد است، و کد `creating` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
 | `openstack_sharev2_share_status_counter` | `count` | Max | چند اشتراک فایل هر وضعیت را دارند، در هر منطقه. |
 | `openstack_sharev2_shares_counter` | `count` | Max | Manila برای این credential چند اشتراک فایل فهرست کرد، در هر منطقه. |
-| `openstack_sharev2_agent_state` | | Min | اینکه Manila هر سرویس را up فهرست می‌کند، با `state` که برای سرویسی که تمیز بسته شده `stopped` و برای سرویسی که مرده `down` می‌گوید. فقط probe این را می‌فرستد. |
+| `openstack_sharev2_agent_state` | | Min | اینکه Manila هر سرویس را up فهرست می‌کند، با `state` که برای سرویسی که تمیز بسته شده `stopped` و برای سرویسی که مرده `down` می‌گوید. فقط پراب این را می‌فرستد. |
 
 ### متعادل‌کننده‌های بار
 
@@ -570,18 +570,18 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_loadbalancer_loadbalancer_status` | | Max | یک سری برای هر متعادل‌کننده بار، با `provisioning_status`، `operating_status`، `provider`، `vip_address` و `project_id`. مقدارش کدی برای operating status است: واژه‌ها را بخوانید. |
 | `openstack_loadbalancer_pool_status` | | Max | یک سری برای هر استخر، با `provisioning_status`، `operating_status`، `protocol` و `lb_algorithm`. استخری که همه اعضایش down هستند هنوز ۰ می‌خواند: `operating_status` را بخوانید. |
 | `openstack_loadbalancer_amphora_status` | | Max | یک سری برای هر amphora، با `status`، `role`، `compute_id`، `loadbalancer_id` و `cert_expiration`، که متن است و نه عدد. فقط ادمین می‌تواند amphoraها را فهرست کند. |
-| `openstack_loadbalancer_listener_status` | | Max | یک سری برای هر listener، همیشه ۱، با `provisioning_status`، `operating_status`، `protocol`، `protocol_port` و `loadbalancer_id`. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_member_status` | | Max | یک سری برای هر عضو استخر، همیشه ۱، با `operating_status` بالاتر از همه، `pool_id`، `address`، `protocol_port` و `weight`. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_active_connections` | `{connection}` | Max | اتصال‌های باز در لحظه خواندن، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد: API مربوط به Octavia را می‌خواند. |
-| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | Max | اتصال‌هایی که هر ثانیه باز شده‌اند، در هر متعادل‌کننده بار، میان دو خواندن. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه رسیده‌اند، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه فرستاده شده‌اند، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | Max | درخواست‌هایی که هر ثانیه شکست خورده‌اند، در هر متعادل‌کننده بار. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
-| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | Max | همان، در هر listener. فقط probe این را می‌فرستد. |
+| `openstack_loadbalancer_listener_status` | | Max | یک سری برای هر listener، همیشه ۱، با `provisioning_status`، `operating_status`، `protocol`، `protocol_port` و `loadbalancer_id`. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_member_status` | | Max | یک سری برای هر عضو استخر، همیشه ۱، با `operating_status` بالاتر از همه، `pool_id`، `address`، `protocol_port` و `weight`. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_stats_active_connections` | `{connection}` | Max | اتصال‌های باز در لحظه خواندن، در هر متعادل‌کننده بار. فقط پراب این را می‌فرستد: API مربوط به Octavia را می‌خواند. |
+| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | Max | اتصال‌هایی که هر ثانیه باز شده‌اند، در هر متعادل‌کننده بار، میان دو خواندن. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه رسیده‌اند، در هر متعادل‌کننده بار. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | Max | بایت‌هایی که هر ثانیه فرستاده شده‌اند، در هر متعادل‌کننده بار. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | Max | درخواست‌هایی که هر ثانیه شکست خورده‌اند، در هر متعادل‌کننده بار. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | Max | همان، در هر listener. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | Max | همان، در هر listener. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | Max | همان، در هر listener. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | Max | همان، در هر listener. فقط پراب این را می‌فرستد. |
+| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | Max | همان، در هر listener. فقط پراب این را می‌فرستد. |
 | `openstack_loadbalancer_total_loadbalancers` | `count` | Max | Octavia برای این credential چند متعادل‌کننده بار فهرست کرد، در هر منطقه. |
 | `openstack_loadbalancer_total_pools` | `count` | Max | Octavia برای این credential چند استخر فهرست کرد، در هر منطقه. |
 | `openstack_loadbalancer_total_amphorae` | `count` | Max | Octavia برای این credential چند amphora فهرست کرد، در هر منطقه. |
@@ -597,7 +597,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | `openstack_designate_zone_status` | | Max | یک سری برای هر زُن، با `id`، `name`، `tenant_id`، `type` و `status`. مقدارش یک کد است، و کد `PENDING` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
 | `openstack_designate_recordsets` | `count` | Max | هر زُن چند مجموعه‌رکورد نگه دارد. exporter برای گفتن این در هر scrape برای هر زُن یک فراخوانی می‌کند. |
 | `openstack_designate_recordsets_status` | | Max | یک سری برای هر مجموعه‌رکورد، با `id`، `name`، `type`، `zone_id`، `zone_name` و `status`. مقدارش یک کد است، و کد `PENDING` برابر ۰ است، پس label مربوط به `status` آن را بخوانید. |
-| `openstack_designate_agent_state` | | Min | اینکه Designate هر یک از سرویس‌هایش را up فهرست می‌کند. فقط probe این را می‌فرستد. |
+| `openstack_designate_agent_state` | | Min | اینکه Designate هر یک از سرویس‌هایش را up فهرست می‌کند. فقط پراب این را می‌فرستد. |
 
 ### متریک‌ها
 
@@ -618,27 +618,27 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 | --- | --- | --- | --- |
 | `openstack_object_store_up` | | Min | اینکه خواندن exporter از Swift پاسخ داد. credentialی که Swift رد کند مثل proxy متوقف ۰ می‌خواند. |
 | `openstack_object_store_bytes` | `bytes` | Max | یک container چقدر نگه دارد، با `container_name`. فقط مربوط به پروژه خود credential، بدون label پروژه. |
-| `openstack_object_store_recon_servers` | `count` | Max | تنظیمات ابر چند سرور ذخیره‌سازی Swift را برای `/recon` نام می‌برد. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_up` | | Min | اینکه یک سرور نام‌برده به `/recon` پاسخ داد، با `address`. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_servers_not_answering` | `count` | Max | چند تا از سرورهای نام‌برده پاسخ نمی‌دهند. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_replication_age_seconds` | `s` | Min | یک سرور چقدر پیش آخرین pass از replication را تمام کرده، با `address` و `ring`. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_replication_failures` | `count` | Max | چند تلاش از آن pass شکست خورده، با `address` و `ring`. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_oldest_replication_seconds` | `s` | Max | طولانی‌ترین انتظار میان همه آن‌ها. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_unmounted_drives` | `count` | Max | یک سرور می‌گوید چند drive mount نشده‌اند، با `address`. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_rings_differ` | | Min | اینکه سرورهای نام‌برده برای یک ring checksum متفاوت گزارش می‌کنند، با `ring`. فقط probe این را می‌فرستد. |
-| `openstack_object_store_recon_rings_differing` | `count` | Max | این برای چند ring رخ می‌دهد. فقط probe این را می‌فرستد. |
+| `openstack_object_store_recon_servers` | `count` | Max | تنظیمات ابر چند سرور ذخیره‌سازی Swift را برای `/recon` نام می‌برد. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_up` | | Min | اینکه یک سرور نام‌برده به `/recon` پاسخ داد، با `address`. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_servers_not_answering` | `count` | Max | چند تا از سرورهای نام‌برده پاسخ نمی‌دهند. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_replication_age_seconds` | `s` | Min | یک سرور چقدر پیش آخرین pass از replication را تمام کرده، با `address` و `ring`. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_replication_failures` | `count` | Max | چند تلاش از آن pass شکست خورده، با `address` و `ring`. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_oldest_replication_seconds` | `s` | Max | طولانی‌ترین انتظار میان همه آن‌ها. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_unmounted_drives` | `count` | Max | یک سرور می‌گوید چند drive mount نشده‌اند، با `address`. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_rings_differ` | | Min | اینکه سرورهای نام‌برده برای یک ring checksum متفاوت گزارش می‌کنند، با `ring`. فقط پراب این را می‌فرستد. |
+| `openstack_object_store_recon_rings_differing` | `count` | Max | این برای چند ring رخ می‌دهد. فقط پراب این را می‌فرستد. |
 | `openstack_object_store_objects` | `count` | Max | یک container چند شیء نگه دارد، با `container_name`. فقط مربوط به پروژه خود credential، بدون label پروژه. |
 
 ### مدیر کلید
 
-فقط probe این‌ها را می‌فرستد، در ابری که کاتالوگش Barbican را نام می‌برد: exporter خواننده‌ای برای آن ندارد. ابری که ندارد هیچ ردی از آن‌ها نشان نمی‌دهد، و ابری که عامل از آن جمع می‌کند هم همین‌طور.
+فقط پراب این‌ها را می‌فرستد، در ابری که کاتالوگش Barbican را نام می‌برد: exporter خواننده‌ای برای آن ندارد. ابری که ندارد هیچ ردی از آن‌ها نشان نمی‌دهد، و ابری که عامل از آن جمع می‌کند هم همین‌طور.
 
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
-| `openstack_barbican_up` | | Min | اینکه API مربوط به Barbican پاسخ داد. credentialی که رد کند ۱ می‌خواند، چون پاسخ داد. فقط probe این را می‌فرستد. |
-| `openstack_barbican_secrets` | `count` | Max | پروژه خود این credential چند secret نگه دارد. فقط probe این را می‌فرستد. |
-| `openstack_barbican_orders` | `count` | Max | پروژه خود این credential چند order نگه دارد. فقط probe این را می‌فرستد. |
-| `openstack_barbican_containers` | `count` | Max | پروژه خود این credential چند container از secret نگه دارد. فقط probe این را می‌فرستد. |
+| `openstack_barbican_up` | | Min | اینکه API مربوط به Barbican پاسخ داد. credentialی که رد کند ۱ می‌خواند، چون پاسخ داد. فقط پراب این را می‌فرستد. |
+| `openstack_barbican_secrets` | `count` | Max | پروژه خود این credential چند secret نگه دارد. فقط پراب این را می‌فرستد. |
+| `openstack_barbican_orders` | `count` | Max | پروژه خود این credential چند order نگه دارد. فقط پراب این را می‌فرستد. |
+| `openstack_barbican_containers` | `count` | Max | پروژه خود این credential چند container از secret نگه دارد. فقط پراب این را می‌فرستد. |
 
 ### پایگاه‌های داده
 
@@ -658,11 +658,11 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
-| `openstack_ironic_up` | | Min | ۱ وقتی خواندن Ironic آن‌قدر پیش رفت که بتواند بگوید. وقتی Ironic متوقف است، exporterی که عامل OpenStack اجرا می‌کند یک 200 خالی جواب می‌دهد، مثل ابری که Ironic ندارد، پس این سری به‌جای خواندن ۰ ساکت می‌شود: probe و exporter نسخه 1.7.0 می‌توانند ۰ بگویند. |
+| `openstack_ironic_up` | | Min | ۱ وقتی خواندن Ironic آن‌قدر پیش رفت که بتواند بگوید. وقتی Ironic متوقف است، exporterی که عامل OpenStack اجرا می‌کند یک 200 خالی جواب می‌دهد، مثل ابری که Ironic ندارد، پس این سری به‌جای خواندن ۰ ساکت می‌شود: پراب و exporter نسخه 1.7.0 می‌توانند ۰ بگویند. |
 | `openstack_ironic_node` | | Max | یک سری برای هر nodeای که Ironic به این credential نشان می‌دهد، همیشه ۱: آنچه می‌گوید در labelهایش است، یعنی provision state، power state و اینکه در تعمیر و نگهداری است یا نه. Ironic به یک پروژه فقط nodeهایی را نشان می‌دهد که مالکشان است. |
 | `openstack_ironic_node_provision_updated_at` | `seconds` | Max | آخرین بار که Ironic حرکت provision state این node را دید، به‌صورت زمان Unix. heartbeatهای deploy agent هم آن را حرکت می‌دهند، پس پاک‌سازی طولانی به معنای node گیرکرده نیست. nodeای که هرگز حرکت نکرده چنین سری‌ای ندارد. |
 | `openstack_ironic_node_updated_at` | `seconds` | Max | آخرین بار که رکورد این node تغییر کرد، به‌صورت زمان Unix. nodeای که هرگز تغییر نکرده چنین سری‌ای ندارد. |
-| `openstack_ironic_agent_state` | | Min | ۱ تا وقتی Ironic یک conductor را زنده می‌خواند، ۰ وقتی heartbeat آن منقضی شده. فقط probe این را می‌فرستد: exporter چنین سری‌ای ندارد، و credential محدود به یک پروژه فهرست را رد می‌شود. |
+| `openstack_ironic_agent_state` | | Min | ۱ تا وقتی Ironic یک conductor را زنده می‌خواند، ۰ وقتی heartbeat آن منقضی شده. فقط پراب این را می‌فرستد: exporter چنین سری‌ای ندارد، و credential محدود به یک پروژه فهرست را رد می‌شود. |
 
 ### پروژه‌ها
 
@@ -705,11 +705,11 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 ### بررسی‌ها
 
-آنچه probe از بیرون ابر پیدا می‌کند: [بررسی‌ها از بیرون](#بررسیها-از-بیرون) را ببینید. چیزی این‌ها را جمع‌آوری نمی‌کند، پس تا وقتی کسی بررسی‌ها را روشن نکرده خالی‌اند. همه `openstack.region.name` را دارند.
+آنچه پراب از بیرون ابر پیدا می‌کند: [بررسی‌ها از بیرون](#بررسیها-از-بیرون) را ببینید. چیزی این‌ها را جمع‌آوری نمی‌کند، پس تا وقتی کسی بررسی‌ها را روشن نکرده خالی‌اند. همه `openstack.region.name` را دارند.
 
 | متریک | واحد | خواندن‌ها | توضیح |
 | --- | --- | --- | --- |
-| `openstack_check_token_success` | - | Min | اینکه Keystone به probeی که این ابر را از بیرون بررسی می‌کند توکن داد: ۱ وقتی داد، ۰ وقتی نداد. |
+| `openstack_check_token_success` | - | Min | اینکه Keystone به پرابی که این ابر را از بیرون بررسی می‌کند توکن داد: ۱ وقتی داد، ۰ وقتی نداد. |
 | `openstack_check_token_duration_seconds` | `s` | Max | Keystone چقدر طول کشید تا آن توکن را صادر کند. |
 | `openstack_check_api_success` | - | Min | اینکه یک سرویس در کاتالوگ به یک خواندن تک‌ردیفی پاسخ داد: ۱ وقتی پاسخ داد، یا این credential را رد کرد، چون آن‌گاه API آن کار می‌کند، و ۰ وقتی شکست خورد، timeout شد یا نتوان به آن رسید. labelها `service_type`، `service_name`، `outcome`. |
 | `openstack_check_api_duration_seconds` | `s` | Max | آن سرویس چقدر طول کشید تا پاسخ دهد. labelها `service_type`، `service_name`. |
@@ -726,7 +726,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 ## بررسی‌ها از بیرون
 
-هر سرویس می‌تواند سالم گزارش کند در حالی که هیچ‌کس نمی‌تواند یک instance بالا بیاورد. `/healthcheck` در `oslo.middleware` فقط نشان می‌دهد سرویس در دسترس است، پس درست‌ترین آزمون انجام دادن کاری است که کاربران می‌کنند. probe آن را از بیرون ابر انجام می‌دهد، چون بررسی از درون ابر خراب چیزی نمی‌گوید. آن‌ها را از صفحه **بررسی‌ها**ی ابر روشن کنید. [راهنما](/docs/telemetry/openstack#بررسی-ابر-از-بیرون) می‌گوید چگونه، و بررسی lifecycle دقیقاً چه چیزی می‌سازد و به چه چیزی ممکن است دست بزند.
+هر سرویس می‌تواند سالم گزارش کند در حالی که هیچ‌کس نمی‌تواند یک instance بالا بیاورد. `/healthcheck` در `oslo.middleware` فقط نشان می‌دهد سرویس در دسترس است، پس درست‌ترین آزمون انجام دادن کاری است که کاربران می‌کنند. پراب آن را از بیرون ابر انجام می‌دهد، چون بررسی از درون ابر خراب چیزی نمی‌گوید. آن‌ها را از صفحه **بررسی‌ها**ی ابر روشن کنید. [راهنما](/docs/telemetry/openstack#بررسی-ابر-از-بیرون) می‌گوید چگونه، و بررسی lifecycle دقیقاً چه چیزی می‌سازد و به چه چیزی ممکن است دست بزند.
 
 - **بررسی‌های API** به‌طور پیش‌فرض هر دقیقه اجرا می‌شوند و فقط می‌خوانند. Keystone یک توکن صادر می‌کند، هر سرویس در کاتالوگ به یک خواندن تک‌ردیفی احرازهویت‌شده پاسخ می‌دهد، و گواهی هر endpoint برای زمان انقضا خوانده می‌شود. فهرستی برای نگه داشتن نیست: سرویسی که کسی به کاتالوگ اضافه کند از همان لحظه بررسی می‌شود.
 - **بررسی lifecycle** به‌طور پیش‌فرض هر ۳۰ دقیقه اجرا می‌شود، و فقط اگر انتخابش کنید. در پروژه‌ای که خودش دارد: یک server می‌سازد، منتظر `ACTIVE` می‌ماند، اختیاراً یک IP شناور وصل می‌کند و ping می‌زند، اختیاراً یک volume می‌سازد و وصل می‌کند، سپس همه‌چیز را حذف می‌کند. مدت هر گام یک سری است.
@@ -735,7 +735,7 @@ OneUptime این‌ها را خودش از فهرست دارایی‌های اب
 
 یک اجرای lifecycle هر ۳۰ دقیقه یک بار گزارش می‌دهد، و یک قالب چند جمع‌آوری را می‌خواند. پس آنچه آخرین اجرا یافت با بررسی API هر دقیقه دوباره گفته می‌شود، تا وقتی آخرین است. حادثه ظرف چند دقیقه از اجرای ناموفق باز می‌شود، و ظرف چند دقیقه از اجرای بعدی که بگذرد بسته می‌شود، هر فاصله‌ای که باشد. حادثه اجرای ناموفق گام و خطایی را که Nova یا Cinder داد نام می‌برد، از روی آنچه اجرا گزارش کرده. خطا متن آزاد است، پس label نیست: bootی که دفعه بعد به شکل دیگری شکست بخورد هنوز همان حادثه است.
 
-سکوت بازیابی نیست. حکمی که از دو و نیم برابر فاصله قدیمی‌تر باشد دیگر گفته نمی‌شود، و پس از توقف probe هیچ چیز دیگری هم نه، پس حادثه باز باز می‌ماند و حل‌شده خوانده نمی‌شود.
+سکوت بازیابی نیست. حکمی که از دو و نیم برابر فاصله قدیمی‌تر باشد دیگر گفته نمی‌شود، و پس از توقف پراب هیچ چیز دیگری هم نه، پس حادثه باز باز می‌ماند و حل‌شده خوانده نمی‌شود.
 
 ### ساختن روی این سری‌ها
 

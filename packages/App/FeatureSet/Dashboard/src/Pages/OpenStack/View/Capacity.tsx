@@ -72,6 +72,7 @@ import {
   getReadingDirection,
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * CAN WE FIT THIS?
@@ -151,7 +152,7 @@ function AllocatedCell(props: {
   const { resource } = props;
 
   if (!resource) {
-    return <span className="text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   /*
@@ -437,9 +438,11 @@ const ZonesTable: FunctionComponent<{
                   );
                 })}
                 <td className={WIDE_CELL_CLASS_NAME}>
-                  {soonest
-                    ? getOpenStackForecastText(soonest.forecast, translator)
-                    : "-"}
+                  {soonest ? (
+                    getOpenStackForecastText(soonest.forecast, translator)
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </td>
                 <td
                   className={`${CELL_CLASS_NAME} ${HEADROOM_TONES[zone.headroom.state] || ""}`}
@@ -761,11 +764,13 @@ const OvercommitTable: FunctionComponent<{
                     {Math.round(row.reading.busiestPercent)}%
                   </td>
                   <td className={CELL_CLASS_NAME}>
-                    {row.reading.ratioAtLine === null
-                      ? "-"
-                      : formatOpenStackRatio(
-                          Math.round(row.reading.ratioAtLine * 10) / 10,
-                        )}
+                    {row.reading.ratioAtLine === null ? (
+                      <TableEmptyValue />
+                    ) : (
+                      formatOpenStackRatio(
+                        Math.round(row.reading.ratioAtLine * 10) / 10,
+                      )
+                    )}
                   </td>
                 </tr>
               );

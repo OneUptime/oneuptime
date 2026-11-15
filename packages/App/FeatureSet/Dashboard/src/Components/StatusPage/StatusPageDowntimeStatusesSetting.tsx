@@ -40,6 +40,7 @@ import {
   isSameStatusList,
 } from "./StatusPageDisplaySettingsCopy";
 import { getPlanNeededToChange } from "./StatusPageSwitchRow";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Which monitor statuses count as downtime on a status page - in every
@@ -342,7 +343,7 @@ const StatusPageDowntimeStatusesSetting: FunctionComponent<ComponentProps> = (
               role="alert"
               data-testid={`${props.dataTestId}-error`}
             >
-              {setting.error}
+              <ErrorInSentence message={setting.error} showWhereToLook={true} />
             </p>
           ) : (
             <></>
@@ -353,7 +354,7 @@ const StatusPageDowntimeStatusesSetting: FunctionComponent<ComponentProps> = (
               role="alert"
               data-testid={`${props.dataTestId}-load-error`}
             >
-              {loadError}
+              <ErrorInSentence message={loadError} showWhereToLook={true} />
             </p>
           ) : (
             <></>

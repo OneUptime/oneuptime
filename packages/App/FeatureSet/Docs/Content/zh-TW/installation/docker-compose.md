@@ -11,7 +11,7 @@
 
 ## 運作方式
 
-Docker Compose 會把 OneUptime 的每個部分當作容器在你的伺服器上執行。所有流量都從 `ingress` 容器進入，再由它轉送到 `app`。應用程式把資料保存在 PostgreSQL、ClickHouse 和 Valkey 中。內建的探針會執行監控的檢查，並透過 ingress 回報結果。
+Docker Compose 會把 OneUptime 的每個部分當作容器在你的伺服器上執行。所有流量都從 `ingress` 容器進入，再由它轉送到 `app`。應用程式把資料保存在 PostgreSQL、ClickHouse 和 Valkey 中。內建的探測器會執行監控的檢查，並透過 ingress 回報結果。
 
 ```mermaid title="Docker Compose 部署"
 flowchart TB
@@ -48,7 +48,7 @@ flowchart TB
 | --- | --- | --- |
 | `ingress` | `oneuptime/nginx` | 接收連接埠 80 和 443 上的所有流量，並轉送到應用程式。當 OneUptime 管理憑證時提供 HTTPS。 |
 | `app` | `oneuptime/app` | 儀表板、API、狀態頁面、遙測資料接收與背景工作程序。 |
-| `probe-1` | `oneuptime/probe` | 執行監控檢查的全域探針。它使用主機的網路。 |
+| `probe-1` | `oneuptime/probe` | 執行監控檢查的全域探測器。它使用主機的網路。 |
 | `global-runner` | `oneuptime/runner` | 內建的全域 Runner，為所有專案執行運行手冊的 JavaScript 步驟與 OneUptime AI 的程式碼修正。 |
 | `postgres` | `postgres:15` | 設定與狀態：監控、事件、使用者。儲存在 `postgres` 磁碟區中。 |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遙測資料：日誌、指標、追蹤與例外。儲存在 `clickhouse` 磁碟區中。 |
@@ -85,7 +85,7 @@ flowchart TB
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 儀表板、API、遙測資料接收與 Let's Encrypt 驗證。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | 當 OneUptime 管理憑證時，為執行個體提供 HTTPS，並為自訂網域上的狀態頁面與儀表板提供 HTTPS。 |
 | 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | 讓 `npm run backup` 和 `restore.sh` 從伺服器本機連到 PostgreSQL。它只發布在 `127.0.0.1` 上。 |
-| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探針本身的伺服器。伺服器以外不需要連到它。 |
+| 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探測器本身的伺服器。伺服器以外不需要連到它。 |
 
 另有一段安裝過程的 [影片導覽](https://youtu.be/j1SWmMW2oL4)。
 
@@ -157,8 +157,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 | `ONEUPTIME_SECRET` | OneUptime 自身服務之間的呼叫。 |
 | `ENCRYPTION_SECRET` | OneUptime 儲存的密鑰（例如整合權杖與 SMTP 密碼），以及它簽發的登入權杖。 |
 | `DATABASE_PASSWORD`、`CLICKHOUSE_PASSWORD`、`VALKEY_PASSWORD` | 三個資料存放區。 |
-| `REGISTER_PROBE_KEY` | 向你的執行個體註冊探針。 |
-| `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose 可以執行的全域探針（預設執行 `probe-1`）。 |
+| `REGISTER_PROBE_KEY` | 向你的執行個體註冊探測器。 |
+| `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose 可以執行的全域探測器（預設執行 `probe-1`）。 |
 | `GLOBAL_RUNNER_KEY` | 內建的全域 Runner，執行所有專案的 JavaScript 步驟與 AI 程式碼修正。 |
 
 > [!IMPORTANT]
@@ -234,7 +234,7 @@ ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 ```
 
-探針使用主機的網路，透過 `http://localhost` 連到 OneUptime。`npm start` 會把它改到 ingress 的新連接埠 `http://localhost:8080`，並加以說明。
+探測器使用主機的網路，透過 `http://localhost` 連到 OneUptime。`npm start` 會把它改到 ingress 的新連接埠 `http://localhost:8080`，並加以說明。
 
 #### 告訴 OneUptime 它位於代理之後
 
@@ -518,7 +518,7 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 npm run doctor
 ```
 
-它會列出出錯的地方，最嚴重的排在最前，每行都附有確切的修正方法，最後顯示 **Everything looks right.** 或需要修正的問題數量。它會檢查每個容器，並顯示未執行容器日誌的最後幾行，還會檢查 `config.env`、`HOST` 能否到達這台伺服器、`PROVISION_SSL` 開啟時的憑證以及可用磁碟空間。它還會詢問 OneUptime 對自身的了解：PostgreSQL、ClickHouse 和 Valkey、遷移、佇列、版本，以及伺服器的設定步驟，例如電子郵件和探針。`npm start` 結束時也會做同樣的檢查，只列出需要處理的問題。
+它會列出出錯的地方，最嚴重的排在最前，每行都附有確切的修正方法，最後顯示 **Everything looks right.** 或需要修正的問題數量。它會檢查每個容器，並顯示未執行容器日誌的最後幾行，還會檢查 `config.env`、`HOST` 能否到達這台伺服器、`PROVISION_SSL` 開啟時的憑證以及可用磁碟空間。它還會詢問 OneUptime 對自身的了解：PostgreSQL、ClickHouse 和 Valkey、遷移、佇列、版本，以及伺服器的設定步驟，例如電子郵件和探測器。`npm start` 結束時也會做同樣的檢查，只列出需要處理的問題。
 
 如需同時查看每個服務最近的錯誤（每條都標明服務名稱）：
 
@@ -592,15 +592,15 @@ sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 
-:::details 移動 ingress 連接埠後，內建探針顯示已中斷連線
-Admin Dashboard 在 **設定 > 監控 > 全域探針** 下列出該探針。它透過 `GLOBAL_PROBE_1_ONEUPTIME_URL` 連到 OneUptime，預設值為 `http://localhost`（連接埠 80）。只要它指向 `localhost`，`npm start` 就會把它改到 ingress 的連接埠。如果你把它設成其他位址，或是以 Docker CLI 啟動 OneUptime，請把它設為 ingress 的新連接埠，例如 `http://localhost:8080`，然後重新啟動 OneUptime。
+:::details 移動 ingress 連接埠後，內建探測器顯示已中斷連線
+Admin Dashboard 在 **設定 > 監控 > 全域探測器** 下列出該探測器。它透過 `GLOBAL_PROBE_1_ONEUPTIME_URL` 連到 OneUptime，預設值為 `http://localhost`（連接埠 80）。只要它指向 `localhost`，`npm start` 就會把它改到 ingress 的連接埠。如果你把它設成其他位址，或是以 Docker CLI 啟動 OneUptime，請把它設為 ingress 的新連接埠，例如 `http://localhost:8080`，然後重新啟動 OneUptime。
 :::
 
 ## 後續步驟
 
 :::cards
 - [完成伺服器設定](/docs/installation/self-hosting-guide#完成伺服器設定): 先是電子郵件，然後是簡訊和電話，每一項都附測試。
-- [快速開始](/docs/introduction/quickstart): 你的第一個監控器、第一個值班政策和第一個狀態頁面。
+- [快速開始](/docs/introduction/quickstart): 你的第一個監測器、第一個值班政策和第一個狀態頁面。
 - [升級 OneUptime](/docs/installation/upgrading): 每個主要版本需要你做的事。
 - [自行託管架構](/docs/self-hosted/architecture): 各元件如何搭配運作。
 :::

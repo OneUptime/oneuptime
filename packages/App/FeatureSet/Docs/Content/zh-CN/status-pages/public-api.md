@@ -66,9 +66,9 @@ flowchart TB
 
 - 关闭的列表会拒绝对应的端点，例如返回 `Incidents are not enabled on this status page.`
 - 每个列表回溯的天数由它的 **显示最近 … 天** 设置决定（默认 14）。事件列表还包括所有尚未解决的事件，计划维护列表还包括所有即将开始或正在进行的事件。
-- 按 ID 请求时，事件、片段、维护事件或公告无论多旧都会返回，因此指向旧条目的链接仍然有效。页面根本不显示的条目（例如不在页面上的监控器的事件）会返回空列表，片段则返回 `404`。
+- 按 ID 请求时，事件、片段、维护事件或公告无论多旧都会返回，因此指向旧条目的链接仍然有效。页面根本不显示的条目（例如不在页面上的监视器的事件）会返回空列表，片段则返回 `404`。
 
-**页面返回哪些事件。** 事件端点返回页面上监控器的事件，去掉限定到其他状态页的事件；如果页面只显示限定到它自己的事件，还会去掉所有没有限定到此页面的事件（参见[每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)）。事件限定到哪些页面，永远不会出现在响应中。
+**页面返回哪些事件。** 事件端点返回页面上监视器的事件，去掉限定到其他状态页的事件；如果页面只显示限定到它自己的事件，还会去掉所有没有限定到此页面的事件（参见[每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)）。事件限定到哪些页面，永远不会出现在响应中。
 
 ## 读取概览
 
@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-总体状态是页面上监控器和监控器分组当前状态中最差的那个，也就是优先级最高的那个。页面显示为 **未监控** 的资源（列在 `notMonitoredResourceIds` 中）不计入其中。一个监控器状态如下所示：
+总体状态是页面上监视器和监视器分组当前状态中最差的那个，也就是优先级最高的那个。页面显示为 **未监控** 的资源（列在 `notMonitoredResourceIds` 中）不计入其中。一个监视器状态如下所示：
 
 ```json
 {
@@ -129,19 +129,19 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 键 | 内容 |
 | --- | ------------- |
-| `overallStatus` | 页面的总体状态，即上面那样的监控器状态；页面上什么都没有时，是项目中优先级最低的状态；页面上所有资源都是 **未监控** 时，为 `null`。 |
+| `overallStatus` | 页面的总体状态，即上面那样的监视器状态；页面上什么都没有时，是项目中优先级最低的状态；页面上所有资源都是 **未监控** 时，为 `null`。 |
 | `statusPage` | 页面的公开设置：标题、描述、品牌，以及显示的内容。 |
-| `statusPageResources` | 每个资源：显示名称、描述、分组、监控器或监控器分组，以及显示选项。 |
+| `statusPageResources` | 每个资源：显示名称、描述、分组、监视器或监视器分组，以及显示选项。 |
 | `resourceGroups` | 分组；嵌套分组带有 `parentStatusPageGroupId`。 |
-| `monitorStatuses` | 项目的所有监控器状态，按优先级从低到高排列。 |
-| `monitorGroupCurrentStatuses`、`monitorsInGroup` | 页面上每个监控器分组的当前状态，以及其中的监控器。 |
-| `notMonitoredResourceIds` | 页面显示为 **未监控** 的资源的 ID：监控已关闭的监控器，或所有监控器的监控都已关闭的监控器分组。它们不决定任何状态，这样的分组在 `monitorGroupCurrentStatuses` 中没有条目。 |
+| `monitorStatuses` | 项目的所有监视器状态，按优先级从低到高排列。 |
+| `monitorGroupCurrentStatuses`、`monitorsInGroup` | 页面上每个监视器分组的当前状态，以及其中的监视器。 |
+| `notMonitoredResourceIds` | 页面显示为 **未监控** 的资源的 ID：监控已关闭的监视器，或所有监视器的监控都已关闭的监视器分组。它们不决定任何状态，这样的分组在 `monitorGroupCurrentStatuses` 中没有条目。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 绘制可用率条所用的数据，以及页面的条形颜色规则。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 页面显示的未解决事件、它们的公开备注和状态变化，以及项目的事件状态。 |
 | `timelineIncidents` | 可用率条时间窗口内的事件（包括已解决的），用于条形的提示信息。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同内容。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即将开始或正在进行的维护事件，以及它们的公开备注和状态变化。 |
-| `timelineScheduledMaintenanceEvents` | 可用率条时间窗口内已经开始的维护事件（进行中或已结束），用于条形的提示信息和每天的对话框：仅限页面显示、且包含页面某个监控器的事件，每个事件只列出页面的监控器。 |
+| `timelineScheduledMaintenanceEvents` | 可用率条时间窗口内已经开始的维护事件（进行中或已结束），用于条形的提示信息和每天的对话框：仅限页面显示、且包含页面某个监视器的事件，每个事件只列出页面的监视器。 |
 | `activeAnnouncements` | 正在显示的公告：已经开始且尚未结束。 |
 
 ## 读取摘要
@@ -334,7 +334,7 @@ for group in uptime["groupUptimes"]:
 | `currentStatus` | 资源或分组不显示当前状态时为 `null`。 |
 | `isMonitored` | 页面将资源显示为 **未监控** 时为 `false`；对分组而言，其下每个资源都如此时也是。此时其 `currentStatus` 为 `null`。 |
 
-当一段时间的监控器状态属于页面的 **计为停机时间** 状态之一时，这段时间计为停机。
+当一段时间的监视器状态属于页面的 **计为停机时间** 状态之一时，这段时间计为停机。
 
 ## 事件、片段、维护和公告
 

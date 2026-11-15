@@ -46,12 +46,12 @@ stateDiagram-v2
 
 ### Klick och dragningar
 
-- **I linje-, yt- och stapeldiagram är ett vanligt klick ingen zoom.** Det gäller de flesta diagram: måttkort och måttutforskaren, resursöversikter, SLO:er, övervakare och alla diagram på en instrumentpanel. Bara en dragning över flera buckets zoomar, så ett klick på en punkt, en stapel eller en förklaring gör fortfarande det det gjorde förut. Medan en zoom är aktiv får ett klick i diagrammets ritområde effekt ett ögonblick senare, så att det kan skiljas från dubbelklicket som återställer. Tidslinjen för felmönster i logginsikterna och ett undantags Occurrence Trend zoomar också bara vid dragning.
+- **I linje-, yt- och stapeldiagram är ett vanligt klick ingen zoom.** Det gäller de flesta diagram: måttkort och måttutforskaren, resursöversikter, SLO:er, monitorer och alla diagram på en instrumentpanel. Bara en dragning över flera buckets zoomar, så ett klick på en punkt, en stapel eller en förklaring gör fortfarande det det gjorde förut. Medan en zoom är aktiv får ett klick i diagrammets ritområde effekt ett ögonblick senare, så att det kan skiljas från dubbelklicket som återställer. Tidslinjen för felmönster i logginsikterna och ett undantags Occurrence Trend zoomar också bara vid dragning.
 - **I utforskarnas volymdiagram zoomar ett klick på en stapel in på den stapeln.** Volymdiagrammen i utforskarna för loggar, spår, undantag och säkerhetshändelser, samt analysdiagrammen för loggar och spår, zoomar in på staplarna du drar över, eller på den enda stapel du klickar på. De här diagrammen visar **Klicka eller dra för att zooma**.
 
 ### Tips på diagrammen
 
-De flesta diagram som zoomar anger gesten ovanför ritområdet, **Dra för att zooma** eller **Klicka eller dra för att zooma**, och lägger till påminnelsen **dubbelklicka för att återställa** medan en zoom är aktiv. Måttkort, måttutforskaren och utforskarnas volymdiagram visar alltid tipset. På diagramkorten i resursöversikter och SLO:er, och på vissa widgetar i instrumentpaneler, visas det bara medan du pekar på kortet eller tabbar in i det.
+De flesta diagram som zoomar anger gesten ovanför ritområdet, **Dra för att zooma** eller **Klicka eller dra för att zooma**, och lägger till påminnelsen **dubbelklicka för att återställa** medan en zoom är aktiv. Måttkort, måttutforskaren och utforskarnas volymdiagram visar alltid tipset. På diagramkorten i resursöversikter och SLO:er, och på vissa widgetar i instrumentpaneler, visas det bara medan du pekar på kortet eller tabbar in i det. På en telefon eller surfplatta visar mätvärdeskort och diagramkort inte tipset: Med ett finger går det inte att dra upp en zoomruta.
 
 ## Var det fungerar
 
@@ -60,16 +60,16 @@ Zoomning ändrar hela sidans intervall på:
 - resursöversikter och deras insiktssidor: Kubernetes-kluster, Docker-, Podman- och Docker Swarm-värdar, värdar och deras processer, tjänster och systemd-enheter, VMware, Proxmox, Ceph, lagringsmatriser, databaser, molnresurser och serverlösa funktioner;
 - tjänster och RUM-applikationer;
 - nätverksenheters mätvärden och trafik;
-- måttkort, inklusive en resurs flik Mätvärden och en övervakares mätvärden;
+- måttkort, inklusive en resurs flik Mätvärden och en monitors mätvärden;
 - måttutforskaren;
 - SLO-historikdiagram;
 - logginsikter, inklusive tidslinjen "När det hände" för ett felmönster, vars panel har en egen **Återställ zoom** eftersom den täcker sidans väljare;
 - volymdiagram för loggar, spår, undantag och säkerhetshändelser, samt analysdiagrammen för loggar och spår, som ändrar intervallet i utforskaren de hör till;
 - [instrumentpaneler](/docs/dashboards/authoring), där en dragning ändrar hela instrumentpanelens intervall.
 
-Diagram med ett eget fönster zoomar bara det fönstret och ändrar därför aldrig något annat på sidan. Det gäller en förhandsvisning av ett mått i en övervakares formulär (övervakaren fortsätter att utvärdera sitt eget rullande fönster), ett undantags Occurrence Trend, ett diagram som öppnats i ett popupfönster eller i undersökningspanelen och diagram i svar från AI-chatten. Ett dubbelklick på något av dem, eller dess knapp **Återställ zoom**, ställer tillbaka dess eget fönster.
+Diagram med ett eget fönster zoomar bara det fönstret och ändrar därför aldrig något annat på sidan. Det gäller en förhandsvisning av ett mått i en monitors formulär (monitorn fortsätter att utvärdera sitt eget rullande fönster), ett undantags Occurrence Trend, ett diagram som öppnats i ett popupfönster eller i undersökningspanelen och diagram i svar från AI-chatten. Ett dubbelklick på något av dem, eller dess knapp **Återställ zoom**, ställer tillbaka dess eget fönster.
 
-Telemetrikortet på en incidents, ett larms eller en episods sida har också ett eget tidsintervall, som du väljer i kortets tidsväljare, på vilken som helst av dess flikar: först intervallen kring händelsen (kring dess start, timmen eller dygnet innan den började, från dess start till nu eller till dess lösning, och det övervakaren såg), sedan intervall relativt till nu. Kortet börjar på det övervakaren såg när en övervakare av loggar, spår eller undantag öppnade händelsen, och på 30 minuter på var sida om dess start när en måttövervakare gjorde det; en incidents, ett larms eller en episods sida Rotorsak visar dess mätvärden på samma sätt. En dragning i kortets diagram (volymdiagrammet för loggar, spår eller undantag, eller ett måttdiagram) zoomar det intervallet, så att flikarna Mätvärden, Loggar, Spår och Undantag alla visar utsnittet du drog upp. **Återställ zoom** bredvid tidsväljaren, eller ett dubbelklick på det diagrammet, går tillbaka till intervallet du valde, och **Återställ** går tillbaka till där kortet började.
+Telemetrikortet på en incidents, ett larms eller en episods sida har också ett eget tidsintervall, som du väljer i kortets tidsväljare, på vilken som helst av dess flikar: först intervallen kring händelsen (kring dess start, timmen eller dygnet innan den började, från dess start till nu eller till dess lösning, och det monitorn såg), sedan intervall relativt till nu. Kortet börjar på det monitorn såg när en monitor av loggar, spår eller undantag öppnade händelsen, och på 30 minuter på var sida om dess start när en måttmonitor gjorde det; en incidents, ett larms eller en episods sida Rotorsak visar dess mätvärden på samma sätt. En dragning i kortets diagram (volymdiagrammet för loggar, spår eller undantag, eller ett måttdiagram) zoomar det intervallet, så att flikarna Mätvärden, Loggar, Spår och Undantag alla visar utsnittet du drog upp. **Återställ zoom** bredvid tidsväljaren, eller ett dubbelklick på det diagrammet, går tillbaka till intervallet du valde, och **Återställ** går tillbaka till där kortet började.
 
 ## Diagram utan zoom
 

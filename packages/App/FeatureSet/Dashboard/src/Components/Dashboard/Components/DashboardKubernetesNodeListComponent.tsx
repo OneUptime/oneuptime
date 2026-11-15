@@ -23,6 +23,7 @@ import {
   READINESS_LEGEND,
 } from "./DashboardKubernetesTileHelpers";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.node.name": "name",
@@ -110,7 +111,7 @@ function renderNodeRow(r: KubernetesResource): ReactElement {
       </td>
       <td className="px-3 py-2 text-xs">
         {pressures.length === 0 ? (
-          <span className="text-gray-400">—</span>
+          <TableEmptyValue isSmall={true} />
         ) : (
           <span
             className="inline-flex items-center px-1.5 py-0.5 rounded font-medium border"

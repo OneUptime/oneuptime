@@ -117,6 +117,23 @@ async function main() {
       fs.createReadStream(file).pipe(response);
       return;
     }
+    /*
+     * The Russian and French Dashboard words, read by the page when it is
+     * asked for them (?lang=ru|fr) rather than bundled: each is megabytes,
+     * and only the charts section reads them.
+     */
+    const locale = url.pathname.match(/^\/locales\/(ru|fr)\.json$/);
+    if (locale) {
+      response.setHeader("Content-Type", "application/json");
+      fs.createReadStream(
+        path.join(
+          repository,
+          "packages/App/FeatureSet/Dashboard/src/Locales",
+          `${locale[1]}.json`,
+        ),
+      ).pipe(response);
+      return;
+    }
     if (url.pathname === "/favicon.ico") {
       response.writeHead(204).end();
       return;

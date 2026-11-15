@@ -18,8 +18,8 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * names each break in the chain with a link to the page that fixes it, and
  * opens the chain link by link. The fixture answers GET /who-is-told/
  * monitor/:id as the resolver does
- * (?whoIsTold=pages|nobody|hidden|rules|gaps), its breaks worked out by the
- * same pure helper. Checked at 1440 and 390, in the dark theme, and in
+ * (?whoIsTold=pages|nobody|no-policy|hidden|rules|gaps), its breaks worked
+ * out by the same pure helper. Checked at 1440 and 390, in the dark theme, and in
  * German and Persian; screenshots go to output/playwright/monitor-overview-ui.
  *
  * Why the policy pages somebody, and which of its targets reach nobody,
@@ -145,7 +145,7 @@ async function readText(locator: Locator): Promise<string> {
 async function open(
   page: Page,
   options: {
-    whoIsTold?: "nobody" | "hidden" | "rules" | "gaps";
+    whoIsTold?: "nobody" | "no-policy" | "hidden" | "rules" | "gaps";
     theme?: "dark";
     lang?: "de" | "fa";
     width?: number;
@@ -415,6 +415,52 @@ test.describe("When this goes down", () => {
       brk.getByRole("link", { name: "Set Up Paging" }),
     ).toHaveAttribute("href", /\/incidents\/settings\/on-call-rules/);
     await shoot(card, "nobody-1440");
+  });
+
+  // #7369: with no on-call policy yet, a rule would have nothing to page.
+  test("a project with no on-call policy yet: Set Up Paging opens the on-call guided setup", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page, { whoIsTold: "no-policy" });
+
+    const brk: Locator = card.getByTestId("who-is-told-break");
+    await expect(brk).toHaveCount(1);
+    await expect(brk).toContainText(
+      "Nobody is paged: this project has no on-call policy yet.",
+    );
+    await expect(
+      brk.getByRole("link", { name: "Set Up Paging" }),
+    ).toHaveAttribute("href", /\/on-call-duty\/setup$/);
+    await shoot(card, "no-policy-1440");
+
+    const phone: Locator = await open(page, {
+      whoIsTold: "no-policy",
+      lang: "de",
+      width: 390,
+    });
+    await expect(phone.getByTestId("who-is-told-break")).not.toContainText(
+      "no on-call policy yet",
+    );
+    await expectNoSidewaysScroll(page);
+    await shoot(phone, "no-policy-390-de");
+  });
+
+  // #7528: the fallback's line lists what it picks, and says so.
+  test("somebody the fallback pages says so after the channels it picks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page);
+
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    await expect(card.getByTestId("who-is-told-fallback")).toHaveCount(1);
+    await expect(card.getByTestId("who-is-told-fallback")).toHaveText(
+      "Picked by the fallback: no on-call rule of theirs covers this severity",
+    );
+    await shoot(card, "fallback-1440");
   });
 
   test("a reader who may not see the policy learns paging is set up, and nothing of who", async ({

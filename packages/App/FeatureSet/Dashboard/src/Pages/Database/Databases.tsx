@@ -545,7 +545,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     to={route}
                     className="text-sm font-medium text-gray-900 break-words hover:underline"
                   >
-                    {(item.name as string) || "—"}
+                    {(item.name as string) || <TableEmptyValue />}
                   </AppLink>
                   {/*
                    * One line, cut with an ellipsis (full on hover): wrapped

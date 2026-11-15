@@ -1,6 +1,6 @@
 # Arkitektur
 
-En egeninstallerad OneUptime består av en handfull containrar: en ingress som varje begäran kommer in genom, en app-image som gör jobbet, prober som kör dina övervakares kontroller och tre datalager. Den här sidan visar hur de hänger ihop, vad var och en gör och vilka anslutningar som korsar ditt nätverk.
+En egeninstallerad OneUptime består av en handfull containrar: en ingress som varje begäran kommer in genom, en app-image som gör jobbet, prober som kör dina monitorers kontroller och tre datalager. Den här sidan visar hur de hänger ihop, vad var och en gör och vilka anslutningar som korsar ditt nätverk.
 
 ```mermaid title="En egeninstallerad OneUptime"
 flowchart TB
@@ -53,10 +53,10 @@ flowchart TB
 | App | `app` | `app` | Dashboard, statussidorna, API- och inmatningsslutpunkterna och, om du inte delar upp dem, bakgrundsjobben. |
 | Worker | En del av `app` | `worker` (av som standard) | Bakgrundsjobben i egna poddar, så att tung köbearbetning aldrig konkurrerar med API-begäranden. |
 | Telemetry writer | En del av `app` | `telemetryWriter` (av som standard) | En nivå med fast storlek som gör varje ClickHouse-insättning, så att insättningarna håller sig begränsade hur långt workers än skalar. |
-| Prob | `probe-1` | `probes` | Kör övervakarkontroller och skickar tillbaka resultaten. Varje medföljande prob är en global prob som alla projekt kan använda. |
+| Prob | `probe-1` | `probes` | Kör monitorkontroller och skickar tillbaka resultaten. Varje medföljande prob är en global prob som alla projekt kan använda. |
 | Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globala-runners): den kör JavaScript-stegen i alla projekt som inte väljer en egen Runner, vart och ett i en sandlåda som bara når internet, och OneUptime AI:s kodkorrigeringar i varje kodrepository som inte väljer någon. Den har sin egen nyckel och inget annat från servern. Bash-, SSH- och kubectl-steg körs på [Runners](/docs/runbooks/agents) som du installerar där de ska köras. |
-| PostgreSQL | `postgres` | `postgresql`, eller `postgresOperator.cnpg` | Projekt, övervakare, incidenter, användare och alla andra inställningar och tillstånd. |
-| ClickHouse | `clickhouse` | `clickhouse`, eller `clickhouseOperator.altinity` | Loggar, mätvärden, spår, undantag, profiler och övervakarloggar. |
+| PostgreSQL | `postgres` | `postgresql`, eller `postgresOperator.cnpg` | Projekt, monitorer, incidenter, användare och alla andra inställningar och tillstånd. |
+| ClickHouse | `clickhouse` | `clickhouse`, eller `clickhouseOperator.altinity` | Loggar, mätvärden, spår, undantag, profiler och monitorloggar. |
 | Valkey | `valkey` | `valkey` | Cachen, jobbköerna och kortlivat tillstånd som väntande push-kvitton. |
 
 Alla appens roller är samma image: Docker Compose kör dem i en enda `app`-container, och Helm-chartet kan köra worker och telemetry writer som egna deployments. Hur du dimensionerar varje nivå står i [Dimensionering och kapacitetsplanering](/docs/installation/sizing).

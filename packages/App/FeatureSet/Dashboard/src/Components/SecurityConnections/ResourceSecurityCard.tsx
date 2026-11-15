@@ -53,6 +53,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * THE WAY BACK: what Security Events says about one of the project's own
@@ -330,11 +331,7 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
         icon={IconProp.Fire}
         label={RESOURCE_SECURITY_RISK}
         value={
-          security.risk ? (
-            <RiskValue risk={security.risk} />
-          ) : (
-            <span className="text-gray-400">-</span>
-          )
+          security.risk ? <RiskValue risk={security.risk} /> : <EmptyValue />
         }
       />,
     );

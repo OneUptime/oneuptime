@@ -67,6 +67,7 @@ import {
   formatErrorRate,
   healthForErrorRate,
 } from "./TopologyMeta";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Drill-down for one Service Map edge. The edge row itself only stores the
@@ -560,11 +561,19 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
               </h3>
               <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
                 <span>
-                  {formatCallRate(rel.callCount!, props.metricsWindowSeconds)}
+                  {formatCallRate(
+                    rel.callCount!,
+                    props.metricsWindowSeconds,
+                    translator,
+                  )}
                 </span>
                 <span style={{ color: healthColor }}>
                   {translator.translateTemplate("{{rate}} errors", {
-                    rate: formatErrorRate(rel.callCount, rel.errorCount),
+                    rate: formatErrorRate(
+                      rel.callCount,
+                      rel.errorCount,
+                      translator,
+                    ),
                   })}
                 </span>
                 <span>
@@ -654,7 +663,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                       {translateString(
                         "Couldn't refresh — showing previously loaded data.",
                       ) || ""}{" "}
-                      {error}
+                      <ErrorInSentence message={error} />
                     </span>
                   </div>
                 ) : (

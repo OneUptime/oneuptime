@@ -85,6 +85,7 @@ import WhatsAppLogsTable from "../../../../App/FeatureSet/Dashboard/src/Componen
 import WorkspaceLogsTable from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/WorkspaceLogsTable";
 import ProjectUtil from "../../../UI/Utils/Project";
 import ObjectID from "../../../Types/ObjectID";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-000000000001",
@@ -197,7 +198,7 @@ describe("notification log tables", () => {
       test("still renders a dash for a log row with no user", () => {
         render(userColumn().getElement!({}));
 
-        expect(screen.getByText("-")).toBeInTheDocument();
+        expect(screen.getByText(EMPTY_VALUE_MARK)).toBeInTheDocument();
       });
     },
   );

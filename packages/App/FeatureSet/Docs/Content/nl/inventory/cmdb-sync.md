@@ -139,7 +139,7 @@ Hosts en netwerkapparaten worden met dezelfde gegevens beschreven, opgeslagen on
 | Gegeven | Sleutel | Bij een host | Bij een netwerkapparaat |
 | --- | --- | --- | --- |
 | Hostnaam | `host.name` | De naam van de host. Dat is de identiteit van de host, dus staat in `identifyingAttributes` | De eigen naam van het apparaat: zijn SNMP-`sysName`, anders de NetBIOS- of DNS-naam die de ontdekking vond. Nooit zijn IP-adres |
-| IP-adres | `host.ip` | Elk adres dat de collector meldt | Het adres dat OneUptime pollt, als het een IP-adres is, anders het adres waarnaar zijn probe die DNS-naam heeft omgezet |
+| IP-adres | `host.ip` | Elk adres dat de collector meldt | Het adres dat OneUptime pollt, als het een IP-adres is, anders het adres waarnaar zijn sonde die DNS-naam heeft omgezet |
 | MAC-adres | `host.mac` | Gedetecteerd | Op het apparaat ingevoerd, geleerd uit de ARP-tabel van een doorlopen router, of gelezen van de eigen poorten van het apparaat |
 | Serienummer | `host.serial_number` | Gestempeld | ENTITY-MIB, anders de eigen MIB van de leverancier |
 | Fabrikant | `device.manufacturer` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` of `sysObjectID` noemt |
@@ -189,7 +189,7 @@ Een netwerkapparaat (`entityType: network.device`) wordt gespiegeld uit zijn Net
 | Veld | Sleutel | Waar het vandaan komt |
 | --- | --- | --- |
 | Hostnaam | `host.name` | De eigen naam van het apparaat: zijn SNMP-`sysName`, anders de NetBIOS- of reverse-DNS-naam die de ontdekking vond. Weggelaten als alleen zijn IP-adres het benoemt |
-| IP-adres | `host.ip` | Het adres dat OneUptime pollt, als het een IP-adres is. Voor een apparaat dat op een DNS-naam wordt gepold, het adres waarnaar zijn probe die naam het laatst heeft omgezet |
+| IP-adres | `host.ip` | Het adres dat OneUptime pollt, als het een IP-adres is. Voor een apparaat dat op een DNS-naam wordt gepold, het adres waarnaar zijn sonde die naam het laatst heeft omgezet |
 | DNS-naam | `net.device.dns_name` | De reverse-DNS-naam die bij de ontdekking is gevonden, of de DNS-naam die OneUptime pollt |
 | MAC-adres | `host.mac` | Op het apparaat ingevoerd, of geleerd uit de ARP-tabel van een doorlopen router. Anders het MAC-adres van de eerste Ethernet-poort van het apparaat, zoals zijn SNMP-walk of een discovery-scan het leest |
 | Merk | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, anders de fabrikant die `sysDescr` noemt, anders de leverancier van de `sysObjectID` |
@@ -226,7 +226,7 @@ Datums in `customFields` zijn ISO-8601-tekenreeksen in UTC, en de CSV-export sch
 
 Er is geen wijzigingsfeed. Vraag het lijstendpoint op met het interval dat je uitkomt, en vergelijk op `entityKey`. `lastSeenAt` vertelt wanneer een item voor het laatst is waargenomen, wat meestal de goedkoopste manier is om te zien wat sinds je vorige ronde stil is geworden.
 
-Om een netwerkapparaat nu opnieuw te lezen, zonder op zijn volgende poll en de volgende kopie te wachten, klik je op **Vernieuwen** op de kaart **Assetgegevens** van zijn item, of stuur je `POST /api/network-device/{id}/refresh` met een sleutel die **Edit Network Device** heeft. Zijn probe pollt het binnen een minuut, zijn Meraki-koppeling leest de organisatie opnieuw, en zijn item wordt gekopieerd zodra de nieuwe leesbeurt binnen is.
+Om een netwerkapparaat nu opnieuw te lezen, zonder op zijn volgende poll en de volgende kopie te wachten, klik je op **Vernieuwen** op de kaart **Assetgegevens** van zijn item, of stuur je `POST /api/network-device/{id}/refresh` met een sleutel die **Edit Network Device** heeft. Zijn sonde pollt het binnen een minuut, zijn Meraki-koppeling leest de organisatie opnieuw, en zijn item wordt gekopieerd zodra de nieuwe leesbeurt binnen is.
 
 Een item dat tussen twee rondes verdwijnt, is ofwel verlopen (een ontdekt item dat langer stil bleef dan zijn venster), ofwel is het eigen record verwijderd. Een gespiegeld item dat waarden van aangepaste velden draagt, wordt gearchiveerd in plaats van verwijderd wanneer zijn record verdwijnt, dus vraag op met `"isArchived": true` om te zien wat buiten gebruik is gesteld zonder de bijbehorende assetgegevens kwijt te raken.
 

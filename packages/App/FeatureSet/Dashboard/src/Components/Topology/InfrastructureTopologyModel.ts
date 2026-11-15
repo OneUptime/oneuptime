@@ -25,7 +25,7 @@ import {
 } from "./TopologyMeta";
 import { countOfType, formatCountLine } from "./TopologyCounts";
 import { workloadNameForReplica } from "./WorkloadNaming";
-import { Translator } from "Common/Types/Translator";
+import { Translator, translationKey } from "Common/Types/Translator";
 
 /*
  * The Infrastructure view model: "what runs where", as a tree a person can
@@ -138,6 +138,13 @@ export function isContainerNode(node: InfrastructureNode): boolean {
 
 export interface InfrastructureCategory {
   id: string;
+  /*
+   * A key of the locale, drawn in the reader's words wherever the explorer
+   * names the category (its tree, its overview's headings, its breadcrumb).
+   * Marked with translationKey so npm run i18n:extract finds it: the
+   * explorer looks it up as t(category.name), which the extractor cannot
+   * read, and every language drew the categories in English (#7725).
+   */
   name: string;
 }
 
@@ -147,35 +154,42 @@ const CATEGORY_BY_INVENTORY_CATEGORY: Record<
 > = {
   [InventoryCategory.Kubernetes]: {
     id: "category:kubernetes",
-    name: "Kubernetes",
+    name: translationKey("Kubernetes"),
   },
   [InventoryCategory.Compute]: {
     id: "category:compute",
-    name: "Hosts & containers",
+    name: translationKey("Hosts & containers"),
   },
   [InventoryCategory.Clusters]: {
     id: "category:virtualization",
-    name: "Virtualization & clusters",
+    name: translationKey("Virtualization & clusters"),
   },
-  [InventoryCategory.Cloud]: { id: "category:cloud", name: "Cloud" },
+  [InventoryCategory.Cloud]: {
+    id: "category:cloud",
+    name: translationKey("Cloud"),
+  },
   [InventoryCategory.Network]: {
     id: "category:network",
-    name: "Network & devices",
+    name: translationKey("Network & devices"),
   },
   [InventoryCategory.External]: {
     id: "category:external",
-    name: "External",
+    name: translationKey("External"),
   },
   [InventoryCategory.Applications]: {
     id: "category:applications",
-    name: "Applications",
+    name: translationKey("Applications"),
   },
 };
 
 const OTHER_CATEGORY: InfrastructureCategory = {
   id: "category:other",
-  name: "Other",
+  name: translationKey("Other"),
 };
+
+// Every category the explorer can name.
+export const INFRASTRUCTURE_CATEGORIES: ReadonlyArray<InfrastructureCategory> =
+  [...Object.values(CATEGORY_BY_INVENTORY_CATEGORY), OTHER_CATEGORY];
 
 const CATEGORY_ORDER: Array<string> = [
   "category:kubernetes",

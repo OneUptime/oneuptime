@@ -35,7 +35,7 @@ flowchart LR
 | 运行手册 | OneUptime 运行的运行手册在开始后完成、失败或被取消 | `runbook` |
 | 云变更 | 已连接云账户的活动日志记录了一项变更：AWS CloudTrail、Azure 活动日志或 Google Cloud 的 Admin Activity 审核日志 | `cloud` |
 | 提供商事件 | 云提供商发布了关于该账户的健康事件：AWS Health、Azure Service Health 或 Resource Health，或 Google Cloud Service Health | `cloud-health` |
-| OpenStack 变更 | OpenStack 云自身的通知说明了其某个部分发生了什么，或者探测对 Nova 的读取说明了：参见[生命周期事件](/docs/telemetry/openstack#生命周期事件) | `openstack` |
+| OpenStack 变更 | OpenStack 云自身的通知说明了其某个部分发生了什么，或者探测器对 Nova 的读取说明了：参见[生命周期事件](/docs/telemetry/openstack#生命周期事件) | `openstack` |
 
 - **服务上报的第一个版本是它的基线，而不是一次部署。** 一个已经运行了数月的服务，并不是在 OneUptime 开始接收其遥测数据的那一刻才部署的。
 - **回滚到过去 30 天内出现过的版本不会被记录，** 因为那个版本并不新。OneUptime AI 执行的回滚会作为修复被记录。
@@ -120,7 +120,7 @@ OneUptime 根据这些数字判断哪个变更是可疑变更，而不是根据�
 
 无论是否有人被呼叫，OneUptime 还会自行检查每一次部署。部署之后的 30 分钟过去后，它会按相同的阈值把这 30 分钟与部署之前的 30 分钟进行比较；如果服务变差了，一条 [AI 洞察](/docs/ai/ai-sre#洞察主动检测) 会指出该服务上的这次部署。
 
-OneUptime AI 打开的修复拉取请求也会以同样的方式检查：一旦某次已记录的部署包含了它的提交，OneUptime 就会在那里观察修复的目标——异常、它加快的操作、事件或告警背后的监控器、它新增的遥测——并说明修复是否奏效（参见 [自动代码修复](/docs/ai/ai-sre#自动代码修复)）。只有当服务自身的遥测报告了部署版本时，才会按该版本读取已部署的修复，否则从部署后 10 分钟、旧实例停止之后开始读取。
+OneUptime AI 打开的修复拉取请求也会以同样的方式检查：一旦某次已记录的部署包含了它的提交，OneUptime 就会在那里观察修复的目标——异常、它加快的操作、事件或告警背后的监视器、它新增的遥测——并说明修复是否奏效（参见 [自动代码修复](/docs/ai/ai-sre#自动代码修复)）。只有当服务自身的遥测报告了部署版本时，才会按该版本读取已部署的修复，否则从部署后 10 分钟、旧实例停止之后开始读取。
 
 在调查中以及在 [询问 AI](/docs/ai/ask-ai) 中，`recent_changes` 会列出任意时间窗口内的变更，`get_change_details` 会显示一次部署发布了什么：自该服务上一次部署以来的提交、它们的作者、拉取请求，以及它们改动的文件。这需要变更上带有提交，并且其仓库已在代码中连接：通过 [GitHub App](/docs/ai/github-app)，或通过 GitLab、Forgejo 或 Gitea 连接（请参阅 [连接存储库](/docs/ai/ai-agent#连接存储库)）。
 

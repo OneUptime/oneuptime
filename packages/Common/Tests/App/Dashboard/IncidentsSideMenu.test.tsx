@@ -185,7 +185,8 @@ describe("Incidents side menu", () => {
 
       /*
        * Postmortems sits with the lists of incidents: every incident's
-       * postmortem, across the project.
+       * postmortem, across the project - and after it what the postmortems
+       * say the team will do, their action items (#6801).
        */
       expect(linksIn("Overview")).toEqual([
         { title: "All Incidents", href: routeFor(PageMap.INCIDENTS) },
@@ -196,6 +197,10 @@ describe("Incidents side menu", () => {
         {
           title: "Postmortems",
           href: routeFor(PageMap.INCIDENT_POSTMORTEMS),
+        },
+        {
+          title: "Action Items",
+          href: routeFor(PageMap.INCIDENT_ACTION_ITEMS),
         },
       ]);
 

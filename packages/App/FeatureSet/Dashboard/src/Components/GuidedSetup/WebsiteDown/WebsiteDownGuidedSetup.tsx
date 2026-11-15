@@ -2,6 +2,8 @@ import WebsiteDownApi, {
   FirstCheckState,
   WebsiteDownMonitorRecord,
   WebsiteDownPolicyRecord,
+  isPaymentRequired,
+  mayAddPaymentMethod,
   mayCreateMonitor,
 } from "./WebsiteDownApi";
 import {
@@ -21,9 +23,13 @@ import {
   describeFirstCheck,
   getIncidentSeverityId,
   getMonitorAddress,
+  getPaymentNeededText,
   getWebsiteDownProgress,
   getWebsiteDownSummaryRows,
+  getWhoIsToldDoneLine,
+  getWhoIsToldHelp,
   getWhoIsToldMode,
+  isFirstCheckSettled,
   isWebsiteDownFinished,
   parseWebsiteAddress,
 } from "./WebsiteDownSetup";
@@ -76,6 +82,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * GUIDED SETUP: KNOW WHEN MY WEBSITE OR API IS DOWN (issue #6804), drawn
@@ -157,6 +164,16 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const [saveError, setSaveError] = useState<string>("");
   // The address was one this person's monitor checks already (#7059).
   const [isExistingMonitor, setIsExistingMonitor] = useState<boolean>(false);
+  /*
+   * Cloud's Free plan with no payment method: the server would refuse the
+   * monitor, so the step says so before Start checking (#7367).
+   */
+  const [needsPayment, setNeedsPayment] = useState<boolean>(false);
+  /*
+   * Whether this person owns the run's monitor, read from the records (the
+   * setup makes them one when the server does not, #7409). Null until read.
+   */
+  const [isOwner, setIsOwner] = useState<boolean | null>(null);
 
   // Step 2's people: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
@@ -260,14 +277,31 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         });
       }
 
-      const loadedWhoFacts: WhoIsToldFacts =
-        await WebsiteDownApi.loadWhoIsToldFacts();
+      const [loadedWhoFacts, loadedIsOwner, loadedNeedsPayment]: [
+        WhoIsToldFacts,
+        boolean | null,
+        boolean,
+      ] = await Promise.all([
+        WebsiteDownApi.loadWhoIsToldFacts(),
+        loadedMonitor
+          ? WebsiteDownApi.isMonitorOwner({
+              monitorId: loadedMonitor.id,
+              userId: userId,
+            })
+          : Promise.resolve(null),
+        // Step 1 is the one to do: is a payment method needed first?
+        loadedMonitor
+          ? Promise.resolve(false)
+          : WebsiteDownApi.needsPaymentMethod(),
+      ]);
 
       if (!isActive) {
         return;
       }
 
       setRun(nextRun);
+      setIsOwner(loadedIsOwner);
+      setNeedsPayment(loadedNeedsPayment);
       setMonitor(loadedMonitor);
       setPolicy(loadedPolicy);
       setTestResult(loadedResult);
@@ -328,9 +362,14 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         setCheck(next);
       }
 
-      const hasAnswer: boolean = Boolean(next && next.answers.length > 0);
+      /*
+       * Asked again until every location that checks it has answered: with
+       * one answer in, what the rest find decides whether an incident
+       * opens (#7410).
+       */
+      const isSettled: boolean = Boolean(next && isFirstCheckSettled(next));
 
-      if (!hasAnswer && attempts < FIRST_CHECK_POLL_LIMIT) {
+      if (!isSettled && attempts < FIRST_CHECK_POLL_LIMIT) {
         timer = setTimeout(
           read,
           props.firstCheckPollIntervalInMs || FIRST_CHECK_POLL_INTERVAL_IN_MS,
@@ -338,6 +377,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       }
     };
 
+    // Nothing is read for this monitor yet: "Checking", never "No location".
+    setCheck(null);
     void read();
 
     return () => {
@@ -348,6 +389,33 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       }
     };
   }, [monitor?.id]);
+
+  /*
+   * Back from adding a payment method in another tab: asked again, so the
+   * step stops asking for one as soon as the project has it (#7367).
+   */
+  useEffect(() => {
+    if (!needsPayment || monitor) {
+      return;
+    }
+
+    let isActive: boolean = true;
+
+    const askAgain: () => void = (): void => {
+      void WebsiteDownApi.needsPaymentMethod().then((value: boolean) => {
+        if (isActive) {
+          setNeedsPayment(value);
+        }
+      });
+    };
+
+    window.addEventListener("focus", askAgain);
+
+    return () => {
+      isActive = false;
+      window.removeEventListener("focus", askAgain);
+    };
+  }, [needsPayment, monitor?.id]);
 
   // The summary's facts, read once every step is done.
   useEffect(() => {
@@ -421,8 +489,13 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     ? describeFirstCheck({
         translator: translator,
         host: host,
+        // Until the first read returns, it is checking: never "no location".
+        isRead: check !== null,
         locationCount: check?.locationCount ?? 0,
+        activeLocationCount: check?.activeLocationCount,
         answers: check?.answers || [],
+        minimumProbeAgreement: monitor.minimumProbeAgreement,
+        opensIncident: getIncidentSeverityId(monitor.monitorSteps) !== null,
       })
     : null;
 
@@ -493,25 +566,90 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           userId: userId,
         });
 
+      const monitorId: string = existing
+        ? existing.id
+        : await WebsiteDownApi.createMonitor({
+            address: address,
+            isApi: isApi,
+            translator: translator,
+          });
+
+      saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
+      setNeedsPayment(false);
+
+      /*
+       * The person setting this up owns the monitor, so the next step's
+       * "you are emailed when it goes down" holds - a master admin too,
+       * whom the server never makes the owner of what they create (#7409).
+       */
+      setIsOwner(
+        await WebsiteDownApi.ensureMonitorOwner({
+          monitorId: monitorId,
+          userId: userId,
+        }),
+      );
+
       if (existing) {
-        saveRun({ [WebsiteDownRunValue.MonitorId]: existing.id });
         setIsExistingMonitor(true);
         setMonitor(existing);
       } else {
-        const monitorId: string = await WebsiteDownApi.createMonitor({
-          address: address,
-          isApi: isApi,
-          translator: translator,
-        });
-        saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
         setMonitor(await WebsiteDownApi.loadMonitor(monitorId));
       }
     } catch (err) {
-      setSaveError(API.getFriendlyMessage(err));
+      if (isPaymentRequired(err)) {
+        // Said with where to add one, not as the server's line in red (#7367).
+        setNeedsPayment(true);
+      } else {
+        setSaveError(API.getFriendlyMessage(err));
+      }
     }
 
     setIsSaving(false);
   };
+
+  // Before Start checking, on Cloud's Free plan with no payment method (#7367).
+  const paymentNotice: ReactElement = needsPayment ? (
+    <div data-testid="guided-setup-payment-needed">
+      <Alert
+        type={AlertType.WARNING}
+        title={getPaymentNeededText({
+          translator: translator,
+          mayAddPaymentMethod: mayAddPaymentMethod(),
+        })}
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        {mayAddPaymentMethod() ? (
+          /*
+           * In a new tab: the address typed here stays, and the step asks
+           * again when the person comes back to it.
+           */
+          <a
+            href={routeOf(PageMap.SETTINGS_BILLING).toString()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClassName}
+            data-testid="guided-setup-add-payment-method"
+          >
+            {translator.translateText(WEBSITE_DOWN_COPY.addPaymentMethod)}
+          </a>
+        ) : (
+          <></>
+        )}
+        <button
+          type="button"
+          className={linkClassName}
+          data-testid="guided-setup-check-payment-again"
+          onClick={() => {
+            void WebsiteDownApi.needsPaymentMethod().then(setNeedsPayment);
+          }}
+        >
+          {translator.translateText(WEBSITE_DOWN_COPY.checkPaymentAgain)}
+        </button>
+      </div>
+    </div>
+  ) : (
+    <></>
+  );
 
   /*
    * A monitor found rather than made says so first, then what its check
@@ -540,6 +678,22 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       >
         {checkSentence?.text}
       </p>
+      {/*
+       * What the answers mean under the probe agreement rule, a line of its
+       * own (#7410): the line above can end with a probe's reason as it
+       * wrote it.
+       */}
+      {checkSentence?.verdict ? (
+        <p
+          className="break-words text-sm text-gray-700"
+          data-testid="guided-setup-first-check-verdict"
+          aria-live="polite"
+        >
+          {checkSentence.verdict}
+        </p>
+      ) : (
+        <></>
+      )}
       <div className={ACTIONS_CLASS_NAME}>
         <Button
           title={WEBSITE_DOWN_COPY.continueButton}
@@ -562,6 +716,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       <p className="text-sm text-gray-500">
         {translator.translateText(WEBSITE_DOWN_COPY.checkHelp)}
       </p>
+      {paymentNotice}
       <div>
         <label
           htmlFor="guided-setup-address"
@@ -595,7 +750,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       />
       {saveError ? (
         <p role="alert" className="text-sm text-red-600">
-          {saveError}
+          <ErrorInSentence message={saveError} showWhereToLook={true} />
         </p>
       ) : (
         <></>
@@ -703,12 +858,17 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       : translator.translateTemplate('"{{policy}}" pages its responders.', {
           policy: policy.name,
         })
-    : mode === WhoIsToldMode.ExistingPolicy
-      ? translator.translateText(
-          "This project's on-call policies and rules decide who is paged.",
-        ) || ""
-      : translator.translateText("You are emailed as the monitor's owner.") ||
-        "";
+    : getWhoIsToldDoneLine({
+        translator: translator,
+        mode: mode,
+        isMonitorOwner: isOwner,
+      });
+
+  // Who is told without a policy of this run: as the owner, only when they are.
+  const whoHelp: string | null = getWhoIsToldHelp({
+    mode: mode,
+    isMonitorOwner: isOwner,
+  });
 
   const whoContent: ReactElement = (
     <div className="space-y-4">
@@ -760,16 +920,16 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          <p
-            className="text-sm text-gray-700"
-            data-testid="guided-setup-who-help"
-          >
-            {translator.translateText(
-              mode === WhoIsToldMode.ExistingPolicy
-                ? WEBSITE_DOWN_COPY.whoExistingHelp
-                : WEBSITE_DOWN_COPY.whoOwnerOnlyHelp,
-            )}
-          </p>
+          {whoHelp ? (
+            <p
+              className="text-sm text-gray-700"
+              data-testid="guided-setup-who-help"
+            >
+              {translator.translateText(whoHelp)}
+            </p>
+          ) : (
+            <></>
+          )}
           {mode === WhoIsToldMode.ExistingPolicy ? (
             <AppLink
               to={routeOf(PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES)}
@@ -786,7 +946,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       {emailWarning}
       {saveError ? (
         <p role="alert" className="text-sm text-red-600">
-          {saveError}
+          <ErrorInSentence message={saveError} showWhereToLook={true} />
         </p>
       ) : (
         <></>
@@ -947,6 +1107,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             translator,
           ),
           locationCount: check?.locationCount ?? 0,
+          activeLocationCount: check?.activeLocationCount,
+          minimumProbeAgreement: monitor.minimumProbeAgreement,
           incidentSeverityName: summaryExtras.incidentSeverityName,
           mode: mode,
           policyName: policy?.name || null,
@@ -1038,6 +1200,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             setIsExistingMonitor(false);
             setIsPolicyMadeElsewhere(false);
             setShowNotReceivedHelp(false);
+            setIsOwner(null);
             setOpenStepKey(WebsiteDownStep.Check);
             // The project may have a policy now: who is told is asked afresh.
             WebsiteDownApi.loadWhoIsToldFacts()
@@ -1045,6 +1208,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
               .catch(() => {
                 setWhoFacts(null);
               });
+            // And whether a new monitor needs a payment method first.
+            void WebsiteDownApi.needsPaymentMethod().then(setNeedsPayment);
           }}
         />
       </div>

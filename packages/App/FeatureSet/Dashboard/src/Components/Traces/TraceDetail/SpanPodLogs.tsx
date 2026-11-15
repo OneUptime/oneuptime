@@ -50,6 +50,7 @@ import {
   mergePodLogReads,
 } from "../../../Utils/TracePodLogs";
 import ExceptionSegmentedControl from "../../Exceptions/ExceptionSegmentedControl";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   podEntityKey: string;
@@ -288,7 +289,7 @@ const SpanPodLogs: FunctionComponent<ComponentProps> = (
           className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700"
           role="alert"
         >
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </div>
       );
     }

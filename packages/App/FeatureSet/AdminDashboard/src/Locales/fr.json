@@ -94,7 +94,8 @@
     "versionModalTitle": "Version OneUptime",
     "versionLabel": "Version",
     "commitLabel": "Commit",
-    "versionUnavailable": "Les données de version ne sont pas disponibles"
+    "versionUnavailable": "Les données de version ne sont pas disponibles",
+    "versionUnavailableWithError": "Les données de version ne sont pas disponibles : {{error}}"
   },
   "navbar": {
     "users": "Utilisateurs",
@@ -1260,7 +1261,7 @@
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Laissez vide pour envoyer ce qui est enregistré à partir de maintenant. Une date antérieure envoie aussi les entrées encore conservées depuis.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Modifiez-la pour renvoyer chaque entrée conservée depuis cette date, puis continuer. Les entrées déjà livrées peuvent arriver deux fois.",
   "Record version": "Version de l'enregistrement",
-  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "La version 2 indique aussi ce qui a changé dans les étapes d'un workflow et dans le JSON. La version 1 est l'enregistrement d'origine, pour les lecteurs conçus pour elle.",
+  "Version 2 also says what changed in a workflow's steps and in JSON. Version 1 is the original record, for readers built for it.": "La version 2 indique aussi ce qui a changé dans les étapes d'un flux de travail et dans le JSON. La version 1 est l'enregistrement d'origine, pour les lecteurs conçus pour elle.",
   "Version 2 (newest)": "Version 2 (la plus récente)",
   "Version 1 (original)": "Version 1 (d'origine)",
   "Unchanged": "Inchangé",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "Filtrer par {{field}}",
   "Something went wrong. Please try again.": "Une erreur s'est produite. Veuillez réessayer.",
   "More actions": "Plus d'actions",
-  "More actions for": "Plus d'actions pour",
+  "More actions for {{name}}": "Plus d'actions pour {{name}}",
+  "Clear {{filter}} filter": "Effacer le filtre {{filter}}",
+  "Clear {{filter}}": "Effacer {{filter}}",
   "Delete Error": "Erreur de suppression",
   "Refresh?": "Actualiser ?",
   "Updated": "Mis à jour",
@@ -2169,7 +2172,7 @@
   "Add a valid license to turn SCIM provisioning and audit logging back on and make enterprise configuration editable.": "Ajoutez une licence valide pour réactiver le provisionnement SCIM et la journalisation d'audit et rendre la configuration enterprise modifiable.",
   "Licensed through your cloud marketplace subscription: every user is billed by the hour.": "Licence obtenue via votre abonnement à la place de marché cloud : chaque utilisateur est facturé à l'heure.",
   "License, version, seat usage, and the instances covered by this key.": "Licence, version, utilisation des sièges et instances couvertes par cette clé.",
-  "Full OneUptime platform with incident response, status pages, and workflow automation.": "La plateforme OneUptime complète avec la réponse aux incidents, les pages de statut et l'automatisation des workflows.",
+  "Full OneUptime platform with incident response, status pages, and workflow automation.": "La plateforme OneUptime complète avec la réponse aux incidents, les pages de statut et l'automatisation des flux de travail.",
   "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "Authentification unique (SSO) SAML et OIDC pour les projets, les pages de statut et toute l'instance, y compris « Exiger le SSO pour la connexion ».",
   "Community support, documentation, and tutorials to help teams get started quickly.": "Support communautaire, documentation et tutoriels pour aider les équipes à démarrer rapidement.",
   "Regular updates, bug fixes, and open-source extensibility.": "Mises à jour régulières, corrections de bugs et extensibilité open source.",

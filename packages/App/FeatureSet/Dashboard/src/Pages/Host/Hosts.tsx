@@ -148,12 +148,12 @@ export const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
   const restListId: string = `host-ip-addresses-${useId()}`;
 
   if (!props.ipString) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const ips: Array<string> = parseIpString(props.ipString);
   if (ips.length === 0) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const sorted: Array<string> = [...ips].sort(
@@ -541,7 +541,11 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       to={route}
                       className="text-sm font-medium text-gray-900 hover:underline"
                     >
-                      {name ? <BreakableName text={name} /> : "—"}
+                      {name ? (
+                        <BreakableName text={name} />
+                      ) : (
+                        <TableEmptyValue />
+                      )}
                     </AppLink>
                   </div>
                   {showId && (

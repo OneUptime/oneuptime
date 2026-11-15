@@ -49,12 +49,12 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
                   props.serverMonitorResponse.basicInfrastructureMetrics
                     .cpuMetrics.percentUsed,
                 ).toString()
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
           title="CPU Cores"
-          value={cpuCores !== undefined ? cpuCores.toString() : "-"}
+          value={cpuCores !== undefined ? cpuCores.toString() : undefined}
         />
       </SummaryFacts>
     );
@@ -71,7 +71,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
                   props.serverMonitorResponse.basicInfrastructureMetrics
                     .memoryMetrics.total,
                 ).toString()
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -82,7 +82,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
                   props.serverMonitorResponse.basicInfrastructureMetrics
                     .memoryMetrics.percentUsed,
                 ).toString()
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -93,7 +93,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
                   props.serverMonitorResponse.basicInfrastructureMetrics
                     .memoryMetrics.percentFree,
                 ).toString()
-              : "-"
+              : undefined
           }
         />
       </SummaryFacts>
@@ -128,7 +128,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
                   value={
                     diskMetric.total.toString()
                       ? MemoryUtil.convertToGb(diskMetric.total).toString()
-                      : "-"
+                      : undefined
                   }
                 />
                 <SummaryFact
@@ -138,7 +138,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
                       ? NumberUtil.convertToTwoDecimalPlaces(
                           diskMetric.percentUsed,
                         ).toString()
-                      : "-"
+                      : undefined
                   }
                 />
                 <SummaryFact
@@ -148,7 +148,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
                       ? NumberUtil.convertToTwoDecimalPlaces(
                           diskMetric.percentFree,
                         ).toString()
-                      : "-"
+                      : undefined
                   }
                 />
               </SummaryFacts>
@@ -179,7 +179,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
       <SummaryFacts>
         <SummaryFact
           title="Hostname"
-          value={props.serverMonitorResponse?.hostname || "-"}
+          value={props.serverMonitorResponse?.hostname}
         />
         <SummaryFact
           title="Last Ping At"
@@ -188,7 +188,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.serverMonitorResponse.requestReceivedAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {props.serverMonitorResponse.failureCause ? (

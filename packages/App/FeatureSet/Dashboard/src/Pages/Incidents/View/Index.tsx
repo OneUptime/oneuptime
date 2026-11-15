@@ -165,6 +165,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 interface AIInvestigationStatusState {
   subjectId: string;
@@ -1836,7 +1837,7 @@ const IncidentView: FunctionComponent<
                   fieldType: FieldType.Element,
                   getElement: (item: Incident): ReactElement => {
                     if (!item.incidentNumber) {
-                      return <>-</>;
+                      return <EmptyValue />;
                     }
 
                     return (

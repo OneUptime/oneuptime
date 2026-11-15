@@ -62,6 +62,7 @@ import React, {
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export const ERROR_BUDGET_POLICY_TABLE_ID: string =
   "slo-error-budget-policy-table";
@@ -377,7 +378,7 @@ const SloErrorBudgetPolicy: FunctionComponent<
               );
 
               if (!threshold) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
 
               return (
@@ -401,7 +402,7 @@ const SloErrorBudgetPolicy: FunctionComponent<
               item: ServiceLevelObjectiveErrorBudgetPolicyTier,
             ): ReactElement => {
               if (!item.whatWeDo) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
 
               // Kept to its first lines: the whole of it is in the tier's form.

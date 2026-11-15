@@ -1406,6 +1406,12 @@ enum Permission {
   DeleteIncidentInternalNote = "DeleteIncidentInternalNote",
   ReadIncidentInternalNote = "ReadIncidentInternalNote",
 
+  // Postmortem Action Items (what a postmortem says the team will do, and who does it)
+  CreateIncidentPostmortemActionItem = "CreateIncidentPostmortemActionItem",
+  EditIncidentPostmortemActionItem = "EditIncidentPostmortemActionItem",
+  DeleteIncidentPostmortemActionItem = "DeleteIncidentPostmortemActionItem",
+  ReadIncidentPostmortemActionItem = "ReadIncidentPostmortemActionItem",
+
   CreateAlertInternalNote = "CreateAlertInternalNote",
   EditAlertInternalNote = "EditAlertInternalNote",
   DeleteAlertInternalNote = "DeleteAlertInternalNote",
@@ -2023,6 +2029,15 @@ enum Permission {
   EditService = "EditService",
   ReadService = "ReadService",
 
+  /*
+   * Retired: they guarded the links between a service and its telemetry
+   * services (the ServiceTelemetryService model), which went when telemetry
+   * came to name its service directly. No model, API or page checks them, so
+   * they are not offered (isAssignableToTenant: false), and the migration
+   * RemoveServiceTelemetryLinkPermissions took them from every team, API key
+   * and custom role. The values stay, so a permission an API call still
+   * sends parses and shows its title.
+   */
   CreateServiceTelemetryService = "CreateServiceTelemetryService",
   DeleteServiceTelemetryService = "DeleteServiceTelemetryService",
   EditServiceTelemetryService = "EditServiceTelemetryService",
@@ -6408,6 +6423,48 @@ export class PermissionHelper {
         title: "Read Incident Internal Note",
         description:
           "This permission can read Incident Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Postmortem Action Item Permissions
+      {
+        permission: Permission.CreateIncidentPostmortemActionItem,
+        title: "Create Postmortem Action Item",
+        description:
+          "This permission can add action items to the postmortems of incidents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentPostmortemActionItem,
+        title: "Delete Postmortem Action Item",
+        description:
+          "This permission can delete action items of the postmortems of incidents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentPostmortemActionItem,
+        title: "Edit Postmortem Action Item",
+        description:
+          "This permission can edit action items of the postmortems of incidents of this project: rename them, give them an owner and a due date, and mark them done.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentPostmortemActionItem,
+        title: "Read Postmortem Action Item",
+        description:
+          "This permission can read action items of the postmortems of incidents of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13546,12 +13603,17 @@ export class PermissionHelper {
         group: PermissionGroup.ServiceCatalog,
       },
 
+      /*
+       * Retired (see the enum): nothing checks them, so a team, an API key
+       * or a custom role is never offered them. Their props stay so a stored
+       * or sent value still has a title.
+       */
       {
         permission: Permission.CreateServiceTelemetryService,
         title: "Create Service Telemetry Link",
         description:
-          "This permission can create the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
@@ -13560,8 +13622,8 @@ export class PermissionHelper {
         permission: Permission.DeleteServiceTelemetryService,
         title: "Delete Service Telemetry Link",
         description:
-          "This permission can delete the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
@@ -13570,8 +13632,8 @@ export class PermissionHelper {
         permission: Permission.EditServiceTelemetryService,
         title: "Edit Service Telemetry Link",
         description:
-          "This permission can edit the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
@@ -13580,8 +13642,8 @@ export class PermissionHelper {
         permission: Permission.ReadServiceTelemetryService,
         title: "Read Service Telemetry Link",
         description:
-          "This permission can read the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,

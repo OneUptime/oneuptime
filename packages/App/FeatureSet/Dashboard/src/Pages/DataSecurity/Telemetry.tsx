@@ -70,6 +70,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * IS SENSITIVE DATA LEAKING INTO YOUR TELEMETRY?
@@ -414,7 +415,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
                 getDataStoreKindInfo(kind);
 
               if (!storeId) {
-                return <span className="text-sm text-gray-400">-</span>;
+                return <TableEmptyValue />;
               }
 
               /*
@@ -466,7 +467,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
                 getDataStoreKindInfo(kind);
 
               if (!kind) {
-                return <span className="text-sm text-gray-400">-</span>;
+                return <TableEmptyValue />;
               }
 
               return (

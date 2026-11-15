@@ -169,6 +169,7 @@ L'exécution reste sur la page **Runbooks** de l'incident. Quand vous rédigez l
 - Les **[politiques d'astreinte](/docs/on-call/schedules)** décident qui est alerté. Les runbooks décident de ce que cette personne fait une fois réveillée.
 - Les **[connexions d'espace de travail](/docs/workspace-connections/slack)** comme Slack et Microsoft Teams sont des cibles naturelles pour des étapes de requête HTTP qui publient des mises à jour.
 - Les **[pages de statut](/docs/status-pages/index)** sont souvent mises à jour par une étape Manual d'un runbook orienté client.
+- **[OneUptime AI](/docs/ai/ai-sre#enregistrer-comme-runbook-un-correctif-qui-a-fonctionné)** rédige un runbook à partir d'un de ses propres correctifs qui a fonctionné : **Enregistrer comme runbook** sur un correctif vérifié enregistre les étapes exécutées dans un runbook désactivé jusqu'à ce que vous l'ayez relu.
 
 ## Prochaines étapes
 

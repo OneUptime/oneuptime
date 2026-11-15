@@ -71,6 +71,7 @@ import usePostmortemStatuses, {
 } from "../../../Components/Postmortem/usePostmortemStatuses";
 import useAiOffered from "../../../Utils/UseAiOffered";
 import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
+import PostmortemActionItems from "../../../Components/Postmortem/ActionItems/PostmortemActionItems";
 
 // Whether the postmortem is on the status page, and so what it says there.
 const isPublished: (item: Incident) => boolean = (item: Incident): boolean => {
@@ -93,6 +94,9 @@ const isPublished: (item: Incident) => boolean = (item: Incident): boolean => {
  *   the AI draft fold into its ⋯ - they replace the note, which is rarely
  *   what a written postmortem needs. Publishing on the status page stays the
  *   editor's second step.
+ *
+ * Under the card, its Action Items (#6801): what the team will do, tracked,
+ * and the items the note lists that are not tracked yet, to track at once.
  */
 const IncidentPostmortem: FunctionComponent<
   PageComponentProps
@@ -121,6 +125,11 @@ const IncidentPostmortem: FunctionComponent<
    * card offers depends on it. Null until the incident is read.
    */
   const [hasNote, setHasNote] = useState<boolean | null>(null);
+  /*
+   * The note as it is stored, for the action items under the card: the ones
+   * it lists that are not tracked yet are offered to track.
+   */
+  const [note, setNote] = useState<string>("");
   /*
    * The note a template or AI wrote, while the postmortem's editor is open
    * on it. Everything else in that editor is what the incident holds.
@@ -333,6 +342,7 @@ const IncidentPostmortem: FunctionComponent<
             setHasNote(
               IncidentPostmortemPublication.hasNote(item.postmortemNote),
             );
+            setNote(item.postmortemNote || "");
           },
           /*
            * Where it stands and who owns it, then the write-up and its
@@ -544,6 +554,16 @@ const IncidentPostmortem: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      {/*
+       * What the postmortem says the team will do, tracked: each with its
+       * owner and due date, and what it became (#6801).
+       */}
+      <PostmortemActionItems
+        incidentId={modelId}
+        postmortemNote={note}
+        refreshToken={String(refreshToggle)}
       />
 
       {error ? (

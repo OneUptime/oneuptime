@@ -79,7 +79,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 
 ### 全局 Runner 从哪里来
 
-在 OneUptime Cloud 上，由 OneUptime 运行它们。自托管安装默认运行一个自己的全局 Runner，就像它运行自己的全局探针一样：Docker Compose 中的 `global-runner` 服务，以及 Helm chart 中的 `globalRunner` 部署。它持有自己的密钥 `GLOBAL_RUNNER_KEY`，不持有服务器的任何其他东西。
+在 OneUptime Cloud 上，由 OneUptime 运行它们。自托管安装默认运行一个自己的全局 Runner，就像它运行自己的全局探测器一样：Docker Compose 中的 `global-runner` 服务，以及 Helm chart 中的 `globalRunner` 部署。它持有自己的密钥 `GLOBAL_RUNNER_KEY`，不持有服务器的任何其他东西。
 
 主管理员可以添加更多全局 Runner，以便从其他主机运行步骤和代码修复：在 Admin Dashboard 中依次打开 **设置** 、 **全局 Runner** ，创建一个，然后在可以访问互联网的主机上运行其 **显示 ID 和密钥** 给出的命令。
 

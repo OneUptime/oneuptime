@@ -122,7 +122,10 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     await expect(
       rows(page).nth(1).getByTestId("llm-usage-row-source"),
     ).toHaveText("From usage metrics");
-    await expect(rows(page).nth(1).locator("td").nth(2)).toHaveText("—");
+    // The quiet dash every empty cell is, read out as "Not set" (#7603).
+    await expect(
+      rows(page).nth(1).locator("td").nth(2).getByTestId("table-empty-value"),
+    ).toHaveText("—Not set");
     // Bob only made calls: no source line.
     await expect(rows(page).nth(2)).toContainText("bob@sysnetix.com");
     await expect(
@@ -336,8 +339,12 @@ test.describe("Usage, from the AI calls and the usage metrics", () => {
     // The tokens nobody priced: a dash for the cost and for its share.
     const unattributed: Locator = row(page, "Unattributed");
 
-    await expect(unattributed.locator("td").nth(6)).toHaveText("—");
-    await expect(unattributed.locator("td").nth(7)).toHaveText("—");
+    await expect(
+      unattributed.locator("td").nth(6).getByTestId("table-empty-value"),
+    ).toHaveText("—Not set");
+    await expect(
+      unattributed.locator("td").nth(7).getByTestId("table-empty-value"),
+    ).toHaveText("—Not set");
     await expect(page.getByTestId("llm-usage-unattributed-note")).toContainText(
       "Unattributed is usage that doesn't say who made it, for example sent without user.email.",
     );
