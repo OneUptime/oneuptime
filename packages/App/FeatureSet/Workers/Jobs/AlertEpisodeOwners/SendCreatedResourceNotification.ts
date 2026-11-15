@@ -151,7 +151,7 @@ RunCron(
 );
 
 // A person told, as the episode's feed names them.
-function feedLine(user: User): string {
+function feedLineMarkdown(user: User): string {
   return OwnerNotificationFeedText.notifiedLineMarkdown(
     OwnerNotificationFeedText.nameAndEmail({
       name: user.name?.toString(),
@@ -178,7 +178,7 @@ async function notifyOwnersOfEpisodeCreated(
 
   // Whom a run that stopped part way told already.
   let moreEpisodeFeedInformationInMarkdown: string = delivery.toldEarlier
-    .map(feedLine)
+    .map(feedLineMarkdown)
     .join("");
 
   const episodeCreatedDate: Date = episode.createdAt!;
@@ -302,7 +302,7 @@ async function notifyOwnersOfEpisodeCreated(
     );
 
     if (isTold) {
-      moreEpisodeFeedInformationInMarkdown += feedLine(user);
+      moreEpisodeFeedInformationInMarkdown += feedLineMarkdown(user);
     }
   }
 
