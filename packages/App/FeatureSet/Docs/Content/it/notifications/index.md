@@ -53,7 +53,7 @@ Aprite le **Impostazioni utente**, a destra della barra sotto la barra superiore
 
 **Per iniziare** e **Avvisi e notifiche** sono aperte; le altre sezioni partono chiuse, e una sezione si apre da sola quando siete su una delle sue pagine. **Area di lavoro** compare solo se il progetto ha collegato Slack, Microsoft Teams o Mattermost.
 
-Anche i proprietari e gli amministratori del progetto possono vedere la vostra configurazione: in **Utenti** aprono la vostra riga e la sua sezione **Reperibilità**, con **Prontezza**, **Metodi di notifica** e **Come contattarmi**. Lì possono aggiungere un metodo per voi, ma il codice va al metodo stesso, quindi solo voi potete verificarlo.
+Anche i Proprietari del progetto e gli Amministratori del progetto possono vedere la vostra configurazione: in **Utenti** aprono la vostra riga e la sua sezione **Reperibilità**, con **Prontezza**, **Metodi di notifica** e **Come contattarmi**. Lì possono aggiungere un metodo per voi, ma il codice va al metodo stesso, quindi solo voi potete verificarlo.
 
 ## Con cosa partite
 
@@ -116,7 +116,7 @@ Aprite **Impostazioni utente → Registri di reperibilità**. Nessuna riga per l
 :::
 
 :::details Ricevo e-mail su elementi che non ho mai chiesto
-Siete proprietari dell'elemento, direttamente o tramite un team, oppure l'elemento non ha proprietari e voi siete proprietari del progetto. Disattivate l'evento in **Impostazioni utente → Impostazioni notifiche**, o riducete il volume in **Impostazioni utente → Preferenze e-mail**.
+Siete proprietari dell'elemento, direttamente o tramite un team, oppure l'elemento non ha proprietari e voi siete Proprietari del progetto. Disattivate l'evento in **Impostazioni utente → Impostazioni notifiche**, o riducete il volume in **Impostazioni utente → Preferenze e-mail**.
 :::
 
 :::details Le mie chiamate sono in inglese, ma la dashboard no

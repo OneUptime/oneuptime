@@ -235,7 +235,7 @@ Par exemple, le titre `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRate
 - **Ajouter les propriétaires du SLO comme propriétaires** ajoute aussi les propriétaires du SLO, ses utilisateurs propriétaires et les membres de ses équipes propriétaires, à tout ce que crée la règle. Les propriétaires du SLO sont déjà informés des changements de statut du SLO lui-même, cela peut donc les notifier deux fois. C'est désactivé par défaut.
 - Chaque propriétaire n'est ajouté qu'une fois : un utilisateur déjà propriétaire de l'alerte ou de l'incident, par exemple par les règles de propriétaire du projet, ou membre d'une équipe propriétaire ajoutée, n'est pas ajouté de nouveau.
 - **Étiquettes d'alerte** et **Étiquettes d'incident** sont ajoutées à l'alerte ou à l'incident, pour que les filtres, les règles de propriétaire et les règles de notification d'espace de travail puissent y correspondre.
-- Une alerte ou un incident privé n'est visible que par ses propriétaires, les administrateurs du projet et les propriétaires du projet.
+- Une alerte ou un incident privé n'est visible que par ses propriétaires, les Administrateurs du projet et les Propriétaires du projet.
 
 Les étiquettes, les équipes propriétaires et les politiques d'astreinte doivent appartenir au projet du SLO.
 

@@ -130,12 +130,12 @@ L'API può salvare una regola di esclusione, con `isOptOut` impostato e senza me
 :::
 
 :::details Disattivare il ripiego per un intero progetto
-Un proprietario del progetto, o qualcuno con **Manage Billing**, può impostare `disableOnCallNotificationFallback` del progetto tramite l'API. Una chiamata che non trova una regola allora non viene consegnata, e il suo registro dice che l'utente deve aggiungere regole in **Impostazioni utente → Come contattarmi**.
+Un Proprietario del progetto, o qualcuno con **Manage Billing**, può impostare `disableOnCallNotificationFallback` del progetto tramite l'API. Una chiamata che non trova una regola allora non viene consegnata, e il suo registro dice che l'utente deve aggiungere regole in **Impostazioni utente → Come contattarmi**.
 :::
 
 ## Le regole di un collega
 
-I proprietari e gli amministratori del progetto possono vedere e cambiare la stessa pagina per chiunque nel progetto: in **Utenti** aprono la persona, poi **Come contattarmi** nella sezione **Reperibilità**. **Prontezza**, lì accanto, mostra se ogni gravità la raggiunge. Quando qualcun altro aggiunge, cambia o elimina le vostre regole, ricevete un'e-mail al riguardo, e ogni modifica compare nel registro di audit del progetto.
+I Proprietari del progetto e gli Amministratori del progetto possono vedere e cambiare la stessa pagina per chiunque nel progetto: in **Utenti** aprono la persona, poi **Come contattarmi** nella sezione **Reperibilità**. **Prontezza**, lì accanto, mostra se ogni gravità la raggiunge. Quando qualcun altro aggiunge, cambia o elimina le vostre regole, ricevete un'e-mail al riguardo, e ogni modifica compare nel registro di audit del progetto.
 
 ## Risoluzione dei problemi
 

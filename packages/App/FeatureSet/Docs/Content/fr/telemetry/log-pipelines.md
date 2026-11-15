@@ -47,7 +47,7 @@ flowchart TB
 ## Avant de commencer
 
 - Des journaux qui arrivent dans OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) ou une sonde.
-- L'autorisation de modifier les pipelines. Les propriétaires et administrateurs du projet l'ont ; les autres ont besoin des autorisations **Create Log Pipeline** et **Create Log Pipeline Processor**.
+- L'autorisation de modifier les pipelines. Les Propriétaires du projet et Administrateurs du projet l'ont ; les autres ont besoin des autorisations **Create Log Pipeline** et **Create Log Pipeline Processor**.
 
 ## Créer un pipeline
 

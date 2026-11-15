@@ -160,7 +160,7 @@ Eine Regel lässt bei einer Person auf der Nummer klingeln, die sie in diesem Pr
 
 Jede Person kann pro Projekt eine verifizierte Nummer haben. Um sie zu ändern, löschen Sie zuerst die alte Nummer. Diese Nummern sind getrennt von den Telefonnummern unter **Benachrichtigungsmethoden**, die die Bereitschaftsalarmierung nutzt. Siehe [Benachrichtigungsmethoden](/docs/notifications/notification-methods).
 
-Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** ein.
+Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** im Projekt zuerst eingeschaltet sein. Ein Projektinhaber oder jemand mit der Rolle **Abrechnungs-Administrator** oder der Berechtigung **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle** ein.
 
 ## Sprachnachrichten und Richtlinieneinstellungen
 
@@ -198,7 +198,7 @@ Ein Anruf ist verpasst, wenn er endet, ohne jemanden zu erreichen: Sein Status i
 
 ### Wer benachrichtigt wird
 
-Wird ein Anruf verpasst, benachrichtigt OneUptime die Eigentümer der Richtlinie: die Benutzer und die Mitglieder der Teams, die auf der Seite **Eigentümer** der Richtlinie eingetragen sind. Hat die Richtlinie keine Eigentümer, werden stattdessen die Eigentümer des Projekts benachrichtigt.
+Wird ein Anruf verpasst, benachrichtigt OneUptime die Eigentümer der Richtlinie: die Benutzer und die Mitglieder der Teams, die auf der Seite **Eigentümer** der Richtlinie eingetragen sind. Hat die Richtlinie keine Eigentümer, werden stattdessen die Projektinhaber benachrichtigt.
 
 Die Benachrichtigung sagt, wer angerufen hat, welche Nummer gewählt wurde, warum niemand abgenommen hat und bei wem es geklingelt hat und wie jeder Versuch endete. Sie verlinkt den Anruf im Anrufprotokoll.
 

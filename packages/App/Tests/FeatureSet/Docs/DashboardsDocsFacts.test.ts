@@ -1060,13 +1060,13 @@ describe("Authoring a Dashboard, against the product", () => {
     }
 
     expect(before).toContain(
-      "Project owners and admins can create and edit every dashboard.",
+      "Project Owners and Project Admins can create and edit every dashboard.",
     );
     expect(before).toContain(
       `\`${Permission.CreateDashboard}\` to create dashboards, and \`${Permission.EditDashboard}\` to change them`,
     );
     expect(before).toContain(
-      "Project members and viewers can read dashboards without either.",
+      "Project Members and Viewers can read dashboards without either.",
     );
   });
 
@@ -2777,7 +2777,7 @@ describe("External Data Sources, against the connectors and their limits", () =>
     );
 
     expect(before).toContain(
-      `Project owners and admins can add data sources; anyone else needs \`${Permission.CreateDataSource}\`, with \`${Permission.EditDataSource}\` and \`${Permission.DeleteDataSource}\` to change and remove them.`,
+      `Project Owners and Project Admins can add data sources; anyone else needs \`${Permission.CreateDataSource}\`, with \`${Permission.EditDataSource}\` and \`${Permission.DeleteDataSource}\` to change and remove them.`,
     );
     expect(before).toContain("members and viewers included");
   });

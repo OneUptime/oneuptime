@@ -56,7 +56,7 @@ Os formulários começam com esses dois, e mais tipos de registro virão.
 ## Antes de começar
 
 - **Um plano que inclua formulários.** No OneUptime Cloud, os formulários exigem o plano **Growth** ou superior. Veja [Plano](#plano).
-- **Permissão para criar formulários.** **Create Form** pertence aos proprietários e administradores do projeto, e às funções a que você a der. Veja [Permissões](#permissões).
+- **Permissão para criar formulários.** **Create Form** pertence aos Proprietários do projeto e Administradores do projeto, e às funções a que você a der. Veja [Permissões](#permissões).
 - **Num formulário de incidentes, uma severidade.** Todo incidente precisa de uma: de uma pergunta, das configurações do formulário ou do modelo de incidente dele. Sem ela, todo envio é recusado. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-incidente).
 
 ## Criar seu primeiro formulário
@@ -127,7 +127,7 @@ Os envios são escritos pelo formulário, nunca à mão, e não podem ser editad
 
 ## Permissões
 
-Os formulários deixam pessoas de fora da sua equipe criar incidentes e eventos de manutenção no seu projeto, por isso são gerenciados pelos proprietários e administradores do projeto, e pelas funções a que você der as permissões **Form**. Elas ficam no grupo **Form** da [Referência de permissões](/docs/permissions/reference):
+Os formulários deixam pessoas de fora da sua equipe criar incidentes e eventos de manutenção no seu projeto, por isso são gerenciados pelos Proprietários do projeto e Administradores do projeto, e pelas funções a que você der as permissões **Form**. Elas ficam no grupo **Form** da [Referência de permissões](/docs/permissions/reference):
 
 | Permissão | O que permite | Quem tem por padrão |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ Os formulários deixam pessoas de fora da sua equipe criar incidentes e eventos 
 | **Delete Form Domain** | Remover os domínios personalizados de um formulário. | Proprietário do projeto, Administrador do projeto e **Edit Form** |
 | **Read Form Domain** | Ver os domínios personalizados de um formulário, os seus registros DNS e em que ponto cada um está no caminho até o HTTPS. | Qualquer pessoa com **Read Form** |
 
-Os envios contêm o que desconhecidos digitaram (nomes, endereços de e-mail e respostas que talvez nunca cheguem ao registro), então só os proprietários e administradores do projeto os veem, a menos que você conceda **Read Form Submission**. Quem pode ler um formulário pode ver e compartilhar o link dele. Enviar um formulário não exige permissão nenhuma. Para saber como funções e permissões granulares se combinam, veja [Usuários, equipes e permissões](/docs/permissions/index).
+Os envios contêm o que desconhecidos digitaram (nomes, endereços de e-mail e respostas que talvez nunca cheguem ao registro), então só os Proprietários do projeto e Administradores do projeto os veem, a menos que você conceda **Read Form Submission**. Quem pode ler um formulário pode ver e compartilhar o link dele. Enviar um formulário não exige permissão nenhuma. Para saber como funções e permissões granulares se combinam, veja [Usuários, equipes e permissões](/docs/permissions/index).
 
 ## Plano
 

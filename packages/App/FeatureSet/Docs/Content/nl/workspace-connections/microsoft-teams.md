@@ -121,7 +121,7 @@ Kanalen en chats blijven leesbaar: elke gebeurtenis wordt één keer geplaatst, 
 
 **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** toont de kanalen die OneUptime in je teams ziet, en de chats waaraan het is toegevoegd, met **Test verzenden** naast elk ervan. Een chat verschijnt zodra de OneUptime-app er in Microsoft Teams aan wordt toegevoegd; **Refresh Chats** haalt nieuwe chats en hun huidige namen op.
 
-Een meldingsregel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die de regels zien, zien hem alleen-lezen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
+Een meldingsregel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en Projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die de regels zien, zien hem alleen-lezen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
 
 ### Dienstberichten
 

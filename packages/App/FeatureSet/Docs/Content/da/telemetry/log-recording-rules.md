@@ -180,7 +180,7 @@ Med gruppering sat er hver gateway sin egen serie: bliver WAN2 langsom, åbnes e
 - **Tidsstempler kommer fra loggene.** En log lander i minuttet for sit eget tidsstempel. En enhed, hvis ur går mere end en smule forkert, lægger sine logs i det forkerte minut eller helt uden for vinduet.
 - **Ingen bagudberegning.** En ny regel starter med minuttet før sin første kørsel; ældre logs beregnes ikke.
 - **Sletning af en regel** stopper den. De punkter, den allerede har skrevet, bliver, indtil de udløber.
-- **Optagelsesregler ser alle projektets logs.** Alle, der kan læse outputmetrikken, ser tal, der er beregnet ud fra hver log, som reglens filter matcher, så oprettelse og redigering af optagelsesregler for logs er forbeholdt projektejere, administratorer og tilladelserne **Create / Edit Log Recording Rule**.
+- **Optagelsesregler ser alle projektets logs.** Alle, der kan læse outputmetrikken, ser tal, der er beregnet ud fra hver log, som reglens filter matcher, så oprettelse og redigering af optagelsesregler for logs er forbeholdt Projektejere, Projektadministratorer og tilladelserne **Create / Edit Log Recording Rule**.
 
 ## Tilladelser
 
@@ -191,7 +191,7 @@ Med gruppering sat er hver gateway sin egen serie: bliver WAN2 langsom, åbnes e
 | Delete Log Recording Rule | At slette regler. |
 | Read Log Recording Rule | At se regler, og hvad de beregner. |
 
-Projektejere og administratorer kan alt dette. Projektmedlemmer, læsere og telemetrirollerne kan læse regler.
+Projektejere og Projektadministratorer kan alt dette. Projektmedlemmer, Seere og telemetrirollerne kan læse regler.
 
 ## Næste trin
 

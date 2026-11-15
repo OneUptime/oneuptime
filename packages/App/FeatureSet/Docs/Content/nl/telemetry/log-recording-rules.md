@@ -180,7 +180,7 @@ Met groepering ingesteld is elke gateway een eigen reeks: wordt WAN2 traag, dan 
 - **Tijdstempels komen uit de logboeken.** Een logboek valt in de minuut van zijn eigen tijdstempel. Een apparaat waarvan de klok meer dan een beetje afwijkt, legt zijn logboeken in de verkeerde minuut, of helemaal buiten het venster.
 - **Geen terugrekening.** Een nieuwe regel begint met de minuut vóór zijn eerste uitvoering; oudere logboeken worden niet berekend.
 - **Een regel verwijderen** stopt hem. De punten die hij al schreef, blijven tot ze verlopen.
-- **Opnameregels zien alle logboeken van het project.** Wie de uitvoermetriek kan lezen, ziet getallen die zijn berekend uit elk logboek waarop het filter van de regel overeenkomt; opnameregels voor logboeken maken en bewerken is daarom voorbehouden aan projecteigenaren, beheerders en de machtigingen **Create / Edit Log Recording Rule**.
+- **Opnameregels zien alle logboeken van het project.** Wie de uitvoermetriek kan lezen, ziet getallen die zijn berekend uit elk logboek waarop het filter van de regel overeenkomt; opnameregels voor logboeken maken en bewerken is daarom voorbehouden aan Projecteigenaren, Projectbeheerders en de machtigingen **Create / Edit Log Recording Rule**.
 
 ## Machtigingen
 
@@ -191,7 +191,7 @@ Met groepering ingesteld is elke gateway een eigen reeks: wordt WAN2 traag, dan 
 | Delete Log Recording Rule | Regels verwijderen. |
 | Read Log Recording Rule | Regels bekijken en wat ze berekenen. |
 
-Projecteigenaren en beheerders mogen dit allemaal. Projectleden, kijkers en de telemetrierollen kunnen regels lezen.
+Projecteigenaren en Projectbeheerders mogen dit allemaal. Projectleden, Kijkers en de telemetrierollen kunnen regels lezen.
 
 ## Volgende stappen
 

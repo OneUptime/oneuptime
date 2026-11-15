@@ -92,7 +92,7 @@ O resumo no topo da página **Regras de escalonamento** mostra a escada inteira:
 
 ### Como cada pessoa é contatada
 
-Cada pessoa que um nível aciona é contatada do jeito que as próprias regras de plantão dela mandam: **Configurações do usuário** > **Como me contatar**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por severidade que mostra qual método de notificação é tentado e depois de quanto tempo. Um administrador do projeto pode ver e mudar as regras de um membro em **Usuários** > o membro > **Como me contatar**. Veja [Como me contatar](/docs/notifications/on-call-rules).
+Cada pessoa que um nível aciona é contatada do jeito que as próprias regras de plantão dela mandam: **Configurações do usuário** > **Como me contatar**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por severidade que mostra qual método de notificação é tentado e depois de quanto tempo. Um Administrador do projeto pode ver e mudar as regras de um membro em **Usuários** > o membro > **Como me contatar**. Veja [Como me contatar](/docs/notifications/on-call-rules).
 
 ```mermaid title="Quem um nível aciona e como cada pessoa é contatada"
 flowchart TB
@@ -176,7 +176,7 @@ No OneUptime Cloud, cada SMS, chamada, mensagem de WhatsApp e de Telegram é pag
 - Os acionamentos continuam saindo com o saldo restante enquanto a recarga automática não consegue cobrar o cartão.
 
 > [!IMPORTANT]
-> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio, de um gateway de SMS e chamadas ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Canais de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
+> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio, de um gateway de SMS e chamadas ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um Proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Canais de notificação** — um Administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
 
 ## Escalonar para a próxima pessoa da rotação
 

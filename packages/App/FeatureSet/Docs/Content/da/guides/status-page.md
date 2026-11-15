@@ -13,7 +13,7 @@ flowchart TB
 ## Det skal du bruge
 
 - Mindst én monitor: en statusside viser monitorer. Har du ingen endnu, tilbyder den guidede opsætning først **Konfigurer en monitor**.
-- Rollen som projektejer eller administrator: siden kræver tilladelse til at oprette statussider, og dit domæne kræver tilladelse til at tilføje og bekræfte projektets domæner.
+- Rollen Projektejer eller Projektadministrator: siden kræver tilladelse til at oprette statussider, og dit domæne kræver tilladelse til at tilføje og bekræfte projektets domæner.
 - Et domæne, du har kontrol over, og adgang til dets DNS-poster hos din DNS-udbyder.
 
 :::tabs

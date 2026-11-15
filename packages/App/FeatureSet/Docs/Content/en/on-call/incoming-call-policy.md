@@ -160,7 +160,7 @@ A rule rings a person on the number they verified for incoming calls in this pro
 
 Each person can have one verified number per project. To change it, delete the old number first. These numbers are separate from the phone numbers under **Notification Methods**, which on-call pages use. See [Notification Methods](/docs/notifications/notification-methods).
 
-Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the **Notification Channels** card on **Project Settings > Notifications > Notification Channels**.
+Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A Project Owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the **Notification Channels** card on **Project Settings > Notifications > Notification Channels**.
 
 ## Voice messages and policy settings
 
@@ -198,7 +198,7 @@ A call is missed when it ends without reaching anyone: its status is **No Answer
 
 ### Who is notified
 
-When a call is missed, OneUptime notifies the policy's owners: the users and the members of the teams added on the policy's **Owners** page. If the policy has no owners, the project owners are notified instead.
+When a call is missed, OneUptime notifies the policy's owners: the users and the members of the teams added on the policy's **Owners** page. If the policy has no owners, the Project Owners are notified instead.
 
 The notification says who called, which number they dialled, why nobody answered, and who was rung and how each attempt ended. It links to the call in the call log.
 

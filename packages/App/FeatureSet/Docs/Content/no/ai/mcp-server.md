@@ -113,7 +113,7 @@ Hva en tilkoblet klient kan gjøre:
 
 ### Administrer tilkoblede klienter
 
-Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Tilkoblede MCP-klienter**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; prosjektets eiere og administratorer ser alles.
+Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Tilkoblede MCP-klienter**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; Prosjekteiere og Prosjektadministratorer ser alles.
 
 Klikk **Koble fra** for å logge ut en klient. Den slutter å virke med en gang.
 

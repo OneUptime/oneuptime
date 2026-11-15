@@ -98,7 +98,7 @@ Serveren må svare på port 80, der Let's Encrypt sjekker hvert domene. En insta
 
 ### Hvem som kan administrere domener
 
-Prosjektets eiere og administratorer, og alle med **Edit Form**, kan legge til domenene til et skjema, sjekke dem, utstede sertifikatene deres på nytt og slette dem. Det kan også tillatelsene bare for et skjemas domener, som **Edit Form Domain**: [Skjemaer – oversikt](/docs/forms/index#tillatelser) lister dem. Alle som kan lese et skjema, ser domenene, **Status** deres og posten i **DNS-oppsett**; for dem er **Sjekk nå** og **Reissue SSL** låst og sier hvilken tillatelse som trengs. En API-nøkkel virker på samme måte på `/form-domain`: `verify-cname`, `order-ssl` og `reissue-ssl` krever **Edit Form Domain** eller **Edit Form**.
+Prosjekteiere og Prosjektadministratorer, og alle med **Edit Form**, kan legge til domenene til et skjema, sjekke dem, utstede sertifikatene deres på nytt og slette dem. Det kan også tillatelsene bare for et skjemas domener, som **Edit Form Domain**: [Skjemaer – oversikt](/docs/forms/index#tillatelser) lister dem. Alle som kan lese et skjema, ser domenene, **Status** deres og posten i **DNS-oppsett**; for dem er **Sjekk nå** og **Reissue SSL** låst og sier hvilken tillatelse som trengs. En API-nøkkel virker på samme måte på `/form-domain`: `verify-cname`, `order-ssl` og `reissue-ssl` krever **Edit Form Domain** eller **Edit Form**.
 
 ## Hva som beskytter et skjema
 

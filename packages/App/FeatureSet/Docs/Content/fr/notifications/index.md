@@ -53,7 +53,7 @@ Ouvrez les **Paramètres utilisateur**, à droite de la barre située sous la ba
 
 **Premiers pas** et **Alertes & notifications** sont ouvertes ; les autres sections démarrent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. **Espace de travail** n'apparaît que si le projet a connecté Slack, Microsoft Teams ou Mattermost.
 
-Les propriétaires et les admins du projet peuvent aussi consulter votre configuration : dans **Utilisateurs**, ils ouvrent votre ligne et sa section **Astreinte**, avec **Disponibilité**, **Méthodes de notification** et **Comment me joindre**. Ils peuvent y ajouter une méthode pour vous, mais le code est envoyé à la méthode elle-même, donc vous seul pouvez la vérifier.
+Les Propriétaires du projet et les Administrateurs du projet peuvent aussi consulter votre configuration : dans **Utilisateurs**, ils ouvrent votre ligne et sa section **Astreinte**, avec **Disponibilité**, **Méthodes de notification** et **Comment me joindre**. Ils peuvent y ajouter une méthode pour vous, mais le code est envoyé à la méthode elle-même, donc vous seul pouvez la vérifier.
 
 ## Ce dont vous disposez au départ
 
@@ -116,7 +116,7 @@ Ouvrez **Paramètres utilisateur → Journaux d'astreinte**. Aucune ligne pour l
 :::
 
 :::details Je reçois des e-mails sur des éléments que je n'ai jamais demandés
-Vous êtes propriétaire de l'élément, directement ou via une équipe, ou l'élément n'a pas de propriétaire et vous êtes propriétaire du projet. Désactivez l'événement dans **Paramètres utilisateur → Paramètres de notification**, ou réduisez le volume dans **Paramètres utilisateur → Préférences e-mail**.
+Vous êtes propriétaire de l'élément, directement ou via une équipe, ou l'élément n'a pas de propriétaire et vous êtes Propriétaire du projet. Désactivez l'événement dans **Paramètres utilisateur → Paramètres de notification**, ou réduisez le volume dans **Paramètres utilisateur → Préférences e-mail**.
 :::
 
 :::details Mes alertes sont en anglais, alors que le tableau de bord ne l'est pas

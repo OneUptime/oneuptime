@@ -1,6 +1,6 @@
 # Global SSO
 
-Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp en SAML 2.0- eller OpenID Connect-identitetsleverandør (OIDC) **én gang**, på instansnivå, og kobler den til hvilket som helst prosjekt på serveren. I stedet for at hver prosjekteier setter opp sin egen identitetsleverandør, setter en master-admin opp én som betjener hele instansen.
+Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp en SAML 2.0- eller OpenID Connect-identitetsleverandør (OIDC) **én gang**, på instansnivå, og kobler den til hvilket som helst prosjekt på serveren. I stedet for at hver Prosjekteier setter opp sin egen identitetsleverandør, setter en master-admin opp én som betjener hele instansen.
 
 > [!NOTE]
 > Global SSO, inkludert den instansomfattende bryteren "Require SSO for Login", er en del av alle OneUptime-utgaver: alle selvhostede instanser har det, også Community Edition, og det krever ingen lisens. Det hører til instansadministrasjonen og gjelder derfor ikke for OneUptime Cloud. Se [Enterprise Edition](/docs/self-hosted/enterprise) for hva hver utgave inneholder.
@@ -16,7 +16,7 @@ Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp
 
 |                     | Prosjekt-SSO                                       | Global SSO                                          |
 | ------------------- | -------------------------------------------------- | --------------------------------------------------- |
-| Settes opp av       | Prosjekteier/-administrator (Prosjektinnstillinger) | Instansens master-admin (Admin Dashboard)          |
+| Settes opp av       | Prosjekteier eller Prosjektadministrator (Prosjektinnstillinger) | Instansens master-admin (Admin Dashboard)          |
 | Omfang              | Ett enkelt prosjekt                                | Hele instansen, kan kobles til alle prosjekter      |
 | Resultat av pålogging | Tilgang til det ene prosjektet                   | Tilgang til alle prosjekter brukeren kan nå         |
 

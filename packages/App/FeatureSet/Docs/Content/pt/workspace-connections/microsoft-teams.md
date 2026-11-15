@@ -121,7 +121,7 @@ Canais e chats continuam legíveis: cada evento é publicado uma vez, e o primei
 
 **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams** lista os canais que o OneUptime vê nas suas equipes, e os chats aos quais ele foi adicionado, com **Enviar teste** ao lado de cada um. Um chat aparece assim que o app do OneUptime é adicionado a ele no Microsoft Teams; **Refresh Chats** traz os novos chats e os nomes atuais deles.
 
-Uma regra de notificação pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
+Uma regra de notificação pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos**, reserva a regra às equipes que você escolher: só os membros delas e os Administradores do projeto podem editá-la ou excluí-la, e todos os outros que veem as regras a veem como somente leitura. Veja [Regras que pertencem a equipes](/docs/permissions/index#regras-que-pertencem-a-equipes).
 
 ### Mensagens de plantão
 

@@ -144,11 +144,11 @@ Ein gespeicherter Trichter oder eine gespeicherte Bindungstabelle kommt auch auf
 
 ## Wer sie sehen kann
 
-Diese Seiten zu lesen erfordert dasselbe wie das Lesen der Sitzungsliste: `ReadRumSessionReplay` (_List Session Replays_) oder `ReadRumSessionReplayPayload` (_Watch Session Replays_), die Projektinhaber und Administratoren haben. Zu sehen, wer ein angemeldeter Benutzer ist, und Personen nach Namen zu suchen, erfordert `ReadRumSessionReplayPayload` (_Watch Session Replays_), wie [Wer eine Aufzeichnung ansehen kann](/docs/telemetry/session-replay#wer-eine-aufzeichnung-ansehen-kann) beschreibt.
+Diese Seiten zu lesen erfordert dasselbe wie das Lesen der Sitzungsliste: `ReadRumSessionReplay` (_List Session Replays_) oder `ReadRumSessionReplayPayload` (_Watch Session Replays_), die Projektinhaber und Projektadministratoren haben. Zu sehen, wer ein angemeldeter Benutzer ist, und Personen nach Namen zu suchen, erfordert `ReadRumSessionReplayPayload` (_Watch Session Replays_), wie [Wer eine Aufzeichnung ansehen kann](/docs/telemetry/session-replay#wer-eine-aufzeichnung-ansehen-kann) beschreibt.
 
 Gespeicherte Trichter und Bindungstabellen zu speichern, umzubenennen und zu löschen erfordert dieselben Berechtigungen wie das Lesen dieser Seiten, und ein Dashboard-Widget zeigt sie nur einem Leser, der sie hat.
 
-Die Ereignisse ein- oder auszuschalten erfordert `EditRumApplication` (_Edit RUM Application_) oder die Rolle eines Projektinhabers, Administrators oder Mitglieds. Benutzereigenschaften aufzulisten erfordert `EditRumApplication` oder die Rolle eines Inhabers oder Administrators, da es festlegt, was über angemeldete Personen aufbewahrt wird.
+Die Ereignisse ein- oder auszuschalten erfordert `EditRumApplication` (_Edit RUM Application_) oder die Rolle Projektinhaber, Projektadministrator oder Projektmitglied. Benutzereigenschaften aufzulisten erfordert `EditRumApplication` oder die Rolle eines Inhabers oder Administrators, da es festlegt, was über angemeldete Personen aufbewahrt wird.
 
 ## Nächste Schritte
 
