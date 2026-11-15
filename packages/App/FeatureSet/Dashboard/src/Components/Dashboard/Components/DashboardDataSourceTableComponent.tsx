@@ -29,6 +29,7 @@ import API from "Common/UI/Utils/API/API";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardWidgetError from "./DashboardWidgetError";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { JSONValue } from "Common/Types/JSON";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -53,6 +54,7 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
 import {
+  DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
@@ -403,10 +405,11 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
         </span>
       </div>
       {columns.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-xs text-gray-400">
-            {translator.translateText("No rows returned.")}
-          </p>
+        <div className="min-h-0 flex-1">
+          <DashboardWidgetEmpty
+            icon={IconProp.TableCells}
+            message="No rows returned."
+          />
         </div>
       ) : (
         <div className="flex-1 overflow-auto rounded-md border border-gray-100 mx-1 mb-1">
@@ -467,6 +470,21 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
                     </tr>
                   );
                 },
+              )}
+              {/*
+               * The query named its columns and returned no row: the
+               * headers stay, over the readable no-data row every list
+               * draws (#8038). It drew the headers over nothing at all.
+               */}
+              {visibleRows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className={DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME}
+                  >
+                    {translator.translateText("No rows returned.")}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

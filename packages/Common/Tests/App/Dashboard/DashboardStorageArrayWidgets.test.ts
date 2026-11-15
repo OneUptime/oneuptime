@@ -21,12 +21,19 @@ import {
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
   STORAGE_ARRAY_WARNING_COMPONENT_STATUSES,
 } from "../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
-import { STORAGE_ARRAY_HEALTHY_COMPONENT_STATUSES } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/StorageArrayWidgetData";
+import {
+  STORAGE_ARRAY_HEALTHY_COMPONENT_STATUSES,
+  getHardwareStatusText,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/StorageArrayWidgetData";
 import {
   CRITICAL_RESOURCE_STATUSES,
   HEALTHY_RESOURCE_STATUSES,
   WARNING_RESOURCE_STATUSES,
+  formatStatusLabel,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayResourceUtils";
+import { getKnownStorageArrayStatusKey } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayHealth";
+import { Translator } from "../../../Types/Translator";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
@@ -411,10 +418,12 @@ describe("Storage Array dashboard widgets", () => {
         '"Used / Provisioned"',
         '"Latency (R / W)"',
         '"IOPS"',
-        '"Array"',
+        // The storage array's own key, never the bare "Array" (#7522).
+        '"Array (storage array)"',
       ]) {
         expect(VOLUME_SOURCE).toContain(header);
       }
+      expect(VOLUME_SOURCE).not.toContain('label: "Array",');
     });
   });
 
@@ -516,6 +525,55 @@ describe("Storage Array dashboard widgets", () => {
       expect([...STORAGE_ARRAY_HEALTHY_COMPONENT_STATUSES].sort()).toEqual(
         [...HEALTHY_RESOURCE_STATUSES].sort(),
       );
+    });
+
+    /*
+     * #7521: the Status column drew the array's English word on every
+     * board. It is worded by the list the Storage Arrays pages word their
+     * pills by, so a degraded drive reads the same word on a board and on
+     * the Hardware page the cell opens: the pill looks the key up
+     * (StatusBadge), the widget draws its translation.
+     */
+    test("words every status the way the Storage Arrays pages' pills do, in every language drawn", () => {
+      const statuses: Array<string> = [
+        ...CRITICAL_RESOURCE_STATUSES,
+        ...WARNING_RESOURCE_STATUSES,
+        ...HEALTHY_RESOURCE_STATUSES,
+        "not_installed",
+        "device_off",
+        "identifying",
+        "empty",
+        "unused",
+        "disabled",
+        // A word neither knows: the array's own, on both.
+        "flux_capacitor",
+      ];
+
+      for (const language of ["en", "de", "fa", "ar", "ja"]) {
+        const translator: Translator = dashboardTranslator(language);
+
+        for (const status of statuses) {
+          const known: string | undefined =
+            getKnownStorageArrayStatusKey(status);
+          const pill: string = known
+            ? (translator.translateText(known) as string)
+            : formatStatusLabel(status);
+
+          expect({
+            language,
+            status,
+            widget: getHardwareStatusText(status, translator),
+          }).toEqual({ language, status, widget: pill });
+        }
+      }
+
+      expect(HARDWARE_SOURCE).toContain(
+        "getHardwareStatusText(r.status, translator)",
+      );
+      expect(HARDWARE_SOURCE).not.toContain("humanizeArrayValue(r.status)");
+      expect(
+        readSource("../StorageArray/StorageArrayResourceStatusBadge.tsx"),
+      ).toContain("getKnownStorageArrayStatusKey(props.status)");
     });
   });
 
