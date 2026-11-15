@@ -328,7 +328,7 @@ export function edgeLabelForMetric(
       rate: formatErrorRate(edge.calls, edge.errors, translator),
     });
   }
-  return formatDurationMs(edge.avgDurationMs ?? undefined);
+  return formatDurationMs(edge.avgDurationMs ?? undefined, translator);
 }
 
 /*
@@ -436,7 +436,7 @@ export function statsForEntry(
       value:
         traffic.avgDurationMs === null
           ? "—"
-          : formatDurationMs(traffic.avgDurationMs),
+          : formatDurationMs(traffic.avgDurationMs, translator),
     },
   ];
 }
@@ -1388,7 +1388,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                       {entry.inbound.avgDurationMs === null ? (
                         <TableEmptyValue />
                       ) : (
-                        formatDurationMs(entry.inbound.avgDurationMs)
+                        formatDurationMs(
+                          entry.inbound.avgDurationMs,
+                          translator,
+                        )
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">

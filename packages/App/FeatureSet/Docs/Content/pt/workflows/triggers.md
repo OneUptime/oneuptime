@@ -20,7 +20,7 @@ Para adicionar o gatilho, clique no bloco tracejado **Escolha o que inicia este 
 | Clicar em um botão para rodar o workflow       | **Manual**                  |
 | Rodar em um agendamento recorrente             | **Agendamento**             |
 | Que outro sistema envie dados                  | **Webhook**                 |
-| Iniciar a partir de um e-mail                  | **Incoming Email**          |
+| Iniciar a partir de um e-mail                  | **E-mail recebido**          |
 | Agir sobre os relatórios de incidente do Huntress | **Huntress Incident Report** |
 | Reagir a algo dentro do OneUptime              | **Evento do OneUptime**     |
 

@@ -14,6 +14,7 @@ import {
   MerakiUplinkComparisonRow,
   UNKNOWN_VALUE,
   formatLatency,
+  formatLatencyInLanguage,
   formatLoss,
   getUplinkChartLines,
   hasUplinkHealth,
@@ -409,7 +410,7 @@ const MerakiUplinkComparison: FunctionComponent<ComponentProps> = (
                       value={
                         row.latencyMs === null
                           ? UNKNOWN_VALUE
-                          : formatLatency(row.latencyMs)
+                          : formatLatencyInLanguage(row.latencyMs, translator)
                       }
                       dataTestId="meraki-uplink-row-latency"
                     />

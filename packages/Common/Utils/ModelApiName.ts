@@ -82,3 +82,38 @@ export const KEPT_SINGULAR_NAMES: ReadonlyArray<string> = Object.keys(
 export function getScreenSingularName(apiSingularName: string): string {
   return SCREEN_SINGULAR_NAMES[apiSingularName] || apiSingularName;
 }
+
+// The table read the other way: each name on screen to the name it kept.
+const KEPT_SINGULAR_NAMES_BY_SCREEN_NAME: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>(
+  Object.entries(SCREEN_SINGULAR_NAMES).map(
+    ([kept, screen]: [string, string]): [string, string] => {
+      return [screen, kept];
+    },
+  ),
+);
+
+/*
+ * The singular name the API keeps for a name a person reads on screen
+ * (On-Call Schedule is kept as On-Call Policy Schedule); a kept name, or any
+ * name never renamed, is itself. A person picks a type by the name they see,
+ * and the audit log finds it by the name its entries are stored under.
+ */
+export function getKeptSingularName(singularName: string): string {
+  return KEPT_SINGULAR_NAMES_BY_SCREEN_NAME.get(singularName) || singularName;
+}
+
+/*
+ * Every singular name one thing goes by, the kept one first: a renamed
+ * model's kept name and its name on screen, either of them given; any
+ * other name alone. The audit log reads a type by all of them, so an entry
+ * stored under either name is found by either (AuditLogResourceTypes).
+ */
+export function getSingularNameSpellings(singularName: string): Array<string> {
+  const kept: string = getKeptSingularName(singularName);
+  const screen: string = getScreenSingularName(kept);
+
+  return kept === screen ? [kept] : [kept, screen];
+}

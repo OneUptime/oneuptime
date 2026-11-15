@@ -49,6 +49,7 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
@@ -198,7 +199,7 @@ function describeBudgetMs(
   translator: Translator,
 ): string {
   return value && value > 0
-    ? translator.translateTemplate("{{value}} ms", { value: value })
+    ? formatMilliseconds(translator, value)
     : translator.translateText("Off") || "Off";
 }
 

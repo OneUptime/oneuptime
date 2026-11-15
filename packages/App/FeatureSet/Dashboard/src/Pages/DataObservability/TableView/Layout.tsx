@@ -93,7 +93,7 @@ const TableViewLayout: FunctionComponent<
 
   return (
     <ModelPage
-      title="Table"
+      title="Table (database object)"
       modelType={DataAsset}
       modelId={dataAssetId}
       modelNameField="assetKey"

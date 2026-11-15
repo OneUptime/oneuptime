@@ -574,6 +574,35 @@ export enum OnCallTestPageLineCode {
    * `isMobileApp`: a phone's app rather than a browser.
    */
   PushDeviceNoLongerReceives = "PushDeviceNoLongerReceives",
+  /*
+   * MESSAGES THAT WERE NOT SENT, IN ONEUPTIME'S WORDS (#7550,
+   * OnCallSendFailureLine). The Notification service turned the request
+   * away (a 4xx): `statusCode`, and `words`, the service's own, when it
+   * gave any.
+   */
+  NotificationServiceRefused = "NotificationServiceRefused",
+  /*
+   * The Notification service answered with another error, so the message
+   * may not have been sent: `statusCode` when the answer had one, `words`.
+   */
+  NotificationServiceAnswerFailed = "NotificationServiceAnswerFailed",
+  // The request never reached it. `reason`: the socket's code, ECONNREFUSED.
+  NotificationServiceNotReached = "NotificationServiceNotReached",
+  /*
+   * The send failed and its error said nothing: "Error sending SMS."
+   * `channel`, and `name` for a custom channel that has one.
+   */
+  SendFailed = "SendFailed",
+  /*
+   * The project's balance could not pay for it. `channel`; `balance` and
+   * `cost` as the line writes them ("0.05 USD"), unless it is used up.
+   */
+  ProjectBalanceTooLow = "ProjectBalanceTooLow",
+  /*
+   * The workspace is not connected: the project's connection to it when
+   * `isProjectConnection`, else the person's own account. `channel`.
+   */
+  WorkspaceNotConnected = "WorkspaceNotConnected",
 
   // A PERSON'S, OR A TARGET'S, LINE. They opted out of pages of this severity.
   OptedOut = "OptedOut",
@@ -622,7 +651,10 @@ export enum OnCallTestPageLineCode {
 
 export interface OnCallTestPageLine {
   code: OnCallTestPageLineCode;
-  // MethodNotVerified, ChannelOff.
+  /*
+   * MethodNotVerified, ChannelOff, SendFailed, ProjectBalanceTooLow,
+   * WorkspaceNotConnected.
+   */
   channel?: OnCallPageChannel | undefined;
   // PushDeviceNoLongerReceives.
   isMobileApp?: boolean | undefined;
@@ -632,6 +664,20 @@ export interface OnCallTestPageLine {
   awayUntil?: string | undefined;
   // EndedUnanswered.
   minutes?: number | undefined;
+  // NotificationServiceRefused, NotificationServiceAnswerFailed: its HTTP status.
+  statusCode?: number | undefined;
+  /*
+   * NotificationServiceRefused, NotificationServiceAnswerFailed: the
+   * service's own words, as written - not OneUptime's, so never worded.
+   */
+  words?: string | undefined;
+  // NotificationServiceNotReached: why, as the socket said it.
+  reason?: string | undefined;
+  // ProjectBalanceTooLow: what was left and what it costs, as written.
+  balance?: string | undefined;
+  cost?: string | undefined;
+  // WorkspaceNotConnected: the project's connection, not the person's.
+  isProjectConnection?: boolean | undefined;
 }
 
 // One message of a test, as its result shows it.

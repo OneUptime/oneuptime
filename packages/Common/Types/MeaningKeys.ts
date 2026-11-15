@@ -32,11 +32,21 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
   "Open (invoice status)",
   // What an import did with a row (ImportResultWords).
   "Created (import result)",
-  // A data asset's kind: a database's view and table (DataAssetKindWords).
+  /*
+   * A data asset's kind: a database's view and table (DataAssetKindWords).
+   * The table is also the title over Data Observability's lists of tables,
+   * a table's page and its side menu (#8176).
+   */
   "View (database object)",
   "Table (database object)",
   // The Schema Changes list's Change filter and column.
   "Change (schema change)",
+  /*
+   * The dbt Tests card's Test column and filter, over the names of the
+   * tests dbt runs: "Test" alone is the Test buttons' verb ("Testen",
+   * "Probar", "Tester").
+   */
+  "Test (dbt test)",
   /*
    * The storage array a hardware component or a volume is in: the storage
    * widgets' column, a tile's row and the Sort setting's choice (#7522).

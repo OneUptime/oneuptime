@@ -44,7 +44,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**.
 
 ### Scegliere Docker Container
 
-In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Docker Container** in **Infrastruttura**, oppure digitate `docker` nella casella di ricerca. Inserite un **Nome** – viene usato nei titoli di incidenti e avvisi – e fate clic su **Avanti**.
+In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Container Docker** in **Infrastruttura**, oppure digitate `docker` nella casella di ricerca. Inserite un **Nome** – viene usato nei titoli di incidenti e avvisi – e fate clic su **Avanti**.
 
 ### Scegliere l'host
 
