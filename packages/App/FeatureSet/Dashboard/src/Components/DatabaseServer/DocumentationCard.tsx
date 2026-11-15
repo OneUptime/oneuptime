@@ -20,6 +20,7 @@ import {
   getDatabaseOwnCollectorSetupGuide,
   resolveDatabaseAgentSystem,
 } from "../../Pages/Database/Utils/DocumentationMarkdown";
+import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Database/Utils/DocumentationTranslations";
 
 /*
  * The Database Agent install guide with the viewer's ingestion key filled
@@ -112,6 +113,15 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
         "The agent sends the database's engine metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
       )}
       getContent={getContent}
+      /*
+       * The product guide reads in the reader's language (#8341). A
+       * database's own guide - its row's identity, its own collector - has
+       * no words in another language yet (#8746), so it reads in English whole
+       * rather than half translated.
+       */
+      translations={
+        props.database ? undefined : DATABASE_DOCUMENTATION_TRANSLATIONS
+      }
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}
