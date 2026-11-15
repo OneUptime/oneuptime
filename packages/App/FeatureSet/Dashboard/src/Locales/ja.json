@@ -54678,6 +54678,6 @@
   "The call was answered.": "通話に応答がありました。",
   "The call was not answered: it rang out.": "通話に応答がありませんでした。呼び出し音が鳴り続けました。",
   "The call was not answered: the line was busy, or the call was declined.": "通話に応答がありませんでした。話し中だったか、通話が拒否されました。",
-  "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Feed Status": "フィードのステータス",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "レコードの所有者通知が届くべき各所有者と、通知が届いたかどうかの内部記録です。"
 }

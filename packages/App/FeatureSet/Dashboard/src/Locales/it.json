@@ -54678,6 +54678,6 @@
   "The call was answered.": "La chiamata ha ricevuto risposta.",
   "The call was not answered: it rang out.": "La chiamata non ha ricevuto risposta: ha squillato a vuoto.",
   "The call was not answered: the line was busy, or the call was declined.": "La chiamata non ha ricevuto risposta: la linea era occupata, oppure la chiamata è stata rifiutata.",
-  "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Feed Status": "Stato del feed",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Registro interno di ogni proprietario che la notifica ai proprietari di un record deve raggiungere, e se lo ha raggiunto."
 }

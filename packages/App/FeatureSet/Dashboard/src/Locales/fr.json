@@ -54678,6 +54678,6 @@
   "The call was answered.": "L'appel a été décroché.",
   "The call was not answered: it rang out.": "L'appel n'a pas été décroché : personne n'a répondu.",
   "The call was not answered: the line was busy, or the call was declined.": "L'appel n'a pas été décroché : la ligne était occupée, ou l'appel a été refusé.",
-  "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Feed Status": "Statut du fil d'activité",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Enregistrement interne de chaque propriétaire que doit atteindre la notification aux propriétaires d'un enregistrement, indiquant si elle l'a atteint."
 }

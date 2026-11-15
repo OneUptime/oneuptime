@@ -54678,6 +54678,6 @@
   "The call was answered.": "تمت الإجابة عن المكالمة.",
   "The call was not answered: it rang out.": "لم تتم الإجابة عن المكالمة: رنّت دون رد.",
   "The call was not answered: the line was busy, or the call was declined.": "لم تتم الإجابة عن المكالمة: كان الخط مشغولًا، أو رُفضت المكالمة.",
-  "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Feed Status": "حالة الموجز",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "سجل داخلي بكل مالك يجب أن يصله إشعار المالكين لسجلٍّ ما، وبما إذا كان قد وصله."
 }

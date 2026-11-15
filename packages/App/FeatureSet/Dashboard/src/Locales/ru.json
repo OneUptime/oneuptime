@@ -54678,6 +54678,6 @@
   "The call was answered.": "На звонок ответили.",
   "The call was not answered: it rang out.": "На звонок не ответили: никто не взял трубку.",
   "The call was not answered: the line was busy, or the call was declined.": "На звонок не ответили: линия была занята, или звонок отклонили.",
-  "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Feed Status": "Статус ленты",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Внутренняя запись о каждом владельце, которому должно прийти уведомление владельцев записи, и о том, дошло ли оно до него."
 }

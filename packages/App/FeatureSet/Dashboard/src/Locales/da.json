@@ -54678,6 +54678,6 @@
   "The call was answered.": "Opkaldet blev besvaret.",
   "The call was not answered: it rang out.": "Opkaldet blev ikke besvaret: det ringede ud.",
   "The call was not answered: the line was busy, or the call was declined.": "Opkaldet blev ikke besvaret: linjen var optaget, eller opkaldet blev afvist.",
-  "Feed Status": "Feed Status",
-  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
+  "Feed Status": "Feedstatus",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Intern registrering af hver ejer, som en posts ejernotifikation skal nå, og om den nåede frem."
 }
