@@ -1209,7 +1209,7 @@ export class UserNotificationMethodAdminService extends BaseService {
        * the feature to somebody probing it.
        */
       throw new BadDataException(
-        `A project administrator can only add Email, SMS, Call and WhatsApp notification methods for another user. Push, Telegram, Slack, Microsoft Teams, Mattermost and webhook methods have to be added by the person who owns the device or account.`,
+        `A Project Admin can only add Email, SMS, Call and WhatsApp notification methods for another user. Push, Telegram, Slack, Microsoft Teams, Mattermost and webhook methods have to be added by the person who owns the device or account.`,
       );
     }
 
@@ -1653,7 +1653,7 @@ export class UserNotificationMethodAdminService extends BaseService {
       return;
     }
 
-    let actorDescription: string = "A project administrator";
+    let actorDescription: string = "A Project Admin";
 
     if (data.actorUserId) {
       const actor: User | null = await UserService.findOneById({
@@ -1668,10 +1668,10 @@ export class UserNotificationMethodAdminService extends BaseService {
        * something the reader can act on; an address is.
        */
       actorDescription = actor
-        ? `${actor.name?.toString() || "A project administrator"} (${
+        ? `${actor.name?.toString() || "A Project Admin"} (${
             actor.email?.toString() || data.actorUserId.toString()
           })`
-        : `A project administrator (${data.actorUserId.toString()})`;
+        : `A Project Admin (${data.actorUserId.toString()})`;
     }
 
     let projectName: string = "your project";

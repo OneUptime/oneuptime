@@ -116,10 +116,10 @@ const NOTHING_IS_TRIED_AGAIN: string = translationKey(
   "Nothing is tried again automatically.",
 );
 const ASK_ADMIN_FOR_SETTINGS: string = translationKey(
-  "Ask a project administrator to check the service's health and the AI settings.",
+  "Ask a Project Admin to check the service's health and the AI settings.",
 );
 const ASK_ADMIN_FOR_LOGS: string = translationKey(
-  "Ask a project administrator to check the service's health and the server logs.",
+  "Ask a Project Admin to check the service's health and the server logs.",
 );
 
 export const NOT_STARTED_TITLES: {
