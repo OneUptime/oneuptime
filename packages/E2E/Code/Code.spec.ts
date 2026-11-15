@@ -3471,7 +3471,7 @@ test.describe("a repository's page: ask AI", () => {
     await expect(notice).toContainText("AI is turned off for this project.");
     await expect(notice.getByTestId("code-blocker-fix")).toHaveCount(0);
     await expect(notice.getByTestId("code-blocker-who-can")).toHaveText(
-      "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+      "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
     );
     // A box that cannot send says nothing about how to send.
     await expect(page.getByTestId("code-composer-keys")).toHaveCount(0);
@@ -3514,7 +3514,7 @@ test.describe("a repository's page: ask AI", () => {
       "NoPermission",
     );
     await expect(page.getByTestId("code-blocker")).toContainText(
-      "ask a project admin for it",
+      "ask a Project Admin for it",
     );
     await expect(composerInput(page)).toHaveCount(0);
     await expect(page.getByTestId("code-task-row")).toHaveCount(6);
@@ -6191,7 +6191,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(page.getByTestId("production-review")).toBeVisible();
     await expect(page.getByTestId("production-review-again")).toHaveCount(0);
     await expect(page.getByTestId("production-review-read-only")).toContainText(
-      "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
+      "You can read this review. Reviewing it again takes permission to edit the repository - ask a Project Admin for it.",
     );
 
     // No way to Settings from the reviews page either, nor to ask for one.
