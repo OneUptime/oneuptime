@@ -300,6 +300,12 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     reason: "A key of a JSON body, typed as it is.",
   },
   {
+    english: 'The ID column is "_id" (the "id" spelling is accepted too).',
+    words: ["id"],
+    reason:
+      "A record step's ID column, by the other spelling of its key in a step's JSON (#8642): typed as it is.",
+  },
+  {
     english: 'a bare array, or { "events": [...] }',
     words: ["events"],
     reason: "A key of a JSON body, typed as it is.",
