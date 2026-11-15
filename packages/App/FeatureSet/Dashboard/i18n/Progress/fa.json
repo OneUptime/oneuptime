@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 1400
+    "keys": 52513,
+    "untranslated": 972
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -48,6 +48,7 @@
     "Amazon SES",
     "Amphora",
     "Apache Kafka · kafka-1:9092",
+    "App Store",
     "Application credential",
     "Application credential {{id}}",
     "Atmosphere",
@@ -118,15 +119,19 @@
     "Google Cloud Functions",
     "Google Cloud Service Health: {{event}}",
     "Google GKE",
+    "Google Play",
     "Google SecOps",
     "Google UDM",
     "Groq",
     "H1",
+    "H2",
+    "H3",
     "HA: {{state}}",
     "HAProxy",
     "HH",
     "HTTP {{code}}",
     "HTTP {{status}}",
+    "HackerBay, Inc.",
     "Heat Stack",
     "Hello world",
     "IBAN",
@@ -164,6 +169,7 @@
     "Nameserver",
     "Namespace",
     "Namespace: {{broker}}",
+    "NetFlow v5",
     "New Relic",
     "No Auth, No Priv",
     "OID",
