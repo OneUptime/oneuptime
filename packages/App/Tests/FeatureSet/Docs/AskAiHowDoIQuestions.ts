@@ -535,3 +535,527 @@ export const ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED: ReadonlyArray<AskAiHowDoIQues
       docsPage: "incidents/declaring-incidents",
     },
   ];
+
+/*
+ * QUESTIONS AS EACH LANGUAGE ASKS THEM (#8335): ten or so in every docs
+ * language but English, each with the page it must find, typed the way
+ * someone who speaks the language asks: inviting a colleague, an on-call
+ * policy, an API key, a backup, a runbook, a dashboard, a postmortem,
+ * two-factor authentication, the audit log export, escalation and status
+ * page subscribers. Each asks with the verb forms a question takes, not
+ * the ones the docs name a page with: Persian "بسازم" (may I make) for
+ * "ساخت" (making), Korean "만드나요" (do I make?) for "만들기", Hindi
+ * "नीति" (policy) for "नीतियां" (policies), Russian "настроить" (set up)
+ * for "Настройки" (settings), Danish "inviterer" for "Inviter".
+ *
+ * AskAiHowDoIRetrieval holds Ask AI's search to them (the 6 it shows the
+ * model) and DocsSearchRealDocs the docs search box (its first 10), but
+ * for the ones each lists as not found yet, with why.
+ *
+ * Written for #8335 without a native reviewer: each was checked against
+ * the forms the docs of its language use, and the pull request says how.
+ */
+export const ASK_AI_QUESTIONS_BY_LANGUAGE: ReadonlyArray<AskAiHowDoIQuestionTranslated> =
+  [
+    [
+      "de",
+      "Wie lade ich jemanden in mein Projekt ein?",
+      ["permissions/inviting-people"],
+    ],
+    ["de", "Wie mache ich ein Backup von OneUptime?", ["installation/backups"]],
+    ["de", "Wie schreibe ich ein Runbook?", ["runbooks/authoring"]],
+    ["de", "Wie erstelle ich ein Dashboard?", ["dashboards/authoring"]],
+    [
+      "de",
+      "Wie schreibe ich eine Postmortem-Analyse?",
+      ["incidents/postmortems"],
+    ],
+    [
+      "de",
+      "Wie aktiviere ich die Zwei-Faktor-Authentifizierung?",
+      ["introduction/your-account"],
+    ],
+    [
+      "de",
+      "Wie exportiere ich das Audit-Protokoll?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "de",
+      "Wie eskaliere ich, wenn niemand antwortet?",
+      ["on-call/escalation-rules"],
+    ],
+    [
+      "de",
+      "Wie können Kunden meine Statusseite abonnieren?",
+      ["status-pages/subscribers"],
+    ],
+
+    [
+      "fr",
+      "Comment inviter un collègue dans mon projet ?",
+      ["permissions/inviting-people"],
+    ],
+    ["fr", "Comment créer une politique d'astreinte ?", ["on-call/policies"]],
+    ["fr", "Comment créer une clé API ?", ["api-reference/api-reference"]],
+    ["fr", "Comment sauvegarder OneUptime ?", ["installation/backups"]],
+    ["fr", "Comment rédiger un runbook ?", ["runbooks/authoring"]],
+    ["fr", "Comment créer un tableau de bord ?", ["dashboards/authoring"]],
+    ["fr", "Comment rédiger un post-mortem ?", ["incidents/postmortems"]],
+    [
+      "fr",
+      "Comment activer l'authentification à deux facteurs ?",
+      ["introduction/your-account"],
+    ],
+    [
+      "fr",
+      "Comment exporter le journal d'audit ?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "fr",
+      "Comment mes clients peuvent-ils s'abonner à ma page de statut ?",
+      ["status-pages/subscribers"],
+    ],
+
+    [
+      "es",
+      "¿Cómo invito a un compañero a mi proyecto?",
+      ["permissions/inviting-people"],
+    ],
+    ["es", "¿Cómo creo una política de guardia?", ["on-call/policies"]],
+    ["es", "¿Cómo creo una clave de API?", ["api-reference/api-reference"]],
+    [
+      "es",
+      "¿Cómo hago una copia de seguridad de OneUptime?",
+      ["installation/backups"],
+    ],
+    ["es", "¿Cómo escribo un runbook?", ["runbooks/authoring"]],
+    ["es", "¿Cómo creo un panel?", ["dashboards/authoring"]],
+    ["es", "¿Cómo redacto un informe post mortem?", ["incidents/postmortems"]],
+    [
+      "es",
+      "¿Cómo activo la autenticación de dos factores?",
+      ["introduction/your-account"],
+    ],
+    [
+      "es",
+      "¿Cómo exporto el registro de auditoría?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "es",
+      "¿Cómo se suscriben mis clientes a la página de estado?",
+      ["status-pages/subscribers"],
+    ],
+    // "suscribirse" is "suscrib", as "suscribo" is: a verb with its "self" on it.
+    [
+      "es",
+      "¿Cómo pueden mis clientes suscribirse a mi página de estado?",
+      ["status-pages/subscribers"],
+    ],
+
+    [
+      "it",
+      "Come invito un collega nel mio progetto?",
+      ["permissions/inviting-people"],
+    ],
+    ["it", "Come creo una policy di reperibilità?", ["on-call/policies"]],
+    ["it", "Come creo una chiave API?", ["api-reference/api-reference"]],
+    ["it", "Come faccio il backup di OneUptime?", ["installation/backups"]],
+    ["it", "Come scrivo un runbook?", ["runbooks/authoring"]],
+    ["it", "Come creo una dashboard?", ["dashboards/authoring"]],
+    ["it", "Come scrivo un post-mortem?", ["incidents/postmortems"]],
+    [
+      "it",
+      "Come attivo l'autenticazione a due fattori?",
+      ["introduction/your-account"],
+    ],
+    [
+      "it",
+      "Come esporto il registro di audit?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "it",
+      "Come si iscrivono i clienti alla pagina di stato?",
+      ["status-pages/subscribers"],
+    ],
+
+    [
+      "pt",
+      "Como convido um colega para o meu projeto?",
+      ["permissions/inviting-people"],
+    ],
+    ["pt", "Como crio uma política de plantão?", ["on-call/policies"]],
+    ["pt", "Como crio uma chave de API?", ["api-reference/api-reference"]],
+    ["pt", "Como faço backup do OneUptime?", ["installation/backups"]],
+    ["pt", "Como escrevo um runbook?", ["runbooks/authoring"]],
+    ["pt", "Como crio um painel?", ["dashboards/authoring"]],
+    ["pt", "Como escrevo um post-mortem?", ["incidents/postmortems"]],
+    [
+      "pt",
+      "Como ativo a autenticação de dois fatores?",
+      ["introduction/your-account"],
+    ],
+    [
+      "pt",
+      "Como exporto o registro de auditoria?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "pt",
+      "Como meus clientes assinam a página de status?",
+      ["status-pages/subscribers"],
+    ],
+
+    // "nodig ... uit" is the name's "uitnodigen" (invite), written apart.
+    [
+      "nl",
+      "Hoe nodig ik een collega uit voor mijn project?",
+      ["permissions/inviting-people"],
+    ],
+    ["nl", "Hoe maak ik een bereikbaarheidsbeleid?", ["on-call/policies"]],
+    ["nl", "Hoe maak ik een API-sleutel aan?", ["api-reference/api-reference"]],
+    ["nl", "Hoe maak ik een back-up van OneUptime?", ["installation/backups"]],
+    ["nl", "Hoe schrijf ik een runbook?", ["runbooks/authoring"]],
+    ["nl", "Hoe maak ik een dashboard?", ["dashboards/authoring"]],
+    ["nl", "Hoe schrijf ik een postmortem?", ["incidents/postmortems"]],
+    [
+      "nl",
+      "Hoe zet ik tweestapsverificatie aan?",
+      ["introduction/your-account"],
+    ],
+    [
+      "nl",
+      "Hoe exporteer ik het auditlogboek?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "nl",
+      "Hoe kunnen klanten zich abonneren op mijn statuspagina?",
+      ["status-pages/subscribers"],
+    ],
+
+    // "inviterer" (invite) is the name's "Inviter" (invite!).
+    [
+      "da",
+      "Hvordan inviterer jeg en kollega til mit projekt?",
+      ["permissions/inviting-people"],
+    ],
+    ["da", "Hvordan opretter jeg en vagtpolitik?", ["on-call/policies"]],
+    [
+      "da",
+      "Hvordan opretter jeg en API-nøgle?",
+      ["api-reference/api-reference"],
+    ],
+    [
+      "da",
+      "Hvordan tager jeg en sikkerhedskopi af OneUptime?",
+      ["installation/backups"],
+    ],
+    ["da", "Hvordan skriver jeg et runbook?", ["runbooks/authoring"]],
+    ["da", "Hvordan opretter jeg et dashboard?", ["dashboards/authoring"]],
+    [
+      "da",
+      "Hvordan skriver jeg en postmortem-analyse?",
+      ["incidents/postmortems"],
+    ],
+    [
+      "da",
+      "Hvordan slår jeg totrinsgodkendelse til?",
+      ["introduction/your-account"],
+    ],
+    [
+      "da",
+      "Hvordan eksporterer jeg auditloggen?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "da",
+      "Hvordan kan kunder abonnere på min statusside?",
+      ["status-pages/subscribers"],
+    ],
+
+    // "inviterer" (invite) is the name's "Inviter" (invite!).
+    [
+      "no",
+      "Hvordan inviterer jeg en kollega til prosjektet mitt?",
+      ["permissions/inviting-people"],
+    ],
+    ["no", "Hvordan oppretter jeg en vaktpolicy?", ["on-call/policies"]],
+    ["no", "Hvordan lager jeg en API-nøkkel?", ["api-reference/api-reference"]],
+    [
+      "no",
+      "Hvordan tar jeg sikkerhetskopi av OneUptime?",
+      ["installation/backups"],
+    ],
+    ["no", "Hvordan skriver jeg et runbook?", ["runbooks/authoring"]],
+    ["no", "Hvordan lager jeg et dashbord?", ["dashboards/authoring"]],
+    ["no", "Hvordan skriver jeg en etteranalyse?", ["incidents/postmortems"]],
+    // The account page says "totrinnsbekreftelse" (a synonym).
+    [
+      "no",
+      "Hvordan slår jeg på tofaktorautentisering?",
+      ["introduction/your-account"],
+    ],
+    [
+      "no",
+      "Hvordan eksporterer jeg revisjonsloggen?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "no",
+      "Hvordan kan kunder abonnere på statussiden min?",
+      ["status-pages/subscribers"],
+    ],
+
+    [
+      "sv",
+      "Hur bjuder jag in en kollega till mitt projekt?",
+      ["permissions/inviting-people"],
+    ],
+    ["sv", "Hur skapar jag en jourpolicy?", ["on-call/policies"]],
+    ["sv", "Hur skapar jag en API-nyckel?", ["api-reference/api-reference"]],
+    [
+      "sv",
+      "Hur tar jag en säkerhetskopia av OneUptime?",
+      ["installation/backups"],
+    ],
+    ["sv", "Hur skriver jag ett runbook?", ["runbooks/authoring"]],
+    ["sv", "Hur skapar jag en instrumentpanel?", ["dashboards/authoring"]],
+    ["sv", "Hur skriver jag en efteranalys?", ["incidents/postmortems"]],
+    [
+      "sv",
+      "Hur aktiverar jag tvåfaktorsautentisering?",
+      ["introduction/your-account"],
+    ],
+    [
+      "sv",
+      "Hur exporterar jag granskningsloggen?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "sv",
+      "Hur kan kunder prenumerera på min statussida?",
+      ["status-pages/subscribers"],
+    ],
+
+    // "пригласить" (invite) is the name's "Приглашение" (invitation).
+    ["ru", "Как пригласить коллегу в проект?", ["permissions/inviting-people"]],
+    ["ru", "Как создать политику дежурств?", ["on-call/policies"]],
+    ["ru", "Как создать API-ключ?", ["api-reference/api-reference"]],
+    ["ru", "Как сделать резервную копию OneUptime?", ["installation/backups"]],
+    ["ru", "Как написать runbook?", ["runbooks/authoring"]],
+    ["ru", "Как создать панель мониторинга?", ["dashboards/authoring"]],
+    ["ru", "Как написать постмортем?", ["incidents/postmortems"]],
+    // "включить" (turn on) is the step's "Включите" (turn on!).
+    [
+      "ru",
+      "Как включить двухфакторную аутентификацию?",
+      ["introduction/your-account"],
+    ],
+    [
+      "ru",
+      "Как экспортировать журнал аудита?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "ru",
+      "Как клиенты могут подписаться на страницу статуса?",
+      ["status-pages/subscribers"],
+    ],
+    // "настроить" (set up) is the name's "Настройки" (settings).
+    [
+      "ru",
+      "Как настроить уведомления?",
+      [
+        "notifications/notification-settings",
+        "notifications/notification-methods",
+        "notifications/index",
+      ],
+    ],
+
+    [
+      "ja",
+      "プロジェクトにメンバーを招待するにはどうすればいいですか？",
+      ["permissions/inviting-people"],
+    ],
+    [
+      "ja",
+      "オンコールポリシーを作成するにはどうすればいいですか？",
+      ["on-call/policies"],
+    ],
+    [
+      "ja",
+      "API キーを作成するにはどうすればいいですか？",
+      ["api-reference/api-reference"],
+    ],
+    [
+      "ja",
+      "OneUptime をバックアップするにはどうすればいいですか？",
+      ["installation/backups"],
+    ],
+    ["ja", "Runbook はどうやって書けばいいですか？", ["runbooks/authoring"]],
+    [
+      "ja",
+      "ダッシュボードを作成するにはどうすればいいですか？",
+      ["dashboards/authoring"],
+    ],
+    [
+      "ja",
+      "ポストモーテムを書くにはどうすればいいですか？",
+      ["incidents/postmortems"],
+    ],
+    [
+      "ja",
+      "二要素認証を有効にするにはどうすればいいですか？",
+      ["introduction/your-account"],
+    ],
+    [
+      "ja",
+      "監査ログをエクスポートするにはどうすればいいですか？",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "ja",
+      "顧客がステータスページを購読するにはどうすればいいですか？",
+      ["status-pages/subscribers"],
+    ],
+
+    [
+      "ko",
+      "팀원을 프로젝트에 어떻게 초대하나요?",
+      ["permissions/inviting-people"],
+    ],
+    // "만드나요" (do I make?) is "만들기" (making): 만들다 drops its ㄹ.
+    ["ko", "온콜 정책은 어떻게 만드나요?", ["on-call/policies"]],
+    ["ko", "API 키는 어떻게 만드나요?", ["api-reference/api-reference"]],
+    ["ko", "OneUptime을 어떻게 백업하나요?", ["installation/backups"]],
+    ["ko", "Runbook은 어떻게 작성하나요?", ["runbooks/authoring"]],
+    ["ko", "대시보드는 어떻게 만드나요?", ["dashboards/authoring"]],
+    ["ko", "포스트모템은 어떻게 작성하나요?", ["incidents/postmortems"]],
+    // "켜나요" (do I turn on?) is the heading's "켜기" (turning on).
+    ["ko", "2단계 인증은 어떻게 켜나요?", ["introduction/your-account"]],
+    // "내보내나요" (do I export?) is the name's "내보내기" (exporting).
+    [
+      "ko",
+      "감사 로그를 어떻게 내보내나요?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "ko",
+      "고객이 상태 페이지를 어떻게 구독하나요?",
+      ["status-pages/subscribers"],
+    ],
+    // "Slack을" is "Slack" with its object's mark.
+    ["ko", "Slack을 어떻게 연결하나요?", ["workspace-connections/slack"]],
+    // "가져오나요" (do I import?) is the name's "가져오기" (importing).
+    ["ko", "리소스를 어떻게 가져오나요?", ["terraform/importing-resources"]],
+    ["ko", "모니터를 만들려면 어떻게 해야 하나요?", ["monitor/create-monitor"]],
+
+    ["zh-CN", "如何邀请同事加入我的项目？", ["permissions/inviting-people"]],
+    ["zh-CN", "如何创建值班策略？", ["on-call/policies"]],
+    ["zh-CN", "如何创建 API 密钥？", ["api-reference/api-reference"]],
+    ["zh-CN", "如何备份 OneUptime？", ["installation/backups"]],
+    ["zh-CN", "如何编写 Runbook？", ["runbooks/authoring"]],
+    ["zh-CN", "如何创建仪表板？", ["dashboards/authoring"]],
+    ["zh-CN", "怎么写事后分析？", ["incidents/postmortems"]],
+    ["zh-CN", "如何开启双因素认证？", ["introduction/your-account"]],
+    ["zh-CN", "如何导出审计日志？", ["configuration/audit-log-export"]],
+    ["zh-CN", "客户如何订阅状态页？", ["status-pages/subscribers"]],
+
+    ["zh-TW", "如何邀請同事加入我的專案？", ["permissions/inviting-people"]],
+    ["zh-TW", "如何建立待命策略？", ["on-call/policies"]],
+    ["zh-TW", "如何建立 API 金鑰？", ["api-reference/api-reference"]],
+    ["zh-TW", "如何備份 OneUptime？", ["installation/backups"]],
+    ["zh-TW", "如何撰寫 Runbook？", ["runbooks/authoring"]],
+    ["zh-TW", "如何建立儀表板？", ["dashboards/authoring"]],
+    ["zh-TW", "怎麼寫事後分析？", ["incidents/postmortems"]],
+    ["zh-TW", "如何啟用雙重驗證？", ["introduction/your-account"]],
+    ["zh-TW", "如何匯出稽核日誌？", ["configuration/audit-log-export"]],
+    ["zh-TW", "客戶如何訂閱狀態頁？", ["status-pages/subscribers"]],
+
+    [
+      "hi",
+      "मैं अपने सहकर्मी को प्रोजेक्ट में कैसे आमंत्रित करूँ?",
+      ["permissions/inviting-people"],
+    ],
+    // "नीति" (policy) is the name's "नीतियां" (policies).
+    ["hi", "मैं ऑन-कॉल नीति कैसे बनाऊँ?", ["on-call/policies"]],
+    // "कुंजी" (key) is "कुंजियाँ" (keys).
+    ["hi", "मैं API कुंजी कैसे बनाऊँ?", ["api-reference/api-reference"]],
+    ["hi", "मैं OneUptime का बैकअप कैसे लूँ?", ["installation/backups"]],
+    ["hi", "मैं Runbook कैसे लिखूँ?", ["runbooks/authoring"]],
+    ["hi", "मैं डैशबोर्ड कैसे बनाऊँ?", ["dashboards/authoring"]],
+    ["hi", "मैं पोस्टमॉर्टम कैसे लिखूँ?", ["incidents/postmortems"]],
+    [
+      "hi",
+      "मैं टू-फ़ैक्टर ऑथेंटिकेशन कैसे चालू करूँ?",
+      ["introduction/your-account"],
+    ],
+    [
+      "hi",
+      "मैं ऑडिट लॉग कैसे एक्सपोर्ट करूँ?",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "hi",
+      "ग्राहक मेरे स्थिति पृष्ठ की सदस्यता कैसे लें?",
+      ["status-pages/subscribers"],
+    ],
+    // "नीतियाँ" and the name's "नीतियां" are one plural, written two ways.
+    ["hi", "ऑन-कॉल नीतियाँ कैसे काम करती हैं?", ["on-call/policies"]],
+    [
+      "hi",
+      "मैं अनुमति कैसे दूँ?",
+      ["permissions/index", "permissions/reference"],
+    ],
+
+    [
+      "fa",
+      "چطور یک هم‌تیمی را به پروژه دعوت کنم؟",
+      ["permissions/inviting-people"],
+    ],
+    ["fa", "چطور یک سیاست آنکال بسازم؟", ["on-call/policies"]],
+    ["fa", "چطور یک کلید API بسازم؟", ["api-reference/api-reference"]],
+    // "بگیرم" (may I take) is the name's "گیری" (taking): "پشتیبان‌گیری", backing up.
+    ["fa", "چطور از OneUptime پشتیبان بگیرم؟", ["installation/backups"]],
+    // "بنویسم" (may I write) is the name's "نوشتن" (writing).
+    ["fa", "چطور یک رانبوک بنویسم؟", ["runbooks/authoring"]],
+    ["fa", "چطور یک داشبورد بسازم؟", ["dashboards/authoring"]],
+    ["fa", "چطور گزارش پس از حادثه بنویسم؟", ["incidents/postmortems"]],
+    [
+      "fa",
+      "چطور احراز هویت دومرحله‌ای را فعال کنم؟",
+      ["introduction/your-account"],
+    ],
+    [
+      "fa",
+      "چطور از گزارش ممیزی خروجی بگیرم؟",
+      ["configuration/audit-log-export"],
+    ],
+    [
+      "fa",
+      "مشتریان چطور در صفحه وضعیت مشترک شوند؟",
+      ["status-pages/subscribers"],
+    ],
+    // "بسازم" (may I make) is the name's "ساخت" (making): a verb's present and past stems.
+    ["fa", "چطور یک مانیتور بسازم؟", ["monitor/create-monitor"]],
+    ["fa", "چطور می‌توانم یک مانیتور بسازم؟", ["monitor/create-monitor"]],
+    // As it is spoken and typed: "چطوری", "میشه" and "یه".
+    ["fa", "چطوری میشه یه مانیتور ساخت؟", ["monitor/create-monitor"]],
+  ].map(
+    ([language, question, pages]: Array<
+      string | Array<string>
+    >): AskAiHowDoIQuestionTranslated => {
+      const answering: Array<string> = pages as Array<string>;
+
+      return {
+        language: language as string,
+        question: question as string,
+        docsPage: answering[0]!,
+        ...(answering.length > 1 ? { alsoAnswers: answering.slice(1) } : {}),
+      };
+    },
+  );

@@ -55180,6 +55180,7 @@
   "The request filter can be at most {{max}} characters long.": "요청 필터는 최대 {{max}}자까지 입력할 수 있습니다.",
   "The request filter can have at most {{max}} terms.": "요청 필터의 조건은 최대 {{max}}개입니다.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "요청 필터에는 스팬 속성과 스팬 이름을 사용합니다(예: @http.route:/checkout* 또는 name:\"POST /checkout\"). \"{{text}}\"은(는) 둘 다 아닙니다.",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone의 감사 추적과 각 API의 감사 필터를 보안 이벤트로.",
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "'{{rule}}' 규칙이 이 팀에서 제거됩니다. 이 작업은 되돌릴 수 없습니다. 규칙을 유지하려면 대신 편집해서 새 심각도를 선택하세요.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "'{{rule}}' 규칙은 이 팀의 누구에게도 더 이상 확인되지 않습니다. 이 작업은 되돌릴 수 없습니다. 잠시 확인을 멈추려면 대신 일시 중지하세요.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "규칙은 이 팀의 모든 구성원이 설정해야 하는 항목을 정합니다(예: 심각한 인시던트 시 전화). 아래 추천 항목에서 시작하거나 직접 만드세요.",

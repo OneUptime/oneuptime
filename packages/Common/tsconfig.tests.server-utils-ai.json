@@ -1,0 +1,28 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks on its own: Tests/Server/Utils/AI,
+   * the tests of Common's server-side AI (investigations and their tools,
+   * memory, run limits, code fixes and tasks, first responders, the MCP
+   * server, evals), and the server sources they import. The rest of
+   * Tests/Server/Utils is tsconfig.tests.server-utils-a-o.json and -p-z.json,
+   * and tsconfig.tests.server-utils.json is the whole folder, the program
+   * editors and ESLint use for it. Split on 2026-11-15 (#8664), when the
+   * folder as one part used 85% of its heap: AI is its largest folder. Why
+   * the program is checked in parts: Scripts/compile-tests.js.
+   *
+   * Everything but "include" is inherited, so these tests are held to exactly
+   * the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/Server/Utils/AI/**/*.ts",
+    "Tests/Server/Utils/AI/**/*.tsx",
+    // jest runs it before every test file (setupFilesAfterEnv), so the
+    // global types it brings in belong to every part, not only to the one
+    // whose include happens to match it.
+    "Tests/jest.setup.ts",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ]
+}
