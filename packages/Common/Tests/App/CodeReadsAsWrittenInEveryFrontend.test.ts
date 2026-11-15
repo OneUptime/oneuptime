@@ -19,9 +19,9 @@ import { withNoBreakSpacesInLocale } from "../../Types/NoBreakSpaces";
  * set apart, exactly as Common/Types/CodeInSentence sets it apart.
  *
  * The rules that set it apart load only for a language read from the
- * right. The Dashboard, Accounts and status pages fetch them with an Arabic
- * or Persian locale file, so a page in any other language never loads
- * them; the admin dashboard and public dashboards bundle every language's
+ * right. The Dashboard, the admin dashboard, Accounts and status pages
+ * fetch them with an Arabic or Persian locale file, so a page in any other
+ * language never loads them; public dashboards bundle every language's
  * words, and the rules with them.
  */
 
@@ -44,11 +44,12 @@ const FRONTENDS: Array<string> = [
 
 const RIGHT_TO_LEFT: Array<string> = ["ar", "fa"];
 
-// The frontends that bundle every language's words, and the rules with them.
-const BUNDLES_EVERY_LANGUAGE: Array<string> = [
-  "AdminDashboard",
-  "PublicDashboard",
-];
+/*
+ * The frontends that bundle every language's words, and the rules with
+ * them. The Admin Dashboard fetches its reader's language since #8146, and
+ * the rules with an Arabic or Persian one, as the Dashboard does.
+ */
+const BUNDLES_EVERY_LANGUAGE: Array<string> = ["PublicDashboard"];
 
 type LocaleTree = { [key: string]: string | LocaleTree };
 

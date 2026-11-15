@@ -245,8 +245,10 @@ describe("the Admin Dashboard's same-as-English lists", () => {
 
 /*
  * The build reads the lists: the Admin Dashboard's esbuild.config.js hands
- * them to the locales plugin, pointed at the directory Utils/i18n.ts
- * bundles every locale from, and ships each locale whole.
+ * them to the locales plugin, pointed at the directory Utils/i18n.ts takes
+ * English from and Utils/I18nLocaleLoader every other language from. Each
+ * locale ships trimmed, as the Dashboard's do (#8146): the marks ship all
+ * the same, since getRuntimeLocale makes them as getMarkedLocale did.
  */
 describe("the Admin Dashboard's build marks the forms its lists name", () => {
   const collapse: (text: string) => string = (text: string): string => {
@@ -263,25 +265,52 @@ describe("the Admin Dashboard's build marks the forms its lists name", () => {
 
     expect(config).toContain('require("Common/UI/esbuild-locales")');
     expect(config).toMatch(
-      /additionalPlugins: \[ createRuntimeLocalesPlugin\(\{ localesDirectory: path\.join\(__dirname, "src", "Locales"\), fallbackLanguage: "en", progressDirectory: path\.join\(__dirname, "i18n", "Progress"\), shipsWholeLocales: true, \}\), \]/,
+      /additionalPlugins: \[ createRuntimeLocalesPlugin\(\{ localesDirectory: path\.join\(__dirname, "src", "Locales"\), fallbackLanguage: "en", progressDirectory: path\.join\(__dirname, "i18n", "Progress"\), \}\), \]/,
     );
+    // Whole files shipped every language in the entry chunk (#8146).
+    expect(config).not.toContain("shipsWholeLocales");
     expect(fs.existsSync(ADMIN_DASHBOARD_PROGRESS_DIRECTORY)).toBe(true);
   });
 
-  test("Utils/i18n.ts bundles every locale from the directory the plugin reads", () => {
+  test("Utils/i18n.ts bundles English, and the loader every other language, from the directory the plugin reads", () => {
     const i18n: string = fs.readFileSync(
       path.join(ADMIN_DASHBOARD_DIRECTORY, "src", "Utils", "i18n.ts"),
       "utf8",
     );
+    const loader: string = fs.readFileSync(
+      path.join(
+        ADMIN_DASHBOARD_DIRECTORY,
+        "src",
+        "Utils",
+        "I18nLocaleLoader.ts",
+      ),
+      "utf8",
+    );
 
-    for (const code of [
-      ADMIN_DASHBOARD_ENGLISH,
-      ...ADMIN_DASHBOARD_LANGUAGES,
-    ]) {
+    expect(i18n).toContain(
+      `from "../Locales/${ADMIN_DASHBOARD_ENGLISH}.json";`,
+    );
+
+    for (const code of ADMIN_DASHBOARD_LANGUAGES) {
       expect([code, i18n.includes(`from "../Locales/${code}.json";`)]).toEqual([
         code,
-        true,
+        false,
       ]);
+      expect([
+        code,
+        fs.existsSync(
+          path.join(
+            ADMIN_DASHBOARD_DIRECTORY,
+            "src",
+            "Locales",
+            `${code}.json`,
+          ),
+        ),
+      ]).toEqual([code, true]);
     }
+
+    expect(loader).toMatch(
+      /import\(\s*`\.\.\/Locales\/\$\{languageCode\}\.json`\s*\)/,
+    );
   });
 });
