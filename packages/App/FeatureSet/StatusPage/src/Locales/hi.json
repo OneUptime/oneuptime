@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "प्रभावित संसाधन",
-    "stateChangedTo": "स्थिति बदलकर हुई",
     "view": "{{eventType}} देखें",
     "updateTo": "इस {{eventType}} पर अपडेट",
-    "postedOn": "पोस्ट किया गया"
+    "postedOnDate": "{{date}} को पोस्ट किया गया"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} दिन पहले",
@@ -473,5 +472,6 @@
     "warning": "चेतावनी"
   },
   "No options available": "कोई विकल्प उपलब्ध नहीं",
-  "No matches found": "कोई मिलान नहीं मिला"
+  "No matches found": "कोई मिलान नहीं मिला",
+  "{{eventType}} state changed to {{state}}": "{{eventType}} की स्थिति बदलकर {{state}} हुई"
 }

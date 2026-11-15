@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Risorse interessate",
-    "stateChangedTo": "stato cambiato in",
     "view": "Visualizza {{eventType}}",
     "updateTo": "Aggiornamento di questo {{eventType}}",
-    "postedOn": "pubblicato il"
+    "postedOnDate": "pubblicato il {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} giorni fa",
@@ -473,5 +472,6 @@
     "warning": "Avviso"
   },
   "No options available": "Nessuna opzione disponibile",
-  "No matches found": "Nessuna corrispondenza trovata"
+  "No matches found": "Nessuna corrispondenza trovata",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: stato cambiato in {{state}}"
 }

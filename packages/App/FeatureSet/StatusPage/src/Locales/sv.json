@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Berörda resurser",
-    "stateChangedTo": "status ändrad till",
     "view": "Visa {{eventType}}",
     "updateTo": "Uppdatering för denna {{eventType}}",
-    "postedOn": "publicerad"
+    "postedOnDate": "publicerad {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "för {{days}} dagar sedan",
@@ -473,5 +472,6 @@
     "warning": "Varning"
   },
   "No options available": "Inga tillgängliga alternativ",
-  "No matches found": "Inga träffar hittades"
+  "No matches found": "Inga träffar hittades",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: status ändrad till {{state}}"
 }

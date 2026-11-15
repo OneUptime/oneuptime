@@ -3145,5 +3145,7 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "لم يُحلّ اسم خادم NTP إلى أي عنوان، لذلك لم يُرسل أي طلب.",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "يمكن الوصول إلى المضيف، لكنه أجاب بأنه لا توجد خدمة تستمع على منفذ UDP هذا: خدمة NTP متوقفة، أو تستمع على منفذ آخر.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "تعذّر على المسبار إرسال الطلب من جهته، لذلك لم يُتواصل مع خادم NTP قط. العطل في المسبار، لا في الخادم.",
-  "The NTP check failed because of a network error.": "فشل فحص NTP بسبب خطأ في الشبكة."
+  "The NTP check failed because of a network error.": "فشل فحص NTP بسبب خطأ في الشبكة.",
+  "From (range start)": "من",
+  "To (range end)": "إلى"
 }

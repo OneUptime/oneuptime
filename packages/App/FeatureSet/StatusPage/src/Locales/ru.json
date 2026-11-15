@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Затронутые ресурсы",
-    "stateChangedTo": "статус изменён на",
     "view": "Открыть {{eventType}}",
     "updateTo": "Обновление этого: {{eventType}}",
-    "postedOn": "опубликовано"
+    "postedOnDate": "опубликовано {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} дней назад",
@@ -473,5 +472,6 @@
     "warning": "Предупреждение"
   },
   "No options available": "Нет доступных вариантов",
-  "No matches found": "Совпадений не найдено"
+  "No matches found": "Совпадений не найдено",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: статус изменён на {{state}}"
 }

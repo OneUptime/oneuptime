@@ -3145,5 +3145,7 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "The NTP server's name did not resolve to an address, so no request was sent.",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.",
-  "The NTP check failed because of a network error.": "The NTP check failed because of a network error."
+  "The NTP check failed because of a network error.": "The NTP check failed because of a network error.",
+  "From (range start)": "From (range start)",
+  "To (range end)": "To (range end)"
 }

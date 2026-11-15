@@ -3145,5 +3145,7 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "نام سرور NTP به هیچ نشانی‌ای تفکیک نشد، برای همین هیچ درخواستی فرستاده نشد.",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "میزبان در دسترس است، اما پاسخ داد که هیچ سرویسی روی این پورت UDP گوش نمی‌دهد: سرویس NTP متوقف است یا روی پورت دیگری گوش می‌دهد.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "پراب نتوانست درخواست را از سمت خودش بفرستد، برای همین هیچ‌وقت با سرور NTP تماس گرفته نشد. خرابی از پراب است، نه از سرور.",
-  "The NTP check failed because of a network error.": "بررسی NTP به‌خاطر خطای شبکه ناموفق بود."
+  "The NTP check failed because of a network error.": "بررسی NTP به‌خاطر خطای شبکه ناموفق بود.",
+  "From (range start)": "از",
+  "To (range end)": "تا"
 }

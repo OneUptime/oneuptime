@@ -3145,5 +3145,7 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "El nombre del servidor NTP no se resolvió a ninguna dirección, así que no se envió ninguna solicitud.",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "El host es accesible, pero respondió que ningún servicio escucha en este puerto UDP: el demonio NTP está detenido o escucha en otro puerto.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "La sonda no pudo enviar la solicitud desde su propio lado, así que nunca se contactó con el servidor NTP. El fallo está en la sonda, no en el servidor.",
-  "The NTP check failed because of a network error.": "La comprobación NTP falló por un error de red."
+  "The NTP check failed because of a network error.": "La comprobación NTP falló por un error de red.",
+  "From (range start)": "Desde",
+  "To (range end)": "Hasta"
 }

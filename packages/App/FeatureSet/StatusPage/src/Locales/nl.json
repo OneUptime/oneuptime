@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Getroffen bronnen",
-    "stateChangedTo": "status gewijzigd naar",
     "view": "{{eventType}} bekijken",
     "updateTo": "Update voor deze {{eventType}}",
-    "postedOn": "geplaatst op"
+    "postedOnDate": "geplaatst op {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} dagen geleden",
@@ -473,5 +472,6 @@
     "warning": "Waarschuwing"
   },
   "No options available": "Geen opties beschikbaar",
-  "No matches found": "Geen overeenkomsten gevonden"
+  "No matches found": "Geen overeenkomsten gevonden",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}: status gewijzigd naar {{state}}"
 }
