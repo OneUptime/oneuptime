@@ -175,7 +175,11 @@
       "noItems": "エンタープライズライセンスはまだ発行されていません。",
       "settingsCardTitle": "ライセンス通知設定",
       "settingsCardDescription": "ライセンス関連メールの送信先と、有効期限リマインダーを何日前から送るかを設定します。ライセンスがユーザー数の上限を超えている間、または有効期限が近い間、リマインダーはお客様のマスター管理者に毎日メールで送信されます。",
-      "settingsEditButton": "設定を編集"
+      "settingsEditButton": "設定を編集",
+      "cloudOnlyTitle": "OneUptime Cloud でのみ利用できます",
+      "cloudOnlyDescription": "エンタープライズライセンスは、請求が有効になっているホスト版の oneuptime.com で発行・管理されます。このセルフホスト型インスタンスではライセンスを管理しません。",
+      "enterpriseEditionRequiredTitle": "OneUptime Enterprise Edition が必要です",
+      "enterpriseEditionRequiredDescription": "ライセンス管理は OneUptime Enterprise Edition の機能です。ライセンスを発行・管理するには、Enterprise Edition のイメージをデプロイしてください。"
     },
     "enterpriseLicenseView": {
       "title": "エンタープライズライセンス",

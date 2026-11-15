@@ -175,7 +175,11 @@
       "noItems": "Er zijn nog geen Enterprise-licenties uitgegeven.",
       "settingsCardTitle": "Instellingen voor licentiemeldingen",
       "settingsCardDescription": "Wie een kopie krijgt van licentie-e-mails en hoe lang van tevoren herinneringen over het verlopen worden verstuurd. Herinneringen worden dagelijks per e-mail naar de hoofdbeheerders van de klant gestuurd zolang een licentie boven de gebruikerslimiet zit of bijna verloopt.",
-      "settingsEditButton": "Instellingen bewerken"
+      "settingsEditButton": "Instellingen bewerken",
+      "cloudOnlyTitle": "Alleen beschikbaar op OneUptime Cloud",
+      "cloudOnlyDescription": "Enterprise-licenties worden uitgegeven en bijgehouden op het gehoste oneuptime.com, waar facturering is ingeschakeld. Deze zelf-gehoste instantie beheert geen licenties.",
+      "enterpriseEditionRequiredTitle": "Vereist de OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "Licentiebeheer maakt deel uit van de OneUptime Enterprise Edition. Implementeer het image van de Enterprise Edition om licenties uit te geven en bij te houden."
     },
     "enterpriseLicenseView": {
       "title": "Enterprise-licentie",

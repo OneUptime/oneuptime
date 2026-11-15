@@ -175,7 +175,11 @@
       "noItems": "Der er endnu ikke udstedt nogen Enterprise-licenser.",
       "settingsCardTitle": "Indstillinger for licensnotifikationer",
       "settingsCardDescription": "Hvem der får kopi af licens-e-mails, og hvor lang tid i forvejen påmindelser om udløb sendes. Påmindelser sendes dagligt på e-mail til kundens hovedadministratorer, så længe en licens overskrider sin brugergrænse eller er tæt på at udløbe.",
-      "settingsEditButton": "Rediger indstillinger"
+      "settingsEditButton": "Rediger indstillinger",
+      "cloudOnlyTitle": "Kun tilgængelig på OneUptime Cloud",
+      "cloudOnlyDescription": "Enterprise-licenser udstedes og spores på det hostede oneuptime.com, hvor fakturering er aktiveret. Denne selv-hostede instans administrerer ikke licenser.",
+      "enterpriseEditionRequiredTitle": "Kræver OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "Licensadministration er en del af OneUptime Enterprise Edition. Udrul Enterprise Edition-imaget for at udstede og spore licenser."
     },
     "enterpriseLicenseView": {
       "title": "Enterprise-licens",
