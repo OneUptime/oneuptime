@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "이 조건이 충족되면 {{action}}. 인시던트 세부 정보는 다음과 같습니다:",
   "{{cadence}} · next {{time}}": "{{cadence}} · 다음 {{time}}",
   "{{category}} · click to zoom in": "{{category}} · 클릭해 확대",
-  "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
   "{{count}} Critical": "심각 {{count}}",
   "{{count}} Warning": "경고 {{count}}",
   "{{count}} addresses queued": "주소 {{count}}개 대기 중",
@@ -54174,8 +54173,6 @@
   "A performance budget was exceeded": "성능 예산을 초과함",
   "An error occurred on the page": "페이지에서 오류가 발생했습니다",
   "Check if {{condition}}": "확인: {{condition}}",
-  "Check if {{condition}} and,": "확인: {{condition}}, 그리고",
-  "Check if {{condition}} or,": "확인: {{condition}}, 또는",
   "Check if {{condition}}.": "확인: {{condition}}.",
   "Granted by the end user": "최종 사용자가 동의함",
   "JavaScript expression {{expression}} - evaluates to true": "JavaScript 표현식 {{expression}} - 참으로 평가됨",
@@ -54289,5 +54286,7 @@
   "Total disk read operations since boot": "부팅 이후 디스크 읽기 작업의 총수",
   "Total disk write operations since boot": "부팅 이후 디스크 쓰기 작업의 총수",
   "Total running processes on the server": "서버에서 실행 중인 프로세스의 총수",
-  "Value of a polled SNMP OID": "폴링한 SNMP OID의 값"
+  "Value of a polled SNMP OID": "폴링한 SNMP OID의 값",
+  "All of these must match for this criteria to be met:": "이 기준을 충족하려면 이 필터가 모두 일치해야 합니다:",
+  "Any of these can match for this criteria to be met:": "이 필터 중 하나만 일치해도 이 기준이 충족됩니다:"
 }

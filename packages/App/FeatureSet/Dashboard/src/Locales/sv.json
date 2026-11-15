@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "{{action}} när det här kriteriet är uppfyllt. Det här är incidentens detaljer:",
   "{{cadence}} · next {{time}}": "{{cadence}} · nästa {{time}}",
   "{{category}} · click to zoom in": "{{category}} · klicka för att zooma in",
-  "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
   "{{count}} Critical": "Kritisk: {{count}}",
   "{{count}} Warning": "Varning: {{count}}",
   "{{count}} addresses queued": "{{count}} adresser i kö",
@@ -54174,8 +54173,6 @@
   "A performance budget was exceeded": "En prestandabudget överskreds",
   "An error occurred on the page": "Ett fel inträffade på sidan",
   "Check if {{condition}}": "Kontrollera: {{condition}}",
-  "Check if {{condition}} and,": "Kontrollera: {{condition}} och",
-  "Check if {{condition}} or,": "Kontrollera: {{condition}} eller",
   "Check if {{condition}}.": "Kontrollera: {{condition}}.",
   "Granted by the end user": "Givet av slutanvändaren",
   "JavaScript expression {{expression}} - evaluates to true": "JavaScript-uttrycket {{expression}} - utvärderas till sant",
@@ -54289,5 +54286,7 @@
   "Total disk read operations since boot": "Läsåtgärder på disken totalt sedan start",
   "Total disk write operations since boot": "Skrivåtgärder på disken totalt sedan start",
   "Total running processes on the server": "Körande processer totalt på servern",
-  "Value of a polled SNMP OID": "Värdet av ett avfrågat SNMP-OID"
+  "Value of a polled SNMP OID": "Värdet av ett avfrågat SNMP-OID",
+  "All of these must match for this criteria to be met:": "Alla dessa filter måste matcha för att kriteriet ska vara uppfyllt:",
+  "Any of these can match for this criteria to be met:": "Ett av dessa filter räcker för att kriteriet ska vara uppfyllt:"
 }

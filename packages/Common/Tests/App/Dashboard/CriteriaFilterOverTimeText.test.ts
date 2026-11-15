@@ -1,5 +1,4 @@
 import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   CheckOn,
   CriteriaFilter,
@@ -61,13 +60,8 @@ const EXPRESSION: CriteriaFilter = {
 
 describe("the criteria list, for a filter judged from its match history", () => {
   test("a body filter says which checks it must match on, after what it checks", () => {
-    expect(
-      CriteriaFilterUtil.translateFilterToText(
-        overTime(BODY),
-        FilterCondition.All,
-      ),
-    ).toBe(
-      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes and,',
+    expect(CriteriaFilterUtil.translateFilterToText(overTime(BODY))).toBe(
+      'Check if "Response Body" does not contain "App Title" on every check in the past 5 minutes',
     );
   });
 
@@ -92,13 +86,8 @@ describe("the criteria list, for a filter judged from its match history", () => 
   });
 
   test("headers read the same way", () => {
-    expect(
-      CriteriaFilterUtil.translateFilterToText(
-        overTime(HEADER),
-        FilterCondition.Any,
-      ),
-    ).toBe(
-      'Check if "Response Header" contains "x-maintenance" on every check in the past 5 minutes or,',
+    expect(CriteriaFilterUtil.translateFilterToText(overTime(HEADER))).toBe(
+      'Check if "Response Header" contains "x-maintenance" on every check in the past 5 minutes',
     );
     expect(
       CriteriaFilterUtil.translateFilterToText(
@@ -162,7 +151,6 @@ describe("the criteria list, for a filter judged from its match history", () => 
       expect(
         CriteriaFilterUtil.translateFilterToText(
           noMinutes,
-          undefined,
           MonitorType.Website,
         ),
       ).toBe('Check if "Response Body" does not contain "App Title"');
@@ -180,7 +168,6 @@ describe("the criteria list, for a filter judged from its match history", () => 
     expect(
       CriteriaFilterUtil.translateFilterToText(
         overTime(EXPRESSION),
-        undefined,
         MonitorType.API,
       ),
     ).toBe(
@@ -190,7 +177,6 @@ describe("the criteria list, for a filter judged from its match history", () => 
     expect(
       CriteriaFilterUtil.translateFilterToText(
         overTime(BODY),
-        undefined,
         MonitorType.Website,
       ),
     ).toBe(
@@ -205,7 +191,6 @@ describe("the criteria list, for a filter judged from its match history", () => 
       expect(
         CriteriaFilterUtil.translateFilterToText(
           overTime(EXPRESSION),
-          undefined,
           monitorType,
         ),
       ).not.toContain("on every check");
@@ -268,7 +253,6 @@ describe("the criteria list quotes the text a comparison looks for", () => {
           EvaluateOverTimeType.AllValues,
           15,
         ),
-        undefined,
         MonitorType.Website,
       ),
     ).toBe(

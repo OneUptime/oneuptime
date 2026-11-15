@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "この条件を満たすと{{action}}します。インシデントの詳細は次のとおりです:",
   "{{cadence}} · next {{time}}": "{{cadence}} · 次回 {{time}}",
   "{{category}} · click to zoom in": "{{category}} · クリックしてズームイン",
-  "{{condition}} of these can match for this criteria to be met:": "以下の{{condition}}が一致すると、この条件を満たします:",
   "{{count}} Critical": "重大 {{count}} 件",
   "{{count}} Warning": "警告 {{count}} 件",
   "{{count}} addresses queued": "{{count}} 件のアドレスが待機中",
@@ -54174,8 +54173,6 @@
   "A performance budget was exceeded": "パフォーマンス予算を超えました",
   "An error occurred on the page": "ページでエラーが発生しました",
   "Check if {{condition}}": "確認: {{condition}}",
-  "Check if {{condition}} and,": "確認: {{condition}}、かつ",
-  "Check if {{condition}} or,": "確認: {{condition}}、または",
   "Check if {{condition}}.": "確認: {{condition}}。",
   "Granted by the end user": "エンドユーザーが同意済み",
   "JavaScript expression {{expression}} - evaluates to true": "JavaScript 式 {{expression}} - 真と評価される",
@@ -54289,5 +54286,7 @@
   "Total disk read operations since boot": "起動以降のディスク読み取り操作の合計数",
   "Total disk write operations since boot": "起動以降のディスク書き込み操作の合計数",
   "Total running processes on the server": "サーバー上で実行中のプロセスの合計数",
-  "Value of a polled SNMP OID": "ポーリングした SNMP OID の値"
+  "Value of a polled SNMP OID": "ポーリングした SNMP OID の値",
+  "All of these must match for this criteria to be met:": "この条件を満たすには、これらのフィルターすべてに一致する必要があります:",
+  "Any of these can match for this criteria to be met:": "これらのフィルターのいずれかに一致すると、この条件を満たします:"
 }

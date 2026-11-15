@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "{{action}}, når dette kriterium er opfyldt. Dette er hændelsens detaljer:",
   "{{cadence}} · next {{time}}": "{{cadence}} · næste {{time}}",
   "{{category}} · click to zoom in": "{{category}} · klik for at zoome ind",
-  "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
   "{{count}} Critical": "Kritisk: {{count}}",
   "{{count}} Warning": "Advarsel: {{count}}",
   "{{count}} addresses queued": "{{count}} adresser i kø",
@@ -54174,8 +54173,6 @@
   "A performance budget was exceeded": "Et ydeevnebudget blev overskredet",
   "An error occurred on the page": "Der opstod en fejl på siden",
   "Check if {{condition}}": "Tjek: {{condition}}",
-  "Check if {{condition}} and,": "Tjek: {{condition}} og",
-  "Check if {{condition}} or,": "Tjek: {{condition}} eller",
   "Check if {{condition}}.": "Tjek: {{condition}}.",
   "Granted by the end user": "Givet af slutbrugeren",
   "JavaScript expression {{expression}} - evaluates to true": "JavaScript-udtrykket {{expression}} - evalueres til sand",
@@ -54289,5 +54286,7 @@
   "Total disk read operations since boot": "Læseoperationer på disken i alt siden opstart",
   "Total disk write operations since boot": "Skriveoperationer på disken i alt siden opstart",
   "Total running processes on the server": "Kørende processer i alt på serveren",
-  "Value of a polled SNMP OID": "Værdien af en forespurgt SNMP-OID"
+  "Value of a polled SNMP OID": "Værdien af en forespurgt SNMP-OID",
+  "All of these must match for this criteria to be met:": "Alle disse filtre skal matche, for at dette kriterium er opfyldt:",
+  "Any of these can match for this criteria to be met:": "Ét af disse filtre er nok, for at dette kriterium er opfyldt:"
 }

@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "{{action}} lorsque ce critère est rempli. Voici les détails de l'incident :",
   "{{cadence}} · next {{time}}": "{{cadence}} · prochaine {{time}}",
   "{{category}} · click to zoom in": "{{category}} · cliquez pour zoomer",
-  "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
   "{{count}} Critical": "Critique : {{count}}",
   "{{count}} Warning": "Avertissement : {{count}}",
   "{{count}} addresses queued": "{{count}} adresses en file d'attente",
@@ -54174,8 +54173,6 @@
   "A performance budget was exceeded": "Un budget de performance a été dépassé",
   "An error occurred on the page": "Une erreur s'est produite sur la page",
   "Check if {{condition}}": "Vérifier si {{condition}}",
-  "Check if {{condition}} and,": "Vérifier si {{condition}} et",
-  "Check if {{condition}} or,": "Vérifier si {{condition}} ou",
   "Check if {{condition}}.": "Vérifier si {{condition}}.",
   "Granted by the end user": "Accordé par l'utilisateur final",
   "JavaScript expression {{expression}} - evaluates to true": "l'expression JavaScript {{expression}} - est évaluée à vrai",
@@ -54289,5 +54286,7 @@
   "Total disk read operations since boot": "Total des opérations de lecture disque depuis le démarrage",
   "Total disk write operations since boot": "Total des opérations d'écriture disque depuis le démarrage",
   "Total running processes on the server": "Total des processus en cours d'exécution sur le serveur",
-  "Value of a polled SNMP OID": "Valeur d'un OID SNMP interrogé"
+  "Value of a polled SNMP OID": "Valeur d'un OID SNMP interrogé",
+  "All of these must match for this criteria to be met:": "Tous ces filtres doivent correspondre pour que ce critère soit rempli :",
+  "Any of these can match for this criteria to be met:": "Il suffit que l'un de ces filtres corresponde pour que ce critère soit rempli :"
 }

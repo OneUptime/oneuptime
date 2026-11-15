@@ -11,7 +11,6 @@ import {
   EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { describe, expect, test } from "@jest/globals";
@@ -106,14 +105,11 @@ describe("a Probe Status monitor's criteria form", () => {
   });
 
   test("a rule reads as the count it compares, with no unit", () => {
-    const text: string = CriteriaFilterUtil.translateFilterToText(
-      {
-        checkOn: CheckOn.DisconnectedProbes,
-        filterType: FilterType.GreaterThan,
-        value: 0,
-      },
-      FilterCondition.Any,
-    );
+    const text: string = CriteriaFilterUtil.translateFilterToText({
+      checkOn: CheckOn.DisconnectedProbes,
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    });
 
     expect(text).toContain("Disconnected Probes");
     expect(text).toContain("0");

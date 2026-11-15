@@ -22822,7 +22822,6 @@
   "{{action}} when this criteria is met. These are the incident details:": "满足此条件时{{action}}。以下是事件详情：",
   "{{cadence}} · next {{time}}": "{{cadence}} · 下次 {{time}}",
   "{{category}} · click to zoom in": "{{category}} · 点击放大",
-  "{{condition}} of these can match for this criteria to be met:": "{{condition}} of these can match for this criteria to be met:",
   "{{count}} Critical": "严重 {{count}}",
   "{{count}} Warning": "警告 {{count}}",
   "{{count}} addresses queued": "{{count}} 个地址排队中",
@@ -54174,8 +54173,6 @@
   "A performance budget was exceeded": "超出了性能预算",
   "An error occurred on the page": "页面上发生了错误",
   "Check if {{condition}}": "检查：{{condition}}",
-  "Check if {{condition}} and,": "检查：{{condition}}，且",
-  "Check if {{condition}} or,": "检查：{{condition}}，或",
   "Check if {{condition}}.": "检查：{{condition}}。",
   "Granted by the end user": "已由最终用户授予",
   "JavaScript expression {{expression}} - evaluates to true": "JavaScript 表达式 {{expression}} - 结果为真",
@@ -54289,5 +54286,7 @@
   "Total disk read operations since boot": "自启动以来的磁盘读取操作总数",
   "Total disk write operations since boot": "自启动以来的磁盘写入操作总数",
   "Total running processes on the server": "服务器上正在运行的进程总数",
-  "Value of a polled SNMP OID": "轮询的 SNMP OID 的值"
+  "Value of a polled SNMP OID": "轮询的 SNMP OID 的值",
+  "All of these must match for this criteria to be met:": "以下过滤器须全部匹配，才满足此标准：",
+  "Any of these can match for this criteria to be met:": "以下过滤器任一匹配，即满足此标准："
 }
