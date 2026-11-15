@@ -22,6 +22,8 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -103,6 +105,7 @@ const route: (page: PageMap) => Route = (page: PageMap): Route => {
 };
 
 const HealthOverview: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -164,7 +167,10 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
     queueStatus = { text: "Degraded", color: Red };
   } else if (failingQueues > 0) {
     queueStatus = {
-      text: `${failingQueues.toLocaleString()} failing`,
+      text: translator.translatePlural(
+        { one: "{{count}} failing", other: "{{count}} failing" },
+        failingQueues,
+      ),
       color: Red,
     };
   } else {

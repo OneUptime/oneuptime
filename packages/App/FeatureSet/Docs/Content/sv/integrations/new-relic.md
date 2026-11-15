@@ -43,7 +43,7 @@ Sedan [konfigurerar du New Relic](#konfigurera-new-relic) att skicka sina ärend
 
 ### Vad arbetsflödet gör
 
-Efter utlösaren **Webhook** läser steget **Check With JavaScript** `read-event-1` den `state` som New Relic skickar, och **Incident From Another Tool**, eller **Alert From Another Tool** i larmmallen, gör det den betyder, utifrån ärendets ID. Incidenten behåller ID:t i sitt anpassade fält `newRelicIssueId`.
+Efter utlösaren **Webhook** läser steget **Kontrollera med JavaScript** `read-event-1` den `state` som New Relic skickar, och **Incident från ett annat verktyg**, eller **Larm från ett annat verktyg** i larmmallen, gör det den betyder, utifrån ärendets ID. Incidenten behåller ID:t i sitt anpassade fält `newRelicIssueId`.
 
 | Vad New Relic skickar | Vad arbetsflödet gör |
 | --- | --- |

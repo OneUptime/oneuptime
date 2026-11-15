@@ -678,7 +678,7 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
   test("a command for another kind of resource is refused", () => {
     expectRefused(
       build({ kind: "podman" }).executor.prepare(request("docker ps")),
-      /^Refused by the Podman AI agent: this command is for a "DockerHost" resource, and this agent serves a Podman host\./,
+      /^Refused by the Podman AI agent: this command is for another kind of resource \("DockerHost"\), and this agent serves only its own Podman host\./,
     );
   });
 

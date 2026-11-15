@@ -43,7 +43,7 @@ Depois [configure o New Relic](#configurar-o-new-relic) para enviar os problemas
 
 ### O que o workflow faz
 
-Depois do gatilho **Webhook**, a etapa **Check With JavaScript** `read-event-1` lê o `state` que o New Relic envia, e **Incident From Another Tool**, ou **Alert From Another Tool** no modelo de alertas, faz o que ele significa, pelo ID do problema. O incidente guarda o ID no seu campo personalizado `newRelicIssueId`.
+Depois do gatilho **Webhook**, a etapa **Verificar com JavaScript** `read-event-1` lê o `state` que o New Relic envia, e **Incidente de outra ferramenta**, ou **Alerta de outra ferramenta** no modelo de alertas, faz o que ele significa, pelo ID do problema. O incidente guarda o ID no seu campo personalizado `newRelicIssueId`.
 
 | O que o New Relic envia | O que o workflow faz |
 | --- | --- |

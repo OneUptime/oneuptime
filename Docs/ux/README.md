@@ -673,7 +673,9 @@ work out, starts from a default for everything else, and folds what most people 
   keys, worded by every language, each figure in the reader's digits ("۴ دقیقه ۰۵ ثانیه"), never
   `${diffSec}s`, `${minutes}m ${rest}s` or `{minutes}m {seconds}s` by hand - a Kubernetes object's
   age, an uptime and an SLA's countdown read English letters and Latin digits on every page
-  (#8455). A token the code parses back or a file's name keeps its compact English, listed with its
+  (#8455). A span's humanized duration (`getHumanizedDurationFromNanoseconds`) and the on-call
+  schedule timeline's lengths (`ScheduleTimelineLayout.formatDuration`) take the reader's
+  translator for the same reason (#8617). A token the code parses back or a file's name keeps its compact English, listed with its
   reason. Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
@@ -696,9 +698,16 @@ work out, starts from a default for everything else, and folds what most people 
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
   (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
-  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
-  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
-  any other message whole in a right-to-left line. A Database Health check's collection issues read
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001),
+  and so is every cause with values in it (`Common/Utils/Monitor/ProbeFailureCauses`): an NTP
+  server that did not answer, or answered but is not synchronized; a probe with no IPv6 or no
+  route; a connect that failed on every address; the Ping and Traceroute checks' own sentences; an
+  attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
+  timeout or a count is written in the reader's digits. A summary draws a probe's message with
+  `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
+  right-to-left line. An incident's root cause words its figures the same way: a response time,
+  the attempts and an NTP server's facts in the reader's digits and units (#8268). A Database
+  Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
   error kept as written after a sentence that says what kind of failure it is. Enforced by
@@ -889,7 +898,9 @@ then `npm run i18n:validate` from the root.
   and a page's title name a thing, and every count, sentence and button on its pages says the same
   noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list
   called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
-  status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
+  status page three ways (#8029, #8030, #8031). The Products menu says a product's page title word for
+  word: Danish "Overvågninger" opened a page titled "Monitorer", and German "Status-Seiten" one titled
+  "Statusseiten" (#8229). A word that names another product's thing keeps that
   product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
   in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). A probe is the
   Dashboard's word too, in the apps and every docs page: the Danish docs said "probes" over a list
@@ -902,6 +913,19 @@ then `npm run i18n:validate` from the root.
   [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
+- **Two things never share one name in a language.** Arabic called the collector an agent runs
+  and a Ceph pool both المجمّع, and a Ceph cluster's pages and its setup guide name the two side by
+  side: "the collector reads `CEPH_MGR_ENDPOINTS`" beside the **Pool** row of what it collects
+  (#8581). A pool is التجمّع now, in the locale and every setup guide, and a new row of a
+  language's glossary takes a word no other row gives. Enforced by
+  [ArabicTermsApart](../../packages/Common/Tests/App/ArabicTermsApart.test.ts).
+- **The states a page draws for one thing agree with each other.** A state is worded once for
+  every place that draws it, so in a language whose adjectives take a gender two states of one
+  thing can disagree: Russian's infrastructure list said "Активно" on one row and "Неактивен" on
+  the next (#8588). Word a state as the locale words the others it is drawn with (Russian words a
+  state on its own in the neuter: "Неактивно", "Выведено из работы"), and list a new set of states
+  a page draws together, with the files that draw it. Enforced by
+  [StatesDrawnTogetherAgree](../../packages/Common/Tests/App/StatesDrawnTogetherAgree.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
@@ -943,11 +967,16 @@ then `npm run i18n:validate` from the root.
   "Network"; the email provider Resend read "Reenviar". Draw an option through
   `getDropdownOptionText`. A stored value is offered in the words its rows draw it in, never as it
   is stored: a runbook run waiting on a manual step read "Esperando" in its pill and
-  "WaitingForManualStep" in the Status filter (#7781). Enforced by
+  "WaitingForManualStep" in the Status filter (#7781). A name the API takes is no reason to
+  draw it as stored: a subscriber template's event type read "Subscriber Incident Note
+  Created" in every language, in the filters, the form's field and the cells. It is a key
+  whose English is the stored name, so English reads what the API and Terraform take and
+  every other language its own words ("Vorfallsnotiz erstellt", #8179). Enforced by
   [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts),
-  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx)
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx),
+  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx)
   and
-  [FilterOptionKeysInSpanish](../../packages/Common/Tests/App/Dashboard/FilterOptionKeysInSpanish.test.tsx).
+  [SubscriberNotificationEventTypesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/SubscriberNotificationEventTypesInReadersLanguage.test.tsx).
 - **A name reads as written, in a badge, a menu, a picker, a sentence and a line of text.** A label,
   a monitor or a state is named by its project, and a name is never looked up: in Spanish a label
   named "Network" read "Red", and a state a project named "Open" read "Abrir", the verb, in its badge,

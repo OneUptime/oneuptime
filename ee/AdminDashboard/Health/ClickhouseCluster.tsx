@@ -23,15 +23,17 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import { translationKey } from "Common/Types/Translator";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import TableEmptyValue, {
-  getValueOrQuietDash,
-} from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // How many distributed-DDL / replica / table rows to list before truncating.
 const MAX_ROWS_TO_SHOW: number = 10;
@@ -121,7 +123,20 @@ const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   },
 };
 
+// A shard's or a replica's number in the reader's digits, or a dash.
+const readerCount: (value: unknown, translator: Translator) => string = (
+  value: unknown,
+  translator: Translator,
+): string => {
+  const parsed: number = Number(value);
+
+  return value === null || value === undefined || value === "" || isNaN(parsed)
+    ? EMPTY_VALUE_MARK
+    : translator.formatNumber(parsed);
+};
+
 const ClickhouseCluster: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -163,8 +178,9 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
     if (shards.length === 0) {
       return (
         <div className="text-xs text-gray-500">
-          No cluster topology reported (single-node deployment, or
-          system.clusters is unavailable on this ClickHouse).
+          {translator.translateText(
+            "No cluster topology reported (single-node deployment, or system.clusters is unavailable on this ClickHouse).",
+          )}
         </div>
       );
     }
@@ -210,9 +226,13 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
             >
               <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900">
-                  Shard {String(shard["shardNum"] ?? "") || <TableEmptyValue />}{" "}
-                  · Replica{" "}
-                  {String(shard["replicaNum"] ?? "") || <TableEmptyValue />}
+                  {translator.translateTemplate(
+                    "Shard {{shard}} · Replica {{replica}}",
+                    {
+                      shard: readerCount(shard["shardNum"], translator),
+                      replica: readerCount(shard["replicaNum"], translator),
+                    },
+                  )}
                 </div>
                 <div className="text-xs text-gray-500 font-mono truncate">
                   {String(shard["hostName"] ?? "") || (
@@ -228,10 +248,13 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                 )}
                 {errors > 0 ? (
                   <div className="text-xs text-gray-500 mt-0.5">
-                    {getValueOrQuietDash(formatNumber(errors), {
-                      isSmall: true,
-                    })}{" "}
-                    connection errors
+                    {translator.translatePlural(
+                      {
+                        one: "{{count}} connection error",
+                        other: "{{count}} connection errors",
+                      },
+                      errors,
+                    )}
                   </div>
                 ) : (
                   <></>
@@ -255,8 +278,9 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
     if (keeper.length === 0) {
       return (
         <div className="text-xs text-gray-500">
-          No Keeper/ZooKeeper connection reported (single-node, or
-          system.zookeeper_connection unavailable).
+          {translator.translateText(
+            "No Keeper/ZooKeeper connection reported (single-node, or system.zookeeper_connection unavailable).",
+          )}
         </div>
       );
     }
@@ -280,13 +304,13 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                   )}
                 </div>
                 <div className="text-xs text-gray-500">
-                  session up{" "}
-                  {getValueOrQuietDash(formatNumber(uptime), { isSmall: true })}
-                  s
+                  {translator.translateTemplate("session up {{duration}}", {
+                    duration: `${formatNumber(uptime)}s`,
+                  })}
                 </div>
               </div>
               <Statusbubble
-                text={expired ? "Expired" : "Connected"}
+                text={expired ? translationKey("Expired") : "Connected"}
                 color={expired ? Red : Green}
                 shouldAnimate={!expired}
               />
@@ -306,7 +330,9 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
     if (!connected) {
       return (
         <div className="text-sm text-gray-500">
-          ClickHouse is not reachable from this instance.
+          {translator.translateText(
+            "ClickHouse is not reachable from this instance.",
+          )}
         </div>
       );
     }
@@ -328,7 +354,7 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
     }).length;
 
     // Overall verdict — red for a hard problem, yellow for a soft one.
-    let statusText: string = "Healthy";
+    let statusText: string = translationKey("Healthy");
     let statusColor: Color = Green;
     let shouldAnimate: boolean = true;
 
@@ -337,11 +363,11 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
       keeperExpired > 0 ||
       unhealthyReplicas.length > 0
     ) {
-      statusText = "Needs attention";
+      statusText = translationKey("Needs attention");
       statusColor = Red;
       shouldAnimate = false;
     } else if (shardsRecovering > 0) {
-      statusText = "Degraded";
+      statusText = translationKey("Degraded");
       statusColor = Yellow;
       shouldAnimate = false;
     }
@@ -350,11 +376,26 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            Cluster{" "}
-            <span className="font-mono text-gray-900">
-              {String(data?.["clusterName"] ?? "") || <TableEmptyValue />}
-            </span>{" "}
-            · {shards.length} {shards.length === 1 ? "node" : "nodes"}
+            <TranslatedSentence
+              template="Cluster {{cluster}}"
+              slots={{
+                cluster: (
+                  <span className="font-mono text-gray-900">
+                    {String(data?.["clusterName"] ?? "") || <TableEmptyValue />}
+                  </span>
+                ),
+              }}
+            />
+            {formatInline(
+              [
+                "",
+                translator.translatePlural(
+                  { one: "{{count}} node", other: "{{count}} nodes" },
+                  shards.length,
+                ),
+              ],
+              translator,
+            )}
           </div>
           <MetricInfoWrap info={METRIC_INFO.overallStatus}>
             <span className="inline-flex cursor-help">
@@ -371,15 +412,22 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-semibold text-gray-900 flex items-center">
-              Distributed DDL queue
+              {translator.translateText("Distributed DDL queue")}
               <MetricInfoTip info={METRIC_INFO.distributedDdlQueue} />
             </div>
             <Statusbubble
               text={
                 ddlUnfinished > 0
-                  ? `${formatNumber(ddlUnfinished)} unfinished`
-                  : "Clear"
+                  ? translator.translatePlural(
+                      {
+                        one: "{{count}} unfinished",
+                        other: "{{count}} unfinished",
+                      },
+                      ddlUnfinished,
+                    )
+                  : (translator.translateText("Clear") as string)
               }
+              isUserContent={true}
               color={ddlUnfinished > 0 ? Red : Green}
               shouldAnimate={ddlUnfinished === 0}
             />
@@ -387,8 +435,9 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
           {ddlUnfinished > 0 ? (
             <div className="rounded-md border border-red-200 bg-red-50 p-3 space-y-1">
               <div className="text-xs text-red-700">
-                ON CLUSTER DDL is not finishing on every host — schema-sync and
-                the migrate Job will time out until this drains.
+                {translator.translateText(
+                  "ON CLUSTER DDL is not finishing on every host — schema-sync and the migrate Job will time out until this drains.",
+                )}
               </div>
               {ddlItems
                 .slice(0, MAX_ROWS_TO_SHOW)
@@ -412,7 +461,7 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
             </div>
           ) : (
             <div className="text-xs text-gray-500">
-              No unfinished distributed-DDL tasks.
+              {translator.translateText("No unfinished distributed-DDL tasks.")}
             </div>
           )}
         </div>
@@ -437,11 +486,12 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-semibold text-gray-900 flex items-center">
-                Unhealthy replicas
+                {translator.translateText("Unhealthy replicas")}
                 <MetricInfoTip info={METRIC_INFO.unhealthyReplicas} />
               </div>
               <Statusbubble
-                text={`${unhealthyReplicas.length}`}
+                text={translator.formatNumber(unhealthyReplicas.length)}
+                isUserContent={true}
                 color={Red}
                 shouldAnimate={false}
               />

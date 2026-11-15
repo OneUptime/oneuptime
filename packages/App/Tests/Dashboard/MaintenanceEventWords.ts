@@ -146,12 +146,132 @@ export const MAINTENANCE_WORDS: Record<string, MaintenanceWords> = {
 };
 
 /*
+ * EACH LANGUAGE'S NAME FOR THE PRODUCT (#6817, #7633, #8169).
+ *
+ * The Dashboard's "Scheduled Maintenance" is the product's name in its
+ * language. The status page, the Admin Dashboard, the docs navigation and
+ * the server's subscriber emails and chat messages name it the same way:
+ * Italian, Japanese, Portuguese, Russian and Swedish status pages and
+ * emails gave it a second name ("Manutenzione pianificata" beside the
+ * Dashboard's "Manutenzione programmata"), and the Hindi emails one too.
+ *
+ *   - name: the product's name, in any form a sentence takes;
+ *   - maintenance: the language's word for maintenance, which the name,
+ *     "Maintenance" and "Maintenance Details" all hold;
+ *   - otherName: a name a screen or an email gave the product before,
+ *     never right where the English says scheduled maintenance. English
+ *     "planned maintenance" is no name of the product, and may say it.
+ */
+export interface ScheduledMaintenanceName {
+  name: RegExp;
+  maintenance: RegExp;
+  otherName?: RegExp | undefined;
+}
+
+export const SCHEDULED_MAINTENANCE_NAMES: Record<
+  string,
+  ScheduledMaintenanceName
+> = {
+  en: {
+    name: /\bscheduled maintenance\b/i,
+    maintenance: /maintenance/i,
+  },
+  de: {
+    name: /geplante\S* Wartung/i,
+    maintenance: /wartung/i,
+  },
+  fr: {
+    name: /maintenances? planifiées?/i,
+    maintenance: /maintenance/i,
+  },
+  es: {
+    name: /mantenimientos? programados?/i,
+    maintenance: /mantenimiento/i,
+  },
+  it: {
+    name: /manutenzion[ei] programmat[ae]/i,
+    maintenance: /manutenzion/i,
+    otherName: /manutenzion[ei] pianificat[ae]/i,
+  },
+  pt: {
+    name: /manuten(?:ção|ções) programad[ao]s?/i,
+    maintenance: /manuten(?:ção|ções)/i,
+    otherName: /manuten(?:ção|ções) agendad[ao]s?/i,
+  },
+  nl: {
+    name: /geplande? onderhoud/i,
+    maintenance: /onderhoud/i,
+  },
+  da: {
+    name: /planlagte? vedligehold/i,
+    maintenance: /vedligehold/i,
+  },
+  no: {
+    name: /planlagte? vedlikehold/i,
+    maintenance: /vedlikehold/i,
+  },
+  sv: {
+    name: /schemalag(?:t|da) underhåll/i,
+    maintenance: /underhåll/i,
+    otherName: /planera(?:t|de) underhåll/i,
+  },
+  ru: {
+    name: /планов\S* обслуживани/i,
+    maintenance: /обслуживани/i,
+    // "Запланированное обслуживание", "плановые работы", "техобслуживание".
+    otherName:
+      /запланированн\S* обслуживани|планов\S* (?:работ|техобслуживани)/i,
+  },
+  ja: {
+    name: /定期メンテナンス/,
+    maintenance: /メンテナンス/,
+    otherName: /予定されたメンテナンス|計画メンテナンス|予定メンテナンス/,
+  },
+  ko: {
+    name: /예정된 유지 관리/,
+    maintenance: /유지 관리/,
+  },
+  "zh-CN": {
+    name: /计划维护/,
+    maintenance: /维护/,
+  },
+  "zh-TW": {
+    name: /排定維護/,
+    maintenance: /維護/,
+    otherName: /排定的維護/,
+  },
+  hi: {
+    name: /अनुसूचित रखरखाव/,
+    maintenance: /रखरखाव/,
+    otherName: /निर्धारित रखरखाव|शेड्यूल किए गए रखरखाव/,
+  },
+  fa: {
+    name: new RegExp(
+      `تعمیر و نگهداری(?:${ZWNJ}های)? زمان${ZWNJ}بندی${ZWNJ}شده`,
+    ),
+    maintenance: /تعمیر و نگهداری/,
+  },
+  ar: {
+    // صيانتها المجدولة: its scheduled maintenance.
+    name: /صيان[ةت]\S* (?:ال)?مجدولة/,
+    maintenance: /صيان[ةت]/,
+  },
+};
+
+// The English names the product, as its name or in a sentence.
+export const SAYS_SCHEDULED_MAINTENANCE: RegExp =
+  /(?<![-.{'_])\bscheduled maintenance\b(?![-}'_]|\.\w)/i;
+
+/*
  * "maintenance" as a word of the sentence: not inside a code name
  * (oneuptime.scheduled-maintenance.measurement, {{maintenance}}) or a
- * quoted state another product reports ('maintenance').
+ * quoted state another product reports ('maintenance'). A full stop ends a
+ * sentence ("whether it is in maintenance."); a dot between two words joins
+ * a code name. It read the full stop as one, so a Persian sentence ending
+ * in maintenance said the dropped نگهداری unseen.
  */
 export const SAYS_MAINTENANCE: RegExp =
-  /(?<![-.{'_])\bmaintenance\b(?![-.}'_])/i;
+  /(?<![-.{'_])\bmaintenance\b(?![-}'_]|\.\w)/i;
 
 export const SAYS_A_MAINTENANCE_EVENT: RegExp = /\bmaintenance events?\b/i;
 

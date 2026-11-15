@@ -6947,7 +6947,13 @@ ${incomingRequestGrouping.rootCauseNote}
     return null;
   }
 
-  private static formatMilliseconds(value?: number): string | null {
+  /*
+   * A response time as the root cause's Response Snapshot writes it: "411.0
+   * ms", "12.35 ms". The root cause's wording reads it back in the reader's
+   * digits only when it is exactly this (RootCauseFacts), so the two change
+   * together.
+   */
+  public static formatMilliseconds(value?: number): string | null {
     if (value === undefined || value === null || isNaN(value)) {
       return null;
     }

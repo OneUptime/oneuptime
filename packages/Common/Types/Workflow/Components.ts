@@ -37,6 +37,7 @@ import WorkflowComponents from "./Components/Workflow";
 import ZabbixComponents, {
   ZABBIX_COMPONENT_CATEGORY,
 } from "./Components/Zabbix";
+import { translationKey } from "../Translator";
 
 const components: Array<ComponentMetadata> = [
   ...OnCallComponents,
@@ -76,8 +77,9 @@ export const Categories: Array<ComponentCategory> = [
    */
   {
     name: ON_CALL_COMPONENT_CATEGORY,
-    description:
+    description: translationKey(
       "Page people, a team, whoever is on call, or an on-call policy.",
+    ),
     icon: IconProp.Call,
   },
   /*
@@ -87,107 +89,126 @@ export const Categories: Array<ComponentCategory> = [
    */
   {
     name: FROM_OTHER_TOOLS_COMPONENT_CATEGORY,
-    description:
+    description: translationKey(
       "Open, acknowledge and resolve incidents and alerts for problems in your other tools.",
+    ),
     icon: IconProp.Integrations,
   },
   {
-    name: "AI",
-    description:
+    name: translationKey("AI"),
+    description: translationKey(
       "Generate content with the LLM provider configured for this project.",
+    ),
     icon: IconProp.Sparkles,
   },
   {
     name: OPENSTACK_COMPONENT_CATEGORY,
-    description:
+    description: translationKey(
       "Ask a person to approve a fix to an OpenStack cloud. A workflow can't make the change itself.",
+    ),
     icon: IconProp.WrenchScrewdriver,
   },
   {
-    name: "Webhook",
-    description: "Integrate any apps into the workflow with webhooks.",
+    name: translationKey("Webhook"),
+    description: translationKey(
+      "Integrate any apps into the workflow with webhooks.",
+    ),
     icon: IconProp.AltGlobe,
   },
   {
-    name: "API",
-    description: "Integrate with any API out on the web.",
+    name: translationKey("API"),
+    description: translationKey("Integrate with any API out on the web."),
     icon: IconProp.Globe,
   },
   {
-    name: "Slack",
-    description: "Integrate OneUptime with your Slack team.",
+    name: translationKey("Slack"),
+    description: translationKey("Integrate OneUptime with your Slack team."),
     icon: IconProp.SendMessage,
     logo: ProviderLogo.Slack,
   },
   {
-    name: "Discord",
-    description: "Integrate OneUptime with your Discord server.",
+    name: translationKey("Discord"),
+    description: translationKey(
+      "Integrate OneUptime with your Discord server.",
+    ),
     icon: IconProp.SendMessage,
     logo: ProviderLogo.Discord,
   },
   {
-    name: "Microsoft Teams",
-    description: "Integrate OneUptime with your Microsoft Teams.",
+    name: translationKey("Microsoft Teams"),
+    description: translationKey(
+      "Integrate OneUptime with your Microsoft Teams.",
+    ),
     icon: IconProp.SendMessage,
     logo: ProviderLogo.MicrosoftTeams,
   },
   {
-    name: "Telegram",
-    description: "Integrate OneUptime with your Telegram chats and channels.",
+    name: translationKey("Telegram"),
+    description: translationKey(
+      "Integrate OneUptime with your Telegram chats and channels.",
+    ),
     icon: IconProp.SendMessage,
     logo: ProviderLogo.Telegram,
   },
   {
-    name: "IRC",
-    description: "Integrate OneUptime with your IRC channels.",
+    name: translationKey("IRC"),
+    description: translationKey("Integrate OneUptime with your IRC channels."),
     icon: IconProp.SendMessage,
   },
   {
-    name: "Mattermost",
-    description: "Integrate OneUptime with your Mattermost channels.",
+    name: translationKey("Mattermost"),
+    description: translationKey(
+      "Integrate OneUptime with your Mattermost channels.",
+    ),
     icon: IconProp.SendMessage,
     logo: ProviderLogo.Mattermost,
   },
   {
-    name: "Conditions",
-    description: "Add logic to your workflows.",
+    name: translationKey("Conditions"),
+    description: translationKey("Add logic to your workflows."),
     icon: IconProp.Condition,
   },
   {
-    name: "Custom Code",
-    description: "Add JaavScript to your workflows.",
+    name: translationKey("Custom Code"),
+    description: translationKey("Add JavaScript to your workflows."),
     icon: IconProp.Code,
   },
   {
-    name: "JSON",
-    description: "Work with JSON Object in your workflows.",
+    name: translationKey("JSON"),
+    description: translationKey("Work with JSON Object in your workflows."),
     icon: IconProp.JSON,
   },
   {
-    name: "Schedule",
-    description: "Make your workflows run at regular intervals.",
+    name: translationKey("Schedule"),
+    description: translationKey(
+      "Make your workflows run at regular intervals.",
+    ),
     icon: IconProp.Clock,
   },
   {
-    name: "Email",
-    description: "Receive email to start a workflow, and send email from one.",
+    name: translationKey("Email"),
+    description: translationKey(
+      "Receive email to start a workflow, and send email from one.",
+    ),
     icon: IconProp.Email,
   },
   {
     name: HUNTRESS_COMPONENT_CATEGORY,
-    description:
+    description: translationKey(
       "Start a workflow from Huntress incident reports: new ones, comments and closes.",
+    ),
     icon: IconProp.ShieldCheck,
   },
   {
     name: ZABBIX_COMPONENT_CATEGORY,
-    description:
+    description: translationKey(
       "Acknowledge, close and add messages to problems in Zabbix, through its API.",
+    ),
     icon: IconProp.ServerStack,
   },
   {
-    name: "Utils",
-    description: "Utils that make workflow design simpler.",
+    name: translationKey("Utils"),
+    description: translationKey("Utils that make workflow design simpler."),
     icon: IconProp.Window,
   },
 ];

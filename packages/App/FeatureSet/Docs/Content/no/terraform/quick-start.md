@@ -230,7 +230,7 @@ Nøkkelen har ingen tillatelse for den typen post. Gi den **Prosjektadministrato
 :::
 
 :::details Meldingen «No monitor status matches {name = "Offline"}»
-Prosjektets monitorstatuser har andre navn. Bruk navnene du ser under **Overvåkere → Innstillinger → Monitorstatus**, eller slå i stedet opp statusen med `is_offline_state = true`.
+Prosjektets monitorstatuser har andre navn. Bruk navnene du ser under **Monitorer → Innstillinger → Monitorstatus**, eller slå i stedet opp statusen med `is_offline_state = true`.
 :::
 
 ## Neste steg

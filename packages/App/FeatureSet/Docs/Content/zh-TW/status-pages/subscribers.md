@@ -312,7 +312,7 @@ Slack、Microsoft Teams 和 Webhook 訂閱者會跳過這一步，你的團隊�
 - **原始通知還沒有發出。** 如果公告或備註仍在等待通告，那則通知在傳送時才會讀取該項目，因此已經包含你的編輯，單獨的「已更新」訊息只會讓人困惑。如果原始通知正在傳送，更新會改為等待，在原始傳送完成後再發出：那次傳送在你編輯之前讀取了該項目，所以訂閱者收到的可能是編輯之前的文字。
 - **公告被排定在稍後顯示。** 在 **開始顯示公告於** 到來之前，它不在任何狀態頁面上，上線時收到通知的人看到的就是編輯後的版本。
 
-編輯過的項目會在原始狀態旁邊顯示一個 **更新通知狀態**，狀態相同（**Sending Soon**、**已傳送的通知**、**失敗** 等）。失敗的更新通知上的 **重試** 會重新傳送更新，絕不會傳送原始的「已發布」訊息。每個狀態頁面都可以用 **Subscriber Announcement Updated**、**Subscriber Incident Note Updated**、**Subscriber Scheduled Maintenance Note Updated** 和 **Subscriber Episode Note Updated** 範本事件類型自訂這些訊息；沒有自訂範本時，使用內建的更新措辭。
+編輯過的項目會在原始狀態旁邊顯示一個 **更新通知狀態**，狀態相同（**Sending Soon**、**已傳送的通知**、**失敗** 等）。失敗的更新通知上的 **重試** 會重新傳送更新，絕不會傳送原始的「已發布」訊息。每個狀態頁面都可以用 **公告已更新**、**事件備註已更新**、**維護事件備註已更新** 和 **事件片段備註已更新** 範本事件類型自訂這些訊息；沒有自訂範本時，使用內建的更新措辭。
 
 透過 API，在你變更的欄位旁邊，於 `miscDataProps` 中傳送這個選擇：
 
@@ -399,7 +399,7 @@ OneUptime 自己的文字使用該語言：主旨、標題、標籤和按鈕、�
 - **關閉報告** 會保留排程。再次開啟後，報告會從排程中的下一個日期開始再次寄送，所以關閉了一個月的頁面不會補寄它錯過的報告。
 - 卡片下方的 **寄送測試報告** 會把一份報告寄到你提供的地址，這樣不論報告是否開啟，你都能看到訂閱者會收到什麼。它需要開啟報告所需的條件：編輯頁面的權限，以及在 OneUptime Cloud 上的 **Growth** 方案。
 
-報告會寄給頁面的電子郵件訂閱者；簡訊、Slack、Microsoft Teams 和 Webhook 訂閱者不會收到。當頁面有 **自訂 SMTP 設定** 時，連結到頁面的 **Subscriber Report** 範本會取代內建郵件（請參閱 [自訂通知範本](#自訂通知範本)）。在 OneUptime Cloud 上，開啟報告需要 **Growth** 或更高的方案，在較低的方案上，開關旁邊會顯示方案名稱。關閉報告在所有方案上都能使用，所以試用期間設定為寄送報告的頁面隨時都可以停止：開關下方會說明這一點，而再次開啟報告需要 **Growth**。
+報告會寄給頁面的電子郵件訂閱者；簡訊、Slack、Microsoft Teams 和 Webhook 訂閱者不會收到。當頁面有 **自訂 SMTP 設定** 時，連結到頁面的 **訂閱者報告** 範本會取代內建郵件（請參閱 [自訂通知範本](#自訂通知範本)）。在 OneUptime Cloud 上，開啟報告需要 **Growth** 或更高的方案，在較低的方案上，開關旁邊會顯示方案名稱。關閉報告在所有方案上都能使用，所以試用期間設定為寄送報告的頁面隨時都可以停止：開關下方會說明這一點，而再次開啟報告需要 **Growth**。
 
 **透過 API 或 Terraform**，在沒有 `reportStartDateTime` 或 `reportRecurringInterval` 的情況下開啟 `isReportEnabled`，會給頁面相同的預設排程，而不是讓報告保持開啟卻什麼都沒有排程。你隨之傳送的排程會被保留，頁面已有的排程也會被保留。只傳送 `reportRecurringInterval` 而不傳送 `reportStartDateTime` 時，第一份報告會在該間隔的下一個期間開始時的 09:00 寄出：每日排程為隔天，每週排程為下一個週一，每月排程為下個月的 1 日，每年排程為 1 月 1 日；每小時的排程從下一個整點開始。伺服器會計算 `sendNextReportBy`，也就是下一份報告寄出的時間，並拒絕它無法讀取的 `reportStartDateTime` 或 `reportRecurringInterval`。
 
@@ -425,7 +425,7 @@ OneUptime 自己的文字使用該語言：主旨、標題、標籤和按鈕、�
 
 ### 事件變數
 
-五種事件類型（**Subscriber Incident Created**、**Subscriber Incident State Changed**、**Subscriber Incident Note Created**、**Subscriber Incident Note Updated** 和 **Subscriber Incident Postmortem Published**）的範本，除了它們自己的變數之外，還可以使用以下變數：
+五種事件類型（**事件已建立**、**事件狀態已變更**、**事件備註已建立**、**事件備註已更新** 和 **事件事後分析已發布**）的範本，除了它們自己的變數之外，還可以使用以下變數：
 
 | 變數 | 填入的內容 |
 | --- | --- |
@@ -441,7 +441,7 @@ OneUptime 自己的文字使用該語言：主旨、標題、標籤和按鈕、�
 
 ### 備註範本中的狀態
 
-**Subscriber Incident Note Created** 和 **Subscriber Scheduled Maintenance Note Created** 的範本可以用 `{{incidentState}}` 和 `{{scheduledMaintenanceState}}` 寫出事件的狀態。對於隨狀態變更發布的備註，那是變更所移到的狀態，即使在傳送訊息時事件已經繼續變化；對於其他任何備註，則是傳送訊息時事件的狀態。**Note Updated** 範本取得的是傳送更新時事件的狀態。沒有自己主旨的自訂郵件範本，對於隨狀態變更發布的備註，會改用狀態變更的主旨：`[Incident Resolved] <title>` 或 `[Scheduled Maintenance Ongoing] <title>`。
+**事件備註已建立** 和 **維護事件備註已建立** 的範本可以用 `{{incidentState}}` 和 `{{scheduledMaintenanceState}}` 寫出事件的狀態。對於隨狀態變更發布的備註，那是變更所移到的狀態，即使在傳送訊息時事件已經繼續變化；對於其他任何備註，則是傳送訊息時事件的狀態。**Note Updated** 範本取得的是傳送更新時事件的狀態。沒有自己主旨的自訂郵件範本，對於隨狀態變更發布的備註，會改用狀態變更的主旨：`[Incident Resolved] <title>` 或 `[Scheduled Maintenance Ongoing] <title>`。
 
 ### 插入變數
 

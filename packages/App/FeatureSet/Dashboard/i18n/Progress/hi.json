@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 8535
+    "keys": 55438,
+    "untranslated": 8379
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -19,9 +19,13 @@
     "AM",
     "AND",
     "Active + Clean",
+    "Amazon EKS",
     "Apache Kafka · kafka-1:9092",
     "Atmosphere",
+    "Azure AKS",
+    "Azure Kubernetes Service.",
     "Brute force detected",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -42,12 +46,15 @@
     "Docker Compose",
     "Down + In",
     "Down + Out",
+    "EKS Fargate",
     "Edge",
     "Elasticsearch URL",
     "Enter",
     "Enterprise Edition",
     "Fluent Bit",
     "Full view",
+    "GKE Autopilot",
+    "Google GKE",
     "Google SecOps",
     "Google UDM",
     "Goroutines",
@@ -154,6 +161,7 @@
     "VMware VM",
     "VMware vCenter",
     "Vital",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

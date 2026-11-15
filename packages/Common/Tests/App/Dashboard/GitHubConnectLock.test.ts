@@ -8,7 +8,7 @@ import {
 } from "@jest/globals";
 
 /*
- * "Connect with GitHub App" on the Code Repositories page asks what the
+ * "Connect GitHub" on Code's GitHub card asks what the
  * server asks before it starts a connection and again when GitHub sends the
  * browser back (Common/Server/API/GitHubConnectAccess): on OneUptime Cloud the
  * plan code repositories are sold on, and permission to create code
@@ -179,7 +179,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("Connect with GitHub App: who may connect", () => {
+describe("Connect GitHub: who may connect", () => {
   test.each(MAY_CONNECT)("%s: the card works", (permission: Permission) => {
     expect(lockFor([permission])).toEqual({ isLocked: false });
   });
@@ -264,7 +264,7 @@ describe("Connect with GitHub App: who may connect", () => {
   });
 });
 
-describe("Connect with GitHub App: the plan, on OneUptime Cloud", () => {
+describe("Connect GitHub: the plan, on OneUptime Cloud", () => {
   test("below the plan code repositories are sold on: locked with the plan's name, before any permission is asked", () => {
     billingEnabledForTest = true;
     currentPlanForTest = PlanType.Free;

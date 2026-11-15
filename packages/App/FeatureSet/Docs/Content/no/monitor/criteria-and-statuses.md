@@ -161,7 +161,7 @@ En status du legger til senere, kommer ikke med i listen **Teller som nedetid** 
 :::steps
 ### Åpne Monitorstatus
 
-Gå til **Overvåkere → Innstillinger → Monitorstatus**. **Innstillinger** er sammenslått i sidemenyen: utvid den først. Kortet **Monitorstatuser** viser statusene fra den friskeste til den verste.
+Gå til **Monitorer → Innstillinger → Monitorstatus**. **Innstillinger** er sammenslått i sidemenyen: utvid den først. Kortet **Monitorstatuser** viser statusene fra den friskeste til den verste.
 
 ### Opprett statusen
 

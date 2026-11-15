@@ -59,10 +59,10 @@ Dra från en punkt längst ned på ett block ned till punkten högst upp på nä
 
 ```mermaid title="Bara utgången ett block tar leder någonstans"
 flowchart TB
-    hook["Webhook"] -->|"Ut"| check{"If / Else"}
-    check -->|"Ja"| post["API Post (JSON)"]
+    hook["Webhook"] -->|"Ut"| check{"Om / Annars"}
+    check -->|"Ja"| post["API-anrop POST (JSON)"]
     check -->|"Nej"| ends(["Inget är kopplat,<br/>så körningen slutar"])
-    post -->|"Framgång"| slack["Send Message to Slack"]
+    post -->|"Framgång"| slack["Skicka meddelande till Slack"]
     post -->|"Fel"| log["Logg"]
 ```
 
@@ -103,11 +103,11 @@ De flesta inställningar kan använda ett värde från ett tidigare block eller 
 
 I inställningen visas ett värde som en bricka, som **Webhook › Request Body**. Håll muspekaren över den för att se referensen den står för, `{{local.components.webhook-1.returnValues.request-body}}`, vilket är det som sparas. Markören hoppar över en bricka i ett steg, **Backspace** tar bort den helt, och kopierar du den kopieras referensen. Kan du syntaxen skriver du `{{` i stället: samma lista öppnas under inställningen och smalnas av medan du skriver.
 
-- **Värden som finns kommer först, och resten visas för sig.** Utlösaren och de block som körs före det här erbjuds. Ett block som bara körs före det här i vissa körningar — efter en utgång från ett **If / Else**, till exempel — säger det, eftersom dess värden kan vara tomma här. Ett block som körs senare, eller på en gren som inte leder hit, visas sist, hopfällt och nedtonat, med orsaken, och dess värden kan inte väljas. Tills ett block är kopplat visas bara utlösarens värden, och listan säger det.
-- **En post öppnas på sina fält.** Ett Find One- eller On Create-block returnerar en hel post. Välj den för att se dess fält: först de som blocket skickar vidare, som blockets **Fields to pass on** anger, och sedan, för sig, de som det inte skickar vidare och som är tomma här. Ett JSON-värde eller en uppsättning headers öppnas på ett fält där du skriver en sökväg, som `title` eller `alerts[0].status`.
+- **Värden som finns kommer först, och resten visas för sig.** Utlösaren och de block som körs före det här erbjuds. Ett block som bara körs före det här i vissa körningar — efter en utgång från ett **Om / Annars**, till exempel — säger det, eftersom dess värden kan vara tomma här. Ett block som körs senare, eller på en gren som inte leder hit, visas sist, hopfällt och nedtonat, med orsaken, och dess värden kan inte väljas. Tills ett block är kopplat visas bara utlösarens värden, och listan säger det.
+- **En post öppnas på sina fält.** Ett Find One- eller On Create-block returnerar en hel post. Välj den för att se dess fält: först de som blocket skickar vidare, som blockets **Fält att skicka vidare** anger, och sedan, för sig, de som det inte skickar vidare och som är tomma här. Ett JSON-värde eller en uppsättning headers öppnas på ett fält där du skriver en sökväg, som `title` eller `alerts[0].status`.
 - **När ett block har körts vet listan vad som finns i dess värden.** Varje värde säger vad det innehöll i den senaste körningen — `"production"` eller `3 fields` —, och ett JSON-värde eller en uppsättning headers öppnas på de fält det hade, vart och ett med sitt innehåll. Från en Webhooks **Begärandekropp** väljer du alltså **incident.title** i stället för att skriva en sökväg. Sökningen hittar också de här fälten: skriv `title`, eller `{{` och början av en sökväg. En posts fält visar också vad de innehöll. Fälten kommer från den senaste körningen, så ett fält som en senare förfrågan utelämnar är tomt i den körningen. Ett värde som ser ut som en hemlighet, som en `Authorization`-header, en token eller ett lösenord, visas utan sitt innehåll.
 - **En Webhook som ännu inte har tagit emot en förfrågan säger det** högst upp i sina värden, med **Kopiera testbegäran**: ett `curl`-kommando som skickar `{"message": "Hello"}` till arbetsflödets webhook-URL. Kör det i en terminal medan listan är öppen, så dyker förfrågans fält upp i den så snart körningen den startar är klar, vanligtvis inom några sekunder. Bara personer som får se webhook-URL:en får knappen. Så länge arbetsflödet är avstängt avvisar dess URL förfrågningar, så listan erbjuder **Testa med ”Kör arbetsflöde”** i stället: fälten i förfrågan du skickar därifrån dyker upp på samma sätt. En Incoming Email-utlösare som ännu inte har tagit emot ett e-postmeddelande säger det på samma ställe; skicka ett e-postmeddelande till dess adress, så dyker dess headers och bilagor upp på samma sätt.
-- **Kodredigerare har Insert value i sitt verktygsfält.** I JSON lägger den till de citattecken ett värde behöver inne i ett dokument. **Run Custom JavaScript** läser värden via sina **Arguments**, så dess kod har ingen väljare.
+- **Kodredigerare har Insert value i sitt verktygsfält.** I JSON lägger den till de citattecken ett värde behöver inne i ett dokument. **Kör egen JavaScript** läser värden via sina **Argument**, så dess kod har ingen väljare.
 - **Tal, lösenord, brytare och datum behåller sin egen kontroll,** med **{ }** bredvid. Ett valt värde ersätter kontrollen, och **abc** går tillbaka till att skriva.
 
 En bricka blir orange när det den läser inte finns: ett block som har bytt namn eller tagits bort, ett värde som blocket inte returnerar, ett block som körs senare, ett fält i en post som dess block inte skickar vidare eller en variabel som inte finns. Dess verktygstips säger vilket. Se [Variabler](/docs/workflows/variables) för referenssyntaxen.
@@ -134,7 +134,7 @@ Det snabbaste sättet att lära känna arbetsytan är ett arbetsflöde med två 
 
 :::steps
 1. Klicka på det streckade platshållarblocket och klicka sedan på **Manuell** i panelen **Lägg till utlösare**.
-2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Populära**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Execute** ned till Log-blockets ingångspunkt.
+2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Populära**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Utför** ned till Log-blockets ingångspunkt.
 3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Värde**. Klicka på **{ }** och klicka sedan på **JSON** under **Manuell**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
 4. Tillbaka i **Byggare** klickar du på **Kör arbetsflöde**, skriver `{ "name": "Ada" }` i fältet **JSON**, klickar på **Kör arbetsflödet manuellt** och bekräftar med **Kör**. Arbetsflödet är fortfarande avstängt, och det behöver inte vara påslaget: en körning som du startar själv är en **Testkörning**.
 5. En panel **Arbetsflödeskörning** öppnas av sig själv och följer körningen. Högst upp står **Testkörning**, och loggen visar `Value:` följt av `Hello from` och JSON:en du skrev.
@@ -158,11 +158,11 @@ Medan ett arbetsflöde är avstängt avgör det som startar det om det körs:
 | Dess utlösare: ett schema, en OneUptime-händelse eller ett e-postmeddelande | Ignoreras.                                                                                                                                                              |
 | **Kör arbetsflöde** eller **Run just this step**           | Körs, som **Testkörning**. Dess block körs på riktigt: ett meddelande skickas verkligen och en post ändras verkligen. Körningen är markerad som **Testkörning** i listorna över körningar och högst upp i körningen, med vem som startade den. |
 | Ett anrop till dess webhook-URL                            | Avvisas med HTTP 400 och "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
-| Ett annat arbetsflödes **Execute Workflow**-block          | Det blocket tar sin väg **Fel**, och felet nämner arbetsflödet det anropade. Det gäller även i en testkörning: ett arbetsflöde som det anropar måste vara påslaget. |
+| Ett annat arbetsflödes **Kör ett annat arbetsflöde**-block          | Det blocket tar sin väg **Fel**, och felet nämner arbetsflödet det anropade. Det gäller även i en testkörning: ett arbetsflöde som det anropar måste vara påslaget. |
 
 Ordningen är alltså: bygg det, testa det med **Kör arbetsflöde** medan det fortfarande är avstängt, läs körningens logg och slå på **Aktiverad** när du är redo för att dess utlösare aktiveras. För att testa ett enda block utan att köra allt använder du **Run just this step** i det blockets inställningar.
 
-För att pausa ett arbetsflöde utan att ta bort det slår du av **Aktiverad**. Dess utlösare slutar starta körningar. En körning som pågår gör klart, men en som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar och registreras som ett fel. En testkörning fortsätter.
+För att pausa ett arbetsflöde utan att ta bort det slår du av **Aktiverad**. Dess utlösare slutar starta körningar. En körning som pågår gör klart, men en som dess utlösare startade och som väntar vid ett **Paus**-block avbryts när den vaknar och registreras som ett fel. En testkörning fortsätter.
 
 ## Städa upp
 
