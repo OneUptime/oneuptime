@@ -395,7 +395,8 @@ const AREAS: Record<string, ReadonlyArray<string>> = {
   ],
   "home and sign-up": [
     "Back to sign in",
-    "No credit card required.",
+    // Welcome's line, which says where "no card" stops (#8246).
+    "A project needs no card. On the Free plan, checking a website needs a payment method.",
     "Or start a project of your own.",
   ],
   "the replay rail": [

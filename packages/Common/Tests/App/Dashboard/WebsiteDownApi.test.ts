@@ -26,7 +26,10 @@ import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import API from "../../../UI/Utils/API/API";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
+  WhoIsToldFacts,
+  WhoIsToldMode,
   buildWebsiteMonitor,
+  getWhoIsToldMode,
   parseWebsiteAddress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
@@ -763,6 +766,97 @@ describe("who is told", () => {
       mayCreatePolicy: true,
       mayAddEscalationRules: true,
       mayAddRules: true,
+    });
+  });
+
+  /*
+   * An archived policy pages no one (#8234): a project whose only policies
+   * are archived has no policy yet, and is offered one, as the monitor's
+   * "When this goes down" and Setup Health count it. The fake server counts
+   * as the real one does: only the records the query matches.
+   */
+  describe("only policies in service count (#8234)", () => {
+    const serve: (
+      policies: Array<{ isArchived: boolean }>,
+      rules?: { incident: number; alert: number },
+    ) => void = (
+      policies: Array<{ isArchived: boolean }>,
+      rules?: { incident: number; alert: number },
+    ): void => {
+      allow(true);
+      countSpy.mockImplementation((async (args: {
+        modelType: { new (): unknown };
+        query: Record<string, unknown>;
+      }) => {
+        if (args.modelType === IncidentOnCallRule) {
+          return rules?.incident ?? 0;
+        }
+
+        if (args.modelType === AlertOnCallRule) {
+          return rules?.alert ?? 0;
+        }
+
+        return policies.filter((policy: Record<string, unknown>): boolean => {
+          return Object.entries(args.query).every(
+            ([column, value]: [string, unknown]): boolean => {
+              return policy[column] === value;
+            },
+          );
+        }).length;
+      }) as unknown as (...args: Array<never>) => Promise<unknown>);
+    };
+
+    test("the policies are counted as the On-Call Policies list shows them: archived ones left out", async () => {
+      serve([]);
+      await WebsiteDownApi.loadWhoIsToldFacts();
+
+      const policyCounts: Array<Array<unknown>> = countSpy.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return (
+            (call[0] as { modelType: unknown }).modelType === OnCallDutyPolicy
+          );
+        },
+      );
+
+      expect(policyCounts).toHaveLength(1);
+      expect((policyCounts[0]![0] as { query: unknown }).query).toEqual({
+        isArchived: false,
+      });
+    });
+
+    test("a project whose only policy is archived has none, and the setup makes one", async () => {
+      serve([{ isArchived: true }]);
+
+      const facts: WhoIsToldFacts = await WebsiteDownApi.loadWhoIsToldFacts();
+
+      expect(facts.policyCount).toBe(0);
+      expect(getWhoIsToldMode(facts)).toBe(WhoIsToldMode.CreatePolicy);
+    });
+
+    test("several archived policies are still none", async () => {
+      serve([{ isArchived: true }, { isArchived: true }, { isArchived: true }]);
+
+      const facts: WhoIsToldFacts = await WebsiteDownApi.loadWhoIsToldFacts();
+
+      expect(facts.policyCount).toBe(0);
+      expect(getWhoIsToldMode(facts)).toBe(WhoIsToldMode.CreatePolicy);
+    });
+
+    test("one in service beside archived ones: the project's policies decide", async () => {
+      serve([{ isArchived: true }, { isArchived: false }]);
+
+      const facts: WhoIsToldFacts = await WebsiteDownApi.loadWhoIsToldFacts();
+
+      expect(facts.policyCount).toBe(1);
+      expect(getWhoIsToldMode(facts)).toBe(WhoIsToldMode.ExistingPolicy);
+    });
+
+    test("an on-call rule still means the project pages people already", async () => {
+      serve([{ isArchived: true }], { incident: 1, alert: 0 });
+
+      expect(getWhoIsToldMode(await WebsiteDownApi.loadWhoIsToldFacts())).toBe(
+        WhoIsToldMode.ExistingPolicy,
+      );
     });
   });
 

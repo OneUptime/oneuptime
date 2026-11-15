@@ -2,9 +2,11 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  RequestHandler,
 } from "../../../Utils/Express";
 import Response from "../../../Utils/Response";
 import ClusterKeyAuthorization from "../../../Middleware/ClusterKeyAuthorization";
+import PlainTextJsonBody from "../../../Middleware/PlainTextJsonBody";
 import { RunOptions, RunReturnType } from "../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../TriggerCode";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -29,6 +31,12 @@ export const SIGNED_WEBHOOK_TRIGGER_IDS: Array<string> = [
 
 export const SIGNED_WEBHOOK_WORKFLOW_MESSAGE: string =
   "This workflow starts from Huntress, which signs its requests. Send them to the URL its Huntress trigger shows.";
+
+/*
+ * The largest text/plain body read: the JSON parser's own limit
+ * (StartServer's jsonBodyParserOptions).
+ */
+export const WEBHOOK_TEXT_BODY_LIMIT: string = "50mb";
 
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {
@@ -69,8 +77,18 @@ export default class WebhookTrigger extends TriggerCode {
 
   @CaptureSpan()
   public override async init(props: InitProps): Promise<void> {
+    /*
+     * JSON sent as text/plain - how Amazon SNS posts every message - is
+     * read as the JSON it is, so the next block can read its fields; any
+     * other text still arrives empty (PlainTextJsonBody, #7723).
+     */
+    const readTextBody: RequestHandler = PlainTextJsonBody.getReader(
+      WEBHOOK_TEXT_BODY_LIMIT,
+    );
+
     props.router.get(
       `/trigger/:secretkey`,
+      readTextBody,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.initTrigger(req, res, props);
@@ -82,6 +100,7 @@ export default class WebhookTrigger extends TriggerCode {
 
     props.router.post(
       `/trigger/:secretkey`,
+      readTextBody,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.initTrigger(req, res, props);

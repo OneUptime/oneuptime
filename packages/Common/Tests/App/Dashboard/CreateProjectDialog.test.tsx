@@ -541,8 +541,9 @@ describe("Create New Project, OneUptime Cloud (billing on)", () => {
     expect(planRadio("Free")).toBeChecked();
     expect(planRadio("Growth")).not.toBeChecked();
     expect(termsText()).toContain("Free forever.");
+    // What needs a card on Free, in the reader's words (#8246).
     expect(termsText()).toContain(
-      "Active monitors and telemetry are pay as you go, and need a payment method.",
+      "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.",
     );
   });
 

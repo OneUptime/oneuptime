@@ -14,6 +14,7 @@ Les deux utilisent le même type de moniteur. Ce qui les distingue, ce sont les 
 - [Envoyer un heartbeat](#envoyer-un-heartbeat): Depuis curl, cron, Node.js, Python ou Go.
 - [Alerter quand les appels cessent](#marquer-hors-ligne-sil-ny-a-pas-de-heartbeat-en-10-minutes-un-interrupteur-de-lhomme-mort): Faire du moniteur un interrupteur de l'homme mort.
 - [Recevoir des alertes](#recevoir-les-alertes-dun-autre-système): Un incident par alerte Alertmanager ou Grafana.
+- [S'abonner à SNS ou Event Grid](#sabonner-à-amazon-sns-ou-à-azure-event-grid): Confirmer l'abonnement en un clic.
 :::
 
 ## Fonctionnement
@@ -93,6 +94,7 @@ Si vous voulez atteindre des champs du corps — `{{requestBody.status}}` dans u
 | --- | --- |
 | `application/json` | Le JSON analysé. |
 | `application/x-www-form-urlencoded` | Le formulaire analysé. Les clés entre crochets s'imbriquent (`alerts[0][status]=firing`), et chaque valeur est une chaîne. |
+| `text/plain` | Le JSON analysé, quand le texte est un objet ou un tableau JSON : c'est ainsi qu'Amazon SNS envoie ses messages. Tout autre texte donne un corps vide. |
 | Tout autre, ou aucun | Un corps vide (`{}`) : chaque référence à `requestBody` ne donne donc rien. |
 
 Les corps jusqu'à 50 Mo sont acceptés ; un corps plus grand est refusé avec un `413`. Ne compressez pas le corps avec `Content-Encoding: gzip` : il ne serait pas stocké comme JSON, et les chemins vers son contenu ne se résoudraient pas.
@@ -345,6 +347,40 @@ La charge utile complète est disponible à côté : un titre d'incident `{{aler
 
 Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Pour Grafana, voir [Grafana](/docs/integrations/grafana).
 
+## S'abonner à Amazon SNS ou à Azure Event Grid
+
+Amazon SNS et Azure Event Grid n'envoient rien à un nouveau point de terminaison tant que quelqu'un n'a pas confirmé l'abonnement, en ouvrant un lien que le service lui envoie. Quand cette requête arrive, la carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur indique ce qu'attend le service, la rubrique, et un bouton qui ouvre le lien dans un nouvel onglet.
+
+| Service | La requête | Bouton | Durée de validité du lien |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, pour un nouvel abonnement HTTPS | **Confirmer l'abonnement** | Deux jours |
+| Amazon SNS | `UnsubscribeConfirmation`, quand l'abonnement est supprimé | **Restaurer l'abonnement** | Deux jours |
+| Azure Event Grid | `SubscriptionValidationEvent`, pour un nouvel abonnement aux événements par webhook | **Valider l'abonnement** | 10 minutes |
+
+Le bouton reste affiché jusqu'à l'arrivée de la prochaine requête du moniteur, même après que vous avez ouvert le lien. Une fois le délai du lien écoulé, la carte indique à la place comment en obtenir un nouveau. Si des requêtes plus récentes sont arrivées, ouvrez **Journaux de surveillance** et cliquez sur **Voir le résumé** sur la ligne de la requête.
+
+Le lien, et le jeton qu'il contient, sont conservés sans masquage partout où la requête est conservée : ses détails, ses journaux, et les incidents et alertes qu'elle ouvre. Le lien ne permet rien d'autre que de lancer les envois vers ce moniteur. Seul compte un lien vers l'adresse propre du service : tout autre lien est masqué comme d'habitude et n'a pas de bouton.
+
+### Amazon SNS
+
+:::steps
+1. Dans la console Amazon SNS, ouvrez la rubrique et choisissez **Create subscription**. Choisissez `HTTPS` comme protocole, et collez l'**URL de heartbeat** du moniteur comme point de terminaison.
+2. Ouvrez la **Vue d'ensemble** du moniteur, et cliquez sur **Confirmer l'abonnement** dans la carte **Résumé du moniteur**. Dans la console SNS, le statut de l'abonnement passe de **Pending confirmation** à confirmé.
+:::
+
+SNS envoie ses messages en JSON étiqueté `text/plain`, et le moniteur les lit comme du JSON : les critères, les modèles et le regroupement d'incidents peuvent donc utiliser leurs champs, comme `{{requestBody.Subject}}` et `{{requestBody.Message}}`. Le JSON propre d'une notification, comme celui d'une alarme CloudWatch, arrive sous forme de texte dans `Message`.
+
+Si la carte indique que le lien ne peut plus être ouvert, sélectionnez l'abonnement dans la console SNS et choisissez **Request confirmation**. SNS supprime un abonnement qui n'est pas confirmé dans les 48 heures ; dans ce cas, recréez l'abonnement.
+
+### Azure Event Grid
+
+:::steps
+1. Dans le portail Azure, ouvrez la ressource dont vous voulez les événements et ajoutez un abonnement aux événements. Choisissez **Event Grid Schema** comme schéma d'événement, **Web Hook** comme type de point de terminaison, et l'**URL de heartbeat** du moniteur comme point de terminaison.
+2. Dans les 10 minutes, ouvrez la **Vue d'ensemble** du moniteur et cliquez sur **Valider l'abonnement** dans la carte **Résumé du moniteur**.
+:::
+
+Event Grid valide un point de terminaison qui lui renvoie un code, ou dont le propriétaire ouvre le lien qu'il envoie. OneUptime répond à chaque requête par un `200` vide : c'est donc le lien qui permet la validation. Le lien pointe vers Event Grid sur le port 553, qu'un pare-feu placé devant votre navigateur doit autoriser. Si 10 minutes passent avant, l'abonnement aux événements échoue : recréez-le.
+
 ## Bonnes pratiques
 
 1. **Choisissez une fenêtre de temps adaptée** — Si votre tâche cron s'exécute toutes les 5 minutes, réglez le seuil "Non reçu dans le délai (minutes)" sur 10 à 15 minutes pour absorber les retards occasionnels, et placez ce critère en premier.
@@ -364,11 +400,15 @@ Seul un critère **Requête entrante** (**Non reçu dans le délai (minutes)**) 
 :::
 
 :::details Un filtre Corps de la requête ne correspond jamais
-Envoyez `Content-Type: application/json`, et écrivez la valeur en JSON compact — `"status":"firing"`, sans espace après les deux-points. Sans type de contenu JSON ou formulaire, le corps n'est pas analysé.
+Envoyez `Content-Type: application/json`, et écrivez la valeur en JSON compact — `"status":"firing"`, sans espace après les deux-points. Sans type de contenu JSON ou formulaire, le corps n'est pas analysé : seul le JSON envoyé en `text/plain` l'est.
 :::
 
 :::details Un filtre En-tête de la requête ne correspond jamais
 Les noms et valeurs d'en-tête sont comparés en entier. Donnez la valeur complète, comme `application/json; charset=utf-8`, plutôt qu'une partie.
+:::
+
+:::details Amazon SNS indique que l'abonnement est en attente de confirmation
+Cliquez sur **Confirmer l'abonnement** dans la carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur. Si des requêtes plus récentes sont arrivées, ouvrez **Journaux de surveillance** et cliquez sur **Voir le résumé** sur la ligne de la confirmation. Quand **Conserver le contenu de la requête** est désactivé, le moniteur ne conserve aucun corps, donc aucun lien non plus : activez-le dans les **Paramètres** du moniteur, et la dernière requête s'affiche de nouveau avec son lien.
 :::
 
 :::details L'expéditeur reçoit un 500

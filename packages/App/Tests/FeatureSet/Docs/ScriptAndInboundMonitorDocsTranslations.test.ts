@@ -151,6 +151,15 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
  * English; "Resend" and "Test" are also OneUptime labels, by coincidence.
  */
 const THIRD_PARTY_IN_ENGLISH: Record<string, Array<string>> = {
+  [INCOMING_REQUEST_MONITOR]: [
+    // The Amazon SNS console's button and status (#7723).
+    "Create subscription",
+    "Pending confirmation",
+    "Request confirmation",
+    // The Azure portal's event schema and endpoint type.
+    "Event Grid Schema",
+    "Web Hook",
+  ],
   [INCOMING_EMAIL_MONITOR]: ["Resend", "Test", "Confirm subscription"],
 };
 

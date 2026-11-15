@@ -299,14 +299,23 @@ describe("the schedule's fields", () => {
   });
 
   test("the days are the week's seven, in the reader's language", () => {
+    /*
+     * Each day's name is the reader's language's already, so the picker
+     * draws it as given, in the page's direction (21e88b8a152).
+     */
+    const asGiven: { isUserContent: boolean; isInPageDirection: boolean } = {
+      isUserContent: true,
+      isInPageDirection: true,
+    };
+
     expect(fieldNamed(fields, "dayOfWeek").dropdownOptions).toEqual([
-      { value: "0", label: "Sunday" },
-      { value: "1", label: "Monday" },
-      { value: "2", label: "Tuesday" },
-      { value: "3", label: "Wednesday" },
-      { value: "4", label: "Thursday" },
-      { value: "5", label: "Friday" },
-      { value: "6", label: "Saturday" },
+      { value: "0", label: "Sunday", ...asGiven },
+      { value: "1", label: "Monday", ...asGiven },
+      { value: "2", label: "Tuesday", ...asGiven },
+      { value: "3", label: "Wednesday", ...asGiven },
+      { value: "4", label: "Thursday", ...asGiven },
+      { value: "5", label: "Friday", ...asGiven },
+      { value: "6", label: "Saturday", ...asGiven },
     ]);
   });
 

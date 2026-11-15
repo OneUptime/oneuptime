@@ -110,6 +110,12 @@ const MESSAGES: Array<{ message: string; why: string; next: string }> = [
     why: UnexplainedErrorWords.pageWhy,
     next: UnexplainedErrorWords.pageNext,
   },
+  // A proxy's 413 (#8278): send less, and the proxy's limit to raise.
+  {
+    message: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+    why: UnexplainedErrorWords.tooLargeWhy,
+    next: UnexplainedErrorWords.tooLargeNext,
+  },
 ];
 
 const readIn: (language: string) => Promise<void> = async (
@@ -238,7 +244,12 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
           ? locale[UnexplainedErrorWords.adminWhereToLookWithReference]!
           : entry.message === UNEXPLAINED_ERROR_MESSAGES.server
             ? locale[UnexplainedErrorWords.adminWhereToLook]!
-            : "";
+            : entry.message === UNEXPLAINED_ERROR_MESSAGES.tooLarge
+              ? locale[UnexplainedErrorWords.tooLargeWhereToLook]!
+              : "";
+      // OneUptime Health is beside a server failure's logs, not a proxy's limit.
+      const opensHealth: boolean =
+        entry.message !== UNEXPLAINED_ERROR_MESSAGES.tooLarge;
 
       // The card's words, then why and next, in the sentence's place.
       const [before, after] = template.split("{{error}}") as [string, string];
@@ -261,7 +272,13 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
 
       if (whereToLook) {
         expect(text).toContain(whereToLook);
-        expect(text).toContain(locale[UnexplainedErrorWords.openHealth]!);
+
+        if (opensHealth) {
+          expect(text).toContain(locale[UnexplainedErrorWords.openHealth]!);
+        } else {
+          expect(result.queryByTestId("error-open-health")).toBeNull();
+          expect(text).not.toContain(locale[UnexplainedErrorWords.openHealth]!);
+        }
 
         // A line of its own after the card's whole sentence.
         const line: HTMLElement = result.getByTestId("error-where-to-look");

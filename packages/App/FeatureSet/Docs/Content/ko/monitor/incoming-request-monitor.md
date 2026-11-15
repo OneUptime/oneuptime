@@ -14,6 +14,7 @@
 - [하트비트 보내기](#하트비트-보내기): curl, cron, Node.js, Python, Go에서 보냅니다.
 - [호출이 끊기면 알림 받기](#10분-동안-하트비트가-없으면-오프라인으로-표시데드맨-스위치): 모니터를 데드맨 스위치로 만듭니다.
 - [알림 받기](#다른-시스템의-알림-수신): Alertmanager나 Grafana의 알림마다 인시던트 하나를 엽니다.
+- [SNS 또는 Event Grid 구독하기](#amazon-sns-또는-azure-event-grid-구독하기): 클릭 한 번으로 구독을 확인합니다.
 :::
 
 ## 작동 방식
@@ -93,6 +94,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | --- | --- |
 | `application/json` | 파싱된 JSON. |
 | `application/x-www-form-urlencoded` | 파싱된 양식. 대괄호가 있는 키는 중첩되며(`alerts[0][status]=firing`), 모든 값은 문자열입니다. |
+| `text/plain` | 텍스트가 JSON 객체나 배열이면 파싱된 JSON. Amazon SNS가 메시지를 이렇게 보냅니다. 그 밖의 텍스트는 빈 본문이 됩니다. |
 | 그 밖의 유형 또는 없음 | 빈 본문(`{}`). 따라서 모든 `requestBody` 참조는 아무것도 가리키지 않습니다. |
 
 본문은 최대 50 MB까지 받으며, 그보다 크면 `413` 으로 거부됩니다. 본문을 `Content-Encoding: gzip` 으로 압축하지 마세요. JSON으로 저장되지 않아 그 안의 경로가 해석되지 않습니다.
@@ -345,6 +347,40 @@ flowchart TB
 
 전체 Alertmanager 구성은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요. Grafana는 [Grafana](/docs/integrations/grafana)를 참고하세요.
 
+## Amazon SNS 또는 Azure Event Grid 구독하기
+
+Amazon SNS와 Azure Event Grid는 서비스가 새 엔드포인트로 보내는 링크를 누군가 열어 구독을 확인할 때까지 그 엔드포인트에 아무것도 보내지 않습니다. 그 요청이 도착하면 모니터 **개요** 의 **모니터 요약** 카드에 서비스가 무엇을 기다리는지, 토픽, 그리고 링크를 새 탭에서 여는 버튼 하나가 표시됩니다.
+
+| 서비스 | 요청 | 버튼 | 링크 유효 기간 |
+| --- | --- | --- | --- |
+| Amazon SNS | 새 HTTPS 구독에 대한 `SubscriptionConfirmation` | **구독 확인** | 2일 |
+| Amazon SNS | 구독이 삭제될 때의 `UnsubscribeConfirmation` | **구독 복원** | 2일 |
+| Azure Event Grid | 새 웹훅 이벤트 구독에 대한 `SubscriptionValidationEvent` | **구독 검증** | 10분 |
+
+링크를 연 뒤에도 버튼은 모니터에 다음 요청이 도착할 때까지 남아 있습니다. 링크의 유효 기간이 지나면 카드에는 대신 새 링크를 받는 방법이 표시됩니다. 그 사이에 더 새로운 요청이 도착했다면 **모니터링 로그** 를 열고 해당 요청의 행에서 **요약 보기** 를 클릭하세요.
+
+링크와 그 안의 토큰은 요청이 보관되는 모든 곳, 즉 요청 세부 정보, 로그, 요청이 여는 인시던트와 알림에서 마스킹되지 않은 채 보관됩니다. 링크로 할 수 있는 일은 이 모니터로의 전송을 시작하는 것뿐입니다. 서비스 자체 주소로 가는 링크만 해당되며, 그 밖의 링크는 평소처럼 마스킹되고 버튼도 표시되지 않습니다.
+
+### Amazon SNS
+
+:::steps
+1. Amazon SNS 콘솔에서 토픽을 열고 **Create subscription** 을 선택합니다. 프로토콜로 `HTTPS` 를 선택하고, 엔드포인트에 모니터의 **Heartbeat URL** 을 붙여 넣습니다.
+2. 모니터의 **개요** 를 열고 **모니터 요약** 카드에서 **구독 확인** 을 클릭합니다. SNS 콘솔에서 구독 상태가 **Pending confirmation** 에서 확인됨으로 바뀝니다.
+:::
+
+SNS는 메시지를 `text/plain` 으로 표시된 JSON으로 보내고, 모니터는 이를 JSON으로 읽습니다. 따라서 기준, 템플릿, 인시던트 그룹화에서 `{{requestBody.Subject}}` 와 `{{requestBody.Message}}` 같은 필드를 쓸 수 있습니다. CloudWatch 경보의 JSON처럼 알림 자체의 JSON은 `Message` 안에 텍스트로 도착합니다.
+
+카드에 링크를 더 이상 열 수 없다고 표시되면 SNS 콘솔에서 구독을 선택하고 **Request confirmation** 을 선택하세요. SNS는 48시간 안에 확인되지 않은 구독을 삭제합니다. 그렇게 되면 구독을 다시 만드세요.
+
+### Azure Event Grid
+
+:::steps
+1. Azure portal에서 이벤트를 받으려는 리소스를 열고 이벤트 구독을 추가합니다. 이벤트 스키마로 **Event Grid Schema** 를, 엔드포인트 유형으로 **Web Hook** 을, 엔드포인트로 모니터의 **Heartbeat URL** 을 선택합니다.
+2. 10분 안에 모니터의 **개요** 를 열고 **모니터 요약** 카드에서 **구독 검증** 을 클릭합니다.
+:::
+
+Event Grid는 코드를 그대로 돌려보내는 엔드포인트나, 소유자가 Event Grid가 보낸 링크를 여는 엔드포인트를 검증합니다. OneUptime은 모든 요청에 빈 `200` 으로 응답하므로 링크를 여는 방법을 써야 합니다. 링크는 포트 553의 Event Grid를 가리키므로, 브라우저 앞단의 방화벽이 이 포트를 허용해야 합니다. 그 전에 10분이 지나면 이벤트 구독이 실패합니다. 이벤트 구독을 다시 만드세요.
+
 ## 모범 사례
 
 1. **시간 범위를 알맞게 설정** — cron 작업이 5분마다 실행된다면 "분 동안 미수신" 임계값을 10~15분으로 잡아 가끔 생기는 지연을 허용하고, 그 기준을 맨 앞에 두세요.
@@ -364,11 +400,15 @@ flowchart TB
 :::
 
 :::details 요청 본문 필터가 일치하지 않습니다
-`Content-Type: application/json` 을 보내고, 값을 압축된 JSON으로 쓰세요. `"status":"firing"` 처럼 콜론 뒤에 공백이 없어야 합니다. JSON이나 양식 콘텐츠 유형이 없으면 본문을 파싱하지 않습니다.
+`Content-Type: application/json` 을 보내고, 값을 압축된 JSON으로 쓰세요. `"status":"firing"` 처럼 콜론 뒤에 공백이 없어야 합니다. JSON이나 양식 콘텐츠 유형이 없으면 본문을 파싱하지 않습니다. 예외는 `text/plain` 으로 보낸 JSON뿐입니다.
 :::
 
 :::details 요청 헤더 필터가 일치하지 않습니다
 헤더 이름과 값은 전체로 비교됩니다. 일부가 아니라 `application/json; charset=utf-8` 같은 전체 값을 지정하세요.
+:::
+
+:::details Amazon SNS에 구독이 확인 대기 중으로 표시됩니다
+모니터 **개요** 의 **모니터 요약** 카드에서 **구독 확인** 을 클릭하세요. 그 사이에 더 새로운 요청이 도착했다면 **모니터링 로그** 를 열고 확인 요청의 행에서 **요약 보기** 를 클릭하세요. **요청 내용 보관** 이 꺼져 있으면 모니터가 본문을 보관하지 않으므로 링크도 없습니다. 모니터의 **설정** 에서 켜면 최신 요청이 링크와 함께 다시 표시됩니다.
 :::
 
 :::details 발신자가 500을 받습니다

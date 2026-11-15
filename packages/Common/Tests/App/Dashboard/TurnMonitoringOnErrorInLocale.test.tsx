@@ -107,6 +107,9 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 const MONITOR: string = "11111111-1111-4111-8111-111111111111";
 const LANGUAGES: Array<string> = ["de", "fa"];
 
+// The pages read right to left, for how a message is laid out (#8279).
+const RIGHT_TO_LEFT: Array<string> = ["fa", "ar"];
+
 function said(language: string, text: string): string {
   return language === "en" ? text : readDashboardLocale(language)[text] || text;
 }
@@ -167,7 +170,7 @@ beforeAll(async () => {
     lng: "en",
     fallbackLng: "en",
     resources: Object.fromEntries(
-      LANGUAGES.map((language: string) => {
+      [...LANGUAGES, "ar"].map((language: string) => {
         return [language, { translation: readDashboardLocale(language) }];
       }),
     ),
@@ -278,6 +281,97 @@ describe("Turn monitoring on, failed", () => {
 
       expect(error.textContent).toBe(message);
       expect(within(error).queryByTestId("error-in-sentence")).toBeNull();
+    },
+  );
+});
+
+/*
+ * On a page read right to left, an English message the server wrote is set
+ * apart in a left-to-right isolate, so its full stop stays at its end
+ * (#8279). It used to be drawn with no direction of its own: ".You do not
+ * have permission to update this Monitor" on a Persian page.
+ */
+describe("Turn monitoring on, failed with a message the server wrote, on a page read right to left (#8279)", () => {
+  const ENGLISH: string = "You do not have permission to update this Monitor.";
+
+  test.each(RIGHT_TO_LEFT)(
+    "in %s, the English message reads left to right, its full stop at its end",
+    async (language: string) => {
+      const error: HTMLElement = await turnOnFailsWith(
+        language,
+        new HTTPErrorResponse(403, { message: ENGLISH }, {}),
+      );
+
+      const isolates: Array<HTMLElement> = Array.from(
+        error.querySelectorAll("bdi"),
+      );
+
+      expect(isolates).toHaveLength(1);
+      expect(isolates[0]).toHaveAttribute("dir", "ltr");
+      expect(isolates[0]!.textContent).toBe(ENGLISH);
+      expect(error.textContent).toBe(ENGLISH);
+    },
+  );
+
+  test("a Persian message on a Persian page reads the page's way, as before", async () => {
+    const persian: string = "این مانیتور را نمی‌توان روشن کرد.";
+    const error: HTMLElement = await turnOnFailsWith(
+      "fa",
+      new HTTPErrorResponse(400, { message: persian }, {}),
+    );
+
+    expect(error.querySelector("bdi")).toBeNull();
+    expect(error.textContent).toBe(persian);
+  });
+
+  test("on a German page, the English message is drawn as it always was", async () => {
+    const error: HTMLElement = await turnOnFailsWith(
+      "de",
+      new HTTPErrorResponse(403, { message: ENGLISH }, {}),
+    );
+
+    expect(error.querySelector("bdi")).toBeNull();
+    expect(error.textContent).toBe(ENGLISH);
+  });
+});
+
+/*
+ * A proxy's 413 page (#8278) reads as what was sent being too large, in the
+ * reader's language, never as a failure the server could not explain.
+ */
+describe("Turn monitoring on, refused by a proxy's 413 page (#8278)", () => {
+  const NGINX_413: string =
+    "<html><head><title>413 Request Entity Too Large</title></head><body><center><h1>413 Request Entity Too Large</h1></center><hr><center>nginx</center></body></html>";
+
+  test.each([...LANGUAGES, "ar"])(
+    "in %s, says it was too large and to send less, with no English left",
+    async (language: string) => {
+      const error: HTMLElement = await turnOnFailsWith(
+        language,
+        new HTTPErrorResponse(413, NGINX_413 as never, {}),
+      );
+      const words: string = wordsIn(
+        language,
+        UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+      );
+
+      expect(words).not.toBe(
+        wordsIn("en", UNEXPLAINED_ERROR_MESSAGES.tooLarge),
+      );
+      expect(within(error).getByTestId("error-in-sentence").textContent).toBe(
+        words,
+      );
+      expect(error.textContent).not.toContain("<");
+      expect(error.textContent).not.toContain("413");
+      expect(error.textContent).not.toContain(
+        wordsIn(language, UNEXPLAINED_ERROR_MESSAGES.server),
+      );
+
+      if (RIGHT_TO_LEFT.includes(language)) {
+        expect((error.textContent || "").replace(/OneUptime/g, "")).not.toMatch(
+          /[A-Za-z]/,
+        );
+      }
     },
   );
 });
