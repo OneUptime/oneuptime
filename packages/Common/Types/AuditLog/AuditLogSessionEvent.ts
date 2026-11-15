@@ -4,6 +4,7 @@ import ObjectID from "../ObjectID";
 import { SessionEndCause } from "../UserSession/SessionEndCause";
 import { DEFAULT_SESSION_IDLE_DAYS } from "../UserSession/SessionLength";
 import { SessionSignIn } from "../UserSession/SessionSignIn";
+import { translationKey } from "../Translator";
 
 /*
  * PEOPLE'S SESSIONS IN THE AUDIT LOG (issue #6762).
@@ -161,19 +162,24 @@ export const AUDIT_LOG_SESSION_FIELDS: ReadonlyArray<AuditLogSessionField> = [
   AuditLogSessionField.EndedAt,
 ];
 
+/*
+ * What the changes dialog calls each field of a session entry: keys of the
+ * Dashboard's locales (this file is one of the extractor's "keys" roots),
+ * which the dialog looks up in the reader's language (#8291).
+ */
 export const AUDIT_LOG_SESSION_FIELD_LABELS: Readonly<
   Record<AuditLogSessionField, string>
 > = {
-  [AuditLogSessionField.Reason]: "Reason",
-  [AuditLogSessionField.SignInMethod]: "Signed in with",
-  [AuditLogSessionField.SsoProvider]: "SSO provider",
-  [AuditLogSessionField.SecondFactor]: "Second factor",
-  [AuditLogSessionField.Device]: "Device",
-  [AuditLogSessionField.IpAddress]: "IP address",
-  [AuditLogSessionField.Location]: "Location",
-  [AuditLogSessionField.SignedInAt]: "Signed in at",
-  [AuditLogSessionField.LastActiveAt]: "Last active at",
-  [AuditLogSessionField.EndedAt]: "Timed out at",
+  [AuditLogSessionField.Reason]: translationKey("Reason"),
+  [AuditLogSessionField.SignInMethod]: translationKey("Signed in with"),
+  [AuditLogSessionField.SsoProvider]: translationKey("SSO provider"),
+  [AuditLogSessionField.SecondFactor]: translationKey("Second factor"),
+  [AuditLogSessionField.Device]: translationKey("Device"),
+  [AuditLogSessionField.IpAddress]: translationKey("IP address"),
+  [AuditLogSessionField.Location]: translationKey("Location"),
+  [AuditLogSessionField.SignedInAt]: translationKey("Signed in at"),
+  [AuditLogSessionField.LastActiveAt]: translationKey("Last active at"),
+  [AuditLogSessionField.EndedAt]: translationKey("Timed out at"),
 };
 
 // The fields whose values are times, which a reader shows in its own zone.
