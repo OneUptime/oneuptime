@@ -52,12 +52,12 @@ Under **OpenStack Monitor Configuration** velger du skyen fra **OpenStack-sky**.
 En ny monitor starter på **Cloud Stopped Reporting**, under **Hva det skal varsles om**. For å overvåke noe annet:
 
 - **Endre** - velg en annen [mal](#ferdige-varselmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) - velg én metrikk fra **OpenStack-metrikk**, sett deretter **Aggregering** og **Tidsintervall**, og avgrens med [filtrene](#monitorinnstillinger).
+- **Custom Metric** (under **Flere felt**) - velg én metrikk fra **OpenStack-måling**, sett deretter **Aggregering** og **Tidsintervall**, og avgrens med [filtrene](#monitorinnstillinger).
 - **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `status`, `adminState` eller `resourcetype`. Bruk **Grupper etter** et [identitetsattributt](#identitetsattributter) for å vurdere hver del for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Kriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller ut disse. Med **Custom Metric** eller **Avansert** starter monitoren med standardkriteriene, som bare merker at metrikken ikke sender data, så sett din egen terskel.
+Åpne hvert kriterium under **Kriterier** og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller ut disse. Med **Custom Metric** eller **Avansert** starter monitoren med standardkriteriene, som bare merker at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -77,10 +77,10 @@ Klikk **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den hve
 | **Hypervisor** | Custom Metric, Avansert | Valgfritt. Én vert: `hostname` på arbeidere, hypervisorer og Placement, `hypervisor_hostname` på instanser. Novas arbeidere oppgir vertens korte navn, og hypervisorer, Placement og instanser det fulle navnet, så bruk det serien oppgir. |
 | **Tjeneste** | Custom Metric, Avansert | Valgfritt. Én arbeiders binærfil, for eksempel `nova-compute`: `service`. |
 | **Prosjekt-ID** | Custom Metric, Avansert | Valgfritt. Ett prosjekt: `tenant_id` på Novas og Cinders serier og på nettverk og subnett, `project_id` på flytende IP-er, rutere og adressetilgjengelighet. |
-| **OpenStack-metrikk** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
+| **OpenStack-måling** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det rullerende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 15 minutter**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 Et filter avgrenser bare en serie som har etiketten sin: `openstack_nova_up` har ikke noe prosjekt, så et prosjektfilter lar den være som den er.
 
@@ -751,7 +751,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Metrikk** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
+| **Måling** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må passe, over hele vinduet) eller **Minst én verdi** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** passer når spørringen ikke sendte noe i vinduet, **Har data** når den sendte noe. **Ventes å stige over** og **Ventes å falle under** passer når metrikkens trend over vinduet vil være forbi terskelen ved slutten av **Tidshorisont**. |
 | **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |

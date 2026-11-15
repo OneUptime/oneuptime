@@ -38,27 +38,14 @@ export const RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS: Array<Permission> = [
 
 /*
  * How each resource type is named inside a sentence ("on this Docker host",
- * "on this database server"). AI_RESOURCE_TYPE_INFO's displayName starts
- * every name with a capital, which reads wrong mid-sentence for the two
- * types whose name is a common noun.
+ * "on this database server"): AI_RESOURCE_TYPE_INFO's sentenceName. Its
+ * displayName is a label, whose capital reads wrong mid-sentence for the
+ * two types whose name is a common noun. The AI Investigation card and the
+ * server's lines both name a kind by this word (#8133), and the Dashboard
+ * words each one in every language.
  */
-const RESOURCE_SENTENCE_NAMES: Readonly<Record<AiResourceType, string>> = {
-  [AiResourceType.DockerHost]: "Docker host",
-  [AiResourceType.PodmanHost]: "Podman host",
-  [AiResourceType.DockerSwarmCluster]: "Docker Swarm cluster",
-  [AiResourceType.ProxmoxCluster]: "Proxmox cluster",
-  [AiResourceType.VMwareVCenter]: "VMware vCenter",
-  [AiResourceType.CephCluster]: "Ceph cluster",
-  [AiResourceType.DatabaseServer]: "database server",
-  [AiResourceType.Host]: "host",
-  [AiResourceType.AwsAccount]: "AWS account",
-  [AiResourceType.AzureSubscription]: "Azure subscription",
-  [AiResourceType.GoogleCloudProject]: "Google Cloud project",
-  [AiResourceType.OpenStackCloud]: "OpenStack cloud",
-};
-
 export function getResourceSentenceName(resourceType: AiResourceType): string {
-  return RESOURCE_SENTENCE_NAMES[resourceType] || "resource";
+  return AI_RESOURCE_TYPE_INFO[resourceType]?.sentenceName || "resource";
 }
 
 // The name of the resource type's AI agent, for sentences ("the Docker AI agent").

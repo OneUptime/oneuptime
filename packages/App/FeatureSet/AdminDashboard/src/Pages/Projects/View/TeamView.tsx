@@ -68,16 +68,19 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.projects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECTS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.project"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_VIEW] as Route,
             { modelId: projectId },
@@ -85,6 +88,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectTeams"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_TEAMS] as Route,
             { modelId: projectId },
@@ -92,6 +96,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectTeam"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_TEAM_VIEW] as Route,
             { modelId: projectId, subModelId: teamId },

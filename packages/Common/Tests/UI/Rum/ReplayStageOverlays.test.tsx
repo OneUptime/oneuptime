@@ -1375,6 +1375,44 @@ describe("ReplayStageOverlays", () => {
       expect(props.onSkipIdle).toHaveBeenCalledWith(paused);
     });
 
+    // Issue #7498: the page paused recording, so nobody-touched is untrue.
+    it("explains a band the page paused through by the page, with the same chip and Skip", () => {
+      const paused: ReplayIdleBand = {
+        startMs: 40000,
+        endMs: 40000 + 23 * 60 * 1000,
+        kind: "paused",
+        fidelity: "exact",
+        pauseReason: "page",
+      };
+      const props: ReplayStageOverlaysProps = makeProps({
+        snapshot: makeSnapshot({
+          buffer: "ok",
+          intent: "paused",
+          currentTimeMs: 41200,
+          durationMs: 40 * 60 * 1000,
+          idleBands: [paused],
+        }),
+      });
+
+      render(<ReplayStageOverlays {...props} />);
+
+      const chip: HTMLElement = screen.getByTestId("replay-paused-chip");
+
+      expect(chip).toHaveTextContent("Recording paused · 23m");
+      expect(chip.getAttribute("title")).toContain(
+        "The page paused recording, so nothing was recorded until it resumed.",
+      );
+      expect(chip.getAttribute("title")).not.toContain(
+        REPLAY_PAUSED_BAND_EXPLANATION,
+      );
+      expect(chip.getAttribute("title")).toContain(
+        "Skip past this stretch (s)",
+      );
+
+      fireEvent.click(chip);
+      expect(props.onSkipIdle).toHaveBeenCalledWith(paused);
+    });
+
     it("does not offer a skip of a paused band that is about to end, but still explains it", () => {
       const props: ReplayStageOverlaysProps = makeProps({
         snapshot: makeSnapshot({

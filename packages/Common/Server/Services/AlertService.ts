@@ -132,6 +132,7 @@ import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import IncidentFollowUpCheck from "../Utils/AI/SRE/IncidentFollowUpCheck";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import CreatedNotificationHold, {
+  CreatedNotificationsDue,
   OwnersAddedBy,
 } from "../Utils/Notification/CreatedNotificationHold";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
@@ -984,14 +985,20 @@ export class Service extends ProjectReferencesService<Model> {
      * instead, and the alert's owners would hear nothing of it. So every
      * alert is written as notified already, and is marked not notified once
      * all of its owners are in (CreatedNotificationHold,
-     * releaseCreatedNotificationHeldForOwners): the job then tells them on
-     * its next run - or, should it have no owner at all, the project's
-     * owners, as before. A create that says it was notified already is
-     * written as it says.
+     * releaseCreatedNotificationHeldForOwners): the job then tells them -
+     * or, should it have no owner at all, the project's owners, as before.
+     * When the hold began is written with it, so that a hold nobody lets
+     * go - this process stopped - ends by itself
+     * (findCreatedNotificationsDue). A create that says it was notified
+     * already is written as it says, with no hold: only this hook writes
+     * one.
      */
     if (createBy.data.isOwnerNotifiedOfAlertCreation !== true) {
       createBy.data.isOwnerNotifiedOfAlertCreation = true;
+      createBy.data.createdNotificationHeldAt = OneUptimeDate.getCurrentDate();
       CreatedNotificationHold.hold(createBy);
+    } else {
+      delete createBy.data.createdNotificationHeldAt;
     }
 
     // The owners picked in the form are asked about now, before anything is saved.
@@ -1244,10 +1251,17 @@ export class Service extends ProjectReferencesService<Model> {
      * for the owners this chain adds - the ones picked on its create form,
      * and the owner rules' - as for everyone else's
      * (CreatedNotificationHold): the chain says they are in right after the
-     * owner rules have run, or as soon as it stops short of them.
+     * owner rules have run, or as soon as it stops short of them. It lets go
+     * of the hold that began when onBeforeCreate wrote it.
      */
+    const createdNotificationHeldAt: Date | undefined =
+      createdItem.createdNotificationHeldAt;
+
     CreatedNotificationHold.chainAddsOwners(onCreate.createBy, async () => {
-      await this.releaseCreatedNotificationHeldForOwners(createdItem);
+      await this.releaseCreatedNotificationHeldForOwners({
+        alert: createdItem,
+        heldAt: createdNotificationHeldAt,
+      });
     });
 
     // Execute operations sequentially with error handling
@@ -1675,36 +1689,122 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Marks an alert whose create held its "Alert Created" notification as
-   * not notified, so the owners' job sends it on its next run - to every
-   * owner it has by then (CreatedNotificationHold says when that is).
-   * Without the update hooks, as the other notification markers on an
-   * alert are written: nothing they react to changed. It never throws; a
-   * failure is logged, and leaves the notification unsent.
+   * Lets go of the owners' "Alert Created" notification an alert's create
+   * held (CreatedNotificationHold says when): marks the alert not notified
+   * and ends its hold, so the job tells its owners - every owner it has by
+   * then. One write that matches only while the alert still holds the hold
+   * that began at `heldAt`: one the job took once its hold ran out has had
+   * its owners told already, and is never let go again. Without hooks, as
+   * every notification marker of an alert is written: nothing they react
+   * to changed. It never throws: a failure is logged, and the job takes the
+   * alert once its hold has run out.
    */
-  private async releaseCreatedNotificationHeldForOwners(
-    alert: Model,
-  ): Promise<void> {
+  private async releaseCreatedNotificationHeldForOwners(data: {
+    alert: Model;
+    heldAt: Date | undefined;
+  }): Promise<void> {
+    // Without the hold's time the write could match an alert the job took.
+    if (!data.heldAt) {
+      return;
+    }
+
     try {
-      await this.updateOneById({
-        id: alert.id!,
+      await this.compareAndSetColumnsByIdWithoutHooks({
+        id: data.alert.id!,
         data: {
           isOwnerNotifiedOfAlertCreation: false,
+          createdNotificationHeldAt: null as unknown as Date,
         },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
+        expectedData: {
+          isOwnerNotifiedOfAlertCreation: true,
+          createdNotificationHeldAt: data.heldAt,
         },
       });
     } catch (error) {
       logger.error(
-        `Releasing the Alert Created notification held for the owners failed in AlertService.onCreateSuccess: ${error}`,
+        `Releasing the Alert Created notification held for the owners failed in AlertService.onCreateSuccess: ${error}. The owners are told once the hold has lasted ${CreatedNotificationHold.HELD_FOR_AT_MOST_MINUTES} minutes.`,
         {
-          projectId: alert.projectId?.toString(),
-          alertId: alert.id?.toString(),
+          projectId: data.alert.projectId?.toString(),
+          alertId: data.alert.id?.toString(),
         } as LogAttributes,
       );
     }
+  }
+
+  /*
+   * The alerts whose owners' "Alert Created" notification is due, for the
+   * job that sends it (AlertOwner:SendCreatedResourceEmail): read as
+   * `select` says, with what takeCreatedNotification needs, each once.
+   * Every alert let go - marked not notified - that was created long
+   * enough ago for the owners a separate request adds right after the
+   * create to be in too, and every alert whose hold nobody let go and
+   * nobody will (CreatedNotificationHold.getDue).
+   */
+  @CaptureSpan()
+  public async findCreatedNotificationsDue(data: {
+    select: Select<Model>;
+    now: Date;
+  }): Promise<Array<Model>> {
+    const due: CreatedNotificationsDue = CreatedNotificationHold.getDue(
+      data.now,
+    );
+
+    const select: Select<Model> = {
+      ...data.select,
+      isOwnerNotifiedOfAlertCreation: true,
+      createdNotificationHeldAt: true,
+    };
+
+    const letGo: Array<Model> = await this.findAllBy({
+      query: {
+        isOwnerNotifiedOfAlertCreation: false,
+        createdAt: QueryHelper.lessThanEqualTo(due.createdBefore),
+      },
+      select: select,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const heldTooLong: Array<Model> = await this.findAllBy({
+      query: {
+        createdNotificationHeldAt: QueryHelper.lessThanEqualTo(due.heldBefore),
+      },
+      select: select,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return CreatedNotificationHold.oncePerRecord([...letGo, ...heldTooLong]);
+  }
+
+  /*
+   * Takes an alert findCreatedNotificationsDue read, for the job to tell its
+   * owners that it was created: marks it notified and ends its hold, in one
+   * write that matches only while the alert is still as it was read. True
+   * when this call took it; false when it is no longer as read - another
+   * run took it, or it was let go meanwhile, and the next run reads it
+   * again. So an alert is taken once, and one the job took is never let go
+   * after it: its owners are told once.
+   */
+  @CaptureSpan()
+  public async takeCreatedNotification(alert: Model): Promise<boolean> {
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: alert.id!,
+      data: {
+        isOwnerNotifiedOfAlertCreation: true,
+        createdNotificationHeldAt: null as unknown as Date,
+      },
+      expectedData: {
+        isOwnerNotifiedOfAlertCreation:
+          alert.isOwnerNotifiedOfAlertCreation === true,
+        createdNotificationHeldAt: (alert.createdNotificationHeldAt ||
+          null) as unknown as Date,
+      },
+    });
   }
 
   /*

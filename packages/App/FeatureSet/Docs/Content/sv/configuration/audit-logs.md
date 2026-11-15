@@ -78,7 +78,7 @@ Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har o
 
 ## Vad som registreras
 
-Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: övervakare, incidenter, larm, statussidor, arbetsflöden och deras steg, köer, instrumentpaneler, jourpolicyer, team och vilka som är med i dem, API-nycklar och varje inställning. **Resurstyp** säger vad en post gäller, till exempel `Monitor`, `Workflow` eller `Queue`.
+Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: monitorer, incidenter, larm, statussidor, arbetsflöden och deras steg, köer, instrumentpaneler, jourpolicyer, team och vilka som är med i dem, API-nycklar och varje inställning. **Resurstyp** säger vad en post gäller, till exempel `Monitor`, `Workflow` eller `Queue`.
 
 | Registreras inte | Varför |
 | --- | --- |

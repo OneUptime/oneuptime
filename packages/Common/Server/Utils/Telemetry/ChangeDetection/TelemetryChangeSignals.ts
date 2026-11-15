@@ -8,6 +8,7 @@ import {
   ChangeEventType,
 } from "../../../../Utils/Telemetry/ChangeEventFields";
 import { readDeploymentEnvironment } from "../../../../Utils/Telemetry/DeploymentEnvironment";
+import { writeOwnValue } from "../../../../Utils/LookupTable";
 import type { ParsedChangeEventEntry } from "../ChangeEventRow";
 
 /*
@@ -127,14 +128,23 @@ export function flattenResourceAttributes(
   for (const attribute of attributes) {
     const key: unknown = (attribute as JSONObject | null)?.["key"];
 
-    if (typeof key !== "string" || key === "" || flat[key] !== undefined) {
+    /*
+     * The first of a key's values: own keys only, as a resource attribute
+     * may be named constructor or toString, which every object inherits.
+     */
+    if (
+      typeof key !== "string" ||
+      key === "" ||
+      Object.prototype.hasOwnProperty.call(flat, key)
+    ) {
       continue;
     }
 
     const value: string = readResourceAttribute([attribute], key);
 
     if (value) {
-      flat[key] = value;
+      // As the dictionary's own key, even one named __proto__.
+      writeOwnValue(flat, key, value);
     }
   }
 

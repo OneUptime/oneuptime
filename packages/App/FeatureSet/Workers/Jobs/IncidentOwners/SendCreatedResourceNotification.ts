@@ -34,44 +34,44 @@ RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    // get all scheduled events of all the projects.
-    const incidents: Array<Incident> = await IncidentService.findAllBy({
-      query: {
-        isOwnerNotifiedOfResourceCreation: false,
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
-      select: {
-        _id: true,
-        title: true,
-        description: true,
-        projectId: true,
-        project: {
-          name: true,
-        } as Select<Project>,
-        remediationNotes: true,
-        currentIncidentState: {
-          name: true,
-          color: true,
-        } as Select<IncidentState>,
-        incidentSeverity: {
-          name: true,
-          color: true,
+    /*
+     * Every incident whose owners are due to hear that it was created: let
+     * go once its owners were in, a minute after its create, or held so
+     * long that nobody will let it go (IncidentService
+     * .findCreatedNotificationsDue, CreatedNotificationHold).
+     */
+    const incidents: Array<Incident> =
+      await IncidentService.findCreatedNotificationsDue({
+        now: OneUptimeDate.getCurrentDate(),
+        select: {
+          _id: true,
+          title: true,
+          description: true,
+          projectId: true,
+          project: {
+            name: true,
+          } as Select<Project>,
+          remediationNotes: true,
+          currentIncidentState: {
+            name: true,
+            color: true,
+          } as Select<IncidentState>,
+          incidentSeverity: {
+            name: true,
+            color: true,
+          },
+          rootCause: true,
+          createdByProbe: {
+            name: true,
+          },
+          createdByUser: {
+            name: true,
+            email: true,
+          },
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
         },
-        rootCause: true,
-        createdByProbe: {
-          name: true,
-        },
-        createdByUser: {
-          name: true,
-          email: true,
-        },
-        incidentNumber: true,
-        incidentNumberWithPrefix: true,
-      },
-    });
+      });
 
     for (const incident of incidents) {
       const projectId: ObjectID = incident.projectId!;
@@ -81,17 +81,17 @@ RunCron(
       /*
        * Mark the incident as notified first (matching the MonitorOwner worker)
        * so that a failure while building or sending the notification below can
-       * never cause this incident to be re-picked on every cron run.
+       * never cause this incident to be re-picked on every cron run. Marked
+       * only while it is as it was read: one another run took, or its create
+       * let go of meanwhile, is not this run's to send (the next run reads
+       * the one let go again) - so its owners are told once.
        */
-      await IncidentService.updateOneById({
-        id: incident.id!,
-        data: {
-          isOwnerNotifiedOfResourceCreation: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const isTaken: boolean =
+        await IncidentService.takeCreatedNotification(incident);
+
+      if (!isTaken) {
+        continue;
+      }
 
       let moreIncidentFeedInformationInMarkdown: string = "";
 

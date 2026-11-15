@@ -328,10 +328,15 @@ const TrackBandComponent: FunctionComponent<BandProps> = (
     : isBackground
       ? translator.translateTemplate("Tab in background: {{label}}", labelValue)
       : isPaused
-        ? translator.translateTemplate(
-            "Recording paused while the page was idle: {{label}}",
-            labelValue,
-          )
+        ? band.pauseReason === "page"
+          ? translator.translateTemplate(
+              "Recording paused by the page: {{label}}",
+              labelValue,
+            )
+          : translator.translateTemplate(
+              "Recording paused while the page was idle: {{label}}",
+              labelValue,
+            )
         : band.fidelity === "coarse"
           ? translator.translateTemplate(
               "Idle: {{label}} (estimated until the chunk loads)",

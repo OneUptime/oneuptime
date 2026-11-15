@@ -121,7 +121,7 @@ Een pushregel, voor een telefoon of een browser, kan zijn push ook herhalen tot 
 
 ## Als een ernst geen regel heeft
 
-Een ernst die je project later toevoegt, krijgt binnen een paar minuten regels, gemaakt uit de keuzes die je op dat tabblad al hebt gemaakt: dezelfde methoden, na dezelfde wachttijden. Had je op dat tabblad geen regels, dan krijgt hij je geverifieerde e-mailadres, meteen.
+Een ernst die je project later toevoegt, krijgt binnen een paar minuten regels, gemaakt uit de keuzes die je op dat tabblad al hebt gemaakt: dezelfde methoden, na dezelfde wachttijden, en een push die net zo klinkt en net zo herhaalt. Had je op dat tabblad geen regels, dan krijgt hij je geverifieerde e-mailadres, meteen.
 
 Een oproep die toch geen regel vindt, gaat alsnog naar je geverifieerde methoden, en je krijgt er een e-mail over; zie [Als geen regel past](/docs/notifications/index#als-geen-regel-past).
 

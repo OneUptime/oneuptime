@@ -603,6 +603,54 @@ describe("JSONFunctions Class", () => {
       const input: JSONArray = [{ a: 1 }, { b: 2 }];
       expect(JSONFunctions.serializeArray(input)).toEqual([{ a: 1 }, { b: 2 }]);
     });
+
+    /*
+     * Issue #8025: a value read from a store - a log's attributes, a
+     * series' labels - can hold a key named __proto__, or any other name
+     * an object inherits. serialize assigned each key, which dropped
+     * __proto__ from the JSON an API answered with, and made an object
+     * under it the copy's prototype. It writes each as the copy's own key.
+     */
+    test("keeps a key named __proto__ as a key, at every depth and for every value", () => {
+      const stored: JSONObject = JSON.parse(
+        '{"attributes":{"__proto__":"x","zone":"eu","nested":{"__proto__":{"inner":"y"}}},"__proto__":[1,2],"list":[{"__proto__":null}]}',
+      ) as JSONObject;
+
+      const serialized: JSONObject = JSONFunctions.serialize(stored);
+
+      expect(JSON.stringify(serialized)).toBe(JSON.stringify(stored));
+      expect(Object.getPrototypeOf(serialized)).toBe(Object.prototype);
+
+      const attributes: JSONObject = serialized["attributes"] as JSONObject;
+      expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+      expect(Object.keys(attributes)).toEqual(["__proto__", "zone", "nested"]);
+      expect(Object.getOwnPropertyDescriptor(attributes, "__proto__")).toEqual({
+        value: "x",
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+
+      const nested: JSONObject = attributes["nested"] as JSONObject;
+      expect(Object.getPrototypeOf(nested)).toBe(Object.prototype);
+      // The object under __proto__ is its value, never the copy's prototype.
+      expect((nested as Record<string, unknown>)["inner"]).toBeUndefined();
+      expect(
+        Object.getOwnPropertyDescriptor(nested, "__proto__")?.value,
+      ).toEqual({ inner: "y" });
+
+      expect(({} as Record<string, unknown>)["inner"]).toBeUndefined();
+    });
+
+    test("keeps every other name an object inherits as a key, as before", () => {
+      const stored: JSONObject = JSON.parse(
+        '{"constructor":"c","toString":"t","valueOf":1,"hasOwnProperty":false,"isPrototypeOf":null}',
+      ) as JSONObject;
+
+      expect(JSON.stringify(JSONFunctions.serialize(stored))).toBe(
+        JSON.stringify(stored),
+      );
+    });
   });
 
   describe("deserialize and deserializeArray Methods", () => {

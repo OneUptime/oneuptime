@@ -315,6 +315,12 @@ const EVERY_BREAK: Array<WhoIsToldBreak> = [
     fix: WhoIsToldFix.AlertOnCallRules,
     recordKind: OnCallTestPageRecordKind.Alert,
   },
+  // A project with no on-call policy yet (#7369).
+  {
+    kind: WhoIsToldBreakKind.NobodyPaged,
+    fix: WhoIsToldFix.OnCallGuidedSetup,
+    recordKind: OnCallTestPageRecordKind.Incident,
+  },
   {
     kind: WhoIsToldBreakKind.OnlyIncidentsHaveRules,
     fix: WhoIsToldFix.AlertOnCallRules,

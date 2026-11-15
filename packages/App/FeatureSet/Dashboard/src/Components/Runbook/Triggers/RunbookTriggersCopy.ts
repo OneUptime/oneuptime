@@ -11,6 +11,7 @@ import {
   getFeedZoneName,
 } from "Common/UI/Components/Feed/FeedTime";
 import OneUptimeDate from "Common/Types/Date";
+import { getHourOption } from "Common/Types/DateLanguage";
 import {
   RUNBOOK_SCHEDULE_DAY_ORDER,
   RUNBOOK_SCHEDULE_HOUR_INTERVALS,
@@ -850,7 +851,7 @@ export function formatRunTime(data: {
       month: "short",
       day: "numeric",
       ...(yearIn(data.date) !== yearIn(data.now) ? { year: "numeric" } : {}),
-      hour: use12HourClock ? "numeric" : "2-digit",
+      hour: getHourOption(use12HourClock),
       minute: "2-digit",
       hour12: use12HourClock,
       timeZone: data.timezone,
