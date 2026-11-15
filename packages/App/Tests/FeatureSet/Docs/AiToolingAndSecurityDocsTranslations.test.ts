@@ -29,6 +29,7 @@ import {
 } from "./DocsContentSupport";
 import {
   drawnActionLabel,
+  drawnLabelOnPage,
   drawnCreateButton,
   isActionLabel,
 } from "./DocsDashboardLabels";
@@ -309,7 +310,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${drawnLabelOnPage(language, page, label)}**`];
     }),
     ...listed(CREATE_BUTTONS, page).map((button: string): [string, string] => {
       return [`**${button}**`, `**${drawnCreateButton(language, button)}**`];
@@ -782,7 +783,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = [
         ...dashboardLabels(entry.page).map((label: string): string => {
-          return drawnActionLabel(language, label);
+          return drawnLabelOnPage(language, entry.page, label);
         }),
         ...listed(CREATE_BUTTONS, entry.page).map((button: string): string => {
           return drawnCreateButton(language, button);

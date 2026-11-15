@@ -40,7 +40,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 function renderNamespaceRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
   const name: string = (r.name as string) || getUnnamedText();
-  const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.kubernetesCluster?.name as string;
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -96,7 +96,7 @@ const NAMESPACE_LEGEND: Array<HoneycombLegendItem> = [
 function buildNamespaceTile(r: KubernetesResource): HoneycombTile {
   const id: string = (r._id as string) || "";
   const name: string = (r.name as string) || getUnnamedText();
-  const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.kubernetesCluster?.name as string;
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
   const phase: string = (r.phase as string) || "Unknown";
   const phaseStyle: { dot: string; legendLabel: string } =

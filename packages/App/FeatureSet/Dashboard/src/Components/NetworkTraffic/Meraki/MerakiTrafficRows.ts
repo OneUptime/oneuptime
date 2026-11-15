@@ -3,6 +3,7 @@ import {
   getCoarsestChartGridStepWithin,
 } from "../../NetworkDevice/ChartGridStep";
 import { parseBucketTime } from "../../NetworkDevice/FlowSeriesUtil";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   formatTrafficProtocolPort,
   getBitsPerSecond,
@@ -411,7 +412,7 @@ export function isNetworkAddressText(text: string): boolean {
 }
 
 // A number the page cannot give: unknown, where a 0 would say there was none.
-export const UNKNOWN_VALUE: string = "\u2014";
+export const UNKNOWN_VALUE: string = EMPTY_VALUE_MARK;
 
 /*
  * Latency to a tenth under ten, whole from ten up ("1.2 ms", "24 ms"), with

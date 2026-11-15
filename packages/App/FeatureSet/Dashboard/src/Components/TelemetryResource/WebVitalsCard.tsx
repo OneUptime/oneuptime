@@ -1,4 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Card from "Common/UI/Components/Card/Card";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { describeWebVitalThresholds } from "Common/Types/Rum/WebVitals";
@@ -28,7 +31,7 @@ export const formatVital: (v: RatedValue, translator: Translator) => string = (
   translator: Translator,
 ): string => {
   if (v.value === null || !Number.isFinite(v.value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (v.unit === "ms") {
     return formatDurationMsInLanguage(v.value, translator);
@@ -80,7 +83,7 @@ export const ratingLabel: (v: RatedValue) => string = (
   v: RatedValue,
 ): string => {
   if (v.value === null || !Number.isFinite(v.value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (v.value < v.thresholds.warn) {
     return "Good";
@@ -165,7 +168,7 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${rc.chip}`}
                     >
-                      {ratingLabel(v)}
+                      {getValueOrQuietDash(ratingLabel(v), { isSmall: true })}
                     </span>
                   </div>
                   <div className={`text-xl font-semibold ${rc.text}`}>
@@ -176,7 +179,7 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                         translator.language,
                       )}
                     >
-                      {formatVital(v, translator)}
+                      {getFigure(formatVital(v, translator))}
                     </span>
                   </div>
                   <div className="mt-1 text-[11px] text-gray-400 truncate">

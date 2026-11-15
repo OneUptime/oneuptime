@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
@@ -270,12 +271,16 @@ const CephClusterPools: FunctionComponent<
                         total: translator.formatNumber(pgSummary.total),
                       },
                     )
-                  : "—",
+                  : EMPTY_VALUE_MARK,
                 objects: CephResourceUtils.formatCount(readings.objects),
                 readIops:
-                  readRate !== undefined ? `${readRate.toFixed(1)}/s` : "—",
+                  readRate !== undefined
+                    ? `${readRate.toFixed(1)}/s`
+                    : EMPTY_VALUE_MARK,
                 writeIops:
-                  writeRate !== undefined ? `${writeRate.toFixed(1)}/s` : "—",
+                  writeRate !== undefined
+                    ? `${writeRate.toFixed(1)}/s`
+                    : EMPTY_VALUE_MARK,
                 [CEPH_USED_PERCENT_ATTRIBUTE]: formatCephReadingNumber(
                   readings.usedPercent,
                 ),

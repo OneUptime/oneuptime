@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import DomainMonitorResponse from "Common/Types/Monitor/DomainMonitor/DomainMonitorResponse";
@@ -40,7 +41,7 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
     dateStr: string | undefined,
   ): string => {
     if (!dateStr) {
-      return "-";
+      return EMPTY_VALUE_MARK;
     }
     try {
       const date: Date = new Date(dateStr);

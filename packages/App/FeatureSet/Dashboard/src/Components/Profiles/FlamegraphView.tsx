@@ -10,6 +10,7 @@ import React, {
   useState,
 } from "react";
 import ProfileUtil, { ModuleCategory } from "../../Utils/ProfileUtil";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -759,7 +760,9 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
                   <span className="font-medium text-gray-700">
                     {translator.translateText("Matched:")}{" "}
                   </span>
-                  {ProfileUtil.formatPercent(searchPct)}
+                  {getValueOrQuietDash(ProfileUtil.formatPercent(searchPct), {
+                    isSmall: true,
+                  })}
                   <span className="ml-1.5 text-gray-400">
                     <InlineSeparator markOnly />{" "}
                     {translator.translatePlural(

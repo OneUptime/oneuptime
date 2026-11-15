@@ -31,7 +31,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * A STORE'S SETTINGS, each card one question:
@@ -229,7 +231,8 @@ const DataStoreSettings: FunctionComponent<
                       "The probe {{probe}}, with the connection string in {{variable}}",
                       {
                         probe: item.scanProbe.name,
-                        variable: item.probeConnectionVariable || "-",
+                        variable:
+                          item.probeConnectionVariable || EMPTY_VALUE_MARK,
                       },
                     )}
                   </span>

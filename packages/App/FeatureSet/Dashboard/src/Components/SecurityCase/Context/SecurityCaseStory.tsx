@@ -1,4 +1,5 @@
 import AppLink from "../../AppLink/AppLink";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
 import { getChangeEventTypeLabel } from "../../Metrics/Utils/UseEventTimeReferenceLines";
 import {
@@ -375,7 +376,7 @@ const StoryItemFacts: FunctionComponent<{
             const label: string = isSecurityEventRequestOutcome(entry.outcome)
               ? translator.translateText(STORY_OUTCOME_LABELS[entry.outcome]) ||
                 STORY_OUTCOME_LABELS[entry.outcome]
-              : "—";
+              : EMPTY_VALUE_MARK;
 
             return (
               <span key={entry.outcome || "none"} className="whitespace-nowrap">

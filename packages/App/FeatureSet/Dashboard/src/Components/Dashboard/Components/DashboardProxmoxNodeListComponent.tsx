@@ -1,4 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DashboardProxmoxNodeListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxNodeListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
@@ -72,7 +74,7 @@ const BASE_SELECT: Select<ProxmoxResource> = {
 function formatPercent(value: number | undefined): string {
   const numeric: number = Number(value);
   if (value === undefined || value === null || Number.isNaN(numeric)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${numeric.toFixed(1)}%`;
 }
@@ -141,7 +143,7 @@ function renderNodeRow(r: ProxmoxResource): ReactElement {
   const name: string = getNodeDisplayName(r);
   const status: { text: string; dot: string; textColor: string } =
     getNodeStatus(r);
-  const clusterName: string = (r.proxmoxCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.proxmoxCluster?.name as string;
   const route: Route | undefined = getNodeRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -180,10 +182,16 @@ function renderNodeRow(r: ProxmoxResource): ReactElement {
         </span>
       </td>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatPercent(r.latestCpuPercent as number | undefined)}
+        {getValueOrQuietDash(
+          formatPercent(r.latestCpuPercent as number | undefined),
+          { isSmall: true },
+        )}
       </td>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatPercent(r.latestMemoryPercent as number | undefined)}
+        {getValueOrQuietDash(
+          formatPercent(r.latestMemoryPercent as number | undefined),
+          { isSmall: true },
+        )}
       </td>
       <ResourceListNameCell
         name={clusterName}
@@ -198,7 +206,7 @@ function buildNodeTile(r: ProxmoxResource): HoneycombTile {
   const name: string = getNodeDisplayName(r);
   const status: { text: string; dot: string; textColor: string } =
     getNodeStatus(r);
-  const clusterName: string = (r.proxmoxCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.proxmoxCluster?.name as string;
 
   return {
     id: id || name,
