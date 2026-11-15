@@ -1,4 +1,4 @@
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * "CREATED", AS AN IMPORT SAYS WHAT HAPPENED TO A ROW (#7097).
@@ -13,23 +13,11 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  * So the outcome has a key of its own, worded as the outcome in every
  * language: Arabic تم الإنشاء ("was created", beside تم التخطي for
  * Skipped), Japanese 作成済み (beside スキップ済み). The key's English
- * names its meaning for the translator, and an English page still reads
- * "Created", as the docs quote it.
+ * names its meaning for the translator, and the translator reads it as
+ * "Created" on an English page, as the docs quote it, and in a language
+ * with no wording of its own (Common/Types/MeaningKeys). Look it up as any
+ * key: translator.translateText(CREATED_IMPORT_RESULT).
  */
 export const CREATED_IMPORT_RESULT: string = translationKey(
   "Created (import result)",
 );
-
-// What an English page reads, and a language without a wording of its own.
-export const CREATED_IMPORT_RESULT_IN_ENGLISH: string = "Created";
-
-export function getCreatedImportResultLabel(translator: Translator): string {
-  if (!translator.hasTranslation(CREATED_IMPORT_RESULT)) {
-    return CREATED_IMPORT_RESULT_IN_ENGLISH;
-  }
-
-  return (
-    translator.translateText(CREATED_IMPORT_RESULT) ||
-    CREATED_IMPORT_RESULT_IN_ENGLISH
-  );
-}

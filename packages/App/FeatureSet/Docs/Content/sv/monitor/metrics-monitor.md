@@ -41,7 +41,7 @@ Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Mätvär
 
 ### Lägg till metrikfrågorna
 
-I **Mätvärde att bevaka** väljer du ett **Mätvärde** och hur det ska aggregeras med **Aggregate by**. Öppna **Filters & grouping** för att filtrera efter attribut eller gruppera med **Gruppera efter**. Klicka på **Lägg till mätvärde** för ännu en fråga, eller på **Lägg till formel** för att kombinera dem. Diagrammet under frågorna visar de senaste timmarna, med regelns värde som en röd linje, så att du ser de värden som regeln kommer att kontrollera.
+I **Mätvärde att bevaka** väljer du ett **Mätvärde** och hur det ska aggregeras med **Aggregera efter**. Öppna **Filter och gruppering** för att filtrera efter attribut eller gruppera med **Gruppera efter**. Klicka på **Lägg till mätvärde** för ännu en fråga, eller på **Lägg till formel** för att kombinera dem. Diagrammet under frågorna visar de senaste timmarna, med regelns värde som en röd linje, så att du ser de värden som regeln kommer att kontrollera.
 
 ### Säg när det ska larmas
 
@@ -63,9 +63,9 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | Fält | Vad det gör | Standard |
 | --- | --- | --- |
 | **Mätvärde** | Det mätvärde som frågas efter. | Obligatoriskt |
-| **Aggregate by** | Hur värdena i varje tidsintervall kombineras till en datapunkt: Genomsn., Summa, Min, Max, Antal eller en percentil (P50, P75, P90, P95 eller P99). | Genomsn. |
-| **Filter by attributes** (under **Filters & grouping**) | Bara serier vars attribut uppfyller dessa villkor. | Inget filter |
-| **Gruppera efter** (under **Filters & grouping**) | En serie per unikt värde av dessa attribut (se [Larm per serie](#larm-per-serie-group-by)). | En serie |
+| **Aggregera efter** | Hur värdena i varje tidsintervall kombineras till en datapunkt: Genomsn., Summa, Min, Max, Antal eller en percentil (P50, P75, P90, P95 eller P99). | Genomsn. |
+| **Filtrera på attribut** (under **Filter och gruppering**) | Bara serier vars attribut uppfyller dessa villkor. | Inget filter |
+| **Gruppera efter** (under **Filter och gruppering**) | En serie per unikt värde av dessa attribut (se [Larm per serie](#larm-per-serie-group-by)). | En serie |
 
 Varje fråga och formel får en variabel (`a`, `b`, `c` och så vidare) i den ordning du lägger till dem.
 
@@ -97,7 +97,7 @@ Ju längre fönstret är, desto bredare är varje tidsintervall, så en datapunk
 ## Så utvärderas den
 
 - **Varje minut.** En metrikmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
-- **Först frågor, sedan formler.** Varje fråga returnerar en datapunkt per tidsintervall i tidsintervallet, med sin **Aggregate by**. Formler räknas ut för varje intervall från frågornas datapunkter.
+- **Först frågor, sedan formler.** Varje fråga returnerar en datapunkt per tidsintervall i tidsintervallet, med sin **Aggregera efter**. Formler räknas ut för varje intervall från frågornas datapunkter.
 - **Sedan regelns mått.** Regeln reducerar datapunkterna för sitt mätvärde till det som den jämför med sitt värde, som **Mätt som** säger:
 
 | Mätt som | I de egna kriterierna | Villkoret kontrolleras mot… |
@@ -160,7 +160,7 @@ En ny metrikmonitor som skapats via API:et eller Terraform utan kriterier börja
 
 ## Genomgånget exempel: en kö som växer
 
-Du vill ha en incident när checkout-kön förblir djup. Fråga `a` är mätaren `checkout.queue.depth`, med **Aggregate by** Max, och **Tidsfönster** är **Senaste 5 minuterna**. En utvärdering ser dessa fem datapunkter på en minut vardera:
+Du vill ha en incident när checkout-kön förblir djup. Fråga `a` är mätaren `checkout.queue.depth`, med **Aggregera efter** Max, och **Tidsfönster** är **Senaste 5 minuterna**. En utvärdering ser dessa fem datapunkter på en minut vardera:
 
 | Minut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |

@@ -44,20 +44,20 @@ Accedi come amministratore principale e apri l'Admin Dashboard con **Impostazion
 
 :::tabs
 @tab SAML
-Nella pagina del provider, la scheda **Identity Provider URLs** mostra l'**ACS URL (Assertion Consumer Service / Reply URL)** e l'**Issuer (Entity ID)**. Incollali entrambi nel tuo provider di identità (Okta, Microsoft Entra ID, OneLogin, JumpCloud e altri).
+Nella pagina del provider, la scheda **URL del provider di identità (SAML)** mostra l'**ACS URL (Assertion Consumer Service / Reply URL)** e l'**Issuer (Entity ID)**. Incollali entrambi nel tuo provider di identità (Okta, Microsoft Entra ID, OneLogin, JumpCloud e altri).
 @tab OpenID Connect
-Nella pagina del provider, la scheda **Identity Provider URL** mostra la **Redirect URI (Callback URL)**. Aggiungila agli URI di reindirizzamento consentiti del tuo provider di identità.
+Nella pagina del provider, la scheda **URL del provider di identità** mostra la **Redirect URI (Callback URL)**. Aggiungila agli URI di reindirizzamento consentiti del tuo provider di identità.
 :::
 
 ### Attivare il provider
 
-Un nuovo provider parte disattivato. Fai clic su **Edit Configuration** nella pagina del provider e attiva **Abilitato**.
+Un nuovo provider parte disattivato. Fai clic su **Modifica configurazione** nella pagina del provider e attiva **Abilitato**.
 
 Attivare un provider globale lo aggiunge solo alle opzioni di single sign-on della pagina di accesso: non impone mai l'SSO né esclude qualcuno, quindi puoi attivarlo, provarlo e disattivarlo di nuovo senza rischi se serve. Finché l'intera istanza richiede l'SSO, però, la pagina di accesso offre solo i provider attivi: prova un provider prima di richiedere l'SSO.
 
 ### Provare il provider
 
-Usa il link della scheda **Test this SSO provider** (**Test this OIDC provider** per OpenID Connect) per eseguire un accesso completo tramite il tuo provider di identità. **Prova accesso** nella riga del provider su **Single sign-on** avvia lo stesso accesso in una nuova scheda del browser. Non devi collegare prima alcun progetto: la prova ti fa accedere ai progetti di cui fai già parte. Perché il link funzioni, il provider deve essere attivo.
+Usa il link della scheda **Prova questo provider SSO** (**Prova questo provider OIDC** per OpenID Connect) per eseguire un accesso completo tramite il tuo provider di identità. **Prova accesso** nella riga del provider su **Single sign-on** avvia lo stesso accesso in una nuova scheda del browser. Non devi collegare prima alcun progetto: la prova ti fa accedere ai progetti di cui fai già parte. Perché il link funzioni, il provider deve essere attivo.
 :::
 
 ## Come accedono gli utenti
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Nessun progetto collegato (tutti i progetti / prima l'invito):** gli utenti possono accedere con il provider e raggiungere **qualsiasi progetto di cui sono già membri**. I nuovi utenti **non** vengono creati automaticamente: un utente deve prima essere invitato in un progetto. Usalo per un SSO aziendale quando le appartenenze vengono gestite altrove.
 
-- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Attached Projects** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti al primo accesso. Un progetto che colleghi parte dal suo team dei membri; scegli altri team se i nuovi arrivati devono partire con un accesso diverso. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
+- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Progetti collegati** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti al primo accesso. Un progetto che colleghi parte dal suo team dei membri; scegli altri team se i nuovi arrivati devono partire con un accesso diverso. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
 
 Chi è già membro di un progetto collegato mantiene i team che ha lì.
 

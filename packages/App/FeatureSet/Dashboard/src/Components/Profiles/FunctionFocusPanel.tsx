@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -307,7 +308,7 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
                       value={
                         data.windowTotal > 0
                           ? ProfileUtil.formatPercent(windowSharePct)
-                          : "—"
+                          : undefined
                       }
                     />
                   </div>
@@ -359,7 +360,8 @@ const FunctionFocusPanel: FunctionComponent<FunctionFocusPanelProps> = (
 
 interface FocusStatProps {
   label: string;
-  value: string;
+  // No reading is no value: the tile draws the figure's quiet dash (#8264).
+  value?: string | undefined;
 }
 
 /**
@@ -377,7 +379,7 @@ const FocusStat: FunctionComponent<FocusStatProps> = (
         {translator.translateText(props.label)}
       </div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-gray-900">
-        {props.value}
+        {getFigure(props.value)}
       </div>
     </div>
   );

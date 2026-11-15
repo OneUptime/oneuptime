@@ -188,8 +188,8 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Slack 
 
 :::steps
 1. Anslut ditt eget Slack-konto (se [Anslut Slack](#anslut-slack)).
-2. Gå till **Användarinställningar** > **Aviseringsmetoder**, öppna fliken **Arbetsyteappar** och klicka på **Add Slack Account**.
-3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer i dina direktmeddelanden i Slack.
+2. Gå till **Användarinställningar** > **Aviseringsmetoder**, öppna fliken **Arbetsyteappar** och klicka på **Lägg till Slack-konto**.
+3. Klicka på **Skicka testmeddelande** på dess rad. Meddelandet kommer i dina direktmeddelanden i Slack.
 :::
 
 Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Slack från och med då. Ändra vilka larm den får under **Användarinställningar** > **Så når man mig**.

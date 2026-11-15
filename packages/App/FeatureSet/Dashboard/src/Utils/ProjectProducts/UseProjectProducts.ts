@@ -20,7 +20,8 @@ const toKey: (projectId: ProjectIdInput | undefined) => string = (
 /*
  * The current project's products (ProjectProductsStore), drawn again
  * whenever they change: the server's answer arriving, a product shown or
- * hidden, a pin, a product's first record made on this page.
+ * hidden, a pin, a product's first record made on this page, a newer answer
+ * another tab of this browser got.
  *
  * Reading asks the server nothing. The navbar, which every project page
  * draws, asks when it is drawn and when its menus open

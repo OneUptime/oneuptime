@@ -60,14 +60,14 @@ Comece por **Declare an incident for each Zabbix problem**, ou por **Create an a
 
 ### O que os modelos pedem
 
-- **Zabbix URL**: o endereço em que você abre o Zabbix, como `https://zabbix.example.com`, ou `https://example.com/zabbix` quando o Zabbix roda sob um caminho. Os links para um problema vão para lá, e os modelos que chamam o Zabbix enviam as requisições para o `api_jsonrpc.php` dele. O campo recusa o endereço de uma página dentro do Zabbix.
+- **URL do Zabbix**: o endereço em que você abre o Zabbix, como `https://zabbix.example.com`, ou `https://example.com/zabbix` quando o Zabbix roda sob um caminho. Os links para um problema vão para lá, e os modelos que chamam o Zabbix enviam as requisições para o `api_jsonrpc.php` dele. O campo recusa o endereço de uma página dentro do Zabbix.
 - **Zabbix API Token**: um token de API do usuário do Zabbix com o qual o workflow age. [Criar o token de API](#criar-o-token-de-api) mostra como. Ele é salvo como variável secreta e só é enviado ao Zabbix: no cabeçalho `Authorization`, ou no corpo da requisição no Zabbix 6.0.
 
 ### Receber problemas com o modelo
 
 :::steps
 1. Vá para **Fluxos de trabalho** e clique em **Criar fluxo de trabalho**. Em **Ou começar a partir de um modelo**, escolha **Zabbix** na lista de categorias, clique em **Declare an incident for each Zabbix problem** e depois em **Usar este modelo**.
-2. Preencha **Zabbix URL**. Em **Who to page for High and Disaster problems**, escolha as políticas de plantão a acionar, ou nenhuma para não acionar ninguém, e clique em **Criar fluxo de trabalho**. O workflow abre no **Construtor**, desativado.
+2. Preencha **URL do Zabbix**. Em **Who to page for High and Disaster problems**, escolha as políticas de plantão a acionar, ou nenhuma para não acionar ninguém, e clique em **Criar fluxo de trabalho**. O workflow abre no **Construtor**, desativado.
 3. Clique no gatilho **Webhook**, depois em **Copiar URL**, e guarde a URL para o Zabbix.
 4. Ative **Habilitado** no topo do **Construtor**. Um workflow desativado responde ao Zabbix com `400`.
 :::
@@ -76,7 +76,7 @@ Depois [configure o Zabbix](#configurar-o-zabbix) para enviar os problemas dele 
 
 ### O que o workflow faz
 
-Depois do gatilho **Webhook**, a etapa **Check With JavaScript** `read-event-1` lê o `event` que o tipo de mídia envia, e **Incident From Another Tool**, ou **Alert From Another Tool** no modelo de alertas, faz o que ele significa, pelo ID de evento do problema:
+Depois do gatilho **Webhook**, a etapa **Verificar com JavaScript** `read-event-1` lê o `event` que o tipo de mídia envia, e **Incidente de outra ferramenta**, ou **Alerta de outra ferramenta** no modelo de alertas, faz o que ele significa, pelo ID de evento do problema:
 
 | Evento | O que o workflow faz |
 | --- | --- |
@@ -102,13 +102,13 @@ Em um projeto novo, o modelo mapeia as seis gravidades do Zabbix nestas gravidad
 Com gravidades próprias, Disaster e High vão para a sua mais grave, Average e Warning para a do meio, e Information e Not classified para a sua menos grave. O Zabbix numera as gravidades de 0 (Not classified) a 5 (Disaster), e o modelo lê o número, então renomear uma gravidade no Zabbix não muda nada.
 
 - Para mapear uma gravidade para uma das suas pelo nome, edite `SEVERITY_BY_NAME` na etapa `read-event-1`, como `{ 2: 'Minor Incident' }` para Warning.
-- Para chamar o plantão também para problemas Average, defina **Comparar com** da etapa `if-page-1` **If / Else** como `3`.
+- Para chamar o plantão também para problemas Average, defina **Comparar com** da etapa `if-page-1` **Se / Senão** como `3`.
 
 ### Enviar confirmações e notas de volta ao Zabbix
 
 :::steps
 1. [Crie o token de API](#criar-o-token-de-api).
-2. Crie um workflow a partir de **Acknowledge or close the Zabbix problem with the incident**. Preencha **Zabbix URL** e **Zabbix API Token**, clique em **Criar fluxo de trabalho** e ative **Habilitado**.
+2. Crie um workflow a partir de **Acknowledge or close the Zabbix problem with the incident**. Preencha **URL do Zabbix** e **Zabbix API Token**, clique em **Criar fluxo de trabalho** e ative **Habilitado**.
 3. Se você também quer as notas no Zabbix, faça o mesmo com **Copy incident private notes to the Zabbix problem**.
 :::
 
@@ -126,7 +126,7 @@ O modelo de estado pergunta primeiro ao Zabbix sobre o problema, então um probl
 
 ### No Zabbix 6.0
 
-O Zabbix 6.0 lê o token de API do corpo da requisição, não do cabeçalho `Authorization`. Na etapa **Update Zabbix Problem** de cada modelo que chama o Zabbix, ative **Zabbix 6.0**, em **Mais campos**. O Zabbix 7.2 e posteriores recusam um token no corpo, então desative-o de novo quando atualizar.
+O Zabbix 6.0 lê o token de API do corpo da requisição, não do cabeçalho `Authorization`. Na etapa **Atualizar problema do Zabbix** de cada modelo que chama o Zabbix, ative **Zabbix 6.0**, em **Mais campos**. O Zabbix 7.2 e posteriores recusam um token no corpo, então desative-o de novo quando atualizar.
 
 ## Receber problemas com um monitor
 
@@ -344,7 +344,7 @@ Provavelmente a ação tem duas operações que enviam ao mesmo usuário, como u
 ## Segurança
 
 - **Trate a URL como uma senha.** Quem a tiver pode abrir incidentes. Se ela vazar, redefina-a: **Redefinir URL** no gatilho **Webhook** do workflow, ou **Redefinir chave secreta de requisição recebida** na página **Configurações** do monitor. Depois atualize **Send to** na mídia do usuário do Zabbix.
-- **Os links vão para o seu Zabbix.** O modelo aponta um problema no site que o **Zabbix URL** dele nomeia, diga o que disser uma requisição, e escreve o que o Zabbix enviou como texto.
+- **Os links vão para o seu Zabbix.** O modelo aponta um problema no site que o **URL do Zabbix** dele nomeia, diga o que disser uma requisição, e escreve o que o Zabbix enviou como texto.
 - **Limite o token de API ao que o workflow faz.** Ele é uma variável secreta, ocultada nos logs de execução e enviada só ao Zabbix, no cabeçalho `Authorization`, a menos que **Zabbix 6.0** esteja ativado. Dê ao usuário dele uma função sem nada além das ações acima, e exclua o token em **Users → API tokens** se ele vazar.
 - **Envie só o que precisa de um incidente.** Use as condições da ação, ou as gravidades da mídia do usuário, para deixar no Zabbix os problemas de baixa gravidade.
 - **Auto-hospedado?** Deixe o seu servidor Zabbix alcançar o seu OneUptime por HTTPS através do firewall. Para chamar um Zabbix em uma rede privada, o workflow precisa de [acesso de rede de saída](/docs/workflows/configuration#acesso-de-rede-para-fora).

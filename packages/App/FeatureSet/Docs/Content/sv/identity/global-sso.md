@@ -44,20 +44,20 @@ Logga in som master admin och öppna Admin Dashboard med **Admin-inställningar*
 
 :::tabs
 @tab SAML
-På leverantörens sida visar kortet **Identity Provider URLs** **ACS URL (Assertion Consumer Service / Reply URL)** och **Issuer (Entity ID)**. Klistra in båda i din identitetsleverantör (Okta, Microsoft Entra ID, OneLogin, JumpCloud med flera).
+På leverantörens sida visar kortet **Identitetsleverantörens URL:er** **ACS URL (Assertion Consumer Service / Reply URL)** och **Issuer (Entity ID)**. Klistra in båda i din identitetsleverantör (Okta, Microsoft Entra ID, OneLogin, JumpCloud med flera).
 @tab OpenID Connect
-På leverantörens sida visar kortet **Identity Provider URL** **Redirect URI (Callback URL)**. Lägg till den bland din identitetsleverantörs tillåtna omdirigerings-URI:er.
+På leverantörens sida visar kortet **Identitetsleverantörens URL** **Redirect URI (Callback URL)**. Lägg till den bland din identitetsleverantörs tillåtna omdirigerings-URI:er.
 :::
 
 ### Slå på leverantören
 
-En ny leverantör börjar avstängd. Klicka på **Edit Configuration** på leverantörens sida och slå på **Aktiverad**.
+En ny leverantör börjar avstängd. Klicka på **Redigera konfiguration** på leverantörens sida och slå på **Aktiverad**.
 
 Att slå på en global leverantör lägger bara till den bland inloggningssidans alternativ för enkel inloggning — den tvingar aldrig fram SSO och stänger aldrig ute någon, så det är säkert att slå på den, testa den och stänga av den igen vid behov. Så länge hela instansen kräver SSO erbjuder inloggningssidan dock bara de leverantörer som är påslagna: testa en leverantör innan du kräver SSO.
 
 ### Testa leverantören
 
-Använd länken i kortet **Test this SSO provider** (**Test this OIDC provider** för OpenID Connect) för att köra en fullständig inloggning via din identitetsleverantör. **Testa inloggning** på leverantörens rad på **Enkel inloggning** startar samma inloggning i en ny flik. Du behöver inte ansluta några projekt först: testet loggar in dig i de projekt du redan är med i. Leverantören måste vara påslagen för att länken ska fungera.
+Använd länken i kortet **Testa den här SSO-leverantören** (**Testa den här OIDC-leverantören** för OpenID Connect) för att köra en fullständig inloggning via din identitetsleverantör. **Testa inloggning** på leverantörens rad på **Enkel inloggning** startar samma inloggning i en ny flik. Du behöver inte ansluta några projekt först: testet loggar in dig i de projekt du redan är med i. Leverantören måste vara påslagen för att länken ska fungera.
 :::
 
 ## Hur användare loggar in
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Inga projekt anslutna (alla projekt / inbjudan först):** Användare kan logga in med leverantören och nå **alla projekt de redan är medlemmar i**. Nya användare skapas **inte** automatiskt — en användare måste först bjudas in till ett projekt. Använd detta för företagsövergripande SSO där medlemskap hanteras på annat håll.
 
-- **Projekt anslutna (automatisk etablering):** Öppna leverantören och använd tabellen **Attached Projects** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **etableras automatiskt** i dessa projekt och läggs till i standardteamen vid första inloggningen. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, ta bort den och lägg till den igen.
+- **Projekt anslutna (automatisk etablering):** Öppna leverantören och använd tabellen **Kopplade projekt** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **etableras automatiskt** i dessa projekt och läggs till i standardteamen vid första inloggningen. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, ta bort den och lägg till den igen.
 
 Den som redan är medlem i ett anslutet projekt behåller sina team där.
 

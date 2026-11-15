@@ -4,28 +4,30 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.JavaScriptCode,
-    title: "Run Custom JavaScript",
-    category: "Custom Code",
-    description: "Run custom JavaScript in your workflow",
+    title: translationKey("Run Custom JavaScript"),
+    category: translationKey("Custom Code"),
+    description: translationKey("Run custom JavaScript in your workflow"),
     iconProp: IconProp.Code,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.JavaScript,
-        name: "JavaScript Code",
-        description: "JavaScript Code",
+        name: translationKey("JavaScript Code"),
+        description: translationKey("JavaScript Code"),
         required: true,
         id: "code",
       },
       {
         type: ComponentInputType.JSON,
-        name: "Arguments",
-        description:
+        name: translationKey("Arguments"),
+        description: translationKey(
           "Pass in arguments to your JavaScript Code from this workflow",
+        ),
         required: false,
         id: "arguments",
       },
@@ -33,36 +35,41 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         type: ComponentInputType.AnyValue,
-        name: "Value",
-        description: "Value as Output",
+        name: translationKey("Value"),
+        description: translationKey("Value as Output"),
         required: false,
         id: "returnValue",
       },
       {
         type: ComponentInputType.Text,
-        name: "Error",
-        description: "Error message when the script follows the Error port",
+        name: translationKey("Error"),
+        description: translationKey(
+          "Error message when the script follows the Error port",
+        ),
         required: false,
         id: "error",
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Success",
-        description: "This is executed when the code runs successfully",
+        title: translationKey("Success"),
+        description: translationKey(
+          "This is executed when the code runs successfully",
+        ),
         id: "success",
       },
       {
-        title: "Error",
-        description: "This is executed when code fails to run",
+        title: translationKey("Error"),
+        description: translationKey("This is executed when code fails to run"),
         id: "error",
       },
     ],

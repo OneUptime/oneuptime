@@ -267,6 +267,7 @@ import {
   windowOf,
   zoomCharts,
 } from "./TimeRangeZoomPageHarness";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 const PAST_HOUR: string = presetLabel(TimeRange.PAST_ONE_HOUR);
@@ -988,7 +989,7 @@ describe.each(OVERVIEWS)(
       await backlog.fail(endsAt(NOW), new Error("ClickHouse is down"));
 
       expect(tileOf(overview.countTile)).toHaveAttribute("aria-busy", "false");
-      expect(tileValue(overview.countTile)).toBe("—");
+      expect(tileValue(overview.countTile)).toBe(QUIET_DASH_TEXT);
       expect(screen.getAllByText("No data in this time range")).toHaveLength(4);
 
       // 12:00:30: nothing is running any more, so the tick loads again.
@@ -1158,7 +1159,7 @@ describe("Database overview: what scopes its telemetry", () => {
 
     expect(telemetryMock).not.toHaveBeenCalled();
     expect(tileOf("Queries")).toHaveAttribute("aria-busy", "false");
-    expect(tileValue("Queries")).toBe("—");
+    expect(tileValue("Queries")).toBe(QUIET_DASH_TEXT);
     expect(
       screen.getByTestId("database-server-unscoped-banner"),
     ).toHaveAttribute("data-variant", "unscoped");

@@ -3,6 +3,7 @@ import { getHomeListRoute } from "./HomeListRoute";
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
+import { getMonitorTypeTitleInLanguage } from "../Monitor/MonitorTypeTitle";
 import { SETUP_HEALTH_HOME_WORDS } from "../SetupHealth/SetupHealthHomeWords";
 import { getSlosAtRiskQueryParams } from "../Slo/SloListFacetRoute";
 import PageMap from "../../Utils/PageMap";
@@ -269,15 +270,22 @@ const alertRow: (alert: Alert, translator: Translator) => AttentionRow = (
   };
 };
 
-const monitorRow: (monitor: Monitor) => AttentionRow = (
+const monitorRow: (monitor: Monitor, translator: Translator) => AttentionRow = (
   monitor: Monitor,
+  translator: Translator,
 ): AttentionRow => {
   const id: string = monitor._id?.toString() || "";
 
   return {
     id,
     title: monitor.name || "",
-    subtitle: monitor.monitorType ? monitor.monitorType.toString() : undefined,
+    /*
+     * Its type by the name the type picker gives it, in the reader's words
+     * ("SSL-Zertifikat"), never the stored English value (#8294).
+     */
+    subtitle: monitor.monitorType
+      ? getMonitorTypeTitleInLanguage(monitor.monitorType, translator)
+      : undefined,
     accentColor: colorOf(monitor.currentMonitorStatus?.color, Red500),
     pill: monitor.currentMonitorStatus?.name
       ? {
@@ -416,7 +424,11 @@ export const getAttentionGroups: (
       icon: IconProp.AltGlobe,
       iconClassName: "text-red-600",
       count: data.notOperationalMonitors.count,
-      rows: data.notOperationalMonitors.items.map(monitorRow),
+      rows: data.notOperationalMonitors.items.map(
+        (monitor: Monitor): AttentionRow => {
+          return monitorRow(monitor, translator);
+        },
+      ),
       viewAll: PageMap.MONITORS_INOPERATIONAL,
     },
     {

@@ -157,8 +157,8 @@ Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 
 
 :::steps
 1. 連接您自己的 Microsoft Teams 帳戶（請參閱 [連接 Microsoft Teams](#連接-microsoft-teams) ）。
-2. 前往 **使用者設定** > **通知方式**，開啟 **工作區應用程式** 分頁，然後按一下 **Add Microsoft Teams Account**。
-3. 在其所在列按一下 **Send Test Message**。訊息會送到您的 Microsoft Teams 聊天。
+2. 前往 **使用者設定** > **通知方式**，開啟 **工作區應用程式** 分頁，然後按一下 **新增 Microsoft Teams 帳戶**。
+3. 在其所在列按一下 **傳送測試訊息**。訊息會送到您的 Microsoft Teams 聊天。
 :::
 
 新增後，它會立即加入您的待命規則，因此從那時起呼叫會透過 Microsoft Teams 送達您。在 **使用者設定** > **如何聯絡我** 中變更它接收哪些呼叫。

@@ -15,6 +15,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -223,13 +225,14 @@ const TeamViewCompliance: FunctionComponent<PageComponentProps> = (
  * and not as "this page is broken".
  */
 export const ComplianceSkeleton: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+  const loading: string =
+    translator.translateText("Loading team compliance") ||
+    "Loading team compliance";
+
   return (
-    <div
-      role="status"
-      aria-label="Loading team compliance"
-      data-testid="compliance-skeleton"
-    >
-      <span className="sr-only">Loading team compliance</span>
+    <div role="status" aria-label={loading} data-testid="compliance-skeleton">
+      <span className="sr-only">{loading}</span>
       <div className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex items-start gap-4">
           <div className="max-sm:hidden h-12 w-12 flex-shrink-0 animate-pulse rounded-xl bg-gray-100 sm:block" />

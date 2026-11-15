@@ -333,17 +333,14 @@ const LoadBalancerOverview: FunctionComponent<{
                   ? "amber"
                   : "emerald"
             }
-            value={operating || "—"}
+            value={operating}
             description="What its health checks make of it, in Octavia's word. Provisioning can read ACTIVE while this reads ERROR."
           />
           <GoldenMetricTile
             title="In state for"
             icon={IconProp.Clock}
             iconColor="slate"
-            value={
-              getOpenStackTimeInState(row, OneUptimeDate.getCurrentDate()) ||
-              "—"
-            }
+            value={getOpenStackTimeInState(row, OneUptimeDate.getCurrentDate())}
             description="How long since OneUptime saw this load balancer's provisioning status change. One already in this state when OneUptime first saw it counts from then."
           />
         </>

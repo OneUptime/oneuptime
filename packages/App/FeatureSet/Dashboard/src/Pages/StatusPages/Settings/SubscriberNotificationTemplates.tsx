@@ -13,7 +13,10 @@ import React, {
   useState,
 } from "react";
 import { RouteUtil } from "../../../Utils/RouteMap";
-import { getSubscriberNotificationEventTypeOptions } from "../../../Components/StatusPage/SubscriberNotificationEventTypeOptions";
+import {
+  getSubscriberNotificationEventTypeOptions,
+  getSubscriberNotificationEventTypeText,
+} from "../../../Components/StatusPage/SubscriberNotificationEventTypeOptions";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -372,7 +375,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Event Type",
             type: FieldType.Dropdown,
-            // Each as its name, as the Event Type column draws it.
+            // Each in the reader's words, as the Event Type column draws it.
             filterDropdownOptions: getSubscriberNotificationEventTypeOptions(),
           },
           {
@@ -397,6 +400,19 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Event Type",
             type: FieldType.Text,
+            // In the words the Event Type filter offers it in.
+            getElement: (
+              item: StatusPageSubscriberNotificationTemplate,
+            ): ReactElement => {
+              return (
+                <span>
+                  {getSubscriberNotificationEventTypeText(
+                    translator,
+                    item.eventType,
+                  )}
+                </span>
+              );
+            },
           },
           {
             field: {

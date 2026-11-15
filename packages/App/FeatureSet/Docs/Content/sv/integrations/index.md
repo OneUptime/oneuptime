@@ -118,7 +118,7 @@ För ett larmverktyg börjar du med en [monitor för inkommande förfrågningar]
 1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Namnge arbetsflödet och klicka på **Skapa arbetsflöde**.
 2. Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Webhook**. Klicka på utlösaren och sedan på **Kopiera URL**.
 3. Skicka det andra verktygets webhook till den URL:en som en `POST` med `Content-Type: application/json`.
-4. Lägg till blocken som agerar på den. De läser begäran med referenser som `{{local.components.webhook-1.returnValues.request-body.status}}`: ett **If / Else**-block för att kontrollera ett fält och sedan **Create One Incident** för att deklarera en incident.
+4. Lägg till blocken som agerar på den. De läser begäran med referenser som `{{local.components.webhook-1.returnValues.request-body.status}}`: ett **Om / Annars**-block för att kontrollera ett fält och sedan **Create One Incident** för att deklarera en incident.
 5. Slå på **Aktiverad** högst upp i **Byggare**, skicka ett test från det andra verktyget och öppna **Loggar → Körningar** för att se vad som kom in.
 :::
 
@@ -128,8 +128,8 @@ URL:en är den enda autentiseringsuppgiften, så behandla den som ett lösenord.
 
 :::steps
 1. Spara verktygets API-nyckel som en hemlig global variabel, som visas [nedan](#skydda-autentiseringsuppgifter).
-2. Skapa ett arbetsflöde, klicka på det streckade blocket och välj en händelseutlösare, t.ex. **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fälten som ska skickas, t.ex. **Beskrivning**.
-3. Klicka på **Lägg till komponent** och lägg till ett **API Post (JSON)**-block. Koppla utlösarens **Framgång**-punkt till det.
+2. Skapa ett arbetsflöde, klicka på det streckade blocket och välj en händelseutlösare, t.ex. **On Create Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj de andra fälten som ska skickas, t.ex. **Beskrivning**.
+3. Klicka på **Lägg till komponent** och lägg till ett **API-anrop POST (JSON)**-block. Koppla utlösarens **Framgång**-punkt till det.
 4. Fyll i **URL**, **Begärandehuvuden** med rubriken `Authorization` och **Begärandekropp** med incidentens fält, t.ex. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klicka på **Kör arbetsflöde**, välj en incident under **Incident** och kör det. En testkörning skickar begäran på riktigt. Slå sedan på **Aktiverad**.
 :::

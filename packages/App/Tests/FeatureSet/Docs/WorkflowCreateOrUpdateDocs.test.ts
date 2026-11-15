@@ -269,7 +269,8 @@ describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
     expect(
       linesWith(page, [
         "**On Create or Update X**",
-        `**${WATCHED_FIELDS_NAME}**`,
+        // A record step's settings are named as the Builder draws them (#8359).
+        `**${drawnDashboardLabel(language, WATCHED_FIELDS_NAME)}**`,
         `\`${WHAT_HAPPENED_ID}\``,
         `\`${WhatHappened.Created}\``,
         `\`${WhatHappened.Updated}\``,
@@ -280,7 +281,10 @@ describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
       1,
     );
     expect(
-      linesWith(page, ["**On Create or Update X**", "**Fields to pass on**"]),
+      linesWith(page, [
+        "**On Create or Update X**",
+        `**${drawnDashboardLabel(language, "Fields to pass on")}**`,
+      ]),
     ).toHaveLength(1);
   });
 });

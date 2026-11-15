@@ -14,6 +14,8 @@ import AlertBanner, {
 } from "Common/UI/Components/AlertBanner/AlertBanner";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -37,10 +39,19 @@ export interface ComponentProps {
   rules: Array<TeamComplianceRuleJSON>;
 }
 
+const RULES_WITH_PROBLEMS: PluralTemplate = {
+  one: "{{count}} rule has a problem members cannot fix",
+  other: "{{count}} rules have problems members cannot fix",
+};
+
 const ComplianceRuleWarnings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const groups: Array<RuleWarningGroup> = getRuleWarningGroups(props.rules);
+  const translator: Translator = useTranslator();
+  const groups: Array<RuleWarningGroup> = getRuleWarningGroups(
+    props.rules,
+    translator,
+  );
 
   if (groups.length === 0) {
     return <></>;
@@ -52,14 +63,15 @@ const ComplianceRuleWarnings: FunctionComponent<ComponentProps> = (
       return isFixedInProjectNotificationSettings(group);
     });
 
-  const title: string =
-    groups.length === 1
-      ? "1 rule has a problem members cannot fix"
-      : `${groups.length} rules have problems members cannot fix`;
+  const title: string = translator.translatePlural(
+    RULES_WITH_PROBLEMS,
+    groups.length,
+  );
 
   return (
     <AlertBanner
       title={title}
+      isTitleTranslated={true}
       type={AlertBannerType.Warning}
       className="mb-5"
       dataTestId="compliance-rule-warnings"
@@ -72,7 +84,7 @@ const ComplianceRuleWarnings: FunctionComponent<ComponentProps> = (
             className="inline-flex items-center gap-1 rounded text-sm font-medium text-amber-800 underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <span data-testid="compliance-rule-warnings-settings-link">
-              Open notification settings
+              {translator.translateText("Open notification settings")}
             </span>
             <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
           </Link>

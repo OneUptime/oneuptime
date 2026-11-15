@@ -33,6 +33,15 @@ import { MemoryRouter } from "react-router-dom";
  * read: "Pagada", "Anulada", never the masculine "Pagado", "Anulado" they
  * were first worded in (#8078). Arabic's فاتورة is feminine too.
  *
+ * A deleted invoice and one with no status read the same way (#8181). The
+ * bare "Deleted" and "Undefined" are words the whole Dashboard shares,
+ * worded masculine ("Eliminado", "Indefinido"), so the list read "Pagada"
+ * over one invoice and "Eliminado" over the next. They take keys of their
+ * own, "Deleted (invoice status)" and "Undefined (invoice status)", worded
+ * for an invoice, which English reads "Deleted" and "Undefined". Swedish's
+ * "en faktura" takes the common gender too: "Odefinierad", never the
+ * neuter "Odefinierat".
+ *
  * Each status is a key the pill looks up where it draws it: once. The list
  * used to put the status in the reader's words and hand those to the pill,
  * which looked them up again, so a word that is also a key read as that
@@ -139,6 +148,8 @@ const INVOICES: Array<BillingInvoice> = [
   invoice("05", "INV-NONE", InvoiceStatus.Undefined),
   // A status a newer Stripe added, which no release words yet.
   invoice("06", "INV-PROCESSING", "processing"),
+  // An invoice deleted in Stripe.
+  invoice("07", "INV-DELETED", InvoiceStatus.Deleted),
 ];
 
 // The statuses, in the order the Invoice Status filter offers them.
@@ -147,24 +158,91 @@ const STATUS_KEYS: ReadonlyArray<string> = [
   "Draft",
   "Void",
   "Uncollectible",
-  "Deleted",
+  "Deleted (invoice status)",
   "Open (invoice status)",
-  "Undefined",
+  "Undefined (invoice status)",
 ];
+
+// The keys of the statuses that agree with the invoice, by the names below.
+const AGREEING_KEYS: Record<string, string> = {
+  Paid: "Paid",
+  Void: "Void",
+  Open: "Open (invoice status)",
+  Uncollectible: "Uncollectible",
+  Deleted: "Deleted (invoice status)",
+  Undefined: "Undefined (invoice status)",
+};
 
 // How each language words the statuses that agree with the invoice.
 const AGREEING: Record<string, Record<string, string>> = {
-  es: { Paid: "Pagada", Void: "Anulada", Open: "Pendiente" },
-  fr: { Paid: "Payée", Void: "Annulée", Open: "À payer" },
-  it: { Paid: "Pagata", Void: "Annullata", Open: "Da pagare" },
-  pt: { Paid: "Paga", Void: "Anulada", Open: "Em aberto" },
+  es: {
+    Paid: "Pagada",
+    Void: "Anulada",
+    Open: "Pendiente",
+    Deleted: "Eliminada",
+    Undefined: "Indefinida",
+  },
+  fr: {
+    Paid: "Payée",
+    Void: "Annulée",
+    Open: "À payer",
+    Deleted: "Supprimée",
+    Undefined: "Non définie",
+  },
+  it: {
+    Paid: "Pagata",
+    Void: "Annullata",
+    Open: "Da pagare",
+    Deleted: "Eliminata",
+    Undefined: "Non definita",
+  },
+  pt: {
+    Paid: "Paga",
+    Void: "Anulada",
+    Open: "Em aberto",
+    Deleted: "Excluída",
+    Undefined: "Indefinida",
+  },
   ar: {
     Paid: "مدفوعة",
     Void: "ملغاة",
     Open: "غير مدفوعة",
     Uncollectible: "غير قابلة للتحصيل",
+    Deleted: "محذوفة",
+    Undefined: "غير معرّفة",
+  },
+  sv: {
+    Paid: "Betald",
+    Void: "Annullerad",
+    Open: "Obetald",
+    Deleted: "Borttagen",
+    Undefined: "Odefinierad",
   },
 };
+
+/*
+ * The masculine (or, in Swedish, neuter) form of each status the bare,
+ * shared key is worded in, which the invoice's own key words otherwise.
+ */
+const SHARED_FORMS: Record<string, Record<string, string>> = {
+  es: { Deleted: "Eliminado", Undefined: "Indefinido" },
+  fr: { Deleted: "Supprimé", Undefined: "Non défini" },
+  it: { Deleted: "Eliminato", Undefined: "Non definito" },
+  pt: { Deleted: "Eliminado", Undefined: "Indefinido" },
+  ar: { Deleted: "محذوف", Undefined: "غير معرّف" },
+  sv: { Undefined: "Odefinierat" },
+};
+
+/*
+ * Languages whose words for the statuses take no agreement with the
+ * invoice: German, and Persian, read right to left. Drawn all the same.
+ */
+const NOT_AGREEING: ReadonlyArray<string> = ["de", "fa"];
+
+const DRAWN_IN: ReadonlyArray<string> = [
+  ...Object.keys(AGREEING),
+  ...NOT_AGREEING,
+];
 
 function pageProps(): PageComponentProps {
   return {
@@ -177,7 +255,7 @@ function pageProps(): PageComponentProps {
 beforeAll(async () => {
   const resources: Record<string, { translation: Record<string, string> }> = {};
 
-  for (const language of ["en", ...Object.keys(AGREEING)]) {
+  for (const language of ["en", ...DRAWN_IN]) {
     resources[language] = { translation: readDashboardLocale(language) };
   }
 
@@ -364,12 +442,12 @@ describe("the words the cases below lean on", () => {
       const words: Record<string, string> = readDashboardLocale(language);
       const expected: Record<string, string> = AGREEING[language] || {};
 
-      expect(words["Paid"]).toBe(expected["Paid"]);
-      expect(words["Void"]).toBe(expected["Void"]);
-      expect(words["Open (invoice status)"]).toBe(expected["Open"]);
-
-      if (expected["Uncollectible"]) {
-        expect(words["Uncollectible"]).toBe(expected["Uncollectible"]);
+      for (const name of Object.keys(expected)) {
+        expect({ language, name, word: words[AGREEING_KEYS[name]!] }).toEqual({
+          language,
+          name,
+          word: expected[name],
+        });
       }
     },
   );
@@ -383,12 +461,69 @@ describe("the words the cases below lean on", () => {
     expect(readDashboardLocale("pt")["Paid"]).not.toBe("Pago");
     expect(readDashboardLocale("ar")["Paid"]).not.toBe("مدفوع");
   });
+
+  /*
+   * #8181: the shared "Deleted" and "Undefined" keep their masculine (or
+   * neuter) words for the rest of the Dashboard; the invoice's own keys
+   * never take them.
+   */
+  test.each(Object.keys(SHARED_FORMS))(
+    "%s words an invoice's Deleted and Undefined apart from the Dashboard's shared words",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+      const shared: Record<string, string> = SHARED_FORMS[language] || {};
+
+      for (const name of Object.keys(shared)) {
+        // The shared key is worded as before, for everything else it names.
+        expect({ language, name, shared: words[name] }).toEqual({
+          language,
+          name,
+          shared: shared[name],
+        });
+        expect({
+          language,
+          name,
+          invoice: words[AGREEING_KEYS[name]!],
+        }).not.toEqual({ language, name, invoice: shared[name] });
+      }
+    },
+  );
+
+  test.each(["en", ...DRAWN_IN])(
+    "%s words every status of an invoice, never with its key's own English",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of STATUS_KEYS) {
+        expect({ language, key, worded: Boolean(words[key]) }).toEqual({
+          language,
+          key,
+          worded: true,
+        });
+
+        if (language !== "en") {
+          expect({
+            language,
+            key,
+            keepsTheNote: (words[key] || "").includes("invoice status"),
+          }).toEqual({ language, key, keepsTheNote: false });
+        }
+      }
+    },
+  );
 });
 
-describe.each(Object.keys(AGREEING))("invoices in %s", (language: string) => {
+describe.each(DRAWN_IN)("invoices in %s", (language: string) => {
   test("each invoice's pill and the Invoice Status menu read its status as an invoice takes it", async () => {
     const words: Record<string, string> = readDashboardLocale(language);
-    const expected: Record<string, string> = AGREEING[language] || {};
+    const expected: Record<string, string> = {
+      Paid: words["Paid"] as string,
+      Void: words["Void"] as string,
+      Open: words["Open (invoice status)"] as string,
+      Deleted: words["Deleted (invoice status)"] as string,
+      Undefined: words["Undefined (invoice status)"] as string,
+      ...(AGREEING[language] || {}),
+    };
 
     await openInvoices(language);
 
@@ -396,8 +531,20 @@ describe.each(Object.keys(AGREEING))("invoices in %s", (language: string) => {
     expect(statusOf("INV-VOID")).toBe(expected["Void"]);
     expect(statusOf("INV-OPEN")).toBe(expected["Open"]);
     expect(statusOf("INV-UNCOLLECTIBLE")).toBe(words["Uncollectible"]);
+    expect(statusOf("INV-DELETED")).toBe(expected["Deleted"]);
     // No status: the word the filter offers it in.
-    expect(statusOf("INV-NONE")).toBe(words["Undefined"]);
+    expect(statusOf("INV-NONE")).toBe(expected["Undefined"]);
+
+    // Never the masculine words the rest of the Dashboard shares.
+    const shared: Record<string, string> = SHARED_FORMS[language] || {};
+
+    if (shared["Deleted"]) {
+      expect(statusOf("INV-DELETED")).not.toBe(shared["Deleted"]);
+    }
+
+    if (shared["Undefined"]) {
+      expect(statusOf("INV-NONE")).not.toBe(shared["Undefined"]);
+    }
 
     expect(
       await statusOptions(
@@ -438,6 +585,7 @@ describe("invoices in English", () => {
     expect(statusOf("INV-VOID")).toBe("Void");
     expect(statusOf("INV-OPEN")).toBe("Open");
     expect(statusOf("INV-UNCOLLECTIBLE")).toBe("Uncollectible");
+    expect(statusOf("INV-DELETED")).toBe("Deleted");
     expect(statusOf("INV-NONE")).toBe("Undefined");
     // A status no release words yet, as Stripe names it, with a capital.
     expect(statusOf("INV-PROCESSING")).toBe("Processing");

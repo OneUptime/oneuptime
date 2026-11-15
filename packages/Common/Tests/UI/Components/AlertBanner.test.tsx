@@ -271,6 +271,34 @@ describe("AlertBanner", () => {
   });
 
   /*
+   * A title a page words itself - a count in its language's form, "3 Regeln
+   * haben Probleme ..." - is in the reader's words already, and is drawn as
+   * given (#8296). Looked up again, a translation that is itself an English
+   * key would come back as another word: here the page's words are the key
+   * "Window not measured", and the banner must not turn them into German.
+   */
+  test("draws a title said to be translated as given, never looking it up again", () => {
+    renderBanner({
+      type: AlertBannerType.Warning,
+      title: "Window not measured",
+      isTitleTranslated: true,
+    });
+
+    expect(screen.getByText("Window not measured")).toBeInTheDocument();
+    expect(screen.queryByText("Fenster nicht gemessen")).toBeNull();
+  });
+
+  test("looks a title up when it is not said to be translated", () => {
+    renderBanner({
+      type: AlertBannerType.Warning,
+      title: "Window not measured",
+      isTitleTranslated: false,
+    });
+
+    expect(screen.getByText("Fenster nicht gemessen")).toBeInTheDocument();
+  });
+
+  /*
    * The dashboard's dark theme is a list of specific classes remapped under
    * html.dark in Theme.css. A colour class outside that list keeps its light
    * value on a dark page — a white banner in the middle of a dark screen.

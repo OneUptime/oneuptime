@@ -52,6 +52,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
+// The zone backups are scheduled in, named as every language names it.
+const UTC_ZONE: string = "UTC";
+
 /*
  * Set up backups, or change them: where they go (a recommended destination,
  * as a card), how OneUptime reaches it (that destination's own fields, with
@@ -284,7 +287,7 @@ export function getBackupTimeOptions(data: {
   if (saved && saved.minutes !== 0 && data.savedTimeOfDay) {
     options.splice(saved.hours + 1, 0, {
       value: data.savedTimeOfDay,
-      label: `${data.savedTimeOfDay} UTC`,
+      label: `${data.savedTimeOfDay} ${UTC_ZONE}`,
     });
   }
 
