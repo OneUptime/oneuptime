@@ -1,4 +1,5 @@
 import { ReturnValue } from "../../../Types/Workflow/Component";
+import { typeLabelForInputType } from "./ValuePicker/ValueSuggestion";
 import {
   DEFAULT_LANGUAGE,
   createTranslator,
@@ -90,4 +91,29 @@ export const wholeReturnValueLabel: WholeReturnValueLabelFunction = (
       ? translatableTerm(returnValue.name)
       : returnValue.id,
   });
+};
+
+export type ReturnValueTypeLabelFunction = (
+  returnValue: Pick<ReturnValue, "type">,
+  translator?: Translator | undefined,
+) => string;
+
+/*
+ * The kind of value a step returns, in the words the value picker names it
+ * by ("Key / value", "Record", "Yes / No"), in the reader's language
+ * (#8361). A step's Returns list drew the code's type name instead
+ * ("Dictionary of String"), in English in every language. A type the
+ * picker has no word for keeps its own name.
+ */
+export const returnValueTypeLabel: ReturnValueTypeLabelFunction = (
+  returnValue: Pick<ReturnValue, "type">,
+  translator: Translator | undefined = ENGLISH,
+): string => {
+  const label: string | undefined = typeLabelForInputType(returnValue.type);
+
+  if (!label) {
+    return returnValue.type;
+  }
+
+  return translator.translateText(label) || label;
 };

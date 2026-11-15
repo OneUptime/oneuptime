@@ -138,7 +138,7 @@ describe("SiteStatusHero shows a daily figure beside the 30-day one", () => {
   test("renders a 24-hour tile", () => {
     expect(source).toContain(squash('data-testid="site-hero-daily-uptime"'));
     expect(source).toContain(
-      squash("{formatUptimePercent(data.dailyUptimePercent)}"),
+      squash("{getFigure(formatUptimePercent(data.dailyUptimePercent))}"),
     );
   });
 

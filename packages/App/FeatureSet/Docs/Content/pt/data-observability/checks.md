@@ -54,9 +54,9 @@ Uma verificação compete com a sua aplicação pelo banco de dados e, em um war
 
 ## Linhas com falha
 
-Um número diz que algo está errado; algumas linhas dizem o quê. **Guardar Failing Rows**, em **Configurações**, guarda até 20 das linhas que uma verificação Linhas com falha, Porcentagem de valores inválidos, Porcentagem de formato incorreto ou Contagem de linhas órfãs encontrou, e **Linhas com falha** na verificação as mostra. Fica desativado até você ativá-lo. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. Uma coluna sensível que nenhuma varredura encontrou e cujo nome não a denuncia é guardada como está.
+Um número diz que algo está errado; algumas linhas dizem o quê. **Guardar linhas com falha**, em **Configurações**, guarda até 20 das linhas que uma verificação Linhas com falha, Porcentagem de valores inválidos, Porcentagem de formato incorreto ou Contagem de linhas órfãs encontrou, e **Linhas com falha** na verificação as mostra. Fica desativado até você ativá-lo. As colunas sensíveis são mascaradas onde a linha é lida, pelo que a Segurança de dados encontrou nelas ou pelos nomes delas, então o que sai do banco de dados, ou de uma sonda, já está mascarado. Uma coluna sensível que nenhuma varredura encontrou e cujo nome não a denuncia é guardada como está.
 
-As linhas ficam armazenadas no OneUptime: nos servidores do OneUptime no OneUptime Cloud, e nos seus em uma instalação auto-hospedada. Quem pode ler as verificações do projeto pode vê-las. Uma verificação guarda apenas as linhas da última execução, e desativar **Guardar Failing Rows** exclui o que cada verificação guardou.
+As linhas ficam armazenadas no OneUptime: nos servidores do OneUptime no OneUptime Cloud, e nos seus em uma instalação auto-hospedada. Quem pode ler as verificações do projeto pode vê-las. Uma verificação guarda apenas as linhas da última execução, e desativar **Guardar linhas com falha** exclui o que cada verificação guardou.
 
 ## Verificações em um arquivo
 

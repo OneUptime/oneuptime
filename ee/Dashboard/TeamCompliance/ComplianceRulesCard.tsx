@@ -43,6 +43,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import API from "Common/UI/Utils/API/API";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -239,7 +240,7 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
             enabled
               ? "Could not turn on this rule. {{error}}"
               : "Could not pause this rule. {{error}}",
-            { error: API.getFriendlyMessage(err) },
+            { error: errorInSentence(API.getFriendlyMessage(err)) },
           ),
         };
       });

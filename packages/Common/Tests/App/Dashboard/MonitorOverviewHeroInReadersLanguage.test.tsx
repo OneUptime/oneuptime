@@ -669,10 +669,10 @@ describe("a compact duration in a sentence's language", () => {
 
   test("German abbreviates each unit as German does", () => {
     expect(formatDurationCompactInLanguage(SECONDS, "de")).toBe(
-      "2 Std., 8 Min.",
+      "2\u00A0Std., 8\u00A0Min.",
     );
     expect(formatDurationCompactInLanguage(12 * DAY + 3 * 3600, "de")).toBe(
-      "12 Tg., 3 Std.",
+      "12\u00A0Tg., 3\u00A0Std.",
     );
   });
 

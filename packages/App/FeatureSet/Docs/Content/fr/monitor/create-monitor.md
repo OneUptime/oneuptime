@@ -76,7 +76,7 @@ Les incidents et les alertes réglés pour se résoudre automatiquement, comme c
 
 ## Sondes et intervalle
 
-Les moniteurs que des sondes vérifient se terminent par cette étape : Site web, API, Ping, IP, Port, Certificat SSL, DNS, DNSSEC, NTP, Domaine, SQL Query, Santé de la base de données, Synthetic Monitor, Custom JavaScript Code et Page de statut externe. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**.
+Les moniteurs que des sondes vérifient se terminent par cette étape : Site web, API, Ping, IP, Port, Certificat SSL, DNS, DNSSEC, NTP, Domaine, Requête SQL, Santé de la base de données, Moniteur synthétique, Code JavaScript personnalisé et Page de statut externe. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**.
 
 :::steps
 ### Choisir les sondes
@@ -85,7 +85,7 @@ Gardez les **Sondes** sélectionnées ou choisissez-en d'autres. Un moniteur san
 
 ### Choisir la fréquence des vérifications
 
-Choisissez un **Intervalle de surveillance**, de **Chaque minute** à **Chaque semaine**. Les moniteurs Synthetic Monitor, Custom JavaScript Code et Certificat SSL se voient proposer des intervalles de 5 minutes ou plus.
+Choisissez un **Intervalle de surveillance**, de **Chaque minute** à **Chaque semaine**. Les moniteurs Moniteur synthétique, Code JavaScript personnalisé et Certificat SSL se voient proposer des intervalles de 5 minutes ou plus.
 
 ### Créer le moniteur
 

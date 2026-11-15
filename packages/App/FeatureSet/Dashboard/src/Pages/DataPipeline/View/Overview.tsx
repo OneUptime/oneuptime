@@ -34,7 +34,9 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * One pipeline at a glance - its latest run, how long a run usually takes,
@@ -301,7 +303,9 @@ const PipelineOverviewPage: FunctionComponent<
             getElement: (run: DataPipelineRun): ReactElement => {
               return (
                 <span className="whitespace-nowrap text-sm text-gray-700">
-                  {formatRunDuration(translator, run.durationInSeconds)}
+                  {getValueOrQuietDash(
+                    formatRunDuration(translator, run.durationInSeconds),
+                  )}
                 </span>
               );
             },

@@ -92,7 +92,7 @@ export const ACCOUNT_SPEND_TILE_DESCRIPTION: string = translationKey(
 export function getCloudAccountSpendTile(data: {
   costSummary: unknown;
   translator: Translator;
-}): { value: string; sublabel: string } {
+}): { value?: string | undefined; sublabel: string } {
   const summary: CloudAccountCostSummary | null = readCloudAccountCostSummary(
     data.costSummary,
   );
@@ -109,7 +109,7 @@ export function getCloudAccountSpendTile(data: {
   }
 
   return {
-    value: "—",
+    value: undefined,
     sublabel: summary ? COST_STATE_LABELS[summary.state] : COSTS_NOT_READ_YET,
   };
 }
@@ -322,10 +322,11 @@ const CloudAccountOverview: FunctionComponent<
     });
   }
 
-  const spend: { value: string; sublabel: string } = getCloudAccountSpendTile({
-    costSummary: account.costSummary,
-    translator,
-  });
+  const spend: { value?: string | undefined; sublabel: string } =
+    getCloudAccountSpendTile({
+      costSummary: account.costSummary,
+      translator,
+    });
 
   /*
    * Four tiles, a row of them: what it holds - its resources (the way to
@@ -363,7 +364,7 @@ const CloudAccountOverview: FunctionComponent<
       title: "Changes",
       value:
         recentChanges.count === null
-          ? "—"
+          ? undefined
           : translator.formatNumber(recentChanges.count),
       loading: recentChanges.count === null && !recentChanges.failed,
       sublabel: "Last 24 hours",

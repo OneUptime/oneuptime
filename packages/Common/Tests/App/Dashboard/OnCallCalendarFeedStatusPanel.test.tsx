@@ -95,6 +95,7 @@ import {
   getFeedClock,
 } from "../../../UI/Components/Feed/FeedTime";
 import URL from "../../../Types/API/URL";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import { DOCS_URL } from "../../../UI/Config";
 
 const NOW: Date = new Date("2026-08-31T12:00:00.000Z");
@@ -247,8 +248,9 @@ describe("FeedStatusPanel", () => {
 
         expect(dot).not.toBeNull();
         expect(dot!.className).toContain(FEED_HEALTH_TONES[health].dot);
-        expect(screen.getByTestId("pill-status-pill")).toHaveTextContent(
-          FEED_HEALTH_LABELS[health],
+        // As English reads it: a key that names its meaning reads as its word.
+        expect(screen.getByTestId("pill-status-pill").textContent).toBe(
+          withMeaningKeyAsItsWord(FEED_HEALTH_LABELS[health]),
         );
 
         unmount();
@@ -400,7 +402,7 @@ describe("FeedStatusPanel", () => {
       );
 
       expect(screen.getByTestId("feed-status-headline").textContent).toBe(
-        "Last fetched 7 minutes ago",
+        "Last fetched 7\u00A0minutes ago",
       );
     });
 

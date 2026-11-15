@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import Route from "Common/Types/API/Route";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -156,7 +157,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
       key: "clusterName",
       foldInto: "name",
       getValue: (resource: InfrastructureResource): string => {
-        return resource.additionalAttributes["clusterName"] || "-";
+        return resource.additionalAttributes["clusterName"] || EMPTY_VALUE_MARK;
       },
     });
   }
@@ -182,7 +183,9 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
         ) {
           return poolName;
         }
-        return resource.additionalAttributes["virtualAppName"] || "-";
+        return (
+          resource.additionalAttributes["virtualAppName"] || EMPTY_VALUE_MARK
+        );
       },
     },
     {
@@ -197,7 +200,7 @@ export const VMwareVirtualMachinesTable: FunctionComponent<
       getValue: (resource: InfrastructureResource): string => {
         const raw: string =
           resource.additionalAttributes["cpuReadinessPercent"] || "";
-        return raw ? formatPercent(Number(raw)) : "-";
+        return raw ? formatPercent(Number(raw)) : EMPTY_VALUE_MARK;
       },
       getTone: getVMwareCpuReadyTone,
     },
