@@ -1022,6 +1022,18 @@ Un dispositivo que no se ha visto en 30 días se elimina de la lista y del mapa,
 
 Los propietarios y administradores del proyecto eligen el predeterminado: cambia a un diseño y selecciona **Establecer como predeterminado para todos**. A partir de entonces, todas las vistas del mapa de dispositivos se abren con él: **Topología del dispositivo**, un sitio en el **Mapa**, y la pestaña **Red** de **Topología**. En el diseño predeterminado, **Quitar predeterminado** devuelve cada mapa a su propio predeterminado. Las posiciones arrastradas se guardan para cada diseño en tu navegador, así que el mapa se abre con la disposición que hiciste en ese diseño.
 
+### Orientarse en una red grande
+
+En el diseño **Padre e hijo**, un dispositivo con seis o más dispositivos que no tienen nada debajo los dibuja en una cuadrícula compacta bajo él en lugar de en una fila larga, unidos por líneas en ángulo recto que no cruzan ningún dispositivo ni su nombre. El diseño elige la forma de cuadrícula que muestra todo el mapa en pantalla al mayor tamaño.
+
+Un dispositivo que tiene algo debajo muestra un botón `−` bajo su nombre: selecciónelo para contraer la rama al dispositivo y al número de dispositivos que contiene, como `+24`, y seleccione ese número para expandirla de nuevo. **Contraer todas las ramas** y **Expandir todas las ramas**, junto a los botones de zoom, reducen el mapa a su esquema y lo vuelven a abrir. Su navegador recuerda las ramas contraídas de cada sitio.
+
+Para ver una rama por sí sola, haga clic en su dispositivo y seleccione **Mostrar solo esta rama**. El mapa muestra ese dispositivo y todo lo que hay debajo, con la ruta desde la parte superior de la red en lo alto del mapa: seleccione un paso para ampliar la vista a la rama de ese dispositivo, o **Mostrar todo el mapa** para volver a verlo todo.
+
+La búsqueda mueve el mapa a los dispositivos que encuentra. Las flechas junto al número de coincidencias, o Intro en el cuadro de búsqueda, van a cada coincidencia por turno y la marcan con un anillo. En el diseño **Padre e hijo**, la ruta desde la parte superior de la red hasta cada coincidencia queda resaltada, y una coincidencia dentro de una rama contraída también se cuenta, con un botón que abre las ramas en las que está.
+
+Cuando ha arrastrado dispositivos, un selector en la parte superior del mapa cambia entre **Diseño personalizado · 2 movidos** y **Diseño original**: el diseño original es el mapa tal como lo organiza OneUptime, y su diseño personalizado se conserva hasta que vuelva a él. **Restablecer diseño** lo descarta.
+
 ### Exportar el mapa como PDF
 
 **Exportar PDF**, en la parte superior del mapa, descarga el mapa que estás viendo como un PDF que puedes adjuntar a una evaluación, una solicitud de cambio o una revisión de incidente, o leer sin conexión. Todas las vistas del mapa de dispositivos lo tienen: **Topología del dispositivo**, un sitio en el **Mapa**, y la pestaña **Red** de **Topología**.

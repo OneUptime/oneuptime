@@ -415,6 +415,8 @@ describe("TOPOLOGY_DRAWING_STYLE: how the map is painted, in one place", () => {
     expect(TOPOLOGY_DRAWING_STYLE).toEqual({
       dimmedNodeOpacity: 0.2,
       dimmedEdgeOpacity: 0.15,
+      // A leaf block's shared wiring (issue #6606).
+      combStrokeWidth: 1.25,
       deviceFillOpacity: 0.9,
       endpointFillOpacity: 0.85,
       deviceStrokeWidth: 2,
