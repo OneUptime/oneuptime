@@ -851,6 +851,170 @@ describe("the rows of the page's ids", () => {
   });
 });
 
+/*
+ * A list sorted by a column that shows a related record (#8134): the
+ * dashboard's table asks for the related record's field under the relation
+ * - an incident's severity by its place in the project's list, worst first,
+ * or the other way with the incidents that have none still last - and
+ * selects that field (ModelTable's ColumnSort). These are those reads.
+ */
+describe("a list sorted by a column that shows a related record", () => {
+  const SEVERITY_SELECTED: Record<string, unknown> = {
+    _id: true,
+    createdAt: true,
+    title: true,
+    labels: { _id: true, name: true, color: true },
+    monitors: { _id: true, name: true },
+    currentIncidentState: { _id: true, name: true, color: true },
+    incidentSeverity: { _id: true, name: true, color: true, order: true },
+  };
+
+  const SEVERITY_JOINED: Record<string, unknown> = {
+    labels: true,
+    monitors: true,
+    currentIncidentState: true,
+    incidentSeverity: true,
+  };
+
+  const bySeverity: (order: unknown) => FindManyOptions<Incident> = (
+    order: unknown,
+  ): FindManyOptions<Incident> => {
+    return incidentsListOptions({
+      select: SEVERITY_SELECTED as never,
+      relations: SEVERITY_JOINED as never,
+      order: { incidentSeverity: { order: order }, _id: "ASC" } as never,
+    });
+  };
+
+  const countOf: (sql: string, text: string) => number = (
+    sql: string,
+    text: string,
+  ): number => {
+    return sql.split(text).length - 1;
+  };
+
+  test("worst first: the page's ids by the severity's place, joining the severity alone", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      bySeverity("ASC"),
+    )!.getQuery();
+
+    expect(countOf(sql, 'LEFT JOIN "IncidentSeverity"')).toBe(1);
+    expect(sql).not.toContain('"IncidentLabel"');
+    expect(sql).not.toContain('"IncidentMonitor"');
+    expect(sql).not.toContain("DISTINCT");
+    expect(sql).toContain(
+      'ORDER BY "Incident__Incident_incidentSeverity"."order" ASC, "Incident__id" ASC LIMIT 10 OFFSET 20',
+    );
+  });
+
+  test("the other way, with the incidents that have no severity still last", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      bySeverity({ direction: "DESC", nulls: "LAST" }),
+    )!.getQuery();
+
+    expect(sql).toContain(
+      'ORDER BY "Incident__Incident_incidentSeverity"."order" DESC NULLS LAST, "Incident__id" ASC LIMIT 10 OFFSET 20',
+    );
+  });
+
+  test("the rows of those ids come in that order, through the one join that selects the severity", () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const options: FindManyOptions<Incident> = bySeverity({
+      direction: "DESC",
+      nulls: "LAST",
+    });
+    const ids: Array<string> = [
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000001",
+    ];
+
+    const builder: SelectQueryBuilder<Incident> = PagedFind.createQueryBuilder(
+      repository,
+      options,
+    );
+    PagedFind.restrictToIds(builder, ids);
+
+    const [sql]: [string, Array<unknown>] = builder.getQueryAndParameters();
+
+    expect(sql).toBe(typeOrmSecondQuery(repository, options, ids).sql);
+    expect(countOf(sql, 'LEFT JOIN "IncidentSeverity"')).toBe(1);
+    expect(sql).toContain(
+      '"Incident__Incident_incidentSeverity"."order" AS "Incident__Incident_incidentSeverity_order"',
+    );
+    // Ordered by the place it selected, under the name it selected it as.
+    expect(sql).toContain(
+      'ORDER BY "Incident__Incident_incidentSeverity_order" DESC NULLS LAST, "Incident__id" ASC',
+    );
+  });
+
+  test("a Monitors list by its status, joined only to one record a monitor, is one query", () => {
+    const builder: SelectQueryBuilder<Monitor> = PagedFind.createQueryBuilder(
+      repositoryOf(Monitor),
+      {
+        where: { projectId: INCIDENT_PROJECT_ID } as never,
+        select: {
+          _id: true,
+          name: true,
+          currentMonitorStatus: {
+            _id: true,
+            name: true,
+            color: true,
+            priority: true,
+          },
+        } as never,
+        relations: { currentMonitorStatus: true } as never,
+        order: {
+          currentMonitorStatus: {
+            priority: { direction: "DESC", nulls: "LAST" },
+          },
+          _id: "ASC",
+        } as never,
+        skip: 0,
+        take: 10,
+      },
+    );
+
+    const plan: Plan = planOf(builder);
+
+    expect(plan.take).toBeUndefined();
+    expect(plan.limit).toBe(10);
+    expect(plan.sql).not.toContain("DISTINCT");
+    expect(plan.sql).toContain(
+      'ORDER BY "Monitor__Monitor_currentMonitorStatus_priority" DESC NULLS LAST, "Monitor__id" ASC LIMIT 10 OFFSET 0',
+    );
+  });
+
+  /*
+   * Where PagedFind stands aside (another TypeORM), TypeORM pages the read
+   * in its own two queries, and its query for the page's ids orders by
+   * what the read selected: the severity's place is selected, so it can.
+   */
+  test("on TypeORM's own two queries, the page's ids are ordered by the severity's place it selected", () => {
+    const builder: SelectQueryBuilder<Incident> = typeOrmBuilder(
+      repositoryOf(Incident),
+      bySeverity({ direction: "DESC", nulls: "LAST" }),
+    );
+
+    expect(builder.getQuery()).toContain(
+      '"Incident__Incident_incidentSeverity"."order" AS "Incident__Incident_incidentSeverity_order"',
+    );
+
+    const [, orderBys]: [string, Record<string, unknown>] = (
+      builder as unknown as {
+        createOrderByCombinedWithSelectExpression: (
+          parentAlias: string,
+        ) => [string, Record<string, unknown>];
+      }
+    ).createOrderByCombinedWithSelectExpression("distinctAlias");
+
+    expect(Object.keys(orderBys)).toContain(
+      '"distinctAlias"."Incident__Incident_incidentSeverity_order"',
+    );
+  });
+});
+
 describe("reads that keep TypeORM's two queries", () => {
   test.each([
     [
