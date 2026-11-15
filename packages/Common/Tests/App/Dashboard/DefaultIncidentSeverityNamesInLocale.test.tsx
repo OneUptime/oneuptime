@@ -32,10 +32,10 @@ import {
  * A severity is a record its project owns, and may rename. The lookup is
  * of the whole name, as written, so a severity the project named itself -
  * "Critical incident", "Critical Incident (P1)" - has no key and reads
- * exactly as its owner wrote it, in the list and in the header alike. (A
- * name that is one of the product's own words already, such as "Critical",
- * is still looked up by the badge; #7780 has the badge look up OneUptime's
- * default names alone.)
+ * exactly as its owner wrote it, in the list and in the header alike. So
+ * does a name that is one of the product's own words, such as "Critical":
+ * the badge looks up OneUptime's default names alone (#7780,
+ * Common/Utils/DefaultRecordNames; RecordNamesReadAsWrittenInSpanish).
  */
 
 const DEFAULT_INCIDENT_SEVERITY_NAMES: ReadonlyArray<string> = [
@@ -187,6 +187,11 @@ describe("a severity the project named itself", () => {
     "Critical Incident (P1)",
     "Major Incident - customer facing",
     "Sev 1",
+    /*
+     * A word German has a key for ("Kritisch"), as the project's own name:
+     * it read "Kritisch" until the badge looked up OneUptime's names alone.
+     */
+    "Critical",
   ];
 
   test.each(OWN_NAMES)(

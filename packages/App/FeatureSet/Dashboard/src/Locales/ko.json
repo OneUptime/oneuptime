@@ -52321,5 +52321,6 @@
   "Monitor Network Device": "Monitor Network Device",
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
-  "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "최대 6개 포트를 다운된 포트, 오류가 있는 포트, 가장 바쁜 포트 순으로 보여 줍니다. 각 행에는 수신 / 송신 Mbps와 사용률(더 바쁜 방향의 트래픽을 링크 속도 대비 비율로 나타낸 값)이 표시되며, 두 SNMP 워크 사이의 평균입니다. 값은 눈에 띄게 바뀔 때, 그리고 적어도 15분마다 갱신됩니다."
+  "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "최대 6개 포트를 다운된 포트, 오류가 있는 포트, 가장 바쁜 포트 순으로 보여 줍니다. 각 행에는 수신 / 송신 Mbps와 사용률(더 바쁜 방향의 트래픽을 링크 속도 대비 비율로 나타낸 값)이 표시되며, 두 SNMP 워크 사이의 평균입니다. 값은 눈에 띄게 바뀔 때, 그리고 적어도 15분마다 갱신됩니다.",
+  "Coarse Last Seen At": "Coarse Last Seen At"
 }

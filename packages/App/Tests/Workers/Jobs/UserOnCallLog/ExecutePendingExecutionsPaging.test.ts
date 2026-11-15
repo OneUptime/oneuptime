@@ -7,7 +7,6 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
-import { FindOperator } from "typeorm";
 
 /*
  * THE PERSON'S-LOG WORKER IN AN ALERT STORM, A PAGE AT A TIME.
@@ -28,6 +27,17 @@ import { FindOperator } from "typeorm";
  *   5. it stops at its deadline;
  *   6. a page whose records cannot be read waits for the next minute.
  */
+
+/*
+ * The part of typeorm's FindOperator these assertions read. typeorm is
+ * Common's dependency, not App's, so its type cannot be imported here
+ * (TestImportsResolveFromApp.test.ts): the structural type says exactly as
+ * much as the assertions rely on.
+ */
+interface ReadFindOperator {
+  getSql?: ((aliasPath: string) => string) | undefined;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+}
 
 type CronHandler = (deadline?: unknown) => Promise<void>;
 
@@ -213,8 +223,8 @@ function rule(index: number, notifyAfterMinutes: number): UserNotificationRule {
 }
 
 function cursorOf(query: Record<string, unknown>): string | undefined {
-  const cursor: FindOperator<ObjectID> | undefined = query["_id"] as
-    | FindOperator<ObjectID>
+  const cursor: ReadFindOperator | undefined = query["_id"] as
+    | ReadFindOperator
     | undefined;
 
   return cursor
@@ -274,9 +284,7 @@ beforeEach(() => {
     async (args: {
       query: Record<string, unknown>;
     }): Promise<Array<Incident>> => {
-      const predicate: FindOperator<unknown> = args.query[
-        "_id"
-      ] as FindOperator<unknown>;
+      const predicate: ReadFindOperator = args.query["_id"] as ReadFindOperator;
       const ids: Array<string> = Object.values(
         predicate.objectLiteralParameters!,
       )[0] as Array<string>;

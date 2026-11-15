@@ -1,6 +1,7 @@
 import JobDeadline from "../../../Server/Utils/JobDeadline";
 import TimeoutException from "../../../Types/Exception/TimeoutException";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * A queue job's deadline (JobDeadline): it passes when the job's time limit
@@ -9,6 +10,9 @@ import { describe, expect, jest, test } from "@jest/globals";
  * with the first reason; it tells every listener, its AbortSignal and its
  * children; and a deadline nobody ends never passes.
  */
+
+// What JobDeadline.onPassed calls.
+type Listener = (reason: Error) => void;
 
 describe("JobDeadline", () => {
   test("has not passed until it is ended", () => {
@@ -50,7 +54,7 @@ describe("JobDeadline", () => {
   test("keeps the first reason: ending it again changes nothing", () => {
     const deadline: JobDeadline = new JobDeadline();
     const first: Error = new Error("first");
-    const listener: jest.Mock = jest.fn();
+    const listener: Mock<Listener> = jest.fn<Listener>();
 
     deadline.onPassed(listener);
     deadline.end(first);
@@ -66,7 +70,7 @@ describe("JobDeadline", () => {
     const reason: Error = new Error("over");
     deadline.end(reason);
 
-    const listener: jest.Mock = jest.fn();
+    const listener: Mock<Listener> = jest.fn<Listener>();
     deadline.onPassed(listener);
 
     expect(listener).toHaveBeenCalledWith(reason);
@@ -74,7 +78,7 @@ describe("JobDeadline", () => {
 
   test("tells no listener that stopped listening", () => {
     const deadline: JobDeadline = new JobDeadline();
-    const listener: jest.Mock = jest.fn();
+    const listener: Mock<Listener> = jest.fn<Listener>();
 
     const stop: () => void = deadline.onPassed(listener);
     stop();
@@ -85,7 +89,7 @@ describe("JobDeadline", () => {
 
   test("a listener that throws does not keep the others from hearing it", () => {
     const deadline: JobDeadline = new JobDeadline();
-    const after: jest.Mock = jest.fn();
+    const after: Mock<Listener> = jest.fn<Listener>();
 
     deadline.onPassed(() => {
       throw new Error("listener failed");
