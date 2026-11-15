@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "हर एक को यहीं से ठीक करें, या अगर आपकी टीम उसे जानबूझकर वैसा ही रखती है तो उसे छिपाएं।",
   "ISO Date": "ISO तारीख",
   "Test (dbt test)": "टेस्ट",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "अपेक्षित",
+  "Useful": "उपयोगी"
 }

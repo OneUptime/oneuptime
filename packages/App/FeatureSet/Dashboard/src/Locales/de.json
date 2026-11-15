@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Beheben Sie jeden Punkt von hier aus, oder blenden Sie ihn aus, wenn Ihr Team ihn bewusst so lässt.",
   "ISO Date": "ISO-Datum",
   "Test (dbt test)": "Test",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "Erwartet",
+  "Useful": "Nützlich"
 }

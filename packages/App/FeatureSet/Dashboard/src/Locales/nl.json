@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Los elk punt vanaf hier op, of verberg het als je team het bewust zo laat.",
   "ISO Date": "ISO-datum",
   "Test (dbt test)": "Test",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "Verwacht",
+  "Useful": "Nuttig"
 }

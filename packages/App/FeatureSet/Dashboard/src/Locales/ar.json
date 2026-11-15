@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "أصلح كل واحد منها من هنا، أو أخفِه إذا كان فريقك يتركه هكذا عن قصد.",
   "ISO Date": "تاريخ ISO",
   "Test (dbt test)": "اختبار",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "متوقّع",
+  "Useful": "مفيد"
 }

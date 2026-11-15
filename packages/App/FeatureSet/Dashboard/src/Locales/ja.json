@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "ここからそれぞれ修正するか、チームが意図的にそのままにしているものは非表示にしてください。",
   "ISO Date": "ISO 日付",
   "Test (dbt test)": "テスト",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "想定どおり",
+  "Useful": "役に立った"
 }

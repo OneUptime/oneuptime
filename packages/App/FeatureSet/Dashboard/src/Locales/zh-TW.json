@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐項修正；如果團隊刻意維持現狀，也可以將其隱藏。",
   "ISO Date": "ISO 日期",
   "Test (dbt test)": "測試",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "符合預期",
+  "Useful": "有用"
 }

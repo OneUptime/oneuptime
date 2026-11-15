@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "هر کدام را از همین‌جا رفع کنید، یا اگر تیم شما عمداً آن را همین‌طور نگه می‌دارد، پنهانش کنید.",
   "ISO Date": "تاریخ ISO",
   "Test (dbt test)": "تست",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "مورد انتظار",
+  "Useful": "مفید"
 }

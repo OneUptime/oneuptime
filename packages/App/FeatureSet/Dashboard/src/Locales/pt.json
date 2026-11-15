@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Corrija cada um daqui ou dispense-o se sua equipe o deixa assim de propósito.",
   "ISO Date": "Data ISO",
   "Test (dbt test)": "Teste",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "Esperado",
+  "Useful": "Útil"
 }

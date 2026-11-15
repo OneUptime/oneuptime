@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "可在此逐项修复；如果团队有意保持现状，也可以将其隐藏。",
   "ISO Date": "ISO 日期",
   "Test (dbt test)": "测试",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "符合预期",
+  "Useful": "有用"
 }

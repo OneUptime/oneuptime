@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "여기에서 각 항목을 고치거나, 팀이 일부러 그대로 두는 항목이면 숨기세요.",
   "ISO Date": "ISO 날짜",
   "Test (dbt test)": "테스트",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "예상됨",
+  "Useful": "유용함"
 }

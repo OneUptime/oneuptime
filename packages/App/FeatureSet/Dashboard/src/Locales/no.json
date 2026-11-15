@@ -52408,5 +52408,7 @@
   "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Rett hvert punkt herfra, eller skjul det hvis teamet ditt lar det være slik med vilje.",
   "ISO Date": "ISO-dato",
   "Test (dbt test)": "Test",
-  "UUID": "UUID"
+  "UUID": "UUID",
+  "Expected": "Forventet",
+  "Useful": "Nyttig"
 }
