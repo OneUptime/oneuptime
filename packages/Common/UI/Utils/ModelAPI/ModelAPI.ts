@@ -226,6 +226,12 @@ export default class ModelAPI {
     select: Select<TBaseModel>;
     sort: Sort<TBaseModel>;
     requestOptions?: RequestOptions | undefined;
+    /*
+     * Count no further than this many records (or the end of the page, if
+     * that is further): more match when the result's isCountCapped is set,
+     * and its count is the cap. Unset, the count is exact.
+     */
+    countUpTo?: number | undefined;
   }): Promise<ListResult<TBaseModel>> {
     const model: TBaseModel = new data.modelType();
     const apiPath: Route | null = model.getCrudApiPath();
@@ -267,6 +273,9 @@ export default class ModelAPI {
           select: JSONFunctions.serialize(data.select as JSONObject),
           sort: JSONFunctions.serialize(data.sort as JSONObject),
           groupBy: JSONFunctions.serialize(data.groupBy as JSONObject),
+          ...(data.countUpTo !== undefined
+            ? { countUpTo: data.countUpTo }
+            : {}),
         },
         headers,
         params: {
@@ -289,6 +298,7 @@ export default class ModelAPI {
         count: result.count,
         skip: result.skip,
         limit: result.limit,
+        ...(result.isCountCapped ? { isCountCapped: true } : {}),
       };
     }
 

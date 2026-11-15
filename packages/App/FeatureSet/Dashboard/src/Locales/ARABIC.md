@@ -266,7 +266,9 @@ writes (`Dashboard/src/Utils/Milliseconds`), is the exception: it reads
 Intl's short unit, `{{value}} ملي ث`, as the durations `DateLanguage`
 writes do, so a page read from the right never reads "ms 411". The
 network path's DNS sentence (`... خلال {{time}} ملي ث`) uses the same
-unit as the traceroute hops listed under it.
+unit as the traceroute hops listed under it, and the Response time card's
+`Latest: ...` sentence (`الأحدث: الوسيط {{median}} ملي ث ...`) the same
+unit as the probe durations listed beside it.
 The Dashboard's list of texts Arabic writes as English on purpose is
 `sameAsEnglish` in `../../i18n/Progress/ar.json`.
 

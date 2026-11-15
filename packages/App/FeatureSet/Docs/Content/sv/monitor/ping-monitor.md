@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-När en kontroll misslyckas spårar sonden också vägen till värden och slår upp dess namn, och bifogar det den hittade till resultatet som **Network Path at Time of Failure**, så att du ser var vägen bröts.
+När en kontroll misslyckas spårar sonden också vägen till värden och slår upp dess namn, och bifogar det den hittade till resultatet som **Nätverksväg vid felet**, så att du ser var vägen bröts.
 
 > [!NOTE]
 > Vissa värdleverantörer blockerar ICMP på de maskiner där en sond körs. En sond som inte kan skicka ping alls kontrollerar i stället TCP-port `80` på värden, så att monitorn ändå säger om värden kan nås. Paketförlust och jitter mäts då inte.
@@ -136,7 +136,7 @@ För att bara larma när latensen förblir hög slår du på **Utvärdera dessa 
 ## Felsökning
 
 :::details Värden är uppe, men monitorn säger offline
-Värden, eller en brandvägg framför den, svarar inte på ICMP-ekobegäranden från sonden. Många servrar och molnnätverk släpper ping som standard. Tillåt ICMP-ekobegäranden från sonderna, eller bevaka i stället en tjänst på värden med en [portmonitor](/docs/monitor/port-monitor). **Network Path at Time of Failure** på den misslyckade kontrollen visar hur långt vägen nådde.
+Värden, eller en brandvägg framför den, svarar inte på ICMP-ekobegäranden från sonden. Många servrar och molnnätverk släpper ping som standard. Tillåt ICMP-ekobegäranden från sonderna, eller bevaka i stället en tjänst på värden med en [portmonitor](/docs/monitor/port-monitor). **Nätverksväg vid felet** på den misslyckade kontrollen visar hur långt vägen nådde.
 :::
 
 :::details Kontrollen misslyckas med "This probe could not resolve" för värden

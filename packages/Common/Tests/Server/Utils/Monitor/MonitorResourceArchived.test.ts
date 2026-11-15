@@ -6,9 +6,10 @@
  * still reach one: a probe that claimed it a moment before it was archived,
  * an incoming request or an email that arrives afterwards. Every result goes
  * through MonitorResourceUtil.monitorResource, so that is where an archived
- * monitor's result is refused - before the per-monitor lock is taken, before
- * any criteria is evaluated, and so before anything could open an incident,
- * an alert, or change the monitor's status.
+ * monitor's result is refused - as soon as the monitor is read (once, under
+ * the per-monitor lock, which is given back), before any criteria is
+ * evaluated, and so before anything could open an incident, an alert, or
+ * change the monitor's status.
  */
 
 jest.mock("isolated-vm", () => {
@@ -77,6 +78,8 @@ const MONITOR_ID: ObjectID = new ObjectID(
 const findOneById: jest.Mock =
   MonitorService.findOneById as unknown as jest.Mock;
 const lock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
+const release: jest.Mock = Semaphore.release as unknown as jest.Mock;
+const MUTEX: { key: string } = { key: "the monitor's lock" };
 const processMonitorStep: jest.Mock =
   MonitorCriteriaEvaluator.processMonitorStep as unknown as jest.Mock;
 
@@ -101,18 +104,20 @@ function probeResult(): ProbeMonitorResponse {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  lock.mockResolvedValue(MUTEX as never);
 });
 
 describe("a result for an archived monitor", () => {
-  test("is refused as archived, and nothing is evaluated or locked", async () => {
+  test("is refused as archived, nothing is evaluated, and the lock is given back", async () => {
     findOneById.mockResolvedValue(monitor({ isArchived: true }) as never);
 
     await expect(
       MonitorResourceUtil.monitorResource(probeResult()),
     ).rejects.toThrow(new BadDataException(ExceptionMessages.MonitorArchived));
 
-    expect(lock).not.toHaveBeenCalled();
     expect(processMonitorStep).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledWith(MUTEX);
   });
 
   test("archived is the reason given even when the monitor is also disabled", async () => {
@@ -151,8 +156,8 @@ describe("a result for an archived monitor", () => {
         "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
       ),
     );
-    expect(lock).not.toHaveBeenCalled();
     expect(processMonitorStep).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledWith(MUTEX);
   });
 
   test("the monitor is read with all four pause flags", async () => {

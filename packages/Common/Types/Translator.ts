@@ -605,11 +605,13 @@ const startsASentence: (template: string, at: number) => boolean = (
 
 /*
  * A value as text where it goes into a sentence: as the middle of one takes
- * it, and as it reads where it starts one (startsASentence).
+ * it, and as it reads where it starts one (startsASentence); and whether it
+ * is a term, OneUptime's own words (closeSpacesBesideTerms).
  */
 interface SentenceValue {
   text: string;
   atSentenceStart: string;
+  isTerm: boolean;
 }
 
 /*
@@ -633,33 +635,244 @@ const toSentenceValue: (
       isTranslatableTerm(value) && value.inSentence
         ? toLabelTerm(text, language)
         : text,
+    isTerm: isTranslatableTerm(value),
   };
 };
 
 /*
+ * WHERE A TERM MEETS CHINESE OR JAPANESE WORDS.
+ *
+ * Chinese and Japanese write no space between their words. The Dashboard's
+ * zh-CN, zh-TW and ja files put one between their words and Latin text, a
+ * number or a {{placeholder}} (Dashboard/src/Locales/README.md), which reads
+ * right beside a name in Latin letters - "请设置 OneUptime Kubernetes
+ * Agent，只需几分钟。" - and wrong beside a term the language words in its
+ * own script: "请设置 设备或网关上的 OpenTelemetry 导出器，", "此操作会撤销
+ * 数据库 AI 代理 的密钥。" (issue #7864). One key can take a name of either
+ * kind - a host's collector is "OpenTelemetry Collector" or "OneUptime
+ * 收集器" - so no spacing written into the key reads right for both.
+ *
+ * So in a sentence of a language that writes no space between its words, a
+ * space the template puts between a term (translatableTerm) and a Chinese or
+ * Japanese letter is dropped where the term's own letter on that side is
+ * Chinese or Japanese too: "请设置设备或网关上的 OpenTelemetry 导出器，",
+ * "OneUptime 收集器已不再上报数据", "撤销数据库 AI 代理的密钥". A space
+ * beside a Latin letter, a digit or a sign stays ("请设置 OneUptime
+ * 收集器"), and so does one beside any other value - a name someone typed, a
+ * number, a date, a slot - which the space sets apart as the template wrote
+ * it. Two terms side by side meet the same way: "{{action}} {{itemName}}"
+ * reads "更新监控器". No space is ever added: a key that writes none reads
+ * as it is written.
+ */
+
+// The languages that write no space between their words: Chinese, Japanese.
+const LANGUAGES_WITHOUT_WORD_SPACES: ReadonlyArray<string> = ["ja", "zh"];
+
+/*
+ * One letter of Chinese or Japanese - a Han character or a kana - by the
+ * scripts that use it (its script extensions), as ReadingDirection reads a
+ * right-to-left letter: the prolonged sound mark that ends "コレクター"
+ * (U+30FC) is a letter of both kana scripts and of neither alone. Not their
+ * punctuation ("。", "、", "「"): the space beside it is the template's.
+ */
+const CHINESE_OR_JAPANESE_LETTER: RegExp =
+  /^(?=[\p{L}\p{Nl}])[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}]$/u;
+
+// Whether `text` starts with a letter of Chinese or Japanese.
+const startsInChineseOrJapanese: (text: string) => boolean = (
+  text: string,
+): boolean => {
+  const first: number | undefined = text.codePointAt(0);
+
+  return (
+    first !== undefined &&
+    CHINESE_OR_JAPANESE_LETTER.test(String.fromCodePoint(first))
+  );
+};
+
+// Whether `text` ends with a letter of Chinese or Japanese.
+const endsInChineseOrJapanese: (text: string) => boolean = (
+  text: string,
+): boolean => {
+  // Its last character, whole where it is a surrogate pair ("𠀀").
+  const last: string = Array.from(text.slice(-2)).pop() || "";
+
+  return CHINESE_OR_JAPANESE_LETTER.test(last);
+};
+
+// How many spaces `text` starts with, and how many it ends with.
+const countLeadingSpaces: (text: string) => number = (text: string): number => {
+  let count: number = 0;
+
+  while (text[count] === " ") {
+    count++;
+  }
+
+  return count;
+};
+
+const countTrailingSpaces: (text: string) => number = (
+  text: string,
+): number => {
+  let count: number = 0;
+
+  while (count < text.length && text[text.length - 1 - count] === " ") {
+    count++;
+  }
+
+  return count;
+};
+
+// A piece of a filled template: its own words, or a value where it goes.
+interface FilledPiece {
+  text: string;
+  isValue: boolean;
+  // A value that is a term (SentenceValue's isTerm).
+  isTerm: boolean;
+}
+
+/*
+ * The pieces of a filled template (fillPieces), in `language`: in one that
+ * writes no space between its words, each space its words put between a
+ * term and a letter of Chinese or Japanese is dropped where the term's own
+ * letter on that side is one too (WHERE A TERM MEETS CHINESE OR JAPANESE
+ * WORDS). The words beside any other value keep their spaces.
+ */
+const closeSpacesBesideTerms: (
+  pieces: Array<FilledPiece>,
+  language: string,
+) => Array<FilledPiece> = (
+  pieces: Array<FilledPiece>,
+  language: string,
+): Array<FilledPiece> => {
+  if (!LANGUAGES_WITHOUT_WORD_SPACES.includes(getBaseLanguage(language))) {
+    return pieces;
+  }
+
+  return pieces.map((piece: FilledPiece, index: number): FilledPiece => {
+    if (piece.isValue || !piece.text) {
+      return piece;
+    }
+
+    // The values either side of these words: pieces take turns.
+    const before: FilledPiece | undefined = pieces[index - 1];
+    const after: FilledPiece | undefined = pieces[index + 1];
+    const leading: number = countLeadingSpaces(piece.text);
+
+    // Spaces and nothing else, between two values: two terms meet.
+    if (leading === piece.text.length) {
+      const termsMeet: boolean = Boolean(
+        before?.isTerm &&
+          after?.isTerm &&
+          endsInChineseOrJapanese(before.text) &&
+          startsInChineseOrJapanese(after.text),
+      );
+
+      return termsMeet ? { ...piece, text: "" } : piece;
+    }
+
+    let text: string = piece.text;
+
+    if (
+      leading > 0 &&
+      before?.isTerm &&
+      endsInChineseOrJapanese(before.text) &&
+      startsInChineseOrJapanese(text.slice(leading))
+    ) {
+      text = text.slice(leading);
+    }
+
+    const trailing: number = countTrailingSpaces(text);
+    const words: string = text.slice(0, text.length - trailing);
+
+    if (
+      trailing > 0 &&
+      after?.isTerm &&
+      startsInChineseOrJapanese(after.text) &&
+      endsInChineseOrJapanese(words)
+    ) {
+      text = words;
+    }
+
+    return text === piece.text ? piece : { ...piece, text };
+  });
+};
+
+/*
+ * `template` filled with `values`, in pieces: its words and its values by
+ * turns, words first and last (empty where a value starts or ends it). Each
+ * value goes in the form its place takes (startsASentence), literally; a
+ * placeholder with no value is left among the words as it is. Beside a
+ * term, the words keep only the spaces `language` writes
+ * (closeSpacesBesideTerms).
+ */
+const fillPieces: (
+  template: string,
+  values: Record<string, SentenceValue>,
+  language: string,
+) => Array<FilledPiece> = (
+  template: string,
+  values: Record<string, SentenceValue>,
+  language: string,
+): Array<FilledPiece> => {
+  const pieces: Array<FilledPiece> = [];
+  let words: string = "";
+  let at: number = 0;
+
+  for (const match of template.matchAll(PLACEHOLDER)) {
+    const start: number = match.index ?? 0;
+    const name: string = match[1] || "";
+
+    words += template.slice(at, start);
+    at = start + match[0].length;
+
+    if (!Object.prototype.hasOwnProperty.call(values, name)) {
+      words += match[0];
+      continue;
+    }
+
+    const value: SentenceValue = values[name] as SentenceValue;
+
+    pieces.push({ text: words, isValue: false, isTerm: false });
+    pieces.push({
+      text: startsASentence(template, start)
+        ? value.atSentenceStart
+        : value.text,
+      isValue: true,
+      isTerm: value.isTerm,
+    });
+    words = "";
+  }
+
+  pieces.push({
+    text: words + template.slice(at),
+    isValue: false,
+    isTerm: false,
+  });
+
+  return closeSpacesBesideTerms(pieces, language);
+};
+
+/*
  * `template` with each {{placeholder}} filled from `values`, in the form its
- * place takes (startsASentence). A placeholder with no value is left as it
- * is, and each value goes in literally.
+ * place takes (startsASentence), as a sentence in `language` holds it
+ * (closeSpacesBesideTerms). A placeholder with no value is left as it is,
+ * and each value goes in literally.
  */
 const fillSentenceValues: (
   template: string,
   values: Record<string, SentenceValue>,
+  language: string,
 ) => string = (
   template: string,
   values: Record<string, SentenceValue>,
+  language: string,
 ): string => {
-  return template.replace(
-    PLACEHOLDER,
-    (match: string, key: string, at: number): string => {
-      if (!Object.prototype.hasOwnProperty.call(values, key)) {
-        return match;
-      }
-
-      const value: SentenceValue = values[key] as SentenceValue;
-
-      return startsASentence(template, at) ? value.atSentenceStart : value.text;
-    },
-  );
+  return fillPieces(template, values, language)
+    .map((piece: FilledPiece): string => {
+      return piece.text;
+    })
+    .join("");
 };
 
 // A value as the English sentence shows it.
@@ -719,14 +932,6 @@ const englishTextValues: (
   return result;
 };
 
-// A piece of a filled template: its own words, or a value where it goes.
-interface FilledPiece {
-  text: string;
-  // Where the piece starts in the template filled with its values as they are.
-  start: number;
-  isValue: boolean;
-}
-
 /*
  * `template` filled with `values` as a sentence that reads `direction`
  * holds them: each set apart in a Unicode isolate where it could move the
@@ -744,62 +949,37 @@ interface FilledPiece {
  * A slot's marker (TranslatedSentence, translateTemplateAround) is set
  * apart in a sentence read right to left when asked to (SentenceOptions'
  * setsSlotsApart), so what is drawn there as an element is too; otherwise
- * it is left as it is. As in fillTemplate, each value goes in the form its
- * place takes (startsASentence), a placeholder with no value is left as it
- * is, and each value goes in literally.
+ * it is left as it is. As in fillSentenceValues, each value goes in the
+ * form its place takes (startsASentence), with the spaces beside a term
+ * that `language` writes (closeSpacesBesideTerms), a placeholder with no
+ * value is left as it is, and each value goes in literally.
  */
 const fillSettingValuesApart: (
   template: string,
   values: Record<string, SentenceValue>,
   direction: ReadingDirection,
   setsSlotsApart: boolean,
+  language: string,
 ) => string = (
   template: string,
   values: Record<string, SentenceValue>,
   direction: ReadingDirection,
   setsSlotsApart: boolean,
+  language: string,
 ): string => {
-  const pieces: Array<FilledPiece> = [];
+  const pieces: Array<FilledPiece> = fillPieces(template, values, language);
   // The sentence with every value as it is: what a number's signs are read in.
   let filled: string = "";
-  let at: number = 0;
+  // Where each piece starts in it.
+  const starts: Array<number> = [];
 
-  const addPiece: (text: string, isValue: boolean) => void = (
-    text: string,
-    isValue: boolean,
-  ): void => {
-    pieces.push({ text, start: filled.length, isValue });
-    filled += text;
-  };
-
-  for (const match of template.matchAll(PLACEHOLDER)) {
-    const start: number = match.index ?? 0;
-    const name: string = match[1] || "";
-    const isFilled: boolean = Object.prototype.hasOwnProperty.call(
-      values,
-      name,
-    );
-
-    addPiece(template.slice(at, start), false);
-
-    if (isFilled) {
-      const value: SentenceValue = values[name] as SentenceValue;
-
-      addPiece(
-        startsASentence(template, start) ? value.atSentenceStart : value.text,
-        true,
-      );
-    } else {
-      addPiece(match[0], false);
-    }
-
-    at = start + match[0].length;
+  for (const piece of pieces) {
+    starts.push(filled.length);
+    filled += piece.text;
   }
 
-  addPiece(template.slice(at), false);
-
   return pieces
-    .map((piece: FilledPiece): string => {
+    .map((piece: FilledPiece, index: number): string => {
       if (!piece.isValue) {
         return piece.text;
       }
@@ -810,13 +990,14 @@ const fillSettingValuesApart: (
           : piece.text;
       }
 
-      const end: number = piece.start + piece.text.length;
+      const start: number = starts[index] as number;
+      const end: number = start + piece.text.length;
 
       if (
         direction === RIGHT_TO_LEFT &&
         isNumberJoinedToASign(
           piece.text,
-          filled.slice(Math.max(0, piece.start - 2), piece.start),
+          filled.slice(Math.max(0, start - 2), start),
           filled.slice(end, end + 2),
         )
       ) {
@@ -1105,18 +1286,25 @@ export const createTranslator: (
               englishTextValues(values),
               LEFT_TO_RIGHT,
               setsSlotsApart,
+              DEFAULT_LANGUAGE,
             )
           : fillTemplate(punctuate(english), englishDateValues(values));
       }
 
+      // No words of its own: the reader's words, as their sentence holds them.
       return setsValuesApart
         ? fillSettingValuesApart(
             punctuate(english),
             translatedValues(values),
             readerDirection,
             setsSlotsApart,
+            activeLanguage,
           )
-        : fillSentenceValues(punctuate(english), translatedValues(values));
+        : fillSentenceValues(
+            punctuate(english),
+            translatedValues(values),
+            activeLanguage,
+          );
     }
 
     return setsValuesApart
@@ -1125,8 +1313,13 @@ export const createTranslator: (
           translatedValues(values),
           readerDirection,
           setsSlotsApart,
+          activeLanguage,
         )
-      : fillSentenceValues(punctuate(stored), translatedValues(values));
+      : fillSentenceValues(
+          punctuate(stored),
+          translatedValues(values),
+          activeLanguage,
+        );
   };
 
   const translateTemplate: (
@@ -1524,6 +1717,7 @@ export const getSentencePartsAndLanguage: (
         englishTextValues(englishValues),
         LEFT_TO_RIGHT,
         false,
+        DEFAULT_LANGUAGE,
       ),
     ) || [
       {

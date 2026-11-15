@@ -70,6 +70,17 @@ export interface CalendarResponseData {
   disposition?: CalendarResponseDisposition | undefined;
 }
 
+/*
+ * What a list response says about its count besides the number: hasMore
+ * when the count is a lower bound and only the next page is known (the
+ * analytics lists), isCountCapped when more records match than the list
+ * counted (BaseAPI.getList's countUpTo) - the count is the cap.
+ */
+export interface ListResponseOptions {
+  hasMore?: boolean | undefined;
+  isCountCapped?: boolean | undefined;
+}
+
 export enum CalendarResponseDisposition {
   Inline = "inline",
   Attachment = "attachment",
@@ -372,7 +383,7 @@ export default class Response {
     list: Array<BaseModel | AnalyticsDataModel>,
     count: PositiveNumber | number,
     modelType: { new (): BaseModel | AnalyticsDataModel },
-    options?: { hasMore?: boolean | undefined } | undefined,
+    options?: ListResponseOptions | undefined,
   ): void {
     if (!(count instanceof PositiveNumber)) {
       count = new PositiveNumber(count);
@@ -446,7 +457,7 @@ export default class Response {
     res: ExpressResponse,
     list: Array<JSONObject>,
     count: PositiveNumber,
-    options?: { hasMore?: boolean | undefined } | undefined,
+    options?: ListResponseOptions | undefined,
   ): void {
     const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -457,6 +468,7 @@ export default class Response {
       skip: new PositiveNumber(0),
       limit: new PositiveNumber(0),
       hasMore: options?.hasMore,
+      isCountCapped: options?.isCountCapped,
     });
 
     if (!list) {

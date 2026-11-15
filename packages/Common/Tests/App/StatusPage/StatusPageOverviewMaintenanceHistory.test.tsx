@@ -541,7 +541,7 @@ describe("Status page overview - each resource carries its own monitors' mainten
     await renderOverview();
 
     expect(barOn(strips()[0]!, "Oct 21, 2026").getAttribute("aria-label")).toBe(
-      "Oct 21, 2026: no data, 1 scheduled maintenance event",
+      "Oct 21, 2026: no data, 1 maintenance event",
     );
   });
 
@@ -732,9 +732,9 @@ describe("Status page overview - a day's maintenance, told and opened", () => {
 
     const bar: HTMLElement = barOn(strips()[0]!, "Oct 21, 2026");
 
-    // The bar's name too: "keine Daten, 1 geplante Wartung".
+    // The bar's name too: "keine Daten, 1 Wartungsereignis".
     expect(bar.getAttribute("aria-label")).toBe(
-      "Oct 21, 2026: keine Daten, 1 geplante Wartung",
+      "Oct 21, 2026: keine Daten, 1 Wartungsereignis",
     );
 
     fireEvent.click(bar);

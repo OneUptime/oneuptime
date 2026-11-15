@@ -108,6 +108,12 @@ export const OPENSTACK_CLOUD_CHECK_BOOKKEEPING_COLUMNS: Array<string> = [
   update: EDITORS,
 })
 @CrudApiEndpoint(new Route("/openstack-cloud-check"))
+/*
+ * A probe asks for its due checks of each kind every ten seconds (OpenStackCheckStore): those that
+ * name it are a range of these, oldest first, that stops at the claim's limit.
+ */
+@Index(["probeId", "nextApiCheckAt"])
+@Index(["probeId", "nextLifecycleCheckAt"])
 @Entity({
   name: "OpenStackCloudCheck",
 })

@@ -31,6 +31,11 @@ import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceAiRemediationMode } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  TemplateValues,
+  translatableTerm,
+} from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -62,6 +67,16 @@ function readLocale(locale: string): Record<string, string> {
 
 const JA: Record<string, string> = readLocale("ja");
 const FR: Record<string, string> = readLocale("fr");
+
+/*
+ * A sentence as the card fills it in Japanese: through the Dashboard's
+ * Translator, with the values the card passes (terms), so with the spaces
+ * a Japanese sentence keeps beside them - none between "エージェント" and
+ * "は" (#7864).
+ */
+function filledInJapanese(template: string, values: TemplateValues): string {
+  return dashboardTranslator("ja").translateTemplate(template, values);
+}
 
 let postSpy: ReturnType<typeof jest.spyOn>;
 
@@ -163,10 +178,11 @@ describe("the Overview's AI agent card in Japanese", () => {
     expect(
       screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-value`),
     ).toHaveTextContent(
-      JA["The {{agent}} is connected."]!.replace(
-        "{{agent}}",
-        JA["Docker AI agent"]!,
-      ),
+      filledInJapanese("The {{agent}} is connected.", {
+        agent: translatableTerm(
+          getResourceAiAgentDescriptor(AiResourceType.DockerHost).agentName,
+        ),
+      }),
     );
     expect(
       screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-fixes-value`),
@@ -215,11 +231,9 @@ describe("the Overview's AI agent card in Japanese", () => {
     expect(
       screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-value`),
     ).toHaveTextContent(
-      JA["The {{agent}} is not installed yet."]!.replace(
-        "{{agent}}",
-        JA[KUBERNETES_AI_AGENT_DISPLAY_NAME] ||
-          KUBERNETES_AI_AGENT_DISPLAY_NAME,
-      ),
+      filledInJapanese("The {{agent}} is not installed yet.", {
+        agent: translatableTerm(KUBERNETES_AI_AGENT_DISPLAY_NAME),
+      }),
     );
     // The off sentence the AI agent pages share, now a translated template.
     expect(

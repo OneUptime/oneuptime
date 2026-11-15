@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "{{total}} hændelser rapporteret denne dag",
     "scheduledMaintenance": "Planlagt vedligeholdelse",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "1 planlagt vedligeholdelse",
-    "maintenanceEvents": "{{total}} planlagte vedligeholdelser",
+    "oneMaintenanceEvent": "1 vedligeholdelseshændelse",
+    "maintenanceEvents": "{{total}} vedligeholdelseshændelser",
     "moreMaintenance": "+{{total}} mere"
   },
   "liveStatus": {

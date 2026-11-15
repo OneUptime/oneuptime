@@ -30,6 +30,7 @@ import SiteHealthRollupPolicy, {
   DefaultSiteHealthRollupPolicy,
 } from "../../../Types/NetworkSite/SiteHealthRollupPolicy";
 import LatencyMatrixUtil from "../../../Utils/Monitor/LatencyMatrixUtil";
+import { INTERFACE_LAST_SEEN_REFRESH_MS } from "../../../Utils/Monitor/InterfaceInventoryUtil";
 import LatencyMatrix from "../../../Types/Monitor/LatencyMatrix";
 import { deviceHealthState } from "../../../Utils/NetworkDevice/DeviceHealthStateUtil";
 import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
@@ -218,23 +219,26 @@ describe("device status texts match DeviceReachabilityUtil", () => {
     expect(DEVICE.devicesDown).toContain("neither ping nor the SNMP walk");
   });
 
+  /*
+   * The strip counts from the fleet scan (NetworkDeviceService.getFleetScan):
+   * each bucket's devices go to Up, Down or Pending by its isReachable -
+   * true, false, or anything else - so the three add up to every device.
+   */
   test("the strip's three status counts partition the fleet, and the texts say so", () => {
-    const service: string = readFrom(
+    const aggregation: string = readFrom(
       PACKAGES_ROOT,
       "Common",
       "Server",
-      "Services",
-      "NetworkDeviceService.ts",
+      "Utils",
+      "NetworkDevice",
+      "DeviceHealthAggregation.ts",
     );
 
-    expect(service).toContain(
-      'COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = true)',
+    expect(aggregation).toContain(
+      "if (bucket.isReachable === true) { summary.devicesUp += bucket.deviceCount; } else if (bucket.isReachable === false) { summary.devicesDown += bucket.deviceCount; } else { summary.devicesPending += bucket.deviceCount; }",
     );
-    expect(service).toContain(
-      'COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" = false)',
-    );
-    expect(service).toContain(
-      'COUNT(*) FILTER (WHERE "NetworkDevice"."isReachable" IS NULL)',
+    expect(aggregation).toContain(
+      "summary.totalDevices += bucket.deviceCount;",
     );
     expect(DEVICE.devicesPending).toContain(
       "Up, Down and Pending together add up to every device in the project",
@@ -318,11 +322,21 @@ describe("interface texts match how the walk computes them", () => {
     "NetworkInventoryUtil.ts",
   );
 
-  test("rates, utilization and errors are averages between the last two walks", () => {
+  /*
+   * Each reading is an average between two walks - but the stored one is
+   * not always the last two's: a walk writes an interface's readings again
+   * only when they move noticeably, and at least once a refresh window
+   * (InterfaceInventoryUtil.needsWrite, #8107, #8093). The tooltips say so,
+   * with the window's own length.
+   */
+  test("rates, utilization and errors are averages between two walks, updated when they move noticeably and at least once a refresh window", () => {
     expect(rateUtil).toContain("(inOctetsDelta * 8) / elapsedSeconds");
     expect(rateUtil).toContain(
       "((inErrorsDelta || 0) + (outErrorsDelta || 0)) / elapsedSeconds",
     );
+
+    const refreshMinutes: number = INTERFACE_LAST_SEEN_REFRESH_MS / (60 * 1000);
+    expect(refreshMinutes).toBe(15);
 
     for (const text of [
       DEVICE.interfaceInOutRate,
@@ -330,7 +344,11 @@ describe("interface texts match how the walk computes them", () => {
       DEVICE.interfaceErrorsPerSecond,
       DEVICE.interfacesPreview,
     ]) {
-      expect(text).toContain("between the last two SNMP walks");
+      expect(text).toContain("between two SNMP walks");
+      expect(text).not.toContain("the last two SNMP walks");
+      expect(text).toContain(
+        `noticeably, and at least every ${refreshMinutes} minutes.`,
+      );
     }
 
     expect(DEVICE.interfaceErrorsPerSecond).toContain("Inbound plus outbound");
@@ -391,16 +409,21 @@ describe("interface texts match how the walk computes them", () => {
   });
 
   test("the fleet-wide down count is a SUM of ports, so it says ports, not devices", () => {
-    const service: string = readFrom(
+    // The fleet scan's buckets sum their dark ports, and the strip adds them up.
+    const aggregation: string = readFrom(
       PACKAGES_ROOT,
       "Common",
       "Server",
-      "Services",
-      "NetworkDeviceService.ts",
+      "Utils",
+      "NetworkDevice",
+      "DeviceHealthAggregation.ts",
     );
 
-    expect(service).toContain(
-      'COALESCE(SUM("NetworkDevice"."interfacesDown"), 0)',
+    expect(aggregation).toContain(
+      'expression: `COALESCE(SUM(${column("interfacesDown")}), 0)`, alias: DeviceHealthGroupAlias.InterfacesDownTotal,',
+    );
+    expect(aggregation).toContain(
+      "summary.interfacesDown += bucket.interfacesDownTotal;",
     );
     expect(DEVICE.totalInterfacesDown).toContain("counts ports, not devices");
     expect(DEVICE.totalInterfacesDown).toContain("adds three");

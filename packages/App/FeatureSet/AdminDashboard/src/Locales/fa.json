@@ -2671,7 +2671,7 @@
   "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "حذف یک مانیتور تاریخچه‌ی وضعیت آن را هم حذف می‌کند و آن را از صفحات وضعیت، گروه‌های مانیتور و SLOها برمی‌دارد. حادثه‌ها و هشدارهای آن باقی می‌مانند.",
   "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.": "حذف یک حادثه یادداشت‌ها و خط زمانی حالت آن را هم حذف می‌کند و آن را از صفحات وضعیت برمی‌دارد. هشدارهای پیوندخورده باقی می‌مانند.",
   "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.": "حذف یک هشدار یادداشت‌ها و خط زمانی حالت آن را هم حذف می‌کند. حادثه‌های پیوندخورده باقی می‌مانند.",
-  "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.": "حذف یک رویداد تعمیر و نگهداری زمان‌بندی‌شده یادداشت‌ها و خط زمانی حالت آن را هم حذف می‌کند و آن را از صفحات وضعیت برمی‌دارد.",
+  "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.": "حذف یک رویداد تعمیر و نگهداری یادداشت‌ها و خط زمانی حالت آن را هم حذف می‌کند و آن را از صفحات وضعیت برمی‌دارد.",
   "Deleting an incident episode also deletes its notes and state timeline. Its incidents stay.": "حذف یک اپیزود حادثه یادداشت‌ها و خط زمانی حالت آن را هم حذف می‌کند. حادثه‌های آن باقی می‌مانند.",
   "Deleting an alert episode also deletes its notes and state timeline. Its alerts stay.": "حذف یک اپیزود هشدار یادداشت‌ها و خط زمانی حالت آن را هم حذف می‌کند. هشدارهای آن باقی می‌مانند.",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "حذف یک گروه مانیتور آن را از صفحات وضعیت برمی‌دارد. مانیتورهای آن باقی می‌مانند.",

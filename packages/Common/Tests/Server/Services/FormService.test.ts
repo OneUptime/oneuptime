@@ -348,7 +348,7 @@ describe("FormService.onBeforeCreate: what the form creates and asks", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect(error?.message).toContain(
-      '"incidentSeverityId" is not a setting of forms that create a scheduled maintenance event.',
+      '"incidentSeverityId" is not a setting of forms that create a maintenance event.',
     );
   });
 
@@ -537,7 +537,7 @@ describe("FormService.onBeforeUpdate", () => {
     );
 
     expect(error?.message).toBe(
-      "A form that creates a scheduled maintenance event must ask for Starts At. A form that creates a scheduled maintenance event must ask for Ends At.",
+      "A form that creates a maintenance event must ask for Starts At. A form that creates a maintenance event must ask for Ends At.",
     );
   });
 
@@ -573,7 +573,7 @@ describe("FormService.onBeforeUpdate", () => {
     );
 
     expect(error?.message).toContain(
-      "is linked to a field a scheduled maintenance event does not have",
+      "is linked to a field a maintenance event does not have",
     );
   });
 
@@ -604,7 +604,7 @@ describe("FormService.onBeforeUpdate", () => {
     );
 
     expect(error?.message).toContain(
-      '"incidentSeverityId" is not a setting of forms that create a scheduled maintenance event.',
+      '"incidentSeverityId" is not a setting of forms that create a maintenance event.',
     );
   });
 

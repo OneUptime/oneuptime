@@ -153,8 +153,10 @@ describe("query_monitors and archived monitors", () => {
 
     const query: JSONObject = firstCallArg(findBy)["query"] as JSONObject;
     expect(query["isArchived"]).toBe(false);
+    // Its status asked in the run's project (issue #8096).
     expect(query["currentMonitorStatus"]).toEqual({
       isOperationalState: false,
+      projectId: ctx.projectId,
     });
     // Nor one whose monitoring is off: its status is stale (#6400).
     expect(query["disableActiveMonitoring"]).toBe(false);

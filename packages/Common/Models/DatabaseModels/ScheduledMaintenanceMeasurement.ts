@@ -72,7 +72,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Scheduled Maintenance Measurements",
   icon: IconProp.Clock,
   tableDescription:
-    "A named duration between two points in a scheduled maintenance event's life, computed automatically for every event",
+    "A named duration between two points in a maintenance event's life, computed automatically for every event",
 })
 export default class ScheduledMaintenanceMeasurement extends BaseModel {
   @ColumnAccessControl({
@@ -715,7 +715,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Unit",
     description:
-      "The unit this measurement's charts are in: seconds (the default), minutes, hours or days. Every value is worked out in seconds and stored that way on the scheduled maintenance event; each chart point is written in this unit, so a chart in hours reads 1.5 for an hour and a half. With seconds, charts show seconds, minutes, hours or days as the numbers grow. Changing it rewrites the measurement's chart points in the new unit. A value that is not a time unit charts in seconds.",
+      "The unit this measurement's charts are in: seconds (the default), minutes, hours or days. Every value is worked out in seconds and stored that way on the maintenance event; each chart point is written in this unit, so a chart in hours reads 1.5 for an hour and a half. With seconds, charts show seconds, minutes, hours or days as the numbers grow. Changing it rewrites the measurement's chart points in the new unit. A value that is not a time unit charts in seconds.",
     defaultValue: "seconds",
     isDefaultValueColumn: true,
   })
@@ -755,7 +755,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     allowedValues: Object.values(MeasurementAggregationType),
     title: "Aggregation Type",
     description:
-      "How this measurement's chart sums up many scheduled maintenance events by default - Avg (the default), P50, P90, P95, P99, Max or Min. View Chart in the dashboard opens the chart this way. Sum is deliberately absent: adding durations up across scheduled maintenance events produces a number with no meaning.",
+      "How this measurement's chart sums up many maintenance events by default - Avg (the default), P50, P90, P95, P99, Max or Min. View Chart in the dashboard opens the chart this way. Sum is deliberately absent: adding durations up across maintenance events produces a number with no meaning.",
     defaultValue: MeasurementAggregationType.Avg,
     isDefaultValueColumn: true,
   })
@@ -794,8 +794,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     title: "Is Enabled",
-    description:
-      "Whether this measurement is computed for scheduled maintenance events",
+    description: "Whether this measurement is computed for maintenance events",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -833,7 +832,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show on Scheduled Maintenance View",
     description:
-      "Whether this measurement is shown on the scheduled maintenance event page",
+      "Whether this measurement is shown on the maintenance event page",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -933,7 +932,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     type: TableColumnType.Date,
     title: "Backfill Requested At",
     description:
-      "When a backfill of this measurement over existing scheduled maintenance events was requested",
+      "When a backfill of this measurement over existing maintenance events was requested",
   })
   @Column({
     type: ColumnType.Date,
@@ -989,7 +988,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     type: TableColumnType.Date,
     title: "Backfill Completed At",
     description:
-      "When the backfill of this measurement over existing scheduled maintenance events finished",
+      "When the backfill of this measurement over existing maintenance events finished",
   })
   @Column({
     type: ColumnType.Date,

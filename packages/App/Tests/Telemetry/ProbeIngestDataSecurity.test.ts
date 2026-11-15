@@ -432,11 +432,15 @@ describe("POST /probe/data-security/work", () => {
   test("claims the authenticated probe's due stores in one self-committing statement", async () => {
     await call(WORK_URI, makeRequest({ body: CAPABLE }));
 
-    expect(
-      statements.map((statement: { sql: string }) => {
-        return statement.sql;
-      }),
-    ).toEqual([CLAIM_DUE_DATA_STORES_STATEMENT]);
+    /*
+     * The claim, then, in a statement of its own, the set-aside of the due
+     * stores it stepped over because nothing may scan them
+     * (Utils/Probe/ClaimSetAside).
+     */
+    expect(statements).toHaveLength(2);
+    expect(statements[0]!.sql).toBe(CLAIM_DUE_DATA_STORES_STATEMENT);
+    expect(statements[1]!.sql).toContain('"unclaimable" AS (');
+    expect(statements[1]!.parameters[0]).toBe(PROBE_ID.toString());
     expect(storeService.executeTransaction).not.toHaveBeenCalled();
 
     const select: { sql: string; parameters: Array<unknown> } = statements[0]!;

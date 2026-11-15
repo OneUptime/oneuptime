@@ -2812,7 +2812,7 @@ describe("Home Page & Shortcuts", () => {
 
     // The Not Operational list's own query (#6400).
     expect(counting).toContain(
-      "projectId: projectId, ...NotOperationalMonitorQuery.getQuery(),",
+      "projectId: projectId, ...NotOperationalMonitorQuery.getQuery(projectId),",
     );
     expect(NotOperationalMonitorQuery.getQuery()).toEqual({
       isArchived: false,

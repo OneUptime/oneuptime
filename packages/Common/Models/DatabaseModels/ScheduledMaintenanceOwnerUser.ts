@@ -71,7 +71,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Scheduled Maintenance User Owner",
   pluralName: "Scheduled Maintenance User Owners",
   icon: IconProp.Signal,
-  tableDescription: "Add users as owners to your scheduled maintenance event.",
+  tableDescription: "Add users as owners to your maintenance event.",
 })
 @Entity({
   name: "ScheduledMaintenanceOwnerUser",
@@ -79,7 +79,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["scheduledMaintenanceId", "userId", "projectId"], { unique: true })
 @UniqueColumnsTogether(
   ["scheduledMaintenanceId", "userId", "projectId"],
-  "This user is already an owner of this scheduled maintenance event.",
+  "This user is already an owner of this maintenance event.",
 )
 export default class ScheduledMaintenanceOwnerUser extends BaseModel {
   @ColumnAccessControl({
@@ -233,7 +233,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of the user who owns the scheduled maintenance event",
+    description: "ID of the user who owns the maintenance event",
     example: "8c1d3e5f-a7b9-4c2e-9d6f-1a2b3c4d5e6f",
   })
   @Column({
@@ -314,7 +314,7 @@ export default class ScheduledMaintenanceOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "ScheduledMaintenance ID",
-    description: "ID of the scheduled maintenance event the user owns",
+    description: "ID of the maintenance event the user owns",
     example: "4b6d8f0a-c2e4-6f8a-9c0d-1e2f3a4b5c6d",
   })
   @Column({

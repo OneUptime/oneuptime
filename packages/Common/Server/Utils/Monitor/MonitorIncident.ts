@@ -74,6 +74,7 @@ import CreatedNotificationHold, {
   OwnersAddedBy,
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
+import MonitorOpenRecords from "./MonitorOpenRecords";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -421,9 +422,17 @@ export default class MonitorIncident {
      * monitor page shows, long after the monitor log has aged out.
      */
     monitorSummary?: MonitorSummarySnapshot | null | undefined;
+    /*
+     * The same, built the first time an incident is really created, once for
+     * every record of the evaluation (MonitorResource): used when no
+     * monitorSummary is passed.
+     */
+    getMonitorSummary?:
+      | (() => Promise<MonitorSummarySnapshot | null>)
+      | undefined;
     /**
      * The evaluation details of the criteria this call acts on, built
-     * the first time a incident is really created
+     * the first time an incident is really created
      * (MonitorEvaluationDetailsCapture). Stored on every incident the
      * details describe: not on one series of a grouped metric criteria.
      */
@@ -978,7 +987,11 @@ export default class MonitorIncident {
            * is what keeps its Dates as Dates when the page reads it back.
            */
           const serializedMonitorSummary: JSONObject | null = toStorableJson(
-            MonitorSummarySnapshotUtil.serialize(input.monitorSummary),
+            MonitorSummarySnapshotUtil.serialize(
+              input.monitorSummary !== undefined
+                ? input.monitorSummary
+                : await input.getMonitorSummary?.(),
+            ),
           );
 
           if (serializedMonitorSummary) {
@@ -1182,6 +1195,16 @@ export default class MonitorIncident {
                 return IncidentService.create(createBy);
               },
             );
+
+            /*
+             * An open incident this monitor's criteria raised: what was known
+             * of its open incidents no longer counts, so the next result reads
+             * them - and resolves this one when it recovers
+             * (MonitorOpenRecords). IncidentService's own update hook says the same
+             * once the incident's state is set; this says it before anything
+             * else can go wrong.
+             */
+            await MonitorOpenRecords.forgetMonitors([input.monitor.id]);
 
             await OpenStackScopedRules.finishIncident({
               projectId: input.monitor.projectId!,

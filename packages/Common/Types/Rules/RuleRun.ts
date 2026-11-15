@@ -356,13 +356,13 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
   [RuleRunType.RunbookOwnerRule]: metadata(Owners, "runbook", "runbooks"),
   [RuleRunType.ScheduledMaintenanceLabelRule]: metadata(
     Labels,
-    "scheduled maintenance event",
-    "scheduled maintenance events",
+    "maintenance event",
+    "maintenance events",
   ),
   [RuleRunType.ScheduledMaintenanceOwnerRule]: metadata(
     Owners,
-    "scheduled maintenance event",
-    "scheduled maintenance events",
+    "maintenance event",
+    "maintenance events",
   ),
   [RuleRunType.ServerlessFunctionLabelRule]: metadata(
     Labels,

@@ -3,6 +3,7 @@ import {
   PROBE_NETWORK_DEVICE_POLL_CONCURRENCY,
 } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import PingMonitor, {
   DeviceReachabilityCheck,
 } from "../../Utils/Monitors/MonitorTypes/PingMonitor";
@@ -170,6 +171,12 @@ export async function fetchDeviceList(): Promise<Array<DevicePollConfig>> {
       headers: {},
       options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
     });
+
+  // Too busy to hand out devices now: they stay due for the next tick.
+  if (ServerBusy.isBusyAnswer(result)) {
+    ServerBusy.note("network devices");
+    return [];
+  }
 
   return (((result.data as JSONObject)?.["devices"] as JSONArray) || []).map(
     (device: JSONObject) => {

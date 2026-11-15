@@ -209,7 +209,7 @@ const DESCRIPTIONS: Record<string, string> = {
   [Permission.ScheduledMaintenanceAdmin]:
     "Does everything Scheduled Maintenance Member does, and also creates, changes and deletes maintenance states. Scheduled maintenance rules, custom fields and measurements take Project Admin.",
   [Permission.ScheduledMaintenanceMember]:
-    "Creates, changes and deletes scheduled maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates. Cannot change maintenance states.",
+    "Creates, changes and deletes maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates. Cannot change maintenance states.",
   [Permission.ScheduledMaintenanceViewer]:
     "Read-only access to scheduled maintenances and maintenance resources.",
   [Permission.TelemetryAdmin]:

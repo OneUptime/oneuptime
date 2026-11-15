@@ -2671,7 +2671,7 @@
   "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.",
   "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.": "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.",
   "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.": "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.",
-  "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.": "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.",
+  "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.": "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.",
   "Deleting an incident episode also deletes its notes and state timeline. Its incidents stay.": "Deleting an incident episode also deletes its notes and state timeline. Its incidents stay.",
   "Deleting an alert episode also deletes its notes and state timeline. Its alerts stay.": "Deleting an alert episode also deletes its notes and state timeline. Its alerts stay.",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "Deleting a monitor group takes it off status pages. Its monitors stay.",

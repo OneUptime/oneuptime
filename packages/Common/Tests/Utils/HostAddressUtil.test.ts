@@ -136,3 +136,42 @@ describe("HostAddressUtil.formatHostAndPort", () => {
     ).toBe(CUSTOMER_ADDRESS);
   });
 });
+
+/*
+ * HOST without its port (#7889). The ingress's scripts take it off by the
+ * same rule, and packages/Nginx/Tests/PrimaryServerName.test.js holds them to
+ * the same table.
+ */
+describe("HostAddressUtil.stripPort", () => {
+  test.each([
+    // An IPv6 address keeps its brackets, with a port and without one.
+    ["[::1]:8080", "[::1]"],
+    ["[::1]", "[::1]"],
+    [`[${CUSTOMER_ADDRESS}]:8443`, `[${CUSTOMER_ADDRESS}]`],
+    ["[2001:db8::1]", "[2001:db8::1]"],
+    // IPv4, a name and localhost, with a port and without one.
+    ["10.0.0.5:8080", "10.0.0.5"],
+    ["10.0.0.5", "10.0.0.5"],
+    ["oneuptime.example.com:8080", "oneuptime.example.com"],
+    ["oneuptime.example.com", "oneuptime.example.com"],
+    ["localhost:3000", "localhost"],
+    ["localhost", "localhost"],
+    ["", ""],
+  ])("%j is %j", (hostAndPort: string, host: string) => {
+    expect(HostAddressUtil.stripPort(hostAndPort)).toBe(host);
+  });
+
+  test("an IPv6 address without brackets has no port: every colon is its own", () => {
+    expect(HostAddressUtil.stripPort(CUSTOMER_ADDRESS)).toBe(CUSTOMER_ADDRESS);
+    expect(HostAddressUtil.stripPort("::1")).toBe("::1");
+  });
+
+  test("keeps the case and trims, as stripBrackets does", () => {
+    expect(HostAddressUtil.stripPort("  OneUptime.Example.com:8080\n")).toBe(
+      "OneUptime.Example.com",
+    );
+    expect(HostAddressUtil.stripPort("[2001:DB8::1]:8080")).toBe(
+      "[2001:DB8::1]",
+    );
+  });
+});

@@ -2,6 +2,7 @@ import { Host, ProvisionSsl } from "Common/Server/EnvironmentConfig";
 import AcmeCertificate from "Common/Models/DatabaseModels/AcmeCertificate";
 import AcmeCertificateService from "Common/Server/Services/AcmeCertificateService";
 import BasicCron from "Common/Server/Utils/BasicCron";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import Domain from "Common/Types/Domain";
@@ -27,8 +28,14 @@ export default class WriteServerCertToDiskJob {
           return;
         }
 
-        const normalizedHost: string = Host.trim().toLowerCase();
-        const hostnameOnly: string = normalizedHost.split(":")[0] || "";
+        /*
+         * HOST without its port, as the app orders the certificate for it
+         * (CoreSSL) and run.sh's PRIMARY_DOMAIN names its files: an IPv6
+         * address keeps its brackets.
+         */
+        const hostnameOnly: string = HostAddressUtil.stripPort(
+          Host.trim().toLowerCase(),
+        );
 
         if (!hostnameOnly) {
           logger.warn(

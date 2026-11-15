@@ -7,7 +7,7 @@ import DocsSearch, {
   DocsSearchResult,
 } from "../../../FeatureSet/Docs/Utils/DocsSearch";
 import { AIDocsLanguageIndex } from "../../../FeatureSet/Docs/Utils/AIDocsReader";
-import { makeDocsIndex } from "./DocsSearchHelpers";
+import { MadePage, makeDocsIndex } from "./DocsSearchHelpers";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -232,6 +232,39 @@ const alternativeTerms: (word: DocsQueryWord) => Array<string> = (
   });
 };
 
+const typedWords: (
+  index: AIDocsLanguageIndex,
+  query: string,
+) => Array<string> = (
+  index: AIDocsLanguageIndex,
+  query: string,
+): Array<string> => {
+  return DocsSearch.readQuery(index, query).map(
+    (word: DocsQueryWord): string => {
+      return word.typed;
+    },
+  );
+};
+
+/*
+ * German pages as the German docs write them: the reader is "Sie", so
+ * "ich" and "meine" are on the page named with them, not on the page a
+ * question with them asks about (#7874).
+ */
+const GERMAN_PAGES: Array<MadePage> = [
+  {
+    page: "monitor/website-monitor",
+    title: "Website-Überwachung",
+    summary:
+      "Überwachen Sie Ihre Website, und eine Warnung kommt, wenn sie ausfällt.",
+  },
+  {
+    page: "notifications/on-call-rules",
+    title: "Wie ich erreichbar bin",
+    summary: "Wie ich erreichbar bin, wenn meine Bereitschaft beginnt.",
+  },
+];
+
 describe("docs search finds the docs' word", () => {
   it("for a word with a wrong letter: escalaton is escalation", () => {
     const answer: DocsSearchAnswer = DocsSearch.rank(INDEX, "escalaton ");
@@ -339,6 +372,52 @@ describe("reading what was typed", () => {
     expect(urls(DocsSearch.rank(INDEX, "website zzqxv "))[0]).toBe(
       "/docs/en/monitor/website-monitor",
     );
+  });
+
+  it("leaves out the words a question is phrased with in the index's language, as Ask AI does (#7874)", () => {
+    const german: AIDocsLanguageIndex = makeDocsIndex(GERMAN_PAGES, "de");
+
+    expect(typedWords(german, "Wie überwache ich meine Website?")).toEqual([
+      "überwache",
+      "website",
+    ]);
+    expect(
+      urls(DocsSearch.rank(german, "Wie überwache ich meine Website?"))[0],
+    ).toBe("/docs/de/monitor/website-monitor");
+    // Only what was typed leaves them out: a page named with them is found by its name.
+    expect(typedWords(german, "Wie ich erreichbar bin")).toEqual([
+      "erreichbar",
+    ]);
+    expect(urls(DocsSearch.rank(german, "Wie ich erreichbar bin"))[0]).toBe(
+      "/docs/de/notifications/on-call-rules",
+    );
+  });
+
+  it("leaves out only the index language's question words: in English, German ones are words", () => {
+    const english: AIDocsLanguageIndex = makeDocsIndex(GERMAN_PAGES, "en");
+
+    expect(typedWords(english, "Wie ich erreichbar bin")).toEqual([
+      "wie",
+      "ich",
+      "erreichbar",
+      "bin",
+    ]);
+  });
+
+  it("reads question words typed with nothing else, which the index holds, and knows the word before one is done", () => {
+    const german: AIDocsLanguageIndex = makeDocsIndex(GERMAN_PAGES, "de");
+
+    // "ein" while "Einstellungen" is typed, or a page's name as it is typed.
+    expect(typedWords(german, "ein")).toEqual(["ein"]);
+    expect(DocsSearch.rank(german, "ein").results.length).toBeGreaterThan(0);
+    expect(typedWords(german, "Wie ich ")).toEqual(["wie", "ich"]);
+    expect(urls(DocsSearch.rank(german, "Wie ich "))[0]).toBe(
+      "/docs/de/notifications/on-call-rules",
+    );
+    // "Website" has a space after it: not the word being typed, so not read by its start.
+    expect(
+      alternativeTerms(DocsSearch.readQuery(german, "Website ich")[0]!),
+    ).toEqual(["websit"]);
   });
 
   it("reads Chinese and Japanese in pairs of characters", () => {
