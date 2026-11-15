@@ -56,7 +56,7 @@ No plano Free do OneUptime Cloud, os monitores são cobrados conforme o uso, ent
 
 ### Escolher quem é avisado
 
-Em **Quem deve ser avisado?**, você já está em **Quem é acionado**. Clique em **Salvar e continuar**: isso cria a `Default on-call policy`, que aciona você a cada novo incidente e a cada novo alerta do projeto, por e-mail para começar. Para acionar também membros da equipe que já estão no projeto, clique antes em **Adicionar membros da equipe**.
+Em **Quem deve ser avisado?**, você já está em **Quem é acionado**. Clique em **Salvar e continuar**: isso cria a **Política de plantão padrão**, que aciona você a cada novo incidente e a cada novo alerta do projeto, por e-mail para começar. Para acionar também membros da equipe que já estão no projeto, clique antes em **Adicionar membros da equipe**.
 
 ### Enviar um teste para você
 
@@ -69,7 +69,7 @@ Para verificar também uma API, e saber o que fazer quando a primeira verificaç
 
 ## Ser acionado quando cair
 
-A configuração do site já criou a `Default on-call policy`, que aciona você por e-mail a cada novo incidente e a cada novo alerta, então a lista marca **Configure uma política de plantão** como concluída. A configuração guiada dela ainda adiciona seu telefone, as pessoas acionadas com você e o que acontece quando ninguém responde.
+A configuração do site já criou a **Política de plantão padrão**, que aciona você por e-mail a cada novo incidente e a cada novo alerta, então a lista marca **Configure uma política de plantão** como concluída. A configuração guiada dela ainda adiciona seu telefone, as pessoas acionadas com você e o que acontece quando ninguém responde.
 
 :::steps
 ### Abrir a configuração de plantão
@@ -84,7 +84,7 @@ Em **Como devemos contatar você?**, seu e-mail de login já aparece. Para notif
 
 ### Escolher quem mais é acionado
 
-Em **Quem mais está de plantão?**, mantenha a `Default on-call policy` em **Política de plantão**. Para acionar membros da equipe com você, adicione-os em **Adicionar à primeira regra de escalonamento**. Clique em **Salvar e continuar**.
+Em **Quem mais está de plantão?**, mantenha a **Política de plantão padrão** em **Política de plantão**. Para acionar membros da equipe com você, adicione-os em **Adicionar à primeira regra de escalonamento**. Clique em **Salvar e continuar**.
 
 ### Decidir o que acontece se ninguém responder
 

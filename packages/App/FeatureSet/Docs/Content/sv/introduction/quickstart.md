@@ -56,7 +56,7 @@ På Free-planen i OneUptime Cloud faktureras monitorer efter användning, så pr
 
 ### Välj vem som får veta
 
-Under **Vem ska få veta?** står du redan i **Vem som larmas**. Klicka på **Spara och fortsätt**: det skapar `Default on-call policy`, som larmar dig vid varje ny incident och varje nytt larm i projektet, till att börja med via e-post. För att också larma teammedlemmar som redan finns i projektet klickar du först på **Lägg till teammedlemmar**.
+Under **Vem ska få veta?** står du redan i **Vem som larmas**. Klicka på **Spara och fortsätt**: det skapar **Standardjourpolicy**, som larmar dig vid varje ny incident och varje nytt larm i projektet, till att börja med via e-post. För att också larma teammedlemmar som redan finns i projektet klickar du först på **Lägg till teammedlemmar**.
 
 ### Skicka ett test till dig själv
 
@@ -69,7 +69,7 @@ För att också kontrollera ett API, och se vad du gör när den första kontrol
 
 ## Bli larmad när den går ner
 
-Installationen för webbplatsen har redan skapat `Default on-call policy`, som larmar dig via e-post vid varje ny incident och varje nytt larm, så checklistan bockar av **Konfigurera en jourpolicy** som klar. Dess guidade installation lägger ändå till din telefon, de personer som larmas med dig och vad som händer när ingen svarar.
+Installationen för webbplatsen har redan skapat **Standardjourpolicy**, som larmar dig via e-post vid varje ny incident och varje nytt larm, så checklistan bockar av **Konfigurera en jourpolicy** som klar. Dess guidade installation lägger ändå till din telefon, de personer som larmas med dig och vad som händer när ingen svarar.
 
 :::steps
 ### Öppna jourinstallationen
@@ -84,7 +84,7 @@ Under **Hur ska vi nå dig?** finns e-postadressen du loggar in med redan med. F
 
 ### Välj vem mer som larmas
 
-Under **Vem mer har jour?** behåller du `Default on-call policy` under **Jourpolicy**. För att larma teammedlemmar med dig lägger du till dem under **Lägg till i den första eskaleringsregeln**. Klicka på **Spara och fortsätt**.
+Under **Vem mer har jour?** behåller du **Standardjourpolicy** under **Jourpolicy**. För att larma teammedlemmar med dig lägger du till dem under **Lägg till i den första eskaleringsregeln**. Klicka på **Spara och fortsätt**.
 
 ### Bestäm vad som händer om ingen svarar
 
