@@ -1195,8 +1195,9 @@ describe("where alerts come from", () => {
 
     expect(alertModel).toContain('@CrudApiEndpoint(new Route("/alert"))');
     expect(alertModel).toContain('singularName: "Alert"');
+    // A record step's title is a sentence with the model's name in it (#8642).
     expect(workflowComponents).toContain(
-      "title: `Create One ${model.singularName}`",
+      'title: words(translationKey("Create One {{itemName}}"), false),',
     );
     expect(sources).toContain(
       "`/api/alert`, the `oneuptime_alert` Terraform resource, and a workflow's **Create One Alert** step.",
@@ -3103,10 +3104,14 @@ describe("alert rules and settings", () => {
       "On Create or Update",
       "On Delete",
     ]) {
-      expect(components).toContain(`${verb} \${model.singularName}`);
+      expect(components).toContain(
+        `title: words(translationKey("${verb} {{itemName}}"), false),`,
+      );
     }
 
-    expect(components).toContain("`Update One ${model.singularName}`");
+    expect(components).toContain(
+      'title: words(translationKey("Update One {{itemName}}"), false),',
+    );
     expect(section(page, "## Workflows")).toContain(
       "Alert custom field definitions are the one exception: they have no workflow triggers.",
     );

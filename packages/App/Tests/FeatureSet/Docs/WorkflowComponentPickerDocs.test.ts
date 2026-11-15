@@ -1,6 +1,7 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { pathWithArrows } from "./DocsPageShape";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -195,9 +196,13 @@ describe("docs for the Add Component and Add Trigger panels", () => {
   test.each(LANGUAGES)(
     "%s: the incident triggers are in the Add Trigger panel, under the Incident resource",
     (language: string) => {
+      // The trigger as the builder draws it (#8708).
       const line: string = lineWith(
         readPage(language, "incidents/settings.md"),
-        ["**On Create Incident**", "/dashboard/{projectId}/workflows"],
+        [
+          `**${drawnStepName(language, "On Create Incident")}**`,
+          "/dashboard/{projectId}/workflows",
+        ],
       );
 
       /*
