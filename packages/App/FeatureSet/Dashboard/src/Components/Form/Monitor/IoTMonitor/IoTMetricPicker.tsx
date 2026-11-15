@@ -9,6 +9,7 @@ import {
   getAllIoTMetricCategories,
   IoTMetricDefinition,
   IoTMetricCategory,
+  getIoTMetricCategoryLabel,
 } from "Common/Types/Monitor/IotMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -35,7 +36,8 @@ const IoTMetricPicker: FunctionComponent<ComponentProps> = (
       );
 
       return {
-        label: category,
+        // The group's heading, a key of the catalog's (#8353).
+        label: translator.translateText(getIoTMetricCategoryLabel(category)),
         options: categoryMetrics.map((m: IoTMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

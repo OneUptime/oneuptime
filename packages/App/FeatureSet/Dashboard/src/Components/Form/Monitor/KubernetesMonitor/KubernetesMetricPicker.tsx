@@ -37,7 +37,10 @@ const KubernetesMetricPicker: FunctionComponent<ComponentProps> = (
         });
 
       return {
-        label: getKubernetesMetricCategoryLabel(category),
+        // The group's heading, a key of the catalog's (#8353).
+        label: translator.translateText(
+          getKubernetesMetricCategoryLabel(category),
+        ),
         options: categoryMetrics.map((m: KubernetesMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

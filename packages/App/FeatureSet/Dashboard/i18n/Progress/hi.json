@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 8535
+    "keys": 54785,
+    "untranslated": 8478
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -146,6 +146,7 @@
     "VM 102 · pve2",
     "VM CPU",
     "VM CPU Ready",
+    "VM vSAN IOPS",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",

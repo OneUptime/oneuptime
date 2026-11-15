@@ -9,6 +9,7 @@ import {
   getAllDockerSwarmMetricCategories,
   DockerSwarmMetricDefinition,
   DockerSwarmMetricCategory,
+  getDockerSwarmMetricCategoryLabel,
 } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -36,7 +37,10 @@ const DockerSwarmMetricPicker: FunctionComponent<ComponentProps> = (
         });
 
       return {
-        label: category,
+        // The group's heading, a key of the catalog's (#8353).
+        label: translator.translateText(
+          getDockerSwarmMetricCategoryLabel(category),
+        ),
         options: categoryMetrics.map((m: DockerSwarmMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

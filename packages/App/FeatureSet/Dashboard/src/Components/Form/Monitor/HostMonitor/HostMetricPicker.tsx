@@ -9,6 +9,7 @@ import {
   getAllHostMetricCategories,
   HostMetricDefinition,
   HostMetricCategory,
+  getHostMetricCategoryLabel,
 } from "Common/Types/Monitor/HostMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -35,7 +36,8 @@ const HostMetricPicker: FunctionComponent<ComponentProps> = (
       );
 
       return {
-        label: category,
+        // The group's heading, a key of the catalog's (#8353).
+        label: translator.translateText(getHostMetricCategoryLabel(category)),
         options: categoryMetrics.map((m: HostMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

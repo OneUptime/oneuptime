@@ -9,6 +9,7 @@ import {
   getAllVMwareMetricCategories,
   VMwareMetricDefinition,
   VMwareMetricCategory,
+  getVMwareMetricCategoryLabel,
 } from "Common/Types/Monitor/VMwareMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -43,7 +44,8 @@ const VMwareMetricPicker: FunctionComponent<ComponentProps> = (
       );
 
       return {
-        label: category,
+        // The group's heading, a key of the catalog's (#8353).
+        label: translator.translateText(getVMwareMetricCategoryLabel(category)),
         options: categoryMetrics.map((m: VMwareMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,
