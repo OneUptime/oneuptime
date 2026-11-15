@@ -240,6 +240,33 @@ export class AggregationIntervalUtil {
   }
 
   /*
+   * The zone the buckets of an aggregate over this window ARE cut in, when
+   * they are days, weeks, months or years: the one it asked for
+   * (getTimezoneForWindow), in its current name, or UTC, where the server
+   * cuts them when a request names none. Undefined for an hour and
+   * shorter and for Total, which no zone moves.
+   *
+   * What an Ask AI chart records of its buckets (AIChatWidgetData
+   * .bucketTimezone, issue #8206), so whoever reads it later - a responder
+   * in another zone, an incident's evidence read anywhere - sees each
+   * bucket on the day it counted.
+   */
+  public static getCalendarBucketTimezone(data: {
+    startDate: Date;
+    endDate: Date;
+    aggregationInterval?: AggregationInterval | undefined;
+    timezone: Timezone | undefined;
+  }): Timezone | undefined {
+    if (!this.isCalendarInterval(this.getAggregationIntervalForWindow(data))) {
+      return undefined;
+    }
+
+    const asked: Timezone | undefined = this.getTimezoneForWindow(data);
+
+    return asked ? TimezoneAlias.getCanonicalTimezone(asked) : Timezone.UTC;
+  }
+
+  /*
    * The zone an aggregate over this window asks its buckets to follow: the
    * reader's (OneUptimeDate.getCurrentTimezone(), the zone User Settings
    * picked, or the browser's), when its buckets are days, weeks, months or
