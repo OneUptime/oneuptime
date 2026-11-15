@@ -45,7 +45,7 @@ La registrazione di un replay di sessione contiene il testo delle pagine che le 
 
 Il prompt di una chiamata IA porta con sé l'intera chat che precede il messaggio più recente della persona, quindi di ogni valore di una chiamata IA vengono letti fino a 16.384 caratteri. Quando le conversazioni IA contengono dati sensibili, ne seguono altre due cose: il provider di IA a cui sono andate le chiamate è un flusso di quei dati, e [Dati sensibili vengono inviati a un provider di IA](/docs/data-security/checks-and-issues#ia) non viene superato sull'archivio.
 
-Le conversazioni di uno [strumento di IA aziendale](/docs/telemetry/ai-company-tools) restano escluse. Solo i Project Owner e i Project Admin possono leggerle, e un risultato finisce dove lo legge chiunque legga Sicurezza dei dati, quindi gli span di quei servizi non vengono mai letti, e le loro conversazioni IA vengono indicate come non lette.
+Le conversazioni di uno [strumento di IA aziendale](/docs/telemetry/ai-company-tools) restano escluse. Solo i Proprietari del progetto e gli Amministratori del progetto possono leggerle, e un risultato finisce dove lo legge chiunque legga Sicurezza dei dati, quindi gli span di quei servizi non vengono mai letti, e le loro conversazioni IA vengono indicate come non lette.
 
 ## Come campiona una scansione
 
@@ -101,7 +101,7 @@ Alcuni risultati non possono essere ripuliti da una regola, e **Ripulisci** dice
 - Uno dei tuoi tipi di dati: aggiungi tu una regola di pulizia personalizzata con il suo pattern.
 - I dettagli propri di una sessione (`sessions.*`): l'ingestione dei replay di sessione non esegue regole di pulizia.
 
-**Ripulisci** crea la regola a tuo nome, con i tuoi permessi: possono premerlo i Project Owner e i Project Admin, e anche un team che può creare regole di pulizia dei log, e regole di pulizia delle tracce per span, eccezioni e chiamate IA.
+**Ripulisci** crea la regola a tuo nome, con i tuoi permessi: possono premerlo i Proprietari del progetto e gli Amministratori del progetto, e anche un team che può creare regole di pulizia dei log, e regole di pulizia delle tracce per span, eccezioni e chiamate IA.
 
 ## Cosa conta come ripulito
 

@@ -163,7 +163,7 @@ return { host };
 
 ## Quem pode configurar gatilhos
 
-Um agendamento ou um webhook inicia execuções sem ninguém presente, então configurar um exige permissão para editar o runbook e para executá-lo: Project Owner, Project Admin ou Runbook Admin, ou **Edit Runbook** junto com Project Member, Runbook Member ou **Create Runbook Execution**. Os rótulos aos quais uma função está limitada contam, como em **Executar agora**. Ver ou redefinir a URL do webhook exige o mesmo.
+Um agendamento ou um webhook inicia execuções sem ninguém presente, então configurar um exige permissão para editar o runbook e para executá-lo: Proprietário do projeto, Administrador do projeto ou Administrador de runbooks, ou **Edit Runbook** junto com Membro do projeto, Membro de runbooks ou **Create Runbook Execution**. Os rótulos aos quais uma função está limitada contam, como em **Executar agora**. Ver ou redefinir a URL do webhook exige o mesmo.
 
 Desativar um agendamento ou um webhook não inicia nada, então exige apenas permissão para editar o runbook. Quem pode editar o runbook mas não executá-lo vê a página **Gatilhos** com **Configurar agendamento** bloqueado, e fica sabendo quem pode ver a URL do webhook.
 
@@ -178,7 +178,7 @@ Uma execução ainda estava em andamento e o agendamento ignora esses horários,
 :::
 
 :::details Salvar um agendamento falha com "You do not have permission to set up this runbook's schedule or webhook."
-Configurar um gatilho exige permissão para executar o runbook, além de editá-lo. Peça Runbook Admin, ou Runbook Member ou **Create Runbook Execution** além de **Edit Runbook**.
+Configurar um gatilho exige permissão para executar o runbook, além de editá-lo. Peça a função Administrador de runbooks, ou a função Membro de runbooks ou **Create Runbook Execution** além de **Edit Runbook**.
 :::
 
 :::details Uma chamada recebe a resposta "No runbook webhook answers at this URL."

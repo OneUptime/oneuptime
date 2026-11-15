@@ -25,7 +25,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Um projeto do OneUptime e o direito de criar o que você traz.** Proprietários e administradores do projeto podem trazer tudo. Outros papéis também podem executar uma importação e trazer os tipos de registro que podem criar. O resto aparece como não trazido, com o motivo.
+- **Um projeto do OneUptime e o direito de criar o que você traz.** Proprietários do projeto e Administradores do projeto podem trazer tudo. Outros papéis também podem executar uma importação e trazer os tipos de registro que podem criar. O resto aparece como não trazido, com o motivo.
 - **Um token de API do Pingdom com Read access.** A importação nunca grava no Pingdom.
 - **Uma forma de pagamento, no OneUptime Cloud.** Monitores que fazem verificações são cobrados conforme o uso, mesmo no plano Free, então adicione uma em **Configurações do projeto** > **Cobrança e faturas** > **Cobrança** antes de importar. Sem ela, esses monitores aparecem como não trazidos.
 
@@ -78,7 +78,7 @@ Uma importação cria no máximo 2.000 registros, e no máximo 1.000 monitores. 
 
 No OneUptime Cloud, monitores que fazem verificações precisam de uma forma de pagamento, e o que não cabe no seu plano aparece como não trazido, com o que precisa.
 
-Uma pré-visualização é guardada por um dia. Só a pessoa que leu a conta pode marcar itens e iniciá-la. Proprietários e administradores do projeto veem o progresso e o relatório de cada importação.
+Uma pré-visualização é guardada por um dia. Só a pessoa que leu a conta pode marcar itens e iniciá-la. Proprietários do projeto e Administradores do projeto veem o progresso e o relatório de cada importação.
 
 ## Conclua a troca
 

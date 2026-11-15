@@ -23,7 +23,7 @@ A cada minuto, o OneUptime consulta cada conexão habilitada cujo intervalo de c
 
 ## Antes de começar
 
-- No OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
+- No OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança veem as conexões e o histórico de execuções delas, mas não podem alterá-las.
 - Um administrador do Okta que possa ver o System Log, para criar o token. Um token pode fazer o que o administrador dele pode, então use um Read-only Administrator: ele lê o System Log e não altera nada. Um administrador somente leitura também vê usuários, grupos, aplicativos e configurações, então guarde o token com o mesmo cuidado que uma senha.
 - Idealmente, uma conta de serviço para esse administrador. O Okta desativa um token quando o administrador dele é desativado, e quando ele passa 30 dias sem uso. A consulta o usa a cada poucos minutos, então ele continua em uso enquanto a conexão estiver habilitada.
 - Se a sua organização só aceita chamadas de API de uma zona de rede, uma zona que contenha os endereços de onde o OneUptime chama: no OneUptime Cloud, os endereços de saída dele, e em uma instalação auto-hospedada, o endereço público dos seus hosts do aplicativo e dos workers.

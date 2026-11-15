@@ -27,7 +27,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Uma função que possa criar modelos**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor Template. Alterar um modelo exige as mesmas funções, ou a permissão Edit Monitor Template.
+- **Uma função que possa criar modelos**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor Template. Alterar um modelo exige as mesmas funções, ou a permissão Edit Monitor Template.
 - **Permissão para atualizar os monitores vinculados.** Uma sincronização grava em cada monitor vinculado em seu nome, e ignora os monitores que as suas permissões não cobrem.
 
 ## Criar um modelo

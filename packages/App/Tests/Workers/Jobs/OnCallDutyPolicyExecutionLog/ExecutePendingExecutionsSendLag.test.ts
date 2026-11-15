@@ -323,6 +323,15 @@ beforeEach(() => {
       },
     );
 
+  // A move on's claim kept in flight is forgotten once it is done (issue #8410).
+  jest
+    .spyOn(GlobalCache, "deleteKey")
+    .mockImplementation(
+      async (namespace: string, key: string): Promise<void> => {
+        cache.delete(`${namespace}-${key}`);
+      },
+    );
+
   executionLogService.updateOneById.mockResolvedValue(undefined);
   executionLogService.claimEscalationAdvance.mockResolvedValue(true);
   incidentService.isIncidentAcknowledged.mockResolvedValue(false);

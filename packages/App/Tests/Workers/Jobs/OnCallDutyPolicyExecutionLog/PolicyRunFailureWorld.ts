@@ -79,6 +79,8 @@ export enum FailurePoint {
   ClaimStart = "ClaimStart",
   // The read of the incident's state, for the page of runs.
   ReadRecords = "ReadRecords",
+  // A move on's claim given back (giveBackEscalationAdvance).
+  GiveBackClaim = "GiveBackClaim",
 }
 
 interface PlannedFailure {
@@ -117,6 +119,16 @@ function isNullOperator(value: unknown): boolean {
     Boolean(value) &&
     typeof value === "object" &&
     (value as { type?: unknown }).type === "isNull"
+  );
+}
+
+// A TypeORM FindOperator for IS NOT NULL: Not(IsNull()).
+function isNotNullOperator(value: unknown): boolean {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    (value as { type?: unknown }).type === "not" &&
+    isNullOperator((value as { child?: unknown }).child)
   );
 }
 
@@ -377,6 +389,10 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
                   return actual === null || actual === undefined;
                 }
 
+                if (isNotNullOperator(expected)) {
+                  return actual !== null && actual !== undefined;
+                }
+
                 if (expected instanceof Date) {
                   return (
                     actual !== null &&
@@ -482,6 +498,33 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
         this.hit(FailurePoint.ClaimStart, args);
       },
     );
+
+    /*
+     * The real give-back, over the run table's own UPDATE: a planned
+     * failure is the database's, thrown to a caller that asks for it and
+     * swallowed otherwise, as the real one does.
+     */
+    const realGiveBack: AnyFunction =
+      OnCallDutyPolicyExecutionLogService.giveBackEscalationAdvance.bind(
+        OnCallDutyPolicyExecutionLogService,
+      );
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "giveBackEscalationAdvance")
+      .mockImplementation((async (data: { throwOnError?: boolean }) => {
+        try {
+          this.throwIfStopped();
+          this.hit(FailurePoint.GiveBackClaim, [data]);
+        } catch (err) {
+          if (data.throwOnError) {
+            throw err;
+          }
+
+          return false;
+        }
+
+        return await realGiveBack(data);
+      }) as never);
   }
 
   private wrap(

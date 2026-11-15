@@ -161,7 +161,7 @@ O **Tempo até a confirmação após o acionamento** conta a partir de **Alguém
 
 ### Participação em episódios
 
-**Alertas → Configurações → Participação em episódios** decide se um alerta pode estar em mais de um episódio. Ative **Um alerta só pode estar em um episódio** e um alerta que está em um episódio não é adicionado a nenhum outro, nem pelo painel, nem pela API, por um fluxo de trabalho ou por uma regra de agrupamento, até ser tirado desse episódio. Ele fica desativado até você ativá-lo, e só Project Owners e Project Admins podem alterá-lo. Ativá-lo não tira nenhum alerta de um episódio. Veja [Um só episódio por incidente](/docs/incidents/episodes#um-só-episódio-por-incidente), que funciona da mesma forma para alertas.
+**Alertas → Configurações → Participação em episódios** decide se um alerta pode estar em mais de um episódio. Ative **Um alerta só pode estar em um episódio** e um alerta que está em um episódio não é adicionado a nenhum outro, nem pelo painel, nem pela API, por um fluxo de trabalho ou por uma regra de agrupamento, até ser tirado desse episódio. Ele fica desativado até você ativá-lo, e só Proprietários do projeto e Administradores do projeto podem alterá-lo. Ativá-lo não tira nenhum alerta de um episódio. Veja [Um só episódio por incidente](/docs/incidents/episodes#um-só-episódio-por-incidente), que funciona da mesma forma para alertas.
 
 ### Numeração
 
@@ -171,7 +171,7 @@ O cartão **Próximo número** abaixo define o número que o próximo alerta e o
 
 ### Retenção de dados
 
-**Alertas → Configurações → Retenção de dados** exclui os alertas depois que estão resolvidos há tempo suficiente, como [Retenção de dados](/docs/incidents/settings#retenção-de-dados) faz com os incidentes. O cartão **Alertas resolvidos** pergunta **Excluir após**, **Nunca** até você escolher um período, e pede confirmação antes de excluir mais, com **Excluir alertas antigos**. Um alerta fica enquanto não estiver resolvido, enquanto estiver em um episódio ainda aberto ou resolvido há menos tempo, e enquanto ficar um incidente ao qual está vinculado. Só Project Owners e Project Admins podem alterá-la; na API, é `alertRetentionInDays` do projeto.
+**Alertas → Configurações → Retenção de dados** exclui os alertas depois que estão resolvidos há tempo suficiente, como [Retenção de dados](/docs/incidents/settings#retenção-de-dados) faz com os incidentes. O cartão **Alertas resolvidos** pergunta **Excluir após**, **Nunca** até você escolher um período, e pede confirmação antes de excluir mais, com **Excluir alertas antigos**. Um alerta fica enquanto não estiver resolvido, enquanto estiver em um episódio ainda aberto ou resolvido há menos tempo, e enquanto ficar um incidente ao qual está vinculado. Só Proprietários do projeto e Administradores do projeto podem alterá-la; na API, é `alertRetentionInDays` do projeto.
 
 > [!NOTE]
 > No OneUptime Cloud, os modelos de notas e os campos personalizados exigem o plano **Growth** ou superior.
@@ -182,7 +182,7 @@ Cada modelo de alerta tem gatilhos e ações de workflow com o seu nome: **On Cr
 
 ## Quem pode alterar isso
 
-Regras, campos personalizados e medições exigem um Project Owner ou Project Admin, ou uma função personalizada com a permissão própria dessa regra. **Membro de alertas** trabalha com alertas e episódios, suas notas, proprietários e linhas do tempo de estado, e com os modelos de notas, e **Administrador de alertas** também gerencia os estados e as gravidades de alertas. Veja [Usuários, equipes e permissões](/docs/permissions/index).
+Regras, campos personalizados e medições exigem um Proprietário do projeto ou Administrador do projeto, ou uma função personalizada com a permissão própria dessa regra. **Membro de alertas** trabalha com alertas e episódios, suas notas, proprietários e linhas do tempo de estado, e com os modelos de notas, e **Administrador de alertas** também gerencia os estados e as gravidades de alertas. Veja [Usuários, equipes e permissões](/docs/permissions/index).
 
 ## Próximos passos
 

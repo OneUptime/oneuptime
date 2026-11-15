@@ -1092,7 +1092,7 @@ Como a marcação alcança cada serviço por onde uma requisição do navegador 
 
 ## Quem pode assistir a uma gravação
 
-Assistir a uma gravação é uma permissão separada de listar sessões, e nenhuma das duas é concedida pela função Viewer do projeto inteiro. Os proprietários e administradores do projeto têm todas elas.
+Assistir a uma gravação é uma permissão separada de listar sessões, e nenhuma das duas é concedida pela função Visualizador do projeto inteiro. Os proprietários e administradores do projeto têm todas elas.
 
 | Permissão | Libera |
 | --- | --- |

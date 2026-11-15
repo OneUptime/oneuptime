@@ -19,7 +19,7 @@ Ogni ruolo e ogni autorizzazione ha una riga con queste colonne:
 
 ## Ruoli
 
-{{PERMISSION_ROLE_COUNT}} ruoli. Quattro valgono per l'intero progetto: Project Owner, Project Admin, Project Member e Viewer. Ciascuno degli altri copre un'area del prodotto, come gli incidenti o i monitor, a livello Admin, Member o Viewer. Sono questi i ruoli che offre **Aggiungi ruolo** nella pagina **Autorizzazioni** di un team e nella pagina di una chiave API.
+{{PERMISSION_ROLE_COUNT}} ruoli. Quattro valgono per l'intero progetto: Proprietario del progetto, Amministratore del progetto, Membro del progetto e Visualizzatore. Ciascuno degli altri copre un'area del prodotto, come gli incidenti o i monitor, a livello Amministratore, Membro o Visualizzatore. Sono questi i ruoli che offre **Aggiungi ruolo** nella pagina **Autorizzazioni** di un team e nella pagina di una chiave API.
 
 {{PERMISSION_ROLE_TABLES}}
 

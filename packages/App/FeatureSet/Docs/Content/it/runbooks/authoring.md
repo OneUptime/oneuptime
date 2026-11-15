@@ -11,9 +11,9 @@ Un runbook si scrive come elenco ordinato di passaggi nella sua pagina **Passagg
 
 ## Prima di iniziare
 
-- **Un ruolo che scrive runbook.** Project Owner, Project Admin e Runbook Admin creano runbook e ne salvano i passaggi. Con autorizzazioni granulari ti servono **Create Runbook** e **Edit Runbook**. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
+- **Un ruolo che scrive runbook.** Proprietario del progetto, Amministratore del progetto e Amministratore dei runbook creano runbook e ne salvano i passaggi. Con autorizzazioni granulari ti servono **Create Runbook** e **Edit Runbook**. Vedi [Autorizzazioni](/docs/runbooks/configuration#autorizzazioni).
 - **Un Runner, per i passaggi Bash, SSH e kubectl.** Questi passaggi vengono eseguiti su un [Runner](/docs/runbooks/agents) nella tua infrastruttura, mai sul Worker di OneUptime. Installane uno prima. Un passaggio che non sceglie alcun Runner viene eseguito sul [Runner predefinito del progetto](/docs/runbooks/agents#il-runner-predefinito-del-progetto), se ne hai impostato uno; altrimenti un passaggio JavaScript viene eseguito su un [Runner globale](/docs/runbooks/agents#runner-globali).
-- **Una variabile segreta, per i passaggi SSH e kubectl.** La chiave, la password o il kubeconfig con cui un passaggio accede è una [variabile di runbook](/docs/runbooks/variables) segreta. Project Owner e Project Admin creano le variabili, e Runbook Admin le sceglie nei passaggi che scrive. Un passaggio kubectl può usare invece l'accesso proprio del Runner.
+- **Una variabile segreta, per i passaggi SSH e kubectl.** La chiave, la password o il kubeconfig con cui un passaggio accede è una [variabile di runbook](/docs/runbooks/variables) segreta. Proprietario del progetto e Amministratore del progetto creano le variabili, e Amministratore dei runbook le sceglie nei passaggi che scrive. Un passaggio kubectl può usare invece l'accesso proprio del Runner.
 - **Un provider LLM, per i passaggi IA.** Vedi [Provider LLM](/docs/ai/llm-provider).
 
 ## Creare un runbook

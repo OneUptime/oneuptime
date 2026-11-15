@@ -24,7 +24,7 @@ flowchart TB
 ## Antes de começar
 
 - **Métricas chegando.** Envie-as com [OpenTelemetry](/docs/telemetry/open-telemetry), ou de um agente como o [coletor OpenTelemetry para hosts](/docs/telemetry/host-otel-collector).
-- **Uma função que possa ler métricas.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou uma função personalizada com a permissão Read Metrics. Uma função limitada a alguns serviços lê só as métricas deles.
+- **Uma função que possa ler métricas.** Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador, Administrador de telemetria, Membro de telemetria ou Visualizador de telemetria, ou uma função personalizada com a permissão Read Metrics. Uma função limitada a alguns serviços lê só as métricas deles.
 - **Para o Grafana ou um script: uma chave de API do projeto** com uma dessas funções ou com a permissão Read Metrics. Veja [Criar uma chave de API](/docs/api-reference/api-reference#criar-uma-chave-de-api). No OneUptime Cloud, as chaves de API precisam do plano **Growth**.
 
 ## Escrever uma consulta
