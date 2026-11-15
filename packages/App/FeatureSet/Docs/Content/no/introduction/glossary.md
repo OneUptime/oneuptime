@@ -384,7 +384,7 @@ Også kalt: **Oppgaver**. Se [Kode](/docs/ai/ai-agent).
 
 ### Skjema
 
-En side alle med lenken kan fylle ut, uten konto. Hver innsending oppretter en hendelse, for en problemrapport, eller en planlagt vedlikeholdshendelse, for en endringsforespørsel.
+En side alle med lenken kan fylle ut, uten konto. Hver innsending oppretter en hendelse, for en problemrapport, eller en vedlikeholdshendelse, for en endringsforespørsel.
 
 Se [Skjemaer – oversikt](/docs/forms/index).
 

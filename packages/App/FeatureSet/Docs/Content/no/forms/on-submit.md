@@ -4,7 +4,7 @@ Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendels
 
 :::cards
 - [Slik blir en innsending til en hendelse](#slik-blir-en-innsending-til-en-hendelse): Hvert felt på den nye hendelsen, og hvor verdien kommer fra.
-- [Slik blir en innsending til en planlagt vedlikeholdsbegivenhet](#slik-blir-en-innsending-til-en-planlagt-vedlikeholdsbegivenhet): Det samme, for en forespørsel om vedlikehold.
+- [Slik blir en innsending til en vedlikeholdshendelse](#slik-blir-en-innsending-til-en-vedlikeholdshendelse): Det samme, for en forespørsel om vedlikehold.
 - [Innstillingene Ved innsending](#innstillingene-ved-innsending): Standardverdier, hva som alltid knyttes til, eiere og publisering.
 - [Det private notatet](#det-private-notatet): Hvem som sendte det, og svarene som ikke står i noe felt.
 :::
@@ -92,7 +92,7 @@ Slå på **Synlig på statussiden** fra hendelsens side **Innstillinger**.
 Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sender publisering ikke varselet "hendelse opprettet". For å gi abonnentene beskjed publiserer du et offentlig notat med **Varsle statussideabonnenter** krysset av — se [Publiser et offentlig notat](/docs/incidents/notes-owners-and-feed#publiser-et-offentlig-notat).
 :::
 
-## Slik blir en innsending til en planlagt vedlikeholdsbegivenhet
+## Slik blir en innsending til en vedlikeholdshendelse
 
 | Felt | Kommer fra |
 | --- | --- |

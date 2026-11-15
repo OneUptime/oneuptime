@@ -35,7 +35,7 @@ Når en regel udløses, sker følgende for hvert runbook, den nævner:
 1. Runbooket indlæses.
 2. Dets trin kopieres som et **øjebliksbillede** over på en ny runbook-udførelse.
 3. Udførelsen sættes i runbook-workerens kø.
-4. Udførelsen knyttes til kildeenheden: den vises på siden **Runbooks** for hændelsen, advarslen eller den planlagte vedligeholdelsesbegivenhed og på runbookets liste **Udførelser**.
+4. Udførelsen knyttes til kildeenheden: den vises på siden **Runbooks** for hændelsen, advarslen eller vedligeholdelseshændelsen og på runbookets liste **Udførelser**.
 
 Du kan se alle kørsler, startet af en regel eller ej, under **Runbooks → Udførelser**, filtreret efter status, runbook eller startdato.
 
@@ -72,12 +72,12 @@ Under **Runbooks** vælger du et eller flere **Driftsmanualer til at starte**. R
 
 ## Betingelser
 
-Hver betingelse sammenligner én ting ved hændelsen, advarslen eller den planlagte vedligeholdelsesbegivenhed med en værdi, du angiver. En runbook-regel tilbyder de samme kriterier som produktets andre regler: en runbook-regel for hændelser matcher på det samme som en privatlivs- eller vagtregel for hændelser.
+Hver betingelse sammenligner én ting ved hændelsen, advarslen eller vedligeholdelseshændelsen med en værdi, du angiver. En runbook-regel tilbyder de samme kriterier som produktets andre regler: en runbook-regel for hændelser matcher på det samme som en privatlivs- eller vagtregel for hændelser.
 
 | Kriterium | Hvad det kontrollerer |
 | --- | --- |
-| **Monitorer** | De monitorer, hændelsen eller den planlagte vedligeholdelsesbegivenhed berører, eller den monitor, der udløste advarslen. |
-| **Alvorlighedsgrader for hændelser** / **Alvorlighedsgrader for advarsler** | Hændelsens eller advarslens alvorlighed. Planlagte vedligeholdelsesbegivenheder har ingen alvorlighed, så deres regler tilbyder det ikke. |
+| **Monitorer** | De monitorer, hændelsen eller vedligeholdelseshændelsen berører, eller den monitor, der udløste advarslen. |
+| **Alvorlighedsgrader for hændelser** / **Alvorlighedsgrader for advarsler** | Hændelsens eller advarslens alvorlighed. Vedligeholdelseshændelser har ingen alvorlighed, så deres regler tilbyder det ikke. |
 | **Hændelsesetiketter** / **Advarselsmærkater** / **Begivenhedsetiketter** | Etiketterne på selve hændelsen, advarslen eller begivenheden, inklusive dem, etiketregler tilføjede ved oprettelsen. |
 | **Overvågningsetiketter** | Etiketterne på dens monitorer. Giv dine monitorer etiketten `production` eller `staging` for kun at køre et runbook i ét miljø. |
 | **Hændelsestitel** / **Advarselstitel** / **Begivenhedstitel** | Dens titel. |

@@ -384,7 +384,7 @@ Også kaldet: **Opgaver**. Se [Kode](/docs/ai/ai-agent).
 
 ### Formular
 
-En side, som alle med linket kan udfylde, uden en konto. Hver indsendelse opretter en hændelse, for en problemrapport, eller en planlagt vedligeholdelsesbegivenhed, for en ændringsanmodning.
+En side, som alle med linket kan udfylde, uden en konto. Hver indsendelse opretter en hændelse, for en problemrapport, eller en vedligeholdelseshændelse, for en ændringsanmodning.
 
 Se [Formularer – overblik](/docs/forms/index).
 

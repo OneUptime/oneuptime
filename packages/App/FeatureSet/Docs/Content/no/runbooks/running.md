@@ -39,9 +39,9 @@ En ny kjøring er **Planlagt** til en Worker tar den og markerer den som **Kjør
 
 Det finnes fem måter en runbook-kjøring opprettes på:
 
-1. **Automatisk via en regel**: en [runbook-regel](/docs/runbooks/rules) starter den når en hendelse, et varsel eller en planlagt vedlikeholdshendelse som treffer, opprettes. En AI-regel kan også starte en; se [AI SRE](/docs/ai/ai-sre).
-2. **Manuelt fra en begivenhet**: klikk **Kjør runbook** på en hendelse, et varsel eller en planlagt vedlikeholdshendelse. Kjøringen knyttes til den begivenheten.
-3. **Manuelt fra runbookets side**: klikk **Kjør nå** på siden **Oversikt** for et runbook. Kjøringen knyttes ikke til noen hendelse, noe varsel eller noen planlagt vedlikeholdshendelse.
+1. **Automatisk via en regel**: en [runbook-regel](/docs/runbooks/rules) starter den når en hendelse, et varsel eller en vedlikeholdshendelse som treffer, opprettes. En AI-regel kan også starte en; se [AI SRE](/docs/ai/ai-sre).
+2. **Manuelt fra en begivenhet**: klikk **Kjør runbook** på en hendelse, et varsel eller en vedlikeholdshendelse. Kjøringen knyttes til den begivenheten.
+3. **Manuelt fra runbookets side**: klikk **Kjør nå** på siden **Oversikt** for et runbook. Kjøringen knyttes ikke til noen hendelse, noe varsel eller noen vedlikeholdshendelse.
 4. **Etter en tidsplan**: runbookets tidsplan starter den på faste tidspunkter. Se [Kjør etter en tidsplan](/docs/runbooks/triggers#kjør-etter-en-tidsplan).
 5. **Fra et annet verktøy**: en `POST` til runbookets webhook-URL starter den, med verdiene kallet sender. Se [Kall webhooken](/docs/runbooks/triggers#kall-webhooken).
 
@@ -49,7 +49,7 @@ Slik starter du en manuelt:
 
 :::tabs
 @tab Fra en begivenhet
-1. Åpne hendelsen, varselet eller den planlagte vedlikeholdshendelsen, og gå til siden **Runbooks**.
+1. Åpne hendelsen, varselet eller vedlikeholdshendelsen, og gå til siden **Runbooks**.
 2. Klikk **Kjør runbook**. Dialogen **Kjør en runbook** viser prosjektets runbooks som er slått på.
 3. Klikk **Kjør** ved runbooket. Kjøringen vises i begivenhetens liste: klikk **Vis** for å åpne den.
 @tab Fra runbooket

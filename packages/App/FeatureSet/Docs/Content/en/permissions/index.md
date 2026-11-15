@@ -173,7 +173,7 @@ A user's allow entries add up across all their teams, but a block applies to eve
 
 ### Changing a state
 
-An incident, an alert, an alert or incident episode and a scheduled maintenance event change state, and a monitor changes status, by a new row on their state timeline. **Acknowledge**, **Resolve**, **Change State**, the **State Timeline** page, the API and workflows all add one. Adding it takes the timeline's own create permission, with a permission to read the record it changes:
+An incident, an alert, an alert or incident episode and a maintenance event change state, and a monitor changes status, by a new row on their state timeline. **Acknowledge**, **Resolve**, **Change State**, the **State Timeline** page, the API and workflows all add one. Adding it takes the timeline's own create permission, with a permission to read the record it changes:
 
 | To change the state of | It takes |
 | --- | --- |
@@ -181,7 +181,7 @@ An incident, an alert, an alert or incident episode and a scheduled maintenance 
 | An alert | **Create Alert State Timeline** |
 | An alert episode | **Create Alert Episode State Timeline** |
 | An incident episode | **Create Incident Episode State Timeline** |
-| A scheduled maintenance event | **Create Scheduled Maintenance State Timeline** |
+| A maintenance event | **Create Scheduled Maintenance State Timeline** |
 | A monitor (its status) | **Create Monitor Status Timeline** |
 
 The record then takes the new state from OneUptime itself, with what goes with it, such as when an episode was resolved or when a maintenance event next reminds its subscribers. So a change does not also take a permission to edit the record: a custom role with **Create Incident State Timeline** but not **Edit Incident** changes an incident's state. To keep a team from changing states, block the timeline's create permission; a block on **Edit Incident** leaves state changes alone. Labels, owners and private records narrow the timeline's create permission as they narrow any other, through the record whose state it changes: see the scope rules below.
@@ -214,7 +214,7 @@ Some roles are project-wide by definition and do not offer a scope at all, becau
 
 ## Owners
 
-An owner is a user or a team attached to one specific resource. Most resources that represent something you operate — monitors, incidents, alerts, scheduled maintenance events, on-call policies, dashboards, services, status pages, workflows, runbooks and SLOs — have an **Owners** tab.
+An owner is a user or a team attached to one specific resource. Most resources that represent something you operate — monitors, incidents, alerts, maintenance events, on-call policies, dashboards, services, status pages, workflows, runbooks and SLOs — have an **Owners** tab.
 
 Owners do two jobs:
 

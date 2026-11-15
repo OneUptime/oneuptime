@@ -4160,7 +4160,7 @@ describe("postmortems of episodes", () => {
     );
   });
 
-  it("leave alerts and scheduled maintenance events with no postmortem", () => {
+  it("leave alerts and maintenance events with no postmortem", () => {
     expect(new Alert().getTableColumns().columns).not.toContain(
       "postmortemNote",
     );
@@ -4168,7 +4168,7 @@ describe("postmortems of episodes", () => {
       "postmortemNote",
     );
     expect(episodes).toContain(
-      "Alerts and scheduled maintenance events have no postmortem.",
+      "Alerts and maintenance events have no postmortem.",
     );
   });
 });

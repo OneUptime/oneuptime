@@ -1660,6 +1660,7 @@ function getSessionReplayCells(
             title={translator.translateTemplate("Watch session {{id}}", {
               id: row.sessionId.slice(0, 8),
             })}
+            isTitleTranslated={true}
           >
             <Icon icon={IconProp.Play} className="h-3.5 w-3.5" />
             <span data-testid="session-row-watch">
@@ -1678,6 +1679,7 @@ function getSessionReplayCells(
                 }),
               },
             )}
+            isTitleTranslated={true}
           >
             <span data-testid="session-row-signals-only">
               {translateLine("Signals only", translator)}

@@ -141,7 +141,7 @@ const SecurityCaseOverviewPage: FunctionComponent<
       <EventStatBar
         columns={4}
         isLaidOutByOwnWidth={true}
-        ariaLabel={translator.translateText("Case figures")}
+        ariaLabel="Case figures"
       >
         <EventStatTile
           variant="segment"

@@ -2,8 +2,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import { GENERATE_WITH_AI } from "./PostmortemEmptyState";
 
@@ -52,8 +51,6 @@ export const hasPostmortemMoreMenuItems: (data: {
 const PostmortemMoreMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   if (!hasPostmortemMoreMenuItems(props)) {
     return <></>;
   }
@@ -90,10 +87,7 @@ const PostmortemMoreMenu: FunctionComponent<ComponentProps> = (
 
   return (
     <CardMoreMenu
-      ariaLabel={
-        translator.translateText(POSTMORTEM_MORE_OPTIONS) ||
-        POSTMORTEM_MORE_OPTIONS
-      }
+      ariaLabel={POSTMORTEM_MORE_OPTIONS}
       dataTestId="postmortem-more-menu"
     >
       {items}

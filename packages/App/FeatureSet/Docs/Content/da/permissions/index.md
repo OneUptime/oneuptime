@@ -173,7 +173,7 @@ En brugers tilladte poster lægges sammen på tværs af alle brugerens teams, me
 
 ### Ændring af en tilstand
 
-En hændelse, en advarsel, en advarsels- eller hændelsesepisode og en planlagt vedligeholdelse skifter tilstand, og en monitor skifter status, med en ny række på deres tilstandstidslinje. **Bekræft**, **Løs**, **Skift tilstand**, siden **Tilstandstidslinje**, API'et og workflows tilføjer alle en. At tilføje den kræver tidslinjens egen oprettelsestilladelse sammen med en tilladelse til at læse den post, den ændrer:
+En hændelse, en advarsel, en advarsels- eller hændelsesepisode og en vedligeholdelseshændelse skifter tilstand, og en monitor skifter status, med en ny række på deres tilstandstidslinje. **Bekræft**, **Løs**, **Skift tilstand**, siden **Tilstandstidslinje**, API'et og workflows tilføjer alle en. At tilføje den kræver tidslinjens egen oprettelsestilladelse sammen med en tilladelse til at læse den post, den ændrer:
 
 | For at ændre tilstanden for | Kræves |
 | --- | --- |
@@ -181,7 +181,7 @@ En hændelse, en advarsel, en advarsels- eller hændelsesepisode og en planlagt 
 | En advarsel | **Create Alert State Timeline** |
 | En advarselsepisode | **Create Alert Episode State Timeline** |
 | En hændelsesepisode | **Create Incident Episode State Timeline** |
-| En planlagt vedligeholdelse | **Create Scheduled Maintenance State Timeline** |
+| En vedligeholdelseshændelse | **Create Scheduled Maintenance State Timeline** |
 | En monitor (dens status) | **Create Monitor Status Timeline** |
 
 Posten får derefter den nye tilstand fra OneUptime selv, med det, der følger med, som hvornår en episode blev løst, eller hvornår en vedligeholdelse næste gang minder sine abonnenter om den. En ændring kræver altså ikke også en tilladelse til at redigere posten: en brugerdefineret rolle med **Create Incident State Timeline**, men uden **Edit Incident**, ændrer en hændelses tilstand. Vil du forhindre et team i at ændre tilstande, så bloker tidslinjens oprettelsestilladelse; en blokering af **Edit Incident** lader tilstandsændringer være. Labels, ejere og private poster indsnævrer tidslinjens oprettelsestilladelse, som de indsnævrer enhver anden, gennem den post, hvis tilstand den ændrer: se reglerne for omfang nedenfor.
@@ -214,7 +214,7 @@ Nogle roller gælder per definition hele projektet og tilbyder slet ikke noget o
 
 ## Ejere
 
-En ejer er en bruger eller et team, der er knyttet til én bestemt ressource. De fleste ressourcer, der repræsenterer noget, du driver — monitorer, hændelser, advarsler, planlagte vedligeholdelser, vagtpolitikker, dashboards, tjenester, statussider, workflows, runbooks og SLO'er — har en fane **Ejere**.
+En ejer er en bruger eller et team, der er knyttet til én bestemt ressource. De fleste ressourcer, der repræsenterer noget, du driver — monitorer, hændelser, advarsler, vedligeholdelseshændelser, vagtpolitikker, dashboards, tjenester, statussider, workflows, runbooks og SLO'er — har en fane **Ejere**.
 
 Ejere har to opgaver:
 

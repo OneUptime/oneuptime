@@ -183,7 +183,7 @@ Alla maggior parte dei progetti basta un passaggio. Aggiungetene un altro quando
 - **Le modifiche contano subito.** Chi può approvare viene letto quando qualcuno decide, e le note già in attesa seguono le vostre modifiche. Quando aggiungete, eliminate o riordinate passaggi, o cambiate chi un passaggio nomina, chiunque ora possa approvare una nota in attesa e non sia ancora stato interpellato viene interpellato tramite le sue impostazioni di notifica, e così chi entra in un team che nomina il passaggio atteso da una nota. Nessuno viene interpellato due volte sullo stesso passaggio di una nota. Chi viene tolto dal passaggio, o dal suo team, non può più decidere sulla nota, e il suo messaggio che la riguarda in Slack, Microsoft Teams o Mattermost lo dice. Una nota conserva le approvazioni che ha.
 - **Nessuno approva la propria nota, né due passaggi della stessa nota.** Chi ha inviato una nota per l'approvazione non può approvarla né rifiutarla, e chi ha approvato uno dei suoi passaggi non può approvarne un altro.
 
-Solo i proprietari e gli amministratori del progetto possono modificare queste impostazioni, e tutti quelli che leggono le note vedono chi le approva. **Manutenzione programmata → Impostazioni → Approvazione delle note pubbliche** è la stessa pagina per gli eventi di manutenzione programmata, con un proprio interruttore e propri passaggi. Che cosa fa una nota mentre attende, e come decide chi approva, è spiegato in [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).
+Solo i proprietari e gli amministratori del progetto possono modificare queste impostazioni, e tutti quelli che leggono le note vedono chi le approva. **Manutenzione programmata → Impostazioni → Approvazione delle note pubbliche** è la stessa pagina per gli eventi di manutenzione, con un proprio interruttore e propri passaggi. Che cosa fa una nota mentre attende, e come decide chi approva, è spiegato in [Approvazione delle note pubbliche](/docs/incidents/notes-owners-and-feed#approvazione-delle-note-pubbliche).
 
 ## Notifiche agli iscritti
 
@@ -236,7 +236,7 @@ Ogni definizione ha:
 - **Includi nelle notifiche agli iscritti** — sotto **Altri campi**. Invia il campo e il suo valore agli iscritti della pagina di stato con i messaggi dell'incidente: l'e-mail, i messaggi Slack e Microsoft Teams e i webhook predefiniti, ma non gli SMS. Gli iscritti di solito sono esterni al vostro team, quindi attivatelo solo per campi che si possono condividere senza rischi. Vedete [Iscritti e annunci](/docs/status-pages/subscribers#incidenti).
 - **Variabile del modello** — la chiave con cui un modello raggiunge il campo, `{{incident.customFields.<key>}}`, nei modelli di note e nei modelli personalizzati di notifica agli iscritti. Viene ricavata dal nome del campo quando il campo viene creato — lettere minuscole, cifre e trattini bassi, così `Expected Resolution` diventa `expected_resolution`, con `_2`, `_3` e così via aggiunti quando un altro campo ha già la chiave — e non cambia quando il campo viene rinominato. Nessuno la imposta a mano: l'API ignora un valore inviato per essa. I modelli scritti con il vecchio `{{customFields.<key>}}` continuano a funzionare. Non dovete mai cercarla: gli editor che la inseriscono — la **Nota** di un modello di nota e i modelli personalizzati di notifica agli iscritti di una pagina di stato per gli eventi degli incidenti — elencano la variabile di ogni campo sotto **Variabili del modello**, con il nome del campo. Anche il modulo **Modifica** di un campo la mostra, in sola lettura, in fondo ad **Altri campi**, con un pulsante che la copia.
 
-**Ordine**, **Mostra alla creazione**, **Obbligatorio alla creazione**, **Includi nelle notifiche agli iscritti** e **Variabile del modello** esistono solo sui campi personalizzati degli incidenti. I campi personalizzati di monitor, avvisi, eventi di manutenzione programmata e delle altre risorse non li hanno.
+**Ordine**, **Mostra alla creazione**, **Obbligatorio alla creazione**, **Includi nelle notifiche agli iscritti** e **Variabile del modello** esistono solo sui campi personalizzati degli incidenti. I campi personalizzati di monitor, avvisi, eventi di manutenzione e delle altre risorse non li hanno.
 
 Le definizioni vivono in un modello proprio; i valori vivono sull'incidente stesso, nella colonna `customFields`. Su un singolo incidente li compilate da **Campi personalizzati** nel menu laterale dell'incidente (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), dove i campi sono elencati nel loro **Ordine**. I modelli di incidente conservano valori per gli stessi campi nei propri `customFields`.
 
@@ -362,7 +362,7 @@ Al salvataggio, un'opzione rinominata e un valore per cui scegliete un'opzione v
 
 Un incidente il cui valore il suo campo non offre più mostra il valore, contrassegnato come _non è più un'opzione_, nella sua pagina **Campi personalizzati** e nell'elenco degli incidenti. Modificare gli altri suoi campi lo mantiene; scegliete un'altra opzione per cambiarlo.
 
-I campi personalizzati di ogni altra risorsa funzionano allo stesso modo: monitor, avvisi, eventi di manutenzione programmata, pagine di stato, policy di reperibilità, team, membri dei team ed elementi dell'inventario. Rinominare un'opzione di un campo del monitor, o aggiungerne una, fa lo stesso nei campi di incidenti, avvisi e manutenzioni programmate che lo copiano (vedete [Campi copiati da un monitor](#campi-copiati-da-un-monitor)), così continuano a offrire ogni valore che copiano.
+I campi personalizzati di ogni altra risorsa funzionano allo stesso modo: monitor, avvisi, eventi di manutenzione, pagine di stato, policy di reperibilità, team, membri dei team ed elementi dell'inventario. Rinominare un'opzione di un campo del monitor, o aggiungerne una, fa lo stesso nei campi di incidenti, avvisi e manutenzioni programmate che lo copiano (vedete [Campi copiati da un monitor](#campi-copiati-da-un-monitor)), così continuano a offrire ogni valore che copiano.
 
 Tramite l'API, inviate il nuovo elenco come `dropdownOptions`, e le ridenominazioni in `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Tempo fino al post-mortem"| postmortem["Il post-mortem viene pubblicato"]
 ```
 
-Avvisi ed eventi di manutenzione programmata hanno la stessa funzione, in **Avvisi → Impostazioni → Misurazioni** e **Manutenzione programmata → Impostazioni → Misurazioni**. Tutto ciò che segue vale per tutti e tre, ciascuno con i propri momenti.
+Avvisi ed eventi di manutenzione hanno la stessa funzione, in **Avvisi → Impostazioni → Misurazioni** e **Manutenzione programmata → Impostazioni → Misurazioni**. Tutto ciò che segue vale per tutti e tre, ciascuno con i propri momenti.
 
 ### Misurazioni pronte
 
@@ -477,7 +477,7 @@ La pagina di ogni incidente mostra le proprie misurazioni in una scheda **Misura
 
 Una misurazione di cui cambiate l'inizio o la fine continua a mostrare il suo vecchio valore su ogni incidente finché OneUptime non l'ha ricalcolata, come fa il suo grafico. Subito dopo un cambio di stato dall'intestazione dell'incidente, la scheda mostra i nuovi valori non appena OneUptime li ha calcolati, di solito subito.
 
-Avvisi ed eventi di manutenzione programmata hanno la stessa scheda sulle loro pagine. Per un evento di manutenzione, **Non raggiunto** arriva una volta che l'evento è terminato: quando è nello stato terminato o in quello completato, o in uno stato vostro posto dopo lo stato terminato. I suoi momenti seguono le stesse posizioni: **La manutenzione inizia**, **La manutenzione finisce** e **La manutenzione viene completata** sono i passaggi in uno stato in cui l'evento è in corso, finito o completato da uno in cui non lo era — quindi un evento completato direttamente dallo stato in corso finisce lì, un evento spostato dallo stato terminato direttamente in uno stato vostro posto dopo lo stato completato viene completato lì, e passare dallo stato completato a uno stato del genere non completa di nuovo nulla. Vedete [Eventi di manutenzione programmata](/docs/status-pages/subscribers#eventi-di-manutenzione-programmata). La scheda viene omessa quando nessuna misurazione abilitata ha **Mostra nelle pagine degli incidenti** attivo, e per chi non può leggere le misurazioni.
+Avvisi ed eventi di manutenzione hanno la stessa scheda sulle loro pagine. Per un evento di manutenzione, **Non raggiunto** arriva una volta che l'evento è terminato: quando è nello stato terminato o in quello completato, o in uno stato vostro posto dopo lo stato terminato. I suoi momenti seguono le stesse posizioni: **La manutenzione inizia**, **La manutenzione finisce** e **La manutenzione viene completata** sono i passaggi in uno stato in cui l'evento è in corso, finito o completato da uno in cui non lo era — quindi un evento completato direttamente dallo stato in corso finisce lì, un evento spostato dallo stato terminato direttamente in uno stato vostro posto dopo lo stato completato viene completato lì, e passare dallo stato completato a uno stato del genere non completa di nuovo nulla. Vedete [Eventi di manutenzione](/docs/status-pages/subscribers#eventi-di-manutenzione). La scheda viene omessa quando nessuna misurazione abilitata ha **Mostra nelle pagine degli incidenti** attivo, e per chi non può leggere le misurazioni.
 
 ### Inizio dell'impatto, e perché è vuoto
 
@@ -563,7 +563,7 @@ La finestra dice che cosa non va prima del salvataggio, e l'API rifiuta gli stes
 
 I Project Owners, i Project Admins e chiunque abbia **Edit Project** possono cambiare i prefissi. Tutti gli altri li vedono con il pulsante **Aggiorna** bloccato.
 
-Avvisi ed eventi di manutenzione programmata hanno la stessa pagina: **Avvisi → Impostazioni → Numerazione** per i numeri di avvisi ed episodi di avvisi (`ALT-` e `AE-` nei nuovi progetti), e **Manutenzione programmata → Impostazioni → Numerazione** per i numeri degli eventi (`SM-`). In tutti e tre, i vecchi indirizzi della pagina funzionano ancora e aprono **Numerazione**: **Altre impostazioni** (`…/settings/more`) e **Prefisso del numero** (`…/settings/number-prefix`).
+Avvisi ed eventi di manutenzione hanno la stessa pagina: **Avvisi → Impostazioni → Numerazione** per i numeri di avvisi ed episodi di avvisi (`ALT-` e `AE-` nei nuovi progetti), e **Manutenzione programmata → Impostazioni → Numerazione** per i numeri degli eventi (`SM-`). In tutti e tre, i vecchi indirizzi della pagina funzionano ancora e aprono **Numerazione**: **Altre impostazioni** (`…/settings/more`) e **Prefisso del numero** (`…/settings/number-prefix`).
 
 ## Numeri successivi
 
@@ -589,7 +589,7 @@ La finestra dice che cosa non va prima del salvataggio, e vengono salvati solo i
 
 I Project Owners, i Project Admins e chiunque abbia **Edit Project** possono cambiare i numeri successivi, come i prefissi. Tutti gli altri li vedono con il pulsante **Aggiorna** bloccato.
 
-Avvisi ed eventi di manutenzione programmata hanno la stessa scheda nelle loro pagine **Numerazione**: **Numero successivo dell'avviso** e **Numero successivo dell'episodio di avviso**, e **Numero successivo della manutenzione programmata**. [Importa da un altro strumento](/docs/moving-to-oneuptime/incident-io) porta la vostra configurazione, non i vostri incidenti passati, quindi lascia i numeri come sono: impostate i numeri successivi prima che in OneUptime venga dichiarato il primo incidente.
+Avvisi ed eventi di manutenzione hanno la stessa scheda nelle loro pagine **Numerazione**: **Numero successivo dell'avviso** e **Numero successivo dell'episodio di avviso**, e **Numero successivo della manutenzione programmata**. [Importa da un altro strumento](/docs/moving-to-oneuptime/incident-io) porta la vostra configurazione, non i vostri incidenti passati, quindi lascia i numeri come sono: impostate i numeri successivi prima che in OneUptime venga dichiarato il primo incidente.
 
 ## Interruttori degli avvisi collegati
 

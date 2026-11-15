@@ -172,7 +172,7 @@ En komponents status er den værdi, dens status på siden står for, så kriteri
 
 En ressource, siden viser som **Ikke overvåget**, tjekkes ikke af noget, så den tæller ikke med i nogen samlet status, ligesom på sidens eget banner. Når ingen af de komponenter, monitoren holder øje med, overvåges, og ingen af dem har en åben hændelse, er den samlede status `unknown`.
 
-Mens en igangværende planlagt vedligeholdelsesbegivenhed berører en ressource, fordi den nævner en af ressourcens monitorer eller en monitor i dens monitorgruppe, er komponenten `under_maintenance`, uanset hvilken status dens monitorer har: en monitor bliver ikke tjekket, mens en begivenhed holder den. En begivenhed, der endnu ikke er begyndt, eller som er slut, ændrer intet. Sidens aktive hændelser tæller for de ressourcer, de berører.
+Mens en igangværende vedligeholdelseshændelse berører en ressource, fordi den nævner en af ressourcens monitorer eller en monitor i dens monitorgruppe, er komponenten `under_maintenance`, uanset hvilken status dens monitorer har: en monitor bliver ikke tjekket, mens en begivenhed holder den. En begivenhed, der endnu ikke er begyndt, eller som er slut, ændrer intet. Sidens aktive hændelser tæller for de ressourcer, de berører.
 
 [Standardkriterierne](#standardkriterier) tager aldrig vedligeholdelse for et nedbrud: monitoren forbliver online under det andet projekts planlagte arbejde.
 
