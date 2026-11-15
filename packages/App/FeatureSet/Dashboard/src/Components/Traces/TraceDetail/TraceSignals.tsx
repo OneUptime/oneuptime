@@ -970,6 +970,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                                       "Open {{metric}} in the metric explorer over this trace's window",
                                       { metric: series.name },
                                     )}
+                                    isTitleTranslated={true}
                                   >
                                     {series.name}
                                   </Link>

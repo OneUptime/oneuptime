@@ -58,7 +58,6 @@ function facts(): PublicNoteApprovalMessageFacts {
     projectId: PROJECT_ID,
     recordLabel: "Incident INC-42",
     recordTitle: "Checkout is down",
-    recordNoun: "incident",
     notesUrl: "https://oneuptime.example/dashboard/p/incidents/i/public-notes",
     note: "We are looking into it.",
     isEdit: false,

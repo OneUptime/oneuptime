@@ -390,7 +390,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
                 </span>
               </span>
             }
-            ariaLabel={translator.translateText("Add context")}
+            ariaLabel="Add context"
           >
             <MoreMenuSection title="From you">
               {CODE_TASK_CONTEXT_MENU_ORDER.filter(

@@ -301,7 +301,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
           return option.value === rangeInDays;
         })}
         isClearable={false}
-        ariaLabel={translator.translateText("Range") || "Range"}
+        ariaLabel="Range"
         dataTestId="telemetry-usage-range"
         onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
           const days: number = Number(value);

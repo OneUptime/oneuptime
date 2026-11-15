@@ -844,6 +844,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                   value={pageSelection === PageSelectionState.All}
                   isIndeterminate={pageSelection === PageSelectionState.Some}
                   ariaLabel={pageBoxWords}
+                  isAriaLabelTranslated={true}
                   title={
                     shownSelection.length > 0 ? undefined : (
                       <span
@@ -973,6 +974,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                             ariaLabel={translateTemplate("Select {{name}}", {
                               name: bulk.itemToString(item),
                             })}
+                            isAriaLabelTranslated={true}
                             outerDivClassName="[&>div:last-child]:ml-0"
                             onChange={(value: boolean) => {
                               /*

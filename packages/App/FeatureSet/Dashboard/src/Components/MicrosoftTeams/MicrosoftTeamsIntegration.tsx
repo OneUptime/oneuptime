@@ -753,6 +753,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       ariaLabel={translator.translateTemplate(MANAGE_WORKSPACE_CONNECTION, {
         workspace: "Microsoft Teams",
       })}
+      isAriaLabelTranslated={true}
       dataTestId="microsoft-teams-project-actions"
     >
       {[

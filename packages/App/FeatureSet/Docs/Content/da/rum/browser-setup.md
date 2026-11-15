@@ -38,7 +38,7 @@ flowchart TB
 3. Klik på **Opret ingestion-nøgle**, og vælg **Browser** som **Nøgletype**.
 4. Angiv dine oprindelser under **Tilladte oprindelser** i trinnet **Browserindstillinger** som et JSON-array, for eksempel `["https://app.example.com"]`, og opret så nøglen. På OneUptime Clouds gratisplan viser et sidste trin **Fakturering** først prisen for telemetri.
 
-![Siden med telemetri-indtagelsesnøgler i projektindstillingerne](/docs/static/images/TelemetryIngestionKeys.png)
+![Listen »Indtagelsesnøgler«, med »Opret ingestion-nøgle« fremhævet](screen:ingestion-keys)
 
 Den nye nøgle åbner på sin egen side. Kopiér dens **Hemmelig nøgle**: Det er det token, SDK'et sender som `x-oneuptime-token`.
 
