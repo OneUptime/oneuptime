@@ -346,6 +346,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **On a narrow screen, columns fold under another column** the page names (`foldInto`): an
   incident's severity under its state. Enforced by
   [TableFoldIntoGuard](../../packages/App/Tests/Dashboard/TableFoldIntoGuard.test.ts).
+- **A column sorts the whole list by what it shows.** A column that shows one related record sorts by
+  it: a severity, a state or a monitor status by its place in the project's list, worst first
+  descending, where its first click goes (as the dashboard's list widgets sort it); anything else by
+  the name it shows. A column of many records (labels, owners) does not sort (#8134). Enforced by
+  [RelationColumnSort](../../packages/Common/Tests/UI/Components/ModelTable/RelationColumnSort.test.tsx).
 - **A column earns its place.** A column that tells the reader nothing they act on goes, as the Type
   column of workflow variables did. Enforced by
   [WorkflowVariableListsGuard](../../packages/Common/Tests/App/Dashboard/WorkflowVariableListsGuard.test.ts).
