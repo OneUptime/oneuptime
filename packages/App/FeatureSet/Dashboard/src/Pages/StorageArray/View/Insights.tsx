@@ -337,6 +337,7 @@ const StorageArrayInsights: FunctionComponent<
                 <span>{translator.translateText(section.title)}</span>
               </div>
             }
+            isTitleTranslated={true}
             description={section.description}
             queryConfigs={chartWordsInReadersLanguage(
               getInsightsQueries({

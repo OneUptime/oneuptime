@@ -93,6 +93,8 @@ Kies de regio's die gelezen moeten worden, geef de cloud een naam en klik op **C
 
 Het **Overzicht** van de cloud toont een kaart **Gegevensverzameling**. Die staat op **Bezig met controleren** tot de eerste verzameling, die binnen een minuut begint, daarna op **Wordt verzameld**, en de pagina's vullen zich. Als sommige services zijn gelezen en een andere niet, meldt de kaart welke. Als er 15 minuten lang geen sonde voor de cloud komt, omdat hij offline of te oud is, staat er **Wordt niet verzameld** en wordt dat gemeld, wat de laatste verzameling ook vond.
 
+Als geen enkele sonde de cloud mag verzamelen, staat er op de kaart meteen **Wordt niet verzameld**, met de reden en wat je moet aanpassen: er zijn geen inloggegevens opgeslagen, het adres van Keystone ontbreekt, er is geen sonde ingesteld om hem te verzamelen, zijn sonde mag hem niet verzamelen (een gedeelde sonde op OneUptime Cloud, of die van een ander project), of zijn sonde is losgekoppeld. **Volgende verzameling** is het tijdstip waarop een sonde hem de volgende keer verzamelt, **Nu aan de beurt** terwijl hij op een sonde wacht, **Te laat** zodra er 15 minuten lang geen is gekomen, en **Niet gepland** zolang geen enkele sonde hem mag verzamelen. Een gearchiveerde cloud wordt nog steeds verzameld.
+
 De kaart **Gegevensverzameling** op de pagina **Instellingen** van de cloud bevat waarmee u hem hebt verbonden:
 
 ![De kaart Gegevensverzameling op de pagina Instellingen van een cloud: het Keystone-adres, de sonde, de application credential waarmee hij zich aanmeldt, de regio's, het certificaat dat hij vertrouwt en hoe vaak hij verzamelt](/docs/static/images/OpenStackDataCollection.png)

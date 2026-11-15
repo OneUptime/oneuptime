@@ -92,6 +92,8 @@ Elke log wordt opgeslagen met een van zeven ernstniveaus. Bij logs van OpenTelem
 | **Fatal** | 21–24 |
 | **Niet gespecificeerd** | Al het andere |
 
+Een log zonder ernstnummer krijgt zijn ernst uit zijn ernsttekst, in hoofd- of kleine letters: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` en `FATAL`, hun genummerde stappen zoals `WARN2`, en spellingen zoals `warning`, `notice`, `critical` en `emerg`. Elke andere tekst laat de ernst ongespecificeerd.
+
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een logs-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.

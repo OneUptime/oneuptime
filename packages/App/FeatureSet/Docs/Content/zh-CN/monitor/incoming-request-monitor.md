@@ -14,6 +14,7 @@
 - [发送心跳](#发送心跳): 从 curl、cron、Node.js、Python 或 Go 发送。
 - [调用停止时告警](#10-分钟内没有心跳则标记为离线死人开关): 把监视器变成一个死人开关。
 - [接收告警](#接收来自其他系统的告警): Alertmanager 或 Grafana 的每条告警对应一个事件。
+- [订阅 SNS 或 Event Grid](#订阅-amazon-sns-或-azure-event-grid): 一键确认订阅。
 :::
 
 ## 工作原理
@@ -93,6 +94,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | --- | --- |
 | `application/json` | 解析后的 JSON。 |
 | `application/x-www-form-urlencoded` | 解析后的表单。带方括号的键会嵌套（`alerts[0][status]=firing`），每个值都是字符串。 |
+| `text/plain` | 文本是 JSON 对象或数组时，为解析后的 JSON：Amazon SNS 就是这样发送消息的。其他任何文本都视为空请求体。 |
 | 其他任何类型，或没有 | 空请求体（`{}`），因此对 `requestBody` 的任何引用都得不到值。 |
 
 最多接受 50 MB 的请求体；更大的会以 `413` 拒绝。不要用 `Content-Encoding: gzip` 压缩请求体：那样它不会以 JSON 形式保存，其中的路径也无法解析。
@@ -345,6 +347,40 @@ flowchart TB
 
 完整的 Alertmanager 配置请参阅 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。Grafana 请参阅 [Grafana](/docs/integrations/grafana)。
 
+## 订阅 Amazon SNS 或 Azure Event Grid
+
+在有人打开服务发送到新端点的链接、确认订阅之前，Amazon SNS 和 Azure Event Grid 不会向该端点发送任何内容。这个请求到达后，监视器 **概览** 上的 **监视器摘要** 卡片会显示服务在等待什么、主题，以及一个在新标签页中打开该链接的按钮。
+
+| 服务 | 请求 | 按钮 | 链接有效期 |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`，用于新的 HTTPS 订阅 | **确认订阅** | 2 天 |
+| Amazon SNS | `UnsubscribeConfirmation`，在订阅被删除时发送 | **恢复订阅** | 2 天 |
+| Azure Event Grid | `SubscriptionValidationEvent`，用于新的 Webhook 事件订阅 | **验证订阅** | 10 分钟 |
+
+即使你打开了链接，按钮也会一直保留，直到监视器收到下一个请求。链接过期后，卡片会改为说明如何获取新链接。如果之后又有新的请求到达，请打开 **监视日志**，在该请求所在的行上点击 **查看摘要**。
+
+链接及其中的令牌在请求被保留的所有地方都不会被遮盖：请求详情、日志，以及它打开的事件和告警。这个链接唯一能做的，就是开始向此监视器投递消息。只有指向服务自身地址的链接才算数：其他链接照常被遮盖，也不会显示按钮。
+
+### Amazon SNS
+
+:::steps
+1. 在 Amazon SNS 控制台中打开主题，选择 **Create subscription**。协议选择 `HTTPS`，端点填入监视器的 **Heartbeat URL**。
+2. 打开监视器的 **概览**，在 **监视器摘要** 卡片中点击 **确认订阅**。在 SNS 控制台中，该订阅的状态会从 **Pending confirmation** 变为已确认。
+:::
+
+SNS 以标记为 `text/plain` 的 JSON 发送消息，监视器会把它们当作 JSON 读取，因此条件、模板和事件分组都可以使用其中的字段，例如 `{{requestBody.Subject}}` 和 `{{requestBody.Message}}`。通知自身的 JSON（例如 CloudWatch 警报的 JSON）会以文本形式出现在 `Message` 中。
+
+如果卡片显示链接已无法打开，请在 SNS 控制台中选中该订阅并选择 **Request confirmation**。SNS 会删除 48 小时内未确认的订阅；如果发生这种情况，请重新创建订阅。
+
+### Azure Event Grid
+
+:::steps
+1. 在 Azure 门户中打开你想获取其事件的资源，添加一个事件订阅。事件架构选择 **Event Grid Schema**，端点类型选择 **Web Hook**，端点填入监视器的 **Heartbeat URL**。
+2. 在 10 分钟内打开监视器的 **概览**，并在 **监视器摘要** 卡片中点击 **验证订阅**。
+:::
+
+Event Grid 会验证这样的端点：它把验证码原样回传，或者它的所有者打开了 Event Grid 发送的链接。OneUptime 对每个请求都以空的 `200` 应答，因此只能通过链接来验证。该链接指向端口 553 上的 Event Grid，你浏览器前面的防火墙必须放行该端口。如果先过了 10 分钟，事件订阅就会失败：请重新创建它。
+
 ## 最佳实践
 
 1. **合理设置时间窗口** —— 如果你的 cron 作业每 5 分钟运行一次，就把 "在指定分钟内未收到" 阈值设为 10–15 分钟，以容忍偶尔的延迟，并把这个条件放在第一位。
@@ -364,11 +400,15 @@ flowchart TB
 :::
 
 :::details 请求主体过滤器从不匹配
-发送 `Content-Type: application/json`，并把值写成紧凑的 JSON：`"status":"firing"`，冒号后面没有空格。没有 JSON 或表单内容类型时，请求体不会被解析。
+发送 `Content-Type: application/json`，并把值写成紧凑的 JSON：`"status":"firing"`，冒号后面没有空格。没有 JSON 或表单内容类型时，请求体不会被解析：只有以 `text/plain` 发送的 JSON 例外。
 :::
 
 :::details “请求标头”过滤器从不匹配
 请求头的名称和值是整体比较的。请给出完整的值，例如 `application/json; charset=utf-8`，而不是其中一部分。
+:::
+
+:::details Amazon SNS 显示订阅正在等待确认
+在监视器 **概览** 上的 **监视器摘要** 卡片中点击 **确认订阅**。如果之后又有新的请求到达，请打开 **监视日志**，在该确认请求所在的行上点击 **查看摘要**。关闭 **保留请求内容** 时，监视器不保留请求体，因此也不会保留链接：在监视器的 **设置** 中打开它，最新的请求就会连同链接再次显示。
 :::
 
 :::details 发送方收到 500

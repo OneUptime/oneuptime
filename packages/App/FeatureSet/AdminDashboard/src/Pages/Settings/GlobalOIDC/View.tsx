@@ -63,6 +63,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
       modelType={GlobalOIDC}
       modelAPI={AdminModelAPI}
       title={t("pages.settings.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

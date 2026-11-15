@@ -130,7 +130,7 @@
     "title": "OneUptime 계정 만들기",
     "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
     "firstAccountSubtitle": "이 OneUptime 서버에는 아직 계정이 없습니다. 처음 만드는 계정이 이 서버의 관리자가 됩니다.",
-    "noCreditCard": "신용카드가 필요하지 않습니다.",
+    "noCreditCard": "가입에 신용카드가 필요하지 않습니다.",
     "submitButton": "가입하기",
     "haveAccountPrompt": "이미 계정이 있으신가요?",
     "loginLink": "로그인.",
@@ -631,5 +631,9 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "보낸 내용이 너무 커서 서버가 받아들이지 못해 작업을 마치지 못했습니다. 더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
+  "What was sent was too large for the server to accept.": "보낸 내용이 너무 커서 서버가 받아들이지 못했습니다.",
+  "Try again with less at once, such as a smaller file.": "더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime 앞에 있는 프록시가 거부했다면 그 프록시의 요청 크기 제한을 OneUptime 자체가 받는 만큼인 50 MB로 늘리세요(nginx에서는 client_max_body_size 50M)."
 }

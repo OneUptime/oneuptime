@@ -164,9 +164,11 @@ import {
   FINGERPRINT_BITS,
   FINGERPRINT_SLOTS,
 } from "Common/Server/Utils/DataSecurity/Fingerprint";
+import { DATA_STORE_CONTENT_SCAN_OVERDUE_AFTER_IN_MS } from "Common/Utils/DataSecurity/DataStoreContentScanSchedule";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnDashboardLabel } from "./DocsDashboardLabels";
 
 /*
  * The Data Security docs (Content/en/data-security), held to the product they
@@ -862,6 +864,103 @@ describe("Set Up Data Security", () => {
   });
 });
 
+/*
+ * A STORE'S NEXT CONTENT SCAN (#8331): what the store's Overview says about
+ * when its content is scanned next, by the words the Dashboard draws
+ * (StoreNextContentScan) and the hour its overdue waits
+ * (DATA_STORE_CONTENT_SCAN_OVERDUE_AFTER_IN_MS), in every docs language.
+ */
+describe("A store's Next Content Scan", () => {
+  const LABELS: ReadonlyArray<string> = [
+    "Overview",
+    "Next Content Scan",
+    "Due now",
+    "Overdue",
+    "Off",
+    "Scan Content",
+    "Not scanned",
+    "Waiting",
+    "Every hour",
+    "Scan Now",
+  ];
+
+  // The paragraph of a page that names the store's Next Content Scan.
+  function nextScanParagraph(lang: string): string {
+    const paragraph: string | undefined = readPage(lang, SETUP)
+      .split("\n\n")
+      .find((block: string): boolean => {
+        return block.includes(
+          `**${drawnDashboardLabel(lang, "Next Content Scan")}**`,
+        );
+      });
+
+    expect({ lang, found: paragraph !== undefined }).toEqual({
+      lang,
+      found: true,
+    });
+
+    return paragraph as string;
+  }
+
+  it("quotes the words the store's Overview draws", () => {
+    const words: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/StoreNextContentScan.tsx",
+    );
+    const overview: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Overview.tsx",
+    );
+
+    for (const key of ["Off", "Not scanned", "Waiting"]) {
+      expect(words).toContain(`translationKey("${key}")`);
+    }
+
+    for (const text of ["Due now", "Overdue", "Every hour"]) {
+      expect(words).toContain(`translateText("${text}")`);
+    }
+
+    expect(overview).toContain('title: "Next Content Scan"');
+    expect(overview).toContain('title: "Scan Now"');
+  });
+
+  it("says a store is overdue after the hour the page waits", () => {
+    expect(DATA_STORE_CONTENT_SCAN_OVERDUE_AFTER_IN_MS).toBe(60 * 60 * 1000);
+    expect(nextScanParagraph("en")).toContain(
+      "**Overdue** once it has been due for an hour",
+    );
+  });
+
+  it("says a scan under way keeps nothing once scanning is turned off, as each path asks again before it writes", () => {
+    expect(nextScanParagraph("en")).toContain(
+      "A scan under way when content scanning is turned off, or when the project is suspended, keeps nothing it found.",
+    );
+
+    // The probe's result route, the workers' scan and the telemetry scan.
+    expect(
+      source("App/FeatureSet/Telemetry/API/ProbeIngest/DataSecurity.ts"),
+    ).toContain("isDataStoreContentScannableByProbe(");
+    expect(
+      source(`${SERVER}/DataSecurityRunner.ts`).split(
+        "isDataStoreContentScannableByWorkers({",
+      ).length - 1,
+    ).toBe(2);
+  });
+
+  it.each(["en", ...TRANSLATED_LANGUAGES])(
+    "%s: names each of them as its Dashboard draws them",
+    (lang: string) => {
+      const paragraph: string = nextScanParagraph(lang);
+
+      for (const label of LABELS) {
+        expect({
+          lang,
+          label,
+          named: paragraph.includes(`**${drawnDashboardLabel(lang, label)}**`),
+        }).toEqual({ lang, label, named: true });
+      }
+    },
+  );
+});
+
 describe("Connect a Cloud Account's Data security section", () => {
   const cloudAccounts: string = readPage("en", "telemetry/cloud-accounts");
   const dataSecurity: string = section(cloudAccounts, "## Data security");
@@ -1364,7 +1463,9 @@ describe("Sensitive Data in Telemetry", () => {
     expect(page).toContain(
       "turn **Scan Content** off in that store's **Settings**: from the next scan, none of it is read.",
     );
-    expect(rule).toContain('`COALESCE(s."isTelemetryScanEnabled", true) = true`');
+    expect(rule).toContain(
+      '`COALESCE(s."isTelemetryScanEnabled", true) = true`',
+    );
     expect(rule).toContain('`ds."isContentScanEnabled" = true`');
     expect(settingDefault("Scan Telemetry")).toBe("true");
   });
