@@ -19,6 +19,7 @@ import HiddenProductsWithData from "../../App/FeatureSet/Dashboard/src/Component
 import ProductsSettings from "../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
 import { useDashboardNavigationItems } from "../../App/FeatureSet/Dashboard/src/Utils/NavigationItems";
 import en from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../SuiteHelpers/FixtureLocales";
 import {
   HeaderFixture,
   headerLanguage,
@@ -55,17 +56,15 @@ const LOCALE_LOADERS = {
     return import("../../App/FeatureSet/Dashboard/src/Locales/ar.json");
   },
 };
-const resources = { en: { translation: en } };
-if (LOCALE_LOADERS[language]) {
-  resources[language] = {
-    translation: (await LOCALE_LOADERS[language]()).default,
-  };
-}
 
 await i18n.use(initReactI18next).init({
   lng: language,
   fallbackLng: "en",
-  resources,
+  resources: await localeResources({
+    language,
+    english: en,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
 });
 /*

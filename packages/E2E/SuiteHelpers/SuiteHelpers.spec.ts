@@ -10,6 +10,13 @@ import {
   waitForFrames,
 } from "./DrawnBoxes";
 import { boxesInOneFrame, FrameBox } from "./Frames";
+import {
+  dashboardLocalesIn,
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+  LocaleWatch,
+  watchDashboardLocales,
+} from "./LocaleChunks";
 import { expectNoSidewaysScroll, sidewaysScrollOf } from "./PageFit";
 
 /*
@@ -904,5 +911,210 @@ test.describe("cardBodyMisfits", () => {
     );
 
     expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
+  });
+});
+
+/*
+ * watchDashboardLocales tells which of the Dashboard's locales a fixture's
+ * page loaded (#8366), from the line esbuild heads each module of an
+ * unminified bundle with ("// ../../App/FeatureSet/Dashboard/src/Locales/
+ * de.json"), in the entry and in every chunk. The pages are served here, at
+ * an address of their own: an entry, and the chunks the page asks for
+ * before it draws, as a fixture loads its language before it starts.
+ */
+test.describe("watchDashboardLocales", () => {
+  const HOST: string = "http://locale-chunks.test";
+  const localeModule: (language: string) => string = (
+    language: string,
+  ): string => {
+    return `// ../../App/FeatureSet/Dashboard/src/Locales/${language}.json\nvar ${language.replace("-", "_")}_default = { Save: "${language}" };\n`;
+  };
+  // A docs page's translations: a "de-<hash>.js" chunk too, and no locale.
+  const DOCS_CHUNK: string =
+    "// ../App/FeatureSet/Dashboard/src/Pages/Docker/DocumentationTranslations/de.ts\nexport default {};\n";
+
+  /*
+   * A page whose entry holds `entry`, and which loads `chunks` (by name)
+   * before it shows #ready, in the language ?lang= names.
+   */
+  const openPage: (
+    page: Page,
+    options: { entry: string; chunks: Record<string, string> },
+    query?: string,
+  ) => Promise<void> = async (
+    page: Page,
+    options: { entry: string; chunks: Record<string, string> },
+    query: string = "",
+  ): Promise<void> => {
+    await page.route(`${HOST}/**`, async (route: Route) => {
+      const url: URL = new URL(route.request().url());
+
+      if (url.pathname === "/dist/Fixture.js") {
+        await route.fulfill({
+          contentType: "text/javascript",
+          body: `${options.entry}\nexport const loaded = true;\n`,
+        });
+        return;
+      }
+
+      if (url.pathname.startsWith("/dist/")) {
+        const script: string | undefined =
+          options.chunks[url.pathname.slice("/dist/".length)];
+        await route.fulfill(
+          script === undefined
+            ? { status: 404, body: "" }
+            : { contentType: "text/javascript", body: script },
+        );
+        return;
+      }
+
+      const language: string = url.searchParams.get("lang") || "en";
+      const imports: string = Object.keys(options.chunks)
+        .map((name: string): string => {
+          return `await import("/dist/${name}");`;
+        })
+        .join("");
+      await route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><html lang="${language}"><head><meta charset="utf-8"></head><body><script type="module">await import("/dist/Fixture.js");${imports}document.body.insertAdjacentHTML("beforeend", '<p id="ready">${language}</p>');</script></body></html>`,
+      });
+    });
+    await page.goto(`${HOST}/page${query ? `?${query}` : ""}`);
+    await expect(page.locator("#ready")).toBeVisible();
+  };
+
+  test("reads the Dashboard's locale modules a script holds, at the head of a line, and nothing else", () => {
+    expect(
+      dashboardLocalesIn(
+        [
+          localeModule("en"),
+          "// ../../Common/UI/Utils/Translation.ts",
+          localeModule("de"),
+          DOCS_CHUNK,
+          'const note = "// ../App/FeatureSet/Dashboard/src/Locales/fa.json";',
+          "// ../App/FeatureSet/StatusPage/src/Locales/ja.json",
+          localeModule("zh-CN"),
+        ].join("\n"),
+      ),
+    ).toEqual(["en", "de", "zh-CN"]);
+    expect(dashboardLocalesIn("")).toEqual([]);
+  });
+
+  test("an English page whose entry holds English alone loaded no other language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const watch: LocaleWatch = watchDashboardLocales(page);
+
+    await openPage(page, { entry: localeModule("en"), chunks: {} });
+
+    expect(await watch.languages()).toEqual([]);
+    expect(await watch.scriptBytes()).toBeGreaterThan(0);
+  });
+
+  test("a German page loaded German's chunk, and a docs chunk named de- is no locale", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const watch: LocaleWatch = watchDashboardLocales(page);
+
+    await openPage(
+      page,
+      {
+        entry: localeModule("en"),
+        chunks: {
+          "de-ABC123.js": localeModule("de"),
+          "de-DOCS99.js": DOCS_CHUNK,
+        },
+      },
+      "lang=de",
+    );
+
+    expect(await watch.languages()).toEqual(["de"]);
+  });
+
+  test("an entry that holds German and Persian whole reads as both, on an English page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const watch: LocaleWatch = watchDashboardLocales(page);
+
+    await openPage(page, {
+      entry: [localeModule("en"), localeModule("de"), localeModule("fa")].join(
+        "\n",
+      ),
+      chunks: {},
+    });
+
+    expect(await watch.languages()).toEqual(["de", "fa"]);
+  });
+
+  test("expectPageLoadsOnlyItsLanguage passes a page that loads its own language, and fails one that loads another", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const check: {
+      address: (language: string) => string;
+      ready: (shown: Page) => Locator;
+    } = {
+      address: (language: string): string => {
+        return language === "en"
+          ? `${HOST}/page`
+          : `${HOST}/page?lang=${language}`;
+      },
+      ready: (shown: Page): Locator => {
+        return shown.locator("#ready");
+      },
+    };
+
+    await page.route(`${HOST}/**`, async (route: Route) => {
+      const url: URL = new URL(route.request().url());
+      const language: string = url.searchParams.get("lang") || "en";
+
+      if (url.pathname.startsWith("/dist/")) {
+        await route.fulfill({
+          contentType: "text/javascript",
+          body: localeModule(
+            url.pathname.slice("/dist/".length, -".js".length),
+          ),
+        });
+        return;
+      }
+
+      // A Persian page that loads German as well: the wrong chunk.
+      const chunks: Array<string> =
+        language === "en" ? [] : language === "fa" ? ["fa", "de"] : [language];
+      const imports: string = chunks
+        .map((code: string): string => {
+          return `await import("/dist/${code}.js");`;
+        })
+        .join("");
+      await route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><html lang="${language}"><head><meta charset="utf-8"></head><body><script type="module">${imports}document.body.insertAdjacentHTML("beforeend", '<p id="ready">ready</p>');</script></body></html>`,
+      });
+    });
+
+    await expectPageLoadsOnlyItsLanguage(page, check, "en");
+    await expectPageLoadsOnlyItsLanguage(page, check, "de");
+    await expect(
+      expectPageLoadsOnlyItsLanguage(page, check, "fa"),
+    ).rejects.toThrow(/the Dashboard locales a page in "fa" loaded/);
+  });
+
+  test("dashboardWord reads the Dashboard's words for a language, and English as it is", () => {
+    expect(dashboardWord("de", "More monitor types")).toBe(
+      "Weitere Monitortypen",
+    );
+    expect(dashboardWord("en", "More monitor types")).toBe(
+      "More monitor types",
+    );
+    expect(dashboardWord("de", "A sentence no locale holds, 8366")).toBe(
+      "A sentence no locale holds, 8366",
+    );
   });
 });
