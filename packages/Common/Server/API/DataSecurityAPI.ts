@@ -15,8 +15,8 @@ import OneUptimeDate from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
 import {
   CalendarDay,
-  calendarDaysBetween,
   findCalendarDay,
+  getLastCalendarDays,
 } from "../../Utils/SecurityCase/SecurityOverviewMetrics";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -1055,15 +1055,11 @@ export default class DataSecurityAPI extends BaseAPI<
      * a clock change on a server outside UTC (issue #8236).
      */
     const now: Date = OneUptimeDate.getCurrentDate();
-    const trendDays: Array<CalendarDay> = calendarDaysBetween(
-      OneUptimeDate.addRemoveDays(
-        now,
-        -(TREND_DAYS - 1),
-        timezone || Timezone.UTC,
-      ),
+    const trendDays: Array<CalendarDay> = getLastCalendarDays(
       now,
+      TREND_DAYS,
       timezone,
-    ).slice(-TREND_DAYS);
+    );
     // What the trend counts: from the start of its first day.
     const since: Date = new Date(trendDays[0]!.startMs);
     const issues: Array<DataSecurityIssue> =
