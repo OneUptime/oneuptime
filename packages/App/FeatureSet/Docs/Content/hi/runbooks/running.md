@@ -58,7 +58,7 @@ Runbook निष्पादन पाँच तरीकों से बन�
 3. निष्पादन पेज खुल जाता है।
 :::
 
-रन शुरू करने के लिए Project Owner, Project Admin, Project Member, Runbook Admin या Runbook Member, या **Create Runbook Execution** अनुमति चाहिए। Runbook Viewer और Viewer को **अभी चलाएँ** कारण के साथ लॉक दिखता है। [अनुमतियाँ](/docs/runbooks/configuration#अनुमतियाँ) देखें।
+रन शुरू करने के लिए प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, प्रोजेक्ट सदस्य, रनबुक एडमिन या रनबुक सदस्य, या **Create Runbook Execution** अनुमति चाहिए। रनबुक दर्शक और दर्शक को **अभी चलाएँ** कारण के साथ लॉक दिखता है। [अनुमतियाँ](/docs/runbooks/configuration#अनुमतियाँ) देखें।
 
 ## निष्पादन दृश्य
 
@@ -128,7 +128,7 @@ Runbook का **ऑडिट लॉग** पेज दर्ज करता �
 ## समस्या निवारण
 
 :::details Run Now लॉक है
-आपकी भूमिका Runbook पढ़ सकती है लेकिन उन्हें चला नहीं सकती: बटन कहता है "आपको इस प्रोजेक्ट में Runbook निष्पादन शुरू करने की अनुमति नहीं है।" Runbook Member भूमिका या **Create Runbook Execution** अनुमति माँगें।
+आपकी भूमिका Runbook पढ़ सकती है लेकिन उन्हें चला नहीं सकती: बटन कहता है "आपको इस प्रोजेक्ट में Runbook निष्पादन शुरू करने की अनुमति नहीं है।" रनबुक सदस्य भूमिका या **Create Runbook Execution** अनुमति माँगें।
 :::
 
 :::details रन शुरू करना "Runbook is disabled" या "Runbook has no steps to run" के साथ विफल होता है

@@ -66,10 +66,10 @@ Las listas de reproducción tienen sus propios permisos, que se obtienen a trav�
 
 | Para | Se necesita |
 | --- | --- |
-| Ver y reproducir listas de reproducción | `ReadDashboardPlaylist`, o un rol del proyecto: Project Owner, Project Admin, Project Member, Viewer o un rol Settings |
-| Crear listas de reproducción | `CreateDashboardPlaylist`, Project Owner o Project Admin |
-| Cambiar una lista: su nombre, sus paneles y su tiempo | `EditDashboardPlaylist`, Project Owner o Project Admin |
-| Eliminar una lista de reproducción | `DeleteDashboardPlaylist`, Project Owner o Project Admin |
+| Ver y reproducir listas de reproducción | `ReadDashboardPlaylist`, o un rol del proyecto: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor o un rol Settings |
+| Crear listas de reproducción | `CreateDashboardPlaylist`, Propietario del proyecto o Administrador del proyecto |
+| Cambiar una lista: su nombre, sus paneles y su tiempo | `EditDashboardPlaylist`, Propietario del proyecto o Administrador del proyecto |
+| Eliminar una lista de reproducción | `DeleteDashboardPlaylist`, Propietario del proyecto o Administrador del proyecto |
 
 Una lista de reproducción nunca muestra a nadie un panel que no pueda leer. El reproductor solo reproduce los paneles que la persona con la sesión iniciada en la pantalla puede leer y que no están archivados, y se salta el resto: un panel eliminado, uno archivado o uno que sus permisos le impiden ver. La página de la lista dice por qué se salta cada uno. Guardar una lista conserva los paneles que contiene y que el editor no puede ver, así que no se pierde nada de lo que otra persona puso en ella.
 
@@ -81,7 +81,7 @@ Una lista de reproducción nunca muestra a nadie un panel que no pueda leer. El 
 | Una lectura que falló | **No se pudo cargar esta lista de reproducción**, y vuelve a intentarlo cada minuto, o con **Volver a intentar**. |
 
 > [!NOTE]
-> El reproductor es para alguien con la sesión iniciada en OneUptime. Para tener una lista en una pantalla, inicia sesión en esa pantalla con una cuenta que pueda leer la lista y sus paneles, como un miembro del equipo con el rol Viewer.
+> El reproductor es para alguien con la sesión iniciada en OneUptime. Para tener una lista en una pantalla, inicia sesión en esa pantalla con una cuenta que pueda leer la lista y sus paneles, como un miembro del equipo con el rol Visor.
 
 ## Próximos pasos
 

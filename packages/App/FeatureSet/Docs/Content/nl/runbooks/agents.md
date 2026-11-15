@@ -88,7 +88,7 @@ Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `conf
 ## Voordat u begint
 
 - **Een host met Docker** in uw infrastructuur, die uw OneUptime-URL via HTTPS bereikt en de systemen waarop uw stappen werken.
-- **Een rol die Runners maakt.** Project Owner, Project Admin, Project Member en Runbook Admin kunnen er een maken. Alleen een Project Owner, Project Admin of Runbook Admin ziet de sleutel van een Runner, die in de installatieopdracht staat.
+- **Een rol die Runners maakt.** Projecteigenaar, Projectbeheerder, Projectlid en Runbookbeheerder kunnen er een maken. Alleen een Projecteigenaar, Projectbeheerder of Runbookbeheerder ziet de sleutel van een Runner, die in de installatieopdracht staat.
 
 ## Een Runner installeren
 
@@ -109,7 +109,7 @@ Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende hea
 
 Klik in de rij van de Runner op **Installatie-instructies weergeven**. Het dialoogvenster **Configuratie van runbook-agent** toont een `docker run`-opdracht met het ID en de sleutel van deze Runner al ingevuld. Dezelfde opdracht staat op de eigen pagina van de Runner, onder **Installatie-instructies**.
 
-Alleen een Project Owner, Project Admin of Runbook Admin kan de sleutel lezen. Anderen zien "U hebt geen toestemming om de sleutel van deze runbook-agent te bekijken" in plaats van de opdracht.
+Alleen een Projecteigenaar, Projectbeheerder of Runbookbeheerder kan de sleutel lezen. Anderen zien "U hebt geen toestemming om de sleutel van deze runbook-agent te bekijken" in plaats van de opdracht.
 
 ### 3. Hem draaien op een host in uw infrastructuur
 
@@ -293,7 +293,7 @@ Het beheer van agenten valt onder de bestaande machtigingsgroep Runbooks:
 
 Een runbook starten (en zo zijn stappen naar Runners sturen) vereist een rol die runbooks uitvoert — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` of `RunbookMember` — of `CreateRunbookExecution`; een uitvoering voltooien, overslaan of annuleren accepteert ook `EditRunbookExecution`. Een rol voert alleen de runbooks uit die binnen zijn bereik vallen.
 
-De sleutel van een Runner is alleen leesbaar voor Project Owners, Project Admins en Runbook Admins.
+De sleutel van een Runner is alleen leesbaar voor Projecteigenaren, Projectbeheerders en Runbookbeheerders.
 
 ## API voor agenten
 

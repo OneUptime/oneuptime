@@ -273,8 +273,11 @@ describe("on a phone", () => {
     expect(button).toHaveAttribute("aria-expanded", "false");
     expect(button).toHaveAttribute("aria-controls", bar().id);
     expect(bar().id).not.toBe("");
-    // How many chips hold a filter, in its name.
-    expect(button).toHaveAccessibleName("Filter 1");
+    /*
+     * How many chips hold a filter, in its name, as one sentence in the
+     * reader's plural forms and digits (#8290).
+     */
+    expect(button).toHaveAccessibleName("Filter: 1 applied");
     expect(screen.queryByTestId("facet-filter-bar-label")).toBeNull();
     expect(bar()).toHaveAttribute("data-folded", "true");
   });

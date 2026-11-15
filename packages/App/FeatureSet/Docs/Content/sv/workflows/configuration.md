@@ -5,7 +5,7 @@ Det här behöver du veta innan du riktar ett arbetsflöde mot riktig trafik: hu
 :::cards
 - [Gå live](#slå-på-eller-av-ett-arbetsflöde): Testa med Kör arbetsflöde medan det är avstängt och slå sedan på det.
 - [Behörigheter](#behörigheter): Arbetsflödesrollerna och de enskilda behörigheterna bakom dem.
-- [Vad steg får göra](#vad-arbetsflödessteg-får-göra): Steg agerar som Project Admin i arbetsflödets projekt.
+- [Vad steg får göra](#vad-arbetsflödessteg-får-göra): Steg agerar som Projektadministratör i arbetsflödets projekt.
 - [Gränser](#plangränser): Körningar per plan, körtid och anrop mellan arbetsflöden.
 :::
 
@@ -170,7 +170,7 @@ Arbetsflöden följer projektets rollbaserade åtkomstkontroll. De tre arbetsfl�
 - **Arbetsflödesmedlem** — använder dem: öppnar arbetsflöden och deras körningar, och kör ett arbetsflöde manuellt med **Kör arbetsflöde**. En medlem kan inte skapa, ändra eller ta bort ett arbetsflöde, eller köra ett av dess steg för sig. **Byggare** visar dem ett arbetsflöde som det är, märkt **Endast visning**: Ett steg öppnas för att läsas, och inget de gör där sparas.
 - **Arbetsflödestittare** — läser arbetsflöden och deras körningar.
 
-**Projektägare** och **Projektadministratör** kan göra allt som en Workflow Admin kan. **Projektmedlem** kan skapa och ta bort arbetsflöden, men inte ändra eller köra dem.
+**Projektägare** och **Projektadministratör** kan göra allt som en Arbetsflödesadministratör kan. **Projektmedlem** kan skapa och ta bort arbetsflöden, men inte ändra eller köra dem.
 
 De enskilda behörigheterna, för ett team eller en API-nyckel som behöver exakt en sak:
 
@@ -185,18 +185,18 @@ Ge dem som bygger automatisering **Arbetsflödesadministratör**, och dem som ba
 
 ## Vad arbetsflödessteg får göra
 
-De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, Update och Delete, och utlösarna On Create, On Update, On Create or Update och On Delete — agerar som en **Projektadministratör** i arbetsflödets projekt. Vem som än byggde arbetsflödet möter ett steg samma kontroller som en Project Admin möter i instrumentpanelen och API:t:
+De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, Update och Delete, och utlösarna On Create, On Update, On Create or Update och On Delete — agerar som en **Projektadministratör** i arbetsflödets projekt. Vem som än byggde arbetsflödet möter ett steg samma kontroller som en Projektadministratör möter i instrumentpanelen och API:t:
 
 - **Bara arbetsflödets eget projekt.** Ett steg läser och skriver posterna i det projekt som arbetsflödet tillhör och inget annat, och en Update flyttar aldrig en post till ett annat projekt.
 - **Bara det en Project Admin får göra.** Ett steg kan inte göra det som bara **Projektägare** och behörigheter för fakturering eller borttagning av projektet tillåter, och det kan inte läsa vem som skapade en probe eller en AI-agent, vilket bara projektägare ser.
-- **Inte vem som har åtkomst.** Ett steg skapar, ändrar och tar inte bort team, teammedlemmar, teambehörigheter, anpassade roller eller API-nyckelbehörigheter, även om en Project Admin får det. Den som bygger ett arbetsflöde bestämmer vad dess steg gör, och det kan vara en **Projektmedlem**, så ett steg som kunde det skulle ge den som byggde det åtkomst som den inte har fått, som **Projektadministratör**. Steget avvisas, och körningens logg säger att en person som hanterar projektets team och API-nycklar måste göra ändringen. Utlösare och Find-steg för dessa poster fungerar som förut.
-- **Inte läsning av inställningar som innehåller autentiseringsuppgifter.** En Project Admin får läsa SMTP-servrar, leverantörer för samtal och SMS, SNMP-autentiseringsuppgifter, videosamtalsanslutningar och API-nycklar, men det lånas aldrig ut till ett steg, oavsett vem som byggde eller sparade arbetsflödet. Ett steg kan inte ange någon av dessa inställningar, som SMTP-servern en statussida skickar e-post med eller API-nyckeln en behörighet ges till. Steget avvisas, och dess körlogg säger att en person som får läsa dem (läsbehörigheten för den sortens inställning, eller en Project Owner eller Project Admin) måste göra ändringen. Ett steg som behåller inställningen som en post redan anger, eller tömmer den, avvisas inte.
+- **Inte vem som har åtkomst.** Ett steg skapar, ändrar och tar inte bort team, teammedlemmar, teambehörigheter, anpassade roller eller API-nyckelbehörigheter, även om en Projektadministratör får det. Den som bygger ett arbetsflöde bestämmer vad dess steg gör, och det kan vara en **Projektmedlem**, så ett steg som kunde det skulle ge den som byggde det åtkomst som den inte har fått, som **Projektadministratör**. Steget avvisas, och körningens logg säger att en person som hanterar projektets team och API-nycklar måste göra ändringen. Utlösare och Find-steg för dessa poster fungerar som förut.
+- **Inte läsning av inställningar som innehåller autentiseringsuppgifter.** En Projektadministratör får läsa SMTP-servrar, leverantörer för samtal och SMS, SNMP-autentiseringsuppgifter, videosamtalsanslutningar och API-nycklar, men det lånas aldrig ut till ett steg, oavsett vem som byggde eller sparade arbetsflödet. Ett steg kan inte ange någon av dessa inställningar, som SMTP-servern en statussida skickar e-post med eller API-nyckeln en behörighet ges till. Steget avvisas, och dess körlogg säger att en person som får läsa dem (läsbehörigheten för den sortens inställning, eller en Projektägare eller Projektadministratör) måste göra ändringen. Ett steg som behåller inställningen som en post redan anger, eller tömmer den, avvisas inte.
 - **Bara det din plan omfattar.** I OneUptime Cloud avvisas ett steg som skapar eller ändrar något som din plan inte omfattar, med den plan som krävs, precis som i instrumentpanelen. Självhostade installationer utan fakturering har inga plangränser.
 - **Inget som OneUptime håller för sig själv.** Det här avvisas för alla, arbetsflöden inräknade:
   - att redigera eller ta bort en flödespost (flödena för incidenter, larm, episoder, monitorer, jourpolicyer och schemalagt underhåll);
   - att skriva en aviseringslogg (loggarna för SMS, samtal, e-post, WhatsApp, Telegram, push, webhooks och arbetsytemeddelanden);
   - värden som OneUptime sätter när saker händer: om en anpassad domäns CNAME är verifierad, ett teams skyddsbrytare (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), vilken incidentroll som är den primära och om den kan tas bort, om en ägare eller medlem har aviserats, påminnelsetider och antal, vem som har jour i ett schema nu och härnäst, en jourkörnings förlopp, en SLO:s aktuella burn rate och error budget, en monitor som pausats av en incident eller en underhållshändelse, en privat statussideanvändares token för lösenordsåterställning och senaste inloggning, de uppgifter en tjänst rapporterar om sig själv (version, runtime, moln), och en detekteringsregels eller ett hotflödes senaste körning;
-  - att deklarera en incident från en mall genom att skicka `createdIncidentTemplateId` till **Create One Incident** — välj i stället mallen under stegets inställning **Incidentmall**: steget deklarerar då incidenten från den, som Project Admin, och registrerar mallen;
+  - att deklarera en incident från en mall genom att skicka `createdIncidentTemplateId` till **Create One Incident** — välj i stället mallen under stegets inställning **Incidentmall**: steget deklarerar då incidenten från den, som Projektadministratör, och registrerar mallen;
   - att ändra vilken post en post tillhör efter att den har skapats, som den monitor en ägarrad gäller eller den incident en anteckning står på.
 - **Som ingen person.** En post som ett arbetsflöde skapar namnger ingen skapare, och granskningsloggen anger arbetsflödet, med dess namn vid den tidpunkten, som den som gjorde ändringen.
 

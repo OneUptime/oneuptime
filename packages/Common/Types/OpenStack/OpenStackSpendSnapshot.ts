@@ -3,6 +3,7 @@ import {
   daysInUtcMonth,
   startOfUtcMonth,
 } from "../Cloud/CloudCost";
+import { readOwnValue, writeOwnValue } from "../../Utils/LookupTable";
 import {
   OpenStackCostLine,
   OpenStackCostLineKind,
@@ -112,15 +113,23 @@ export function readOpenStackRatedByPeriod(
 
       const readAt: string | null =
         typeof record?.["readAt"] === "string" ? record["readAt"] : null;
-      const known: OpenStackRatedPeriod | undefined = rated[period];
+      /*
+       * The period is CloudKitty's label, read and written as the sum's own
+       * key: a plain read answered "constructor" with a function, and a
+       * period named "__proto__" replaced the sum's prototype.
+       */
+      const known: OpenStackRatedPeriod | undefined = readOwnValue(
+        rated,
+        period,
+      );
 
-      rated[period] = {
+      writeOwnValue(rated, period, {
         total: (known?.total || 0) + total,
         readAt:
           known?.readAt && (!readAt || known.readAt < readAt)
             ? known.readAt
             : readAt,
-      };
+      });
     }
   }
 

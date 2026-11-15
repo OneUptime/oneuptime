@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - Splunk Enterprise 9.0.1 या बाद का वर्शन चलाने वाला search head, या Splunk Cloud Platform। OneUptime मैनेजमेंट पोर्ट पर, आमतौर पर `8089`, उसके REST API से बात करता है। पोर्ट `8000` पर Splunk Web REST API नहीं देता।
 - OneUptime के लिए एक Splunk यूज़र, जिसके रोल में `search` क्षमता हो और जो वह इंडेक्स पढ़ सके जिसे सर्च पढ़ती है: notable event के लिए `notable`। Enterprise Security के `ess_analyst` और `ess_user` रोल दोनों देते हैं। कनेक्शन सिर्फ़ पढ़ता है, इसलिए रोल को और कुछ नहीं चाहिए।
 - एक search head जिस तक OneUptime HTTPS पर पहुंच सके। OneUptime Cloud इंटरनेट से कनेक्ट करता है, इसलिए search head को एक सार्वजनिक पते की ज़रूरत है: निजी पते अस्वीकार किए जाते हैं। सेल्फ-होस्टेड OneUptime अपने ऐप और वर्कर कंटेनर से कनेक्ट करता है, और आपके निजी नेटवर्क पर search head तक पहुंच सकता है, जब तक `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` न हो।

@@ -139,9 +139,9 @@ Op een zelfgehoste installatie worden aangepaste domeinen voor dashboards ingesc
 
 ### Wie mag controleren en opnieuw uitgeven
 
-**Nu controleren**, het bestellen van het certificaat van een domein en **Reissue SSL** wijzigen het domein, dus ze vereisen de machtiging om het te bewerken: **Edit Dashboard Domain**, of een rol die die machtiging bevat (Project Owner, Project Admin, Project Member, Settings Admin of Settings Member).
+**Nu controleren**, het bestellen van het certificaat van een domein en **Reissue SSL** wijzigen het domein, dus ze vereisen de machtiging om het te bewerken: **Edit Dashboard Domain**, of een rol die die machtiging bevat (Projecteigenaar, Projectbeheerder, Projectlid, Instellingenbeheerder of Instellingenlid).
 
-Wie het domein alleen mag lezen, zoals een Viewer of een Settings Viewer, ziet nog steeds de kolom **Status** en het toe te voegen record in **DNS-instelling**. Voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld, en zeggen ze welke machtiging nodig is. OneUptime blijft hoe dan ook zelf elk domein controleren en het certificaat ervan bestellen.
+Wie het domein alleen mag lezen, zoals een Kijker of een Instellingenkijker, ziet nog steeds de kolom **Status** en het toe te voegen record in **DNS-instelling**. Voor hen zijn **Nu controleren** en **Reissue SSL** vergrendeld, en zeggen ze welke machtiging nodig is. OneUptime blijft hoe dan ook zelf elk domein controleren en het certificaat ervan bestellen.
 
 Hetzelfde geldt voor API-sleutels. Een sleutel die alleen dashboarddomeinen mag lezen, kan `verify-cname`, `order-ssl` of `reissue-ssl` op `/dashboard-domain` niet aanroepen. Geef hem **Read Dashboard Domain** en **Edit Dashboard Domain** als hij dat nodig heeft.
 

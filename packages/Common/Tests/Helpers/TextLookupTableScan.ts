@@ -17,8 +17,10 @@ import ts from "typescript";
  * table typed by its own keys (Record<SomeEnum, T>, or no type at all) is
  * read by keys TypeScript checks, so only a read that casts its key
  * (`X[name as SomeEnum]`) counts there - the cast is where outside text
- * gets in. Syntax only: no type checker, so it runs over hundreds of files
- * in a moment.
+ * gets in. A class's static property initialised the same way is a table
+ * too, read as `this.X[...]` or `SomeClass.X[...]` (the Fluent ingest kept
+ * its severity names so). Syntax only: no type checker, so it runs over
+ * hundreds of files in a moment.
  */
 
 export interface PlainTableRead {
@@ -32,6 +34,9 @@ export interface PlainTableRead {
 
 // An enum's member is written with its enum's name first: `OcsfSeverity.High`.
 const ENUM_NAME_REGEX: RegExp = /^[A-Z]/;
+
+// A module's constant, written in the code: `SERVER_PORT_ATTRIBUTE`.
+const CONSTANT_NAME_REGEX: RegExp = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$/;
 
 const WHITESPACE_REGEX: RegExp = /\s+/g;
 
@@ -92,7 +97,10 @@ function isStringKeyedType(typeNode: ts.TypeNode | undefined): boolean {
   return false;
 }
 
-// A key written in the code: "x", `x`, 1, an enum member (A.B).
+/*
+ * A key written in the code: "x", `x`, 1, an enum member (A.B), a
+ * module's constant (SOME_ATTRIBUTE).
+ */
 function isWrittenKey(key: ts.Expression): boolean {
   const unwrapped: ts.Expression = unwrap(key);
 
@@ -100,6 +108,7 @@ function isWrittenKey(key: ts.Expression): boolean {
     ts.isStringLiteral(unwrapped) ||
     ts.isNoSubstitutionTemplateLiteral(unwrapped) ||
     ts.isNumericLiteral(unwrapped) ||
+    (ts.isIdentifier(unwrapped) && CONSTANT_NAME_REGEX.test(unwrapped.text)) ||
     (ts.isPropertyAccessExpression(unwrapped) &&
       ts.isIdentifier(unwrapped.expression) &&
       ENUM_NAME_REGEX.test(unwrapped.expression.text))
@@ -116,21 +125,49 @@ function hasCast(key: ts.Expression): boolean {
   return ts.isAsExpression(current) || ts.isTypeAssertionExpression(current);
 }
 
-function collectTables(sourceFile: ts.SourceFile): Map<string, DeclaredTable> {
-  const tables: Map<string, DeclaredTable> = new Map();
+function isNonEmptyObjectLiteral(
+  initializer: ts.Expression | undefined,
+): boolean {
+  return Boolean(
+    initializer &&
+      ts.isObjectLiteralExpression(unwrap(initializer)) &&
+      (unwrap(initializer) as ts.ObjectLiteralExpression).properties.length > 0,
+  );
+}
+
+interface DeclaredTables {
+  // `const X = { ... }`, read as X[...].
+  constants: Map<string, DeclaredTable>;
+  // `static X = { ... }` in a class, read as this.X[...] or SomeClass.X[...].
+  statics: Map<string, DeclaredTable>;
+}
+
+function collectTables(sourceFile: ts.SourceFile): DeclaredTables {
+  const tables: DeclaredTables = {
+    constants: new Map(),
+    statics: new Map(),
+  };
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
       ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
-      node.initializer &&
       ts.isVariableDeclarationList(node.parent) &&
       (node.parent.flags & ts.NodeFlags.Const) !== 0 &&
-      ts.isObjectLiteralExpression(unwrap(node.initializer)) &&
-      (unwrap(node.initializer) as ts.ObjectLiteralExpression).properties
-        .length > 0
+      isNonEmptyObjectLiteral(node.initializer)
     ) {
-      tables.set(node.name.text, {
+      tables.constants.set(node.name.text, {
+        isStringKeyed: isStringKeyedType(node.type),
+      });
+    }
+
+    if (
+      ts.isPropertyDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Static) !== 0 &&
+      isNonEmptyObjectLiteral(node.initializer)
+    ) {
+      tables.statics.set(node.name.text, {
         isStringKeyed: isStringKeyedType(node.type),
       });
     }
@@ -141,6 +178,40 @@ function collectTables(sourceFile: ts.SourceFile): Map<string, DeclaredTable> {
   visit(sourceFile);
 
   return tables;
+}
+
+/*
+ * The table an expression names, as the code writes it ("X",
+ * "this.X", "SomeClass.X"), or null when it names none.
+ */
+function tableNamed(
+  expression: ts.Expression,
+  tables: DeclaredTables,
+  sourceFile: ts.SourceFile,
+): { table: string; text: string; declared: DeclaredTable } | null {
+  if (ts.isIdentifier(expression) && tables.constants.has(expression.text)) {
+    return {
+      table: expression.text,
+      text: expression.text,
+      declared: tables.constants.get(expression.text)!,
+    };
+  }
+
+  if (
+    ts.isPropertyAccessExpression(expression) &&
+    ts.isIdentifier(expression.name) &&
+    tables.statics.has(expression.name.text) &&
+    (expression.expression.kind === ts.SyntaxKind.ThisKeyword ||
+      ts.isIdentifier(expression.expression))
+  ) {
+    return {
+      table: expression.name.text,
+      text: expression.getText(sourceFile).replace(WHITESPACE_REGEX, ""),
+      declared: tables.statics.get(expression.name.text)!,
+    };
+  }
+
+  return null;
 }
 
 /*
@@ -221,53 +292,61 @@ export function findPlainTableReads(data: {
     true,
     data.fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
-  const tables: Map<string, DeclaredTable> = collectTables(sourceFile);
+  const tables: DeclaredTables = collectTables(sourceFile);
   const reads: Array<PlainTableRead> = [];
 
-  if (tables.size === 0) {
+  if (tables.constants.size === 0 && tables.statics.size === 0) {
     return reads;
   }
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (
-      ts.isElementAccessExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      tables.has(node.expression.text)
-    ) {
-      const table: string = node.expression.text;
-      const declared: DeclaredTable = tables.get(table)!;
+    const accessed: {
+      table: string;
+      text: string;
+      declared: DeclaredTable;
+    } | null = ts.isElementAccessExpression(node)
+      ? tableNamed(node.expression, tables, sourceFile)
+      : null;
+
+    if (accessed && ts.isElementAccessExpression(node)) {
       const key: ts.Expression = node.argumentExpression;
       const parent: ts.Node = node.parent;
+      // A delete removes the table's own key only: it never reads what the table inherits.
       const isWrite: boolean =
-        ts.isBinaryExpression(parent) &&
-        parent.left === node &&
-        parent.operatorToken.kind === ts.SyntaxKind.EqualsToken;
-      const counts: boolean = declared.isStringKeyed
+        (ts.isBinaryExpression(parent) &&
+          parent.left === node &&
+          parent.operatorToken.kind === ts.SyntaxKind.EqualsToken) ||
+        ts.isDeleteExpression(parent);
+      const counts: boolean = accessed.declared.isStringKeyed
         ? !isWrittenKey(key)
         : hasCast(key) && !isWrittenKey(key);
 
       if (
         counts &&
         !isWrite &&
-        !isGuardedByOwnKeyCheck(node, table, sourceFile)
+        !isGuardedByOwnKeyCheck(node, accessed.text, sourceFile)
       ) {
         reads.push({
-          table,
+          table: accessed.table,
           line: lineOf(node, sourceFile),
           code: node.getText(sourceFile).replace(WHITESPACE_REGEX, " "),
         });
       }
     }
 
-    if (
+    const checked: {
+      table: string;
+      text: string;
+      declared: DeclaredTable;
+    } | null =
       ts.isBinaryExpression(node) &&
-      node.operatorToken.kind === ts.SyntaxKind.InKeyword &&
-      ts.isIdentifier(unwrap(node.right)) &&
-      tables.has((unwrap(node.right) as ts.Identifier).text) &&
-      !isWrittenKey(node.left)
-    ) {
+      node.operatorToken.kind === ts.SyntaxKind.InKeyword
+        ? tableNamed(unwrap(node.right), tables, sourceFile)
+        : null;
+
+    if (checked && ts.isBinaryExpression(node) && !isWrittenKey(node.left)) {
       reads.push({
-        table: (unwrap(node.right) as ts.Identifier).text,
+        table: checked.table,
         line: lineOf(node, sourceFile),
         code: node.getText(sourceFile).replace(WHITESPACE_REGEX, " "),
       });

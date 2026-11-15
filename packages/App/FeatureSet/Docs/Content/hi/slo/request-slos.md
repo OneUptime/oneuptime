@@ -37,7 +37,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - सेवाएँ OneUptime को ट्रेस भेजती हैं: देखें [OpenTelemetry](/docs/telemetry/open-telemetry)। हर सेवा अपने `service.name` के नाम से [सेवा कैटलॉग](/docs/telemetry/services) में मौजूद है।
-- ऐसी भूमिका जो SLO बना सके: Project Owner, Project Admin, या Create Service Level Objective अनुमति वाली कस्टम भूमिका।
+- ऐसी भूमिका जो SLO बना सके: प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, या Create Service Level Objective अनुमति वाली कस्टम भूमिका।
 
 ## अनुरोध SLO बनाएँ
 

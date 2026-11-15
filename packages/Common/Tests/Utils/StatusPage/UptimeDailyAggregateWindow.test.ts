@@ -27,11 +27,11 @@ import { describe, expect, test } from "@jest/globals";
  * fix is about:
  *
  *   - The server's window is exactly N x 24 hours (its process runs in UTC).
- *     The browser's OneUptimeDate.getSomeDaysAgoFromDate(now, N) is N
+ *     The browser's OneUptimeDate.getSomeDaysAgoFromDate(now, N) was N
  *     calendar days in the VISITOR's zone - an hour longer or shorter when a
  *     DST change falls inside the window. For an hour each evening that is
  *     enough to put a whole UTC day in front of the first bucket, or to lose
- *     the first bucket.
+ *     the first bucket. (Since issue #8236 it is N x 24 hours too.)
  *
  *   - The payload is cached for 15 s and refetched every minute. Just after
  *     UTC midnight the browser clock is already on the new day while the
@@ -252,12 +252,35 @@ describe("a strip drawn over the server's window pairs every bar with a bucket",
         bucketsWithoutBar: [],
       });
 
-      // The strip as it was drawn before, from the browser's own window.
+      /*
+       * The strip as it was drawn before, from the browser's own window:
+       * N days of its own calendar, as getSomeDaysAgoFromDate stepped them
+       * until issue #8236.
+       */
       const browserDays: Array<UptimeGraphDay> = DayUptimeGraphUtil.getDays({
-        startDate: OneUptimeDate.getSomeDaysAgoFromDate(now, windowCase.days),
+        startDate: OneUptimeDate.addRemoveDays(now, -windowCase.days),
         endDate: now,
         timezone: "UTC",
       });
+
+      /*
+       * The browser's own window since issue #8236 is N x 24 hours, as the
+       * server's is, so even a strip drawn from it pairs every bar with a
+       * bucket.
+       */
+      expect(
+        pair(
+          DayUptimeGraphUtil.getDays({
+            startDate: OneUptimeDate.getSomeDaysAgoFromDate(
+              now,
+              windowCase.days,
+            ),
+            endDate: now,
+            timezone: "UTC",
+          }),
+          buckets,
+        ),
+      ).toEqual({ barsWithoutBucket: [], bucketsWithoutBar: [] });
 
       expect(browserDays).toHaveLength(windowCase.browserBars);
 

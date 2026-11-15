@@ -29,7 +29,7 @@ Los chats llegan igual que las llamadas de IA de tus aplicaciones, así que las 
 
 ## Antes de empezar
 
-- El rol Project Owner o Project Admin. Solo ellos pueden conectar, cambiar o quitar una herramienta.
+- El rol Propietario del proyecto o Administrador del proyecto. Solo ellos pueden conectar, cambiar o quitar una herramienta.
 - Alguien que administre la herramienta, para crear la credencial: la sección de cada herramienta, más abajo, dice quién.
 - Tu gente avisada, y la respuesta de tu equipo legal o de RR. HH.
 

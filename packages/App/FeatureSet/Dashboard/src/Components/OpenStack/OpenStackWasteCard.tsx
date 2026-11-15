@@ -26,10 +26,8 @@ import {
   formatOpenStackUsageNumber,
 } from "../../Pages/OpenStack/Utils/OpenStackSpendView";
 import { joinList } from "Common/UI/Utils/ListSeparator";
-import {
-  getReaderDateLocale,
-  getReaderNumberLocale,
-} from "Common/Types/DateLanguage";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { writeReaderDay } from "Common/UI/Utils/ReaderMoments";
 
 /*
  * WHAT COULD BE RECLAIMED, AS RECOMMENDATIONS.
@@ -258,9 +256,7 @@ const OpenStackWasteRule: FunctionComponent<{
                         ? translator.translateTemplate(
                             translationKey("Since {{date}}"),
                             {
-                              date: new Date(item.since).toLocaleDateString(
-                                getReaderDateLocale(),
-                              ),
+                              date: writeReaderDay(new Date(item.since)),
                             },
                           )
                         : item.instanceCount !== undefined

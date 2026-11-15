@@ -15,15 +15,15 @@ Les tableaux de bord suivent les [autorisations](/docs/permissions/index) de vot
 
 | Pour | Il faut |
 | --- | --- |
-| Lire les tableaux de bord | `ReadDashboard`, ou un rôle de projet : Project Owner, Project Admin, Project Member, Viewer, ou un rôle Settings |
-| Créer des tableaux de bord | `CreateDashboard`, Project Owner ou Project Admin |
-| Modifier un tableau de bord : ses widgets, ses variables, son partage, son image de marque, et l'archiver | `EditDashboard`, Project Owner ou Project Admin |
-| Supprimer un tableau de bord | `DeleteDashboard`, Project Owner ou Project Admin |
-| Ajouter et retirer des propriétaires | Les autorisations sur les propriétaires de tableaux de bord, Project Owner, Project Admin ou Project Member |
-| Ajouter et modifier des domaines personnalisés | Les autorisations sur les domaines de tableaux de bord, Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member |
-| Créer des règles de propriétaire et des règles d'étiquettes | Les autorisations sur les règles, Project Owner ou Project Admin |
+| Lire les tableaux de bord | `ReadDashboard`, ou un rôle de projet : Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, ou un rôle Settings |
+| Créer des tableaux de bord | `CreateDashboard`, Propriétaire du projet ou Administrateur du projet |
+| Modifier un tableau de bord : ses widgets, ses variables, son partage, son image de marque, et l'archiver | `EditDashboard`, Propriétaire du projet ou Administrateur du projet |
+| Supprimer un tableau de bord | `DeleteDashboard`, Propriétaire du projet ou Administrateur du projet |
+| Ajouter et retirer des propriétaires | Les autorisations sur les propriétaires de tableaux de bord, Propriétaire du projet, Administrateur du projet ou Membre du projet |
+| Ajouter et modifier des domaines personnalisés | Les autorisations sur les domaines de tableaux de bord, Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des paramètres ou Membre des paramètres |
+| Créer des règles de propriétaire et des règles d'étiquettes | Les autorisations sur les règles, Propriétaire du projet ou Administrateur du projet |
 
-Un Project Member lit donc chaque tableau de bord, mais a besoin de `CreateDashboard` et de `EditDashboard` pour en construire. La lecture, la modification et la suppression peuvent chacune être limitées aux tableaux de bord qu'une équipe possède, ou aux tableaux de bord qui portent certaines étiquettes : voir [Portée : jusqu'où va une autorisation accordée](/docs/permissions/index#portée-jusquoù-va-une-autorisation-accordée).
+Un Membre du projet lit donc chaque tableau de bord, mais a besoin de `CreateDashboard` et de `EditDashboard` pour en construire. La lecture, la modification et la suppression peuvent chacune être limitées aux tableaux de bord qu'une équipe possède, ou aux tableaux de bord qui portent certaines étiquettes : voir [Portée : jusqu'où va une autorisation accordée](/docs/permissions/index#portée-jusquoù-va-une-autorisation-accordée).
 
 Attribuez-les sur la page **Autorisations** d'une équipe : ouvrez **Produits → Équipes** et choisissez l'équipe.
 

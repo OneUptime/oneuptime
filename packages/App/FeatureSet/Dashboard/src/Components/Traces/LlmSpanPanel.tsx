@@ -10,7 +10,11 @@ import { SpanEvent } from "Common/Models/AnalyticsModels/Span";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import LlmSpanDisplayUtil, {
@@ -383,7 +387,9 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
                 return (
                   <span key={param.label}>
                     <span className="text-gray-400">
-                      {translator.translateText(param.label)}:
+                      {translator.translateTemplate(LABEL_WITH_COLON, {
+                        label: translatableTerm(param.label),
+                      })}
                     </span>{" "}
                     <span className="font-mono text-gray-800">
                       {param.value}

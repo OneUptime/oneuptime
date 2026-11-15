@@ -188,6 +188,218 @@ describe("UrlScrubber segment primitives", () => {
       });
     });
 
+    /*
+     * #8385: a JSON Web Token is base64url parts joined by dots, and the
+     * dots kept it out of the opaque-token rule, so a token in a path was
+     * stored whole. A header is base64url JSON, so it starts "eyJ".
+     */
+    describe("JSON Web Token segments", () => {
+      const HEADER: string = "eyJhbGciOiJIUzI1NiJ9";
+      const PAYLOAD: string = "eyJzdWIiOiIxMjM0NTY3ODkwIn0";
+      const SIGNATURE: string = "dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+
+      it("redacts a signed token, in its three parts", () => {
+        expect(
+          UrlScrubber.scrubPath(
+            `/auth/callback/${HEADER}.${PAYLOAD}.${SIGNATURE}`,
+          ),
+        ).toBe(`/auth/callback/${REDACTED}`);
+      });
+
+      it("redacts an unsigned token, its signature empty, and two parts alone", () => {
+        expect(UrlScrubber.scrubPath(`/t/${HEADER}.${PAYLOAD}.`)).toBe(
+          `/t/${REDACTED}`,
+        );
+        expect(UrlScrubber.scrubPath(`/t/${HEADER}.${PAYLOAD}`)).toBe(
+          `/t/${REDACTED}`,
+        );
+      });
+
+      it("redacts an encrypted token, in five parts, its key empty", () => {
+        expect(
+          UrlScrubber.scrubPath(
+            `/s/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4R0NNIn0..T8xa6fPSdTEQd7Qv.lGzN6s5CeqZXyO8I8.XFBoMYUZodetZdvTiFvSkQ`,
+          ),
+        ).toBe(`/s/${REDACTED}`);
+      });
+
+      it("redacts a token escaped, and one between two words", () => {
+        expect(
+          UrlScrubber.scrubPath(`/a/${HEADER}%2E${PAYLOAD}%2e${SIGNATURE}/b`),
+        ).toBe(`/a/${REDACTED}/b`);
+      });
+
+      it("keeps a segment of six or more parts, and a header too short", () => {
+        const sixParts: string = `${HEADER}.a.b.c.d.e`;
+
+        expect(UrlScrubber.scrubPath(`/x/${sixParts}`)).toBe(`/x/${sixParts}`);
+        // "eyJ" and seven more characters: shorter than any header.
+        expect(UrlScrubber.scrubPath("/x/eyJabcdefg.h")).toBe(
+          "/x/eyJabcdefg.h",
+        );
+        expect(UrlScrubber.scrubPath("/x/eyJabcdefgh.i")).toBe(
+          `/x/${REDACTED}`,
+        );
+      });
+
+      it("keeps a header alone, which has no dot, under the token rule's length", () => {
+        expect(UrlScrubber.scrubPath(`/x/${HEADER}`)).toBe(`/x/${HEADER}`);
+      });
+
+      it("keeps a dotted name that does not start as a header does", () => {
+        for (const segment of [
+          "report-2026-11-15.pdf",
+          "v14.2.0",
+          "jquery.min.js",
+          "aGVsbG8.d29ybGQ.c2lnbmF0dXJl",
+          "EYJhbGciOiJIUzI1NiJ9.x",
+        ]) {
+          expect(UrlScrubber.scrubPath(`/files/${segment}`)).toBe(
+            `/files/${segment}`,
+          );
+        }
+      });
+    });
+
+    /*
+     * #8489: the token rule read base64url alone. A token in standard
+     * base64 keeps its "+" and its "=" padding in a path, and was kept
+     * whole; its "/" is escaped ("%2F"), or it would end the segment.
+     */
+    describe("tokens in standard base64", () => {
+      const BODY: string = "k3J+vT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8";
+
+      it("redacts a token with a plus, with or without its padding", () => {
+        for (const token of [BODY, `${BODY}=`, `${BODY}==`]) {
+          expect([token, UrlScrubber.scrubPath(`/reset/${token}`)]).toEqual([
+            token,
+            `/reset/${REDACTED}`,
+          ]);
+        }
+      });
+
+      it("redacts a padded token in base64url too", () => {
+        expect(
+          UrlScrubber.scrubPath(
+            "/verify/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw==",
+          ),
+        ).toBe(`/verify/${REDACTED}`);
+      });
+
+      it("redacts a token escaped as a link escapes it, its slash too", () => {
+        expect(
+          UrlScrubber.scrubPath(
+            "/confirm/k3J%2BvT9mL4pR7sW1yB6nC3dF5gH0jK%2Fq2Zx8%3D%3D/done",
+          ),
+        ).toBe(`/confirm/${REDACTED}/done`);
+        // Escaped twice, as a link built from an escaped one is.
+        expect(
+          UrlScrubber.scrubPath(
+            "/confirm/k3J%252BvT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8%253D",
+          ),
+        ).toBe(`/confirm/${REDACTED}`);
+      });
+
+      it("counts the padding apart from the 32 characters a token needs", () => {
+        const short: string = "a+".repeat(15) + "a";
+
+        expect(short.length).toBe(31);
+        expect(UrlScrubber.scrubPath(`/x/${short}==`)).toBe(`/x/${short}==`);
+        expect(UrlScrubber.scrubPath(`/x/${short}a`)).toBe(`/x/${REDACTED}`);
+        // Three "=" are no padding.
+        expect(UrlScrubber.scrubPath(`/x/${BODY}===`)).toBe(`/x/${BODY}===`);
+      });
+
+      it("keeps a short word with a plus, and an equals sign inside a segment", () => {
+        for (const segment of [
+          "c++",
+          "size=large",
+          "a=b=c",
+          "notes+ideas",
+          "==",
+          "+",
+          `${BODY.slice(0, 20)}=${BODY.slice(20)}`,
+        ]) {
+          expect([segment, UrlScrubber.scrubPath(`/p/${segment}`)]).toEqual([
+            segment,
+            `/p/${segment}`,
+          ]);
+        }
+      });
+    });
+
+    /*
+     * #8385: an application that escapes an escaped address
+     * ("someone%2540example.com") left one that, decoded once, has no "@".
+     * A segment is matched decoded, and decoded once more.
+     */
+    describe("segments escaped twice", () => {
+      it("redacts an email escaped twice", () => {
+        expect(UrlScrubber.scrubPath("/users/someone%2540example.com")).toBe(
+          `/users/${REDACTED}`,
+        );
+        expect(
+          UrlScrubber.scrubPath(
+            "/invite/First.Last%252Bnews%2540Example.co.uk",
+          ),
+        ).toBe(`/invite/${REDACTED}`);
+      });
+
+      it("redacts every identifier rule's shape escaped twice", () => {
+        // 411111111, each digit escaped twice.
+        expect(
+          UrlScrubber.scrubPath(
+            "/n/%2534%2531%2531%2531%2531%2531%2531%2531%2531",
+          ),
+        ).toBe(`/n/${REDACTED}`);
+        // An object id and a uuid, their first character escaped twice.
+        expect(
+          UrlScrubber.scrubPath("/projects/%2535f8d0d55b54764421b7156c9"),
+        ).toBe(`/projects/${REDACTED}`);
+        expect(
+          UrlScrubber.scrubPath(
+            "/reset/%2533f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f",
+          ),
+        ).toBe(`/reset/${REDACTED}`);
+        // A token's dots escaped twice.
+        expect(
+          UrlScrubber.scrubPath(
+            "/t/eyJhbGciOiJIUzI1NiJ9%252EeyJzdWIiOiIxIn0%252Esig",
+          ),
+        ).toBe(`/t/${REDACTED}`);
+      });
+
+      it("reads an escape of an escape that names no one as it is", () => {
+        expect(UrlScrubber.scrubPath("/sale/50%2525-off")).toBe(
+          "/sale/50%2525-off",
+        );
+        // Decoded once it is "%zz-off", cut short: matched as it is.
+        expect(UrlScrubber.scrubPath("/x/%25zz-off")).toBe("/x/%25zz-off");
+        // Decoded once it is an email, whose escape is cut short: redacted.
+        expect(UrlScrubber.scrubPath("/x/%25zz%40b.co")).toBe(`/x/${REDACTED}`);
+      });
+
+      it("stops at two: an email escaped three times is beyond it", () => {
+        expect(UrlScrubber.scrubPath("/u/someone%252540example.com")).toBe(
+          "/u/someone%252540example.com",
+        );
+      });
+
+      it("keeps what it keeps when it runs over its own output", () => {
+        for (const path of [
+          "/users/someone%2540example.com/orders",
+          "/sale/50%2525-off",
+          "/x/%25zz-off",
+          "/x/%25zz%40b.co",
+          "/u/someone%252540example.com",
+        ]) {
+          const once: string = UrlScrubber.scrubPath(path);
+
+          expect([path, UrlScrubber.scrubPath(once)]).toEqual([path, once]);
+        }
+      });
+    });
+
     describe("decode fallback and structure preservation", () => {
       it("never throws and leaves a malformed percent-escape segment intact", () => {
         /*

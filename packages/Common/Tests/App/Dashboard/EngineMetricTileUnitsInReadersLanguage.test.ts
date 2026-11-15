@@ -296,13 +296,14 @@ describe("a tile's count in German, Arabic and Persian", () => {
     expect(inLanguages(12.5, "commits", "counter")).toEqual({
       en: "12.5 commits/s",
       de: "12,5 Commits/s",
-      ar: "التأكيدات: 12.5/ث",
+      // The sentence a git commit's count shares (AIReadTableWords).
+      ar: "الإيداعات: 12.5/ث",
       fa: "۱۲٫۵ کامیت/ثانیه",
     });
     expect(inLanguages(1, "commits", "counter")).toEqual({
       en: "1 commit/s",
       de: "1 Commit/s",
-      ar: "1 تأكيد/ث",
+      ar: "1 إيداع/ث",
       fa: "۱ کامیت/ثانیه",
     });
     expect(inLanguages(2500, "transactions", "counter")).toEqual({

@@ -285,6 +285,68 @@ describe("CustomSignalDetector", (): void => {
         expect(hits).toHaveLength(1);
       });
     });
+
+    /*
+     * #8195: the browser escapes every letter beyond ASCII in the path a
+     * page is on - location.pathname is "/caf%C3%A9" for /café - and a link
+     * can write it in lower-case hex or with its accent decomposed. A
+     * pattern written as the address bar shows the page never fired.
+     */
+    describe("on a page whose path has letters beyond ASCII", (): void => {
+      const firesOn: (
+        match: string,
+        location: { pathname: string; hash: string },
+      ) => number = (
+        match: string,
+        location: { pathname: string; hash: string },
+      ): number => {
+        detector.stop(document);
+        hits = [];
+        create([
+          {
+            name: "Café",
+            trigger: "page",
+            match: match,
+            isFrustration: false,
+          },
+        ]);
+        detector.notifyPage(CustomSignalDetector.pagePathsOf(location), 1000);
+        return hits.length;
+      };
+
+      it("fires a signal scoped to /café on every spelling of the path", (): void => {
+        for (const pathname of [
+          "/caf%C3%A9",
+          "/caf%c3%a9",
+          "/cafe%CC%81",
+          "/caf%C3%A9/",
+        ]) {
+          expect([pathname, firesOn("/café", { pathname, hash: "" })]).toEqual([
+            pathname,
+            1,
+          ]);
+        }
+      });
+
+      it("fires on a hash router's route in any spelling, and in capitals", (): void => {
+        expect(firesOn("/café", { pathname: "/", hash: "#/caf%c3%a9" })).toBe(
+          1,
+        );
+        expect(
+          firesOn("/café", { pathname: "/", hash: "#!/cafe%CC%81?tab=1" }),
+        ).toBe(1);
+        expect(firesOn("/CAFÉ", { pathname: "/caf%C3%A9", hash: "" })).toBe(1);
+        expect(
+          firesOn("/caf%C3%A9", { pathname: "/cafe%CC%81", hash: "" }),
+        ).toBe(1);
+      });
+
+      it("does not fire on another page, or across an escaped slash", (): void => {
+        expect(firesOn("/café", { pathname: "/cafe", hash: "" })).toBe(0);
+        expect(firesOn("/café", { pathname: "/caf%C3%A9s", hash: "" })).toBe(0);
+        expect(firesOn("/a%2Fb", { pathname: "/a/b", hash: "" })).toBe(0);
+      });
+    });
   });
 
   describe("event", (): void => {

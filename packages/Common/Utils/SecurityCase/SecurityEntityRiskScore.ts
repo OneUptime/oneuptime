@@ -22,11 +22,16 @@ import {
   RISK_ENTITY_TYPES,
   SECURITY_ENTITY_CRITICALITY_WEIGHTS,
   SecurityEntityCriticality,
+  ENTITY_RISK_HISTORY_POINT_LIMIT,
   SecurityEntityRiskContribution,
+  SecurityEntityRiskHistoryDay,
   SecurityEntityRiskHistoryPoint,
   SecurityEntityRiskLevel,
 } from "../../Types/SecurityCase/SecurityEntityRisk";
 import { matchesProtectedEntityPattern } from "../../Types/SecurityPlaybook/SecurityProtectedEntity";
+import Timezone from "../../Types/Timezone";
+import TimezoneAlias from "../../Types/TimezoneAlias";
+import { CalendarDay, getLastCalendarDays } from "./SecurityOverviewMetrics";
 
 /*
  * How an entity's risk is worked out (Types/SecurityCase/SecurityEntityRisk
@@ -632,21 +637,124 @@ export function shouldRaiseRiskCase(data: {
   );
 }
 
-function dayOf(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+// ---------- History ----------
+
+/*
+ * AN ENTITY'S RISK HISTORY SERVES EVERY READER'S DAYS (issue #8207).
+ *
+ * The entity's page draws its risk over the last 30 days a bar a day - its
+ * score at the end of each of the reader's days - beside the Security
+ * overview's bars, which count the reader's days (issue #7925). The history
+ * was kept a point a UTC day, the latest score before UTC midnight, so in
+ * New York a score that rose at 20:00 on 4 November was drawn on the 5
+ * November bar, and no day of another zone could be cut from it again.
+ *
+ * So it keeps the moments the score changed instead ({ at, score }), and
+ * each reader's days are read off them (getRiskHistorySeries). Every
+ * zone's midnight falls on a quarter hour (UTC+5:45, -3:30, +12:45), so a
+ * history that keeps the last change of each UTC quarter hour gives every
+ * zone's days exactly. A score changes when a source starts or stops
+ * counting, a few dozen times a month; a history that would keep more than
+ * ENTITY_RISK_HISTORY_POINT_LIMIT keeps the last change of each hour
+ * instead, which is exact wherever midnight is on the hour.
+ *
+ * A row written before keeps a point a UTC day ({ day, score }): each is
+ * read as the score at the end of that UTC day - what it was - until a
+ * month has gone by and none is left.
+ */
+
+const QUARTER_HOUR_IN_MS: number = 15 * 60 * 1000;
+const HOUR_IN_MS: number = 60 * 60 * 1000;
 
 const DAY_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
 
-// An entity's history as its row stores it: a point a day, oldest first.
-export function readRiskHistory(
-  value: unknown,
-): Array<SecurityEntityRiskHistoryPoint> {
+// An instant: the ISO 8601 a history writes ("2026-11-04T20:05:00.000Z").
+const INSTANT_REGEX: RegExp =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+
+interface HistoryMoment {
+  ms: number;
+  score: number;
+}
+
+// When a stored point's score began: its instant, or the end of its UTC day.
+function readMomentOf(record: Record<string, unknown>): number | null {
+  const at: unknown = record["at"];
+
+  if (typeof at === "string") {
+    const ms: number = INSTANT_REGEX.test(at) ? Date.parse(at) : NaN;
+
+    return Number.isFinite(ms) ? ms : null;
+  }
+
+  const day: unknown = record["day"];
+
+  if (typeof day === "string" && DAY_REGEX.test(day)) {
+    const ms: number = Date.parse(`${day}T00:00:00.000Z`);
+
+    // The latest score before UTC midnight: the end of that day.
+    return Number.isFinite(ms) ? ms + DAY_IN_MS - 1 : null;
+  }
+
+  return null;
+}
+
+/*
+ * The last change of each slot (a quarter hour, or an hour) of moments in
+ * time order, without a change that changes nothing.
+ */
+function keepLastOfEach(
+  moments: Array<HistoryMoment>,
+  slotInMs: number,
+): Array<HistoryMoment> {
+  const kept: Array<HistoryMoment> = [];
+
+  for (const moment of moments) {
+    const last: HistoryMoment | undefined = kept[kept.length - 1];
+
+    if (
+      last &&
+      Math.floor(last.ms / slotInMs) === Math.floor(moment.ms / slotInMs)
+    ) {
+      kept[kept.length - 1] = moment;
+    } else {
+      kept.push(moment);
+    }
+  }
+
+  return kept.filter(
+    (moment: HistoryMoment, index: number, all: Array<HistoryMoment>) => {
+      return index === 0 || moment.score !== all[index - 1]!.score;
+    },
+  );
+}
+
+// A history's moments in time order, kept to a quarter hour or an hour.
+function compactMoments(moments: Array<HistoryMoment>): Array<HistoryMoment> {
+  const sorted: Array<HistoryMoment> = [...moments].sort(
+    (a: HistoryMoment, b: HistoryMoment): number => {
+      return a.ms - b.ms;
+    },
+  );
+  let kept: Array<HistoryMoment> = sorted;
+
+  for (const slotInMs of [QUARTER_HOUR_IN_MS, HOUR_IN_MS]) {
+    kept = keepLastOfEach(kept, slotInMs);
+
+    if (kept.length <= ENTITY_RISK_HISTORY_POINT_LIMIT) {
+      break;
+    }
+  }
+
+  return kept;
+}
+
+function readMoments(value: unknown): Array<HistoryMoment> {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  const byDay: Map<string, number> = new Map();
+  const moments: Array<HistoryMoment> = [];
 
   for (const item of value) {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
@@ -654,84 +762,120 @@ export function readRiskHistory(
     }
 
     const record: Record<string, unknown> = item as Record<string, unknown>;
-    const day: unknown = record["day"];
+    const ms: number | null = readMomentOf(record);
     const score: number = Number(record["score"]);
 
-    if (typeof day !== "string" || !DAY_REGEX.test(day)) {
+    if (ms === null || !Number.isFinite(score) || score < 0) {
       continue;
     }
 
-    if (!Number.isFinite(score) || score < 0) {
-      continue;
-    }
-
-    byDay.set(day, Math.round(score));
+    moments.push({ ms, score: Math.round(score) });
   }
 
-  return Array.from(byDay.entries())
-    .sort((a: [string, number], b: [string, number]): number => {
-      return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
-    })
-    .map(([day, score]: [string, number]): SecurityEntityRiskHistoryPoint => {
-      return { day, score };
-    });
+  return compactMoments(moments);
+}
+
+function toPoints(
+  moments: Array<HistoryMoment>,
+): Array<SecurityEntityRiskHistoryPoint> {
+  return moments.map(
+    (moment: HistoryMoment): SecurityEntityRiskHistoryPoint => {
+      return { at: new Date(moment.ms).toISOString(), score: moment.score };
+    },
+  );
 }
 
 /*
- * The history once the score of now is taken in: today's point is the latest
- * score of the day, and points older than ENTITY_RISK_HISTORY_IN_DAYS go.
+ * An entity's history as its row stores it, read defensively: the moments
+ * its score changed, oldest first, a day of a row written before as the
+ * end of that UTC day.
+ */
+export function readRiskHistory(
+  value: unknown,
+): Array<SecurityEntityRiskHistoryPoint> {
+  return toPoints(readMoments(value));
+}
+
+/*
+ * The history once the score of now is taken in: a change is kept from now
+ * on (the last of its quarter hour), the same score again adds nothing, and
+ * what is older than the month goes - all but the last change before it,
+ * which the month's first day carries. A point a row wrote for today, at
+ * the end of today, reads as now.
  */
 export function updateRiskHistory(
-  history: Array<SecurityEntityRiskHistoryPoint>,
+  history: unknown,
   score: number,
   now: Date,
 ): Array<SecurityEntityRiskHistoryPoint> {
-  const today: string = dayOf(now);
-  const oldest: string = dayOf(
-    new Date(now.getTime() - (ENTITY_RISK_HISTORY_IN_DAYS - 1) * DAY_IN_MS),
-  );
+  const nowMs: number = now.getTime();
+  const moments: Array<HistoryMoment> = compactMoments([
+    ...readMoments(history).map((moment: HistoryMoment): HistoryMoment => {
+      return { ms: Math.min(moment.ms, nowMs), score: moment.score };
+    }),
+    { ms: nowMs, score: Math.max(0, Math.round(score)) },
+  ]);
 
-  return [
-    ...readRiskHistory(history).filter(
-      (point: SecurityEntityRiskHistoryPoint): boolean => {
-        return point.day >= oldest && point.day !== today;
-      },
-    ),
-    { day: today, score: Math.max(0, Math.round(score)) },
-  ];
+  /*
+   * A day longer than the month, for the reader whose first day began the
+   * furthest back: UTC+14's, 30 days and some hours before now.
+   */
+  const cutoffMs: number =
+    nowMs - (ENTITY_RISK_HISTORY_IN_DAYS + 1) * DAY_IN_MS;
+  const firstInMonth: number = moments.findIndex(
+    (moment: HistoryMoment): boolean => {
+      return moment.ms >= cutoffMs;
+    },
+  );
+  const from: number =
+    firstInMonth === -1 ? moments.length - 1 : Math.max(0, firstInMonth - 1);
+
+  return toPoints(moments.slice(from));
 }
 
 /*
- * One score for each of the last `days` days, oldest first: a day without a
- * point of its own carries the score of the day before - it changes only
- * when a finding arrives or a source stops counting - and a day before the
- * first point is 0.
+ * One score for each of the reader's last `days` days, oldest first, today's
+ * the last: the score at the end of the day (today's, now's). The days are
+ * those of `timezone` - the reader's - walked as the Security overview
+ * walks its own (calendarDaysBetween), so a day the clocks change on is one
+ * bar of 23 or 25 hours; UTC's when none is given. A day the score did not
+ * change on carries the day before's, and a day before the first change is
+ * 0.
  */
 export function getRiskHistorySeries(data: {
-  history: Array<SecurityEntityRiskHistoryPoint>;
+  history: unknown;
   now: Date;
   days: number;
-}): Array<SecurityEntityRiskHistoryPoint> {
-  const points: Array<SecurityEntityRiskHistoryPoint> = readRiskHistory(
-    data.history,
+  timezone?: Timezone | undefined;
+}): Array<SecurityEntityRiskHistoryDay> {
+  const nowMs: number = data.now.getTime();
+  const days: number = Math.max(1, Math.trunc(data.days) || 1);
+  const zone: Timezone = data.timezone
+    ? TimezoneAlias.getCanonicalTimezone(data.timezone)
+    : Timezone.UTC;
+  // A point a row wrote for today, at the end of today, is now's.
+  const moments: Array<HistoryMoment> = readMoments(data.history).map(
+    (moment: HistoryMoment): HistoryMoment => {
+      return { ms: Math.min(moment.ms, nowMs), score: moment.score };
+    },
   );
-  const days: number = Math.max(1, Math.trunc(data.days));
-  const series: Array<SecurityEntityRiskHistoryPoint> = [];
+  const calendar: Array<CalendarDay> = getLastCalendarDays(
+    data.now,
+    days,
+    zone,
+  );
+  const series: Array<SecurityEntityRiskHistoryDay> = [];
 
   let index: number = 0;
   let carried: number = 0;
 
-  for (let offset: number = days - 1; offset >= 0; offset--) {
-    const day: string = dayOf(
-      new Date(data.now.getTime() - offset * DAY_IN_MS),
-    );
-
-    while (index < points.length && points[index]!.day <= day) {
-      carried = points[index]!.score;
+  for (const day of calendar) {
+    while (index < moments.length && moments[index]!.ms < day.endMs) {
+      carried = moments[index]!.score;
       index++;
     }
 
-    series.push({ day, score: carried });
+    series.push({ day: day.day, score: carried });
   }
 
   return series;

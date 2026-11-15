@@ -3,7 +3,7 @@
 En monitor sjekker noe du drifter, som et nettsted, et API, en vert eller en Kubernetes-klynge, og gir deg beskjed når det slutter å virke. **Opprett monitor** spør først hva som skal overvåkes, så hva som skal sjekkes, og deretter hvor ofte. Alt unntatt typen, navnet og hva som skal sjekkes, starter med standardverdier som passer for de fleste monitorer.
 
 > [!NOTE]
-> For å opprette en monitor trenger du rollen Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+> For å opprette en monitor trenger du rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 
 ## Overvåkingsinfo
 

@@ -87,7 +87,7 @@ Onder de records doorzoekt Verbonden signalen uw logboeken en traces, over hetze
 
 ## Wie wat ziet
 
-- Verbonden signalen en de kaart **Beveiliging** van een record vereisen een rol die beveiligingsgebeurtenissen mag lezen: Security Admin, Security Member, Security Viewer, Project Owner of Project Admin. Niemand anders ziet op enige pagina beveiligingsgegevens. Zie [Rollen](/docs/permissions/reference#rollen).
+- Verbonden signalen en de kaart **Beveiliging** van een record vereisen een rol die beveiligingsgebeurtenissen mag lezen: Beveiligingsbeheerder, Beveiligingslid, Beveiligingskijker, Projecteigenaar of Projectbeheerder. Niemand anders ziet op enige pagina beveiligingsgegevens. Zie [Rollen](/docs/permissions/reference#rollen).
 - De kaart **Beveiliging** van een incident vereist een rol die beveiligingszaken mag lezen.
 - Elk record wordt gelezen met uw eigen rol, en wat erop staat ook: een rol die geen bereikbaarheidsschema's mag lezen, ziet die van een lid niet. Een soort record dat uw rol niet mag lezen, wordt weggelaten en de pagina zegt dat; een soort dat zojuist niet kon worden gelezen, zegt dat ook, met **Opnieuw proberen**.
 - De pagina van een record toont de kaart **Beveiliging** alleen in een project dat Security Events gebruikt: een project dat in de afgelopen 7 dagen een beveiligingsgebeurtenis heeft ontvangen.
@@ -123,7 +123,7 @@ De kaart verschijnt voor een monitor die een host, een adres of een URL controle
 :::
 
 :::details De pagina zegt dat uw rol een soort record niet kan zien
-Elk record wordt gelezen met uw eigen rol. Vraag een Project Owner of Project Admin om een rol die dat soort record mag lezen.
+Elk record wordt gelezen met uw eigen rol. Vraag een Projecteigenaar of Projectbeheerder om een rol die dat soort record mag lezen.
 :::
 
 ## Volgende stappen

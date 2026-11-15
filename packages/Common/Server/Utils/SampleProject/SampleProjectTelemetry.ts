@@ -175,7 +175,7 @@ export default class SampleProjectTelemetry {
     const random: () => number = createSeededRandom(data.seed ?? 6808);
     const createdAt: string = OneUptimeDate.toClickhouseDateTime(data.now);
     const retentionDate: string = OneUptimeDate.toClickhouseDateTime(
-      OneUptimeDate.addRemoveDays(
+      OneUptimeDate.addRemoveDurationInDays(
         data.now,
         SAMPLE_PROJECT_TELEMETRY_RETENTION_IN_DAYS,
       ),

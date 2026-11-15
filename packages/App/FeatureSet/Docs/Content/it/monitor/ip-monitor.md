@@ -39,7 +39,7 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 
 ## Prima di iniziare
 
-- **Un ruolo che può creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che può creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una sonda che raggiunga l'indirizzo**, con ICMP consentito lungo il percorso. Le sonde predefinite del vostro progetto vengono scelte per ogni nuovo monitor. Se un firewall lo protegge, consentite le richieste di eco ICMP dagli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses). Un indirizzo privato ha bisogno di una [sonda personalizzata](/docs/probe/custom-probe) su quella rete, e un indirizzo IPv6 di una sonda con connettività IPv6.
 
 ## Creare un monitor IP

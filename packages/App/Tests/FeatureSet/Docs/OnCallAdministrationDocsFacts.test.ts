@@ -80,6 +80,11 @@ import {
   ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import { AWAY_TIMELINE_MESSAGE_PREFIX } from "Common/Types/OnCallDutyPolicy/AwayTimelineMessage";
+import {
+  getOnCallPolicyRunRetryWaitInMinutes,
+  ON_CALL_POLICY_RUN_MAX_TRIES,
+  ON_CALL_POLICY_RUN_RETRY_LONGEST_WAIT_IN_MINUTES,
+} from "Common/Types/OnCallDutyPolicy/OnCallPolicyRunRetry";
 import UserOverrideUtil, {
   UserOverrideRecord,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
@@ -1674,6 +1679,47 @@ describe("execution logs", () => {
     expect(timeout).toContain("status: OnCallDutyPolicyStatus.Error,");
     expect(statusTable()).toContain(
       "| **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes did not finish starting: it moves on to **Executing** and pages from where its start stopped. A direct page or a test page still here is stopped as **Error**. |",
+    );
+  });
+
+  /*
+   * A run's step that fails for a moment is tried again, waiting longer
+   * each time, and a run whose step fails every try ends in Error (issues
+   * #8167, #8409): the waits and the tries the table names are the ones
+   * the worker keeps (OnCallPolicyRunRetry).
+   */
+  it("says a failed step is tried again after 1, 2 and 4 minutes, then every 5, and a run stops as Error after 10 tries, about 37 minutes", () => {
+    const waits: Array<number> = [];
+
+    for (
+      let failedTries: number = 1;
+      failedTries < ON_CALL_POLICY_RUN_MAX_TRIES;
+      failedTries++
+    ) {
+      waits.push(getOnCallPolicyRunRetryWaitInMinutes(failedTries));
+    }
+
+    expect(waits.slice(0, 4)).toEqual([1, 2, 4, 5]);
+    expect(
+      waits.slice(3).every((wait: number): boolean => {
+        return wait === ON_CALL_POLICY_RUN_RETRY_LONGEST_WAIT_IN_MINUTES;
+      }),
+    ).toBe(true);
+    expect(ON_CALL_POLICY_RUN_RETRY_LONGEST_WAIT_IN_MINUTES).toBe(5);
+    expect(ON_CALL_POLICY_RUN_MAX_TRIES).toBe(10);
+
+    // From the first try to the tenth.
+    expect(
+      waits.reduce((total: number, wait: number): number => {
+        return total + wait;
+      }, 0),
+    ).toBe(37);
+
+    expect(statusTable()).toContain(
+      "| **Executing** | The run is paging. OneUptime moves it on every minute. A step that fails for a moment, because the database could not be reached for example, is tried again a minute later, then 2 and 4 minutes later, then every 5 minutes. |",
+    );
+    expect(statusTable()).toContain(
+      "| **Error** | The run failed: a step failed in a way a retry cannot fix, such as an escalation rule that was deleted, or failed 10 tries in a row, over about 37 minutes. **View Status Message** says why. |",
     );
   });
 

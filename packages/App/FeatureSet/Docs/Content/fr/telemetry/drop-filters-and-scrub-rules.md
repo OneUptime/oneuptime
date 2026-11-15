@@ -31,7 +31,7 @@ Les filtres de suppression et les règles de masquage des journaux s'appliquent 
 ## Avant de commencer
 
 - **Des journaux ou des spans qui arrivent.** Voir [OpenTelemetry](/docs/telemetry/open-telemetry).
-- **Un rôle qui modifie les paramètres de télémétrie.** Project Owner ou Project Admin, ou un rôle personnalisé avec la permission de ce que vous modifiez, par exemple Create Log Drop Filter ou Create Trace Scrub Rule. Les rôles Telemetry voient les filtres et les règles, mais ne peuvent pas les modifier.
+- **Un rôle qui modifie les paramètres de télémétrie.** Propriétaire du projet ou Administrateur du projet, ou un rôle personnalisé avec la permission de ce que vous modifiez, par exemple Create Log Drop Filter ou Create Trace Scrub Rule. Les rôles Telemetry voient les filtres et les règles, mais ne peuvent pas les modifier.
 
 ## Supprimer ou échantillonner des enregistrements
 

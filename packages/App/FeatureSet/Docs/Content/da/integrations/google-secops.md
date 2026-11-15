@@ -22,7 +22,7 @@ Hver vej normaliserer det, der kommer ind, til [OCSF](https://schema.ocsf.io/), 
 
 ## Før du går i gang
 
-- Til den administrerede connector i OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan læse forbindelser, men ikke oprette dem.
+- Til den administrerede connector i OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan læse forbindelser, men ikke oprette dem.
 - Til webhooken og UDM-videresendelsen en indtagelsesnøgle: åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret ingestion-nøgle**.
 - Til den administrerede connector retten til at oprette en Google Cloud-tjenestekonto i det projekt, din SecOps-instans er bundet til.
 

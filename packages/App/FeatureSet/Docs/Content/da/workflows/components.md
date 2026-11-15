@@ -473,7 +473,7 @@ En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet typ
 
 Sådan læser og ændrer et workflow OneUptime-data. For eksempel kan en webhook fra dit CI-værktøj bruge **Create One Incident** til at åbne en hændelse med detaljerne om fejlen.
 
-Disse komponenter handler som Project Admin for workflowets projekt: det, en Project Admin ikke må, eller som dit abonnement ikke omfatter, afvises, og kørslens log siger hvorfor. Se [Hvad workflow-trin må gøre](/docs/workflows/configuration#hvad-workflow-trin-må-gøre).
+Disse komponenter handler som Projektadministrator for workflowets projekt: det, en Projektadministrator ikke må, eller som dit abonnement ikke omfatter, afvises, og kørslens log siger hvorfor. Se [Hvad workflow-trin må gøre](/docs/workflows/configuration#hvad-workflow-trin-må-gøre).
 
 ### Erklær en hændelse ud fra en skabelon
 
@@ -486,6 +486,12 @@ Hændelsen registrerer den skabelon, den blev erklæret ud fra, i `createdIncide
 **Create One Incident** og **Create One Alert** har en indstilling **Berørte ressourcer**: de værter, netværksenheder, klynger, databaser eller tjenester, posten handler om, efter navn, adresse eller ID, adskilt af kommaer — skrevet ind eller hentet fra et tidligere trin, som den vært, en advarsel fra et andet værktøj nævner. Hver post søges i alle de slags ressourcer, posten kan rumme, som hel værdi og uden hensyn til store og små bogstaver: efter navn, en netværksenhed også efter den adresse, den polles på, eller sit DNS-navn, en vært efter det navn, dens agent rapporterer, eller en af dens IP-adresser, og en cloudressource efter udbyderens ID. Hver ressource, en post passer på, knyttes til, ved siden af det, **JSON Object** og skabelonen allerede knytter til, op til 50 ud fra de første 25 poster.
 
 En post, der ikke passer på noget, stopper ikke trinnet: posten oprettes alligevel, og kørselsloggen siger, hvad hver post knyttede til, og hvilke der ikke passede på noget. Arkiverede ressourcer knyttes ikke til. Monitorer slås ikke op: nævn dem i **JSON Object** (`monitors` på en hændelse, `monitorId` på en advarsel), fordi det at knytte en monitor til en hændelse sætter dens overvågning på pause.
+
+### Hvem der ejer den fra starten
+
+**Create One Incident** og **Create One Alert** har indstillingerne **Ejer-brugere** og **Ejer-teams**: de personer og teams, der ejer posten, fra den bliver oprettet. Vælg dem, eller tag dem fra et tidligere trin: en brugers id eller e-mailadresse, et teams id, flere adskilt af kommaer eller en liste. Postens ejere hører, at den er oprettet, omkring et minut efter oprettelsen, alle de ejere, den har til den tid: dem, der vælges her, er altid blandt dem, mens ejere, som et senere trin tilføjer, går glip af det, når det trin kører mere end et minut senere, og projektets ejere får besked i stedet.
+
+Trinnet spørger, om det må tilføje dem, som Project Admin for workflowets projekt, før posten gemmes: ejere, det ikke må tilføje, får oprettelsen afvist. En person, der ikke er medlem af projektet, eller et team, der ikke er et af projektets, udelades, og kørselsloggen siger det: posten oprettes alligevel. Ejere, der tilføjes på denne måde, får ikke besked om, at de er tilføjet: beskeden om, at posten er oprettet, er den, de får.
 
 ## Arbejd med poster
 

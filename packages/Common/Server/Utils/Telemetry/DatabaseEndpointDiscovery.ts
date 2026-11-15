@@ -38,6 +38,7 @@ import {
   escapeSql,
   firstNonEmptyAttributeSql,
 } from "./ServiceDependencyDiscovery";
+import { readOwnValue } from "../../../Utils/LookupTable";
 
 // Defined beside the dependency query, which reads DB calls the same way.
 export {
@@ -498,7 +499,7 @@ export function resolveDatabaseEndpointRows(
       scope: DatabaseEndpointScope;
     } | null = resolveDatabaseCallTarget({
       getAttribute: (key: string): unknown => {
-        return attributes[key];
+        return readOwnValue(attributes, key);
       },
       caller: caller,
     });

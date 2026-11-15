@@ -473,7 +473,7 @@ En type tilbyr bare komponentene modellen dens tillater. En skrivebeskyttet type
 
 Slik leser og endrer en arbeidsflyt OneUptime-data. For eksempel kan en webhook fra CI-verktøyet ditt bruke **Create One Incident** til å åpne en hendelse med detaljene om feilen.
 
-Disse komponentene handler som Project Admin for prosjektet til arbeidsflyten: det en Project Admin ikke har lov til, eller som planen din ikke inkluderer, avvises, og kjøringens logg sier hvorfor. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
+Disse komponentene handler som Prosjektadministrator for prosjektet til arbeidsflyten: det en Prosjektadministrator ikke har lov til, eller som planen din ikke inkluderer, avvises, og kjøringens logg sier hvorfor. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
 
 ### Erklær en hendelse ut fra en mal
 
@@ -486,6 +486,12 @@ Hendelsen registrerer malen den ble erklært ut fra, i `createdIncidentTemplateI
 **Create One Incident** og **Create One Alert** har en innstilling **Berørte ressurser**: vertene, nettverksenhetene, klyngene, databasene eller tjenestene posten gjelder, etter navn, adresse eller ID, skilt med komma — skrevet inn eller hentet fra et tidligere trinn, som verten et varsel fra et annet verktøy navngir. Hver oppføring letes etter i alle typer ressurser posten kan holde, som hel verdi og uten hensyn til store og små bokstaver: etter navn, en nettverksenhet også etter adressen den polles på eller DNS-navnet sitt, en vert etter navnet agenten dens rapporterer eller en av IP-adressene dens, og en skyressurs etter leverandørens ID. Hver ressurs en oppføring treffer, knyttes til, ved siden av det **JSON Object** og malen allerede knytter til, opptil 50 fra de første 25 oppføringene.
 
 En oppføring som ikke treffer noe, stopper ikke trinnet: posten opprettes likevel, og kjøringsloggen sier hva hver oppføring knyttet til og hvilke som ikke traff noe. Arkiverte ressurser knyttes ikke til. Monitorer slås ikke opp: navngi dem i **JSON Object** (`monitors` på en hendelse, `monitorId` på et varsel), fordi det å knytte en monitor til en hendelse setter overvåkingen dens på pause.
+
+### Hvem som eier den fra starten
+
+**Create One Incident** og **Create One Alert** har innstillingene **Eierbrukere** og **Eierteam**: personene og teamene som eier posten fra den opprettes. Velg dem, eller ta dem fra et tidligere trinn: en brukers id eller e-postadresse, et teams id, flere skilt med komma, eller en liste. Postens eiere får høre at den er opprettet omtrent ett minutt etter opprettelsen, alle eierne den har da: de som velges her, er alltid blant dem, mens eiere som et senere trinn legger til, går glipp av det når det trinnet kjører mer enn ett minutt senere, og prosjektets eiere får beskjed i stedet.
+
+Trinnet spør, som Project Admin for prosjektet til arbeidsflyten, om det kan legge dem til før posten lagres: eiere det ikke kan legge til, gjør at opprettelsen avvises. Den som ikke er medlem av prosjektet, eller et team som ikke er ett av prosjektets, utelates, og kjøringsloggen sier det: posten opprettes likevel. Eiere som legges til på denne måten, får ikke beskjed om at de er lagt til: beskjeden om at posten er opprettet, er den de får.
 
 ## Arbeide med poster
 

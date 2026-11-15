@@ -34,7 +34,12 @@ import {
  * translated piece - what t(), tx(), translateText(), translateString(),
  * translateTemplate(), translatePlural() or translateTerm() returns -
  * joined into one line with something else by a template literal, by + or
- * by [...].join():
+ * by [...].join(), or drawn beside it in an element's children (#8290):
+ * `{t("Showing")} {n} {t("of")} {total}` read "Page 2 of 5" in English's
+ * order in Japanese, and `{count} {t(count === 1 ? "caller" :
+ * "callers")}` took English's 1-or-more plural. A name that holds a
+ * translation counts as the call it holds (`const keyTitle =
+ * translator.translateText("Key")`, then `${keyTitle} ${index + 1}`):
  *
  *   - beside a value or another translated piece with nothing, a space, a
  *     comma, a colon or a dash between them ("Remove condition 2",
@@ -54,7 +59,12 @@ import {
  *     separator a helper writes (getInlineSeparator, a SEPARATOR constant);
  *   - a path (" > ", "›", an arrow) and an aside in brackets: a unit, a
  *     shortcut, a host ("Memory (MB)", "Search (Ctrl+K)");
- *   - a mark of no letters before a sentence ("⇄ Ada (covering Bob)").
+ *   - a mark of no letters before a sentence ("⇄ Ada (covering Bob)"), a
+ *     constant of this module or one it imports (OVERRIDE_TITLE_MARKER);
+ *   - in JSX, two expressions with nothing drawn between them, an icon
+ *     beside its word or a badge beside its count, and anything on the
+ *     other side of a child element: a link, a pill or a date component in
+ *     a sentence is TranslatedSentence's to place, which this cannot read.
  *
  * A piece's English is read from its call: a literal, a constant of the
  * same module or one it imports (BackupsCopy.couldNotLoad), a plural's
@@ -536,7 +546,13 @@ type LinePart =
   | { kind: "text"; text: string }
   | { kind: "piece"; isSentence: boolean; isLabel: boolean }
   | { kind: "separator" }
-  | { kind: "value"; leading: string; trailing: string };
+  | {
+      kind: "value";
+      leading: string;
+      trailing: string;
+      // The value is one whole translated sentence: ` ${t("It is linked.")}`.
+      isSentence?: boolean | undefined;
+    };
 
 export const isWholeSentence: (english: ReadonlyArray<string>) => boolean = (
   english: ReadonlyArray<string>,
@@ -592,15 +608,61 @@ const edgeTextOf: (
     return current.text;
   }
 
+  /*
+   * A template starts with its head, and where the head is only spaces,
+   * with what its first value starts with: ` ${t("(truncated)")}` starts
+   * with " (".
+   */
   if (ts.isTemplateExpression(current)) {
-    if (side === "leading") {
-      return current.head.text;
-    }
-
+    const first: ts.TemplateSpan | undefined = current.templateSpans[0];
     const last: ts.TemplateSpan | undefined =
       current.templateSpans[current.templateSpans.length - 1];
 
-    return last ? last.literal.text : undefined;
+    if (side === "leading") {
+      const inner: string | undefined =
+        first && current.head.text.trim() === ""
+          ? edgeTextOf(first.expression, side, context, depth + 1)
+          : undefined;
+
+      return current.head.text + (inner || "");
+    }
+
+    if (!last) {
+      return undefined;
+    }
+
+    const inner: string | undefined =
+      last.literal.text.trim() === ""
+        ? edgeTextOf(last.expression, side, context, depth + 1)
+        : undefined;
+
+    return (inner || "") + last.literal.text;
+  }
+
+  /*
+   * A translated piece starts and ends with the mark its English does: the
+   * bracket of "(truncated)" sets it apart as an aside wherever it is drawn.
+   */
+  const call: ts.CallExpression | undefined = translationCallOf(current);
+
+  if (call) {
+    const english: Array<string> | undefined = call.arguments[0]
+      ? englishOf(call.arguments[0], context, depth + 1)
+      : undefined;
+    const edges: Array<string> = (english || []).map((text: string): string => {
+      const trimmed: string = text.trim();
+      return side === "leading" ? trimmed.charAt(0) : trimmed.slice(-1);
+    });
+
+    // Only a mark: the piece's own words are no words written beside it.
+    return edges.length > 0 &&
+      edges[0] !== "" &&
+      !LETTER_OR_FIGURE.test(edges[0] as string) &&
+      edges.every((edge: string): boolean => {
+        return edge === edges[0];
+      })
+      ? edges[0]
+      : undefined;
   }
 
   if (ts.isConditionalExpression(current)) {
@@ -635,12 +697,197 @@ const edgeTextOf: (
       current.text,
     );
 
-    return constant
-      ? edgeTextOf(constant, side, context, depth + 1)
+    if (constant) {
+      return edgeTextOf(constant, side, context, depth + 1);
+    }
+  }
+
+  /*
+   * A constant another module exports: OverridePresentation's
+   * OVERRIDE_TITLE_MARKER, "⇄".
+   */
+  const name: string | undefined =
+    ts.isIdentifier(current) || ts.isPropertyAccessExpression(current)
+      ? dottedName(current)
       : undefined;
+  const resolved:
+    | { expression: ts.Expression; scope: ModuleScope }
+    | undefined = name
+    ? context.reader.resolve(context.scope, name, 0)
+    : undefined;
+
+  return resolved
+    ? edgeTextOf(
+        resolved.expression,
+        side,
+        { scope: resolved.scope, reader: context.reader },
+        depth + 1,
+      )
+    : undefined;
+};
+
+// Statements that declare names a block's code can read.
+type DeclaringNode = ts.Block | ts.SourceFile | ts.ModuleBlock | ts.CaseClause;
+
+const isDeclaringNode: (node: ts.Node) => node is DeclaringNode = (
+  node: ts.Node,
+): node is DeclaringNode => {
+  return (
+    ts.isBlock(node) ||
+    ts.isSourceFile(node) ||
+    ts.isModuleBlock(node) ||
+    ts.isCaseClause(node)
+  );
+};
+
+/*
+ * What a name read here was declared with: the nearest `const name = ...`
+ * of a block around it, or undefined where a parameter, a destructured
+ * name or nothing declares it. Read by scope, so two functions' own
+ * `label`s are never taken for each other.
+ */
+const initializerInScopeOf: (
+  identifier: ts.Identifier,
+) => ts.Expression | undefined = (
+  identifier: ts.Identifier,
+): ts.Expression | undefined => {
+  const name: string = identifier.text;
+  let node: ts.Node | undefined = identifier.parent;
+
+  while (node) {
+    if (ts.isFunctionLike(node)) {
+      const declaresIt: boolean = node.parameters.some(
+        (parameter: ts.ParameterDeclaration): boolean => {
+          return (
+            ts.isIdentifier(parameter.name) && parameter.name.text === name
+          );
+        },
+      );
+
+      if (declaresIt) {
+        return undefined;
+      }
+    }
+
+    if (isDeclaringNode(node)) {
+      for (const statement of node.statements) {
+        if (!ts.isVariableStatement(statement)) {
+          continue;
+        }
+
+        for (const declaration of statement.declarationList.declarations) {
+          if (
+            ts.isIdentifier(declaration.name) &&
+            declaration.name.text === name
+          ) {
+            return declaration.initializer;
+          }
+        }
+      }
+    }
+
+    node = node.parent;
   }
 
   return undefined;
+};
+
+/*
+ * A name that holds a translation: `const keyTitle =
+ * translator.translateText("Key")`, then `${keyTitle} ${index + 1}` -
+ * the piece it holds, as if the call stood there (#8290).
+ */
+const translatedConstantOf: (
+  expression: ts.Expression,
+) => ts.CallExpression | undefined = (
+  expression: ts.Expression,
+): ts.CallExpression | undefined => {
+  if (!ts.isIdentifier(expression)) {
+    return undefined;
+  }
+
+  const initializer: ts.Expression | undefined =
+    initializerInScopeOf(expression);
+
+  return initializer ? translationCallOf(initializer) : undefined;
+};
+
+/*
+ * Whether a value is one whole translated sentence and nothing else, as a
+ * second sentence is added after a first: ` ${t("SLOs are linked
+ * automatically.")}`, behind a choice between it and nothing, or in a name
+ * that holds one (`const expiry = ...`).
+ */
+const holdsWholeSentence: (
+  expression: ts.Expression,
+  context: PieceContext,
+  depth: number,
+) => boolean = (
+  expression: ts.Expression,
+  context: PieceContext,
+  depth: number,
+): boolean => {
+  if (depth > MAX_RESOLVE_DEPTH) {
+    return false;
+  }
+
+  const current: ts.Expression = unwrap(expression);
+  const call: ts.CallExpression | undefined = translationCallOf(current);
+
+  if (call) {
+    const english: Array<string> | undefined = call.arguments[0]
+      ? englishOf(call.arguments[0], context, 0)
+      : undefined;
+
+    return english ? isWholeSentence(english) : false;
+  }
+
+  if (ts.isTemplateExpression(current)) {
+    const span: ts.TemplateSpan | undefined = current.templateSpans[0];
+
+    return (
+      current.templateSpans.length === 1 &&
+      span !== undefined &&
+      current.head.text.trim() === "" &&
+      span.literal.text.trim() === "" &&
+      holdsWholeSentence(span.expression, context, depth + 1)
+    );
+  }
+
+  if (ts.isConditionalExpression(current)) {
+    const isNothing: (side: ts.Expression) => boolean = (
+      side: ts.Expression,
+    ): boolean => {
+      const value: ts.Expression = unwrap(side);
+
+      return (
+        (ts.isStringLiteral(value) ||
+          ts.isNoSubstitutionTemplateLiteral(value)) &&
+        value.text === ""
+      );
+    };
+
+    if (isNothing(current.whenFalse)) {
+      return holdsWholeSentence(current.whenTrue, context, depth + 1);
+    }
+
+    if (isNothing(current.whenTrue)) {
+      return holdsWholeSentence(current.whenFalse, context, depth + 1);
+    }
+
+    return false;
+  }
+
+  if (ts.isIdentifier(current)) {
+    const initializer: ts.Expression | undefined =
+      initializerInScopeOf(current);
+
+    return initializer
+      ? holdsWholeSentence(initializer, context, depth + 1)
+      : false;
+  }
+
+  return false;
 };
 
 const partOf: (expression: ts.Expression, context: PieceContext) => LinePart = (
@@ -656,7 +903,8 @@ const partOf: (expression: ts.Expression, context: PieceContext) => LinePart = (
     return { kind: "text", text: current.text };
   }
 
-  const call: ts.CallExpression | undefined = translationCallOf(current);
+  const call: ts.CallExpression | undefined =
+    translationCallOf(current) || translatedConstantOf(current);
 
   if (call) {
     const english: Array<string> | undefined = call.arguments[0]
@@ -716,7 +964,12 @@ const partOf: (expression: ts.Expression, context: PieceContext) => LinePart = (
     return { kind: "separator" };
   }
 
-  return { kind: "value", leading: leading || "", trailing: trailing || "" };
+  return {
+    kind: "value",
+    leading: leading || "",
+    trailing: trailing || "",
+    isSentence: holdsWholeSentence(current, context, 0),
+  };
 };
 
 // What stands between two parts of a line.
@@ -751,10 +1004,21 @@ const jointOf: (text: string) => Joint = (text: string): Joint => {
  * Why a line's parts make one sentence of translated pieces, or nothing
  * when they do not.
  */
+export interface JudgeOptions {
+  /*
+   * JSX children: two expressions with nothing between them are drawn side
+   * by side, an icon and its word or a badge and its count, not a sentence:
+   * only a space or words written between them make one.
+   */
+  isJsx?: boolean | undefined;
+}
+
 export const judgeLine: (
   parts: ReadonlyArray<LinePart>,
+  options?: JudgeOptions,
 ) => Array<JoinedPieceKind> = (
   parts: ReadonlyArray<LinePart>,
+  options?: JudgeOptions,
 ): Array<JoinedPieceKind> => {
   // Literal text next to literal text is one stretch of text.
   const line: Array<LinePart> = [];
@@ -815,6 +1079,10 @@ export const judgeLine: (
             : neighbour.trailing + between;
       }
 
+      if (options?.isJsx && between === "") {
+        continue;
+      }
+
       const joint: Joint = jointOf(between);
 
       if (joint === Joint.Apart || joint === Joint.SentenceEnd) {
@@ -827,7 +1095,10 @@ export const judgeLine: (
           continue;
         }
 
-        if (neighbour.kind === "piece" && neighbour.isSentence) {
+        if (
+          (neighbour.kind === "piece" || neighbour.kind === "value") &&
+          neighbour.isSentence
+        ) {
           continue;
         }
 
@@ -946,6 +1217,155 @@ const linePartsOf: (
   return undefined;
 };
 
+const JSX_ENTITIES: Readonly<Record<string, string>> = {
+  "&nbsp;": " ",
+  "&middot;": "·",
+  "&bull;": "•",
+  "&mdash;": "—",
+  "&ndash;": "–",
+  "&amp;": "&",
+  "&quot;": '"',
+  "&apos;": "'",
+  "&lt;": "<",
+  "&gt;": ">",
+};
+
+const JSX_ENTITY: RegExp = /&(?:[a-z]+|#\d+|#x[0-9a-f]+);/gi;
+
+const LINE_BREAK: RegExp = /\r\n|\n|\r/;
+
+// A line with something on it besides spaces and tabs.
+const NOT_BLANK: RegExp = /[^ \t]/;
+
+/*
+ * The text a JSX text child draws, as React's JSX transform writes it: each
+ * line trimmed where it meets a line break, lines of only spaces dropped,
+ * the rest joined by one space. `{t("Showing")} {n}` draws a space between
+ * them; `{icon}` and `{t("Save")}` on lines of their own draw none.
+ */
+export const renderedJsxText: (raw: string) => string = (
+  raw: string,
+): string => {
+  const lines: Array<string> = raw.split(LINE_BREAK);
+  let lastWithText: number = 0;
+
+  lines.forEach((line: string, index: number): void => {
+    if (NOT_BLANK.test(line)) {
+      lastWithText = index;
+    }
+  });
+
+  let text: string = "";
+
+  lines.forEach((line: string, index: number): void => {
+    let trimmed: string = line.replace(/\t/g, " ");
+
+    if (index !== 0) {
+      trimmed = trimmed.replace(/^[ ]+/, "");
+    }
+
+    if (index !== lines.length - 1) {
+      trimmed = trimmed.replace(/[ ]+$/, "");
+    }
+
+    if (trimmed) {
+      text += index === lastWithText ? trimmed : `${trimmed} `;
+    }
+  });
+
+  return text.replace(JSX_ENTITY, (entity: string): string => {
+    const named: string | undefined = JSX_ENTITIES[entity.toLowerCase()];
+
+    if (named) {
+      return named;
+    }
+
+    const code: number = entity.toLowerCase().startsWith("&#x")
+      ? parseInt(entity.slice(3, -1), 16)
+      : parseInt(entity.slice(2, -1), 10);
+
+    return Number.isFinite(code) ? String.fromCodePoint(code) : entity;
+  });
+};
+
+/*
+ * The parts of an element's children, or undefined for any other node: its
+ * text, and each {expression} as a template's span would be. A child
+ * element sets apart what is on each side of it: a link, a date component
+ * or a chip in a sentence is TranslatedSentence's to place (#8290).
+ */
+const jsxLinePartsOf: (
+  node: ts.Node,
+  context: PieceContext,
+) => Array<LinePart> | undefined = (
+  node: ts.Node,
+  context: PieceContext,
+): Array<LinePart> | undefined => {
+  if (!ts.isJsxElement(node) && !ts.isJsxFragment(node)) {
+    return undefined;
+  }
+
+  const parts: Array<LinePart> = [];
+
+  for (const child of node.children) {
+    if (ts.isJsxText(child)) {
+      const text: string = renderedJsxText(child.text);
+
+      if (text !== "") {
+        parts.push({ kind: "text", text });
+      }
+
+      continue;
+    }
+
+    if (ts.isJsxExpression(child)) {
+      // {/* a comment */} draws nothing.
+      if (child.expression) {
+        parts.push(partOf(child.expression, context));
+      }
+
+      continue;
+    }
+
+    parts.push({ kind: "separator" });
+  }
+
+  return parts;
+};
+
+// Where an element's children start and end, without the whitespace around them.
+const jsxChildrenText: (
+  node: ts.JsxElement | ts.JsxFragment,
+  sourceFile: ts.SourceFile,
+) => { start: number; text: string } = (
+  node: ts.JsxElement | ts.JsxFragment,
+  sourceFile: ts.SourceFile,
+): { start: number; text: string } => {
+  // What the line draws: not the whitespace around it, nor a {/* comment */}.
+  const children: ReadonlyArray<ts.JsxChild> = node.children.filter(
+    (child: ts.JsxChild): boolean => {
+      if (ts.isJsxText(child)) {
+        return !child.containsOnlyTriviaWhiteSpaces;
+      }
+
+      return !(ts.isJsxExpression(child) && !child.expression);
+    },
+  );
+  const first: ts.JsxChild | undefined = children[0];
+  const last: ts.JsxChild | undefined = children[children.length - 1];
+
+  if (!first || !last) {
+    return { start: node.getStart(sourceFile), text: "" };
+  }
+
+  const start: number = first.getStart(sourceFile);
+
+  return {
+    start,
+    text: sourceFile.text.slice(start, last.getEnd()).trim(),
+  };
+};
+
 /*
  * Every line of `source` made by joining translated pieces into one
  * sentence. Constants it imports are read with `readModule`.
@@ -977,7 +1397,9 @@ export const findSentencesFromPieces: (data: {
   const findings: Array<JoinedPieceFinding> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    const parts: Array<LinePart> | undefined = linePartsOf(node, context);
+    const jsxParts: Array<LinePart> | undefined = jsxLinePartsOf(node, context);
+    const parts: Array<LinePart> | undefined =
+      jsxParts || linePartsOf(node, context);
 
     if (
       parts &&
@@ -985,18 +1407,24 @@ export const findSentencesFromPieces: (data: {
         return part.kind === "piece";
       })
     ) {
-      const kinds: Array<JoinedPieceKind> = judgeLine(parts);
+      const kinds: Array<JoinedPieceKind> = judgeLine(parts, {
+        isJsx: Boolean(jsxParts),
+      });
 
       if (kinds.length > 0) {
+        // An element's line is its children, as the failure names them.
+        const where: { start: number; text: string } =
+          jsxParts && (ts.isJsxElement(node) || ts.isJsxFragment(node))
+            ? jsxChildrenText(node, sourceFile)
+            : {
+                start: node.getStart(sourceFile),
+                text: node.getText(sourceFile),
+              };
+
         findings.push({
           file: data.file,
-          line:
-            sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-              .line + 1,
-          text: node
-            .getText(sourceFile)
-            .replace(WHITESPACE_RUN, " ")
-            .slice(0, 160),
+          line: sourceFile.getLineAndCharacterOfPosition(where.start).line + 1,
+          text: where.text.replace(WHITESPACE_RUN, " ").slice(0, 160),
           kinds,
         });
       }
@@ -1020,6 +1448,31 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
   text: string;
   why: string;
 }> = [
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationFixSteps.ts",
+    text: "`${kind} ${command.resourceNameSnapshot || unknownName}`",
+    why: "A runbook step's target: the kind of resource, worded for the middle of a sentence, and its name as written (\"host web-1\"), a value the step's sentence holds.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/FormBuilder/Submissions/FormSubmissionsTable.tsx",
+    text: "{tx(created.kindTitle)} {created.reference}",
+    why: 'A link to what a submission created, named by its kind and its reference ("Incident #42"): a name, not a sentence.',
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/NotificationMethods/VerificationCodeModal.tsx",
+    text: "`${sentence}${nextStep}`",
+    why: "Two whole sentences: where no code is waiting, then what to do next, each a notification method's own sentence looked up whole.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Permission/RolePickerOptions.ts",
+    text: "`${english} ${translated}`",
+    why: "What a role search reads, never drawn: the English words and the reader's side by side, so either finds the role.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer.tsx",
+    text: '{t("Services")} {renderServiceChips(scope)}',
+    why: "A heading word before the chips of the services in scope, which a function draws as buttons: a label over its values, not a sentence.",
+  },
   {
     file: "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudSetupGuide.ts",
     text: "`**${context.translator.translateText(tab.label) || tab.label}** — ${tab.description}`",
@@ -1565,4 +2018,332 @@ describe("a fixed line put back to joining words fails the guard", () => {
 
     expect(findSentencesFromPieces({ file, source: putBack })).toHaveLength(1);
   });
+});
+
+// The kinds a JSX fixture's lines are found for, one line each (#8290).
+const jsxKindsOf: (source: string) => Array<string> = (
+  source: string,
+): Array<string> => {
+  return kindsOf(source, "packages/App/FeatureSet/Dashboard/src/Fixture.tsx");
+};
+
+describe("sentences built in an element's children are found (#8290)", () => {
+  test("Page 2 of 5 and Showing N of M, a word at a time", () => {
+    // ServiceMapGraph and EntityDetailPanel before the fix.
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <p>{t("Page")} {page} {t("of")} {pages}</p>;',
+          "const b = (",
+          "  <p>",
+          '    {t("Showing")}{" "}',
+          '    {shown}{" "}',
+          '    {t("of")}{" "}',
+          "    {total}",
+          "  </p>",
+          ");",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '{t("Page")} {page} {t("of")} {pages} => a value joined to a translated phrase',
+      '{t("Showing")}{" "} {shown}{" "} {t("of")}{" "} {total} => a value joined to a translated phrase',
+    ]);
+  });
+
+  test("a count beside its noun, English's 1-or-more plural", () => {
+    // ServiceMapGraph's callers and CorrelateInspector's events before the fix.
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <span>{n} {t(n === 1 ? "caller" : "callers")}</span>;',
+          'const b = <p>{count}{" "}{t("less frequent observables not shown")}</p>;',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '{n} {t(n === 1 ? "caller" : "callers")} => a value joined to a translated phrase',
+      '{count}{" "}{t("less frequent observables not shown")} => a value joined to a translated phrase',
+    ]);
+  });
+
+  test("a phrase, then a name or a date: Traces for, posted on", () => {
+    // EdgeDetailPanel and EventItem before the fix.
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <Link>{translateString("Traces for") || ""} {fromName}</Link>;',
+          "const b = (",
+          "  <p>",
+          '    {t("eventItem.postedOn", "posted on")}{" "}',
+          "    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)}",
+          "  </p>",
+          ");",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '{translateString("Traces for") || ""} {fromName} => a value joined to a translated phrase',
+      '{t("eventItem.postedOn", "posted on")}{" "} {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)} => a value joined to a translated phrase',
+    ]);
+  });
+
+  test("a label's colon, and English words, written beside a piece", () => {
+    // RecordingHealthCard and WorkflowIssuesModal before the fix.
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <dt>{translator.translateText("Capabilities")}:</dt>;',
+          'const b = <span>{t("Error")}{": "}</span>;',
+          'const c = <span>Search {t("templates")}</span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '{translator.translateText("Capabilities")}: => punctuation written beside a translated phrase',
+      '{t("Error")}{": "} => punctuation written beside a translated phrase',
+      'Search {t("templates")} => English words written beside a translated phrase',
+    ]);
+  });
+
+  test("two translated phrases side by side", () => {
+    // OpenStack Capacity's column header before the fix.
+    expect(
+      jsxKindsOf(
+        'const a = <th>{t(getTitle(name))}{" "}{t("allocated")}</th>;',
+      ),
+    ).toEqual([
+      '{t(getTitle(name))}{" "}{t("allocated")} => translated phrases joined',
+    ]);
+  });
+
+  test("a name that holds a translation counts as the call it holds", () => {
+    // NamingLookupTableEditor before #8076's fix, and FacetFilterBar's toggle.
+    expect(
+      kindsOf(
+        [
+          "function Editor() {",
+          '  const keyTitle: string = translator.translateText("Key");',
+          "  return `${keyTitle} ${index + 1}`;",
+          "}",
+          "function Toggle() {",
+          '  const filterText: string = translator.translateText("Filter") || "Filter";',
+          "  return <span>{filterText} {count}</span>;",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "`${keyTitle} ${index + 1}` => a value joined to a translated phrase",
+      "{filterText} {count} => a value joined to a translated phrase",
+    ]);
+  });
+});
+
+describe("what is not a sentence built in an element's children", () => {
+  test("an icon or a badge beside its word, with nothing drawn between", () => {
+    expect(
+      jsxKindsOf(
+        [
+          "const a = (",
+          "  <button>",
+          "    {icon}",
+          '    {t("Save")}',
+          "    {count}",
+          "  </button>",
+          ");",
+          'const b = <span>{badge}{t("New")}</span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a child element sets apart what is on each side of it", () => {
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <p><Icon icon={IconProp.Add} /> {t("Add Monitor")}</p>;',
+          'const b = <p>{t("Read the")} <Link to={route}>{t("docs")}</Link></p>;',
+          'const c = <span>{t("Name")} <span className="text-red-500">*</span></span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("whole sentences, a label with its colon, facts set apart, an aside", () => {
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <p>{t("It could not be loaded.")} {error}</p>;',
+          'const b = <p>{t("Duration:")} {value}</p>;',
+          'const c = <p>{name} · {t("Paused")}</p>;',
+          'const d = <p>{t("Memory")} ({unit})</p>;',
+          'const e = <p>{t(props.description)}{cond ? ` ${t("SLOs are linked automatically.")}` : ""}</p>;',
+          'const f = <span>{translatePlural(ROWS, n)}{truncated ? ` ${t("(truncated)")}` : ""}</span>;',
+          'const g = <p>{translateTemplate("Showing {{shown}} of {{total}}", { shown, total })}</p>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a mark another module exports, before a word", () => {
+    // LayersPreview's "⇄ covering": OVERRIDE_TITLE_MARKER is OverridePresentation's.
+    const modules: Record<string, string> = {
+      "packages/App/FeatureSet/Dashboard/src/Marks.ts":
+        'export const MARKER: string = "⇄";',
+    };
+
+    expect(
+      findSentencesFromPieces({
+        file: "packages/App/FeatureSet/Dashboard/src/Page.tsx",
+        source: [
+          'import { MARKER } from "./Marks";',
+          'const a = <span>{MARKER} {translator.translateText("covering")}</span>;',
+        ].join("\n"),
+        readModule: (file: string): string | undefined => {
+          return modules[file];
+        },
+      }),
+    ).toEqual([]);
+  });
+
+  test("a name read by its own scope: a parameter or another function's const is no piece", () => {
+    expect(
+      kindsOf(
+        [
+          "function a() {",
+          '  const label: string = t("Key");',
+          "  return label;",
+          "}",
+          "function b(label: string) {",
+          "  return `${label} ${n}`;",
+          "}",
+          "function c() {",
+          "  return `${label} ${n}`;",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("a comment between two children draws nothing", () => {
+    expect(
+      jsxKindsOf('const a = <span>{icon}{/* the word */}{t("Save")}</span>;'),
+    ).toEqual([]);
+  });
+});
+
+describe("the JSX reading's pieces (#8290)", () => {
+  test("a text child draws what React's JSX transform draws", () => {
+    expect(renderedJsxText(" ")).toBe(" ");
+    expect(renderedJsxText("\n      ")).toBe("");
+    expect(renderedJsxText(" of\n      ")).toBe(" of");
+    expect(renderedJsxText("\n  posted on\n  ")).toBe("posted on");
+    expect(renderedJsxText("first\n    second")).toBe("first second");
+    expect(renderedJsxText("&nbsp;")).toBe(" ");
+    expect(renderedJsxText(" &middot; ")).toBe(" · ");
+    expect(renderedJsxText("&#183;")).toBe("·");
+    expect(renderedJsxText("&#x2022;")).toBe("•");
+  });
+
+  test("in JSX, nothing between a piece and a value is no joint", () => {
+    const line: Parameters<typeof judgeLine>[0] = [
+      { kind: "piece", isSentence: false, isLabel: false },
+      { kind: "value", leading: "", trailing: "" },
+    ];
+
+    expect(judgeLine(line, { isJsx: true })).toEqual([]);
+    expect(judgeLine(line)).toEqual([JoinedPieceKind.Value]);
+    expect(
+      judgeLine(
+        [
+          { kind: "piece", isSentence: false, isLabel: false },
+          { kind: "text", text: " " },
+          { kind: "value", leading: "", trailing: "" },
+        ],
+        { isJsx: true },
+      ),
+    ).toEqual([JoinedPieceKind.Value]);
+  });
+
+  test("a value that holds one whole sentence stands beside a phrase", () => {
+    expect(
+      judgeLine([
+        { kind: "piece", isSentence: false, isLabel: false },
+        { kind: "value", leading: " ", trailing: "", isSentence: true },
+      ]),
+    ).toEqual([]);
+    expect(
+      judgeLine([
+        { kind: "piece", isSentence: false, isLabel: false },
+        { kind: "value", leading: " ", trailing: "", isSentence: false },
+      ]),
+    ).toEqual([JoinedPieceKind.Value]);
+  });
+});
+
+/*
+ * Mutation checks (#8290): each line this issue made one sentence, put back
+ * as it was written, fails the guard again.
+ */
+const PUT_BACK: ReadonlyArray<{
+  file: string;
+  fixed: RegExp;
+  asItWas: string;
+}> = [
+  {
+    file: "packages/Common/UI/Components/EventItem/EventItem.tsx",
+    fixed:
+      /\{t\("eventItem\.postedOnDate", \{[\s\S]*?defaultValue: "posted on \{\{date\}\}",\s*\}\)\}/,
+    asItWas:
+      '{t("eventItem.postedOn", "posted on")}{" "}\n{OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(item.date)}',
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Topology/EntityDetailPanel.tsx",
+    fixed:
+      /\{translator\.translateTemplate\(SHOWING_CONNECTIONS, \{[\s\S]*?\}\)\}/,
+    asItWas:
+      '{t("Showing")}{" "}\n{section.rows.length}{" "}\n{t("of")}{" "}\n{section.total}',
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Topology/EdgeDetailPanel.tsx",
+    fixed:
+      /\{translator\.translateTemplate\(TRACES_FOR_SERVICE, \{\s*name: fromName,?\s*\}\)\}/,
+    asItWas: '{translateString("Traces for") || ""} {fromName}',
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/CorrelateInspector.tsx",
+    fixed:
+      /\{translator\.translatePlural\(\s*OBSERVABLES_NOT_SHOWN,[\s\S]*?\)\}/,
+    asItWas:
+      '{props.droppedObservableCount}{" "}\n{t("less frequent observables not shown")}',
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Capacity.tsx",
+    fixed:
+      /\{translator\.translateText\(\s*getOpenStackCapacityAllocatedTitle\(name\),\s*\)\}/,
+    asItWas:
+      '{translator.translateText(getOpenStackCapacityResourceTitle(name))}{" "}\n{translator.translateText("allocated")}',
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/RecordingHealthCard.tsx",
+    fixed:
+      /\{translator\.translateTemplate\(LABEL_WITH_COLON, \{\s*label: translatableTerm\("Capabilities"\),\s*\}\)\}/,
+    asItWas: '{translator.translateText("Capabilities")}:',
+  },
+];
+
+describe("a line #8290 made one sentence, put back, fails the guard", () => {
+  for (const entry of PUT_BACK) {
+    test(entry.file, () => {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, entry.file),
+        "utf8",
+      );
+
+      expect(source).toMatch(entry.fixed);
+      expect(findSentencesFromPieces({ file: entry.file, source })).toEqual([]);
+
+      const putBack: string = source.replace(entry.fixed, entry.asItWas);
+
+      expect(
+        findSentencesFromPieces({ file: entry.file, source: putBack }).length,
+      ).toBeGreaterThan(0);
+    });
+  }
 });

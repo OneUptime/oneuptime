@@ -26,7 +26,9 @@ export interface ComponentProps {
  * An entity's risk over the last 30 days: a bar a day, its score at the end
  * of the day, in the colour of the level it read as - so the day it went
  * High is the day its bar turns orange. Drawn with the Overview's day bars,
- * which a screen reader reads as a table.
+ * which a screen reader reads as a table, and on the same days: the
+ * reader's, in the zone they picked (issue #8207). They were UTC's, so in
+ * New York a score that rose at 20:00 showed on the next day's bar.
  */
 const EntityRiskHistory: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,6 +50,7 @@ const EntityRiskHistory: FunctionComponent<ComponentProps> = (
             history: props.history,
             threshold: props.threshold,
             now: OneUptimeDate.getCurrentDate(),
+            timezone: OneUptimeDate.getCurrentTimezone(),
           })}
           series={series}
           ariaLabel={HISTORY_CHART_LABEL}

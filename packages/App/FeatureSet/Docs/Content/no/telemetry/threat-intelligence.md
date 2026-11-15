@@ -27,7 +27,7 @@ flowchart TB
 - For en TAXII-feed: en TAXII 2.1-server som publiserer STIX 2.1-objekter av typen `indicator`, og ID-en til samlingen som skal hentes. En TAXII-feed logger på anonymt, med et bearer-token eller med HTTP Basic-autentisering.
 - For en Google SecOps-feed: en [Google SecOps-tilkobling](/docs/integrations/google-secops#sett-opp-den-administrerte-koblingen) der tjenestekontoen kan søke i indikatortreff: rollen `roles/chronicle.viewer` kan det.
 - Servere som krever et TLS-klientsertifikat (mutual TLS), for eksempel CISA AIS, støttes ikke. MITREs offentlige ATT&CK-server publiserer teknikker og grupper i stedet for indikatorer, så en feed som peker dit, forblir tom.
-- En rolle som kan opprette feeder: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer kan lese feeder og indikatorer. Se [Roller](/docs/permissions/reference#roller).
+- En rolle som kan opprette feeder: Prosjekteier, Prosjektadministrator, Sikkerhetsadministrator eller Sikkerhetsmedlem. Sikkerhetsleser kan lese feeder og indikatorer. Se [Roller](/docs/permissions/reference#roller).
 
 ## Legg til en gratis liste
 

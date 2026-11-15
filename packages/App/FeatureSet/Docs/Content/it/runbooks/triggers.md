@@ -163,7 +163,7 @@ return { host };
 
 ## Chi può configurare i trigger
 
-Una pianificazione o un webhook avvia esecuzioni senza nessuno presente, quindi configurarne uno richiede il permesso di modificare il runbook e di eseguirlo: Project Owner, Project Admin o Runbook Admin, oppure **Edit Runbook** insieme a Project Member, Runbook Member o **Create Runbook Execution**. Contano le etichette a cui un ruolo è limitato, come per **Esegui ora**. Vedere o reimpostare l'URL del webhook richiede lo stesso.
+Una pianificazione o un webhook avvia esecuzioni senza nessuno presente, quindi configurarne uno richiede il permesso di modificare il runbook e di eseguirlo: Proprietario del progetto, Amministratore del progetto o Amministratore dei runbook, oppure **Edit Runbook** insieme a Membro del progetto, Membro dei runbook o **Create Runbook Execution**. Contano le etichette a cui un ruolo è limitato, come per **Esegui ora**. Vedere o reimpostare l'URL del webhook richiede lo stesso.
 
 Disattivare una pianificazione o un webhook non avvia nulla, quindi richiede solo il permesso di modificare il runbook. Chi può modificare il runbook ma non eseguirlo vede la pagina **Trigger** con **Imposta pianificazione** bloccato, e viene informato di chi può vedere l'URL del webhook.
 
@@ -178,7 +178,7 @@ Un'esecuzione era ancora in corso e la pianificazione salta questi orari, oppure
 :::
 
 :::details Il salvataggio di una pianificazione non riesce con "You do not have permission to set up this runbook's schedule or webhook."
-Configurare un trigger richiede il permesso di eseguire il runbook oltre a quello di modificarlo. Chiedi Runbook Admin, oppure Runbook Member o **Create Runbook Execution** oltre a **Edit Runbook**.
+Configurare un trigger richiede il permesso di eseguire il runbook oltre a quello di modificarlo. Chiedi il ruolo Amministratore dei runbook, oppure il ruolo Membro dei runbook o **Create Runbook Execution** oltre a **Edit Runbook**.
 :::
 
 :::details Una chiamata riceve la risposta "No runbook webhook answers at this URL."

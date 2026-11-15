@@ -25,7 +25,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
+- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och Projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
 - **Ditt API ID för Splunk On-Call och en skrivskyddad API-nyckel.** Båda finns under **Integrations** > **API** i Splunk On-Call. Importen skriver aldrig till Splunk On-Call, så en skrivskyddad nyckel räcker.
 
 ## Importera ditt Splunk On-Call-konto
@@ -74,7 +74,7 @@ En import skapar högst 2 000 poster: högst 500 personer, 200 team, 200 joursch
 
 I OneUptime Cloud visas poster som ditt abonnemang inte omfattar som inte överförda, med det abonnemang de kräver.
 
-En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och projektadministratörer ser förloppet och rapporten för varje import.
+En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och Projektadministratörer ser förloppet och rapporten för varje import.
 
 ## Slutför bytet
 

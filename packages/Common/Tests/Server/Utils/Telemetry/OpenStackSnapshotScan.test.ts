@@ -2472,3 +2472,291 @@ describe("a resource class or a subnet named like what every object inherits", (
     },
   );
 });
+
+/*
+ * Issue #8220: five more of the scan's maps are keyed by the exporter's
+ * labels - a Neutron or Heat agent's records by its id, an instance's Nova
+ * metadata by the operator's label names, a flavor's Placement answer by
+ * zone and aggregate, a router's L3 agents by agent id and a project's
+ * CloudKitty ratings by period - and each was written with an assignment.
+ * A key named __proto__ was dropped there (a number or a boolean under it
+ * is ignored), and for the L3 agents and the ratings, whose values are
+ * objects, the record replaced the map's prototype instead. Each is written
+ * as the map's own key now: every name is a key like any other, read back
+ * as the pages read it, and nothing is written onto Object.prototype.
+ */
+describe("the snapshot's maps keyed by an exporter's label, for a label named like what every object inherits", () => {
+  const PROTOTYPE_KEYS: Array<string> = Object.getOwnPropertyNames(
+    Object.prototype,
+  ).sort();
+  const OBJECT_FUNCTION_KEYS: Array<string> =
+    Object.getOwnPropertyNames(Object).sort();
+
+  afterEach(() => {
+    expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(
+      PROTOTYPE_KEYS,
+    );
+    expect(Object.getOwnPropertyNames(Object).sort()).toEqual(
+      OBJECT_FUNCTION_KEYS,
+    );
+  });
+
+  // The map's own keys and their values, as JSON writes them to the row.
+  function ownEntries(map: unknown): Array<[string, unknown]> {
+    expect(Object.getPrototypeOf(map)).toBe(Object.prototype);
+
+    return Object.keys(map as JSONObject).map(
+      (key: string): [string, unknown] => {
+        return [key, readOwnValue(map as JSONObject, key)];
+      },
+    );
+  }
+
+  function agentRow(
+    records: Array<[string, number]>,
+  ): OpenStackResourceBufferEntry {
+    const buffer: Buffer = new Map();
+
+    for (const [id, value] of records) {
+      fold(buffer, "openstack_neutron_agent_state", {
+        value,
+        labels: {
+          id,
+          hostname: "compute-01",
+          service: "ovn-controller",
+          adminState: "up",
+        },
+      });
+    }
+
+    return rowOf(
+      buffer,
+      OpenStackResourceKind.Service,
+      "RegionOne/network/compute-01/ovn-controller",
+    );
+  }
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "an agent whose only live record has the id %s is up, with the stale one named",
+    (name: string) => {
+      // The live record first: until the records are finished, the row reads the last one.
+      const row: OpenStackResourceBufferEntry = agentRow([
+        [name, 1],
+        ["0-old", 0],
+      ]);
+
+      expect(row.status).toBe("up");
+      expect(row.facts["agentId"]).toBe(name);
+      expect(row.facts["staleAgentIds"]).toEqual(["0-old"]);
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "an agent whose stale record has the id %s names it as stale",
+    (name: string) => {
+      const row: OpenStackResourceBufferEntry = agentRow([
+        ["0-new", 1],
+        [name, 0],
+      ]);
+
+      expect(row.status).toBe("up");
+      expect(row.facts["agentId"]).toBe("0-new");
+      expect(row.facts["staleAgentIds"]).toEqual([name]);
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "an instance's Nova metadata label named %s is one of its labels",
+    (name: string) => {
+      const buffer: Buffer = new Map();
+
+      /*
+       * The label is a key here, so the datapoint is written out rather
+       * than built by datapoint(), whose copy of its labels is a spread.
+       */
+      bufferOpenStackSnapshotMetric({
+        metricName: "openstack_nova_server_status",
+        datapoint: {
+          asDouble: 1,
+          timeUnixNano: `${BASE_MS}000000`,
+          attributes: [
+            ["id", "uuid-8220"],
+            ["status", "ACTIVE"],
+            ["team", "payments"],
+            [name, `the ${name} label`],
+            ["openstack.region.name", "RegionOne"],
+          ].map(([key, value]: Array<string>) => {
+            return { key: key, value: { stringValue: value } };
+          }),
+        } as unknown as JSONObject,
+        buffer,
+      });
+
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Instance,
+        "uuid-8220",
+      );
+
+      expect(ownEntries(row.facts["labels"])).toEqual([
+        ["team", "payments"],
+        [name, `the ${name} label`],
+      ]);
+      // As the row is stored: facts go to the database as their JSON.
+      expect(
+        readOwnValue(
+          JSON.parse(JSON.stringify(row.facts))["labels"] as JSONObject,
+          name,
+        ),
+      ).toBe(`the ${name} label`);
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a flavor's Placement answer for a zone and an aggregate named %s counts under that name",
+    (name: string) => {
+      const buffer: Buffer = new Map();
+      const flavor: LabelMap = { flavor_id: "f-1", flavor: "m1.small" };
+
+      fold(buffer, "openstack_placement_flavor_fits", {
+        value: 7,
+        labels: {
+          ...flavor,
+          scope: "region",
+          asked_at: "2026-11-15T10:00:00Z",
+          hosts_with_room: "3",
+          is_capped: "false",
+        },
+      });
+      fold(buffer, "openstack_placement_flavor_fits", {
+        value: 4,
+        labels: { ...flavor, scope: "zone", scope_name: name },
+      });
+      fold(buffer, "openstack_placement_flavor_fits", {
+        value: 3,
+        labels: { ...flavor, scope: "zone", scope_name: "nova" },
+      });
+      fold(buffer, "openstack_placement_flavor_fits", {
+        value: 2,
+        labels: { ...flavor, scope: "aggregate", scope_name: name },
+      });
+
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Flavor,
+        "RegionOne/f-1",
+      );
+      const answer: JSONObject = row.facts["placementAnswer"] as JSONObject;
+
+      expect(answer["fits"]).toBe(7);
+      expect(ownEntries(answer["byZone"])).toEqual([
+        [name, 4],
+        ["nova", 3],
+      ]);
+      expect(ownEntries(answer["byAggregate"])).toEqual([[name, 2]]);
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a router's L3 agent with the id %s is one of its agents, and never the map's prototype",
+    (name: string) => {
+      const buffer: Buffer = new Map();
+
+      for (const [agentId, host] of [
+        [name, "network-01"],
+        ["agent-2", "network-02"],
+      ] as Array<[string, string]>) {
+        fold(buffer, "openstack_neutron_l3_agent_of_router", {
+          value: 1,
+          labels: {
+            router_id: "router-8220",
+            l3_agent_id: agentId,
+            ha_state: "active",
+            agent_alive: "true",
+            agent_admin_up: "true",
+            agent_host: host,
+          },
+        });
+      }
+
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Router,
+        "router-8220",
+      );
+      const agents: JSONObject = row.facts["l3Agents"] as JSONObject;
+
+      expect(ownEntries(agents)).toEqual([
+        [
+          name,
+          {
+            host: "network-01",
+            isAlive: true,
+            isAdminUp: true,
+            haState: "active",
+          },
+        ],
+        [
+          "agent-2",
+          {
+            host: "network-02",
+            isAlive: true,
+            isAdminUp: true,
+            haState: "active",
+          },
+        ],
+      ]);
+      // Nothing of an agent's record is reachable by name through a prototype.
+      expect(
+        (agents as unknown as Record<string, unknown>)["host"],
+      ).toBeUndefined();
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a CloudKitty rating for a period named %s is that period's, through to the sum the spend page reads",
+    (name: string) => {
+      const buffer: Buffer = new Map();
+
+      fold(buffer, "openstack_cloudkitty_rated", {
+        value: 2.5,
+        region: "RegionOne",
+        labels: { project_id: "payments", period: name },
+      });
+      fold(buffer, "openstack_cloudkitty_rated", {
+        value: 1,
+        region: "RegionTwo",
+        labels: { project_id: "payments", period: name },
+      });
+      fold(buffer, "openstack_cloudkitty_rated", {
+        value: 40,
+        region: "RegionOne",
+        labels: { project_id: "payments", period: "2026-10" },
+      });
+
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Project,
+        "payments",
+      );
+      const one: JSONObject = row.facts["rated:RegionOne"] as JSONObject;
+
+      expect(Object.keys(one)).toEqual([name, "2026-10"]);
+      expect((readOwnValue(one, name) as JSONObject)["total"]).toBe(2.5);
+      expect(Object.getPrototypeOf(one)).toBe(Object.prototype);
+      expect(
+        (one as unknown as Record<string, unknown>)["total"],
+      ).toBeUndefined();
+
+      // The project's regions added up, as the spend page reads them, from the stored JSON.
+      const rated: Record<string, unknown> = readOpenStackRatedByPeriod(
+        JSON.parse(JSON.stringify(row.facts)),
+      ) as unknown as Record<string, unknown>;
+
+      expect(Object.getPrototypeOf(rated)).toBe(Object.prototype);
+      expect(Object.keys(rated).sort()).toEqual(["2026-10", name].sort());
+      expect((readOwnValue(rated, name) as JSONObject)["total"]).toBe(3.5);
+      expect((readOwnValue(rated, "2026-10") as JSONObject)["total"]).toBe(40);
+    },
+  );
+});

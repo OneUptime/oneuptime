@@ -42,7 +42,7 @@ Puoi vedere ogni esecuzione, avviata da una regola o no, in **Runbook → Esecuz
 ## Prima di iniziare
 
 - **Un runbook che possa essere eseguito.** Gli serve almeno un passaggio e **Esegui questo runbook** attivo, nella sua pagina **Impostazioni**. Vedi [Scrivere un runbook](/docs/runbooks/authoring).
-- **L'autorizzazione a gestire le regole.** Project Owner, Project Admin e Runbook Admin creano regole di runbook, come chiunque abbia l'autorizzazione **Create Runbook Rule**.
+- **L'autorizzazione a gestire le regole.** Proprietario del progetto, Amministratore del progetto e Amministratore dei runbook creano regole di runbook, come chiunque abbia l'autorizzazione **Create Runbook Rule**.
 
 ## Creare una regola di runbook
 

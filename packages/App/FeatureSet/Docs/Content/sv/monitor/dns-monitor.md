@@ -28,7 +28,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når DNS-servern.** Projektets standardsonder väljs för varje ny monitor. För att fråga en DNS-server i ett privat nätverk, till exempel en intern upplösare, använder du en [anpassad sond](/docs/probe/custom-probe) i det nätverket.
 
 ## Skapa en DNS-monitor

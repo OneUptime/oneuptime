@@ -58,7 +58,7 @@ Sådan starter du en manuelt:
 3. Udførelsessiden åbner.
 :::
 
-At starte en kørsel kræver Project Owner, Project Admin, Project Member, Runbook Admin eller Runbook Member eller tilladelsen **Create Runbook Execution**. Runbook Viewer og Viewer ser **Kør nu** låst med begrundelsen. Se [Tilladelser](/docs/runbooks/configuration#tilladelser).
+At starte en kørsel kræver Projektejer, Projektadministrator, Projektmedlem, Runbook-administrator eller Runbook-medlem eller tilladelsen **Create Runbook Execution**. Runbook-seer og Seer ser **Kør nu** låst med begrundelsen. Se [Tilladelser](/docs/runbooks/configuration#tilladelser).
 
 ## Udførelsesvisningen
 
@@ -128,7 +128,7 @@ En udførelse er en engangs, uforanderlig post. Klik på **Kør igen** på en af
 ## Fejlfinding
 
 :::details Run Now er låst
-Din rolle læser runbooks, men kører dem ikke: knappen siger "Du har ikke tilladelse til at starte runbook-kørsler i dette projekt." Bed om Runbook Member eller om tilladelsen **Create Runbook Execution**.
+Din rolle læser runbooks, men kører dem ikke: knappen siger "Du har ikke tilladelse til at starte runbook-kørsler i dette projekt." Bed om Runbook-medlem eller om tilladelsen **Create Runbook Execution**.
 :::
 
 :::details Start af en kørsel fejler med "Runbook is disabled" eller "Runbook has no steps to run"

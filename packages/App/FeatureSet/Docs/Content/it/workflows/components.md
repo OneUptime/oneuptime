@@ -473,7 +473,7 @@ Un tipo offre solo i componenti che il suo modello consente. Un tipo di sola let
 
 È così che un workflow legge e modifica i dati di OneUptime. Ad esempio, un webhook del tuo strumento di CI può usare **Create One Incident** per aprire un incidente con i dettagli dell'errore.
 
-Questi componenti agiscono come Project Admin del progetto del workflow: ciò che un Project Admin non può fare, o che il tuo piano non include, viene rifiutato, e il registro dell'esecuzione dice perché. Vedi [Cosa possono fare i passaggi di un workflow](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-workflow).
+Questi componenti agiscono come Amministratore del progetto nel progetto del workflow: ciò che un Amministratore del progetto non può fare, o che il tuo piano non include, viene rifiutato, e il registro dell'esecuzione dice perché. Vedi [Cosa possono fare i passaggi di un workflow](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-workflow).
 
 ### Dichiarare un incidente da un modello
 
@@ -486,6 +486,12 @@ L'incidente registra il modello da cui è stato dichiarato in `createdIncidentTe
 **Create One Incident** e **Create One Alert** hanno un'impostazione **Risorse interessate**: gli host, i dispositivi di rete, i cluster, i database o i servizi di cui tratta il record, per nome, indirizzo o ID, separati da virgole — digitati oppure presi da un passaggio precedente, come l'host che nomina un avviso arrivato da un altro strumento. Ogni voce viene cercata in tutti i tipi di risorsa che il record può contenere, come valore intero e senza distinguere maiuscole e minuscole: per nome, un dispositivo di rete anche per l'indirizzo a cui viene interrogato o per il suo nome DNS, un host per il nome che il suo agente riporta o per uno dei suoi indirizzi IP, e una risorsa cloud per l'ID del suo provider. Ogni risorsa a cui corrisponde una voce viene collegata, accanto a ciò che **JSON Object** e il modello collegano già, fino a 50 dalle prime 25 voci.
 
 Una voce che non corrisponde a nulla non ferma il passaggio: il record viene creato comunque, e il registro dell'esecuzione dice che cosa ha collegato ogni voce e quali non corrispondevano a nulla. Le risorse archiviate non vengono collegate. I monitor non vengono cercati: indicali in **JSON Object** (`monitors` su un incidente, `monitorId` su un avviso), perché collegare un monitor a un incidente ne mette in pausa il monitoraggio.
+
+### A chi appartiene fin dall'inizio
+
+**Create One Incident** e **Create One Alert** hanno le impostazioni **Utenti proprietari** e **Team proprietari**: le persone e i team a cui il record appartiene fin dalla sua creazione. Sceglili, oppure prendili da un passaggio precedente: l'ID o l'indirizzo email di un utente, l'ID di un team, più d'uno separati da virgole, o una lista. I proprietari del record vengono a sapere della sua creazione circa un minuto dopo, tutti quelli che ha a quel punto: quelli scelti qui sono sempre tra loro, mentre i proprietari che un passaggio successivo aggiunge se la perdono quando quel passaggio viene eseguito più di un minuto dopo, e al loro posto vengono avvisati i proprietari del progetto.
+
+Il passaggio chiede se può aggiungerli, come Project Admin del progetto del workflow, prima che il record venga salvato: i proprietari che non può aggiungere fanno rifiutare la creazione. Chi non è membro del progetto, o un team che non è del progetto, viene lasciato fuori, e il registro dell'esecuzione lo dice: il record viene creato comunque. I proprietari aggiunti così non vengono avvisati di essere stati aggiunti: la notifica che il record è stato creato è quella che ricevono.
 
 ## Lavorare con i record
 

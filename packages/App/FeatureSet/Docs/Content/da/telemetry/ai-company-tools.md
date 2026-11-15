@@ -29,7 +29,7 @@ Chattene kommer ind på samme måde som dine apps' AI-kald, så scrub-regler, dr
 
 ## Før du begynder
 
-- Rollen Project Owner eller Project Admin. Kun de kan forbinde, ændre eller fjerne et værktøj.
+- Rollen Projektejer eller Projektadministrator. Kun de kan forbinde, ændre eller fjerne et værktøj.
 - En administrator af værktøjet til at oprette legitimationsoplysningerne: hvert værktøjs afsnit nedenfor fortæller hvem.
 - Dine folk informeret og svaret fra jeres juridiske afdeling eller HR.
 

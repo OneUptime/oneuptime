@@ -4,7 +4,12 @@ import ObjectID from "../ObjectID";
 import { SessionEndCause } from "../UserSession/SessionEndCause";
 import { DEFAULT_SESSION_IDLE_DAYS } from "../UserSession/SessionLength";
 import { SessionSignIn } from "../UserSession/SessionSignIn";
-import { translationKey } from "../Translator";
+import {
+  getInlineSeparator,
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "../Translator";
 
 /*
  * PEOPLE'S SESSIONS IN THE AUDIT LOG (issue #6762).
@@ -97,23 +102,62 @@ export const getSessionEndAuditLogAction: (
   }
 };
 
-// What an entry says of why a session ended.
+/*
+ * What an entry says of why a session ended: the words the server stores in
+ * the entry, in English, and keys of the Dashboard's locales, which the
+ * table and the dialog draw in the reader's language (#8459,
+ * getSessionEntryValueInLanguage). Thirty days without use is stored with
+ * its number, and read through AUDIT_LOG_SESSION_NOT_USED_FOR.
+ */
 export const SESSION_END_CAUSE_DESCRIPTIONS: Readonly<
   Record<SessionEndCause, string>
 > = {
-  [SessionEndCause.SignedOut]: "Signed out",
-  [SessionEndCause.IdleTimeout]: "Idle timeout reached",
-  [SessionEndCause.LengthReached]: "Session length reached",
+  [SessionEndCause.SignedOut]: translationKey("Signed out"),
+  [SessionEndCause.IdleTimeout]: translationKey("Idle timeout reached"),
+  [SessionEndCause.LengthReached]: translationKey("Session length reached"),
   [SessionEndCause.Expired]: `Not used for ${DEFAULT_SESSION_IDLE_DAYS} days`,
-  [SessionEndCause.PasswordChanged]: "Password changed",
-  [SessionEndCause.PasswordReset]: "Password reset",
-  [SessionEndCause.AccountBlocked]: "Account blocked by a server admin",
-  [SessionEndCause.TwoFactorRequired]:
+  [SessionEndCause.PasswordChanged]: translationKey("Password changed"),
+  [SessionEndCause.PasswordReset]: translationKey("Password reset"),
+  [SessionEndCause.AccountBlocked]: translationKey(
+    "Account blocked by a server admin",
+  ),
+  [SessionEndCause.TwoFactorRequired]: translationKey(
     "Two-factor authentication required by a server admin",
-  [SessionEndCause.TwoFactorReset]:
+  ),
+  [SessionEndCause.TwoFactorReset]: translationKey(
     "Two-factor authentication reset by a server admin",
-  [SessionEndCause.Other]: "Session ended",
+  ),
+  [SessionEndCause.Other]: translationKey("Session ended"),
 };
+
+/*
+ * Thirty days without use, as the reader's language counts days: what the
+ * Expired cause's stored words, with the number in them, are drawn as.
+ */
+export const AUDIT_LOG_SESSION_NOT_USED_FOR: PluralTemplate = {
+  one: translationKey("Not used for {{count}} day"),
+  other: translationKey("Not used for {{count}} days"),
+};
+
+/*
+ * OneUptime's own words a session entry stores for how its person signed in
+ * (SignInMethod) and with which second factor (SecondFactor), as keys of
+ * the Dashboard's locales (#8459). Google, Microsoft and Vercel are names,
+ * drawn as written.
+ */
+export const AUDIT_LOG_SESSION_SIGN_IN_WORDS: ReadonlyArray<string> = [
+  translationKey("Password"),
+  translationKey("Sign-in link"),
+  translationKey("Passkey"),
+  translationKey("SAML single sign-on"),
+  translationKey("OpenID Connect single sign-on"),
+  translationKey("Authenticator app"),
+  translationKey("Security key"),
+  translationKey("Backup code"),
+];
+
+// What a sign-in's summary says when it stored no way of signing in.
+export const AUDIT_LOG_SESSION_SIGNED_IN: string = translationKey("Signed in");
 
 /*
  * The fields of a session entry, as its `changes` carry them: each one a
@@ -256,32 +300,99 @@ export const readSessionEntryFields: (
  * in ("Password + Authenticator app", "SAML single sign-on · Okta"), or why
  * it ended ("Idle timeout reached").
  */
+/*
+ * A value a session entry stored, as the reader reads it (#8459): one of
+ * OneUptime's own words - why it ended, how they signed in, the second
+ * factor - in the reader's language, thirty days without use in its plural
+ * forms and digits; anything else - a device, an address, a place, a
+ * provider's name - as recorded. Without a translator, as stored: English,
+ * as the server and the export write it.
+ */
+export const getSessionEntryValueInLanguage: (data: {
+  field: AuditLogSessionField;
+  value: string;
+  translator?: Translator | undefined;
+}) => string = (data: {
+  field: AuditLogSessionField;
+  value: string;
+  translator?: Translator | undefined;
+}): string => {
+  const translator: Translator | undefined = data.translator;
+
+  if (!translator) {
+    return data.value;
+  }
+
+  const isOwnWord: boolean =
+    data.field === AuditLogSessionField.Reason
+      ? (
+          Object.values(SESSION_END_CAUSE_DESCRIPTIONS) as Array<string>
+        ).includes(data.value)
+      : (data.field === AuditLogSessionField.SignInMethod ||
+          data.field === AuditLogSessionField.SecondFactor) &&
+        AUDIT_LOG_SESSION_SIGN_IN_WORDS.includes(data.value);
+
+  if (!isOwnWord) {
+    return data.value;
+  }
+
+  if (data.value === SESSION_END_CAUSE_DESCRIPTIONS[SessionEndCause.Expired]) {
+    return translator.translatePlural(
+      AUDIT_LOG_SESSION_NOT_USED_FOR,
+      DEFAULT_SESSION_IDLE_DAYS,
+    );
+  }
+
+  return translator.translateText(data.value) || data.value;
+};
+
+/*
+ * A session entry in a few words: how they signed in (and with which second
+ * factor and provider), or why the session ended. In the reader's language
+ * when handed their translator (#8459), each fact set apart as the language
+ * sets facts apart (getInlineSeparator); without one, English, as stored.
+ */
 export const getSessionEntrySummary: (data: {
   action: string | undefined;
   changes: unknown;
+  translator?: Translator | undefined;
 }) => string = (data: {
   action: string | undefined;
   changes: unknown;
+  translator?: Translator | undefined;
 }): string => {
   const fields: Map<AuditLogSessionField, string> = readSessionEntryFields(
     data.changes,
   );
 
+  const read: (field: AuditLogSessionField) => string | undefined = (
+    field: AuditLogSessionField,
+  ): string | undefined => {
+    const value: string | undefined = fields.get(field);
+
+    return value
+      ? getSessionEntryValueInLanguage({
+          field,
+          value,
+          translator: data.translator,
+        })
+      : undefined;
+  };
+
   if (data.action === AuditLogAction.SignIn) {
-    const method: string | undefined = fields.get(
-      AuditLogSessionField.SignInMethod,
-    );
+    const method: string | undefined = read(AuditLogSessionField.SignInMethod);
 
     if (!method) {
-      return "Signed in";
+      return (
+        data.translator?.translateText(AUDIT_LOG_SESSION_SIGNED_IN) ||
+        AUDIT_LOG_SESSION_SIGNED_IN
+      );
     }
 
-    const secondFactor: string | undefined = fields.get(
+    const secondFactor: string | undefined = read(
       AuditLogSessionField.SecondFactor,
     );
-    const provider: string | undefined = fields.get(
-      AuditLogSessionField.SsoProvider,
-    );
+    const provider: string | undefined = read(AuditLogSessionField.SsoProvider);
 
     let summary: string = method;
 
@@ -290,14 +401,18 @@ export const getSessionEntrySummary: (data: {
     }
 
     if (provider) {
-      summary = `${summary} · ${provider}`;
+      summary = `${summary}${getInlineSeparator(data.translator?.language)}${provider}`;
     }
 
     return summary;
   }
 
   return (
-    fields.get(AuditLogSessionField.Reason) ||
-    SESSION_END_CAUSE_DESCRIPTIONS[SessionEndCause.Other]
+    read(AuditLogSessionField.Reason) ||
+    getSessionEntryValueInLanguage({
+      field: AuditLogSessionField.Reason,
+      value: SESSION_END_CAUSE_DESCRIPTIONS[SessionEndCause.Other],
+      translator: data.translator,
+    })
   );
 };

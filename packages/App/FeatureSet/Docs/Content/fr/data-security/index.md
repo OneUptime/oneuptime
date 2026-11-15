@@ -43,7 +43,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un rôle qui peut la configurer.** Les Project Owners, Project Admins et Security Admins modifient les paramètres de Sécurité des données. Les Security Members traitent les problèmes et analysent les magasins de données, et les Security Viewers lisent ce qu'elle a trouvé. Les autres rôles n'en voient rien, sauf si leur équipe reçoit ses autorisations : savoir quels buckets contiennent des numéros de carte, c'est exactement ce qu'un attaquant veut connaître. Voir [Rôles](/docs/permissions/reference#rôles).
+- **Un rôle qui peut la configurer.** Les Propriétaires du projet, Administrateurs du projet et Administrateurs de la sécurité modifient les paramètres de Sécurité des données. Les Membres de la sécurité traitent les problèmes et analysent les magasins de données, et les Lecteurs de la sécurité lisent ce qu'elle a trouvé. Les autres rôles n'en voient rien, sauf si leur équipe reçoit ses autorisations : savoir quels buckets contiennent des numéros de carte, c'est exactement ce qu'un attaquant veut connaître. Voir [Rôles](/docs/permissions/reference#rôles).
 - **Un compte cloud à lire, ou une base de données.** Sécurité des données lit un compte cloud via une [connexion cloud](/docs/telemetry/cloud-accounts), et une base de données que vous exploitez via une chaîne de connexion en lecture seule. La télémétrie ne demande rien : elle est analysée toutes les heures.
 
 ## Démarrage rapide

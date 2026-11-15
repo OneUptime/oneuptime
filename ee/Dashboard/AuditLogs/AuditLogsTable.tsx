@@ -878,6 +878,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                 const summary: string = getSessionEntrySummary({
                   action: item.action,
                   changes: item.changes,
+                  translator: translator,
                 });
 
                 return (
