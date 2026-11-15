@@ -445,8 +445,10 @@ describePostgres(
     test("over a fleet on every boundary: the same numbers, buckets and vendors", async () => {
       const folded: DeviceFleetScan = await expectSameAnswers();
 
-      // The seed is what the comparison assumes: something on each side.
-      // 144 combinations of the health facts, 14 tied vendors.
+      /*
+       * The seed is what the comparison assumes: something on each side.
+       * 144 combinations of the health facts, 14 tied vendors.
+       */
       expect(folded.summary.totalDevices).toBe(158);
       expect(folded.summary.devicesUp).toBeGreaterThan(0);
       expect(folded.summary.devicesDown).toBeGreaterThan(0);
