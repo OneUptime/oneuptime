@@ -184,19 +184,32 @@ function teamPermission(
   return value;
 }
 
-function holding(permissions: Array<Permission>): void {
+function holding(
+  permissions: Array<Permission>,
+  blocks: Array<Permission> = [],
+): void {
   allPermissionsForTest = permissions;
   projectPermissionsForTest = {
     projectId: PROJECT_ID,
-    permissions: permissions.map((permission: Permission): UserPermission => {
-      return {
-        permission: permission,
-        labelIds: [],
-        isBlockPermission: false,
-        scope: PermissionScope.All,
-        _type: "UserPermission",
-      };
-    }),
+    permissions: [
+      ...permissions.map((permission: Permission): UserPermission => {
+        return {
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: false,
+          scope: PermissionScope.All,
+          _type: "UserPermission",
+        };
+      }),
+      ...blocks.map((permission: Permission): UserPermission => {
+        return {
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: true,
+          _type: "UserPermission",
+        };
+      }),
+    ],
     _type: "UserTenantAccessPermission",
   };
 }
@@ -379,6 +392,18 @@ describe("Invite User", () => {
     expect(within(modal).queryByPlaceholderText("Select a team")).toBeNull();
   });
 
+  test("starts on Members for a Project Admin too", async () => {
+    holding([Permission.ProjectAdmin]);
+
+    const modal: HTMLElement = await openInviteModal();
+
+    await waitFor(() => {
+      expect(teamValue(modal)).not.toBeNull();
+    });
+
+    expect(teamValue(modal)).toHaveTextContent("Members");
+  });
+
   test("invites to it without touching the team", async () => {
     const modal: HTMLElement = await openInviteModal();
 
@@ -505,8 +530,8 @@ describe("Invite User picks nothing", () => {
     await expectNothingPicked(await openInviteModal());
   });
 
-  test("for a Project Admin outside Members, whom the server would refuse", async () => {
-    holding([Permission.ProjectAdmin]);
+  test("for a Project Admin with a block, whom the server would refuse", async () => {
+    holding([Permission.ProjectAdmin], [Permission.ReadProjectIncident]);
 
     await expectNothingPicked(await openInviteModal());
   });

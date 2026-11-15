@@ -267,12 +267,17 @@ describe("the Access cards for the signed-in user", () => {
     ]);
   });
 
-  test("a project admin gets the role they hold, as the server would allow", () => {
+  test("a project admin gets every card, as the server would allow: Project Admin does what the others do", () => {
     holding([Permission.ProjectAdmin]);
 
     expect(
       values(getRoleAccessOptionsForCurrentUser(RoleAccessHolder.ApiKey)),
-    ).toEqual([Permission.ProjectAdmin, ROLE_ACCESS_LATER]);
+    ).toEqual([
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      ROLE_ACCESS_LATER,
+    ]);
   });
 
   test("someone who may create keys but not give them permissions is not asked", () => {

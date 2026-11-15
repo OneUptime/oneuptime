@@ -450,11 +450,13 @@ export class Service extends ProjectReferencesService<Model> {
 
   /**
    * Permission-management is delegation, not a role minting primitive.
-   * Owners may delegate anything. Every other editor, including a project
-   * admin, must themselves hold the exact permission and every label scope
-   * they place on the API key. ProjectAdmin is not an implication of every
-   * permission: destructive and billing permissions intentionally exclude it
-   * in their model ACLs.
+   * Owners may delegate anything. A project admin nothing blocks may
+   * delegate what Project Admin already does
+   * (PermissionHelper.isCoveredByProjectAdmin): ProjectAdmin is not an
+   * implication of every permission, as destructive and billing permissions
+   * intentionally exclude it in their model ACLs. Every other editor must
+   * themselves hold the exact permission and every label scope they place
+   * on the API key.
    *
    * Giving a key a custom role is held to it for every permission of the
    * role the key would hold (ApiKeyCustomRoleService), and so is putting a
@@ -493,6 +495,20 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (hasProjectOwner) {
+      return;
+    }
+
+    // Any block takes part of what Project Admin does away from the caller.
+    if (
+      PermissionHelper.isCoveredByProjectAdmin(data.permission) &&
+      blockPermissions.length === 0 &&
+      this.isPermissionWithinCallerAuthority({
+        allowPermissions,
+        blockPermissions,
+        permission: Permission.ProjectAdmin,
+        requestedLabelIds: [],
+      })
+    ) {
       return;
     }
 
