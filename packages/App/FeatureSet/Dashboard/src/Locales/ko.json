@@ -52362,5 +52362,8 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "브라우저 키입니다. 클라이언트에 배포하도록 만들어졌습니다. 웹 출처는 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트를 보낼 수 있고, app:// ID는 React Native 세션 리플레이만 허용합니다. 허용되는 ID: {{identities}}. 네이티브 앱 ID는 앱이 스스로 밝히는 것이며 플랫폼의 증명이 아닙니다.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "페이지에 게시해도 안전합니다. 아래의 허용된 출처에서 보낸 요청만 받으며 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트에만 쓸 수 있습니다."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "페이지에 게시해도 안전합니다. 아래의 허용된 출처에서 보낸 요청만 받으며 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트에만 쓸 수 있습니다.",
+  "Nobody is paged: this project has no on-call policy yet.": "아무도 호출되지 않습니다. 이 프로젝트에는 아직 온콜 정책이 없습니다.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "대체 방법으로 선택됨: 이 심각도에 해당하는 이 사람의 온콜 규칙이 없습니다",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "이 설정에서 사용하던 온콜 정책이 삭제되었으므로 정책을 다시 고르거나 만드세요."
 }

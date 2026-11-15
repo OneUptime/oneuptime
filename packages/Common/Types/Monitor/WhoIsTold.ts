@@ -639,7 +639,17 @@ export function getWhoIsToldBreaks(data: {
   for (const item of data.criteria) {
     for (const event of item.events) {
       if (event.policies.length === 0) {
-        if (
+        if (!data.projectHasOnCallPolicies) {
+          /*
+           * No policy at all: whatever rules the project has page nothing,
+           * so the first policy is what is missing (#7369).
+           */
+          add({
+            kind: WhoIsToldBreakKind.NobodyPaged,
+            fix: WhoIsToldFix.OnCallGuidedSetup,
+            recordKind: event.kind,
+          });
+        } else if (
           event.kind === OnCallTestPageRecordKind.Alert &&
           data.projectHasIncidentOnCallRules &&
           !data.projectHasAlertOnCallRules
@@ -652,9 +662,8 @@ export function getWhoIsToldBreaks(data: {
         } else {
           add({
             kind: WhoIsToldBreakKind.NobodyPaged,
-            fix: !data.projectHasOnCallPolicies
-              ? WhoIsToldFix.OnCallGuidedSetup
-              : event.kind === OnCallTestPageRecordKind.Alert
+            fix:
+              event.kind === OnCallTestPageRecordKind.Alert
                 ? WhoIsToldFix.AlertOnCallRules
                 : WhoIsToldFix.IncidentOnCallRules,
             recordKind: event.kind,

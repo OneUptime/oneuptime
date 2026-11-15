@@ -52362,5 +52362,8 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} और हिस्से नहीं दिखाए गए। खोजकर ढूँढें।",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} और हिस्सा नहीं दिखाया गया। खोजकर ढूँढें।",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "ब्राउज़र कुंजी — क्लाइंट में बाँटने के लिए बनी है। वेब ओरिजिन ट्रेस, लॉग, मेट्रिक्स, सेशन रीप्ले और Sentry इवेंट भेज सकते हैं; app:// पहचान केवल React Native सेशन रीप्ले की अनुमति देती हैं। स्वीकृत पहचान: {{identities}}। नेटिव ऐप की पहचान ऐप स्वयं बताता है, यह प्लेटफ़ॉर्म का प्रमाणन नहीं है।",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "पेज में प्रकाशित करना सुरक्षित है। केवल नीचे दिए गए अनुमत ऑरिजिन से स्वीकार होती है, और केवल ट्रेस, लॉग, मेट्रिक्स, सेशन रीप्ले और Sentry इवेंट के लिए।"
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "पेज में प्रकाशित करना सुरक्षित है। केवल नीचे दिए गए अनुमत ऑरिजिन से स्वीकार होती है, और केवल ट्रेस, लॉग, मेट्रिक्स, सेशन रीप्ले और Sentry इवेंट के लिए।",
+  "Nobody is paged: this project has no on-call policy yet.": "किसी को पेज नहीं किया जाता: इस प्रोजेक्ट में अभी कोई ऑन-कॉल नीति नहीं है।",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "फ़ॉलबैक द्वारा चुना गया: इस गंभीरता के लिए इनका कोई ऑन-कॉल नियम नहीं है",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "यह सेटअप जिस ऑन-कॉल नीति का उपयोग कर रहा था, वह हटा दी गई है, इसलिए फिर से कोई नीति चुनें या बनाएँ।"
 }

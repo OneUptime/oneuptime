@@ -52362,5 +52362,8 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} بخش دیگر رسم نشده است. برای یافتن آن جستجو کنید.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} بخش دیگر رسم نشده است. برای یافتن آن جستجو کنید.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "کلید مرورگر — برای توزیع در کلاینت‌ها در نظر گرفته شده است. مبدأهای وب می‌توانند ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry بفرستند؛ شناسه‌های app:// فقط بازپخش نشست React Native را مجاز می‌کنند. شناسه‌های پذیرفته: {{identities}}. شناسه‌های اپ‌های بومی را خود اپ اعلام می‌کند و تأیید پلتفرم نیستند.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "انتشار آن در یک صفحه بی‌خطر است. فقط از مبدأهای مجاز زیر پذیرفته می‌شود، و فقط برای ترِیس، لاگ، متریک، بازپخش نشست و رویدادهای Sentry.",
+  "Nobody is paged: this project has no on-call policy yet.": "کسی فراخوانده نمی‌شود: این پروژه هنوز سیاست آنکالی ندارد.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "انتخاب‌شده با روش جایگزین: هیچ قاعدهٔ آنکالی از این فرد این شدت را پوشش نمی‌دهد",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "سیاست آنکالی که این راه‌اندازی از آن استفاده می‌کرد حذف شد، پس دوباره یکی را انتخاب کنید یا بسازید."
 }

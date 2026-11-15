@@ -714,7 +714,12 @@ describe("every break in a monitor's chain", () => {
       expect(alert[0]!.fix).toBe(WhoIsToldFix.AlertOnCallRules);
     });
 
-    test("alerts while only incidents have rules: still the alert rules, whatever the policies", () => {
+    /*
+     * Incident rules whose policies were all deleted page nobody either: the
+     * missing policy is the break, not the missing alert rule, as an alert
+     * rule would have no policy to page.
+     */
+    test("alerts while only incidents have rules, and no policy: the policy is what is missing", () => {
       const breaks: Array<WhoIsToldBreak> = breaksOf({
         criteria: [
           criteria({
@@ -730,6 +735,28 @@ describe("every break in a monitor's chain", () => {
         incidentRules: true,
         alertRules: false,
         policies: false,
+      });
+
+      expect(kindsOf(breaks)).toEqual([WhoIsToldBreakKind.NobodyPaged]);
+      expect(breaks[0]!.fix).toBe(WhoIsToldFix.OnCallGuidedSetup);
+    });
+
+    test("alerts while only incidents have rules, with a policy: the alert rules, as before", () => {
+      const breaks: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [
+          criteria({
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        incidentRules: true,
+        alertRules: false,
+        policies: true,
       });
 
       expect(kindsOf(breaks)).toEqual([

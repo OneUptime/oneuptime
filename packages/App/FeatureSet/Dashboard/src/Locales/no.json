@@ -52362,5 +52362,8 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} deler til er ikke tegnet. Søk for å finne en.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} del til er ikke tegnet. Søk for å finne den.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Nettlesernøkkel – ment for distribusjon til klienter. Nettopprinnelser kan sende spor, logger, målinger, øktavspillinger og Sentry-hendelser; app://-identiteter tillater bare øktavspilling fra React Native. Godtatte identiteter: {{identities}}. Identiteter for native apper oppgis av appen selv og er ikke en attestering fra plattformen.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "Trygg å publisere på en side. Godtas bare fra de tillatte opprinnelsene nedenfor, og bare for spor, logger, målinger, øktavspillinger og Sentry-hendelser."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "Trygg å publisere på en side. Godtas bare fra de tillatte opprinnelsene nedenfor, og bare for spor, logger, målinger, øktavspillinger og Sentry-hendelser.",
+  "Nobody is paged: this project has no on-call policy yet.": "Ingen varsles: dette prosjektet har ingen vaktpolicy ennå.",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "Valgt av reserveløsningen: ingen av personens vaktregler dekker denne alvorlighetsgraden",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "Vaktpolicyen dette oppsettet brukte, er slettet, så velg eller opprett en på nytt."
 }

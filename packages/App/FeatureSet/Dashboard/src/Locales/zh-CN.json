@@ -52362,5 +52362,8 @@
   "{{count}} more parts are not drawn. Search to find one.": "另有 {{count}} 个部分未绘制。可通过搜索找到。",
   "{{count}} more parts are not drawn. Search to find one._one": "另有 {{count}} 个部分未绘制。可通过搜索找到。",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "浏览器密钥——用于分发到客户端。Web 来源可以发送追踪、日志、指标、会话回放和 Sentry 事件；app:// 标识仅授权 React Native 的会话回放。接受的标识：{{identities}}。原生应用标识由应用自行声明，并非平台证明。",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "可以安全发布在页面中。只接受来自下方允许的来源的请求，并且只能用于追踪、日志、指标、会话回放和 Sentry 事件。"
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "可以安全发布在页面中。只接受来自下方允许的来源的请求，并且只能用于追踪、日志、指标、会话回放和 Sentry 事件。",
+  "Nobody is paged: this project has no on-call policy yet.": "不会呼叫任何人：此项目还没有值班策略。",
+  "Picked by the fallback: no on-call rule of theirs covers this severity": "由回退方式选择：此人没有涵盖此严重程度的值班规则",
+  "The on-call policy this setup was using was deleted, so pick or make one again.": "此设置所用的值班策略已被删除，请重新选择或创建一个。"
 }
