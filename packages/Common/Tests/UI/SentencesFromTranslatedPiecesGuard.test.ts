@@ -39,6 +39,17 @@ import {
  * An element before a phrase with nothing written between is spaced by its
  * own margin, a word of the sentence.
  *
+ * A page's own translation helper counts as the translation it returns
+ * (#8571): CodeProductionReview's `text(COPY.openSettings)`, a function of
+ * the file whose every return is a translation, is a piece whose key is its
+ * argument where the translation reads it, else the helper's own sentence.
+ * A colon or a comma the code writes right after an element that holds a
+ * translated phrase (`<span>{t("Logo Alt Text")}</span>{": "}`) is
+ * English's punctuation, as it is after a phrase on its own; a label's
+ * colon comes from LABEL_WITH_COLON. An element's key, id, class or test
+ * handle, a name that holds one, and a search's lowercased haystack are
+ * never drawn, and are no line of the page.
+ *
  * This reads every frontend's source (each feature set's src, Common/UI and
  * the Enterprise screens) through the TypeScript AST, and fails on a
  * translated piece - what t(), tx(), translateText(), translateString(),
@@ -150,6 +161,9 @@ const ONLY_SPACE: RegExp = /^\s+$/;
 
 // Punctuation that joins clauses of one sentence: ",", ":", ";".
 const CLAUSE_PUNCTUATION: RegExp = /[:,;：，]/;
+
+// Clause punctuation that starts what follows: ": " after a label.
+const PUNCTUATION_AFTER: RegExp = /^\s*[:,;：，]/;
 
 const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
 
@@ -500,20 +514,27 @@ const dottedName: (expression: ts.Expression) => string | undefined = (
   return undefined;
 };
 
-// The call a translated piece is, behind a "|| fallback" or a "?? fallback".
+/*
+ * The call a translated piece is, behind a "|| fallback" or a "?? fallback",
+ * or the translation a page's own helper returns (#8571).
+ */
 const translationCallOf: (
   expression: ts.Expression,
+  depth?: number,
 ) => ts.CallExpression | undefined = (
   expression: ts.Expression,
+  depth: number = 0,
 ): ts.CallExpression | undefined => {
   const current: ts.Expression = unwrap(expression);
 
   if (ts.isCallExpression(current)) {
     const name: string | undefined = calleeName(current.expression);
 
-    return name && TRANSLATION_CALL.test(name) && !NOT_A_PIECE.has(name)
-      ? current
-      : undefined;
+    if (name && TRANSLATION_CALL.test(name)) {
+      return NOT_A_PIECE.has(name) ? undefined : current;
+    }
+
+    return helperTranslationCallOf(current, depth);
   }
 
   if (
@@ -521,10 +542,227 @@ const translationCallOf: (
     (current.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
       current.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
   ) {
-    return translationCallOf(current.left);
+    return translationCallOf(current.left, depth);
   }
 
   return undefined;
+};
+
+type HelperFunction =
+  | ts.ArrowFunction
+  | ts.FunctionExpression
+  | ts.FunctionDeclaration;
+
+/*
+ * The function a name calls, where this file declares it in a block around
+ * the call: `const text = (key: string): string => ...`, `function text()`.
+ * Read by scope, as a name's constant is; a parameter of that name hides it.
+ */
+const functionInScopeOf: (
+  identifier: ts.Identifier,
+) => HelperFunction | undefined = (
+  identifier: ts.Identifier,
+): HelperFunction | undefined => {
+  const name: string = identifier.text;
+  let node: ts.Node | undefined = identifier.parent;
+
+  while (node) {
+    if (
+      ts.isFunctionLike(node) &&
+      node.parameters.some((parameter: ts.ParameterDeclaration): boolean => {
+        return ts.isIdentifier(parameter.name) && parameter.name.text === name;
+      })
+    ) {
+      return undefined;
+    }
+
+    if (isDeclaringNode(node)) {
+      for (const statement of node.statements) {
+        if (
+          ts.isFunctionDeclaration(statement) &&
+          statement.name?.text === name
+        ) {
+          return statement;
+        }
+
+        if (!ts.isVariableStatement(statement)) {
+          continue;
+        }
+
+        for (const declaration of statement.declarationList.declarations) {
+          if (
+            ts.isIdentifier(declaration.name) &&
+            declaration.name.text === name
+          ) {
+            const initializer: ts.Expression | undefined =
+              declaration.initializer
+                ? unwrap(declaration.initializer)
+                : undefined;
+
+            return initializer &&
+              (ts.isArrowFunction(initializer) ||
+                ts.isFunctionExpression(initializer))
+              ? initializer
+              : undefined;
+          }
+        }
+      }
+    }
+
+    node = node.parent;
+  }
+
+  return undefined;
+};
+
+/*
+ * The translation a function returns: its expression body, or its first
+ * return - where every return is one. A function that returns a
+ * translation on one path and a name as written on another
+ * (getFirstName's "this user") is no translation helper.
+ */
+const returnedTranslationOf: (
+  helper: HelperFunction,
+  depth: number,
+) => ts.CallExpression | undefined = (
+  helper: HelperFunction,
+  depth: number,
+): ts.CallExpression | undefined => {
+  const body: ts.ConciseBody | undefined = helper.body;
+
+  if (!body) {
+    return undefined;
+  }
+
+  if (!ts.isBlock(body)) {
+    return translationCallOf(body, depth);
+  }
+
+  const returned: Array<ts.Expression | undefined> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    // A function inside it returns for itself.
+    if (ts.isFunctionLike(node)) {
+      return;
+    }
+
+    if (ts.isReturnStatement(node)) {
+      returned.push(node.expression);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  ts.forEachChild(body, visit);
+
+  const calls: Array<ts.CallExpression | undefined> = returned.map(
+    (expression: ts.Expression | undefined): ts.CallExpression | undefined => {
+      return expression ? translationCallOf(expression, depth) : undefined;
+    },
+  );
+
+  return calls.length > 0 &&
+    calls.every((call: ts.CallExpression | undefined): boolean => {
+      return call !== undefined;
+    })
+    ? calls[0]
+    : undefined;
+};
+
+/*
+ * Whether an expression reads a name, itself or through a const of the
+ * function it is in: `inReviewHostWords(key, provider)` reads "key", and so
+ * does `sentence` after `const sentence = inReviewHostWords(key, ...)`.
+ */
+const readsName: (
+  expression: ts.Node,
+  name: string,
+  depth: number,
+) => boolean = (expression: ts.Node, name: string, depth: number): boolean => {
+  let found: boolean = false;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (
+      ts.isIdentifier(node) &&
+      !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)
+    ) {
+      if (node.text === name) {
+        found = true;
+        return;
+      }
+
+      const initializer: ts.Expression | undefined =
+        depth < MAX_RESOLVE_DEPTH ? initializerInScopeOf(node) : undefined;
+
+      if (initializer && readsName(initializer, name, depth + 1)) {
+        found = true;
+        return;
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(expression);
+
+  return found;
+};
+
+const helperCalls: WeakMap<ts.CallExpression, ts.CallExpression | null> =
+  new WeakMap<ts.CallExpression, ts.CallExpression | null>();
+
+/*
+ * A call to a page's own translation helper (#8571): a function of this
+ * file that returns a translation, as CodeProductionReview's `const text =
+ * (key) => translator.translateText(inReviewHostWords(key, ...)) || key`.
+ * Where the translation's key is read from the helper's first parameter,
+ * the call is a piece whose key is its own first argument
+ * (`text(COPY.openSettings)`); otherwise the helper says its own sentence,
+ * and the piece is the translation it returns.
+ */
+const helperTranslationCallOf: (
+  call: ts.CallExpression,
+  depth: number,
+) => ts.CallExpression | undefined = (
+  call: ts.CallExpression,
+  depth: number,
+): ts.CallExpression | undefined => {
+  if (!ts.isIdentifier(call.expression) || depth > MAX_RESOLVE_DEPTH) {
+    return undefined;
+  }
+
+  if (helperCalls.has(call)) {
+    return helperCalls.get(call) || undefined;
+  }
+
+  // Asked again while it is being read (a helper calling itself): no piece.
+  helperCalls.set(call, null);
+
+  const helper: HelperFunction | undefined = functionInScopeOf(call.expression);
+  const inner: ts.CallExpression | undefined = helper
+    ? returnedTranslationOf(helper, depth + 1)
+    : undefined;
+  const parameter: ts.ParameterDeclaration | undefined = helper?.parameters[0];
+  const key: ts.Expression | undefined = inner?.arguments[0];
+  const readsItsArgument: boolean = Boolean(
+    parameter &&
+      ts.isIdentifier(parameter.name) &&
+      key &&
+      readsName(key, parameter.name.text, 0),
+  );
+  const result: ts.CallExpression | undefined = inner
+    ? readsItsArgument
+      ? call
+      : inner
+    : undefined;
+
+  helperCalls.set(call, result || null);
+
+  return result;
 };
 
 interface PieceContext {
@@ -760,7 +998,14 @@ type LinePart =
       leading?: string | undefined;
       trailing?: string | undefined;
     }
-  | { kind: "separator" }
+  | {
+      kind: "separator";
+      /*
+       * An element that holds a translated phrase of its own, a label in a
+       * <span> or a <b>: what the code writes right after it is read (#8571).
+       */
+      holdsPhrase?: boolean | undefined;
+    }
   | {
       kind: "value";
       leading: string;
@@ -1299,6 +1544,25 @@ export const judgeLine: (
 
   const kinds: Set<JoinedPieceKind> = new Set<JoinedPieceKind>();
 
+  /*
+   * English's colon or comma written right after an element that holds a
+   * translated phrase: `<span>{t("Line {{line}}")}</span>{": "}` keeps the
+   * colon French spaces and Chinese writes full-width (#8571).
+   */
+  line.forEach((part: LinePart, index: number): void => {
+    const next: LinePart | undefined = line[index + 1];
+
+    if (
+      part.kind === "separator" &&
+      part.holdsPhrase &&
+      next &&
+      next.kind === "text" &&
+      PUNCTUATION_AFTER.test(next.text)
+    ) {
+      kinds.add(JoinedPieceKind.Punctuation);
+    }
+  });
+
   line.forEach((part: LinePart, index: number): void => {
     if (part.kind !== "piece") {
       return;
@@ -1390,20 +1654,18 @@ export const judgeLine: (
           continue;
         }
 
-        // A label with its own colon, then what it labels: a value, a link.
-        if (
-          direction === 1 &&
-          part.isLabel &&
-          (neighbour.kind === "value" || isElementPart(neighbour))
-        ) {
+        /*
+         * A label with its own colon, then what it labels: a value, a link,
+         * or a sentence of its own (a value's name, then what it means).
+         */
+        if (direction === 1 && part.isLabel) {
           continue;
         }
 
         if (
           direction === -1 &&
           neighbour.kind === "piece" &&
-          neighbour.isLabel &&
-          isElementPart(part)
+          neighbour.isLabel
         ) {
           continue;
         }
@@ -1745,7 +2007,15 @@ const jsxElementPartOf: (
       !ts.isJsxFragment(element) && isScreenReaderOnly(element, context);
 
     if (!isInlineFragment && !isReadInLine && !LINK_ELEMENTS.has(tag)) {
-      return { kind: "separator" };
+      // A label in an element of its own carries its colon, if it has one, inside.
+      return {
+        kind: "separator",
+        holdsPhrase: !pieces.every(
+          (piece: LinePart & { kind: "piece" }): boolean => {
+            return piece.isLabel;
+          },
+        ),
+      };
     }
 
     const only: (LinePart & { kind: "piece" }) | undefined =
@@ -2169,6 +2439,66 @@ const jsxLinePartsOf: (
   return jsxChildPartsOf(node.children, context, 0);
 };
 
+// An element's attributes no one reads: its key, its id, its classes, a test's handle.
+const NOT_DRAWN_ATTRIBUTE: RegExp =
+  /^(key|id|className|htmlFor|dataTestId|testId|data-[\w-]+|aria-(controls|labelledby|describedby|owns))$/;
+
+// A name that holds what no one reads: a React key, an id, a class, a test's handle.
+const NOT_DRAWN_NAME: RegExp = /^(key|id)$|(Key|Id|TestId|ClassName)$/;
+
+// A text lowercased whole is searched, never drawn: a haystack.
+const LOWERCASED: RegExp = /^to(Locale)?LowerCase$/;
+
+/*
+ * Whether a line is never drawn (#8571): an element's key or id
+ * (`key={`${reason.text}-${text}`}`), a name that holds one (`const key =
+ * fileObject._id || `${displayName}-${index}``), or a search's lowercased
+ * haystack.
+ */
+const isNeverDrawn: (node: ts.Node) => boolean = (node: ts.Node): boolean => {
+  let child: ts.Node = node;
+  let current: ts.Node | undefined = node.parent;
+
+  while (
+    current &&
+    (ts.isParenthesizedExpression(current) ||
+      ts.isAsExpression(current) ||
+      (ts.isBinaryExpression(current) &&
+        (current.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+          current.operatorToken.kind ===
+            ts.SyntaxKind.QuestionQuestionToken)) ||
+      (ts.isConditionalExpression(current) && current.condition !== child))
+  ) {
+    child = current;
+    current = current.parent;
+  }
+
+  if (!current) {
+    return false;
+  }
+
+  if (
+    ts.isPropertyAccessExpression(current) &&
+    current.expression === child &&
+    LOWERCASED.test(current.name.text)
+  ) {
+    return true;
+  }
+
+  if (ts.isJsxExpression(current) && ts.isJsxAttribute(current.parent)) {
+    return NOT_DRAWN_ATTRIBUTE.test(current.parent.name.getText());
+  }
+
+  if (
+    (ts.isVariableDeclaration(current) || ts.isPropertyAssignment(current)) &&
+    ts.isIdentifier(current.name)
+  ) {
+    return NOT_DRAWN_NAME.test(current.name.text);
+  }
+
+  return false;
+};
+
 // Where an element's children start and end, without the whitespace around them.
 const jsxChildrenText: (
   node: ts.JsxElement | ts.JsxFragment,
@@ -2235,12 +2565,15 @@ export const findSentencesFromPieces: (data: {
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     const jsxParts: Array<LinePart> | undefined = jsxLinePartsOf(node, context);
     const parts: Array<LinePart> | undefined =
-      jsxParts || linePartsOf(node, context);
+      jsxParts || (isNeverDrawn(node) ? undefined : linePartsOf(node, context));
 
     if (
       parts &&
       parts.some((part: LinePart): boolean => {
-        return part.kind === "piece";
+        return (
+          part.kind === "piece" ||
+          (part.kind === "separator" && Boolean(part.holdsPhrase))
+        );
       })
     ) {
       const kinds: Array<JoinedPieceKind> = judgeLine(parts, {
@@ -2340,14 +2673,9 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
    * guard cannot read its English.
    */
   {
-    file: "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReview.tsx",
-    text: "{sentence} {props.llmProviderSettingsRoute ? (",
-    why: "A warning, a whole sentence of the review's copy worded for its code host, then the link \"Change in Settings\", read through the page's text() helper.",
-  },
-  {
-    file: "packages/App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewTask.tsx",
-    text: "{translator.translateTemplate( inReviewHostWords( PRODUCTION_REVIEW_COPY.commentRefused,",
-    why: 'Whole sentences: why the review is only here, what lets it comment on Forgejo and Gitea, then the link "Go to Settings", each read through the page\'s text() helper.',
+    file: "packages/App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainRecords.tsx",
+    text: "{say(description.lookedUp)} {description.whatToDo ? (",
+    why: 'Two whole sentences of a DNS check: what the lookup found ("We looked up the CNAME record of ... and found ..."), then what to do about it, each read through the card\'s say() helper.',
   },
   {
     file: "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardChartComponent.tsx",
@@ -2397,6 +2725,11 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     file: "packages/App/FeatureSet/Dashboard/src/Components/Profiles/ProfileFunctionTable.tsx",
     text: '{translator.translateText(figure.label)}{" "} <span',
     why: "A function's share of the profile, as a legend draws a figure: its label (Self, Total), then the share.",
+  },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityOverview/StackedDayBars.tsx",
+    text: "`${seriesName(series, translator)} ${translator.formatNumber(",
+    why: "A day bar's tooltip lists each series as a legend does: its name, then its count, in brackets after the day's total.",
   },
   {
     file: "packages/App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyNodes.tsx",
@@ -3697,6 +4030,163 @@ const PUT_BACK_AROUND_AN_ELEMENT: ReadonlyArray<{
 
 describe("a sentence #8483 made one around an element, put back, fails the guard", () => {
   for (const entry of PUT_BACK_AROUND_AN_ELEMENT) {
+    test(`${entry.file}: ${entry.what}`, () => {
+      const found: { fixed: number; putBack: number } =
+        findingsOfPutBack(entry);
+
+      expect(found.fixed).toBe(0);
+      expect(found.putBack).toBeGreaterThan(0);
+    });
+  }
+});
+
+describe("a page's own translation helper is read as the translation it returns (#8571)", () => {
+  test("a helper whose key is its argument: the argument is the piece's key", () => {
+    // CodeProductionReview's text(), which rewords a host's name before it translates.
+    expect(
+      jsxKindsOf(
+        [
+          "function Page() {",
+          "  const text: (key: string) => string = (key: string): string => {",
+          "    const sentence: string = reword(key, provider);",
+          "    return translator.translateText(sentence) || sentence;",
+          "  };",
+          '  const a = <p>{text("Read the")} <Link to={route}>{text("docs")}</Link></p>;',
+          '  const b = <p>{text("It could not be posted.")} <Link to={route}>{text("Open settings")}</Link></p>;',
+          "  return a;",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '{text("Read the")} <Link to={route}>{text("docs")}</Link> => translated phrases joined',
+    ]);
+  });
+
+  test("a helper that says its own sentence, and one declared as a function", () => {
+    expect(
+      kindsOf(
+        [
+          "const describe = (n: number): string => {",
+          '  return translator.translateTemplate("Attempt {{n}}", { n });',
+          "};",
+          "function heading(): string {",
+          '  return translator.translateText("It is done.");',
+          "}",
+          "const a = `${describe(n)} ${name}`;",
+          "const b = `${heading()} ${reason}`;",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "`${describe(n)} ${name}` => a value joined to a translated phrase",
+    ]);
+  });
+
+  test("a function that returns a translation on one path and a name on another is no helper", () => {
+    // Users' on-call page: getFirstName's "this user", else the name as written.
+    expect(
+      kindsOf(
+        [
+          "const firstName = (name: string): string => {",
+          '  if (!name) { return translateTerm("this user"); }',
+          '  return name.split(" ")[0] || name;',
+          "};",
+          "const a = `${firstName(user)} ${surname}`;",
+          "function b(text: (key: string) => string) {",
+          '  return `${text("Read the")} ${name}`;',
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("English's punctuation after an element that holds a translated label (#8571)", () => {
+  test("a colon or a comma written right after the element", () => {
+    // FormBrandingSection, TelemetryActiveFilterChips and the watchlist import before the fix.
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <p><span className="font-medium">{t("Logo Alt Text")}</span>{": "}{value}</p>;',
+          'const b = <p><b>{t("Note")}</b>: {text}</p>;',
+          'const c = <p><span>{t("Monitors")}</span>, <span>{t("Incidents")}</span></p>;',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      '<span className="font-medium">{t("Logo Alt Text")}</span>{": "}{value} => punctuation written beside a translated phrase',
+      '<b>{t("Note")}</b>: {text} => punctuation written beside a translated phrase',
+      '<span>{t("Monitors")}</span>, <span>{t("Incidents")}</span> => punctuation written beside a translated phrase',
+    ]);
+  });
+
+  test("a label with its own colon, a name in an element, and a colon inside a code sample", () => {
+    expect(
+      jsxKindsOf(
+        [
+          'const LABEL_WITH_COLON: string = translationKey("{{label}}:");',
+          'const a = <p><span>{translateTemplate(LABEL_WITH_COLON, { label: translatableTerm("Logo Alt Text") })}</span> {value}</p>;',
+          'const b = <p><span className="font-medium">{props.failure.name}</span>: {reason}</p>;',
+          'const c = <pre><span className="text-amber-400">client_ip</span>: {"value"}</pre>;',
+          'const d = <p>{t("Duration:")} {t(status)}</p>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("what is never drawn is no sentence (#8571)", () => {
+  test("an element's key or id, a name that holds one, and a search's lowercased haystack", () => {
+    expect(
+      jsxKindsOf(
+        [
+          'const a = <span key={`${t("Reason")}-${text}`}>{text}</span>;',
+          'const b = fileObject._id || `${t("File")}-${index}`;',
+          'const key: string = fileObject._id || `${t("File")}-${index}`;',
+          'const c = <div id={`${t("Panel")}-${id}`} data-testid={`${t("Row")}-${id}`} />;',
+          'const d = { haystack: `${t("Host")} ${name}`.toLowerCase() };',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      // A negative control: the same line, in a name that is drawn.
+      '`${t("File")}-${index}` => a value joined to a translated phrase',
+    ]);
+  });
+});
+
+/*
+ * Mutation checks (#8571): each label whose colon this issue took from a
+ * key, put back with English's colon written after it, fails the guard.
+ */
+const PUT_BACK_COLON: ReadonlyArray<{
+  file: string;
+  what: string;
+  fixed: RegExp;
+  asItWas: string;
+}> = [
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/FormBuilder/Branding/FormBrandingSection.tsx",
+    what: "Logo Alt Text, then English's colon",
+    fixed:
+      /\{translateTemplate\(LABEL_WITH_COLON, \{\s*label: translatableTerm\("Logo Alt Text"\),?\s*\}\)\}\s*<\/span>\{" "\}/,
+    asItWas: '{tx("Logo Alt Text")}\n</span>\n{": "}',
+  },
+  {
+    file: "packages/Common/UI/Components/TelemetryViewer/components/TelemetryActiveFilterChips.tsx",
+    what: "a filter chip's field, then English's colon",
+    fixed:
+      /\{translator\.translateTemplate\(LABEL_WITH_COLON, \{\s*label: keyText,?\s*\}\)\}/,
+    asItWas: "{keyText}:",
+  },
+  {
+    file: "packages/Common/UI/Components/TelemetryViewer/components/FacetHelpButton.tsx",
+    what: "a value's name, English's colon, then its sentence",
+    fixed:
+      /\{translator\.translateTemplate\(LABEL_WITH_COLON, \{\s*label: entry\.label,?\s*\}\)\}\{" "\}/,
+    asItWas: "{entry.label}: ",
+  },
+];
+
+describe("a label #8571 gave its own colon, put back, fails the guard", () => {
+  for (const entry of PUT_BACK_COLON) {
     test(`${entry.file}: ${entry.what}`, () => {
       const found: { fixed: number; putBack: number } =
         findingsOfPutBack(entry);

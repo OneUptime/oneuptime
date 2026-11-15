@@ -680,8 +680,11 @@ work out, starts from a default for everything else, and folds what most people 
   what is drawn for the eye only are no word of a sentence. Enforced by
   [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
   which reads template literals, `+`, `join()` and an element's children, each child element as
-  what it draws, and follows a name that holds a translation (`const label = t("Key")`), a lookup
-  in a constant table and a nested key's English.
+  what it draws, and follows a name that holds a translation (`const label = t("Key")`), a page's
+  own translation helper (`text(COPY.openSettings)`), a lookup in a constant table and a nested
+  key's English. A colon written after an element that holds a label
+  (`<span>{t("Logo Alt Text")}</span>{": "}`) is English's too, and comes from `LABEL_WITH_COLON`
+  (#8571); an element's key or id is never read, and is no sentence.
 
 ### In every language
 

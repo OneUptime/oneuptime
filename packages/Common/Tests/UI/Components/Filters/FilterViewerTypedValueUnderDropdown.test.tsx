@@ -1,12 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
@@ -28,6 +21,7 @@ import buildQueryFromFilterData, {
   sanitizeFilterData,
 } from "../../../../UI/Components/ModelTable/FilterDataToQuery";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
+import getJestMockFunction, { MockFunction } from "../../../MockType";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import {
   readDashboardLocale,
@@ -273,8 +267,7 @@ describe("a value typed while the filter was text, under a dropdown", () => {
   });
 
   test("Clear Filters clears it", () => {
-    const onFilterChanged: jest.Mock<(filterData: FilterData<Row>) => void> =
-      jest.fn<(filterData: FilterData<Row>) => void>();
+    const onFilterChanged: MockFunction = getJestMockFunction();
 
     renderViewer(
       "en",
@@ -290,7 +283,9 @@ describe("a value typed while the filter was text, under a dropdown", () => {
 
 describe("what a dropdown drew before is drawn as before", () => {
   test("a picked value reads as its option, one or several", () => {
-    renderViewer("en", { resourceType: ["Monitor"] } as FilterData<Row>);
+    renderViewer("en", {
+      resourceType: ["Monitor"],
+    } as unknown as FilterData<Row>);
     expect(chipTexts()).toEqual(["Resource Type is Monitor"]);
 
     cleanup();
@@ -302,7 +297,9 @@ describe("what a dropdown drew before is drawn as before", () => {
   });
 
   test("an entity's id reads as its option's label", () => {
-    renderViewer("en", { monitor: ["monitor-1"] } as FilterData<Row>);
+    renderViewer("en", {
+      monitor: ["monitor-1"],
+    } as unknown as FilterData<Row>);
 
     expect(chipTexts()).toEqual(["Monitor is API"]);
   });
