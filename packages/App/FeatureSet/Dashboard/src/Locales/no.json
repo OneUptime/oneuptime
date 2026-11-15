@@ -48,7 +48,7 @@
       "settings": "Innstillinger"
     },
     "items": {
-      "monitorsTitle": "Overvåkere",
+      "monitorsTitle": "Monitorer",
       "monitorsDescription": "Sjekk nettsteder, API-er og servere, og få vite når de svikter.",
       "slosTitle": "SLOs",
       "slosDescription": "Pålitelighetsmål, og hvor mye feilbudsjett som er igjen.",

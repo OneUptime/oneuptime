@@ -55,9 +55,11 @@ import { PRODUCT_TITLES } from "Common/Types/Product/ProductCatalog";
  *     language, and no such term is left in English (the rule
  *     ArchiveWordsAgreeInLocale holds the archivable kinds to, widened to
  *     the whole menu);
- *   - the Products menu (navbar.items.*Title) names each product as the
- *     page it opens does, but for the pairs still to settle
- *     (PRODUCTS_MENU_STILL_APART);
+ *   - the Products menu (navbar.items.*Title) names each product word for
+ *     word as the page it opens titles it (the flat key of the menu's
+ *     English): Danish "Overvågninger" opened a page titled "Monitorer",
+ *     German "Status-Seiten" one titled "Statusseiten", and Hindi "लॉग्स"
+ *     one titled "लॉग", in 19 pairs across 13 languages (#8229);
  *   - each name in OneNamePerThing: its menu says the word, and no string of
  *     any app's locale file (Dashboard, Admin Dashboard, sign-in pages,
  *     status page, public dashboards, API reference, the server) says one of
@@ -115,30 +117,12 @@ const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [
 ];
 
 /*
- * Products whose Products-menu title (navbar.items.*Title) still names
- * another noun than their page title, in languages that have not settled on
- * one yet (#8229): Danish "Overvågninger" over a page titled "Monitorer".
- * Each comes off when its pair agrees: the test fails while one is listed
- * and agrees.
+ * Products whose page draws no title of its own, so the Products menu's
+ * title has no page title to agree with: Chat opens the conversation
+ * full-screen (Pages/AICopilot). A product comes off when its page gets a
+ * title key: the test fails while one is listed and has one.
  */
-const PRODUCTS_MENU_STILL_APART: ReadonlyArray<{
-  language: string;
-  title: string;
-}> = [
-  { language: "es", title: "Insights" },
-  { language: "it", title: "Logs" },
-  { language: "it", title: "Insights" },
-  { language: "da", title: "Monitors" },
-  { language: "da", title: "Metrics" },
-  { language: "no", title: "Monitors" },
-  { language: "sv", title: "Metrics" },
-  { language: "ru", title: "Logs" },
-  { language: "ko", title: "Alerts" },
-  { language: "zh-CN", title: "Traces" },
-  { language: "zh-CN", title: "Inventory" },
-  { language: "zh-TW", title: "Inventory" },
-  { language: "hi", title: "Queues" },
-];
+const PRODUCTS_WITHOUT_A_PAGE_TITLE: ReadonlyArray<string> = ["Chat"];
 
 type Strings = Map<string, string>;
 
@@ -596,10 +580,55 @@ function productsMenuTitles(language: string): Map<string, string> {
   return titles;
 }
 
+interface MenuApartFromPage {
+  title: string;
+  menu: string;
+  page: string;
+}
+
 /*
- * The Products menu and a product's own page title name one noun: Swedish
+ * The products whose Products-menu title is not, word for word, the title
+ * of the page it opens: the flat key of the menu's English, which the
+ * product's page, its side menu and its breadcrumbs draw. A page title left
+ * in English is its English. A product with no page title of its own
+ * (PRODUCTS_WITHOUT_A_PAGE_TITLE) is not read.
+ */
+function menuTitlesApartFromPages(
+  menuTitles: Map<string, string>,
+  words: Record<string, string>,
+): Array<MenuApartFromPage> {
+  const apart: Array<MenuApartFromPage> = [];
+
+  for (const [english, menu] of menuTitles) {
+    if (PRODUCTS_WITHOUT_A_PAGE_TITLE.includes(english)) {
+      continue;
+    }
+
+    const page: string = words[english] ?? english;
+
+    if (menu !== page) {
+      apart.push({ title: english, menu: menu, page: page });
+    }
+  }
+
+  return apart;
+}
+
+/*
+ * The Products menu says the product's page title, word for word: Swedish
  * offered "Övervakare" in the menu and opened a page titled "Monitorer",
  * Russian "Дашборды" and "Панели", Chinese 监控 and 监视器 (#8031, #8029).
+ * Comparing only the nouns let 19 more pairs through (#8229): Danish
+ * "Overvågninger" over "Monitorer" and "Målinger" over "Metrikker",
+ * Norwegian "Overvåkere", Swedish "Mått" over "Mätvärden", Italian "Log"
+ * over "Registri", Russian "Логи" over "Журналы", Korean 경고 over 알림,
+ * Chinese 跟踪 over 追踪 and 资产清单 over 清单 (資產清單 over 清單),
+ * Hindi कतारें over क्यू,
+ * Spanish "Hallazgos" over "Análisis", Italian "Insight" over
+ * "Informazioni", and two forms of one noun: German "Status-Seiten" over
+ * "Statusseiten", Hindi "लॉग्स" and "होस्ट्स" over "लॉग" and "होस्ट", Russian
+ * "Трассировка" over "Трассировки", French "SLO" and Persian "SLOها" over
+ * "SLOs".
  */
 describe("the Products menu and the page it opens", () => {
   test("are read from the menu's keys", () => {
@@ -608,30 +637,75 @@ describe("the Products menu and the page it opens", () => {
     );
   });
 
-  test.each(DASHBOARD_LANGUAGES)("name one noun in %s", (language: string) => {
-    const words: Record<string, string> = readDashboardLocale(language);
-    const apart: Array<{ language: string; title: string }> = [];
+  test("find a menu title that is not its page's, in any form", () => {
+    const menu: Map<string, string> = new Map<string, string>([
+      ["Monitors", "Overvågninger"],
+      ["Status Pages", "Status-Seiten"],
+      ["Logs", "लॉग्स"],
+      ["Traces", "Трассировки"],
+      ["Chat", "Chat"],
+    ]);
+    const words: Record<string, string> = {
+      Monitors: "Monitorer",
+      "Status Pages": "Statusseiten",
+      Logs: "लॉग",
+      Traces: "Трассировки",
+    };
 
-    for (const [english, menu] of productsMenuTitles(language)) {
-      const page: string | undefined = words[english];
+    expect(menuTitlesApartFromPages(menu, words)).toEqual([
+      { title: "Monitors", menu: "Overvågninger", page: "Monitorer" },
+      { title: "Status Pages", menu: "Status-Seiten", page: "Statusseiten" },
+      { title: "Logs", menu: "लॉग्स", page: "लॉग" },
+    ]);
+  });
 
-      if (page === undefined || page === menu) {
-        continue;
-      }
+  test("read a page title left in English as its English", () => {
+    expect(
+      menuTitlesApartFromPages(
+        new Map<string, string>([["Monitors", "Monitorer"]]),
+        {},
+      ),
+    ).toEqual([{ title: "Monitors", menu: "Monitorer", page: "Monitors" }]);
+    expect(
+      menuTitlesApartFromPages(
+        new Map<string, string>([["Monitors", "Monitors"]]),
+        {},
+      ),
+    ).toEqual([]);
+  });
 
-      if (!namesItsList(menu, page) || !namesItsList(page, menu)) {
-        apart.push({ language: language, title: english });
-      }
-    }
+  test("leave out only the products whose page has no title of its own", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
 
-    expect(apart).toEqual(
-      PRODUCTS_MENU_STILL_APART.filter(
-        (entry: { language: string; title: string }): boolean => {
-          return entry.language === language;
+    expect(
+      Array.from(productsMenuTitles("en").keys()).filter(
+        (title: string): boolean => {
+          return !(title in english);
         },
       ),
-    );
+    ).toEqual([...PRODUCTS_WITHOUT_A_PAGE_TITLE]);
   });
+
+  test("hold English to it too", () => {
+    expect(
+      menuTitlesApartFromPages(
+        productsMenuTitles("en"),
+        readDashboardLocale("en"),
+      ),
+    ).toEqual([]);
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "say each product's page title word for word in %s",
+    (language: string) => {
+      expect(
+        menuTitlesApartFromPages(
+          productsMenuTitles(language),
+          readDashboardLocale(language),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   test.each([
     ["sv", "Monitors", "Monitorer"],
@@ -641,6 +715,31 @@ describe("the Products menu and the page it opens", () => {
     ["ru", "Dashboards", "Панели"],
     ["no", "Metrics", "Målinger"],
     ["fr", "Workflows", "Flux de travail"],
+    // #8229: the menu took its page's word.
+    ["da", "Monitors", "Monitorer"],
+    ["da", "Metrics", "Metrikker"],
+    ["no", "Monitors", "Monitorer"],
+    ["sv", "Metrics", "Mätvärden"],
+    ["it", "Logs", "Registri"],
+    ["ru", "Logs", "Журналы"],
+    ["ko", "Alerts", "알림"],
+    ["zh-CN", "Traces", "追踪"],
+    ["hi", "Queues", "क्यू"],
+    ["es", "Insights", "Análisis"],
+    ["de", "Status Pages", "Statusseiten"],
+    ["hi", "Logs", "लॉग"],
+    ["hi", "Hosts", "होस्ट"],
+    ["ru", "Traces", "Трассировки"],
+    ["fr", "SLOs", "SLOs"],
+    ["fa", "SLOs", "SLOs"],
+    /*
+     * #8229: the page took the menu's word. "Informazioni" is information;
+     * 清单 and 清單 on their own are any list (the Users 清單), where the
+     * menu and the docs name the product 资产清单 and 資產清單.
+     */
+    ["it", "Insights", "Insight"],
+    ["zh-CN", "Inventory", "资产清单"],
+    ["zh-TW", "Inventory", "資產清單"],
   ])(
     "%s: the menu's %s and its page both read %p",
     (language: string, english: string, name: string) => {

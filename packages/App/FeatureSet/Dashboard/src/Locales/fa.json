@@ -50,7 +50,7 @@
     "items": {
       "monitorsTitle": "مانیتورها",
       "monitorsDescription": "وب‌سایت‌ها، APIها و سرورها را بررسی کنید و از خرابی آن‌ها باخبر شوید.",
-      "slosTitle": "SLOها",
+      "slosTitle": "SLOs",
       "slosDescription": "اهداف پایداری، و این‌که چقدر از بودجهٔ خطا باقی مانده است.",
       "statusPagesTitle": "صفحات وضعیت",
       "storageArraysDescription": "آرایه‌های ذخیره‌سازی مانند Pure Storage FlashArray و FlashBlade را پایش کنید.",

@@ -52,7 +52,7 @@
       "monitorsDescription": "Prüfen Sie Websites, APIs und Server und erfahren Sie, wenn sie ausfallen.",
       "slosTitle": "SLOs",
       "slosDescription": "Zuverlässigkeitsziele und wie viel Fehlerbudget noch übrig ist.",
-      "statusPagesTitle": "Status-Seiten",
+      "statusPagesTitle": "Statusseiten",
       "storageArraysDescription": "Speicher-Arrays wie Pure Storage FlashArray und FlashBlade überwachen.",
       "storageArraysTitle": "Speicher-Arrays",
       "statusPagesDescription": "Zeigen Sie Ihren Kunden, was läuft und was ausgefallen ist.",

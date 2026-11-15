@@ -72,7 +72,7 @@
       "sentinelInsightsDescription": "Proaktiva fynd från OneUptime AI:s bevakning av telemetrin — nya undantag, toppar, försämrad latens och mätvärdesdrift.",
       "sentinelInsightsTitle": "Insikter",
       "securityEventsDescription": "SIEM-signaler sammankopplade med dina observerbarhetsdata.",
-      "metricsTitle": "Mått",
+      "metricsTitle": "Mätvärden",
       "metricsDescription": "Övervaka och visualisera systemmått över dina tjänster.",
       "tracesTitle": "Spår",
       "tracesDescription": "Spåra förfrågningar över dina tjänster.",

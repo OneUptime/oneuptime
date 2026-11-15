@@ -50,7 +50,7 @@
     "items": {
       "monitorsTitle": "Moniteurs",
       "monitorsDescription": "Vérifiez vos sites web, API et serveurs, et soyez prévenu en cas de panne.",
-      "slosTitle": "SLO",
+      "slosTitle": "SLOs",
       "slosDescription": "Objectifs de fiabilité, et ce qu'il reste du budget d'erreur.",
       "statusPagesTitle": "Pages de statut",
       "storageArraysDescription": "Surveillez les baies de stockage comme Pure Storage FlashArray et FlashBlade.",

@@ -48,7 +48,7 @@
       "settings": "Indstillinger"
     },
     "items": {
-      "monitorsTitle": "Overvågninger",
+      "monitorsTitle": "Monitorer",
       "monitorsDescription": "Tjek websites, API'er og servere, og få besked, når de fejler.",
       "slosTitle": "SLOs",
       "slosDescription": "Pålidelighedsmål, og hvor meget fejlbudget der er tilbage.",
@@ -72,7 +72,7 @@
       "sentinelInsightsDescription": "Proaktive fund fra OneUptime AI's overvågning af telemetrien — nye undtagelser, spidser, forværret latenstid og metrikdrift.",
       "sentinelInsightsTitle": "Indsigter",
       "securityEventsDescription": "SIEM-signaler sammenholdt med dine observabilitetsdata.",
-      "metricsTitle": "Målinger",
+      "metricsTitle": "Metrikker",
       "metricsDescription": "Overvåg og visualiser systemmålinger på tværs af dine tjenester.",
       "tracesTitle": "Spor",
       "tracesDescription": "Spor anmodninger på tværs af dine tjenester.",

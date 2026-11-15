@@ -70,7 +70,7 @@
       "logsDescription": "Busca y analiza registros.",
       "securityEventsTitle": "Eventos de seguridad",
       "sentinelInsightsDescription": "Hallazgos proactivos de la vigilancia de telemetría de OneUptime AI — nuevas excepciones, picos, regresiones de latencia y desviaciones de métricas.",
-      "sentinelInsightsTitle": "Hallazgos",
+      "sentinelInsightsTitle": "Análisis",
       "securityEventsDescription": "Señales SIEM correlacionadas con tus datos de observabilidad.",
       "metricsTitle": "Métricas",
       "metricsDescription": "Monitorea y visualiza las métricas del sistema en tus servicios.",

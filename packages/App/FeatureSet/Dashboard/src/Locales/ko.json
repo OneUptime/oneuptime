@@ -58,7 +58,7 @@
       "statusPagesDescription": "무엇이 정상이고 무엇이 중단됐는지 고객에게 보여줍니다.",
       "incidentsTitle": "인시던트",
       "incidentsDescription": "사용자에게 영향을 주는 문제 — 대응하고 해결하세요.",
-      "alertsTitle": "경고",
+      "alertsTitle": "알림",
       "appPlatformsDescription": "ECS 및 Fargate, Cloud Run, App Service 등 관리형 플랫폼에서 실행하는 앱을 모니터링합니다.",
       "appPlatformsTitle": "앱 플랫폼",
       "alertsDescription": "사용자가 알아채기 전에 팀이 살펴봐야 할 문제.",
