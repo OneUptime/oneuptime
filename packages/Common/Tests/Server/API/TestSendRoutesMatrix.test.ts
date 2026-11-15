@@ -548,7 +548,7 @@ afterEach(() => {
 });
 
 describe.each(ROUTES)("$name", (route: TestRoute) => {
-  test("the project owner sends it", async () => {
+  test("the Project Owner sends it", async () => {
     expect(await send(route, OWNER)).toBe("sent");
     expect(route.sends()).toBe(1);
   });

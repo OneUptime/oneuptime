@@ -283,7 +283,7 @@ describe("start_investigation on a record that waits", () => {
 
     expect(result.rowCount).toBe(0);
     expect(result.dataForLlm).toBe(
-      "The investigation for Incident #12 could not be started: The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+      "The investigation for Incident #12 could not be started: The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     );
     expect(result.citationLabel).toBe(
       "Investigation not enqueued for Incident #12",

@@ -365,8 +365,8 @@ export default class GitHubReplyComposer {
       ),
       "",
       data.settingsUrl
-        ? `A project admin can turn them back on in ${data.productName}, with this repository's [Respond to GitHub Commands](${data.settingsUrl}) switch.`
-        : `A project admin can turn them back on in ${data.productName} under Code → this repository → Settings → More settings.`,
+        ? `A Project Admin can turn them back on in ${data.productName}, with this repository's [Respond to GitHub Commands](${data.settingsUrl}) switch.`
+        : `A Project Admin can turn them back on in ${data.productName} under Code → this repository → Settings → More settings.`,
       "",
       SIGNATURE,
     ].join("\n");

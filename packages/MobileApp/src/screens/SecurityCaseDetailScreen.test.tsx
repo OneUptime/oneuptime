@@ -336,7 +336,7 @@ describe("before there is a case to show", () => {
     expect(screen.getByText("You cannot see this case")).toBeTruthy();
     expect(
       screen.getByText(
-        "Your role in this project does not cover this case. A project admin can give you access.",
+        "Your role in this project does not cover this case. A Project Admin can give you access.",
       ),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();

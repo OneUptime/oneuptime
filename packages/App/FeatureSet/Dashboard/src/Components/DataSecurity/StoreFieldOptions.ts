@@ -30,11 +30,16 @@ export const STORE_EXPOSURE_OPTIONS: Array<DropdownOption> = [
   { label: "Unknown", value: DataStoreExposure.Unknown },
 ];
 
+/*
+ * Each environment by its title (DATA_STORE_ENVIRONMENT_TITLES): the test
+ * environment is "Test (environment)", the noun, never the Test buttons'
+ * verb (#8342). What is saved stays the stored value.
+ */
 export const STORE_ENVIRONMENT_OPTIONS: Array<DropdownOption> = [
   { label: "Production", value: DataStoreEnvironment.Production },
   { label: "Staging", value: DataStoreEnvironment.Staging },
   { label: "Development", value: DataStoreEnvironment.Development },
-  { label: "Test", value: DataStoreEnvironment.Test },
+  { label: "Test (environment)", value: DataStoreEnvironment.Test },
   { label: "Unknown", value: DataStoreEnvironment.Unknown },
 ];
 

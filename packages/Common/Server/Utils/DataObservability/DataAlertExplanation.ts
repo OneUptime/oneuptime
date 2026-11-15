@@ -26,6 +26,16 @@ import {
   DataAlertLikelyCause,
   rankLikelyCauses,
 } from "../../../Types/DataObservability/DataAlertFeedback";
+import {
+  getFailedRunCauseTitle,
+  getFailedWritesCauseTitle,
+  getRaisedErrorCauseTitle,
+  getSchemaChangeCauseTitle,
+  getUnreadableDatabaseCauseTitle,
+  getUnwellServerCauseTitle,
+  getUpstreamAlertCauseTitle,
+  titleAsWritten,
+} from "../../../Types/DataObservability/DataAlertCauseTitles";
 import { DataAssetAccessKind } from "../../../Types/DataObservability/DataAssetUsage";
 import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
@@ -56,6 +66,11 @@ import { TableHealthStatus } from "./TableHealthIngest";
  * database itself. And what depends on the table: tables down its lineage,
  * most relied on first, dashboards, the services reading it, and the people
  * who own any of them.
+ *
+ * A title the reader words itself is written with DataAlertCauseTitles: its
+ * English, and its sentence's code with the names in it, so the Dashboard
+ * says it in the reader's language (#8343). A record's own words - an
+ * alert's title, a change's - are titled as written.
  */
 
 const CHANGES_BEFORE_IN_HOURS: number = 24;
@@ -92,8 +107,35 @@ function toTime(value: Date | null | undefined): string | undefined {
   return value ? new Date(value).toISOString() : undefined;
 }
 
-// Bold and links stay readable as plain words.
-const MARKDOWN_MARKS: RegExp = /[*_`]|\[|\]\([^)]*\)/g;
+// A backslash and the mark it escapes (FeedMarkdown's mdText escapes a value's marks).
+const ESCAPED_MARK: RegExp = /\\([!-/:-@[-`{-~])/g;
+const HELD_MARK: RegExp = /\uE000(\d+)\uE000/g;
+const LINK: RegExp = /\[([^\]]*)\]\([^)]*\)/g;
+
+/*
+ * A feed line's words as plain text: its bold and code marks gone, a link
+ * as its words, a mark a value escaped as the mark it is. The names in it
+ * keep every letter: stripping each "_" and "*" read a removed customer_id
+ * column as "customerid", its int_4 type as "int4".
+ */
+export function getFeedLineAsPlainText(markdown: string): string {
+  const escaped: Array<string> = [];
+  const held: string = markdown.replace(
+    ESCAPED_MARK,
+    (_match: string, mark: string): string => {
+      escaped.push(mark);
+      return `\uE000${escaped.length - 1}\uE000`;
+    },
+  );
+
+  return held
+    .replace(LINK, "$1")
+    .replace(/\*\*/g, "")
+    .replace(/`/g, "")
+    .replace(HELD_MARK, (_match: string, index: string): string => {
+      return escaped[Number(index)] || "";
+    });
+}
 
 export default class DataAlertExplanationReader {
   public static async read(data: {
@@ -181,11 +223,11 @@ export default class DataAlertExplanationReader {
     return [
       {
         kind: DataAlertCauseKind.UpstreamAlert,
-        title: cause.isPrivate
-          ? "A private alert upstream"
-          : [cause.alertNumberWithPrefix, cause.title]
-              .filter(Boolean)
-              .join(" "),
+        ...getUpstreamAlertCauseTitle({
+          isPrivate: cause.isPrivate,
+          alertNumberWithPrefix: cause.alertNumberWithPrefix,
+          title: cause.title,
+        }),
         at: toTime(cause.createdAt),
       },
     ];
@@ -256,7 +298,7 @@ export default class DataAlertExplanationReader {
 
         causes.push({
           kind: DataAlertCauseKind.FailedRun,
-          title: `${pipeline?.jobName || "A pipeline"} failed`,
+          ...getFailedRunCauseTitle(pipeline?.jobName),
           detail: clip(failed.errorMessage),
           at: toTime(failed.startedAt),
         });
@@ -316,7 +358,10 @@ export default class DataAlertExplanationReader {
       )) {
         causes.push({
           kind: DataAlertCauseKind.FailingWrites,
-          title: `${exception.serviceName || "A service"} keeps raising ${exception.type || "an error"} naming this table`,
+          ...getRaisedErrorCauseTitle({
+            serviceName: exception.serviceName,
+            errorType: exception.type,
+          }),
           detail: clip(exception.message),
           at: exception.lastSeenAt || undefined,
         });
@@ -327,7 +372,11 @@ export default class DataAlertExplanationReader {
       if (writer.errorCount) {
         causes.push({
           kind: DataAlertCauseKind.FailingWrites,
-          title: `${writer.serviceName || "A service"}: ${writer.errorCount} of ${writer.callCount || 0} writes failed`,
+          ...getFailedWritesCauseTitle({
+            serviceName: writer.serviceName,
+            failed: writer.errorCount,
+            total: writer.callCount,
+          }),
           at: toTime(writer.lastSeenAt),
         });
       }
@@ -367,12 +416,11 @@ export default class DataAlertExplanationReader {
     for (const change of changes) {
       causes.push({
         kind: DataAlertCauseKind.Deploy,
-        title: [
-          names.get(change.primaryEntityId?.toString() || ""),
-          change.title,
-        ]
-          .filter(Boolean)
-          .join(": "),
+        ...titleAsWritten(
+          [names.get(change.primaryEntityId?.toString() || ""), change.title]
+            .filter(Boolean)
+            .join(": "),
+        ),
         at: toTime(change.time),
       });
     }
@@ -410,9 +458,9 @@ export default class DataAlertExplanationReader {
     return items.map((item: DataAssetFeed): DataAlertLikelyCause => {
       return {
         kind: DataAlertCauseKind.SchemaChange,
-        title:
-          clip((item.feedInfoInMarkdown || "").replace(MARKDOWN_MARKS, "")) ||
-          "A column changed",
+        ...getSchemaChangeCauseTitle(
+          clip(getFeedLineAsPlainText(item.feedInfoInMarkdown || "")),
+        ),
         at: toTime(item.postedAt),
       };
     });
@@ -460,7 +508,7 @@ export default class DataAlertExplanationReader {
         ? [
             {
               kind: DataAlertCauseKind.Database,
-              title: `${store.name || "The database"} could not be read`,
+              ...getUnreadableDatabaseCauseTitle(store.name),
               detail: clip(store.tableHealthMessage),
               at: toTime(store.tableHealthCollectedAt),
             },
@@ -481,7 +529,10 @@ export default class DataAlertExplanationReader {
       if (server?.engineHealth && server.engineHealth !== "healthy") {
         causes.push({
           kind: DataAlertCauseKind.Database,
-          title: `${server.name || "The database server"} is ${server.engineHealth}`,
+          ...getUnwellServerCauseTitle({
+            serverName: server.name,
+            health: server.engineHealth,
+          }),
           at: toTime(server.engineReadingsAt),
         });
       }

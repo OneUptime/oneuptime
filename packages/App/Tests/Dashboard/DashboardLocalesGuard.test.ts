@@ -220,12 +220,106 @@ describe("Dashboard locales", () => {
  *
  * It reads the files the extractor reads for the Dashboard's UI, but by text
  * rather than by syntax tree, which takes seconds instead of most of a
- * minute: a t( call whose first argument is a dotted path literal.
+ * minute: a t( call whose first argument is a dotted path literal. Comments
+ * are left out first: a comment that shows a call (Page.tsx's "the Admin
+ * Dashboard's t("pages.settings.title")") reads no key, and the guard went
+ * red on four such comments in Page, ModelPage and SideMenuSection.
  */
-describe("the nested keys the Dashboard's code reads", () => {
-  const NESTED_KEY_CALL: RegExp =
-    /\bt\(\s*(["'`])([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)\1/g;
+const NESTED_KEY_CALL: RegExp =
+  /\bt\(\s*(["'`])([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)\1/g;
 
+// A block comment, and a line comment that starts a line or follows a space.
+const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT: RegExp = /(^|\s)\/\/.*$/gm;
+
+/*
+ * The nested keys a source's t( calls read, in order, comments aside. A line
+ * comment's "//" must start the line or follow a space, so an address in a
+ * string ("https://...") is not taken for one.
+ */
+function nestedKeysReadIn(source: string): Array<string> {
+  const code: string = source
+    .replace(BLOCK_COMMENT, (comment: string): string => {
+      // Keep the line breaks, so nothing after the comment moves line.
+      return comment.replace(/[^\n]/g, " ");
+    })
+    .replace(LINE_COMMENT, "$1");
+
+  return Array.from(code.matchAll(NESTED_KEY_CALL)).map(
+    (match: RegExpMatchArray): string => {
+      return match[2] as string;
+    },
+  );
+}
+
+describe("reading a source's nested keys", () => {
+  test("reads each t( call's dotted key, with any quote", () => {
+    expect(
+      nestedKeysReadIn(
+        [
+          'const a: string = t("eventItem.view");',
+          "const b: string = t('navbar.items.formsTitle');",
+          "const c: string = t(`pages.settings.title`, { count: 2 });",
+          'const d: string = t(\n  "eventItem.affectedResources",\n);',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "eventItem.view",
+      "navbar.items.formsTitle",
+      "pages.settings.title",
+      "eventItem.affectedResources",
+    ]);
+  });
+
+  test("leaves out a flat key and a key that is not a literal", () => {
+    expect(
+      nestedKeysReadIn(
+        [
+          't("Save changes");',
+          "t(key);",
+          "t(`pages.${name}.title`);",
+          'format("eventItem.view");',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
+  test("leaves out a call a block comment or a line comment shows", () => {
+    expect(
+      nestedKeysReadIn(
+        [
+          "/*",
+          " * text (the Admin Dashboard's t(\"pages.settings.title\"), a status page's",
+          ' * t("incidents.title")), a sentence the page built around a value',
+          " */",
+          '/** t("sideMenu.basic"): drawn as given */',
+          '// t("pages.users.title") is drawn as given',
+          'const a: string = t("eventItem.view"); // not t("eventItem.hidden")',
+          '  // t("eventItem.indented")',
+        ].join("\n"),
+      ),
+    ).toEqual(["eventItem.view"]);
+  });
+
+  test("reads a call after an address in a string, and after a comment", () => {
+    expect(
+      nestedKeysReadIn(
+        [
+          'const url: string = "https://oneuptime.com/docs"; const a: string = t("eventItem.view");',
+          '/* a comment */ const b: string = t("eventItem.affectedResources");',
+          "// a comment",
+          'const c: string = t("navbar.items.formsTitle");',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "eventItem.view",
+      "eventItem.affectedResources",
+      "navbar.items.formsTitle",
+    ]);
+  });
+});
+
+describe("the nested keys the Dashboard's code reads", () => {
   interface NestedKeyRead {
     file: string;
     key: string;
@@ -238,11 +332,11 @@ describe("the nested keys the Dashboard's code reads", () => {
   ).flatMap((root: SourceRoot): Array<NestedKeyRead> => {
     return listSourceFiles(path.join(REPOSITORY_ROOT, root.directory)).flatMap(
       (file: string): Array<NestedKeyRead> => {
-        return Array.from(
-          fs.readFileSync(file, "utf8").matchAll(NESTED_KEY_CALL),
-        ).map((match: RegExpMatchArray): NestedKeyRead => {
-          return { file: toRepositoryPath(file), key: match[2] as string };
-        });
+        return nestedKeysReadIn(fs.readFileSync(file, "utf8")).map(
+          (key: string): NestedKeyRead => {
+            return { file: toRepositoryPath(file), key: key };
+          },
+        );
       },
     );
   });

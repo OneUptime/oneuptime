@@ -2154,7 +2154,7 @@ describe("status", () => {
 
       expect(readiness.status).toBe(ReadinessStatus.NotReachable);
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels",
+        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels",
       );
     });
 
@@ -2181,10 +2181,10 @@ describe("status", () => {
        */
       expect(readiness.reasons[1]).toContain("WhatsApp");
       expect(readiness.reasons[1]).toContain(
-        "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels",
+        "a Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels",
       );
       expect((readiness.reasons[1] || "").toLowerCase()).not.toContain(
-        "project admin",
+        "Project Admin",
       );
       expect(
         readiness.reasons.some((reason: string): boolean => {
@@ -3196,7 +3196,7 @@ describe("notification channels", () => {
         "No usable notification method - cannot be paged",
       );
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on Telegram, and this project has that channel switched off - a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels",
+        "Every method they have verified is on Telegram, and this project has that channel switched off - a Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels",
       );
     });
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 8884
+    "keys": 54234,
+    "untranslated": 8690
   },
   "sameAsEnglish": [
     " is",
@@ -158,6 +158,7 @@
     "Failover",
     "Favicon",
     "Feed",
+    "Feedback",
     "Filter",
     "Filter:",
     "Filter: {{expression}}",
@@ -443,6 +444,7 @@
     "Stack",
     "Stack trace",
     "Stacks",
+    "Staging",
     "Status",
     "StatusPage",
     "Stratum",

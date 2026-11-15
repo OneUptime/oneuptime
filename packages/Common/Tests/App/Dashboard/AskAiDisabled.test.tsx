@@ -269,7 +269,7 @@ describe("Ask AI on a project whose AI is switched off", () => {
     expect(screen.queryByText(/Go to Project Settings/)).toBeNull();
     expect(
       screen.getByText(
-        /A project owner can turn it back on with the Enable AI toggle/,
+        /A Project Owner can turn it back on with the Enable AI toggle/,
       ),
     ).toBeInTheDocument();
     /*

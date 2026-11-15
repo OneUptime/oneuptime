@@ -2338,7 +2338,7 @@ describe("ResourceAiAccessAPI", () => {
         expect(resetSpy).toHaveBeenCalledTimes(1);
       });
 
-      test("refuses a project admin blocked from editing a label this resource carries", async () => {
+      test("refuses a Project Admin blocked from editing a label this resource carries", async () => {
         serveResourceLabelled(PROD_LABEL_ID, "prod");
         propsSpy.mockResolvedValue(
           userProps({

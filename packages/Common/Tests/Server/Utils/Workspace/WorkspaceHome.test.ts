@@ -909,7 +909,7 @@ describe("the Home of somebody not connected, or not a member", () => {
     expect(blocks).toHaveLength(2);
     expect(textOf(blocks[0]!)).toBe("👋 Hi there");
     expect(textOf(blocks[1]!)).toBe(
-      "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+      "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
     );
   });
 

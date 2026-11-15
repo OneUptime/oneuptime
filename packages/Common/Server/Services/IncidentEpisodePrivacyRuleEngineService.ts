@@ -244,7 +244,7 @@ class IncidentEpisodePrivacyRuleEngineServiceClass
               ruleNames: ruleNames,
             });
 
-      const feedInfoInMarkdown: MarkdownText = mdText`${headline}\n\nEpisode has been marked **private** — visible only to its owners, project admins, and project owners.`;
+      const feedInfoInMarkdown: MarkdownText = mdText`${headline}\n\nEpisode has been marked **private** — visible only to its owners, Project Admins, and Project Owners.`;
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
         incidentEpisodeId: episode.id,

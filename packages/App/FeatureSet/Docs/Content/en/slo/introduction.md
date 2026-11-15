@@ -146,7 +146,7 @@ A turned-off or archived SLO is not evaluated, so its status stays where it was;
 
 ## The SLO list
 
-The **SLOs** page lists every SLO that is not archived, with its status, SLI, budget left, burn rate, target, window, monitors, labels and owners.
+The **SLOs** page lists every SLO that is not archived, with its status, SLI, budget left, burn rate, target, window, monitors, labels and owners. Its **What It Measures** column names a request SLO's services where it names a monitor uptime SLO's monitors, and the **Services** filter finds the SLOs that measure a service.
 
 - The tiles above the list count SLOs by status: **Healthy**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Paused** and **Disabled**. They show once there is an SLO that is not archived. Click a tile to show only those SLOs, and click it again to show them all.
 - Select SLOs to add or remove labels and owners, enable or disable them, give them the [recommended burn rate rules](/docs/slo/burn-rate-alerts#add-them-to-many-slos-at-once) they are missing, archive them or delete them, all at once.

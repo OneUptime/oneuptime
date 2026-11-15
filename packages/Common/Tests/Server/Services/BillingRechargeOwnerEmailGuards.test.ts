@@ -257,7 +257,7 @@ afterEach(() => {
 });
 
 describe("NotificationService.rechargeBalance - SMS and call owner emails", () => {
-  test("a successful AUTO recharge mails project owners zero times", async () => {
+  test("a successful AUTO recharge mails Project Owners zero times", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeSmsProject({ failedFlagAlreadySet: false }),
     );
@@ -549,7 +549,7 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
 });
 
 describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
-  test("a successful AUTO recharge mails project owners zero times", async () => {
+  test("a successful AUTO recharge mails Project Owners zero times", async () => {
     const credited: Project = makeAiProject({ failedFlagAlreadySet: false });
     credited.aiCurrentBalanceInUSDCents = 2100;
 

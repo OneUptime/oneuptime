@@ -201,6 +201,7 @@ export async function processIncomingRequestFromQueue(
   const secretDecision: IncomingRequestSecretWorkerDecision =
     await IncomingRequestSecretGate.decideInWorker({
       projectId: monitorOfKey.projectId,
+      monitorId: monitorOfKey.monitorId,
       presentedSecretHashes: jobData.presentedSecretHashes,
       requestHeaders: requestHeaders,
     });

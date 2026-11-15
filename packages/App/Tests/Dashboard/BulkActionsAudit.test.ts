@@ -388,6 +388,8 @@ describe("1. a list of records switched on and off offers Enable and Disable", (
         "Dashboard/src/Pages/Runbook/Runbooks.tsx",
         "Dashboard/src/Pages/SecurityEvents/DetectionRules.tsx",
         "Dashboard/src/Pages/SecurityEvents/Playbooks.tsx",
+        // The SLOs that measure a service (#8443), as a monitor's SLOs page.
+        "Dashboard/src/Pages/Service/View/Slos.tsx",
         "Dashboard/src/Pages/Slo/Slos.tsx",
         "Dashboard/src/Pages/Traces/Settings/DropFilters.tsx",
         "Dashboard/src/Pages/Traces/Settings/Pipelines.tsx",

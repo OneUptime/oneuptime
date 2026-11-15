@@ -138,7 +138,7 @@ export const MATTERMOST_NOT_CONNECTED_TO_PROJECT_TITLE: string = translationKey(
 
 export const MATTERMOST_NOT_CONNECTED_TO_PROJECT_DESCRIPTION: string =
   translationKey(
-    "A project admin connects it under Project Settings → Workspace → Mattermost. Then you can connect your own Mattermost account here.",
+    "A Project Admin connects it under Project Settings → Workspace → Mattermost. Then you can connect your own Mattermost account here.",
   );
 
 // Where the guide to making the bot account is.

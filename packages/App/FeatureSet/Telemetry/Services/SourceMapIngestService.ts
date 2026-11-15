@@ -96,8 +96,17 @@ export default class SourceMapIngestService {
         );
       }
 
-      const files: Array<UploadedFilePart> = Array.isArray(req.files)
-        ? (req.files as Array<UploadedFilePart>)
+      /*
+       * The route's multipart middleware (getMultipartFormDataMiddleware,
+       * Telemetry/API/SourceMapIngest.ts) puts the parts on req.files. Read
+       * as what this service knows of them, not through multer's global
+       * augmentation of the request, which only a program that also holds
+       * that middleware has: the App's test programs need not (#8503).
+       */
+      const uploaded: unknown = (req as ExpressRequest & { files?: unknown })
+        .files;
+      const files: Array<UploadedFilePart> = Array.isArray(uploaded)
+        ? (uploaded as Array<UploadedFilePart>)
         : [];
 
       if (files.length === 0) {

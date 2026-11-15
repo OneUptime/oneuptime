@@ -142,13 +142,13 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  */
 
 export const CODE_TASK_STOP_REFUSED_MESSAGE: string =
-  "Stopping AI takes permission to edit this task's repository - ask a project admin for it.";
+  "Stopping AI takes permission to edit this task's repository - ask a Project Admin for it.";
 
 export const CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE: string =
-  "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.";
+  "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.";
 
 export const CODE_TASK_REVIEW_PULL_REQUEST_REFUSED_MESSAGE: string =
-  "Asking for a production review takes permission to edit the repository - ask a project admin for it.";
+  "Asking for a production review takes permission to edit the repository - ask a Project Admin for it.";
 
 export const CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE: string =
   "Only a pull request's production review can be reviewed again.";

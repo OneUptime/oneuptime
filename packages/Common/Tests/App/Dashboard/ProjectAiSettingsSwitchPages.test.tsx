@@ -1879,7 +1879,7 @@ describe("Project Settings → AI → AI Features", () => {
 });
 
 describe("the notice when Enable AI is off", () => {
-  test("a project owner gets Enable AI's own switch, and saying why nothing runs", async () => {
+  test("a Project Owner gets Enable AI's own switch, and saying why nothing runs", async () => {
     stored = projectWith({ enableAi: false });
 
     openIncidentPage();

@@ -48,6 +48,26 @@ export const INCOMING_REQUEST_SECRET_MAX_LENGTH: number = 256;
  */
 const SECRET_VALUE_PATTERN: RegExp = /^[\x21-\x7E]+$/;
 
+/*
+ * Why a request to an Incoming Request monitor had no valid incoming request
+ * secret: it sent none, or one that is not the project's. Kept on the monitor
+ * (Monitor.incomingRequestWithoutSecretReason, issue #8498) and shown where
+ * its requests are refused, or would be. Stored values: never rename one.
+ */
+export enum IncomingRequestSecretProblem {
+  NoSecret = "No Secret",
+  WrongSecret = "Wrong Secret",
+}
+
+/*
+ * How long a request without a valid secret keeps a monitor on Monitors >
+ * Settings > Incoming Request Secrets' list of requests without a secret,
+ * and on the note under its heartbeat URL: a day, so a sender that calls once
+ * a day (a nightly job) is still caught, and a fixed sender drops off within
+ * a day.
+ */
+export const INCOMING_REQUEST_WITHOUT_SECRET_WINDOW_HOURS: number = 24;
+
 export enum IncomingRequestSecretValueProblem {
   TooShort = "TooShort",
   TooLong = "TooLong",

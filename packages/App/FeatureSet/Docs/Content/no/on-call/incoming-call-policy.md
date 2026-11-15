@@ -155,7 +155,7 @@ En regel ringer en person på nummeret personen har verifisert for innkommende a
 :::steps
 1. Åpne **Brukerinnstillinger** > **Retningslinjer for innkommende anrop** > **Innkommende telefonnumre**. **Retningslinjer for innkommende anrop** er en del av sidemenyen som starter sammenslått.
 2. Klikk på **Legg til Telefonnummer for innkommende anropsruting** i kortet **Telefonnumre for innkommende anropsruting**, og skriv inn nummeret med landskode, for eksempel `+15551234567`.
-3. Skriv inn den 6-sifrede koden OneUptime sender til nummeret på SMS under **Verifiseringskode**, og klikk på **Verifiser**. **Send a new code** sender en ny.
+3. Skriv inn den 6-sifrede koden OneUptime sender til nummeret på SMS under **Verifiseringskode**, og klikk på **Verifiser**. **Send en ny kode** sender en ny.
 :::
 
 Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker. Se [Varselmetoder](/docs/notifications/notification-methods).
@@ -275,7 +275,7 @@ Kontoen kan bare endres mens policyen ikke har telefonnumre: siden sier "Remove 
 :::
 
 :::details Koden til en ingeniørs nummer kommer ikke frem
-SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send a new code** for å sende en ny, og **Prosjektinnstillinger** > **Varsler** > **Varsellogger** viser hva som skjedde med den.
+SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send en ny kode** for å sende en ny, og **Prosjektinnstillinger** > **Varsler** > **Varsellogger** viser hva som skjedde med den.
 :::
 
 ## Neste steg

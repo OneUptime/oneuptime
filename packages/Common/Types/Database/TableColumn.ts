@@ -3,6 +3,7 @@ import getCanonicalModelInstance from "./CanonicalModelInstance";
 import Dictionary from "../Dictionary";
 import GenericObject from "../GenericObject";
 import { JSONObject } from "../JSON";
+import { getWordOfMeaningKey } from "../MeaningKeys";
 import { ReflectionMetadataType } from "../Reflection";
 import TableColumnType from "./TableColumnType";
 import UserAttribution from "./UserAttribution";
@@ -11,7 +12,22 @@ import "reflect-metadata";
 const tableColumn: symbol = Symbol("TableColumn");
 
 export interface TableColumnMetadata {
+  /*
+   * What the column is called: what the API reference, the OpenAPI spec,
+   * the Terraform provider and the server's messages name it. A column
+   * declared with a key that names its meaning (MeaningKeys: "Table
+   * (database object)") is called by its word here, "Table", and keeps
+   * the key in titleKey.
+   */
   title?: string;
+  /*
+   * The key a front end looks the title up by, where the column's title
+   * names its meaning: "Table (database object)", worded as a database's
+   * table in every language - the bare "Table" is a table on the page
+   * ("Tableau", 表格). Read it with getColumnTitleKey. Set by the
+   * decorator from such a title; never declared (#8344).
+   */
+  titleKey?: string;
   description?: string;
   placeholder?: string;
   isDefaultValueColumn?: boolean;
@@ -81,6 +97,34 @@ export interface TableColumnMetadata {
 }
 
 /*
+ * A column declared with a title that names its meaning ("Table (database
+ * object)") is called by its word ("Table") wherever it is named as
+ * written - the API reference, the OpenAPI spec, the server's messages -
+ * and keeps the key a front end looks it up by (titleKey).
+ */
+export function withTitleAsItsWord<T extends TableColumnMetadata>(
+  metadata: T,
+): T {
+  const word: string | undefined = getWordOfMeaningKey(metadata.title);
+
+  if (word === undefined) {
+    return metadata;
+  }
+
+  return { ...metadata, title: word, titleKey: metadata.title };
+}
+
+/*
+ * The key a front end looks a column's title up by: the key its title names
+ * its meaning with, or the title itself.
+ */
+export function getColumnTitleKey(
+  metadata: Pick<TableColumnMetadata, "title" | "titleKey"> | undefined | null,
+): string | undefined {
+  return metadata?.titleKey || metadata?.title;
+}
+
+/*
  * A column that records who did something to its record - `createdByUserId`,
  * `archivedByUser` - is computed whatever its declaration says: OneUptime
  * fills it in, never a write (see UserAttribution).
@@ -89,7 +133,7 @@ export default (props: TableColumnMetadata): ReflectionMetadataType => {
   return ((target: GenericObject, propertyKey?: string | symbol): void => {
     Reflect.defineMetadata(
       tableColumn,
-      UserAttribution.getColumnMetadata(propertyKey, props),
+      UserAttribution.getColumnMetadata(propertyKey, withTitleAsItsWord(props)),
       target,
       propertyKey as string | symbol,
     );

@@ -95,7 +95,7 @@ describe("the mobile app's My Pages select", () => {
   test.each([
     ["the person whose pages they are", [Permission.CurrentUser]],
     ["a project member", [Permission.CurrentUser, Permission.ProjectMember]],
-    ["a project owner", [Permission.CurrentUser, Permission.ProjectOwner]],
+    ["a Project Owner", [Permission.CurrentUser, Permission.ProjectOwner]],
   ] as Array<[string, Array<Permission>]>)(
     "is accepted for %s",
     (_who: string, permissions: Array<Permission>) => {
