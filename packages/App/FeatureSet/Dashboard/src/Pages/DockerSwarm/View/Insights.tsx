@@ -27,6 +27,9 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -215,6 +218,7 @@ function getProcessQueries(cluster: string): Array<MetricQueryConfigData> {
 const DockerSwarmClusterInsights: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<DockerSwarmCluster | null>(null);
@@ -294,7 +298,10 @@ const DockerSwarmClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.CPUChip, "Compute")}
         description="CPU and memory utilization across every task running in the cluster."
-        queryConfigs={getComputeQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getComputeQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -303,7 +310,10 @@ const DockerSwarmClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.Database, "Memory")}
         description="Absolute memory bytes used per task across the cluster."
-        queryConfigs={getMemoryQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getMemoryQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -312,7 +322,10 @@ const DockerSwarmClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.Cube, "Top Tasks")}
         description="Peak CPU and memory per task so the busiest workloads stand out."
-        queryConfigs={getTopTaskQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getTopTaskQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -321,7 +334,10 @@ const DockerSwarmClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.List, "Processes")}
         description="Process (PID) count per task — a runaway count is an early signal of a fork bomb or leaking worker pool."
-        queryConfigs={getProcessQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getProcessQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}

@@ -204,12 +204,12 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "guest_cpu",
-      title: "CPU Utilization",
+      title: translator.translateText("CPU Utilization"),
       description: translator.translateTemplate(
         "CPU usage percent for guest {{guestName}} (pve_cpu_usage_ratio × 100).",
         { guestName: guestName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -231,12 +231,12 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "guest_memory",
-      title: "Memory Usage",
+      title: translator.translateText("Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for guest {{guestName}}",
         { guestName: guestName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {
