@@ -1,5 +1,6 @@
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
-import Permission from "../../../Types/Permission";
+import Permission, { PermissionProps } from "../../../Types/Permission";
+import { getPermissionPropsAllowedInCustomRole } from "../../../Types/Team/CustomRole";
 import {
   getCopyScope,
   planRoleCopies,
@@ -801,5 +802,139 @@ describe("planRoleCopies", () => {
         }
       }
     });
+  });
+});
+
+/*
+ * A ROW NO TEAM MAY HOLD IS NEVER COPIED (#8281). A role is refused a
+ * permission no picker offers (CustomRolePermissionService), and the
+ * migration RemovePermissionsTeamsCannotBeGiven took every one from the
+ * roles that held one. Should a row of one still be stored, giving the role
+ * copies everything else of it, and a copy of one made before goes on the
+ * next sync: the copies are written without hooks (CustomRoleSync), so the
+ * plan is what keeps them to what a team may be given.
+ */
+describe("a role's row no team may hold is never copied", () => {
+  const NOT_FOR_TEAMS: Array<Permission> = [
+    Permission.CustomerSupport,
+    Permission.CurrentUser,
+    Permission.User,
+    Permission.Public,
+    Permission.AuthenticatedRequest,
+    Permission.UnAuthorizedSsoUser,
+    Permission.ReadServiceTelemetryService,
+    "NotAPermission" as Permission,
+  ];
+
+  test.each(
+    NOT_FOR_TEAMS.map((permission: Permission) => {
+      return [permission];
+    }),
+  )(
+    "a role holding %s and Incident Member gives a team only Incident Member",
+    (permission: Permission) => {
+      const roleGiven: RoleGivenToTeam = given(1, TEAM_A, ROLE_1);
+      const plan: RoleCopyPlan = planRoleCopies({
+        rolesGivenToTeams: [roleGiven],
+        rolePermissions: [
+          rolePermission(1, ROLE_1, permission),
+          rolePermission(2, ROLE_1, Permission.IncidentMember),
+        ],
+        copies: [],
+      });
+
+      expect(plan.toDelete).toEqual([]);
+      expect(plan.toCreate).toEqual([
+        {
+          teamId: TEAM_A,
+          customRoleId: ROLE_1,
+          teamCustomRoleId: roleGiven.id,
+          customRolePermissionId: id("row", 2),
+          permission: Permission.IncidentMember,
+          scope: PermissionScope.All,
+          labelIds: [],
+        },
+      ]);
+      expect(plan.changedTeamIds).toEqual([TEAM_A]);
+    },
+  );
+
+  test.each(
+    NOT_FOR_TEAMS.map((permission: Permission) => {
+      return [permission];
+    }),
+  )(
+    "a copy of %s made before goes on the next sync, and the right copies stay",
+    (permission: Permission) => {
+      const roleGiven: RoleGivenToTeam = given(1, TEAM_A, ROLE_1);
+      const notForTeams: RolePermissionRow = rolePermission(
+        1,
+        ROLE_1,
+        permission,
+      );
+      const incidentMember: RolePermissionRow = rolePermission(
+        2,
+        ROLE_1,
+        Permission.IncidentMember,
+      );
+      const copies: Array<TeamPermissionCopyRow> = [
+        copyOf(1, roleGiven, notForTeams),
+        copyOf(2, roleGiven, incidentMember),
+      ];
+      const plan: RoleCopyPlan = planRoleCopies({
+        rolesGivenToTeams: [roleGiven],
+        rolePermissions: [notForTeams, incidentMember],
+        copies,
+      });
+
+      expect(plan.toDelete).toEqual([id("copy", 1)]);
+      expect(plan.toCreate).toEqual([]);
+      expect(plan.changedTeamIds).toEqual([TEAM_A]);
+      expect(describeCopies(applyPlan(copies, plan, 10))).toEqual(
+        describeCopies([copies[1]!]),
+      );
+    },
+  );
+
+  test("a role of nothing a team may hold gives every team with it nothing", () => {
+    const plan: RoleCopyPlan = planRoleCopies({
+      rolesGivenToTeams: [given(1, TEAM_A, ROLE_1), given(2, TEAM_B, ROLE_1)],
+      rolePermissions: NOT_FOR_TEAMS.map(
+        (permission: Permission, index: number): RolePermissionRow => {
+          return rolePermission(index + 1, ROLE_1, permission);
+        },
+      ),
+      copies: [],
+    });
+
+    expect(plan).toEqual({ toDelete: [], toCreate: [], changedTeamIds: [] });
+  });
+
+  test("every permission a role may hold is still copied, once each", () => {
+    const allowed: Array<PermissionProps> =
+      getPermissionPropsAllowedInCustomRole();
+    const plan: RoleCopyPlan = planRoleCopies({
+      rolesGivenToTeams: [given(1, TEAM_A, ROLE_1)],
+      rolePermissions: allowed.map(
+        (props: PermissionProps, index: number): RolePermissionRow => {
+          return rolePermission(index + 1, ROLE_1, props.permission);
+        },
+      ),
+      copies: [],
+    });
+
+    expect(
+      plan.toCreate
+        .map((created: TeamPermissionCopyToCreate): string => {
+          return created.permission;
+        })
+        .sort(),
+    ).toEqual(
+      allowed
+        .map((props: PermissionProps): string => {
+          return props.permission;
+        })
+        .sort(),
+    );
   });
 });

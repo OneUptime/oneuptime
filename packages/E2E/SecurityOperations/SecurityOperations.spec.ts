@@ -92,12 +92,8 @@ const POWERSHELL_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-0
 // The spray case's triage run, whose cited checks re-run.
 const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 
-/*
- * A row of views drawn as toggle buttons. The product's Pin beside the page's
- * title (#6814) is a toggle too, on every product page, and no view.
- */
-const VIEW_TOGGLES: string =
-  'button[aria-pressed]:not([data-testid="product-pin-button"])';
+// A row of views drawn as toggle buttons.
+const VIEW_TOGGLES: string = "button[aria-pressed]";
 
 // The fixture's two correlation rules, beside its six library rules.
 const SEQUENCE_RULE: string = "Spray, then a success";
