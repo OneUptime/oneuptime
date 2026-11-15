@@ -175,7 +175,11 @@
       "noItems": "هنوز هیچ پروانهٔ سازمانی صادر نشده است.",
       "settingsCardTitle": "تنظیمات اعلان پروانه",
       "settingsCardDescription": "اینکه چه کسانی رونوشت ایمیل‌های پروانه را دریافت می‌کنند و یادآوری‌های انقضا چقدر زودتر ارسال می‌شوند. تا وقتی پروانه‌ای از حد کاربران فراتر رفته یا به انقضا نزدیک باشد، یادآوری‌ها روزانه به مدیران ارشد مشتری ایمیل می‌شود.",
-      "settingsEditButton": "ویرایش تنظیمات"
+      "settingsEditButton": "ویرایش تنظیمات",
+      "cloudOnlyTitle": "فقط در OneUptime Cloud در دسترس است",
+      "cloudOnlyDescription": "پروانه‌های سازمانی در oneuptime.com، نسخهٔ میزبانی‌شده‌ای که صورت‌حساب در آن فعال است، صادر و پیگیری می‌شوند. این نمونهٔ خودمیزبان پروانه‌ای را مدیریت نمی‌کند.",
+      "enterpriseEditionRequiredTitle": "نیازمند OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "مدیریت پروانه‌ها بخشی از OneUptime Enterprise Edition است. برای صدور و پیگیری پروانه‌ها، ایمیج Enterprise Edition را مستقر کنید."
     },
     "enterpriseLicenseView": {
       "title": "پروانهٔ سازمانی",
