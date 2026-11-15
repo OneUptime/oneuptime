@@ -104,7 +104,7 @@ De sjablonen voor waarschuwingen doen hetzelfde werk voor waarschuwingen. Het zi
 
 Geen van de sjablonen van OneUptime → Dynamics 365 stuurt een incident dat als **Privé-incident** is gemarkeerd, of een waarschuwing die als **Privéwaarschuwing** is gemarkeerd, naar Dynamics 365: niet het record, niet de status en niet de notities ervan, tenzij je dat aanzet. Zie [Wijzigen wat een sjabloon doet](#wijzigen-wat-een-sjabloon-doet).
 
-**Monitoren geven zelf waarschuwingen af, en soms heel veel.** **Create a Dynamics 365 case when an alert is created** opent voor elke waarschuwing een case. Tenzij elke waarschuwing een case verdient, zet je een **If / Else**-blok tussen de trigger en de rest van de workflow, bijvoorbeeld op `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, en verbind je alleen de **Yes**-kant ervan verder.
+**Monitoren geven zelf waarschuwingen af, en soms heel veel.** **Create a Dynamics 365 case when an alert is created** opent voor elke waarschuwing een case. Tenzij elke waarschuwing een case verdient, zet je een **If / Else**-blok tussen de trigger en de rest van de workflow, bijvoorbeeld op `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, en verbind je alleen de **Ja**-kant ervan verder.
 
 ### Wat de sjablonen vragen
 
@@ -133,7 +133,7 @@ Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, o
 4. Klik op **Workflow maken**. Elke workflow wordt uitgeschakeld aangemaakt: zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
 :::
 
-Begin met **Create a Dynamics 365 case when an incident is declared**, of met **Create a Dynamics 365 case when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Dynamics 365 van dezelfde soort vindt de case via de koppeling die dit sjabloon schrijft. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Response Body** van haar laatste stap, `create-case-1`, bevat het `ticketnumber` van de nieuwe case, zoals `CAS-01001-X1Y2Z3`.
+Begin met **Create a Dynamics 365 case when an incident is declared**, of met **Create a Dynamics 365 case when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Dynamics 365 van dezelfde soort vindt de case via de koppeling die dit sjabloon schrijft. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Antwoordlichaam** van haar laatste stap, `create-case-1`, bevat het `ticketnumber` van de nieuwe case, zoals `CAS-01001-X1Y2Z3`.
 
 ### De sjablonen van Dynamics 365 → OneUptime koppelen
 
@@ -184,7 +184,7 @@ Voordat je op een van beide vertrouwt:
 De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Logboeken → Uitvoeringen** en kijk hoe ze eindigde:
 
 - **Uitgevoerd**: het deed zijn werk, en de laatste stap noemt de case, het incident of de waarschuwing.
-- **Uitgevoerd**, met de stap **Check With JavaScript** op **No**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: de case is niet gekoppeld aan een record van deze soort, de notitie kwam van de andere kant, het record is privé, of de nieuwe status sluit de case niet.
+- **Uitgevoerd**, met de stap **Check With JavaScript** op **Nee**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: de case is niet gekoppeld aan een record van deze soort, de notitie kwam van de andere kant, het record is privé, of de nieuwe status sluit de case niet.
 - **Fout**: een stap is mislukt, en zijn vermelding in **Stappen** zegt waarom. Bij een Dynamics 365-aanroep staat het antwoord van Dynamics 365 erbij.
 - **Fout** bij `link-case-1`: een sjabloon dat een record aanmaakt vanuit een case heeft het aangemaakt, maar Dynamics 365 heeft de koppeling niet geaccepteerd, dus de andere sjablonen kunnen het nog niet vinden. Typ de koppeling met de hand in de kolom van de case.
 
@@ -221,7 +221,7 @@ Laat de markeringen staan wanneer je de sjablonen bewerkt. Het zijn de constante
 
 ### Wijzigen wat een sjabloon doet
 
-Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript Code** van een **Check With JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen houden dezelfde constanten in dezelfde blokken.
+Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript-code** van een **Check With JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen houden dezelfde constanten in dezelfde blokken.
 
 | Constante | Sjabloon en blok | Wat het regelt |
 | --- | --- | --- |
@@ -270,8 +270,8 @@ De scope moet je omgevings-URL zijn gevolgd door `/.default`. Een verkeerde omge
 
 :::steps
 1. Maak vanaf nul een workflow met de naam `Incidents to Dynamics 365`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. De **Fields to pass on** ervan beginnen met **Titel**: klik op **Veld toevoegen** en kies **Beschrijving** en **Incidentnummer**. De ID wordt altijd doorgegeven.
-2. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **Identifier** in op `create-case` en de **URL** op `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
-3. Stel onder **Meer velden** de **Request Headers** in op:
+2. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **Identifier** in op `create-case` en de **URL** op `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Stel onder **Meer velden** de **Aanvraagheaders** in op:
 
    ```json
    {
@@ -284,7 +284,7 @@ De scope moet je omgevings-URL zijn gevolgd door `/.default`. Een verkeerde omge
    }
    ```
 
-4. Stel de **Request Body** in op de case, met de GUID van het account waar je cases bij horen:
+4. Stel de **Verzoeklichaam** in op de case, met de GUID van het account waar je cases bij horen:
 
    ```json
    {
@@ -324,8 +324,8 @@ Bouw dit als een tweede workflow, zodat een fout hier nooit verhindert dat er ca
 
 :::steps
 1. Maak een workflow met de naam `Close Dynamics 365 cases`, met de trigger **On Update Incident**. Klik in **Fields to watch** op **Veld toevoegen** en kies **Current Incident State**. Klik in **Fields to pass on** op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**.
-2. Voeg een **If / Else**-blok toe: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
-3. Voeg na de **Yes**-kant ervan een **API Get (JSON)**-blok toe met de **Identifier** `find-case`, dezelfde headers zonder `Prefer` en deze **URL**:
+2. Voeg een **If / Else**-blok toe: **Te controleren waarde** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Vergelijking** **is waar**.
+3. Voeg na de **Ja**-kant ervan een **API Get (JSON)**-blok toe met de **Identifier** `find-case`, dezelfde headers zonder `Prefer` en deze **URL**:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ Bouw eerst de ontvangende workflow:
 
    Bij een zelfgehoste installatie heeft de URL je eigen host. Behandel de URL als een wachtwoord: iedereen die hem heeft, kan de workflow starten. Lekt hij uit, klik dan op dezelfde plek op **URL opnieuw instellen**, en de oude URL werkt meteen niet meer.
 
-3. Voeg een **If / Else**-blok toe dat vóór alles een gedeeld geheim controleert: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** een waarde die je zelf bedenkt, bewaard in een geheime globale variabele.
-4. Voeg na de **Yes**-kant ervan een **Update One Incident**-blok toe. Stel de **Query** in op `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, en de **Data (JSON Object)** op de wijziging, zoals een nieuwe `currentIncidentStateId`. Een **Find One Incident State**-blok met de query `{"name": "Resolved"}` geeft je die ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Voeg een **If / Else**-blok toe dat vóór alles een gedeeld geheim controleert: **Te controleren waarde** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergelijking** **is gelijk aan**, **Vergelijken met** een waarde die je zelf bedenkt, bewaard in een geheime globale variabele.
+4. Voeg na de **Ja**-kant ervan een **Update One Incident**-blok toe. Stel de **Query** in op `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, en de **Data (JSON Object)** op de wijziging, zoals een nieuwe `currentIncidentStateId`. Een **Find One Incident State**-blok met de query `{"name": "Resolved"}` geeft je die ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Zet hem aan en laat Dynamics 365 hem daarna aanroepen:
 
@@ -395,7 +395,7 @@ Waarschuwingen werken op dezelfde manier. Wissel het recordtype om, en verder ve
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-Een workflow heeft precies één trigger, dus incidenten en waarschuwingen hebben elk een eigen workflow nodig. Om hetzelfde Dynamics 365-werk voor beide te doen, bouw je het één keer in een workflow met een **Manual**-trigger, en start je die vanuit beide met een **Execute Workflow**-blok.
+Een workflow heeft precies één trigger, dus incidenten en waarschuwingen hebben elk een eigen workflow nodig. Om hetzelfde Dynamics 365-werk voor beide te doen, bouw je het één keer in een workflow met een **Handmatig**-trigger, en start je die vanuit beide met een **Execute Workflow**-blok.
 
 ## Problemen oplossen
 

@@ -52,7 +52,7 @@ flowchart TB
 
 ### trigger इवेंट भेजें
 
-**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **URL** `https://events.pagerduty.com/v2/enqueue` पर, और उसकी **Request Body** इस पर सेट करें:
+**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **सफलता** बिंदु को उससे जोड़ें। उसका **URL** `https://events.pagerduty.com/v2/enqueue` पर, और उसकी **अनुरोध बॉडी** इस पर सेट करें:
 
 ```json
 {
@@ -92,11 +92,11 @@ flowchart TB
 
 ### जांचें कि घटना सुलझ गई है
 
-ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **Value to check** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **Comparison** को **is true** पर सेट करें।
+ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **जांचने वाला मान** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **तुलना** को **सत्य है** पर सेट करें।
 
 ### resolve इवेंट भेजें
 
-**Yes** साइड के बाद एक **API Post (JSON)** ब्लॉक जोड़ें, उसी **URL** और इस **Request Body** के साथ:
+**हाँ** साइड के बाद एक **API Post (JSON)** ब्लॉक जोड़ें, उसी **URL** और इस **अनुरोध बॉडी** के साथ:
 
 ```json
 {
@@ -118,7 +118,7 @@ flowchart TB
 हर घटना की गंभीरता भेजने के लिए, ट्रिगर और **API Post (JSON)** ब्लॉक के बीच एक **Run Custom JavaScript** ब्लॉक जोड़ें, और उसका जवाब बॉडी में पढ़ें।
 
 1. ट्रिगर के **Fields to pass on** में **फ़ील्ड जोड़ें** पर क्लिक करें, **घटना गंभीरता** खोलें और **नाम** चुनें।
-2. ब्लॉक के **Arguments** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript Code** को इस पर सेट करें:
+2. ब्लॉक के **Arguments** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript कोड** को इस पर सेट करें:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details वर्कफ़्लो कभी नहीं चलता
-जांचें कि यह चालू है: उसके **बिल्डर** के ऊपर **सक्षम**। फिर **लॉग → रन** खोलें: जो रन **If / Else** ब्लॉक की **No** साइड पर गया, वह ऐसा अपडेट था जो सुलझाना नहीं था।
+जांचें कि यह चालू है: उसके **बिल्डर** के ऊपर **सक्षम**। फिर **लॉग → रन** खोलें: जो रन **If / Else** ब्लॉक की **नहीं** साइड पर गया, वह ऐसा अपडेट था जो सुलझाना नहीं था।
 :::
 
 :::details PagerDuty मान की जगह रेफ़रेंस दिखाता है

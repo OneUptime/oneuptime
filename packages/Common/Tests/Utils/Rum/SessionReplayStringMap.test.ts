@@ -190,6 +190,51 @@ describe("sanitizeSessionReplayStringMap", () => {
 
     expect(Object.keys(result)).toHaveLength(SESSION_REPLAY_MAX_TAG_KEYS);
   });
+
+  /*
+   * #8197: product analytics scrubs a value that is an address here, so it
+   * must see the value whole: cut first, an email past the cap is no longer
+   * an email, and the scrubber would keep the part of it that fit.
+   */
+  it("hands readValue each value whole, with the cap, and holds what it returns to the cap", () => {
+    const seen: Array<[string, number]> = [];
+    const result: Record<string, string> = sanitizeSessionReplayStringMap(
+      { long: "abcdefgh", seats: 12, beta: true },
+      LIMITS,
+      (value: string, maxValueLength: number): string => {
+        seen.push([value, maxValueLength]);
+        return `${value}-read`;
+      },
+    );
+
+    expect(seen).toEqual([
+      ["abcdefgh", 4],
+      ["12", 4],
+      ["true", 4],
+    ]);
+    expect(result).toEqual({ long: "abcd", seats: "12-r", beta: "true" });
+  });
+
+  it("does not hand readValue a value it drops, or a key past the cap", () => {
+    const seen: Array<string> = [];
+
+    sanitizeSessionReplayStringMap(
+      { a: "1", b: null, c: { x: 1 }, d: "2", e: "3", f: "4" },
+      LIMITS,
+      (value: string): string => {
+        seen.push(value);
+        return value;
+      },
+    );
+
+    expect(seen).toEqual(["1", "2", "3"]);
+  });
+
+  it("is what it always was without readValue", () => {
+    expect(
+      sanitizeSessionReplayStringMap({ long: "abcdefgh" }, LIMITS),
+    ).toEqual({ long: "abcd" });
+  });
 });
 
 describe("mergeSessionReplayStringMaps", () => {

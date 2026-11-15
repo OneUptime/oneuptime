@@ -15,11 +15,11 @@ Publica un mensaje en un canal de [Discord](https://discord.com) cuando se abre 
 flowchart TB
     declared["Incidente declarado"] --> trigger["On Create Incident"]
     trigger --> step["Send Message<br/>to Discord"]
-    step -->|"Success"| channel["Mensaje en<br/>tu canal"]
+    step -->|"Éxito"| channel["Mensaje en<br/>tu canal"]
     step -->|"Error"| failed["La ejecución falla<br/>y dice por qué"]
 ```
 
-El paso publica el **Message Text** en el webhook del canal. Toma su salida **Success** cuando Discord acepta el mensaje, y su salida **Error**, con el motivo de Discord, cuando Discord lo rechaza. Sin nada conectado a **Error**, como en la plantilla, una ejecución que no pudo publicar falla, y sus **Pasos** dicen por qué.
+El paso publica el **Texto del mensaje** en el webhook del canal. Toma su salida **Éxito** cuando Discord acepta el mensaje, y su salida **Error**, con el motivo de Discord, cuando Discord lo rechaza. Sin nada conectado a **Error**, como en la plantilla, una ejecución que no pudo publicar falla, y sus **Pasos** dicen por qué.
 
 ## Antes de empezar
 
@@ -53,8 +53,8 @@ El flujo de trabajo se abre en el **Constructor** con dos pasos: **On Create Inc
 1. Guarda la URL como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `DISCORD_WEBHOOK_URL` y haz clic en **Siguiente**. Pega la URL en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
 2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
 3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Incident** en **Populares**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que muestra tu mensaje, por ejemplo **Número de incidente con prefijo**.
-4. Haz clic en **Añadir componente**, busca `discord` y haz clic en **Send Message to Discord**. Conecta la salida **Success** del disparador a este paso.
-5. Haz clic en el paso nuevo. En **Discord Incoming Webhook URL**, haz clic en **{ }** y elige `DISCORD_WEBHOOK_URL` en **Variables globales**. En **Message Text**, escribe el mensaje e inserta los campos del incidente con **{ }**.
+4. Haz clic en **Añadir componente**, busca `discord` y haz clic en **Send Message to Discord**. Conecta la salida **Éxito** del disparador a este paso.
+5. Haz clic en el paso nuevo. En **Discord Incoming Webhook URL**, haz clic en **{ }** y elige `DISCORD_WEBHOOK_URL` en **Variables globales**. En **Texto del mensaje**, escribe el mensaje e inserta los campos del incidente con **{ }**.
 :::
 
 Un mensaje hecho desde cero lee los campos del incidente con referencias como estas:

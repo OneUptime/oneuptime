@@ -51,7 +51,7 @@ Etter triggeren **Webhook** leser steget **Check With JavaScript** `read-event-1
 | `state` er `ACTIVATED` og `isAcknowledged` er `true` | Bekrefter sakens hendelse, slik at vakten slutter å eskalere den. Hvorfor står på tidslinjen. |
 | `state` er `CLOSED` | Løser sakens hendelse, med mindre den allerede er løst. Hvorfor står på tidslinjen. |
 
-En bekreftelse eller en lukking for en sak uten hendelse endrer ingenting. Alt annet, for eksempel en forespørsel fra et annet verktøy, blir stående: `read-event-1` tar **No**, og kjøringens **Trinn** sier hvorfor. Ingenting går tilbake til New Relic: det lukker sine egne saker når signalet er gjenopprettet, og det er det som løser hendelsen.
+En bekreftelse eller en lukking for en sak uten hendelse endrer ingenting. Alt annet, for eksempel en forespørsel fra et annet verktøy, blir stående: `read-event-1` tar **Nei**, og kjøringens **Trinn** sier hvorfor. Ingenting går tilbake til New Relic: det lukker sine egne saker når signalet er gjenopprettet, og det er det som løser hendelsen.
 
 ### Prioriteter og varsling
 
@@ -162,7 +162,7 @@ Test deretter fra New Relic: åpne webhook-meldingen til arbeidsflyten, og klikk
 :::
 
 :::details Arbeidsflyten kjører, men åpner ingenting
-Åpne kjøringen i **Logger → Kjøringer**. Oppføringen `read-event-1` under **Trinn** sier hvorfor den tok **No**.
+Åpne kjøringen i **Logger → Kjøringer**. Oppføringen `read-event-1` under **Trinn** sier hvorfor den tok **Nei**.
 
 - `New Relic named no issue ID`: behold linjen `"id": {{ json issueId }},` i nyttelasten.
 - `is in no state`: behold linjen `"state": {{ json state }},` i nyttelasten.

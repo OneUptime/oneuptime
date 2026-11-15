@@ -58,7 +58,7 @@ Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og væ
 
 ### Opret posten
 
-Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Success**-punkt med den. Sæt dens **URL** til `https://your-instance.service-now.com/api/now/table/incident`. Sæt under **Flere felter** dens **Request Headers** til:
+Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **URL** til `https://your-instance.service-now.com/api/now/table/incident`. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
 ```json
 {
@@ -67,7 +67,7 @@ Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind 
 }
 ```
 
-Og dens **Request Body** til:
+Og dens **Anmodningsbrødtekst** til:
 
 ```json
 {
@@ -101,11 +101,11 @@ Opret et workflow med navnet `Resolve ServiceNow incidents`, og vælg **On Updat
 
 ### Kontrollér, at hændelsen er løst
 
-Tilføj en **If / Else**-blok efter triggeren. Sæt **Value to check** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Comparison** til **is true**.
+Tilføj en **If / Else**-blok efter triggeren. Sæt **Værdi, der skal tjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sand**.
 
 ### Find posten
 
-Tilføj en **API Get (JSON)**-blok efter **Yes**-siden, med de samme **Request Headers** og denne **URL**:
+Tilføj en **API Get (JSON)**-blok efter **Ja**-siden, med de samme **Anmodningsheadere** og denne **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Løs posten
 
-Tilføj en **API Patch (JSON)**-blok efter søgeblokkens **Success**, med de samme **Request Headers** og denne **URL**:
+Tilføj en **API Patch (JSON)**-blok efter søgeblokkens **Succes**, med de samme **Anmodningsheadere** og denne **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Sæt dens **Request Body** til:
+Sæt dens **Anmodningsbrødtekst** til:
 
 ```json
 {

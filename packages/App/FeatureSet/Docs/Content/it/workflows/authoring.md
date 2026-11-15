@@ -47,23 +47,23 @@ Trascina i blocchi dove vuoi; la tela li allinea a una griglia mentre li sposti.
 | **Identifier** (sotto **ID**)        | L'ID breve mostrato sul blocco, come `log-1`. È il modo in cui gli altri blocchi fanno riferimento a questo, quindi rinominarlo rompe ogni riferimento `{{local.components.…}}` che punta a esso. L'intestazione del blocco è il nome proprio del componente e non si può cambiare.                                 |
 | **Impostazioni**                     | Ciò di cui il blocco ha bisogno per fare il suo lavoro: un URL, un canale Slack, il corpo di un messaggio. I campi facoltativi sono contrassegnati con **(Facoltativo)**; tutto il resto è obbligatorio. Un interruttore acceso/spento non ha né l'uno né l'altro, perché ha sempre un valore. Le impostazioni meno usate sono raccolte sotto **Altri campi**, la cui intestazione le nomina e mostra quelle impostate. |
 | **Input**                            | Il punto sul bordo superiore, dove arrivano le linee dai blocchi precedenti. I trigger non ne hanno: prima di loro non viene eseguito nulla.                                                                                                                                                                  |
-| **Outputs**                          | I punti lungo il bordo inferiore, etichettati appena sopra, da cui partono le linee verso i blocchi successivi. Molti blocchi hanno uscite **Success** ed **Error** separate, così puoi gestire entrambi i casi.                                                                                               |
+| **Outputs**                          | I punti lungo il bordo inferiore, etichettati appena sopra, da cui partono le linee verso i blocchi successivi. Molti blocchi hanno uscite **Successo** ed **Errore** separate, così puoi gestire entrambi i casi.                                                                                               |
 
 ## Collegare i blocchi
 
 Trascina da un punto sul fondo di un blocco fino al punto in cima al blocco successivo. La linea che tracci decide cosa viene eseguito dopo.
 
-- Se colleghi da **Success**, il blocco successivo viene eseguito solo se quello precedente ha funzionato.
-- Se colleghi da **Error**, il blocco successivo viene eseguito solo se quello precedente non è riuscito.
+- Se colleghi da **Successo**, il blocco successivo viene eseguito solo se quello precedente ha funzionato.
+- Se colleghi da **Errore**, il blocco successivo viene eseguito solo se quello precedente non è riuscito.
 - Se non colleghi un'uscita, quel percorso semplicemente si ferma.
 
 ```mermaid title="Solo l'uscita presa da un blocco porta da qualche parte"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
+    hook["Webhook"] -->|"Uscita"| check{"If / Else"}
+    check -->|"Sì"| post["API Post (JSON)"]
     check -->|"No"| ends(["Niente collegato, quindi<br/>l'esecuzione finisce"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    post -->|"Successo"| slack["Send Message to Slack"]
+    post -->|"Errore"| log["Registro"]
 ```
 
 Puoi collegare un'uscita a più blocchi. Vengono eseguiti tutti, ma uno dopo l'altro, in un'unica coda, non in parallelo. Non contare sull'ordine tra i rami, né sul fatto che si sovrappongano nel tempo.
@@ -105,7 +105,7 @@ Nell'impostazione, un valore compare come un chip, ad esempio **Webhook › Requ
 
 - **I valori che esistono vengono per primi, e gli altri sono elencati a parte.** Vengono offerti il trigger e i blocchi eseguiti prima di questo. Un blocco eseguito prima di questo solo in alcune esecuzioni — dopo un'uscita di un **If / Else**, per esempio — lo dice, perché qui i suoi valori possono essere vuoti. Un blocco eseguito dopo, o su un ramo che non porta qui, è elencato alla fine, ripiegato e in grigio, con il motivo, e i suoi valori non si possono scegliere. Finché un blocco non è collegato, vengono elencati solo i valori del trigger, e l'elenco lo dice.
 - **Un record si apre sui suoi campi.** Un blocco Find One o On Create restituisce un record intero. Sceglilo per vederne i campi: prima quelli che il blocco trasmette, indicati dal suo **Fields to pass on**, poi, a parte, quelli che non trasmette, che qui sono vuoti. Un valore JSON o un insieme di header si apre su una casella in cui scrivi un percorso, come `title` o `alerts[0].status`.
-- **Una volta che un blocco è stato eseguito, l'elenco sa cosa c'è nei suoi valori.** Ogni valore dice cosa conteneva nell'ultima esecuzione — `"production"` o `3 fields` —, e un valore JSON o un insieme di header si apre sui campi che aveva, ognuno con il suo contenuto. Così, dal **Request Body** di un Webhook scegli **incident.title** invece di scrivere un percorso. Anche la ricerca trova questi campi: scrivi `title`, oppure `{{` e l'inizio di un percorso. Anche i campi di un record mostrano cosa contenevano. I campi vengono dall'ultima esecuzione, quindi uno che una richiesta successiva omette è vuoto in quell'esecuzione. Un valore che sembra un segreto, come un header `Authorization`, un token o una password, viene elencato senza il suo contenuto.
+- **Una volta che un blocco è stato eseguito, l'elenco sa cosa c'è nei suoi valori.** Ogni valore dice cosa conteneva nell'ultima esecuzione — `"production"` o `3 fields` —, e un valore JSON o un insieme di header si apre sui campi che aveva, ognuno con il suo contenuto. Così, dal **Corpo della Richiesta** di un Webhook scegli **incident.title** invece di scrivere un percorso. Anche la ricerca trova questi campi: scrivi `title`, oppure `{{` e l'inizio di un percorso. Anche i campi di un record mostrano cosa contenevano. I campi vengono dall'ultima esecuzione, quindi uno che una richiesta successiva omette è vuoto in quell'esecuzione. Un valore che sembra un segreto, come un header `Authorization`, un token o una password, viene elencato senza il suo contenuto.
 - **Un Webhook che non ha ancora ricevuto richieste lo dice** in cima ai suoi valori, con **Copia richiesta di prova**: un comando `curl` che invia `{"message": "Hello"}` all'URL del webhook del workflow. Eseguilo in un terminale mentre l'elenco è aperto: i campi della richiesta compaiono non appena termina l'esecuzione che avvia, di solito in pochi secondi. Solo chi può vedere l'URL del webhook ha il pulsante. Finché il workflow è disattivato, il suo URL respinge le richieste, quindi l'elenco offre invece **Prova con «Esegui flusso di lavoro»**: i campi della richiesta che invii da lì compaiono allo stesso modo. Un trigger Incoming Email che non ha ancora ricevuto email lo dice nello stesso punto; invia un'email al suo indirizzo, e i suoi header e allegati compaiono allo stesso modo.
 - **Gli editor di codice hanno Insert value nella barra degli strumenti.** In JSON aggiunge le virgolette di cui un valore ha bisogno all'interno di un documento. **Run Custom JavaScript** legge i valori tramite i suoi **Arguments**, quindi il suo codice non ha un selettore.
 - **Numeri, password, interruttori e date mantengono il loro controllo,** con **{ }** accanto. Un valore scelto sostituisce il controllo, e **abc** torna alla digitazione.
@@ -135,7 +135,7 @@ Il modo più rapido per prendere confidenza con la tela è un workflow di due bl
 :::steps
 1. Fai clic sul blocco segnaposto tratteggiato, poi su **Manuale** nel pannello **Aggiungi trigger**.
 2. Fai clic su **Aggiungi componente**, poi su **Registro** sotto **Popolari**. Il nuovo blocco compare sotto il trigger. Collega il punto **Execute** del trigger al punto di ingresso del blocco Log, più in basso.
-3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Value**. Fai clic su **{ }**, poi su **JSON** sotto **Manuale**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
+3. Fai clic sul blocco Log, che mostra **Click to set up**, e scrivi `Hello from ` nel suo **Valore**. Fai clic su **{ }**, poi su **JSON** sotto **Manuale**. L'impostazione mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` è l'**Identifier** del trigger, mostrato sul blocco del trigger. Fai clic su **Salva**.
 4. Di nuovo nel **Costruttore**, fai clic su **Esegui flusso di lavoro**, metti `{ "name": "Ada" }` nel campo **JSON**, fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il workflow è ancora disattivato, e non serve che sia attivo: un'esecuzione che avvii tu stesso è un'**Esecuzione di prova**.
 5. Si apre da solo un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. In cima dice **Esecuzione di prova**, e il registro mostra `Value:` seguito da `Hello from` e dal JSON che hai scritto.
 :::
@@ -158,7 +158,7 @@ Mentre un workflow è disattivato, ciò che lo avvia decide se viene eseguito:
 | Il suo trigger: una pianificazione, un evento di OneUptime o un'email | Ignorato.                                                                                                                                                                      |
 | **Esegui flusso di lavoro** o **Run just this step**        | Viene eseguito, come **Esecuzione di prova**. I suoi blocchi vengono eseguiti davvero: un messaggio viene davvero inviato e un record viene davvero modificato. L'esecuzione è contrassegnata come **Esecuzione di prova** negli elenchi delle esecuzioni e in cima all'esecuzione, con chi l'ha avviata. |
 | Una chiamata al suo URL di webhook                         | Rifiutata con HTTP 400 e "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                      |
-| Il blocco **Execute Workflow** di un altro workflow         | Quel blocco prende il suo percorso **Error**, e l'errore nomina il workflow che ha chiamato. Vale anche in un'esecuzione di prova: un workflow che chiama deve essere attivo. |
+| Il blocco **Execute Workflow** di un altro workflow         | Quel blocco prende il suo percorso **Errore**, e l'errore nomina il workflow che ha chiamato. Vale anche in un'esecuzione di prova: un workflow che chiama deve essere attivo. |
 
 L'ordine è quindi: costruiscilo, provalo con **Esegui flusso di lavoro** finché è ancora disattivato, leggi il registro dell'esecuzione e attiva **Abilitato** quando vuoi che il suo trigger scatti. Per provare un singolo blocco senza eseguire tutto, usa **Run just this step** nelle impostazioni di quel blocco.
 

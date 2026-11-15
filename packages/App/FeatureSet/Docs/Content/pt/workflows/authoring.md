@@ -47,23 +47,23 @@ Arraste os blocos para onde quiser; o canvas os encaixa em uma grade enquanto vo
 | **Identifier** (em **ID**)            | O ID curto mostrado no bloco, como `log-1`. É assim que outros blocos se referem a este, então renomeá-lo quebra todas as referências `{{local.components.…}}` que apontam para ele. O título do bloco é o nome do próprio componente e não pode ser alterado.                                                    |
 | **Configurações**                     | O que o bloco precisa para fazer o trabalho dele: uma URL, um canal do Slack, o corpo de uma mensagem. Campos opcionais têm a marca **(Opcional)**; todo o resto é obrigatório. Uma chave de liga/desliga não tem nenhuma das duas, porque sempre tem um valor. As configurações menos usadas ficam recolhidas em **Mais campos**, cujo cabeçalho as nomeia e mostra as que estão preenchidas. |
 | **Input**                             | O ponto na borda de cima, onde chegam as linhas dos blocos anteriores. Gatilhos não têm: nada roda antes deles.                                                                                                                                                                                                 |
-| **Outputs**                           | Os pontos ao longo da borda de baixo, com rótulos logo acima, de onde saem as linhas para os próximos blocos. Muitos blocos têm saídas **Success** e **Error** separadas, para você tratar os dois casos.                                                                                                       |
+| **Outputs**                           | Os pontos ao longo da borda de baixo, com rótulos logo acima, de onde saem as linhas para os próximos blocos. Muitos blocos têm saídas **Sucesso** e **Erro** separadas, para você tratar os dois casos.                                                                                                       |
 
 ## Ligar blocos
 
 Arraste de um ponto na parte de baixo de um bloco até o ponto no topo do próximo. A linha que você desenha decide o que roda em seguida.
 
-- Se você liga a partir de **Success**, o próximo bloco só roda quando o anterior funcionou.
-- Se você liga a partir de **Error**, o próximo bloco só roda quando o anterior falhou.
+- Se você liga a partir de **Sucesso**, o próximo bloco só roda quando o anterior funcionou.
+- Se você liga a partir de **Erro**, o próximo bloco só roda quando o anterior falhou.
 - Se você não liga uma saída, esse caminho simplesmente para.
 
 ```mermaid title="Só a saída que um bloco toma leva a algum lugar"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Nada ligado, então<br/>a execução termina"])
-    post -->|"Success"| slack["Send Message to Slack"]
-    post -->|"Error"| log["Log"]
+    hook["Webhook"] -->|"Saída"| check{"If / Else"}
+    check -->|"Sim"| post["API Post (JSON)"]
+    check -->|"Não"| ends(["Nada ligado, então<br/>a execução termina"])
+    post -->|"Sucesso"| slack["Send Message to Slack"]
+    post -->|"Erro"| log["Registro"]
 ```
 
 Você pode ligar uma saída a vários blocos. Todos rodam, mas um depois do outro, em uma única fila, não em paralelo. Não conte com a ordem entre os ramos nem com que eles se sobreponham no tempo.
@@ -105,7 +105,7 @@ Na configuração, um valor aparece como um chip, como **Webhook › Request Bod
 
 - **Os valores que existem vêm primeiro, e o resto aparece à parte.** São oferecidos o gatilho e os blocos que rodam antes deste. Um bloco que roda antes deste só em algumas execuções — depois de uma saída de um **If / Else**, por exemplo — avisa, porque os valores dele podem estar vazios aqui. Um bloco que roda depois, ou em um ramo que não leva até aqui, aparece no fim, recolhido e esmaecido, com o motivo, e os valores dele não podem ser escolhidos. Enquanto um bloco não estiver ligado, só os valores do gatilho aparecem, e a lista avisa.
 - **Um registro se abre nos campos dele.** Um bloco Find One ou On Create devolve um registro inteiro. Escolha-o para ver os campos: primeiro os que o bloco repassa, indicados no **Fields to pass on** dele, e depois, à parte, os que ele não repassa, que aqui ficam vazios. Um valor JSON ou um conjunto de cabeçalhos se abre em uma caixa onde você digita um caminho, como `title` ou `alerts[0].status`.
-- **Depois que um bloco roda, a lista sabe o que há nos valores dele.** Cada valor diz o que continha na última execução — `"production"` ou `3 fields` —, e um valor JSON ou um conjunto de cabeçalhos se abre nos campos que tinha, cada um com o seu conteúdo. Assim, do **Request Body** de um Webhook você escolhe **incident.title** em vez de digitar um caminho. A busca também encontra esses campos: digite `title`, ou `{{` e o começo de um caminho. Os campos de um registro também mostram o que continham. Os campos vêm da última execução, então um que uma requisição posterior omitir fica vazio nessa execução. Um valor que parece um segredo, como um cabeçalho `Authorization`, um token ou uma senha, aparece sem o conteúdo.
+- **Depois que um bloco roda, a lista sabe o que há nos valores dele.** Cada valor diz o que continha na última execução — `"production"` ou `3 fields` —, e um valor JSON ou um conjunto de cabeçalhos se abre nos campos que tinha, cada um com o seu conteúdo. Assim, do **Corpo da Requisição** de um Webhook você escolhe **incident.title** em vez de digitar um caminho. A busca também encontra esses campos: digite `title`, ou `{{` e o começo de um caminho. Os campos de um registro também mostram o que continham. Os campos vêm da última execução, então um que uma requisição posterior omitir fica vazio nessa execução. Um valor que parece um segredo, como um cabeçalho `Authorization`, um token ou uma senha, aparece sem o conteúdo.
 - **Um Webhook que ainda não recebeu nenhuma requisição avisa** no topo dos valores dele, com **Copiar requisição de teste**: um comando `curl` que envia `{"message": "Hello"}` para a URL de webhook do workflow. Rode-o em um terminal com a lista aberta, e os campos da requisição aparecem nela assim que a execução que ela inicia terminar, normalmente em segundos. Só quem pode ver a URL do webhook tem o botão. Enquanto o workflow está desligado, a URL dele recusa requisições, então a lista oferece **Testar com "Executar fluxo de trabalho"** no lugar: os campos da requisição que você enviar por ali aparecem do mesmo jeito. Um gatilho Incoming Email que ainda não recebeu nenhum e-mail avisa no mesmo lugar; envie um e-mail para o endereço dele, e os cabeçalhos e anexos aparecem do mesmo jeito.
 - **Os editores de código têm Insert value na barra de ferramentas.** Em JSON, ele acrescenta as aspas de que um valor precisa dentro de um documento. **Run Custom JavaScript** lê valores pelos **Arguments** dele, então o código não tem seletor.
 - **Números, senhas, chaves e datas mantêm o próprio controle,** com **{ }** ao lado. Um valor escolhido substitui o controle, e **abc** volta para a digitação.
@@ -135,7 +135,7 @@ O jeito mais rápido de pegar o jeito do canvas é um workflow de dois blocos qu
 :::steps
 1. Clique no bloco tracejado de espaço reservado e depois em **Manual**, no painel **Adicionar gatilho**.
 2. Clique em **Adicionar componente** e depois em **Registro**, em **Populares**. O novo bloco aparece abaixo do gatilho. Ligue o ponto **Execute** do gatilho ao ponto de entrada do bloco Log, mais abaixo.
-3. Clique no bloco Log, que mostra **Click to set up**, e digite `Hello from ` no **Value** dele. Clique em **{ }** e depois em **JSON**, em **Manual**. A configuração mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` é o **Identifier** do gatilho, mostrado no bloco do gatilho. Clique em **Salvar**.
+3. Clique no bloco Log, que mostra **Click to set up**, e digite `Hello from ` no **Valor** dele. Clique em **{ }** e depois em **JSON**, em **Manual**. A configuração mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` é o **Identifier** do gatilho, mostrado no bloco do gatilho. Clique em **Salvar**.
 4. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O workflow continua desligado, e não precisa estar ligado: uma execução que você mesmo inicia é uma **Execução de teste**.
 5. Um painel **Execução do Fluxo de Trabalho** se abre sozinho e acompanha a execução. Ele mostra **Execução de teste** no topo, e o log mostra `Value:` seguido de `Hello from` e do JSON que você digitou.
 :::
@@ -158,7 +158,7 @@ Enquanto um workflow está desligado, o que o inicia decide se ele roda:
 | O gatilho dele: um agendamento, um evento do OneUptime ou um e-mail | Ignorado.                                                                                                                                                                          |
 | **Executar fluxo de trabalho** ou **Run just this step**    | Roda, como **Execução de teste**. Os blocos dele rodam de verdade: uma mensagem é realmente enviada e um registro é realmente alterado. A execução fica marcada como **Execução de teste** nas listas de execuções e no topo da execução, com quem a iniciou. |
 | Uma chamada à URL de webhook dele                          | Recusada com HTTP 400 e "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                         |
-| O bloco **Execute Workflow** de outro workflow              | Esse bloco toma o caminho **Error**, e o erro nomeia o workflow que ele chamou. Isso vale também em uma execução de teste: um workflow que ele chama precisa estar ligado. |
+| O bloco **Execute Workflow** de outro workflow              | Esse bloco toma o caminho **Erro**, e o erro nomeia o workflow que ele chamou. Isso vale também em uma execução de teste: um workflow que ele chama precisa estar ligado. |
 
 Então a ordem é: monte, teste com **Executar fluxo de trabalho** enquanto ele ainda está desligado, leia o log da execução e ligue **Habilitado** quando quiser que o gatilho dispare. Para testar um único bloco sem rodar o resto, use **Run just this step** nas configurações desse bloco.
 

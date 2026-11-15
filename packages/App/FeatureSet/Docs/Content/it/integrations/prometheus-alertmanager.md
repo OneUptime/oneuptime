@@ -193,11 +193,11 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Verificare che la notifica stia scattando
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **If / Else** e collegaci il punto **Out** del trigger. Imposta **Value to check** su `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** su **is equal to** e **Compare with** su `firing`.
+Fai clic su **Aggiungi componente**, aggiungi un blocco **If / Else** e collegaci il punto **Uscita** del trigger. Imposta **Valore da verificare** su `{{local.components.webhook-1.returnValues.request-body.status}}`, **Confronto** su **è uguale a** e **Confronta con** su `firing`.
 
 ### Dichiarare l'incidente
 
-Aggiungi un blocco **Create One Incident** e collegaci il lato **Yes** del blocco **If / Else**. In **Incident Template**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **JSON Object**, imposta ciò che arriva da Alertmanager:
+Aggiungi un blocco **Create One Incident** e collegaci il lato **Sì** del blocco **If / Else**. In **Modello di incidente**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **JSON Object**, imposta ciò che arriva da Alertmanager:
 
 ```json
 {

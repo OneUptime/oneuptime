@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "Het maximale aantal actieve monitoren dat dit project mag hebben. Laat leeg voor geen limiet.",
       "noMonitorLimit": "Geen limiet",
       "overMonitorLimit": "{{over}} boven de limiet",
-      "atMonitorLimit": "Op de limiet"
+      "atMonitorLimit": "Op de limiet",
+      "userLimitCardTitle": "Gebruikers",
+      "userLimitCardDescription": "Iedereen in het project telt mee, openstaande uitnodigingen inbegrepen. Bij de limiet kan niemand nieuw meer bijkomen; wie er al is, blijft. De volgende niveauwijziging van een reseller overschrijft het. Projecten op het Free-abonnement zijn ook beperkt tot één persoon.",
+      "userLimitEditButton": "Gebruikerslimiet bewerken",
+      "fieldUsers": "Gebruikers",
+      "fieldUserLimit": "Gebruikerslimiet",
+      "fieldUserLimitDescription": "Het maximale aantal gebruikers dat dit project mag hebben, openstaande uitnodigingen inbegrepen. Laat leeg voor geen limiet.",
+      "noUserLimit": "Geen limiet",
+      "overUserLimit": "{{over}} boven de limiet",
+      "atUserLimit": "Op de limiet"
     },
     "projectSupport": {
       "title": "Toegang voor klantenondersteuning",

@@ -193,11 +193,11 @@ Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y 
 
 ### Comprobar que la notificación se dispara
 
-Haz clic en **Añadir componente**, añade un bloque **If / Else** y conecta a él el punto **Out** del disparador. Configura **Value to check** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparison** como **is equal to** y **Compare with** como `firing`.
+Haz clic en **Añadir componente**, añade un bloque **If / Else** y conecta a él el punto **Salida** del disparador. Configura **Valor que comprobar** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparación** como **es igual a** y **Comparar con** como `firing`.
 
 ### Declarar el incidente
 
-Añade un bloque **Create One Incident** y conecta a él el lado **Yes** del bloque **If / Else**. En **Incident Template**, elige una plantilla que fije la gravedad y las políticas de guardia a las que avisar (consulta [Plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente)). En **JSON Object**, indica lo que viene de Alertmanager:
+Añade un bloque **Create One Incident** y conecta a él el lado **Sí** del bloque **If / Else**. En **Plantilla de incidente**, elige una plantilla que fije la gravedad y las políticas de guardia a las que avisar (consulta [Plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente)). En **JSON Object**, indica lo que viene de Alertmanager:
 
 ```json
 {

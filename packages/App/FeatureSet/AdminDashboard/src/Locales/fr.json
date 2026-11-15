@@ -405,7 +405,16 @@
       "fieldMonitorLimitDescription": "Le nombre maximal de moniteurs actifs de ce projet. Laissez vide pour aucune limite.",
       "noMonitorLimit": "Aucune limite",
       "overMonitorLimit": "{{over}} au-delà de la limite",
-      "atMonitorLimit": "Limite atteinte"
+      "atMonitorLimit": "Limite atteinte",
+      "userLimitCardTitle": "Utilisateurs",
+      "userLimitCardDescription": "Tous les membres du projet comptent, invitations en attente comprises. À la limite, plus personne ne peut rejoindre le projet ; ceux qui y sont restent. Le prochain changement de palier d'un revendeur la remplace. Les projets sur l'offre Free sont aussi limités à une personne.",
+      "userLimitEditButton": "Modifier la limite d'utilisateurs",
+      "fieldUsers": "Utilisateurs",
+      "fieldUserLimit": "Limite d'utilisateurs",
+      "fieldUserLimitDescription": "Le nombre maximal d'utilisateurs de ce projet, invitations en attente comprises. Laissez vide pour aucune limite.",
+      "noUserLimit": "Aucune limite",
+      "overUserLimit": "{{over}} au-delà de la limite",
+      "atUserLimit": "Limite atteinte"
     },
     "projectSupport": {
       "title": "Accès du support client",

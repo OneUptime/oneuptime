@@ -84,7 +84,7 @@ Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-eve
 | `recovery` | Résout l'incident du problème, sauf s'il est déjà résolu. La raison figure dans sa chronologie. |
 | `update` | Ajoute à l'incident, comme note privée, ce qui a été fait dans Zabbix : qui l'a fait, ce qu'il a fait et ce qu'il a écrit. Quand la mise à jour a pris en compte le problème, il prend aussi en compte l'incident, ce qui arrête l'escalade de l'astreinte. |
 
-Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **No**, et les **Étapes** de l'exécution disent pourquoi. Une étape qui échoue fait échouer l'exécution, et son entrée dans **Étapes** dit pourquoi.
+Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **Non**, et les **Étapes** de l'exécution disent pourquoi. Une étape qui échoue fait échouer l'exécution, et son entrée dans **Étapes** dit pourquoi.
 
 ### Sévérités
 
@@ -102,7 +102,7 @@ Dans un nouveau projet, le modèle fait correspondre les six sévérités de Zab
 Avec vos propres gravités, Disaster et High vont à la plus grave, Average et Warning à celle du milieu, et Information et Not classified à la moins grave. Zabbix numérote ses sévérités de 0 (Not classified) à 5 (Disaster), et le modèle lit le numéro : renommer une sévérité dans Zabbix ne change donc rien.
 
 - Pour faire correspondre une sévérité à l'une de vos gravités par son nom, modifiez `SEVERITY_BY_NAME` dans l'étape `read-event-1`, par exemple `{ 2: 'Minor Incident' }` pour Warning.
-- Pour prévenir aussi pour les problèmes Average, mettez **Compare with** de l'étape `if-page-1` **If / Else** à `3`.
+- Pour prévenir aussi pour les problèmes Average, mettez **Comparer avec** de l'étape `if-page-1` **If / Else** à `3`.
 
 ### Renvoyer les prises en compte et les notes vers Zabbix
 

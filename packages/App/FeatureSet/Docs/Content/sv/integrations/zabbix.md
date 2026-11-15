@@ -84,7 +84,7 @@ Efter utlösaren **Webhook** läser steget **Check With JavaScript** `read-event
 | `recovery` | Löser problemets incident, om den inte redan är löst. Varför står på dess tidslinje. |
 | `update` | Lägger till det som gjordes i Zabbix som en privat anteckning på incidenten: vem som gjorde det, vad de gjorde och vad de skrev. När uppdateringen bekräftade problemet bekräftar den också incidenten, vilket stoppar jourens eskalering. |
 
-Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört: `read-event-1` tar **No**, och körningens **Steg** säger varför. Ett steg som misslyckas får körningen att misslyckas, och dess post under **Steg** säger varför.
+Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört: `read-event-1` tar **Nej**, och körningens **Steg** säger varför. Ett steg som misslyckas får körningen att misslyckas, och dess post under **Steg** säger varför.
 
 ### Allvarlighetsgrader
 
@@ -102,7 +102,7 @@ I ett nytt projekt kopplar mallen Zabbix sex allvarlighetsgrader till dessa allv
 Med egna allvarlighetsgrader går Disaster och High till din allvarligaste, Average och Warning till den mittersta, och Information och Not classified till din minst allvarliga. Zabbix numrerar sina allvarlighetsgrader från 0 (Not classified) till 5 (Disaster), och mallen läser numret, så att byta namn på en allvarlighetsgrad i Zabbix ändrar ingenting.
 
 - För att koppla en allvarlighetsgrad till en av dina efter namn, redigera `SEVERITY_BY_NAME` i steget `read-event-1`, till exempel `{ 2: 'Minor Incident' }` för Warning.
-- För att larma även för Average-problem, ställ in **Compare with** i steget `if-page-1` **If / Else** på `3`.
+- För att larma även för Average-problem, ställ in **Jämför med** i steget `if-page-1` **If / Else** på `3`.
 
 ### Skicka bekräftelser och anteckningar tillbaka till Zabbix
 

@@ -131,6 +131,7 @@ import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitor
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
 import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
+import RedactPersonalDataInProductAnalyticsPages from "./RedactPersonalDataInProductAnalyticsPages";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -1125,6 +1126,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Product analytics pages a client sent unscrubbed (#8197): deletes the
+   * page views named by a page with an email, a uuid, an id or a token in
+   * it (the name is in the sort key) and redacts those segments in every
+   * other event's page, as the ingest now scrubs what it stores. ClickHouse
+   * mutations queued in the background, on the local table ON CLUSTER;
+   * idempotent; it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RedactPersonalDataInProductAnalyticsPages(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

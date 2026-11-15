@@ -53,13 +53,13 @@ Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de trava
 
 ### Créer l'alerte
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **URL** sur `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` en Europe. Sous **Plus de champs**, réglez ses **Request Headers** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` en Europe. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-Et son **Request Body** sur :
+Et son **Corps de la requête** sur :
 
 ```json
 {
@@ -93,17 +93,17 @@ Créez un workflow nommé `Close Opsgenie alerts` et choisissez **On Update Inci
 
 ### Vérifier que l'incident est résolu
 
-Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Value to check** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparison** sur **is true**.
+Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
 
 ### Fermer l'alerte
 
-Ajoutez un bloc **API Post (JSON)** après le côté **Yes**, avec les mêmes **Request Headers**, et cette **URL** :
+Ajoutez un bloc **API Post (JSON)** après le côté **Oui**, avec les mêmes **En-têtes de la requête**, et cette **URL** :
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Réglez son **Request Body** sur `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Réglez son **Corps de la requête** sur `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### L'activer
 
@@ -117,7 +117,7 @@ Activez **Activé**, puis résolvez un incident de test dans OneUptime. Opsgenie
 Pour envoyer la gravité de chaque incident comme priorité Opsgenie, ajoutez un bloc **Run Custom JavaScript** entre le déclencheur et le bloc **API Post (JSON)**.
 
 1. Dans les **Fields to pass on** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
-2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **JavaScript Code** sur :
+2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **Code JavaScript** sur :
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie répond `202` avant de traiter la requête, donc une requête qu'il ref
 :::
 
 :::details Le workflow ne s'exécute jamais
-Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **No** du bloc **If / Else** est une mise à jour qui n'était pas une résolution.
+Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **Non** du bloc **If / Else** est une mise à jour qui n'était pas une résolution.
 :::
 
 ## Étapes suivantes

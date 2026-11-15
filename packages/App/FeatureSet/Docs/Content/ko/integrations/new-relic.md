@@ -35,7 +35,7 @@ New Relic 워크플로는 필터로 보낼 이슈를 고르고, 이슈가 활성
 :::steps
 1. **워크플로**로 이동해 **워크플로 생성**을 클릭합니다. **또는 템플릿에서 시작**에서 카테고리 목록의 **New Relic**을 고르고, **Declare an incident for each New Relic issue**를 클릭하거나, **Create an alert for each New Relic issue**를 클릭한 다음 **이 템플릿 사용**을 클릭합니다.
 2. **Who to page for new New Relic issues** 아래에서 호출할 온콜 정책을 고르거나, 아무도 호출하지 않으려면 고르지 말고, **워크플로 생성**을 클릭합니다. 워크플로가 꺼진 상태로 **빌더**에서 열립니다.
-3. **Webhook** 트리거를 클릭한 다음 **URL 복사**를 클릭하고, URL을 New Relic용으로 보관합니다.
+3. **웹훅** 트리거를 클릭한 다음 **URL 복사**를 클릭하고, URL을 New Relic용으로 보관합니다.
 4. **빌더** 상단에서 **활성화됨**을 켭니다. 꺼져 있는 워크플로는 New Relic에 `400`으로 응답합니다.
 :::
 
@@ -43,7 +43,7 @@ New Relic 워크플로는 필터로 보낼 이슈를 고르고, 이슈가 활성
 
 ### 워크플로가 하는 일
 
-**Webhook** 트리거 다음에는 **Check With JavaScript** 단계 `read-event-1`이 New Relic이 보내는 `state`를 읽고, **Incident From Another Tool**(알림 템플릿에서는 **Alert From Another Tool**)이 이슈의 ID로 그 뜻대로 처리합니다. 인시던트는 ID를 사용자 지정 필드 `newRelicIssueId`에 보관합니다.
+**웹훅** 트리거 다음에는 **Check With JavaScript** 단계 `read-event-1`이 New Relic이 보내는 `state`를 읽고, **Incident From Another Tool**(알림 템플릿에서는 **Alert From Another Tool**)이 이슈의 ID로 그 뜻대로 처리합니다. 인시던트는 ID를 사용자 지정 필드 `newRelicIssueId`에 보관합니다.
 
 | New Relic이 보내는 것 | 워크플로가 하는 일 |
 | --- | --- |
@@ -51,7 +51,7 @@ New Relic 워크플로는 필터로 보낼 이슈를 고르고, 이슈가 활성
 | `state`가 `ACTIVATED`이고 `isAcknowledged`가 `true` | 이슈의 인시던트를 인지해, 온콜 에스컬레이션이 멈춥니다. 이유는 타임라인에 남습니다. |
 | `state`가 `CLOSED` | 이슈의 인시던트를 해결합니다. 이미 해결되었으면 그대로 둡니다. 이유는 타임라인에 남습니다. |
 
-인시던트가 없는 이슈의 인지나 닫힘은 아무것도 바꾸지 않습니다. 그 밖의 것, 예를 들어 다른 도구에서 온 요청은 그대로 둡니다. `read-event-1`이 **No**로 가고, 실행의 **단계**에 이유가 나옵니다. New Relic으로는 아무것도 돌아가지 않습니다. New Relic은 신호가 복구되면 자체 이슈를 닫고, 그것이 인시던트를 해결합니다.
+인시던트가 없는 이슈의 인지나 닫힘은 아무것도 바꾸지 않습니다. 그 밖의 것, 예를 들어 다른 도구에서 온 요청은 그대로 둡니다. `read-event-1`이 **아니오**로 가고, 실행의 **단계**에 이유가 나옵니다. New Relic으로는 아무것도 돌아가지 않습니다. New Relic은 신호가 복구되면 자체 이슈를 닫고, 그것이 인시던트를 해결합니다.
 
 ### 우선순위와 호출
 
@@ -157,12 +157,12 @@ curl -X POST "<url>" \
 
 :::details OneUptime에 아무것도 도착하지 않음
 - New Relic의 워크플로가 활성 상태이고 필터가 이슈를 통과시키는지 확인합니다.
-- 대상의 **Endpoint URL**이 **Webhook** 트리거의 URL인지 확인합니다.
+- 대상의 **Endpoint URL**이 **웹훅** 트리거의 URL인지 확인합니다.
 - 꺼진 워크플로는 `400`으로 응답합니다. 그 **빌더** 상단에서 **활성화됨**을 켭니다.
 :::
 
 :::details 워크플로는 실행되지만 아무것도 열지 않음
-**로그 → 실행 기록**에서 실행을 엽니다. **단계**의 `read-event-1` 항목에 **No**로 간 이유가 나옵니다.
+**로그 → 실행 기록**에서 실행을 엽니다. **단계**의 `read-event-1` 항목에 **아니오**로 간 이유가 나옵니다.
 
 - `New Relic named no issue ID`: 페이로드에 `"id": {{ json issueId }},` 줄을 유지합니다.
 - `is in no state`: 페이로드에 `"state": {{ json state }},` 줄을 유지합니다.
@@ -189,7 +189,7 @@ OneUptime에 도달하는 새 이슈는 모두 호출합니다. 호출해야 하
 
 ## 보안
 
-- **URL을 비밀번호처럼 다루세요.** URL을 가진 사람은 누구나 인시던트를 열 수 있습니다. 유출되면 워크플로의 **Webhook** 트리거에서 **URL 재설정**을 클릭하세요. 그런 다음 New Relic에서 대상의 **Endpoint URL**을 업데이트합니다.
+- **URL을 비밀번호처럼 다루세요.** URL을 가진 사람은 누구나 인시던트를 열 수 있습니다. 유출되면 워크플로의 **웹훅** 트리거에서 **URL 재설정**을 클릭하세요. 그런 다음 New Relic에서 대상의 **Endpoint URL**을 업데이트합니다.
 - **링크는 New Relic으로 갑니다.** 템플릿은 요청 내용과 상관없이 New Relic 사이트의 이슈만 링크하고, New Relic이 보낸 내용은 텍스트로 씁니다.
 - **자체 호스팅인가요?** New Relic은 인터넷에서 웹훅을 보내므로, OneUptime이 인터넷에서 HTTPS로 연결될 수 있어야 합니다.
 

@@ -87,10 +87,10 @@ OneUptime → Jira のテンプレートは、[**プライベートインシデ�
 **モニターは自動でアラートを発生させ、その数は多くなることがあります。** **Create a Jira issue when an alert is created** は、そのすべてに課題を作成します。すべてのアラートにチケットが必要なわけではないなら、Jira のステップの前に条件を置きます。High のアラートだけに課題を作成するには:
 
 1. ワークフローの **ビルダー** を開き、**If / Else** ブロックを追加します。
-2. **Value to check** を `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`、**Comparison** を **is equal to**、**Compare with** を `High` に設定します。
-3. 線の端を点からドラッグして外し、`alert-on-create-1` から `prepare-issue-1` への線を削除します ([整理する](/docs/workflows/authoring#整理する) を参照)。トリガーの **Success** を **If / Else** ブロックに、その **Yes** を `prepare-issue-1` に接続します。
+2. **確認する値** を `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`、**比較** を **と等しい**、**比較対象** を `High` に設定します。
+3. 線の端を点からドラッグして外し、`alert-on-create-1` から `prepare-issue-1` への線を削除します ([整理する](/docs/workflows/authoring#整理する) を参照)。トリガーの **成功** を **If / Else** ブロックに、その **はい** を `prepare-issue-1` に接続します。
 
-**No** 側に進んだアラートはそこで実行を終え、課題は作成されません。
+**いいえ** 側に進んだアラートはそこで実行を終え、課題は作成されません。
 
 ### テンプレートが尋ねる内容
 
@@ -129,7 +129,7 @@ Atlassian の **サービスアカウント** も使えます。組織の管理�
 4. **ワークフローを作成** をクリックします。ワークフローはすべてオフの状態で作成されます。**ビルダー** の上部で **有効** をオンにしてください。
 :::
 
-まず **Create a Jira issue when an incident is declared** (アラートの場合は **Create a Jira issue when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Jira テンプレートは、このテンプレートが付けるラベルで課題を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-issue-1` の **Response Body** に新しい課題が示されるはずです。
+まず **Create a Jira issue when an incident is declared** (アラートの場合は **Create a Jira issue when an alert is created**) から始めてください。同じ種類のほかの OneUptime → Jira テンプレートは、このテンプレートが付けるラベルで課題を見つけます。オンにして、テスト用のインシデントを宣言するかテスト用のアラートを作成し、ワークフローの **ログ → 実行履歴** を開きます。実行は **実行済み** で終わり、最後のステップ `create-issue-1` の **レスポンスボディ** に新しい課題が示されるはずです。
 
 各ワークフローは、これらの値を個別にコピーして持ちます。トークンを交換するときは、トークンを尋ねたすべての Jira ワークフローの **ワークフロー変数** で `jiraBasicAuthToken` を更新します。Jira のアドレスが変わった場合は、`jiraSiteUrl` と `jiraBaseUrl` を同じように更新します。
 
@@ -183,7 +183,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 各実行の **ステップ** にはテンプレートが何をしたかが示されるので、 **ログ → 実行履歴** で実行を開き、どう終わったかを見てください:
 
 - **実行済み**: 処理を完了しました。最後のステップに課題、インシデント、またはアラートが示されます。
-- **実行済み** で、 **Check With JavaScript** ステップが **No** に進んだ: 意図的にイベントをスキップしました。そのステップに理由が示されます。課題がこの種類のレコードにリンクされていない、メモが Jira から来た、レコードがプライベートである、新しい状態に対応する Jira のステータスがない、のいずれかです。
+- **実行済み** で、 **Check With JavaScript** ステップが **いいえ** に進んだ: 意図的にイベントをスキップしました。そのステップに理由が示されます。課題がこの種類のレコードにリンクされていない、メモが Jira から来た、レコードがプライベートである、新しい状態に対応する Jira のステータスがない、のいずれかです。
 - **エラー**: ステップが失敗しました。 **ステップ** にあるその項目に理由が示されます。Jira への呼び出しの場合は、Jira の応答も含まれます。
 - `link-issue-1` で **エラー**: Jira の課題からレコードを作成するテンプレートがレコードを作成したものの、Jira がリンク用のラベルを受け付けなかったため、ほかのテンプレートがまだ見つけられません。ラベルを手動で追加してください。
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### テンプレートの動作を変更する
 
-ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Check With JavaScript** ブロックの **JavaScript Code** の、共有ヘルパーブロックのすぐ下にあります。テンプレートのインシデント版とアラート版は、同じブロックに同じ定数を持っています:
+ワークフローの **ビルダー** を開き、変更したいブロックをクリックします。変更することが多い設定は、スクリプト冒頭の定数です。**Check With JavaScript** ブロックの **JavaScript コード** の、共有ヘルパーブロックのすぐ下にあります。テンプレートのインシデント版とアラート版は、同じブロックに同じ定数を持っています:
 
 | 定数 | テンプレートとブロック | 制御する内容 |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ const STATE_TO_JIRA_STATUS = {
 
 キーとして使う状態名とステータス名は、大文字を含めて名前どおりに正確に書く必要があります。コードに `{{` を含めないでください。スクリプトは実行前にほかの設定と同じように値が埋め込まれるため、開き波かっこが 2 つ続くと参照として読まれます。
 
-新しい課題により多くのフィールドを送るには、課題を作成するテンプレートの `create-issue-1` ブロックの **Request Body** を編集します。ここには課題のプロジェクト、タイプ、要約、ラベル、説明があり、`fields` の中に、[その他のフィールドを入力する](#その他のフィールドを入力する) で説明する形式で、優先度、コンポーネント、担当者、カスタムフィールドを追加できます。両方のラベルは残してください。要約と説明の文言は `prepare-issue-1` スクリプトにあります。説明には、レコードの重大度、状態、説明に続き、ある場合は根本原因と修復メモが入ります。モニターはインシデントやアラートを発生させるときにこれらを入力し、多くの場合それが原因を説明しています。
+新しい課題により多くのフィールドを送るには、課題を作成するテンプレートの `create-issue-1` ブロックの **リクエストボディ** を編集します。ここには課題のプロジェクト、タイプ、要約、ラベル、説明があり、`fields` の中に、[その他のフィールドを入力する](#その他のフィールドを入力する) で説明する形式で、優先度、コンポーネント、担当者、カスタムフィールドを追加できます。両方のラベルは残してください。要約と説明の文言は `prepare-issue-1` スクリプトにあります。説明には、レコードの重大度、状態、説明に続き、ある場合は根本原因と修復メモが入ります。モニターはインシデントやアラートを発生させるときにこれらを入力し、多くの場合それが原因を説明しています。
 
-非公開メモと編集のコメントは、`post-comment-1` ブロックの **Request Body** にある `properties` のエントリ `sd.public.comment` によって内部コメントとしてマークされます。これを読むのは Jira Service Management だけです。顧客にそれらのコメントを見せる場合にのみ削除してください。
+非公開メモと編集のコメントは、`post-comment-1` ブロックの **リクエストボディ** にある `properties` のエントリ `sd.public.comment` によって内部コメントとしてマークされます。これを読むのは Jira Service Management だけです。顧客にそれらのコメントを見せる場合にのみ削除してください。
 
 ### 制限事項
 
@@ -307,8 +307,8 @@ Jira Cloud は、[テンプレートが尋ねる内容](#テンプレートが�
 
 :::steps
 1. `Incidents to Jira` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **Fields to pass on** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。**識別子** は `incident-on-create-1` のままにします。
-2. **コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **Success** の点をそのブロックに接続します。**識別子** を `create-issue`、**URL** を `{{global.variables.JIRA_URL}}/rest/api/3/issue` にし、**その他の項目** で **Request Headers** を `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` に設定します。
-3. **Request Body** に課題を設定し、`OPS` と `Bug` を自分のプロジェクトキーとそのプロジェクトの課題タイプに置き換えます:
+2. **コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**識別子** を `create-issue`、**URL** を `{{global.variables.JIRA_URL}}/rest/api/3/issue` にし、**その他の項目** で **リクエストヘッダー** を `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` に設定します。
+3. **リクエストボディ** に課題を設定し、`OPS` と `Bug` を自分のプロジェクトキーとそのプロジェクトの課題タイプに置き換えます:
 
    ```json
    {
@@ -391,8 +391,8 @@ Jira の全員が戻れる道を用意するには、`create-issue` の後に、
 
 :::steps
 1. **On Update Incident** トリガーを持つ `Incident updates to Jira` という名前のワークフローを作成します。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**Fields to pass on** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **名前** を選びます。
-2. **If / Else** ブロックを追加します: **Value to check** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`、**Comparison** を **is equal to**、**Compare with** を `Resolved` (または自分の解決済み状態の名前) にします。
-3. その **Yes** 側の後に、**識別子** が `find-issue` で `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` に投稿する **API Post (JSON)** ブロックで課題を見つけます:
+2. **If / Else** ブロックを追加します: **確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`、**比較** を **と等しい**、**比較対象** を `Resolved` (または自分の解決済み状態の名前) にします。
+3. その **はい** 側の後に、**識別子** が `find-issue` で `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` に投稿する **API Post (JSON)** ブロックで課題を見つけます:
 
    ```json
    {
@@ -425,7 +425,7 @@ JQL は URL に入れず、本文で投稿してください。URL は書かれ�
 
    セルフホストのインストールでは独自のホストを使います。URL はパスワードと同じように扱ってください。URL を持つ人は誰でもワークフローを開始できます。漏れた場合は、同じ場所で **URL をリセット** をクリックすると、古い URL はすぐに使えなくなります。
 
-3. トリガーから **Update One Incident** ブロックを追加します。**Query** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**Data (JSON Object)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **Find One Incident State** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
+3. トリガーから **Update One Incident** ブロックを追加します。**クエリ** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**Data (JSON Object)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **Find One Incident State** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
 
 オンにしてから、自動化ルールまたは Webhook で Jira から呼び出されるようにします:
 
@@ -447,7 +447,7 @@ JQL は URL に入れず、本文で投稿してください。URL は書かれ�
 
 4. ルールをオンにし、テスト用の課題を Done に移します。Jira でルールの監査ログを、OneUptime で **ログ → 実行履歴** を確認します。
 
-リクエストが自分のルールから来たことを確かめるには、2 つ目のヘッダー `X-OneUptime-Secret` を自分で決めた値で追加し、アクションの **Hide** オプションを適用します。ワークフローでは、更新の前に **If / Else** ブロックを置きます: **Value to check** に `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`、**Comparison** に **is equal to**、**Compare with** にシークレットのグローバル変数に保存した同じ値を設定します。
+リクエストが自分のルールから来たことを確かめるには、2 つ目のヘッダー `X-OneUptime-Secret` を自分で決めた値で追加し、アクションの **Hide** オプションを適用します。ワークフローでは、更新の前に **If / Else** ブロックを置きます: **確認する値** に `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`、**比較** に **と等しい**、**比較対象** にシークレットのグローバル変数に保存した同じ値を設定します。
 
 Send web request が呼び出すのは、ポート 80、8080、443、6017、8443、8444、7990、8090、8085、8060、8900、9900 だけです。Jira Cloud はルールの実行をプランに応じた月間の上限に対して数えるため、忙しいプロジェクトのすべての遷移で動くルールはすぐに上限に近づきます。
 @tab Jira webhook
@@ -476,7 +476,7 @@ Webhook にはシークレットを設定でき、その場合 Jira は `X-Hub-S
 | ラベル `oneuptime-incident-<incident id>` | ラベル `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-ワークフローのトリガーはちょうど 1 つなので、インシデントとアラートにはそれぞれ別のワークフローが必要です。両方に同じ Jira の処理を行うには、**Manual** トリガーを持つワークフローで一度だけ構築し、両方から **Execute Workflow** ブロックで開始します。
+ワークフローのトリガーはちょうど 1 つなので、インシデントとアラートにはそれぞれ別のワークフローが必要です。両方に同じ Jira の処理を行うには、**手動** トリガーを持つワークフローで一度だけ構築し、両方から **Execute Workflow** ブロックで開始します。
 
 ## Jira Data Center
 

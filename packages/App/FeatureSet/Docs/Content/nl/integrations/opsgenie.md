@@ -53,13 +53,13 @@ Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Creat
 
 ### De alert aanmaken
 
-Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **URL** in op `https://api.opsgenie.com/v2/alerts`, of `https://api.eu.opsgenie.com/v2/alerts` in Europa. Stel onder **Meer velden** de **Request Headers** in op:
+Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://api.opsgenie.com/v2/alerts`, of `https://api.eu.opsgenie.com/v2/alerts` in Europa. Stel onder **Meer velden** de **Aanvraagheaders** in op:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-En de **Request Body** op:
+En de **Verzoeklichaam** op:
 
 ```json
 {
@@ -93,17 +93,17 @@ Maak een workflow met de naam `Close Opsgenie alerts` en kies **On Update Incide
 
 ### Controleren dat het incident is opgelost
 
-Voeg na de trigger een **If / Else**-blok toe. Stel **Value to check** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Comparison** op **is true**.
+Voeg na de trigger een **If / Else**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
 
 ### De alert sluiten
 
-Voeg na de **Yes**-kant een **API Post (JSON)**-blok toe, met dezelfde **Request Headers** en deze **URL**:
+Voeg na de **Ja**-kant een **API Post (JSON)**-blok toe, met dezelfde **Aanvraagheaders** en deze **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Stel de **Request Body** in op `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Stel de **Verzoeklichaam** in op `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Hem aanzetten
 
@@ -117,7 +117,7 @@ Zet **Ingeschakeld** aan en los daarna in OneUptime een testincident op. Opsgeni
 Om de ernst van elk incident als Opsgenie-prioriteit mee te sturen, voeg je tussen de trigger en het **API Post (JSON)**-blok een **Run Custom JavaScript**-blok toe.
 
 1. Klik in de **Fields to pass on** van de trigger op **Veld toevoegen**, open **Ernst van incident** en kies **Naam**.
-2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript Code** op:
+2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript-code** op:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie antwoordt `202` voordat het verzoek is verwerkt, dus een verzoek dat he
 :::
 
 :::details De workflow draait nooit
-Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **No**-kant van het **If / Else**-blok nam, is een update die geen oplossing was.
+Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **If / Else**-blok nam, is een update die geen oplossing was.
 :::
 
 ## Volgende stappen
