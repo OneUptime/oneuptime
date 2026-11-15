@@ -422,6 +422,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/slo/monitor-rules",
       },
       {
+        title: "Request and Latency SLOs",
+        url: "/docs/slo/request-slos",
+      },
+      {
         title: "Error Budgets",
         url: "/docs/slo/error-budget",
       },
@@ -432,6 +436,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Error Budget Policy",
         url: "/docs/slo/error-budget-policy",
+      },
+      {
+        title: "Release Checks",
+        url: "/docs/slo/release-checks",
       },
       {
         title: "SLO Metrics and Dashboards",
