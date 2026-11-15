@@ -327,13 +327,26 @@ describe("Danish, Korean, Hindi and Persian call maintenance by one word", () =>
 
     for (const [language, [details, product]] of Object.entries(expected)) {
       const dashboard: Strings = stringsOf("Dashboard", language)!;
+      const statusPage: Strings = stringsOf("Status Page", language)!;
 
       expect({
         language,
         details: dashboard.get("Maintenance Details"),
         product: dashboard.get("Scheduled Maintenance"),
         menu: dashboard.get("navbar.items.scheduledMaintenanceTitle"),
-      }).toEqual({ language, details, product, menu: product });
+        // The status page names the product as the Dashboard does (#6817).
+        statusPage: [
+          statusPage.get("scheduledEvents.title"),
+          statusPage.get("scheduledEvents.scheduledMaintenance"),
+          statusPage.get("uptimeHistory.scheduledMaintenance"),
+        ],
+      }).toEqual({
+        language,
+        details,
+        product,
+        menu: product,
+        statusPage: [product, product, product],
+      });
     }
   });
 

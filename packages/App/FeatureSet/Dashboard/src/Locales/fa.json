@@ -34438,7 +34438,7 @@
   "Monitor Metrics": "متریک‌های مانیتور",
   "Monitoring is off because it is archived": "پایش خاموش است، چون مانیتور بایگانی شده است",
   "Monitoring is paused by an incident": "پایش به دلیل یک حادثه متوقف شده است",
-  "Monitoring is paused for scheduled maintenance": "پایش برای تعمیر و نگهداری برنامه‌ریزی‌شده متوقف شده است",
+  "Monitoring is paused for scheduled maintenance": "پایش برای تعمیر و نگهداری زمان‌بندی‌شده متوقف شده است",
   "No automated checks": "بدون بررسی خودکار",
   "No check has completed yet": "هنوز هیچ بررسی‌ای کامل نشده است",
   "No check result has arrived since this monitor was created {{duration}} ago.": "از زمانی که این مانیتور {{duration}} پیش ساخته شد، هیچ نتیجهٔ بررسی‌ای نرسیده است.",

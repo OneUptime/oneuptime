@@ -84,7 +84,7 @@
     "declared": "घोषित",
     "oneIncidentOnThisDay": "इस दिन 1 घटना दर्ज की गई",
     "incidentsOnThisDay": "इस दिन {{total}} घटनाएँ दर्ज की गईं",
-    "scheduledMaintenance": "निर्धारित रखरखाव",
+    "scheduledMaintenance": "अनुसूचित रखरखाव",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 रखरखाव इवेंट",
     "maintenanceEvents": "{{total}} रखरखाव इवेंट",
@@ -135,7 +135,7 @@
   "scheduledEvents": {
     "title": "अनुसूचित रखरखाव",
     "singular": "रखरखाव इवेंट",
-    "scheduledMaintenance": "निर्धारित रखरखाव",
+    "scheduledMaintenance": "अनुसूचित रखरखाव",
     "ongoing": "चल रहा रखरखाव",
     "upcoming": "आगामी रखरखाव",
     "completed": "पूरा हुआ रखरखाव",
@@ -146,8 +146,8 @@
     "notFound": "इस स्टेटस पेज पर कोई रखरखाव इवेंट नहीं मिला।",
     "calendar": {
       "subscribe": "कैलेंडर की सदस्यता लें",
-      "subscribeTitle": "निर्धारित रखरखाव की सदस्यता लें",
-      "subscribeDescription": "इस पेज का निर्धारित रखरखाव अपने कैलेंडर ऐप में पाएँ। यह अपने आप अपडेट रहता है।",
+      "subscribeTitle": "अनुसूचित रखरखाव की सदस्यता लें",
+      "subscribeDescription": "इस पेज का अनुसूचित रखरखाव अपने कैलेंडर ऐप में पाएँ। यह अपने आप अपडेट रहता है।",
       "eventTitle": "कैलेंडर में जोड़ें",
       "eventDescription": "इस रखरखाव इवेंट को अपने कैलेंडर ऐप में जोड़ें।",
       "addToCalendar": "कैलेंडर में जोड़ें",

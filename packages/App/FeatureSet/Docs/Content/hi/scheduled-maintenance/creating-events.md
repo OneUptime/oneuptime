@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | **जब इवेंट शेड्यूल होता है** स्विच। बाकी दो समयों के अपने फ़ील्ड हैं।                     |
 | `publishOnStatusPageAt`                               | इवेंट कब अपने स्थिति पृष्ठों पर प्रकाशित होता है और इसके सब्सक्राइबर्स को बताया जाता है कि यह शेड्यूल है। छोड़ दिया जाए तो तुरंत। |
 
-कोड के रूप में वही इवेंट Terraform संसाधन `oneuptime_scheduled_maintenance_event` है: देखें [उदाहरण](/docs/terraform/examples#निर्धारित-रखरखाव)। कोई वर्कफ़्लो अपने **Create One Maintenance Event** चरण से इवेंट बनाता है, और `/oneuptime maintenance` Slack में फ़ॉर्म खोलता है: देखें [Slack](/docs/workspace-connections/slack#slack-से-घटनाएं-और-रखरखाव-बनाना)।
+कोड के रूप में वही इवेंट Terraform संसाधन `oneuptime_scheduled_maintenance_event` है: देखें [उदाहरण](/docs/terraform/examples#अनुसूचित-रखरखाव)। कोई वर्कफ़्लो अपने **Create One Maintenance Event** चरण से इवेंट बनाता है, और `/oneuptime maintenance` Slack में फ़ॉर्म खोलता है: देखें [Slack](/docs/workspace-connections/slack#slack-से-घटनाएं-और-रखरखाव-बनाना)।
 
 ## समस्या निवारण
 
