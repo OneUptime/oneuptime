@@ -52425,6 +52425,7 @@
   "{{wait}}. Change when this step is sent.": "{{wait}}。このステップを送信するタイミングを変更します。",
   "Affects": "影響先",
   "Array (storage array)": "アレイ",
+  "CPU per pod (cores)": "Pod ごとの CPU（コア）",
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "接続が中断されました。タイムアウトまたは予期しない接続の切断により、リクエストが中断された可能性があります。",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "接続が拒否されました。サーバーが接続を明示的に拒否しました。通常は、指定したポートで待ち受けているサービスがないか、ファイアウォールが接続をブロックしています。",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "接続がリセットされました。サーバーまたはネットワーク機器が接続を強制的に閉じました。サーバーの再起動、ロードバランサーのタイムアウト、ネットワークの問題で発生することがあります。",

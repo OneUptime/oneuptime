@@ -448,6 +448,16 @@ work out, starts from a default for everything else, and folds what most people 
 - **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
   the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
   [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
+- **A chart's title is the one thing its row must say.** The zoom hint beside it is the shared
+  `TimeRangeZoomHint`, never drawn on a phone's width or on a screen that is only touched, where no
+  finger drags or double-clicks, and a title row wraps, so a hint that does not fit beside the title
+  goes under it. A Russian hint that never gave way cut the Kubernetes Control Plane's etcd titles to
+  "Размер…" on a 390px phone (#8048). The hint's words keep a length budget in every language.
+  Enforced by
+  [ChartTitleRowZoomHint](../../packages/Common/Tests/UI/Components/Charts/ChartTitleRowZoomHint.test.tsx),
+  [ChartTitleRowTailwind](../../packages/Common/Tests/UI/Components/Charts/ChartTitleRowTailwind.test.tsx)
+  and
+  [ZoomHintWordsFitBesideATitle](../../packages/Common/Tests/App/Dashboard/ZoomHintWordsFitBesideATitle.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
@@ -536,10 +546,17 @@ work out, starts from a default for everything else, and folds what most people 
   sentence takes the sentence's language (`figureInSentence`, `withSentenceDigits`), and a count in
   a list column is a count column (`isCount`). Arabic is written in Latin digits. A name, an id, a
   port or a Kubernetes quantity ("500m") is drawn as written. Checked on the Host and Kubernetes
-  pages. Enforced by
-  [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx)
+  pages, and on a database's Runtime charts. Enforced by
+  [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
+  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx)
   and
-  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx).
+  [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx).
+- **A rate on a chart keeps its slash:** "100 req/s", as "1.5 MB/s" always read, on the value axis,
+  in the legend and in the tooltip, and the value axis is as wide as its widest tick. Written out,
+  "100 req per Second" broke over two lines on a 64px axis and was cut at the card's edge, with
+  "Second" in English in every language (#8049). The words stay where there is room for them, in
+  the reader's language: the unit chip and the metric's details. Enforced by
+  [RateUnitsOnChartAxes](../../packages/Common/Tests/UI/Components/Charts/RateUnitsOnChartAxes.test.tsx).
 - **A negative number in a right-to-left sentence takes the language's own minus:** in Persian a
   left-to-right mark and a minus sign (U+2212) before the digits, in Arabic the word
   ([ARABIC.md](../../packages/App/FeatureSet/Dashboard/src/Locales/ARABIC.md)),
@@ -603,6 +620,16 @@ then `npm run i18n:validate` from the root.
   and, for the service map and the infrastructure explorer, whose cards built "3 active incidents"
   and "10.0% errors" in English at run time (#7725),
   [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts).
+- **A chart's words reach it in the reader's language.** A page hands each metric chart its title,
+  description and legend, and the chart draws them as handed: the Kubernetes resource pages, Docker,
+  Proxmox and the other resource pages handed English, so "CPU Utilization" read English under a
+  German description (#8047). A page that writes its chart words as English literals hands its
+  queries through `chartWordsInReadersLanguage`, once, where they go to the chart; a page that words
+  a chart itself (a description built around a node's name) looks each literal up where it writes
+  it. Never both: a translation looked up again can itself be an English key. Enforced by
+  [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts)
+  and
+  [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
