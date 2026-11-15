@@ -430,8 +430,10 @@ describe("the whole Persian file, old keys included", () => {
       },
     );
 
-    // #7286 counted 1,347 of them, most still English in Persian then.
-    expect(old.length).toBeGreaterThan(1000);
+    /*
+     * #7286 counted 1,347 of them, most still English in Persian then. Their
+     * number only falls as old keys are pruned, so it is not held here.
+     */
     expect(
       old.filter((key: string): boolean => {
         return !isWordedInPersian(key);
