@@ -307,7 +307,12 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
               {props.tooltip && (
                 <Tooltip
                   key={1}
-                  text={props.tooltip || t("monitorOverview.notAvailable")}
+                  /*
+                   * The status page owner's own words for the resource,
+                   * drawn as they wrote them: never looked up (#8226).
+                   */
+                  text={props.tooltip}
+                  isTextUserContent={true}
                 >
                   <div className="ml-1">
                     <Icon

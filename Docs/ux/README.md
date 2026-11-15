@@ -304,9 +304,10 @@ work out, starts from a default for everything else, and folds what most people 
   in a way no message describes, it answers with what happened and what to do next, and a reference
   (the start of the request's id) that one of its log lines names
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
-  failure into one of four sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
-  the server did not answer, OneUptime could not be reached, or the page failed; never a
-  TypeError's words or a URL. A form's alert, a list or table that did not load, a dialog and the
+  failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
+  the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278); never
+  a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
   self-hosted server, where to look (`npm run doctor -- --logs`, OneUptime Health). Use
@@ -331,7 +332,11 @@ work out, starts from a default for everything else, and folds what most people 
   (`<p>{error}</p>`), a gateway's 502 read "Error connecting to server. Please try again in few
   minutes." in English on a German or a Persian page, and a server failure's reference had no copy
   button (#7537). A message the server wrote in any script is kept as written; only an empty or
-  generic one becomes the sentence for a failure nobody explained (#7536). Enforced by
+  generic one becomes the sentence for a failure nobody explained (#7536). Where no sentence of the
+  page's surrounds it, a message that reads the other way from the page (the server's English on an
+  Arabic or Persian page) is set apart, so its full stop stays at its end (#8279), and a refusal
+  with a value in it is said in the reader's language around its value in every one of these
+  places (#8280). Enforced by
   [FriendlyMessageDrawnGuard](../../packages/Common/Tests/App/Dashboard/FriendlyMessageDrawnGuard.test.ts).
 - **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
   words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's
@@ -672,9 +677,12 @@ then `npm run i18n:validate` from the root.
   for the service map and the infrastructure explorer, whose cards built "3 active incidents"
   and "10.0% errors" in English at run time (#7725),
   [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts),
-  and, for the import screens (the label rule import, the CSV upload, the JSON import's editor,
+  for the import screens (the label rule import, the CSV upload, the JSON import's editor,
   Network's Auto Import Rules) and the docs that name their buttons,
-  [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts).
+  [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts),
+  and, for the metric query form (the metric picker, its attribute filter, the series and group
+  colour pickers, a formula's row), which was English in twelve languages (#8310),
+  [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
@@ -682,11 +690,17 @@ then `npm run i18n:validate` from the root.
   in "10.16.0.0/16"` in English, its quotes jumping on a Persian page (#7931, #7958). Draw an
   attribute filter with `DictionaryFilterSentence` and a rule with `RuleCriteriaSummary`: each
   condition is one sentence with its field and value as slots, the value set apart as typed, inside
-  the language's own quotes; an operator that is a symbol (=, >) stays one. And an empty dropdown
-  says so in the reader's words ("No matches found", "No options available"), never react-select's
-  English "No options" (#7805). Enforced by
+  the language's own quotes; an operator that is a symbol (=, >) stays one. A log monitor's criteria
+  chips and a monitor's detail page said "contains web" in every language through
+  `formatDictionaryValueForDisplay`, which glues the operator's English label before the value
+  (#8309): a locked chip whose filter holds an operator carries its stored value (`filterValue`) and
+  says the sentence, and the detail page is handed the filters as stored. That formatter's text is
+  a key, never a line a person reads. And an empty dropdown says so in the reader's words ("No
+  matches found", "No options available"), never react-select's English "No options" (#7805).
+  Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
   [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
+  [LockedFilterChipSentencesInReadersLanguage](../../packages/Common/Tests/UI/Components/LockedFilterChipSentencesInReadersLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
   [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
   and
@@ -697,10 +711,20 @@ then `npm run i18n:validate` from the root.
   German description (#8047). A page that writes its chart words as English literals hands its
   queries through `chartWordsInReadersLanguage`, once, where they go to the chart; a page that words
   a chart itself (a description built around a node's name) looks each literal up where it writes
-  it. Never both: a translation looked up again can itself be an English key. Enforced by
-  [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts)
+  it. Never both: a translation looked up again can itself be an English key. A word a shared
+  utility writes in English (a monitor's, an incident's, an alert's or an SLO's metric title, legend
+  or description) is a key (`translationKey`), and the page hands it through the helper or its
+  builder looks it up with the reader's translator: the monitor's Metrics tab said "Response Time"
+  under a German heading (#8282). The line over an incident's or an alert's scoped charts says a
+  group with no value in the reader's word, "(nicht gesetzt)", worked out as the page is drawn so it
+  follows a change of language (#8269). Enforced by
+  [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts),
+  [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx),
+  [MonitorAndSloChartWordsInEveryLanguage](../../packages/App/Tests/Dashboard/MonitorAndSloChartWordsInEveryLanguage.test.ts),
+  [MonitorAndSloChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MonitorAndSloChartsInReadersLanguage.test.tsx),
+  [ScopedChartsLineInReadersWords](../../packages/App/Tests/Dashboard/ScopedChartsLineInReadersWords.test.ts)
   and
-  [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx).
+  [ScopedChartsLineFollowsTheLanguage](../../packages/Common/Tests/App/Dashboard/ScopedChartsLineFollowsTheLanguage.test.tsx).
 - **A metric's description reads in the reader's language, its code and names as written.** Every
   monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
   glued together at run time is no key, and read English in every language (#8014). Each place that

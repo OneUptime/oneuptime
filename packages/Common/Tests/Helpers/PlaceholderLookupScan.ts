@@ -25,8 +25,8 @@ import ts from "typescript";
  * isPlaceholderTranslated, isAriaLabelTranslated, isTitleTranslated - and
  * the control draws it as given (Forms/Types/Field's placeholder says why).
  *
- * The scan reads the pages and shared components (App/FeatureSet and
- * Common/UI) as TypeScript. Which components look a prop up it works out
+ * The scan reads the pages and shared components (App/FeatureSet,
+ * Common/UI and the Enterprise pages in ee) as TypeScript. Which components look a prop up it works out
  * from their code: a lookup call that is given the prop, or the prop handed
  * on, not looked up, to a component that does - followed through imports,
  * lazy imports, re-exports, forwardRef and memo. The texts it holds to the
@@ -51,6 +51,12 @@ import ts from "typescript";
  *   usePageBreadcrumbLinks): Breadcrumbs, the browser tab and the phone's
  *   menu look it up, unless the crumb says isTitleTranslated, or is a
  *   record's name (isRecordName) (#8075);
+ * - the title of a link written for a side menu's entry: a link or
+ *   subItemLink handed to a component that looks it up (SideMenuItem,
+ *   CountModelSideMenuItem), or written as the link of an entry of a
+ *   menu's sections (SideMenuItemProps). The menu, and its phone's
+ *   summary, look it up unless the link says isTitleTranslated, or is a
+ *   record's name (#8225);
  * - is<Prop>Translated beside English - a word written as it is, or a
  *   translationKey - which the control would draw untranslated;
  * - is<Prop>Translated worked out as the page runs beside a text looked up
@@ -122,10 +128,16 @@ const LOOKUPS: ReadonlyArray<string> = [
  */
 const TRANSLATOR_ARGUMENTS: ReadonlyArray<string> = ["translator", ...LOOKUPS];
 
-// Where pages and shared components are written, from the packages folder.
+/*
+ * Where pages and shared components are written, from the packages folder:
+ * the front ends, the shared components, and the Enterprise pages beside
+ * the packages (ee: the Admin Dashboard's Enterprise settings, whose
+ * headings, trails and menu entries are its own keyed texts too, #8224).
+ */
 const SOURCE_FOLDERS: ReadonlyArray<string> = [
   path.join("App", "FeatureSet"),
   path.join("Common", "UI"),
+  path.join("..", "ee"),
 ];
 
 const SKIPPED_FOLDERS: ReadonlyArray<string> = [
@@ -699,6 +711,77 @@ const TRAIL_HOOK: string = "usePageBreadcrumbLinks";
 // Where a breadcrumb's title goes: Breadcrumbs, the browser tab, the phone's menu.
 export const BREADCRUMB_TITLE: string = "a breadcrumb's title";
 
+// What a side menu's entry is handed its links by (SideMenuItem, SideMenuItemProps).
+const MENU_LINK_PROPS: ReadonlyArray<string> = ["link", "subItemLink"];
+
+// The type of a link (Types/Link): its title is held like a crumb's.
+const LINK_TYPE: string = "Link";
+
+// Where a side menu link's title goes: the menu's entry and the phone's summary (#8225).
+export const MENU_LINK_TITLE: string = "a side menu link's title";
+
+// The crumb's and the menu link's flag for a record's name, drawn as typed.
+function isWrittenAsRecordName(
+  properties: Map<string, ts.ObjectLiteralElementLike>,
+): boolean {
+  const recordName: ts.ObjectLiteralElementLike | undefined =
+    properties.get("isRecordName");
+
+  return Boolean(
+    recordName &&
+      ts.isPropertyAssignment(recordName) &&
+      recordName.initializer.kind === ts.SyntaxKind.TrueKeyword,
+  );
+}
+
+/*
+ * Where an object is handed to: the JSX attribute, or the property of an
+ * object literal, its value is - through a ?:, the right of && || ??, in
+ * brackets or cast, but not as an element of an array (a link is one
+ * object, never a list).
+ */
+function slotOf(
+  node: ts.ObjectLiteralExpression,
+):
+  | { attribute: ts.JsxAttribute }
+  | { property: ts.PropertyAssignment; owner: ts.ObjectLiteralExpression }
+  | null {
+  let current: ts.Node = node;
+
+  for (let depth: number = 0; depth < 10; depth++) {
+    const parent: ts.Node | undefined = current.parent;
+
+    if (!parent) {
+      return null;
+    }
+
+    if (passesOn(parent, current) && !ts.isArrayLiteralExpression(parent)) {
+      current = parent;
+      continue;
+    }
+
+    if (
+      ts.isPropertyAssignment(parent) &&
+      parent.initializer === current &&
+      ts.isObjectLiteralExpression(parent.parent)
+    ) {
+      return { property: parent, owner: parent.parent };
+    }
+
+    if (
+      ts.isJsxExpression(parent) &&
+      parent.parent &&
+      ts.isJsxAttribute(parent.parent)
+    ) {
+      return { attribute: parent.parent };
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
 /*
  * The names a file hands a page as its trail - breadcrumbLinks={trail},
  * breadcrumbLinks: trail, usePageBreadcrumbLinks(trail) - so the arrays of
@@ -837,6 +920,31 @@ function isWrittenAsCrumb(
   }
 
   return false;
+}
+
+/*
+ * An optional member's type without its `| undefined` or `| null`: `Link |
+ * undefined` is a Link. A union of more than one other type is left as it
+ * is.
+ */
+function withoutUndefined(
+  type: ts.TypeNode | undefined,
+): ts.TypeNode | undefined {
+  if (!type || !ts.isUnionTypeNode(type)) {
+    return type;
+  }
+
+  const others: Array<ts.TypeNode> = type.types.filter(
+    (member: ts.TypeNode): boolean => {
+      return !(
+        member.kind === ts.SyntaxKind.UndefinedKeyword ||
+        (ts.isLiteralTypeNode(member) &&
+          member.literal.kind === ts.SyntaxKind.NullKeyword)
+      );
+    },
+  );
+
+  return others.length === 1 ? others[0] : type;
 }
 
 // The name of the type a type node says its values, or its elements, are.
@@ -979,6 +1087,7 @@ class PlaceholderScan {
       this.readFieldTexts(file, source, problems, sites, seen);
       this.readTypedObjectTexts(file, source, problems, sites, seen);
       this.readCrumbTexts(file, source, problems, sites, seen);
+      this.readMenuLinkTexts(file, source, problems, sites, seen);
     }
 
     problems.sort(byPlace);
@@ -2121,15 +2230,7 @@ class PlaceholderScan {
           propertiesOf(node, source);
         const title: ts.ObjectLiteralElementLike | undefined =
           properties.get("title");
-        const recordName: ts.ObjectLiteralElementLike | undefined =
-          properties.get("isRecordName");
-        const isRecordName: boolean = Boolean(
-          recordName &&
-            ts.isPropertyAssignment(recordName) &&
-            recordName.initializer.kind === ts.SyntaxKind.TrueKeyword,
-        );
-
-        if (title && !isRecordName && !seen.has(title)) {
+        if (title && !isWrittenAsRecordName(properties) && !seen.has(title)) {
           seen.add(title);
           this.readObjectText(
             file,
@@ -2148,6 +2249,273 @@ class PlaceholderScan {
     };
 
     visit(source);
+  }
+
+  /*
+   * A side menu link's title (#8225): SideMenuItem draws a link's title,
+   * and the phone's summary names the lit entry by it, looked up unless
+   * the link says it is in the reader's words already
+   * (Link.isTitleTranslated: the Admin Dashboard's t("sideMenu.…")). A
+   * record's name (isRecordName: true) is drawn as typed, never looked up.
+   */
+  private readMenuLinkTexts(
+    file: string,
+    source: ts.SourceFile,
+    problems: Array<PlaceholderProblem>,
+    sites: Array<PlaceholderSite>,
+    seen: Set<ts.Node>,
+  ): void {
+    if (
+      !MENU_LINK_PROPS.some((prop: string): boolean => {
+        return source.text.includes(prop);
+      })
+    ) {
+      return;
+    }
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isObjectLiteralExpression(node) &&
+        this.isWrittenAsMenuLink(file, source, node)
+      ) {
+        const properties: Map<string, ts.ObjectLiteralElementLike> =
+          propertiesOf(node, source);
+        const title: ts.ObjectLiteralElementLike | undefined =
+          properties.get("title");
+
+        if (title && !isWrittenAsRecordName(properties) && !seen.has(title)) {
+          seen.add(title);
+          this.readObjectText(
+            file,
+            source,
+            "title",
+            title,
+            properties.get(translatedFlagOf("title")),
+            MENU_LINK_TITLE,
+            problems,
+            sites,
+          );
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+  }
+
+  /*
+   * Whether an object is a link a side menu's entry draws: the link or
+   * subItemLink of an element whose component looks it up (SideMenuItem,
+   * and every component that hands it one), or the link of an object
+   * written as an interface whose link is a Link (an entry of a menu's
+   * sections, SideMenuItemProps).
+   */
+  private isWrittenAsMenuLink(
+    file: string,
+    source: ts.SourceFile,
+    node: ts.ObjectLiteralExpression,
+  ): boolean {
+    const slot:
+      | { attribute: ts.JsxAttribute }
+      | { property: ts.PropertyAssignment; owner: ts.ObjectLiteralExpression }
+      | null = slotOf(node);
+
+    if (!slot) {
+      return false;
+    }
+
+    if ("attribute" in slot) {
+      const prop: string = slot.attribute.name.getText(source);
+      const element: ts.Node = slot.attribute.parent.parent;
+
+      if (
+        !MENU_LINK_PROPS.includes(prop) ||
+        !(
+          ts.isJsxSelfClosingElement(element) || ts.isJsxOpeningElement(element)
+        )
+      ) {
+        return false;
+      }
+
+      const tag: string = element.tagName.getText(source);
+
+      if (!COMPONENT_NAME.test(tag)) {
+        return false;
+      }
+
+      const target: string | null = this.resolveTag(
+        file,
+        tagNameOf(tag, element),
+      );
+
+      return Boolean(target && this.endsInLookup(target, prop));
+    }
+
+    const prop: string = slot.property.name.getText(source);
+
+    if (!MENU_LINK_PROPS.includes(prop)) {
+      return false;
+    }
+
+    const owner: { file: string; name: string } | null = this.writtenTypeOf(
+      file,
+      slot.owner,
+    );
+
+    if (!owner) {
+      return false;
+    }
+
+    const member: { file: string; name: string } | null = this.memberTypeOf(
+      owner.file,
+      owner.name,
+      prop,
+    );
+
+    return Boolean(member && this.isLinkType(member));
+  }
+
+  /*
+   * The interface an object literal is written as, by the file its name is
+   * read in: its own declared type (declaredTypeOf), or - an object given
+   * as a property of an object written as an interface - that property's
+   * type. The entries of `const sections: Array<SideMenuSectionProps>` are
+   * SideMenuItemProps through `items`, and their links Links through
+   * `link`.
+   */
+  private writtenTypeOf(
+    file: string,
+    node: ts.ObjectLiteralExpression,
+    depth: number = 0,
+  ): { file: string; name: string } | null {
+    const declared: string | null = declaredTypeOf(node);
+
+    if (declared) {
+      return { file, name: declared };
+    }
+
+    if (depth > 6) {
+      return null;
+    }
+
+    let current: ts.Node = node;
+
+    for (let step: number = 0; step < 10; step++) {
+      const parent: ts.Node | undefined = current.parent;
+
+      if (!parent) {
+        return null;
+      }
+
+      if (passesOn(parent, current)) {
+        current = parent;
+        continue;
+      }
+
+      if (
+        ts.isPropertyAssignment(parent) &&
+        parent.initializer === current &&
+        ts.isObjectLiteralExpression(parent.parent)
+      ) {
+        const owner: { file: string; name: string } | null = this.writtenTypeOf(
+          file,
+          parent.parent,
+          depth + 1,
+        );
+
+        return owner
+          ? this.memberTypeOf(owner.file, owner.name, parent.name.getText())
+          : null;
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  /*
+   * The type a member of an interface is written as (its own, or that of
+   * an interface it extends), by the file the interface is written in. An
+   * optional member's `| undefined` is left out.
+   */
+  private memberTypeOf(
+    file: string,
+    name: string,
+    member: string,
+    depth: number = 0,
+  ): { file: string; name: string } | null {
+    const reference: NameReference | undefined =
+      this.namesOf(file).locals.get(name);
+
+    if (
+      !reference ||
+      depth > 8 ||
+      (reference.module && !this.isScanned(reference.module))
+    ) {
+      return null;
+    }
+
+    const key: string | null = this.resolveReference(file, reference);
+    const declaration: ts.InterfaceDeclaration | undefined = key
+      ? this.interfaces.get(key)
+      : undefined;
+
+    if (!key || !declaration) {
+      return null;
+    }
+
+    const declaredIn: string = key.split("#")[0]!;
+
+    for (const signature of declaration.members) {
+      if (
+        ts.isPropertySignature(signature) &&
+        signature.name.getText() === member
+      ) {
+        const typeName: string | null = elementTypeName(
+          withoutUndefined(signature.type),
+        );
+
+        return typeName ? { file: declaredIn, name: typeName } : null;
+      }
+    }
+
+    for (const clause of declaration.heritageClauses || []) {
+      for (const base of clause.types) {
+        if (ts.isIdentifier(base.expression)) {
+          const found: { file: string; name: string } | null =
+            this.memberTypeOf(
+              declaredIn,
+              base.expression.text,
+              member,
+              depth + 1,
+            );
+
+          if (found) {
+            return found;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Whether a type, by the file its name is read in, is Types/Link.
+  private isLinkType(type: { file: string; name: string }): boolean {
+    if (type.name !== LINK_TYPE) {
+      return false;
+    }
+
+    const reference: NameReference | undefined = this.namesOf(
+      type.file,
+    ).locals.get(type.name);
+
+    return Boolean(
+      reference?.module &&
+        reference.module.endsWith(path.join("Common", "Types", "Link.ts")),
+    );
   }
 
   // A text an object says, and whether it says it is in the reader's words.

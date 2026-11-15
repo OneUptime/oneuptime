@@ -386,6 +386,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
       <Page
         title={t("incidents.title")}
+        isTitleTranslated={true}
         breadcrumbLinks={[
           {
             title: t("nav.overview"),

@@ -50,9 +50,11 @@ export const SERVER_EMAIL_COPY: {
   inviteEmailDescription: string;
   inviteEmailDescriptionForAdmin: string;
   invitedPill: string;
+  notSignedUpPill: string;
   invitationLinkTitle: string;
   invitationLinkDescription: string;
   invitationLinkRegisteredDescription: string;
+  invitationLinkMemberDescription: string;
   invitationLinkFailed: string;
   done: string;
   getInvitationLink: string;
@@ -75,11 +77,14 @@ export const SERVER_EMAIL_COPY: {
   inviteEmailDescriptionForAdmin:
     INVITATION_LINK_COPY.inviteDescriptionForAdmin,
   invitedPill: INVITATION_LINK_COPY.invitedPill,
+  // Beside Member, for someone who has not signed up yet (#8191).
+  notSignedUpPill: INVITATION_LINK_COPY.notSignedUpPill,
   // The invitation link's dialog, which the Admin Dashboard draws too.
   invitationLinkTitle: INVITATION_LINK_COPY.title,
   invitationLinkDescription: INVITATION_LINK_COPY.description,
   invitationLinkRegisteredDescription:
     INVITATION_LINK_COPY.registeredDescription,
+  invitationLinkMemberDescription: INVITATION_LINK_COPY.memberDescription,
   invitationLinkFailed: INVITATION_LINK_COPY.failed,
   done: INVITATION_LINK_COPY.done,
   // A pending person's row action, which opens the invitation link's dialog.
@@ -113,7 +118,8 @@ export const cannotSendEmail: (serverEmail: ServerEmail) => boolean = (
  * Whether a pending person's row offers Get Invitation Link (#7168): to a
  * master admin, on a server known not to send email, where nobody was
  * emailed the link. The server hands it to master admins only, whatever a
- * page shows.
+ * page shows. The same holds for a member's row whose person has not signed
+ * up yet (useMembersNotSignedUp, #8191).
  */
 export const canGetInvitationLinks: (serverEmail: ServerEmail) => boolean = (
   serverEmail: ServerEmail,

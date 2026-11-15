@@ -24,6 +24,14 @@ import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import User from "Common/UI/Utils/User";
 import SelectEntityField from "Common/UI/Types/SelectEntityField";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import ResultLine from "../../Components/OnCallTestPage/ResultLine";
+import {
+  getOnCallLogNotificationWords,
+  ON_CALL_LOG_DIALOG_LINE_CLASS_NAME,
+  ON_CALL_PAGE_CHANNEL_COLUMNS,
+} from "../../Components/OnCallPolicy/ExecutionLogs/OnCallLogLineWords";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -34,9 +42,16 @@ import React, {
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
+  const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string>("");
+  /*
+   * The notification whose message the dialog shows: why it was not sent,
+   * in the reader's words, read from its line and the method it went by -
+   * or drawn as written (OnCallLogLineWords, #8330).
+   */
+  const [statusNotification, setStatusNotification] =
+    useState<UserOnCallLogTimeline | null>(null);
 
   const getModelTable: GetReactElementFunction = (): ReactElement => {
     return (
@@ -64,6 +79,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         selectMoreFields={{
           statusMessage: true,
           ...NotificationMethodUtil.getSelectForNotificationMethods<UserOnCallLogTimeline>(),
+          /*
+           * The method it went by, even when the method is gone since, and
+           * whether it was a test page's: its line is worded by both (#8330).
+           */
+          ...ON_CALL_PAGE_CHANNEL_COLUMNS,
+          userNotificationEventType: true,
         }}
         noItemsMessage={"No notifications sent out so far."}
         showRefreshButton={true}
@@ -79,7 +100,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               onError: ErrorFunction,
             ) => {
               try {
-                setStatusMessage(item["statusMessage"] as string);
+                setStatusNotification(item);
                 setShowViewStatusMessageModal(true);
 
                 onCompleteAction();
@@ -204,7 +225,21 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {showViewStatusMessageModal ? (
         <ConfirmModal
           title={"Status Message"}
-          description={statusMessage}
+          description={
+            <ResultLine
+              statusMessage={statusNotification?.statusMessage || ""}
+              words={
+                statusNotification
+                  ? getOnCallLogNotificationWords(
+                      translator,
+                      statusNotification,
+                    )
+                  : null
+              }
+              className={ON_CALL_LOG_DIALOG_LINE_CLASS_NAME}
+              dataTestId="user-on-call-log-timeline-status-message"
+            />
+          }
           submitButtonText={"Close"}
           onSubmit={async () => {
             setShowViewStatusMessageModal(false);

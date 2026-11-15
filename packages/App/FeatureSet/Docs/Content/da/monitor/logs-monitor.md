@@ -92,6 +92,8 @@ Hver log gemmes med en af syv alvorligheder. For logs fra OpenTelemetry kommer d
 | **Fatal** | 21–24 |
 | **Uspecificeret** | Alt andet |
 
+En log uden alvorlighedsnummer får sin alvorlighed fra sin alvorlighedstekst, uanset store og små bogstaver: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` og `FATAL`, deres nummererede trin som `WARN2` og stavemåder som `warning`, `notice`, `critical` og `emerg`. Al anden tekst efterlader alvorligheden uspecificeret.
+
 ## Sådan evalueres den
 
 - **Hvert minut.** En log-monitor tjekkes ikke af sonder, så den har intet interval at angive og ingen side **Sonder og interval**.

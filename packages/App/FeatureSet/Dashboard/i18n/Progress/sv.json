@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 9029
+    "keys": 53571,
+    "untranslated": 8853
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -61,6 +61,7 @@
     "Container {{id}}",
     "Content Security Policy",
     "CrowdStrike",
+    "Cyan",
     "DE",
     "DES",
     "DHCP",
@@ -134,6 +135,7 @@
     "Incident: {{severity}}",
     "Incident: {{title}}",
     "Index",
+    "Indigo",
     "Info",
     "Information",
     "Integration",

@@ -22,6 +22,11 @@ import { AllResourceIdentityLabelKeys } from "Common/Server/Utils/Monitor/Series
 import BrowserType from "Common/Types/BrowserType";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  EVENT_GRID_VALIDATION_VALID_FOR_MS,
+  SNS_CONFIRMATION_VALID_FOR_MS,
+} from "Common/Utils/Monitor/IncomingRequestSubscriptionConfirmation";
+import { TEXT_BODY_CONTENT_TYPE } from "Common/Server/Middleware/PlainTextJsonBody";
+import {
   CheckOn,
   CriteriaFilter,
   CriteriaFilterUtil as CommonCriteriaFilterUtil,
@@ -162,6 +167,9 @@ const CONNECTION_CARD_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorConnectionCard.tsx";
 const INCOMING_REQUEST_API_FILE: string =
   "App/FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts";
+// The notice a subscription confirmation is offered in (#7723).
+const SUBSCRIPTION_CONFIRMATION_NOTICE_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/Monitor/IncomingRequestMonitor/SubscriptionConfirmationNotice.tsx";
 const HEARTBEAT_JOB_FILE: string =
   "App/FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat.ts";
 const EMAIL_JOB_FILE: string =
@@ -1662,6 +1670,72 @@ describe("Incoming Request Monitor", () => {
       '"Safety cap so a high-cardinality field cannot open unbounded incidents. Defaults to 100."',
     );
     expect(page).toContain("| `100` (default)");
+  });
+
+  /*
+   * https://github.com/OneUptime/oneuptime/issues/7723: the page's table of
+   * the confirmations a monitor offers a button for - its buttons, and how
+   * long each link works - is the summary's (SubscriptionConfirmationNotice)
+   * and the detector's (IncomingRequestSubscriptionConfirmation).
+   */
+  it("names each subscription confirmation's button, and how long its link works, as the summary does", () => {
+    const rows: Array<Array<string>> = tableRows(
+      section(page, "## Subscribing to Amazon SNS or Azure Event Grid"),
+    );
+    const notice: string = readRepoFile(SUBSCRIPTION_CONFIRMATION_NOTICE_FILE);
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return [row[0], row[2], row[3]].join(" | ");
+      }),
+    ).toEqual([
+      "Amazon SNS | **Confirm Subscription** | Two days",
+      "Amazon SNS | **Restore Subscription** | Two days",
+      "Azure Event Grid | **Validate Subscription** | 10 minutes",
+    ]);
+
+    // Each action's button, as the notice draws it.
+    for (const [action, button] of [
+      ["ConfirmSubscription", "Confirm Subscription"],
+      ["RestoreSubscription", "Restore Subscription"],
+      ["ValidateSubscription", "Validate Subscription"],
+    ]) {
+      expect(notice).toMatch(
+        new RegExp(
+          `\\[SubscriptionConfirmationAction\\.${action}\\]: \\{[^}]*button: translationKey\\("${button}"\\)`,
+        ),
+      );
+    }
+
+    expect(SNS_CONFIRMATION_VALID_FOR_MS).toBe(2 * 24 * 60 * 60 * 1000);
+    expect(EVENT_GRID_VALIDATION_VALID_FOR_MS).toBe(10 * 60 * 1000);
+    expect(page).toContain(
+      "`SubscriptionConfirmation`, for a new HTTPS subscription",
+    );
+    expect(page).toContain(
+      "`SubscriptionValidationEvent`, for a new webhook event subscription",
+    );
+  });
+
+  it("reads JSON sent as text/plain, as the page's content type table says", () => {
+    const rows: Array<Array<string>> = tableRows(
+      section(page, "### Sending a request body"),
+    );
+
+    expect(TEXT_BODY_CONTENT_TYPE).toBe("text/plain");
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      "`application/json`",
+      "`application/x-www-form-urlencoded`",
+      `\`${TEXT_BODY_CONTENT_TYPE}\``,
+      "Anything else, or none",
+    ]);
+    expect(readRepoFile(INCOMING_REQUEST_API_FILE)).toContain(
+      "PlainTextJsonBody.getReader(TEXT_BODY_LIMIT)",
+    );
   });
 
   describe("the path syntax, run against the grouping the server does", () => {

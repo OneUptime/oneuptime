@@ -1652,7 +1652,12 @@ describe("execution logs", () => {
     );
   });
 
-  it("stops a run still Scheduled or Started after 5 minutes as Error", () => {
+  /*
+   * A run that did not finish starting is handed to its escalation, which
+   * pages what its start did not (issue #8405); a direct page or a test
+   * page, which has no escalation to walk, is still stopped as Error.
+   */
+  it("hands a run still Scheduled or Started after 5 minutes to its escalation, and stops a direct or test page as Error", () => {
     const timeout: string = readWorkerSource(
       "OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions.ts",
     );
@@ -1660,9 +1665,15 @@ describe("execution logs", () => {
     expect(timeout).toContain("OneUptimeDate.getSomeMinutesAgo(5)");
     expect(timeout).toContain("status: OnCallDutyPolicyStatus.Started,");
     expect(timeout).toContain("status: OnCallDutyPolicyStatus.Scheduled,");
-    expect(timeout).toContain("OnCallDutyPolicyStatus.Error");
+    expect(timeout).toContain(
+      "OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation",
+    );
+    expect(timeout).toContain(
+      "if (!isOnCallDirectPage(run) && !isOnCallTestPage(run)) {",
+    );
+    expect(timeout).toContain("status: OnCallDutyPolicyStatus.Error,");
     expect(statusTable()).toContain(
-      "| **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes is stopped as **Error**. |",
+      "| **Scheduled**, **Started** | The run is being set up. One still here after 5 minutes did not finish starting: it moves on to **Executing** and pages from where its start stopped. A direct page or a test page still here is stopped as **Error**. |",
     );
   });
 

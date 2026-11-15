@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 9043
+    "keys": 53571,
+    "untranslated": 8867
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -59,6 +59,7 @@
     "Container: {{name}}",
     "Content Security Policy",
     "CrowdStrike",
+    "Cyan",
     "DE",
     "DES",
     "DHCP",
@@ -119,6 +120,7 @@
     "INP 190 ms",
     "INP 540 ms",
     "IP",
+    "Indigo",
     "Info",
     "IoT",
     "Israel (+972)",

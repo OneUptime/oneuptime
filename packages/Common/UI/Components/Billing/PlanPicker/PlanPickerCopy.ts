@@ -82,8 +82,15 @@ export const PlanPickerCopy: {
   customPrice: translationKey("Custom Price"),
   comparePlans: translationKey("Compare plans"),
   freeForever: translationKey("Free forever."),
+  /*
+   * In the reader's words, not "active monitors": every monitor but a Manual
+   * one is billed as it is used (MonitorTypeHelper.isBilledAsActiveMonitor),
+   * so the first thing a newcomer does - check a website - needs a card on
+   * Free. The pages before it say no card is needed to sign up or to create
+   * a project, which is true; this is where that stops (#8246).
+   */
   freeUsage: translationKey(
-    "Active monitors and telemetry are pay as you go, and need a payment method.",
+    "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.",
   ),
   paidUsage: translationKey("Active monitors and telemetry are pay as you go."),
   thenBilledYearly: translationKey("Then {{price}} per user, billed yearly."),

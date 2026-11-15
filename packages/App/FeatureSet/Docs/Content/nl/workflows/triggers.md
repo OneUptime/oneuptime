@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Aanvraagheaders**      | Elke header van het verzoek, op naam in kleine letters, zoals `content-type`.                                         |
 | **Request Query Params** | De queryparameters in de URL, op naam.                                                                                |
-| **Verzoeklichaam**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json`, kun je veld voor veld lezen. |
+| **Verzoeklichaam**         | De body die de aanroeper stuurde. Een JSON-body, verstuurd met `Content-Type: application/json`, kun je veld voor veld lezen, net als JSON die als platte tekst wordt verstuurd, zoals Amazon SNS dat doet. |
 
 Lees één veld door de naam ervan aan de verwijzing toe te voegen, zoals in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

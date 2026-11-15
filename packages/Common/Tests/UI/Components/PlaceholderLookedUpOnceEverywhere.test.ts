@@ -7,6 +7,7 @@ import {
   ENGLISH_SAID_TRANSLATED_MESSAGE,
   FLAG_NOT_READ_MESSAGE,
   LOOKED_UP_TWICE_MESSAGE,
+  MENU_LINK_TITLE,
   PlaceholderProblem,
   PlaceholderScanResult,
   PlaceholderSite,
@@ -244,6 +245,8 @@ describe("every placeholder written for such a control", () => {
       ["a form field's placeholder", true, true],
       ["a form field's placeholder", true, true],
       ["a form field's placeholder", true, true],
+      // Its heading, its own keyed words (#8224).
+      ["<Page title>", true, true],
       // Its trail's two crumbs, its own keyed words too (#8075).
       [BREADCRUMB_TITLE, true, true],
       [BREADCRUMB_TITLE, true, true],
@@ -1233,6 +1236,670 @@ describe("the guard's rules, for a page's crumbs and a menu item's description a
         BREADCRUMB_TITLE,
         '"Global Probes"',
         `${ENGLISH_SAID_TRANSLATED_MESSAGE}isTitleTranslated`,
+      ],
+    ]);
+  });
+});
+
+describe("the controls that look up a page's heading, a side menu's titles, a tooltip and a metric card's title (#8224, #8225, #8226, #8355)", () => {
+  test.each([
+    ["Common/UI/Components/Page/Page.tsx", "Page", "title"],
+    // Through the Page it draws, its props handed on whole.
+    ["Common/UI/Components/Page/ModelPage.tsx", "ModelPage", "title"],
+    [
+      "App/FeatureSet/StatusPage/src/Components/Page/Page.tsx",
+      "StatusPagePage",
+      "title",
+    ],
+    [
+      "Common/UI/Components/SideMenu/SideMenuSection.tsx",
+      "SideMenuSection",
+      "title",
+    ],
+    ["Common/UI/Components/SideMenu/SideMenuItem.tsx", "SideMenuItem", "link"],
+    [
+      "Common/UI/Components/SideMenu/SideMenuItem.tsx",
+      "SideMenuItem",
+      "subItemLink",
+    ],
+    // Through the SideMenuItem it draws.
+    [
+      "Common/UI/Components/SideMenu/CountModelSideMenuItem.tsx",
+      "CountModelSideMenuItem",
+      "link",
+    ],
+    ["Common/UI/Components/Tooltip/Tooltip.tsx", "Tooltip", "text"],
+    [
+      "App/FeatureSet/Dashboard/src/Components/Metrics/EmbeddedMetricCard.tsx",
+      "EmbeddedMetricCard",
+      "title",
+    ],
+  ])(
+    "%s's %s looks up its %s",
+    (file: string, component: string, prop: string) => {
+      expect(checkout.isLookedUpBy(file, component, prop)).toBe(true);
+    },
+  );
+});
+
+describe("every page heading, side menu title, tooltip and metric card title written for such a control", () => {
+  const ADMIN: string = "App/FeatureSet/AdminDashboard/";
+  const STATUS_PAGE: string = "App/FeatureSet/StatusPage/";
+  const ENTERPRISE: string = "../ee/";
+  const HEADINGS: Array<string> = ["<Page title>", "<ModelPage title>"];
+
+  const handedIn: (
+    prefix: string,
+    handedTo: Array<string>,
+  ) => Array<PlaceholderSite> = (
+    prefix: string,
+    handedTo: Array<string>,
+  ): Array<PlaceholderSite> => {
+    return checkout.sites.filter((site: PlaceholderSite): boolean => {
+      return site.where.startsWith(prefix) && handedTo.includes(site.handedTo);
+    });
+  };
+
+  // Each site, by its place and how it is written.
+  const states: (
+    sites: Array<PlaceholderSite>,
+  ) => Array<[string, boolean, boolean]> = (
+    sites: Array<PlaceholderSite>,
+  ): Array<[string, boolean, boolean]> => {
+    return sites.map((site: PlaceholderSite): [string, boolean, boolean] => {
+      return [site.where, site.isLookedUp, site.isSaidTranslated];
+    });
+  };
+
+  const allLookedUpAndSaid: (
+    sites: Array<PlaceholderSite>,
+  ) => Array<[string, boolean, boolean]> = (
+    sites: Array<PlaceholderSite>,
+  ): Array<[string, boolean, boolean]> => {
+    return sites.map((site: PlaceholderSite): [string, boolean, boolean] => {
+      return [site.where, true, true];
+    });
+  };
+
+  test("finds the Admin Dashboard's 40 keyed headings, every one said to be translated", () => {
+    const keyed: Array<PlaceholderSite> = handedIn(ADMIN, HEADINGS).filter(
+      (site: PlaceholderSite): boolean => {
+        return site.isLookedUp;
+      },
+    );
+
+    expect(keyed.length).toBeGreaterThanOrEqual(40);
+    expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
+
+    // Settings > Probes' heading, and a user's page.
+    expect(
+      sitesIn(
+        "App/FeatureSet/AdminDashboard/src/Pages/Settings/Probes/Index.tsx",
+      )
+        .filter((site: PlaceholderSite): boolean => {
+          return site.handedTo === "<Page title>";
+        })
+        .map((site: PlaceholderSite) => {
+          return [site.isLookedUp, site.isSaidTranslated];
+        }),
+    ).toEqual([[true, true]]);
+    expect(
+      sitesIn("App/FeatureSet/AdminDashboard/src/Pages/Users/View/Index.tsx")
+        .filter((site: PlaceholderSite): boolean => {
+          return site.handedTo === "<ModelPage title>";
+        })
+        .map((site: PlaceholderSite) => {
+          return [site.isLookedUp, site.isSaidTranslated];
+        }),
+    ).toEqual([[true, true]]);
+  });
+
+  test("finds the status pages' 12 keyed headings, every one said to be translated", () => {
+    const keyed: Array<PlaceholderSite> = handedIn(STATUS_PAGE, HEADINGS);
+
+    expect(keyed.length).toBeGreaterThanOrEqual(12);
+    expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
+  });
+
+  test("reads the Enterprise pages beside the packages: their keyed headings, crumbs and menu entries, said translated", () => {
+    const keyed: Array<PlaceholderSite> = [
+      ...handedIn(ENTERPRISE, HEADINGS),
+      ...handedIn(ENTERPRISE, [BREADCRUMB_TITLE]),
+      ...handedIn(ENTERPRISE, [MENU_LINK_TITLE]),
+    ].filter((site: PlaceholderSite): boolean => {
+      return site.isLookedUp;
+    });
+
+    expect(handedIn(ENTERPRISE, HEADINGS).length).toBeGreaterThanOrEqual(8);
+    expect(
+      handedIn(ENTERPRISE, [BREADCRUMB_TITLE]).length,
+    ).toBeGreaterThanOrEqual(19);
+    expect(
+      handedIn(ENTERPRISE, [MENU_LINK_TITLE]).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
+  });
+
+  test("finds the Admin Dashboard's and the status page's keyed side menus, every title said to be translated", () => {
+    const keyed: Array<PlaceholderSite> = [
+      ...handedIn(ADMIN, [MENU_LINK_TITLE]),
+      ...handedIn(ADMIN, ["<SideMenuSection title>"]),
+    ].filter((site: PlaceholderSite): boolean => {
+      return site.isLookedUp;
+    });
+
+    expect(
+      handedIn(ADMIN, [MENU_LINK_TITLE]).filter(
+        (site: PlaceholderSite): boolean => {
+          return site.isLookedUp;
+        },
+      ).length,
+    ).toBeGreaterThanOrEqual(27);
+    expect(
+      handedIn(ADMIN, ["<SideMenuSection title>"]).length,
+    ).toBeGreaterThanOrEqual(16);
+    expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
+
+    // Settings' menu: its 13 entries. The Subscribe menu: its five.
+    expect(
+      sitesIn(
+        "App/FeatureSet/AdminDashboard/src/Pages/Settings/SideMenu.tsx",
+      ).filter((site: PlaceholderSite): boolean => {
+        return site.handedTo === MENU_LINK_TITLE && site.isSaidTranslated;
+      }).length,
+    ).toBe(13);
+    expect(
+      sitesIn("App/FeatureSet/StatusPage/src/Pages/Subscribe/SideMenu.tsx").map(
+        (site: PlaceholderSite) => {
+          return [site.handedTo, site.isLookedUp, site.isSaidTranslated];
+        },
+      ),
+    ).toEqual([
+      [MENU_LINK_TITLE, true, true],
+      [MENU_LINK_TITLE, true, true],
+      [MENU_LINK_TITLE, true, true],
+      [MENU_LINK_TITLE, true, true],
+      [MENU_LINK_TITLE, true, true],
+    ]);
+  });
+
+  test("finds every tooltip's text: a hundred, the 26 worded where they are written said translated, Button's own among them", () => {
+    const tooltips: Array<PlaceholderSite> = checkout.sites.filter(
+      (site: PlaceholderSite): boolean => {
+        return site.handedTo === "<Tooltip text>";
+      },
+    );
+
+    expect(tooltips.length).toBeGreaterThanOrEqual(100);
+    expect(
+      tooltips.filter((site: PlaceholderSite): boolean => {
+        return site.isLookedUp && site.isSaidTranslated;
+      }).length,
+    ).toBeGreaterThanOrEqual(26);
+    expect(
+      sitesIn("Common/UI/Components/Button/Button.tsx")
+        .filter((site: PlaceholderSite): boolean => {
+          return site.handedTo === "<Tooltip text>";
+        })
+        .map((site: PlaceholderSite) => {
+          return [site.isLookedUp, site.isSaidTranslated];
+        }),
+    ).toEqual([
+      [true, true],
+      [true, true],
+    ]);
+  });
+
+  test("finds the metric cards a page words: the Docker and Podman containers' titles, said translated", () => {
+    for (const engine of ["Docker", "Podman"]) {
+      expect(
+        sitesIn(
+          `App/FeatureSet/Dashboard/src/Pages/${engine}/View/ContainerDetail.tsx`,
+        )
+          .filter((site: PlaceholderSite): boolean => {
+            return site.handedTo === "<EmbeddedMetricCard title>";
+          })
+          .map((site: PlaceholderSite) => {
+            return [site.isLookedUp, site.isSaidTranslated];
+          }),
+      ).toEqual([[true, true]]);
+    }
+
+    // The resource pages' English section titles are read too.
+    expect(
+      checkout.sites.filter((site: PlaceholderSite): boolean => {
+        return (
+          site.handedTo === "<EmbeddedMetricCard title>" &&
+          !site.isLookedUp &&
+          !site.isSaidTranslated
+        );
+      }).length,
+    ).toBeGreaterThanOrEqual(30);
+  });
+});
+
+/*
+ * The rules, on pages written for them: a Page that looks its title up
+ * unless told it is translated, a ModelPage and a status page's Page that
+ * hand their props on whole to it, a side menu item that looks its links
+ * up, a menu's sections typed SideMenuSectionProps, a Tooltip, and an
+ * Enterprise page beside the packages.
+ */
+describe("the guard's rules, for a page's heading, a side menu's titles and a tooltip (#8224, #8225, #8226)", () => {
+  let root: string;
+  let fixture: PlaceholderScanResult;
+
+  const COMPONENTS: string = path.join("Common", "UI", "Components");
+
+  const PAGE: string = path.join(
+    "App",
+    "FeatureSet",
+    "AdminDashboard",
+    "src",
+    "Pages",
+    "Headings.tsx",
+  );
+
+  // Beside the packages folder, read from it as ../ee.
+  const ENTERPRISE_PAGE: string = path.join(
+    "ee",
+    "AdminDashboard",
+    "Licence.tsx",
+  );
+
+  // Each text on a line of its own.
+  const PAGE_LINES: Array<string> = [
+    'import React from "react";',
+    'import Page from "Common/UI/Components/Page/Page";',
+    'import ModelPage from "Common/UI/Components/Page/ModelPage";',
+    'import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";',
+    'import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";',
+    'import { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";',
+    'import Tooltip from "Common/UI/Components/Tooltip/Tooltip";',
+    'import Card from "Common/UI/Components/Card/Card";',
+    'import StatusPagePage from "../../../StatusPage/src/Components/Page/Page";',
+    "const Headings = (props) => {",
+    "  const { t } = useTranslation();",
+    "  const sections: Array<SideMenuSectionProps> = [",
+    "    {",
+    '      title: t("sideMenu.basic"),',
+    "      items: [",
+    '        { link: { title: t("sideMenu.users"), to: home } },',
+    '        { link: { title: t("sideMenu.teams"), isTitleTranslated: true, to: home } },',
+    '        { link: { title: "Probes", to: home } },',
+    "      ],",
+    "    },",
+    '    { title: t("sideMenu.advanced"), isTitleTranslated: true, items: [] },',
+    "  ];",
+    "  const steps = [",
+    '    { link: { title: t("steps.openMonitors"), route: home } },',
+    "  ];",
+    "  return (",
+    "    <>",
+    '      <Page title={t("pages.settings.title")}>',
+    "        <div />",
+    "      </Page>",
+    '      <Page title={t("pages.users.title")} isTitleTranslated={true}>',
+    "        <div />",
+    "      </Page>",
+    '      <Page title="Settings" isTitleTranslated={true}>',
+    "        <div />",
+    "      </Page>",
+    '      <Page title="Projects">',
+    "        <div />",
+    "      </Page>",
+    '      <ModelPage title={t("pages.userView.title")}>',
+    "        <div />",
+    "      </ModelPage>",
+    '      <ModelPage title={t("pages.projectView.title")} isTitleTranslated={true}>',
+    "        <div />",
+    "      </ModelPage>",
+    '      <StatusPagePage title={t("incidents.title")}>',
+    "        <div />",
+    "      </StatusPagePage>",
+    '      <SideMenuSection title={t("sideMenu.billing")}>',
+    "        <SideMenuItem",
+    '          link={{ title: t("sideMenu.overview"), to: home }}',
+    "        />",
+    "        <SideMenuItem",
+    '          link={{ title: t("sideMenu.sso"), isTitleTranslated: true, to: home }}',
+    '          subItemLink={{ title: t("sideMenu.ssoProviders"), to: home }}',
+    "        />",
+    "        <SideMenuItem",
+    "          link={{ title: props.userEmail, isRecordName: true, to: home }}",
+    "        />",
+    "        <SideMenuItem",
+    '          link={{ title: "Overview", to: home }}',
+    "        />",
+    "        <SideMenuItem",
+    '          link={{ title: "Delete", isTitleTranslated: true, to: home }}',
+    "        />",
+    "      </SideMenuSection>",
+    '      <SideMenuSection title={t("sideMenu.members")} isTitleTranslated={true}>',
+    '        <Card link={{ title: t("card.notAMenuLink") }} />',
+    "      </SideMenuSection>",
+    '      <Tooltip text={t("tooltips.copy")}>',
+    "        <span />",
+    "      </Tooltip>",
+    '      <Tooltip text={t("tooltips.paste")} isTextTranslated={true}>',
+    "        <span />",
+    "      </Tooltip>",
+    '      <Tooltip text="Copy">',
+    "        <span />",
+    "      </Tooltip>",
+    "    </>",
+    "  );",
+    "};",
+    "export default Headings;",
+  ];
+
+  const ENTERPRISE_LINES: Array<string> = [
+    'import React from "react";',
+    'import Page from "Common/UI/Components/Page/Page";',
+    "const Licence = () => {",
+    "  const { t } = useTranslation();",
+    "  return (",
+    '    <Page title={t("pages.settings.title")}',
+    "      breadcrumbLinks={[",
+    '        { title: t("breadcrumbs.settings"), to: home },',
+    "      ]}",
+    "    >",
+    "      <div />",
+    "    </Page>",
+    "  );",
+    "};",
+    "export default Licence;",
+  ];
+
+  const at: (code: string) => string = (code: string): string => {
+    return placeOf(PAGE, PAGE_LINES, code);
+  };
+
+  const inEnterprise: (code: string) => string = (code: string): string => {
+    return placeOf(path.join("..", ENTERPRISE_PAGE), ENTERPRISE_LINES, code);
+  };
+
+  beforeAll(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "heading-lookup-scan-"));
+
+    const packages: string = path.join(root, "packages");
+
+    writeFixture(packages, path.join("Common", "Types", "Link.ts"), [
+      "export default interface Link {",
+      "  title: string;",
+      "  isTitleTranslated?: boolean | undefined;",
+      "  isRecordName?: boolean | undefined;",
+      "}",
+    ]);
+
+    writeFixture(packages, path.join(COMPONENTS, "Page", "Page.tsx"), [
+      'import React from "react";',
+      "const Page = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  const title = props.isTitleTranslated",
+      "    ? props.title",
+      "    : translateString(props.title);",
+      "  return <h1>{title}</h1>;",
+      "};",
+      "export default Page;",
+    ]);
+
+    writeFixture(packages, path.join(COMPONENTS, "Page", "ModelPage.tsx"), [
+      'import React from "react";',
+      'import Page from "./Page";',
+      "const ModelPage = (props) => {",
+      '  return <Page {...props} className="record" />;',
+      "};",
+      "export default ModelPage;",
+    ]);
+
+    writeFixture(
+      packages,
+      path.join(
+        "App",
+        "FeatureSet",
+        "StatusPage",
+        "src",
+        "Components",
+        "Page",
+        "Page.tsx",
+      ),
+      [
+        'import React from "react";',
+        'import Page from "Common/UI/Components/Page/Page";',
+        "const StatusPagePage = (props) => {",
+        '  return <Page {...props} className="w-full" />;',
+        "};",
+        "export default StatusPagePage;",
+      ],
+    );
+
+    writeFixture(
+      packages,
+      path.join(COMPONENTS, "SideMenu", "SideMenuSection.tsx"),
+      [
+        'import React from "react";',
+        "const SideMenuSection = (props) => {",
+        "  const { translateString } = useTranslateValue();",
+        "  return (",
+        "    <h6>",
+        "      {props.isTitleTranslated ? props.title : translateString(props.title)}",
+        "    </h6>",
+        "  );",
+        "};",
+        "export default SideMenuSection;",
+      ],
+    );
+
+    writeFixture(
+      packages,
+      path.join(COMPONENTS, "SideMenu", "SideMenuItem.tsx"),
+      [
+        'import React from "react";',
+        'import Link from "../../../Types/Link";',
+        "const SideMenuItem = (props) => {",
+        "  const { translateString } = useTranslateValue();",
+        "  return (",
+        "    <a>",
+        "      {getCrumbTitle(props.link, translateString)}",
+        "      {props.subItemLink ? getCrumbTitle(props.subItemLink, translateString) : null}",
+        "    </a>",
+        "  );",
+        "};",
+        "export default SideMenuItem;",
+      ],
+    );
+
+    writeFixture(packages, path.join(COMPONENTS, "SideMenu", "SideMenu.tsx"), [
+      'import React from "react";',
+      'import Link from "../../../Types/Link";',
+      "export interface SideMenuItemProps {",
+      "  link: Link;",
+      "  subItemLink?: Link | undefined;",
+      "}",
+      "export interface SideMenuSectionProps {",
+      "  title: string;",
+      "  isTitleTranslated?: boolean | undefined;",
+      "  items: Array<SideMenuItemProps>;",
+      "}",
+    ]);
+
+    writeFixture(packages, path.join(COMPONENTS, "Tooltip", "Tooltip.tsx"), [
+      'import React from "react";',
+      "const Tooltip = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  return (",
+      "    <span>",
+      "      {props.isTextTranslated ? props.text : translateString(props.text)}",
+      "    </span>",
+      "  );",
+      "};",
+      "export default Tooltip;",
+    ]);
+
+    // Draws a link of its own as given: no menu.
+    writeFixture(packages, path.join(COMPONENTS, "Card", "Card.tsx"), [
+      'import React from "react";',
+      "const Card = (props) => {",
+      "  return <a>{props.link.title}</a>;",
+      "};",
+      "export default Card;",
+    ]);
+
+    writeFixture(packages, PAGE, PAGE_LINES);
+    writeFixture(root, ENTERPRISE_PAGE, ENTERPRISE_LINES);
+
+    fixture = scanPlaceholders(packages);
+  });
+
+  afterAll(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const where: (handedTo: string) => Array<string> = (
+    handedTo: string,
+  ): Array<string> => {
+    return fixture.sites
+      .filter((site: PlaceholderSite): boolean => {
+        return site.handedTo === handedTo;
+      })
+      .map((site: PlaceholderSite): string => {
+        return site.where;
+      });
+  };
+
+  test("holds a heading through the components that hand it on whole, and an Enterprise page's, read from beside the packages", () => {
+    expect(where("<Page title>")).toEqual([
+      inEnterprise('"pages.settings.title"'),
+      at('"pages.settings.title"'),
+      at('"pages.users.title"'),
+      at('<Page title="Settings"'),
+      at('<Page title="Projects">'),
+    ]);
+    expect(where("<ModelPage title>")).toEqual([
+      at('"pages.userView.title"'),
+      at('"pages.projectView.title"'),
+    ]);
+    expect(where("<StatusPagePage title>")).toEqual([at('"incidents.title"')]);
+    expect(where("<SideMenuSection title>")).toEqual([
+      at('"sideMenu.billing"'),
+      at('"sideMenu.members"'),
+    ]);
+    expect(where("<Tooltip text>")).toEqual([
+      at('"tooltips.copy"'),
+      at('"tooltips.paste"'),
+      at('<Tooltip text="Copy">'),
+    ]);
+  });
+
+  test("holds a menu link written for an item that looks it up, or through its entry's type, and no other link", () => {
+    expect(where(MENU_LINK_TITLE)).toEqual([
+      at('"sideMenu.users"'),
+      at('"sideMenu.teams"'),
+      at('{ link: { title: "Probes", to: home } },'),
+      at('"sideMenu.overview"'),
+      at('"sideMenu.sso"'),
+      at('"sideMenu.ssoProviders"'),
+      at('link={{ title: "Overview", to: home }}'),
+      at('"Delete"'),
+    ]);
+    // A record's name; a link no menu draws (a step's, a card's).
+    expect(where(MENU_LINK_TITLE)).not.toContain(at("props.userEmail"));
+    expect(where(MENU_LINK_TITLE)).not.toContain(at('"steps.openMonitors"'));
+    expect(where(MENU_LINK_TITLE)).not.toContain(at('"card.notAMenuLink"'));
+    // A menu's sections, by the type they are written as.
+    expect(where("a SideMenuSectionProps's title")).toEqual([
+      at('"sideMenu.basic"'),
+      at('"sideMenu.advanced"'),
+    ]);
+  });
+
+  test("fails on each heading, menu title and tooltip looked up twice or English said to be translated, and on nothing else", () => {
+    expect(
+      fixture.problems.map((problem: PlaceholderProblem) => {
+        return [problem.where, problem.handedTo, problem.code, problem.message];
+      }),
+    ).toEqual([
+      [
+        inEnterprise('"pages.settings.title"'),
+        "<Page title>",
+        '{t("pages.settings.title")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        inEnterprise('"breadcrumbs.settings"'),
+        BREADCRUMB_TITLE,
+        't("breadcrumbs.settings")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      // A menu's sections and their links, by their types.
+      [
+        at('"sideMenu.basic"'),
+        "a SideMenuSectionProps's title",
+        't("sideMenu.basic")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"sideMenu.users"'),
+        MENU_LINK_TITLE,
+        't("sideMenu.users")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"pages.settings.title"'),
+        "<Page title>",
+        '{t("pages.settings.title")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('<Page title="Settings"'),
+        "<Page title>",
+        '"Settings"',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isTitleTranslated`,
+      ],
+      // Through the Page it hands its props on to.
+      [
+        at('"pages.userView.title"'),
+        "<ModelPage title>",
+        '{t("pages.userView.title")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"incidents.title"'),
+        "<StatusPagePage title>",
+        '{t("incidents.title")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"sideMenu.billing"'),
+        "<SideMenuSection title>",
+        '{t("sideMenu.billing")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"sideMenu.overview"'),
+        MENU_LINK_TITLE,
+        't("sideMenu.overview")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      // The sub-item's link is its own: the item's flag says nothing of it.
+      [
+        at('"sideMenu.ssoProviders"'),
+        MENU_LINK_TITLE,
+        't("sideMenu.ssoProviders")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"Delete"'),
+        MENU_LINK_TITLE,
+        '"Delete"',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"tooltips.copy"'),
+        "<Tooltip text>",
+        '{t("tooltips.copy")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isTextTranslated`,
       ],
     ]);
   });
