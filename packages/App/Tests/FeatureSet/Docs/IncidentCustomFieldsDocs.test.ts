@@ -33,7 +33,7 @@ import {
   INCIDENT_NOTE_TEMPLATE_VARIABLES,
   IncidentNoteTemplateVariableInfo,
 } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
-import { drawnActionLabel } from "./DocsDashboardLabels";
+import { drawnActionLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1045,22 +1045,54 @@ describe("incident custom fields docs", () => {
       expect(INCIDENT_EVENT_TYPES).toHaveLength(5);
     });
 
+    /*
+     * Each event type under the name its language's template form draws it
+     * by (the Persian page names them in Persian, as the Persian Dashboard
+     * does), so a bold name that is any event type's counts, and exactly the
+     * incident ones must be there.
+     */
     test.each(LANGUAGES)(
-      "%s: names exactly the event types that offer the incident variables",
+      "%s: names exactly the event types that offer the incident variables, as its Dashboard draws them",
       (language: string) => {
         const section: string = sectionOf(
           readPage(SUBSCRIBERS_PAGE, language),
           INCIDENT_VARIABLES_SUBSECTION[language] as string,
         );
-        const named: Array<string> = Array.from(boldText(section)).filter(
-          (name: string): boolean => {
-            return name.startsWith("Subscriber ");
-          },
+        const eventTypeByDrawnName: Map<
+          string,
+          StatusPageSubscriberNotificationEventType
+        > = new Map(
+          Object.values(StatusPageSubscriberNotificationEventType).map(
+            (
+              eventType: StatusPageSubscriberNotificationEventType,
+            ): [string, StatusPageSubscriberNotificationEventType] => {
+              return [drawnDashboardLabel(language, eventType), eventType];
+            },
+          ),
         );
+        const named: Array<StatusPageSubscriberNotificationEventType> =
+          Array.from(boldText(section))
+            .filter((name: string): boolean => {
+              return eventTypeByDrawnName.has(name);
+            })
+            .map((name: string): StatusPageSubscriberNotificationEventType => {
+              return eventTypeByDrawnName.get(name)!;
+            });
 
         expect(named.sort()).toEqual([...INCIDENT_EVENT_TYPES].sort());
       },
     );
+
+    test("the Persian Dashboard draws every incident event type in its own words", () => {
+      for (const eventType of INCIDENT_EVENT_TYPES) {
+        const drawn: string = drawnDashboardLabel("fa", eventType);
+
+        expect({ eventType, translated: drawn !== eventType }).toEqual({
+          eventType,
+          translated: true,
+        });
+      }
+    });
 
     test.each(LANGUAGES)(
       "%s: lists the variables those event types offer on top of the others",
