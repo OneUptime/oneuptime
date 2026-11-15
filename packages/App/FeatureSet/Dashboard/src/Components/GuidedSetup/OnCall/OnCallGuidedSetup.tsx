@@ -10,7 +10,6 @@ import {
   DEFAULT_REPEAT_TIMES,
   EMAIL_METHOD_TYPE,
   NoAnswerChoice,
-  ON_CALL_POLICY_NAME,
   ON_CALL_SETUP,
   ON_CALL_SETUP_COPY,
   ON_CALL_SETUP_GUIDE_DOCS_PATH,
@@ -138,6 +137,7 @@ import { useServerSendingStatus } from "Common/UI/Utils/ServerSending";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getFirstOnCallPolicyName } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -1175,6 +1175,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           userIds: userIds,
           teamIds: teamIds,
           addRules: latest.mayAddRules,
+          translator: translator,
         });
         saveRun({ [OnCallRunValue.PolicyId]: policyId });
       }
@@ -1241,6 +1242,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             policyName: policy.name,
             incident: stillMissing.incident,
             alert: stillMissing.alert,
+            translator: translator,
           });
         }
 
@@ -1488,7 +1490,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             {isExistingMode
               ? translator.translateText(ON_CALL_SETUP_COPY.whoExistingHelp)
               : translator.translateTemplate(ON_CALL_SETUP_COPY.whoCreateHelp, {
-                  policy: ON_CALL_POLICY_NAME,
+                  policy: getFirstOnCallPolicyName(translator),
                 })}
           </p>
         </div>
