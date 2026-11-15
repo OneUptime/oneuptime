@@ -67,7 +67,7 @@ La fila aparece ahora como **Verificado**. ¿Cerraste el diálogo demasiado pron
 :::
 
 - Un código vale 15 minutos. Cinco intentos fallidos lo anulan, y necesitas uno nuevo.
-- **Send a new code**, o **Call me with a new code** para un número de llamadas, está en el diálogo. Puedes pedir uno un minuto después del anterior.
+- **Enviar un código nuevo**, o **Llamarme con un código nuevo** para un número de llamadas, está en el diálogo. Puedes pedir uno un minuto después del anterior.
 - Un número que verificaste para SMS también queda verificado para llamadas. Añadirlo en **Números de teléfono para notificaciones por llamada** no necesita código, y verificar un número para SMS también verifica el número para llamadas que añadiste para él.
 - Tu correo de inicio de sesión ya está ahí, verificado, desde el día en que te uniste al proyecto.
 
@@ -186,7 +186,7 @@ Ese canal está desactivado en este proyecto. La tarjeta dice quién puede activ
 :::
 
 :::details El código nunca llegó
-Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Send a new code** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje.
+Los correos pueden tardar unos minutos, y a veces acaban en spam; los SMS pueden tardar un minuto. Espera un minuto y luego haz clic en **Enviar un código nuevo** en el diálogo. **Ajustes del proyecto → Notificaciones → Registros de notificación** muestra qué pasó con el mensaje.
 :::
 
 :::details Falla al añadir mi cuenta de Slack
