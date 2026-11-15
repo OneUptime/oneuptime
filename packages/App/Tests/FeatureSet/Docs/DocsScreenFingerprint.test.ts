@@ -221,6 +221,16 @@ describe("the staleness issue", () => {
     );
   });
 
+  it("says the workflow, and every release run, fail until the shots are drawn again (#7510)", () => {
+    expect(body).toContain(
+      "Until then the workflow fails, and so does every release run, which waits for it before it publishes anything (#7510).",
+    );
+    // Before where the run was, which stays the last line.
+    expect(body.indexOf("Until then the workflow fails")).toBeLessThan(
+      body.indexOf("Last checked:"),
+    );
+  });
+
   it("says one shot in the singular, and leaves out what it has nothing to say about", () => {
     const one: string = staleIssueBody({
       checked: 19,
