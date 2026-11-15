@@ -203,6 +203,18 @@ const NOT_SESSIONS: Array<NotASession> = [
       });
     },
   },
+  // Which session a browser holds on a status page, for that page's sign-out only (issue #8671).
+  {
+    name: "a status page's sign-out cookie",
+    token: (): string => {
+      return JSONWebToken.signStatusPageSessionSignOutToken({
+        statusPageId: ObjectID.generate(),
+        userId: USER_ID,
+        sessionId: ObjectID.generate(),
+        expiresInSeconds: THIRTY_DAYS_IN_SECONDS,
+      });
+    },
+  },
   {
     name: "a master admin's session claims, saying it is a browser's sign-out cookie",
     token: (): string => {

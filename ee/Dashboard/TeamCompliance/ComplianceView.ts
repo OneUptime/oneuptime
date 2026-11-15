@@ -639,17 +639,14 @@ export const getRulePassRateText: (
     };
   }
 
-  const values: { passing: string } = {
-    passing: translator.formatNumber(rate.passing),
-  };
-
+  // Both counts in the reader's digits: {{count}} by translatePlural.
   return {
-    text: translator.translatePlural(MEMBERS_MEET_IT, rate.total, values),
-    label: translator.translatePlural(
-      MEMBERS_MEET_THIS_RULE,
-      rate.total,
-      values,
-    ),
+    text: translator.translatePlural(MEMBERS_MEET_IT, rate.total, {
+      passing: translator.formatNumber(rate.passing),
+    }),
+    label: translator.translatePlural(MEMBERS_MEET_THIS_RULE, rate.total, {
+      passing: translator.formatNumber(rate.passing),
+    }),
   };
 };
 

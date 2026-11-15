@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 2396
+    "keys": 55650,
+    "untranslated": 2387
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -236,6 +236,8 @@
     "First Contentful Paint",
     "Fivetran",
     "Flags",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Flavors",
     "Flows",
@@ -326,6 +328,7 @@
     "Journeys",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kiribati",

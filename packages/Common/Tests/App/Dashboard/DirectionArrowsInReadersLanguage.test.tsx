@@ -125,6 +125,8 @@ import {
   MeasurementValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Measurement/MeasurementSetup";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import { formatBreadcrumbOffset } from "../../../../App/FeatureSet/Dashboard/src/Utils/BreadcrumbTimelinePresentation";
+import { createTranslator, Translator } from "../../../Types/Translator";
 import IconProp from "../../../Types/Icon/IconProp";
 import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 
@@ -540,13 +542,36 @@ describe("a folded breadcrumb's first and last time", () => {
     return lineOf(within(rows[0]!).getByTestId("breadcrumb-time"));
   };
 
+  /*
+   * A query's time as the breadcrumb writes it in the language: the
+   * reader's figure, sign and unit, held together by a no-break space
+   * (-410 ms in English, Persian digits and words in Persian; #7418, #8541).
+   */
+  const offsetIn: (language: string, offsetMs: number) => string = (
+    language: string,
+    offsetMs: number,
+  ): string => {
+    const translator: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return locales[language]![text];
+      },
+      language,
+    );
+
+    return formatBreadcrumbOffset(
+      new Date(EXCEPTION_TIME.getTime() + offsetMs),
+      EXCEPTION_TIME,
+      translator,
+    ) as string;
+  };
+
   test.each(LANGUAGES)(
     "%s: from the first query's time to the last one's",
     (language: string) => {
       expectToLeadFromFirstToSecond({
         line: drawFoldedTimes(language),
-        first: "-410 ms",
-        second: "-380 ms",
+        first: offsetIn(language, -410),
+        second: offsetIn(language, -380),
         language,
       });
     },

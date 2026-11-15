@@ -331,7 +331,13 @@ describe("Policy at a glance on the policy's Overview", () => {
       acknowledgementTimeoutInMinutes: 30,
     });
 
-    expect(narrative.textContent!.trim().endsWith(SENTENCE_30)).toBe(true);
+    // Read as toHaveTextContent reads it: 30 min is held by a no-break space.
+    expect(
+      narrative
+        .textContent!.replace(/\u00A0/g, " ")
+        .trim()
+        .endsWith(SENTENCE_30),
+    ).toBe(true);
     // One sentence after another, never run together.
     expect(narrative.textContent).toContain(
       "escalation stops. If it is acknowledged",

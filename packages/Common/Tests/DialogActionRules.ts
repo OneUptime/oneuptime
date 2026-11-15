@@ -381,6 +381,9 @@ const TRANSLATION_FUNCTIONS: ReadonlySet<string> = new Set<string>([
   "translate",
   "translateString",
   "translateValue",
+  // A Translator's: its first argument is the English (#8636 titles dialogs so).
+  "translateText",
+  "translateTemplate",
 ]);
 
 /*

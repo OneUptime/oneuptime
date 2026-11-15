@@ -12,6 +12,7 @@ import {
   getStorageArraySetupGuide,
   resolveStorageArrayPlatform,
 } from "../../Pages/StorageArray/Utils/DocumentationMarkdown";
+import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../Pages/StorageArray/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -50,6 +51,7 @@ const StorageArrayDocumentationCard: FunctionComponent<ComponentProps> = (
           arrayName: props.arrayName,
         });
       }}
+      translations={STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

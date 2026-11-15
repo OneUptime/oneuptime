@@ -489,3 +489,21 @@ export function getCephMetricByMetricName(
 export function getAllCephMetricCategories(): Array<CephMetricCategory> {
   return ["Cluster Health", "OSD", "Pool", "PG"];
 }
+
+/*
+ * Each group's heading in the metric picker, a key: a category is the value
+ * the catalog's metrics name, so the picker looks its heading up here, once
+ * (#8653).
+ */
+const categoryLabels: Record<CephMetricCategory, string> = {
+  "Cluster Health": translationKey("Cluster Health"),
+  OSD: translationKey("OSD"),
+  Pool: translationKey("Pool"),
+  PG: translationKey("PG"),
+};
+
+export function getCephMetricCategoryLabel(
+  category: CephMetricCategory,
+): string {
+  return categoryLabels[category] || category;
+}
