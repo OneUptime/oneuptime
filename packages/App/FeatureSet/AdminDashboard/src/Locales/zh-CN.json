@@ -3914,5 +3914,21 @@
   "The logo for light backgrounds is used.": "使用浅色背景用徽标。",
   "Dark mode will use the logo for light backgrounds.": "深色模式将使用浅色背景用徽标。",
   "OneUptime's icon is shown.": "显示 OneUptime 的图标。",
-  "Browser tabs will show OneUptime's icon again.": "浏览器标签页将再次显示 OneUptime 的图标。"
+  "Browser tabs will show OneUptime's icon again.": "浏览器标签页将再次显示 OneUptime 的图标。",
+  "{{value}} ms": "{{value}} 毫秒",
+  "{{count}}y": "{{count}}年",
+  "{{count}}mo": "{{count}}个月",
+  "{{count}}d": "{{count}}天",
+  "{{count}}h": "{{count}}小时",
+  "{{count}}m": "{{count}}分",
+  "{{count}}s": "{{count}}秒",
+  "{{count}}y ago": "{{count}} 年前",
+  "{{count}}mo ago": "{{count}} 个月前",
+  "{{count}}d ago": "{{count}} 天前",
+  "{{count}}h ago": "{{count}} 小时前",
+  "{{count}}m ago": "{{count}} 分钟前",
+  "{{count}}s ago": "{{count}} 秒前",
+  "{{minutes}}m {{seconds}}s": "{{minutes}}分 {{seconds}}秒",
+  "{{hours}}h {{minutes}}m": "{{hours}}小时 {{minutes}}分",
+  "{{days}}d {{hours}}h": "{{days}}天 {{hours}}小时"
 }

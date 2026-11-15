@@ -54079,7 +54079,7 @@
   "Show only resources from the selected clusters": "فقط منابع خوشه‌های انتخاب‌شده نمایش داده شوند",
   "Show only resources from the selected storage arrays": "فقط منابع آرایه‌های ذخیره‌سازی انتخاب‌شده نمایش داده شوند",
   "Show only resources from the selected vCenters": "فقط منابع vCenterهای انتخاب‌شده نمایش داده شوند",
-  "Show only the number. The unit is abbreviated automatically (\"Celsius\" reads as \"°C\") and dropped on its own when the widget is too narrow for it, so this is only needed when the title already says what the unit is.": "فقط عدد نمایش داده شود. واحد خودکار کوتاه می‌شود («Celsius» به «°C») و وقتی ویجت زیادی باریک باشد خودش حذف می‌شود؛ پس فقط وقتی لازم است که عنوان خودش واحد را بگوید.",
+  "Show only the number. The unit is abbreviated automatically (\"Celsius\" reads as \"°C\") and dropped on its own when the widget is too narrow for it, so this is only needed when the title already says what the unit is.": "فقط عدد نمایش داده شود. واحد خودکار کوتاه می‌شود («سلسیوس» به «°C») و وقتی ویجت زیادی باریک باشد خودش حذف می‌شود؛ پس فقط وقتی لازم است که عنوان خودش واحد را بگوید.",
   "Show only traces with this status": "فقط ترِیس‌هایی با این وضعیت نمایش داده شوند",
   "Show only volumes from the selected hosts": "فقط حجم‌های میزبان‌های انتخاب‌شده نمایش داده شوند",
   "Show the day and date under the time — worth keeping on when the time zone is a day ahead or behind.": "روز و تاریخ زیر ساعت نمایش داده شود؛ وقتی منطقه زمانی یک روز جلوتر یا عقب‌تر است بهتر است روشن بماند.",
