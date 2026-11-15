@@ -53492,6 +53492,10 @@
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
   "The whole {{name}}": "{{name}} i sin helhet",
   "Backfill Cursor ID": "Backfill Cursor ID",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime avviste det, øk proxyens grense for størrelsen på en forespørsel til 50 MB, like mye som OneUptime selv tar imot (i nginx, client_max_body_size 50M).",
   "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes.": "Satt til å samles inn av {{probe}} fra {{address}} med {{count}} minutters intervall.",
-  "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes._one": "Satt til å samles inn av {{probe}} fra {{address}} med {{count}} minutts intervall."
+  "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes._one": "Satt til å samles inn av {{probe}} fra {{address}} med {{count}} minutts intervall.",
+  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det."
 }

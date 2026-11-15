@@ -92,6 +92,8 @@ Jedes Log wird mit einem von sieben Schweregraden gespeichert. Bei OpenTelemetry
 | **Fatal** | 21–24 |
 | **Nicht angegeben** | Alles andere |
 
+Ein Log ohne Schweregradnummer erhält seinen Schweregrad aus seinem Schweregradtext, unabhängig von Groß- und Kleinschreibung: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` und `FATAL`, ihre nummerierten Stufen wie `WARN2` und Schreibweisen wie `warning`, `notice`, `critical` und `emerg`. Jeder andere Text lässt den Schweregrad unbestimmt.
+
 ## Wie er ausgewertet wird
 
 - **Jede Minute.** Ein Logs-Monitor wird nicht von Sonden geprüft, deshalb hat er kein Intervall zum Einstellen und keine Seite **Sonden & Intervall**.

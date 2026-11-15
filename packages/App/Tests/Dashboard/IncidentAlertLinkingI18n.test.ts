@@ -753,9 +753,13 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "ErrorMessage", "ErrorMessage.tsx"],
         "<ErrorMessageText message={props.message}",
       ],
+      /*
+       * It says a message the way ErrorLine and ErrorInSentence do: looked
+       * up, and a refusal with a value said around its value (#8280).
+       */
       [
         ["UI", "Components", "ErrorMessage", "ErrorMessageText.tsx"],
-        "translateValue(props.message)",
+        "sayErrorMessage(props.message, translator)",
       ],
       [
         ["UI", "Components", "Alerts", "Alert.tsx"],

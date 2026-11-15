@@ -53492,6 +53492,10 @@
   "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
   "The whole {{name}}": "The whole {{name}}",
   "Backfill Cursor ID": "Backfill Cursor ID",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).",
   "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes.": "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes.",
-  "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes._one": "Set to be collected by {{probe}} from {{address}}, every {{count}} minute."
+  "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes._one": "Set to be collected by {{probe}} from {{address}}, every {{count}} minute.",
+  "Try again with less at once, such as a smaller file.": "Try again with less at once, such as a smaller file.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.",
+  "What was sent was too large for the server to accept.": "What was sent was too large for the server to accept."
 }
