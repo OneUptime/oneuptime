@@ -42,6 +42,7 @@ import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter, {
   ValueFormatterOptions,
 } from "Common/Utils/ValueFormatter";
+import { writeFigureInLanguage } from "Common/Types/DateLanguage";
 import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
 import {
   AvailableChartColorsKeys,
@@ -2996,7 +2997,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         value: number,
       ): string => {
         if (firstQuery.yAxisValueFormatter) {
-          return firstQuery.yAxisValueFormatter(value);
+          // The page writes its figure in English; the chart, in the reader's digits.
+          return writeFigureInLanguage(
+            firstQuery.yAxisValueFormatter(value),
+            translator.language,
+          );
         }
         return ValueFormatter.formatValue(value, unit, formatterOptions);
       };
@@ -3230,7 +3235,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               type: YAxisType.Number,
               formatter: (value: number) => {
                 if (firstQuery.yAxisValueFormatter) {
-                  return firstQuery.yAxisValueFormatter(value);
+                  // The page writes its figure in English; the chart, in the reader's digits.
+                  return writeFigureInLanguage(
+                    firstQuery.yAxisValueFormatter(value),
+                    translator.language,
+                  );
                 }
 
                 return ValueFormatter.formatValue(
