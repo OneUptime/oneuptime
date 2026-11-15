@@ -115,7 +115,7 @@ let changes: Array<FilterData<Row>> = [];
 // The filter row as a list holds it: each change becomes the row's value.
 function HeldFilter(props: {
   filter: Filter<Row>;
-  initial?: FilterData<Row>;
+  initial?: FilterData<Row> | undefined;
 }): ReactElement {
   const [filterData, setFilterData] = useState<FilterData<Row>>(
     props.initial || {},
