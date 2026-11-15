@@ -52,6 +52,7 @@ import {
 } from "Common/Types/Cloud/CloudResourceHealth";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 
 /*
  * WHAT A CLOUD RESOURCE'S PAGE LEADS WITH.
@@ -237,7 +238,9 @@ export function formatCloudSeconds(
   translator: Translator,
 ): string {
   if (Math.abs(seconds) < 1) {
-    return `${translator.formatNumber(Math.round(seconds * 1000))} ms`;
+    return formatMilliseconds(translator, seconds * 1000, {
+      maximumFractionDigits: 0,
+    });
   }
 
   if (Math.abs(seconds) < 120) {

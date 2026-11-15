@@ -6,7 +6,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import {
   formatMessageQueueCount,
-  formatMessageQueueDurationMs,
+  formatMessageQueueDurationMsInLanguage,
   formatMessageQueueMetricValue,
 } from "../MessageQueueOverviewPresentation";
 import { TopologyNodeStat } from "../../Topology/TopologyNodeCard";
@@ -372,7 +372,10 @@ export function getMessageQueueTopologyEdgeLabel(
     case "latency":
       return edge.p95DurationMs === null
         ? undefined
-        : formatMessageQueueDurationMs(edge.p95DurationMs);
+        : formatMessageQueueDurationMsInLanguage(
+            edge.p95DurationMs,
+            getGlobalTranslator(),
+          );
     default:
       return undefined;
   }

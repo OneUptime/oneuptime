@@ -284,7 +284,8 @@ describe("the Replay Policy page's read view in the reader's language", () => {
         "⟦None: every uncaught error can trigger an upload⟧",
         "⟦None beyond the masking mode⟧",
         "⟦None: every element is recorded (subject to masking)⟧",
-        "⟦4000 ms⟧",
+        // The budget is the Dashboard's duration, its thousand grouped the German way (#7418).
+        "⟦4.000 ms⟧",
         "⟦Off: nothing is added to requests to your own origin⟧",
         "⟦None: no cross-origin request gets a traceparent⟧",
         "⟦2 GB⟧",

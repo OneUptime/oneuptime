@@ -11,6 +11,7 @@ import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDevic
  * loads in the App suite's plain Node environment without a browser stub —
  * and DeviceDiagnosticsWiring.test.ts pins that it stays that way.
  */
+import * as DeviceDiagnosticsViewModel from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
 import {
   DIAGNOSTIC_MAX_CONSECUTIVE_POLL_FAILURES,
   DIAGNOSTIC_MAX_POLL_ATTEMPTS,
@@ -23,8 +24,8 @@ import {
   describePingResult,
   describeTraceRoute,
   diagnosticTimeoutMessage,
-  formatMilliseconds,
   formatPercent,
+  formatRoundTrip,
   latencyPointsFromAggregates,
   summarizeLatencySeries,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceDiagnosticsViewModel";
@@ -566,14 +567,28 @@ describe("latencyPointsFromAggregates", () => {
   });
 });
 
-describe("formatMilliseconds", () => {
+describe("formatRoundTrip", () => {
   test("one decimal, with the unit", () => {
-    expect(formatMilliseconds(12.44)).toBe("12.4 ms");
-    expect(formatMilliseconds(0)).toBe("0.0 ms");
+    expect(formatRoundTrip(12.44)).toBe("12.4 ms");
+    expect(formatRoundTrip(0)).toBe("0.0 ms");
+    // A thousand or more takes its separator, as every duration does (#7418).
+    expect(formatRoundTrip(1234.56)).toBe("1,234.6 ms");
   });
 
   test("a missing value is a dash, not NaN ms", () => {
-    expect(formatMilliseconds(undefined)).toBe("—");
-    expect(formatMilliseconds(Number.NaN)).toBe("—");
+    expect(formatRoundTrip(undefined)).toBe("—");
+    expect(formatRoundTrip(Number.NaN)).toBe("—");
+  });
+
+  /*
+   * Its own copy of the duration helper wrote "۱۲٫۴ ms" in Persian: it is
+   * retired for the Dashboard's one helper (#7418).
+   */
+  test("the module keeps no duration helper of its own", () => {
+    expect(
+      (DeviceDiagnosticsViewModel as Record<string, unknown>)[
+        "formatMilliseconds"
+      ],
+    ).toBeUndefined();
   });
 });

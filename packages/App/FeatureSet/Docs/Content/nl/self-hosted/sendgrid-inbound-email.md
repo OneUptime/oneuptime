@@ -2,7 +2,7 @@
 
 Met de **Incoming Email Monitor** van OneUptime kunt u waarschuwingen aanmaken en oplossen op basis van e-mails die naar unieke, monitorspecifieke e-mailadressen worden gestuurd. Dat is handig om oudere systemen, waarschuwingstools of elke dienst die e-mail kan versturen te koppelen.
 
-Dezelfde inrichting laat ook workflows e-mail ontvangen: een workflow met de trigger **Incoming Email** krijgt een eigen adres op hetzelfde domein, en elke e-mail naar dat adres start de workflow. Zie [Triggers](/docs/workflows/triggers#incoming-email).
+Dezelfde inrichting laat ook workflows e-mail ontvangen: een workflow met de trigger **Inkomende e-mail** krijgt een eigen adres op hetzelfde domein, en elke e-mail naar dat adres start de workflow. Zie [Triggers](/docs/workflows/triggers#incoming-email).
 
 Deze handleiding legt uit hoe u SendGrid Inbound Parse instelt om inkomende e-mails door te sturen naar uw zelf gehoste OneUptime-instantie. OneUptime Cloud heeft hier niets van nodig: de adressen werken daar direct.
 
@@ -122,7 +122,7 @@ Pas ze daarna toe: voer onder Docker Compose `npm run start` uit, wat de contain
 
 [Maak een Incoming Email-monitor aan](/docs/monitor/incoming-email-monitor#een-monitor-voor-inkomende-e-mail-maken). De pagina **Overzicht** ervan toont het adres, zoals `monitor-abc123def456@inbound.yourdomain.com`, en de criteria bepalen welke e-mails een waarschuwing aanmaken en welke die oplossen.
 
-Workflows gebruiken hetzelfde domein. Voeg de trigger **Incoming Email** aan een workflow toe en klik erop: het adres (`workflow-…@inbound.yourdomain.com`) staat boven aan de instellingen. Zolang de variabelen voor inkomende e-mail hierboven niet zijn ingesteld, meldt de trigger dat de server niet is ingericht om e-mail te ontvangen.
+Workflows gebruiken hetzelfde domein. Voeg de trigger **Inkomende e-mail** aan een workflow toe en klik erop: het adres (`workflow-…@inbound.yourdomain.com`) staat boven aan de instellingen. Zolang de variabelen voor inkomende e-mail hierboven niet zijn ingesteld, meldt de trigger dat de server niet is ingericht om e-mail te ontvangen.
 
 ### Stuur een testmail
 

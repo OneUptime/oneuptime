@@ -629,7 +629,7 @@ describe("connection sections", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/100\/min/)).toHaveTextContent("2.0% errors");
-    expect(screen.getByText(/100\/min/)).toHaveTextContent("avg 30ms");
+    expect(screen.getByText(/100\/min/)).toHaveTextContent("avg 30 ms");
     expect(screen.getByText(/100\/min/)).toHaveTextContent("Database");
   });
 
@@ -2078,7 +2078,7 @@ describe("service map context", () => {
       "60/min",
     );
     expect(screen.getByText("Calls it made").parentElement).toHaveTextContent(
-      "4ms",
+      "4 ms",
     );
     await waitForConnections();
   });
