@@ -1615,15 +1615,32 @@ export default abstract class Realtime {
     }
   }
 
-  // Whether this server is one of several (the cluster's other members).
+  /*
+   * Whether this server is one of several (the cluster's other members),
+   * and can talk to them now (SocketIOCluster.canReachOthers).
+   */
   private static async hasOtherServers(): Promise<boolean> {
     try {
-      const adapter: { serverCount?: () => Promise<number> } | undefined =
-        this.socketServer?.of("/").adapter as unknown as
-          | { serverCount?: () => Promise<number> }
-          | undefined;
+      const adapter:
+        | {
+            serverCount?: () => Promise<number>;
+            canReachOthers?: () => boolean;
+          }
+        | undefined = this.socketServer?.of("/").adapter as unknown as
+        | {
+            serverCount?: () => Promise<number>;
+            canReachOthers?: () => boolean;
+          }
+        | undefined;
 
       if (!adapter || typeof adapter.serverCount !== "function") {
+        return false;
+      }
+
+      if (
+        typeof adapter.canReachOthers === "function" &&
+        !adapter.canReachOthers()
+      ) {
         return false;
       }
 

@@ -108,11 +108,27 @@ export class SocketIOClusterAdapter extends ClusterAdapterWithHeartbeat {
         super.init();
       }
     });
+
+    /*
+     * socket.io (4.8) makes the adapter and never calls its init(): the
+     * member joins the cluster itself. init() does it once, should a later
+     * socket.io call it too.
+     */
+    void this.init();
   }
 
   // This member's id in the cluster.
   public getUid(): ServerId {
     return this.uid;
+  }
+
+  /*
+   * Whether this member can talk to the others now: a member that cannot
+   * hear them, or is closed, asks them nothing - its question would wait
+   * for answers it cannot hear.
+   */
+  public canReachOthers(): boolean {
+    return this.isMember();
   }
 
   /*
