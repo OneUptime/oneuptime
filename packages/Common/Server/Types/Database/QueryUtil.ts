@@ -183,11 +183,21 @@ export default class QueryUtil {
    * The same goes for a filter a level deeper, under the related record's
    * own relation, and under a many-to-many relation.
    *
-   * Only the operators are rewritten, and the relation filters nested
-   * further in. Every other value - an id, a plain value, a list, one of
-   * TypeORM's own operators - stays exactly as it was given: the filters the
-   * permission checks put under a relation (the labels a member may read,
-   * @CanAccessIfCanReadOn) are unchanged. An operator that reaches beyond
+   * A filter on a JSON column of the related record - its custom fields,
+   * `{ incident: { customFields: { Team: "Payments" } } }` - is written as
+   * at the top of a query too (#8466): a containment check per key, an
+   * operator under a key (Includes...) as the checks it stands for, a null
+   * check on the whole column. Handed to TypeORM as it was given, the plain
+   * object was compared TypeORM's own way rather than as a filter on the
+   * keys it names, and an operator under a key was bound as its JSON and
+   * matched nothing.
+   *
+   * Only these are rewritten: the operators, the values on a JSON column,
+   * and the relation filters nested further in. Every other value - an id, a
+   * plain value, a list, one of TypeORM's own operators - stays exactly as
+   * it was given: the filters the permission checks put under a relation
+   * (the labels a member may read, @CanAccessIfCanReadOn: always the Label
+   * relation, never a JSON column) are unchanged. An operator that reaches beyond
    * the column it is keyed on is refused: a MultiSearch names columns of its
    * own and an OwnedBy the owner tables, which the read check of a filter
    * under a relation (QueryPermission.checkRelationFilterPermission, by key)
@@ -228,7 +238,9 @@ export default class QueryUtil {
 
       if (
         value instanceof QueryOperator ||
-        QueryUtil.isRelationFilter(column, value)
+        QueryUtil.isRelationFilter(column, value) ||
+        // A filter on a JSON column - the custom fields - whatever its shape (#8466).
+        (column.type === TableColumnType.JSON && value !== undefined)
       ) {
         rewritten[key] = value;
       }

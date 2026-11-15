@@ -7,6 +7,7 @@ import {
   readDateComparison,
 } from "../../TestingUtils/DateComparisonPredicate";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -691,6 +692,132 @@ describe("a many-to-many relation", () => {
     });
 
     expect(filter["labels"]).toEqual([LABEL_ID]);
+  });
+});
+
+/*
+ * #8466. A filter on a JSON column of the related record - its custom
+ * fields - is written as at the top of a query: a containment check per
+ * key, an operator under a key as the checks it stands for, a null check
+ * on the whole column. Handed to TypeORM as it was given, the plain object
+ * was compared TypeORM's own way, and an operator under a key was bound as
+ * its JSON and matched nothing.
+ */
+describe("a filter on a related record's JSON column", () => {
+  test.each([
+    {
+      name: "a key and its value",
+      filter: (): unknown => {
+        return { Team: "Payments" };
+      },
+    },
+    {
+      name: "a key and its value, beside another",
+      filter: (): unknown => {
+        return { Team: "Payments", Tier: "Gold" };
+      },
+    },
+    {
+      name: "an operator under a key",
+      filter: (): unknown => {
+        return { Team: new Includes(["Payments", "Billing"]) };
+      },
+    },
+    {
+      name: "a search under a key",
+      filter: (): unknown => {
+        return { Team: new Search("pay") };
+      },
+    },
+    {
+      name: "a null check on the whole column",
+      filter: (): unknown => {
+        return new IsNull();
+      },
+    },
+    {
+      name: "a null",
+      filter: (): unknown => {
+        return null;
+      },
+    },
+  ])(
+    "$name says what it says at the top of a query of the related model",
+    (item: { name: string; filter: () => unknown }) => {
+      const nested: unknown = underIncident({ customFields: item.filter() })[
+        "customFields"
+      ];
+      const atTheTop: unknown = serialize(Incident, {
+        customFields: item.filter(),
+      })["customFields"];
+
+      expect(nested).toBeInstanceOf(FindOperator);
+      expect(said(nested)).toEqual(said(atTheTop));
+    },
+  );
+
+  test("a key and its value is a check on the joined column, its key and value bound", () => {
+    const sql: string = said(
+      underIncident({ customFields: { Team: "Payments" } })["customFields"],
+    ) as string;
+
+    expect(sql).toContain(`"col"`);
+    expect(sql).toContain("Payments");
+    expect(sql).toContain("Team");
+  });
+
+  test("never writes a custom field's name into the statement's text", () => {
+    const filter: unknown = underIncident({
+      customFields: { "x' OR 1=1 --": "v" },
+    })["customFields"];
+
+    expect((filter as FindOperator<unknown>).getSql!("col")).not.toContain(
+      "1=1",
+    );
+  });
+
+  test("a level deeper, under the related record's many-to-many relation, as at the top", () => {
+    const nested: Record<string, unknown> = underIncident({
+      monitors: { customFields: { Team: new Includes(["Payments"]) } },
+    })["monitors"] as Record<string, unknown>;
+    const atTheTop: unknown = serialize(Monitor, {
+      customFields: { Team: new Includes(["Payments"]) },
+    })["customFields"];
+
+    expect(nested["customFields"]).toBeInstanceOf(FindOperator);
+    expect(said(nested["customFields"])).toEqual(said(atTheTop));
+  });
+
+  test("beside the labels the permission checks put there, which stay as they are", () => {
+    const labelIds: Array<ObjectID> = [new ObjectID(LABEL_ID)];
+
+    const filter: Record<string, unknown> = underIncident({
+      customFields: { Team: "Payments" },
+      labels: labelIds,
+    });
+
+    expect(filter["customFields"]).toBeInstanceOf(FindOperator);
+    expect(filter["labels"]).toBe(labelIds);
+  });
+
+  test("one of TypeORM's own operators on the column is handed on as it is", () => {
+    const typeOrmOperator: unknown = QueryHelper.isNull();
+
+    expect(
+      underIncident({ customFields: typeOrmOperator })["customFields"],
+    ).toBe(typeOrmOperator);
+  });
+
+  test("the caller's filter is never rewritten in place", () => {
+    const customFields: Record<string, unknown> = {
+      Team: new Includes(["Payments"]),
+    };
+    const given: Record<string, unknown> = { customFields: customFields };
+
+    underIncident(given);
+
+    expect(given["customFields"]).toBe(customFields);
+    expect(customFields["Team"]).toBeInstanceOf(Includes);
   });
 });
 

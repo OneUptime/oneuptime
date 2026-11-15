@@ -594,6 +594,66 @@ describePostgres("date comparisons on Postgres", () => {
         ).toEqual(["25 minutes before"]);
       });
 
+      /*
+       * #8466: a filter on the related record's JSON column, as at the top
+       * of a query - each key by containment, an operator under a key, a
+       * null check on the whole column - through the join.
+       */
+      test("a filter on the related record's JSON column finds the runs whose connection holds it", async () => {
+        const configure: (
+          name: string,
+          config: Record<string, unknown>,
+        ) => Promise<void> = async (
+          name: string,
+          config: Record<string, unknown>,
+        ): Promise<void> => {
+          await database.query(
+            `UPDATE ${tableOf(SecurityEventConnection)} SET "config" = $1::jsonb WHERE "name" = $2 AND "projectId" = $3`,
+            [JSON.stringify(config), name, nestedProjectId],
+          );
+        };
+
+        await configure("at the bound", { region: "eu", tier: "gold" });
+        await configure("a day before", { region: "us", tier: "gold" });
+        await configure("5 minutes after", { region: "eu" });
+
+        expect(await runsWhoseConnection({ config: { region: "eu" } })).toEqual(
+          ["5 minutes after", "at the bound"],
+        );
+
+        expect(
+          await runsWhoseConnection({ config: { region: "eu", tier: "gold" } }),
+        ).toEqual(["at the bound"]);
+
+        expect(
+          await runsWhoseConnection({
+            config: { region: new Includes(["us", "eu"]) },
+          }),
+        ).toEqual(["5 minutes after", "a day before", "at the bound"]);
+
+        const unconfigured: Array<string> = [
+          "25 minutes before",
+          "a millisecond after",
+          "a millisecond before",
+          "no value",
+        ];
+
+        expect(await runsWhoseConnection({ config: new IsNull() })).toEqual(
+          unconfigured,
+        );
+        expect(await runsWhoseConnection({ config: null })).toEqual(
+          unconfigured,
+        );
+
+        // Beside a comparison on another column of the related record.
+        expect(
+          await runsWhoseConnection({
+            config: { region: "eu" },
+            lastPolledAt: new GreaterThan(BOUND),
+          }),
+        ).toEqual(["5 minutes after"]);
+      });
+
       test("a plain value under the relation is compared as before", async () => {
         expect(await runsWhoseConnection({ name: "at the bound" })).toEqual([
           "at the bound",
