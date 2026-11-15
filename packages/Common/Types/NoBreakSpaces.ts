@@ -36,19 +36,19 @@
  */
 
 // A space no line breaks at.
-export const NO_BREAK_SPACE: string = " ";
+export const NO_BREAK_SPACE: string = "\u00A0";
 
 // A narrow space no line breaks at: French's before ; ! and ?.
-export const NARROW_NO_BREAK_SPACE: string = " ";
+export const NARROW_NO_BREAK_SPACE: string = "\u202F";
 
 /*
  * A run of the spaces a line may break at: the space and the fixed-width
  * spaces, but not the figure space (U+2007), which already holds.
  */
-const BREAKING_SPACES: string = "[\\u0020\\u2000-\\u2006\\u2008-\\u200A\\u205F]+";
+const BREAKING_SPACES: string =
+  "[\\u0020\\u2000-\\u2006\\u2008-\\u200A\\u205F]+";
 
-const HAS_A_BREAKING_SPACE: RegExp =
-  /[  -  -  ]/;
+const HAS_A_BREAKING_SPACE: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]/;
 
 /*
  * What a text holds as it is written: code in backticks and an HTML tag.
@@ -367,9 +367,14 @@ const PLACEHOLDER_BEFORE_SPACES: RegExp = new RegExp(
   "gu",
 );
 
-// Written digits, then the spaces after them, before more words.
+/*
+ * Written digits, then the spaces after them, before more words. Not the
+ * end of a name in Latin, Cyrillic or Greek letters ("p95", "v2"); a word
+ * of another script may run into its number, as Arabic's "and" does
+ * ("و10") and Chinese writes "超过5".
+ */
 const DIGITS_BEFORE_SPACES: RegExp = new RegExp(
-  `(?<![\\p{L}\\p{N}_.,\\u066B])(\\p{Nd}+(?:[.,\\u066B]\\p{Nd}+)*)(${BREAKING_SPACES})(?=\\S)`,
+  `(?<![\\p{Script=Latin}\\p{Script=Cyrillic}\\p{Script=Greek}\\p{N}_.,\\u066B])(\\p{Nd}+(?:[.,\\u066B]\\p{Nd}+)*)(${BREAKING_SPACES})(?=\\S)`,
   "gu",
 );
 

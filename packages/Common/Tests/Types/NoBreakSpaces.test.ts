@@ -22,16 +22,19 @@ import {
 const NB: string = NO_BREAK_SPACE;
 const NNB: string = NARROW_NO_BREAK_SPACE;
 
+// What a pattern reads as whitespace.
+const WHITESPACE: RegExp = /\s/;
+
 describe("the two no-break spaces", () => {
   test("are the no-break space and the narrow no-break space", () => {
-    expect(NB).toBe(" ");
-    expect(NNB).toBe(" ");
+    expect(NB).toBe("\u00A0");
+    expect(NNB).toBe("\u202F");
   });
 
   test("count as whitespace to a pattern and to trim, as a plain space does", () => {
     // The Translator reads a sentence's end with \s and trims a value's spaces.
-    expect(/\s/.test(NB)).toBe(true);
-    expect(/\s/.test(NNB)).toBe(true);
+    expect(WHITESPACE.test(NB)).toBe(true);
+    expect(WHITESPACE.test(NNB)).toBe(true);
     expect(`${NB}x${NNB}`.trim()).toBe("x");
   });
 });
@@ -127,8 +130,8 @@ describe("withFrenchSpacing", () => {
 
   test("a fixed-width space a line breaks at is set too, and a figure space is left", () => {
     // U+2009 THIN SPACE breaks a line; U+2007 FIGURE SPACE does not.
-    expect(withFrenchSpacing("Pourquoi ?")).toBe(`Pourquoi${NNB}?`);
-    expect(withFrenchSpacing("Pourquoi ?")).toBe("Pourquoi ?");
+    expect(withFrenchSpacing("Pourquoi\u2009?")).toBe(`Pourquoi${NNB}?`);
+    expect(withFrenchSpacing("Pourquoi\u2007?")).toBe("Pourquoi\u2007?");
   });
 
   test("a no-break space already there is kept: setting twice is setting once", () => {
@@ -251,7 +254,10 @@ describe("withNumbersKeptWithUnits", () => {
       ),
     ).toBe(`Verfügbarkeit ({{hours}}${NB}Std.)`);
     expect(
-      withNumbersKeptWithUnits("Verfügbarkeit ({{days}} T.)", "Uptime ({{days}}d)"),
+      withNumbersKeptWithUnits(
+        "Verfügbarkeit ({{days}} T.)",
+        "Uptime ({{days}}d)",
+      ),
     ).toBe(`Verfügbarkeit ({{days}}${NB}T.)`);
   });
 
@@ -277,11 +283,14 @@ describe("withNumbersKeptWithUnits", () => {
 
   test("English beside its unit with a space, and every unit symbol English writes", () => {
     expect(
-      withNumbersKeptWithUnits("Alle {{minutes}} Min.", "Every {{minutes}} min"),
+      withNumbersKeptWithUnits(
+        "Alle {{minutes}} Min.",
+        "Every {{minutes}} min",
+      ),
     ).toBe(`Alle {{minutes}}${NB}Min.`);
-    expect(
-      withNumbersKeptWithUnits("{{value}} мс", "{{value}} ms"),
-    ).toBe(`{{value}}${NB}мс`);
+    expect(withNumbersKeptWithUnits("{{value}} мс", "{{value}} ms")).toBe(
+      `{{value}}${NB}мс`,
+    );
     expect(
       withNumbersKeptWithUnits("{{percent}} % genutzt", "{{percent}}% used"),
     ).toBe(`{{percent}}${NB}% genutzt`);
@@ -289,7 +298,10 @@ describe("withNumbersKeptWithUnits", () => {
       withNumbersKeptWithUnits("Signal {{dbm}} dBm", "Signal {{dbm}} dBm"),
     ).toBe(`Signal {{dbm}}${NB}dBm`);
     expect(
-      withNumbersKeptWithUnits("{{gigabytes}} Go par jour", "{{gigabytes}} GB a day"),
+      withNumbersKeptWithUnits(
+        "{{gigabytes}} Go par jour",
+        "{{gigabytes}} GB a day",
+      ),
     ).toBe(`{{gigabytes}}${NB}Go par jour`);
   });
 
@@ -322,11 +334,14 @@ describe("withNumbersKeptWithUnits", () => {
       `Letzte 24${NB}Std.`,
     );
     expect(
-      withNumbersKeptWithUnits("Fichier de moins de 10 Mo.", "A file under 10 MB."),
+      withNumbersKeptWithUnits(
+        "Fichier de moins de 10 Mo.",
+        "A file under 10 MB.",
+      ),
     ).toBe(`Fichier de moins de 10${NB}Mo.`);
-    expect(withNumbersKeptWithUnits("99,9 % disponible", "99.9% available")).toBe(
-      `99,9${NB}% disponible`,
-    );
+    expect(
+      withNumbersKeptWithUnits("99,9 % disponible", "99.9% available"),
+    ).toBe(`99,9${NB}% disponible`);
   });
 
   test("a number in another script's digits is the same number", () => {
@@ -351,7 +366,10 @@ describe("withNumbersKeptWithUnits", () => {
 
   test("a placeholder written with spaces inside its braces", () => {
     expect(
-      withNumbersKeptWithUnits("Alle {{ minutes }} Min.", "Every {{minutes}} min"),
+      withNumbersKeptWithUnits(
+        "Alle {{ minutes }} Min.",
+        "Every {{minutes}} min",
+      ),
     ).toBe(`Alle {{ minutes }}${NB}Min.`);
   });
 
@@ -365,16 +383,19 @@ describe("withNumbersKeptWithUnits", () => {
   });
 
   test("an English text with no number beside a unit changes nothing", () => {
-    expect(withNumbersKeptWithUnits("{{count}} Monitore", "{{count}} monitors")).toBe(
-      "{{count}} Monitore",
-    );
+    expect(
+      withNumbersKeptWithUnits("{{count}} Monitore", "{{count}} monitors"),
+    ).toBe("{{count}} Monitore");
     expect(withNumbersKeptWithUnits("Speichern", "Save")).toBe("Speichern");
     expect(withNumbersKeptWithUnits("", "Uptime ({{hours}}h)")).toBe("");
   });
 
   test("the English text itself, beside its unit with a space", () => {
     expect(
-      withNumbersKeptWithUnits("Every {{minutes}} min", "Every {{minutes}} min"),
+      withNumbersKeptWithUnits(
+        "Every {{minutes}} min",
+        "Every {{minutes}} min",
+      ),
     ).toBe(`Every {{minutes}}${NB}min`);
   });
 
@@ -409,9 +430,7 @@ describe("withNoBreakSpaces", () => {
       ),
     ).toBe(`Verfügbarkeit ({{days}}${NB}T.): {{value}}${NB}%`);
     // Only French's marks: a space before a mark in another language stays.
-    expect(withNoBreakSpaces("Wirklich ?", "Really?", "de")).toBe(
-      "Wirklich ?",
-    );
+    expect(withNoBreakSpaces("Wirklich ?", "Really?", "de")).toBe("Wirklich ?");
   });
 });
 
@@ -429,7 +448,8 @@ describe("withNoBreakSpacesInLocale", () => {
   test("French: each of its own wordings, nested ones too", () => {
     const french: NoBreakLocaleTree = {
       "Archive {{count}} workflows?": "Archiver {{count}} flux de travail ?",
-      "Archive {{count}} workflows?_one": "Archiver {{count}} flux de travail ?",
+      "Archive {{count}} workflows?_one":
+        "Archiver {{count}} flux de travail ?",
       "Uptime ({{hours}}h)": "Disponibilité ({{hours}} h)",
       uptimeHistory: {
         dayLabel: "{{date}} : {{uptime}} % de disponibilité",
@@ -471,9 +491,9 @@ describe("withNoBreakSpacesInLocale", () => {
       "Archive {{count}} workflows?_one": "Archive {{count}} workflow?",
     };
 
-    expect(
-      withNoBreakSpacesInLocale({ locale, language: "fr", english }),
-    ).toBe(locale);
+    expect(withNoBreakSpacesInLocale({ locale, language: "fr", english })).toBe(
+      locale,
+    );
   });
 
   test("the locale handed in is never changed", () => {
