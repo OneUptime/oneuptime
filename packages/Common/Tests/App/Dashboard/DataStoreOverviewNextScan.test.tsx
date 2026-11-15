@@ -124,6 +124,7 @@ const PROBE_ID: string = "8a8a8a8a-0000-4000-8000-000000000003";
 const MINUTE_IN_MS: number = 60 * 1000;
 
 let storeColumns: Record<string, unknown> = {};
+// The store's scan probe as the read of the store brings it, through the relation.
 let probeRead: Probe | null = null;
 let settingRead: DataSecuritySetting | null = null;
 let isSettingReadRefused: boolean = false;
@@ -132,6 +133,11 @@ function storeOf(): DataStore {
   const store: DataStore = new DataStore();
   store._id = STORE_ID;
   Object.assign(store, storeColumns);
+
+  if (store.scanProbeId && probeRead) {
+    store.scanProbe = probeRead;
+  }
+
   return store;
 }
 
@@ -219,13 +225,7 @@ beforeEach(() => {
   isSettingReadRefused = false;
 
   getItemMock.mockReset();
-  getItemMock.mockImplementation(async (data: unknown): Promise<unknown> => {
-    const modelType: unknown = (data as { modelType: unknown }).modelType;
-
-    if (modelType === Probe) {
-      return probeRead;
-    }
-
+  getItemMock.mockImplementation(async (): Promise<unknown> => {
     return storeOf();
   });
 
@@ -304,11 +304,23 @@ describe("a data store's Overview: Next Content Scan", () => {
       expect(storeRead.select[column]).toBe(true);
     }
 
+    /*
+     * The probe through the store, as the claim's join reads it: a read of
+     * the probe table would never see a global probe or another project's,
+     * and refuses isGlobalProbe to everyone.
+     */
+    expect(storeRead.select["scanProbe"]).toEqual({
+      _id: true,
+      name: true,
+      isGlobalProbe: true,
+      projectId: true,
+      connectionStatus: true,
+    });
     expect(
       getItemMock.mock.calls.some((call: Array<unknown>) => {
         return (call[0] as { modelType: unknown }).modelType === Probe;
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       getListMock.mock.calls.some((call: Array<unknown>) => {
         return (
@@ -408,30 +420,35 @@ describe("a data store's Overview: Next Content Scan", () => {
     expect(nextScanField().querySelector("time")).not.toBeNull();
   });
 
-  test("a probe the project's probes do not hold: not scanned, and why", async () => {
-    probeRead = null;
+  test.each([
+    ["a global probe, which never reads a store", { isGlobalProbe: true }],
+    [
+      "another project's probe",
+      { projectId: new ObjectID("8a8a8a8a-0000-4000-8000-000000000009") },
+    ],
+  ])(
+    "%s: not scanned, and why",
+    async (_name: string, probe: Partial<Probe>) => {
+      probeRead = probeOf(probe);
 
-    await renderOverview();
+      await renderOverview();
 
-    expect(nextScanField()).toHaveTextContent("Not scanned");
-    expect(nextScanField()).toHaveTextContent(
-      "Only a probe of this project's own scans a store. Pick one in its Settings.",
-    );
-    expect(scanNowButton()).toBeDisabled();
-  });
+      expect(nextScanField()).toHaveTextContent("Not scanned");
+      expect(nextScanField()).toHaveTextContent(
+        "Only a probe of this project's own scans a store. Pick one in its Settings.",
+      );
+      expect(nextScanField().querySelector("time")).toBeNull();
+      expect(scanNowButton()).toBeDisabled();
+    },
+  );
 
-  test("a reader who may not read probes: nothing is said of the probe", async () => {
+  test("a probe the read of the store came back without: nothing is said of the probe", async () => {
     permissionsForTest = [Permission.SecurityViewer];
     PermissionGate.clearPermissionPropsCache();
     probeRead = null;
 
     await renderOverview();
 
-    expect(
-      getItemMock.mock.calls.some((call: Array<unknown>) => {
-        return (call[0] as { modelType: unknown }).modelType === Probe;
-      }),
-    ).toBe(false);
     expect(nextScanField().querySelector("time")).not.toBeNull();
   });
 

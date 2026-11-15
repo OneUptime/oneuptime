@@ -127,20 +127,35 @@ const OVERVIEW_SELECT: Select<DataStore> = {
   scanProbeId: true,
   probeConnectionVariable: true,
   nextContentScanAt: true,
+  /*
+   * Through the store, as the claim's join reads it: a global probe or
+   * another project's comes back as what it is. These columns are readable
+   * on a relation by anyone who may read the store.
+   */
+  scanProbe: {
+    _id: true,
+    name: true,
+    isGlobalProbe: true,
+    projectId: true,
+    connectionStatus: true,
+  },
 };
 
 interface StoreOverviewData {
   store: DataStore | null;
   topIssues: Array<DataSecurityIssue>;
   owners: Array<ResourceOwnerEntry>;
-  /*
-   * The store's scan probe: null when the project has no such probe (a
-   * global one, another project's, or one deleted), undefined when it is
-   * not known (no probe, or one the reader may not read).
-   */
-  scanProbe: Probe | null | undefined;
   // The project's Data Security settings, or null for the defaults.
   setting: DataSecuritySetting | null;
+}
+
+/*
+ * The probe a store is scanned from, or undefined when it names none or the
+ * read came back without it: then nothing is said of the probe. A probe
+ * deleted takes its stores' scanProbeId with it.
+ */
+function getScanProbe(store: DataStore | null): Probe | undefined {
+  return store?.scanProbeId && store.scanProbe ? store.scanProbe : undefined;
 }
 
 /*
@@ -306,40 +321,6 @@ async function readOwners(
   }
 }
 
-/*
- * The probe a store is scanned from, as the reader may read it. A probe the
- * project's probes do not hold reads as null - the claim never hands such a
- * probe a store - but only for a reader who may read the project's probes:
- * for anyone else nothing is known.
- */
-async function readScanProbe(
-  scanProbeId: ObjectID | undefined,
-): Promise<Probe | null | undefined> {
-  if (!scanProbeId) {
-    return undefined;
-  }
-
-  if (!PermissionGate.check(new Probe(), ModelAction.Read).isAllowed) {
-    return undefined;
-  }
-
-  try {
-    return await ModelAPI.getItem<Probe>({
-      modelType: Probe,
-      id: scanProbeId,
-      select: {
-        _id: true,
-        name: true,
-        isGlobalProbe: true,
-        projectId: true,
-        connectionStatus: true,
-      },
-    });
-  } catch {
-    return undefined;
-  }
-}
-
 // The project's Data Security settings: the defaults when they cannot be read.
 async function readProjectSetting(
   projectId: ObjectID | undefined,
@@ -406,16 +387,13 @@ const DataStoreOverview: FunctionComponent<
           readOwners(dataStoreId),
         ]);
 
-        const [scanProbe, setting] = await Promise.all([
-          readScanProbe(store?.scanProbeId),
-          readProjectSetting(
-            store?.projectId || ProjectUtil.getCurrentProjectId() || undefined,
-          ),
-        ]);
+        const setting: DataSecuritySetting | null = await readProjectSetting(
+          store?.projectId || ProjectUtil.getCurrentProjectId() || undefined,
+        );
 
         if (isCurrent) {
           setError("");
-          setData({ store, topIssues, owners, scanProbe, setting });
+          setData({ store, topIssues, owners, setting });
         }
       } catch (err) {
         if (isCurrent) {
@@ -468,7 +446,8 @@ const DataStoreOverview: FunctionComponent<
                   "The next time {{probe}} asks for work, it scans this store's content. What it finds shows on What's Inside when it is done.",
                   {
                     probe:
-                      data?.scanProbe?.name || translatableTerm("its probe"),
+                      getScanProbe(data?.store || null)?.name ||
+                      translatableTerm("its probe"),
                   },
                 )
               : translator.translateText(
@@ -509,10 +488,11 @@ const DataStoreOverview: FunctionComponent<
   }
 
   const kindFacts: DataStoreKindFacts = getDataStoreKindFacts(store.kind);
+  const scanProbe: Probe | undefined = getScanProbe(store);
   // What decides whether, and when, its content is scanned next.
   const scanFacts: DataStoreContentScanFacts = {
     store: store,
-    scanProbe: data.scanProbe,
+    scanProbe: scanProbe,
     projectSetting: data.setting,
   };
   const scanStop: DataStoreContentScanStop | null =
@@ -543,7 +523,7 @@ const DataStoreOverview: FunctionComponent<
   const scanDisabledReason: string | undefined = getStoreScanNowRefusal(
     scanFacts,
     translator,
-    data.scanProbe?.name,
+    scanProbe?.name,
   );
 
   const scanButtons: Array<CardButtonSchema> = gate({
@@ -706,7 +686,7 @@ const DataStoreOverview: FunctionComponent<
                       getStoreScanStopDetail(
                         scanStop,
                         translator,
-                        data.scanProbe?.name,
+                        scanProbe?.name,
                       )
                     : translator.translateText(
                         "Its content has not been scanned yet.",
@@ -960,7 +940,7 @@ const DataStoreOverview: FunctionComponent<
                 return (
                   <StoreNextContentScan
                     facts={scanFacts}
-                    probeName={data.scanProbe?.name}
+                    probeName={scanProbe?.name}
                   />
                 );
               },
