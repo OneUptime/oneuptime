@@ -205,10 +205,10 @@ describe("formatLastSeenInLanguage", () => {
   });
 
   test.each([
-    ["2026-09-07T09:48:00Z", "vor 12 Minuten"],
-    ["2026-09-07T05:00:00Z", "vor 5 Stunden"],
-    ["2026-09-04T10:00:00Z", "vor 3 Tagen"],
-    ["2026-07-04T10:00:00Z", "vor 65 Tagen"],
+    ["2026-09-07T09:48:00Z", "vor 12\u00A0Minuten"],
+    ["2026-09-07T05:00:00Z", "vor 5\u00A0Stunden"],
+    ["2026-09-04T10:00:00Z", "vor 3\u00A0Tagen"],
+    ["2026-07-04T10:00:00Z", "vor 65\u00A0Tagen"],
   ])("German: %s reads %s", (at: string, expected: string) => {
     expect(formatLastSeenInLanguage(new Date(at), now, "de")).toBe(expected);
   });
@@ -289,11 +289,13 @@ describe("formatLastSeenInLanguage, shortened", () => {
   test("left out, or long, the style is the list's long one", () => {
     const at: Date = new Date("2026-09-07T09:48:00Z");
 
-    expect(formatLastSeenInLanguage(at, now, "de")).toBe("vor 12 Minuten");
+    expect(formatLastSeenInLanguage(at, now, "de")).toBe("vor 12\u00A0Minuten");
     expect(formatLastSeenInLanguage(at, now, "de", { style: "long" })).toBe(
-      "vor 12 Minuten",
+      "vor 12\u00A0Minuten",
     );
-    expect(formatLastSeenInLanguage(at, now, "de", {})).toBe("vor 12 Minuten");
+    expect(formatLastSeenInLanguage(at, now, "de", {})).toBe(
+      "vor 12\u00A0Minuten",
+    );
   });
 
   test("English reads as formatLastSeen does, whatever the style", () => {

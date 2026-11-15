@@ -157,7 +157,7 @@ describe("the Meraki dashboard as a source, in words", () => {
       "Meraki dashboard (Acme Retail)",
     );
     expect(getAssetFactSourceLine(MERAKI, english, NOW)).toBe(
-      "Meraki dashboard (Acme Retail) · 20 minutes ago",
+      "Meraki dashboard (Acme Retail) · 20\u00A0minutes ago",
     );
     expect(getAssetFactSourceText(MERAKI_UNNAMED, english)).toBe(
       "The Meraki dashboard",
@@ -166,13 +166,13 @@ describe("the Meraki dashboard as a source, in words", () => {
 
   test("said once, below the details it gave", () => {
     expect(getControllerReadLine(MERAKI, english, NOW)).toBe(
-      "Read from the Meraki dashboard (Acme Retail), 20 minutes ago.",
+      "Read from the Meraki dashboard (Acme Retail), 20\u00A0minutes ago.",
     );
     expect(getControllerReadLine(MERAKI_UNNAMED, english, NOW)).toBe(
-      "Read from the Meraki dashboard, 20 minutes ago.",
+      "Read from the Meraki dashboard, 20\u00A0minutes ago.",
     );
     expect(getSharedSourceLine(MERAKI, english, NOW)).toBe(
-      "Read from the Meraki dashboard (Acme Retail), 20 minutes ago.",
+      "Read from the Meraki dashboard (Acme Retail), 20\u00A0minutes ago.",
     );
     // No time, nothing worth saying once.
     expect(
@@ -188,7 +188,7 @@ describe("the Meraki dashboard as a source, in words", () => {
         NOW,
       ),
     ).toBe(
-      "Meraki dashboard (Acme Retail) says Q2HP-SWCH-0001 · 20 minutes ago",
+      "Meraki dashboard (Acme Retail) says Q2HP-SWCH-0001 · 20\u00A0minutes ago",
     );
   });
 
@@ -231,7 +231,7 @@ describe("the Meraki dashboard as a source, in words", () => {
     const persian: Translator = translatorFor("fa");
 
     expect(getControllerReadLine(MERAKI, german, NOW)).toBe(
-      "Aus dem Meraki-Dashboard (Acme Retail) gelesen, vor 20 Minuten.",
+      "Aus dem Meraki-Dashboard (Acme Retail) gelesen, vor 20\u00A0Minuten.",
     );
     expect(getAssetFactSourceText(MERAKI, persian)).toBe(
       "داشبورد Meraki (Acme Retail)",
@@ -269,7 +269,7 @@ describe("the Meraki dashboard as a source, in words", () => {
     // A minute ago is a minute ago.
     expect(
       getAssetFactSourceTime("2026-10-28T11:59:00.000Z", english, NOW),
-    ).toBe("1 minute ago");
+    ).toBe("1\u00A0minute ago");
 
     expect(JUST_NOW).toBe("just now");
 
@@ -340,7 +340,7 @@ describe("the Meraki dashboard as a source, in words", () => {
       });
     }
     expect(getControllerReadLine(MERAKI, english, NOW)).toBe(
-      "Read from the Meraki dashboard (Acme Retail), 20 minutes ago.",
+      "Read from the Meraki dashboard (Acme Retail), 20\u00A0minutes ago.",
     );
   });
 });
