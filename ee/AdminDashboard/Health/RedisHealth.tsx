@@ -21,6 +21,8 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -120,6 +122,7 @@ const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
 };
 
 const RedisHealth: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -267,8 +270,13 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Valkey is {connected ? "reachable" : "not reachable"} from this
-                instance.
+                {connected
+                  ? translator.translateText(
+                      "Valkey is reachable from this instance.",
+                    )
+                  : translator.translateText(
+                      "Valkey is not reachable from this instance.",
+                    )}
               </div>
               <MetricInfoWrap info={METRIC_INFO.overallStatus}>
                 <span className="inline-flex cursor-help">

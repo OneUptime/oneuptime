@@ -764,9 +764,25 @@ describe.each(LANGUAGES)(
 
       expectSentenceAround(language, "Stuck at: {{step}}.");
 
+      // The catalog's words too: each milestone's title, and what is missing (#8599).
+      expect(pageText()).toContain(
+        sentenceIn(language, "Stuck at: {{step}}.", {
+          step: wordIn(language, ACTIVATION_MILESTONE_DETAILS[0]!.missingText),
+        }),
+      );
+
+      for (const detail of ACTIVATION_MILESTONE_DETAILS) {
+        expect({
+          title: detail.title,
+          drawn: pageText().includes(wordIn(language, detail.title)),
+        }).toEqual({ title: detail.title, drawn: true });
+      }
+
       if (language !== "en") {
         expect(pageText()).not.toContain("Not yet");
         expect(pageText()).not.toContain("Stuck at:");
+        expect(pageText()).not.toContain("First monitor created");
+        expect(pageText()).not.toContain("No monitor yet");
       }
     });
 

@@ -4,6 +4,8 @@ import Card from "Common/UI/Components/Card/Card";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   saveWhiteLabelSettings,
@@ -51,6 +53,7 @@ const DetailRow: FunctionComponent<DetailRowProps> = (
 const WhiteLabelProductNameCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -103,7 +106,9 @@ const WhiteLabelProductNameCard: FunctionComponent<ComponentProps> = (
                   {props.settings.productName}
                 </span>
               ) : (
-                <span className="text-gray-500">OneUptime (not changed)</span>
+                <span className="text-gray-500">
+                  {translator.translateText("OneUptime (not changed)")}
+                </span>
               )
             }
           />
@@ -122,7 +127,9 @@ const WhiteLabelProductNameCard: FunctionComponent<ComponentProps> = (
                 </a>
               ) : (
                 <span className="text-gray-500">
-                  Not set. &quot;Powered by&quot; lines have no link.
+                  {translator.translateText(
+                    'Not set. "Powered by" lines have no link.',
+                  )}
                 </span>
               )
             }

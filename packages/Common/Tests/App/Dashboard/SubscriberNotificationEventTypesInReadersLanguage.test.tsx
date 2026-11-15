@@ -10,6 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -224,7 +225,7 @@ afterAll(async () => {
   await i18next.changeLanguage("en");
 });
 
-let createOrUpdate: jest.SpiedFunction<typeof ModelAPI.createOrUpdate>;
+let createOrUpdate: SpyInstance<typeof ModelAPI.createOrUpdate>;
 
 beforeEach(() => {
   PermissionGate.clearPermissionPropsCache();
@@ -262,9 +263,10 @@ beforeEach(() => {
         return rowsOf(options.modelType).length;
       },
     );
-  createOrUpdate = jest
-    .spyOn(ModelAPI, "createOrUpdate")
-    .mockResolvedValue({ data: NOTE_TEMPLATE } as never);
+  // createOrUpdate is generic; its spy is the one instantiation the suite reads.
+  createOrUpdate = jest.spyOn(ModelAPI, "createOrUpdate").mockResolvedValue({
+    data: NOTE_TEMPLATE,
+  } as never) as unknown as SpyInstance<typeof ModelAPI.createOrUpdate>;
   jest.spyOn(API, "get").mockResolvedValue({ data: {} } as never);
   jest.spyOn(API, "post").mockResolvedValue({ data: {} } as never);
 });
