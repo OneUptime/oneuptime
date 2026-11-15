@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 52236,
+    "keys": 52297,
     "untranslated": 5115
   },
   "sameAsEnglish": [
@@ -504,6 +504,7 @@
     "Top",
     "Top P",
     "Top {{count}}",
+    "Topic",
     "Total",
     "Trace",
     "Trace {{traceId}}",
