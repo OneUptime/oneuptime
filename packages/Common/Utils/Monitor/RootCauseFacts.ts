@@ -452,7 +452,10 @@ const durationInWords: (duration: ReadDuration) => ComposedValue = (
 
       return (
         written ??
-        translator.translatePlural(DURATION_UNITS[duration.unit], duration.count)
+        translator.translatePlural(
+          DURATION_UNITS[duration.unit],
+          duration.count,
+        )
       );
     },
   };

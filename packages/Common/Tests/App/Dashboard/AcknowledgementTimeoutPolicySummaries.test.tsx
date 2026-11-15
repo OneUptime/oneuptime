@@ -333,7 +333,10 @@ describe("Policy at a glance on the policy's Overview", () => {
 
     // Read as toHaveTextContent reads it: 30 min is held by a no-break space.
     expect(
-      narrative.textContent!.replace(/\u00A0/g, " ").trim().endsWith(SENTENCE_30),
+      narrative
+        .textContent!.replace(/\u00A0/g, " ")
+        .trim()
+        .endsWith(SENTENCE_30),
     ).toBe(true);
     // One sentence after another, never run together.
     expect(narrative.textContent).toContain(
