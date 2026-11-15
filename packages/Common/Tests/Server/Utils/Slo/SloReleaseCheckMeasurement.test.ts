@@ -16,6 +16,7 @@ import SloRequestCounting from "../../../../Server/Utils/Slo/SloRequestCounting"
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
 import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 import {
   SloReleaseCheckMeasurement as SloReleaseCheckMeasurementResult,
@@ -406,7 +407,7 @@ describe("SloReleaseCheckMeasurement - a Monitor Uptime SLO", () => {
  * condition, with the canary's version, and never a request filter.
  */
 describe("SloReleaseCheckMeasurement - a Metric SLO", () => {
-  const COUNTER: Record<string, unknown> = {
+  const COUNTER: JSONObject = {
     metricName: "http_requests_total",
     kind: "Counter",
     goodFilter: "@http.response.status_code:<500",
