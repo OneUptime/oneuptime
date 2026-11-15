@@ -260,15 +260,18 @@ export const SCHEDULED_MAINTENANCE_NAMES: Record<
 
 // The English names the product, as its name or in a sentence.
 export const SAYS_SCHEDULED_MAINTENANCE: RegExp =
-  /(?<![-.{'_])\bscheduled maintenance\b(?![-.}'_])/i;
+  /(?<![-.{'_])\bscheduled maintenance\b(?![-}'_]|\.\w)/i;
 
 /*
  * "maintenance" as a word of the sentence: not inside a code name
  * (oneuptime.scheduled-maintenance.measurement, {{maintenance}}) or a
- * quoted state another product reports ('maintenance').
+ * quoted state another product reports ('maintenance'). A full stop ends a
+ * sentence ("whether it is in maintenance."); a dot between two words joins
+ * a code name. It read the full stop as one, so a Persian sentence ending
+ * in maintenance said the dropped نگهداری unseen.
  */
 export const SAYS_MAINTENANCE: RegExp =
-  /(?<![-.{'_])\bmaintenance\b(?![-.}'_])/i;
+  /(?<![-.{'_])\bmaintenance\b(?![-}'_]|\.\w)/i;
 
 export const SAYS_A_MAINTENANCE_EVENT: RegExp = /\bmaintenance events?\b/i;
 

@@ -476,6 +476,46 @@ describe("Danish, Korean, Hindi and Persian call maintenance by one word", () =>
     expect(SAYS_MAINTENANCE.test("'maintenance' is planned")).toBe(false);
     expect(SAYS_MAINTENANCE.test("{{label}}, {{maintenance}}")).toBe(false);
     expect(SAYS_MAINTENANCE.test("In maintenance")).toBe(true);
+    // A full stop ends the sentence; it joins no code name.
+    expect(
+      SAYS_MAINTENANCE.test(
+        "its power state and whether it is in maintenance. Ironic shows a project only the nodes it owns.",
+      ),
+    ).toBe(true);
+    expect(SAYS_MAINTENANCE.test("scheduled-maintenance.measurement")).toBe(
+      false,
+    );
+    expect(
+      SAYS_SCHEDULED_MAINTENANCE.test(
+        "Monitoring is paused for scheduled maintenance.",
+      ),
+    ).toBe(true);
+  });
+
+  test("Persian names a host's maintenance mode with the one word", () => {
+    const persian: Strings = stringsOf("Dashboard", "fa")!;
+    const english: Strings = stringsOf("Dashboard", "en")!;
+    const maintenanceMode: Array<string> = [...english.keys()].filter(
+      (key: string): boolean => {
+        return /maintenance mode/i.test(english.get(key)!);
+      },
+    );
+
+    expect(maintenanceMode.length).toBeGreaterThanOrEqual(11);
+
+    for (const key of maintenanceMode) {
+      const translation: string | undefined = persian.get(key);
+
+      expect({
+        key,
+        oneWord: translation?.includes("حالت تعمیر و نگهداری"),
+        dropped: droppedMaintenanceWordIn(
+          "fa",
+          english.get(key)!,
+          translation || "",
+        ),
+      }).toEqual({ key, oneWord: true, dropped: null });
+    }
   });
 });
 
