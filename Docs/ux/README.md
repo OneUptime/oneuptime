@@ -658,7 +658,9 @@ work out, starts from a default for everything else, and folds what most people 
   keys, worded by every language, each figure in the reader's digits ("۴ دقیقه ۰۵ ثانیه"), never
   `${diffSec}s`, `${minutes}m ${rest}s` or `{minutes}m {seconds}s` by hand - a Kubernetes object's
   age, an uptime and an SLA's countdown read English letters and Latin digits on every page
-  (#8455). A token the code parses back or a file's name keeps its compact English, listed with its
+  (#8455). A span's humanized duration (`getHumanizedDurationFromNanoseconds`) and the on-call
+  schedule timeline's lengths (`ScheduleTimelineLayout.formatDuration`) take the reader's
+  translator for the same reason (#8617). A token the code parses back or a file's name keeps its compact English, listed with its
   reason. Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
