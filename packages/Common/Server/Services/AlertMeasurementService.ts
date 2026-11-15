@@ -18,7 +18,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 /*
- * The three backfill columns onUpdatePermitted rewrites, named so they are
+ * The backfill columns onUpdatePermitted rewrites, named so they are
  * still checked against the model. Spelt out rather than reached through
  * Partial<Model>: this model carries enough relations that instantiating a
  * mapped type over all of it blows tsc's instantiation depth limit.
@@ -26,6 +26,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 interface BackfillFields {
   backfillRequestedAt?: Date | undefined;
   backfillCursorCreatedAt?: Date | undefined;
+  backfillCursorId?: ObjectID | undefined;
   backfillCompletedAt?: Date | undefined;
 }
 
@@ -286,6 +287,7 @@ export class Service extends ProjectReferencesService<Model> {
     backfillFields.backfillRequestedAt = OneUptimeDate.getCurrentDate();
     // Cleared, not left stale: the backfill must restart from the beginning.
     backfillFields.backfillCursorCreatedAt = null as unknown as Date;
+    backfillFields.backfillCursorId = null as unknown as ObjectID;
     backfillFields.backfillCompletedAt = null as unknown as Date;
   }
 
