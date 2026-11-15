@@ -1,13 +1,13 @@
 # Køer
 
-**Køer** gir hver meldingskø, hvert topic og hvert abonnement som applikasjonene dine bruker, en egen side: hvilke tjenester som publiserer til den og hvilke som konsumerer fra den, hvor mange meldinger som går gjennom, hvor mange som feiler og hvor lang tid behandlingen tar, sporene og metrikkene og, så snart brokerens egne metrikker når OneUptime, etterslepet, consumer-lag, dead letters og struping. Køer har etiketter, eiere, etikett- og eierregler og arkivering, som alle andre ressurser. Åpne dem under **Produkter → Ressurser → Køer**.
+**Køer** gir hver meldingskø, hvert topic og hvert abonnement som applikasjonene dine bruker, en egen side: hvilke tjenester som publiserer til den og hvilke som konsumerer fra den, hvor mange meldinger som går gjennom, hvor mange som feiler og hvor lang tid behandlingen tar, sporene og målingene og, så snart brokerens egne målinger når OneUptime, etterslepet, consumer-lag, dead letters og struping. Køer har etiketter, eiere, etikett- og eierregler og arkivering, som alle andre ressurser. Åpne dem under **Produkter → Ressurser → Køer**.
 
-**Køer → Topologi** viser hvordan meldinger flyter mellom tjenestene dine: hver kø mellom tjenestene som publiserer til den, og dem som konsumerer fra den. Hver linje viser meldingsraten, feilraten og p95-tiden, talt slik køens kort **Produsenter** og **Forbrukere** teller dem, og så snart en brokers metrikker når OneUptime, viser køene dens consumer-lag eller etterslep og dead letters. Søk i visningen, filtrer den etter broker eller behold bare det som trenger oppmerksomhet. Køens egen fane **Topologi** viser hvor meldingene kommer fra og hvor de går.
+**Køer → Topologi** viser hvordan meldinger flyter mellom tjenestene dine: hver kø mellom tjenestene som publiserer til den, og dem som konsumerer fra den. Hver linje viser meldingsraten, feilraten og p95-tiden, talt slik køens kort **Produsenter** og **Forbrukere** teller dem, og så snart en brokers målinger når OneUptime, viser køene dens consumer-lag eller etterslep og dead letters. Søk i visningen, filtrer den etter broker eller behold bare det som trenger oppmerksomhet. Køens egen fane **Topologi** viser hvor meldingene kommer fra og hvor de går.
 
 :::cards
 - [Instrumentere applikasjoner](#instrumentere-applikasjoner): Messaging-spanene som OpenTelemetry-instrumenteringen din allerede sender.
 - [Helsemålinger for brokeren](#helsemålinger-for-brokeren): Etterslep, lag og dead letters fra brokeren din, system for system.
-- [Varsling](#varsling): Ferdige maler, og forsinkede eller talte metrikker.
+- [Varsling](#varsling): Ferdige maler, og forsinkede eller talte målinger.
 - [Feilsøking](#feilsøking): En kø som ikke ble opprettet, eller en brokerhelse som forblir tom.
 :::
 
@@ -29,7 +29,7 @@ flowchart TB
 
 Spor forteller OneUptime at en kø finnes og hvordan applikasjoner bruker den, men ikke hvor full den er. Det kommer fra selve brokeren eller fra skyleverandørens overvåkings-API, eller, for [BullMQ](#bullmq), som holder jobbene sine i Redis og ikke har noen broker å spørre, fra en gauge som applikasjonen rapporterer.
 
-Du kan også legge til en kø manuelt: **Køer → Opprett Kø**, med meldingssystemet og navnet på destinasjonen og, for Azure Service Bus og Event Hubs, namespacet. Skjemaet spør om disse i første trinn, **Meldingssystem**, deretter om et valgfritt navn og en beskrivelse, med etiketter under **Flere felt** (**Køinformasjon**). La namespacet stå tomt bare for en kø som applikasjonene dine når via en emulator eller et egendefinert domenenavn: spanene deres navngir ikke noe namespace, og metrikkene fra Azure Monitor når aldri en slik kø (se [Begrensninger](#begrensninger)).
+Du kan også legge til en kø manuelt: **Køer → Opprett Kø**, med meldingssystemet og navnet på destinasjonen og, for Azure Service Bus og Event Hubs, namespacet. Skjemaet spør om disse i første trinn, **Meldingssystem**, deretter om et valgfritt navn og en beskrivelse, med etiketter under **Flere felt** (**Køinformasjon**). La namespacet stå tomt bare for en kø som applikasjonene dine når via en emulator eller et egendefinert domenenavn: spanene deres navngir ikke noe namespace, og målingene fra Azure Monitor når aldri en slik kø (se [Begrensninger](#begrensninger)).
 
 ## Kom i gang
 
@@ -38,24 +38,24 @@ Du kan også legge til en kø manuelt: **Køer → Opprett Kø**, med meldingssy
 
 Instrumenter applikasjonene som publiserer og konsumerer, og send sporene deres til OneUptime (se [Instrumentere applikasjoner](#instrumentere-applikasjoner)). Ingenting OneUptime-spesifikt trengs: messaging-spanene som instrumenteringen din allerede lager, navngir køene.
 
-### Send metrikkene fra brokeren din
+### Send målingene fra brokeren din
 
 Finn meldingssystemet ditt under [Helsemålinger for brokeren](#helsemålinger-for-brokeren), og kjør collector-konfigurasjonen for det med inntaksnøkkelen din. Fanen **Dokumentasjon** på hver kø har konfigurasjonen for den køen, klar til å kopieres.
 
 ### Åpne køen
 
-Åpne **Produkter → Ressurser → Køer**. Oppdagelsen kjører hvert 10. minutt: en kø dukker opp så snart minst 3 av spanene dens har kommet inn innen 15 minutter, eller en brokermetrikk har navngitt den.
+Åpne **Produkter → Ressurser → Køer**. Oppdagelsen kjører hvert 10. minutt: en kø dukker opp så snart minst 3 av spanene dens har kommet inn innen 15 minutter, eller en brokermåling har navngitt den.
 :::
 
 ## Støttede meldingssystemer
 
 OneUptime kjenner meldingssystemene nedenfor ved navn. Den normaliserer det instrumenteringer legger i `messaging.system`, til verdien i den andre kolonnen (den kjente OpenTelemetry-verdien der det finnes en) uten hensyn til store og små bokstaver, så `AmazonSQS`, `aws.sqs` og `aws_sqs` er ett system. `nats` og `bullmq` er ikke kjente OpenTelemetry-verdier: `nats` er det NATS-instrumenteringen i Java-agenten rapporterer, og `bullmq` er verdien du setter for BullMQ (se [BullMQ](#bullmq)).
 
-Et system som OneUptime ikke kjenner, fungerer likevel: en velformet verdi (`ibmmq`, `solace`, `mqtt`: små bokstaver, sifre, `.`, `_` og `-`, opptil 64 tegn) beholdes slik den kom, så køene til den brokeren oppdages og vises under det navnet; bare brokerens egne metrikker trenger et system fra denne tabellen. `spring_integration` ignoreres: kanalene i Spring Integration er metodekall i én prosess, ikke en broker.
+Et system som OneUptime ikke kjenner, fungerer likevel: en velformet verdi (`ibmmq`, `solace`, `mqtt`: små bokstaver, sifre, `.`, `_` og `-`, opptil 64 tegn) beholdes slik den kom, så køene til den brokeren oppdages og vises under det navnet; bare brokerens egne målinger trenger et system fra denne tabellen. `spring_integration` ignoreres: kanalene i Spring Integration er metodekall i én prosess, ikke en broker.
 
-**Brokermålinger** sier hvor helsemetrikkene til et system kommer fra: en collector-contrib-receiver, et Prometheus-endepunkt (`:port/path`, skrapet med collectorens `prometheus`-receiver), skyleverandørens overvåkings-API eller et program utenfor collectoren som sender dem over OTLP. Hvert system lenker nedenfor til oppsettet sitt, og fanen **Dokumentasjon** på hver kø gjør det om til en konfigurasjon for den køen.
+**Brokermålinger** sier hvor helsemålingene til et system kommer fra: en collector-contrib-receiver, et Prometheus-endepunkt (`:port/path`, skrapet med collectorens `prometheus`-receiver), skyleverandørens overvåkings-API eller et program utenfor collectoren som sender dem over OTLP. Hvert system lenker nedenfor til oppsettet sitt, og fanen **Dokumentasjon** på hver kø gjør det om til en konfigurasjon for den køen.
 
-| System | `messaging.system` | Godtas også | Brokermetrikker |
+| System | `messaging.system` | Godtas også | Brokermålinger |
 | --- | --- | --- | --- |
 | [Amazon SNS](#amazon-sns) | `aws.sns` | `aws_sns`, `amazonsns`, `sns` | receiver `aws_cloudwatch` eller `awsfirehose` (skyovervåking) |
 | [Amazon SQS](#amazon-sqs) | `aws_sqs` | `aws.sqs`, `amazonsqs`, `sqs` | receiver `aws_cloudwatch` eller `awsfirehose` (skyovervåking) |
@@ -72,11 +72,11 @@ Et system som OneUptime ikke kjenner, fungerer likevel: en velformet verdi (`ibm
 | [NATS](#nats) | `nats` | `jetstream` | Prometheus (prometheus-nats-exporter), `:7777/metrics` |
 | [RabbitMQ](#rabbitmq) | `rabbitmq` | — | receiver `rabbitmq` |
 
-En kø er én destinasjon i ett system. For **Azure Service Bus** og **Azure Event Hubs** er namespacet også en del av den, siden to namespaces hver kan inneholde en kø som heter `orders`. **JMS** og **Apache ActiveMQ** deler køene sine: Java-applikasjoner når ActiveMQ gjennom JMS-API-et, der spanene sier `jms` uansett broker, mens brokerens egne metrikker bare kan si `activemq`, så begge havner på én kø (se [Hva som gjør to observasjoner til én kø](#hva-som-gjør-to-observasjoner-til-én-kø)).
+En kø er én destinasjon i ett system. For **Azure Service Bus** og **Azure Event Hubs** er namespacet også en del av den, siden to namespaces hver kan inneholde en kø som heter `orders`. **JMS** og **Apache ActiveMQ** deler køene sine: Java-applikasjoner når ActiveMQ gjennom JMS-API-et, der spanene sier `jms` uansett broker, mens brokerens egne målinger bare kan si `activemq`, så begge havner på én kø (se [Hva som gjør to observasjoner til én kø](#hva-som-gjør-to-observasjoner-til-én-kø)).
 
 ## Hvordan køer oppdages
 
-Hver kø registrerer om det var spor, brokermetrikker eller en person som opprettet den. Alt som senere navngir den samme køen, legges til den i stedet for å opprette en ny (se [Hva som gjør to observasjoner til én kø](#hva-som-gjør-to-observasjoner-til-én-kø)).
+Hver kø registrerer om det var spor, brokermålinger eller en person som opprettet den. Alt som senere navngir den samme køen, legges til den i stedet for å opprette en ny (se [Hva som gjør to observasjoner til én kø](#hva-som-gjør-to-observasjoner-til-én-kø)).
 
 ### Fra applikasjonsspor
 
@@ -94,30 +94,30 @@ En kø **opprettes** fra spor så snart spanene dens i 15-minuttersvinduet som e
 
 Hvert messaging-span merkes også med køen sin når det tas inn, så fanen **Spor** for køen viser hvert span som navngir den, også span som ble sendt før køen ble opprettet.
 
-### Fra brokermetrikker
+### Fra brokermålinger
 
-En brokermetrikk fra listene under [Helsemålinger for brokeren](#helsemålinger-for-brokeren) navngir køen sin i brokerens egen attributt (Kafkas `topic`, RabbitMQs `rabbitmq.queue.name`, Azure Monitors dimensjon `EntityName`, CloudWatchs `QueueName`), og OneUptime knytter den til den køen når den tas inn. Brokermetrikker bærer ikke `messaging.system`: hver av dem gjenkjennes på navnet (`kafka.consumer_group.lag_sum`) og, der to systemer deler et navn (Azure Monitor navngir metrikkene til Service Bus og Event Hubs likt), på ressurstypen som datapunktet bærer.
+En brokermåling fra listene under [Helsemålinger for brokeren](#helsemålinger-for-brokeren) navngir køen sin i brokerens egen attributt (Kafkas `topic`, RabbitMQs `rabbitmq.queue.name`, Azure Monitors dimensjon `EntityName`, CloudWatchs `QueueName`), og OneUptime knytter den til den køen når den tas inn. Brokermålinger bærer ikke `messaging.system`: hver av dem gjenkjennes på navnet (`kafka.consumer_group.lag_sum`) og, der to systemer deler et navn (Azure Monitor navngir målingene til Service Bus og Event Hubs likt), på ressurstypen som datapunktet bærer.
 
-Neste oppdagelseskjøring oppretter køen hvis den ikke finnes ennå: én brokermetrikk er nok, innenfor [budsjettet for automatisk oppretting](#budsjettet-for-automatisk-oppretting). Så en kø som ingen instrumentert applikasjon berører, dukker likevel opp så snart brokeren rapporterer den.
+Neste oppdagelseskjøring oppretter køen hvis den ikke finnes ennå: én brokermåling er nok, innenfor [budsjettet for automatisk oppretting](#budsjettet-for-automatisk-oppretting). Så en kø som ingen instrumentert applikasjon berører, dukker likevel opp så snart brokeren rapporterer den.
 
-Skyovervåkings-API-er (CloudWatch, Azure Monitor og Cloud Monitoring) publiserer hvert tall minutter etter tidspunktet det måler, og det lagres under det tidspunktet. Derfor leser hver kjøring metrikkene deres fra den siste timen i stedet for fra de siste 15 minuttene som den leser span og andre metrikker fra: et datapunkt som kommer for sent, observerer likevel køen sin, eller oppretter den.
+Skyovervåkings-API-er (CloudWatch, Azure Monitor og Cloud Monitoring) publiserer hvert tall minutter etter tidspunktet det måler, og det lagres under det tidspunktet. Derfor leser hver kjøring målingene deres fra den siste timen i stedet for fra de siste 15 minuttene som den leser span og andre målinger fra: et datapunkt som kommer for sent, observerer likevel køen sin, eller oppretter den.
 
-### Fra metrikker fra meldingsklienter
+### Fra målinger fra meldingsklienter
 
-Instrumenterte klienter kan også rapportere metrikker: OpenTelemetrys metrikker for meldingsklienter `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration` og `messaging.process.duration`, de eldre navnene deres `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages` og `messaging.client.published.messages`, og metrikkene til Azure SDK for Java `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration` og `messaging.servicebus.settlement.sequence_number`. Hvert datapunkt navngir systemet og destinasjonen sin slik et span gjør (Service Bus-metrikkene fra Azure SDK navngir ikke noe system, så navnet deres står for det), og knyttes til den køen når det tas inn, så det vises på fanen **Målinger** for køen. Det samme gjelder alle egne metrikker som bærer `messaging.system` og `messaging.destination.name` på hvert datapunkt (ikke på ressursen, der de ikke leses), som en gauge for kødybden (se [BullMQ](#bullmq)).
+Instrumenterte klienter kan også rapportere målinger: OpenTelemetrys målinger for meldingsklienter `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration` og `messaging.process.duration`, de eldre navnene deres `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages` og `messaging.client.published.messages`, og målingene til Azure SDK for Java `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration` og `messaging.servicebus.settlement.sequence_number`. Hvert datapunkt navngir systemet og destinasjonen sin slik et span gjør (Service Bus-målingene fra Azure SDK navngir ikke noe system, så navnet deres står for det), og knyttes til den køen når det tas inn, så det vises på fanen **Målinger** for køen. Det samme gjelder alle egne målinger som bærer `messaging.system` og `messaging.destination.name` på hvert datapunkt (ikke på ressursen, der de ikke leses), som en gauge for kødybden (se [BullMQ](#bullmq)).
 
-Metrikker fra meldingsklienter oppretter aldri en kø: det gjør spor, brokermetrikker eller en person. En klientmetrikk som navngir en eksisterende kø, holder **Sist sett** for den oppdatert, slik spanene dens gjør. En egen metrikk gjør ingen av delene: den vises bare på fanen **Målinger** for køen.
+Målinger fra meldingsklienter oppretter aldri en kø: det gjør spor, brokermålinger eller en person. En klientmåling som navngir en eksisterende kø, holder **Sist sett** for den oppdatert, slik spanene dens gjør. En egen måling gjør ingen av delene: den vises bare på fanen **Målinger** for køen.
 
 ### Hva som gjør to observasjoner til én kø
 
 Identiteten til en kø er **systemet** og **destinasjonen**, sammenlignet uten hensyn til store og små bokstaver: `Orders` og `orders` er én kø, vist under navnet slik det først ble sett. For Azure Service Bus og Event Hubs inneholder identiteten også **namespacet**:
 
 - på et span den første DNS-etiketten i verten som SDK-et koblet til, fra `server.address`, `net.peer.name`, `peer.address` eller `network.peer.address` i den rekkefølgen, når den verten er en namespace-vert: `<namespace>.servicebus.windows.net`, eller `.servicebus.usgovcloudapi.net`, `.servicebus.chinacloudapi.cn` eller `.servicebus.cloudapi.de` i en suveren sky. Event Hubs deler domenet til Service Bus;
-- på en Azure Monitor-metrikk `name` for namespacet den rapporterer om.
+- på en Azure Monitor-måling `name` for namespacet den rapporterer om.
 
 Ingenting annet er en del av den, så ingenting av dette deler noen gang en kø: brokerens adresse (Kafka-klienter rapporterer sjelden en, og et Azure-namespace svarer på mange), consumergruppen eller abonnementet (konsumentene av et topic er ikke egne køer), partisjonen og en dead-letter-underkø. Av disse beholder en kø bare brokerens adresse, til visning.
 
-**JMS og ActiveMQ er én familie.** Hvert JMS-span sier `jms` uansett hvilken broker som står bak, og brokerens egne metrikker ([OpenTelemetry JMX Scraper](#apache-activemq)) kan bare si `activemq`, så OneUptime identifiserer en ActiveMQ-kø ved JMS-familien dens: spanene og brokermetrikkene for `orders` havner på én kø. Den vises som JMS til brokerens metrikker kommer, og som Apache ActiveMQ fra da av, aldri omvendt. En kø du oppretter manuelt som Apache ActiveMQ, er den samme køen.
+**JMS og ActiveMQ er én familie.** Hvert JMS-span sier `jms` uansett hvilken broker som står bak, og brokerens egne målinger ([OpenTelemetry JMX Scraper](#apache-activemq)) kan bare si `activemq`, så OneUptime identifiserer en ActiveMQ-kø ved JMS-familien dens: spanene og brokermålingene for `orders` havner på én kø. Den vises som JMS til brokerens målinger kommer, og som Apache ActiveMQ fra da av, aldri omvendt. En kø du oppretter manuelt som Apache ActiveMQ, er den samme køen.
 
 ### Hvordan destinasjonsnavn leses
 
@@ -139,7 +139,7 @@ Instrumenteringer navngir én kø på mange måter, og OneUptime reduserer det d
 | RabbitMQ | `,orders`, aio-pikas `{exchange},{routing key}` gjennom standard-exchangen | `orders` |
 | RabbitMQ | `shop,new-order`, aio-pikas `{exchange},{routing key}` | `shop` |
 
-En Pulsar-partisjon slås sammen med topicet sitt, og et navn uten domene fullføres slik Pulsar selv fullfører det (et kort navn i namespacet `public/default`), så navnene fra Java-agenten møter brokernes fullt kvalifiserte metrikketiketter. Et RabbitMQ-span navngir vanligvis exchangen en melding gikk gjennom, både på den publiserende og den konsumerende siden; standard-exchangen (`amq.default`, `<default>` eller et tomt navn) står for routing-nøkkelen sin, som er køens navn. De semantiske konvensjonene 1.30 setter sammen exchange, routing-nøkkel og kø med `:` (Java-agentens opt-in-navn), og OneUptime tar køen fra en konsuments sammensatte navn og exchangen fra en publisherers. aio-pika setter sammen exchange og routing-nøkkel med et komma på den publiserende siden, og OneUptime deler det på samme måte.
+En Pulsar-partisjon slås sammen med topicet sitt, og et navn uten domene fullføres slik Pulsar selv fullfører det (et kort navn i namespacet `public/default`), så navnene fra Java-agenten møter brokernes fullt kvalifiserte målingsetiketter. Et RabbitMQ-span navngir vanligvis exchangen en melding gikk gjennom, både på den publiserende og den konsumerende siden; standard-exchangen (`amq.default`, `<default>` eller et tomt navn) står for routing-nøkkelen sin, som er køens navn. De semantiske konvensjonene 1.30 setter sammen exchange, routing-nøkkel og kø med `:` (Java-agentens opt-in-navn), og OneUptime tar køen fra en konsuments sammensatte navn og exchangen fra en publisherers. aio-pika setter sammen exchange og routing-nøkkel med et komma på den publiserende siden, og OneUptime deler det på samme måte.
 
 ### Hva som ignoreres
 
@@ -156,11 +156,11 @@ OneUptime heller mot ingen kø: et navn som lages per forespørsel eller per kon
 
 ### Budsjettet for automatisk oppretting
 
-Spor og brokermetrikker oppretter bare køer selv så lenge prosjektet har færre enn 500 aktive, ikke-arkiverte oppdagede køer (`MESSAGE_QUEUE_AUTO_CREATE_BUDGET`, se [Justering for selvhosting](#justering-for-selvhosting)). Køer du oppretter manuelt, teller aldri og blokkeres aldri; arkiverte køer teller ikke, så [automatisk arkivering](#livssyklus-og-arkivering) frigjør budsjett; og køer som allerede finnes, fortsetter å bli matchet og oppdatert.
+Spor og brokermålinger oppretter bare køer selv så lenge prosjektet har færre enn 500 aktive, ikke-arkiverte oppdagede køer (`MESSAGE_QUEUE_AUTO_CREATE_BUDGET`, se [Justering for selvhosting](#justering-for-selvhosting)). Køer du oppretter manuelt, teller aldri og blokkeres aldri; arkiverte køer teller ikke, så [automatisk arkivering](#livssyklus-og-arkivering) frigjør budsjett; og køer som allerede finnes, fortsetter å bli matchet og oppdatert.
 
 ### Livssyklus og arkivering
 
-- **Sist sett** er når oppdagelsen sist så køen, i spor, metrikker fra meldingsklienter eller brokermetrikker.
+- **Sist sett** er når oppdagelsen sist så køen, i spor, målinger fra meldingsklienter eller brokermålinger.
 - **Arkiver for å avvise.** Å slette en oppdaget kø fjerner den bare til den blir sett igjen: neste observasjon bringer den tilbake som en ny kø. For å avvise en for godt **arkiverer** du den. En arkivert kø beholder identiteten sin, så alt som navngir den, forblir knyttet til den arkiverte køen i stedet for å opprette en ny.
 - **Automatisk arkivering.** En oppdaget kø som ikke er sett på 7 dager (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`), arkiveres automatisk, med mindre en person har gitt den nytt navn, beskrevet den, gitt den etiketter eller gitt den eiere. Etiketter og eiere som etikett- eller eierregler har knyttet til av seg selv, teller ikke.
 - **Gjenoppretting.** En automatisk arkivert kø gjenopprettes automatisk når den blir sett igjen. Køer du har opprettet manuelt, og køer som en person har arkivert, arkiveres eller gjenopprettes aldri av oppdagelsen. En kø som en person gjenoppretter, forblir gjenopprettet i 30 dager (eller arkivvinduet, hvis det er lengre) selv om ingenting ser den; fra neste observasjon gjelder 7-dagersregelen igjen.
@@ -214,15 +214,15 @@ builder.Services.AddOpenTelemetry()
 
 En broker vet det ingen applikasjon kan se: hvor mange meldinger som venter, hvor langt hver consumergruppe ligger etter, hva som havnet i en dead-letter-kø. Hver seksjon nedenfor har collector-konfigurasjonen for ett system: en komplett OpenTelemetry Collector-konfigurasjon som slutter med OTLP-eksportøren som sender til OneUptime. Legg en telemetri-inntaksnøkkel (**Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**) i `x-oneuptime-token`, erstatt `https://oneuptime.com` med din egen vert hvis du selvhoster, og kjør den med `otel/opentelemetry-collector-contrib` 0.161.0 eller nyere (hver konfigurasjon her er validert mot 0.161.0). Nyere collectorer logger at `otlphttp` er foreldet til fordel for `otlp_http`; begge navnene er den samme eksportøren. For å samle inn flere systemer slår du sammen receiverne deres i én collector.
 
-Seksjonen **Brokerhelse** for hver kø viser metrikkene som er oppført for systemet (en gauge som verdien sin, et antall per periode summert per intervall, en teller som rate per sekund), og kombinerer en køs serier slik hver metrikk krever (de klare og ubekreftede meldingene i en RabbitMQ-kø legges sammen; consumergruppen som ligger lengst etter, er lag-en). Alt collectoren sender, finnes også i utforskeren **Målinger**. Så lenge ingen oppført metrikk har kommet inn for en kø, viser seksjonen hvor metrikkene til det systemet kommer fra, med en lenke til seksjonen for det her.
+Seksjonen **Brokerhelse** for hver kø viser målingene som er oppført for systemet (en gauge som verdien sin, et antall per periode summert per intervall, en teller som rate per sekund), og kombinerer en køs serier slik hver måling krever (de klare og ubekreftede meldingene i en RabbitMQ-kø legges sammen; consumergruppen som ligger lengst etter, er lag-en). Alt collectoren sender, finnes også i utforskeren **Målinger**. Så lenge ingen oppført måling har kommet inn for en kø, viser seksjonen hvor målingene til det systemet kommer fra, med en lenke til seksjonen for det her.
 
 Der ingen applikasjon med sporing publiserer til eller konsumerer fra en kø, leser køens fliser **Publisert**, **Konsumert** og **Feil** og grafen **Meldinger** i stedet brokerens egne tellinger (meldinger inn, meldinger ut og feilene lagt sammen, med strupte forespørsler talt for seg under **Feil**), og hver av dem sier det under tallet sitt. En kø med span beholder dem, siden de sier hvilken tjeneste som gjorde hva. Flisen **p95-behandlingstid** kommer bare fra sporene til consumerne, fordi ingen broker måler hvor lenge en consumer bruker på en melding: uten dem står det **Krever spor fra forbrukere**.
 
-Kortet **Brokermålinger** øverst i seksjonen viser hver metrikk som vises i grafer for køens system: om den har kommet inn for køen i det valgte tidsrommet, når den sist gjorde det, og hvorfor hver av de andre ikke gjorde det. Et antall kan ha ingenting å melde (ingen strupte forespørsler er gode nyheter); et nivå brokeren melder hele tiden og som aldri kommer inn, er et collectoren ikke ber om, og kortet gir linjene konfigurasjonen trenger; en metrikk kan også slutte å komme inn. For en Service Bus- eller Event Hubs-kø der ingen av metrikkene kommer inn, leser kortet også hva namespacet sender i stedet (se [Brokerhelsen forblir tom](#brokerhelsen-forblir-tom)). Under sammendraget sier kortet hva som har lest køens metrikker i det siste: collectorens receiver, skytilkoblingene dine, med lenke til **Sky → Koble til**, eller begge. På en kø som bare et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser, er en metrikk abonnementet ikke leser **Bare collector**, med linjen som legger den til i receiveren, i stedet for å mangle.
+Kortet **Brokermålinger** øverst i seksjonen viser hver måling som vises i grafer for køens system: om den har kommet inn for køen i det valgte tidsrommet, når den sist gjorde det, og hvorfor hver av de andre ikke gjorde det. Et antall kan ha ingenting å melde (ingen strupte forespørsler er gode nyheter); et nivå brokeren melder hele tiden og som aldri kommer inn, er et collectoren ikke ber om, og kortet gir linjene konfigurasjonen trenger; en måling kan også slutte å komme inn. For en Service Bus- eller Event Hubs-kø der ingen av målingene kommer inn, leser kortet også hva namespacet sender i stedet (se [Brokerhelsen forblir tom](#brokerhelsen-forblir-tom)). Under sammendraget sier kortet hva som har lest køens målinger i det siste: collectorens receiver, skytilkoblingene dine, med lenke til **Sky → Koble til**, eller begge. På en kø som bare et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser, er en måling abonnementet ikke leser **Bare collector**, med linjen som legger den til i receiveren, i stedet for å mangle.
 
 ### Amazon SNS
 
-Les CloudWatch-metrikkene til topicene med collectorens `aws_cloudwatch`-receiver, eller strøm dem gjennom en CloudWatch Metric Stream og Amazon Data Firehose til dens `awsfirehose`-receiver.
+Les CloudWatch-målingene til topicene med collectorens `aws_cloudwatch`-receiver, eller strøm dem gjennom en CloudWatch Metric Stream og Amazon Data Firehose til dens `awsfirehose`-receiver.
 
 `aws_cloudwatch`-receiveren spør CloudWatchs API `GetMetricData`, ett namespace per receiver, så SNS får sin egen instans ved siden av instansen for [Amazon SQS](#amazon-sqs). Den bruker standardlegitimasjonen til AWS SDK (miljø, delt profil eller instansrolle), som trenger `cloudwatch:ListMetrics` og `cloudwatch:GetMetricData`:
 
@@ -260,7 +260,7 @@ La `stats` stå usatt, som for [Amazon SQS](#amazon-sqs). En Metric Stream bære
 
 Et topic navngis likt fra begge sider: spanene rapporterer ARN-et eller navnet, og OneUptime beholder navnet etter den siste `:` i ARN-et.
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-strøm: `numberofmessagespublished`) | Publiserte meldinger | Antall per periode |
 | `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-strøm: `numberofnotificationsdelivered`) | Leverte varsler | Antall per periode |
@@ -269,7 +269,7 @@ Et topic navngis likt fra begge sider: spanene rapporterer ARN-et eller navnet, 
 
 ### Amazon SQS
 
-Les CloudWatch-metrikkene til køene med collectorens `aws_cloudwatch`-receiver, eller strøm dem gjennom en CloudWatch Metric Stream og Amazon Data Firehose til dens `awsfirehose`-receiver.
+Les CloudWatch-målingene til køene med collectorens `aws_cloudwatch`-receiver, eller strøm dem gjennom en CloudWatch Metric Stream og Amazon Data Firehose til dens `awsfirehose`-receiver.
 
 **Spørring mot CloudWatch** trenger ingenting på AWS-siden utenom legitimasjon. Receiveren bruker standardlegitimasjonen til AWS SDK (miljø, delt profil eller instansrolle), som trenger `cloudwatch:ListMetrics` og `cloudwatch:GetMetricData`:
 
@@ -304,12 +304,12 @@ service:
       exporters: [otlphttp]
 ```
 
-- **La `stats` stå usatt.** Uten den kommer hver metrikk som ett sammendrag per periode, og det er det OneUptime leser; med den blir hver statistikk en egen serie, og grafene blander dem.
-- `discovery.limit` må være satt, og begrenser metrikkene som leses per skraping: rundt ni per kø. Hver av dem koster fire delspørringer mot `GetMetricData` per skraping, som AWS fakturerer.
-- `delay` venter på at CloudWatch publiserer en periode (det tar noen minutter), så med denne konfigurasjonen kommer brokermetrikkene for en kø 11 til 17 minutter for sent: en monitor over dem trenger et lengre vindu (se **Forsinkede metrikker** under [Varsling](#varsling)).
+- **La `stats` stå usatt.** Uten den kommer hver måling som ett sammendrag per periode, og det er det OneUptime leser; med den blir hver statistikk en egen serie, og grafene blander dem.
+- `discovery.limit` må være satt, og begrenser målingene som leses per skraping: rundt ni per kø. Hver av dem koster fire delspørringer mot `GetMetricData` per skraping, som AWS fakturerer.
+- `delay` venter på at CloudWatch publiserer en periode (det tar noen minutter), så med denne konfigurasjonen kommer brokermålingene for en kø 11 til 17 minutter for sent: en monitor over dem trenger et lengre vindu (se **Forsinkede målinger** under [Varsling](#varsling)).
 - Én receiver leser én region og ett namespace: legg til en instans per region.
 
-**Strømmer**: sender metrikkene etter hvert som CloudWatch publiserer dem. Opprett en CloudWatch Metric Stream for namespacene `AWS/SQS` (og `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som leverer til en Amazon Data Firehose-strøm der destinasjonen er et HTTP-endepunkt: collectoren din, med en tilgangsnøkkel. Firehose leverer bare til `https://` på port 443, så collectoren trenger et sertifikat og en offentlig port 443 (for eksempel bak en lastbalanserer):
+**Strømmer**: sender målingene etter hvert som CloudWatch publiserer dem. Opprett en CloudWatch Metric Stream for namespacene `AWS/SQS` (og `AWS/SNS`) med utdataformatet **OpenTelemetry 1.0**, som leverer til en Amazon Data Firehose-strøm der destinasjonen er et HTTP-endepunkt: collectoren din, med en tilgangsnøkkel. Firehose leverer bare til `https://` på port 443, så collectoren trenger et sertifikat og en offentlig port 443 (for eksempel bak en lastbalanserer):
 
 ```yaml
 extensions:
@@ -345,11 +345,11 @@ service:
       exporters: [otlphttp]
 ```
 
-En strøm i utdataformatet **JSON** (`format: json`) fungerer også: den sender hver metrikk under det rene navnet, og OneUptime skiller SQS-metrikkene fra SNS-metrikkene på `service.name` som strømmen setter (`SQS`, `SNS`).
+En strøm i utdataformatet **JSON** (`format: json`) fungerer også: den sender hver måling under det rene navnet, og OneUptime skiller SQS-målingene fra SNS-målingene på `service.name` som strømmen setter (`SQS`, `SNS`).
 
-En dead-letter-kø er en vanlig SQS-kø med egne metrikker, så den er en egen kø i OneUptime. Køer navngis bare ved navnet, ikke ved kontoen eller regionen (se [Begrensninger](#begrensninger)).
+En dead-letter-kø er en vanlig SQS-kø med egne målinger, så den er en egen kø i OneUptime. Køer navngis bare ved navnet, ikke ved kontoen eller regionen (se [Begrensninger](#begrensninger)).
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `amazonaws.com/aws/sqs/approximatenumberofmessagesvisible` (JSON-strøm: `approximatenumberofmessagesvisible`) | Synlige meldinger | Gauge |
 | `amazonaws.com/aws/sqs/approximateageofoldestmessage` (JSON-strøm: `approximateageofoldestmessage`) | Alder på eldste melding | Gauge |
@@ -360,7 +360,7 @@ En dead-letter-kø er en vanlig SQS-kø med egne metrikker, så den er en egen k
 
 ### Apache ActiveMQ
 
-Collectoren har ingen JMX-receiver, så kjør OpenTelemetry JMX Scraper med `OTEL_JMX_TARGET_SYSTEM=activemq` ved siden av en ActiveMQ Classic-broker; den sender brokerens destinasjonsmetrikker over OTLP.
+Collectoren har ingen JMX-receiver, så kjør OpenTelemetry JMX Scraper med `OTEL_JMX_TARGET_SYSTEM=activemq` ved siden av en ActiveMQ Classic-broker; den sender brokerens destinasjonsmålinger over OTLP.
 
 1. La brokeren godta JMX-tilkoblinger. Med imaget `apache/activemq-classic` eller skriptet `bin/activemq` setter du `ACTIVEMQ_SUNJMX_START` før du starter den. Dette eksemplet slår av autentisering: hold porten på et privat nettverk, eller slå på `jmxremote.authenticate` med en passordfil og gi scraperen `OTEL_JMX_USERNAME` og `OTEL_JMX_PASSWORD`.
 
@@ -384,11 +384,11 @@ export OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOK
 java -jar opentelemetry-jmx-scraper.jar
 ```
 
-`OTEL_JMX_TARGET_SOURCE=instrumentation` beholder metrikknavnene som scraperen har brukt siden 1.53.0-alpha (`activemq.message.queue.size`, med destinasjonen i `messaging.destination.name`). OneUptime leser også navnene fra eldre scrapere og fra `OTEL_JMX_TARGET_SOURCE=legacy` (`activemq.message.current`, med destinasjonen i `destination`).
+`OTEL_JMX_TARGET_SOURCE=instrumentation` beholder målingsnavnene som scraperen har brukt siden 1.53.0-alpha (`activemq.message.queue.size`, med destinasjonen i `messaging.destination.name`). OneUptime leser også navnene fra eldre scrapere og fra `OTEL_JMX_TARGET_SOURCE=legacy` (`activemq.message.current`, med destinasjonen i `destination`).
 
-Brokerens metrikker slutter seg til køen som spanene fra JMS-klientene dens opprettet, og fra da av vises køen som Apache ActiveMQ (se [Hva som gjør to observasjoner til én kø](#hva-som-gjør-to-observasjoner-til-én-kø)). Scraperen rapporterer hver destinasjon: OneUptime ignorerer advisory-topicene, mens dead-letter-køer (`ActiveMQ.DLQ`, eller `DLQ.<destination>` med en individuell dead-letter-strategi) er egne køer. ActiveMQ Artemis har andre MBeans, som disse reglene ikke leser: Artemis-køer kommer fortsatt fra JMS-spanene sine, uten brokerhelse.
+Brokerens målinger slutter seg til køen som spanene fra JMS-klientene dens opprettet, og fra da av vises køen som Apache ActiveMQ (se [Hva som gjør to observasjoner til én kø](#hva-som-gjør-to-observasjoner-til-én-kø)). Scraperen rapporterer hver destinasjon: OneUptime ignorerer advisory-topicene, mens dead-letter-køer (`ActiveMQ.DLQ`, eller `DLQ.<destination>` med en individuell dead-letter-strategi) er egne køer. ActiveMQ Artemis har andre MBeans, som disse reglene ikke leser: Artemis-køer kommer fortsatt fra JMS-spanene sine, uten brokerhelse.
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `activemq.message.queue.size` | Køstørrelse | Gauge |
 | `activemq.message.current` | Køstørrelse (gamle navn) | Gauge |
@@ -436,9 +436,9 @@ service:
       exporters: [otlphttp]
 ```
 
-For en klynge med SASL eller TLS fjerner du kommentaren fra `auth` og `tls`. Receiveren navngir hvert topic i `topic`, og det er slik metrikkene finner køen til topicet. Den rapporterer lag og committede offsets for en consumergruppe bare på topics der gruppen har committet et offset, og hopper over topics der navnet starter med `_`, Kafkas interne (`topic_match` er som standard `^[^_].*$`).
+For en klynge med SASL eller TLS fjerner du kommentaren fra `auth` og `tls`. Receiveren navngir hvert topic i `topic`, og det er slik målingene finner køen til topicet. Den rapporterer lag og committede offsets for en consumergruppe bare på topics der gruppen har committet et offset, og hopper over topics der navnet starter med `_`, Kafkas interne (`topic_match` er som standard `^[^_].*$`).
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `kafka.consumer_group.lag_sum` | Forbrukerforsinkelse | Gauge |
 | `kafka.consumer_group.lag` | Partisjonsforsinkelse | Gauge |
@@ -447,7 +447,7 @@ For en klynge med SASL eller TLS fjerner du kommentaren fra `auth` og `tls`. Rec
 
 ### Apache Pulsar
 
-Hver broker leverer topic- og abonnementsmetrikkene sine på porten til webtjenesten sin; skrap hver broker, for en broker rapporterer bare topicene den eier for øyeblikket.
+Hver broker leverer topic- og abonnementsmålingene sine på porten til webtjenesten sin; skrap hver broker, for en broker rapporterer bare topicene den eier for øyeblikket.
 
 ```yaml
 receivers:
@@ -488,9 +488,9 @@ service:
 - Etterslepet telles i oppføringer, og Pulsar teller en batch med meldinger som én oppføring.
 - Pulsar gjentar `pulsar_out_messages_total` per konsument når `exposeConsumerLevelMetricsInPrometheus=true`; de seriene per konsument holdes utenfor grafene, så ingen melding telles to ganger.
 - `pulsar_storage_backlog_age_seconds` viser `-1` så lenge brokeren ikke kan si det.
-- De innebygde OpenTelemetry-metrikkene i Pulsar 3.3 og nyere (eksperimentelle, av som standard) bruker andre navn, som ikke vises i grafer.
+- De innebygde OpenTelemetry-målingene i Pulsar 3.3 og nyere (eksperimentelle, av som standard) bruker andre navn, som ikke vises i grafer.
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `pulsar_msg_backlog` | Etterslep | Gauge |
 | `pulsar_subscription_back_log` | Abonnementets etterslep | Gauge |
@@ -500,7 +500,7 @@ service:
 
 ### Apache RocketMQ
 
-Sett `metricsExporterType=PROM` i brokerens `broker.conf` slik at brokeren leverer lag- og gjennomstrømningsmetrikkene sine.
+Sett `metricsExporterType=PROM` i brokerens `broker.conf` slik at brokeren leverer lag- og gjennomstrømningsmålingene sine.
 
 ```text
 metricsExporterType=PROM
@@ -538,9 +538,9 @@ service:
       exporters: [otlphttp]
 ```
 
-Dette er den innebygde eksportøren i RocketMQ 5. RocketMQ 4 har ingen; den separate `rocketmq-exporter` som den bruker, rapporterer andre metrikknavn, som ikke vises i grafer. Dead-letter-topicet til en consumergruppe (`%DLQ%<group>`) er en egen kø.
+Dette er den innebygde eksportøren i RocketMQ 5. RocketMQ 4 har ingen; den separate `rocketmq-exporter` som den bruker, rapporterer andre målingsnavn, som ikke vises i grafer. Dead-letter-topicet til en consumergruppe (`%DLQ%<group>`) er en egen kø.
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `rocketmq_consumer_lag_messages` | Forbrukerforsinkelse | Gauge |
 | `rocketmq_consumer_ready_messages` | Klare meldinger | Gauge |
@@ -549,7 +549,7 @@ Dette er den innebygde eksportøren i RocketMQ 5. RocketMQ 4 har ingen; den sepa
 
 ### Azure Event Grid
 
-Azure Monitor har leverings- og dead-letter-metrikkene til topicene, som collectorens `azure_monitor`-receiver leser; de vises ennå ikke på en køside, så utforsk dem under Metrikker.
+Azure Monitor har leverings- og dead-letter-målingene til topicene, som collectorens `azure_monitor`-receiver leser; de vises ennå ikke på en køside, så utforsk dem under Målinger.
 
 Receiveren logger på gjennom utvidelsen `azure_auth`. Gi tjenestekontohaveren rollen **Monitoring Reader** på abonnementet:
 
@@ -591,13 +591,13 @@ service:
       exporters: [otlphttp]
 ```
 
-OneUptime viser ikke metrikkene fra Event Grid på siden til en kø: Azure Monitor rapporterer dem per Event Grid-ressurs og hendelsesabonnement, ikke i en form som navngir en av køene dine. De kommer inn i utforskeren **Målinger**: `azure_publishsuccesscount_total`, `azure_deliverysuccesscount_total`, `azure_deadletteredcount_total` og resten. For Event Grid-namespaces legger du til `Microsoft.EventGrid/namespaces` i `services`.
+OneUptime viser ikke målingene fra Event Grid på siden til en kø: Azure Monitor rapporterer dem per Event Grid-ressurs og hendelsesabonnement, ikke i en form som navngir en av køene dine. De kommer inn i utforskeren **Målinger**: `azure_publishsuccesscount_total`, `azure_deliverysuccesscount_total`, `azure_deadletteredcount_total` og resten. For Event Grid-namespaces legger du til `Microsoft.EventGrid/namespaces` i `services`.
 
 ### Azure Event Hubs
 
-Et tilkoblet Azure-abonnement leser namespacets viktigste metrikker for hver event hub, uten at du trenger å kjøre noe. For å lese alle kjører du collectorens `azure_monitor`-receiver, som deler dem opp per event hub etter dimensjonen EntityName.
+Et tilkoblet Azure-abonnement leser namespacets viktigste målinger for hver event hub, uten at du trenger å kjøre noe. For å lese alle kjører du collectorens `azure_monitor`-receiver, som deler dem opp per event hub etter dimensjonen EntityName.
 
-Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` og `azure_throttledrequests_total` for opptil 1 000 event hubs i et namespace, med ett Azure Monitor-kall per namespace ved hver lesing, uansett hvor mange event hubs namespacet har. De tre andre leser bare receiveren, og en event hubs kort **Brokermålinger** merker dem som **Bare collector**. Der begge leser en metrikk for en event hub, beholdes receiverens, og abonnementets utelates, så ingenting telles to ganger.
+Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` og `azure_throttledrequests_total` for opptil 1 000 event hubs i et namespace, med ett Azure Monitor-kall per namespace ved hver lesing, uansett hvor mange event hubs namespacet har. De tre andre leser bare receiveren, og en event hubs kort **Brokermålinger** merker dem som **Bare collector**. Der begge leser en måling for en event hub, beholdes receiverens, og abonnementets utelates, så ingenting telles to ganger.
 
 Receiveren logger på gjennom utvidelsen `azure_auth`. Gi tjenestekontohaveren rollen **Monitoring Reader** på abonnementet:
 
@@ -645,11 +645,11 @@ service:
       exporters: [otlphttp]
 ```
 
-Metrikkene finner event huben sin via namespacet (`name`) og event huben (`EntityName`); namespacet som spanene rapporterer som `<namespace>.servicebus.windows.net`. `maximum_number_of_records_per_resource` er hvor mange serier Azure returnerer per metrikk og namespace, 10 med mindre du øker det: hold det over antallet event hubs du har, ellers rapporteres ikke resten. La `use_batch_api` være av, slik den er som standard: batch-API-et har feilet for Event Hubs-namespaces siden collector 0.155.0.
+Målingene finner event huben sin via namespacet (`name`) og event huben (`EntityName`); namespacet som spanene rapporterer som `<namespace>.servicebus.windows.net`. `maximum_number_of_records_per_resource` er hvor mange serier Azure returnerer per måling og namespace, 10 med mindre du øker det: hold det over antallet event hubs du har, ellers rapporteres ikke resten. La `use_batch_api` være av, slik den er som standard: batch-API-et har feilet for Event Hubs-namespaces siden collector 0.155.0.
 
-Azure Monitor har ingen metrikk for consumer-lag for Event Hubs: `ConsumerLag` finnes bare i applikasjonsmetrikkloggene til nivåene Premium og Dedicated, som denne receiveren ikke leser.
+Azure Monitor har ingen måling for consumer-lag for Event Hubs: `ConsumerLag` finnes bare i applikasjonsmålingsloggene til nivåene Premium og Dedicated, som denne receiveren ikke leser.
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `azure_incomingmessages_total` | Innkommende meldinger | Antall per periode |
 | `azure_outgoingmessages_total` | Utgående meldinger | Antall per periode |
@@ -661,9 +661,9 @@ Azure Monitor har ingen metrikk for consumer-lag for Event Hubs: `ConsumerLag` f
 
 ### Azure Service Bus
 
-Et tilkoblet Azure-abonnement leser namespacets viktigste metrikker for hver kø og hvert topic, uten at du trenger å kjøre noe. For å lese alle kjører du collectorens `azure_monitor`-receiver, som deler dem opp per kø og topic etter dimensjonen EntityName.
+Et tilkoblet Azure-abonnement leser namespacets viktigste målinger for hver kø og hvert topic, uten at du trenger å kjøre noe. For å lese alle kjører du collectorens `azure_monitor`-receiver, som deler dem opp per kø og topic etter dimensjonen EntityName.
 
-Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` og `azure_throttledrequests_total` for opptil 1 000 køer og topics i et namespace, med ett Azure Monitor-kall per namespace ved hver lesing, uansett hvor mange køer namespacet har: med en lesing hvert 5. minutt koster et namespace med 50 køer 12 kall i timen, like mye som et namespace med én kø. De seks andre leser bare receiveren, og en køs kort **Brokermålinger** merker dem som **Bare collector**. Der begge leser en metrikk for en kø, beholdes receiverens, og abonnementets utelates, så ingenting telles to ganger.
+Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) leser `azure_activemessages_average`, `azure_deadletteredmessages_average`, `azure_incomingmessages_total`, `azure_outgoingmessages_total`, `azure_servererrors_total` og `azure_throttledrequests_total` for opptil 1 000 køer og topics i et namespace, med ett Azure Monitor-kall per namespace ved hver lesing, uansett hvor mange køer namespacet har: med en lesing hvert 5. minutt koster et namespace med 50 køer 12 kall i timen, like mye som et namespace med én kø. De seks andre leser bare receiveren, og en køs kort **Brokermålinger** merker dem som **Bare collector**. Der begge leser en måling for en kø, beholdes receiverens, og abonnementets utelates, så ingenting telles to ganger.
 
 Receiveren logger på gjennom utvidelsen `azure_auth`. Gi tjenestekontohaveren rollen **Monitoring Reader** på abonnementet:
 
@@ -718,15 +718,15 @@ service:
       exporters: [otlphttp]
 ```
 
-- Metrikkene finner køen eller topicet sitt via namespacet (`name`) og entiteten (`EntityName`); SDK-enes span navngir det samme namespacet som `<namespace>.servicebus.windows.net`. Et span på `orders/Subscriptions/billing` eller `orders/$DeadLetterQueue` hører til `orders`, som metrikkene.
-- `maximum_number_of_records_per_resource` er hvor mange serier Azure returnerer per metrikk og namespace, 10 med mindre du øker det: hold det over antallet køer og topics du har (feilmetrikkene deler i tillegg opp hver entitet etter resultat), ellers rapporteres ikke resten.
+- Målingene finner køen eller topicet sitt via namespacet (`name`) og entiteten (`EntityName`); SDK-enes span navngir det samme namespacet som `<namespace>.servicebus.windows.net`. Et span på `orders/Subscriptions/billing` eller `orders/$DeadLetterQueue` hører til `orders`, som målingene.
+- `maximum_number_of_records_per_resource` er hvor mange serier Azure returnerer per måling og namespace, 10 med mindre du øker det: hold det over antallet køer og topics du har (feilmålingene deler i tillegg opp hver entitet etter resultat), ellers rapporteres ikke resten.
 - Azure Monitor deler ikke opp etter topicabonnement: tellingene for et topic dekker alle abonnementene.
-- Listen `metrics` samler inn nøyaktig det køsiden viser, hver med den ene aggregeringen den viser; legg til en metrikk (`IncomingRequests`, `Messages`, …) for å samle inn den også. En collector med en liste som er eldre enn `ScheduledMessages`, `Size` eller `ServerSendLatency`, sender ingen av dem: køens kort **Brokermålinger** nevner linjene som må legges til.
-- Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) deler opp de seks metrikkene sine etter kø og topic, slik denne receiveren gjør, og namespacets egen side under **Sky → Alle ressurser** legger dem sammen. Mens abonnementet [strømmer metrikkene sine](/docs/telemetry/cloud-streaming-azure), fortsetter det å lese et namespaces: en diagnoseinnstilling sender bare totalene for namespacet, uten `EntityName`, og fire av de seks ikke i det hele tatt. Der denne receiveren sender totalene for et namespace, ikke delt opp etter kø eller topic, beholder namespacets side dem, og abonnementets serier når bare køene sine, så ingen melding telles to ganger.
-- Ingen av disse metrikkene avhenger av namespacets nivå. `ServerSendLatency` rapporteres per sending, så en kø det ikke er sendt noe til i tidsrommet, har ingen.
+- Listen `metrics` samler inn nøyaktig det køsiden viser, hver med den ene aggregeringen den viser; legg til en måling (`IncomingRequests`, `Messages`, …) for å samle inn den også. En collector med en liste som er eldre enn `ScheduledMessages`, `Size` eller `ServerSendLatency`, sender ingen av dem: køens kort **Brokermålinger** nevner linjene som må legges til.
+- Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) deler opp de seks målingene sine etter kø og topic, slik denne receiveren gjør, og namespacets egen side under **Sky → Alle ressurser** legger dem sammen. Mens abonnementet [strømmer målingene sine](/docs/telemetry/cloud-streaming-azure), fortsetter det å lese et namespaces: en diagnoseinnstilling sender bare totalene for namespacet, uten `EntityName`, og fire av de seks ikke i det hele tatt. Der denne receiveren sender totalene for et namespace, ikke delt opp etter kø eller topic, beholder namespacets side dem, og abonnementets serier når bare køene sine, så ingen melding telles to ganger.
+- Ingen av disse målingene avhenger av namespacets nivå. `ServerSendLatency` rapporteres per sending, så en kø det ikke er sendt noe til i tidsrommet, har ingen.
 - Receiveren lister namespacene dine én gang om dagen, så et nytt namespace kan bruke opptil 24 timer på å dukke opp.
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `azure_activemessages_average` | Aktive meldinger | Gauge |
 | `azure_deadletteredmessages_average` | Meldinger i dead-letter | Gauge |
@@ -743,11 +743,11 @@ service:
 
 ### BullMQ
 
-BullMQ holder jobbene sine i Redis og har ingen broker å skrape; rapporter kødybden fra applikasjonen som en metrikk som bærer `messaging.system` og `messaging.destination.name`, slik OneUptimes egne workers gjør med `queue.size`.
+BullMQ holder jobbene sine i Redis og har ingen broker å skrape; rapporter kødybden fra applikasjonen som en måling som bærer `messaging.system` og `messaging.destination.name`, slik OneUptimes egne workers gjør med `queue.size`.
 
 Med [eBPF-traceren i Kubernetes-agenten](/docs/telemetry/kubernetes-agent#slik-ser-ebpf-spor-ut) leser OneUptime også BullMQ-køer (BullMQ 5 og nyere) ut fra Redis-kommandoene BullMQ sender, uten endringer i applikasjonen din: å legge til en jobb viser tjenesten som produsent av køen sin, og å fullføre en jobb som konsument. Agenten dropper som standard databasekall som gjøres utenfor en forespørsel (`ebpf.dropUnlinkedDatabaseCalls`), og en worker som behandler en jobb er utenfor en forespørsel, så en kø som er funnet på denne måten viser fra start mest produsentene sine; sett `ebpf.dropUnlinkedDatabaseCalls=false` for å se konsumentene også.
 
-BullMQs egen telemetri (innstillingen `telemetry`, som pakken `bullmq-otel` implementerer) navngir køen i `bullmq.queue.name` og setter ikke `messaging.system`, så alene oppretter den ingen kø. En `transform`-prosessor i collectoren som applikasjonene dine sender til, legger til de to nøklene som OneUptime leser, på spanene som legger til og behandler jobber og på BullMQs egne metrikker:
+BullMQs egen telemetri (innstillingen `telemetry`, som pakken `bullmq-otel` implementerer) navngir køen i `bullmq.queue.name` og setter ikke `messaging.system`, så alene oppretter den ingen kø. En `transform`-prosessor i collectoren som applikasjonene dine sender til, legger til de to nøklene som OneUptime leser, på spanene som legger til og behandler jobber og på BullMQs egne målinger:
 
 ```yaml
 receivers:
@@ -813,11 +813,11 @@ metrics
   });
 ```
 
-Den vises på fanen **Målinger** for køen. OneUptime har ingen egne BullMQ-metrikker å vise under **Brokerhelse**.
+Den vises på fanen **Målinger** for køen. OneUptime har ingen egne BullMQ-målinger å vise under **Brokerhelse**.
 
 ### Google Cloud Pub/Sub
 
-Les metrikkene til topicene og abonnementene fra Cloud Monitoring med collectorens `googlecloudmonitoring`-receiver, og list opp hver metrikktype under `metrics_list`.
+Les målingene til topicene og abonnementene fra Cloud Monitoring med collectorens `googlecloudmonitoring`-receiver, og list opp hver målingstype under `metrics_list`.
 
 Receiveren logger på med Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`, eller tjenestekontoen collectoren kjører som), som trenger rollen **Monitoring Viewer** på prosjektet:
 
@@ -851,11 +851,11 @@ service:
       exporters: [otlphttp]
 ```
 
-- En metrikktype som mangler i `metrics_list`, leses aldri, og listen leses når collectoren starter: start den på nytt etter en endring.
-- `collection_interval` er minst ett minutt. Cloud Monitoring publiserer metrikkene til Pub/Sub to til fire minutter for sent.
-- Abonnementsmetrikker knyttes til abonnementets kø (`subscription_id`), topicmetrikker til topicets (`topic_id`); det er også slik spanene fra klientbibliotekene navngir dem (se [Begrensninger](#begrensninger)).
+- En målingstype som mangler i `metrics_list`, leses aldri, og listen leses når collectoren starter: start den på nytt etter en endring.
+- `collection_interval` er minst ett minutt. Cloud Monitoring publiserer målingene til Pub/Sub to til fire minutter for sent.
+- Abonnementsmålinger knyttes til abonnementets kø (`subscription_id`), topicmålinger til topicets (`topic_id`); det er også slik spanene fra klientbibliotekene navngir dem (se [Begrensninger](#begrensninger)).
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `pubsub.googleapis.com/subscription/num_undelivered_messages` | Ikke-leverte meldinger | Gauge |
 | `pubsub.googleapis.com/subscription/oldest_unacked_message_age` | Alder på eldste ubekreftede melding | Gauge |
@@ -865,13 +865,13 @@ service:
 
 ### JMS
 
-JMS er et API, og spanene navngir ikke brokeren bak; når brokeren er Apache ActiveMQ, kjører du OpenTelemetry JMX Scraper mot den, så metrikkene slutter seg til den samme køen, som da vises som en ActiveMQ-kø, mens andre JMS-brokere som IBM MQ ikke har noen ferdig vei for metrikker.
+JMS er et API, og spanene navngir ikke brokeren bak; når brokeren er Apache ActiveMQ, kjører du OpenTelemetry JMX Scraper mot den, så målingene slutter seg til den samme køen, som da vises som en ActiveMQ-kø, mens andre JMS-brokere som IBM MQ ikke har noen ferdig vei for målinger.
 
-Køer for JMS-applikasjoner dukker opp fra spanene deres, uansett broker: se [Apache ActiveMQ](#apache-activemq) for scraperen. For alle andre brokere sender du metrikkene med `messaging.system` satt til `jms` og `messaging.destination.name` satt til køens navn på hvert datapunkt: da knyttes de til den samme køen som spanene og vises på fanen **Målinger** for den.
+Køer for JMS-applikasjoner dukker opp fra spanene deres, uansett broker: se [Apache ActiveMQ](#apache-activemq) for scraperen. For alle andre brokere sender du målingene med `messaging.system` satt til `jms` og `messaging.destination.name` satt til køens navn på hvert datapunkt: da knyttes de til den samme køen som spanene og vises på fanen **Målinger** for den.
 
 ### NATS
 
-Kjør prometheus-nats-exporter med `-jsz=all` mot serverens overvåkingsport. JetStream-metrikkene gjelder per strøm og konsument, ikke per subject, så de knyttes ikke til køer på subject-nivå.
+Kjør prometheus-nats-exporter med `-jsz=all` mot serverens overvåkingsport. JetStream-målingene gjelder per strøm og konsument, ikke per subject, så de knyttes ikke til køer på subject-nivå.
 
 Slå på serverens overvåkingsport med `-m 8222` (eller `http_port: 8222` i konfigurasjonen), og kjør deretter eksportøren:
 
@@ -954,7 +954,7 @@ service:
 - Uten tilgang til en virtuell vert ser receiveren ingen av køene dens: den sender ingenting for dem og logger ingen feil.
 - Tellerne for publisert, levert, bekreftet og forkastet vises først når køen har hatt den aktiviteten: inntil da sender receiveren ingenting, ikke engang 0.
 
-| Metrikk | Vises som | Type |
+| Måling | Vises som | Type |
 | --- | --- | --- |
 | `rabbitmq.message.current` | Kødybde | Gauge |
 | `rabbitmq.message.published` | Publisert | Teller, vist per sekund |
@@ -965,9 +965,9 @@ service:
 
 ## Varsling
 
-Køer overvåkes med **Målinger**-monitorer over brokermetrikkene sine (se [Metrikk-overvåking](/docs/monitor/metrics-monitor)).
+Køer overvåkes med **Målinger**-monitorer over brokermålingene sine (se [Målingsovervåking](/docs/monitor/metrics-monitor)).
 
-**Fra køens side.** Hver gauge og hvert antall per periode under **Brokerhelse** har **Opprett monitor**: den åpner en ny metrikkmonitor over den metrikken, filtrert på nøyaktig de attributtverdiene som navngir denne køen i den, med en startterskel der metrikken måler noe med en åpenbar dårlig retning: etterslep, dead letters, consumer-lag, alderen på den eldste meldingen, struping eller feil. Fire av dem starter uten terskel, fordi en fast terskel på dem villeder: partisjons-lag i Kafka (`kafka.consumer_group.lag`), som lag-en til consumergruppen allerede dekker; gjennomsnittlig tid i køen i ActiveMQ (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), et gjennomsnitt siden brokeren startet som forblir høyt lenge etter en stans; og alderen på etterslepet i Pulsar (`pulsar_storage_backlog_age_seconds`), som viser `-1` så lenge brokeren ikke kan si det. Tellere får ingen monitor: grafen deres viser en rate, og en monitor har ingen ratefunksjon.
+**Fra køens side.** Hver gauge og hvert antall per periode under **Brokerhelse** har **Opprett monitor**: den åpner en ny målingsmonitor over den målingen, filtrert på nøyaktig de attributtverdiene som navngir denne køen i den, med en startterskel der målingen måler noe med en åpenbar dårlig retning: etterslep, dead letters, consumer-lag, alderen på den eldste meldingen, struping eller feil. Fire av dem starter uten terskel, fordi en fast terskel på dem villeder: partisjons-lag i Kafka (`kafka.consumer_group.lag`), som lag-en til consumergruppen allerede dekker; gjennomsnittlig tid i køen i ActiveMQ (`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), et gjennomsnitt siden brokeren startet som forblir høyt lenge etter en stans; og alderen på etterslepet i Pulsar (`pulsar_storage_backlog_age_seconds`), som viser `-1` så lenge brokeren ikke kan si det. Tellere får ingen monitor: grafen deres viser en rate, og en monitor har ingen ratefunksjon.
 
 **Tellere.** Tellerne til RabbitMQ, Apache ActiveMQ og Apache RocketMQ når collectoren som kumulative summer, som en `cumulative_to_delta`-prosessor (`cumulativetodelta` i eldre collectorer) gjør om til deltaer som en monitor kan varsle på. Konverter en kopi under et eget navn, aldri selve telleren: køsiden leser hver av disse tellerne som en løpende total og viser hvor raskt den vokser, så en teller som er gjort om til deltaer, viser tull under **Brokerhelse** og på fanen **Målinger**: jevn trafikk vises som 0 meldinger per sekund. Offsetene i Apache Kafka (`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`) og `pulsar_in_messages_total` og `pulsar_out_messages_total` i Apache Pulsar kommer som gauges, som `cumulative_to_delta` lar være: varsle i stedet på gaugene for lag og etterslep i de systemene.
 
@@ -1012,11 +1012,11 @@ service:
       exporters: [otlphttp]
 ```
 
-Hvert punkt i `rabbitmq.message.published.delta` er antallet meldinger publisert siden forrige skraping, så en metrikkmonitor på den, filtrert på `resource.rabbitmq.queue.name` og summert over vinduet sitt, teller det som ble publisert i det vinduet: under 1 over 15 minutter betyr at ingen publiserer. Etter hver start av collectoren har prosessoren ingen tidligere verdi å trekke det første punktet til en kø fra, og som standard sender den det punktet som det er: hele den løpende totalen til telleren, som om hver melding køen noen gang har hatt, ble publisert i én skraping. `initial_value: drop` holder det punktet tilbake, så kopien for en kø starter med den andre skrapingen som rapporterer telleren dens. Kopier en annen teller på samme måte, med én `copy_metric`-setning og én `include`-oppføring for hver. JMX Scraper for ActiveMQ må da sende gjennom en slik collector, til en `otlp`-receiver i stedet for `rabbitmq`; tellerne til RocketMQ tar de samme to prosessorene i pipelinen for `prometheus`-receiveren sin.
+Hvert punkt i `rabbitmq.message.published.delta` er antallet meldinger publisert siden forrige skraping, så en målingsmonitor på den, filtrert på `resource.rabbitmq.queue.name` og summert over vinduet sitt, teller det som ble publisert i det vinduet: under 1 over 15 minutter betyr at ingen publiserer. Etter hver start av collectoren har prosessoren ingen tidligere verdi å trekke det første punktet til en kø fra, og som standard sender den det punktet som det er: hele den løpende totalen til telleren, som om hver melding køen noen gang har hatt, ble publisert i én skraping. `initial_value: drop` holder det punktet tilbake, så kopien for en kø starter med den andre skrapingen som rapporterer telleren dens. Kopier en annen teller på samme måte, med én `copy_metric`-setning og én `include`-oppføring for hver. JMX Scraper for ActiveMQ må da sende gjennom en slik collector, til en `otlp`-receiver i stedet for `rabbitmq`; tellerne til RocketMQ tar de samme to prosessorene i pipelinen for `prometheus`-receiveren sin.
 
-**By hand** filtrerer du på attributtet som navngir køen i den metrikken; det er det samme for hver kø i et system:
+**By hand** filtrerer du på attributtet som navngir køen i den målingen; det er det samme for hver kø i et system:
 
-| Varsle når | Metrikk | Filter | Aggregering |
+| Varsle når | Måling | Filter | Aggregering |
 | --- | --- | --- | --- |
 | En consumergruppe i Kafka henger etter | `kafka.consumer_group.lag_sum` | `topic` = `orders` | Max |
 | Den eldste meldingen i en SQS-kø blir gammel | `amazonaws.com/aws/sqs/approximateageofoldestmessage` | `Dimensions.QueueName` = `orders` | Max |
@@ -1026,18 +1026,18 @@ Hvert punkt i `rabbitmq.message.published.delta` er antallet meldinger publisert
 
 For å overvåke hver kø i et system med én monitor grupperer du etter det attributtet i stedet for å filtrere på det: hver kø varsler da for seg (se [Varsling per serie](/docs/monitor/metrics-monitor#varsler-per-serie-group-by)). Dybden til en RabbitMQ-kø (`rabbitmq.message.current`) kommer som to serier, `state` = `ready` og `state` = `unacknowledged`. Monitoren som **Opprett monitor** bygger, legger dem sammen slik køsiden gjør: én spørring per tilstand, `a_ready` og `a_unacknowledged`, og formelen `a_ready + a_unacknowledged`, der startterskelen gjelder for aliaset `a`. En monitor som bygges manuelt, bør gjøre det samme, med kriteriene på formelen.
 
-**Forsinkede metrikker.** Skyovervåkings-API-er publiserer tallene sine minutter i etterkant: det nyeste punktet fra `aws_cloudwatch`-receiveren er 11 til 17 minutter gammelt med konfigurasjonen på denne siden, og opptil 25 med receiverens standard `period` på fem minutter; punktet fra `googlecloudmonitoring`-receiveren er opptil 9. En monitor over metrikker fra SQS, SNS eller Pub/Sub trenger derfor et lengre vindu enn det, ellers ser den ingen data og utløses aldri; **Opprett monitor** starter disse monitorene med 30 og 15 minutter.
+**Forsinkede målinger.** Skyovervåkings-API-er publiserer tallene sine minutter i etterkant: det nyeste punktet fra `aws_cloudwatch`-receiveren er 11 til 17 minutter gammelt med konfigurasjonen på denne siden, og opptil 25 med receiverens standard `period` på fem minutter; punktet fra `googlecloudmonitoring`-receiveren er opptil 9. En monitor over målinger fra SQS, SNS eller Pub/Sub trenger derfor et lengre vindu enn det, ellers ser den ingen data og utløses aldri; **Opprett monitor** starter disse monitorene med 30 og 15 minutter.
 
 ## Begrensninger
 
 - **Destinasjoner med samme navn i to klynger eller kontoer er én kø.** Et Kafka-topic, en RabbitMQ-kø eller en SQS-kø identifiseres bare ved navnet: span navngir sjelden klyngen sin (Java-agenten, kafkajs og .NET-klienten til Confluent rapporterer ingen brokeradresse), så en klynge i identiteten ville i stedet dele opp hvert topic etter instrumentering. To klynger med et topic som heter `orders`, eller to AWS-kontoer eller -regioner med en kø som heter `orders`, deler én kø i et prosjekt. Azure Service Bus og Event Hubs er unntaket: namespacet deres er en del av identiteten.
-- **Kafka-klienter på Event Hubs er Kafka.** En Kafka-klient som er koblet til Kafka-endepunktet til Event Hubs, rapporterer `kafka`, så topicet er en Kafka-kø, adskilt fra event hubens egen Azure Event Hubs-kø og Azure Monitor-metrikkene for den.
-- **Service Bus-span uten namespace-vert identifiseres for seg.** Namespacet kommer fra verten som SDK-et koblet til. Span som sendes til Service Bus-emulatoren eller gjennom et egendefinert domenenavn, navngir ikke noe namespace, så køen deres er en annen enn køen som metrikkene fra Azure Monitor knyttes til.
-- **RabbitMQ-span navngir vanligvis exchanges; brokerens metrikker navngir køer.** De fleste instrumenteringer (Java-agenten som standard, amqplib for Node.js, pika og aio-pika for Python, RabbitMQ.Client for .NET) navngir exchangen en melding gikk gjennom, både på den publiserende og den konsumerende siden. Spanene deres havner på en kø oppkalt etter exchangen, og metrikkene fra `rabbitmq`-receiveren på selve køen. De to møtes for meldinger som sendes gjennom standard-exchangen, der routing-nøkkelen er køens navn, og for konsumenter som Java-agenten 2.31.0 eller nyere sporer med `OTEL_SEMCONV_STABILITY_OPT_IN=messaging`, der spanene navngir exchange, routing-nøkkel og kø (`shop:new-order:orders`), som OneUptime henter køen fra. MassTransit navngir én exchange per meldingstype (`Namespace:Type`), som beholdes hel, og mottaksspanene dens setter ikke `messaging.system`, så de oppretter ingen kø og vises ikke som konsumentene dens.
-- **Pub/Sub-publisherere navngir topics; abonnenter navngir abonnementer.** Hvert klientbibliotek fra Google rapporterer topicet på den publiserende siden og abonnementet på den konsumerende siden, så et topic og hvert av abonnementene er separate køer: publiseringsspan og topicmetrikker på den ene, konsumspan og abonnementsmetrikker på de andre.
+- **Kafka-klienter på Event Hubs er Kafka.** En Kafka-klient som er koblet til Kafka-endepunktet til Event Hubs, rapporterer `kafka`, så topicet er en Kafka-kø, adskilt fra event hubens egen Azure Event Hubs-kø og Azure Monitor-målingene for den.
+- **Service Bus-span uten namespace-vert identifiseres for seg.** Namespacet kommer fra verten som SDK-et koblet til. Span som sendes til Service Bus-emulatoren eller gjennom et egendefinert domenenavn, navngir ikke noe namespace, så køen deres er en annen enn køen som målingene fra Azure Monitor knyttes til.
+- **RabbitMQ-span navngir vanligvis exchanges; brokerens målinger navngir køer.** De fleste instrumenteringer (Java-agenten som standard, amqplib for Node.js, pika og aio-pika for Python, RabbitMQ.Client for .NET) navngir exchangen en melding gikk gjennom, både på den publiserende og den konsumerende siden. Spanene deres havner på en kø oppkalt etter exchangen, og målingene fra `rabbitmq`-receiveren på selve køen. De to møtes for meldinger som sendes gjennom standard-exchangen, der routing-nøkkelen er køens navn, og for konsumenter som Java-agenten 2.31.0 eller nyere sporer med `OTEL_SEMCONV_STABILITY_OPT_IN=messaging`, der spanene navngir exchange, routing-nøkkel og kø (`shop:new-order:orders`), som OneUptime henter køen fra. MassTransit navngir én exchange per meldingstype (`Namespace:Type`), som beholdes hel, og mottaksspanene dens setter ikke `messaging.system`, så de oppretter ingen kø og vises ikke som konsumentene dens.
+- **Pub/Sub-publisherere navngir topics; abonnenter navngir abonnementer.** Hvert klientbibliotek fra Google rapporterer topicet på den publiserende siden og abonnementet på den konsumerende siden, så et topic og hvert av abonnementene er separate køer: publiseringsspan og topicmålinger på den ene, konsumspan og abonnementsmålinger på de andre.
 - **Seriene per konsument i Pulsar holdes utenfor grafene**, så meldinger som leveres til et abonnement, ikke telles to ganger.
-- **Azure Storage Queues har ingen metrikker per kø.** Azure Monitor rapporterer bare meldingsantallet for en hel lagringskonto, én gang i timen, så de har ingen brokerhelse.
-- **Retry- og systemtopicene i RocketMQ filtreres ikke bort fra brokermetrikkene.** Serier som RocketMQ merker med `is_retry` eller `is_system`, teller som alle andre.
+- **Azure Storage Queues har ingen målinger per kø.** Azure Monitor rapporterer bare meldingsantallet for en hel lagringskonto, én gang i timen, så de har ingen brokerhelse.
+- **Retry- og systemtopicene i RocketMQ filtreres ikke bort fra brokermålingene.** Serier som RocketMQ merker med `is_retry` eller `is_system`, teller som alle andre.
 
 ## Justering for selvhosting
 
@@ -1046,7 +1046,7 @@ Selvhostede installasjoner kan justere oppdagelsen med disse miljøvariablene p�
 | Variabel | Standard | Hva den styrer |
 | --- | --- | --- |
 | `MESSAGE_QUEUE_MIN_SPANS` | `3` | Span som en destinasjon trenger innenfor 15-minuttersvinduet som hver 10-minutterskjøring ser på, før spor oppretter en kø for den |
-| `MESSAGE_QUEUE_AUTO_CREATE_BUDGET` | `500` | Aktive, ikke-arkiverte oppdagede køer et prosjekt kan ha før spor og brokermetrikker slutter å opprette nye. Bare køer som er opprettet manuelt, er unntatt; `0` slår av automatisk oppretting |
+| `MESSAGE_QUEUE_AUTO_CREATE_BUDGET` | `500` | Aktive, ikke-arkiverte oppdagede køer et prosjekt kan ha før spor og brokermålinger slutter å opprette nye. Bare køer som er opprettet manuelt, er unntatt; `0` slår av automatisk oppretting |
 | `MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS` | `7` | Dager uten observasjon før en urørt oppdaget kø arkiveres (minst 1) |
 
 ## Feilsøking
@@ -1062,20 +1062,20 @@ Når spanene faktisk navngir den, oppretter du den manuelt med samme system og d
 ### Brokerhelsen forblir tom
 
 - Sjekk collectorens logg. OneUptime avviser en feil inntaksnøkkel med `401` (`422` for en deaktivert nøkkel eller en nettlesernøkkel), og collectoren logger `Exporting failed` for hver batch den forkaster.
-- Metrikken navngir køen annerledes enn spanene. RabbitMQ-span navngir vanligvis exchangen, mens brokerens metrikker beskriver køer; et Pub/Sub-topic har topicmetrikkene og abonnementene sine abonnementsmetrikkene; span fra Service Bus og Event Hubs uten namespace-vert ligger på en annen kø enn metrikkene fra Azure Monitor (se [Begrensninger](#begrensninger)).
-- Receiveren rapporterer den ikke. Kafka rapporterer lag for en consumergruppe først etter at gruppen har committet et offset; RabbitMQ rapporterer bare køene i virtuelle verter som brukeren har tilgang til, og logger ingen feil for resten (se [RabbitMQ](#rabbitmq)); tellerne i RabbitMQ dukker opp ved første aktivitet; Azure Monitor returnerer 10 køer per metrikk og namespace med mindre `maximum_number_of_records_per_resource` økes; Cloud Monitoring leser bare typene i `metrics_list`.
-- Den er forsinket. `aws_cloudwatch` venter `delay` (10 minutter) på at CloudWatch publiserer, så punktene kommer 11 til 17 minutter for sent, og metrikkene fra Pub/Sub kommer minutter for sent.
-- Systemet har ingen metrikker i grafer: Azure Event Grid, NATS, andre JMS-brokere enn ActiveMQ og BullMQ (se seksjonene deres). Metrikkene deres finnes i utforskeren **Målinger**.
-- Åpne køens kort **Brokermålinger**: det viser hvilke metrikker som kommer inn, og hvorfor de andre ikke gjør det. For en Service Bus- eller Event Hubs-kø der ingen av metrikkene kommer inn, sier det også hva namespacet sender i stedet, én av tre ting.
+- Målingen navngir køen annerledes enn spanene. RabbitMQ-span navngir vanligvis exchangen, mens brokerens målinger beskriver køer; et Pub/Sub-topic har topicmålingene og abonnementene sine abonnementsmålingene; span fra Service Bus og Event Hubs uten namespace-vert ligger på en annen kø enn målingene fra Azure Monitor (se [Begrensninger](#begrensninger)).
+- Receiveren rapporterer den ikke. Kafka rapporterer lag for en consumergruppe først etter at gruppen har committet et offset; RabbitMQ rapporterer bare køene i virtuelle verter som brukeren har tilgang til, og logger ingen feil for resten (se [RabbitMQ](#rabbitmq)); tellerne i RabbitMQ dukker opp ved første aktivitet; Azure Monitor returnerer 10 køer per måling og namespace med mindre `maximum_number_of_records_per_resource` økes; Cloud Monitoring leser bare typene i `metrics_list`.
+- Den er forsinket. `aws_cloudwatch` venter `delay` (10 minutter) på at CloudWatch publiserer, så punktene kommer 11 til 17 minutter for sent, og målingene fra Pub/Sub kommer minutter for sent.
+- Systemet har ingen målinger i grafer: Azure Event Grid, NATS, andre JMS-brokere enn ActiveMQ og BullMQ (se seksjonene deres). Målingene deres finnes i utforskeren **Målinger**.
+- Åpne køens kort **Brokermålinger**: det viser hvilke målinger som kommer inn, og hvorfor de andre ikke gjør det. For en Service Bus- eller Event Hubs-kø der ingen av målingene kommer inn, sier det også hva namespacet sender i stedet, én av tre ting.
 - **Ingenting fra namespacet**: ingenting leser det, eller hver lesing mislykkes. Koble til Azure-abonnementet under **Sky → Koble til**, eller kjør receiveren `azure_monitor`. Gi tilkoblingens app eller receiverens tjenestekontohaver rollen **Monitoring Reader**, og se på tilkoblingens siste lesing, eller se etter `AuthorizationFailed` eller `401` i loggen til collectoren: en utløpt klienthemmelighet stopper hver lesing.
-- **Bare totaler**: namespacets metrikker kommer inn for namespacet som helhet, uten noen kø eller noe topic i dem. En diagnoseinnstilling sender bare dem: koble til namespacets abonnement, eller les også namespacet med receiveren `azure_monitor`; begge deler dem opp etter `EntityName`. Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) sendte bare dem før det leste hver kø, eller når lesingene av køene mislykkes: den siste lesingen under **Sky → Koble til** sier hvorfor.
-- **Bare andre køer**: metrikker kommer inn for andre køer og topics i namespacet, men ikke for denne. Receiverens `maximum_number_of_records_per_resource` (10 med mindre du øker det) utelot den: øk det over antallet køer og topics i namespacet. Et tilkoblet abonnement leser opptil 1 000 av dem: er det flere, les også namespacet med receiveren.
+- **Bare totaler**: namespacets målinger kommer inn for namespacet som helhet, uten noen kø eller noe topic i dem. En diagnoseinnstilling sender bare dem: koble til namespacets abonnement, eller les også namespacet med receiveren `azure_monitor`; begge deler dem opp etter `EntityName`. Et [tilkoblet Azure-abonnement](/docs/telemetry/cloud-accounts) sendte bare dem før det leste hver kø, eller når lesingene av køene mislykkes: den siste lesingen under **Sky → Koble til** sier hvorfor.
+- **Bare andre køer**: målinger kommer inn for andre køer og topics i namespacet, men ikke for denne. Receiverens `maximum_number_of_records_per_resource` (10 med mindre du øker det) utelot den: øk det over antallet køer og topics i namespacet. Et tilkoblet abonnement leser opptil 1 000 av dem: er det flere, les også namespacet med receiveren.
 
 ### To køer for én destinasjon
 
 - To systemer navngir den: en Kafka-klient på Kafka-endepunktet til Event Hubs rapporterer `kafka`, Event Hubs-SDK-et `eventhubs`.
 - En observasjon fra Service Bus eller Event Hubs har ikke noe namespace: emulatoren eller et egendefinert domene.
-- RabbitMQ-span navngir vanligvis exchangen, og brokerens metrikker køen: to køer i OneUptime, med mindre exchangen og køen har samme navn (se [Begrensninger](#begrensninger)).
+- RabbitMQ-span navngir vanligvis exchangen, og brokerens målinger køen: to køer i OneUptime, med mindre exchangen og køen har samme navn (se [Begrensninger](#begrensninger)).
 
 Arkiver den du ikke vil ha: en arkivert kø forblir arkivert, og det som navngir den, oppretter ikke lenger en ny.
 
@@ -1086,7 +1086,7 @@ En destinasjon som navngis per forespørsel eller per konsument, og som OneUptim
 ## Neste trinn
 
 :::cards
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på etterslepet, lag-en eller dead letters for en kø.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på etterslepet, lag-en eller dead letters for en kø.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send sporene fra applikasjonene dine, slik at køene deres dukker opp.
 - [Serverløse funksjoner](/docs/telemetry/serverless-functions#azure-functions): Azure Functions som utløses av Service Bus eller Event Hubs.
 :::

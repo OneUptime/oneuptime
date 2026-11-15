@@ -793,7 +793,7 @@ describe("Cloud Instances tab tooltips", () => {
     );
 
     expect(cpuColumn).toContain(
-      'formatPercent( typeof item.latestCpuPercent === "number" ? item.latestCpuPercent : null, )',
+      'formatPercent( typeof item.latestCpuPercent === "number" ? item.latestCpuPercent : null, translator, )',
     );
     expect(cpuColumn).not.toContain("Math.min");
     expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS.cpu).toContain(
@@ -809,7 +809,7 @@ describe("Cloud Instances tab tooltips", () => {
     );
 
     expect(memoryColumn).toContain(
-      'formatBytes( typeof item.latestMemoryBytes === "number" ? item.latestMemoryBytes : null, )',
+      'formatBytes( typeof item.latestMemoryBytes === "number" ? item.latestMemoryBytes : null, translator, )',
     );
 
     const format: string = readCode(

@@ -93,7 +93,7 @@ Una regola chiama appena un avviso corrisponde. Perché attenda invece l'orario 
 
 Una regola chiama le persone delle sue policy perché rispondano: riconoscere la chiamata riconosce l'avviso. Per tenere informato un team mentre un altro risponde, rispondete **Osservatori** a **Chiama le persone di queste policy come** sotto **Altri campi**. La loro chiamata dice che sono osservatori, e riconoscerla dice solo che l'hanno vista: l'avviso non viene riconosciuto e la chiamata di nessun altro si ferma. La loro chiamata continua finché uno di loro risponde o l'avviso viene risolto, e nell'elenco la regola dice sotto il nome che chiama come osservatori. Una policy che una regola corrispondente chiama per rispondere e un'altra come osservatori chiama per rispondere.
 
-Una regola può appartenere a dei team. **Team responsabili**, sotto **Altri campi**, la riserva ai team che scegli: solo i loro membri e gli amministratori del progetto possono modificarla o eliminarla, e tutti gli altri che vedono le regole la vedono in sola lettura. Una regola che non appartiene a nessun team può essere modificata da chiunque possa modificare le regole di reperibilità, e anche le regole degli episodi possono appartenere a dei team. Vedi [Regole che appartengono a dei team](/docs/permissions/index#regole-che-appartengono-a-dei-team).
+Una regola può appartenere a dei team. **Team responsabili**, sotto **Altri campi**, la riserva ai team che scegli: solo i loro membri e gli Amministratori del progetto possono modificarla o eliminarla, e tutti gli altri che vedono le regole la vedono in sola lettura. Una regola che non appartiene a nessun team può essere modificata da chiunque possa modificare le regole di reperibilità, e anche le regole degli episodi possono appartenere a dei team. Vedi [Regole che appartengono a dei team](/docs/permissions/index#regole-che-appartengono-a-dei-team).
 
 ## Regole degli incidenti
 
@@ -176,9 +176,9 @@ La scheda **Numero successivo** sotto imposta il numero che ricevono il prossimo
 > [!NOTE]
 > Su OneUptime Cloud, i modelli di note e i campi personalizzati richiedono il piano **Growth** o superiore.
 
-## Workflow
+## Flussi di lavoro
 
-Ogni modello di avviso ha trigger e azioni di workflow che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger di workflow. Vedere [Panoramica dei workflow](/docs/workflows/index).
+Ogni modello di avviso ha trigger e azioni dei flussi di lavoro che portano il suo nome: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** e **On Delete Alert**, lo stesso per **Episodio di avvisi**, **Cronologia stati dell'avviso** e gli altri, e azioni come **Create One Alert** e **Update One Alert**. Le definizioni dei campi personalizzati degli avvisi sono l'unica eccezione: non hanno trigger del flusso di lavoro. Vedere [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ## Chi può modificarle
 

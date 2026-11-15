@@ -49,7 +49,7 @@ Slik legger du til en prosjektkonfigurasjon:
 5. Lagre. Et prosjekt har én standard for SMS og én for anrop, så en konfigurasjon satt til **Bare SMS** og en satt til **Bare anrop** kan begge være standard: se [En konto bare for SMS, eller bare for anrop](#en-konto-bare-for-sms-eller-bare-for-anrop). Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
 > [!IMPORTANT]
-> **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
+> **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
 :::
 
 For en standard for hele installasjonen kan en administrator i stedet åpne **Admin Dashboard > Innstillinger > Anrop og SMS**, velge hva kontoen sender, redigere Twilio-påloggingsinformasjonen og telefonnumrene og lagre. Medlemmenes varsler bruker denne globale konfigurasjonen når prosjektet deres ikke har en standard. Hold Auth Token hemmelig.
@@ -244,5 +244,5 @@ Et nummer som er bekreftet for SMS, er også bekreftet for anrop, uten en ny kod
 - [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway): Send SMS og anrop gjennom din egen leverandør i stedet for Twilio.
 - [SMTP](/docs/emails/smtp): Send også e-post gjennom din egen e-postserver.
 - [Tilgang til private nettverk](/docs/self-hosted/private-network-access): La arbeidsflyter og webhooker nå interne verktøy.
-- [Metrikker for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Mål hvor mange SMS-er og anrop som når Twilio og telefonen.
+- [Målinger for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Mål hvor mange SMS-er og anrop som når Twilio og telefonen.
 :::

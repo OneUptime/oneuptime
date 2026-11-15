@@ -21,7 +21,7 @@ Det er fem måter en hendelse kommer inn i OneUptime på, og alle ender på samm
 | Åpne en fra din egen kode, et skript eller et annet verktøy  | `POST /api/incident`                                                        |
 | La folk utenfor teamet ditt melde et problem via en lenke    | Et [skjema](/docs/forms/index)                                              |
 
-Alle fem skriver den samme modellen, så en hendelse som en probe åpnet, ser nøyaktig ut som en som en vakthavende åpnet for hånd — bortsett fra noen få administrative kolonner serveren setter på de automatiske. Arbeidsflyter skriver den også: [Huntress](/docs/integrations/huntress)-arbeidsflyten åpner én hendelse for hver hendelsesrapport som SOC-en sender.
+Alle fem skriver den samme modellen, så en hendelse som en sonde åpnet, ser nøyaktig ut som en som en vakthavende åpnet for hånd — bortsett fra noen få administrative kolonner serveren setter på de automatiske. Arbeidsflyter skriver den også: [Huntress](/docs/integrations/huntress)-arbeidsflyten åpner én hendelse for hver hendelsesrapport som SOC-en sender.
 
 > [!TIP]
 > Du kan også erklære en hendelse fra varsler: **Erklær hendelse** på en varselliste, i overskriften til et varsel eller på siden **Tilknyttede hendelser** til et varsel åpner den samme veiviseren, forhåndsutfylt fra varslene, og knytter dem til den nye hendelsen. En avkrysningsboks på skjemaet, avkrysset som standard, bekrefter også varslene, slik at de slutter å eskalere. Se [Koblede varsler](/docs/incidents/linked-alerts).
@@ -63,7 +63,7 @@ Under **Flere felt**:
 - **Erklært den** — starter på tidspunktet da du åpnet siden. Det er tidspunktet hver varighet på hendelsen måles fra, så sett det tilbake hvis du registrerer noe som begynte tidligere.
 - **Innledende tilstand** — valgfritt og tomt til å begynne med. Lar du det stå tomt, starter hendelsen i tilstanden med flagget `isCreatedState`, som nye prosjekter oppretter som **Identifisert** — eller i malens starttilstand når du erklærer fra en mal. Velg bare en senere tilstand når du registrerer en hendelse som allerede var forbi det punktet, bekreftet eller løst. En slik hendelse tilkaller ingen — se [Erklært allerede bekreftet eller løst](#erklært-allerede-bekreftet-eller-løst).
 - **Etiketter** — valgfritt. Etiketter samler beslektede hendelser slik at du kan filtrere på dem, og et team med tillatelser som er begrenset til etiketter, ser bare hendelsene som har en av etikettene.
-- **Privat hendelse** — avkrysningsboks, slått av som standard (`isPrivate`). En privat hendelse er bare synlig for brukerne som eier den, medlemmene av teamene som eier den, prosjektadministratorer og prosjekteiere — og den er skjult for alle statussider, uansett enhver annen innstilling, også statussidene den er begrenset til. Listen over hendelser merker dem med et rødt merke **Privat**.
+- **Privat hendelse** — avkrysningsboks, slått av som standard (`isPrivate`). En privat hendelse er bare synlig for brukerne som eier den, medlemmene av teamene som eier den, Prosjektadministratorer og Prosjekteiere — og den er skjult for alle statussider, uansett enhver annen innstilling, også statussidene den er begrenset til. Listen over hendelser merker dem med et rødt merke **Privat**.
 - **Eiere** — valgfritt. Du blir eier av hendelsen du erklærer, uansett hva du velger her; legg til personene og teamene som skal eie den sammen med deg. Under velgeren er hvert team du er medlem av, bare ett klikk unna, og **Legg til alle** legger til alle: ingenting velges for deg. Erklærer du fra en mal, starter feltet med malens eiere, som du kan endre.
 
 > [!NOTE]
@@ -195,7 +195,7 @@ Hver hendelsesoppføring har:
 
 For den fullstendige listen over `{{variable}}`-plassholdere du kan bruke i tittelen, beskrivelsen og utbedringsnotatene, se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating).
 
-Hendelser som opprettes på denne måten, merkes av serveren: `isCreatedAutomatically` settes, `createdCriteriaId` registrerer hvilket kriteriefilter som utløste, og `createdByProbe` registrerer hvilken probe som så det. Alt annet ved dem oppfører seg nøyaktig som en hendelse som er erklært for hånd.
+Hendelser som opprettes på denne måten, merkes av serveren: `isCreatedAutomatically` settes, `createdCriteriaId` registrerer hvilket kriteriefilter som utløste, og `createdByProbe` registrerer hvilken sonde som så det. Alt annet ved dem oppfører seg nøyaktig som en hendelse som er erklært for hånd.
 
 En hendelse en monitor erklærer, knyttes til det monitoren overvåker: alt konfigurasjonen nevner (verten for en vertsmonitor, klyngen for en Kubernetes-monitor, tjenestene for en loggmonitor) og alt under **Tilkoblede ressurser**. Konfigurasjonen til en nettsted- eller API-monitor nevner ingen infrastruktur, så knytt den til klyngen, vertene eller databasen bak nettstedet: hendelsene havner da på de ressursenes sider, OneUptime AI kan undersøke dem der, og KI-rettingen til klyngen eller ressursen kan handle på dem (se [AI SRE](/docs/ai/ai-sre#hvilke-hendelser-en-klynges-rettelser-virker-på)). Varsler en monitor oppretter, knyttes på samme måte.
 

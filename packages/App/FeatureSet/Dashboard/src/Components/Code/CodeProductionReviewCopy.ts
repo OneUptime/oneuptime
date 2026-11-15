@@ -11,7 +11,10 @@ import { CODE_REPOSITORY_CONNECTION_COPY } from "./CodeHostCopy";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import { env } from "Common/UI/Config";
-import { formatMilliseconds } from "../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 import {
   PRODUCTION_REVIEW_WINDOWS,
   ProductionReviewAiNoteCode,
@@ -941,7 +944,7 @@ export function getProductionReviewNothingSentence(
   );
 }
 
-// A duration in milliseconds, short: "840 ms", "1.2 s".
+// A duration in milliseconds, short, in the reader's units: "840 ms", "1.2 s" (#8348).
 export function formatReviewDuration(
   milliseconds: number,
   translator: Translator,
@@ -956,7 +959,10 @@ export function formatReviewDuration(
     });
   }
 
-  return `${translator.formatNumber(Math.round(milliseconds / 100) / 10)} s`;
+  return formatDurationInUnit(translator, milliseconds / 1000, "second", {
+    decimals: 1,
+    dropTrailingZeros: true,
+  });
 }
 
 // A share, short: "12%", "0.4%".

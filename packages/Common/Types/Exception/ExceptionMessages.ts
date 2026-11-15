@@ -5,6 +5,8 @@ enum ExceptionMessages {
   MonitorDisabledBecauseOfManualIncident = "Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.",
   MonitorDisabledBecauseOfScheduledMaintenanceEvent = "Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.",
   ProbeNotAssignedToMonitor = "Probe is not assigned to this monitor",
+  // A probe's result for a monitor test it was not handed (MonitorTestService).
+  MonitorTestNotHandedToProbe = "This monitor test was not handed to this probe, or no longer exists.",
   UserBlocked = "Your account has been blocked. Please contact your administrator.",
   ProjectBlocked = "This project has been blocked. Please contact your administrator.",
 }

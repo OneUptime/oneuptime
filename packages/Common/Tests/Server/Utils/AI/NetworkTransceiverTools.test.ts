@@ -133,8 +133,8 @@ describe("NetworkTransceiverContext.toRow", () => {
       rxPowerDropFromBestDayDb: 2.5,
     });
     expect(row["readings"]).toEqual([
-      "RX Power -6.30 dBm - device thresholds: low alarm -18.40 dBm, low warning -14.40 dBm, high warning 0.50 dBm, high alarm 2.50 dBm",
-      "Temperature 38.5 °C - the device reports no thresholds",
+      "RX Power -6.30\u00A0dBm - device thresholds: low alarm -18.40\u00A0dBm, low warning -14.40\u00A0dBm, high warning 0.50\u00A0dBm, high alarm 2.50\u00A0dBm",
+      "Temperature 38.5\u00A0°C - the device reports no thresholds",
     ]);
 
     const days: Array<string> = row["rxPowerDailyAverageDbm"] as Array<string>;
@@ -179,10 +179,10 @@ describe("NetworkTransceiverContext.toRow", () => {
 
     expect(row["port"]).toBe("ifIndex 7");
     expect(row["readings"]).toEqual([
-      "RX Power -2.10 dBm (lane 1), -19.60 dBm (lane 2) - device thresholds: low alarm -18.40 dBm, low warning -14.40 dBm, high warning 0.50 dBm, high alarm 2.50 dBm",
+      "RX Power -2.10\u00A0dBm (lane 1), -19.60\u00A0dBm (lane 2) - device thresholds: low alarm -18.40\u00A0dBm, low warning -14.40\u00A0dBm, high warning 0.50\u00A0dBm, high alarm 2.50\u00A0dBm",
     ]);
     expect(row["issues"]).toEqual([
-      "RX Power -19.60 dBm on lane 2 is below the low alarm threshold of -18.40 dBm",
+      "RX Power -19.60\u00A0dBm on lane 2 is below the low alarm threshold of -18.40\u00A0dBm",
     ]);
   });
 });

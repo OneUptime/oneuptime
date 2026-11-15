@@ -103,7 +103,7 @@ For å avslutte TLS i en egen ingress controller i stedet, lar du `ssl.provision
 
 ## Gjør ferdig oppsettet av serveren
 
-Siden **Serveroppsett** i Admin Dashboard, på `/admin/setup`, viser hva en ny server trenger, det viktigste først. E-post, HTTPS og hvem som kan registrere seg, er påkrevd. SMS og anrop, en global probe, sikkerhetskopier og oppdateringssjekker anbefales. Hvert punkt har en knapp som åpner stedet der det stilles inn, og `npm start` slutter med å skrive ut adressen til denne siden.
+Siden **Serveroppsett** i Admin Dashboard, på `/admin/setup`, viser hva en ny server trenger, det viktigste først. E-post, HTTPS og hvem som kan registrere seg, er påkrevd. SMS og anrop, en global sonde, sikkerhetskopier og oppdateringssjekker anbefales. Hvert punkt har en knapp som åpner stedet der det stilles inn, og `npm start` slutter med å skrive ut adressen til denne siden.
 
 :::steps
 ### Sett opp e-post
@@ -137,7 +137,7 @@ Kjør doctor i mappen `oneuptime`:
 npm run doctor
 ```
 
-Den sjekker hver container, `config.env`, at `HOST` når denne serveren, sertifikatet og ledig diskplass, og spør OneUptime hva det ser av seg selv, som e-post og prober. Hvert problem kommer med løsningen: se [Sjekk installasjonen din](/docs/installation/docker-compose#sjekk-installasjonen-din).
+Den sjekker hver container, `config.env`, at `HOST` når denne serveren, sertifikatet og ledig diskplass, og spør OneUptime hva det ser av seg selv, som e-post og sonder. Hvert problem kommer med løsningen: se [Sjekk installasjonen din](/docs/installation/docker-compose#sjekk-installasjonen-din).
 @tab Kubernetes
 Kjør chartets diagnoseskript mot klyngen din, slik [chartets feilsøkingsveiledning](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) viser. Det bare leser, og slutter med et sammendrag av det det fant, det verste først.
 :::

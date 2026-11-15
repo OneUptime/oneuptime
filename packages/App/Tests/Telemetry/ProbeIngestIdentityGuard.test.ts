@@ -602,12 +602,32 @@ describe("probe ingest worker: a job is the sender's", () => {
   test("a check result is held to its sender and judged as the sender's", () => {
     const body: string = enclosingFunctionText(worker, "processProbeFromQueue");
 
-    expect(body).toContain("ProbeReportIdentity.readSender(");
-    expect(body).toContain("ProbeReportIdentity.bindResultToSender(");
+    /*
+     * Through two helpers that log a refusal once and throw it on (issue
+     * #8424): the refusal still stops the job before anything is judged.
+     */
+    expect(body.replace(WHITESPACE, "")).toContain(
+      "constreportingProbeId:ObjectID=readSenderOfResult(jobData);",
+    );
+    expect(body.replace(WHITESPACE, "")).toContain(
+      "bindResultToSender({jobData:jobData,probeResponse:probeResponse,reportingProbeId:reportingProbeId,});",
+    );
     expect(body.replace(WHITESPACE, "")).toContain(
       "MonitorResourceUtil.monitorResource(probeResponse,{reportingProbeId:reportingProbeId,})",
     );
     expect(body.replace(WHITESPACE, "")).toContain("probeId:reportingProbeId,");
+
+    // Each helper asks ProbeReportIdentity, and lets its refusal through.
+    const readsSender: string = enclosingFunctionText(
+      worker,
+      "readSenderOfResult",
+    );
+    expect(readsSender).toContain("return ProbeReportIdentity.readSender(");
+    expect(readsSender).toContain("throw err;");
+
+    const binds: string = enclosingFunctionText(worker, "bindResultToSender");
+    expect(binds).toContain("ProbeReportIdentity.bindResultToSender(");
+    expect(binds).toContain("throw err;");
   });
 
   test("a trap is matched as the probe's that received it", () => {

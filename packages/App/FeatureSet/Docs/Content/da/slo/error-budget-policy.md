@@ -299,7 +299,7 @@ Disse tilladelser ligger i en rolles SLO-gruppe. Rollerne Projektejer og Projekt
 
 ## Endnu ikke tilgængeligt
 
-Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: en særskilt workflow-udløser for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget. OneUptime stopper ikke selv en udgivelse: Det gør en pipeline, der tjekker `deploymentsAllowed`, som [Udrulningsspærre](#udrulningsspærre) viser.
+Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: en særskilt arbejdsgangsudløser for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget. OneUptime stopper ikke selv en udgivelse: Det gør en pipeline, der tjekker `deploymentsAllowed`, som [Udrulningsspærre](#udrulningsspærre) viser.
 
 ## Næste trin
 

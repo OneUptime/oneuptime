@@ -56,7 +56,7 @@ Forms start with these two, and more kinds of record will follow.
 ## Before you begin
 
 - **A plan that includes forms.** On OneUptime Cloud, forms need the **Growth** plan or above. See [Plan](#plan).
-- **Permission to create forms.** **Create Form** belongs to project owners and admins, and to the roles you give it. See [Permissions](#permissions).
+- **Permission to create forms.** **Create Form** belongs to Project Owners and Project Admins, and to the roles you give it. See [Permissions](#permissions).
 - **For an incident form, a severity.** Every incident needs one: from a question, from the form's settings or from its incident template. Without one, every submission is refused. See [What a Submission Creates](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
 
 ## Create your first form
@@ -127,7 +127,7 @@ Submissions are written by the form, never by hand, and cannot be edited. Deleti
 
 ## Permissions
 
-Forms let people outside your team create incidents and maintenance events in your project, so they are managed by project owners and admins, and by the roles you give the **Form** permissions. They are in the **Form** group of the [Permission Reference](/docs/permissions/reference):
+Forms let people outside your team create incidents and maintenance events in your project, so they are managed by Project Owners and Project Admins, and by the roles you give the **Form** permissions. They are in the **Form** group of the [Permission Reference](/docs/permissions/reference):
 
 | Permission | What it allows | Who has it by default |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ Forms let people outside your team create incidents and maintenance events in yo
 | **Delete Form Domain** | Removing a form's custom domains. | Project Owner, Project Admin, and **Edit Form** |
 | **Read Form Domain** | Seeing a form's custom domains, their DNS records and how far each is on its way to HTTPS. | Everyone with **Read Form** |
 
-Submissions hold what strangers typed — names, email addresses, and answers that may never reach the record — so only project owners and admins see them unless you grant **Read Form Submission**. Anyone who can read a form can see and share its link. Submitting a form needs no permission at all. For how roles and granular permissions combine, see [Users, Teams & Permissions](/docs/permissions/index).
+Submissions hold what strangers typed — names, email addresses, and answers that may never reach the record — so only Project Owners and Project Admins see them unless you grant **Read Form Submission**. Anyone who can read a form can see and share its link. Submitting a form needs no permission at all. For how roles and granular permissions combine, see [Users, Teams & Permissions](/docs/permissions/index).
 
 ## Plan
 

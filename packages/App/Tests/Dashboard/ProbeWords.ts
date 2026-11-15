@@ -62,7 +62,8 @@ const HEALTH_PROBES: string =
 const PROBE_OPTION: string =
   "the network device's Probe option, which the Dashboard draws in English in this language (Probe — pinged by the assigned probe ...), named as drawn";
 
-export const PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
+// The five languages PR #8305 held to their Dashboard's word first.
+const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
   fa: {
     others: /پروب|(?<![\p{L}\p{N}_-])probes?(?![\p{L}\p{N}_-])/iu,
     keptPhrases: [
@@ -116,6 +117,121 @@ export const PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       },
     ],
   },
+};
+
+// The English word as a word of its own, for the languages whose own word is another script's.
+const ENGLISH_PROBE_WORD: RegExp =
+  /(?<![\p{L}\p{N}_-])probes?(?![\p{L}\p{N}_-])/iu;
+
+const PROBES_OF_A_SCANNER: string =
+  "a network scanner's probes, the requests a security case counts: not OneUptime probes";
+
+/*
+ * The other eleven docs languages (#8306). German, Norwegian and Swedish
+ * keep the article (die Sonde, en sonde, en sond); Italian and Portuguese
+ * already said "la probe", "uma probe"; Russian said проба (feminine) beside
+ * its Dashboard's зонд (masculine), and the sentences agree with зонд now.
+ * German keeps its own Probe for a sample or a trial (Stichprobe, Probelauf).
+ */
+const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
+  de: {
+    others: /(?<!stich|profil)probe(?!lauf|läuf|fahrt)/iu,
+    keptPhrases: [
+      { phrase: /Startup-Probe\p{L}*/u, why: STARTUP_PROBE },
+      { phrase: /hängt OBI eine Probe/u, why: EBPF_PROBE },
+    ],
+  },
+  no: {
+    others: /probe/iu,
+    keptPhrases: [
+      { phrase: /oppstartsprobe\p{L}*/iu, why: STARTUP_PROBE },
+      { phrase: /fester OBI en probe/u, why: EBPF_PROBE },
+      { phrase: /helseprober/iu, why: HEALTH_PROBES },
+      {
+        phrase: /Bytt til Probe ovenfor|Probe er det vanlige valget/u,
+        why: PROBE_OPTION,
+      },
+    ],
+  },
+  sv: {
+    // The English word and the Swedish docs' own prob, but problem and probera (to try on).
+    others: /prob(?!lem|ab|era)/iu,
+    keptPhrases: [
+      { phrase: /startprob\p{L}*/iu, why: STARTUP_PROBE },
+      { phrase: /fäster OBI en probe/u, why: EBPF_PROBE },
+      {
+        phrase: /Byt till Probe ovan|Probe är det normala valet/u,
+        why: PROBE_OPTION,
+      },
+    ],
+  },
+  it: {
+    others: /probe/iu,
+    keptPhrases: [
+      { phrase: /probe di avvio/iu, why: STARTUP_PROBE },
+      { phrase: /Passa a Probe|Probe è la scelta/u, why: PROBE_OPTION },
+    ],
+  },
+  pt: {
+    others: /probe/iu,
+    keptPhrases: [
+      {
+        phrase: /Mude para Probe acima|Probe é a escolha normal/u,
+        why: PROBE_OPTION,
+      },
+    ],
+  },
+  ru: {
+    // The English word, and проба in every case, but пробел (a space), пробный (a trial) and the rest.
+    others: /probe|(?<!\p{L})проб(?:а|ы|е|у|ой|ам|ами|ах)?(?!\p{L})/iu,
+    keptPhrases: [
+      { phrase: /проб\p{L}* работоспособности/iu, why: HEALTH_PROBES },
+      { phrase: /проб\p{L}* запуска/iu, why: STARTUP_PROBE },
+      {
+        phrase: /проб\p{L}* (?:одного )?сканер\p{L}*/iu,
+        why: PROBES_OF_A_SCANNER,
+      },
+      {
+        phrase: /Переключитесь выше на Probe|Обычно выбирают Probe/u,
+        why: PROBE_OPTION,
+      },
+      {
+        phrase: /Если это была проба/u,
+        why: "a trial run of a Terraform configuration: проба is Russian for a trial, not a OneUptime probe",
+      },
+    ],
+  },
+  fr: {
+    others: /probe/iu,
+    keptPhrases: [
+      {
+        phrase: /Passez à Probe ci-dessus|Probe est le choix habituel/u,
+        why: PROBE_OPTION,
+      },
+    ],
+  },
+  es: { others: /probe/iu, keptPhrases: [] },
+  ko: { others: ENGLISH_PROBE_WORD, keptPhrases: [] },
+  ja: {
+    others: ENGLISH_PROBE_WORD,
+    keptPhrases: [
+      {
+        phrase: /This probe could not/u,
+        why: "the check's own message, which the product writes in English and the page quotes as written",
+      },
+    ],
+  },
+  hi: {
+    others: ENGLISH_PROBE_WORD,
+    keptPhrases: [
+      { phrase: /ऊपर Probe पर स्विच|Probe सामान्य विकल्प/u, why: PROBE_OPTION },
+    ],
+  },
+};
+
+export const PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
+  ...FIRST_PROBE_WORDS,
+  ...MORE_PROBE_WORDS,
 };
 
 export const PROBE_LANGUAGES: ReadonlyArray<string> = Object.keys(PROBE_WORDS);

@@ -128,6 +128,19 @@ const FORMATTERS: ReadonlyArray<NamedFormatter> = [
   },
 ];
 
+/*
+ * A size as its words read: most formatters hold the figure to its unit
+ * with a no-break space (#8303), some still write a plain one. Whole or
+ * not is what this suite holds them to.
+ */
+const asWords: (
+  text: string | null | undefined,
+) => string | null | undefined = (
+  text: string | null | undefined,
+): string | null | undefined => {
+  return typeof text === "string" ? text.split("\u00A0").join(" ") : text;
+};
+
 describe("every byte formatter writes plain bytes whole", () => {
   test.each(
     FORMATTERS.map((formatter: NamedFormatter): [string, ByteFormatter] => {
@@ -135,18 +148,22 @@ describe("every byte formatter writes plain bytes whole", () => {
     }),
   )("%s", (_name: string, format: ByteFormatter) => {
     for (const bytes of PLAIN_BYTES) {
-      expect([bytes, format(bytes)]).toEqual([bytes, `${bytes} B`]);
+      expect([bytes, asWords(format(bytes))]).toEqual([bytes, `${bytes} B`]);
     }
   });
 
   test("a size from a kilobyte up keeps its decimal where it had one", () => {
-    expect(formatTelemetryBytes(1536)).toBe("1.5 KiB");
-    expect(formatOpenStackBytes(1536, { language: "en" })).toBe("1.5 KiB");
-    expect(formatHostBytes(8 * 1024 ** 3)).toBe("8.0 GiB");
-    expect(formatDatabaseBytes(1536)).toBe("1.5 KiB");
-    expect(formatDockerWidgetBytes(1.25 * 1024 ** 3)).toBe("1.25 GiB");
-    expect(formatPodmanWidgetBytes(12.5 * 1024 ** 2)).toBe("12.5 MiB");
-    expect(MonitorCriteriaMessageFormatter.formatBytes(1536)).toBe("1.50 KB");
+    expect(asWords(formatTelemetryBytes(1536))).toBe("1.5 KiB");
+    expect(asWords(formatOpenStackBytes(1536, { language: "en" }))).toBe(
+      "1.5 KiB",
+    );
+    expect(asWords(formatHostBytes(8 * 1024 ** 3))).toBe("8.0 GiB");
+    expect(asWords(formatDatabaseBytes(1536))).toBe("1.5 KiB");
+    expect(asWords(formatDockerWidgetBytes(1.25 * 1024 ** 3))).toBe("1.25 GiB");
+    expect(asWords(formatPodmanWidgetBytes(12.5 * 1024 ** 2))).toBe("12.5 MiB");
+    expect(asWords(MonitorCriteriaMessageFormatter.formatBytes(1536))).toBe(
+      "1.50 KB",
+    );
   });
 
   test("in Persian, zero bytes is a whole Persian zero", () => {

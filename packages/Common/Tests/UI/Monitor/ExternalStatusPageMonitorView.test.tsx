@@ -1654,9 +1654,9 @@ describe("a refused check's summary in English", () => {
  * "412 ms" in English as before.
  */
 describe.each([
-  ["en", "412 ms"],
-  ["de", "412 ms"],
-  ["ar", "412\u00A0ملي ث"],
+  ["en", "412\u00A0ms"],
+  ["de", "412\u00A0ms"],
+  ["ar", "412\u00A0ملي\u00A0ث"],
   ["fa", "۴۱۲\u00A0میلی\u{200C}ثانیه"],
 ])("the Response Time in %s", (language: string, expected: string) => {
   beforeAll(async () => {

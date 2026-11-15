@@ -437,7 +437,7 @@ export default class SessionReplayBudgetMetrics {
      * as one reading, not as many.
      */
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       ingestionDate,
       await this.getRetentionDays(),
     );

@@ -276,7 +276,7 @@ export default class ResourceSecurity {
     }
 
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
-    const startTime: Date = OneUptimeDate.addRemoveDays(
+    const startTime: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -RESOURCE_SECURITY_WINDOW_IN_DAYS,
     );

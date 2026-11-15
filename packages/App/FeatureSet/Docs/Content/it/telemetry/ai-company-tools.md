@@ -1,6 +1,6 @@
 # Strumenti di IA aziendali
 
-Guarda cosa chiedono le tue persone agli strumenti di IA che la tua azienda paga, come conversazioni per persona. Collega Claude Enterprise o Microsoft 365 Copilot con una credenziale che può solo leggere, e OneUptime porta ogni nuova chat in **Conversazioni** ogni 15 minuti. Solo i proprietari e gli amministratori del progetto possono leggerle, a meno che tu non decida diversamente.
+Guarda cosa chiedono le tue persone agli strumenti di IA che la tua azienda paga, come conversazioni per persona. Collega Claude Enterprise o Microsoft 365 Copilot con una credenziale che può solo leggere, e OneUptime porta ogni nuova chat in **Conversazioni** ogni 15 minuti. Solo i Proprietari del progetto e gli Amministratori del progetto possono leggerle, a meno che tu non decida diversamente.
 
 :::cards
 - [Avvisa prima le tue persone](#avvisa-prima-le-tue-persone): Le loro chat sono parole loro.

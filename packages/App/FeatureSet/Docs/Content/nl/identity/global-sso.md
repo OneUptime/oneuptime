@@ -1,6 +1,6 @@
 # Globale SSO
 
-Met globale SSO stelt een **instantiebeheerder** van OneUptime (master-admin) **één keer**, op instantieniveau, een SAML 2.0- of OpenID Connect-identiteitsprovider (OIDC) in en koppelt die aan elk project op de server. In plaats van dat elke projecteigenaar een eigen identiteitsprovider instelt, stelt een master-admin er één in die de hele instantie bedient.
+Met globale SSO stelt een **instantiebeheerder** van OneUptime (master-admin) **één keer**, op instantieniveau, een SAML 2.0- of OpenID Connect-identiteitsprovider (OIDC) in en koppelt die aan elk project op de server. In plaats van dat elke Projecteigenaar een eigen identiteitsprovider instelt, stelt een master-admin er één in die de hele instantie bedient.
 
 > [!NOTE]
 > Globale SSO, inclusief de instantiebrede schakelaar "Require SSO for Login", maakt deel uit van elke editie van OneUptime: elke zelf gehoste instantie heeft het, de Community Edition inbegrepen, en er is geen licentie voor nodig. Het hoort bij het instantiebeheer en geldt dus niet voor OneUptime Cloud. Zie [Enterprise Edition](/docs/self-hosted/enterprise) voor wat elke editie bevat.
@@ -16,7 +16,7 @@ Met globale SSO stelt een **instantiebeheerder** van OneUptime (master-admin) **
 
 |                       | Project-SSO                                         | Globale SSO                                          |
 | --------------------- | --------------------------------------------------- | ---------------------------------------------------- |
-| Ingesteld door        | Projecteigenaar/-beheerder (Projectinstellingen)    | Master-admin van de instantie (Admin Dashboard)      |
+| Ingesteld door        | Projecteigenaar of Projectbeheerder (Projectinstellingen)    | Master-admin van de instantie (Admin Dashboard)      |
 | Bereik                | Eén project                                         | De hele instantie, aan elk project te koppelen       |
 | Resultaat van aanmelden | Toegang tot dat ene project                       | Toegang tot elk project dat de gebruiker kan bereiken |
 

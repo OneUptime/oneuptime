@@ -382,6 +382,14 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
           },
           {
             title: "Run Now",
+            /*
+             * The row's button says the verb, named by its whole title (as
+             * a row's View is): at 1100px beside the side menu the German
+             * list ran 11px past its card with "Jetzt ausführen" on every
+             * row, a check's folded alert under the sticky column (#8345).
+             * "Ausführen" leaves the room.
+             */
+            rowButtonTitle: "Run",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Play,
             onClick: async (

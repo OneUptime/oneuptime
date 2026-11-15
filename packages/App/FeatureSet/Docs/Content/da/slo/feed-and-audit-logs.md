@@ -84,14 +84,14 @@ Gå til **Projektindstillinger**, åbn **Auditlogs** i sidemenuen, og klik på *
 
 ### Redigér indstillingerne
 
-Klik på **Edit Audit Log Settings**, og slå **Aktivér revisionslogs** til.
+Klik på **Rediger indstillinger for auditlogs**, og slå **Aktivér revisionslogs** til.
 
 ### Vælg, hvad der skal gemmes
 
 Angiv **Opbevaring (dage)**, fra 7 (standarden) til 180, og slå **Gem systemhændelser** til for også at registrere de ændringer, OneUptime selv laver. Gem. Ændringen træder i kraft inden for cirka et minut.
 :::
 
-Mens auditloggen er slået fra, står der **Audit logging is off** på SLO'ets side **Auditlogs**, med et link til at slå den til. Poster, der blev registreret, før den blev slået fra, forbliver synlige. Projektets samlede auditlog, for alle ressourcer, findes under **Projektindstillinger** → **Auditlogs** → **Auditlogs**.
+Mens auditloggen er slået fra, står der **Auditlogning slået fra** på SLO'ets side **Auditlogs**, med et link til at slå den til. Poster, der blev registreret, før den blev slået fra, forbliver synlige. Projektets samlede auditlog, for alle ressourcer, findes under **Projektindstillinger** → **Auditlogs** → **Auditlogs**.
 
 ## Næste trin
 

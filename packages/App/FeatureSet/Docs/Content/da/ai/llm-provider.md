@@ -15,7 +15,7 @@ En LLM-udbyder er modellen bag hver AI-funktion i OneUptime: undersøgelser, Sp�
 - **Spørgsmål**: **Spørg AI** svarer ud fra dit projekts data, med en kilde til hver påstand. Se [Spørg AI](/docs/ai/ask-ai).
 - **Udkast**: **Udkast med AI** i noterne til hændelser, advarsler og planlagt vedligeholdelse samt postmortems, skrevet på forespørgsel eller når en hændelse løses.
 - **Kode**: pull requests, der retter undtagelser, langsomme spor og de årsager, undersøgelser finder, fra OneUptime eller fra GitHub. Se [Kode](/docs/ai/ai-agent).
-- **Alt andet**: triage i AI Insights, AI-trinene i workflows og runbooks samt svar i Slack og Microsoft Teams.
+- **Alt andet**: triage i AI Insights, AI-trinene i arbejdsgange og runbooks samt svar i Slack og Microsoft Teams.
 
 ## Hvilken udbyder AI bruger
 
@@ -109,7 +109,7 @@ Under **Forbindelse** spørger formularen kun om det, udbyderen bruger, med sin 
 - **Navn**: udbyderens navn, indtil du skriver dit eget, såsom "Production OpenAI" eller "Local Ollama"
 - **Flere felter**, foldet sammen under felterne ovenfor: en **Beskrivelse**, **Indstil som standard**, som er slået til for en ny udbyder, fordi AI-funktioner kun bruger projektets standardudbyder, **Yderligere parametre**, et valgfrit JSON-objekt med ekstra parametre, der sendes til udbyderen med hver anmodning (for eksempel `{"temperature": 0.2}`), og **Svartimeout (sekunder)**, hvor længe OneUptime venter på udbyderens svar på én anmodning, fra 10 til 3.600 sekunder. Står feltet tomt, er det 120 sekunder (300 for Ollama); hæv værdien for en langsom eller selvhostet model
 
-**Hvem der kan se en udbyder.** Et projekts LLM-udbydere læses kun af de medlemmer, der må læse projektets indstillinger: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Seer**, **Indstillingsadministrator**, **Indstillingsmedlem**, **Indstillingsseer** og **Read LLM**. En udbyders **API-nøgle** og **Yderligere parametre** læses kun af projektets ejere og administratorer, fordi parametrene sendes til udbyderen med hver anmodning og kan indeholde et token eller en header ligesom nøglen. De andre medlemmer ser, om der er gemt parametre, men ikke hvilke. Medlemmer, der må redigere en udbyder, kan stadig erstatte dens API-nøgle eller parametre uden at læse dem: i redigeringsformularen starter de felter tomme, og et felt, der lades tomt, beholder det gemte. For at fjerne parametrene skal du gemme `{}`. Kun projektets ejere og administratorer kan ændre en udbyders **Basis-URL**, fordi dens API-nøgle og yderligere parametre sendes til den adresse; de andre medlemmer, der må redigere en udbyder, kan ændre alt andet. Alle, der kan læse en udbyder, kan læse dens **Basis-URL**, så læg aldrig en nøgle, et token eller en adgangskode i den: brug **API-nøgle**. Listen **Globale LLM-udbydere** på samme side, de fælles udbydere, som et projekt falder tilbage på, viser deres navn, beskrivelse og pris til alle, der er logget ind, og intet andet om dem.
+**Hvem der kan se en udbyder.** Et projekts LLM-udbydere læses kun af de medlemmer, der må læse projektets indstillinger: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Seer**, **Indstillingsadministrator**, **Indstillingsmedlem**, **Indstillingsseer** og **Read LLM**. En udbyders **API-nøgle** og **Yderligere parametre** læses kun af Projektejere og Projektadministratorer, fordi parametrene sendes til udbyderen med hver anmodning og kan indeholde et token eller en header ligesom nøglen. De andre medlemmer ser, om der er gemt parametre, men ikke hvilke. Medlemmer, der må redigere en udbyder, kan stadig erstatte dens API-nøgle eller parametre uden at læse dem: i redigeringsformularen starter de felter tomme, og et felt, der lades tomt, beholder det gemte. For at fjerne parametrene skal du gemme `{}`. Kun Projektejere og Projektadministratorer kan ændre en udbyders **Basis-URL**, fordi dens API-nøgle og yderligere parametre sendes til den adresse; de andre medlemmer, der må redigere en udbyder, kan ændre alt andet. Alle, der kan læse en udbyder, kan læse dens **Basis-URL**, så læg aldrig en nøgle, et token eller en adgangskode i den: brug **API-nøgle**. Listen **Globale LLM-udbydere** på samme side, de fælles udbydere, som et projekt falder tilbage på, viser deres navn, beskrivelse og pris til alle, der er logget ind, og intet andet om dem.
 
 ### Test den
 
@@ -278,7 +278,7 @@ Se [Helm-chartets vLLM-guide](https://github.com/OneUptime/oneuptime/blob/main/H
 ## God praksis
 
 - **Navngiv udbydere tydeligt**, såsom "Production OpenAI" eller "Development Ollama", så en kollega ved, hvilken der er hvilken.
-- **Hold nøgler i feltet API-nøgle.** API-nøgler krypteres i hvile, og kun projektets ejere og administratorer læser dem.
+- **Hold nøgler i feltet API-nøgle.** API-nøgler krypteres i hvile, og kun Projektejere og Projektadministratorer læser dem.
 - **Test efter hver ændring** med udbyderens **Test**.
 - **Hold øje med, hvad AI koster.** Hvert kald står med sine tokens og sin pris under **Projektindstillinger → AI → AI-logs**.
 

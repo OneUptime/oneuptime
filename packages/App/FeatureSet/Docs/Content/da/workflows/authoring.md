@@ -1,25 +1,25 @@
-# Opret et workflow
+# Opret en arbejdsgang
 
-Du bygger et workflow i dets **Bygger**: et lærred, hvor du tilføjer blokke, forbinder dem og udfylder deres indstillinger. Denne side viser, hvordan du opretter et workflow, [tilføjer blokke](#tilføj-blokke), [forbinder](#forbind-blokke) og [konfigurerer](#konfigurer-en-blok) dem, [sender værdier mellem dem](#brug-værdier-fra-tidligere-blokke) og [slår workflowet til](#slå-det-til).
+Du bygger en arbejdsgang i dens **Bygger**: et lærred, hvor du tilføjer blokke, forbinder dem og udfylder deres indstillinger. Denne side viser, hvordan du opretter en arbejdsgang, [tilføjer blokke](#tilføj-blokke), [forbinder](#forbind-blokke) og [konfigurerer](#konfigurer-en-blok) dem, [sender værdier mellem dem](#brug-værdier-fra-tidligere-blokke) og [slår arbejdsgangen til](#slå-den-til).
 
-For at oprette et workflow åbner du **Arbejdsgange** og klikker på **Opret arbejdsgang**. Dialogen **Opret en arbejdsgang** spørger først, hvordan du vil starte, og derefter om et navn. En skabelon, der har brug for sine egne indstillinger, som en Slack-webhook-URL, beder om dem i et ekstra trin og gemmer dem som workflowvariabler, så du kan ændre dem senere uden at redigere workflowet. En skabelon, der tilkalder folk, spørger i samme trin, hvem der skal tilkaldes, valgt blandt projektets brugere, teams, vagtplaner eller vagtpolitikker.
+For at oprette en arbejdsgang åbner du **Arbejdsgange** og klikker på **Opret arbejdsgang**. Dialogen **Opret en arbejdsgang** spørger først, hvordan du vil starte, og derefter om et navn. En skabelon, der har brug for sine egne indstillinger, som en Slack-webhook-URL, beder om dem i et ekstra trin og gemmer dem som arbejdsgangsvariabler, så du kan ændre dem senere uden at redigere arbejdsgangen. En skabelon, der tilkalder folk, spørger i samme trin, hvem der skal tilkaldes, valgt blandt projektets brugere, teams, vagtplaner eller vagtpolitikker.
 
 Vælg, hvordan du vil begynde:
 
-- **Start fra bunden**, øverst i dialogen, giver dig et tomt lærred. De fleste workflows starter her.
+- **Start fra bunden**, øverst i dialogen, giver dig et tomt lærred. De fleste arbejdsgange starter her.
 - **Eller start fra en skabelon** viser nogle få **Anbefalet** skabeloner. For de andre vælger du en kategori ved siden af søgefeltet, som **Hændelser**, **Monitorer** eller **Jira**, eller **Alle skabeloner**, eller du skriver i **Søg i skabeloner…**. Hvert ord, du skriver, skal passe.
 
 Klik på en skabelon for at se, hvad den gør: dens trigger, de blokke, den består af, og de indstillinger, den vil spørge om. Klik derefter på **Brug denne skabelon**, eller dobbeltklik på skabelonen. I søgefeltet vælger piletasterne en skabelon, og **Enter** bruger den. `/` fører dig tilbage til søgefeltet.
 
-Workflows oprettes slået fra, så deres trigger ikke starter dem, før du slår dem til. Et nyt workflow åbner i **Bygger**, lærredet hvor du designer det.
+Arbejdsgange oprettes slået fra, så deres trigger ikke starter dem, før du slår dem til. En ny arbejdsgang åbner i **Bygger**, lærredet hvor du designer den.
 
-Du kan også beskrive et workflow for Ask AI og lade det bygge det for dig. Det finder triggeren og trinnene, sætter dem op og forbinder dem og beder dig godkende workflowet, før det gemmes. Et nyt workflow starter slået fra: læs det i Builder, udfyld adgangskoder, tokens eller webhook-URL'er, det har ladet stå til dig, for Ask AI spørger aldrig om dem i samtalen, og slå det derefter selv til. Ask AI kan ændre et workflow på samme måde. På et workflows side betyder "dette workflow" netop det. Det gemmer som dig, så det kan kun gøre det, du kan gøre i Builder, og Builder viser ændringerne, så snart de er gemt. Hvis workflowet bliver gemt, mens en ændring fra Ask AI venter på din godkendelse, af dig i Builder eller af en anden, bevarer godkendelsen det, der blev gemt. Når de to ændringer gælder forskellige trin, laver Ask AI sin ændring oven på det, der blev gemt, og siger det. Når de rører det samme trin, ændres intet: Ask AI siger, at workflowet er ændret, og foreslår sin ændring igen til workflowet, som det er nu. Ask AI skriver en ændring ud fra workflowet, som det sidst læste det. Hvis workflowet er blevet gemt siden, og ændringen ville fortryde noget af det, der blev gemt, siger kortet det, før du godkender, og nævner trinene, for eksempel "Denne ændring fortryder det, der blev gemt, efter at AI læste arbejdsgangen: Send Message to Slack." Vil du bevare det, der blev gemt, så spring ændringen over og bed Ask AI om at læse workflowet igen. Flyttede kort tæller aldrig med, og det gør en ændret indstilling på et trin, som ændringen fra Ask AI lader være, som det er, heller ikke. Har Ask AI aldrig læst workflowets trin, siger kortet også det. I Kør automatisk, hvor ingen godkender handlinger, laver Ask AI ikke en sådan ændring: det læser workflowet igen og laver sin ændring på workflowet, som det er nu.
+Du kan også beskrive en arbejdsgang for Ask AI og lade det bygge den for dig. Det finder triggeren og trinnene, sætter dem op og forbinder dem og beder dig godkende arbejdsgangen, før den gemmes. En ny arbejdsgang starter slået fra: læs det i Builder, udfyld adgangskoder, tokens eller webhook-URL'er, det har ladet stå til dig, for Ask AI spørger aldrig om dem i samtalen, og slå det derefter selv til. Ask AI kan ændre en arbejdsgang på samme måde. På en arbejdsgangs side betyder "denne arbejdsgang" netop det. Det gemmer som dig, så det kan kun gøre det, du kan gøre i Builder, og Builder viser ændringerne, så snart de er gemt. Hvis arbejdsgangen bliver gemt, mens en ændring fra Ask AI venter på din godkendelse, af dig i Builder eller af en anden, bevarer godkendelsen det, der blev gemt. Når de to ændringer gælder forskellige trin, laver Ask AI sin ændring oven på det, der blev gemt, og siger det. Når de rører det samme trin, ændres intet: Ask AI siger, at arbejdsgangen er ændret, og foreslår sin ændring igen til arbejdsgangen, som den er nu. Ask AI skriver en ændring ud fra arbejdsgangen, som det sidst læste den. Hvis arbejdsgangen er blevet gemt siden, og ændringen ville fortryde noget af det, der blev gemt, siger kortet det, før du godkender, og nævner trinene, for eksempel "Denne ændring fortryder det, der blev gemt, efter at AI læste arbejdsgangen: Send Message to Slack." Vil du bevare det, der blev gemt, så spring ændringen over og bed Ask AI om at læse arbejdsgangen igen. Flyttede kort tæller aldrig med, og det gør en ændret indstilling på et trin, som ændringen fra Ask AI lader være, som det er, heller ikke. Har Ask AI aldrig læst arbejdsgangens trin, siger kortet også det. I Kør automatisk, hvor ingen godkender handlinger, laver Ask AI ikke en sådan ændring: det læser arbejdsgangen igen og laver sin ændring på arbejdsgangen, som den er nu.
 
 ## Lærredet
 
-Et workflow fra bunden åbner med en enkelt stiplet blok med teksten **Vælg, hvad der starter denne arbejdsgang**. Den blok er udgangspunktet — klik på den for at vælge en trigger. Et workflow, der er oprettet fra en skabelon, åbner med sine blokke allerede på plads.
+En arbejdsgang fra bunden åbner med en enkelt stiplet blok med teksten **Vælg, hvad der starter denne arbejdsgang**. Den blok er udgangspunktet — klik på den for at vælge en trigger. En arbejdsgang, der er oprettet fra en skabelon, åbner med sine blokke allerede på plads.
 
-Hvert workflow har præcis én **trigger** øverst. Alt andet er en **komponent**, der gør noget. For at skifte triggeren sletter du den: den stiplede pladsholder kommer tilbage på dens plads, og et klik på den lader dig vælge en anden. Når du sletter en blok, slettes dens linjer også, så forbind den nye trigger til den første blok igen.
+Hver arbejdsgang har præcis én **trigger** øverst. Alt andet er en **komponent**, der gør noget. For at skifte triggeren sletter du den: den stiplede pladsholder kommer tilbage på dens plads, og et klik på den lader dig vælge en anden. Når du sletter en blok, slettes dens linjer også, så forbind den nye trigger til den første blok igen.
 
 Ændringer gemmes automatisk, et øjeblik efter at du har lavet dem. En pille i værktøjslinjen holder øje med det: **Gemmer…**, mens ændringen er på vej, derefter **Gemt**. Hvis en ændring ikke kunne gemmes, står der **Kunne ikke gemme** på pillen, med årsagen, når du holder musen over den, og **Prøv igen** ved siden af. Dine ændringer bliver imens på lærredet, og den næste ændring, du laver, prøver igen. Forlader du siden, før en ændring er gemt, bliver du spurgt først. Lærredet har ingen gem-knap og intet separat udgivelsestrin. En fejl bliver også gemt, og derfor husker Bygger hver ændring, så du kan tage den tilbage: se [Fortryd, gentag og versionshistorik](#fortryd-gentag-og-versionshistorik).
 
@@ -32,9 +32,9 @@ To personer kan have den samme arbejdsgang åben. Hvis en anden gemmer den, efte
 | Triggeren              | Den stiplede pladsholderblok, eller **Tilføj udløser** i værktøjslinjen | **Tilføj udløser**            |
 | Enhver anden blok      | **Tilføj komponent**, i værktøjslinjen over lærredet           | **Tilføj komponent**          |
 
-Knappen i værktøjslinjen hedder **Tilføj udløser**, så længe workflowet ikke har en trigger, og **Tilføj komponent**, så snart det har en.
+Knappen i værktøjslinjen hedder **Tilføj udløser**, så længe arbejdsgangen ikke har en trigger, og **Tilføj komponent**, så snart den har en.
 
-Begge paneler åbner på de blokke, de fleste workflows bruger, under **Populære**, efterfulgt af de øvrige indbyggede blokke. Under **OneUptime-ressourcer** klikker du på en ressource som **Hændelse** for at se, hvad du kan gøre med den; **Gennemse alle ressourcer** viser dem alle. Eller søg: skriv et par ord, som `create incident`, og det bedste match kommer først. Tryk på `/` for at hoppe til søgefeltet, på piletasterne for at gå gennem resultaterne og på **Enter** for at tilføje den fremhævede blok. Et klik på en blok tilføjer den.
+Begge paneler åbner på de blokke, de fleste arbejdsgange bruger, under **Populære**, efterfulgt af de øvrige indbyggede blokke. Under **OneUptime-ressourcer** klikker du på en ressource som **Hændelse** for at se, hvad du kan gøre med den; **Gennemse alle ressourcer** viser dem alle. Eller søg: skriv et par ord, som `create incident`, og det bedste match kommer først. Tryk på `/` for at hoppe til søgefeltet, på piletasterne for at gå gennem resultaterne og på **Enter** for at tilføje den fremhævede blok. Et klik på en blok tilføjer den.
 
 En ny blok havner under den nederste blok på lærredet, og en ny trigger tager den stiplede bloks plads øverst. Den nye blok er markeret, og hvis den havner uden for synsfeltet, ruller lærredet lige nok til at vise den. Dens indstillinger åbner ikke af sig selv: klik på blokken, når du er klar til at konfigurere den. Indtil de påkrævede indstillinger er udfyldt, står der **Click to set up** på den.
 
@@ -68,7 +68,7 @@ flowchart TB
 
 Du kan forbinde én udgang til flere blokke. De kører alle — men efter hinanden, i én kø, ikke parallelt. Regn ikke med rækkefølgen mellem grenene, og regn heller ikke med, at de overlapper i tid.
 
-Hver blok kører højst én gang pr. kørsel. En linje, der fører til en blok, som allerede har kørt — tilbage op ad lærredet eller fra en anden gren, efter at den første nåede den — stopper kørslen med en fejl, så et workflow ikke kan gå i ring.
+Hver blok kører højst én gang pr. kørsel. En linje, der fører til en blok, som allerede har kørt — tilbage op ad lærredet eller fra en anden gren, efter at den første nåede den — stopper kørslen med en fejl, så en arbejdsgang ikke kan gå i ring.
 
 ## Konfigurer en blok
 
@@ -84,29 +84,29 @@ Hver indstilling har det inputfelt, dens værdi kræver:
 | JSON                                             | En JSON-editor.                                                                |
 | Til eller fra                                    | En kontakt med dens navn ved siden af. Klik på kontakten eller navnet for at skifte den. |
 
-Dialogen åbner ved det, du sandsynligvis kom efter. For en **Webhook**-trigger er det dens URL, med en knap **Kopiér URL**, de metoder, den accepterer, og en eksempelforespørgsel. For en **Manuel**-trigger er det, hvordan workflowet startes. Enhver anden blok åbner ved sine indstillinger. En blok uden indstillinger har slet ingen sektion **Indstillinger**.
+Dialogen åbner ved det, du sandsynligvis kom efter. For en **Webhook**-trigger er det dens URL, med en knap **Kopiér URL**, de metoder, den accepterer, og en eksempelforespørgsel. For en **Manuel**-trigger er det, hvordan arbejdsgangen startes. Enhver anden blok åbner ved sine indstillinger. En blok uden indstillinger har slet ingen sektion **Indstillinger**.
 
 Derunder, oppefra og ned:
 
 - **ID**, **Input** og **Outputs**, side om side — blokkens identifier, hvorfra den nås, og hvad der kører efter den.
 - **Returns** — de data, denne blok giver videre til senere trin. Hver værdi viser den præcise reference, der læser den, med en knap til at kopiere den.
-- **How to use** — hvad blokken gør i én sætning, trinnene til at konfigurere den, et eksempel til at kopiere og de fejl, folk ofte laver. Eksemplet er bygget ud fra dit workflow: det bruger denne bloks ID og triggerens værdier, hvor det sætter data ind i en besked. **Få mere at vide** åbner den længere forklaring, og linkene går til den fulde vejledning. Hver blok har en, og knappen **How to use** øverst i dialogen hopper direkte dertil.
+- **How to use** — hvad blokken gør i én sætning, trinnene til at konfigurere den, et eksempel til at kopiere og de fejl, folk ofte laver. Eksemplet er bygget ud fra din arbejdsgang: det bruger denne bloks ID og triggerens værdier, hvor det sætter data ind i en besked. **Få mere at vide** åbner den længere forklaring, og linkene går til den fulde vejledning. Hver blok har en, og knappen **How to use** øverst i dialogen hopper direkte dertil.
 
 Bunden indeholder:
 
 - **Slet** — fjern denne blok. Den spørger først og nævner blokken ved type og identifier, som **Send Email (send-email-2)**, så du ved, hvilken af flere ens blokke der forsvinder.
-- **Run just this step** — kør kun denne ene blok, uden resten af workflowet. Værdier, den ville have læst fra andre trin, kommer tomme frem, og alt, hvad den sender, skriver eller sletter, sker i virkeligheden. Den springer alle betingelser før blokken over, så kun personer, der må redigere workflowet, kan bruge den.
+- **Run just this step** — kør kun denne ene blok, uden resten af arbejdsgangen. Værdier, den ville have læst fra andre trin, kommer tomme frem, og alt, hvad den sender, skriver eller sletter, sker i virkeligheden. Den springer alle betingelser før blokken over, så kun personer, der må redigere arbejdsgangen, kan bruge den.
 
 ### Brug værdier fra tidligere blokke
 
-De fleste indstillinger kan bruge en værdi fra en tidligere blok eller en variabel — sådan flyder data fra én blok til den næste. Hver sådan indstilling har en knap **{ }** for enden. Den åbner en liste over de værdier, du kan bruge: hver tidligere blok ved sit navn, med hver værdi, den returnerer — hvad den hedder, hvad den indeholder og dens type —, derefter dit workflows variabler og dine globale. Søg i listen, vælg en med musen eller med piletasterne og **Enter**, og værdien sættes ind, hvor din markør står.
+De fleste indstillinger kan bruge en værdi fra en tidligere blok eller en variabel — sådan flyder data fra én blok til den næste. Hver sådan indstilling har en knap **{ }** for enden. Den åbner en liste over de værdier, du kan bruge: hver tidligere blok ved sit navn, med hver værdi, den returnerer — hvad den hedder, hvad den indeholder og dens type —, derefter din arbejdsgangs variabler og dine globale. Søg i listen, vælg en med musen eller med piletasterne og **Enter**, og værdien sættes ind, hvor din markør står.
 
 I indstillingen vises en værdi som en chip, som **Webhook › Request Body**. Hold musen over den for at se den reference, den står for, `{{local.components.webhook-1.returnValues.request-body}}`, som er det, der gemmes. Markøren springer over en chip i ét hug, **Backspace** fjerner den helt, og kopierer du den, kopieres referencen. Kender du syntaksen, så skriv `{{` i stedet: den samme liste åbner under indstillingen og indsnævres, mens du skriver.
 
 - **Værdier, der findes, kommer først, og resten vises for sig.** Triggeren og de blokke, der kører før denne, tilbydes. En blok, der kun kører før denne i nogle kørsler — efter én udgang fra en **If / Else**, for eksempel — siger det, fordi dens værdier kan være tomme her. En blok, der kører senere, eller på en gren, der ikke fører hertil, vises til sidst, foldet sammen og nedtonet, med årsagen, og dens værdier kan ikke vælges. Indtil en blok er forbundet, vises kun triggerens værdier, og listen siger det.
 - **En post åbner på sine felter.** En Find One- eller On Create-blok returnerer en hel post. Vælg den for at se dens felter: først dem, blokken sender videre, som dens **Fields to pass on** nævner, og derefter, for sig, dem, den ikke sender videre, og som er tomme her. En JSON-værdi eller et sæt headere åbner på et felt, hvor du skriver en sti, som `title` eller `alerts[0].status`.
 - **Når en blok har kørt, ved listen, hvad der er i dens værdier.** Hver værdi siger, hvad den indeholdt i den seneste kørsel — `"production"` eller `3 fields` —, og en JSON-værdi eller et sæt headere åbner på de felter, den havde, hver med sit indhold. Fra en Webhooks **Anmodningsbrødtekst** vælger du altså **incident.title** i stedet for at skrive en sti. Søgning finder også disse felter: skriv `title`, eller `{{` og begyndelsen af en sti. En posts felter viser også, hvad de indeholdt. Felterne kommer fra den seneste kørsel, så et felt, som en senere forespørgsel udelader, er tomt i den kørsel. En værdi, der ligner en hemmelighed, som en `Authorization`-header, et token eller en adgangskode, vises uden sit indhold.
-- **En Webhook, der endnu ikke har modtaget en forespørgsel, siger det** øverst i sine værdier, med **Kopiér testanmodning**: en `curl`-kommando, der sender `{"message": "Hello"}` til workflowets webhook-URL. Kør den i en terminal, mens listen er åben, og forespørgslens felter dukker op i den, så snart den kørsel, den starter, er færdig, som regel inden for få sekunder. Kun personer, der må se webhook-URL'en, får knappen. Så længe workflowet er slået fra, afviser dets URL forespørgsler, så listen tilbyder **Test med "Kør arbejdsgang"** i stedet: felterne i den forespørgsel, du sender derfra, dukker op på samme måde. En Incoming Email-trigger, der endnu ikke har modtaget en e-mail, siger det samme sted; send en e-mail til dens adresse, og dens headere og vedhæftede filer dukker op på samme måde.
+- **En Webhook, der endnu ikke har modtaget en forespørgsel, siger det** øverst i sine værdier, med **Kopiér testanmodning**: en `curl`-kommando, der sender `{"message": "Hello"}` til arbejdsgangens webhook-URL. Kør den i en terminal, mens listen er åben, og forespørgslens felter dukker op i den, så snart den kørsel, den starter, er færdig, som regel inden for få sekunder. Kun personer, der må se webhook-URL'en, får knappen. Så længe arbejdsgangen er slået fra, afviser dens URL forespørgsler, så listen tilbyder **Test med "Kør arbejdsgang"** i stedet: felterne i den forespørgsel, du sender derfra, dukker op på samme måde. En Incoming Email-trigger, der endnu ikke har modtaget en e-mail, siger det samme sted; send en e-mail til dens adresse, og dens headere og vedhæftede filer dukker op på samme måde.
 - **Kodeeditorer har Insert value i deres værktøjslinje.** I JSON tilføjer den de anførselstegn, en værdi skal have inde i et dokument. **Run Custom JavaScript** læser værdier gennem sine **Arguments**, så dens kode har ingen vælger.
 - **Tal, adgangskoder, kontakter og datoer beholder deres egen kontrol,** med **{ }** ved siden af. En valgt værdi erstatter kontrollen, og **abc** går tilbage til at skrive.
 
@@ -118,7 +118,7 @@ Bygger tjekker hele grafen, hver gang du ændrer den, og melder, hvad den finder
 
 Den fanger de fejl, der ellers er usynlige, indtil en kørsel går galt:
 
-- et workflow uden trigger;
+- en arbejdsgang uden trigger;
 - to blokke med samme ID, eller et ID med et punktum i;
 - en blok, som intet er forbundet til;
 - en påkrævet indstilling, der er efterladt tom;
@@ -128,48 +128,48 @@ Den fanger de fejl, der ellers er usynlige, indtil en kørsel går galt:
 
 Én ting kan den ikke tjekke: om et variabelnavn findes. En bloks indstillinger kan — en reference til en variabel, der ikke findes, vises dér som en orange chip. Alle andre steder viser en omdøbt variabel sig først i kørslens log.
 
-## Dit første workflow
+## Din første arbejdsgang
 
-Den hurtigste måde at lære lærredet at kende på er et workflow med to blokke, som du starter manuelt:
+Den hurtigste måde at lære lærredet at kende på er en arbejdsgang med to blokke, som du starter manuelt:
 
 :::steps
 1. Klik på den stiplede pladsholderblok, og klik så på **Manuel** i panelet **Tilføj udløser**.
 2. Klik på **Tilføj komponent**, og klik så på **Log** under **Populære**. Den nye blok havner under triggeren. Forbind triggerens punkt **Execute** ned til Log-blokkens inputpunkt.
 3. Klik på Log-blokken, hvor der står **Click to set up**, og skriv `Hello from ` i dens **Værdi**. Klik på **{ }**, og klik så på **JSON** under **Manuel**. Indstillingen viser **Manual › JSON** og gemmer `{{local.components.manual-1.returnValues.value}}`. `manual-1` er triggerens **Identifier**, som vises på triggerblokken. Klik på **Gem**.
-4. Tilbage i **Bygger** klikker du på **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kør arbejdsgang manuelt** og bekræfter med **Kør**. Workflowet er stadig slået fra, og det behøver ikke være slået til: en kørsel, du selv starter, er en **Testkørsel**.
+4. Tilbage i **Bygger** klikker du på **Kør arbejdsgang**, skriver `{ "name": "Ada" }` i feltet **JSON**, klikker på **Kør arbejdsgang manuelt** og bekræfter med **Kør**. Arbejdsgangen er stadig slået fra, og den behøver ikke være slået til: en kørsel, du selv starter, er en **Testkørsel**.
 5. Et panel **Arbejdsgangskørsel** åbner af sig selv og følger kørslen. Øverst står der **Testkørsel**, og loggen viser `Value:` efterfulgt af `Hello from` og den JSON, du skrev.
 :::
 
-Den cyklus — tilføj, forbind, konfigurer, kør, læs loggen — er sådan, du bygger hvert workflow.
+Den cyklus — tilføj, forbind, konfigurer, kør, læs loggen — er sådan, du bygger hver arbejdsgang.
 
 > [!TIP]
-> JSON, der skrives i **Kør arbejdsgang**, når frem til Manual-triggeren som JSON. For at læse et felt i den, som `name`, tilføjer du feltets navn til referencen: `{{local.components.manual-1.returnValues.value.name}}`. Når workflowet har kørt, viser værdivælgeren også felterne: åbn **JSON** under **Manuel**.
+> JSON, der skrives i **Kør arbejdsgang**, når frem til Manual-triggeren som JSON. For at læse et felt i den, som `name`, tilføjer du feltets navn til referencen: `{{local.components.manual-1.returnValues.value.name}}`. Når arbejdsgangen har kørt, viser værdivælgeren også felterne: åbn **JSON** under **Manuel**.
 
-## Slå det til
+## Slå den til
 
-Nye workflows starter deaktiveret, og det samme gør ethvert workflow, du duplikerer eller importerer. Slået fra er workflowets trigger sat på pause, så intet starter det af sig selv, men du kan stadig teste det. Mens et workflow er slået fra, siger Bygger det over lærredet, med en knap **Slå arbejdsgang til**.
+Nye arbejdsgange starter deaktiveret, og det samme gør enhver arbejdsgang, du duplikerer eller importerer. Slået fra er arbejdsgangens trigger sat på pause, så intet starter den af sig selv, men du kan stadig teste den. Mens en arbejdsgang er slået fra, siger Bygger det over lærredet, med en knap **Slå arbejdsgang til**.
 
-Kontakten **Aktiveret** sidder øverst i **Bygger**, ved siden af **Tilføj komponent** og **Kør arbejdsgang**. Den findes også på workflowets side **Oversigt**, hvis kort **Arbejdsgangsdetaljer** viser den aktuelle tilstand som en grøn pille **Aktiveret** eller en rød pille **Deaktiveret**: klik på **Rediger arbejdsgang**, og åbn **Flere felter**. Kun personer, der må redigere workflowet, kan slå det til eller fra; alle andre ser kontakten nedtonet.
+Kontakten **Aktiveret** sidder øverst i **Bygger**, ved siden af **Tilføj komponent** og **Kør arbejdsgang**. Den findes også på arbejdsgangens side **Oversigt**, hvis kort **Arbejdsgangsdetaljer** viser den aktuelle tilstand som en grøn pille **Aktiveret** eller en rød pille **Deaktiveret**: klik på **Rediger arbejdsgang**, og åbn **Flere felter**. Kun personer, der må redigere arbejdsgangen, kan slå den til eller fra; alle andre ser kontakten nedtonet.
 
-Mens et workflow er slået fra, afgør det, der starter det, om det kører:
+Mens en arbejdsgang er slået fra, afgør det, der starter den, om den kører:
 
-| Startet af                                                 | Mens workflowet er slået fra                                                                                                                                                              |
+| Startet af                                                 | Mens arbejdsgangen er slået fra                                                                                                                                                              |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dets trigger: en tidsplan, en OneUptime-begivenhed eller en e-mail | Ignoreret.                                                                                                                                                                       |
 | **Kør arbejdsgang** eller **Run just this step**            | Kører, som **Testkørsel**. Dets blokke kører for alvor: en besked bliver virkelig sendt, og en post bliver virkelig ændret. Kørslen er markeret som **Testkørsel** i listerne over kørsler og øverst i kørslen, med hvem der startede den. |
 | Et kald til dets webhook-URL                               | Afvist med HTTP 400 og "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                          |
-| Et andet workflows **Execute Workflow**-blok                | Den blok tager sin vej **Fejl**, og fejlen nævner det workflow, den kaldte. Det gælder også i en testkørsel: et workflow, den kalder, skal være slået til. |
+| En anden arbejdsgangs **Execute Workflow**-blok                | Den blok tager sin vej **Fejl**, og fejlen nævner den arbejdsgang, den kaldte. Det gælder også i en testkørsel: en arbejdsgang, den kalder, skal være slået til. |
 
 Rækkefølgen er altså: byg det, test det med **Kør arbejdsgang**, mens det stadig er slået fra, læs kørslens log, og slå **Aktiveret** til, når du er klar til, at dets trigger udløses. For at teste en enkelt blok uden at køre det hele bruger du **Run just this step** i den bloks indstillinger.
 
-For at sætte et workflow på pause uden at slette det slår du **Aktiveret** fra. Dets trigger holder op med at starte kørsler. En kørsel, der er i gang, gør sig færdig, men en, som dets trigger startede, og som holder ved en **Sleep**-blok, annulleres, når den vågner, og registreres som en fejl. En testkørsel fortsætter.
+For at sætte en arbejdsgang på pause uden at slette den slår du **Aktiveret** fra. Dens trigger holder op med at starte kørsler. En kørsel, der er i gang, gør sig færdig, men en, som dets trigger startede, og som holder ved en **Sleep**-blok, annulleres, når den vågner, og registreres som en fejl. En testkørsel fortsætter.
 
 ## Ryd op
 
 - Træk blokke for at flytte dem. Layoutet gemmes.
 - For at slette en linje trækker du en af dens ender væk fra punktet og slipper den på et tomt sted på lærredet.
 - For at slette en blok klikker du på den og bruger **Slet** nederst i dens indstillingsdialog. At markere en blok eller en linje og trykke på Backspace fjerner den også.
-- Der er ingen måde at duplikere en enkelt blok på. **Duplikér Arbejdsgang** på workflowets side **Indstillinger** kopierer det hele. Kopiens navn er udfyldt, nummereret forbi projektets workflows ("Nightly Sync" kopieres som "Nightly Sync 2"), og kopien åbner, deaktiveret.
+- Der er ingen måde at duplikere en enkelt blok på. **Duplikér Arbejdsgang** på arbejdsgangens side **Indstillinger** kopierer det hele. Kopiens navn er udfyldt, nummereret forbi projektets arbejdsgange ("Nightly Sync" kopieres som "Nightly Sync 2"), og kopien åbner, deaktiveret.
 - Stil blokkene oppefra og ned, så de læses i den retning, de kører — input er på den øverste kant, output på den nederste, så flowet naturligt går nedad.
 
 ## Fortryd, gentag og versionshistorik
@@ -180,7 +180,7 @@ Hver ændring, du laver på lærredet, kan tages tilbage, selvom den blev gemt m
 - Tastaturet virker også: ⌘Z på en Mac, eller Ctrl+Z, fortryder, og ⇧⌘Z, Ctrl+Shift+Z eller Ctrl+Y gentager. Mens du skriver i et felt eller en kodeeditor, fortryder de samme taster i stedet det, du har skrevet.
 - Det, du fortryder, gemmes som enhver anden ændring. Fortryd rækker kun tilbage til det, du har gjort, siden du åbnede Bygger; versionshistorikken går længere tilbage.
 
-**Versionshistorik**, i værktøjslinjen, viser hver gemt version af workflowet, med den nyeste først: hvem der gemte den, hvornår, og hvad den ændrede, som `Added "Send Email" (send-email-1)`. De ændringer, du gemmer inden for 10 minutter af hinanden, udgør én version, så en version er et stykke arbejde frem for hvert eneste klik. Ændringer via API'et er også versioner, og hver ændring, som Ask AI laver, er en version for sig, der siger, at Ask AI lavede den for dig. Gendanner du versionen før den, tager du præcis det tilbage, som Ask AI gjorde. Når Ask AI's ændring blev lavet oven på en ændring, du endnu ikke havde set, viser Builder dem som to trin: Fortryd tager kun Ask AI's ændring tilbage, og ændringen, der blev gemt før den, er trinnet før.
+**Versionshistorik**, i værktøjslinjen, viser hver gemt version af arbejdsgangen, med den nyeste først: hvem der gemte den, hvornår, og hvad den ændrede, som `Added "Send Email" (send-email-1)`. De ændringer, du gemmer inden for 10 minutter af hinanden, udgør én version, så en version er et stykke arbejde frem for hvert eneste klik. Ændringer via API'et er også versioner, og hver ændring, som Ask AI laver, er en version for sig, der siger, at Ask AI lavede den for dig. Gendanner du versionen før den, tager du præcis det tilbage, som Ask AI gjorde. Når Ask AI's ændring blev lavet oven på en ændring, du endnu ikke havde set, viser Builder dem som to trin: Fortryd tager kun Ask AI's ændring tilbage, og ændringen, der blev gemt før den, er trinnet før.
 
 For at gå tilbage til en tidligere version:
 
@@ -190,12 +190,12 @@ For at gå tilbage til en tidligere version:
 3. Klik på **Gendan denne version**. Versionen kommer tilbage på lærredet og gemmes med det samme.
 :::
 
-En gendannelse er en ændring som enhver anden. Den gemmes som en ny version, der siger, hvilken version den gendannede, så du kan fortryde den eller gendanne den version, du havde før. Alle, der kan åbne workflowet, kan se dets historik; kun personer, der må redigere workflowet, kan gendanne en version. De 100 nyeste versioner af hvert workflow bevares.
+En gendannelse er en ændring som enhver anden. Den gemmes som en ny version, der siger, hvilken version den gendannede, så du kan fortryde den eller gendanne den version, du havde før. Alle, der kan åbne arbejdsgangen, kan se dens historik; kun personer, der må redigere arbejdsgangen, kan gendanne en version. De 100 nyeste versioner af hver arbejdsgang bevares.
 
 ## Næste trin
 
 :::cards
-- [Triggere](/docs/workflows/triggers): De fem måder, et workflow kan starte på.
+- [Triggere](/docs/workflows/triggers): De fem måder, en arbejdsgang kan starte på.
 - [Komponenter](/docs/workflows/components): Alle de blokke, du kan tilføje, med deres indstillinger og udgange.
 - [Variabler](/docs/workflows/variables): Flyt data mellem blokke, og hold hemmeligheder ude af dem.
 - [Kørsler](/docs/workflows/runs-and-logs): Tjek, hvad hver kørsel gjorde, trin for trin.

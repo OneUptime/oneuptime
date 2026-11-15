@@ -91,7 +91,7 @@ Beskeden nævner det planlagte tidspunkt og den tilstand, begivenheden endnu ikk
 
 ## Rækkefølgen håndhæves
 
-Hvert tilstandsskift kontrolleres mod listen, uanset hvem der foretager det: dashboardet, Slack, Microsoft Teams, API'et, Terraform, et workflow eller OneUptime selv.
+Hvert tilstandsskift kontrolleres mod listen, uanset hvem der foretager det: dashboardet, Slack, Microsoft Teams, API'et, Terraform, en arbejdsgang eller OneUptime selv.
 
 - **Skridt tilbage afvises**, med en besked, der nævner begge tilstande: "Scheduled Maintenance cannot transition to Scheduled state from Ongoing state because Scheduled is before Ongoing in the order of scheduled maintenance states."
 - **At skifte til den tilstand, den allerede er i, afvises**: "Scheduled Maintenance state cannot be same as previous state."

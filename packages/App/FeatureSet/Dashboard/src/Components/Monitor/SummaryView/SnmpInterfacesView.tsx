@@ -22,18 +22,18 @@ const formatBitsPerSecond: (bps: number | undefined) => string = (
   }
 
   if (bps >= 1000000000) {
-    return `${(bps / 1000000000).toFixed(2)} Gbps`;
+    return `${(bps / 1000000000).toFixed(2)}\u00A0Gbps`;
   }
 
   if (bps >= 1000000) {
-    return `${(bps / 1000000).toFixed(2)} Mbps`;
+    return `${(bps / 1000000).toFixed(2)}\u00A0Mbps`;
   }
 
   if (bps >= 1000) {
-    return `${(bps / 1000).toFixed(2)} Kbps`;
+    return `${(bps / 1000).toFixed(2)}\u00A0Kbps`;
   }
 
-  return `${Math.round(bps)} bps`;
+  return `${Math.round(bps)}\u00A0bps`;
 };
 
 /*

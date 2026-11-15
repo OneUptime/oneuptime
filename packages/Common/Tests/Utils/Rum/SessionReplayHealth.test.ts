@@ -201,21 +201,21 @@ describe("formatCountForCopy", () => {
 
 describe("formatBytesForCopy", () => {
   test.each([
-    [0, "0 MB"],
-    [MB / 2, "1 MB"],
-    [MB / 2 - 1, "0 MB"],
-    [1023 * MB, "1023 MB"],
-    [GB, "1 GB"],
-    [10 * GB, "10 GB"],
-    [1.5 * GB, "1.5 GB"],
-    [1.75 * GB, "1.8 GB"],
+    [0, "0\u00A0MB"],
+    [MB / 2, "1\u00A0MB"],
+    [MB / 2 - 1, "0\u00A0MB"],
+    [1023 * MB, "1023\u00A0MB"],
+    [GB, "1\u00A0GB"],
+    [10 * GB, "10\u00A0GB"],
+    [1.5 * GB, "1.5\u00A0GB"],
+    [1.75 * GB, "1.8\u00A0GB"],
   ])("%p bytes reads %p", (bytes: number, expected: string) => {
     expect(formatBytesForCopy(bytes)).toBe(expected);
   });
 
   test("switches to GB exactly at one gibibyte", () => {
-    expect(formatBytesForCopy(GB - 1)).toBe("1024 MB");
-    expect(formatBytesForCopy(GB)).toBe("1 GB");
+    expect(formatBytesForCopy(GB - 1)).toBe("1024\u00A0MB");
+    expect(formatBytesForCopy(GB)).toBe("1\u00A0GB");
   });
 
   test.each([-1, NaN, Infinity, -Infinity])(
@@ -530,7 +530,7 @@ describe("diagnoseRecordingHealth - budget boundaries", () => {
       severity: "error",
       title: "Uploads paused for today",
       detail:
-        "This project used its 2 GB daily budget for session replay (2.5 GB used). Uploads resume tomorrow.",
+        "This project used its 2\u00A0GB daily budget for session replay (2.5\u00A0GB used). Uploads resume tomorrow.",
       action: { label: "Review the budget", target: "budget" },
     });
   });

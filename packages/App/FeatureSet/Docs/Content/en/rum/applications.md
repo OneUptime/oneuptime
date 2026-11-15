@@ -145,7 +145,7 @@ To erase one person's data rather than a whole application, file an erasure requ
 
 ## Permissions
 
-Anyone with the project's Viewer role can see RUM applications and their telemetry. Session Replay is deliberately not part of that role: listing recordings, watching one and reading who watched are separate permissions. Project owners and admins hold them all. The permission pickers list each permission by its title, shown here in italics.
+Anyone with the project's Viewer role can see RUM applications and their telemetry. Session Replay is deliberately not part of that role: listing recordings, watching one and reading who watched are separate permissions. Project Owners and Project Admins hold them all. The permission pickers list each permission by its title, shown here in italics.
 
 | Permission | Lets a member |
 | --- | --- |

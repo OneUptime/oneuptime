@@ -31,7 +31,11 @@ const OBJECT_ID_SEGMENT: RegExp = /^[0-9a-f]{24}$/iu;
  */
 const EMAIL_SEGMENT: RegExp = /^[^@\s/]{1,64}@[^@\s/]{1,253}\.[^@\s/]{1,63}$/u;
 const LONG_DIGIT_SEGMENT: RegExp = /^\d{9,}$/u;
-const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_-]{32,}$/u;
+/*
+ * A token in base64url or standard base64, with up to two "=" of padding
+ * (Common's UrlScrubber, #8489).
+ */
+const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_+/-]{32,}={0,2}$/u;
 /*
  * A JSON Web Token, signed, unsigned or encrypted: a header of base64url
  * JSON ("eyJ") and one to four more parts joined by dots, which kept it out

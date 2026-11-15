@@ -302,7 +302,7 @@ Applikasjonens side **Anbefalinger** tilbyr en ferdig monitor for hver vital. Hv
 | **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Advarsel** |
 | **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Advarsel** |
 
-Disse monitorene leser bare navnene `web_vital.*`. Hvis appen din sender en vital under et annet navn, endrer du målingen i den opprettede monitoren. For å varsle på én rute legger du til et filter `app.route` i monitoren. Du kan også bygge din egen monitor på hvilken som helst av disse målingene: se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
+Disse monitorene leser bare navnene `web_vital.*`. Hvis appen din sender en vital under et annet navn, endrer du målingen i den opprettede monitoren. For å varsle på én rute legger du til et filter `app.route` i monitoren. Du kan også bygge din egen monitor på hvilken som helst av disse målingene: se [Målingsovervåking](/docs/monitor/metrics-monitor).
 
 ## Feilsøking
 
@@ -329,7 +329,7 @@ Kortet viser gjennomsnittet over tidsrommet du valgte, og Google rapporterer 75.
 
 :::cards
 - [Nettleseroppsett](/docs/rum/browser-setup): Pipelinen for spor, logger og målinger som disse vitals går gjennom.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst vital, for hele appen eller én rute.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst vital, for hele appen eller én rute.
 - [Øktavspilling](/docs/telemetry/session-replay): Se INP per visning i opptak, uten kode.
 - [RUM-feilsøking](/docs/rum/troubleshooting): Hver sjekk, i den rekkefølgen problemer vanligvis oppstår.
 :::

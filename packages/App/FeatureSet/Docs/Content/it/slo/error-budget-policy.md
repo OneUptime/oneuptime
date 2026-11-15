@@ -299,7 +299,7 @@ Queste autorizzazioni sono nel gruppo SLO di un ruolo. I ruoli Proprietario del 
 
 ## Non ancora disponibile
 
-Alcune parti di una policy del budget di errore non sono ancora disponibili: un trigger di workflow dedicato a ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente. OneUptime non ferma un rilascio da solo: lo fa una pipeline che controlla `deploymentsAllowed`, come mostra [Gate delle distribuzioni](#gate-delle-distribuzioni).
+Alcune parti di una policy del budget di errore non sono ancora disponibili: un trigger del flusso di lavoro dedicato a ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente. OneUptime non ferma un rilascio da solo: lo fa una pipeline che controlla `deploymentsAllowed`, come mostra [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ## Passi successivi
 

@@ -422,5 +422,5 @@ Vi vil gerne forbedre denne integration, så feedback er velkommen på [hello@on
 :::cards
 - [Microsoft Teams](/docs/workspace-connections/microsoft-teams): Opret notifikationsregler og opsummeringer for projektet.
 - [Slack-integration](/docs/self-hosted/slack-integration): Sæt også Slack-appen op på din server.
-- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
+- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad arbejdsgange og webhooks nå interne værktøjer.
 :::

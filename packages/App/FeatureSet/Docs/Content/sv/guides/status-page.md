@@ -13,7 +13,7 @@ flowchart TB
 ## Det här behöver du
 
 - Minst en monitor: en statussida visar monitorer. Har du ingen än, erbjuder den guidade konfigurationen först **Konfigurera en monitor**.
-- Rollen projektägare eller administratör: sidan kräver behörighet att skapa statussidor, och din domän kräver behörighet att lägga till och verifiera projektets domäner.
+- Rollen Projektägare eller Projektadministratör: sidan kräver behörighet att skapa statussidor, och din domän kräver behörighet att lägga till och verifiera projektets domäner.
 - En domän som du kontrollerar, och åtkomst till dess DNS-poster hos din DNS-leverantör.
 
 :::tabs

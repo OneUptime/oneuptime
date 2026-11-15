@@ -170,7 +170,7 @@ En indtagelsesnøgle sender kun telemetri ind. En **API-nøgle** er den anden sl
 - **OneUptime AI** undersøger nye hændelser og advarsler og poster det, den fandt, på deres tidslinje, og **Spørg AI** besvarer spørgsmål om dit projekt. Et nyt projekt starter med AI slået til; kontakten **Aktivér AI** under **Projektindstillinger → AI → AI-funktioner** slår det hele fra.
 
 :::cards
-- [Workflows – Oversigt](/docs/workflows/index): Automatisér handlinger med triggere og komponenter.
+- [Arbejdsgange – Oversigt](/docs/workflows/index): Automatisér handlinger med triggere og komponenter.
 - [AI SRE](/docs/ai/ai-sre): Hvordan OneUptime AI undersøger hændelser og advarsler.
 :::
 

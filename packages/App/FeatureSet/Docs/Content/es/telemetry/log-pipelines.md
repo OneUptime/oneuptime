@@ -47,7 +47,7 @@ flowchart TB
 ## Antes de empezar
 
 - Registros que lleguen a OneUptime, por [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) o una sonda.
-- Permiso para cambiar canalizaciones. Los propietarios y administradores del proyecto lo tienen; los demás necesitan los permisos **Create Log Pipeline** y **Create Log Pipeline Processor**.
+- Permiso para cambiar canalizaciones. Los Propietarios del proyecto y Administradores del proyecto lo tienen; los demás necesitan los permisos **Create Log Pipeline** y **Create Log Pipeline Processor**.
 
 ## Crear una canalización
 

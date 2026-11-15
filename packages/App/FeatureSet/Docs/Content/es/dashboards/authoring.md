@@ -11,7 +11,7 @@ Para crear un panel, abre **Productos → Paneles** y haz clic en **Crear panel*
 
 ## Antes de empezar
 
-Los propietarios y administradores del proyecto pueden crear y editar todos los paneles. Los demás necesitan un permiso de equipo: `CreateDashboard` para crear paneles y `EditDashboard` para cambiarlos. Los miembros y observadores del proyecto pueden leer los paneles sin ninguno de los dos. Quien no puede editar un panel sigue abriendo su menú **⋯**, donde **Editar panel** está bloqueado e indica qué permiso necesita.
+Los Propietarios del proyecto y Administradores del proyecto pueden crear y editar todos los paneles. Los demás necesitan un permiso de equipo: `CreateDashboard` para crear paneles y `EditDashboard` para cambiarlos. Los Miembros del proyecto y los Visores del proyecto pueden leer los paneles sin ninguno de los dos. Quien no puede editar un panel sigue abriendo su menú **⋯**, donde **Editar panel** está bloqueado e indica qué permiso necesita.
 
 ## Crear el panel
 

@@ -209,7 +209,7 @@ Las dos acciones de IA necesitan que la IA esté activada para el proyecto y un 
 
 **Incidentes → Acciones de seguimiento** reúne las acciones de seguimiento de todos los post mortem del proyecto, primero la que vence antes, con el incidente, el propietario, la fecha de vencimiento y el estado de cada una. Filtre la lista por **Estado**, **Propietario** y **Fecha de vencimiento**, y **Ver** en una fila abre la página **Post mortem** del incidente.
 
-Leer las acciones de seguimiento requiere lo mismo que leer el incidente. Añadirlas, cambiarlas y eliminarlas requiere el rol Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de incidentes o Miembro de incidentes, o un rol personalizado con el permiso correspondiente sobre las acciones de seguimiento. Igual que el incidente, las acciones de seguimiento de un incidente privado solo son visibles para sus usuarios propietarios, los miembros de sus equipos propietarios, los administradores y los propietarios del proyecto.
+Leer las acciones de seguimiento requiere lo mismo que leer el incidente. Añadirlas, cambiarlas y eliminarlas requiere el rol Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de incidentes o Miembro de incidentes, o un rol personalizado con el permiso correspondiente sobre las acciones de seguimiento. Igual que el incidente, las acciones de seguimiento de un incidente privado solo son visibles para sus usuarios propietarios, los miembros de sus equipos propietarios, los Administradores del proyecto y los Propietarios del proyecto.
 
 ## Post mortem de los episodios
 

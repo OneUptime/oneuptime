@@ -295,7 +295,7 @@
     "Telegram": "Telegram",
     "IRC": "IRC",
     "Vercel": "Vercel",
-    "Custom Probes": "Benutzerdefinierte Probes",
+    "Custom Probes": "Benutzerdefinierte Sonden",
     "Incoming Request Ingress": "Eingehende-Anfrage-Ingress",
     "Packet Capture": "Paketmitschnitt",
     "OpenTelemetry": "OpenTelemetry",

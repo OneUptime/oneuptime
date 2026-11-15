@@ -226,10 +226,10 @@ In einem Titel wird jede davon auf eine Zeile von höchstens 150 Zeichen gekürz
 
 | Variable | Inhalt | Typ |
 | --- | --- | --- |
-| `isOnline` | Ob der Zeitserver auf die Anfrage der Probe geantwortet hat. | `boolean` |
+| `isOnline` | Ob der Zeitserver auf die Anfrage der Sonde geantwortet hat. | `boolean` |
 | `isSynchronized` | Ob er auf Stratum 1 bis 15 geantwortet hat, ohne Schaltsekunden-Alarm und mit echten Zeitstempeln. | `boolean` |
 | `stratum` | Das Stratum, das der Server gemeldet hat: 1 für einen Primärserver, 16, wenn nicht synchronisiert, 0 für ein Kiss-o'-Death. | `number` |
-| `clockOffsetInMs` | Wie weit die Uhr des Servers von der der Probe abweicht, in Millisekunden. Positiv heißt, der Server geht vor. | `number` |
+| `clockOffsetInMs` | Wie weit die Uhr des Servers von der der Sonde abweicht, in Millisekunden. Positiv heißt, der Server geht vor. | `number` |
 | `referenceId` | Womit sich der Server synchronisiert: eine Quelle wie `GPS` auf Stratum 1 oder die Adresse seines übergeordneten Servers. | `string` |
 | `leapIndicator` | 0 bis 2, wenn alles in Ordnung ist, 3, wenn der Server meldet, dass seine Uhr nicht synchronisiert ist. | `number` |
 | `kissCode` | Bei Stratum 0 der Code aus vier Buchstaben, den der Server statt der Zeit gesendet hat, etwa `RATE`. | `string` |
@@ -423,7 +423,7 @@ Ein Netzwerkgerät wird bei jeder Abfrage gepingt und nur dann per SNMP abgefrag
 
 | Variable | Inhalt | Typ |
 | --- | --- | --- |
-| `isOnline` | Ob die Probe sich verbinden und die Basisabfrage ausführen konnte. Fehlende Metriken machen dies nie falsch. | `boolean` |
+| `isOnline` | Ob die Sonde sich verbinden und die Basisabfrage ausführen konnte. Fehlende Metriken machen dies nie falsch. | `boolean` |
 | `responseTimeInMs` | Die Zeit für die Verbindung und die Basisabfrage, in Millisekunden. | `number` |
 | `failureCause` | Warum die Prüfung fehlgeschlagen ist, wenn sie es ist. | `string` |
 | `connectionError` | Der Verbindungsfehler, ohne Zugangsdaten und ohne Verbindungszeichenfolge. | `string` |

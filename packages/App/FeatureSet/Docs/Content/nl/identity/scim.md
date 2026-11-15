@@ -41,7 +41,7 @@ Met project-SCIM beheren identiteitsproviders de teamleden in OneUptime-projecte
 
 ### Project-SCIM instellen
 
-Alleen een projecteigenaar kan de SCIM-verbinding van een project toevoegen of wijzigen, of het bearer-token ervan zien of opnieuw instellen: via SCIM kan uw identiteitsprovider mensen aan elk team in het project toevoegen.
+Alleen een Projecteigenaar kan de SCIM-verbinding van een project toevoegen of wijzigen, of het bearer-token ervan zien of opnieuw instellen: via SCIM kan uw identiteitsprovider mensen aan elk team in het project toevoegen.
 :::steps
 1. **Naar de projectinstellingen gaan**
 
@@ -88,7 +88,7 @@ Sommige identiteitsproviders bewaren geen bearer-token en vragen in plaats daarv
 
 Uw identiteitsprovider stuurt de client-ID en het secret naar het tokeneindpunt en krijgt een toegangstoken dat een uur geldig is. Het bearer-token van de verbinding blijft daarnaast werken.
 
-Om een secret te vervangen, klikt u op **Make New Client Secret**. Het vorige secret blijft werken tot het verloopt of u op **Delete Previous Secret** klikt, zodat uw identiteitsprovider het nieuwe kan krijgen zonder dat de inrichting stilvalt: verwijder het oude zodra hij het nieuwe gebruikt. Een secret dat verloopt of wordt verwijderd, beëindigt meteen de toegangstokens die ermee zijn uitgegeven. Wie het bearer-token van een verbinding mag wijzigen, mag ook haar secrets aanmaken en verwijderen: een projecteigenaar, of voor een statuspagina, wie de single sign-on ervan mag bewerken.
+Om een secret te vervangen, klikt u op **Make New Client Secret**. Het vorige secret blijft werken tot het verloopt of u op **Delete Previous Secret** klikt, zodat uw identiteitsprovider het nieuwe kan krijgen zonder dat de inrichting stilvalt: verwijder het oude zodra hij het nieuwe gebruikt. Een secret dat verloopt of wordt verwijderd, beëindigt meteen de toegangstokens die ermee zijn uitgegeven. Wie het bearer-token van een verbinding mag wijzigen, mag ook haar secrets aanmaken en verwijderen: een Projecteigenaar, of voor een statuspagina, wie de single sign-on ervan mag bewerken.
 
 ## SCIM voor statuspagina's
 
@@ -394,7 +394,7 @@ Op OneUptime Cloud werkt SCIM-inrichting alleen volledig zolang het project op *
 
 Er wordt niets verwijderd. Stap over op **Scale** en de verbindingen werken weer volledig zoals ze zijn, met hetzelfde bearer-token en zonder iets opnieuw in te stellen in uw identiteitsprovider; een abonnementswijziging werkt binnen een minuut. Identiteitsproviders blijven volgens hun eigen schema aanroepen: Okta toont de weigeringen tussen zijn inrichtingsfouten, en Entra ID toont ze in zijn inrichtingslogboeken en kan een taak die steeds mislukt in quarantaine plaatsen, wat zijn synchronisaties — ook verwijderingen — vertraagt tot ongeveer één per dag. Start de inrichting daar na de upgrade opnieuw, zodat de mensen die intussen zijn toegevoegd worden ingericht.
 
-Onder **Scale** tonen **Projectinstellingen** > **Beveiliging** > **SCIM** en de pagina **SCIM** van een statuspagina de verbindingen onder het upgrade-aanbod van het abonnement (**Nog ingestelde SCIM-verbindingen**) en melden ze dat die alleen mensen verwijderen. Verwijder een verbinding om haar weg te halen. Een verbinding toevoegen, wijzigen of haar bearer-token vervangen vereist **Scale**. De lijst toont geen bearer-tokens, en alleen projecteigenaren kunnen een token lezen, op elk abonnement.
+Onder **Scale** tonen **Projectinstellingen** > **Beveiliging** > **SCIM** en de pagina **SCIM** van een statuspagina de verbindingen onder het upgrade-aanbod van het abonnement (**Nog ingestelde SCIM-verbindingen**) en melden ze dat die alleen mensen verwijderen. Verwijder een verbinding om haar weg te halen. Een verbinding toevoegen, wijzigen of haar bearer-token vervangen vereist **Scale**. De lijst toont geen bearer-tokens, en alleen Projecteigenaren kunnen een token lezen, op elk abonnement.
 
 ## Problemen oplossen
 

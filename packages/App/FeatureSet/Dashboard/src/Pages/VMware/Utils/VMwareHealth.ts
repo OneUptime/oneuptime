@@ -321,7 +321,7 @@ export function formatVMwareReasonPercent(percent: number): string {
 // "1.5 GiB": an amount of memory as a reason says it.
 export function formatVMwareReasonBytes(bytes: number): string {
   if (bytes < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes / 1024;
@@ -330,7 +330,7 @@ export function formatVMwareReasonBytes(bytes: number): string {
     value /= 1024;
     index++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[index]}`;
+  return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[index]}`;
 }
 
 function sameName(

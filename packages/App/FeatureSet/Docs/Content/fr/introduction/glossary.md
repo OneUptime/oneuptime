@@ -344,7 +344,7 @@ Voir [Partage et tableaux de bord publics](/docs/dashboards/sharing).
 
 Une automatisation sans code : des blocs sur un canevas qui s'exécutent quand leur déclencheur se produit, par exemple pour publier dans Slack quand un incident est déclaré, ou pour appeler un autre outil.
 
-Voir [Présentation des workflows](/docs/workflows/index).
+Voir [Présentation des flux de travail](/docs/workflows/index).
 
 ### Runbook
 
@@ -491,7 +491,7 @@ Voir [Paramètres de notification](/docs/notifications/notification-settings).
 ## Étapes suivantes
 
 :::cards
-- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, workflow ou runbook, et les autres sosies côte à côte.
+- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, flux de travail ou runbook, et les autres sosies côte à côte.
 - [Concepts clés](/docs/introduction/core-concepts): Comment les éléments s'articulent, sur une seule page.
 - [Démarrage rapide](/docs/introduction/quickstart): Mettre ces mots en pratique en quinze minutes.
 :::

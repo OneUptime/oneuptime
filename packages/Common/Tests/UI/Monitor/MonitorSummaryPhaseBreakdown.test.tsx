@@ -54,7 +54,7 @@ const PERSIAN_TIME: RegExp = new RegExp(
 );
 
 // A whole Arabic time: Latin digits, as Arabic pages write them, then the unit held to them.
-const ARABIC_TIME: RegExp = /^[0-9.,]+\u00A0ملي ث$/;
+const ARABIC_TIME: RegExp = /^[0-9.,]+\u00A0ملي\u00A0ث$/;
 
 const ARABIC_LETTER: RegExp = /[\u{0600}-\u{06FF}]/u;
 

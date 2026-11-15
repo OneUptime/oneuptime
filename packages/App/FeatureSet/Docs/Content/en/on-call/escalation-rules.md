@@ -92,7 +92,7 @@ The summary at the top of the **Escalation Rules** page shows the whole ladder: 
 
 ### How each person is reached
 
-Each person a level pages is reached the way they set it up in How to Reach Me: **User Settings** > **How to Reach Me**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **How to Reach Me**. See [How to Reach Me](/docs/notifications/on-call-rules).
+Each person a level pages is reached the way they set it up in How to Reach Me: **User Settings** > **How to Reach Me**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A Project Admin can see and change a member's rules under **Users** > the member > **How to Reach Me**. See [How to Reach Me](/docs/notifications/on-call-rules).
 
 ```mermaid title="Who a level pages, and how each person is reached"
 flowchart TB
@@ -176,7 +176,7 @@ On OneUptime Cloud each SMS, call, WhatsApp and Telegram message is paid from th
 - Pages keep going out on the balance that is left while Auto Recharge cannot charge the card.
 
 > [!IMPORTANT]
-> SMS, phone calls, WhatsApp and Telegram start off in a new project: on OneUptime Cloud every message is paid from the project's balance, and a self-hosted installation needs a Twilio account, an SMS and call gateway or a Telegram bot set up first. Until a channel is on, nobody in the project can add a method on it. Only a project owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the **Notification Channels** card on **Project Settings > Notifications > Notification Channels** — a project admin cannot. Everyone else is told exactly who can, wherever a channel is off: above their own list of methods on it, on their setup checklist, and in the message they get when something needs it.
+> SMS, phone calls, WhatsApp and Telegram start off in a new project: on OneUptime Cloud every message is paid from the project's balance, and a self-hosted installation needs a Twilio account, an SMS and call gateway or a Telegram bot set up first. Until a channel is on, nobody in the project can add a method on it. Only a Project Owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the **Notification Channels** card on **Project Settings > Notifications > Notification Channels** — a Project Admin cannot. Everyone else is told exactly who can, wherever a channel is off: above their own list of methods on it, on their setup checklist, and in the message they get when something needs it.
 
 ## Escalating to the next person in the rotation
 

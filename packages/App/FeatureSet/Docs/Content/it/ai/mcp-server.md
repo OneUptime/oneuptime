@@ -88,7 +88,7 @@ Aggiungi questo alla tua configurazione MCP (vedi [VS Code con GitHub Copilot](#
 
 Qualsiasi altro client che supporta l'autorizzazione MCP funziona allo stesso modo: dagli l'indirizzo e scopre da solo tutto il resto. Vedi [Accedere (OAuth 2.1)](#accedere-oauth-21) per il protocollo.
 
-Anche la dashboard ha questi passaggi, con l'indirizzo della tua istanza già inserito: **Impostazioni del progetto → IA → Server MCP**. E da qualsiasi risorsa (un monitor, un incidente, una pagina di stato e così via), espandi **Sviluppatori** nel suo menu laterale e scegli **Assistenti IA**: quella pagina suggerisce anche prompt che nominano la risorsa e il suo ID, così l'assistente la trova subito. Per una risorsa per cui il server MCP non ha ancora strumenti, come un workflow, la pagina mostra come un assistente in grado di eseguire comandi può lavorarci tramite l'API REST.
+Anche la dashboard ha questi passaggi, con l'indirizzo della tua istanza già inserito: **Impostazioni del progetto → IA → Server MCP**. E da qualsiasi risorsa (un monitor, un incidente, una pagina di stato e così via), espandi **Sviluppatori** nel suo menu laterale e scegli **Assistenti IA**: quella pagina suggerisce anche prompt che nominano la risorsa e il suo ID, così l'assistente la trova subito. Per una risorsa per cui il server MCP non ha ancora strumenti, come un flusso di lavoro, la pagina mostra come un assistente in grado di eseguire comandi può lavorarci tramite l'API REST.
 
 ## Accedere con OneUptime
 
@@ -113,7 +113,7 @@ Cosa può fare un client collegato:
 
 ### Gestire i client collegati
 
-Ogni client collegato tramite accesso è elencato in **Impostazioni del progetto → IA → Server MCP**, sotto **Client MCP connessi**, con chi lo ha collegato, cosa può fare e quando è stato usato l'ultima volta. Vedi i client che hai collegato tu; i proprietari e gli amministratori del progetto vedono quelli di tutti.
+Ogni client collegato tramite accesso è elencato in **Impostazioni del progetto → IA → Server MCP**, sotto **Client MCP connessi**, con chi lo ha collegato, cosa può fare e quando è stato usato l'ultima volta. Vedi i client che hai collegato tu; i Proprietari del progetto e gli Amministratori del progetto vedono quelli di tutti.
 
 Fai clic su **Disconnetti** per disconnettere un client. Smette subito di funzionare.
 

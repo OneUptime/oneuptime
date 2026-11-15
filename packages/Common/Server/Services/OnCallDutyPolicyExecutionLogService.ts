@@ -25,6 +25,11 @@ import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNo
 import QueryHelper from "../Types/Database/QueryHelper";
 import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
+  ON_CALL_RUN_PAGING_STARTED_MESSAGE,
+  ON_CALL_RUN_SCHEDULED_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallRunStart";
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { toOnCallPersonPageMessage } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
@@ -345,7 +350,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (!createBy.data.statusMessage) {
-      createBy.data.statusMessage = "Scheduled.";
+      createBy.data.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     }
 
     /*
@@ -555,7 +560,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     log.projectId = data.projectId;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
 
     if (data.triggeredByIncidentId) {
       log.triggeredByIncidentId = data.triggeredByIncidentId;
@@ -604,7 +609,7 @@ export class Service extends ProjectReferencesService<Model> {
       id: executionLogId,
       data: {
         status: OnCallDutyPolicyStatus.Started,
-        statusMessage: "Paging started...",
+        statusMessage: ON_CALL_RUN_PAGING_STARTED_MESSAGE,
       },
       props: {
         isRoot: true,
@@ -709,7 +714,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     log.projectId = data.projectId;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     log.userNotificationEventType = UserNotificationEventType.TestPage;
     log.testPageRecordKind = data.recordKind;
     log.testPageSeverityId = data.severityId;
@@ -728,7 +733,7 @@ export class Service extends ProjectReferencesService<Model> {
       id: executionLogId,
       data: {
         status: OnCallDutyPolicyStatus.Started,
-        statusMessage: "Paging started...",
+        statusMessage: ON_CALL_RUN_PAGING_STARTED_MESSAGE,
       },
       props: {
         isRoot: true,
@@ -823,7 +828,7 @@ export class Service extends ProjectReferencesService<Model> {
     log.projectId = data.projectId;
     log.onCallDutyPolicyId = data.onCallDutyPolicyId;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     log.userNotificationEventType = UserNotificationEventType.TestPage;
     log.testPageRecordKind = data.recordKind;
     log.testPageSeverityId = data.severityId;
@@ -934,7 +939,7 @@ export class Service extends ProjectReferencesService<Model> {
     log.onCallDutyPolicyId = data.onCallDutyPolicyId;
     log.userNotificationEventType = data.userNotificationEventType;
     log.status = OnCallDutyPolicyStatus.Scheduled;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     log.pageAgainNumber = data.pageAgainNumber;
 
     if (data.triggeredByIncidentId) {
@@ -1024,7 +1029,7 @@ export class Service extends ProjectReferencesService<Model> {
         id: runId,
         data: {
           status: OnCallDutyPolicyStatus.Started,
-          statusMessage: "Execution started...",
+          statusMessage: ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
         },
         props: {
           isRoot: true,
@@ -1551,7 +1556,7 @@ export class Service extends ProjectReferencesService<Model> {
     const claimed: boolean = await this.claimWaitingRun({
       executionLogId: run.id!,
       status: OnCallDutyPolicyStatus.Started,
-      statusMessage: "Execution started...",
+      statusMessage: ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
       pagingStartsAt: data.now,
       pagingStartedEarlyReason: startedEarlyReason,
       aiHoldOutcome: data.aiHoldOutcome,
@@ -1873,7 +1878,7 @@ export class Service extends ProjectReferencesService<Model> {
         id: run.id!,
         data: {
           status: OnCallDutyPolicyStatus.Started,
-          statusMessage: "Execution started...",
+          statusMessage: ON_CALL_RUN_EXECUTION_STARTED_MESSAGE,
         },
         props: {
           isRoot: true,

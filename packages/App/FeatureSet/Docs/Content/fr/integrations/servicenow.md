@@ -1,32 +1,32 @@
 # ServiceNow
 
-Créez un incident [ServiceNow](https://www.servicenow.com) pour chaque incident OneUptime, et résolvez-le quand l'incident OneUptime est résolu, pour que votre centre de services suive ce que voit votre surveillance. Deux workflows appellent la [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI) de ServiceNow.
+Créez un incident [ServiceNow](https://www.servicenow.com) pour chaque incident OneUptime, et résolvez-le quand l'incident OneUptime est résolu, pour que votre centre de services suive ce que voit votre surveillance. Deux flux de travail appellent la [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI) de ServiceNow.
 
 :::cards
-- [Enregistrer les identifiants](#enregistrer-les-identifiants): Gardez le mot de passe ServiceNow hors de vos workflows.
-- [Créer des incidents ServiceNow](#créer-un-incident-servicenow-pour-chaque-incident): Un workflow, deux blocs.
+- [Enregistrer les identifiants](#enregistrer-les-identifiants): Gardez le mot de passe ServiceNow hors de vos flux de travail.
+- [Créer des incidents ServiceNow](#créer-un-incident-servicenow-pour-chaque-incident): Un flux de travail, deux blocs.
 - [Les résoudre](#résoudre-lincident-servicenow): Trouver l'enregistrement, puis le clore.
 - [Dépannage](#dépannage): Quand ServiceNow refuse une requête.
 :::
 
 ## Fonctionnement
 
-```mermaid title="Deux workflows, un incident ServiceNow"
+```mermaid title="Deux flux de travail, un incident ServiceNow"
 flowchart TB
-    declared["Incident déclaré"] --> create["Workflow 1 :<br/>On Create Incident"]
+    declared["Incident déclaré"] --> create["Flux de travail 1 :<br/>On Create Incident"]
     create -->|"POST incident"| sn["Incident ServiceNow"]
-    resolved["Incident résolu"] --> update["Workflow 2 :<br/>On Update Incident"]
+    resolved["Incident résolu"] --> update["Flux de travail 2 :<br/>On Update Incident"]
     update --> find["Trouver l'enregistrement<br/>par correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
 
-Le premier workflow écrit l'ID de l'incident OneUptime dans le `correlation_id` de l'enregistrement. Le second retrouve l'enregistrement par cet ID, puis le résout.
+Le premier flux de travail écrit l'ID de l'incident OneUptime dans le `correlation_id` de l'enregistrement. Le second retrouve l'enregistrement par cet ID, puis le résout.
 
 ## Avant de commencer
 
 - Une instance ServiceNow, par exemple `https://your-instance.service-now.com`.
 - Un utilisateur ServiceNow pour l'intégration, qui peut créer et modifier des enregistrements dans la table `incident`, en général avec le rôle `itil`. Son nom et son mot de passe signent les requêtes.
-- Dans OneUptime, le droit de créer des workflows et des variables globales. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
+- Dans OneUptime, le droit de créer des flux de travail et des variables globales. Sur OneUptime Cloud, les flux de travail nécessitent l'offre **Growth** ou supérieure.
 
 ## Enregistrer les identifiants
 
@@ -48,7 +48,7 @@ La Table API accepte l'authentification Basic : le nom et le mot de passe de l'u
 ## Créer un incident ServiceNow pour chaque incident
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Incidents to ServiceNow` et cliquez sur **Créer un flux de travail**.
 
@@ -88,12 +88,12 @@ Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sou
 
 ## Résoudre l'incident ServiceNow
 
-Un workflow a un seul déclencheur, la résolution demande donc un second workflow, démarré quand l'état d'un incident change.
+Un flux de travail a un seul déclencheur, la résolution demande donc un second flux de travail, démarré quand l'état d'un incident change.
 
 :::steps
 ### Ajouter le déclencheur On Update Incident
 
-Créez un workflow nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
+Créez un flux de travail nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -151,14 +151,14 @@ Un nom de colonne ou une valeur ne convient pas à votre instance : une liste `s
 :::
 
 :::details La résolution répond 404
-L'étape de recherche n'a trouvé aucun enregistrement, l'URL a donc gardé la référence telle qu'elle est écrite. Vérifiez que le premier workflow a écrit `correlation_id`, et que les deux workflows le forment de la même façon : `oneuptime-` suivi du `_id` de l'incident.
+L'étape de recherche n'a trouvé aucun enregistrement, l'URL a donc gardé la référence telle qu'elle est écrite. Vérifiez que le premier flux de travail a écrit `correlation_id`, et que les deux flux de travail le forment de la même façon : `oneuptime-` suivi du `_id` de l'incident.
 :::
 
 ## Étapes suivantes
 
 :::cards
 - [Jira](/docs/integrations/jira): Une intégration bidirectionnelle, tenue à jour par des modèles prêts à l'emploi.
-- [Composants de workflow](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
-- [Exécutions de workflow](/docs/workflows/runs-and-logs): Lisez ce que chaque requête a envoyé et reçu.
+- [Composants de flux de travail](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
+- [Exécutions de flux de travail](/docs/workflows/runs-and-logs): Lisez ce que chaque requête a envoyé et reçu.
 - [Présentation des intégrations](/docs/integrations/index): Les modèles derrière chaque intégration.
 :::

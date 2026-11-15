@@ -168,7 +168,7 @@ export default class SloMetricUtil {
      * every other series) land on exactly the same x and overlay cleanly.
      */
     const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       ingestionDate,
       retentionDays,
     );

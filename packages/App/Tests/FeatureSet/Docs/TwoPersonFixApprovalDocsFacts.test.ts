@@ -77,7 +77,7 @@ describe("the AI SRE page's section on two people approving a riskier fix", () =
 
   it("says it is off by default and who changes it, as the column says", () => {
     expect(section).toContain(
-      "It is off by default, for new projects too, and project owners and admins can change it.",
+      "It is off by default, for new projects too, and Project Owners and Project Admins can change it.",
     );
 
     const project: Project = new Project();

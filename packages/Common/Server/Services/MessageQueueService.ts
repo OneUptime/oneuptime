@@ -669,8 +669,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async autoArchiveStaleMessageQueues(): Promise<number> {
     const days: number = this.getAutoArchiveDays();
     const now: Date = OneUptimeDate.getCurrentDate();
-    const cutoff: Date = OneUptimeDate.addRemoveDays(now, -days);
-    const restoreGraceCutoff: Date = OneUptimeDate.addRemoveDays(
+    const cutoff: Date = OneUptimeDate.addRemoveDurationInDays(now, -days);
+    const restoreGraceCutoff: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -Math.max(MANUAL_RESTORE_GRACE_DAYS, days),
     );

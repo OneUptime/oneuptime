@@ -1,10 +1,10 @@
-# SLO-metrikker og -dashbord
+# SLO-målinger og -dashbord
 
-Hver gang OneUptime evaluerer et SLO, hvert 5. minutt, skriver det resultatene som metrikker med navnet `oneuptime.slo.*`. De ligger i det samme metrikklageret som monitormetrikkene dine, så du kan vise et SLO i et diagram på siden **Målinger**, åpne det i metrikkutforskeren og sette det på et hvilket som helst dashbord, filtrert og gruppert som enhver annen serie.
+Hver gang OneUptime evaluerer et SLO, hvert 5. minutt, skriver det resultatene som målinger med navnet `oneuptime.slo.*`. De ligger i det samme målingslageret som monitormålingene dine, så du kan vise et SLO i et diagram på siden **Målinger**, åpne det i målingsutforskeren og sette det på et hvilket som helst dashbord, filtrert og gruppert som enhver annen serie.
 
 :::cards
-- [Metrikkene](#metrikkene): Seks serier, enhetene deres og hvordan de aggregeres.
-- [Siden Målinger](#siden-målinger): Diagrammene, historikken og hendelses- og varselmetrikkene til et SLO.
+- [Målingene](#målingene): Seks serier, enhetene deres og hvordan de aggregeres.
+- [Siden Målinger](#siden-målinger): Diagrammene, historikken og hendelses- og varselmålingene til et SLO.
 - [SLO-er på dashbord](#slo-er-på-dashbord): SLO-widgeten og malen SLO Dashboard.
 :::
 
@@ -12,15 +12,15 @@ Hver gang OneUptime evaluerer et SLO, hvert 5. minutt, skriver det resultatene s
 
 ```mermaid title="Hvor tallene til et SLO havner"
 flowchart TB
-    eval["SLO-evaluering,<br/>hvert 5. minutt"] --> metrics["Metrikker<br/>oneuptime.slo.*"]
+    eval["SLO-evaluering,<br/>hvert 5. minutt"] --> metrics["Målinger<br/>oneuptime.slo.*"]
     eval --> history["Historikk for feilbudsjettet,<br/>lagret i 400 dager"]
-    metrics --> uses["Siden Målinger til SLO-et,<br/>metrikkutforskeren<br/>og dashbord"]
+    metrics --> uses["Siden Målinger til SLO-et,<br/>målingsutforskeren<br/>og dashbord"]
     history --> tab["Fanen Error Budget<br/>History"]
 ```
 
-## Metrikkene
+## Målingene
 
-| Metrikk | Enhet | Aggregering | Hva den inneholder |
+| Måling | Enhet | Aggregering | Hva den inneholder |
 | --- | --- | --- | --- |
 | `oneuptime.slo.sli.percent` | `%` | Avg | SLI-en over samsvarsvinduet til SLO-et: andelen av den målte tiden som var god. |
 | `oneuptime.slo.target.percent` | `%` | Avg | Målet til SLO-et, sendt med hver evaluering så et diagram kan tegne det over SLI-en. |
@@ -52,11 +52,11 @@ Hvert punkt har disse attributtene:
 
 Seriene hører til SLO-et, ikke til noen av monitorene, og teller ikke som telemetribruk.
 
-Hendelses- og varselmetrikker har to tilsvarende attributter, `serviceLevelObjectiveIds` og `serviceLevelObjectiveNames`: kommaseparerte lister over SLO-ene hendelsen eller varselet påvirker.
+Hendelses- og varselmålinger har to tilsvarende attributter, `serviceLevelObjectiveIds` og `serviceLevelObjectiveNames`: kommaseparerte lister over SLO-ene hendelsen eller varselet påvirker.
 
 ### Oppbevaring
 
-`oneuptime.slo.*`-metrikker oppbevares like lenge som monitormetrikker: **30 dager** som standard. På en selvhostet installasjon kan en masteradministrator endre det med **Monitor Metric Retention (Days)** i innstillingene for **Dataoppbevaring** i Admin Dashboard.
+`oneuptime.slo.*`-målinger oppbevares like lenge som monitormålinger: **30 dager** som standard. På en selvhostet installasjon kan en masteradministrator endre det med **Monitor Metric Retention (Days)** i innstillingene for **Dataoppbevaring** i Admin Dashboard.
 
 Det begrenser ikke fanen **Feilbudsjettets historikk** på siden **Målinger** til SLO-et. Den historikken lagres for seg og oppbevares i 400 dager.
 
@@ -71,16 +71,16 @@ Siden **Målinger** til et SLO har fire faner:
 | **Hendelsesmålinger** | Antallet, tiden til kvittering, tiden til løsning og varigheten til hendelsene som påvirker dette SLO-et, som standard den siste uken. Hendelser som forbruksratereglene har erklært, er med. |
 | **Varselmålinger** | Det samme for varsler. Varsler som forbruksratereglene har utløst, er med. |
 
-Fanene **SLO-målinger**, **Hendelsesmålinger** og **Varselmålinger** leser metrikklageret, noe som krever tillatelse til å lese telemetri. En egendefinert rolle som kan lese SLO-er, men ikke telemetri, ser disse fanene tomme, mens **Feilbudsjettets historikk** fortsatt fungerer.
+Fanene **SLO-målinger**, **Hendelsesmålinger** og **Varselmålinger** leser målingslageret, noe som krever tillatelse til å lese telemetri. En egendefinert rolle som kan lese SLO-er, men ikke telemetri, ser disse fanene tomme, mens **Feilbudsjettets historikk** fortsatt fungerer.
 
 ## SLO-er på dashbord
 
-### Vis en hvilken som helst SLO-metrikk i et diagram
+### Vis en hvilken som helst SLO-måling i et diagram
 
 :::steps
 #### Legg til et diagram
 
-I redigeringsmodusen til et dashbord legger du til en diagram- eller verdiwidget og velger en av `oneuptime.slo.*`-metrikkene.
+I redigeringsmodusen til et dashbord legger du til en diagram- eller verdiwidget og velger en av `oneuptime.slo.*`-målingene.
 
 #### Grupper eller filtrer
 
@@ -110,7 +110,7 @@ Når du oppretter et dashbord, velger du malen **SLO Dashboard** for å få en f
 2. **Error Budget & Burn Rate**: flisene **Lowest Error Budget Remaining**, **Least Error Budget Time Left** og **Peak Burn Rate**, og diagrammene **Error Budget Remaining by SLO** og **Burn Rate by SLO** med én linje per SLO, gruppert etter `sloName` og `sloId`.
 3. **Selected SLO**: flisene **SLI**, **Error Budget Remaining** og **Burn Rate** og diagrammene **SLI History**, **Error Budget History** og **Burn Rate History** for ett SLO.
 
-Én SLO-variabel i verktøylinjen avgrenser hele tavlen. Det er en variabel av typen Telemetry Attribute på `sloName`, så alternativene er SLO-navnene som finnes i metrikkene. Å velge et SLO snevrer listen inn til det, avgrenser diagrammene og flisene i båndet og fyller ut widgetene under **Selected SLO**, som følger variabelen. Til du velger ett, ber de deg velge et SLO i verktøylinjen.
+Én SLO-variabel i verktøylinjen avgrenser hele tavlen. Det er en variabel av typen Telemetry Attribute på `sloName`, så alternativene er SLO-navnene som finnes i målingene. Å velge et SLO snevrer listen inn til det, avgrenser diagrammene og flisene i båndet og fyller ut widgetene under **Selected SLO**, som følger variabelen. Til du velger ett, ber de deg velge et SLO i verktøylinjen.
 
 ## Feilsøking
 

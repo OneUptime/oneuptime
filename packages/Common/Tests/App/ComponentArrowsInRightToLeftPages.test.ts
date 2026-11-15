@@ -38,7 +38,12 @@ import {
  *     joins, on a page read either way;
  *   - the place it is written in is KEPT, with the reason its arrows are
  *     right as written: code, an arrow key's name, text that only reads
- *     arrows, a file that is not a page.
+ *     arrows, a file that is not a page;
+ *   - the module is one language's words for a Documentation page or a
+ *     setup guide (Pages/<Product>/DocumentationTranslations/<code>.ts,
+ *     #7531, #8341): like a locale file, each language writes its own
+ *     arrows there, and SetupGuideDocumentationInLocale holds them to the
+ *     way the language reads.
  *
  * Comments are not read. KEPT only shrinks: an entry that no longer
  * matches an arrow fails too.
@@ -488,6 +493,13 @@ describe("the arrow check, on small modules", () => {
  */
 const MAY_WRITE_AN_ARROW: RegExp = /[→←]|&(?:r|l)arr;|&#|\\u/;
 
+/*
+ * One language's words for a Documentation page or a setup guide: its
+ * arrows are that language's, as a locale file's are.
+ */
+export const LANGUAGE_WORDS_MODULE: RegExp =
+  /\/Pages\/[^/]+\/DocumentationTranslations\/[A-Za-z]{2}(?:-[A-Za-z]{2})?\.ts$/;
+
 describe("an arrow written into a Dashboard or shared UI component", () => {
   const arrows: Array<WrittenArrow> = [];
 
@@ -498,7 +510,10 @@ describe("an arrow written into a Dashboard or shared UI component", () => {
       for (const file of listSourceFiles(path.join(PACKAGES, root))) {
         const source: string = fs.readFileSync(file, "utf8");
 
-        if (!MAY_WRITE_AN_ARROW.test(source)) {
+        if (
+          !MAY_WRITE_AN_ARROW.test(source) ||
+          LANGUAGE_WORDS_MODULE.test(file)
+        ) {
           continue;
         }
 
@@ -510,6 +525,25 @@ describe("an arrow written into a Dashboard or shared UI component", () => {
           }),
         );
       }
+    }
+  });
+
+  test("only a language's own words are left to their arrows: never a component, nor the loaders that fetch them", () => {
+    for (const words of [
+      "/x/App/FeatureSet/Dashboard/src/Pages/Docker/DocumentationTranslations/fa.ts",
+      "/x/App/FeatureSet/Dashboard/src/Pages/Docker/DocumentationTranslations/zh-CN.ts",
+      "/x/App/FeatureSet/Dashboard/src/Pages/DataObservability/DocumentationTranslations/ar.ts",
+    ]) {
+      expect(LANGUAGE_WORDS_MODULE.test(words)).toBe(true);
+    }
+
+    for (const component of [
+      "/x/App/FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationTranslations.ts",
+      "/x/App/FeatureSet/Dashboard/src/Pages/Docker/Documentation.tsx",
+      "/x/App/FeatureSet/Dashboard/src/Components/Docker/DocumentationTranslations/fa.tsx",
+      "/x/App/FeatureSet/Dashboard/src/Pages/Docker/DocumentationTranslations/Helpers.ts",
+    ]) {
+      expect(LANGUAGE_WORDS_MODULE.test(component)).toBe(false);
     }
   });
 

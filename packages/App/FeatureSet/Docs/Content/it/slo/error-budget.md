@@ -133,7 +133,7 @@ Uno stato dice quanto budget resta, non cosa fa il tuo team al riguardo. Per met
 
 Quando uno SLO passa a **A rischio** o **Budget esaurito**, OneUptime avvisa i suoi proprietari:
 
-- I proprietari sono gli utenti e i membri dei team nella pagina **Proprietari** dello SLO che sono ancora membri del progetto. Uno SLO senza proprietari avvisa invece i proprietari del progetto.
+- I proprietari sono gli utenti e i membri dei team nella pagina **Proprietari** dello SLO che sono ancora membri del progetto. Uno SLO senza proprietari avvisa invece i Proprietari del progetto.
 - Ogni proprietario riceve un'e-mail per impostazione predefinita, e la notifica su ogni altro canale che attiva per **Stato dell'SLO modificato** in **Impostazioni utente** → **Impostazioni notifiche** → **Monitoraggio**.
 - L'oggetto dell'e-mail nomina lo stato e lo SLO, per esempio `[SLO At Risk] API Availability`.
 
