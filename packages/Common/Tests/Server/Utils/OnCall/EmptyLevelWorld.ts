@@ -454,6 +454,8 @@ export default class EmptyLevelWorld extends PassOnWorld {
   public async startPageAgain(data: {
     startAtRule: OnCallDutyPolicyEscalationRule;
     acknowledgedBy: ObjectID;
+    // What its starter does once its run is written: the page-again tick keeps its run in flight.
+    onRunCreated?: ((runId: ObjectID) => void | Promise<void>) | undefined;
   }): Promise<void> {
     await OnCallDutyPolicyExecutionLogService.startPageAgain({
       projectId: PROJECT_ID,
@@ -465,6 +467,7 @@ export default class EmptyLevelWorld extends PassOnWorld {
       recordKind: "incident",
       startAtRuleId: data.startAtRule.id!,
       acknowledgedByUserId: data.acknowledgedBy,
+      ...(data.onRunCreated ? { onRunCreated: data.onRunCreated } : {}),
     });
   }
 
