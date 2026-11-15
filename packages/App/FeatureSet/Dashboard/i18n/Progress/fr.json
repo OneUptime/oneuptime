@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55438,
-    "untranslated": 4604
+    "keys": 55628,
+    "untranslated": 4600
   },
   "sameAsEnglish": [
     " incidents",
@@ -507,6 +507,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Stripe Payments API",
     "Suggestions",
     "Switch",
     "TLS",

@@ -117,7 +117,7 @@ JavaScript 표현식은 Website, API, 수신 요청, Incoming Email, SQL Query, 
 "{{requestBody.status}}" === "degraded" && "{{requestBody.region}}" === "eu"
 ```
 
-쿼리가 개수를 반환하는 SQL 쿼리 모니터에서, 개수가 많거나 쿼리가 느릴 때 알림을 보내려면:
+쿼리가 개수를 반환하는 SQL 쿼리 모니터에서, 개수가 많거나 쿼리가 느릴 때 경고를 보내려면:
 
 ```javascript
 {{scalarValue}} > 50 || {{executionTimeInMs}} > 2000

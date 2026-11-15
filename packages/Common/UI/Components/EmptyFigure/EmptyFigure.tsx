@@ -1,4 +1,4 @@
-import { EMPTY_VALUE_MARK, isDashText } from "../Detail/EmptyValue";
+import { EMPTY_VALUE_MARK, isDashText, isNoValue } from "../Detail/EmptyValue";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
@@ -72,15 +72,7 @@ const EmptyFigure: FunctionComponent<ComponentProps> = (
 export const isEmptyFigure: (value: unknown) => boolean = (
   value: unknown,
 ): boolean => {
-  if (value === undefined || value === null) {
-    return true;
-  }
-
-  if (typeof value === "string") {
-    return value.trim() === "" || isDashText(value);
-  }
-
-  return false;
+  return isNoValue(value);
 };
 
 /*

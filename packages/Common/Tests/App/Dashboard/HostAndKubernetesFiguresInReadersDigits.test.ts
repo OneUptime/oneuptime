@@ -29,6 +29,7 @@ import {
 } from "../../../Types/Host/HostHealth";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * A HOST'S AND A KUBERNETES CLUSTER'S FIGURES, IN THE READER'S DIGITS
@@ -246,7 +247,7 @@ describe("in English, every figure reads exactly as before", () => {
     expect(formatKubernetesCount(undefined)).toBe("N/A");
     expect(formatKubernetesCount(null)).toBe("N/A");
     expect(formatKubernetesCount("Unknown")).toBe("Unknown");
-    expect(formatEfficiency(null)).toBe("-");
+    expect(formatEfficiency(null)).toBe(EMPTY_VALUE_MARK);
   });
 });
 

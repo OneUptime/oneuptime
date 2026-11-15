@@ -445,9 +445,9 @@ describe("getTelemetryIngestionBudgetValueProblem", () => {
   });
 
   test("refuses 0 except where it means no limit (a project's override)", () => {
-    expect(problem(0)).toMatch(/more than 0 GB per day/);
+    expect(problem(0)).toMatch(/more than 0\u00A0GB per day/);
     expect(problem(0, TelemetryIngestionBudgetValueKind.RateLimit)).toMatch(
-      /more than 0 MB per second/,
+      /more than 0\u00A0MB per second/,
     );
     expect(
       problem(0, TelemetryIngestionBudgetValueKind.DailyBudget, true),
@@ -463,7 +463,7 @@ describe("getTelemetryIngestionBudgetValueProblem", () => {
     expect(problem("  ")).toMatch(/must be a number/);
     expect(problem(Infinity)).toMatch(/must be a number/);
     expect(problem(TELEMETRY_INGESTION_BUDGET_MAX_DAILY_GB + 1)).toMatch(
-      /at most 1,000,000 GB per day/,
+      /at most 1,000,000\u00A0GB per day/,
     );
     expect(problem({})).toMatch(/must be a number/);
   });
@@ -862,19 +862,19 @@ describe("warning, percent used and state", () => {
 
 describe("formatting for sentences", () => {
   test("writes GB whole when whole, and short otherwise", () => {
-    expect(formatTelemetryIngestionBudgetGB(10 * GB)).toBe("10 GB");
-    expect(formatTelemetryIngestionBudgetGB(1.5 * GB)).toBe("1.5 GB");
-    expect(formatTelemetryIngestionBudgetGB(GB / 2)).toBe("0.5 GB");
-    expect(formatTelemetryIngestionBudgetGB(2048 * GB)).toBe("2,048 GB");
-    expect(formatTelemetryIngestionBudgetGB(0)).toBe("0 GB");
+    expect(formatTelemetryIngestionBudgetGB(10 * GB)).toBe("10\u00A0GB");
+    expect(formatTelemetryIngestionBudgetGB(1.5 * GB)).toBe("1.5\u00A0GB");
+    expect(formatTelemetryIngestionBudgetGB(GB / 2)).toBe("0.5\u00A0GB");
+    expect(formatTelemetryIngestionBudgetGB(2048 * GB)).toBe("2,048\u00A0GB");
+    expect(formatTelemetryIngestionBudgetGB(0)).toBe("0\u00A0GB");
   });
 
   test("writes a rate in MB per second", () => {
     expect(formatTelemetryIngestionBudgetMBPerSecond(5 * MB)).toBe(
-      "5 MB per second",
+      "5\u00A0MB per second",
     );
     expect(formatTelemetryIngestionBudgetMBPerSecond(MB / 4)).toBe(
-      "0.25 MB per second",
+      "0.25\u00A0MB per second",
     );
   });
 });

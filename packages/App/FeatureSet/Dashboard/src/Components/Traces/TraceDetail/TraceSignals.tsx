@@ -1,4 +1,6 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
@@ -137,7 +139,7 @@ function canOfferTraceMetrics(): boolean {
 
 export function formatTraceMetricValue(value: number): string {
   if (!Number.isFinite(value)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   if (Math.abs(value) >= 1000) {
     return Math.round(value).toLocaleString(getReaderNumberLocale());
@@ -995,10 +997,14 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                                 )}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
-                                {formatTraceMetricValue(series.minValue)}
+                                {getValueOrQuietDash(
+                                  formatTraceMetricValue(series.minValue),
+                                )}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
-                                {formatTraceMetricValue(series.maxValue)}
+                                {getValueOrQuietDash(
+                                  formatTraceMetricValue(series.maxValue),
+                                )}
                               </td>
                               <td className="px-3 py-2 text-right font-mono tabular-nums text-gray-600">
                                 {series.distinctSpanCount}

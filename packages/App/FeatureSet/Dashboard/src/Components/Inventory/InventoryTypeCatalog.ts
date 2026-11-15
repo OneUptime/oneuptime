@@ -1,5 +1,6 @@
 import EntityType from "Common/Types/Telemetry/EntityType";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/Types/Translator";
 
 /*
  * The presentation layer's vocabulary for the Inventory product.
@@ -56,6 +57,25 @@ export const INVENTORY_CATEGORY_ORDER: Array<InventoryCategory> = [
   InventoryCategory.Cloud,
   InventoryCategory.External,
 ];
+
+/*
+ * Each category's name, as the pages draw it (translateText) and the locale
+ * files hold it. The i18n extractor does not read an enum's values, so a
+ * category no other file happened to name - "Network & Devices" - read
+ * English in every language, on the Overview's breakdown and on Help >
+ * Documentation (#8341). Marking every name here keeps each one a key.
+ */
+export const INVENTORY_CATEGORY_NAMES: Readonly<
+  Record<InventoryCategory, string>
+> = {
+  [InventoryCategory.Applications]: translationKey("Applications"),
+  [InventoryCategory.Compute]: translationKey("Compute"),
+  [InventoryCategory.Kubernetes]: translationKey("Kubernetes"),
+  [InventoryCategory.Clusters]: translationKey("Clusters"),
+  [InventoryCategory.Network]: translationKey("Network & Devices"),
+  [InventoryCategory.Cloud]: translationKey("Cloud"),
+  [InventoryCategory.External]: translationKey("External"),
+};
 
 export interface InventoryTypeDescriptor {
   entityType: EntityType;
@@ -568,7 +588,12 @@ export const buildInventoryBreakdown: BuildInventoryBreakdownFunction = (
       },
     );
 
-    breakdown.push({ category, label: category, total, rows });
+    breakdown.push({
+      category,
+      label: INVENTORY_CATEGORY_NAMES[category],
+      total,
+      rows,
+    });
   }
 
   const unknownRows: Array<InventoryCategoryBreakdownRow> = Object.keys(

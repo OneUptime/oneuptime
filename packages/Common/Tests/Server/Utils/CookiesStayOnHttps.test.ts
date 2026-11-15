@@ -141,6 +141,8 @@ const STATUS_PAGE_REFRESH_TOKEN: string = "refresh-token-of-the-status-page";
 const DASHBOARD_SESSION_COOKIES: Array<string> = [
   "user-token",
   "user-refresh-token",
+  // Which session the browser holds, for its sign-out only (issue #8638).
+  "user-sign-out",
   "user-id",
   "user-email",
   "user-name",
@@ -466,6 +468,20 @@ describe("a sign-in over HTTPS leaves nothing a plain-HTTP request would carry",
       "Lax",
     );
     expect(named(answer.cookies, "user-token").attributes["path"]).toBe("/");
+
+    /*
+     * Which session the browser holds, for its sign-out only: out of a
+     * page's reach, sent by no request another site starts, and to
+     * POST /identity/logout alone.
+     */
+    const signOut: SetCookie = named(answer.cookies, "user-sign-out");
+
+    expect(signOut.attributes).toHaveProperty("httponly");
+    expect(signOut.attributes["samesite"]).toBe("Strict");
+    expect(signOut.attributes["path"]).toBe("/identity/logout");
+    expect(signOut.attributes["max-age"]).toBe(
+      named(answer.cookies, "user-refresh-token").attributes["max-age"],
+    );
   });
 
   test("the dashboard session of an HTTPS installation whose proxy says nothing about the scheme", async () => {
@@ -648,7 +664,31 @@ describe("signing out clears the cookies with the attributes they were set with"
     "user-refresh-token=b",
     `sso-${PROJECT_ID.toString()}=c`,
     "global-sso-token=d",
+    // What a browser sends only to /identity/logout.
+    "user-sign-out=e",
   ].join("; ");
+
+  test("the sign-out cookie is cleared on its own path, Secure over HTTPS", async () => {
+    const answer: Answer = await send({
+      method: "POST",
+      path: "/identity/logout",
+      host: INSTALLATION_HOST,
+      forwardedProto: "https",
+      cookie: signedInCookies,
+    });
+
+    const cleared: Array<SetCookie> = answer.cookies.filter(
+      (cookie: SetCookie) => {
+        return cookie.name === "user-sign-out";
+      },
+    );
+
+    expect(cleared).toHaveLength(1);
+    expect(cleared[0]!.value).toBe("");
+    expect(cleared[0]!.attributes["path"]).toBe("/identity/logout");
+    expect(cleared[0]!.attributes["samesite"]).toBe("Strict");
+    expect(isSecure(cleared[0]!)).toBe(true);
+  });
 
   test("over HTTPS", async () => {
     const answer: Answer = await send({

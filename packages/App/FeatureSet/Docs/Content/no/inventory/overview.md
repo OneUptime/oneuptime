@@ -24,9 +24,9 @@ flowchart TB
 
 | Kilde | I API-et | Hvor det kommer fra | Hvor lenge det blir |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | OpenTelemetry-ressursattributter, lest etter hvert som telemetri kommer inn: en tjeneste, en vert, et Kubernetes-objekt eller en virtuell maskin som sender telemetri. | Registreres på nytt med hver batch. Fjernes når det har vært stille lenger enn vinduet for typen sin (se nedenfor). |
-| **Mirrored** | `inventory` | En post som en OneUptime-poller vedlikeholder: nettverksenheter, skyressurser, IoT-enheter, serverløse funksjoner, RUM-applikasjoner, Docker-verter og Podman-verter. Kopieres hvert 15. minutt. | Så lenge posten finnes. Slett posten, og elementet forsvinner med den. |
-| **Added by you** | `manual` | Lagt til av deg, for noe OneUptime ikke kan se: et tredjeparts-API, en database som en leverandør administrerer, en appliance i et rack. | Til du sletter det. Ingenting får det til å utløpe. |
+| **Oppdaget** | `discovered` | OpenTelemetry-ressursattributter, lest etter hvert som telemetri kommer inn: en tjeneste, en vert, et Kubernetes-objekt eller en virtuell maskin som sender telemetri. | Registreres på nytt med hver batch. Fjernes når det har vært stille lenger enn vinduet for typen sin (se nedenfor). |
+| **Speilet** | `inventory` | En post som en OneUptime-poller vedlikeholder: nettverksenheter, skyressurser, IoT-enheter, serverløse funksjoner, RUM-applikasjoner, Docker-verter og Podman-verter. Kopieres hvert 15. minutt. | Så lenge posten finnes. Slett posten, og elementet forsvinner med den. |
+| **Lagt til av deg** | `manual` | Lagt til av deg, for noe OneUptime ikke kan se: et tredjeparts-API, en database som en leverandør administrerer, en appliance i et rack. | Til du sletter det. Ingenting får det til å utløpe. |
 
 Et oppdaget eller speilet element kan ikke gis nytt navn eller en annen type: kilden ville overskrevet endringen ved neste gjennomgang. Elementets side **Innstillinger** forteller i stedet hvor en varig endring skal gjøres. Det du alltid kan legge til på et hvilket som helst element, uansett kilde, er verdier i egendefinerte felt: se [Egendefinerte inventarfelt](/docs/inventory/custom-fields).
 
@@ -37,8 +37,8 @@ Et oppdaget element har et hjerteslag. Hver gang det kommer telemetri for det, f
 | Status | Hva det betyr |
 | --- | --- |
 | **Direkte** | Sett i løpet av de siste 30 minuttene. |
-| **Recent** | Sett i løpet av det siste døgnet. |
-| **Foreldet** | Ikke sett på mer enn et døgn. Siden **Gone Quiet** viser dem. |
+| **Nylig** | Sett i løpet av det siste døgnet. |
+| **Foreldet** | Ikke sett på mer enn et døgn. Siden **Blitt stille** viser dem. |
 
 Hver tredje time fjerner OneUptime de oppdagede elementene som har vært stille lenger enn vinduet for typen sin, også de arkiverte, og verdiene deres i egendefinerte felt forsvinner med dem. Speilede elementer og de du har lagt til, fjernes aldri på denne måten.
 
@@ -52,20 +52,20 @@ En relasjon OneUptime har oppdaget, fjernes når den ikke er sett igjen på 30 d
 
 ## Finn frem
 
-Åpne **Produkter → Ressurser → Inventar**. Sidemenyen har disse sidene. **By Source**, **Innstillinger**, **Hjelp** og **Avansert** er først slått sammen: klikk på tittelen til en seksjon for å åpne den.
+Åpne **Produkter → Ressurser → Inventar**. Sidemenyen har disse sidene. **Etter kilde**, **Innstillinger**, **Hjelp** og **Avansert** er først slått sammen: klikk på tittelen til en seksjon for å åpne den.
 
 | Side | Hva du finner der |
 | --- | --- |
 | **Oversikt** | Hvor mange elementer du har, hva de er, hvor mange som har blitt stille, og hva som sist ble lagt til. |
 | **Alle elementer** | Alle elementer. Søk etter navn, beskrivelse eller identitetsnøkkel, avgrens listen etter type, kilde, status eller egendefinert felt, og legg til et element manuelt. |
 | **Topologikart** | Hvordan elementene henger sammen: tjenester, hva de kaller, og vertene, podene og enhetene de kjører på. |
-| **Gone Quiet** | De oppdagede elementene som ikke har sendt telemetri på mer enn et døgn. |
-| **By Source** | Elementene fra én kilde: **Discovered**, **Mirrored** eller **Added by You**. |
+| **Blitt stille** | De oppdagede elementene som ikke har sendt telemetri på mer enn et døgn. |
+| **Etter kilde** | Elementene fra én kilde: **Oppdaget**, **Speilet** eller **Lagt til av deg**. |
 | **Innstillinger → Egendefinerte felt** | Feltene prosjektet ditt fører på hvert element. |
 | **Hjelp → Dokumentasjon** | En kort guide til inventaret, med typene elementer det gjenkjenner. |
 | **Avansert → Arkivert** | Elementene du har arkivert. Gjenopprett dem herfra. |
 
-Åpne et element, og den egne sidemenyen har elementets **Oversikt** (type, kilde og status, og hver attributt som er observert på det), dets **Tilkoblinger** og dets **Egendefinerte felt**; dets **Logger**, **Spor**, **Målinger**, **Profiler** og **Unntak**; og dets **Hendelser**, **Varsler** og **Planlagt vedlikehold**. Under **Avansert** ligger dets **Innstillinger**, dets **Revisjonslogger** og **Delete Item**. Telemetrisidene viser det elementet selv har sendt. Hendelsene, varslene og vedlikeholdshendelsene er de som hører til tjenesten, verten eller Kubernetes-klyngen elementet står for; på alle andre elementer forteller de sidene hvilken ressurs du skal se på i stedet.
+Åpne et element, og den egne sidemenyen har elementets **Oversikt** (type, kilde og status, og hver attributt som er observert på det), dets **Tilkoblinger** og dets **Egendefinerte felt**; dets **Logger**, **Spor**, **Målinger**, **Profiler** og **Unntak**; og dets **Hendelser**, **Varsler** og **Planlagt vedlikehold**. Under **Avansert** ligger dets **Innstillinger**, dets **Revisjonslogger** og **Slett element**. Telemetrisidene viser det elementet selv har sendt. Hendelsene, varslene og vedlikeholdshendelsene er de som hører til tjenesten, verten eller Kubernetes-klyngen elementet står for; på alle andre elementer forteller de sidene hvilken ressurs du skal se på i stedet.
 
 ### Eiendelsdetaljer
 
@@ -100,7 +100,7 @@ Klikk på **Legg til Element**. Velg **Type**, gi det et **Navn** og eventuelt e
 
 ### Fyll ut de egendefinerte feltene
 
-Åpne det nye elementet. Kilden står som **Added by you**, og siden **Egendefinerte felt** tar imot verdiene prosjektet ditt følger.
+Åpne det nye elementet. Kilden står som **Lagt til av deg**, og siden **Egendefinerte felt** tar imot verdiene prosjektet ditt følger.
 :::
 
 Tre typer kan du legge til manuelt:
@@ -117,9 +117,9 @@ Arkivering tar et element ut av listen mens det beholder identiteten, historikke
 
 | Kilde | Arkiver | Slett |
 | --- | --- | --- |
-| **Discovered** | Forblir arkivert. | Kommer tilbake med neste batch av telemetrien. |
-| **Mirrored** | Forblir arkivert. | Kommer tilbake med neste kopi. Slett den opprinnelige posten i stedet. |
-| **Added by you** | Forblir arkivert. | Borte for godt. |
+| **Oppdaget** | Forblir arkivert. | Kommer tilbake med neste batch av telemetrien. |
+| **Speilet** | Forblir arkivert. | Kommer tilbake med neste kopi. Slett den opprinnelige posten i stedet. |
+| **Lagt til av deg** | Forblir arkivert. | Borte for godt. |
 
 For å arkivere elementer merker du dem i **Alle elementer** og arkiverer dem på én gang, eller du åpner et element og bruker kortet **Arkiver** på siden **Innstillinger**. Arkiverte elementer ligger under **Inventar → Avansert → Arkivert**, der du kan merke dem og gjenopprette dem.
 

@@ -1,4 +1,5 @@
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -67,7 +68,7 @@ const bytesToReadable: (value: unknown) => string = (
   const bytes: number | null = toNumberOrNull(value);
 
   if (bytes === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes === 0) {
     return "0 B";

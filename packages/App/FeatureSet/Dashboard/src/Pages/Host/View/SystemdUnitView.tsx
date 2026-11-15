@@ -92,7 +92,6 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
 import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
-import { EMPTY_VALUE_MARK } from "Common/UI/Components/Detail/EmptyValue";
 
 interface UnitIdentity {
   latestSampleAt: Date | null;
@@ -711,9 +710,7 @@ const HostSystemdUnitView: FunctionComponent<
           value={
             unitKind ? (
               <SystemdUnitKind kind={unitKind} isFigure={true} />
-            ) : (
-              EMPTY_VALUE_MARK
-            )
+            ) : undefined
           }
           sublabel="systemd unit type"
         />

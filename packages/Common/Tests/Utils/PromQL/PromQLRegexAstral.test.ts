@@ -15,6 +15,7 @@ import {
   PatternProblemError,
   PatternProblemReason,
 } from "../../../Utils/LinearRegExp/PatternProblem";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { v8Tests } from "../../Helpers/V8RegExpAnswers";
 import { describe, expect, test } from "@jest/globals";
 
@@ -431,14 +432,22 @@ describe("a pattern written out longer than the pattern limit still runs", () =>
   test("one written out longer than MAX_WRITTEN_PATTERN_LENGTH is refused as too large, as soon as it is", () => {
     // (?m) writes each ^ as ^ and a look-behind, 22 characters.
     const pattern: string = `(?m)${"^".repeat(MAX_PATTERN_LENGTH - 4)}`;
-    let refusal: unknown = null;
-    const started: number = Date.now();
+    const refused: FastestRun<unknown> = fastestRun({
+      run: (): unknown => {
+        // Each attempt compiles the pattern again, kept or not.
+        clearLinearRegExpCache();
 
-    try {
-      compilePromQLRegex(pattern);
-    } catch (error: unknown) {
-      refusal = error;
-    }
+        try {
+          compilePromQLRegex(pattern);
+        } catch (error: unknown) {
+          return error;
+        }
+
+        return null;
+      },
+      limitInMs: 5000,
+    });
+    const refusal: unknown = refused.result;
 
     expect(refusal).toBeInstanceOf(PatternProblemError);
     expect((refusal as PatternProblemError).reason).toBe(
@@ -447,7 +456,7 @@ describe("a pattern written out longer than the pattern limit still runs", () =>
     expect((refusal as Error).message).toBe(
       `The pattern, written out for the matcher, is longer than ${MAX_WRITTEN_PATTERN_LENGTH} characters.`,
     );
-    expect(Date.now() - started).toBeLessThan(5000);
+    expect(refused.inMs).toBeLessThan(5000);
     // A tenth of them reads.
     expect(compilePromQLRegex(`(?m)${"^".repeat(2000)}a`).test("a")).toBe(true);
   });

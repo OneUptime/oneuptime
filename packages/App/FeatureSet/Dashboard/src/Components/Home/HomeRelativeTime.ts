@@ -97,11 +97,12 @@ const formatInEnglish: (parts: RelativeTimeParts) => string = (
     return "now";
   }
 
-  const unit: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
+  // "5 minutes": a duration's word, held to its number like a unit (#8669).
+  const word: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
 
   return parts.value < 0
-    ? `${magnitude}${NO_BREAK_SPACE}${unit} ago`
-    : `in ${magnitude}${NO_BREAK_SPACE}${unit}`;
+    ? `${magnitude}${NO_BREAK_SPACE}${word} ago`
+    : `in ${magnitude}${NO_BREAK_SPACE}${word}`;
 };
 
 /*

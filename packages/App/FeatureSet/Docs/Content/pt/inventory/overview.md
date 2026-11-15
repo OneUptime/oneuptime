@@ -24,9 +24,9 @@ flowchart TB
 
 | Origem | Na API | De onde vem | Por quanto tempo fica |
 | --- | --- | --- | --- |
-| **Discovered** | `discovered` | Atributos de recurso do OpenTelemetry, lidos à medida que a telemetria chega: um serviço, host, objeto do Kubernetes ou máquina virtual que envia telemetria. | Registrado de novo a cada lote. Removido depois de ficar em silêncio por mais tempo que a janela do seu tipo (veja abaixo). |
-| **Mirrored** | `inventory` | Um registro que um coletor do OneUptime mantém: dispositivos de rede, recursos de nuvem, dispositivos IoT, funções serverless, aplicações RUM, hosts Docker e hosts Podman. Copiado a cada 15 minutos. | Enquanto o seu registro existir. Exclua o registro e o item vai junto. |
-| **Added by you** | `manual` | Adicionado por você, para algo que o OneUptime não consegue ver: uma API de terceiros, um banco de dados gerenciado por um fornecedor, um appliance em um rack. | Até você excluí-lo. Nada o faz expirar. |
+| **Descoberto** | `discovered` | Atributos de recurso do OpenTelemetry, lidos à medida que a telemetria chega: um serviço, host, objeto do Kubernetes ou máquina virtual que envia telemetria. | Registrado de novo a cada lote. Removido depois de ficar em silêncio por mais tempo que a janela do seu tipo (veja abaixo). |
+| **Replicado** | `inventory` | Um registro que um coletor do OneUptime mantém: dispositivos de rede, recursos de nuvem, dispositivos IoT, funções serverless, aplicações RUM, hosts Docker e hosts Podman. Copiado a cada 15 minutos. | Enquanto o seu registro existir. Exclua o registro e o item vai junto. |
+| **Adicionado por você** | `manual` | Adicionado por você, para algo que o OneUptime não consegue ver: uma API de terceiros, um banco de dados gerenciado por um fornecedor, um appliance em um rack. | Até você excluí-lo. Nada o faz expirar. |
 
 Um item descoberto ou espelhado não pode ser renomeado nem mudar de tipo: a sua origem sobrescreveria a mudança na próxima passagem. A página **Configurações** do item diz onde fazer uma mudança duradoura em vez disso. O que você sempre pode acrescentar a qualquer item, seja qual for a origem, são valores de campos personalizados: veja [Campos personalizados do inventário](/docs/inventory/custom-fields).
 
@@ -37,8 +37,8 @@ Um item descoberto tem pulsação. Cada vez que chega telemetria para ele, o hor
 | Status | O que significa |
 | --- | --- |
 | **Ao vivo** | Visto nos últimos 30 minutos. |
-| **Recent** | Visto no último dia. |
-| **Desatualizado** | Não visto há mais de um dia. A página **Gone Quiet** lista esses itens. |
+| **Recente** | Visto no último dia. |
+| **Desatualizado** | Não visto há mais de um dia. A página **Em silêncio** lista esses itens. |
 
 A cada três horas, o OneUptime remove os itens descobertos que ficaram em silêncio por mais tempo que a janela do seu tipo, inclusive os arquivados, e os valores de campos personalizados deles vão junto. Itens espelhados e os que você adicionou nunca são removidos dessa forma.
 
@@ -52,20 +52,20 @@ Uma relação que o OneUptime descobriu é removida quando não é vista de novo
 
 ## Como se orientar
 
-Abra **Produtos → Recursos → Inventário**. O menu lateral tem estas páginas. **By Source**, **Configurações**, **Ajuda** e **Avançado** começam recolhidas: clique no título de uma seção para abri-la.
+Abra **Produtos → Recursos → Inventário**. O menu lateral tem estas páginas. **Por origem**, **Configurações**, **Ajuda** e **Avançado** começam recolhidas: clique no título de uma seção para abri-la.
 
 | Página | O que você encontra |
 | --- | --- |
 | **Visão geral** | Quantos itens você tem, o que são, quantos ficaram em silêncio e o que foi adicionado mais recentemente. |
 | **Todos os itens** | Todos os itens. Pesquise por nome, descrição ou chave de identidade, filtre a lista por tipo, origem, status ou campo personalizado e adicione um item manualmente. |
 | **Mapa de topologia** | Como os itens se conectam: os serviços, o que eles chamam e os hosts, pods e dispositivos em que rodam. |
-| **Gone Quiet** | Os itens descobertos que não enviam telemetria há mais de um dia. |
-| **By Source** | Os itens de uma origem: **Discovered**, **Mirrored** ou **Added by You**. |
+| **Em silêncio** | Os itens descobertos que não enviam telemetria há mais de um dia. |
+| **Por origem** | Os itens de uma origem: **Descoberto**, **Replicado** ou **Adicionado por você**. |
 | **Configurações → Campos personalizados** | Os campos que o seu projeto mantém em cada item. |
 | **Ajuda → Documentação** | Um guia curto do inventário, com os tipos de item que ele reconhece. |
 | **Avançado → Arquivado** | Os itens que você arquivou. Desarquive-os aqui. |
 
-Abra um item, e o menu lateral dele tem a sua **Visão geral** (o tipo, a origem e o status, e cada atributo observado nele), as suas **Conexões** e os seus **Campos personalizados**; os seus **Registros**, **Traços**, **Métricas**, **Perfis** e **Exceções**; e os seus **Incidentes**, **Alertas** e **Manutenção programada**. Em **Avançado** ficam as suas **Configurações**, os seus **Registros de auditoria** e **Delete Item**. As páginas de telemetria mostram o que o próprio item enviou. Os incidentes, alertas e eventos de manutenção são os do serviço, host ou cluster do Kubernetes que o item representa; em qualquer outro item, essas páginas dizem qual recurso consultar em vez disso.
+Abra um item, e o menu lateral dele tem a sua **Visão geral** (o tipo, a origem e o status, e cada atributo observado nele), as suas **Conexões** e os seus **Campos personalizados**; os seus **Registros**, **Traços**, **Métricas**, **Perfis** e **Exceções**; e os seus **Incidentes**, **Alertas** e **Manutenção programada**. Em **Avançado** ficam as suas **Configurações**, os seus **Registros de auditoria** e **Excluir item**. As páginas de telemetria mostram o que o próprio item enviou. Os incidentes, alertas e eventos de manutenção são os do serviço, host ou cluster do Kubernetes que o item representa; em qualquer outro item, essas páginas dizem qual recurso consultar em vez disso.
 
 ### Detalhes do ativo
 
@@ -100,7 +100,7 @@ Clique em **Adicionar: Item**. Escolha o **Tipo**, dê um **Nome** e, se quiser,
 
 ### Preencher os campos personalizados
 
-Abra o novo item. A origem dele indica **Added by you**, e a página **Campos personalizados** dele recebe os valores que o seu projeto acompanha.
+Abra o novo item. A origem dele indica **Adicionado por você**, e a página **Campos personalizados** dele recebe os valores que o seu projeto acompanha.
 :::
 
 Você pode adicionar três tipos manualmente:
@@ -117,9 +117,9 @@ Arquivar tira um item da lista enquanto ele mantém a sua identidade, o seu hist
 
 | Origem | Arquivar | Excluir |
 | --- | --- | --- |
-| **Discovered** | Continua arquivado. | Volta com o próximo lote da sua telemetria. |
-| **Mirrored** | Continua arquivado. | Volta com a próxima cópia. Exclua o registro original em vez disso. |
-| **Added by you** | Continua arquivado. | Some para sempre. |
+| **Descoberto** | Continua arquivado. | Volta com o próximo lote da sua telemetria. |
+| **Replicado** | Continua arquivado. | Volta com a próxima cópia. Exclua o registro original em vez disso. |
+| **Adicionado por você** | Continua arquivado. | Some para sempre. |
 
 Para arquivar itens, selecione-os em **Todos os itens** e arquive-os de uma vez, ou abra um item e use o cartão **Arquivar** da página **Configurações** dele. Os itens arquivados ficam em **Inventário → Avançado → Arquivado**, onde você pode selecioná-los e desarquivá-los.
 

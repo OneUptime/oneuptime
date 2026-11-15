@@ -47,8 +47,8 @@ En ny regel starter aktiveret; slå **Aktiveret** fra i dens redigeringsformular
 
 | Betingelse                                                         | Matcher                                                                    |
 | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| **Monitorer**, **Begivenhedsetiketter**, **Overvågningsetiketter** | Begivenheder med en af de monitorer eller etiketter, du vælger.            |
-| **Begivenhedstitel**, **Hændelsesbeskrivelse**, **Overvågningsnavn**, **Overvågningsbeskrivelse** | Et mønster, som et regulært udtryk, uden forskel på store og små bogstaver. |
+| **Monitorer**, **Begivenhedsetiketter**, **Monitoretiketter** | Begivenheder med en af de monitorer eller etiketter, du vælger.            |
+| **Begivenhedstitel**, **Hændelsesbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | Et mønster, som et regulært udtryk, uden forskel på store og små bogstaver. |
 
 En regel matcher kun, når hver betingelse, du udfylder, holder; en betingelse, der står tom, springes over.
 

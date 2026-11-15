@@ -54,7 +54,7 @@ Vedi [Regole di etichette e proprietari](/docs/configuration/label-and-owner-rul
 
 ## Segreti
 
-Contrassegna una variabile come **segreta** se contiene qualcosa di sensibile: il suo valore viene allora eliminato dai registri delle esecuzioni e dalle tracce dei passaggi. Il valore di nessuna variabile può essere riletto una volta salvato, segreta o no, né nella dashboard né tramite l'API, e una variabile diventata segreta resta segreta.
+Contrassegna una variabile come **segreta** se contiene qualcosa di sensibile: il suo valore viene allora eliminato dai log delle esecuzioni e dalle tracce dei passaggi. Il valore di nessuna variabile può essere riletto una volta salvato, segreta o no, né nella dashboard né tramite l'API, e una variabile diventata segreta resta segreta.
 
 Usa le variabili segrete per:
 
@@ -63,7 +63,7 @@ Usa le variabili segrete per:
 - Chiavi di firma dei webhook.
 - Qualsiasi cosa che non vorresti far vedere a chi ha solo accesso in lettura.
 
-Non incollare un segreto direttamente in un blocco: valori come `Authorization: Bearer eyJh...` finiscono visibili nel flusso di lavoro e nei registri. Usa invece `{{global.variables.MY_SECRET}}`.
+Non incollare un segreto direttamente in un blocco: valori come `Authorization: Bearer eyJh...` finiscono visibili nel flusso di lavoro e nei log. Usa invece `{{global.variables.MY_SECRET}}`.
 
 Se il segreto è un token di accesso OAuth che scade, trasforma la variabile in una [variabile OAuth 2.0](/docs/workflows/variables#variabili-oauth-20-token-che-si-rinnovano-da-soli). OneUptime recupera allora il token dal tuo provider di identità e lo rinnova ogni volta che un flusso di lavoro sta per usarne uno scaduto. Le variabili OAuth 2.0 sono sempre segrete, e le loro credenziali sono cifrate nel database.
 
@@ -108,7 +108,7 @@ Il trigger Incoming Email dà al flusso di lavoro un indirizzo tutto suo, e chiu
 - Non pubblicarlo e non inserirlo in un repository pubblico. Il trigger nasconde la chiave finché non fai clic su **Mostra**, e **Copia indirizzo** copia l'indirizzo senza mostrarlo.
 - Se l'indirizzo trapela, fai clic sul trigger Incoming Email nel **Costruttore** e poi su **Reimposta indirizzo**. Il flusso di lavoro riceve un nuovo indirizzo, e da quel momento le email al vecchio vengono ignorate.
 - Chiunque può mettere qualsiasi mittente su un'email, quindi **Da** non prova chi l'ha inviata. Prima che un flusso di lavoro faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **Se / Altrimenti**. Salva il token atteso come variabile segreta.
-- La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **A**, **CC**, gli header e i corpi — perché il registro dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del flusso di lavoro.
+- La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **A**, **CC**, gli header e i corpi — perché il log dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del flusso di lavoro.
 
 Solo le persone che possono modificare il flusso di lavoro — **Proprietario del progetto**, **Amministratore del progetto**, **Amministratore dei flussi di lavoro** o **Edit Workflow** — possono vedere o reimpostare il suo indirizzo. Tutti gli altri vedono una nota che dice a chi chiederlo.
 
@@ -139,9 +139,9 @@ Cosa riceve il provider, e cosa può farne il modello:
 
 Cosa viene registrato:
 
-- Il registro dell'esecuzione nasconde le **Istruzioni di sistema**, il **Prompt**, il **Contesto** e la **Risposta** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
-- Il provider, il modello, il numero di token, il **ID del log LLM** e un messaggio di errore sicuro restano visibili, per l'operatività e la fatturazione. L'errore grezzo di un provider resta fuori da ogni registro, perché un provider può ripetervi la richiesta.
-- Ogni chiamata compare in **Impostazioni del progetto → IA → Registri IA** con provider, modello, stato, token, costo e fatturazione, senza il prompt, la risposta o l'errore grezzo.
+- Il log dell'esecuzione nasconde le **Istruzioni di sistema**, il **Prompt**, il **Contesto** e la **Risposta** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
+- Il provider, il modello, il numero di token, il **ID del log LLM** e un messaggio di errore sicuro restano visibili, per l'operatività e la fatturazione. L'errore grezzo di un provider resta fuori da ogni log, perché un provider può ripetervi la richiesta.
+- Ogni chiamata compare in **Impostazioni del progetto → IA → Log IA** con provider, modello, stato, token, costo e fatturazione, senza il prompt, la risposta o l'errore grezzo.
 
 Di cosa ha bisogno il blocco, e quanto costa:
 
@@ -189,18 +189,18 @@ I passaggi che leggono e modificano i record di OneUptime — i componenti Find,
 
 - **Solo il progetto del flusso di lavoro.** Un passaggio legge e scrive i record del progetto a cui appartiene il flusso di lavoro e di nessun altro, e un Update non sposta mai un record in un altro progetto.
 - **Solo ciò che può fare un Project Admin.** Un passaggio non può fare ciò che solo **Proprietario del progetto** e i permessi di fatturazione o di eliminazione del progetto consentono, e non può leggere chi ha creato una sonda o un agente IA, cosa che vedono solo i Proprietari del progetto.
-- **Non chi ha accesso.** Un passaggio non crea, non modifica e non elimina team, membri dei team, permessi dei team, ruoli personalizzati o permessi delle chiavi API, anche se un Amministratore del progetto può farlo. Chi costruisce un flusso di lavoro decide cosa fanno i suoi passaggi, e può essere un **Membro del progetto**, quindi un passaggio che potesse farlo darebbe a chi lo ha costruito un accesso che non gli è stato dato, come **Amministratore del progetto**. Il passaggio viene rifiutato, e il registro dell'esecuzione dice che deve fare la modifica una persona che gestisce i team e le chiavi API del progetto. I trigger e i passaggi Find su questi record continuano a funzionare.
+- **Non chi ha accesso.** Un passaggio non crea, non modifica e non elimina team, membri dei team, permessi dei team, ruoli personalizzati o permessi delle chiavi API, anche se un Amministratore del progetto può farlo. Chi costruisce un flusso di lavoro decide cosa fanno i suoi passaggi, e può essere un **Membro del progetto**, quindi un passaggio che potesse farlo darebbe a chi lo ha costruito un accesso che non gli è stato dato, come **Amministratore del progetto**. Il passaggio viene rifiutato, e il log dell'esecuzione dice che deve fare la modifica una persona che gestisce i team e le chiavi API del progetto. I trigger e i passaggi Find su questi record continuano a funzionare.
 - **Non la lettura delle impostazioni che contengono credenziali.** Un Amministratore del progetto può leggere server SMTP, fornitori di chiamate e SMS, credenziali SNMP, connessioni per videochiamate e chiavi API, ma questo non viene mai prestato a un passaggio, chiunque abbia costruito o salvato il flusso di lavoro. Un passaggio non può indicare una di queste impostazioni, come il server SMTP con cui una pagina di stato invia email o la chiave API a cui viene concesso un permesso. Il passaggio viene rifiutato, e il suo log di esecuzione dice che deve fare la modifica una persona che può leggerle (il permesso di lettura di quel tipo di impostazione, oppure un Proprietario del progetto o un Amministratore del progetto). Un passaggio che mantiene l'impostazione che un record indica già, o la svuota, non viene rifiutato.
 - **Solo ciò che il tuo piano include.** Su OneUptime Cloud, un passaggio che crea o modifica qualcosa che il tuo piano non include viene rifiutato indicando il piano necessario, proprio come nella dashboard. Le installazioni self-hosted senza fatturazione non hanno limiti di piano.
 - **Niente di ciò che OneUptime tiene per sé.** Questo viene rifiutato a tutti, flussi di lavoro compresi:
   - modificare o eliminare una voce del feed (i feed di incidenti, avvisi, episodi, monitor, policy di reperibilità e manutenzione programmata);
-  - scrivere un registro delle notifiche (i registri di SMS, chiamate, email, WhatsApp, Telegram, notifiche push, webhook e messaggi dell'area di lavoro);
+  - scrivere un log delle notifiche (i log di SMS, chiamate, email, WhatsApp, Telegram, notifiche push, webhook e messaggi dell'area di lavoro);
   - i valori che OneUptime imposta man mano che le cose accadono: se il CNAME di un dominio personalizzato è verificato, gli interruttori di protezione di un team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quale ruolo di incidente è quello principale e se può essere eliminato, se un proprietario o un membro è stato avvisato, gli orari e il numero dei promemoria, chi è reperibile ora e dopo in un calendario, l'avanzamento di un'esecuzione di reperibilità, il tasso di consumo e l'error budget attuali di uno SLO, un monitor messo in pausa da un incidente o da un evento di manutenzione, il token di reimpostazione della password e l'ultimo accesso di un utente privato di una pagina di stato, i dati che un servizio riporta su sé stesso (versione, runtime, cloud) e l'ultima esecuzione di una regola di rilevamento o di un feed di minacce;
   - dichiarare un incidente da un modello inviando `createdIncidentTemplateId` a **Create One Incident** — scegli invece il modello nell'impostazione **Modello di incidente** del passaggio: il passaggio dichiara allora l'incidente da esso, come Amministratore del progetto, e registra il modello;
   - cambiare il record a cui appartiene un record dopo la sua creazione, come il monitor a cui si riferisce una riga di proprietario o l'incidente su cui si trova una nota.
-- **Come nessuno.** Un record creato da un flusso di lavoro non indica alcun creatore, e il registro di audit nomina il flusso di lavoro, con il nome che aveva in quel momento, come autore della modifica.
+- **Come nessuno.** Un record creato da un flusso di lavoro non indica alcun creatore, e il log di audit nomina il flusso di lavoro, con il nome che aveva in quel momento, come autore della modifica.
 
-Quando un controllo rifiuta un passaggio, il passaggio prende la sua uscita **Errore** senza fare la modifica rifiutata, e il registro dell'esecuzione nomina il passaggio e il motivo con parole semplici, ad esempio *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leggilo nelle [Esecuzioni](/docs/workflows/runs-and-logs) del flusso di lavoro. Un passaggio Create Many crea i suoi record uno alla volta e si ferma al primo rifiutato: i record creati prima di quello vengono conservati.
+Quando un controllo rifiuta un passaggio, il passaggio prende la sua uscita **Errore** senza fare la modifica rifiutata, e il log dell'esecuzione nomina il passaggio e il motivo con parole semplici, ad esempio *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leggilo nelle [Esecuzioni](/docs/workflows/runs-and-logs) del flusso di lavoro. Un passaggio Create Many crea i suoi record uno alla volta e si ferma al primo rifiutato: i record creati prima di quello vengono conservati.
 
 I passaggi che parlano con altri sistemi — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with AI — non leggono né modificano record di OneUptime, quindi niente di tutto questo li riguarda.
 

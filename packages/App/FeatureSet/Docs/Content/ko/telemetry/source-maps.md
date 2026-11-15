@@ -153,6 +153,6 @@ done
 
 :::cards
 - [브라우저 설정](/docs/rum/browser-setup): OpenTelemetry 웹 SDK로 브라우저 트레이스와 예외를 보냅니다.
-- [예외 모니터](/docs/monitor/exceptions-monitor): 새 예외가 나타나면 알림을 보냅니다.
+- [예외 모니터](/docs/monitor/exceptions-monitor): 새 예외가 나타나면 경고를 보냅니다.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 모든 텔레메트리의 엔드포인트, 키, 한도.
 :::

@@ -179,7 +179,7 @@ const SnmpTableSnapshotCard: FunctionComponent<ComponentProps> = (
       column.unit &&
       cell.numeric !== undefined &&
       !ENDS_WITH_UNIT.test(cell.display)
-        ? `${cell.display} ${column.unit}`
+        ? `${cell.display}\u00A0${column.unit}`
         : cell.display;
 
     if (cell.isHealthy === undefined) {

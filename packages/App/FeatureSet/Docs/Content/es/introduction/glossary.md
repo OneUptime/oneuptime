@@ -266,9 +266,9 @@ Otros nombres: **Seguimiento de excepciones**, `/telemetry-exception`. Consulta 
 
 ### Hallazgos de IA
 
-Problemas que OneUptime encuentra en tu telemetría antes de que nada avise: excepciones nuevas o en aumento, picos de registros de error, trazas más lentas, desviaciones de métricas y despliegues que empeoraron las cosas. Los hallazgos nunca avisan a nadie ni abren incidentes; esperan en una bandeja de entrada hasta que alguien los mira. La página **Análisis** de la sección de IA de un producto o de un registro es lo que OneUptime AI aprendió allí.
+Problemas que OneUptime encuentra en tu telemetría antes de que nada avise: excepciones nuevas o en aumento, picos de registros de error, trazas más lentas, desviaciones de métricas y despliegues que empeoraron las cosas. Los hallazgos nunca avisan a nadie ni abren incidentes; esperan en una bandeja de entrada hasta que alguien los mira. La página **Hallazgos** de la sección de IA de un producto o de un registro es lo que OneUptime AI aprendió allí.
 
-Otros nombres: **Análisis**. Consulta [AI SRE](/docs/ai/ai-sre#hallazgos-detección-proactiva).
+Otros nombres: **Hallazgos**. Consulta [AI SRE](/docs/ai/ai-sre#hallazgos-detección-proactiva).
 
 ### Eventos de seguridad
 

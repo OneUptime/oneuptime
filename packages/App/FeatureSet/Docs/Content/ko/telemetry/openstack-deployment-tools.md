@@ -10,7 +10,7 @@
 - [OpenStack-Helm](#openstack-helm): Atmosphere도 같은 방식으로, 프로브와 Kubernetes 에이전트.
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift 프리셋과 Ceilometer.
-- [Mirantis MOSK](#mirantis-mosk): StackLight의 알림.
+- [Mirantis MOSK](#mirantis-mosk): StackLight의 경고.
 - [이미 실행 중인 익스포터 사용](#이미-실행-중인-익스포터-사용): 1.7.0에서 페이지에 나타나지 않는 항목.
 :::
 
@@ -323,11 +323,11 @@ conf:
 
 ## Atmosphere
 
-Atmosphere는 자체 알림 규칙이 있는 kube-prometheus-stack을 실행하고, 로그에는 Vector가 있는 Loki를 사용합니다. 먼저 알림을 전달하고, 이어서 프로브가 API를 읽고 Kubernetes 에이전트가 파드를 봅니다.
+Atmosphere는 자체 경고 규칙이 있는 kube-prometheus-stack을 실행하고, 로그에는 Vector가 있는 Loki를 사용합니다. 먼저 경고를 전달하고, 이어서 프로브가 API를 읽고 Kubernetes 에이전트가 파드를 봅니다.
 
 ### Atmosphere에서 발생 중인 알림 전달
 
-Atmosphere는 실제 사람을 호출해 본 알림 규칙을 제공하므로 첫 한 시간부터 작동합니다. 이미 사용 중인 리시버 옆에 Atmosphere 설정에 리시버를 추가하고 배포하세요.
+Atmosphere는 실제 사람을 호출해 본 경고 규칙을 제공하므로 첫 한 시간부터 작동합니다. 이미 사용 중인 리시버 옆에 Atmosphere 설정에 리시버를 추가하고 배포하세요.
 
 ```yaml title="Atmosphere configuration"
 kube_prometheus_stack_helm_values:
@@ -503,11 +503,11 @@ spec:
 
 ## Mirantis MOSK
 
-StackLight는 이미 자체 알림 규칙으로 OpenStack 서비스, MariaDB, Memcached, RabbitMQ, libvirt를 감시합니다. 먼저 알림을 전달하고, 이어서 프로브가 API를 읽습니다.
+StackLight는 이미 자체 경고 규칙으로 OpenStack 서비스, MariaDB, Memcached, RabbitMQ, libvirt를 감시합니다. 먼저 경고를 전달하고, 이어서 프로브가 API를 읽습니다.
 
 ### Mirantis MOSK에서 발생 중인 알림 전달
 
-StackLight는 알림 규칙을 제공하므로 첫 한 시간부터 작동합니다. StackLight values에 리시버와 라우트를 추가하세요. Mirantis의 문서는 웹훅이 아니라 다른 리시버를 보여 주며, 이 설정은 MOSK에서 실행해 보지 않았습니다.
+StackLight는 경고 규칙을 제공하므로 첫 한 시간부터 작동합니다. StackLight values에 리시버와 라우트를 추가하세요. Mirantis의 문서는 웹훅이 아니라 다른 리시버를 보여 주며, 이 설정은 MOSK에서 실행해 보지 않았습니다.
 
 ```yaml title="StackLight values"
 alertmanagerSimpleConfig:

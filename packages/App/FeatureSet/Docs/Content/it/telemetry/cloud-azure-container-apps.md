@@ -290,7 +290,7 @@ az containerapp env telemetry otlp add \
 
 - **Panoramica**: richieste, tasso di errore e latenza p95 dalle tue tracce. Container Apps non mostra a un sidecar l'uso delle risorse di una replica, quindi i riquadri **CPU** e **Memoria** si riempiono solo se invii metriche `container.cpu.utilization` e `container.memory.usage` che portano l'identità della replica. La maggior parte dei team le lascia ad Azure Monitor.
 - **Istanze**: una riga per replica, con il nome di `azure.container_app.instance.id` dei rilevatori, di `service.instance.id` quando lo imposti tu, o di `host.name` quando è stato eseguito solo il rilevatore host.
-- **Registri**, **Tracce** e **Metriche**, filtrati sull'ambiente, e la vista per servizio in **Servizi**.
+- **Log**, **Tracce** e **Metriche**, filtrati sull'ambiente, e la vista per servizio in **Servizi**.
 
 ## Risoluzione dei problemi
 

@@ -1,10 +1,10 @@
 # Egendefinerte sonder
 
-En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den sjekker overvåkerne du legger den til, for eksempel interne nettsteder, API-er og servere bak brannmuren din, og sender resultatene til OneUptime. Den åpner bare utgående tilkoblinger over HTTPS, så ingenting i nettverket ditt trenger å ta imot tilkoblinger fra internett. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#sonde-agent-collector-eller-runner) for å velge mellom en sonde, en agent, en collector og en Runner.
+En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den sjekker monitorene du legger den til, for eksempel interne nettsteder, API-er og servere bak brannmuren din, og sender resultatene til OneUptime. Den åpner bare utgående tilkoblinger over HTTPS, så ingenting i nettverket ditt trenger å ta imot tilkoblinger fra internett. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#sonde-agent-collector-eller-runner) for å velge mellom en sonde, en agent, en collector og en Runner.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva sonden gjør, og hvordan OneUptime vet at den kjører.
-- [Installer en sonde](#installer-en-sonde): Opprett den i OneUptime, kjør den med Docker, Docker Compose eller Kubernetes, og legg den til overvåkere.
+- [Installer en sonde](#installer-en-sonde): Opprett den i OneUptime, kjør den med Docker, Docker Compose eller Kubernetes, og legg den til monitorer.
 - [Miljøvariabler](#miljøvariabler): Hver innstilling sonden leser, med standardverdien.
 - [Undersøk en frakoblet sonde](#undersøk-en-frakoblet-sonde): Finn ut hvor sondens forespørsler til OneUptime stopper opp.
 :::
@@ -24,7 +24,7 @@ sequenceDiagram
 ```
 
 - **Sonden kobler seg utover.** Hver forespørsel går fra sonden til `ONEUPTIME_URL` over HTTPS. Ingenting utenfra trenger å nå sonden.
-- **Den sjekker bare sine egne overvåkere.** Sonden spør OneUptime om overvåkerne den er lagt til, sjekker hver av dem når det er tid, og sender resultatet tilbake. OneUptime avgjør ut fra resultatene om statusen til en overvåker endres.
+- **Den sjekker bare sine egne overvåkere.** Sonden spør OneUptime om monitorene den er lagt til, sjekker hver av dem når det er tid, og sender resultatet tilbake. OneUptime avgjør ut fra resultatene om statusen til en monitor endres.
 - **OneUptime passer på at den kjører.** Hver forespørsel fra sonden teller som et livstegn, og sonden sender minst én i minuttet. Etter omtrent tre minutter uten noen viser sonden **Frakoblet**, og eierne dens får beskjed. Har en sonde ingen eiere, får Prosjekteiere beskjed. For å bli varslet som ved ethvert avbrudd, med én hendelse til sonden er tilbake, legger du til en [sondestatusmonitor](/docs/monitor/probe-status-monitor): **Overvåk denne sonden** på sondens side oppretter en.
 
 ## Før du begynner
@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Opprett sonden
 
-Åpne **Monitorer → Innstillinger → Sonder** og klikk på **Opprett Sonde**. Gi den et **Navn** og en **Beskrivelse**: begge er påkrevd. **Flere felt** inneholder **Sondelogo**, **Legg til på nye overvåkere**, som gjør at hver ny overvåker starter med denne sonden valgt, og **Etiketter**.
+Åpne **Monitorer → Innstillinger → Sonder** og klikk på **Opprett Sonde**. Gi den et **Navn** og en **Beskrivelse**: begge er påkrevd. **Flere felt** inneholder **Sondelogo**, **Legg til på nye monitorer**, som gjør at hver ny monitor starter med denne sonden valgt, og **Etiketter**.
 
 ### Kopier ID-en og nøkkelen
 
@@ -112,13 +112,13 @@ I løpet av et minutt eller to viser sondens **Status** i tabellen **Egendefiner
 
 ### La sonden sjekke en overvåker
 
-En sonde sjekker bare overvåkerne den er lagt til. En ny overvåker velger sondene sine i trinnet **Sonder og intervall** i **Opprett monitor**. For en overvåker som finnes fra før, åpner du den og går til **Konfigurasjon → Sonder og intervall**. Siden har tre kort:
+En sonde sjekker bare monitorene den er lagt til. En ny monitor velger sondene sine i trinnet **Sonder og intervall** i **Opprett monitor**. For en monitor som finnes fra før, åpner du den og går til **Konfigurasjon → Sonder og intervall**. Siden har tre kort:
 
 - **Overvåkingsintervall**: hvor ofte hver av overvåkerens sonder sjekker den. Velg et intervall, så lagres det med en gang. Syntetiske, Custom Code- og SSL-sertifikatovervåkere tilbys hvert 5. minutt eller sjeldnere; en overvåker som allerede har et kortere intervall, eller en tidsplan satt via API-et, beholder den og viser den i listen.
-- **Sonder**: klikk på **Legg til sonde** og velg den egendefinerte sonden din. For at en sonde skal slutte å sjekke denne overvåkeren, slår du den av med **Rediger** i radens meny, eller sletter raden.
-- **Sondeenighet**: hvor mange av overvåkerens sonder som må se det samme resultatet før statusen endres, skrevet inn i setningen «Endre statusen til denne overvåkeren når ... sonder er enige». La feltet stå tomt for alle. Bare sonder som er slått på og tilkoblet er med, så et høyere tall betyr også alle. Tallet lagres når du forlater feltet eller trykker **Enter**.
+- **Sonder**: klikk på **Legg til sonde** og velg den egendefinerte sonden din. For at en sonde skal slutte å sjekke denne monitoren, slår du den av med **Rediger** i radens meny, eller sletter raden.
+- **Sondeenighet**: hvor mange av monitorens sonder som må se det samme resultatet før statusen endres, skrevet inn i setningen «Endre statusen til denne overvåkeren når ... sonder er enige». La feltet stå tomt for alle. Bare sonder som er slått på og tilkoblet er med, så et høyere tall betyr også alle. Tallet lagres når du forlater feltet eller trykker **Enter**.
 
-Overvåkere som sonder ikke sjekker (Manuell, Innkommende forespørsel, Innkommende e-post, Server, Nettverksenhet og telemetriovervåkerne), har ingen side Sonder og intervall.
+Monitorer som sonder ikke sjekker (Manuell, Innkommende forespørsel, Innkommende e-post, Server, Nettverksenhet og telemetrimonitorene), har ingen side Sonder og intervall.
 :::
 
 > [!TIP]
@@ -201,7 +201,7 @@ spec:
 Hva som går gjennom proxyen:
 
 - **Sondens egne forespørsler til OneUptime.**
-- **Overvåkernes HTTP-sjekker**: Website-, API-, External Status Page-, Custom Code-, SSL-sertifikat-, syntetiske og domeneovervåkere. SSL-sertifikat- og syntetiske overvåkere bruker `HTTPS_PROXY_URL`, eller `HTTP_PROXY_URL` når bare den er satt.
+- **Overvåkernes HTTP-sjekker**: Website-, API-, External Status Page-, Custom Code-, SSL-sertifikat-, syntetiske og domenemonitorer. SSL-sertifikat- og syntetiske monitorer bruker `HTTPS_PROXY_URL`, eller `HTTP_PROXY_URL` når bare den er satt.
 - **Ikke de andre sjekkene.** Ping, Port, DNS, SNMP og de andre sjekkene som ikke er HTTP, kobler til direkte.
 
 En oppføring i `NO_PROXY` er et vertsnavn (`api.internal`), et domene med punktum eller `*.` foran for hvert navn under det (`.internal.example.com`), hver av dem med en `:port`, eller `*` for alt. IP-områder leses ikke: før opp hver adresse. Navnene med små bokstaver `http_proxy`, `https_proxy` og `no_proxy`, og også `HTTP_PROXY` og `HTTPS_PROXY`, fungerer også.
@@ -241,7 +241,7 @@ I alle tilfellene ble ingenting sendt til målet, så sonden kan ikke vite om de
 This probe cannot send IPv6 traffic (ping6: connect: Cannot assign requested address), so 2001:db8::1 was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether 2001:db8::1 is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.
 ```
 
-Nettverksbanen som registreres med feilen, sier `Traceroute could not run: this probe cannot send IPv6 traffic (...)`. Rett opp sondens nettverk, eller flytt overvåkeren til en sonde som har IPv6.
+Nettverksbanen som registreres med feilen, sier `Traceroute could not run: this probe cannot send IPv6 traffic (...)`. Rett opp sondens nettverk, eller flytt monitoren til en sonde som har IPv6.
 
 ### IPv6 uten vertsnettverk
 
@@ -280,15 +280,15 @@ Sonden leser innstillingene sine fra miljøet når den starter: endre en, og sta
 
 | Variabel | Standard | Hva den gjør |
 | --- | --- | --- |
-| `PROBE_MONITORING_WORKERS` | `1` | Hvor mange bunker med overvåkere sonden sjekker samtidig. |
-| `PROBE_MONITOR_FETCH_LIMIT` | `10` | Hvor mange overvåkere det er i en bunke. |
+| `PROBE_MONITORING_WORKERS` | `1` | Hvor mange bunker med monitorer sonden sjekker samtidig. |
+| `PROBE_MONITOR_FETCH_LIMIT` | `10` | Hvor mange monitorer det er i en bunke. |
 | `PROBE_MONITOR_RETRY_LIMIT` | `3` | Nye forsøk etter det første forsøket på en mislykket sjekk, brukt når et trinn ikke angir sitt eget antall, altså opptil 4 forsøk. `0` slår av nye forsøk. |
 | `PROBE_MONITOR_CHECK_TIMEOUT_IN_MS` | `900000` | Frist for å sjekke én overvåker, deretter oppgis sjekken og prøves igjen i neste syklus. Standarden øker når tidsgrensen for syntetiske skript heves, så et skript aldri blir avbrutt. |
-| `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til syntetiske overvåkere, i millisekunder. |
-| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sett til `true` for å kjøre Chromium i syntetiske overvåkere inne i sin egen sandkasse. Slå den bare på når sondens container kjører med en seccomp-profil som tillater sandkassen, som Playwrights: uten en kan ikke Chromium starte. Så lenge den er av, logger sonden en advarsel ved oppstart. |
-| `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til Custom Code-overvåkere, i millisekunder. |
-| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sett til `true` for at Website-, API-, External Status Page- og Custom Code-overvåkere på denne sonden skal kunne nå private adresser. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access). |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- og API-overvåkere på denne sonden spør utstederen av et sertifikat om den har tilbakekalt sertifikatet, slik nettlesere gjør. Sett til `false` for å slutte å spørre, for eksempel på en sonde uten internettilgang. En utsteder sonden ikke når, regnes aldri som en tilbakekalling: sonden venter noen sekunder på hver responder den ikke når, omtrent én gang hvert 5. minutt. Se [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor). |
+| `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til syntetiske monitorer, i millisekunder. |
+| `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sett til `true` for å kjøre Chromium i syntetiske monitorer inne i sin egen sandkasse. Slå den bare på når sondens container kjører med en seccomp-profil som tillater sandkassen, som Playwrights: uten en kan ikke Chromium starte. Så lenge den er av, logger sonden en advarsel ved oppstart. |
+| `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til Custom Code-monitorer, i millisekunder. |
+| `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sett til `true` for at Website-, API-, External Status Page- og Custom Code-monitorer på denne sonden skal kunne nå private adresser. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- og API-monitorer på denne sonden spør utstederen av et sertifikat om den har tilbakekalt sertifikatet, slik nettlesere gjør. Sett til `false` for å slutte å spørre, for eksempel på en sonde uten internettilgang. En utsteder sonden ikke når, regnes aldri som en tilbakekalling: sonden venter noen sekunder på hver responder den ikke når, omtrent én gang hvert 5. minutt. Se [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hvor mange nettverksenheter sonden poller samtidig. Øk den for en sonde som poller mange enheter. |
 
 Grensene en syntetisk overvåker kjører innenfor (hvor mange samtidig, minnet og disken deres), står på siden [Syntetisk overvåking](/docs/monitor/synthetic-monitor).

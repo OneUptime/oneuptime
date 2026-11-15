@@ -177,7 +177,7 @@ Collector는 30초마다 익스포터를 스크레이프합니다. 클러스터 
 | 부팅 시 시작 | 게스트마다 시계열 하나인 `pve_onboot_status`. 게스트가 부팅 시 시작하도록 설정되어 있으면 1입니다. **Guest Down**은 이 게스트에 대해서만 알립니다. |
 | 복제 | 스토리지 복제 작업별 `pve_replication_failed_syncs`, `pve_replication_duration_seconds`, `pve_replication_last_sync_timestamp_seconds`, `pve_replication_last_try_timestamp_seconds`, `pve_replication_next_sync_timestamp_seconds`, `pve_replication_info`. 이 시계열의 `id` 레이블은 리소스가 아니라 작업 ID(예: `100-0`)입니다. |
 
-모니터 조건과 속성 필터는 접두사가 아니라 일치 여부로 비교하므로, Collector의 `transform/pve-identity` 프로세서는 `id`를 세 가지 속성으로도 나눕니다. 기본 제공 Proxmox 알림 템플릿은 이 속성으로 필터링하므로, 구성을 사용자 지정하더라도 이 프로세서는 유지하세요:
+모니터 조건과 속성 필터는 접두사가 아니라 일치 여부로 비교하므로, Collector의 `transform/pve-identity` 프로세서는 `id`를 세 가지 속성으로도 나눕니다. 기본 제공 Proxmox 경고 템플릿은 이 속성으로 필터링하므로, 구성을 사용자 지정하더라도 이 프로세서는 유지하세요:
 
 | 속성 | 값 | `qemu/100`의 경우 |
 | --- | --- | --- |
@@ -298,7 +298,7 @@ Proxmox VE 9.0 이상에는 노드, 게스트, 스토리지 메트릭을 OTLP/HT
 한 번만 추가하면 클러스터의 모든 노드가 자체 메트릭을 푸시합니다. OneUptime은 푸시를 인식해 에이전트가 보내는 것과 같은 `pve_*` 시계열로 변환하므로:
 
 - 클러스터는 Proxmox 클러스터 이름으로(독립 실행형 노드는 노드 이름으로) 스스로 등록되며, *Resource Attributes*에서 설정한 `proxmox.cluster.name`이 있으면 계속 그 값이 대신 사용됩니다.
-- 노드, 게스트, 스토리지 페이지, 개요 차트, 메트릭 카탈로그, CPU·메모리·스토리지 알림 템플릿이 에이전트와 똑같이 작동합니다.
+- 노드, 게스트, 스토리지 페이지, 개요 차트, 메트릭 카탈로그, CPU·메모리·스토리지 경고 템플릿이 에이전트와 똑같이 작동합니다.
 - 원래의 `proxmox_node_*`, `proxmox_vm_*`, `proxmox_storage_*` 시계열은 Proxmox VE가 보고하는 그 밖의 정보(부하 평균, 스왑, 압력 정지, NIC별 트래픽)를 위해 [메트릭 탐색기](/docs/monitor/metrics-monitor)에 남습니다.
 
 ### 노드가 보고를 멈출 때
@@ -307,15 +307,15 @@ Proxmox VE 9.0 이상에는 노드, 게스트, 스토리지 메트릭을 OTLP/HT
 
 - 마지막 보고 후 약 2분이 지나면 노드 페이지에서 노드가 **오프라인**으로 표시됩니다. 노드 자체 페이지의 **마지막 확인**은 자체 마지막 보고 시간을 유지합니다.
 - 약 5분 후 그 노드에 대해 **Node Offline**이 발생합니다. **Cluster Quorum at Risk**도 그 노드를 오프라인으로 셉니다. 이 템플릿에는 5분 기간 전체의 보고가 필요하므로, 노드가 조용해진 지 약 7~9분 후에 발생합니다.
-- 다음 보고와 함께 다시 **온라인**이 되고 알림이 복구됩니다.
+- 다음 보고와 함께 다시 **온라인**이 되고 경고가 복구됩니다.
 
 여기서 오프라인은 노드가 보고를 멈췄다는 뜻이지, 반드시 다운되었다는 뜻은 아닙니다. 노드가 켜져 있지만 `pvestatd`가 멈추거나 종료된 경우, 클러스터 파일 시스템(`pmxcfs`)이 다운된 경우, OneUptime으로 가는 네트워크가 끊긴 경우도 같은 방식으로 보고됩니다.
 
 다룰 수 없는 경우:
 
-- 독립 실행형 호스트, 또는 클러스터 전체가 한꺼번에 조용해지는 경우: 보고할 노드가 남지 않으므로 노드별 알림이 발생하지 않습니다. 대신 에이전트가 멈출 때처럼 클러스터가 **연결 끊김**으로 바뀝니다.
-- 7일 넘게 조용한 노드는 더 이상 보고되지 않습니다. 알림이 해결되고 노드 페이지에서 사라집니다. 자체 호스팅 OneUptime에서는 `PVE_SILENT_NODE_RETENTION_HOURS`로 7일을 바꿀 수 있습니다.
-- 클러스터에서 뺀 노드는 죽은 노드와 똑같아 보입니다. 그 페이지에서 **노드 제거**를 사용하세요. 노드가 사라지고 알림이 해결됩니다. 그렇지 않으면 최대 7일 동안 오프라인으로 남습니다.
+- 독립 실행형 호스트, 또는 클러스터 전체가 한꺼번에 조용해지는 경우: 보고할 노드가 남지 않으므로 노드별 경고가 발생하지 않습니다. 대신 에이전트가 멈출 때처럼 클러스터가 **연결 끊김**으로 바뀝니다.
+- 7일 넘게 조용한 노드는 더 이상 보고되지 않습니다. 경고가 해결되고 노드 페이지에서 사라집니다. 자체 호스팅 OneUptime에서는 `PVE_SILENT_NODE_RETENTION_HOURS`로 7일을 바꿀 수 있습니다.
+- 클러스터에서 뺀 노드는 죽은 노드와 똑같아 보입니다. 그 페이지에서 **노드 제거**를 사용하세요. 노드가 사라지고 경고가 해결됩니다. 그렇지 않으면 최대 7일 동안 오프라인으로 남습니다.
 - 노드의 게스트와 스토리지: 오프라인으로 유지되는 것은 노드 자체뿐입니다. 그 VM, 컨테이너, 스토리지는 마지막 보고 후 약 15분이 지나면 각 페이지에서 사라지며, HA가 다른 노드에서 다시 시작한 게스트는 그 노드 아래에 다시 나타납니다.
 
 OneUptime 수집이 중단된 뒤에는, 새로 조용해진 노드는 다른 노드 중 하나가 다시 2분 동안 푸시한 뒤에야 보고되므로, 중단 자체로 모든 노드에 대해 호출이 발생하지는 않습니다. 이미 오프라인이던 노드는 짧은 중단 동안 오프라인으로 남고 알림도 유지됩니다. 5분보다 긴 중단 후에는 다른 노드가 2분 동안 푸시하면 다시 보고됩니다.
@@ -377,9 +377,9 @@ docker compose down
 
 ## AI 에이전트
 
-에이전트의 `docker-compose.yml`은 **Proxmox AI 에이전트**인 `oneuptime-proxmox-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 이를 통해 읽기 전용 `pvesh` 명령(`pvesh get /cluster/status`, `pvesh get /nodes/pve1/qemu/101/status/current`, `pvesh get /nodes/pve1/tasks --errors 1 --limit 20`)을 실행하고, 허용한 경우에만 게스트 시작이나 재부팅 같은 수정을 적용합니다. 안에 `pvesh` 바이너리는 없습니다. 각 명령은 같은 `.env`의 토큰으로 `PVE_HOST`의 Proxmox VE API를 정확히 한 번 호출하는 것이 됩니다. Collector처럼 `PROXMOX_CLUSTER_NAME`이라는 이름의 클러스터로 등록되며, OneUptime에서 클러스터의 **AI 에이전트** 페이지에 나타납니다.
+에이전트의 `docker-compose.yml`은 **Proxmox AI 에이전트**인 `oneuptime-proxmox-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 이를 통해 읽기 전용 `pvesh` 명령(`pvesh get /cluster/status`, `pvesh get /nodes/pve1/qemu/101/status/current`, `pvesh get /nodes/pve1/tasks --errors 1 --limit 20`)을 실행하고, 허용한 경우에만 게스트 시작이나 재부팅 같은 수정을 적용합니다. 안에 `pvesh` 바이너리는 없습니다. 각 명령은 같은 `.env`의 토큰으로 `PVE_HOST`의 Proxmox VE API를 정확히 한 번 호출하는 것이 됩니다. Collector처럼 `PROXMOX_CLUSTER_NAME`이라는 이름의 클러스터로 등록되며, OneUptime에서 클러스터의 **AI 에이전트** 페이지에 나타납니다.
 
-- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 알림을 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 경고를 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - API 토큰이 절대적인 한계입니다. 조사는 읽기만 하고 다른 것은 할 수 없는 Collector의 PVEAuditor 토큰(`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`)을 사용합니다. 자체 익스포터를 실행하고 `.env`에 토큰이 없다면 추가하세요. 수정에는 게스트 전원을 제어할 수 있는 AI 에이전트 전용 토큰(`VM.PowerMgmt`, 예를 들어 `/vms`나 풀 하나에 대한 `PVEVMUser` 역할)이 필요하며, `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`으로 설정합니다.
 - `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 읽기 전용입니다. `ONEUPTIME_AI_WRITE_TARGETS`(`100,101` 같은 VMID와, 노드 서비스의 경우 `<node>/<service>`)가 수정이 건드릴 수 있는 대상을 제한합니다. 에이전트가 이 클러스터의 게스트에서 실행된다면 그 게스트의 VMID를 `ONEUPTIME_AI_PROTECTED_TARGETS`에 넣으세요. 같은 `.env`의 `ONEUPTIME_AI_FIXES`가 수정 실행 방식, 즉 `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나를 정하며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - 익스포터처럼 `PVE_VERIFY_SSL=true`를 설정하거나 `PVE_CA_FILE`이 클러스터의 CA(`/etc/pve/pve-root-ca.pem`, 컨테이너에 마운트)를 가리키게 하지 않는 한 API의 자체 서명 인증서를 검증하지 않습니다.
@@ -444,7 +444,7 @@ OneUptime은 Proxmox 클러스터를 `proxmox.cluster.name`으로 등록하며, 
 ## 다음 단계
 
 :::cards
-- [Proxmox 모니터](/docs/monitor/proxmox-monitor): 노드, 게스트, 스토리지, HA, 백업, 복제에 대해 알림을 보냅니다.
+- [Proxmox 모니터](/docs/monitor/proxmox-monitor): 노드, 게스트, 스토리지, HA, 백업, 복제에 대해 경고를 보냅니다.
 - [Ceph 에이전트](/docs/telemetry/ceph): Proxmox 클러스터 아래의 Ceph 스토리지를 모니터링합니다.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Proxmox AI 에이전트가 실행할 수 있는 것과 수정 방식.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): 각 노드의 OS 수준 보기.

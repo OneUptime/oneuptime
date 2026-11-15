@@ -170,13 +170,13 @@ export class PacketCaptureLimitsUtil {
       ),
       min: PACKET_CAPTURE_MIN_FILE_SIZE_IN_MB,
       max: maximums.maxFileSizeInMB,
-      tooLow: `A capture file is at least ${PACKET_CAPTURE_MIN_FILE_SIZE_IN_MB} MB.`,
+      tooLow: `A capture file is at least ${PACKET_CAPTURE_MIN_FILE_SIZE_IN_MB}\u00A0MB.`,
       tooHigh: PacketCaptureLimitsUtil.isLoweredByProbe(
         maximums.maxFileSizeInMB,
         PACKET_CAPTURE_MAX_FILE_SIZE_IN_MB,
       )
-        ? `This probe allows capture files of at most ${maximums.maxFileSizeInMB} MB.`
-        : `A capture file is at most ${PACKET_CAPTURE_MAX_FILE_SIZE_IN_MB} MB.`,
+        ? `This probe allows capture files of at most ${maximums.maxFileSizeInMB}\u00A0MB.`
+        : `A capture file is at most ${PACKET_CAPTURE_MAX_FILE_SIZE_IN_MB}\u00A0MB.`,
       notANumber: "The file size limit must be a whole number of megabytes.",
     });
 

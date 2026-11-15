@@ -808,13 +808,24 @@ describe("ReplayCorrelationPanel Session tab", () => {
    * kept 100 trace ids while live and 200 once finalized. The numbers are
    * now named constants, pinned below against the server sources.
    */
-  it("quotes the header caps that apply to a finalized session", () => {
+  it("quotes the header caps that apply to a finalized session", async () => {
     renderPanel({
       details: makeDetails({
         isFinalized: true,
         traceIds: ["4bf92f3577b34da6a3ce929d0e0e4736"],
         exceptionFingerprints: ["fp-1"],
       }),
+      // The header's fingerprint is looked up; this test is about the caps.
+      resolveExceptionGroups: async (): Promise<
+        Map<string, ExceptionGroupSummary>
+      > => {
+        return new Map<string, ExceptionGroupSummary>();
+      },
+    });
+
+    // The lookup's answer is drawn before the test ends.
+    await act(async (): Promise<void> => {
+      await Promise.resolve();
     });
 
     const caps: HTMLElement = screen.getByTestId("details-correlation-caps");

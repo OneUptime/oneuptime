@@ -29,7 +29,7 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
     {
       title: "Account",
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.bucketAccountColumn,
-      value: row.groupName || "—",
+      value: row.groupName,
     },
     {
       title: "Quota",

@@ -204,6 +204,6 @@ severity:error AND service:api      # identical
 :::cards
 - [시간 범위 확대](/docs/telemetry/charts-and-time-ranges): 탐색기를 중요한 순간으로 좁힙니다.
 - [로그 파이프라인](/docs/telemetry/log-pipelines): 로그 줄의 일부를 검색 가능한 속성으로 바꿉니다.
-- [로그 모니터](/docs/monitor/logs-monitor): 찾는 로그가 나타나면 알림을 보냅니다.
+- [로그 모니터](/docs/monitor/logs-monitor): 찾는 로그가 나타나면 경고를 보냅니다.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 검색할 로그, 메트릭, 트레이스를 보냅니다.
 :::

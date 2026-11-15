@@ -1,4 +1,5 @@
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   formatRelativeAmount,
   formatRelativeDate,
@@ -135,7 +136,7 @@ export function formatLastSeen(
 ): string {
   const age: LastSeenAge | null = getLastSeenAge(lastSeenAt, now);
   if (!age) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (age.count === 0) {
     return "just now";

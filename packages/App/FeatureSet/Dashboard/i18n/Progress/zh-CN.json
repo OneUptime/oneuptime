@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55438,
-    "untranslated": 8208
+    "keys": 55628,
+    "untranslated": 8204
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -126,6 +126,7 @@
     "ScheduledMaintenance",
     "Slug",
     "StatusPage",
+    "Stripe Payments API",
     "Swarm ID",
     "TLS",
     "TTL",

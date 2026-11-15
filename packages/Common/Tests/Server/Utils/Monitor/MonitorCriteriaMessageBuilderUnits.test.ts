@@ -118,11 +118,11 @@ describe("MonitorCriteriaMessageBuilder — metric unit labelling", () => {
       });
 
     // Observed value carries the unit.
-    expect(message).toContain("latest 60 ms");
-    expect(message).toContain("min 60 ms");
-    expect(message).toContain("max 60 ms");
+    expect(message).toContain("latest 60\u00A0ms");
+    expect(message).toContain("min 60\u00A0ms");
+    expect(message).toContain("max 60\u00A0ms");
     // Threshold in the expectation clause carries the same unit.
-    expect(message).toContain("greater than 5 sec");
+    expect(message).toContain("greater than 5\u00A0sec");
   });
 
   test("uses the user's threshold unit when one is configured", () => {
@@ -152,8 +152,8 @@ describe("MonitorCriteriaMessageBuilder — metric unit labelling", () => {
         matchMessage: null,
       });
 
-    expect(message).toContain("latest 500 ms");
-    expect(message).toContain("greater than 2 sec");
+    expect(message).toContain("latest 500\u00A0ms");
+    expect(message).toContain("greater than 2\u00A0sec");
   });
 
   /*
@@ -270,7 +270,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 60 ms (min 60 ms, max 60 ms) across 3 data points. (expected to be greater than 5 sec using average).",
+      "Metric Value (a) recorded latest 60\u00A0ms (min 60\u00A0ms, max 60\u00A0ms) across 3 data points. (expected to be greater than 5\u00A0sec using average).",
     );
   });
 
@@ -300,11 +300,11 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 10 sec (min 8 sec, max 12 sec) across 3 data points. (expected to be less than 5 sec using average).",
+      "Metric Value (a) recorded latest 10\u00A0sec (min 8\u00A0sec, max 12\u00A0sec) across 3 data points. (expected to be less than 5\u00A0sec using average).",
     );
     // The unit rides both the observed value and the "less than N unit" clause.
-    expect(message).toContain("latest 10 sec");
-    expect(message).toContain("less than 5 sec");
+    expect(message).toContain("latest 10\u00A0sec");
+    expect(message).toContain("less than 5\u00A0sec");
   });
 
   test("thresholdUnit conversion: native ms samples display as sec and the threshold reads 'sec'", () => {
@@ -335,7 +335,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 3.5 sec (min 1.5 sec, max 3.5 sec) across 3 data points. (expected to be greater than 2 sec using maximum value).",
+      "Metric Value (a) recorded latest 3.5\u00A0sec (min 1.5\u00A0sec, max 3.5\u00A0sec) across 3 data points. (expected to be greater than 2\u00A0sec using maximum value).",
     );
     // The raw ms magnitudes never leak into the rendered line.
     expect(message).not.toContain("1500");
@@ -537,7 +537,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 7 sec across 1 data point. (expected to be greater than 5 sec using average).",
+      "Metric Value (a) recorded latest 7\u00A0sec across 1 data point. (expected to be greater than 5\u00A0sec using average).",
     );
     // Singular grammar, and no "(min .., max ..)" clause for a lone sample.
     expect(message).toContain("across 1 data point.");
@@ -571,7 +571,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 100 ms (min 100 ms, max 100 ms) across 3 data points. (expected to equal 100 ms using average).",
+      "Metric Value (a) recorded latest 100\u00A0ms (min 100\u00A0ms, max 100\u00A0ms) across 3 data points. (expected to equal 100\u00A0ms using average).",
     );
   });
 
@@ -601,7 +601,7 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
       });
 
     expect(message).toBe(
-      "Metric Value (a) recorded latest 70 ms (min 55 ms, max 70 ms) across 3 data points. (expected to be greater than or equal to 50 ms using maximum value).",
+      "Metric Value (a) recorded latest 70\u00A0ms (min 55\u00A0ms, max 70\u00A0ms) across 3 data points. (expected to be greater than or equal to 50\u00A0ms using maximum value).",
     );
   });
 

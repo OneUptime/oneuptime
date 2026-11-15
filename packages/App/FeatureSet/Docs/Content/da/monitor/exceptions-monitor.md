@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Undtage
 
 ### Vælg, hvad monitoren skal fortælle dig om
 
-Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Enhver undtagelse** eller **For mange undtagelser**. Hvert valg udfylder reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte den op. **En ny undtagelse**, **En løst undtagelse kommer tilbage** og **Undtagelser topper** advarer ved en undtagelse, der ses for første gang, ved en, der kom tilbage, efter du løste den, og ved en stigning langt over det, der er normalt for den time på ugen.
+Under **Hvad skal denne monitor fortælle dig om?** vælger du **Enhver undtagelse** eller **For mange undtagelser**. Hvert valg udfylder reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte den op. **En ny undtagelse**, **En løst undtagelse kommer tilbage** og **Undtagelser topper** advarer ved en undtagelse, der ses for første gang, ved en, der kom tilbage, efter du løste den, og ved en stigning langt over det, der er normalt for den time på ugen.
 
 ### Vælg de undtagelser, der skal tælles
 
@@ -132,7 +132,7 @@ En undtagelse-monitors kriterier har fire slags **Filtertype**: **Antal undtagel
 
 Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. Kun **Antal undtagelser** har dem: se [Toppe i forhold til det normale](#toppe-i-forhold-til-det-normale).
 
-En undtagelse-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
+En undtagelse-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne monitor fortælle dig om?**:
 
 | Valg | Regel | Hvad der sker |
 | --- | --- | --- |

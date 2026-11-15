@@ -28,6 +28,14 @@ import {
   KUBERNETES_PLATFORMS,
   getKubernetesSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  OPENSTACK_CONNECT_METHODS,
+  getOpenStackSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
+import {
+  OPENSTACK_DEPLOYMENT_TOOLS,
+  OpenStackDeploymentTool,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -225,4 +233,38 @@ export function getKubernetesSetupGuideWays(): Array<SetupGuideWay> {
       });
     },
   });
+}
+
+/*
+ * OpenStack's guide asks two things: how the reader deploys OpenStack (the
+ * card's options, each tool with its own steps and topics) and, where there
+ * is an agent to install, how to install it. Every tool is read with every
+ * install method, before and after a key is picked, for a new cloud and on
+ * a cloud's own Documentation tab.
+ */
+export function getOpenStackSetupGuideWays(): Array<SetupGuideWay> {
+  return OPENSTACK_DEPLOYMENT_TOOLS.flatMap(
+    (tool: SetupGuideOption<OpenStackDeploymentTool>): Array<SetupGuideWay> => {
+      return getSetupGuideWays({
+        options: OPENSTACK_CONNECT_METHODS,
+        names: ["cloud-1", "Prod Cloud 01"],
+        build: (
+          reader: SetupGuideReader,
+          method: (typeof OPENSTACK_CONNECT_METHODS)[number]["key"],
+          name: string | undefined,
+        ): SetupGuideContent => {
+          return getOpenStackSetupGuide({
+            oneuptimeUrl: reader.oneuptimeUrl,
+            apiKey: reader.apiKey,
+            hasApiKey: reader.hasApiKey,
+            method: method,
+            cloudName: name,
+            tool: tool.key,
+          });
+        },
+      }).map((way: SetupGuideWay): SetupGuideWay => {
+        return { ...way, label: `${tool.key}, ${way.label}` };
+      });
+    },
+  );
 }

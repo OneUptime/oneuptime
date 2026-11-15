@@ -33,7 +33,7 @@ Bash、JavaScript、SSH、kubectl 和 HTTP 請求步驟會使用變數。AI 步�
 
 ## 開始之前
 
-- **管理變數的角色。** 專案擁有者和專案管理員，或擁有 **Create Runbook Variable** 權限。操作手冊管理員可以讀取變數，以便在自己撰寫的步驟中選擇它們，但不能修改。
+- **管理變數的角色。** 專案擁有者和專案管理員，或擁有 **Create Runbook Variable** 權限。運行手冊管理員可以讀取變數，以便在自己撰寫的步驟中選擇它們，但不能修改。
 - **包含此功能的方案。** 在 OneUptime Cloud 上，Runbook 變數需要 **Growth** 或更高的方案。
 
 ## 建立變數

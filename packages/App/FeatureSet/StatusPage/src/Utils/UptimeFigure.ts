@@ -1,4 +1,5 @@
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 
 /*
  * AN UPTIME FIGURE, IN THE STATUS PAGE'S LANGUAGE (#8292).
@@ -26,7 +27,7 @@ export function formatUptimePercentFigure(
   options?: { decimals?: number | undefined },
 ): string {
   if (!Number.isFinite(percent)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (options?.decimals !== undefined) {

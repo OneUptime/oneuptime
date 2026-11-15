@@ -46,16 +46,16 @@ Hver hemmelighed har én af tre adgangsmuligheder:
 
 | Mulighed | Hvilke monitorer der må bruge hemmeligheden | Brug den til |
 | --- | --- | --- |
-| **Alle overvågninger** | Hver monitor i projektet, også monitorer, du opretter senere. | En loginoplysning, som mange monitorer deler. |
-| **Bestemte overvågninger** | Kun de monitorer, du vælger. Det er standarden, og hemmeligheder, der blev oprettet, før disse muligheder fandtes, virker sådan. | En loginoplysning til én eller nogle få monitorer. |
-| **Overvågninger med etiketter** | Monitorer, der har mindst én af de etiketter, du vælger. Når en af de etiketter føjes til en monitor, får den adgang, og når etiketten fjernes, mister den adgangen, næste gang monitoren kører. | En loginoplysning til en gruppe monitorer, der ændrer sig over tid. |
+| **Alle monitorer** | Hver monitor i projektet, også monitorer, du opretter senere. | En loginoplysning, som mange monitorer deler. |
+| **Bestemte monitorer** | Kun de monitorer, du vælger. Det er standarden, og hemmeligheder, der blev oprettet, før disse muligheder fandtes, virker sådan. | En loginoplysning til én eller nogle få monitorer. |
+| **Monitorer med etiketter** | Monitorer, der har mindst én af de etiketter, du vælger. Når en af de etiketter føjes til en monitor, får den adgang, og når etiketten fjernes, mister den adgangen, næste gang monitoren kører. | En loginoplysning til en gruppe monitorer, der ændrer sig over tid. |
 
-Du kan når som helst ændre muligheden med **Rediger** i hemmelighedens række. Kun listen for den valgte mulighed gemmes: et skift til **Alle overvågninger** rydder hemmelighedens lister over monitorer og etiketter, og et skift mellem **Bestemte overvågninger** og **Overvågninger med etiketter** rydder den liste, du skifter væk fra.
+Du kan når som helst ændre muligheden med **Rediger** i hemmelighedens række. Kun listen for den valgte mulighed gemmes: et skift til **Alle monitorer** rydder hemmelighedens lister over monitorer og etiketter, og et skift mellem **Bestemte monitorer** og **Monitorer med etiketter** rydder den liste, du skifter væk fra.
 
 En hemmelighed er aldrig tilgængelig for monitorer i et andet projekt.
 
 > [!WARNING]
-> Alle, der kan redigere en monitor, som må bruge en hemmelighed, kan sende den hemmelighed hen, hvor monitoren forbinder til. Med **Alle overvågninger** er det alle, der kan oprette eller redigere monitorer i projektet. Med **Overvågninger med etiketter** omfatter det også alle, der kan føje en af de etiketter til en monitor.
+> Alle, der kan redigere en monitor, som må bruge en hemmelighed, kan sende den hemmelighed hen, hvor monitoren forbinder til. Med **Alle monitorer** er det alle, der kan oprette eller redigere monitorer i projektet. Med **Monitorer med etiketter** omfatter det også alle, der kan føje en af de etiketter til en monitor.
 
 Via API'et er adgangsmuligheden feltet `monitorAccess`: `All Monitors`, `Specific Monitors` eller `Monitors With Labels`. Felterne `monitors` og `labels` indeholder listerne. En hemmelighed, der oprettes uden `monitorAccess`, får `Specific Monitors`.
 
@@ -82,7 +82,7 @@ Hemmeligheder udfyldes, før scriptet i en monitor af typen Synthetic Monitor el
 
 Hvis en monitor henviser til en hemmelighed, den ikke må bruge, bliver henvisningen stående, som den er, og erstattes ikke med værdien.
 
-Når du tester en monitor, før du gemmer den, udfyldes kun hemmeligheder, der er tilgængelige for **Alle overvågninger**, fordi en ny monitor ikke står på nogen liste og endnu ikke har nogen etiketter. Når du har gemt monitoren, bruger testene hver hemmelighed, som monitoren må bruge.
+Når du tester en monitor, før du gemmer den, udfyldes kun hemmeligheder, der er tilgængelige for **Alle monitorer**, fordi en ny monitor ikke står på nogen liste og endnu ikke har nogen etiketter. Når du har gemt monitoren, bruger testene hver hemmelighed, som monitoren må bruge.
 
 ## Fejlfinding
 
@@ -91,7 +91,7 @@ Monitoren må ikke bruge hemmeligheden, eller navnet passer ikke. Kontrollér he
 :::
 
 :::details Når en ny monitor testes, udfyldes hemmeligheden ikke
-Før en monitor er gemt, udfyldes kun hemmeligheder, der er tilgængelige for **Alle overvågninger**. Gem monitoren, og test den igen.
+Før en monitor er gemt, udfyldes kun hemmeligheder, der er tilgængelige for **Alle monitorer**. Gem monitoren, og test den igen.
 :::
 
 :::details Et felt ignorerer hemmeligheden

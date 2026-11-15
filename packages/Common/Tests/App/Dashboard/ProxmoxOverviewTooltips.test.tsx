@@ -1034,8 +1034,9 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
 
     const guests: HTMLElement = cardOf(infoButton("Guests", 0));
     expect(guests).toHaveTextContent("3/3");
+    // toHaveTextContent collapses the rate's no-break space (#8457) to a space.
     expect(guests).toHaveTextContent(
-      `running · net ${ValueFormatter.formatValue(3000, "By/s")}`,
+      `running · net ${ValueFormatter.formatValue(3000, "By/s").replace(/\u00A0/g, " ")}`,
     );
   });
 
