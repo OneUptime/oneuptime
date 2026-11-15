@@ -120,7 +120,7 @@ Chaque fois qu'un membre du projet se connecte à OneUptime, le journal d'audit 
 
 La **Ressource** d'une entrée est la session, nommée d'après l'appareil depuis lequel elle s'est connectée, par exemple `Chrome 130 on macOS`. Son **Acteur** est la personne à qui appartient la session, donc filtrer par **E-mail de l'utilisateur** trouve toutes ses connexions et sessions. Ses détails indiquent comment la personne s'est connectée et avec quel second facteur, l'adresse IP et la localisation, et, pour une session terminée, quand elle s'est connectée, quand elle a été utilisée pour la dernière fois et quand elle a expiré. Le fournisseur SSO propre à un projet n'est nommé que dans le journal d'audit de ce projet.
 
-Les connexions et les sessions sont enregistrées que le projet stocke ou non les événements système. Une durée de session ou 30 jours sans utilisation sont enregistrés dans les minutes qui suivent leur échéance. Un délai d'inactivité dans le navigateur est enregistré dans les 35 minutes qui suivent son échéance, que la personne revienne ou non. Dans l'application mobile, il est enregistré quand l'application contacte de nouveau OneUptime.
+Les connexions et les sessions sont enregistrées que le projet stocke ou non les événements système. Une durée de session ou 30 jours sans utilisation sont enregistrés dans les minutes qui suivent leur échéance. Un délai d'inactivité dans le navigateur, ou dans une version de l'application mobile plus récente que la 1.6.0, est enregistré dans les 35 minutes qui suivent son échéance, que la personne revienne ou non. Dans la version 1.6.0 et les versions antérieures de l'application mobile, il est enregistré quand l'application contacte de nouveau OneUptime.
 
 ## Combien de temps les entrées sont conservées
 

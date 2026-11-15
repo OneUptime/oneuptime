@@ -12,7 +12,6 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as React from "react";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -26,7 +25,7 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import CriteriaFilterUtil, {
   CRITERIA_COMPARISON_SENTENCES,
-  CRITERIA_FILTER_AND_SENTENCE,
+  CRITERIA_FILTER_SENTENCE,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import CriteriaFilterElement from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorSteps/CriteriaFilter";
 
@@ -198,7 +197,6 @@ const INCOMING: CriteriaFilter = {
 interface Case {
   name: string;
   filter: CriteriaFilter;
-  condition?: FilterCondition | undefined;
   monitorType?: MonitorType | undefined;
   english: string;
 }
@@ -207,16 +205,13 @@ const CASES: ReadonlyArray<Case> = [
   {
     name: "a response time, in milliseconds",
     filter: RESPONSE_TIME,
-    condition: FilterCondition.All,
-    english:
-      'Check if "Response Time (in ms)" is greater than 3,000\u00A0ms and,',
+    english: 'Check if "Response Time (in ms)" is greater than 3,000\u00A0ms',
   },
   {
     name: "a disk's highest share over a window",
     filter: DISK,
-    condition: FilterCondition.Any,
     english:
-      'Check if maximum value of "Disk Usage (in %)" on /dev/sda in the past 15 minutes is greater than or equal to 90% or,',
+      'Check if maximum value of "Disk Usage (in %)" on /dev/sda in the past 15 minutes is greater than or equal to 90%',
   },
   {
     name: "a body judged check by check",
@@ -272,7 +267,6 @@ function summaryIn(item: Case, translator?: Translator): string {
   return withoutIsolateMarks(
     CriteriaFilterUtil.translateFilterToText(
       item.filter,
-      item.condition,
       item.monitorType,
       translator,
     ),
@@ -349,7 +343,8 @@ describe("the threshold, as the reader's language writes it", () => {
       `"${german.translateTerm("Response Time (in ms)")}"`,
     );
     expect(summary.startsWith("Prüfen: ")).toBe(true);
-    expect(summary.endsWith(" und")).toBe(true);
+    // How the filters combine is the list's to say, once (#8533).
+    expect(summary).not.toMatch(/ (und|oder)$/);
     expect(summaryIn(CASES[5]!, german)).toContain("12,5 GB");
   });
 
@@ -368,7 +363,6 @@ describe("the threshold, as the reader's language writes it", () => {
   test("a threshold that is not a plain number is put in as typed", () => {
     const typed: string = CriteriaFilterUtil.translateFilterToText(
       { ...RESPONSE_TIME, value: "{{threshold}}" },
-      undefined,
       undefined,
       translatorIn("fa"),
     );
@@ -405,7 +399,7 @@ describe("the parts of a summary are one language", () => {
     const words: Record<string, string> = readDashboardLocale("de");
     const unworded: Translator = createTranslator(
       (key: string): string | undefined => {
-        return key === CRITERIA_FILTER_AND_SENTENCE ? undefined : words[key];
+        return key === CRITERIA_FILTER_SENTENCE ? undefined : words[key];
       },
       "de",
     );
@@ -413,13 +407,10 @@ describe("the parts of a summary are one language", () => {
     expect(
       CriteriaFilterUtil.translateFilterToText(
         RESPONSE_TIME,
-        FilterCondition.All,
         undefined,
         unworded,
       ),
-    ).toBe(
-      'Check if "Response Time (in ms)" is greater than 3,000\u00A0ms and,',
-    );
+    ).toBe('Check if "Response Time (in ms)" is greater than 3,000\u00A0ms');
   });
 
   test("a forecast's horizon is written in the sentence's language", () => {
@@ -435,7 +426,6 @@ describe("the criteria list, drawn", () => {
     render(
       <CriteriaFilterElement
         criteriaFilter={item.filter}
-        filterCondition={item.condition}
         monitorType={item.monitorType}
       />,
     );

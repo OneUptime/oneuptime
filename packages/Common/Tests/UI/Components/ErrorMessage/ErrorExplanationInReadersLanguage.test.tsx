@@ -141,6 +141,8 @@ const MESSAGES: Array<string> = [
   UNEXPLAINED_ERROR_MESSAGES.page,
   // A proxy's 413 (#8278), with the proxy's limit for this master admin.
   UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+  // OneUptime's own 413 (#8567), with no proxy to look at.
+  UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
 ];
 
 beforeAll(async () => {

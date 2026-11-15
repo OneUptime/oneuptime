@@ -188,7 +188,7 @@ Muitas coisas no OneUptime se chamam regra. Cada uma toma uma decisão por você
 
 | O que decide | Regras |
 | --- | --- |
-| Quem é acionado | As **Regras de Plantão** escolhem as políticas de plantão que um novo incidente ou alerta executa, e as **Regras de escalonamento** de uma política acionam nível a nível |
+| Quem é acionado | As **Regras de plantão** escolhem as políticas de plantão que um novo incidente ou alerta executa, e as **Regras de escalonamento** de uma política acionam nível a nível |
 | Quem é o proprietário, e como é rotulado | **Regras de proprietário**, **Regras de Rótulos** e **Regras de privacidade** |
 | O que fica junto | As **Regras de agrupamento** abrem episódios e acrescentam itens a eles |
 | O que é executado nele | As **Regras de runbook** iniciam runbooks, e as **Regras de IA** decidem o que a OneUptime AI investiga e corrige |

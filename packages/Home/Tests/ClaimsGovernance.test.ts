@@ -2,6 +2,7 @@ import {
   RetiredClaim,
   RetiredClaims,
   RetiredEditionClaims,
+  RetiredPricingClaims,
 } from "../Utils/Claims";
 import fs from "fs";
 import path from "path";
@@ -169,6 +170,44 @@ describe("Edition claims governance over the Home/Utils page data", () => {
     }),
   )(
     'no page data uses retired edition language: "%s"',
+    (_example: string, retired: RetiredClaim) => {
+      const violations: Array<Violation> = findViolations(
+        retired.pattern,
+        pageDataFiles,
+      );
+
+      if (violations.length > 0) {
+        throw new Error(describeViolations(retired, violations, "Utils"));
+      }
+
+      expect(violations).toHaveLength(0);
+    },
+  );
+});
+
+describe("Pricing claims governance over the Home/Utils page data", () => {
+  /*
+   * The pricing page's plan cards and pricing.json come from Pricing.ts,
+   * its search result from PageSEO.ts, and a comparison's rows from
+   * ProductCompare.ts: "no credit card" there is as wrong as on a page
+   * (#8422).
+   */
+  test("the scanner reads the modules the pricing copy comes from", () => {
+    const names: Array<string> = pageDataFiles.map((file: ViewFile) => {
+      return file.relativePath;
+    });
+
+    expect(names).toContain("Pricing.ts");
+    expect(names).toContain("PageSEO.ts");
+    expect(names).toContain("ProductCompare.ts");
+  });
+
+  test.each(
+    RetiredPricingClaims.map((retired: RetiredClaim) => {
+      return [retired.example, retired] as [string, RetiredClaim];
+    }),
+  )(
+    'no page data uses retired pricing language: "%s"',
     (_example: string, retired: RetiredClaim) => {
       const violations: Array<Violation> = findViolations(
         retired.pattern,

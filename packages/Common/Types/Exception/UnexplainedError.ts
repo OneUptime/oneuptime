@@ -99,6 +99,13 @@ export enum UnexplainedErrorKind {
    * self-hosted server, a larger limit on that proxy.
    */
   TooLarge = "TooLarge",
+  /*
+   * What was sent was larger than OneUptime itself takes in one request
+   * (50 MB): its own body parsers refused it, not a proxy (#8419, #8567).
+   * Nothing on the way has a limit to raise, so it says OneUptime's and
+   * stops there.
+   */
+  TooLargeForOneUptime = "TooLargeForOneUptime",
   // The page failed before or after it asked the server.
   Page = "Page",
 }
@@ -122,6 +129,7 @@ export const UNEXPLAINED_ERROR_MESSAGES: {
   unreachable: string;
   page: string;
   tooLarge: string;
+  tooLargeForOneUptime: string;
 } = {
   serverWithReference: translationKey(
     "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.",
@@ -138,6 +146,10 @@ export const UNEXPLAINED_ERROR_MESSAGES: {
   tooLarge: translationKey(
     "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.",
   ),
+  // The App's own answer to a body over its limit (RequestBodyRefusal).
+  tooLargeForOneUptime: translationKey(
+    "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.",
+  ),
 };
 
 /*
@@ -153,6 +165,7 @@ export const UnexplainedErrorWords: {
   unreachableWhy: string;
   pageWhy: string;
   tooLargeWhy: string;
+  tooLargeForOneUptimeWhy: string;
   serverNextWithReferenceCloud: string;
   serverNextWithReferenceSelfHosted: string;
   serverNext: string;
@@ -180,6 +193,9 @@ export const UnexplainedErrorWords: {
   pageWhy: translationKey("This page ran into a problem."),
   tooLargeWhy: translationKey(
     "What was sent was too large for the server to accept.",
+  ),
+  tooLargeForOneUptimeWhy: translationKey(
+    "What was sent is larger than the 50 MB OneUptime takes in one request.",
   ),
   serverNextWithReferenceCloud: translationKey(
     "Try again. If it keeps failing, contact OneUptime support and give them this reference:",
@@ -298,6 +314,10 @@ export const readUnexplainedError: (
     return { kind: UnexplainedErrorKind.TooLarge, reference: null };
   }
 
+  if (text === UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime) {
+    return { kind: UnexplainedErrorKind.TooLargeForOneUptime, reference: null };
+  }
+
   if (
     text.length ===
       SERVER_WITH_REFERENCE_START.length +
@@ -405,6 +425,16 @@ export const getExplanationWords: (
         whereToLook: isSelfHostedAdmin
           ? UnexplainedErrorWords.tooLargeWhereToLook
           : null,
+      };
+    case UnexplainedErrorKind.TooLargeForOneUptime:
+      return {
+        why: UnexplainedErrorWords.tooLargeForOneUptimeWhy,
+        next: UnexplainedErrorWords.tooLargeNext,
+        /*
+         * OneUptime refused it itself, so no proxy's limit is to blame, and
+         * nothing on a self-hosted server sets this one (#8567).
+         */
+        whereToLook: null,
       };
     default:
       return {

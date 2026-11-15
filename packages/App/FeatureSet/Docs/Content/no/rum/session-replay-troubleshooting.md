@@ -73,7 +73,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
 };
 ```
 @tab På deploymenten
-På OneUptime-deploymenten, den eneste bryteren som ikke krever noen ved nettleseren der det går galt. Sett `SESSION_REPLAY_DEBUG=true`, og start på nytt. Hver opptaker denne instansen leverer, logger da på hver side den kjører på, så slå det på, samle inn én ny innlasting og slå det av igjen. Det endrer ingen retningslinje: verken sampling, maskering eller samtykke. Se [Merknader om egen hosting](/docs/telemetry/session-replay#merknader-om-egen-hosting) for deploymentens øvrige innstillinger.
+På OneUptime-deploymenten, den eneste bryteren som ikke krever noen ved nettleseren der det går galt. Sett `SESSION_REPLAY_DEBUG=true`, og start på nytt. Hver opptaker denne instansen leverer, logger da på hver side den kjører på, så slå det på, samle inn én ny innlasting og slå det av igjen. Det endrer ingen policy: verken sampling, maskering eller samtykke. Se [Merknader om egen hosting](/docs/telemetry/session-replay#merknader-om-egen-hosting) for deploymentens øvrige innstillinger.
 @tab Under kjøring
 Når opptakeren er lastet inn:
 
@@ -110,9 +110,9 @@ copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2))
 
 Lim inn ett av dem i supportsaken din — eller i **Spør nettleseren** på applikasjonens side **Helse**, som forklarer hver kode i det. Ofte er det nok i seg selv.
 
-## Når stillhet er normalt: den feilstyrte retningslinjen
+## Når stillhet er normalt: den feilstyrte policyen
 
-Denne delen gjelder bare hvis `config-accepted` skrev ut `captureTrigger: "OnErrorOrFrustration"`. Med standardretningslinjen `Always` sender opptakeren mens den tar opp, og stillhet på en side brukeren samhandler med, betyr at noe virkelig er galt — les i så fall videre etter denne delen.
+Denne delen gjelder bare hvis `config-accepted` skrev ut `captureTrigger: "OnErrorOrFrustration"`. Med standardpolicyen `Always` sender opptakeren mens den tar opp, og stillhet på en side brukeren samhandler med, betyr at noe virkelig er galt — les i så fall videre etter denne delen.
 
 Hvis konsollen sier dette:
 
@@ -120,7 +120,7 @@ Hvis konsollen sier dette:
 [OneUptime Session Replay] recording: Recording into memory. Nothing uploads until a trigger fires - call OneUptimeReplay.captureSession() to force one.
 ```
 
-…så virker opptakeren. Med en feilstyrt retningslinje gjør en sunn side nøyaktig én forespørsel til OneUptime per sideinnlasting (hentingen av konfigurasjonen) og sender ingenting annet før det oppstår en feil, en 5xx, et frustrasjonssignal eller en overskridelse av et ytelsesbudsjett.
+…så virker opptakeren. Med en feilstyrt policy gjør en sunn side nøyaktig én forespørsel til OneUptime per sideinnlasting (hentingen av konfigurasjonen) og sender ingenting annet før det oppstår en feil, en 5xx, et frustrasjonssignal eller en overskridelse av et ytelsesbudsjett.
 
 For å teste hele veien fra ende til ende tvinger du frem en opplasting:
 
@@ -130,7 +130,7 @@ OneUptimeReplay.captureSession("installation test");
 
 Du bør umiddelbart se en `POST /telemetry/session-replay/v1/chunk` på fanen Nettverk og en linje `chunk-accepted` i konsollen. Gjør du det, er installasjonen riktig, og avspillingen vises i dashbordet innen omtrent et minutt, med årsaken din markert på tidslinjen.
 
-En `202` med `chunk-accepted` er det du ser etter. En `204` logger i stedet `chunk-not-recorded`: forespørselen var riktig, og serveren bestemte seg for ikke å lagre den — budsjettet er overskredet, ikke samplet eller applikasjonen deaktivert. Det er et svar fra retningslinjen, ikke en installasjonsfeil, og linjen `server-directive` ved siden av sier hvilket.
+En `202` med `chunk-accepted` er det du ser etter. En `204` logger i stedet `chunk-not-recorded`: forespørselen var riktig, og serveren bestemte seg for ikke å lagre den — budsjettet er overskredet, ikke samplet eller applikasjonen deaktivert. Det er et svar fra policyen, ikke en installasjonsfeil, og linjen `server-directive` ved siden av sier hvilket.
 
 For å ta opp hver økt igjen setter du **Når et opptak skal lastes opp** til _Always_ og **Utvalgsprosent** over 0 på applikasjonens side **Avspillingspolicy**. Det er fabrikkstandarden.
 
@@ -145,23 +145,23 @@ Hver linje bærer en stabil `code`. Slå opp din her.
 | `loader-start` | Opptakerens skript kjørte. Hvis du ikke ser dette mens diagnostikk er slått på, kjørte selve skriptet aldri — sjekk `<script>`-forespørselen på fanen Nettverk og `script-src` i CSP-en din. |
 | `init-options-read` | Alternativer funnet. Sjekk `host` og `appIdentifier` i detaljen: `appIdentifier` må samsvare nøyaktig med RUM-applikasjonen, og `host` må være OneUptime-opprinnelsen din, ikke din egen apps. |
 | `init-options-incomplete` | Et påkrevd alternativ mangler. Detaljen sier hvilken av `hasHost` / `hasToken` / `hasAppIdentifier` som er false. Hvis `hasHost` er false, har skript-taggen ingen `src` å utlede verten fra — legg til `data-oneuptime-host`. |
-| `privacy-signal` | Nettleseren sender Do Not Track eller Global Privacy Control, og det blir respektert — av siden (ingenting på skript-taggen sier noe annet) eller av serverens retningslinje. Ingenting tas opp; med `stage: "before-config-fetch"` gjøres heller ingen konfigurasjonsforespørsel. Ikke en feil. Sett bare `data-oneuptime-respect-do-not-track="false"` hvis rettsgrunnlaget ditt virkelig ikke avhenger av signalet. |
+| `privacy-signal` | Nettleseren sender Do Not Track eller Global Privacy Control, og det blir respektert — av siden (ingenting på skript-taggen sier noe annet) eller av serverens policy. Ingenting tas opp; med `stage: "before-config-fetch"` gjøres heller ingen konfigurasjonsforespørsel. Ikke en feil. Sett bare `data-oneuptime-respect-do-not-track="false"` hvis rettsgrunnlaget ditt virkelig ikke avhenger av signalet. |
 | `init-options-missing` | Det finnes ingenting å lese på siden: verken en `script[data-oneuptime-token]`-tagg eller `window.__ONEUPTIME_SESSION_REPLAY__`. Markørattributtet er stavet feil, snippeten har havnet i et annet dokument, eller en tag manager har fjernet den. |
 | `loader-threw` | En feil i selve opptakeren, ikke i konfigurasjonen din. Rapporter den med utdataene fra diagnostikken. |
 
-### Retningslinje
+### Policy
 
 | code | hva det betyr |
 | --- | --- |
-| `config-fetch-start` | Skal til å be om retningslinjen. `url` i detaljen er den nøyaktige URL-en — sjekk at den svarer fra en nettleser. |
+| `config-fetch-start` | Skal til å be om policyen. `url` i detaljen er den nøyaktige URL-en — sjekk at den svarer fra en nettleser. |
 | `config-fetch-rejected` | Endepunktet svarte med noe annet enn 2xx. Se [Statuser for henting av konfigurasjonen](#statuser-for-henting-av-konfigurasjonen) nedenfor. |
 | `config-fetch-failed` | Forespørselen ble aldri fullført: `connect-src` i CSP-en, en annonseblokkering, DNS, TLS, ingen tilkobling eller et tidsavbrudd på 5 sekunder. Nettleseren logger vanligvis sin egen linje ved siden av denne. |
 | `config-body-unparseable` | Endepunktet svarte 2xx med en body som ikke er JSON i det hele tatt. Forskjellig fra `config-fetch-failed`: forespørselen *ble* fullført, så noe underveis — en proxy, en captive portal, en mellomside for SSO — svarte i stedet for OneUptime. |
 | `config-unparseable` | Bodyen *var* gyldig JSON, men ikke et objekt — `null`, en streng, en matrise. En omskrivende proxy, eller en server som svarer på en annen bane. |
 | `config-disabled` | Serveren sier at avspilling er slått av her. `disabledReason` i detaljen er svaret: se [disabledReason](#disabledreason) nedenfor. |
-| `config-recorder-version-invalid` | Retningslinjen nevnte ikke nøyaktig `latest` med små bokstaver, så ingen artefakt-URL kunne bygges. En omskrivende proxy eller et manipulert svar — en deployment uten bygg rapporterer i stedet `config-disabled` med `recorder-not-built`. |
-| `config-accepted` | Retningslinje godtatt. Detaljen er hele retningslinjen — `captureTrigger`, `samplePercentage`, `consentMode`, `maskingMode`. |
-| `config-field-defaulted` | Serveren sendte ingen verdi for et felt i retningslinjen (nevnt i detaljen), så denne opptakeren brukte produktets standard. Informativt: vanligvis en server som er eldre enn opptakeren. Hvis dashbordet viser en annen verdi for det feltet, bør du oppdatere OneUptime. |
+| `config-recorder-version-invalid` | Policyen nevnte ikke nøyaktig `latest` med små bokstaver, så ingen artefakt-URL kunne bygges. En omskrivende proxy eller et manipulert svar — en deployment uten bygg rapporterer i stedet `config-disabled` med `recorder-not-built`. |
+| `config-accepted` | Policy godtatt. Detaljen er hele policyen — `captureTrigger`, `samplePercentage`, `consentMode`, `maskingMode`. |
+| `config-field-defaulted` | Serveren sendte ingen verdi for et felt i policyen (nevnt i detaljen), så denne opptakeren brukte produktets standard. Informativt: vanligvis en server som er eldre enn opptakeren. Hvis dashbordet viser en annen verdi for det feltet, bør du oppdatere OneUptime. |
 | `config-value-unrecognised` | Serveren sendte en verdi som dette bygget av opptakeren ikke kjenner, så den falt tilbake på den sikreste — som kanskje ikke er den dashbordet ditt viser. Vanligvis en side som fortsatt kjører en opptaker fra en tidligere deployment. |
 | `directive-stop` | Serveren ba denne opptakeren om å trekke seg. Sjekk applikasjonens opptaksstatus for et budsjett, en hastighetsgrense eller en kill switch. |
 
@@ -184,7 +184,7 @@ Hver linje bærer en stabil `code`. Slå opp din her.
 | `recorder-not-built` | **Deploymenten har ikke noe opptakerartefakt.** Ingenting på kundens side kan rette det. Bygget som produserer `packages/App/FeatureSet/BrowserRecorder/public/dist/manifest.json`, kjørte ikke, eller resultatet nådde ikke det kjørende imaget. Bygg og rull ut OneUptime-appen på nytt. Det er det typiske svaret på en egenhostet installasjon der avspilling aldri har virket. |
 | `disabled-by-default` | `SESSION_REPLAY_ENABLED_BY_DEFAULT=false` på denne deploymenten. Sett den til `true` — og sett først `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` hvis du hoster selv, fordi avspilling er den tyngste tabellen du har. |
 | `ingest-disabled` | `SESSION_REPLAY_INGEST_ENABLED=false` på denne deploymenten. |
-| `policy-unavailable` | Serveren kunne ikke avgjøre retningslinjen — vanligvis Redis eller Postgres. Feiler lukket med vilje. Sjekk loggene til OneUptime-appen. |
+| `policy-unavailable` | Serveren kunne ikke avgjøre policyen — vanligvis Redis eller Postgres. Feiler lukket med vilje. Sjekk loggene til OneUptime-appen. |
 | `not-reported` | Serveren er eldre enn dette feltet. Bruk i stedet panelet **Test installasjonen din** i dashbordet, på siden **Avspillingspolicy**. |
 
 ### Artefaktet
@@ -193,14 +193,14 @@ Hver linje bærer en stabil `code`. Slå opp din her.
 | --- | --- |
 | `artifact-requested` | Den nyeste opptakerpakken blir satt inn. `url` er den nøyaktige. |
 | `artifact-load-failed` | Den ble ikke lastet inn. I rekkefølge etter sannsynlighet: en `script-src` i CSP-en som ikke tillater OneUptime-opprinnelsen din, et SRI-avvik (en proxy som skriver om pakken) eller en 404 fordi denne deploymenten ikke bygde opptakeren. |
-| `artifact-url-invalid` | Retningslinjen nevnte ikke nøyaktig `latest` med små bokstaver, så ingen URL ble bygget. Et manipulert eller proxy-endret konfigurasjonssvar. |
+| `artifact-url-invalid` | Policyen nevnte ikke nøyaktig `latest` med små bokstaver, så ingen URL ble bygget. Et manipulert eller proxy-endret konfigurasjonssvar. |
 | `artifact-api-missing` | Pakken ble lastet inn, men publiserte ikke `window.OneUptimeReplay` — et annet skript på siden overskrev den. |
 | `bootstrap` | Opptakerens artefakt starter opp. |
 | `bootstrap-already-started` | To kopier av snippeten på én side. Fjern den ene. |
 | `bootstrap-already-running` | `bootstrap()` ble kalt igjen mens en opptaker allerede kjørte. Harmløst; vanligvis en dobbel integrasjon. |
 | `bootstrap-cancelled` | En `revokeConsent()` eller `stop()` i køen `window.OneUptimeReplayQueue` kjørte før opptakeren startet, så denne økten tas ikke opp. Riktig hvis banneret ditt allerede var avvist. |
 | `prerender-wait` | Nettleseren forhåndsgjengav denne siden, slik Chrome gjør med en side den forventer blir åpnet som den neste, og ingen har åpnet den ennå. Opptakeren starter når den besøkende åpner siden, så en side som aldri åpnes, tar ikke opp noe; kall siden din gjør i mellomtiden, brukes da. |
-| `start-stopped` | `start()` fikk ingen brukbar retningslinje på banen for den frittstående pakken. Den nøyaktige årsaken står i `config-*`-linjen rett over. |
+| `start-stopped` | `start()` fikk ingen brukbar policy på banen for den frittstående pakken. Den nøyaktige årsaken står i `config-*`-linjen rett over. |
 | `rrweb-did-not-start` | DOM-opptakeren nektet å starte. Rapporter det. |
 | `rrweb-error` | DOM-opptakeren fikk en intern feil på denne siden (feilens navn står i detaljen; den logges én gang). Opptaket kan hoppe over eller fryse rundt det punktet, og etter tre slike feil bærer økten en troverdighetsmelding som sier det. Rapporter det med sidens rammeverk og feilens navn. |
 
@@ -217,7 +217,7 @@ Hver linje bærer en stabil `code`. Slå opp din her.
 | `upload-blocked-consent` | En utløser gikk av, og ingenting ble lastet opp fordi samtykke aldri ble gitt. Med samtykkemodusen `RequireExplicit` må siden din kalle `OneUptimeReplay.grantConsent()` når banneret ditt blir godtatt. |
 | `chunk-discarded-consent` | Samme årsak, ett lag lenger ned: en ferdig chunk ble kastet. |
 | `chunk-accepted` | En chunk kom fram og ble lagret. Installasjonen virker. |
-| `chunk-not-recorded` | Serveren godtok forespørselen og bestemte bevisst å ikke ta den opp — budsjettet er overskredet, ikke samplet, applikasjonen deaktivert eller grensen for chunker per økt. Linjen `server-directive` ved siden av bærer årsaken. Installasjonen er riktig; retningslinjen eller budsjettet er ikke det du forventer. |
+| `chunk-not-recorded` | Serveren godtok forespørselen og bestemte bevisst å ikke ta den opp — budsjettet er overskredet, ikke samplet, applikasjonen deaktivert eller grensen for chunker per økt. Linjen `server-directive` ved siden av bærer årsaken. Installasjonen er riktig; policyen eller budsjettet er ikke det du forventer. |
 | `chunk-post-failed` | POST-en nådde aldri serveren, før denne siden hadde lastet opp noe vellykket. `connect-src` i CSP-en, en annonseblokkering eller CORS på inntaksopprinnelsen — eller en side som mistet tilkoblingen før sin første opplasting. Teller med i kretsbryteren. |
 | `chunk-held-offline` | Offlinemodus: enheten har ingen tilkobling (nettleseren melder seg frakoblet, eller en forespørsel nådde aldri en server som hadde svart før). Opptaket fortsetter, og chunken venter; `queueDepth` er hvor mange som venter, og `retryInMs` når neste forsøk er. Teller ikke som en feil, og ingenting går tapt. |
 | `back-online` | Den første forespørselen etter et brudd nådde serveren. Chunkene i køen lastes opp, fra eldst til nyest. |
@@ -241,7 +241,7 @@ Hver linje bærer en stabil `code`. Slå opp din her.
 | `upload-blocked-transport` | En utløser gikk av da opplasting allerede var slått av for denne siden. Linjen `transport-disabled` over sier hvorfor. |
 | `chunk-rejected-terminal` | Opplastingen har stoppet for godt. `status: 401` er et feil token; `status: 403` er en opprinnelse som ikke står på applikasjonens eller nøkkelens liste over tillatte opprinnelser; `status: 404` er en feil vert. Rett det og last inn på nytt — opptakeren prøver ikke på nytt selv. Les `answeredBy` først: `"not-oneuptime"` betyr at avvisningen ikke kom fra OneUptime i det hele tatt — en brannmur for webapplikasjoner, et CDN eller en proxy foran den svarte, eller verten er ikke OneUptime. Se [En brannmur foran OneUptime avviser chunkene](#en-brannmur-foran-oneuptime-avviser-chunkene). |
 | `chunk-refused` | En chunk ble avvist (for stor, eller uleselig), og opptaket fortsatte uten den. |
-| `chunk-refused-terminal` | Opplastingen stoppet fordi serveren kommer til å avvise hver chunk fra denne opptakeren: enten er `error` i detaljen en som serveren alltid svarer likt på (`unsupported-wire-version` — en opptaker som serveren ikke lenger godtar; `app-identifier-mismatch` eller `missing-app-identifier` — chunken nevner en annen applikasjon enn den retningslinjen ble hentet for; `malformed-body` / `malformed-envelope` / `missing-envelope` — en proxy som skriver om forespørselen), eller så ble hver nylig chunk avvist som misdannet. Oppdater OneUptime slik at den publiserte opptakeren passer til serveren, og rapporter det med diagnostikken hvis det vedvarer. |
+| `chunk-refused-terminal` | Opplastingen stoppet fordi serveren kommer til å avvise hver chunk fra denne opptakeren: enten er `error` i detaljen en som serveren alltid svarer likt på (`unsupported-wire-version` — en opptaker som serveren ikke lenger godtar; `app-identifier-mismatch` eller `missing-app-identifier` — chunken nevner en annen applikasjon enn den policyen ble hentet for; `malformed-body` / `malformed-envelope` / `missing-envelope` — en proxy som skriver om forespørselen), eller så ble hver nylig chunk avvist som misdannet. Oppdater OneUptime slik at den publiserte opptakeren passer til serveren, og rapporter det med diagnostikken hvis det vedvarer. |
 | `chunk-throttled` | Hastighetsbegrenset. Opplastinger tar pause og fortsetter av seg selv. |
 | `transport-disabled` | Kretsbryteren slo ut etter gjentatte feil. `reason` sier hvilken. |
 | `server-directive` | Serveren endret hva opptakeren skal gjøre midt i økten. `reason` kommer fra et lukket ordforråd — se [Statuser for chunk-POST](#statuser-for-chunk-post) nedenfor. |
@@ -402,7 +402,7 @@ Et opptak tar vare på adressen til hvert bilde, og til hvert stilark som opptak
 | _CORS error_, og i konsollen _No 'Access-Control-Allow-Origin' header is present on the requested resource_ | En webskrifttype, eller et bilde som siden din laster inn med `crossorigin`. Nettleseren bruker dem bare på et annet nettsted med serverens tillatelse, og avspillingen kjører på OneUptime-opprinnelsen. | Send `Access-Control-Allow-Origin: *`, eller OneUptime-opprinnelsen din, med de filene. |
 | `ERR_BLOCKED_BY_RESPONSE.NotSameOrigin` eller `ERR_BLOCKED_BY_RESPONSE.NotSameSite` i konsollen, og `(blocked:CORP not "same-origin")` eller `(blocked:CORP not "same-site")` i panelet Network | Serveren sender `Cross-Origin-Resource-Policy: same-origin` eller `same-site`, som nekter filen til ethvert annet nettsted. | Send `Cross-Origin-Resource-Policy: cross-origin` på statiske filer, eller ikke send den headeren. |
 | `(blocked:mixed-content)`, og en konsollfeil som slutter med _This request has been blocked; the content must be served over HTTPS_ | Et stilark, en skrifttype, en `srcset`-kandidat eller et bilde inne i `<picture>` via `http://` på et `https`-dashbord. Andre `http://`-bilder (en vanlig `<img src>`, en videoplakat, en CSS-bakgrunn) oppgraderes i stedet til `https://` med en advarsel _Mixed Content_ og feiler der verten ikke har `https`. | Lever filene via `https`. |
-| `(blocked:csp)`, og en konsollinje som sier at filen _violates the following Content Security Policy directive_ | Linjen nevner direktivet som avviste den. `img-src data: blob:` eller `font-src data:` er avspillingens egen retningslinje for en økt som spilles av uten bildene og webskrifttypene sine (_Mask all text_, eller en maskeringsmodus som ikke ble rapportert eller ikke gjenkjennes), og `object-src 'none'` eller `media-src 'none'` er dens retningslinje for innebygging, video og lyd i hvert opptak: begge er tilsiktet. Ethvert annet direktiv kommer fra en `Content-Security-Policy` på selve OneUptime-dashbordet, som også gjelder inne i avspillingen; på en egenhostet installasjon legger vanligvis en omvendt proxy den til. | Ingenting, for avspillingens egen retningslinje. For dashbordets tillater du `https:`, eller vertene sidene dine bruker, i dens `img-src`, `style-src` og `font-src`. |
+| `(blocked:csp)`, og en konsollinje som sier at filen _violates the following Content Security Policy directive_ | Linjen nevner direktivet som avviste den. `img-src data: blob:` eller `font-src data:` er avspillingens egen policy for en økt som spilles av uten bildene og webskrifttypene sine (_Mask all text_, eller en maskeringsmodus som ikke ble rapportert eller ikke gjenkjennes), og `object-src 'none'` eller `media-src 'none'` er dens policy for innebygging, video og lyd i hvert opptak: begge er tilsiktet. Ethvert annet direktiv kommer fra en `Content-Security-Policy` på selve OneUptime-dashbordet, som også gjelder inne i avspillingen; på en egenhostet installasjon legger vanligvis en omvendt proxy den til. | Ingenting, for avspillingens egen policy. For dashbordets tillater du `https:`, eller vertene sidene dine bruker, i dens `img-src`, `style-src` og `font-src`. |
 | En nettverksfeil som `ERR_NAME_NOT_RESOLVED` eller `ERR_CONNECTION_TIMED_OUT` | Nettleseren din når ikke verten: et intranettnavn, en vert som bare kan nås via VPN, en liste over tillatte IP-adresser som du ikke står på. | Se avspillingen fra et nettverk som kan nå den. |
 | `ERR_BLOCKED_BY_CLIENT` i konsollen, og `(blocked:other)` i panelet Network | En utvidelse i nettleseren din, som en annonse- eller sporingsblokkering, avviste filen. Brukeren din kan ha sett den; opptaksnotatet nevner også denne årsaken. | Tillat nettstedet i den utvidelsen, eller se avspillingen i en nettleserprofil uten den. Det er ingenting å endre på nettstedet ditt. |
 | `(blocked:origin)` på sprite-filen, som er av typen **Other**, så filteret **Img** skjuler den, og i konsollen _Unsafe attempt to load URL … Domains, protocols and ports must match._ | Ikonet tegnes fra en SVG-sprite-fil (`<use href="/icons.svg#close">`). Nettlesere lar bare `<use>` peke på en fil på sidens egen opprinnelse, og avspillingen kjører på OneUptimes, så disse vises aldri, heller ikke fra ditt eget domene. | Bygg spriten inn i siden (`<use href="#close">`), eller tegn ikonet med `<img>` eller en innebygd `<svg>`. |
@@ -410,7 +410,7 @@ Et opptak tar vare på adressen til hvert bilde, og til hvert stilark som opptak
 
 ### Power Pages-portaler
 
-- Offlinelinjens stilark og ikonene `web.png` og `close.png` kommer fra `content.powerapps.com`, som leverer dem til ethvert nettsted, så avspilleren laster dem inn, og linjen forblir skjult, slik den var for brukeren din. Hvis den likevel vises, nevner opptaksnotatene stilarket fra `content.powerapps.com` som ikke ble lastet inn i nettleseren din. Sjekk at nettverket ditt, eller en retningslinje på et egenhostet dashbord, lar deg nå den verten; en `404` betyr at den versjonen av filen ikke lenger leveres.
+- Offlinelinjens stilark og ikonene `web.png` og `close.png` kommer fra `content.powerapps.com`, som leverer dem til ethvert nettsted, så avspilleren laster dem inn, og linjen forblir skjult, slik den var for brukeren din. Hvis den likevel vises, nevner opptaksnotatene stilarket fra `content.powerapps.com` som ikke ble lastet inn i nettleseren din. Sjekk at nettverket ditt, eller en policy på et egenhostet dashbord, lar deg nå den verten; en `404` betyr at den versjonen av filen ikke lenger leveres.
 - Ikonskrifttyper som portalen leverer fra sitt eget domene, som Glyphicons (`/fonts/glyphicons-halflings-regular.woff2`), lastes bare inn når portalen tillater OneUptime-opprinnelsen din via CORS. Legg den til (for eksempel `https://oneuptime.com`) i nettstedsinnstillingen `HTTP/Access-Control-Allow-Origin` i appen Portal Management, eller under **Security** → **Advanced settings** → **CORS** i designstudioet til Power Pages.
 - Sider, webfiler og bilder som krever pålogging i portalen — bak side- eller tabelltillatelser, eller på et privat nettsted — forblir ødelagte i avspillingen, fordi nettleseren din ikke har brukerens portaløkt.
 
@@ -418,7 +418,7 @@ Portalopptak som ble gjort før OneUptime lastet inn disse filene under avspilli
 
 ## RUM-appen sier «Ingen nylig trafikk»
 
-Statusetiketten og **Sist sett** på applikasjonens side rapporterer når det sist kom telemetri for den applikasjonen. Øktavspilling teller med: både en opptaker som henter retningslinjen sin og en godtatt chunk oppdaterer dem, så en applikasjon som bare er instrumentert med avspillingssnippeten, viser **Mottar data** mens folk bruker nettstedet. I tidligere versjoner gjorde bare RUM-telemetri fra OpenTelemetry det, så en applikasjon med bare avspilling så inaktiv ut, med en Sist sett fra dager før, mens opptakerne fungerte fint.
+Statusetiketten og **Sist sett** på applikasjonens side rapporterer når det sist kom telemetri for den applikasjonen. Øktavspilling teller med: både en opptaker som henter policyen sin og en godtatt chunk oppdaterer dem, så en applikasjon som bare er instrumentert med avspillingssnippeten, viser **Mottar data** mens folk bruker nettstedet. I tidligere versjoner gjorde bare RUM-telemetri fra OpenTelemetry det, så en applikasjon med bare avspilling så inaktiv ut, med en Sist sett fra dager før, mens opptakerne fungerte fint.
 
 Så **Mottar data** betyr at *noe* rapporterer — ikke at alt gjør det. Sidevisninger, feilrate, p95-varighet og klienter kommer fra OpenTelemetry-SDK-et for nettleser, som installeres separat; når de står på null mens opptak kommer inn, sier applikasjonens side Oversikt det rett ut.
 
@@ -489,7 +489,7 @@ Skriv deretter til support@oneuptime.com, eller opprett en issue på [GitHub](ht
 ## Neste steg
 
 :::cards
-- [Øktavspilling](/docs/telemetry/session-replay): Installasjonen, retningslinjen og hver innstilling denne siden nevner.
+- [Øktavspilling](/docs/telemetry/session-replay): Installasjonen, policyen og hver innstilling denne siden nevner.
 - [RUM-feilsøking](/docs/rum/troubleshooting): Når det er OpenTelemetry-telemetrien som mangler, og ikke opptakene.
 - [Nettleseroppsett](/docs/rum/browser-setup): Inntaksnøkler, tillatte opprinnelser og Content Security Policy.
 :::

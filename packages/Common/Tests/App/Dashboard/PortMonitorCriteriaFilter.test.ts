@@ -6,7 +6,6 @@ import {
 } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { describe, expect, test } from "@jest/globals";
 
 function values(options: Array<DropdownOption>): Array<string> {
@@ -86,8 +85,8 @@ describe("Dashboard Port timing criteria", () => {
       value: 125,
     };
 
-    expect(
-      CriteriaFilterUtil.translateFilterToText(filter, FilterCondition.All),
-    ).toContain("125\u00A0ms");
+    expect(CriteriaFilterUtil.translateFilterToText(filter)).toContain(
+      "125\u00A0ms",
+    );
   });
 });

@@ -2,6 +2,7 @@ import yaml from "js-yaml";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { writeOwnValue } from "../../LookupTable";
 import { resolveMitreTacticId } from "../../../Types/SecurityEvent/MitreAttack";
 import {
   SECURITY_WATCHLIST_MODIFIER,
@@ -532,8 +533,13 @@ export default class SigmaRuleParser {
       typeof logsourceRaw === "object" &&
       !Array.isArray(logsourceRaw)
     ) {
+      // The rule's own words, each the map's own key.
       for (const key of Object.keys(logsourceRaw as JSONObject)) {
-        logsource[key] = String((logsourceRaw as JSONObject)[key]);
+        writeOwnValue(
+          logsource,
+          key,
+          String((logsourceRaw as JSONObject)[key]),
+        );
       }
     }
 
