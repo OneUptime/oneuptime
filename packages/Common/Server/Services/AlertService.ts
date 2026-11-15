@@ -2935,7 +2935,7 @@ ${alertSeverity.name}
             primaryEntityId: alert.id,
             primaryEntityType: ServiceType.Alert,
             metricNames: Object.values(AlertMetricType),
-            retentionDate: OneUptimeDate.addRemoveDays(
+            retentionDate: OneUptimeDate.addRemoveDurationInDays(
               OneUptimeDate.getCurrentDate(),
               metricRetentionDays,
             ),
@@ -3189,10 +3189,11 @@ ${alertSeverity.name}
       const metricTypesMap: Dictionary<MetricType> = {};
 
       const metricRetentionDays: number = await this.getMetricRetentionDays();
-      const alertMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        metricRetentionDays,
-      );
+      const alertMetricRetentionDate: Date =
+        OneUptimeDate.addRemoveDurationInDays(
+          OneUptimeDate.getCurrentDate(),
+          metricRetentionDays,
+        );
 
       /*
        * Dimensions shared by every alert metric. Built once so all four

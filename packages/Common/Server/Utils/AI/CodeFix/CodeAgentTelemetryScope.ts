@@ -560,7 +560,7 @@ export default class CodeAgentTelemetryScope {
         query: {
           projectId: data.projectId,
           lastSeenAt: QueryHelper.greaterThanEqualTo(
-            OneUptimeDate.addRemoveDays(
+            OneUptimeDate.addRemoveDurationInDays(
               OneUptimeDate.getCurrentDate(),
               -SCOPE_EXCEPTION_LOOKBACK_DAYS,
             ),

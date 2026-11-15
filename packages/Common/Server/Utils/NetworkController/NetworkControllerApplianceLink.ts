@@ -92,7 +92,7 @@ export interface LinkableDeviceIdentity {
 
 // How far back stored traffic is filed: all the table keeps.
 function getRefileSince(now: Date): Date {
-  return OneUptimeDate.addRemoveDays(
+  return OneUptimeDate.addRemoveDurationInDays(
     now,
     -(MAX_NETWORK_TRAFFIC_RANGE_DAYS + 1),
   );
@@ -399,7 +399,10 @@ export default class NetworkControllerApplianceLink {
     return await NetworkTrafficUsageAggregationService.getAppliances({
       projectId: data.projectId,
       devices: NetworkTrafficSummaryUtil.getDeviceFilter(readScope, null),
-      since: OneUptimeDate.addRemoveDays(data.now, -LINKABLE_APPLIANCE_DAYS),
+      since: OneUptimeDate.addRemoveDurationInDays(
+        data.now,
+        -LINKABLE_APPLIANCE_DAYS,
+      ),
       serials: data.serials,
       limit: data.serials
         ? Math.max(1, data.serials.length)
@@ -657,7 +660,7 @@ export default class NetworkControllerApplianceLink {
         await NetworkTrafficUsageAggregationService.getAppliances({
           projectId,
           devices: {},
-          since: OneUptimeDate.addRemoveDays(
+          since: OneUptimeDate.addRemoveDurationInDays(
             data.now,
             -LINKABLE_APPLIANCE_DAYS,
           ),
@@ -716,7 +719,7 @@ export default class NetworkControllerApplianceLink {
         ? await NetworkTrafficUsageAggregationService.getAppliances({
             projectId: data.projectId,
             devices: {},
-            since: OneUptimeDate.addRemoveDays(
+            since: OneUptimeDate.addRemoveDurationInDays(
               data.now,
               -LINKABLE_APPLIANCE_DAYS,
             ),

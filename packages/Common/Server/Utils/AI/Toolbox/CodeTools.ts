@@ -52,6 +52,8 @@ import {
   getCodeFileSeenFromRead,
 } from "./CodeFilesSeen";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 /*
  * Tools that let the chat agent read the project's linked source code and
  * connect a telemetry signal to the code that produced it.
@@ -801,7 +803,10 @@ export const ListCodeRepositoriesTool: ObservabilityTool = {
           ? `(no code repository in this project whose source OneUptime can read — ${READ_HOSTS})${plainGitNote.text}`
           : `${serialized.text}${plainGitNote.text}`,
       rowCount: serialized.rowCount,
-      citationLabel: `Connected code repositories (${serialized.rowCount})`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.codeRepositories, {
+        count: countFigure(serialized.rowCount),
+      }),
       redactionCount: serialized.redactionCount + plainGitNote.count,
       isTruncated: serialized.isTruncated,
     };
@@ -883,7 +888,7 @@ export const FindCodeForExceptionTool: ObservabilityTool = {
       return {
         dataForLlm: `${describedException}\n\nThis exception has no stack trace recorded, so its code location cannot be determined. Consider search_code if you know roughly what the code is called.`,
         rowCount: 0,
-        citationLabel: `Code location for exception (no stack trace)`,
+        ...citationSentence(AI_TOOL_CITATIONS.codeLocationNoStackTrace),
         redactionCount: described.redactionCount,
         isTruncated: false,
       };
@@ -1009,9 +1014,12 @@ export const FindCodeForExceptionTool: ObservabilityTool = {
     return {
       dataForLlm: `${header.join("\n")}${framesText}`,
       rowCount: frameRows.length,
-      citationLabel: readableResolution
-        ? `Code location: ${readableResolution.organizationName}/${readableResolution.repositoryName} (${frameRows.length} frames)`
-        : `Code location for exception (no repository matched)`,
+      ...(readableResolution
+        ? citationSentence(AI_TOOL_CITATIONS.codeLocation, {
+            repository: `${readableResolution.organizationName}/${readableResolution.repositoryName}`,
+            count: countFigure(frameRows.length),
+          })
+        : citationSentence(AI_TOOL_CITATIONS.codeLocationNoRepository)),
       citationTarget: {
         type: AIChatCitationTargetType.Exceptions,
       },
@@ -1104,7 +1112,12 @@ export const SearchCodeTool: ObservabilityTool = {
         ? `${text}\n… [showing ${limited.length} of ${matches.length} matches; narrow the query to see the rest]`
         : text,
       rowCount: limited.length,
-      citationLabel: `Code search "${query}" in ${repository.organizationName}/${repository.repositoryName} (${limited.length} of ${matches.length})`,
+      ...citationSentence(AI_TOOL_CITATIONS.codeSearch, {
+        query,
+        repository: `${repository.organizationName}/${repository.repositoryName}`,
+        count: countFigure(limited.length),
+        total: countFigure(matches.length),
+      }),
       redactionCount: 0,
       isTruncated: isTruncated,
     };
@@ -1215,7 +1228,9 @@ export const ReadCodeFileTool: ObservabilityTool = {
       return {
         dataForLlm: `file: ${filePath}\nrepository: ${repository.organizationName}/${repository.repositoryName}@${branchName}\n\n(this file is empty — 0 bytes)`,
         rowCount: 0,
-        citationLabel: `${filePath} (empty)`,
+        ...citationSentence(AI_TOOL_CITATIONS.codeFileEmpty, {
+          file: filePath,
+        }),
         redactionCount: 0,
         isTruncated: false,
         ...(recordSeen ? { recordSeen: recordSeen } : {}),
@@ -1351,7 +1366,13 @@ export const ReadCodeFileTool: ObservabilityTool = {
         valuesHidden ? `\n${valuesHidden}` : ""
       }`,
       rowCount: selected.length,
-      citationLabel: `${filePath}:${startLine}-${actualEndLine} (${repository.organizationName}/${repository.repositoryName})`,
+      // A file's lines, as a code host writes them: data, no words.
+      ...citationSentence(AI_TOOL_CITATIONS.codeFileLines, {
+        file: filePath,
+        start: startLine,
+        end: actualEndLine,
+        repository: `${repository.organizationName}/${repository.repositoryName}`,
+      }),
       redactionCount: serialized.redactionCount,
       isTruncated: isTruncated || serialized.isTruncated,
       ...(recordSeen ? { recordSeen: recordSeen } : {}),

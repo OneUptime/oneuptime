@@ -248,12 +248,15 @@ export default class ThreatIntelListSource {
     const projectId: ObjectID = feed.projectId;
     const feedId: ObjectID = feed.id;
     const version: number = now.getTime();
-    const validUntil: Date = OneUptimeDate.addRemoveDays(
+    const validUntil: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       THREAT_INTEL_LIST_VALID_DAYS,
     );
     // Later than any version this feed wrote before (each kept a day past its validity).
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(validUntil, 1);
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
+      validUntil,
+      1,
+    );
     const confidence: number = feed.indicatorConfidence || 0;
 
     const held: Array<{ indicatorValue: string; indicatorType: string }> =

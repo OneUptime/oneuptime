@@ -24,7 +24,7 @@ flowchart TB
 ## शुरू करने से पहले
 
 - **आते हुए मेट्रिक्स।** उन्हें [OpenTelemetry](/docs/telemetry/open-telemetry) से भेजें, या किसी एजेंट से, जैसे [होस्ट OpenTelemetry Collector](/docs/telemetry/host-otel-collector)।
-- **मेट्रिक्स पढ़ सकने वाली भूमिका।** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member या Telemetry Viewer, या Read Metrics अनुमति वाली कस्टम भूमिका। कुछ सेवाओं तक सीमित भूमिका सिर्फ़ उन्हीं सेवाओं के मेट्रिक्स पढ़ती है।
+- **मेट्रिक्स पढ़ सकने वाली भूमिका।** प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, प्रोजेक्ट सदस्य, दर्शक, टेलीमेट्री एडमिन, टेलीमेट्री सदस्य या टेलीमेट्री दर्शक, या Read Metrics अनुमति वाली कस्टम भूमिका। कुछ सेवाओं तक सीमित भूमिका सिर्फ़ उन्हीं सेवाओं के मेट्रिक्स पढ़ती है।
 - **Grafana या किसी स्क्रिप्ट के लिए: प्रोजेक्ट की एक API कुंजी**, जिसमें इनमें से कोई भूमिका या Read Metrics अनुमति हो। देखें [एक API कुंजी बनाएँ](/docs/api-reference/api-reference#एक-api-कुंजी-बनाएँ)। OneUptime Cloud पर API कुंजियों के लिए **Growth** प्लान चाहिए।
 
 ## क्वेरी लिखना

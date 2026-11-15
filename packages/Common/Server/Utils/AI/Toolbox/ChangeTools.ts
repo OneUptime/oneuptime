@@ -45,6 +45,11 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import {
+  AI_TOOL_CITATIONS,
+  AI_TOOL_CITATION_PLURALS,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countedValue } from "./ReadTableWords";
 /*
  * get_change_details: what one recorded change was, and - for a deploy that
  * names a commit in a repository connected to OneUptime on GitHub, GitLab,
@@ -151,7 +156,10 @@ export const GetChangeDetailsTool: ObservabilityTool = {
       return {
         dataForLlm: `No change with id ${changeId.toString()} was found that you may read.`,
         rowCount: 0,
-        citationLabel: `Change ${changeId.toString()} (not found)`,
+        // In the reader's language (issue #8311).
+        ...citationSentence(AI_TOOL_CITATIONS.changeNotFound, {
+          id: changeId.toString(),
+        }),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -219,11 +227,17 @@ export const GetChangeDetailsTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Change ${(change.title || changeId.toString()).slice(0, 120)}${
-        commitCount > 0
-          ? ` (${commitCount} commit${commitCount === 1 ? "" : "s"})`
-          : ""
-      }`,
+      ...(commitCount > 0
+        ? citationSentence(AI_TOOL_CITATIONS.changeWithCommits, {
+            title: (change.title || changeId.toString()).slice(0, 120),
+            commits: countedValue(
+              AI_TOOL_CITATION_PLURALS.commits,
+              commitCount,
+            ),
+          })
+        : citationSentence(AI_TOOL_CITATIONS.change, {
+            title: (change.title || changeId.toString()).slice(0, 120),
+          })),
       ...(citationTarget ? { citationTarget } : {}),
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,

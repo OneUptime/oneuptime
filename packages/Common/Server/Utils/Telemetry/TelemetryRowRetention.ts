@@ -48,7 +48,7 @@ export default class TelemetryRowRetention {
           data.row.getColumnValue<ServiceType>("primaryEntityType"),
       });
 
-    return OneUptimeDate.addRemoveDays(
+    return OneUptimeDate.addRemoveDurationInDays(
       writtenAt,
       resolveTelemetryRetentionInDays({
         pillar: data.pillar,

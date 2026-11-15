@@ -9,6 +9,7 @@ import {
   SetUpWebsiteMonitoringTool,
   SetupReachMethod,
   countMonitorsSetUpInPlan,
+  describeProbeAgreementForPerson,
   describeReachForPerson,
   describeWebsiteMonitoringForPerson,
   getMonitorNamesSetUpInPlan,
@@ -73,8 +74,10 @@ import {
 } from "../../../../../Types/AI/AIChatTypes";
 import {
   AI_ACTION_CARD_KINDS,
+  AI_ACTION_LINES,
   AIActionSentence,
   describeAIActionCardWords,
+  describeAIActionSentence,
   isKnownAIActionCardWords,
   isKnownAIActionSentence,
 } from "../../../../../Types/AI/AIActionWords";
@@ -109,6 +112,10 @@ import {
   parseWebsiteAddress,
 } from "../../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
 import { Translator } from "../../../../../Types/Translator";
+import {
+  getProbeAgreementSentence,
+  PROBE_AGREEMENT_SENTENCES,
+} from "../../../../../Utils/Monitor/ProbeAgreementRule";
 import {
   actionLineText,
   actionTitleText,
@@ -530,7 +537,7 @@ describe("set_up_website_monitoring", () => {
       isApi: false,
     });
     expect(line(prepared.description)).toBe(
-      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). You own this monitor, so you are emailed when its status changes.",
+      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). A status change needs both connected probes to agree. You own this monitor, so you are emailed when its status changes.",
     );
     expect(prepared.describedArguments).toEqual([
       "address",
@@ -542,6 +549,169 @@ describe("set_up_website_monitoring", () => {
       expect(isKnownAIActionSentence(sentence)).toBe(true);
     }
   });
+
+  /*
+   * A probe-based monitor's status changes only when its probes agree, and
+   * a new monitor's minimum is not set: every location must find the site
+   * down. The card said an incident opens when it does not answer, so the
+   * person expected one failing region to open one (#8245).
+   */
+  test.each<[number, Array<string>]>([
+    [
+      1,
+      [
+        "A website monitor checks https://example.com every 5 minutes.",
+        "It is checked from 1 location.",
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+        "You own this monitor, so you are emailed when its status changes.",
+      ],
+    ],
+    [
+      2,
+      [
+        "A website monitor checks https://example.com every 5 minutes.",
+        "It is checked from 2 locations.",
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+        "A status change needs both connected probes to agree.",
+        "You own this monitor, so you are emailed when its status changes.",
+      ],
+    ],
+    [
+      3,
+      [
+        "A website monitor checks https://example.com every 5 minutes.",
+        "It is checked from 3 locations.",
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+        "A status change needs all 3 connected probes to agree.",
+        "You own this monitor, so you are emailed when its status changes.",
+      ],
+    ],
+  ])(
+    "checked from %i location(s), the card says how many must agree before an incident opens",
+    async (locations: number, sentences: Array<string>) => {
+      stubSeeds();
+      stubLocations({ global: locations });
+
+      const prepared: PreparedMutation =
+        await SetUpWebsiteMonitoringTool.prepareMutation!(
+          { address: "example.com" },
+          ctx,
+        );
+
+      expect(
+        (prepared.description || []).map((sentence: AIActionSentence) => {
+          return actionTitleText(sentence);
+        }),
+      ).toEqual(sentences);
+
+      for (const sentence of prepared.description || []) {
+        expect(isKnownAIActionSentence(sentence)).toBe(true);
+      }
+    },
+  );
+
+  test("the agreement line is the probes card's own sentence, its counts figures", () => {
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 3,
+      }),
+    ).toEqual({
+      template: AI_ACTION_LINES.probeAgreementAll,
+      values: { count: { figure: 3 } },
+    });
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: undefined,
+        locationCount: 2,
+      }),
+    ).toEqual({ template: AI_ACTION_LINES.probeAgreementBoth });
+    // A minimum below all of them: how many of how many.
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: 2,
+        locationCount: 4,
+      }),
+    ).toEqual({
+      template: AI_ACTION_LINES.probeAgreementSome,
+      values: { required: { figure: 2 }, count: { figure: 4 } },
+    });
+    // Nothing to agree on: one location, none, or a minimum of one.
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 1,
+      }),
+    ).toBeNull();
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 0,
+      }),
+    ).toBeNull();
+    expect(
+      describeProbeAgreementForPerson({
+        minimumProbeAgreement: 1,
+        locationCount: 3,
+      }),
+    ).toBeNull();
+    // The keys the probes card is worded by, one copy.
+    expect([
+      AI_ACTION_LINES.probeAgreementSome,
+      AI_ACTION_LINES.probeAgreementBoth,
+      AI_ACTION_LINES.probeAgreementAll,
+    ]).toEqual([
+      PROBE_AGREEMENT_SENTENCES.some,
+      PROBE_AGREEMENT_SENTENCES.both,
+      PROBE_AGREEMENT_SENTENCES.all,
+    ]);
+  });
+
+  test("a monitor that goes Offline rather than opening an incident says the agreement too", () => {
+    expect(
+      describeWebsiteMonitoringForPerson({
+        address: {
+          url: "https://example.com",
+          host: "example.com",
+          monitorName: "example.com",
+        },
+        isApi: false,
+        minutes: 5,
+        locationCount: 4,
+        incidentSeverityName: null,
+      }).map((sentence: AIActionSentence) => {
+        return actionTitleText(sentence);
+      }),
+    ).toEqual([
+      "A website monitor checks https://example.com every 5 minutes.",
+      "It is checked from 4 locations.",
+      "If it does not answer, or answers with an error, its status changes to Offline.",
+      "A status change needs all 4 connected probes to agree.",
+      "You own this monitor, so you are emailed when its status changes.",
+    ]);
+  });
+
+  test.each(["de", "ar", "fa"])(
+    "in %s, the agreement line reads as the probes card reads it, its count in the reader's digits",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const sentence: AIActionSentence = describeProbeAgreementForPerson({
+        minimumProbeAgreement: null,
+        locationCount: 3,
+      })!;
+      const worded: string = describeAIActionSentence(sentence, translator);
+
+      expect(worded).toBe(
+        getProbeAgreementSentence({
+          minimumProbeAgreement: null,
+          activeProbeCount: 3,
+          translator,
+        }),
+      );
+      expect(worded).not.toContain("connected probes");
+      expect(worded).toContain(translator.formatNumber(3));
+    },
+  );
 
   test("an API is said to be one, every five minutes by default", async () => {
     stubSeeds();
@@ -779,7 +949,7 @@ describe("set_up_website_monitoring", () => {
       'Created the Website monitor "example.com", checking https://example.com every minute from 2 locations.',
     );
     expect(result.dataForLlm).toContain(
-      "opens an incident (Critical Incident)",
+      "opens an incident (Critical Incident). A status change needs both connected probes to agree. The person owns it",
     );
     expect(result.dataForLlm).toContain("never say one was sent");
     expect(result.widget?.data.testPage).toEqual({ kind: "self" });

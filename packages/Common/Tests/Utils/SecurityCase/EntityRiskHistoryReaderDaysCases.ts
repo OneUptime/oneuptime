@@ -29,7 +29,7 @@ import { describe, expect, test } from "@jest/globals";
  * Every expectation is worked out here on the platform's own clock (Intl):
  * where each of the reader's days starts and ends, and the last change
  * before its end. The cases run with the process in a zone of its own (the
- * @timezone docblock of each file that calls this), which must move
+ * zone docblock of each file that calls this), which must move
  * nothing: the reader's zone is the one they picked.
  */
 

@@ -28,7 +28,7 @@ flowchart LR
 ## پیش از شروع
 
 - **تله‌متری در حال رسیدن.** نقشهٔ سرویس‌ها به ترِیس نیاز دارد: [OpenTelemetry](/docs/telemetry/open-telemetry) را ببینید. نمای زیرساخت به میزبان یا خوشه‌ای نیاز دارد که داده بفرستد: [عامل Kubernetes](/docs/telemetry/kubernetes-agent) را ببینید. نمای شبکه به دستگاه‌های شبکه نیاز دارد: [مانیتور دستگاه شبکه](/docs/monitor/network-device-monitor) را ببینید.
-- **نقشی که تله‌متری را بخواند.** Project Owner، Project Admin، Project Member، Viewer، Telemetry Admin، Telemetry Member یا Telemetry Viewer، یا یک نقش سفارشی با مجوز Read Inventory Item.
+- **نقشی که تله‌متری را بخواند.** مالک پروژه، مدیر پروژه، عضو پروژه، بیننده، مدیر تله‌متری، عضو تله‌متری یا بیننده تله‌متری، یا یک نقش سفارشی با مجوز Read Inventory Item.
 
 ## باز کردن توپولوژی
 

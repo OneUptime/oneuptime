@@ -126,6 +126,7 @@ export const ON_CALL_SETUP_COPY: {
   whoCannotCreate: string;
   policyMadeElsewhere: string;
   policyDeleted: string;
+  policyArchived: string;
   couldNotSave: string;
   whoReadinessTitle: string;
   sendReminder: string;
@@ -240,6 +241,14 @@ export const ON_CALL_SETUP_COPY: {
    */
   policyDeleted: translationKey(
     "The on-call policy this setup was using was deleted, so pick or make one again.",
+  ),
+  /*
+   * Said when the run's policy was archived since - in another tab, or by a
+   * teammate. An archived policy is still there, but pages no one, so the
+   * run forgets it as it forgets a deleted one, and says which (#8432).
+   */
+  policyArchived: translationKey(
+    "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.",
   ),
   // The project's policies could not be read just before: nothing is made.
   couldNotSave: WEBSITE_DOWN_COPY.couldNotSave,
@@ -592,6 +601,11 @@ export interface OnCallPolicyRecord {
   // Enabled on-call rules that name this policy.
   incidentRuleCount: number;
   alertRuleCount: number;
+  /*
+   * Archived since the run set it up - in another tab, or by a teammate:
+   * it pages no one, so the run forgets it (#8432). Unset is in service.
+   */
+  isArchived?: boolean | undefined;
 }
 
 // A responder, as On-Call Readiness reports them.

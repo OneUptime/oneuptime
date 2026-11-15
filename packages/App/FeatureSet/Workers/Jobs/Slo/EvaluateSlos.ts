@@ -905,7 +905,7 @@ async function measureRequestSlo(data: {
   const windowStart: Date =
     slo.windowType === SloWindowType.CalendarMonth
       ? getComplianceWindow({ slo: slo, now: now }).window.startDate
-      : OneUptimeDate.addRemoveDays(
+      : OneUptimeDate.addRemoveDurationInDays(
           countedUntil,
           -1 * (slo.windowDays || DEFAULT_ROLLING_WINDOW_DAYS),
         );

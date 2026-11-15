@@ -79,7 +79,7 @@ export default class PerformanceFixWatch {
         return;
       }
 
-      const from: Date = OneUptimeDate.addRemoveDays(
+      const from: Date = OneUptimeDate.addRemoveDurationInDays(
         mergedAt,
         -PERFORMANCE_FIX_THRESHOLDS.baselineDays,
       );

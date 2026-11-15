@@ -51,6 +51,7 @@ import {
   AI_READ_RECORD_TABLE_CELLS,
   AI_READ_RECORD_TABLE_TERMS,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, timelineEntriesValue } from "./ReadTableWords";
 
@@ -247,7 +248,8 @@ export const GetIncidentTimelineTool: ObservabilityTool = {
         dataForLlm:
           "Error: incidentId is required. Pass the incident's ID (from query_incidents or search_incidents).",
         rowCount: 0,
-        citationLabel: "Incident timeline (no incident id)",
+        // In the reader's language (issue #8311).
+        ...citationSentence(AI_TOOL_CITATIONS.incidentTimelineNoId),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -278,7 +280,7 @@ export const GetIncidentTimelineTool: ObservabilityTool = {
       return {
         dataForLlm: `Incident ${incidentId.toString()} was not found in this project.`,
         rowCount: 0,
-        citationLabel: "Incident timeline (not found)",
+        ...citationSentence(AI_TOOL_CITATIONS.incidentTimelineNotFound),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -520,7 +522,7 @@ export const GetAlertTimelineTool: ObservabilityTool = {
         dataForLlm:
           "Error: alertId is required. Pass the alert's ID (from query_alerts).",
         rowCount: 0,
-        citationLabel: "Alert timeline (no alert id)",
+        ...citationSentence(AI_TOOL_CITATIONS.alertTimelineNoId),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -546,7 +548,7 @@ export const GetAlertTimelineTool: ObservabilityTool = {
       return {
         dataForLlm: `Alert ${alertId.toString()} was not found in this project.`,
         rowCount: 0,
-        citationLabel: "Alert timeline (not found)",
+        ...citationSentence(AI_TOOL_CITATIONS.alertTimelineNotFound),
         redactionCount: 0,
         isTruncated: false,
       };

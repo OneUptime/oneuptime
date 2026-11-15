@@ -463,7 +463,12 @@ describe("a run that waited, its start failing", () => {
 });
 
 describe("a worker that restarts in the middle of a run", () => {
-  test("stopped after the claim, before the next rule: nothing is given back, and the next level is paged after the rule's wait, once", async () => {
+  /*
+   * The move on was kept in flight (issue #8410): the worker gives its
+   * claim back two minutes after it was taken, and the next level is paged
+   * then - not a whole rule wait later.
+   */
+  test("REGRESSION: stopped after the claim, before the next rule: the claim is given back two minutes on, and the next level is paged then, once", async () => {
     await world.startRun();
     world.crashAt(FailurePoint.ReadNextRule, { when: readsOrder(2) });
 
@@ -473,7 +478,8 @@ describe("a worker that restarts in the middle of a run", () => {
     // The process that claimed the move kept nothing back, nor a failure.
     expect(world.keptFailures()).toBeNull();
 
-    await minutesPass(9);
+    // A minute on, the move may still be under way: left to it.
+    await minutesPass(1);
 
     expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0"]);
 
@@ -481,8 +487,17 @@ describe("a worker that restarts in the middle of a run", () => {
 
     expect(pagesSoFar()).toEqual([
       "Ana Lopez L1 @ 0",
-      "Bob Smith L2 @ 20",
-      "Carl Diaz L2 @ 20",
+      "Bob Smith L2 @ 12",
+      "Carl Diaz L2 @ 12",
+    ]);
+
+    await minutesPass(10);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L1 @ 0",
+      "Bob Smith L2 @ 12",
+      "Carl Diaz L2 @ 12",
+      "Dana Kim L3 @ 22",
     ]);
     expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
   });

@@ -29,10 +29,9 @@ import {
   SecurityEntityRiskLevel,
 } from "../../Types/SecurityCase/SecurityEntityRisk";
 import { matchesProtectedEntityPattern } from "../../Types/SecurityPlaybook/SecurityProtectedEntity";
-import OneUptimeDate from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
 import TimezoneAlias from "../../Types/TimezoneAlias";
-import { CalendarDay, calendarDaysBetween } from "./SecurityOverviewMetrics";
+import { CalendarDay, getLastCalendarDays } from "./SecurityOverviewMetrics";
 
 /*
  * How an entity's risk is worked out (Types/SecurityCase/SecurityEntityRisk
@@ -860,11 +859,11 @@ export function getRiskHistorySeries(data: {
       return { ms: Math.min(moment.ms, nowMs), score: moment.score };
     },
   );
-  const calendar: Array<CalendarDay> = calendarDaysBetween(
-    OneUptimeDate.addRemoveDays(data.now, -(days - 1), zone),
+  const calendar: Array<CalendarDay> = getLastCalendarDays(
     data.now,
+    days,
     zone,
-  ).slice(-days);
+  );
   const series: Array<SecurityEntityRiskHistoryDay> = [];
 
   let index: number = 0;
