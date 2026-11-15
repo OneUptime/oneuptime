@@ -7,6 +7,7 @@ import { ListPaneProvider } from "../navigation/paneState";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
 import { radius } from "../theme/tokens";
+import { writeDay } from "../utils/date";
 import type { OnCallDutySummary } from "../oncall/duty";
 import type { UseMyShiftsResult } from "../hooks/useMyShifts";
 import type {
@@ -475,7 +476,8 @@ describe("OnCallOverviewScreen your shifts (server list)", () => {
     expect(screen.getByTestId("my-shifts-list")).toBeTruthy();
     expect(screen.getByText("Today")).toBeTruthy();
     expect(screen.getByText("Tomorrow")).toBeTruthy();
-    expect(screen.getByText("Thu 5 Mar")).toBeTruthy();
+    // A day further out is its weekday and date, in the phone's language (#8232).
+    expect(screen.getByText(writeDay(new Date(2026, 2, 5)))).toBeTruthy();
     expect(screen.getByTestId("my-shift-card-today")).toBeTruthy();
     expect(screen.getByTestId("my-shift-card-tomorrow")).toBeTruthy();
     expect(screen.getByTestId("my-shift-card-later")).toBeTruthy();

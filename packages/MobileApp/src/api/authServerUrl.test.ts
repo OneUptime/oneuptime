@@ -86,6 +86,8 @@ jest.mock("./client", () => {
     waitForSessionRenewal: jest.fn(async (): Promise<void> => {
       return undefined;
     }),
+    // A sign-out closes renewals first (issue #8382); nothing renews here.
+    closeSessionRenewals: jest.fn(),
   };
 });
 
