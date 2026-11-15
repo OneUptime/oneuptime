@@ -1,10 +1,15 @@
 import { StateListRow } from "../StateOrder";
 import SecurityCasePriorities from "./SecurityCasePriorities";
 import SecurityCaseStatuses from "./SecurityCaseStatuses";
+import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
+import OneUptimeDate from "../../Types/Date";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource, {
   SECURITY_DETECTION_SOURCES,
 } from "../../Types/SecurityCase/SecurityDetectionSource";
+import Timezone from "../../Types/Timezone";
+import TimezoneAlias from "../../Types/TimezoneAlias";
 
 /*
  * The security overview's numbers, worked out from rows of cases and
@@ -50,10 +55,20 @@ export interface OverviewDetectionRow {
 }
 
 export interface DayCount {
-  // YYYY-MM-DD, UTC.
+  /*
+   * YYYY-MM-DD: a day of the reader's calendar, in the zone the overview
+   * was asked for (issue #7925), or a UTC day when it named none.
+   */
   day: string;
   total: number;
   byKey: Record<string, number>;
+}
+
+// A day of a calendar: its YYYY-MM-DD, and the instants it starts and ends.
+export interface CalendarDay {
+  day: string;
+  startMs: number;
+  endMs: number;
 }
 
 export interface RuleCount {
@@ -97,27 +112,120 @@ export function utcDay(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-// Every UTC day from the day of `start` to the day of `end`, oldest first.
-export function daysBetween(start: Date, end: Date): Array<string> {
-  const days: Array<string> = [];
-  const cursor: Date = new Date(
-    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()),
-  );
-  const last: string = utcDay(end);
+// The zone the days are cut in, by its current name: UTC when none is given.
+function calendarZoneOf(timezone: Timezone | undefined): Timezone {
+  return timezone ? TimezoneAlias.getCanonicalTimezone(timezone) : Timezone.UTC;
+}
+
+/*
+ * The day `date` falls on in `timezone`, as YYYY-MM-DD: the reader's own day
+ * where the overview was asked in their zone, the UTC day where it was not.
+ * In New York a case opened at 20:00 on 4 November is on 4 November, not on
+ * the 5th, which is the UTC day it falls on.
+ */
+export function dayInTimezone(
+  date: Date,
+  timezone?: Timezone | undefined,
+): string {
+  if (!timezone) {
+    return utcDay(date);
+  }
+
+  return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+    date: date,
+    format: "YYYY-MM-DD",
+    timezone: calendarZoneOf(timezone),
+  });
+}
+
+/*
+ * Every day from the one `start` falls on to the one `end` falls on, in
+ * `timezone` (UTC's when none is given), oldest first, with the instants
+ * each starts and ends at. Each day starts where the one before it ends
+ * (AggregationIntervalUtil.getBucketEnd, as the server's day buckets are
+ * walked): 23 or 25 hours on where the clocks change, so no day is drawn
+ * twice, and none is skipped.
+ */
+export function calendarDaysBetween(
+  start: Date,
+  end: Date,
+  timezone?: Timezone | undefined,
+): Array<CalendarDay> {
+  const zone: Timezone = calendarZoneOf(timezone);
+  const days: Array<CalendarDay> = [];
+  const lastMs: number = end.getTime();
+  let startMs: number = OneUptimeDate.getStartOfDay(start, zone).getTime();
 
   // Bounded: a window is never more than a year of days.
-  for (let index: number = 0; index < 400; index++) {
-    const day: string = utcDay(cursor);
-    days.push(day);
+  for (
+    let index: number = 0;
+    index < 400 && Number.isFinite(startMs);
+    index++
+  ) {
+    const endMs: number = AggregationIntervalUtil.getBucketEnd({
+      bucketStart: new Date(startMs),
+      interval: AggregationInterval.Day,
+      timezone: zone,
+    }).getTime();
 
-    if (day >= last) {
+    days.push({
+      day: dayInTimezone(new Date(startMs), zone),
+      startMs: startMs,
+      endMs: endMs,
+    });
+
+    if (!(endMs <= lastMs)) {
       break;
     }
 
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    startMs = endMs;
   }
 
   return days;
+}
+
+/*
+ * Every day from the day of `start` to the day of `end`, oldest first: the
+ * reader's days in `timezone`, UTC's when none is given.
+ */
+export function daysBetween(
+  start: Date,
+  end: Date,
+  timezone?: Timezone | undefined,
+): Array<string> {
+  return calendarDaysBetween(start, end, timezone).map(
+    (day: CalendarDay): string => {
+      return day.day;
+    },
+  );
+}
+
+/*
+ * The day of `days` (oldest first, one after another) that `date` falls in,
+ * or undefined when it is before the first or from the end of the last.
+ */
+export function findCalendarDay(
+  days: ReadonlyArray<CalendarDay>,
+  date: Date,
+): CalendarDay | undefined {
+  const ms: number = new Date(date).getTime();
+  let low: number = 0;
+  let high: number = days.length - 1;
+
+  while (low <= high) {
+    const middle: number = Math.floor((low + high) / 2);
+    const day: CalendarDay = days[middle]!;
+
+    if (ms < day.startMs) {
+      high = middle - 1;
+    } else if (ms >= day.endMs) {
+      low = middle + 1;
+    } else {
+      return day;
+    }
+  }
+
+  return undefined;
 }
 
 function emptyCounts(keys: ReadonlyArray<string>): Record<string, number> {
@@ -188,6 +296,13 @@ export function computeSecurityOverviewMetrics(data: {
   detectionWindowStart: Date;
   now: Date;
   topLimit?: number | undefined;
+  /*
+   * The zone the reader's days are in (the page's, issue #7925): each case
+   * and detection counts on the day it happened there, and the bars walk
+   * those days. Undefined - an older Dashboard, a zone the list does not
+   * name - is UTC's days, as before.
+   */
+  timezone?: Timezone | undefined;
 }): SecurityOverviewMetrics {
   const topLimit: number = data.topLimit || 8;
 
@@ -243,10 +358,14 @@ export function computeSecurityOverviewMetrics(data: {
     }
   }
 
-  const caseDays: Array<string> = daysBetween(data.windowStart, data.now);
+  const caseDays: Array<CalendarDay> = calendarDaysBetween(
+    data.windowStart,
+    data.now,
+    data.timezone,
+  );
   const casesPerDay: Map<string, DayCount> = new Map();
 
-  for (const day of caseDays) {
+  for (const { day } of caseDays) {
     casesPerDay.set(day, {
       day,
       total: 0,
@@ -257,9 +376,13 @@ export function computeSecurityOverviewMetrics(data: {
   const tacticCounts: Map<string, number> = new Map();
 
   for (const row of data.casesInWindow) {
-    const bucket: DayCount | undefined = casesPerDay.get(
-      utcDay(new Date(row.createdAt)),
+    const openedOn: CalendarDay | undefined = findCalendarDay(
+      caseDays,
+      new Date(row.createdAt),
     );
+    const bucket: DayCount | undefined = openedOn
+      ? casesPerDay.get(openedOn.day)
+      : undefined;
 
     if (bucket) {
       bucket.total++;
@@ -274,13 +397,14 @@ export function computeSecurityOverviewMetrics(data: {
     }
   }
 
-  const detectionDays: Array<string> = daysBetween(
+  const detectionDays: Array<CalendarDay> = calendarDaysBetween(
     data.detectionWindowStart,
     data.now,
+    data.timezone,
   );
   const detectionsPerDay: Map<string, DayCount> = new Map();
 
-  for (const day of detectionDays) {
+  for (const { day } of detectionDays) {
     detectionsPerDay.set(day, {
       day,
       total: 0,
@@ -291,9 +415,13 @@ export function computeSecurityOverviewMetrics(data: {
   const ruleCounts: Map<string, RuleCount> = new Map();
 
   for (const row of data.detectionsInWindow) {
-    const bucket: DayCount | undefined = detectionsPerDay.get(
-      utcDay(new Date(row.firstSeenAt)),
+    const firstSeenOn: CalendarDay | undefined = findCalendarDay(
+      detectionDays,
+      new Date(row.firstSeenAt),
     );
+    const bucket: DayCount | undefined = firstSeenOn
+      ? detectionsPerDay.get(firstSeenOn.day)
+      : undefined;
 
     if (bucket) {
       bucket.total++;
@@ -346,10 +474,10 @@ export function computeSecurityOverviewMetrics(data: {
         return row.closedAt;
       }),
     ),
-    casesOpenedPerDay: caseDays.map((day: string): DayCount => {
+    casesOpenedPerDay: caseDays.map(({ day }: CalendarDay): DayCount => {
       return casesPerDay.get(day)!;
     }),
-    detectionsPerDay: detectionDays.map((day: string): DayCount => {
+    detectionsPerDay: detectionDays.map(({ day }: CalendarDay): DayCount => {
       return detectionsPerDay.get(day)!;
     }),
     detectionsInWindow: data.detectionsInWindow.length,

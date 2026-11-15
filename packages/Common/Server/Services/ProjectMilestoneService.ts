@@ -5,6 +5,7 @@ import { IsBillingEnabled, IsEnterpriseEdition } from "../EnvironmentConfig";
 import InProcessMemo from "../Utils/InProcessMemo";
 import logger from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
+import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
 import Model from "../../Models/DatabaseModels/ProjectMilestone";
 import ActivationMilestone, {
   getActivationMilestoneEventName,
@@ -234,6 +235,15 @@ export class Service extends DatabaseService<Model> {
       // Kept already, by an earlier call or another server.
       return false;
     }
+
+    /*
+     * A telemetry product's first data: the products menu stops saying "Not
+     * set up" on it at once, on every server (#7465). See ProjectUsageCache.
+     */
+    await ProjectUsageCache.afterMilestoneReached({
+      projectId: data.projectId,
+      milestone: data.milestone,
+    });
 
     await this.sendMilestoneEvent({
       projectId: data.projectId,

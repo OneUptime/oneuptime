@@ -3,7 +3,7 @@ import UrlScrubber from "../../../Utils/Rum/UrlScrubber";
 
 /*
  * The parent UrlScrubber.test.ts drives the whole pipeline through the
- * public scrub()/getScrubbedPathname() facade. This suite pins the two
+ * public scrub()/getScrubbedPage() facade. This suite pins the two
  * segment-level primitives directly — scrubPath() and scrubQuery() — so
  * that the branch behaviour each one owns (every redaction pattern and its
  * length boundary, the decode-before-match step, the empty/"/" short

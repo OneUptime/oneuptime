@@ -29,25 +29,25 @@ Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Sl
 
 ## One ladder for everything
 
-**User Settings → How to Reach Me** opens on your ladder: the steps every page tries, for incidents, alerts and episodes of every severity. Each step is one of your verified methods and when to use it, such as SMS at once and a call after 5 minutes. Steps with the same wait go out together, so the ladder reads in the order it pages.
+**User Settings → How to Reach Me** opens on your ladder: numbered steps that every page tries in turn, for incidents, alerts and episodes of every severity. Each step is a time, such as at once or after 5 minutes, and the verified methods that go out together then. A later step goes out only if nobody has acknowledged the page by then.
 
 :::steps
 ### Add a way to reach you
 
-Pick one of your verified methods in **Add a way to reach you**. A number or an address still waiting for its code is listed under **Not verified yet**, with **Verify**.
+Click **Add** on a step to send one of your verified methods at that step's time, or **Add Step** to start a new step after the last one. A number or an address still waiting for its code is listed under **Not verified yet**, with **Verify**.
 
 ### Choose when it is used
 
-Beside each step, pick a wait from **Immediately** to **1 hour**. A push step also says how it sounds and whether it repeats: see [Push rules](#push-rules).
+Click a step's time, such as **At once**, and pick another, up to an hour: the whole step moves. A push step also says how it sounds and whether it repeats: see [Push rules](#push-rules).
 
 ### Save it
 
-Click **Save Ladder**. It writes the same rules into every card of every tab: the rules you would add to each card by hand.
+Click **Save Changes**, which shows once something has changed. It writes the same rules into every card of every tab: the rules you would add to each card by hand.
 :::
 
 **Test your pages**, at the foot of the page, sends you a test page through them.
 
-When a severity deserves something else, **Different for Some Severities** opens the tabs and cards described below. A card that differs from your ladder is marked **Differs from the ladder**, and the ladder lists what each one does instead. If your rules already differ, the page opens on the cards, with **Use One Ladder for Everything**: saving it first names the cards that lose their difference. A severity your project archived keeps its own rules.
+When a severity deserves something else, **Different for Some Severities**, under the steps, opens the tabs and cards described below. A card that differs from your ladder is marked **Differs from the ladder**, and the ladder lists what each one does instead. If your rules already differ, the page opens on the cards, with **Use One Ladder for Everything**: saving it first names the cards that lose their difference. A severity your project archived keeps its own rules.
 
 An on-call policy decides who is paged and when its next level is. How you are reached is this ladder, for every policy that pages you.
 
@@ -121,7 +121,7 @@ A push rule, for a phone or a browser, can also send its push again until someon
 
 ## When a severity has no rule
 
-A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays. If you had no rules on that tab, it gets your verified email, at once.
+A severity your project adds later gets rules within a few minutes, made from the choices you already made on that tab: the same methods, after the same delays, and a push that sounds and repeats the same way. If you had no rules on that tab, it gets your verified email, at once.
 
 A page that still finds no rule is sent to your verified methods anyway, and you are emailed about it; see [When no rule matches](/docs/notifications/index#when-no-rule-matches).
 

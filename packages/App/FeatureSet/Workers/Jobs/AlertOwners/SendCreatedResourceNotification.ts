@@ -39,69 +39,70 @@ RunCron(
   "AlertOwner:SendCreatedResourceEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
-    // get all scheduled events of all the projects.
-    const alerts: Array<Alert> = await AlertService.findAllBy({
-      query: {
-        isOwnerNotifiedOfAlertCreation: false,
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
-      select: {
-        _id: true,
-        title: true,
-        description: true,
-        projectId: true,
-        monitorId: true,
-        project: {
-          name: true,
-        } as Select<Project>,
-        remediationNotes: true,
-        currentAlertState: {
-          name: true,
-          color: true,
-        } as Select<AlertState>,
-        alertSeverity: {
-          name: true,
+    /*
+     * Every alert whose owners are due to hear that it was created: let go
+     * once its owners were in, a minute after its create, or held so long
+     * that nobody will let it go (AlertService.findCreatedNotificationsDue,
+     * CreatedNotificationHold).
+     */
+    const alerts: Array<Alert> = await AlertService.findCreatedNotificationsDue(
+      {
+        now: OneUptimeDate.getCurrentDate(),
+        select: {
+          _id: true,
+          title: true,
+          description: true,
+          projectId: true,
+          monitorId: true,
+          project: {
+            name: true,
+          } as Select<Project>,
+          remediationNotes: true,
+          currentAlertState: {
+            name: true,
+            color: true,
+          } as Select<AlertState>,
+          alertSeverity: {
+            name: true,
+            /*
+             * The severity's OWN colour, so the badge is the severity the
+             * project defined rather than a guess from its sort order. A
+             * project may define any number of severities with any names.
+             */
+            color: true,
+          },
+          rootCause: true,
+          monitor: {
+            name: true,
+          },
+          createdByProbe: {
+            name: true,
+          },
+          createdByUser: {
+            name: true,
+            email: true,
+          },
+          alertNumber: true,
+          alertNumberWithPrefix: true,
           /*
-           * The severity's OWN colour, so the badge is the severity the
-           * project defined rather than a guess from its sort order. A
-           * project may define any number of severities with any names.
+           * The attribute key/values that identify the series this alert was
+           * raised for, e.g. {resource.k8s.pod.name: checkout-7d9f-2xk}.
+           * Without selecting it the email had no way to name the thing that
+           * actually broke, and fell back to printing the monitor's own name
+           * as the "Resources Affected".
            */
-          color: true,
+          seriesLabels: true,
+          /*
+           * The identity of the CONDITION that fired: which criteria, and for a
+           * grouped metric monitor which series. This is the same pair
+           * MonitorAlert dedupes an already-open alert on, so counting rows
+           * that share it counts re-fires of THIS condition and nothing else.
+           */
+          seriesFingerprint: true,
+          createdCriteriaId: true,
         },
-        rootCause: true,
-        monitor: {
-          name: true,
-        },
-        createdByProbe: {
-          name: true,
-        },
-        createdByUser: {
-          name: true,
-          email: true,
-        },
-        alertNumber: true,
-        alertNumberWithPrefix: true,
-        /*
-         * The attribute key/values that identify the series this alert was
-         * raised for, e.g. {resource.k8s.pod.name: checkout-7d9f-2xk}.
-         * Without selecting it the email had no way to name the thing that
-         * actually broke, and fell back to printing the monitor's own name
-         * as the "Resources Affected".
-         */
-        seriesLabels: true,
-        /*
-         * The identity of the CONDITION that fired: which criteria, and for a
-         * grouped metric monitor which series. This is the same pair
-         * MonitorAlert dedupes an already-open alert on, so counting rows
-         * that share it counts re-fires of THIS condition and nothing else.
-         */
-        seriesFingerprint: true,
-        createdCriteriaId: true,
       },
-    });
+    );
 
     for (const alert of alerts) {
       const projectId: ObjectID = alert.projectId!;
@@ -110,17 +111,17 @@ RunCron(
       /*
        * Mark the alert as notified first (matching the MonitorOwner worker) so
        * that a failure while building or sending the notification below can
-       * never cause this alert to be re-picked on every cron run.
+       * never cause this alert to be re-picked on every cron run. Marked only
+       * while it is as it was read: one another run took, or its create let
+       * go of meanwhile, is not this run's to send (the next run reads the
+       * one let go again) - so its owners are told once.
        */
-      await AlertService.updateOneById({
-        id: alert.id!,
-        data: {
-          isOwnerNotifiedOfAlertCreation: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const isTaken: boolean =
+        await AlertService.takeCreatedNotification(alert);
+
+      if (!isTaken) {
+        continue;
+      }
 
       let moreAlertFeedInformationInMarkdown: string = "";
 

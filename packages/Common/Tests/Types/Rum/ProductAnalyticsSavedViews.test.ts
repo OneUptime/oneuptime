@@ -695,3 +695,143 @@ describe("whether two definitions read the same", () => {
     ).toBe(false);
   });
 });
+
+/*
+ * #8018: a page is kept in one spelling since #7983 ("/caf%C3%A9"), but a
+ * funnel or a retention table saved before that names a page in the
+ * spelling its rows had ("/caf%c3%a9", "/cafe%CC%81"). A stored definition
+ * is not rewritten: every reader - the pages, the widgets, the server's
+ * own check before it keeps one - reads it here, so its pages are read in
+ * the one spelling, and the next save keeps that spelling.
+ */
+describe("a saved view from before a page had one spelling", () => {
+  const OLD_CAFE: ProductAnalyticsEventRef = {
+    kind: ProductAnalyticsEventKind.Page,
+    name: "/caf%c3%a9",
+  };
+  const CAFE: ProductAnalyticsEventRef = {
+    kind: ProductAnalyticsEventKind.Page,
+    name: "/caf%C3%A9",
+  };
+  const OLD_MENU_FILTER: ProductAnalyticsSegmentFilter = {
+    field: ProductAnalyticsEventField.Page,
+    key: "",
+    value: "/menu%CC%88",
+  };
+  const MENU_FILTER: ProductAnalyticsSegmentFilter = {
+    field: ProductAnalyticsEventField.Page,
+    key: "",
+    value: "/men%C3%BC",
+  };
+
+  test("a saved funnel opens on the page's one spelling, steps and segment", () => {
+    const read: ProductAnalyticsDefinitionRead<ProductAnalyticsFunnelDefinition> =
+      readFunnel({
+        steps: [
+          SESSION,
+          OLD_CAFE,
+          { kind: ProductAnalyticsEventKind.Page, name: "/cafe%CC%81/order" },
+          SIGN_UP,
+        ],
+        filters: [OLD_MENU_FILTER, PLAN_FILTER],
+      });
+
+    expect(read.problem).toBeNull();
+    expect(read.definition).toEqual({
+      steps: [
+        SESSION,
+        CAFE,
+        { kind: ProductAnalyticsEventKind.Page, name: "/caf%C3%A9/order" },
+        SIGN_UP,
+      ],
+      windowMs: DEFAULT_PRODUCT_ANALYTICS_FUNNEL_WINDOW_MS,
+      filters: [MENU_FILTER, PLAN_FILTER],
+    });
+  });
+
+  test("a saved retention table opens on the page's one spelling", () => {
+    expect(
+      readRetention({
+        startEvent: OLD_CAFE,
+        returnEvent: { kind: ProductAnalyticsEventKind.Page, name: "/café" },
+        filters: [OLD_MENU_FILTER],
+      }).definition,
+    ).toEqual({
+      startEvent: CAFE,
+      returnEvent: CAFE,
+      period: ProductAnalyticsRetentionPeriod.Week,
+      filters: [MENU_FILTER],
+    });
+  });
+
+  test("reads as the same definition as the one the page shows now", () => {
+    const stored: ProductAnalyticsFunnelDefinition = readFunnel({
+      steps: [OLD_CAFE, SIGN_UP],
+      filters: [OLD_MENU_FILTER],
+    }).definition!;
+    const onScreen: ProductAnalyticsFunnelDefinition = readFunnel({
+      steps: [CAFE, SIGN_UP],
+      filters: [MENU_FILTER],
+    }).definition!;
+
+    expect(isSameProductAnalyticsDefinition(stored, onScreen)).toBe(true);
+    // Read again, nothing changes: the spelling is settled.
+    expect(readFunnel(stored).definition).toEqual(stored);
+  });
+
+  test("keeps what names another page, and the names of the application's own events, as written", () => {
+    expect(
+      readFunnel({
+        steps: [
+          { kind: ProductAnalyticsEventKind.Page, name: "/a%2fb" },
+          { kind: ProductAnalyticsEventKind.Page, name: "/Cart" },
+          { kind: ProductAnalyticsEventKind.Custom, name: "Caf%c3%a9 opened" },
+        ],
+        filters: [
+          {
+            field: ProductAnalyticsEventField.Property,
+            key: "page",
+            value: "/caf%c3%a9",
+          },
+          { field: ProductAnalyticsEventField.Page, key: "", value: "" },
+        ],
+      }).definition,
+    ).toEqual({
+      steps: [
+        { kind: ProductAnalyticsEventKind.Page, name: "/a%2Fb" },
+        { kind: ProductAnalyticsEventKind.Page, name: "/Cart" },
+        { kind: ProductAnalyticsEventKind.Custom, name: "Caf%c3%a9 opened" },
+      ],
+      windowMs: DEFAULT_PRODUCT_ANALYTICS_FUNNEL_WINDOW_MS,
+      filters: [
+        {
+          field: ProductAnalyticsEventField.Property,
+          key: "page",
+          value: "/caf%c3%a9",
+        },
+        // No page at all is still no page.
+        { field: ProductAnalyticsEventField.Page, key: "", value: "" },
+      ],
+    });
+  });
+
+  test("a page segment stays within the value's cap once spelled", () => {
+    const value: string = (
+      readFunnel({
+        steps: [SIGN_UP, PURCHASED],
+        filters: [
+          {
+            field: ProductAnalyticsEventField.Page,
+            key: "",
+            value: `/${"é".repeat(PRODUCT_ANALYTICS_MAX_SEGMENT_VALUE_LENGTH)}`,
+          },
+        ],
+      }).definition as ProductAnalyticsFunnelDefinition
+    ).filters[0]!.value;
+
+    expect(value.length).toBeLessThanOrEqual(
+      PRODUCT_ANALYTICS_MAX_SEGMENT_VALUE_LENGTH,
+    );
+    expect(value.startsWith("/%C3%A9%C3%A9")).toBe(true);
+  });
+});

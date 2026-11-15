@@ -10,6 +10,12 @@ import {
   ProductAnalyticsWireEvent,
   parseProductAnalyticsBatch,
 } from "Common/Types/Rum/ProductAnalyticsEvents";
+import {
+  CAFE_PAGE,
+  CAFE_SPELLINGS,
+  PAGE_SPELLINGS,
+  PageSpellingCase,
+} from "Common/Tests/Helpers/PageSpellings";
 import { DebugRecord, clearDebugRecords, getDebugRecords } from "../src/Debug";
 import ProductAnalytics, {
   ProductAnalyticsHost,
@@ -540,6 +546,73 @@ describe("ProductAnalytics", (): void => {
       expect(at("/app/", "#!/orders/7?tab=1")).toBe("/app/orders/7");
       expect(at("/app", "#/settings")).toBe("/app/settings");
       expect(at("/", "#/users/1234567890")).not.toContain("1234567890");
+    });
+
+    /*
+     * #8017: the recorder and the server keep a page in one spelling, so
+     * the page the recorder names and the one the ingest stores for what
+     * an older recorder sent are the same page. The server's suite reads
+     * the same table (Common Tests/Helpers/PageSpellings).
+     */
+    it.each(
+      PAGE_SPELLINGS.map(
+        (row: PageSpellingCase): [string, PageSpellingCase] => {
+          return [row.name, row];
+        },
+      ),
+    )(
+      "names the page in its one spelling: %s",
+      (_name: string, row: PageSpellingCase): void => {
+        const page: string = readProductAnalyticsPage(row.location as Location);
+
+        expect(page).toBe(row.page);
+
+        // What the server keeps of what this recorder sent: the same page.
+        const parsed: ProductAnalyticsBatchParseResult =
+          parseProductAnalyticsBatch(
+            {
+              v: PRODUCT_ANALYTICS_WIRE_VERSION,
+              batchId: "d".repeat(32),
+              sessionId: SESSION_A,
+              visitorId: VISITOR,
+              consentState: "NotRequired",
+              sentAt: Date.now(),
+              context: {
+                deviceType: "desktop",
+                browserName: "Chrome",
+                osName: "Linux",
+                appVersion: "",
+              },
+              events: [
+                {
+                  kind: ProductAnalyticsEventKind.Page,
+                  name: page,
+                  at: Date.now(),
+                  page: page,
+                },
+              ],
+              metrics: [],
+            },
+            { receivedAtUnixMs: Date.now(), allowedUserPropertyKeys: [] },
+          );
+
+        expect(parsed.isValid && parsed.batch.events[0]).toMatchObject({
+          name: row.page,
+          page: row.page,
+        });
+      },
+    );
+
+    it("names a page one way however its address was spelled", (): void => {
+      const pages: Set<string> = new Set<string>(
+        PAGE_SPELLINGS.filter((row: PageSpellingCase): boolean => {
+          return CAFE_SPELLINGS.includes(row.sent);
+        }).map((row: PageSpellingCase): string => {
+          return readProductAnalyticsPage(row.location as Location);
+        }),
+      );
+
+      expect(Array.from(pages)).toEqual([CAFE_PAGE]);
     });
   });
 
