@@ -1,13 +1,14 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
-  BURN_RATE_RULE_FORM_FIELDS,
   BURN_RATE_RULE_FORM_STEPS,
   BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE,
   describeBurnRateOutputOptions,
   describeBurnRateOutputs,
+  getBurnRateRuleFormFields,
   willCreateAlert,
   willDeclareIncident,
 } from "../Utils/BurnRateRuleForm";
+import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import SloRecommendedBurnRateRulesBanner from "../../../Components/Slo/SloRecommendedBurnRateRulesBanner";
 import SloRecommendedBurnRateRulesModal from "../../../Components/Slo/SloRecommendedBurnRateRulesModal";
@@ -56,6 +57,7 @@ import { StateListType } from "Common/Utils/StateOrder";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
   BurnRateRuleWindowsText,
+  formatBurnRateRuleMinimumRequests,
   formatBurnRateRuleWindows,
   getNamesOrNothingPicked,
   getSeverityOrNothingPicked,
@@ -271,6 +273,12 @@ const SloBurnRateRules: FunctionComponent<
   const [isArchived, setIsArchived] = useState<boolean | null>(null);
 
   /*
+   * A request SLO's rules can skip a quiet window (#8442): its form asks
+   * for Minimum Requests, and the table says a rule's minimum.
+   */
+  const [isRequestSlo, setIsRequestSlo] = useState<boolean>(false);
+
+  /*
    * "Add recommended rules": offered in a note above the table while the SLO
    * is missing one of the rules OneUptime recommends (an SLO created before
    * Slow leak existed, or one whose rule was deleted), with a confirmation
@@ -321,12 +329,14 @@ const SloBurnRateRules: FunctionComponent<
               isEnabled: true,
               sloStatus: true,
               isArchived: true,
+              sliType: true,
             },
           });
 
         if (!cancelled && slo) {
           setCanFire(canSloFireBurnRateRules(slo));
           setIsArchived(slo.isArchived === true);
+          setIsRequestSlo(isRequestSliType(slo.sliType));
         }
       } catch {
         // Keep the optimistic default; the notice banner owns real errors.
@@ -415,7 +425,7 @@ const SloBurnRateRules: FunctionComponent<
         ]}
         createEditModalWidth={ModalWidth.Large}
         formSteps={BURN_RATE_RULE_FORM_STEPS}
-        formFields={BURN_RATE_RULE_FORM_FIELDS}
+        formFields={getBurnRateRuleFormFields({ isRequestSlo: isRequestSlo })}
         columns={[
           {
             field: {
@@ -458,12 +468,30 @@ const SloBurnRateRules: FunctionComponent<
               const windows: BurnRateRuleWindowsText =
                 formatBurnRateRuleWindows(item, translator);
 
+              // "At least 100 requests", for a request SLO's rule that has one.
+              const minimumRequests: string | null = isRequestSlo
+                ? formatBurnRateRuleMinimumRequests(
+                    item.minimumSampleCount,
+                    translator,
+                  )
+                : null;
+
               return (
                 <div>
                   <div className="text-sm text-gray-900">{windows.windows}</div>
                   <div className="text-xs text-gray-500">
                     {windows.suppression}
                   </div>
+                  {minimumRequests ? (
+                    <div
+                      className="text-xs text-gray-500"
+                      data-testid="burn-rate-rule-minimum-requests"
+                    >
+                      {minimumRequests}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             },
@@ -807,6 +835,8 @@ const SloBurnRateRules: FunctionComponent<
         selectMoreFields={{
           shortWindowInMinutes: true,
           refireSuppressionMinutes: true,
+          // A request SLO's "At least 100 requests" (#8442).
+          minimumSampleCount: true,
           shouldCreateIncident: true,
           isAlertPrivate: true,
           autoResolveAlert: true,
