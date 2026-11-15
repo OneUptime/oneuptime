@@ -25,7 +25,19 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * What a new project costs, on OneUptime Cloud, said where it is true: a
+ * project needs no card on any plan, but on the Free plan checking a
+ * website does - the first thing most people do (#8246). It said "No
+ * credit card required." after "A project holds your monitors...", which
+ * read as monitors being free. Short, beside the sentence before it: the
+ * empty state's description holds 150 characters.
+ */
+export const WELCOME_CARD_LINE: string = translationKey(
+  "A project needs no card. On the Free plan, checking a website needs a payment method.",
+);
 
 export interface ComponentProps extends PageComponentProps {
   onClickShowProjectModal: () => void;
@@ -167,10 +179,14 @@ const Welcome: FunctionComponent<ComponentProps> = (
               {translator.translateText(
                 "A project holds your monitors, incidents, status pages and team.",
               )}{" "}
+              {/*
+               * OneUptime Cloud only: a self-hosted server never asks for a
+               * card. A project needs none, on any plan; checking a website
+               * does on the Free plan, so the line says where "no card"
+               * stops being true (#8246).
+               */}
               {BILLING_ENABLED && (
-                <span>
-                  {translator.translateText("No credit card required.")}
-                </span>
+                <span>{translator.translateText(WELCOME_CARD_LINE)}</span>
               )}
             </>
           }

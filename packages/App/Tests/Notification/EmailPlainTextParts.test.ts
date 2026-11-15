@@ -88,9 +88,15 @@ jest.mock("../../FeatureSet/Notification/Config", () => {
   };
 });
 
+/*
+ * OneUptime Cloud (billing on): its emails end with OneUptime's support, as
+ * the invitation's text below does. A self-hosted server's name its admin
+ * instead (SelfHostedEmailHelpLine).
+ */
 jest.mock("Common/Server/EnvironmentConfig", () => {
   return {
     IsDevelopment: false,
+    IsBillingEnabled: true,
     Host: "oneuptime.example.test",
     HttpProtocol: "https://",
   };
