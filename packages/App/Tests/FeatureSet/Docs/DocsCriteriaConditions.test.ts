@@ -197,7 +197,9 @@ describe("the conditions this suite reads", () => {
       readDashboardSource("Utils/Form/Monitor/CriteriaFilter.ts"),
     ).not.toContain("isUserContent");
     expect(
-      responseTime.some((option: { isUserContent?: boolean }): boolean => {
+      CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
+        CheckOn.ResponseTime,
+      ).some((option: { isUserContent?: boolean | undefined }): boolean => {
         return option.isUserContent === true;
       }),
     ).toBe(false);
