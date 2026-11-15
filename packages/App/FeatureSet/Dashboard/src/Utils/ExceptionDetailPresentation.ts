@@ -1,6 +1,7 @@
 import {
-  getNumberLocale,
+  formatRelativeAmount,
   getReaderNumberLocale,
+  RelativeDateUnit,
 } from "Common/Types/DateLanguage";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -66,24 +67,25 @@ export function formatRelativeTime(
 
   const diffMs: number = now.getTime() - date.getTime();
   const absMs: number = Math.abs(diffMs);
+  // Intl's words, the number held to its unit ("vor 5 Minuten", #8456).
   const inReadersWords: (
     count: number,
-    unit: Intl.RelativeTimeFormatUnit,
+    unit: RelativeDateUnit,
   ) => string | null = (
     count: number,
-    unit: Intl.RelativeTimeFormatUnit,
+    unit: RelativeDateUnit,
   ): string | null => {
     if (!language || language.toLowerCase().startsWith("en")) {
       return null;
     }
 
-    try {
-      return new Intl.RelativeTimeFormat(getNumberLocale(language), {
-        numeric: "auto",
-      }).format(diffMs >= 0 ? -count : count, unit);
-    } catch {
-      return null;
-    }
+    return formatRelativeAmount({
+      count: count,
+      unit: unit,
+      isFuture: diffMs < 0,
+      locale: language,
+      numeric: "auto",
+    });
   };
 
   if (absMs < 45 * SECOND_MS) {

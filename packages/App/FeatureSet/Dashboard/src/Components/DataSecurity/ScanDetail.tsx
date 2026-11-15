@@ -1,6 +1,8 @@
 import {
-  getNumberLocale,
+  formatReaderNumber,
+  formatUnitAmount,
   getReaderNumberLocale,
+  UnitAmount,
 } from "Common/Types/DateLanguage";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import {
@@ -73,6 +75,42 @@ const BYTE_UNITS: ReadonlyArray<string> = [
   "petabyte",
 ];
 
+/*
+ * An amount of `unit` in the reader's language, the number held to its
+ * unit (formatUnitAmount): in `language`, else the page's own, else the
+ * number in the page's digits beside the unit's symbol.
+ */
+const writeScanAmount: (data: {
+  value: number;
+  unit: string;
+  symbol: string;
+  maximumFractionDigits: number;
+  language: string;
+}) => string = (data: {
+  value: number;
+  unit: string;
+  symbol: string;
+  maximumFractionDigits: number;
+  language: string;
+}): string => {
+  const amount: Omit<UnitAmount, "locale"> = {
+    value: data.value,
+    unit: data.unit,
+    unitDisplay: "short",
+    maximumFractionDigits: data.maximumFractionDigits,
+  };
+
+  return (
+    formatUnitAmount({ ...amount, locale: data.language }) ||
+    formatUnitAmount({ ...amount, locale: getReaderNumberLocale() }) ||
+    `${formatReaderNumber(data.value, {
+      maximumFractionDigits: data.maximumFractionDigits,
+    })} ${data.symbol}`
+  );
+};
+
+const BYTE_SYMBOLS: ReadonlyArray<string> = ["B", "kB", "MB", "GB", "TB", "PB"];
+
 // Bytes as the reader's language writes them: "4.2 MB", "4,2 MB".
 export function formatScanBytes(bytes: number, language: string): string {
   let value: number = Math.max(0, bytes);
@@ -83,22 +121,13 @@ export function formatScanBytes(bytes: number, language: string): string {
     unit++;
   }
 
-  const options: Intl.NumberFormatOptions = {
-    style: "unit",
+  return writeScanAmount({
+    value: value,
     unit: BYTE_UNITS[unit] || "byte",
-    unitDisplay: "short",
+    symbol: BYTE_SYMBOLS[unit] || "B",
     maximumFractionDigits: unit > 0 && value < 10 ? 1 : 0,
-  };
-
-  try {
-    return new Intl.NumberFormat(getNumberLocale(language), options).format(
-      value,
-    );
-  } catch {
-    return new Intl.NumberFormat(getReaderNumberLocale(), options).format(
-      value,
-    );
-  }
+    language: language,
+  });
 }
 
 // How long a scan took: "850 ms" under a second, "2m 5s" in English after.
@@ -107,22 +136,13 @@ export function formatScanDuration(
   language: string,
 ): string {
   if (durationInMs < 1000) {
-    const options: Intl.NumberFormatOptions = {
-      style: "unit",
+    return writeScanAmount({
+      value: durationInMs,
       unit: "millisecond",
-      unitDisplay: "short",
+      symbol: "ms",
       maximumFractionDigits: 0,
-    };
-
-    try {
-      return new Intl.NumberFormat(getNumberLocale(language), options).format(
-        durationInMs,
-      );
-    } catch {
-      return new Intl.NumberFormat(getReaderNumberLocale(), options).format(
-        durationInMs,
-      );
-    }
+      language: language,
+    });
   }
 
   return formatDurationCompactInLanguage(

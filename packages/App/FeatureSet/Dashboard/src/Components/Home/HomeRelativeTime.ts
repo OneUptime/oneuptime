@@ -1,4 +1,7 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  formatRelativeAmount,
+  RelativeDateUnit,
+} from "Common/Types/DateLanguage";
 /*
  * "2 hours ago", "in 3 days", "vor 2 Stunden", "dans 3 jours" - the times
  * Home puts next to an incident, a maintenance window or the last refresh.
@@ -15,7 +18,7 @@ import { getNumberLocale } from "Common/Types/DateLanguage";
 export interface RelativeTimeParts {
   // Negative for the past, positive for the future: format(-2, "hour").
   value: number;
-  unit: Intl.RelativeTimeFormatUnit;
+  unit: RelativeDateUnit;
 }
 
 const SECOND_IN_MS: number = 1000;
@@ -102,9 +105,11 @@ const formatInEnglish: (parts: RelativeTimeParts) => string = (
 
 /*
  * A time already put in a unit, in the reader's language: Intl's words,
- * plural forms and digits (getNumberLocale), or English where Intl cannot.
- * For a caller that puts a time in its unit its own way - a note's age, in
- * whole minutes and hours - and says it as Home does.
+ * plural forms and digits (formatRelativeAmount, the number held to its
+ * unit: "vor 2 Stunden", "2 hours ago", #8456), or English
+ * where Intl cannot. For a caller that puts a time in its unit its own
+ * way - a note's age, in whole minutes and hours - and says it as Home
+ * does.
  */
 export const formatRelativeTimeParts: (data: {
   parts: RelativeTimeParts;
@@ -113,13 +118,15 @@ export const formatRelativeTimeParts: (data: {
   parts: RelativeTimeParts;
   language?: string | undefined;
 }): string => {
-  try {
-    return new Intl.RelativeTimeFormat(getNumberLocale(data.language || "en"), {
+  return (
+    formatRelativeAmount({
+      count: Math.abs(data.parts.value),
+      unit: data.parts.unit,
+      isFuture: data.parts.value > 0,
+      locale: data.language || "en",
       numeric: "auto",
-    }).format(data.parts.value, data.parts.unit);
-  } catch {
-    return formatInEnglish(data.parts);
-  }
+    }) || formatInEnglish(data.parts)
+  );
 };
 
 export const formatRelativeTime: (data: {
