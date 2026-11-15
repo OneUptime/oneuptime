@@ -34,9 +34,10 @@ export default abstract class IO {
 
     this.socketServer = new SocketIO.Server(server, {
       path: RealtimeRoute.toString(),
+      // A constructor of the namespace, as socket.io makes its adapters.
       adapter: createSocketIOClusterAdapter({
         bus: new ValkeySocketIOClusterBus(),
-      }),
+      }) as unknown as SocketIO.ServerOptions["adapter"],
     });
   }
 

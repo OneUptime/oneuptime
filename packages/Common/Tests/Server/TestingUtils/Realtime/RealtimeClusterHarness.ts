@@ -268,14 +268,17 @@ export async function startClusterServer(data: {
   channel?: string | undefined;
 }): Promise<ClusterServer> {
   const holder: { io: SocketIOServer | null } = { io: null };
-  let modules: {
+  interface ServerModules {
     realtime: typeof RealtimeType;
     sessions: typeof RealtimeSessionsType;
     readers: typeof RealtimeReadersType;
     changes: typeof RealtimeAccessChangesType;
     cluster: typeof SocketIOClusterModule;
     redis: typeof RedisType;
-  } | null = null;
+  }
+
+  // What the isolated registry loads, kept on an object a closure can fill.
+  const holderOfModules: { loaded?: ServerModules } = {};
 
   jest.isolateModules((): void => {
     jest.doMock("../../../../Server/Infrastructure/SocketIO", () => {
@@ -290,7 +293,7 @@ export async function startClusterServer(data: {
     });
 
     /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-    modules = {
+    holderOfModules.loaded = {
       redis: require("../../../../Server/Infrastructure/Redis").default,
       cluster: require("../../../../Server/Infrastructure/SocketIOCluster"),
       realtime: require("../../../../Server/Utils/Realtime").default,
@@ -305,7 +308,7 @@ export async function startClusterServer(data: {
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
   });
 
-  const loaded: NonNullable<typeof modules> = modules!;
+  const loaded: ServerModules = holderOfModules.loaded!;
 
   if (data.redisClient) {
     jest
