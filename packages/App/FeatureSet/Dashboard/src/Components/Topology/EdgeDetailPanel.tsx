@@ -50,7 +50,11 @@ import OneUptimeDate from "Common/Types/Date";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -120,6 +124,13 @@ interface TimeseriesResult {
  * server time (UTC in our deployments); normalize to ISO-UTC so the Date
  * doesn't get reinterpreted in the viewer's local timezone.
  */
+/*
+ * A link to one end's traces, named with the service where the reader's
+ * language puts it: Japanese names it first ("{{name}} のトレース"). It read
+ * "Traces for" and then the name in every language (#8290).
+ */
+export const TRACES_FOR_SERVICE: string = translationKey("Traces for {{name}}");
+
 const NAIVE_DATETIME_REGEX: RegExp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
 
 function parseBucketStart(value: string): Date {
@@ -728,7 +739,9 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                     )}
                     className="font-medium text-indigo-600 hover:text-indigo-800"
                   >
-                    {translateString("Traces for") || ""} {fromName}
+                    {translator.translateTemplate(TRACES_FOR_SERVICE, {
+                      name: fromName,
+                    })}
                   </Link>
                 </li>
               )}
@@ -741,7 +754,9 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                     )}
                     className="font-medium text-indigo-600 hover:text-indigo-800"
                   >
-                    {translateString("Traces for") || ""} {toName}
+                    {translator.translateTemplate(TRACES_FOR_SERVICE, {
+                      name: toName,
+                    })}
                   </Link>
                 </li>
               )}

@@ -619,9 +619,14 @@ describe("the shared components, from the shipped locales", () => {
     const text: string = inLocale(german, eventItem());
 
     expect(screen.getByText("Betroffene Ressourcen")).toBeInTheDocument();
-    expect(screen.getByText("Status geändert auf")).toBeInTheDocument();
+    // A change of state and its date, each one sentence (#8290).
+    expect(screen.getByTestId("event-item-state-change")).toHaveTextContent(
+      /^Incident: Status geändert auf /,
+    );
     expect(screen.getByText("Update zu diesem Incident")).toBeInTheDocument();
-    expect(screen.getByText(/^veröffentlicht am /)).toBeInTheDocument();
+    expect(screen.getByTestId("event-item-posted-on")).toHaveTextContent(
+      /^veröffentlicht am \S/,
+    );
     expect(screen.getByText("Incident ansehen")).toBeInTheDocument();
     expect(text).not.toContain("eventItem.");
   });
