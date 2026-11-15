@@ -439,7 +439,7 @@ describe("a log recording rule grouped by an attribute named like what every obj
   });
 });
 
-describe("an OTLP entity_ref whose id or description keys are named like what every object inherits (TelemetryEntity)", () => {
+describe("an OTLP entity_ref whose id or description keys are named like what every object inherits (InventoryItem.extractEntities)", () => {
   const PROJECT: string = PROJECT_ID.toString();
 
   function hostsFrom(
