@@ -25,10 +25,12 @@ const config = createConfig({
   publicPath: "/admin/dist/",
   additionalAlias: enterprise.alias,
   /*
-   * Utils/i18n.ts bundles every locale in src/Locales, and each ships whole,
-   * as its file holds it. The build adds one thing: a mark beside each plural
-   * "_one" form a language words as English does on purpose, by its
-   * same-as-English list (i18n/Progress/<code>.json). Unmarked, such a form
+   * The bundle gets only what a reader can tell apart, as the Dashboard's
+   * does: en.json (in the entry chunk) without the keys that map to
+   * themselves, and each lazily loaded locale (Utils/I18nLocaleLoader)
+   * without the strings the English fallback shows anyway (#8146). The
+   * same-as-English lists (i18n/Progress/<code>.json) mark the plural "_one"
+   * forms a language words as English does on purpose: unmarked, such a form
    * reads as English left in the file, and Portuguese at 0, which it counts
    * as one, says English's "0 monitors" (Common/UI/esbuild-locales.js).
    */
@@ -37,7 +39,6 @@ const config = createConfig({
       localesDirectory: path.join(__dirname, "src", "Locales"),
       fallbackLanguage: "en",
       progressDirectory: path.join(__dirname, "i18n", "Progress"),
-      shipsWholeLocales: true,
     }),
   ],
 });

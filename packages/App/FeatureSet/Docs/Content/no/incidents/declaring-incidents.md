@@ -119,7 +119,7 @@ Dette trinnet vises bare når minst ett egendefinert hendelsesfelt har **Vis ved
 
 ### Trinn 3 — Vakt og roller
 
-- **Vaktpolicy** — et flervalg av vaktretningslinjene som tilkalles så snart hendelsen er erklært. Det tilsvarer `onCallDutyPolicies` på hendelsen.
+- **Vaktpolicy** — et flervalg av vaktpolicyene som tilkalles så snart hendelsen er erklært. Det tilsvarer `onCallDutyPolicies` på hendelsen.
 - **Tildel hendelsesroller** — hvem som tar hver rolle prosjektet ditt definerer, ett kort per rolle. En rolle med merket **Primær** som du lar stå tom, er din: du tar den når hendelsen erklæres, og sammendraget sier det. En rolle for én person sier det når den har en; en rolle for flere beholder velgeren sin.
 
 Dette er det eneste stedet der en vaktpolicy knyttes direkte til en hendelse. Alvorlighetsgrader har ingen vaktpolicy — alvorlighetsgraden er en etikett, og den påvirker bare tilkalling som *treffkriterium* i en vaktregel. Regler som er satt opp under **Hendelser → Regler → Vaktregler**, legger policyene sine til på toppen av det du velger her; det endelige settet som kjører, er foreningen av begge uten duplikater. En hendelse som erklæres i en senere tilstand, kjører ingen av dem — se [Erklært allerede bekreftet eller løst](#erklært-allerede-bekreftet-eller-løst).
@@ -188,7 +188,7 @@ Hver hendelsesoppføring har:
 - **Hendelsestittel** — støtter maler; plassholderen foreslår noe som `{{monitorName}} is down`.
 - **Alvorlighetsgrad** — påkrevd.
 - **Hendelsesbeskrivelse** — også med maler.
-- **Vakt → Vaktretningslinjer** — policyene som kjøres når denne hendelsen opprettes.
+- **Vakt → Vaktpolicyer** — policyene som kjøres når denne hendelsen opprettes.
 - **Hendelsesroller** — hvem som tar hver rolle på hendelsen, valgt på de samme kortene som **Tildel hendelsesroller** på erklæringsskjemaet, ett per rolle. Vises når prosjektet ditt har hendelsesroller.
 - **Eierskap og etiketter → Eiere** (personer og team, valgt fra én liste), **Etiketter**.
 - **Flere felt → Løs hendelse automatisk** (løser hendelsen automatisk når kriteriene slutter å samsvare), **Vis hendelse på statussiden**, **Privat hendelse** og **Utbedringsnotater**.

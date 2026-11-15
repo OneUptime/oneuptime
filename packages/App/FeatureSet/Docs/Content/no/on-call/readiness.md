@@ -1,6 +1,6 @@
 # Beredskap og rapporter
 
-Beredskap svarer på et spørsmål før en hendelse gjør det: hvis noe gikk av akkurat nå, ville alle som vaktretningslinjene dine tilkaller, faktisk bli nådd? Siden viser hver mottaker i prosjektet, sier hvem som er klar og hvem som ikke er det, og lar deg minne folk på å gjøre ferdig oppsettet sitt. Rapporten **Brukerens vakttid** viser deretter hvor lenge hver person hadde vakt.
+Beredskap svarer på et spørsmål før en hendelse gjør det: hvis noe gikk av akkurat nå, ville alle som vaktpolicyene dine tilkaller, faktisk bli nådd? Siden viser hver mottaker i prosjektet, sier hvem som er klar og hvem som ikke er det, og lar deg minne folk på å gjøre ferdig oppsettet sitt. Rapporten **Brukerens vakttid** viser deretter hvor lenge hver person hadde vakt.
 
 :::cards
 - [Slik fastsettes en status](#slik-fastsettes-en-status): Klar, Needs setup eller Unreachable, og hvorfor.
@@ -13,7 +13,7 @@ Beredskap svarer på et spørsmål før en hendelse gjør det: hvis noe gikk av 
 
 ```mermaid title="Slik fastsettes statusen til en mottaker"
 flowchart TB
-    who["Noen en retningslinje<br/>kan tilkalle"] --> member{"Medlem av<br/>prosjektet?"}
+    who["Noen en policy<br/>kan tilkalle"] --> member{"Medlem av<br/>prosjektet?"}
     member -->|"Nei"| unreachable["Unreachable"]
     member -->|"Ja"| usable{"En verifisert metode<br/>på en aktiv kanal?"}
     usable -->|"Nei"| unreachable
@@ -22,7 +22,7 @@ flowchart TB
     rules -->|"Ja"| ready["Klar"]
 ```
 
-En mottaker er alle en vaktretningslinje kan tilkalle: en person som er nevnt i en eskaleringsregel, et medlem av et team en regel tilkaller, noen i et lag i en vaktplan en regel tilkaller, og personen som dekker i en brukeroverstyring som ikke har sluttet. En vaktplan som ingen retningslinje tilkaller, legger ikke til noen.
+En mottaker er alle en vaktpolicy kan tilkalle: en person som er nevnt i en eskaleringsregel, et medlem av et team en regel tilkaller, noen i et lag i en vaktplan en regel tilkaller, og personen som dekker i en brukeroverstyring som ikke har sluttet. En vaktplan som ingen policy tilkaller, legger ikke til noen.
 
 | Status | Hva den betyr |
 | --- | --- |
@@ -34,7 +34,7 @@ Et hull er en alvorlighetsgrad uten regel, på fanen for hendelser, hendelsesepi
 
 ## Siden Beredskap
 
-Åpne **Vakt → Beredskap**. Kortet **Vaktberedskap** viser alle som en vaktretningslinje i prosjektet kan nå, med dem som trenger noe først. Alle i prosjektet kan åpne den.
+Åpne **Vakt → Beredskap**. Kortet **Vaktberedskap** viser alle som en vaktpolicy i prosjektet kan nå, med dem som trenger noe først. Alle i prosjektet kan åpne den.
 
 Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Utilgjengelig**. Klikk på **Klar**, **Må settes opp** eller **Utilgjengelig** for å vise bare de mottakerne, og klikk igjen for å vise alle.
 
@@ -44,7 +44,7 @@ Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Util
 | **Status** | **Klar**, **Utilgjengelig** eller hvor mange hull personen har. |
 | **Kanaler** | Ett segment per kanal: fylt for en verifisert metode, hult for en som ikke er verifisert ennå. |
 | **Dekning** | Hvor mange alvorlighetsgrader som har en regel, på hver fane, av alle. |
-| **Nås via** | Hvordan retningslinjene når personen: hvert team som tilkaller personen gjennom en eskaleringsregel, med navnet sitt, eller **Direkte**, **Tidsplan** eller **Overstyring**. |
+| **Nås via** | Hvordan policyene når personen: hvert team som tilkaller personen gjennom en eskaleringsregel, med navnet sitt, eller **Direkte**, **Tidsplan** eller **Overstyring**. |
 
 **Dekning** i en rad viser varselmetodene til personen, hvorfor personen har statusen sin, og et rutenett over hver alvorlighetsgrad med eller uten regel. Trakten filtrerer listen etter **Mottaker**, **Status**, **Team** eller **Nås via**. Svaret kan være et minutt gammelt: **Oppdater** fastsetter det på nytt.
 
@@ -62,14 +62,14 @@ Et banner sier deretter hvor mange påminnelser som ble sendt, hoppet over eller
 
 ## Beredskap på andre sider
 
-- På **Oversikt** for en retningslinje viser **Mottakernes beredskap** alle som den retningslinjen kan tilkalle, og som trenger oppmerksomhet, og **Kontroller på nytt** leser det på nytt. Din egen rad har en knapp til siden som retter det; raden til noen andre åpner en e-post til dem i ditt eget e-postprogram, med løsningen i.
-- På **Eskaleringsregler** for en retningslinje sier et nivå fra på kortet sitt hvis ikke alle mottakerne kan tilkalles. Se [Eskaleringsoversikten](/docs/on-call/escalation-rules#eskaleringsoversikten).
+- På **Oversikt** for en policy viser **Mottakernes beredskap** alle som den policyen kan tilkalle, og som trenger oppmerksomhet, og **Kontroller på nytt** leser det på nytt. Din egen rad har en knapp til siden som retter det; raden til noen andre åpner en e-post til dem i ditt eget e-postprogram, med løsningen i.
+- På **Eskaleringsregler** for en policy sier et nivå fra på kortet sitt hvis ikke alle mottakerne kan tilkalles. Se [Eskaleringsoversikten](/docs/on-call/escalation-rules#eskaleringsoversikten).
 - Under **Brukere** åpner du et medlem, og deretter **Beredskap** i seksjonen **Vakt**: statusen, metodene og dekningsrutenettet til personen.
 - For ditt eget oppsett leder **Brukerinnstillinger → Oppsettsjekkliste** deg gjennom det. Se [Oppsettsjekklisten](/docs/notifications/index#oppsettsjekklisten).
 
 ## Den ukentlige e-posten om beredskap
 
-Én gang i uken sjekker OneUptime hvert prosjekt som har en vaktretningslinje. Er noen der **Utilgjengelig** eller **Må settes opp**, får eierne av prosjektet én e-post som viser dem i to grupper, hvem som ikke kan tilkalles i det hele tatt og hvem som kan nås med hull, opptil 20 navn i hver, med en lenke til siden Beredskap.
+Én gang i uken sjekker OneUptime hvert prosjekt som har en vaktpolicy. Er noen der **Utilgjengelig** eller **Må settes opp**, får eierne av prosjektet én e-post som viser dem i to grupper, hvem som ikke kan tilkalles i det hele tatt og hvem som kan nås med hull, opptil 20 navn i hver, med en lenke til siden Beredskap.
 
 En uke der alle er klare, sender ingenting, så e-posten betyr alltid at noe må rettes. Når noen ikke kan tilkalles i det hele tatt, starter emnet med `[Action Required]`.
 
@@ -82,7 +82,7 @@ En uke der alle er klare, sender ingenting, så e-posten betyr alltid at noe må
 | **Bruker** | Personen. |
 | **Tid brukeren var på vakt** | Tiden personen hadde vakt i tidsrommet, i timer og minutter. |
 
-Tiden registreres etter hvert som folk går på og av vakt: fra en vaktplan som en regel tilkaller, gir dem en vakt, eller de legges til i en regel direkte eller gjennom et team, til overleveringen eller til de tas av. Vakt gjennom to retningslinjer samtidig teller én gang, og tid som fortsatt pågår, teller frem til nå.
+Tiden registreres etter hvert som folk går på og av vakt: fra en vaktplan som en regel tilkaller, gir dem en vakt, eller de legges til i en regel direkte eller gjennom et team, til overleveringen eller til de tas av. Vakt gjennom to policyer samtidig teller én gang, og tid som fortsatt pågår, teller frem til nå.
 
 **Tidslinje for vaktplaner** og kalenderfeedene viser tidligere vakter slik rotasjonen er satt opp i dag. Denne rapporten skrives mens det skjer, så bruk den til rettferdig fordeling og vaktgodtgjørelse.
 
@@ -96,7 +96,7 @@ Metodene deres ligger kanskje alle på kanaler prosjektet har slått av: SMS, an
 :::
 
 :::details Noen mangler i listen
-Listen inneholder bare folk som en vaktretningslinje kan tilkalle. Et teammedlem som ikke har godtatt invitasjonen, noen i en vaktplan som ingen retningslinje tilkaller, og en som dekker i en overstyring som har sluttet, er utelatt.
+Listen inneholder bare folk som en vaktpolicy kan tilkalle. Et teammedlem som ikke har godtatt invitasjonen, noen i en vaktplan som ingen policy tilkaller, og en som dekker i en overstyring som har sluttet, er utelatt.
 :::
 
 :::details Eierne får aldri den ukentlige e-posten

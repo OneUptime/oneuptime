@@ -183,6 +183,14 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   { directory: "packages/Common/Utils/Slo/SloMetricType.ts", kind: "keys" },
   /*
+   * What the server stores as each monitor series' description, which the
+   * metrics list words under the series' name (#8356).
+   */
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorMetricUtil.ts",
+    kind: "keys",
+  },
+  /*
    * A duration in milliseconds in the reader's language ("{{value}} ms"):
    * the Dashboard's views and the overview's hero write it with one helper.
    */

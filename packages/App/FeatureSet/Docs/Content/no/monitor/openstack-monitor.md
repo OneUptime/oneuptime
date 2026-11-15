@@ -774,8 +774,8 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Passer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og oppretter hendelsen «_monitor name_ is offline», som løses av seg selv når monitoren gjenopprettes. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Setter monitoren til **I drift**. |
+| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og oppretter hendelsen «_monitornavn_ er frakoblet», som løses av seg selv når monitoren gjenopprettes. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Setter monitoren til **I drift**. |
 
 > [!IMPORTANT]
 > En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å varsle på en verdi starter du fra en mal eller legger til et kriterium med en terskel. Når ingen data kommer inn i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin og åpne hendelser forblir åpne: stillhet er ikke gjenoppretting. Tid da OneUptime selv ikke mottok data, er aldri ingen data: en sjekk hvis vindu inneholder den, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.

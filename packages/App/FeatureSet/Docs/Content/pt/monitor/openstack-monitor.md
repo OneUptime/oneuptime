@@ -774,8 +774,8 @@ Um monitor que você não monta a partir de um template começa com dois critér
 
 | Ordem | Critério | Corresponde quando | Então |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | A primeira consulta não tem dados durante toda a janela | Marca o monitor como **Offline** e declara o incidente "_monitor name_ is offline", que se resolve sozinho quando o monitor se recupera. |
-| 2 | Check if _monitor name_ is online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
+| 1 | Verificar se _nome do monitor_ está offline | A primeira consulta não tem dados durante toda a janela | Marca o monitor como **Offline** e declara o incidente "_nome do monitor_ está offline", que se resolve sozinho quando o monitor se recupera. |
+| 2 | Verificar se _nome do monitor_ está online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
 > Um valor `0` é dado, então uma métrica que costuma ser zero, como reinicializações ou erros, não deixa o monitor offline. Para alertar sobre um valor, comece de um template ou adicione um critério com um limite. Quando não chega nenhum dado e nenhum critério corresponde, o monitor mantém seu status e os incidentes abertos permanecem abertos: silêncio não é recuperação. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela o contém espera, como [Quando o OneUptime não está recebendo dados](/docs/monitor/when-oneuptime-is-not-receiving) explica.

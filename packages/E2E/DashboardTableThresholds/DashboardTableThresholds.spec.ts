@@ -309,7 +309,8 @@ const expectedCell: (
   column: ColumnUnderTest,
 ): { text: string; level: TableThresholdLevel | null } => {
   if (stored === null) {
-    return { text: "—", level: null };
+    // The quiet dash, with the words a screen reader hears (d8279c590b1).
+    return { text: "—Not set", level: null };
   }
 
   const shown: number = roundTableValue(stored * column.factor, 1);

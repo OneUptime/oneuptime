@@ -287,9 +287,22 @@ const codeOf: (text: string) => Array<string> = (
   });
 };
 
-// Every text a sampled line draws: the probes give each a wording of its own.
+/*
+ * Every text a sampled line draws: the probes give each a wording of its own.
+ * What the server stores as a host, SNMP, NTP and SLO series' description (#8356).
+ */
+const STORED_SAMPLE: Array<string> = [
+  "Total running processes on the server",
+  "1-minute load average",
+  "SNMP interface operational status (1 up, 0 down)",
+  "CPU Usage (in %) of Server/VM",
+  "NTP Is Synchronized status of this time server",
+  "How fast the error budget is being spent, measured over the trailing 60 minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
+];
+
 const SAMPLED_TEXTS: Array<string> = Array.from(
   new Set<string>([
+    ...STORED_SAMPLE,
     ...PICKERS.flatMap((picker: PickerCase): Array<string> => {
       return sampleOf(picker.metrics).map((metric: CatalogMetric): string => {
         return metric.description;
@@ -760,6 +773,42 @@ describe("a metric a monitor stored, in the metrics list", () => {
       expect(rowIn(probedI18n, language, metric.description)).toBe(
         probeOf(language, metric.description),
       );
+    },
+  );
+
+  /*
+   * What the server stores as a host, SNMP, NTP, probe or SLO series'
+   * description (#8356): written out whole and a key, so the row words it
+   * once in the reader's language.
+   */
+  test.each(LANGUAGES)(
+    "%s says what the server stored for a host, SNMP, NTP and SLO series in the reader's words",
+    (language: string) => {
+      const words: Record<string, string> = realWords(language);
+
+      for (const stored of STORED_SAMPLE) {
+        const shown: string = rowIn(dashboardI18n, language, stored);
+
+        expect({ stored, shown }).toEqual({
+          stored,
+          shown: words[stored] || stored,
+        });
+
+        if (language !== "en") {
+          expect({ stored, worded: shown !== stored }).toEqual({
+            stored,
+            worded: true,
+          });
+        }
+
+        cleanup();
+
+        expect(rowIn(probedI18n, language, stored)).toBe(
+          probeOf(language, stored),
+        );
+
+        cleanup();
+      }
     },
   );
 

@@ -64,13 +64,13 @@ Open **Filters & grouping**. **Filter by attributes** houdt de datapunten waarva
 
 ### De grafiek aanpassen
 
-Open **Display Settings** om het **Chart type** te kiezen (lijn, vlak of staaf), een **Warning Threshold** en een **Critical Threshold** in de grafiek te tekenen, of **Convert to per-second rate** aan te zetten.
+Open **Weergave-instellingen** om het **Grafiektype** te kiezen (lijn, vlak of staaf), een **Waarschuwingsdrempel** en een **Kritieke drempel** in de grafiek te tekenen, of **Omzetten naar snelheid per seconde** aan te zetten.
 :::
 
 > [!TIP]
-> Een teller die alleen maar stijgt, zoals `system.disk.io`, leest het best als snelheid. Zet **Convert to per-second rate** aan om te tonen hoe snel hij verandert in plaats van zijn lopende totaal; de verkenner stelt dat voor als hij zo'n teller herkent.
+> Een teller die alleen maar stijgt, zoals `system.disk.io`, leest het best als snelheid. Zet **Omzetten naar snelheid per seconde** aan om te tonen hoe snel hij verandert in plaats van zijn lopende totaal; de verkenner stelt dat voor als hij zo'n teller herkent.
 
-Elke query tekent zijn eigen grafiek. Om een query in dezelfde grafiek als de vorige te tekenen, zet u **Overlay with previous query** aan in de **Display Settings** ervan.
+Elke query tekent zijn eigen grafiek. Om een query in dezelfde grafiek als de vorige te tekenen, zet u **Over de vorige query leggen** aan in de **Weergave-instellingen** ervan.
 
 ## Query's combineren met een formule
 
@@ -195,7 +195,7 @@ Start de collector opnieuw. Elke service waarvan de traces erdoorheen gaan, vers
 ## Problemen oplossen
 
 :::details De grafiek van een teller stijgt alleen maar
-Het is een cumulatieve teller. Zet **Convert to per-second rate** aan in de **Display Settings** van de query.
+Het is een cumulatieve teller. Zet **Omzetten naar snelheid per seconde** aan in de **Weergave-instellingen** van de query.
 :::
 
 :::details De lijst meldt dat er geen metrieken zijn gevonden

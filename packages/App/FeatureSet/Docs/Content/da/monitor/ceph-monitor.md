@@ -244,8 +244,8 @@ En monitor, du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Matcher, når | Derefter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornavn_ is offline | Den første forespørgsel har ingen data i hele vinduet | Sætter monitoren til **Offline** og erklærer hændelsen "_monitornavn_ is offline", som løser sig selv, når monitoren kommer sig. |
-| 2 | Check if _monitornavn_ is online | Den første forespørgsel har data | Sætter monitoren til **I drift**. |
+| 1 | Tjek, om _monitornavn_ er offline | Den første forespørgsel har ingen data i hele vinduet | Sætter monitoren til **Offline** og erklærer hændelsen "_monitornavn_ er offline", som løser sig selv, når monitoren kommer sig. |
+| 2 | Tjek, om _monitornavn_ er online | Den første forespørgsel har data | Sætter monitoren til **I drift**. |
 
 > [!IMPORTANT]
 > En værdi på `0` er data, så en metrik, der ofte er nul, som genstarter eller fejl, gør ikke monitoren offline. For at få en advarsel om en værdi skal du starte fra en skabelon eller tilføje et kriterium med en tærskel. Når der slet ikke kommer data, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: stilhed er ikke en bedring. Tid, hvor OneUptime selv ikke modtog data, tæller aldrig som manglende data: en kontrol, hvis vindue indeholder den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
@@ -275,7 +275,7 @@ Et sundhedstjek, der aldrig er udløst, har ingen serie, `ceph_daemon_health_met
 :::
 
 :::details Tællere som ceph_pool_wr_bytes vokser kun
-Pools I/O-serier er tællere over hele levetiden, og kriterier sammenligner rå værdier: Der er ingen rate-operator, og **Convert to per-second rate** i forespørgselsbyggeren ændrer kun grafen. Vis dem som en rate, eller få alarm på deres vækst med en formel, såsom en **Maksimum**-forespørgsel minus en **Minimum**-forespørgsel af samme tæller.
+Pools I/O-serier er tællere over hele levetiden, og kriterier sammenligner rå værdier: Der er ingen rate-operator, og **Omregn til rate pr. sekund** i forespørgselsbyggeren ændrer kun grafen. Vis dem som en rate, eller få alarm på deres vækst med en formel, såsom en **Maksimum**-forespørgsel minus en **Minimum**-forespørgsel af samme tæller.
 :::
 
 ## Næste trin

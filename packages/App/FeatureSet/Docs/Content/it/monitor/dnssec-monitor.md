@@ -103,7 +103,7 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor DNSSEC parte con due criteri:
 
-- **Catena interrotta** — **Catena DNSSEC valida** è **Falso**. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ DNSSEC chain is broken». L'incidente si risolve da solo appena la catena torna valida.
+- **Catena interrotta** — **Catena DNSSEC valida** è **Falso**. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «La catena DNSSEC di _nome del monitor_ è interrotta». L'incidente si risolve da solo appena la catena torna valida.
 - **Catena valida** — il monitor viene segnato **Operativo**.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quando nessuno corrisponde, il monitor mostra il suo stato predefinito: **Operativo**, a meno che non ne scegliate un altro sotto **Altri campi**, sotto i criteri.
