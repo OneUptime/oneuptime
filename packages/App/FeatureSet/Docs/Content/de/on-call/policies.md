@@ -111,7 +111,7 @@ flowchart TB
 | Status | Was er bedeutet |
 | --- | --- |
 | **Wartet** | Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** lässt den Lauf warten, bis diese Zeiten beginnen: Er sagt, wann die Alarmierung beginnt, und alarmiert bis dahin niemanden. Er endet ohne Alarmierung, wenn der Vorfall oder die Warnung vorher bestätigt oder behoben wird. Er beginnt umgehend zu alarmieren, wenn sich der Vorfall oder die Warnung ändert und nun zu einer Bereitschaftsregel passt, die sofort alarmiert. |
-| **Geplant**, **Begonnen** | Der Lauf wird vorbereitet. Einer, der nach 5 Minuten noch hier steht, wird mit **Fehler** beendet. |
+| **Geplant**, **Begonnen** | Der Lauf wird vorbereitet. Einer, der nach 5 Minuten noch hier steht, ist nicht fertig gestartet: Er geht zu **Wird ausgeführt** über und alarmiert ab der Stelle, an der sein Start stehen blieb. Eine direkte Alarmierung oder eine Testalarmierung, die noch hier steht, wird mit **Fehler** beendet. |
 | **Wird ausgeführt** | Der Lauf alarmiert. OneUptime bringt ihn jede Minute einen Schritt weiter. |
 | **Ausführung abgeschlossen** | Jemand hat bestätigt, der Vorfall oder die Warnung wurde behoben, jede Regel und Wiederholung wurde genutzt, oder die Richtlinie wurde archiviert. |
 | **Ausführung abgeschlossen - niemand benachrichtigt** | Der Lauf ist durch jede Regel gegangen und hat niemanden alarmiert: meist ein Plan, in dem niemand Bereitschaft hat, oder eine Stufe ohne Empfänger. |
