@@ -87,11 +87,89 @@ export function formatRelativeTime(dateString: string): string {
   return `${years}y ago`;
 }
 
+/*
+ * HOW A TIME OF DAY'S HOUR IS WRITTEN.
+ *
+ * A 12-hour time has no leading zero in any language: "5:14 AM", "오전
+ * 5:14", "上午5:14", "5:14 am", "5:14 ص". A 24-hour one keeps it: "05:14".
+ * Intl writes the zero wherever it is asked for a two-digit hour, whatever
+ * the clock, so the app read "Nov 5, 05:14 AM" and "11월 5일 오전 05:14" on
+ * a 12-hour phone (issue #7650); asked for a numeric hour on a 24-hour clock
+ * it drops the zero in German, French, Japanese and most others ("5:14").
+ * So the hour follows the clock: "numeric" on a 12-hour one, "2-digit" on a
+ * 24-hour one - the rule the web Dashboard writes its times by
+ * (Common/Types/DateLanguage's getHourOption), copied here because the app
+ * imports only from its own package and React Native.
+ */
+export function getHourOption(use12HourClock: boolean): "numeric" | "2-digit" {
+  return use12HourClock ? "numeric" : "2-digit";
+}
+
+/*
+ * Whether `locale` (the phone's own when undefined) reads a 12-hour clock.
+ * Intl reports the clock only for a format that has an hour, so the probe
+ * asks for one; an engine that reports the cycle but not the boolean says
+ * h11 or h12 for a 12-hour clock. One whose Intl cannot say reads a 24-hour
+ * clock, whose "05:14" no language misreads.
+ */
+export function uses12HourClock(locale?: string | undefined): boolean {
+  try {
+    const resolved: { hour12?: boolean | undefined; hourCycle?: string } =
+      new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions();
+
+    if (typeof resolved.hour12 === "boolean") {
+      return resolved.hour12;
+    }
+
+    if (resolved.hourCycle) {
+      return resolved.hourCycle === "h11" || resolved.hourCycle === "h12";
+    }
+  } catch {
+    // A locale Intl refuses: the 24-hour clock, below.
+  }
+
+  return false;
+}
+
+export interface DateTimeTextOptions {
+  // With the year: "Nov 5, 2026, 5:14 AM" rather than "Nov 5, 5:14 AM".
+  showYear: boolean;
+  // The locale written in; the phone's own when undefined.
+  locale?: string | undefined;
+  // The IANA zone read in; the phone's own when undefined.
+  timeZone?: string | undefined;
+}
+
+/*
+ * An instant as a date and a time of day, on the clock `locale` reads:
+ * "Nov 5, 2026, 5:14 AM", "2026년 11월 5일 오전 5:14", "5. Nov. 2026,
+ * 05:14". The detail screens' dates and a monitor's last check are all
+ * written here, so they cannot write one time two ways; a component that
+ * asks Intl for an hour on its own is refused by the web's guards
+ * (Common/Tests/Types/*ClockLeadingZeroGuard), which read the app too.
+ */
+export function writeDateTime(
+  date: Date,
+  options: DateTimeTextOptions,
+): string {
+  const twelveHour: boolean = uses12HourClock(options.locale);
+
+  return date.toLocaleString(options.locale, {
+    ...(options.showYear ? { year: "numeric" } : {}),
+    month: "short",
+    day: "numeric",
+    hour: getHourOption(twelveHour),
+    minute: "2-digit",
+    hour12: twelveHour,
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+  });
+}
+
 export function formatDateTime(dateString: string): string {
   const timestamp: number | null = parseTimestamp(dateString);
 
   /*
-   * Without this, toLocaleDateString on an invalid Date returns the literal
+   * Without this, toLocaleString on an invalid Date returns the literal
    * string "Invalid Date", which the detail screens print verbatim under a
    * "Created" heading - it looks like a value and tells the reader nothing.
    */
@@ -99,12 +177,20 @@ export function formatDateTime(dateString: string): string {
     return UNKNOWN_TIME;
   }
 
-  const date: Date = new Date(timestamp);
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return writeDateTime(new Date(timestamp), { showYear: true });
+}
+
+/*
+ * "Nov 5, 5:14 AM": a date and time without its year, as a monitor's
+ * summary tiles write the last check. Null for a value that names no
+ * instant, so the caller keeps its own placeholder.
+ */
+export function formatShortDateTime(dateString: string): string | null {
+  const timestamp: number | null = parseTimestamp(dateString);
+
+  if (timestamp === null) {
+    return null;
+  }
+
+  return writeDateTime(new Date(timestamp), { showYear: false });
 }
