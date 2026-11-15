@@ -178,7 +178,7 @@ Elke scan houdt bij wat hij las, op naam: de objecten, tabellen of services, noo
 
 ## Een database scannen die je zelf beheert
 
-Gegevensbeveiliging bemonstert PostgreSQL- en MySQL-databases, op een van twee manieren. Een database die het product Database bewaakt, of een waarmee je services praten op de servicekaart, is al een opslag. Een database die geen enkele scan vindt, voeg je zelf toe als opslag.
+Gegevensbeveiliging bemonstert PostgreSQL-, MySQL- en SQL Server-databases, op een van twee manieren. Een database die het product Database bewaakt, of een waarmee je services praten op de servicekaart, is al een opslag. Een database die geen enkele scan vindt, voeg je zelf toe als opslag.
 
 - **Vanaf de workers van OneUptime.** Zet in de **Instellingen** van de opslag de **Verbindingsreeks** op een reeks die alleen kan lezen, zoals `postgresql://reader:password@db.internal:5432/app`. Die wordt versleuteld opgeslagen en nooit door de API teruggegeven. Geef hem een databasegebruiker die kan lezen en verder niets.
 - **Vanaf een sonde in je netwerk.** Kies de sonde onder **Scannen vanaf sonde**, en vul in **Verbindingsvariabele van sonde** de naam in van de omgevingsvariabele op die sonde die de verbindingsreeks bevat. De sonde leest de database vanuit je netwerk en stuurt alleen terug wat ze vond: de verbindingsreeks bereikt OneUptime nooit. Zie [Aangepaste sondes](/docs/probe/custom-probe) om een sonde te draaien.

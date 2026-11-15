@@ -124,6 +124,8 @@ import {
   DataStoreKind,
   DataStoreKindInfo,
   DataStoreProvider,
+  PROBE_SCANNABLE_DATA_STORE_KINDS,
+  WORKER_CLAIMED_DATA_STORE_KINDS,
 } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   ALL_DATA_STORE_EXPOSURES,
@@ -717,9 +719,20 @@ describe("Set Up Data Security", () => {
       return info.kind;
     });
 
-    expect(scannable).toEqual([DataStoreKind.PostgreSql, DataStoreKind.MySql]);
+    // From OneUptime's workers and from a probe alike (OneUptime issue #8322).
+    expect(scannable).toEqual([
+      DataStoreKind.PostgreSql,
+      DataStoreKind.MySql,
+      DataStoreKind.SqlServer,
+    ]);
+    expect([...WORKER_CLAIMED_DATA_STORE_KINDS]).toEqual(
+      expect.arrayContaining(scannable),
+    );
+    expect([...PROBE_SCANNABLE_DATA_STORE_KINDS].sort()).toEqual(
+      [...scannable].sort(),
+    );
     expect(section(page, "## Scan a database you run")).toContain(
-      "Data Security samples PostgreSQL and MySQL databases",
+      "Data Security samples PostgreSQL, MySQL and SQL Server databases",
     );
     expect(service).toContain(
       "/^(postgres|postgresql|mysql|mariadb|mssql|sqlserver):\\/\\//i",
