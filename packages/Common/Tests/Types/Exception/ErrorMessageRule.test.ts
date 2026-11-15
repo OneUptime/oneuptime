@@ -382,9 +382,14 @@ describe("isTooLargePhrase", () => {
 
   test("a long message is read in linear time", () => {
     const long: string = "Request Entity Too Large ".repeat(40_000);
-    const started: number = Date.now();
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return isTooLargePhrase(long);
+      },
+      limitInMs: 2_000,
+    });
 
-    expect(isTooLargePhrase(long)).toBe(false);
-    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(read.result).toBe(false);
+    expect(read.inMs).toBeLessThan(2_000);
   });
 });

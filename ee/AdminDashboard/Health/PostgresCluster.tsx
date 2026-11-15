@@ -871,7 +871,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
               METRIC_INFO.idle,
             )}
             {renderStat(
-              "Idle in txn",
+              translationKey("Idle in txn"),
               formatNumber(connections["idleInTransaction"]),
               undefined,
               METRIC_INFO.idleInTransaction,

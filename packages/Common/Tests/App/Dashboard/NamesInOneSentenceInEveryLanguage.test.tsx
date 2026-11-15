@@ -585,7 +585,8 @@ describe("the other frontends word theirs", () => {
       initImmediate: false,
     });
 
-    expect(japanese.t("overview.uptimePercent", { percent: "99.95" })).toBe(
+    // The figure comes written with its percent sign (formatUptimePercentFigure).
+    expect(japanese.t("overview.uptimePercent", { percent: "99.95%" })).toBe(
       "稼働率 99.95%",
     );
   });

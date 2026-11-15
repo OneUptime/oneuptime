@@ -21,6 +21,7 @@ import {
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
+import { formatDurationUnit } from "Common/Types/DateLanguage";
 import HashedString from "Common/Types/HashedString";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
@@ -632,20 +633,6 @@ export function describeAuditLogExportTarget(
   return port ? `${text("host")}:${port}` : text("host");
 }
 
-/*
- * The parts of Intl.NumberFormat used to word a span: its unit style is
- * newer than the ES2017 library ee compiles against, while every browser
- * the Dashboard supports has it.
- */
-interface UnitNumberFormat {
-  format: (value: number) => string;
-}
-
-type UnitNumberFormatConstructor = new (
-  locale: string,
-  options: { style: "unit"; unit: string; unitDisplay: "long" },
-) => UnitNumberFormat;
-
 const ENGLISH_DURATION_UNITS: Record<RelativeTimeUnit, [string, string]> = {
   second: ["second", "seconds"],
   minute: ["minute", "minutes"],
@@ -674,21 +661,20 @@ export function formatAuditLogExportDuration(data: {
   }
 
   const distance: TimeAgoDistance = getFeedTimeAgoDistance(seconds);
+  // The number held to its unit: "2\u00A0Stunden" (#8456).
+  const written: string | null = formatDurationUnit({
+    part: { count: distance.count, unit: distance.unit },
+    locale: getFeedLocale(data.language),
+    unitDisplay: "long",
+  });
 
-  try {
-    const NumberFormat: UnitNumberFormatConstructor =
-      Intl.NumberFormat as unknown as UnitNumberFormatConstructor;
-
-    return new NumberFormat(getFeedLocale(data.language), {
-      style: "unit",
-      unit: distance.unit,
-      unitDisplay: "long",
-    }).format(distance.count);
-  } catch {
-    const names: [string, string] = ENGLISH_DURATION_UNITS[distance.unit];
-
-    return `${distance.count} ${distance.count === 1 ? names[0] : names[1]}`;
+  if (written) {
+    return written;
   }
+
+  const names: [string, string] = ENGLISH_DURATION_UNITS[distance.unit];
+
+  return `${distance.count} ${distance.count === 1 ? names[0] : names[1]}`;
 }
 
 export function getAuditLogExportHealth(

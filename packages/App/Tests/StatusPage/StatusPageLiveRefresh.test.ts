@@ -154,14 +154,14 @@ describe("StatusPageLiveRefreshUtil.formatRelativeTime", () => {
         secondsAgo: 42,
         locale: "en",
       }),
-    ).toBe("42 seconds ago");
+    ).toBe("42\u00A0seconds ago");
 
     expect(
       StatusPageLiveRefreshUtil.formatRelativeTime({
         secondsAgo: 60,
         locale: "en",
       }),
-    ).toBe("1 minute ago");
+    ).toBe("1\u00A0minute ago");
   });
 
   test("a page just refreshed says now", () => {
@@ -214,7 +214,7 @@ describe("StatusPageLiveRefreshUtil.formatRelativeTime", () => {
   test("no locale at all still produces a sentence", () => {
     expect(
       StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 7200 }),
-    ).toBe("2 hours ago");
+    ).toBe("2\u00A0hours ago");
   });
 
   test("the English fallback pluralises correctly", () => {

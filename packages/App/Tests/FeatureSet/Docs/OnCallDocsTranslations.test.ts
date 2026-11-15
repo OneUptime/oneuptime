@@ -8,6 +8,7 @@ import {
 import {
   drawnCreateButton,
   drawnDashboardLabel,
+  drawnLabelOnPage,
   isDashboardLabel,
   writtenDashboardLabel,
 } from "./DocsDashboardLabels";
@@ -144,7 +145,7 @@ const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
 function drawnLabel(language: string, page: string, label: string): string {
   return (TABLE_CREATE_BUTTONS[page] || []).includes(label)
     ? drawnCreateButton(language, label)
-    : writtenDashboardLabel(language, label);
+    : drawnLabelOnPage(language, page, label, writtenDashboardLabel);
 }
 
 /*

@@ -379,20 +379,20 @@ describe("how the hero says how long the host has been up", () => {
   );
 
   test("German writes its own units", () => {
-    expect(formatHostUptime(41 * DAY_SECONDS + 1, "de")).toBe("41 Tg.");
+    expect(formatHostUptime(41 * DAY_SECONDS + 1, "de")).toBe("41\u00A0Tg.");
     expect(formatHostUptime(41 * DAY_SECONDS + 3 * HOUR_SECONDS, "de")).toBe(
-      "41 Tg., 3 Std.",
+      "41\u00A0Tg., 3\u00A0Std.",
     );
-    expect(formatHostUptime(3 * HOUR_SECONDS + 5, "de")).toBe("3 Std.");
-    expect(formatHostUptime(59, "de")).toBe("59 Sek.");
+    expect(formatHostUptime(3 * HOUR_SECONDS + 5, "de")).toBe("3\u00A0Std.");
+    expect(formatHostUptime(59, "de")).toBe("59\u00A0Sek.");
   });
 
   test("Persian writes Persian digits and its own units, and no Latin digit", () => {
     const cases: Array<[number, string]> = [
-      [41 * DAY_SECONDS + 1, "۴۱ روز"],
-      [41 * DAY_SECONDS + 3 * HOUR_SECONDS, "۴۱ روز ۳ ساعت"],
-      [3 * HOUR_SECONDS + 5, "۳ ساعت"],
-      [59, "۵۹ ثانیه"],
+      [41 * DAY_SECONDS + 1, "۴۱\u00A0روز"],
+      [41 * DAY_SECONDS + 3 * HOUR_SECONDS, "۴۱\u00A0روز ۳\u00A0ساعت"],
+      [3 * HOUR_SECONDS + 5, "۳\u00A0ساعت"],
+      [59, "۵۹\u00A0ثانیه"],
     ];
 
     for (const [seconds, text] of cases) {

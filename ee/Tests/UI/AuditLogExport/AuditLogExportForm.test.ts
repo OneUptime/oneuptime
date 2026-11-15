@@ -902,7 +902,7 @@ describe("how long an export has been failing, in the reader's language", () => 
         now: NOW,
         language: "en",
       }),
-    ).toBe("1 minute");
+    ).toBe("1\u00A0minute");
   });
 
   test("a date that is not one says nothing", () => {

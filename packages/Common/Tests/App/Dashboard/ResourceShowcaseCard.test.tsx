@@ -236,7 +236,7 @@ describe("the showcase", () => {
         .map((state: HTMLElement): string => {
           return state.textContent || "";
         }),
-    ).toEqual(["Turning", "Stuck", "120 ms"]);
+    ).toEqual(["Turning", "Stuck", "120\u00A0ms"]);
     expect(preview).toHaveTextContent(SHOWCASE.preview.alert!.title);
     expect(preview).toHaveTextContent(SHOWCASE.preview.alert!.description);
     // The chart is drawn: a line and the area under it.
