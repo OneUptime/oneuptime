@@ -1,7 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudConnectionTest from "Common/Models/DatabaseModels/OpenStackCloudConnectionTest";
-import Probe from "Common/Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import OpenStackCollectionErrorCode, {
   OpenStackCollectionErrorUtil,
@@ -22,6 +25,8 @@ import {
   createTranslator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { MAX_OPENSTACK_PORT_SCOPES } from "Common/Utils/OpenStack/OpenStackCollectionSettings";
+import { ClaimDueState } from "Common/Utils/Probe/ClaimDueTime";
+import { getNextClaimWords } from "../../FeatureSet/Dashboard/src/Components/Probe/NextClaimWords";
 import {
   OpenStackCollectionStatusView,
   OpenStackCollectionTone,
@@ -38,6 +43,7 @@ import {
   getOpenStackConnectionTestInput,
   getOpenStackConnectionTestView,
   getOpenStackInventoryPhrases,
+  getOpenStackNextCollection,
   getOpenStackServiceRows,
   getOpenStackSwitchToProbeStart,
   isOpenStackCollectionOverdue,
@@ -158,12 +164,50 @@ function testView(
   return getOpenStackConnectionTestView(test, ENGLISH);
 }
 
+const PROJECT: string = "12121212-0000-4000-8000-000000000005";
+const OTHER_PROJECT: string = "12121212-0000-4000-8000-000000000006";
+
+// The cloud's probe as the card reads it: the project's own, connected.
+function probeOf(
+  overrides: {
+    isGlobalProbe?: boolean;
+    projectId?: string;
+    connectionStatus?: ProbeConnectionStatus;
+    name?: string | undefined;
+  } = {},
+): Probe {
+  const item: Probe = new Probe();
+  item._id = OWN;
+  item.name = "name" in overrides ? overrides.name : "Datacenter probe";
+  item.isGlobalProbe = overrides.isGlobalProbe === true;
+  item.projectId = new ObjectID(overrides.projectId || PROJECT);
+  item.connectionStatus =
+    overrides.connectionStatus || ProbeConnectionStatus.Connected;
+
+  return item;
+}
+
+// What the claim needs to hand a cloud to its probe (OpenStackCollectionStop).
+const COLLECTABLE: Partial<OpenStackCloud> = {
+  projectId: new ObjectID(PROJECT),
+  isArchived: false,
+  isCredentialSet: true,
+  authUrl: "https://keystone.example.com:5000/v3",
+  collectionProbeId: new ObjectID(OWN),
+  collectionProbe: probeOf(),
+};
+
+// A cloud the claim may hand out, as it was with these columns.
+function collectable(data: Partial<OpenStackCloud>): OpenStackCloud {
+  const cloud: OpenStackCloud = new OpenStackCloud();
+  Object.assign(cloud, COLLECTABLE, data);
+  return cloud;
+}
+
 function statusView(
   data: Partial<OpenStackCloud>,
 ): OpenStackCollectionStatusView {
-  const cloud: OpenStackCloud = new OpenStackCloud();
-  Object.assign(cloud, data);
-  return getOpenStackCollectionStatusView(cloud, ENGLISH);
+  return getOpenStackCollectionStatusView(collectable(data), ENGLISH);
 }
 
 function input(
@@ -552,12 +596,12 @@ describe("whether a probe is still coming for it", () => {
 
       expect(
         getOpenStackCollectionStatusView(
-          {
+          collectable({
             collectionStatus: status,
             collectionErrorCode: OpenStackCollectionErrorCode.ServiceOverloaded,
             collectionError: "Neutron kept answering HTTP 503.",
             nextCollectionAt: minutesAgo(60),
-          },
+          }),
           ENGLISH,
           NOW,
         ),
@@ -576,13 +620,13 @@ describe("whether a probe is still coming for it", () => {
   test("overdue, an old certificate is nothing to trust: nobody is there to try it", () => {
     expect(
       getOpenStackCollectionStatusView(
-        {
+        collectable({
           collectionStatus: OpenStackCollectionStatus.Failed,
           collectionErrorCode:
             OpenStackCollectionErrorCode.UntrustedCertificate,
           presentedCertificate: CERTIFICATE,
           nextCollectionAt: minutesAgo(60),
-        },
+        }),
         ENGLISH,
         NOW,
       ).certificate,
@@ -592,14 +636,281 @@ describe("whether a probe is still coming for it", () => {
   test("on time, what it last reported is what it says", () => {
     expect(
       getOpenStackCollectionStatusView(
-        {
+        collectable({
           collectionStatus: OpenStackCollectionStatus.Succeeded,
           nextCollectionAt: minutesAgo(-1),
-        },
+        }),
         ENGLISH,
         NOW,
       ).tone,
     ).toBe(OpenStackCollectionTone.Collecting);
+  });
+});
+
+/*
+ * A cloud nothing may collect is set aside by the probes' claim a quarter
+ * of an hour at a time (OneUptime issue #8042): its nextCollectionAt keeps
+ * moving and is never overdue, so the card read its last report
+ * ("Collecting") for good. Now the card says why, from the cloud's own row,
+ * and its next collection is no time at all.
+ */
+describe("a cloud no probe collects, and when one does next", () => {
+  const NOW: Date = new Date("2026-11-15T12:00:00.000Z");
+  const minutesFromNow: (minutes: number) => Date = (minutes: number): Date => {
+    return new Date(NOW.getTime() + minutes * 60 * 1000);
+  };
+
+  function view(
+    overrides: Partial<OpenStackCloud>,
+    isBillingEnabled: boolean = true,
+  ): OpenStackCollectionStatusView {
+    return getOpenStackCollectionStatusView(
+      collectable(overrides),
+      ENGLISH,
+      NOW,
+      isBillingEnabled,
+    );
+  }
+
+  const LAST_REPORTS: Array<[string, Partial<OpenStackCloud>]> = [
+    ["collecting", { collectionStatus: OpenStackCollectionStatus.Succeeded }],
+    [
+      "partly collecting",
+      {
+        collectionStatus: OpenStackCollectionStatus.PartiallySucceeded,
+        collectionErrorCode: OpenStackCollectionErrorCode.ServiceOverloaded,
+      },
+    ],
+    [
+      "failing on a certificate",
+      {
+        collectionStatus: OpenStackCollectionStatus.Failed,
+        collectionErrorCode: OpenStackCollectionErrorCode.UntrustedCertificate,
+        presentedCertificate: CERTIFICATE,
+      },
+    ],
+    ["never reported (checking)", {}],
+  ];
+
+  test.each([
+    [
+      "archived",
+      { isArchived: true },
+      "This cloud is archived, so no probe collects it.",
+      "Unarchive it to collect it again.",
+    ],
+    [
+      "no credential saved",
+      { isCredentialSet: false },
+      "No credential is saved for this cloud.",
+      "Save an application credential or a password in Settings, and test the connection.",
+    ],
+    [
+      "no Keystone address",
+      { authUrl: undefined },
+      "This cloud has no Keystone address.",
+      "Enter Keystone's address in Settings, and test the connection.",
+    ],
+    [
+      "no probe named",
+      { collectionProbeId: undefined, collectionProbe: undefined },
+      "No probe is set to collect this cloud.",
+      "Pick one of this project's probes in Settings.",
+    ],
+  ])(
+    "%s: not collecting, why and the fix, whatever it last reported",
+    (
+      _name: string,
+      stop: Partial<OpenStackCloud>,
+      title: string,
+      nextStep: string,
+    ) => {
+      for (const [, report] of LAST_REPORTS) {
+        // The set-aside keeps its due time a few minutes off: never overdue.
+        for (const nextCollectionAt of [
+          minutesFromNow(17),
+          minutesFromNow(-600),
+        ]) {
+          expect(view({ ...report, ...stop, nextCollectionAt })).toEqual({
+            tone: OpenStackCollectionTone.Failing,
+            label: "Not collecting",
+            title: title,
+            message: null,
+            nextStep: nextStep,
+            certificate: null,
+            isPending: false,
+          });
+        }
+      }
+    },
+  );
+
+  test("a shared probe on OneUptime Cloud may not collect it; on a self-hosted instance it may", () => {
+    const shared: Partial<OpenStackCloud> = {
+      collectionStatus: OpenStackCollectionStatus.Succeeded,
+      collectionProbe: probeOf({ isGlobalProbe: true }),
+    };
+    const advice: ReturnType<typeof OpenStackCollectionErrorUtil.getAdvice> =
+      OpenStackCollectionErrorUtil.getAdvice(
+        OpenStackCollectionErrorCode.ProbeNotAllowed,
+      );
+
+    expect(view(shared, true)).toMatchObject({
+      tone: OpenStackCollectionTone.Failing,
+      label: "Not collecting",
+      title: advice.title,
+      nextStep: advice.nextStep,
+      isPending: false,
+    });
+    expect(view(shared, false).tone).toBe(OpenStackCollectionTone.Collecting);
+  });
+
+  test("another project's probe may not collect it, anywhere", () => {
+    for (const isBillingEnabled of [true, false]) {
+      expect(
+        view(
+          {
+            collectionStatus: OpenStackCollectionStatus.Succeeded,
+            collectionProbe: probeOf({ projectId: OTHER_PROJECT }),
+          },
+          isBillingEnabled,
+        ).title,
+      ).toBe("This probe may not collect this cloud");
+    }
+  });
+
+  test("a disconnected probe: not collecting, the probe named", () => {
+    const advice: ReturnType<typeof OpenStackCollectionErrorUtil.getAdvice> =
+      OpenStackCollectionErrorUtil.getAdvice(
+        OpenStackCollectionErrorCode.ProbeNotAvailable,
+      );
+
+    expect(
+      view({
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        collectionProbe: probeOf({
+          connectionStatus: ProbeConnectionStatus.Disconnected,
+        }),
+      }),
+    ).toEqual({
+      tone: OpenStackCollectionTone.Failing,
+      label: "Not collecting",
+      title: advice.title,
+      message:
+        "Nothing collects this cloud while Datacenter probe is disconnected.",
+      nextStep: advice.nextStep,
+      certificate: null,
+      isPending: false,
+    });
+    expect(
+      view({
+        collectionProbe: probeOf({
+          name: undefined,
+          connectionStatus: ProbeConnectionStatus.Disconnected,
+        }),
+      }).message,
+    ).toBe("Nothing collects this cloud while its probe is disconnected.");
+  });
+
+  test("a probe the reader could not read says nothing of the probe", () => {
+    expect(
+      view({
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        collectionProbe: undefined,
+      }).tone,
+    ).toBe(OpenStackCollectionTone.Collecting);
+  });
+
+  test("overdue with a probe able to take it: no probe has come for it, and the page goes on asking", () => {
+    for (const [, report] of LAST_REPORTS) {
+      expect(
+        view({ ...report, nextCollectionAt: minutesFromNow(-16) }),
+      ).toMatchObject({
+        tone: OpenStackCollectionTone.Failing,
+        label: "Not collecting",
+        title: "The probe did not pick this up",
+        message: expect.stringMatching(
+          /^This cloud was due to be collected .+, and no probe has come for it\.$/,
+        ),
+        isPending: true,
+      });
+    }
+  });
+
+  test("never run, with a probe able to take it: checking, and the page asks again", () => {
+    expect(view({ nextCollectionAt: undefined })).toMatchObject({
+      tone: OpenStackCollectionTone.Checking,
+      isPending: true,
+    });
+  });
+
+  test("next collection: a time only when a probe will collect it then", () => {
+    const next: (overrides: Partial<OpenStackCloud>) => string = (
+      overrides: Partial<OpenStackCloud>,
+    ): string => {
+      return getNextClaimWords(
+        getOpenStackNextCollection(collectable(overrides), NOW, true),
+        ENGLISH,
+      );
+    };
+
+    expect(
+      getOpenStackNextCollection(
+        collectable({ nextCollectionAt: minutesFromNow(2) }),
+        NOW,
+        true,
+      ),
+    ).toEqual({
+      state: ClaimDueState.Scheduled,
+      dueAt: minutesFromNow(2),
+      stop: null,
+    });
+    // The time it is due, as the card writes every time on it.
+    expect(next({ nextCollectionAt: minutesFromNow(2) })).toBe(
+      OneUptimeDate.fromNow(minutesFromNow(2)),
+    );
+    expect(next({ nextCollectionAt: undefined })).toBe("Due now");
+    expect(next({ nextCollectionAt: minutesFromNow(-10) })).toBe("Due now");
+    expect(next({ nextCollectionAt: minutesFromNow(-16) })).toBe("Overdue");
+
+    for (const stop of [
+      { isArchived: true },
+      { isCredentialSet: false },
+      { authUrl: undefined },
+      { collectionProbeId: undefined },
+      { collectionProbe: probeOf({ projectId: OTHER_PROJECT }) },
+      { collectionProbe: probeOf({ isGlobalProbe: true }) },
+      {
+        collectionProbe: probeOf({
+          connectionStatus: ProbeConnectionStatus.Disconnected,
+        }),
+      },
+    ] as Array<Partial<OpenStackCloud>>) {
+      // The set-aside's time, a few minutes off, is never shown.
+      expect(next({ ...stop, nextCollectionAt: minutesFromNow(17) })).toBe(
+        "Not scheduled",
+      );
+      expect(
+        getOpenStackNextCollection(
+          collectable({ ...stop, nextCollectionAt: minutesFromNow(17) }),
+          NOW,
+          true,
+        ),
+      ).toMatchObject({ state: ClaimDueState.Stopped, dueAt: null });
+    }
+  });
+
+  test("a self-hosted instance's own probe collects it: its next time is shown", () => {
+    expect(
+      getOpenStackNextCollection(
+        collectable({
+          collectionProbe: probeOf({ isGlobalProbe: true }),
+          nextCollectionAt: minutesFromNow(2),
+        }),
+        NOW,
+        false,
+      ).state,
+    ).toBe(ClaimDueState.Scheduled);
   });
 });
 
