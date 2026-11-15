@@ -201,7 +201,7 @@ A página **Configurações** reúne como um SLO mede, um cartão para cada cois
 
 | Cartão | O que você muda | Bom saber |
 | --- | --- | --- |
-| **O que mede** | **O que mede**, **Serviços** e **Limite de latência (ms)**, com **Editar o que mede**. | Depois de uma mudança, um SLO de requisições conta as requisições de novo desde o início. |
+| **O que mede** | **O que mede**, **Serviços**, **Limite de latência (ms)** e **Filtro de requisições**, com **Editar o que mede**. | Depois de uma mudança, um SLO de requisições conta as requisições de novo desde o início. |
 | **Objetivo** | **Meta (%)** e **Limite de risco (%)**, com **Editar objetivo**. | Mostra a indisponibilidade que a meta permite, por exemplo "43 min 12 s de inatividade por janela de 30 dias". |
 | **Período de conformidade** | **Tipo de janela**, **Janela (dias)** e **Fuso horário**, com **Editar período**. | As regras de taxa de consumo mantêm seus limites quando a janela muda, então revise-as depois. |
 | **Cálculo de inatividade** | **Modo de vários monitores** e **Status de monitor de indisponibilidade**, com **Editar cálculo de inatividade**. | Só SLOs de disponibilidade dos monitores. Sem nenhum status, contam todos os status não operacionais, inclusive os adicionados depois. |

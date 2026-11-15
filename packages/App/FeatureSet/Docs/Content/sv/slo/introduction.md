@@ -201,7 +201,7 @@ Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 
 | Kort | Det du ändrar | Bra att veta |
 | --- | --- | --- |
-| **Vad den mäter** | **Vad den mäter**, **Tjänster** och **Latensgräns (ms)**, med **Redigera vad den mäter**. | Ett SLO för begäranden räknar om sina begäranden från början efter en ändring. |
+| **Vad den mäter** | **Vad den mäter**, **Tjänster**, **Latensgräns (ms)** och **Begäransfilter**, med **Redigera vad den mäter**. | Ett SLO för begäranden räknar om sina begäranden från början efter en ändring. |
 | **Mål** | **Mål (%)** och **Tröskel för riskzon (%)**, med **Redigera mål**. | Visar det driftstopp som målet tillåter, till exempel ”43 min 12 s driftstopp per fönster på 30 dagar”. |
 | **Efterlevnadsperiod** | **Fönstertyp**, **Fönster (dagar)** och **Tidszon**, med **Redigera period**. | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt. |
 | **Beräkning av driftstopp** | **Läge för flera monitorer** och **Monitorstatusar för driftstopp**, med **Redigera beräkning av driftstopp**. | Bara SLO:er för monitorernas drifttid. Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |

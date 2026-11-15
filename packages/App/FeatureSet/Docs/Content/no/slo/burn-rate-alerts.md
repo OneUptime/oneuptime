@@ -132,7 +132,7 @@ Under **Regel** skriver du inn et **Navn**, som «Fast burn». En ny regel er sl
 
 ### Angi forbruksvinduet
 
-Under **Forbruksvindu** angir du **Terskel for forbruksrate** (for eksempel `14.4`), **Langt vindu (minutter)** og **Kort vindu (minutter)**, og eventuelt **Undertrykking av ny utløsning (minutter)**.
+Under **Forbruksvindu** angir du **Terskel for forbruksrate** (for eksempel `14.4`), **Langt vindu (minutter)** og **Kort vindu (minutter)**, og eventuelt **Undertrykking av ny utløsning (minutter)**. Regelen til et forespørsels-SLO tar også **Minste antall forespørsler**, for eksempel `100`: regelen hopper over et langt vindu som har færre forespørsler enn det.
 
 ### Velg hva den erklærer
 
@@ -151,10 +151,11 @@ OneUptime sjekker tallene til en regel når du lagrer den:
 | **Kort vindu (minutter)** | Større enn 0. |
 | **Langt vindu (minutter)** | Lengre enn det korte vinduet. |
 | **Undertrykking av ny utløsning (minutter)** | 0 eller mer. Tom betyr lengden på det lange vinduet. |
+| **Minste antall forespørsler** | Et helt tall, 0 eller mer. Tom betyr ikke noe minimum. |
 
 Hvert svar på **Når den utløses** åpner noe. API-et avviser en regel som verken ville opprettet et varsel eller erklært en hendelse, fordi den ville blitt sjekket ved hver evaluering uten noen gang å erklære noe.
 
-Regeltabellen viser for hver regel terskelen, vinduene og undertrykkingen, hva den erklærer (og om varselet eller hendelsen bare løses for hånd, eller er privat), alvorsgradene, vaktpolicyene, eierne og etikettene.
+Regeltabellen viser for hver regel terskelen, vinduene og undertrykkingen, hva den erklærer (og om varselet eller hendelsen bare løses for hånd, eller er privat), alvorsgradene, vaktpolicyene, eierne og etikettene. For et forespørsels-SLO viser den også minimumet til hver regel under vinduene.
 
 > [!TIP]
 > Et godt utgangspunkt: behold de tre standardreglene, send regelen for raskt forbruk til vaktpolicyen som tilkaller folk, med høy alvorsgrad, la regelen for sakte forbruk utløse et varsel med lavere alvorsgrad for arbeidstiden, og la regelen for sakte lekkasje være en sak for teamet som eier tjenesten. Jobber teamet ditt med hendelser, velger du **Erklær en hendelse** for regelen for raskt forbruk, eller **Begge** for også å få et varsel.
@@ -276,7 +277,7 @@ Forbruksrateregler er stille mens en av monitorene til SLO-et er i en pågående
 :::
 
 :::details Finnes det et minste antall målinger?
-Ikke for SLO-er som måles på tilgjengeligheten til monitorer. Tilgjengelighet måles i sekunder, så hvert sekund i vinduet er en måling, og det finnes ingen situasjon med lite trafikk å beskytte seg mot. Et minste antall målinger betyr bare noe for hendelsesbaserte SLI-er, som ennå ikke er tilgjengelige.
+Ikke for SLO-er som måles på tilgjengeligheten til monitorer. Tilgjengelighet måles i sekunder, så hvert sekund i vinduet er en måling, og det finnes ingen situasjon med lite trafikk å beskytte seg mot. Regelen til et forespørsels-SLO har ett: angi **Minste antall forespørsler** for den, så hopper regelen over et langt vindu med færre forespørsler enn det, slik at en rolig time med én mislykket forespørsel av fem ikke varsler noen.
 :::
 
 ## Neste steg
