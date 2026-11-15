@@ -169,6 +169,11 @@ interface ProjectContext {
   alertSeverities: Array<AlertSeverity>;
   statuses: Map<string, MonitorStatus>;
   policyNames: Map<string, string>;
+  /*
+   * The project has an on-call policy in service (not archived): with none,
+   * a monitor that pages nobody is sent to the on-call guided setup (#7369).
+   */
+  projectHasOnCallPolicies: boolean;
   // The project's enabled owner rules, as the engines read them.
   incidentOwnerRules: Array<IncidentOwnerRule>;
   alertOwnerRules: Array<AlertOwnerRule>;
@@ -879,6 +884,11 @@ export class WhoIsToldService {
       project: project,
     });
 
+    const policies: {
+      names: Map<string, string>;
+      hasPolicyInService: boolean;
+    } = await this.readPolicies(data.projectId);
+
     return {
       projectId: data.projectId,
       project: project,
@@ -886,7 +896,8 @@ export class WhoIsToldService {
       incidentSeverities: await this.readIncidentSeverities(data.projectId),
       alertSeverities: await this.readAlertSeverities(data.projectId),
       statuses: await this.readStatuses(data.projectId),
-      policyNames: await this.readPolicyNames(data.projectId),
+      policyNames: policies.names,
+      projectHasOnCallPolicies: policies.hasPolicyInService,
       /*
        * Owners are not worked out for breaks only (getUnreadOwners), so the
        * owner rules are not read then.
@@ -994,8 +1005,7 @@ export class WhoIsToldService {
         channels: context.channels,
         projectHasIncidentOnCallRules: context.projectHasIncidentOnCallRules,
         projectHasAlertOnCallRules: context.projectHasAlertOnCallRules,
-        // The project's policies, every one of them, are read once (readPolicyNames).
-        projectHasOnCallPolicies: context.policyNames.size > 0,
+        projectHasOnCallPolicies: context.projectHasOnCallPolicies,
       }),
     };
   }
@@ -2055,27 +2065,35 @@ export class WhoIsToldService {
     return byId;
   }
 
-  private static async readPolicyNames(
-    projectId: ObjectID,
-  ): Promise<Map<string, string>> {
+  /*
+   * The project's on-call policies by name, every one of them; and whether
+   * one is in service - not archived, as an archived policy pages no one -
+   * which tells a project with no on-call policy yet (#7369).
+   */
+  private static async readPolicies(projectId: ObjectID): Promise<{
+    names: Map<string, string>;
+    hasPolicyInService: boolean;
+  }> {
     const policies: Array<OnCallDutyPolicy> =
       await OnCallDutyPolicyService.findBy({
         query: { projectId: projectId },
-        select: { _id: true, name: true },
+        select: { _id: true, name: true, isArchived: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         props: { isRoot: true },
       });
 
     const names: Map<string, string> = new Map<string, string>();
+    let hasPolicyInService: boolean = false;
 
     for (const policy of policies) {
       if (policy.id) {
         names.set(policy.id.toString(), policy.name?.toString() || "");
+        hasPolicyInService = hasPolicyInService || !policy.isArchived;
       }
     }
 
-    return names;
+    return { names: names, hasPolicyInService: hasPolicyInService };
   }
 
   /*

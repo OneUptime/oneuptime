@@ -297,6 +297,70 @@ describe("the monitors' chains, as findings", () => {
     expect(findings[0]!.level).toBe(SetupHealthLevel.Suggestion);
   });
 
+  /*
+   * #7369: Set Up Paging opened the incident on-call rules builder in a
+   * project with no on-call policy, where a rule has nothing to page. It
+   * opens the on-call guided setup there, for incidents and alerts alike;
+   * the words stay the monitor's.
+   */
+  test.each([
+    [OnCallTestPageRecordKind.Incident, SetupHealthEventKind.Incident],
+    [OnCallTestPageRecordKind.Alert, SetupHealthEventKind.Alert],
+  ])(
+    "no on-call policy yet: the %s's fix is the on-call guided setup",
+    (recordKind: OnCallTestPageRecordKind, subject: SetupHealthEventKind) => {
+      const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+        facts({
+          chains: [
+            chain({
+              breaks: [
+                makeWhoIsToldBreak({
+                  kind: WhoIsToldBreakKind.NobodyPaged,
+                  recordKind: recordKind,
+                  fix: WhoIsToldFix.OnCallGuidedSetup,
+                }),
+              ],
+            }),
+          ],
+        }),
+      );
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0]).toMatchObject({
+        check: SetupHealthCheck.MonitorPagesNobody,
+        level: SetupHealthLevel.Suggestion,
+        subject: subject,
+        fix: SetupHealthFix.OnCallGuidedSetup,
+        fixRecordId: "",
+      });
+      expect(findings[0]!.sentence).toContain(
+        "Nobody is paged when Checkout API goes down",
+      );
+    },
+  );
+
+  test("with a policy, the rules stay the fix, whichever break's fix it came with", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        policies: [{ id: PRIMARY, name: "Primary" }],
+        policyIdsRunByRules: [PRIMARY],
+        chains: [
+          chain({
+            breaks: [
+              brk({
+                kind: WhoIsToldBreakKind.NobodyPaged,
+                recordKind: OnCallTestPageRecordKind.Alert,
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(findings[0]!.fix).toBe(SetupHealthFix.AlertOnCallRules);
+    expect(findings[0]!.level).toBe(SetupHealthLevel.WorthFixing);
+  });
+
   test("alerts that page nobody have their own words and the alert rules as the fix, beside the incidents'", () => {
     const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
       facts({

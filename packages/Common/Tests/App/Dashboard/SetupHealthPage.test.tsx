@@ -266,6 +266,8 @@ describe("a finding, in the reader's words, with where to fix it", () => {
       PageMap.ALERTS_SETTINGS_ON_CALL_RULES,
       "",
     ],
+    // No on-call policy yet (#7369): the on-call guided setup.
+    [SetupHealthFix.OnCallGuidedSetup, PageMap.ON_CALL_DUTY_GUIDED_SETUP, ""],
     [
       SetupHealthFix.OnCallPolicy,
       PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,

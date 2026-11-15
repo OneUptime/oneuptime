@@ -559,8 +559,9 @@ interface World {
    * (UserNotificationRuleService.getFallbackRules), run for real (#7528).
    */
   fallbackMethods: Record<string, FallbackMethods>;
-  // The project's on-call policies, by id and name.
+  // The project's on-call policies, by id and name, and those archived.
   projectPolicies: Array<[string, string]>;
+  archivedPolicyIds: Array<string>;
   serverStatuses: Array<ServerChannelStatus>;
   // What the caller may read.
   callerReadsMonitor: boolean;
@@ -692,6 +693,7 @@ function defaultWorld(): World {
       [PRIMARY, "Primary"],
       [SECONDARY, "Secondary"],
     ],
+    archivedPolicyIds: [],
     serverStatuses: [
       serverStatus(ServerSendingChannel.Email, ServerSendingState.Working),
       serverStatus(ServerSendingChannel.SMS, ServerSendingState.Working),
@@ -842,6 +844,7 @@ function stubWorld(): void {
           ([id, name]: [string, string]): OnCallDutyPolicy => {
             const item: OnCallDutyPolicy = withId(new OnCallDutyPolicy(), id);
             item.name = name;
+            item.isArchived = world.archivedPolicyIds.includes(id);
             return item;
           },
         );
@@ -2581,6 +2584,43 @@ describe("WhoIsToldService", () => {
       expect((await resolve()).breaks[0]!.fix).toBe(
         WhoIsToldFix.IncidentOnCallRules,
       );
+    });
+
+    // An archived policy pages no one: a project with only those has none in service.
+    test("only archived policies: the on-call guided setup, as with none", async () => {
+      world.archivedPolicyIds = [PRIMARY, SECONDARY];
+      world.incidentRules = [];
+
+      expect((await resolve()).breaks[0]!.fix).toBe(
+        WhoIsToldFix.OnCallGuidedSetup,
+      );
+    });
+
+    test("one policy in service beside archived ones: the rules", async () => {
+      world.archivedPolicyIds = [PRIMARY];
+      world.incidentRules = [];
+
+      expect((await resolve()).breaks[0]!.fix).toBe(
+        WhoIsToldFix.IncidentOnCallRules,
+      );
+    });
+
+    test("the project's policies are read once, and their names still kept for the chain", async () => {
+      world.archivedPolicyIds = [SECONDARY];
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(
+        jest
+          .mocked(OnCallDutyPolicyService.findBy)
+          .mock.calls.filter((call: Array<unknown>): boolean => {
+            return Boolean(
+              (call[0] as { props: DatabaseCommonInteractionProps }).props
+                .isRoot,
+            );
+          }),
+      ).toHaveLength(1);
+      expect(firstEvent(result).policies[0]!.name).toBe("Primary");
     });
 
     test("the whole project at once says the same", async () => {
