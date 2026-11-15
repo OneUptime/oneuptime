@@ -55,6 +55,7 @@ import {
 } from "./CloudAppCells";
 import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
 import { APP_REVISION } from "./CloudAppHeader";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * An environment's Overview: the apps that run in it, the ones that need a
@@ -340,7 +341,7 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
                   )}
                   className="break-words text-sm font-medium text-gray-900 hover:underline"
                 >
-                  <bdi>{app.name || "—"}</bdi>
+                  <bdi>{app.name || <EmptyValue />}</bdi>
                 </AppLink>
                 <span className="sr-only">
                   {translator.translateText(CLOUD_APP_STATE_LABELS[state])}

@@ -85,6 +85,7 @@ import { metaForEntityType } from "./TopologyMeta";
 import { ResourceTopologyLink } from "../ResourceTopology/ResourceTopologyLinks";
 import useResourceTopologyLink from "../ResourceTopology/UseResourceTopologyLink";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Infrastructure: "what runs where", walked top-down.
@@ -1091,7 +1092,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     node: InfrastructureNode,
   ): ReactElement => {
     if (node.serviceKeys.length === 0) {
-      return <span className="text-xs text-gray-400">—</span>;
+      return <TableEmptyValue isSmall={true} />;
     }
     return (
       <span className="flex flex-wrap gap-1">
@@ -1222,11 +1223,17 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         <td
           className={`whitespace-nowrap ${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3 text-xs text-gray-600`}
         >
-          {container
-            ? node.kind === "group" || node.kind === "collection"
-              ? describeInfrastructureNode(node, translator)
-              : summarizeCounts(node.countsByType, undefined, translator) || "—"
-            : "—"}
+          {container ? (
+            node.kind === "group" || node.kind === "collection" ? (
+              describeInfrastructureNode(node, translator)
+            ) : (
+              summarizeCounts(node.countsByType, undefined, translator) || (
+                <TableEmptyValue isSmall={true} />
+              )
+            )
+          ) : (
+            <TableEmptyValue isSmall={true} />
+          )}
         </td>
         <td className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}>
           {renderServiceChips(node)}

@@ -82,11 +82,11 @@ const IncomingEmailMonitorSummaryView: FunctionComponent<ComponentProps> = (
         />
         <SummaryFact
           title="From"
-          value={props.incomingEmailMonitorRequest?.emailFrom || "-"}
+          value={props.incomingEmailMonitorRequest?.emailFrom}
         />
         <SummaryFact
           title="Subject"
-          value={props.incomingEmailMonitorRequest?.emailSubject || "-"}
+          value={props.incomingEmailMonitorRequest?.emailSubject}
         />
         {props.incomingEmailMonitorHeartbeatCheckedAt ? (
           <SummaryFact

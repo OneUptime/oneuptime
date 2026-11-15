@@ -1295,8 +1295,11 @@ test.describe("entity risk on a case", () => {
     await expect(column(CFO)).toContainText("200");
     await expect(column(CFO)).toContainText("Critical");
     await expect(column("a.ng@acme-commerce.example")).toContainText("50");
-    // A domain carries no risk.
-    await expect(column("acme-commerce.okta.example")).toHaveText("-");
+    // A domain carries no risk: the quiet dash, read out as "Not set" (#7603).
+    await expect(
+      column("acme-commerce.okta.example").getByTestId("table-empty-value"),
+    ).toHaveText("—Not set");
+    await expect(column("acme-commerce.okta.example")).not.toContainText("-");
     // Read once, by the risk entities' keys.
     const reads: FixtureState["listRequests"] = (
       await fixture(page)

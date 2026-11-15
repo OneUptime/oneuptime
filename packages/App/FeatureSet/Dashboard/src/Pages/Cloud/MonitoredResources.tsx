@@ -48,6 +48,7 @@ import CloudMonitoringDocumentationCard from "../../Components/Cloud/CloudMonito
 import CloudConnectCallout from "../../Components/Cloud/Connect/CloudConnectCallout";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Cloud → All Resources: the IaaS and PaaS resources discovered from the
@@ -289,7 +290,7 @@ const CloudMonitoredResources: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || "—"}
+                    {name || <TableEmptyValue />}
                   </AppLink>
                   {typeLabel && (
                     <div className="text-xs text-gray-500 truncate">
@@ -318,7 +319,7 @@ const CloudMonitoredResources: FunctionComponent<
                 );
               return (
                 <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <span>{provider || "—"}</span>
+                  <span>{provider || <TableEmptyValue />}</span>
                   {descriptor && (
                     <Pill
                       text={CLOUD_SERVICE_MODEL_LABELS[descriptor.serviceModel]}
@@ -343,12 +344,12 @@ const CloudMonitoredResources: FunctionComponent<
                 (item.cloudAccountId as string) ||
                 "";
               if (!region && !place) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <div className="min-w-0">
                   <div className="text-sm text-gray-700 truncate">
-                    {region || "—"}
+                    {region || <TableEmptyValue />}
                   </div>
                   {place && (
                     <div className="text-xs text-gray-500 font-mono truncate">

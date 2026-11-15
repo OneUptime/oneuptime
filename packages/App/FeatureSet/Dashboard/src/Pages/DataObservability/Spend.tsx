@@ -26,6 +26,7 @@ import React, {
 } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What the project's warehouses spent over the last day: Snowflake credits
@@ -345,9 +346,11 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             getElement: (item: DataWarehouseJob): ReactElement => {
               return (
                 <span className="text-gray-700">
-                  {item.credits !== undefined && item.credits !== null
-                    ? formatCredits(item.credits)
-                    : "-"}
+                  {item.credits !== undefined && item.credits !== null ? (
+                    formatCredits(item.credits)
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },
@@ -359,7 +362,11 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             getElement: (item: DataWarehouseJob): ReactElement => {
               return (
                 <span className="text-gray-700">
-                  {item.bytesBilled ? formatBytesBilled(item.bytesBilled) : "-"}
+                  {item.bytesBilled ? (
+                    formatBytesBilled(item.bytesBilled)
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },

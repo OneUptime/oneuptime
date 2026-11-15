@@ -72,6 +72,7 @@ import {
 } from "../Inventory/ResolveTypedRowLink";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * Right-hand detail drawer for anything on a topology map. It keeps the user
@@ -862,9 +863,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {totals.avgDurationMs === null
-                  ? "—"
-                  : formatDurationMs(totals.avgDurationMs)}
+                {totals.avgDurationMs === null ? (
+                  <EmptyValue />
+                ) : (
+                  formatDurationMs(totals.avgDurationMs)
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
             </div>

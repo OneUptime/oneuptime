@@ -8,6 +8,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const NetworkSiteLinks: FunctionComponent<
   PageComponentProps
@@ -156,7 +157,7 @@ const NetworkSiteLinks: FunctionComponent<
             getElement: (item: NetworkSiteLink): ReactElement => {
               return (
                 <span className="text-sm text-gray-900">
-                  {item.fromSite?.name || "—"}
+                  {item.fromSite?.name || <TableEmptyValue />}
                 </span>
               );
             },
@@ -172,7 +173,7 @@ const NetworkSiteLinks: FunctionComponent<
             getElement: (item: NetworkSiteLink): ReactElement => {
               return (
                 <span className="text-sm text-gray-900">
-                  {item.toSite?.name || "—"}
+                  {item.toSite?.name || <TableEmptyValue />}
                 </span>
               );
             },

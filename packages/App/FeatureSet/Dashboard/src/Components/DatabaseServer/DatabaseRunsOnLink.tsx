@@ -11,6 +11,7 @@ import {
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * "Runs on" and "Workload" as links: a database found on a Kubernetes
@@ -154,7 +155,7 @@ export const DatabaseRunsOnLink: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const label: string = getDatabaseRunsOnLabel(props.source);
   if (label === "—") {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
   const route: Route | null = getDatabaseRunsOnRoute(props.source);
   if (!route) {
@@ -180,7 +181,7 @@ export const DatabaseWorkloadLink: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const label: string = getDatabaseWorkloadLabel(props.source);
   if (!label) {
-    return <span className={props.className}>—</span>;
+    return <TableEmptyValue />;
   }
   const route: Route | null = getDatabaseWorkloadRoute(props.source);
   if (!route) {

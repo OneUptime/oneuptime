@@ -122,6 +122,7 @@ import {
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 // How many status page names the header lists before summarising the rest.
 export const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
@@ -1079,7 +1080,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                   fieldType: FieldType.Element,
                   getElement: (item: ScheduledMaintenance): ReactElement => {
                     if (!item.scheduledMaintenanceNumber) {
-                      return <>-</>;
+                      return <EmptyValue />;
                     }
 
                     return (

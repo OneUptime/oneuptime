@@ -50,6 +50,7 @@ import StorageArrayResourceUtils from "./Utils/StorageArrayResourceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Pure raises its own capacity alerts at 80% and 90% used, so the bar
@@ -63,7 +64,7 @@ const renderCapacityBar: (
     capacityUsedPercent === undefined ||
     !Number.isFinite(Number(capacityUsedPercent))
   ) {
-    return <span className="text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const pct: number = Number(capacityUsedPercent);
@@ -276,7 +277,7 @@ const StorageArrays: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -290,7 +291,7 @@ const StorageArrays: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: StorageArray): ReactElement => {
               if (!item.storageSystem) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">
@@ -405,7 +406,7 @@ const StorageArrays: FunctionComponent<
                   item.fileSystemCount === null ||
                   item.fileSystemCount === undefined
                 ) {
-                  return <span className="text-gray-400">—</span>;
+                  return <TableEmptyValue />;
                 }
                 return (
                   <span className="text-sm text-gray-700">
@@ -420,7 +421,7 @@ const StorageArrays: FunctionComponent<
                 );
               }
               if (item.volumeCount === null || item.volumeCount === undefined) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">
@@ -452,7 +453,7 @@ const StorageArrays: FunctionComponent<
                 item.openAlertCount === null ||
                 item.openAlertCount === undefined
               ) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               const critical: number = item.criticalAlertCount || 0;
               if (item.openAlertCount === 0) {
@@ -481,7 +482,7 @@ const StorageArrays: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: StorageArray): ReactElement => {
               if (!item.osVersion) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">

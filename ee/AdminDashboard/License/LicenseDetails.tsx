@@ -30,6 +30,7 @@ import {
   USERS_OVER_LICENSED_SEATS,
   USERS_OVER_LIMIT,
 } from "./LicenseDetailsCopy";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * The Enterprise license details: the seat usage card and the instances on
@@ -853,7 +854,7 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
                           }}
                         />
                       ) : (
-                        <span className="text-sm text-gray-400">—</span>
+                        <EmptyValue />
                       )}
                     </div>
                   </li>

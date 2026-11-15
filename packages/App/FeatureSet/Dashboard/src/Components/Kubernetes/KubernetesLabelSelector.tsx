@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * A plain label selector, as a Service or a DeploymentConfig writes it: which
@@ -15,7 +16,7 @@ const KubernetesLabelSelector: FunctionComponent<ComponentProps> = (
   const keys: Array<string> = Object.keys(props.selector).sort();
 
   if (keys.length === 0) {
-    return <span>—</span>;
+    return <TableEmptyValue />;
   }
 
   return (

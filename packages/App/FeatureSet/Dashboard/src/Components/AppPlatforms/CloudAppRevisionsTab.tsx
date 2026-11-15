@@ -44,6 +44,7 @@ import {
   CloudAppSignalCell,
   CloudAppSignalKind,
 } from "./CloudAppCells";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * An App Platforms app's Revisions tab: its deploy history, newest first.
@@ -299,7 +300,7 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
                     {getShortRevision({
                       revision: row.revision,
                       appName: props.app.name,
-                    }) || "—"}
+                    }) || <TableEmptyValue />}
                   </bdi>
                 </div>
                 <div className="mt-0.5 text-xs text-gray-500">
@@ -365,7 +366,7 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
           type: FieldType.Element,
           getElement: (row: CloudAppRevision): ReactElement => {
             if (!row.firstSeenAt) {
-              return <span className="text-sm text-gray-400">—</span>;
+              return <TableEmptyValue />;
             }
 
             const deployedAt: Date = OneUptimeDate.fromString(row.firstSeenAt);
