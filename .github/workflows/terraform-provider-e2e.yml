@@ -445,8 +445,25 @@ jobs:
       # That also means the status-check timeout no longer spaces attempts out,
       # so the wait between them is set here: the action's default of ten
       # seconds is shorter than most registry or network hiccups.
+      #
+      # ONEUPTIME_DEV_WATCH_FRONTENDS=false: the App builds its frontends once
+      # and watches none of them (packages/App/scripts/dev.sh). A watcher per
+      # frontend is for someone editing them: each one builds its frontend
+      # again, the five at once, while the API boots and sets up the databases,
+      # and then holds its module graph in memory. Measured on 4 CPUs, the five
+      # held 12.0 GiB, 6.1 GiB of it the Dashboard's, and with the API's first
+      # boot the containers took 17.1 GiB, more than this runner's 16 GB. Jobs
+      # lost their runner here, three to four minutes after the app started
+      # ("The runner has received a shutdown signal", or "lost communication
+      # with the server"), and never got to dump the containers' logs. Without
+      # the watchers the boot peaks at 8.3 GiB, while the Dashboard is built
+      # and before the API starts, and the stack settles at 3 GiB (9 GiB with
+      # them). Tests/Ops/DevFrontendWatchers.test.js and the harness self-test
+      # hold the bring-up to it.
       - name: Start OneUptime services
         uses: nick-fields/retry@v3
+        env:
+          ONEUPTIME_DEV_WATCH_FRONTENDS: "false"
         with:
           timeout_minutes: 30
           max_attempts: 3

@@ -164,8 +164,13 @@ services:
     # ONEUPTIME_EDITION=community (in config.env or the shell) runs the
     # Community Edition from this checkout, and the default, auto, loads ee/
     # when it is mounted. docker-compose.base.yml deliberately never sets it.
+    #
+    # ONEUPTIME_DEV_WATCH_FRONTENDS=false keeps packages/App/scripts/dev.sh
+    # from starting a watcher per frontend: the App serves the bundles it built
+    # once. CI's bring-ups set it; unset, every frontend is watched.
     environment:
       ONEUPTIME_EDITION: ${ONEUPTIME_EDITION:-auto}
+      ONEUPTIME_DEV_WATCH_FRONTENDS: ${ONEUPTIME_DEV_WATCH_FRONTENDS:-true}
     depends_on:
       <<: *common-depends-on
     ports:
