@@ -1266,7 +1266,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                       <button
                         type="button"
                         className="whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        aria-label={`${t("Show on map")} ${entry.label}`}
+                        aria-label={translator.translateTemplate(
+                          "Show {{name}} on the map",
+                          { name: entry.label },
+                        )}
                         onClick={() => {
                           focusOn(entry.key);
                         }}

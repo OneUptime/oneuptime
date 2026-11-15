@@ -94,7 +94,8 @@
     "versionModalTitle": "نسخه OneUptime",
     "versionLabel": "نسخه",
     "commitLabel": "کامیت",
-    "versionUnavailable": "اطلاعات نسخه در دسترس نیست"
+    "versionUnavailable": "اطلاعات نسخه در دسترس نیست",
+    "versionUnavailableWithError": "اطلاعات نسخه در دسترس نیست: {{error}}"
   },
   "navbar": {
     "users": "کاربران",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "فیلتر بر اساس {{field}}",
   "Something went wrong. Please try again.": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
   "More actions": "اقدامات بیشتر",
-  "More actions for": "اقدامات بیشتر برای",
+  "More actions for {{name}}": "اقدامات بیشتر برای {{name}}",
+  "Clear {{filter}} filter": "پاک کردن فیلتر {{filter}}",
+  "Clear {{filter}}": "پاک کردن {{filter}}",
   "Delete Error": "خطای حذف",
   "Refresh?": "تازه‌سازی؟",
   "Updated": "به‌روزرسانی‌شده",

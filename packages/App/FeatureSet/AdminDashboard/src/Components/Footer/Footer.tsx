@@ -57,7 +57,10 @@ const DashboardFooter: () => JSX.Element = () => {
       });
     } catch (err) {
       setVersionInfo({
-        error: `${t("footer.versionUnavailable")}: ${(err as Error).message}`,
+        // One sentence, with the language's own colon before the reason.
+        error: t("footer.versionUnavailableWithError", {
+          error: (err as Error).message,
+        }),
       });
     }
 

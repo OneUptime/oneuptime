@@ -94,7 +94,8 @@
     "versionModalTitle": "OneUptime संस्करण",
     "versionLabel": "संस्करण",
     "commitLabel": "कमिट",
-    "versionUnavailable": "संस्करण डेटा उपलब्ध नहीं है"
+    "versionUnavailable": "संस्करण डेटा उपलब्ध नहीं है",
+    "versionUnavailableWithError": "संस्करण डेटा उपलब्ध नहीं है: {{error}}"
   },
   "navbar": {
     "users": "उपयोगकर्ता",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "{{field}} द्वारा फ़िल्टर करें",
   "Something went wrong. Please try again.": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
   "More actions": "और क्रियाएँ",
-  "More actions for": "इसके लिए और क्रियाएँ:",
+  "More actions for {{name}}": "{{name}} के लिए और क्रियाएँ",
+  "Clear {{filter}} filter": "{{filter}} फ़िल्टर साफ़ करें",
+  "Clear {{filter}}": "{{filter}} साफ़ करें",
   "Delete Error": "हटाने में त्रुटि",
   "Refresh?": "रिफ़्रेश करें?",
   "Updated": "अपडेट किया गया",
