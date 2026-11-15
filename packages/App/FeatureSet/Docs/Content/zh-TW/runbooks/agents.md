@@ -75,7 +75,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 早於 14.0.94 的全域 Runner，或以 `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false` 啟動的全域 Runner，不接受程式碼修復，OneUptime 也不會將它計入。此時，在 **全域 Runner** 上工作的儲存庫會提示沒有在線的全域 Runner 接受 AI 程式碼修復，而 Admin Dashboard 的 **全域 Runner** 頁面會在該 Runner 的狀態下方說明原因。
 
-對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
+對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runner** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在專案預設 Runner 上工作，沒有設定預設 Runner 時在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 
 ### 全域 Runner 從哪裡來
 
@@ -94,7 +94,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 
 ### 1. 建立代理程式紀錄
 
-前往 **運行手冊 → Runbook 代理程式** ，建立一個新的代理程式。點選 **建立Runner** ，在同一頁上填寫它的欄位：
+前往 **運行手冊 → Runner** ，建立一個新的代理程式。點選 **建立Runner** ，在同一頁上填寫它的欄位：
 
 | 欄位 | 位置 | 說明 |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 5. 讓代理程式保持最新
 
-當代理程式執行的版本比您的 OneUptime 舊時，其頁面上的 **操作手冊代理程式版本** 旁會出現警告標記。選擇它即可查看升級方式：拉取新的映像檔，移除容器，然後重新執行第 2 步的安裝指令。由 Kubernetes 代理程式的 Chart 安裝的代理程式，則改用該 Chart 升級。
+當代理程式執行的版本比您的 OneUptime 舊時，其頁面上的 **Runner 版本** 旁會出現警告標記。選擇它即可查看升級方式：拉取新的映像檔，移除容器，然後重新執行第 2 步的安裝指令。由 Kubernetes 代理程式的 Chart 安裝的代理程式，則改用該 Chart 升級。
 
 ```bash
 docker pull oneuptime/runner:release
@@ -230,7 +230,7 @@ Runner 認領工作時會取得一個短租約（預設 30 秒）。步驟執行
 
 ### 沒有在線的代理程式
 
-如果步驟執行時所選的 Runner 離線，工作會以 `Pending` 等待到 claim timeout 結束，然後步驟失敗，訊息為「No runbook agent picked up this step before the wait window expired.」在正式執行 Runbook 之前，可以在 **Runbook 代理程式** 頁面上檢查涵蓋範圍。 全域 Runner 上的步驟則會失敗，訊息為「No global Runner picked up this step before the wait window expired.」
+如果步驟執行時所選的 Runner 離線，工作會以 `Pending` 等待到 claim timeout 結束，然後步驟失敗，訊息為「No runbook agent picked up this step before the wait window expired.」在正式執行 Runbook 之前，可以在 **Runner** 頁面上檢查涵蓋範圍。 全域 Runner 上的步驟則會失敗，訊息為「No global Runner picked up this step before the wait window expired.」
 
 ### 輸出上限
 

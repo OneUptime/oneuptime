@@ -109,6 +109,28 @@ describe("the check of the sentences", () => {
     expect(norwegian.dropped.test("Denne overvåkingen")).toBe(true);
   });
 
+  test("reads OneUptime's Runner, not another agent or another product's runner", () => {
+    const russian: SentenceRule = RULES.find((rule: SentenceRule) => {
+      return rule.language === "ru" && rule.thing === "Runners";
+    })!;
+
+    expect(russian.english.test("Runner Status")).toBe(true);
+    expect(russian.dropped.test("Статус агента сценария")).toBe(true);
+    expect(russian.dropped.test("Статус Runner-а")).toBe(false);
+    // A key that names an agent too, and AWS's App Runner, are not the Runner.
+    expect(
+      russian.except!.test(
+        "Upgrade the Kubernetes agent chart. The {{agent}} replaces the previous in-cluster Runner.",
+      ),
+    ).toBe(true);
+    expect(russian.except!.test("Configure the App Runner service")).toBe(true);
+    // The docs write the Runner with a capital R; a CI's runner is another.
+    expect(russian.docsEnglish!.test("Open the Runner's page.")).toBe(true);
+    expect(
+      russian.docsEnglish!.test("Add it to every CI runner's trust store."),
+    ).toBe(false);
+  });
+
   test("reads a plural form's key by its English", () => {
     expect(englishOf("Sync Criteria to {{count}} Linked Monitors_one")).toBe(
       "Sync Criteria to {{count}} Linked Monitors",
@@ -214,7 +236,7 @@ function docsLinesStillDropped(rule: SentenceRule): Array<string> {
       if (
         inFence ||
         HEADING.test(line) ||
-        !rule.english.test(englishLine) ||
+        !(rule.docsEnglish || rule.english).test(englishLine) ||
         (except && except.test(englishLine))
       ) {
         return;
@@ -278,6 +300,11 @@ describe("the single keys and the titles", () => {
     ["it", "logs", "log"],
     ["ru", "Runbook", "Сборник инструкций"],
     ["zh-TW", "Runbook", "運行手冊"],
+    // The Runbooks menu's Runners, as 200 sentences name a Runner (#8706).
+    ["ru", "Runners", "Runner-ы"],
+    ["zh-TW", "Runners", "Runner"],
+    ["ru", "Runner Status", "Статус Runner-а"],
+    ["zh-TW", "Runner Status", "Runner 狀態"],
     ["fr", "SLOs", "SLO"],
     ["fa", "SLOs", "SLOها"],
     ["sv", "Monitor Group", "Monitorgrupp"],
