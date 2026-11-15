@@ -581,9 +581,27 @@ then `npm run i18n:validate` from the root.
   [DashboardComponentsAToLHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsAToLHardcodedGuard.test.ts),
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
-  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
+  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts),
+  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts)
+  and, for the import screens (the label rule import, the CSV upload, the JSON import's editor,
+  Network's Auto Import Rules) and the docs that name their buttons,
+  [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts).
+- **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
+  filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
+  operator as its English symbol between the key and the value ("http.route matches /api/*" under a
+  German form that said "stimmt überein"), and every rule table's Match Criteria glued `IP Address is
+  in "10.16.0.0/16"` in English, its quotes jumping on a Persian page (#7931, #7958). Draw an
+  attribute filter with `DictionaryFilterSentence` and a rule with `RuleCriteriaSummary`: each
+  condition is one sentence with its field and value as slots, the value set apart as typed, inside
+  the language's own quotes; an operator that is a symbol (=, >) stays one. And an empty dropdown
+  says so in the reader's words ("No matches found", "No options available"), never react-select's
+  English "No options" (#7805). Enforced by
+  [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
+  [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
+  [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
   and
-  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+  [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).

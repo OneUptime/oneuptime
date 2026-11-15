@@ -259,7 +259,9 @@ describe("a metric query's filter chips", () => {
         );
       });
 
-      const header: string = withoutIsolateMarks(document.body.textContent || "");
+      const header: string = withoutIsolateMarks(
+        document.body.textContent || "",
+      );
 
       expect(header).toContain(
         fill(words["{{count}} filters"]!, {

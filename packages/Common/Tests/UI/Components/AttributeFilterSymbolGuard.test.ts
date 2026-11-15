@@ -163,7 +163,10 @@ describe("an attribute filter's operator is never drawn as its English symbol", 
         "utf8",
       );
 
-      expect({ name, sentence: text.includes("<DictionaryFilterSentence") }).toEqual({
+      expect({
+        name,
+        sentence: text.includes("<DictionaryFilterSentence"),
+      }).toEqual({
         name,
         sentence: true,
       });

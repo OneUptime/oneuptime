@@ -104,8 +104,7 @@ async function inLanguage(language: string): Promise<void> {
 }
 
 beforeAll(async () => {
-  const resources: Record<string, { translation: Record<string, string> }> =
-    {};
+  const resources: Record<string, { translation: Record<string, string> }> = {};
 
   for (const language of RENDERED) {
     resources[language] = { translation: readDashboardLocale(language) };
@@ -140,17 +139,20 @@ describe("the empty menu's words", () => {
     expect(getDropdownNoOptionsMessage("   ")).toBe("No options available");
   });
 
-  test.each(DASHBOARD_LANGUAGES)("%s words each of them", (language: string) => {
-    expect(
-      [
-        DROPDOWN_NO_MATCHES_MESSAGE,
-        DROPDOWN_NO_OPTIONS_MESSAGE,
-        DROPDOWN_LOADING_MESSAGE,
-      ].filter((key: string): boolean => {
-        return !isWordedInDashboardLocale(key, language);
-      }),
-    ).toEqual([]);
-  });
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words each of them",
+    (language: string) => {
+      expect(
+        [
+          DROPDOWN_NO_MATCHES_MESSAGE,
+          DROPDOWN_NO_OPTIONS_MESSAGE,
+          DROPDOWN_LOADING_MESSAGE,
+        ].filter((key: string): boolean => {
+          return !isWordedInDashboardLocale(key, language);
+        }),
+      ).toEqual([]);
+    },
+  );
 
   test("in English they read as before, in the product's words", async () => {
     await inLanguage("en");
@@ -356,9 +358,7 @@ describe("the other front ends that draw a Dropdown word its empty menu as the D
       const english: Record<string, string> = readAppLocale(app, "en");
 
       expect(english[DROPDOWN_NO_MATCHES_MESSAGE]).toBe("No matches found");
-      expect(english[DROPDOWN_NO_OPTIONS_MESSAGE]).toBe(
-        "No options available",
-      );
+      expect(english[DROPDOWN_NO_OPTIONS_MESSAGE]).toBe("No options available");
       expect(english[DROPDOWN_LOADING_MESSAGE]).toBe("Loading...");
     });
 
@@ -398,7 +398,9 @@ describe("the Dropdown never leaves react-select to word its menu", () => {
 
     expect(block).toContain("loadingMessage: ");
     expect(block).toContain("noOptionsMessage: ");
-    expect(block).not.toMatch(/if \(props\.(noOptionsMessage|loadingMessage)\)/);
+    expect(block).not.toMatch(
+      /if \(props\.(noOptionsMessage|loadingMessage)\)/,
+    );
     expect(source).toContain("{...menuMessageProps}");
   });
 

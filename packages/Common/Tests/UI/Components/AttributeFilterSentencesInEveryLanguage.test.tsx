@@ -192,14 +192,20 @@ describe("each operator is one sentence", () => {
     for (const option of DICTIONARY_FILTER_OPERATOR_OPTIONS) {
       const template: string = DICTIONARY_FILTER_SENTENCES[option.operator];
 
-      expect({ operator: option.operator, hasKey: template.includes("{{field}}") }).toEqual({
+      expect({
+        operator: option.operator,
+        hasKey: template.includes("{{field}}"),
+      }).toEqual({
         operator: option.operator,
         hasKey: true,
       });
       expect({
         operator: option.operator,
         hasValue: template.includes("{{value}}"),
-      }).toEqual({ operator: option.operator, hasValue: !option.hidesValueInput });
+      }).toEqual({
+        operator: option.operator,
+        hasValue: !option.hidesValueInput,
+      });
     }
   });
 

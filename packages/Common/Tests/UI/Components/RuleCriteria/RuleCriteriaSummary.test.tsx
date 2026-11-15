@@ -177,18 +177,13 @@ afterEach(() => {
   document.documentElement.removeAttribute("dir");
 });
 
-function renderSummary(
-  code: string,
-  element: React.ReactElement,
-): HTMLElement {
+function renderSummary(code: string, element: React.ReactElement): HTMLElement {
   if (code === "fa" || code === "ar") {
     document.documentElement.setAttribute("dir", "rtl");
   }
 
   render(
-    <I18nextProvider i18n={languages[code] as i18n}>
-      {element}
-    </I18nextProvider>,
+    <I18nextProvider i18n={languages[code] as i18n}>{element}</I18nextProvider>,
   );
 
   return screen.getByTestId("rule-criteria-summary");
@@ -245,7 +240,10 @@ describe("the sentences a summary says", () => {
           operator
         ]?.other;
 
-      expect({ operator, sentence: sentence?.includes(` ${label.toLocaleLowerCase()} `) }).toEqual({
+      expect({
+        operator,
+        sentence: sentence?.includes(` ${label.toLocaleLowerCase()} `),
+      }).toEqual({
         operator,
         sentence: true,
       });
@@ -278,17 +276,17 @@ describe("the sentences a summary says", () => {
     "%s keeps the quotes with the value, as its own quotes",
     (language: string) => {
       const words: Record<string, string> = readDashboardLocale(language);
+      // A quote mark on each side of the value, whatever marks the language uses.
+      const quotedValue: RegExp =
+        /[“”„«»「」‘’"]\s?\{\{value\}\}\s?[“”„«»「」‘’"]/u;
 
       for (const key of SENTENCES.filter((sentence: string): boolean => {
         return sentence.includes("“{{value}}”");
       })) {
-        // A quote mark on each side of the value, whatever marks the language uses.
         expect({
           language,
           key,
-          quoted: /[“”„«»「」‘’"]\s?\{\{value\}\}\s?[“”„«»「」‘’"]/u.test(
-            words[key] || "",
-          ),
+          quoted: quotedValue.test(words[key] || ""),
         }).toEqual({ language, key, quoted: true });
       }
     },
@@ -317,15 +315,20 @@ describe("the sentences a summary says", () => {
 
 describe("the summary as text, for the table's export and search", () => {
   test("is English, word for word as it always read", () => {
-    expect(getRuleCriteriaSummaryText({ fields: SITE_FIELDS, item: oneConditionRule() })).toBe(
-      "IP Address is in “10.16.0.0/16”",
-    );
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: SITE_FIELDS,
+        item: oneConditionRule(),
+      }),
+    ).toBe("IP Address is in “10.16.0.0/16”");
     expect(
       getRuleCriteriaSummaryText({
         fields: SITE_FIELDS,
         item: twoConditionRule(FilterCondition.Any),
       }),
-    ).toBe("Match any: IP Address is in “10.16.0.0/16”; Hostname starts with “core-sw”");
+    ).toBe(
+      "Match any: IP Address is in “10.16.0.0/16”; Hostname starts with “core-sw”",
+    );
 
     const listRule: IncidentOnCallRule = new IncidentOnCallRule();
     listRule.criteria = criteria([
@@ -551,10 +554,8 @@ describe("a rule's Match Criteria cell, in the reader's language", () => {
 
     expect(
       withoutIsolateMarks(
-        renderSummary(
-          "fa",
-          <RuleCriteriaSummary fields={fields} item={rule} />,
-        ).textContent || "",
+        renderSummary("fa", <RuleCriteriaSummary fields={fields} item={rule} />)
+          .textContent || "",
       ),
     ).toBe(
       fill(words["{{field}} has any of {{count}} selected values"]!, {
