@@ -111,6 +111,19 @@ export const LOG_SEVERITY_NUMBER_BY_TEXT: ReadonlyMap<string, number> = new Map<
   ["EMERGENCY", 21],
   // An application logger's top level (see above): not syslog's Critical.
   ["CRITICAL", 21],
+  /*
+   * The short forms loggers write in a level field (issue #8536): Serilog's
+   * VRB, DBG, INF, WRN and FTL (its ERR is syslog's, above), zerolog's TRC,
+   * and log15's DBUG and EROR (its CRIT is syslog's too).
+   */
+  ["TRC", 1],
+  ["VRB", 5],
+  ["DBG", 5],
+  ["DBUG", 5],
+  ["INF", 9],
+  ["WRN", 13],
+  ["EROR", 17],
+  ["FTL", 21],
 ]);
 
 /*
