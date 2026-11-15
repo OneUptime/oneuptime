@@ -409,6 +409,107 @@ describe("withNumbersKeptWithUnits", () => {
   });
 });
 
+describe("a unit a language writes in two words (#8304)", () => {
+  test("Arabic's milliseconds, short: the number and both words of the unit hold", () => {
+    // The Dashboard's "{{value}} ms": "411 ملي ث" broke as "411 ملي" over "ث".
+    expect(withNumbersKeptWithUnits("{{value}} ملي ث", "{{value}} ms")).toBe(
+      `{{value}}${NB}ملي${NB}ث`,
+    );
+    expect(withNumbersKeptWithUnits("411 ملي ث", "411 ms")).toBe(
+      `411${NB}ملي${NB}ث`,
+    );
+  });
+
+  test("Arabic's milliseconds, long, in each spelling its sentences use, and its nanoseconds", () => {
+    for (const unit of [
+      ["ملي", "ثانية"],
+      ["مللي", "ثانية"],
+      ["ميلي", "ثانية"],
+      ["نانو", "ثانية"],
+    ] as Array<[string, string]>) {
+      expect(
+        withNumbersKeptWithUnits(
+          `المسبار {{offset}} ${unit[0]} ${unit[1]} أو أكثر`,
+          "the probe's {{offset}} ms or more",
+        ),
+      ).toBe(`المسبار {{offset}}${NB}${unit[0]}${NB}${unit[1]} أو أكثر`);
+    }
+  });
+
+  test("inside a sentence, between brackets and beside another unit", () => {
+    expect(
+      withNumbersKeptWithUnits(
+        "الأحدث: الوسيط {{median}} ملي ث ({{min}}–{{max}} ملي ث)",
+        "Latest: {{median}} ms median ({{min}}–{{max}} ms)",
+      ),
+    ).toBe(
+      `الأحدث: الوسيط {{median}}${NB}ملي${NB}ث ({{min}}–{{max}}${NB}ملي${NB}ث)`,
+    );
+  });
+
+  test("Arabic-Indic digits hold their unit too", () => {
+    expect(withNumbersKeptWithUnits("٤١١ ملي ث", "411 ms")).toBe(
+      `٤١١${NB}ملي${NB}ث`,
+    );
+  });
+
+  test("the unit's words where no number is held to them are words a line may break between", () => {
+    // "in milliseconds" in prose, and a number English writes with no unit.
+    expect(
+      withNumbersKeptWithUnits(
+        "المدة بالمللي ثانية {{value}} ملي ث",
+        "Duration in milliseconds {{value}} ms",
+      ),
+    ).toBe(`المدة بالمللي ثانية {{value}}${NB}ملي${NB}ث`);
+    expect(withNumbersKeptWithUnits("{{count}} ملي ث", "{{count}} rows")).toBe(
+      "{{count}} ملي ث",
+    );
+    expect(withNumbersKeptWithUnits("ملي ث {{value}}", "{{value}} ms")).toBe(
+      "ملي ث {{value}}",
+    );
+  });
+
+  test("a longer word that starts with the unit's second word is no unit", () => {
+    expect(withNumbersKeptWithUnits("{{value}} ملي ثقيل", "{{value}} ms")).toBe(
+      `{{value}}${NB}ملي ثقيل`,
+    );
+  });
+
+  test("Persian writes its unit as one word, with a zero-width non-joiner: nothing more to hold", () => {
+    expect(
+      withNumbersKeptWithUnits("{{value}} میلی‌ثانیه", "{{value}} ms"),
+    ).toBe(`{{value}}${NB}میلی‌ثانیه`);
+  });
+
+  test("code in backticks keeps its spaces, and setting twice is setting once", () => {
+    expect(
+      withNumbersKeptWithUnits(
+        "`5 ملي ث` {{value}} ملي ث",
+        "`5 ms` {{value}} ms",
+      ),
+    ).toBe(`\`5 ملي ث\` {{value}}${NB}ملي${NB}ث`);
+
+    const once: string = withNumbersKeptWithUnits(
+      "{{value}} ملي ث",
+      "{{value}} ms",
+    );
+
+    expect(withNumbersKeptWithUnits(once, "{{value}} ms")).toBe(once);
+  });
+
+  test("through withNoBreakSpaces and a locale, as the Admin Dashboard's i18next is handed it", () => {
+    expect(withNoBreakSpaces("{{count}} ملي ث", "{{count}} ms", "ar")).toBe(
+      `{{count}}${NB}ملي${NB}ث`,
+    );
+    expect(
+      withNoBreakSpacesInLocale({
+        locale: { "{{count}} ms": "{{count}} ملي ث" },
+        language: "ar",
+      }),
+    ).toEqual({ "{{count}} ms": `{{count}}${NB}ملي${NB}ث` });
+  });
+});
+
 describe("withNoBreakSpaces", () => {
   test("French: its marks and its numbers", () => {
     expect(

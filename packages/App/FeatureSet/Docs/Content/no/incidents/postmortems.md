@@ -209,7 +209,7 @@ De to KI-handlingene krever at KI er slått på for prosjektet, og et kodelager 
 
 **Hendelser → Handlingspunkter** viser handlingspunktene fra alle etteranalyser i prosjektet, med den nærmeste fristen først, hver med hendelse, eier, frist og status. Filtrer listen etter **Status**, **Eier** og **Frist**, og **Vis** i en rad åpner hendelsens side **Etteranalyse**.
 
-Å lese handlingspunkter krever det samme som å lese hendelsen. Å legge dem til, endre dem og slette dem krever rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Hendelsesadministrator eller Hendelsesmedlem, eller en egendefinert rolle med den tilsvarende tillatelsen for handlingspunkter i etteranalyser. Handlingspunktene til en privat hendelse er, som hendelsen selv, bare synlige for brukerne som eier den, medlemmene av teamene som eier den, prosjektadministratorer og prosjekteiere.
+Å lese handlingspunkter krever det samme som å lese hendelsen. Å legge dem til, endre dem og slette dem krever rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Hendelsesadministrator eller Hendelsesmedlem, eller en egendefinert rolle med den tilsvarende tillatelsen for handlingspunkter i etteranalyser. Handlingspunktene til en privat hendelse er, som hendelsen selv, bare synlige for brukerne som eier den, medlemmene av teamene som eier den, Prosjektadministratorer og Prosjekteiere.
 
 ## Etteranalyser for episoder
 

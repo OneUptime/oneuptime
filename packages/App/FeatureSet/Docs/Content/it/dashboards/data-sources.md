@@ -24,7 +24,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Un piano che la includa.** Su OneUptime Cloud, creare e modificare fonti di dati richiede il piano **Growth**. Eliminarne una funziona con ogni piano.
-- **Un'autorizzazione per aggiungerle.** I proprietari e gli amministratori del progetto possono aggiungere fonti di dati; tutti gli altri hanno bisogno di `CreateDataSource`, con `EditDataSource` e `DeleteDataSource` per modificarle e rimuoverle. Chiunque possa leggere le fonti di dati del progetto, membri e visualizzatori compresi, vede i dati dei loro widget.
+- **Un'autorizzazione per aggiungerle.** I Proprietari del progetto e gli Amministratori del progetto possono aggiungere fonti di dati; tutti gli altri hanno bisogno di `CreateDataSource`, con `EditDataSource` e `DeleteDataSource` per modificarle e rimuoverle. Chiunque possa leggere le fonti di dati del progetto, membri e visualizzatori compresi, vede i dati dei loro widget.
 - **Un account di sola lettura.** Le dashboard leggono soltanto. Collega i database con un account che possa solo leggere, e le fonti HTTP con un token che possa solo interrogare.
 - **Una via d'accesso.** È il server API di OneUptime a collegarsi al tuo sistema, quindi deve poterlo raggiungere: vedi [Sicurezza](#sicurezza) per gli indirizzi che vengono rifiutati.
 

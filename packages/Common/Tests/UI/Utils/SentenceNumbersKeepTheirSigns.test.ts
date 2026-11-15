@@ -288,10 +288,10 @@ describe("what is still set apart", () => {
 
     // The figure keeps its unit on its line (NoBreakSpaces).
     expect(sentence).toBe(
-      `بين ${isolated("10")}–${isolated("20")}\u00A0مللي ثانية`,
+      `بين ${isolated("10")}–${isolated("20")}\u00A0مللي\u00A0ثانية`,
     );
     expect(drawnFromTheRight(sentence)).toBe(
-      drawnFromTheRight("بين 10–20\u00A0مللي ثانية"),
+      drawnFromTheRight("بين 10–20\u00A0مللي\u00A0ثانية"),
     );
   });
 });

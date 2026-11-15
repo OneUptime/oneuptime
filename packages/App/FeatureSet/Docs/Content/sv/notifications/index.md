@@ -53,7 +53,7 @@ De är åtskilda med flit. Att slå på alla kanaler i **Aviseringsinställninga
 
 **Kom igång** och **Larm och aviseringar** är öppna; de andra avsnitten börjar ihopfällda, och ett avsnitt öppnas av sig självt när du är på en av dess sidor. **Arbetsyta** visas bara när projektet har anslutit Slack, Microsoft Teams eller Mattermost.
 
-Projektägare och administratörer kan också se din konfiguration: under **Användare** öppnar de din rad och dess avsnitt **Jour**, med **Beredskap**, **Aviseringsmetoder** och **Så når man mig**. De kan lägga till en metod åt dig där, men koden går till själva metoden, så bara du kan verifiera den.
+Projektägare och Projektadministratörer kan också se din konfiguration: under **Användare** öppnar de din rad och dess avsnitt **Jour**, med **Beredskap**, **Aviseringsmetoder** och **Så når man mig**. De kan lägga till en metod åt dig där, men koden går till själva metoden, så bara du kan verifiera den.
 
 ## Det här börjar du med
 
@@ -116,7 +116,7 @@ Det som ändras är OneUptimes egna ord: ämnesrader, rubriker, knappar och meni
 :::
 
 :::details Jag får e-post om saker som jag aldrig har bett om
-Du äger saken, direkt eller via ett team, eller så har saken inga ägare och du är projektägare. Stäng av händelsen under **Användarinställningar → Aviseringsinställningar**, eller minska mängden under **Användarinställningar → E-postinställningar**.
+Du äger saken, direkt eller via ett team, eller så har saken inga ägare och du är Projektägare. Stäng av händelsen under **Användarinställningar → Aviseringsinställningar**, eller minska mängden under **Användarinställningar → E-postinställningar**.
 :::
 
 :::details Mina larm är på engelska, fast instrumentpanelen inte är det

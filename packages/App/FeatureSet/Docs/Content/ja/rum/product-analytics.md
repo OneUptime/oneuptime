@@ -144,11 +144,11 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 ## 閲覧できる人
 
-これらのページを読むには、セッション一覧を読むのと同じものが必要です。 `ReadRumSessionReplay` (_List Session Replays_) または `ReadRumSessionReplayPayload` (_Watch Session Replays_) で、プロジェクトのオーナーと管理者が持っています。サインイン済みユーザーが誰かを見たり、名前で人を検索したりするには、 [録画を視聴できるユーザー](/docs/telemetry/session-replay#録画を視聴できるユーザー) で説明しているとおり `ReadRumSessionReplayPayload` (_Watch Session Replays_) が必要です。
+これらのページを読むには、セッション一覧を読むのと同じものが必要です。 `ReadRumSessionReplay` (_List Session Replays_) または `ReadRumSessionReplayPayload` (_Watch Session Replays_) で、プロジェクト所有者とプロジェクト管理者が持っています。サインイン済みユーザーが誰かを見たり、名前で人を検索したりするには、 [録画を視聴できるユーザー](/docs/telemetry/session-replay#録画を視聴できるユーザー) で説明しているとおり `ReadRumSessionReplayPayload` (_Watch Session Replays_) が必要です。
 
 保存済みのファネルとリテンションテーブルの保存、名前の変更、削除には、これらのページを読むのと同じ権限が必要です。ダッシュボードのウィジェットは、その権限を持つ閲覧者にだけそれを表示します。
 
-イベントのオン・オフには、 `EditRumApplication` (_Edit RUM Application_) か、プロジェクトのオーナー、管理者、メンバーのロールが必要です。ユーザープロパティの指定には、 `EditRumApplication` か、オーナーまたは管理者のロールが必要です。サインイン済みの人について何を保持するかを決めるためです。
+イベントのオン・オフには、 `EditRumApplication` (_Edit RUM Application_) か、プロジェクト所有者、プロジェクト管理者、プロジェクトメンバーのロールが必要です。ユーザープロパティの指定には、 `EditRumApplication` か、オーナーまたは管理者のロールが必要です。サインイン済みの人について何を保持するかを決めるためです。
 
 ## 次のステップ
 

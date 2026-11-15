@@ -124,7 +124,7 @@ export function formatBytes(
   return `${formatReaderFigure(value, {
     decimals: precision,
     language: translator.language,
-  })} ${units[unitIdx]}`;
+  })}\u00A0${units[unitIdx]}`;
 }
 
 // A container's CPU, as a share: "12.5%", "12,5 %", "۱۲٫۵٪".

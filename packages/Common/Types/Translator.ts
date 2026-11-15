@@ -1,7 +1,7 @@
 import escapeRegExp from "../Utils/RegExpEscape";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import { getWordOfMeaningKey, withMeaningKeyAsItsWord } from "./MeaningKeys";
-import { withNoBreakSpaces } from "./NoBreakSpaces";
+import { withNoBreakSpaces, withNumbersKeptWithUnits } from "./NoBreakSpaces";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -1235,6 +1235,17 @@ export const createTranslator: (
     return withNoBreakSpaces(punctuate(wording), english, activeLanguage);
   };
 
+  /*
+   * An English sentence as it sets a line: punctuated, and each number it
+   * writes beside a unit kept with it - "Every 5\u00A0min", "411\u00A0ms"
+   * (#8302). Only a template, OneUptime's own English, is set: an English
+   * text with no wording anywhere (translateText) may be a value, and goes
+   * out as written.
+   */
+  const setEnglish: (english: string) => string = (english: string): string => {
+    return withNumbersKeptWithUnits(punctuate(english), english);
+  };
+
   // The stored wording for `key`, or undefined when nothing has one.
   const find: (key: string) => string | undefined = (
     key: string,
@@ -1375,18 +1386,19 @@ export const createTranslator: (
       /*
        * An English sentence on a Persian page holds Persian digits too (its
        * counts are written the reader's way): its separators are punctuated
-       * the reader's way, its values never.
+       * the reader's way, and its numbers kept with their units, its values
+       * never.
        */
       if (hasWords(english)) {
         return setsValuesApart
           ? fillSettingValuesApart(
-              punctuate(english),
+              setEnglish(english),
               englishTextValues(values),
               LEFT_TO_RIGHT,
               setsSlotsApart,
               DEFAULT_LANGUAGE,
             )
-          : fillTemplate(punctuate(english), englishDateValues(values));
+          : fillTemplate(setEnglish(english), englishDateValues(values));
       }
 
       // No words of its own: the reader's words, as their sentence holds them.

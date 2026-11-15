@@ -900,7 +900,7 @@ describe("the SSO guide", () => {
     const page: string = english(SSO);
 
     expect(page).toContain(
-      "Project owners, project admins and members with the **Edit Project** permission can change it",
+      "Project Owners, Project Admins and members with the **Edit Project** permission can change it",
     );
     expect(page).toContain(
       "On OneUptime Cloud, requiring SSO needs the **Scale** plan",
@@ -1321,7 +1321,7 @@ describe("the SCIM guide", () => {
       "Project Owner",
     ]);
     expect(english(SCIM)).toContain(
-      "Only a project owner can add or change a project's SCIM connection, or see or reset its bearer token",
+      "Only a Project Owner can add or change a project's SCIM connection, or see or reset its bearer token",
     );
   });
 

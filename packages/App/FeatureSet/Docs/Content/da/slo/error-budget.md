@@ -133,7 +133,7 @@ En status siger, hvor meget budget der er tilbage, ikke hvad dit team gør ved d
 
 Når et SLO skifter til **I risiko** eller **Budget opbrugt**, giver OneUptime dets ejere besked:
 
-- Ejerne er de brugere og teammedlemmer på SLO'ets side **Ejere**, der stadig er medlemmer af projektet. Et SLO uden ejere giver i stedet projektets ejere besked.
+- Ejerne er de brugere og teammedlemmer på SLO'ets side **Ejere**, der stadig er medlemmer af projektet. Et SLO uden ejere giver i stedet Projektejere besked.
 - Hver ejer får en e-mail som standard, og beskeden på enhver anden kanal, vedkommende slår til for **SLO-status ændret** under **Brugerindstillinger** → **Notifikationsindstillinger** → **Overvågning**.
 - E-mailens emne nævner status og SLO'et, for eksempel `[SLO At Risk] API Availability`.
 

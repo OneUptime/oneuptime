@@ -142,7 +142,7 @@ describe("a count column on a Persian page", () => {
     expect(cells).toContain("node-a1");
     // The CPU and memory beside them, too.
     expect(cells).toContain("۰٫۴٪");
-    expect(cells).toContain("۵۱۲٫۰ MB");
+    expect(cells).toContain("۵۱۲٫۰\u00A0MB");
 
     const latin: Array<string> = cells.filter((cell: string): boolean => {
       return (
@@ -195,7 +195,7 @@ describe("a count column on a Persian page", () => {
     expect(cells).toContain("2/3");
     expect(cells).toContain("12");
     expect(cells).toContain("0.4%");
-    expect(cells).toContain("512.0 MB");
+    expect(cells).toContain("512.0\u00A0MB");
   });
 });
 

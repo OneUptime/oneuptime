@@ -1372,9 +1372,18 @@ describe("the Fluentd page", () => {
       }
     }
 
-    expect(FLUENT.extractSeverityFromEntry({ level: "verbose" }).text).toBe(
+    /*
+     * A word that names no level. (`verbose` used to be the example here;
+     * it is the Windows Event Log's and ETW's Debug, and every log ingest
+     * now reads one table of level words - issue #8425.)
+     */
+    expect(FLUENT.extractSeverityFromEntry({ level: "chatty" }).text).toBe(
       LogSeverity.Unspecified,
     );
+    expect(FLUENT.extractSeverityFromEntry({ level: "constructor" })).toEqual({
+      number: 0,
+      text: LogSeverity.Unspecified,
+    });
     expect(FLUENT.extractSeverityFromEntry({ priority: 3 }).text).toBe(
       LogSeverity.Unspecified,
     );

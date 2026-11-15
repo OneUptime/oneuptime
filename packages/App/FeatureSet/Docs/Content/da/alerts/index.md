@@ -175,7 +175,7 @@ Et kriterium holder én åben advarsel ad gangen. Indtil den advarsel er løst, 
 :::
 
 :::details En kollega kan åbne en advarsel, som jeg ikke kan finde
-Advarslen er sandsynligvis privat. Bed en projektadministrator om at tilføje dig som ejer eller om at slå **Privat advarsel** fra på advarslens side **Indstillinger**.
+Advarslen er sandsynligvis privat. Bed en Projektadministrator om at tilføje dig som ejer eller om at slå **Privat advarsel** fra på advarslens side **Indstillinger**.
 :::
 
 ## Næste skridt

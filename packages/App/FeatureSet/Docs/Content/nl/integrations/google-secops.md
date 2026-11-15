@@ -173,7 +173,7 @@ Elk verzoek in een test heeft een deadline van 20 seconden. Tests laten de pollc
 
 ## Bekijken, uitvoeren en importeren op verzoek
 
-Open **Diagnose** bij een verbinding om recente runs te zien en de connector te bedienen. Projecteigenaren, projectbeheerders en beveiligingsbeheerders kunnen bewerkingen starten. Beveiligingsleden en -kijkers kunnen de historie lezen.
+Open **Diagnose** bij een verbinding om recente runs te zien en de connector te bedienen. Projecteigenaren, Projectbeheerders en Beveiligingsbeheerders kunnen bewerkingen starten. Beveiligingsleden en -kijkers kunnen de historie lezen.
 
 - **Nu uitvoeren** zet meteen een poll in de wachtrij, met de normale cursor en opnameroute, ook als gepland pollen is uitgeschakeld. De toestanden in de wachtrij en actief blijven zichtbaar terwijl de worker het verzoek uitvoert. Blijft een run in de wachtrij staan, controleer dan of workers de Worker-wachtrij verwerken; de controle **Background workers** in Verbinding testen zegt of er een proces is dat dat doet.
 - **Voorbeeld van detecties** leest een gekozen tijdsbereik zonder te importeren of de cursor te wijzigen. Gebruik het afgelopen uur, 24 uur, 7 dagen of een aangepast bereik van maximaal 7 dagen. Het bereik komt overeen met de waarschuwingsweergave van SecOps, die op detectietijd leest, en de twee zoekrondes lezen zowel detecties die erin zijn gemaakt als detecties waarvan de detectietijd erin valt, dus een voorbeeld van gisteren toont ook detecties die gisteren zijn gemaakt over oudere gebeurtenissen. Het voorbeeld toont detectietijd en aanmaaktijd apart. De resultaten volgen de opgeslagen keuze **Te importeren gegevens** van de verbinding.

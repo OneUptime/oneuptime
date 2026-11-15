@@ -43,6 +43,7 @@ import {
 import ResourceAccessContext, {
   describeResource,
   describeResourceInSentence,
+  describeResourceInSentenceWords,
 } from "./ResourceAccessContext";
 import ToolOutputPager, {
   hasAgentTruncationMarker,
@@ -50,6 +51,8 @@ import ToolOutputPager, {
   READ_TOOL_OUTPUT_TOOL_NAME,
 } from "../Chat/ToolOutputPager";
 
+import { AI_TOOLKIT_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, ToolCitation } from "../Toolbox/ReadTableWords";
 /*
  * The run-scoped, READ-ONLY infrastructure command toolkit for an
  * investigation — the sibling of KubectlInvestigationToolkit for every
@@ -293,7 +296,8 @@ export default class InfrastructureInvestigationToolkit {
           result: {
             dataForLlm: text,
             rowCount: ready.length,
-            citationLabel: "Infrastructure OneUptime AI can inspect",
+            // In the reader's language (#8511).
+            ...citationSentence(AI_TOOLKIT_CITATIONS.infrastructureAvailable),
             redactionCount: 0,
             isTruncated: false,
           },
@@ -580,8 +584,9 @@ export default class InfrastructureInvestigationToolkit {
       );
     }
 
-    const citationLabel: string =
-      InfrastructureInvestigationToolkit.getCitationLabel({
+    // In the reader's language (#8511).
+    const citation: ToolCitation =
+      InfrastructureInvestigationToolkit.getCitation({
         displayCommand: outcome.displayCommand,
         resource,
       });
@@ -592,7 +597,8 @@ export default class InfrastructureInvestigationToolkit {
      * read_tool_output — nothing is cut away.
      */
     const paged: PagedToolOutput = this.outputPager.paginate({
-      label: citationLabel,
+      label: citation.citationLabel,
+      words: citation.citationWords,
       text: outcome.output,
     });
 
@@ -607,7 +613,7 @@ export default class InfrastructureInvestigationToolkit {
       result: {
         dataForLlm: text,
         rowCount: outcome.succeeded ? 1 : 0,
-        citationLabel,
+        ...citation,
         redactionCount: outcome.redactionCount ?? 0,
         // Paged output is complete; only an output the agent cut is not.
         isTruncated:
@@ -645,14 +651,16 @@ export default class InfrastructureInvestigationToolkit {
       );
     }
 
-    const citationLabel: string =
-      InfrastructureInvestigationToolkit.getCitationLabel({
+    // In the reader's language (#8511).
+    const citation: ToolCitation =
+      InfrastructureInvestigationToolkit.getCitation({
         displayCommand: outcome.displayCommand,
         resource: data.resource,
       });
 
     const paged: PagedToolOutput = this.outputPager.paginate({
-      label: citationLabel,
+      label: citation.citationLabel,
+      words: citation.citationWords,
       text: outcome.output,
     });
 
@@ -671,7 +679,7 @@ export default class InfrastructureInvestigationToolkit {
       result: {
         dataForLlm: text,
         rowCount: 1,
-        citationLabel,
+        ...citation,
         redactionCount: outcome.redactionCount,
         isTruncated: outcome.isTruncated,
       },
@@ -692,6 +700,20 @@ export default class InfrastructureInvestigationToolkit {
     resource: ResourceAiAccessStatus;
   }): string {
     return `\`${data.displayCommand}\` on ${describeResourceInSentence(data.resource)}`;
+  }
+
+  /*
+   * The same label as words (#8511), whose English is getCitationLabel's:
+   * the command as run, the resource by its kind and name.
+   */
+  public static getCitation(data: {
+    displayCommand: string;
+    resource: ResourceAiAccessStatus;
+  }): ToolCitation {
+    return citationSentence(AI_TOOLKIT_CITATIONS.commandOnResource, {
+      command: `\`${data.displayCommand}\``,
+      resource: describeResourceInSentenceWords(data.resource),
+    });
   }
 
   // A redacted reason that ends a sentence.

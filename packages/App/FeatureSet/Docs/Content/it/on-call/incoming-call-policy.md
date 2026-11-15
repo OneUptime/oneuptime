@@ -160,7 +160,7 @@ Una regola fa squillare una persona sul numero che ha verificato per le chiamate
 
 Ogni persona può avere un numero verificato per progetto. Per cambiarlo, elimina prima il vecchio numero. Questi numeri sono separati dai numeri di telefono in **Metodi di notifica**, usati dagli avvisi di reperibilità. Vedi [Metodi di notifica](/docs/notifications/notification-methods).
 
-I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**.
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS** devono prima essere attivi per il progetto. Un Proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** li attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**.
 
 ## Messaggi vocali e impostazioni della policy
 
@@ -198,7 +198,7 @@ Una chiamata è persa quando termina senza raggiungere nessuno: il suo stato è 
 
 ### Chi viene avvisato
 
-Quando una chiamata viene persa, OneUptime avvisa i proprietari della policy: gli utenti e i membri dei team aggiunti nella pagina **Proprietari** della policy. Se la policy non ha proprietari, vengono avvisati invece i proprietari del progetto.
+Quando una chiamata viene persa, OneUptime avvisa i proprietari della policy: gli utenti e i membri dei team aggiunti nella pagina **Proprietari** della policy. Se la policy non ha proprietari, vengono avvisati invece i Proprietari del progetto.
 
 L'avviso dice chi ha chiamato, quale numero ha composto, perché nessuno ha risposto, chi ha squillato e come è finito ogni tentativo. Collega la chiamata nel registro chiamate.
 

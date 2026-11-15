@@ -92,7 +92,7 @@ Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala:
 
 ### Come viene raggiunta ogni persona
 
-Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Come contattarmi**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Come contattarmi**. Vedi [Come contattarmi](/docs/notifications/on-call-rules).
+Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Come contattarmi**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un Amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Come contattarmi**. Vedi [Come contattarmi](/docs/notifications/on-call-rules).
 
 ```mermaid title="Chi avvisa un livello e come viene raggiunta ogni persona"
 flowchart TB
@@ -176,7 +176,7 @@ Su OneUptime Cloud ogni SMS, chiamata, messaggio WhatsApp e Telegram viene pagat
 - Gli avvisi continuano a partire con il saldo rimasto finché la ricarica automatica non riesce ad addebitare la carta.
 
 > [!IMPORTANT]
-> SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il saldo del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio, di un gateway per SMS e chiamate o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungere un metodo su di esso. Solo un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**: un amministratore del progetto non può. Tutti gli altri vengono informati esattamente su chi può farlo, ovunque un canale sia disattivato: sopra il proprio elenco di metodi su quel canale, nella propria checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
+> SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il saldo del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio, di un gateway per SMS e chiamate o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungere un metodo su di esso. Solo un Proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Canali di notifica**: un Amministratore del progetto non può. Tutti gli altri vengono informati esattamente su chi può farlo, ovunque un canale sia disattivato: sopra il proprio elenco di metodi su quel canale, nella propria checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
 
 ## Escalation alla persona successiva nella rotazione
 

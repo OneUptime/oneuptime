@@ -108,6 +108,7 @@ import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorPro
 import MonitorProbeRowsInMemory from "../../TestingUtils/MonitorProbeRowsInMemory";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import logger from "../../../../Server/Utils/Logger";
 import { PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE } from "../../../../Server/Utils/Probe/ProbeReportIdentity";
 import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -352,6 +353,29 @@ describe("MonitorResourceUtil.monitorResource with the probe that reported the r
     expect(findMonitorMock).not.toHaveBeenCalled();
     expect(lockMock).not.toHaveBeenCalled();
     expectNothingTouched();
+
+    /*
+     * Logged once, at warn, naming the probe: the telemetry worker
+     * completes the job on this refusal rather than retrying it (issue
+     * #8424), so this line is where it is seen.
+     */
+    const warnings: Array<Array<unknown>> = (
+      logger.warn as unknown as jest.Mock
+    ).mock.calls.filter((call: Array<unknown>): boolean => {
+      return String(call[0]).includes("can only report its own results");
+    });
+    expect(warnings).toHaveLength(1);
+    expect(String(warnings[0]![0])).toContain(`Probe ${SENDER.toString()}`);
+    expect(String(warnings[0]![0])).toContain(
+      `monitor ${monitor.id!.toString()}`,
+    );
+    expect(warnings[0]![1]).toEqual(
+      expect.objectContaining({
+        probeId: SENDER.toString(),
+        monitorId: monitor.id!.toString(),
+      }),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   test("a result from a probe the monitor is not assigned to changes nothing", async () => {

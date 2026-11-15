@@ -96,7 +96,7 @@ Klicken Sie unter **Test-Alarmierung senden** auf **Diese Richtlinie testen**, w
 :::
 
 > [!NOTE]
-> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projekteigentümer, ein Abrechnungs-Administrator oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** ein.
+> SMS und Telefonanrufe sind in einem neuen Projekt ausgeschaltet. Ein Projektinhaber, ein Abrechnungs-Administrator oder jemand mit Manage Billing schaltet sie in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen → Benachrichtigungen → Benachrichtigungskanäle** ein.
 
 Zwei Bereitschaftsregeln lösen die Richtlinie aus: eine bei jedem neuen Vorfall und eine bei jeder neuen Warnung. Um die erste zu sehen, öffnen Sie **Vorfälle** im Menü **Produkte**, klappen **Regeln** im Seitenmenü auf und wählen **Bereitschaftsregeln**: Sie trifft auf **Alle Vorfälle** zu. Damit die Richtlinie nur bei manchen Vorfällen ausgelöst wird, etwa bei kritischen, bearbeiten Sie die Regel dort, oder klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, um eine eigene anzulegen.
 

@@ -84,7 +84,7 @@ describe("what the banner says", () => {
 
     expect(noticeFor(data)).toEqual({
       type: AlertType.DANGER,
-      text: `Logs: today's ingestion budget of 10 GB is used up, so new data is refused until the budget resets at ${resetsAt(data)}.`,
+      text: `Logs: today's ingestion budget of 10\u00A0GB is used up, so new data is refused until the budget resets at ${resetsAt(data)}.`,
     });
   });
 
@@ -101,7 +101,7 @@ describe("what the banner says", () => {
 
     expect(noticeFor(data)).toEqual({
       type: AlertType.WARNING,
-      text: `Logs: 87% of today's ingestion budget of 10 GB is used. Once it is used up, new data is refused until the budget resets at ${resetsAt(data)}.`,
+      text: `Logs: 87% of today's ingestion budget of 10\u00A0GB is used. Once it is used up, new data is refused until the budget resets at ${resetsAt(data)}.`,
     });
   });
 

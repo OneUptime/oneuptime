@@ -24,7 +24,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Ein Tarif, der sie enthält.** In OneUptime Cloud braucht das Erstellen und Ändern von Datenquellen den Tarif **Growth**. Das Löschen funktioniert in jedem Tarif.
-- **Eine Berechtigung, sie hinzuzufügen.** Projektinhaber und -administratoren können Datenquellen hinzufügen; alle anderen brauchen `CreateDataSource`, dazu `EditDataSource` und `DeleteDataSource`, um sie zu ändern und zu entfernen. Alle, die die Datenquellen des Projekts lesen dürfen, Mitglieder und Betrachter eingeschlossen, sehen die Daten ihrer Widgets.
+- **Eine Berechtigung, sie hinzuzufügen.** Projektinhaber und Projektadministratoren können Datenquellen hinzufügen; alle anderen brauchen `CreateDataSource`, dazu `EditDataSource` und `DeleteDataSource`, um sie zu ändern und zu entfernen. Alle, die die Datenquellen des Projekts lesen dürfen, Mitglieder und Betrachter eingeschlossen, sehen die Daten ihrer Widgets.
 - **Ein reines Lesekonto.** Dashboards lesen immer nur. Verbinden Sie Datenbanken mit einem Konto, das nur lesen darf, und HTTP-Quellen mit einem Token, das nur abfragen darf.
 - **Ein Weg hinein.** Der API-Server von OneUptime verbindet sich mit Ihrem System, also muss er es erreichen können: Welche Adressen abgelehnt werden, steht unter [Sicherheit](#sicherheit).
 

@@ -160,7 +160,7 @@ Een regel laat een persoon overgaan op het nummer dat die persoon in dit project
 
 Iedereen kan één geverifieerd nummer per project hebben. Om het te wijzigen, verwijdert u eerst het oude nummer. Deze nummers staan los van de telefoonnummers onder **Meldingsmethoden**, die oproepen voor bereikbaarheidsdiensten gebruiken. Zie [Meldingsmethoden](/docs/notifications/notification-methods).
 
-Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingskanalen**.
+Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een Projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** op **Projectinstellingen > Meldingen > Meldingskanalen**.
 
 ## Spraakberichten en beleidsinstellingen
 
@@ -198,7 +198,7 @@ Een gesprek is gemist wanneer het eindigt zonder iemand te bereiken: de status e
 
 ### Wie een melding krijgt
 
-Wanneer een gesprek is gemist, stelt OneUptime de eigenaren van het beleid op de hoogte: de gebruikers en de leden van de teams die op de pagina **Eigenaren** van het beleid zijn toegevoegd. Heeft het beleid geen eigenaren, dan krijgen in plaats daarvan de eigenaren van het project een melding.
+Wanneer een gesprek is gemist, stelt OneUptime de eigenaren van het beleid op de hoogte: de gebruikers en de leden van de teams die op de pagina **Eigenaren** van het beleid zijn toegevoegd. Heeft het beleid geen eigenaren, dan krijgen in plaats daarvan de Projecteigenaren een melding.
 
 De melding zegt wie er belde, welk nummer werd gekozen, waarom niemand opnam, en wie er is gebeld en hoe elke poging eindigde. Ze linkt naar het gesprek in het belogboek.
 

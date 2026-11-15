@@ -83,7 +83,7 @@ Si la politique alerte quelqu'un d'autre, vous pouvez aussi observer l'escalade 
 ## Ce qui peut mal tourner
 
 :::details Il n'y a pas de bouton M'envoyer un code par SMS
-Les SMS sont désactivés ou ne peuvent pas être envoyés, et l'étape indique pourquoi. Seul un propriétaire du projet, ou une personne qui gère la facturation, voit **Activer les SMS et les appels**. Sur OneUptime Cloud, un solde de 1.00 USD ou moins masque le champ. Sur un serveur auto-hébergé qui ne peut pas envoyer de SMS, son administrateur principal voit **Configurer les SMS et les appels**, qui ouvre l'Admin Dashboard pour ajouter Twilio, comme le montre [Intégration Twilio](/docs/self-hosted/twilio-integration).
+Les SMS sont désactivés ou ne peuvent pas être envoyés, et l'étape indique pourquoi. Seul un Propriétaire du projet, ou une personne qui gère la facturation, voit **Activer les SMS et les appels**. Sur OneUptime Cloud, un solde de 1.00 USD ou moins masque le champ. Sur un serveur auto-hébergé qui ne peut pas envoyer de SMS, son administrateur principal voit **Configurer les SMS et les appels**, qui ouvre l'Admin Dashboard pour ajouter Twilio, comme le montre [Intégration Twilio](/docs/self-hosted/twilio-integration).
 :::
 
 :::details Ajouter du solde indique qu'aucun moyen de paiement n'a été trouvé

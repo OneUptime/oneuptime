@@ -144,11 +144,11 @@ En gemt tragt eller fastholdelsestabel kan også komme på et dashboard: widgets
 
 ## Hvem kan se det
 
-At læse disse sider kræver det samme som at læse sessionslisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektejere og administratorer har. At se, hvem en indlogget bruger er, og søge personer efter navn, kræver `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Hvem kan se en optagelse](/docs/telemetry/session-replay#hvem-kan-se-en-optagelse) beskriver.
+At læse disse sider kræver det samme som at læse sessionslisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som Projektejere og Projektadministratorer har. At se, hvem en indlogget bruger er, og søge personer efter navn, kræver `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Hvem kan se en optagelse](/docs/telemetry/session-replay#hvem-kan-se-en-optagelse) beskriver.
 
 At gemme, omdøbe og slette gemte tragte og fastholdelsestabeller kræver de samme tilladelser som at læse disse sider, og en dashboard-widget viser en kun for en læser, der har dem.
 
-At slå begivenhederne til eller fra kræver `EditRumApplication` (_Edit RUM Application_) eller rollen som projektejer, administrator eller medlem. At angive brugeregenskaber kræver `EditRumApplication` eller rollen som ejer eller administrator, da det afgør, hvad der gemmes om indloggede personer.
+At slå begivenhederne til eller fra kræver `EditRumApplication` (_Edit RUM Application_) eller rollen Projektejer, Projektadministrator eller Projektmedlem. At angive brugeregenskaber kræver `EditRumApplication` eller rollen som ejer eller administrator, da det afgør, hvad der gemmes om indloggede personer.
 
 ## Næste skridt
 

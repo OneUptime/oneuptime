@@ -321,7 +321,7 @@ Prompts and answers sent as log events are stored as logs, so it is the logs' **
 
 Either way, a rule reads every text inside a list or a structured value, such as messages an instrumentation sends as a list rather than as JSON text, and keeps the value's shape: an email address in a prompt is masked wherever it sits. See [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data).
 
-Conversations are read with the same permission as traces: whoever can read the project's traces can read its conversations, and nobody else. The conversations of a company AI tool are the exception: only project owners and admins can read them unless its connection says otherwise ([Company AI Tools](/docs/telemetry/ai-company-tools#privacy)).
+Conversations are read with the same permission as traces: whoever can read the project's traces can read its conversations, and nobody else. The conversations of a company AI tool are the exception: only Project Owners and Project Admins can read them unless its connection says otherwise ([Company AI Tools](/docs/telemetry/ai-company-tools#privacy)).
 
 ## Attributes OneUptime reads
 

@@ -47,7 +47,7 @@ flowchart TB
 ## Før du begynder
 
 - Logs, der ankommer til OneUptime, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) eller en sonde.
-- Tilladelse til at ændre pipelines. Projektejere og administratorer har den; alle andre skal have tilladelserne **Create Log Pipeline** og **Create Log Pipeline Processor**.
+- Tilladelse til at ændre pipelines. Projektejere og Projektadministratorer har den; alle andre skal have tilladelserne **Create Log Pipeline** og **Create Log Pipeline Processor**.
 
 ## Opret en pipeline
 

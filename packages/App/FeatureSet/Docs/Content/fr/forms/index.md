@@ -56,7 +56,7 @@ Les formulaires commencent avec ces deux-là, et d'autres types d'enregistrement
 ## Avant de commencer
 
 - **Un plan qui inclut les formulaires.** Sur OneUptime Cloud, les formulaires demandent le plan **Growth** ou supérieur. Voir [Plan](#plan).
-- **L'autorisation de créer des formulaires.** **Create Form** appartient aux propriétaires et administrateurs du projet, ainsi qu'aux rôles auxquels vous la donnez. Voir [Autorisations](#autorisations).
+- **L'autorisation de créer des formulaires.** **Create Form** appartient aux Propriétaires du projet et Administrateurs du projet, ainsi qu'aux rôles auxquels vous la donnez. Voir [Autorisations](#autorisations).
 - **Pour un formulaire d'incident, une gravité.** Chaque incident en a besoin d'une : issue d'une question, des paramètres du formulaire ou de son modèle d'incident. Sans elle, chaque soumission est refusée. Voir [Ce que crée une soumission](/docs/forms/on-submit#comment-une-soumission-devient-un-incident).
 
 ## Créer votre premier formulaire
@@ -127,7 +127,7 @@ Les soumissions sont écrites par le formulaire, jamais à la main, et ne peuven
 
 ## Autorisations
 
-Les formulaires permettent à des personnes extérieures à votre équipe de créer des incidents et des événements de maintenance dans votre projet ; ils sont donc gérés par les propriétaires et administrateurs du projet, et par les rôles auxquels vous donnez les autorisations **Form**. Elles figurent dans le groupe **Form** de la [Référence des autorisations](/docs/permissions/reference) :
+Les formulaires permettent à des personnes extérieures à votre équipe de créer des incidents et des événements de maintenance dans votre projet ; ils sont donc gérés par les Propriétaires du projet et Administrateurs du projet, et par les rôles auxquels vous donnez les autorisations **Form**. Elles figurent dans le groupe **Form** de la [Référence des autorisations](/docs/permissions/reference) :
 
 | Autorisation | Ce qu'elle permet | Qui l'a par défaut |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ Les formulaires permettent à des personnes extérieures à votre équipe de cr�
 | **Delete Form Domain** | Retirer les domaines personnalisés d'un formulaire. | Propriétaire du projet, Administrateur du projet et **Edit Form** |
 | **Read Form Domain** | Voir les domaines personnalisés d'un formulaire, leurs enregistrements DNS et où en est chacun sur le chemin vers HTTPS. | Toute personne qui a **Read Form** |
 
-Les soumissions contiennent ce que des inconnus ont saisi (noms, adresses e-mail et réponses qui n'atteignent peut-être jamais l'enregistrement) ; seuls les propriétaires et administrateurs du projet les voient donc, sauf si vous accordez **Read Form Submission**. Quiconque peut lire un formulaire peut voir et partager son lien. Soumettre un formulaire ne demande aucune autorisation. Pour savoir comment les rôles et les autorisations granulaires se combinent, voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
+Les soumissions contiennent ce que des inconnus ont saisi (noms, adresses e-mail et réponses qui n'atteignent peut-être jamais l'enregistrement) ; seuls les Propriétaires du projet et Administrateurs du projet les voient donc, sauf si vous accordez **Read Form Submission**. Quiconque peut lire un formulaire peut voir et partager son lien. Soumettre un formulaire ne demande aucune autorisation. Pour savoir comment les rôles et les autorisations granulaires se combinent, voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
 ## Plan
 

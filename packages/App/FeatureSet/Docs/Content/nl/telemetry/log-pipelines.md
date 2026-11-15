@@ -47,7 +47,7 @@ flowchart TB
 ## Voordat u begint
 
 - Logboeken die in OneUptime binnenkomen, via [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) of een sonde.
-- Toestemming om pipelines te wijzigen. Projecteigenaren en beheerders hebben die; alle anderen hebben de machtigingen **Create Log Pipeline** en **Create Log Pipeline Processor** nodig.
+- Toestemming om pipelines te wijzigen. Projecteigenaren en Projectbeheerders hebben die; alle anderen hebben de machtigingen **Create Log Pipeline** en **Create Log Pipeline Processor** nodig.
 
 ## Een pipeline maken
 

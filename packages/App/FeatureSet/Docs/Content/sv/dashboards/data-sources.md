@@ -24,7 +24,7 @@ flowchart TB
 ## Innan du börjar
 
 - **En plan som omfattar det.** På OneUptime Cloud kräver att skapa och ändra datakällor planen **Growth**. Att ta bort en fungerar på alla planer.
-- **En behörighet att lägga till dem.** Projektägare och -administratörer kan lägga till datakällor; alla andra behöver `CreateDataSource`, med `EditDataSource` och `DeleteDataSource` för att ändra och ta bort dem. Alla som kan läsa projektets datakällor, även medlemmar och läsare, ser deras widgetars data.
+- **En behörighet att lägga till dem.** Projektägare och Projektadministratörer kan lägga till datakällor; alla andra behöver `CreateDataSource`, med `EditDataSource` och `DeleteDataSource` för att ändra och ta bort dem. Alla som kan läsa projektets datakällor, även medlemmar och läsare, ser deras widgetars data.
 - **Ett skrivskyddat konto.** Instrumentpaneler läser bara. Anslut databaser med ett konto som bara kan läsa, och HTTP-källor med en token som bara kan fråga.
 - **En väg in.** Det är OneUptimes API-server som ansluter till ditt system, så den måste kunna nå det: se [Säkerhet](#säkerhet) för adresserna som avvisas.
 
