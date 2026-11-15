@@ -3179,9 +3179,13 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
      * an O(n^2) overlap merge over them — a real worker stall (audit H2). For
      * unrestricted layers a small 1-day floor is ample margin.
      */
+    /*
+     * Margins, not calendar days: a year on UTC's calendar and a day of 24
+     * hours, the same on every server (issue #8473).
+     */
     const floor: Date = anyLayerRestricted
-      ? OneUptimeDate.addRemoveYears(from, 1)
-      : OneUptimeDate.addRemoveDays(from, 1);
+      ? OneUptimeDate.addRemoveYears(from, 1, "UTC")
+      : OneUptimeDate.addRemoveDurationInDays(from, 1);
 
     if (OneUptimeDate.isBefore(windowEnd, floor)) {
       windowEnd = floor;
@@ -3224,7 +3228,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     from: Date,
     periodsBack: number,
   ): Date {
-    let windowStart: Date = OneUptimeDate.addRemoveDays(from, -1);
+    let windowStart: Date = OneUptimeDate.addRemoveDurationInDays(from, -1);
 
     for (const layer of layerProps) {
       if (!layer.rotation) {
@@ -3266,7 +3270,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     from: Date,
     periodsForward: number,
   ): Date {
-    let windowEnd: Date = OneUptimeDate.addRemoveDays(from, 1);
+    let windowEnd: Date = OneUptimeDate.addRemoveDurationInDays(from, 1);
 
     for (const layer of layerProps) {
       if (!layer.rotation) {

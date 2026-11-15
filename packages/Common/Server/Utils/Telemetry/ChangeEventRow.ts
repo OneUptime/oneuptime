@@ -328,7 +328,7 @@ export function buildChangeEventDbRow(data: {
     data.systemAttributes,
   );
 
-  const ageInDays: number = OneUptimeDate.getNumberOfDaysBetweenDates(
+  const ageInDays: number = OneUptimeDate.getWholeDaysOfTimeBetween(
     eventTime,
     ingestionDate,
   );
@@ -345,7 +345,7 @@ export function buildChangeEventDbRow(data: {
     eventTime = ingestionDate;
   }
 
-  const retentionDate: Date = OneUptimeDate.addRemoveDays(
+  const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
     ingestionDate,
     retentionDays,
   );

@@ -43,6 +43,11 @@ import {
   getApiSingularName,
 } from "Common/Utils/ModelApiName";
 import MCPLogger from "../Utils/MCPLogger";
+import {
+  OWNER_TEAMS_ON_CREATE_KEY,
+  OWNER_USERS_ON_CREATE_KEY,
+  takesOwnersOnCreate,
+} from "Common/Types/Database/OwnersOnCreate";
 
 /*
  * tools/list is one answer that many clients load whole, before anything is
@@ -461,6 +466,27 @@ export function generateToolsForAnalyticsModel(
 
 // Database Model Tool Creators
 
+/*
+ * The owners an incident or an alert starts with (#8198,
+ * Types/Database/OwnersOnCreate): beside its fields, handed to its create
+ * route as the create's misc data - which asks whether the caller may add
+ * them before anything is saved - so its Created notification reaches them.
+ * Optional, so they say nothing here, as no optional field does:
+ * oneuptime_describe_resource says what they are (Tools/DescribeResource).
+ */
+function buildOwnersOnCreateProperties(): Record<string, JSONSchemaProperty> {
+  return {
+    [OWNER_USERS_ON_CREATE_KEY]: {
+      type: "array",
+      items: { type: "string" },
+    },
+    [OWNER_TEAMS_ON_CREATE_KEY]: {
+      type: "array",
+      items: { type: "string" },
+    },
+  };
+}
+
 function createCreateTool(
   modelName: string,
   singularName: string,
@@ -477,10 +503,15 @@ function createCreateTool(
     inputSchema: {
       type: "object",
       // Only the fields a call cannot leave out say what they mean.
-      properties: withoutFieldDescriptions(
-        schemaProperties.properties || {},
-        schemaProperties.required || [],
-      ),
+      properties: {
+        ...withoutFieldDescriptions(
+          schemaProperties.properties || {},
+          schemaProperties.required || [],
+        ),
+        ...(takesOwnersOnCreate(modelName)
+          ? buildOwnersOnCreateProperties()
+          : {}),
+      },
       required: schemaProperties.required || [],
       additionalProperties: false,
     },

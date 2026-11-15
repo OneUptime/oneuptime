@@ -497,7 +497,7 @@ curl https://oneuptime.com/mcp/tools
 | امنیت | Security Event, Threat Intel Indicator |
 | تغییرات و هزینه | Change Event, Kubernetes Cost Allocation |
 
-نام ابزارها به سبک snake case است: `create_incident`، `get_incident`، `list_incidents`، `update_incident`، `delete_incident` و `count_incidents`، یا برای تله‌متری `list_logs` و `count_spans`.
+نام ابزارها به سبک snake case است: `create_incident`، `get_incident`، `list_incidents`، `update_incident`، `delete_incident` و `count_incidents`، یا برای تله‌متری `list_logs` و `count_spans`. `create_incident` و `create_alert` همچنین `ownerUsers` و `ownerTeams` را می‌گیرند: شناسه‌های کاربران و تیم‌هایی که از آغاز مالک رکوردند و از ایجاد آن باخبر می‌شوند.
 
 ## گام‌های بعدی
 

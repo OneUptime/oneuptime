@@ -497,7 +497,7 @@ The MCP server is stateless: it neither issues nor tracks session ids, so every 
 | Security | Security Event, Threat Intel Indicator |
 | Changes and cost | Change Event, Kubernetes Cost Allocation |
 
-The tools are named in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` and `count_incidents`, or `list_logs` and `count_spans` for telemetry.
+The tools are named in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` and `count_incidents`, or `list_logs` and `count_spans` for telemetry. `create_incident` and `create_alert` also take `ownerUsers` and `ownerTeams`: the IDs of the users and teams who own the record from the start, who are told it was created.
 
 ## Next steps
 

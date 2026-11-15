@@ -497,7 +497,7 @@ MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er,
 | Sikkerhed | Security Event, Threat Intel Indicator |
 | Ændringer og omkostninger | Change Event, Kubernetes Cost Allocation |
 
-Værktøjerne er navngivet i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` og `count_incidents`, eller `list_logs` og `count_spans` for telemetri.
+Værktøjerne er navngivet i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` og `count_incidents`, eller `list_logs` og `count_spans` for telemetri. `create_incident` og `create_alert` tager også `ownerUsers` og `ownerTeams`: id'erne på de brugere og teams, der ejer posten fra starten, og som får besked om, at den er oprettet.
 
 ## Næste trin
 

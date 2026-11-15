@@ -108,7 +108,10 @@ export function buildCheckMetricRow(data: {
     explicitBounds: [],
     value: data.value.value,
     retentionDate: OneUptimeDate.toClickhouseDateTime(
-      OneUptimeDate.addRemoveDays(data.collectedAt, data.retentionDays),
+      OneUptimeDate.addRemoveDurationInDays(
+        data.collectedAt,
+        data.retentionDays,
+      ),
     ),
   } as JSONObject;
 }

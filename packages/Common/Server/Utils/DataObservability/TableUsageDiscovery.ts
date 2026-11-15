@@ -695,7 +695,10 @@ export default class TableUsageDiscovery {
       query: {
         projectId: data.projectId,
         lastSeenAt: QueryHelper.lessThan(
-          OneUptimeDate.addRemoveDays(data.now, -USAGE_RETENTION_IN_DAYS),
+          OneUptimeDate.addRemoveDurationInDays(
+            data.now,
+            -USAGE_RETENTION_IN_DAYS,
+          ),
         ),
       },
       limit: MAX_USAGES_PER_PROJECT,

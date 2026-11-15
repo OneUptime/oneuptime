@@ -497,7 +497,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Säkerhet | Security Event, Threat Intel Indicator |
 | Ändringar och kostnader | Change Event, Kubernetes Cost Allocation |
 
-Verktygen namnges i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` och `count_incidents`, eller `list_logs` och `count_spans` för telemetri.
+Verktygen namnges i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` och `count_incidents`, eller `list_logs` och `count_spans` för telemetri. `create_incident` och `create_alert` tar också `ownerUsers` och `ownerTeams`: id:n för de användare och team som äger posten från början och som får veta att den skapats.
 
 ## Nästa steg
 
