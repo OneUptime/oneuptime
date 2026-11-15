@@ -327,11 +327,24 @@ interface ParsedPageUrl {
   path: string;
 }
 
+/*
+ * What the scrubber stored for a React Native screen before #8384:
+ * "app://<app id>/Checkout" became "null/Checkout", its app lost (URL.origin
+ * is "null" for a scheme with no origin). Nothing else is stored so: a URL
+ * the scrubber keeps starts with its scheme, and a relative one with "/".
+ */
+const LOST_ORIGIN_PREFIX: string = "null/";
+
 function parsePageUrl(rawUrl: string): ParsedPageUrl {
-  const trimmed: string = (rawUrl || "").trim();
+  let trimmed: string = (rawUrl || "").trim();
 
   if (!trimmed) {
     return { host: "", path: "/" };
+  }
+
+  // Read as the path it was, so the screen is one page before and after.
+  if (trimmed.startsWith(LOST_ORIGIN_PREFIX)) {
+    trimmed = trimmed.slice(LOST_ORIGIN_PREFIX.length - 1);
   }
 
   try {
