@@ -10,6 +10,7 @@ import Dropdown, {
 import MetricUnitUtil, { UnitOption } from "Common/Utils/MetricUnitUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getChartDescriptionText } from "./Utils/ChartDescription";
 
 export interface ComponentProps {
   data: MetricAliasData;
@@ -109,12 +110,14 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
               {translator.translateText("Description")}
             </label>
             <Input
-              value={props.data.description}
+              value={getChartDescriptionText(props.data, translator)}
               onChange={(value: string) => {
+                // Typed, the description is the person's own (#8572).
                 return props.onDataChanged({
                   ...props.data,
                   metricVariable: props.data.metricVariable,
                   description: value,
+                  isMetricTypeDescription: false,
                 });
               }}
               placeholder="Chart description..."

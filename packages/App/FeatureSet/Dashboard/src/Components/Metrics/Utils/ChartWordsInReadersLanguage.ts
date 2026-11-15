@@ -1,3 +1,4 @@
+import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { Translator } from "Common/Types/Translator";
 
@@ -42,14 +43,19 @@ export const chartWordsInReadersLanguage: (
       return query;
     }
 
-    return {
-      ...query,
-      metricAliasData: {
-        ...query.metricAliasData,
-        title: words(query.metricAliasData.title),
-        description: words(query.metricAliasData.description),
-        legend: words(query.metricAliasData.legend),
-      },
+    const metricAliasData: MetricAliasData = {
+      ...query.metricAliasData,
+      title: words(query.metricAliasData.title),
+      description: words(query.metricAliasData.description),
+      legend: words(query.metricAliasData.legend),
     };
+
+    /*
+     * Worded here, the description is no longer the metric's stored one:
+     * the chart draws it as handed and never looks it up again (#8572).
+     */
+    delete metricAliasData.isMetricTypeDescription;
+
+    return { ...query, metricAliasData };
   });
 };
