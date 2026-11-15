@@ -1,5 +1,5 @@
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
-import lookupTable from "../LookupTable";
+import lookupTable, { writeOwnValue } from "../LookupTable";
 import Includes from "../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../Types/BaseDatabase/IncludesNone";
 import NotEqual from "../../Types/BaseDatabase/NotEqual";
@@ -310,9 +310,17 @@ export function parseSecurityEventSearch(
         continue;
       }
 
-      attributes[token.key] =
+      /*
+       * `@key:value` names the attribute as typed, so it is the filter's
+       * own key (writeOwnValue): assigned, `@__proto__:*x*` made the
+       * compiled filter the map's prototype instead of filtering on it.
+       */
+      writeOwnValue(
+        attributes,
+        token.key,
         compileWatchlistSearchValue(token) ||
-        predicateToQueryValue(token.predicate);
+          predicateToQueryValue(token.predicate),
+      );
       continue;
     }
 
@@ -326,10 +334,19 @@ export function parseSecurityEventSearch(
       token.key.toLowerCase(),
     );
 
+    /*
+     * The key as typed, as the filter's own (writeOwnValue): assigned, a
+     * search for `__proto__:x` was dropped and `__proto__:*x*` made the
+     * compiled filter the map's prototype, so the search matched as if it
+     * had no such filter.
+     */
     if (!column) {
-      attributes[token.key] =
+      writeOwnValue(
+        attributes,
+        token.key,
         compileWatchlistSearchValue(token) ||
-        predicateToQueryValue(token.predicate);
+          predicateToQueryValue(token.predicate),
+      );
       continue;
     }
 
@@ -377,8 +394,9 @@ export function applySecurityEventSearchToQuery(data: {
       >) || {}),
     };
 
+    // Each as the query's own key, so `@__proto__:x` filters too.
     for (const key of attributeKeys) {
-      attributes[key] = data.filters.attributes[key];
+      writeOwnValue(attributes, key, data.filters.attributes[key]);
     }
 
     (query as Record<string, unknown>)["attributes"] = attributes;
@@ -566,7 +584,8 @@ export function applySecurityEventFacetFiltersToQuery(data: {
         continue;
       }
 
-      attributes[attributeKey] = compiled;
+      // A chip for an attribute named "__proto__" is the query's own key too.
+      writeOwnValue(attributes, attributeKey, compiled);
       continue;
     }
 

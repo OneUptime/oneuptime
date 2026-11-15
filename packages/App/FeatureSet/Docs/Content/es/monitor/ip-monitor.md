@@ -98,7 +98,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de IP nuevo empieza con dos criterios:
 
-- **Sin conexión** — la dirección no responde a ninguna de las solicitudes de eco, o no es accesible en absoluto, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ is offline». El incidente se resuelve solo cuando la dirección vuelve a responder.
+- **Sin conexión** — la dirección no responde a ninguna de las solicitudes de eco, o no es accesible en absoluto, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_nombre del monitor_ está sin conexión». El incidente se resuelve solo cuando la dirección vuelve a responder.
 - **En línea** — la dirección responde. El monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.

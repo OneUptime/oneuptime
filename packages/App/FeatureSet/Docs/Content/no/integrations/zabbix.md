@@ -80,7 +80,7 @@ Etter triggeren **Webhook** leser steget **Check With JavaScript** `read-event-1
 
 | Event | Hva arbeidsflyten gjør |
 | --- | --- |
-| `problem` | Erklærer en hendelse med tittelen `Zabbix: <problem> on <host>`, med alvorlighetsgraden Zabbix-alvorlighetsgraden tilsvarer, holdt unna statussidene dine. Beskrivelsen lenker til problemet i Zabbix og viser verten, alvorlighetsgraden, når det startet, driftsdataene og taggene. For et problem med High eller Disaster varsler den vaktretningslinjen du valgte. Et problem Zabbix sender på nytt, med samme hendelses-ID, oppretter ingen ny hendelse. |
+| `problem` | Erklærer en hendelse med tittelen `Zabbix: <problem> on <host>`, med alvorlighetsgraden Zabbix-alvorlighetsgraden tilsvarer, holdt unna statussidene dine. Beskrivelsen lenker til problemet i Zabbix og viser verten, alvorlighetsgraden, når det startet, driftsdataene og taggene. For et problem med High eller Disaster varsler den vaktpolicyen du valgte. Et problem Zabbix sender på nytt, med samme hendelses-ID, oppretter ingen ny hendelse. |
 | `recovery` | Løser problemets hendelse, med mindre den allerede er løst. Hvorfor står på tidslinjen. |
 | `update` | Legger til det som ble gjort i Zabbix som et privat notat på hendelsen: hvem som gjorde det, hva de gjorde og hva de skrev. Når oppdateringen bekreftet problemet, bekrefter den også hendelsen, slik at vakten slutter å eskalere den. |
 
@@ -143,7 +143,7 @@ I trinnet **Kriterier** åpner du det første kriteriet, det som markerer monito
 
 - **Hendelsestittel**: `Zabbix: {{requestBody.name}} on {{requestBody.host}}`.
 - **Alvorlighetsgrad**: alvorlighetsgraden Zabbix-problemer skal ha.
-- **Vaktretningslinjer**, under **Vakt**: retningslinjene som skal varsles.
+- **Vaktpolicyer**, under **Vakt**: policyene som skal varsles.
 - **Løs hendelse automatisk**, under **Flere felt**: la den være på, slik den starter. Uten den ignoreres gjenopprettinger, og hendelser blir stående åpne.
 
 ### Opprett én hendelse per problem
@@ -354,6 +354,6 @@ Handlingen har sannsynligvis to operasjoner som sender til den samme brukeren, f
 :::cards
 - [Arbeidsflytmaler](/docs/workflows/authoring): Opprett en arbeidsflyt fra en mal, og endre den i Bygger.
 - [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Alle innstillingene for monitoren som mottar Zabbix-problemer.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktretningslinje varsler, og når.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

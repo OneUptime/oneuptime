@@ -1169,10 +1169,10 @@ export class UserNotificationRuleAdminService extends BaseService {
      * something the reader can act on; an address is.
      */
     const actorDescription: string = actor
-      ? `${actor.name?.toString() || "A project administrator"} (${
+      ? `${actor.name?.toString() || "A Project Admin"} (${
           actor.email?.toString() || data.actorUserId.toString()
         })`
-      : `A project administrator (${data.actorUserId.toString()})`;
+      : `A Project Admin (${data.actorUserId.toString()})`;
 
     let projectName: string = "your project";
 

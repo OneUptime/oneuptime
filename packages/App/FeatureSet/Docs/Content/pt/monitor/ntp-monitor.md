@@ -112,7 +112,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um novo monitor NTP começa com dois critérios:
 
-- **Offline** — o servidor não responde, não está sincronizado ou o seu relógio está a `1000` ms ou mais do relógio da sonda. O monitor é marcado como **Offline** e é criado um incidente chamado "_nome do monitor_ is not serving good time". Ele se resolve sozinho quando o servidor volta a fornecer uma hora confiável.
+- **Offline** — o servidor não responde, não está sincronizado ou o seu relógio está a `1000` ms ou mais do relógio da sonda. O monitor é marcado como **Offline** e é criado um incidente chamado "_nome do monitor_ não fornece uma hora confiável". Ele se resolve sozinho quando o servidor volta a fornecer uma hora confiável.
 - **Online** — o servidor responde, está sincronizado e o seu relógio está a menos de `1000` ms do relógio da sonda. O monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponder decide o que acontece. Um servidor que responde com a hora errada é tratado de propósito como fora do ar: todo cliente que o segue também pegaria essa hora.

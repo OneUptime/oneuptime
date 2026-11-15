@@ -10,7 +10,7 @@ Send OneUptime-hendelser til [Opsgenie](https://www.atlassian.com/software/opsge
 :::
 
 > [!IMPORTANT]
-> Atlassian sluttet å selge Opsgenie i juni 2025 og avslutter støtten i april 2027. OneUptime varsler også folk, med vaktretningslinjer, vaktplaner og eskaleringsregler. For å flytte teamet ditt over, se [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie): en import henter over brukerne, teamene, vaktplanene og eskaleringene dine.
+> Atlassian sluttet å selge Opsgenie i juni 2025 og avslutter støtten i april 2027. OneUptime varsler også folk, med vaktpolicyer, vaktplaner og eskaleringsregler. For å flytte teamet ditt over, se [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie): en import henter over brukerne, teamene, vaktplanene og eskaleringene dine.
 
 ## Slik fungerer det
 

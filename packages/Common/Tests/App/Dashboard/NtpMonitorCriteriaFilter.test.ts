@@ -6,7 +6,6 @@ import {
   EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { describe, expect, test } from "@jest/globals";
@@ -145,9 +144,9 @@ describe("an NTP monitor's criteria form", () => {
       value: 100,
     };
 
-    expect(
-      CriteriaFilterUtil.translateFilterToText(filter, FilterCondition.All),
-    ).toContain("100\u00A0ms");
+    expect(CriteriaFilterUtil.translateFilterToText(filter)).toContain(
+      "100\u00A0ms",
+    );
   });
 
   test("a stratum threshold has no unit", () => {
@@ -157,10 +156,7 @@ describe("an NTP monitor's criteria form", () => {
       value: 2,
     };
 
-    const text: string = CriteriaFilterUtil.translateFilterToText(
-      filter,
-      FilterCondition.All,
-    );
+    const text: string = CriteriaFilterUtil.translateFilterToText(filter);
 
     expect(text).toContain("2");
     expect(text).not.toContain("2ms");

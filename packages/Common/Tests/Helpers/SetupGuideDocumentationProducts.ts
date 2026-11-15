@@ -7,8 +7,11 @@ import { PODMAN_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pa
 import { PODMAN_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationTranslations";
 import { DOCKER_SWARM_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationTranslations";
+import { CEPH_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getCephSetupGuideWays,
   getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
   getPodmanSetupGuideWays,
@@ -126,6 +129,25 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "AI agent",
         "The OneUptime AI agent",
         "Node Name",
+      ],
+    }),
+    product({
+      name: "Ceph",
+      translations: CEPH_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "CEPH_DOCUMENTATION_TRANSLATIONS",
+      ways: getCephSetupGuideWays,
+      options: CEPH_INSTALL_METHODS,
+      dashboardWords: [
+        "Ceph",
+        "Cluster Log",
+        "Cluster Health",
+        "OSD",
+        "Pool",
+        "Placement Groups",
+        "Agent Version",
+        "OneUptime AI agent",
+        "AI",
+        "AI agent",
       ],
     }),
   ];

@@ -774,8 +774,8 @@ Un monitor che non costruisci da un template parte con due criteri:
 
 | Ordine | Criterio | Corrisponde quando | Poi |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La prima query non ha dati per tutta la finestra | Imposta il monitor su **Offline** e dichiara l'incidente "_monitor name_ is offline", che si risolve da solo quando il monitor si riprende. |
-| 2 | Check if _monitor name_ is online | La prima query ha dati | Imposta il monitor su **Operativo**. |
+| 1 | Verifica se _nome del monitor_ è offline | La prima query non ha dati per tutta la finestra | Imposta il monitor su **Offline** e dichiara l'incidente "_nome del monitor_ è offline", che si risolve da solo quando il monitor si riprende. |
+| 2 | Verifica se _nome del monitor_ è online | La prima query ha dati | Imposta il monitor su **Operativo**. |
 
 > [!IMPORTANT]
 > Un valore pari a `0` è un dato, quindi una metrica che spesso vale zero, come riavvii o errori, non manda il monitor offline. Per ricevere un avviso su un valore, parti da un template o aggiungi un criterio con una soglia. Quando non arrivano affatto dati e nessun criterio corrisponde, il monitor mantiene il suo stato e gli incidenti aperti restano aperti: il silenzio non è un rientro. Il tempo in cui OneUptime stesso non riceveva dati non è mai assenza di dati: un controllo la cui finestra lo contiene aspetta, come spiega [Quando OneUptime non riceve dati](/docs/monitor/when-oneuptime-is-not-receiving).

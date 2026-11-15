@@ -1,5 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
-import lookupTable from "../../LookupTable";
+import lookupTable, { writeOwnValue } from "../../LookupTable";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
@@ -577,12 +577,12 @@ export function readGoogleWorkspaceActivity(
     return [];
   }
 
-  // The activity's own fields; each event adds its own below.
+  // The activity's own fields, each the copy's own key; each event adds its own below.
   const withoutEvents: JSONObject = {};
 
   for (const key of Object.keys(activity)) {
     if (key !== "events") {
-      withoutEvents[key] = activity[key] as JSONValue;
+      writeOwnValue<JSONValue>(withoutEvents, key, activity[key] as JSONValue);
     }
   }
 

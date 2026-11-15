@@ -61,7 +61,7 @@ Hver handling er en bryter under **Handlinger**:
 | **Når filtre samsvarer, opprett et varsel.** | Oppretter varslene som er satt opp under **Opprett varsel**. Et varsel gir teamet ditt beskjed og vises aldri på en statusside. |
 | **Når filtre samsvarer, erklær en hendelse.** | Erklærer hendelsene som er satt opp under **Opprett hendelse**. Statussidene dine kan vise dem. |
 
-En hendelse eller et varsel ber om en tittel, en **Alvorlighetsgrad** og, sammenslått, en beskrivelse, eiere, etiketter og vaktretningslinjer. Titler og beskrivelser kan inneholde verdier fra kontrollen, som `{{monitorName}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating). For å tilkalle noen når kriteriet samsvarer, velger du en retningslinje under **Vakt**: se [Vaktretningslinjer](/docs/on-call/policies).
+En hendelse eller et varsel ber om en tittel, en **Alvorlighetsgrad** og, sammenslått, en beskrivelse, eiere, etiketter og vaktpolicyer. Titler og beskrivelser kan inneholde verdier fra kontrollen, som `{{monitorName}}`: se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating). For å tilkalle noen når kriteriet samsvarer, velger du en policy under **Vakt**: se [Vaktpolicyer](/docs/on-call/policies).
 
 ### Innstillinger
 
