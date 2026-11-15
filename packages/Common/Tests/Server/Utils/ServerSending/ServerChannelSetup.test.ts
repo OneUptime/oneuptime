@@ -82,6 +82,120 @@ describe("email", () => {
     ).toBe(EMAIL_NOT_SET_UP_PROBLEM);
   });
 
+  /*
+   * #7458: an installation's settings were seeded with port 25 when
+   * SMTP_PORT was not set (UpdateGlobalConfigFromEnv), and a port is what
+   * every mail server has, so it says nothing about whether anybody set
+   * one up. Counted, a server nobody had touched read as half set up, and
+   * its first missing field was named: "SMTP: the From Email is not set
+   * under Settings > Emails." - as if the host, the sign-in and the name
+   * were done.
+   */
+  describe("a port alone is nothing set up (#7458)", () => {
+    test("the row a fresh server was seeded with: port 25, the rest empty", () => {
+      expect(
+        ServerChannelSetup.getEmailSetUpProblem({
+          emailServerType: EmailServerType.CustomSMTP,
+          smtpPort: new Port(25),
+          smtpUsername: "",
+          smtpPassword: "",
+          smtpFromName: "",
+          smtpAuthType: SMTPAuthenticationType.UsernamePassword,
+        }),
+      ).toBe(EMAIL_NOT_SET_UP_PROBLEM);
+    });
+
+    test.each([25, 465, 587, 2525])("port %p on its own", (port: number) => {
+      expect(
+        ServerChannelSetup.getEmailSetUpProblem({ smtpPort: new Port(port) }),
+      ).toBe(EMAIL_NOT_SET_UP_PROBLEM);
+    });
+
+    test("a port with only how to sign in picked is still nothing set up", () => {
+      for (const authType of [
+        SMTPAuthenticationType.UsernamePassword,
+        SMTPAuthenticationType.OAuth,
+        SMTPAuthenticationType.None,
+      ]) {
+        expect({
+          authType,
+          problem: ServerChannelSetup.getEmailSetUpProblem({
+            smtpPort: new Port(25),
+            smtpAuthType: authType,
+            smtpTransportType: MailTransportType.SMTP,
+          }),
+        }).toEqual({ authType, problem: EMAIL_NOT_SET_UP_PROBLEM });
+      }
+    });
+
+    test("Microsoft Graph with only a port left from SMTP is nothing set up", () => {
+      expect(
+        ServerChannelSetup.getEmailSetUpProblem({
+          smtpTransportType: MailTransportType.MicrosoftGraph,
+          smtpPort: new Port(25),
+        }),
+      ).toBe(EMAIL_NOT_SET_UP_PROBLEM);
+    });
+
+    /*
+     * Anything else filled in is a start: what is still missing is named,
+     * the port among it.
+     */
+    test.each([
+      [
+        "a host",
+        { smtpHost: new Hostname("smtp.example.com") },
+        "SMTP: the From Email is not set under Settings > Emails.",
+      ],
+      [
+        "a From Email",
+        { smtpFromEmail: new Email("alerts@example.com") },
+        "SMTP: the From Name is not set under Settings > Emails.",
+      ],
+      [
+        "a From Name",
+        { smtpFromName: "OneUptime" },
+        "SMTP: the From Email is not set under Settings > Emails.",
+      ],
+      [
+        "a username",
+        { smtpUsername: "mailer" },
+        "SMTP: the From Email is not set under Settings > Emails.",
+      ],
+      [
+        "a password",
+        { smtpPassword: "secret" },
+        "SMTP: the From Email is not set under Settings > Emails.",
+      ],
+    ] as Array<[string, ServerChannelSetupSettings, string]>)(
+      "a port with %s: what is still missing is named",
+      (_name: string, set: ServerChannelSetupSettings, expected: string) => {
+        expect(
+          ServerChannelSetup.getEmailSetUpProblem({
+            smtpPort: new Port(25),
+            ...set,
+          }),
+        ).toBe(expected);
+      },
+    );
+
+    test("a mail server with everything but its port names the Port", () => {
+      expect(
+        ServerChannelSetup.getEmailSetUpProblem(
+          leftBlank(smtp(), "smtpPort"),
+        ),
+      ).toBe("SMTP: the Port is not set under Settings > Emails.");
+    });
+
+    test("a seeded port 25 with the rest filled in is set up: 25 is a port like any other", () => {
+      expect(
+        ServerChannelSetup.getEmailSetUpProblem(
+          smtp({ smtpPort: new Port(25) }),
+        ),
+      ).toBeNull();
+    });
+  });
+
   test("a mail server with its host, port and sender is set up", () => {
     expect(ServerChannelSetup.getEmailSetUpProblem(smtp())).toBeNull();
     // No provider picked reads as Custom SMTP, as the sender reads it.
