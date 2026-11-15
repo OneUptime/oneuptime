@@ -101,10 +101,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
  * markdown has no words in any other language yet. #8341. Only ever
  * shorter.
  */
-const STILL_IN_ENGLISH: ReadonlyArray<string> = [
-  "Host",
-  "MessageQueue",
-];
+const STILL_IN_ENGLISH: ReadonlyArray<string> = ["Host", "MessageQueue"];
 
 // Every product that has a Help > Documentation page.
 function productsWithADocumentationPage(): Array<string> {
