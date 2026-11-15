@@ -193,7 +193,11 @@ const AgentVersion: FunctionComponent<ComponentProps> = (
 
   return (
     <>
-      <Tooltip text={signText} isTriggerAlreadyDescribed={true}>
+      <Tooltip
+        text={signText}
+        isTextTranslated={true}
+        isTriggerAlreadyDescribed={true}
+      >
         {trigger}
       </Tooltip>
       {isUpgradeOpen ? (

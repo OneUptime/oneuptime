@@ -56,6 +56,40 @@ install_enterprise_deps() {
   printf '%s\n' "${wanted}" > "${stamp}"
 }
 
+# A watcher per frontend, which rebuilds its bundle when its code changes.
+#
+# Each watcher starts with a full build of its frontend, the five at once,
+# while the API boots and, on a first start, sets up the databases, and each
+# keeps its frontend's module graph in memory after: some 12 GiB for the five,
+# 6 GiB of it the Dashboard's. That is for someone editing the frontends. A
+# bring-up that only needs OneUptime to answer sets
+# ONEUPTIME_DEV_WATCH_FRONTENDS=false and starts none: the App serves the
+# bundles built just before. CI's Terraform and Crossplane E2E jobs do, on
+# runners of 16 GB that the watchers and the API's first boot together
+# overflowed (.github/workflows/terraform-provider-e2e.yml, "Start OneUptime
+# services"). Unset, or anything but false, starts all five.
+start_frontend_watchers() {
+  if [ "${ONEUPTIME_DEV_WATCH_FRONTENDS:-true}" = "false" ]; then
+    echo "ONEUPTIME_DEV_WATCH_FRONTENDS=false: the frontends are built once and not watched for changes."
+    return 0
+  fi
+
+  npm run watch-frontend:accounts &
+  pids+=($!)
+
+  npm run watch-frontend:dashboard &
+  pids+=($!)
+
+  npm run watch-frontend:admin-dashboard &
+  pids+=($!)
+
+  npm run watch-frontend:status-page &
+  pids+=($!)
+
+  npm run watch-frontend:public-dashboard &
+  pids+=($!)
+}
+
 install_enterprise_deps /usr/src/ee
 
 # Ensure Common has Linux-built node_modules before any frontend build runs.
@@ -65,20 +99,7 @@ bash ./scripts/prepare-native-deps.sh
 
 npm run build-frontends
 
-npm run watch-frontend:accounts &
-pids+=($!)
-
-npm run watch-frontend:dashboard &
-pids+=($!)
-
-npm run watch-frontend:admin-dashboard &
-pids+=($!)
-
-npm run watch-frontend:status-page &
-pids+=($!)
-
-npm run watch-frontend:public-dashboard &
-pids+=($!)
+start_frontend_watchers
 
 npm run dev:api &
 pids+=($!)

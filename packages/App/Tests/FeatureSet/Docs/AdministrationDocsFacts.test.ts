@@ -998,7 +998,7 @@ describe("Inviting People", () => {
 
       // The Users list offers it on a pending row, to a master admin, on a server that cannot send email.
       expect(usersPage).toContain(
-        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), onOpen: (teamMemberId: ObjectID) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, }); }, }), ]}",
+        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, onOpen: (teamMemberId: ObjectID) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, }); }, }), ]}",
       );
       expect(serverEmail).toContain(
         "return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;",
@@ -1007,8 +1007,12 @@ describe("Inviting People", () => {
         'getLink: translationKey("Get Invitation Link"),',
       );
       expect(invitationLink).toContain("title: INVITATION_LINK_COPY.getLink,");
+      /*
+       * On a pending row - or a member's whose person has not signed up yet
+       * (#8191), whom the same link lets in.
+       */
       expect(invitationLink).toContain(
-        "data.isAvailable && !item.hasAcceptedInvitation && Boolean(item.id)",
+        "if (!data.isAvailable || !item.id) { return false; } return !item.hasAcceptedInvitation || Boolean(data.isNotSignedUp?.(item));",
       );
       // In the row menu: the row's button is View, which ModelTable puts first.
       expect(invitationLink).not.toContain("ActionButtonPlacement.Primary");

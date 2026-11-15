@@ -26,7 +26,15 @@ import React, {
 import Select from "../../../Server/Types/Database/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+  // In English, looked up once - unless isTitleTranslated says otherwise.
   title?: string | undefined;
+  /*
+   * The title is in the reader's words already - the Admin Dashboard's
+   * t("pages.users.title"): drawn as given in the heading, the browser tab
+   * and the record's heading ("Usuarios - jane"), never looked up again
+   * (Page's isTitleTranslated, #8224).
+   */
+  isTitleTranslated?: boolean | undefined;
   breadcrumbLinks?: Array<Link> | undefined;
   children: Array<ReactElement> | ReactElement;
   sideMenu?: undefined | ReactElement;
@@ -63,6 +71,12 @@ interface LoadedModelHeader {
   recordNumber?: string | undefined;
   labels: Array<Label>;
   error: string;
+}
+
+// The heading's text, and whether it is in the reader's words already.
+interface PageTitle {
+  title: string | undefined;
+  isTitleTranslated: boolean | undefined;
 }
 
 const ModelPage: <TBaseModel extends BaseModel>(
@@ -297,23 +311,41 @@ const ModelPage: <TBaseModel extends BaseModel>(
    * into one English string that no locale could look up, so every record
    * page's heading read English in every language ("Network Device" in
    * German). Put together when drawn, so it follows a change of language.
+   *
+   * Looked up once (#8224): the title is looked up here, in the sentence -
+   * or put in it as given, when the page says it is in the reader's words
+   * already - and Page is told the sentence is translated, as it is the
+   * record's name alone, which is drawn as typed. Page looked the whole
+   * sentence up again, and a record's name with it.
    */
-  const getLoadedTitle: (header: LoadedModelHeader) => string | undefined = (
+  const getLoadedTitle: (header: LoadedModelHeader) => PageTitle = (
     header: LoadedModelHeader,
-  ): string | undefined => {
+  ): PageTitle => {
     if (header.headingName === undefined) {
-      return header.title;
+      return {
+        title: header.title,
+        isTitleTranslated: props.isTitleTranslated,
+      };
     }
 
     if (!props.title) {
-      return header.headingName;
+      return { title: header.headingName, isTitleTranslated: true };
     }
 
-    return translator.translateTemplate(PAGE_RECORD_TITLE_SENTENCE, {
-      title: translatableTerm(props.title),
-      name: header.headingName,
-    });
+    return {
+      title: translator.translateTemplate(PAGE_RECORD_TITLE_SENTENCE, {
+        title: props.isTitleTranslated
+          ? props.title
+          : translatableTerm(props.title),
+        name: header.headingName,
+      }),
+      isTitleTranslated: true,
+    };
   };
+
+  const pageTitle: PageTitle = isCurrentModelLoaded
+    ? getLoadedTitle(loadedHeader!)
+    : { title: props.title, isTitleTranslated: props.isTitleTranslated };
 
   const shownHeader: LoadedModelHeader | null =
     isCurrentModelLoaded && !loadedHeader!.error ? loadedHeader : null;
@@ -343,7 +375,11 @@ const ModelPage: <TBaseModel extends BaseModel>(
     props.title &&
     shownHeader.headingName !== undefined &&
     shownHeader.headingName.trim()
-      ? { title: props.title, name: shownHeader.headingName }
+      ? {
+          title: props.title,
+          isTitleTranslated: props.isTitleTranslated,
+          name: shownHeader.headingName,
+        }
       : undefined;
 
   /*
@@ -366,7 +402,8 @@ const ModelPage: <TBaseModel extends BaseModel>(
       labels={labels.length > 0 ? labels : undefined}
       isLoading={!isCurrentModelLoaded}
       error={isCurrentModelLoaded ? loadedHeader!.error : ""}
-      title={isCurrentModelLoaded ? getLoadedTitle(loadedHeader!) : props.title}
+      title={pageTitle.title}
+      isTitleTranslated={pageTitle.isTitleTranslated}
       recordHeading={recordHeading}
       recordTitle={recordTitle}
     />

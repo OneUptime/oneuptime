@@ -561,6 +561,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
         modelType={Project}
         modelAPI={AdminModelAPI}
         title={t("pages.projectSubscription.title")}
+        isTitleTranslated={true}
         breadcrumbLinks={breadcrumbLinks}
         sideMenu={<SideMenuComponent modelId={modelId} />}
       >
@@ -579,6 +580,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
       modelType={Project}
       modelAPI={AdminModelAPI}
       title={t("pages.projectSubscription.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<SideMenuComponent modelId={modelId} />}
     >

@@ -15,14 +15,24 @@ import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 import { TOOLTIP_PLUGINS } from "./TooltipEscape";
 
 export interface ComponentProps {
-  // In English, looked up here.
+  // In English, looked up here - unless one of the two flags below is set.
   text?: string | undefined;
   /*
-   * The text is drawn as given, never looked up: words the page has put in
-   * the reader's language already, or words someone wrote - a label's
-   * description reads as its owner wrote it (#8067). Looked up again, a
-   * translation, or a description, that is also an English key read as
-   * another word.
+   * The text is in the reader's words already: a sentence the page built
+   * around a value, a front end's own keyed text, or words a control looked
+   * up itself and hands on (Button's tooltip). Drawn as given, never looked
+   * up again (#8226): looked up again, a translation that is also an
+   * English key reads as another word, as the Spanish "Red" (Network) read
+   * "Rojo". The looked-up-once guard (PlaceholderLookedUpOnceEverywhere)
+   * holds every <Tooltip text> to this flag.
+   */
+  isTextTranslated?: boolean | undefined;
+  /*
+   * The text is words someone wrote - a label's description reads as its
+   * owner wrote it (#8067) - drawn as given, never looked up: a
+   * description that is also an English key read as another word. A
+   * badge's hover tip marked as written (Pill's isTooltipUserContent) comes
+   * here too.
    */
   isTextUserContent?: boolean | undefined;
   children: ReactElement;
@@ -95,7 +105,7 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
     props.richContent
   ) : (
     <span>
-      {props.isTextUserContent
+      {props.isTextTranslated || props.isTextUserContent
         ? props.text
         : translateString(props.text) ?? props.text}
     </span>

@@ -36,6 +36,11 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import ResultLine from "../../OnCallTestPage/ResultLine";
+import {
+  getOnCallLogStepWords,
+  ON_CALL_LOG_DIALOG_LINE_CLASS_NAME,
+} from "./OnCallLogLineWords";
 
 /*
  * The card of one run's steps. It is the timeline of an on-call policy's
@@ -103,7 +108,13 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string>("");
+  /*
+   * The step whose message the dialog shows: its line is worded from the
+   * code read from it, with the person, team or schedule it is about, in
+   * the reader's language - or drawn as written (OnCallLogLineWords, #8330).
+   */
+  const [statusStep, setStatusStep] =
+    useState<OnCallDutyPolicyExecutionLogTimeline | null>(null);
 
   const getModelTable: GetReactElementFunction = (): ReactElement => {
     return (
@@ -126,6 +137,8 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
         }}
         selectMoreFields={{
           statusMessage: true,
+          // A test page's steps are worded as its result words them (#8330).
+          userNotificationEventType: true,
           // Read with every row: a row with none is a direct page's.
           onCallDutyPolicyId: true,
           /*
@@ -168,7 +181,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
               onError: ErrorFunction,
             ) => {
               try {
-                setStatusMessage(item["statusMessage"] as string);
+                setStatusStep(item);
                 setShowViewStatusMessageModal(true);
 
                 onCompleteAction();
@@ -656,7 +669,28 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
       {showViewStatusMessageModal ? (
         <ConfirmModal
           title={"Status Message"}
-          description={statusMessage}
+          description={
+            <ResultLine
+              statusMessage={statusStep?.statusMessage || ""}
+              words={
+                statusStep
+                  ? getOnCallLogStepWords(translator, {
+                      statusMessage: statusStep.statusMessage,
+                      userNotificationEventType:
+                        statusStep.userNotificationEventType,
+                      userName:
+                        statusStep.alertSentToUser?.name?.toString() ||
+                        statusStep.alertSentToUser?.email?.toString(),
+                      teamName: statusStep.userBelongsToTeam?.name?.toString(),
+                      scheduleName:
+                        statusStep.onCallDutySchedule?.name?.toString(),
+                    })
+                  : null
+              }
+              className={ON_CALL_LOG_DIALOG_LINE_CLASS_NAME}
+              dataTestId="execution-log-timeline-status-message"
+            />
+          }
           submitButtonText={"Close"}
           onSubmit={async () => {
             setShowViewStatusMessageModal(false);

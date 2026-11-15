@@ -304,9 +304,10 @@ work out, starts from a default for everything else, and folds what most people 
   in a way no message describes, it answers with what happened and what to do next, and a reference
   (the start of the request's id) that one of its log lines names
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
-  failure into one of four sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
-  the server did not answer, OneUptime could not be reached, or the page failed; never a
-  TypeError's words or a URL. A form's alert, a list or table that did not load, a dialog and the
+  failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
+  the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278); never
+  a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
   self-hosted server, where to look (`npm run doctor -- --logs`, OneUptime Health). Use
@@ -331,7 +332,11 @@ work out, starts from a default for everything else, and folds what most people 
   (`<p>{error}</p>`), a gateway's 502 read "Error connecting to server. Please try again in few
   minutes." in English on a German or a Persian page, and a server failure's reference had no copy
   button (#7537). A message the server wrote in any script is kept as written; only an empty or
-  generic one becomes the sentence for a failure nobody explained (#7536). Enforced by
+  generic one becomes the sentence for a failure nobody explained (#7536). Where no sentence of the
+  page's surrounds it, a message that reads the other way from the page (the server's English on an
+  Arabic or Persian page) is set apart, so its full stop stays at its end (#8279), and a refusal
+  with a value in it is said in the reader's language around its value in every one of these
+  places (#8280). Enforced by
   [FriendlyMessageDrawnGuard](../../packages/Common/Tests/App/Dashboard/FriendlyMessageDrawnGuard.test.ts).
 - **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
   words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's

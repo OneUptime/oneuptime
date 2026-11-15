@@ -93,6 +93,8 @@ Velg regionene som skal leses, gi skyen et navn og klikk **Koble til sky**. Skye
 
 Skyens **Oversikt** viser et **Datainnsamling**-kort. Det viser **Kontrollerer** til første innsamling, som starter innen et minutt, deretter **Samler inn**, og sidene fylles ut. Når noen tjenester ble lest og en annen ikke, sier det hvilken. Hvis ingen sonde kommer for skyen på 15 minutter, fordi den er frakoblet eller for gammel, vises **Samler ikke inn** og det sies fra om det, uansett hva siste innsamling fant.
 
+Når ingen sonde får samle inn skyen, viser kortet straks **Samler ikke inn**, med årsaken og hva som må endres: ingen legitimasjon er lagret, Keystones adresse mangler, ingen sonde er satt til å samle den inn, sonden dens får ikke samle den inn (en delt sonde på OneUptime Cloud, eller et annet prosjekts), eller sonden dens er frakoblet. **Neste innsamling** er tidspunktet en sonde samler den inn neste gang, **Står for tur nå** mens den venter på en, **Forsinket** når ingen har kommet på 15 minutter, og **Ikke planlagt** mens ingen sonde får samle den inn. En arkivert sky samles fortsatt inn.
+
 **Datainnsamling**-kortet på skyens **Innstillinger**-side holder det du koblet den til med:
 
 ![Datainnsamling-kortet på en skys Innstillinger-side: Keystone-adressen, sonden, applikasjonslegitimasjonen den logger inn med, regionene, sertifikatet den stoler på og hvor ofte den samler inn](/docs/static/images/OpenStackDataCollection.png)

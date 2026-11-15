@@ -176,6 +176,8 @@ Ein Scan liest ein wenig von einem Datenspeicher, innerhalb der Grenzen des Proj
 
 Jeder Scan hält fest, was er gelesen hat, nach Namen: die Objekte, Tabellen oder Dienste, nie ihren Inhalt. Was er nicht lesen konnte - eine Anfrage, die die Cloud abgelehnt hat, die Frist, das Byte-Budget - ist ein Warnhinweis am Scan, und der Scan wird als **Teilweise erfolgreich** markiert.
 
+Die **Übersicht** eines Datenspeichers sagt, wann sein Inhalt als Nächstes gescannt wird. **Nächster Inhaltsscan** nennt die Zeit, zu der ihn etwas scannt, **Jetzt fällig**, solange er wartet, bis er an der Reihe ist, und **Überfällig**, sobald er eine Stunde lang fällig ist. Sonst sagt sie, warum nichts ihn scannt: **Aus**, solange **Inhalt scannen** für den Datenspeicher oder das Projekt aus ist oder der Datenspeicher nicht mehr gefunden wird; **Wird nicht gescannt**, wenn OneUptime aus dieser Art von Datenspeicher keine Stichproben nehmen kann oder seine Sonde ihn nicht scannen kann; und **Wartet**, solange seine Sonde getrennt ist. Die Telemetrie eines Dienstes wird **Jede Stunde** mit dem Telemetrie-Scan des Projekts gescannt. **Jetzt scannen** ist für einen Datenspeicher, den nichts scannen würde, ausgeschaltet, mit dem Grund. Ein Scan, der läuft, während das Scannen von Inhalten ausgeschaltet oder das Projekt gesperrt wird, behält nichts von dem, was er gefunden hat.
+
 ## Eine Datenbank scannen, die Sie betreiben
 
 Datensicherheit nimmt Stichproben aus PostgreSQL-, MySQL- und SQL-Server-Datenbanken, auf eine von zwei Arten. Eine Datenbank, die das Produkt Database überwacht, oder eine, mit der Ihre Dienste laut Dienstkarte sprechen, ist bereits ein Datenspeicher. Eine Datenbank, die kein Scan findet, fügen Sie selbst als Datenspeicher hinzu.

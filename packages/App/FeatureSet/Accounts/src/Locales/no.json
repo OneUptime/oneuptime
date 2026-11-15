@@ -130,7 +130,7 @@
     "title": "Opprett OneUptime-kontoen din",
     "subtitle": "Bli med tusenvis av bedrifter som bruker OneUptime for å holde dem online hele tiden.",
     "firstAccountSubtitle": "Denne OneUptime-serveren har ingen kontoer ennå. Den første du oppretter, blir administratoren.",
-    "noCreditCard": "Ingen kredittkort nødvendig.",
+    "noCreditCard": "Ingen kredittkort nødvendig for å registrere deg.",
     "submitButton": "Registrer deg",
     "haveAccountPrompt": "Har du allerede en konto?",
     "loginLink": "Logg inn.",
@@ -631,5 +631,9 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  }
+  },
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det.",
+  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime avviste det, øk proxyens grense for størrelsen på en forespørsel til 50 MB, like mye som OneUptime selv tar imot (i nginx, client_max_body_size 50M)."
 }

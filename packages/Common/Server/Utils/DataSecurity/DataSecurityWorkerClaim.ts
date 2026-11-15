@@ -36,6 +36,29 @@ import {
  * every five minutes from one worker: no set-aside (Utils/Probe/
  * ClaimSetAside) is needed for that.
  *
+ * Measured, not assumed (OneUptime issue #8392). Against 245,000 stores -
+ * 180,000 of kinds no worker samples (telemetry, RDS, DynamoDB, Redshift),
+ * 25,000 switched off or of a suspended project, 500 due and scannable -
+ * this statement is one sequential read of the table from cache: 5,878
+ * buffers, 71 ms, every five minutes, writing nothing but the 50 it
+ * claims. The probes' set-aside does not fit this range:
+ *
+ * - Its bounds hold aside at most SET_ASIDE_PER_CLAIM x
+ *   SET_ASIDE_ROUNDS_PER_CLAIM rows per claim, and here a claim runs every
+ *   five minutes while a row set aside comes back in a quarter of an hour.
+ *   About 8,000 rows can be aside at once; the other 207,000 stay due at
+ *   the head of the range, and the claim, now in index order, walks them
+ *   all: 231,000 buffers and 85 ms, worse than the read it replaced.
+ * - Each row it moves is an update of every index the table has (17):
+ *   about 57 buffers a row, 28 ms a round of 500. Keeping a range like this
+ *   one aside would rewrite every refused store every quarter of an hour,
+ *   for good, to save a cached read every five minutes.
+ *
+ * A probe's claims run per probe, from every replica, several times a
+ * minute, over a range of that probe's own: there the set-aside pays. Here
+ * the read stays, until the table is large enough that a range of only
+ * the kinds a worker samples is worth an index of its own.
+ *
  * The scan reads the same rule again for the store it was handed
  * (isDataStoreContentScannableByWorkers) before it reads any content, so
  * a switch turned off, or a project suspended, after the claim - or a

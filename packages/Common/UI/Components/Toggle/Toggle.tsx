@@ -438,6 +438,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
                    */
                   <Tooltip
                     text={tooltip}
+                    isTextTranslated={true}
                     isShownOnPress={true}
                     isTriggerAlreadyDescribed={true}
                   >

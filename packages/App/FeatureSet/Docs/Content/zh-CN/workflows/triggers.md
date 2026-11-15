@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **请求标头**      | 请求的每个标头，按小写名称列出，例如 `content-type`。                                                                  |
 | **Request Query Params** | URL 中的查询参数，按名称列出。                                                                                         |
-| **请求主体**         | 调用方发送的正文。用 `Content-Type: application/json` 发送的 JSON 正文可以逐个字段读取。                               |
+| **请求主体**         | 调用方发送的正文。用 `Content-Type: application/json` 发送的 JSON 正文可以逐个字段读取，像 Amazon SNS 那样以纯文本发送的 JSON 也可以。 |
 
 要读取单个字段，把它的名称加到引用后面，例如 `{{local.components.webhook-1.returnValues.request-body.message}}`。
 

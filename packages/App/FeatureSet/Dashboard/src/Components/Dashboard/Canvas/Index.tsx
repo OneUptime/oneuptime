@@ -13,7 +13,7 @@ import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
 import ObjectID from "Common/Types/ObjectID";
-import ComponentSettingsModal from "./ComponentSettingsModal";
+import ComponentSettingsModal from "./LazyComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
 import GridLayoutUtil, { GridRect } from "Common/Utils/Dashboard/GridLayout";
