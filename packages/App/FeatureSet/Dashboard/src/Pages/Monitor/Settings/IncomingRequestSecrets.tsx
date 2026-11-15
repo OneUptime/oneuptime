@@ -1,5 +1,8 @@
 import IncomingRequestSecretsCopy from "../../../Components/IncomingRequestSecret/IncomingRequestSecretsCopy";
 import RequireIncomingRequestSecretCard from "../../../Components/IncomingRequestSecret/RequireIncomingRequestSecretCard";
+import RequestsWithoutSecretTable, {
+  getCheckingSince,
+} from "../../../Components/IncomingRequestSecret/RequestsWithoutSecretTable";
 import PageComponentProps from "../../PageComponentProps";
 import IncomingRequestSecret from "Common/Models/DatabaseModels/IncomingRequestSecret";
 import Route from "Common/Types/API/Route";
@@ -18,7 +21,12 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 
 /*
  * Monitors -> Settings -> Incoming Request Secrets (issue #7526): whether
@@ -32,19 +40,32 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * set up, folds under More fields. A secret is never edited: to replace one,
  * create the next beside it, move the senders, then delete the old one when
  * its Last Used stops moving.
+ *
+ * Between the two, the Incoming Request monitors that got a request without a
+ * valid secret in the last day (RequestsWithoutSecretTable, issue #8498):
+ * before the switch is turned on, the senders to fix first; after, the
+ * requests it refuses.
  */
 
 const MonitorIncomingRequestSecrets: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
-
+  // Since when requests are checked: read from the secrets' list each time it loads.
+  const [checkingSince, setCheckingSince] = useState<Date | null | undefined>(
+    undefined,
+  );
   const moreFields: FormFieldCollapsibleSection<IncomingRequestSecret> =
     getAdvancedFormSection<IncomingRequestSecret>();
 
   return (
     <Fragment>
       <RequireIncomingRequestSecretCard projectId={projectId} />
+
+      <RequestsWithoutSecretTable
+        projectId={projectId}
+        checkingSince={checkingSince}
+      />
 
       <ModelTable<IncomingRequestSecret>
         modelType={IncomingRequestSecret}
@@ -74,6 +95,12 @@ const MonitorIncomingRequestSecrets: FunctionComponent<
         viewPageRoute={Navigation.getCurrentRoute()}
         sortBy="createdAt"
         sortOrder={SortOrder.Ascending}
+        onFetchSuccess={(
+          secrets: Array<IncomingRequestSecret>,
+          totalCount: number,
+        ): void => {
+          setCheckingSince(getCheckingSince(secrets, totalCount));
+        }}
         formFields={[
           {
             field: {
