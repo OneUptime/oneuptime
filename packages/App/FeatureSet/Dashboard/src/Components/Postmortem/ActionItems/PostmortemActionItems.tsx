@@ -948,9 +948,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
         {/* The row's ⋯, level with the item's first line. */}
         <div className="-mt-1 flex shrink-0 items-center md:-mt-0.5">
           <MoreMenu
-            ariaLabel={translator.translateText(
-              POSTMORTEM_ACTION_ITEMS_COPY.moreActions,
-            )}
+            ariaLabel={POSTMORTEM_ACTION_ITEMS_COPY.moreActions}
             dataTestId={POSTMORTEM_ACTION_ITEMS_TEST_IDS.more}
             menuIcon={IconProp.EllipsisHorizontal}
             isMenuPortaled={true}
