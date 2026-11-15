@@ -19,9 +19,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import PostmortemActionItemStatus, {
-  ALL_POSTMORTEM_ACTION_ITEM_STATUSES,
-} from "../../Types/Incident/PostmortemActionItemStatus";
+import PostmortemActionItemStatus from "../../Types/Incident/PostmortemActionItemStatus";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -286,7 +284,7 @@ export default class IncidentPostmortemActionItem extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: [...ALL_POSTMORTEM_ACTION_ITEM_STATUSES],
+    allowedValues: Object.values(PostmortemActionItemStatus),
     canReadOnRelationQuery: true,
     title: "Status",
     description:
