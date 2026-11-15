@@ -50,6 +50,7 @@ import {
   drawnDashboardLabel,
 } from "./DocsDashboardLabels";
 import { pathWithArrows } from "./DocsPageShape";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -825,30 +826,45 @@ const readAccessToAdd: ReadAccessToAddFunction = (
 type PermissionTitlesInFunction = (
   line: string,
   titles: Array<string>,
+  language?: string,
 ) => Array<string>;
 
+// A name in Latin letters, which a line sets apart with other letters.
+const LATIN_NAME: RegExp = /^[ -~]+$/;
+
 /*
- * Which of `titles` a line names, as whole words. Longer titles are matched
- * first and blanked out, so "Viewer" is not also found inside "Alert Viewer".
+ * Which of `titles` a line names, each as a page in this language writes it:
+ * a built-in role as its Dashboard draws it (#7514), a permission's own
+ * title in English (writtenPermissionTitle). A name in Latin letters counts
+ * as a whole word. Longer names are matched first and blanked out, so
+ * "Viewer" is not also found inside "Alert Viewer", nor بیننده inside
+ * بیننده هشدارها. The English titles found are returned.
  */
 const permissionTitlesIn: PermissionTitlesInFunction = (
   line: string,
   titles: Array<string>,
+  language: string = "en",
 ): Array<string> => {
   let rest: string = line;
   const found: Array<string> = [];
 
-  const longestFirst: Array<string> = [...titles].sort(
-    (a: string, b: string): number => {
-      return b.length - a.length;
-    },
-  );
-
-  for (const title of longestFirst) {
-    const pattern: RegExp = new RegExp(
-      `(^|[^A-Za-z])${escapeRegExp(title)}(?![A-Za-z])`,
-      "g",
+  const longestFirst: Array<{ title: string; name: string }> = titles
+    .map((title: string): { title: string; name: string } => {
+      return { title: title, name: writtenPermissionTitle(language, title) };
+    })
+    .sort(
+      (
+        a: { title: string; name: string },
+        b: { title: string; name: string },
+      ): number => {
+        return b.name.length - a.name.length;
+      },
     );
+
+  for (const { title, name } of longestFirst) {
+    const pattern: RegExp = LATIN_NAME.test(name)
+      ? new RegExp(`(^|[^A-Za-z])${escapeRegExp(name)}(?![A-Za-z])`, "g")
+      : new RegExp(`()${escapeRegExp(name)}`, "g");
 
     if (pattern.test(rest)) {
       found.push(title);
@@ -1780,7 +1796,7 @@ describe("Incident Linked Alerts docs", () => {
             return line.startsWith("- ");
           })
           .map((line: string): Array<string> => {
-            return permissionTitlesIn(line, candidates);
+            return permissionTitlesIn(line, candidates, language);
           })
           .filter((titles: Array<string>): boolean => {
             return titles.length > 0;
@@ -2690,7 +2706,7 @@ describe("Incident Linked Alerts docs", () => {
             return (
               permissionNames.every((name: string): boolean => {
                 return line.includes(name);
-              }) && permissionTitlesIn(line, candidates).length > 0
+              }) && permissionTitlesIn(line, candidates, language).length > 0
             );
           },
         );
@@ -2698,7 +2714,7 @@ describe("Incident Linked Alerts docs", () => {
         expect({
           language: language,
           roleLines: roleLines.length,
-          roles: permissionTitlesIn(roleLines[0] || "", candidates),
+          roles: permissionTitlesIn(roleLines[0] || "", candidates, language),
           inAcknowledgingSection: sectionLines(
             markdown,
             englishHeadingIndex(3, ACKNOWLEDGING_HEADING),
