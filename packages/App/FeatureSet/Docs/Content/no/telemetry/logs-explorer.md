@@ -215,7 +215,7 @@ Direktemodus følger bare de nyeste loggene, så en endring av søket, et filter
 
 :::cards
 - [Søkesyntaks](/docs/telemetry/search-syntax): Hvert filter søkefeltet forstår.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Få varsel når loggene du søker etter, dukker opp.
+- [Logg-monitor](/docs/monitor/logs-monitor): Få varsel når loggene du søker etter, dukker opp.
 - [Loggpipelines](/docs/telemetry/log-pipelines): Gjør deler av en logglinje om til attributter du kan filtrere på.
 - [Sporutforsker](/docs/telemetry/traces-explorer): Følg forespørselen til en logg gjennom tjenestene dine.
 :::

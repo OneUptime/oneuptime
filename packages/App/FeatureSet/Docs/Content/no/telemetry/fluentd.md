@@ -301,5 +301,5 @@ Har du spørsmål eller trenger hjelp med konfigurasjonen, kan du skrive til oss
 - [Loggpipelines](/docs/telemetry/log-pipelines): Tolk og berik loggene Fluentd sender.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Finn loggene i loggutforskeren.
 - [Fluent Bit](/docs/telemetry/fluentbit): En lettere agent som sender over OpenTelemetry.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle når samsvarende logger dukker opp.
 :::

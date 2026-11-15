@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 為每個事件建立案例
 
 :::steps
-1. 從零開始建立一個名為 `Incidents to Dynamics 365` 的工作流程。點選虛線區塊，新增 **On Create Incident** 觸發器。它的 **要傳遞的欄位** 已經包含 **標題**：點選 **新增欄位** 並選擇 **描述** 和 **事件編號**。ID 一定會被傳遞。
+1. 從零開始建立一個名為 `Incidents to Dynamics 365` 的工作流程。點選虛線區塊，新增 **建立事件時** 觸發器。它的 **要傳遞的欄位** 已經包含 **標題**：點選 **新增欄位** 並選擇 **描述** 和 **事件編號**。ID 一定會被傳遞。
 2. 點選 **新增元件**，新增一個 **API 呼叫 POST (JSON)** 區塊，並把觸發器的 **成功** 點連接到它。把它的 **Identifier** 設為 `create-case`，**URL** 設為 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`。
 3. 在 **更多欄位** 下，把它的 **請求標頭** 設為：
 
@@ -323,7 +323,7 @@ Dynamics 365 自帶的 `severitycode` 只有一個選項，所以請改為設定
 把這部分建置為第二個工作流程，這樣這裡的失敗永遠不會妨礙建立案例。
 
 :::steps
-1. 建立一個名為 `Close Dynamics 365 cases` 的工作流程，使用 **On Update Incident** 觸發器。在 **要關注的欄位** 中點選 **新增欄位** 並選擇 **Current Incident State**。在 **要傳遞的欄位** 中點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。
+1. 建立一個名為 `Close Dynamics 365 cases` 的工作流程，使用 **更新事件時** 觸發器。在 **要關注的欄位** 中點選 **新增欄位** 並選擇 **Current Incident State**。在 **要傳遞的欄位** 中點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。
 2. 新增一個 **如果 / 否則** 區塊：**要檢查的值** 為 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比較** 為 **為真**。
 3. 在它的 **是** 一側之後，新增一個 **API 呼叫 GET (JSON)** 區塊，**Identifier** 為 `find-case`，使用不含 `Prefer` 的相同標頭和以下 **URL**：
 
@@ -363,7 +363,7 @@ URL 會按原樣傳送，因此 `$filter` 中的空格要寫成 `%20`。查詢�
    在自行託管安裝中，URL 使用你自己的主機。像對待密碼一樣對待這個 URL：任何擁有它的人都可以啟動工作流程。如果洩露，請在同一位置點選 **重設 URL**，舊 URL 會立即失效。
 
 3. 新增一個 **如果 / 否則** 區塊，在做任何其他事之前先檢查共享金鑰：**要檢查的值** 為 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**比較** 為 **等於**，**比較對象** 為你自己設定、儲存在密鑰全域變數中的值。
-4. 在它的 **是** 一側之後，新增一個 **Update One Incident** 區塊。把它的 **查詢** 設為 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**資料（JSON 物件）** 設為要做的變更，例如新的 `currentIncidentStateId`。一個查詢為 `{"name": "Resolved"}` 的 **Find One Incident State** 區塊會以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 給出那個 ID。
+4. 在它的 **是** 一側之後，新增一個 **更新單個事件** 區塊。把它的 **查詢** 設為 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**資料（JSON 物件）** 設為要做的變更，例如新的 `currentIncidentStateId`。一個查詢為 `{"name": "Resolved"}` 的 **尋找單個事件狀態** 區塊會以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 給出那個 ID。
 
 啟用它，然後讓 Dynamics 365 呼叫它：
 
@@ -389,11 +389,11 @@ Dataverse 只呼叫連接埠 80 和 443，最多等待 60 秒的回應，並且�
 
 | 事件 | 警示 |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **建立事件時** (`incident-on-create-1`) | **建立警示時** (`alert-on-create-1`) |
+| **更新事件時** (`incident-on-update-1`) | **更新警示時** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **尋找單個事件狀態** | **尋找單個警示狀態** |
+| **更新單個事件** | **更新單個警示** |
 
 一個工作流程恰好只有一個觸發器，因此事件和警示各需要一個工作流程。要為兩者做同樣的 Dynamics 365 工作，請在一個使用 **手動** 觸發器的工作流程中建置一次，然後在兩邊都用一個 **執行另一個工作流程** 區塊啟動它。
 
@@ -438,7 +438,7 @@ Dataverse 的服務保護限制允許每個使用者在任意五分鐘內發出�
 :::
 
 :::details 工作流程執行了，但事件沒有變化
-當查詢沒有符合到任何內容時，**Update One Incident** 區塊會報告 `Items Updated: 0`，這是成功，而不是錯誤。請檢查請求中的 ID 確實是 OneUptime 事件的 ID，並且你查詢的是 `_id`。
+當查詢沒有符合到任何內容時，**更新單個事件** 區塊會報告 `Items Updated: 0`，這是成功，而不是錯誤。請檢查請求中的 ID 確實是 OneUptime 事件的 ID，並且你查詢的是 `_id`。
 :::
 
 ## 後續步驟

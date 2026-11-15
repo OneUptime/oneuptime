@@ -13,9 +13,9 @@ Skapa en [ServiceNow](https://www.servicenow.com)-incident för varje OneUptime-
 
 ```mermaid title="Två arbetsflöden, en ServiceNow-incident"
 flowchart TB
-    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>On Create Incident"]
+    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>Vid skapande: Incident"]
     create -->|"POST incident"| sn["ServiceNow-incident"]
-    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>On Update Incident"]
+    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>Vid uppdatering:<br/>Incident"]
     update --> find["Hitta posten<br/>via correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,7 +54,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Vid skapande: Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
 
 ### Skapa posten
 
@@ -91,9 +91,9 @@ Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och k
 Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för att lösa den, som startar när en incidents status ändras.
 
 :::steps
-### Lägg till utlösaren On Update Incident
+### Lägg till utlösaren ”Vid uppdatering: Incident”
 
-Skapa ett arbetsflöde som heter `Resolve ServiceNow incidents` och välj **On Update Incident** som utlösare. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fält att skicka vidare** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
+Skapa ett arbetsflöde som heter `Resolve ServiceNow incidents` och välj **Vid uppdatering: Incident** som utlösare. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fält att skicka vidare** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

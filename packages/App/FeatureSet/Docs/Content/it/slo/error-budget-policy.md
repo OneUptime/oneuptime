@@ -90,7 +90,7 @@ Nessuno di loro genera un avviso o dichiara un incidente finché non lo attivi. 
 - Il grafico **Burn-down del budget di errore** traccia una linea con etichetta alla soglia di ogni livello, accanto a quella della soglia a rischio.
 - Il **Feed** dello SLO pubblica ogni cambio di livello: il livello che lo SLO ha lasciato e quello in cui è entrato, il budget rimanente, cosa il team ha concordato di fare nel nuovo livello, e se il cambio ha congelato le distribuzioni o le ha di nuovo consentite.
 - I canali Slack, Microsoft Teams e Mattermost indicati dalle tue regole ricevono lo stesso messaggio: vedi [Pubblicare in Slack, Microsoft Teams e Mattermost](#pubblicare-in-slack-microsoft-teams-e-mattermost).
-- I **Log di audit** dello SLO registrano ogni cambio di livello, e ogni volta che le distribuzioni vengono congelate o di nuovo consentite, come una modifica fatta da OneUptime stesso, quindi li mostrano solo con **Memorizza eventi di sistema** attivo: vedi [Attivare i registri di audit](/docs/slo/feed-and-audit-logs#attivare-i-registri-di-audit). L'aggiunta, la modifica e la rimozione di un livello vengono registrate a nome della persona che le ha fatte.
+- I **Log di audit** dello SLO registrano ogni cambio di livello, e ogni volta che le distribuzioni vengono congelate o di nuovo consentite, come una modifica fatta da OneUptime stesso, quindi li mostrano solo con **Memorizza eventi di sistema** attivo: vedi [Attivare i log di audit](/docs/slo/feed-and-audit-logs#attivare-i-log-di-audit). L'aggiunta, la modifica e la rimozione di un livello vengono registrate a nome della persona che le ha fatte.
 - L'API di lettura dello SLO restituisce il livello, e se le distribuzioni sono consentite: vedi [Leggere il livello dall'API](#leggere-il-livello-dallapi) e [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ## Avvisi e incidenti
@@ -306,5 +306,5 @@ Alcune parti di una policy del budget di errore non sono ancora disponibili: un 
 :::cards
 - [Budget di errore](/docs/slo/error-budget): Cos'è il budget e come lo stato lo segue.
 - [Avvisi e incidenti di tasso di consumo](/docs/slo/burn-rate-alerts): Avvisa il tuo team quando il budget si consuma troppo in fretta.
-- [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni cambio di livello e ciò che hanno generato i livelli.
+- [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs): Ogni cambio di livello e ciò che hanno generato i livelli.
 :::

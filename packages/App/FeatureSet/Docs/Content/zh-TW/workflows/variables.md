@@ -196,7 +196,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID 為 `lookup-user` 的 **API** 區塊                       | 它的狀態碼：`{{local.components.lookup-user.returnValues.response-status}}`。它的內文：`{{local.components.lookup-user.returnValues.response-body}}`。 |
 | ID 為 `transform` 的 **執行自訂 JavaScript** 區塊       | 它傳回的內容：`{{local.components.transform.returnValues.returnValue}}`。              |
-| ID 為 `incident-on-create-1` 的 **On Create Incident** 觸發器 | 事件的標題：`{{local.components.incident-on-create-1.returnValues.model.title}}`。記錄觸發器會以 `model` 傳回記錄，你深入其中讀取。 |
+| ID 為 `incident-on-create-1` 的 **建立事件時** 觸發器 | 事件的標題：`{{local.components.incident-on-create-1.returnValues.model.title}}`。記錄觸發器會以 `model` 傳回記錄，你深入其中讀取。 |
 
 區塊的值只在目前這次執行期間存在。每次新的執行都從頭開始。
 
@@ -239,7 +239,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 
 1. 一個 ID 為 `ci-webhook` 的 **Webhook** 觸發器。
 2. 一個 **如果 / 否則** 區塊：**要檢查的值** 是 Webhook 的 Request Body 中的 `status` 欄位（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比較** 是 **等於**，**比較對象** 是 `failed`。
-3. 從 **是** 分支接一個 **Create One Incident** 區塊，其中：
+3. 從 **是** 分支接一個 **建立單個事件** 區塊，其中：
    - 標題：`CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 描述：`See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

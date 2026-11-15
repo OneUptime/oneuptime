@@ -129,7 +129,7 @@ Klicka på **Lägg till komponent**, lägg till ett block **Om / Annars** och an
 
 ### Deklarera incidenten
 
-Lägg till ett block **Create One Incident** och anslut sidan **Ja** av blocket **Om / Annars** till det. Välj under **Incidentmall** en mall som ställer in allvarlighetsgraden och de jourpolicyer som ska larmas (se [Incidentmallar](/docs/incidents/settings#incidentmallar)). Ange under **JSON-objekt** vad som kommer från Grafana:
+Lägg till ett block **Skapa Incident (en post)** och anslut sidan **Ja** av blocket **Om / Annars** till det. Välj under **Incidentmall** en mall som ställer in allvarlighetsgraden och de jourpolicyer som ska larmas (se [Incidentmallar](/docs/incidents/settings#incidentmallar)). Ange under **JSON-objekt** vad som kommer från Grafana:
 
 ```json
 {

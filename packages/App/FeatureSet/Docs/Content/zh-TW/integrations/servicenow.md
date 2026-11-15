@@ -13,9 +13,9 @@
 
 ```mermaid title="兩個工作流程，一個 ServiceNow 事件"
 flowchart TB
-    declared["事件已宣告"] --> create["工作流程 1：<br/>On Create Incident"]
+    declared["事件已宣告"] --> create["工作流程 1：<br/>建立事件時"]
     create -->|"POST incident"| sn["ServiceNow 事件"]
-    resolved["事件已解決"] --> update["工作流程 2：<br/>On Update Incident"]
+    resolved["事件已解決"] --> update["工作流程 2：<br/>更新事件時"]
     update --> find["按 correlation_id<br/>查詢記錄"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,7 +54,7 @@ Table API 使用 Basic 驗證：把使用者名稱和密碼編碼在一起。
 
 ### 新增觸發器
 
-點選虛線的 **選擇啟動此工作流程的方式** 區塊，選擇 **On Create Incident**。點選該觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述**。
+點選虛線的 **選擇啟動此工作流程的方式** 區塊，選擇 **建立事件時**。點選該觸發器：它的 **要傳遞的欄位** 已經包含 **標題**，所以點選 **新增欄位** 並選擇 **描述**。
 
 ### 建立記錄
 
@@ -91,9 +91,9 @@ Table API 使用 Basic 驗證：把使用者名稱和密碼編碼在一起。
 一個工作流程只有一個觸發器，因此解決需要第二個工作流程，在事件狀態變化時啟動。
 
 :::steps
-### 新增 On Update Incident 觸發器
+### 新增「更新事件時」觸發器
 
-建立一個名為 `Resolve ServiceNow incidents` 的工作流程，選擇 **On Update Incident** 作為觸發器。在 **要關注的欄位** 中點選 **新增欄位** 並選擇 **Current Incident State**，使它只在狀態變化時執行。在 **要傳遞的欄位** 中請求新狀態是否為已解決狀態：點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。也可以點選 **以 JSON 編輯**，把 JSON 取代為：
+建立一個名為 `Resolve ServiceNow incidents` 的工作流程，選擇 **更新事件時** 作為觸發器。在 **要關注的欄位** 中點選 **新增欄位** 並選擇 **Current Incident State**，使它只在狀態變化時執行。在 **要傳遞的欄位** 中請求新狀態是否為已解決狀態：點選 **新增欄位**，展開 **Current Incident State** 並選擇 **Is Resolved State**。也可以點選 **以 JSON 編輯**，把 JSON 取代為：
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

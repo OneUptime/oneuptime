@@ -42,7 +42,7 @@ Kan tjenestene dine allerede nå `https://oneuptime.com` (eller den selvhostede 
 ## Før du begynner
 
 - **En egendefinert sonde som kjører.** **Status** for den viser **Tilkoblet**. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å installere en.
-- **En overvåker for innkommende forespørsler.** Heartbeat-URL-en dens inneholder den hemmelige nøkkelen tjenesten din sender: se [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor).
+- **En overvåker for innkommende forespørsler.** Heartbeat-URL-en dens inneholder den hemmelige nøkkelen tjenesten din sender: se [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor).
 - **En port på sondens vert som tjenestene dine kan nå.** Eksemplene bruker `3875`.
 
 ## Slå på lytteren
@@ -210,6 +210,6 @@ Forespørselen nådde aldri sonden. Sjekk at tjenesten når sondens vert på por
 ## Neste steg
 
 :::cards
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Bestem hva som teller som et sunt heartbeat.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Bestem hva som teller som et sunt heartbeat.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Installer sonden, og se hver innstilling den leser.
 :::

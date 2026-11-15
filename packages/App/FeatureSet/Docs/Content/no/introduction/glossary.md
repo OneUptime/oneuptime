@@ -170,7 +170,7 @@ Se [Verter](/docs/telemetry/hosts).
 
 Svitsjene, ruterne, brannmurene og tilgangspunktene dine, og alt annet med en adresse på nettverket ditt, enten det snakker SNMP eller ikke.
 
-Se [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor).
+Se [Monitor for nettverksenhet](/docs/monitor/network-device-monitor).
 
 ### Sky
 
@@ -394,7 +394,7 @@ Se [Skjemaer – oversikt](/docs/forms/index).
 
 Tjenesten `oneuptime-infrastructure-agent` bak en Server / VM-monitor: den rapporterer én maskins CPU, minne, disker og prosesser hvert 30. sekund, signert med monitorens hemmelige nøkkel.
 
-Se [Server- / VM-overvåking](/docs/monitor/server-monitor).
+Se [Server- / VM-monitor](/docs/monitor/server-monitor).
 
 ### Kubernetes-agent
 

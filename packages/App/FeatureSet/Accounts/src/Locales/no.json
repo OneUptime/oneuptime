@@ -556,6 +556,12 @@
   "Try again in a moment.": "Prøv igjen om et øyeblikk.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Prøv igjen. Hvis det fortsetter å feile, kontakt OneUptime-support og gi dem denne referansen:",
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Prøv igjen. Hvis det fortsetter å feile, gi denne referansen til den som drifter OneUptime-serveren deres:",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel.",
+  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime avviste det, øk proxyens grense for størrelsen på en forespørsel til 50 MB, like mye som OneUptime selv tar imot (i nginx, client_max_body_size 50M).",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Dette skjemaet er ikke tilgjengelig. Det kan være slått av, eller lenken kan være utdatert.",
   "This form can only be opened from an allowed network.": "Dette skjemaet kan bare åpnes fra et tillatt nettverk.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "For mange innsendinger fra nettverket ditt. Vent noen minutter, og prøv igjen.",
@@ -631,11 +637,5 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  },
-  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
-  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
-  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det.",
-  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel.",
-  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
-  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Hvis en proxy foran OneUptime avviste det, øk proxyens grense for størrelsen på en forespørsel til 50 MB, like mye som OneUptime selv tar imot (i nginx, client_max_body_size 50M)."
+  }
 }

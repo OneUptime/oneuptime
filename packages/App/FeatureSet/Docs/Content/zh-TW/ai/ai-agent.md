@@ -353,5 +353,5 @@ heartbeat 沉默超過 12 分鐘的執行，如果什麼都沒有推送、任務
 :::cards
 - [GitHub App](/docs/ai/github-app): 直接在 GitHub 中請求變更、修訂或審查。
 - [AI SRE](/docs/ai/ai-sre): 修正任務可以把其分析變成拉取請求的調查。
-- [Runbook 代理程式](/docs/runbooks/agents): 執行每次修正執行的 worker。
+- [Runner](/docs/runbooks/agents): 執行每次修正執行的 worker。
 :::

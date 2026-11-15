@@ -15,7 +15,7 @@ Un agente de IA rara vez falla bloqueándose. Falla siguiendo adelante: reintent
 flowchart TB
     agent["Tu agente envía<br/>spans gen_ai.*"] --> ingest["OneUptime"]
     ingest --> wire{"Detonante: alerta de<br/>presupuesto o de bucle"}
-    wire -->|"Alerta creada"| workflow["Flujo de trabajo:<br/>On Create Alert"]
+    wire -->|"Alerta creada"| workflow["Flujo de trabajo:<br/>Al crear Alerta"]
     workflow -->|"API Post (JSON)"| endpoint["Tu endpoint de parada"]
     endpoint --> runner["El ejecutor pausa<br/>o detiene el agente"]
 ```
@@ -125,7 +125,7 @@ Abre **Productos → Flujos de trabajo** y haz clic en **Crear flujo de trabajo*
 
 ### Añade el desencadenante
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en el panel **Añadir desencadenante**. Haz clic en el desencadenante: **Campos que pasar** empieza con el título, así que haz clic en **Añadir campo**, marca la descripción y haz clic en **Guardar**. El ID del bloque, `alert-on-create-1`, es como los bloques posteriores se refieren a él.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Al crear Alerta** en el panel **Añadir desencadenante**. Haz clic en el desencadenante: **Campos que pasar** empieza con el título, así que haz clic en **Añadir campo**, marca la descripción y haz clic en **Guardar**. El ID del bloque, `alert-on-create-1`, es como los bloques posteriores se refieren a él.
 
 ### Comprueba el título
 

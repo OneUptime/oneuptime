@@ -196,7 +196,7 @@ Vis til utdataene fra en tidligere blokk slik:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | En **API**-blokk med ID-en `lookup-user`                  | Statuskoden: `{{local.components.lookup-user.returnValues.response-status}}`. Bodyen: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | En **Kjør egen JavaScript**-blokk med ID-en `transform`  | Det den returnerte: `{{local.components.transform.returnValues.returnValue}}`.         |
-| En **On Create Incident**-trigger med ID-en `incident-on-create-1` | Tittelen på hendelsen: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Posttriggere returnerer posten som `model`, som du går ned i. |
+| En **Ved oppretting: Hendelse**-trigger med ID-en `incident-on-create-1` | Tittelen på hendelsen: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Posttriggere returnerer posten som `model`, som du går ned i. |
 
 Blokkverdier finnes bare under den gjeldende kjøringen. Hver ny kjøring starter på nytt.
 
@@ -239,7 +239,7 @@ En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }
 
 1. En **Webhook**-trigger med ID-en `ci-webhook`.
 2. En **Hvis / Ellers**-blokk: **Verdi som skal sjekkes** er feltet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Sammenligning** er **er lik**, og **Sammenlign med** er `failed`.
-3. Fra grenen **Ja** en **Create One Incident**-blokk med:
+3. Fra grenen **Ja** en **Opprett Hendelse (én post)**-blokk med:
    - Tittel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beskrivelse: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

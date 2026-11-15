@@ -196,7 +196,7 @@ OAuth 2.0 変数のページにある **アクセストークン** カードに�
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID が `lookup-user` の **API** ブロック                   | ステータスコード: `{{local.components.lookup-user.returnValues.response-status}}`。本文: `{{local.components.lookup-user.returnValues.response-body}}`。 |
 | ID が `transform` の **カスタム JavaScript を実行** ブロック   | 返したもの: `{{local.components.transform.returnValues.returnValue}}`。                |
-| ID が `incident-on-create-1` の **On Create Incident** トリガー | インシデントのタイトル: `{{local.components.incident-on-create-1.returnValues.model.title}}`。レコードのトリガーはレコードを `model` として返し、その中をたどります。 |
+| ID が `incident-on-create-1` の **インシデントの作成時** トリガー | インシデントのタイトル: `{{local.components.incident-on-create-1.returnValues.model.title}}`。レコードのトリガーはレコードを `model` として返し、その中をたどります。 |
 
 ブロックの値は、現在の実行のあいだだけ存在します。新しい実行はそれぞれ白紙から始まります。
 
@@ -239,7 +239,7 @@ Webhook が `{ "service": "checkout", "status": "failed" }` のような本文�
 
 1. ID が `ci-webhook` の **Webhook** トリガー。
 2. **条件分岐** ブロック: **確認する値** は Webhook の Request Body の `status` フィールド（`{{local.components.ci-webhook.returnValues.request-body.status}}`）、**比較** は **と等しい**、**比較対象** は `failed`。
-3. **はい** のブランチから、次の内容の **Create One Incident** ブロック:
+3. **はい** のブランチから、次の内容の **インシデントを作成（1 件）** ブロック:
    - タイトル: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 説明: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

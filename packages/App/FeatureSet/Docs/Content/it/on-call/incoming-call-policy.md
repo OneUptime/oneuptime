@@ -180,7 +180,7 @@ Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. 
 
 Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che suonino. Un messaggio lasciato vuoto viene letto con le parole di OneUptime, che la scheda mostra al suo posto.
 
-## Registri chiamate
+## Log chiamate
 
 Ogni chiamata compare nella pagina **Log chiamate** della policy, in **Log** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
 
@@ -208,13 +208,13 @@ I proprietari ricevono un'email per impostazione predefinita. Ognuno può scegli
 
 I log delle chiamate in entrata sono disponibili come trigger dei flussi di lavoro:
 
-- **On Create Incoming Call Log** si attiva quando arriva una chiamata.
-- **On Update Incoming Call Log** si attiva mentre la chiamata procede. L'aggiornamento che imposta **Ended At** è la fine della chiamata.
+- **Alla creazione: Log chiamata in entrata** si attiva quando arriva una chiamata.
+- **All'aggiornamento: Log chiamata in entrata** si attiva mentre la chiamata procede. L'aggiornamento che imposta **Ended At** è la fine della chiamata.
 
 Per agire solo sulle chiamate perse, ad esempio per pubblicarle in Slack o Microsoft Teams o aprire un ticket:
 
 :::steps
-1. Aggiungi il trigger **On Update Incoming Call Log**. Imposta **Campi da osservare** su **Ended At** e seleziona i campi da usare, come **Status**, **Caller Phone Number** e **Routing Phone Number**.
+1. Aggiungi il trigger **All'aggiornamento: Log chiamata in entrata**. Imposta **Campi da osservare** su **Ended At** e seleziona i campi da usare, come **Status**, **Caller Phone Number** e **Routing Phone Number**.
 2. Aggiungi un passaggio **Se / Altrimenti**. Controlla lo **Status** del trigger, con il confronto **è diverso da** e `Completed`.
 3. Collega i tuoi passaggi alla porta **Sì**.
 :::

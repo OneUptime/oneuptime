@@ -107,7 +107,7 @@ Ce flux de travail envoie un résumé JSON de chaque nouvel incident à une URL 
 
 ```mermaid title="L'exemple terminé"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succès"| post["Appel d'API POST (JSON)"]
+    trigger["À la création : Incident"] -->|"Succès"| post["Appel d'API POST (JSON)"]
     post -->|"Erreur"| log["Journal"]
     post -->|"Succès"| done["L'exécution se termine"]
 ```
@@ -124,7 +124,7 @@ Le nouveau flux de travail s'ouvre dans le **Constructeur**, désactivé.
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail**, puis cliquez sur **On Create Incident** sous **Populaires** dans le panneau **Ajouter un déclencheur**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail**, puis cliquez sur **À la création : Incident** sous **Populaires** dans le panneau **Ajouter un déclencheur**.
 
 Le déclencheur prend la place du bloc en pointillés. L'ID qui y figure, `incident-on-create-1`, est le nom par lequel les blocs suivants s'y réfèrent.
 

@@ -13,8 +13,8 @@ Send en melding til en [Telegram](https://telegram.org)-chat, -gruppe eller -kan
 
 ```mermaid title="Fra varsel til Telegram-melding"
 flowchart TB
-    fired["Varsel utløst"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Varsel utløst"] --> trigger["Ved oppretting:<br/>Varsel"]
+    trigger --> step["Send melding<br/>til Telegram"]
     step -->|"Suksess"| chat["Melding i<br/>chatten din"]
     step -->|"Feil"| failed["Kjøringen<br/>mislykkes og<br/>sier hvorfor"]
 ```
@@ -53,11 +53,11 @@ Start fra malen, som bygger hele arbeidsflyten for varsler, eller fra bunnen.
 3. Behold navnet **Notify Telegram on new alert**, eller endre det, og klikk på **Neste**.
 4. Lim inn tokenet i **Telegram-bottoken** og ID-en i **Telegram Chat ID**, og klikk på **Opprett arbeidsflyt**.
 
-Arbeidsflyten åpnes i **Bygger** med to trinn: **On Create Alert** og **Send melding til Telegram**, som sender nummeret, tittelen, alvorlighetsgraden og tilstanden til varselet. Tokenet lagres som arbeidsflytens hemmelige variabel `telegramBotToken`, og ID-en som `telegramChatId`.
+Arbeidsflyten åpnes i **Bygger** med to trinn: **Ved oppretting: Varsel** og **Send melding til Telegram**, som sender nummeret, tittelen, alvorlighetsgraden og tilstanden til varselet. Tokenet lagres som arbeidsflytens hemmelige variabel `telegramBotToken`, og ID-en som `telegramChatId`.
 @tab Fra bunnen
 1. Lagre tokenet som en hemmelig global variabel: gå til **Arbeidsflyter → Globale variabler**, klikk på **Opprett Workflow Variabel**, gi den navnet `TELEGRAM_BOT_TOKEN`, og klikk på **Neste**. Lim inn tokenet i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
 2. Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
-3. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **On Create Alert** under **Populære**. Klikk på utløseren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg de andre feltene meldingen din viser, for eksempel **Alert Number With Prefix**.
+3. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **Ved oppretting: Varsel** under **Populære**. Klikk på utløseren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg de andre feltene meldingen din viser, for eksempel **Alert Number With Prefix**.
 4. Klikk på **Legg til komponent**, søk etter `telegram`, og klikk på **Send melding til Telegram**. Koble utgangen **Suksess** fra utløseren til den.
 5. Klikk på det nye trinnet. Klikk på **{ }** i **Telegram-bottoken**, og velg `TELEGRAM_BOT_TOKEN` under **Global variables**. Skriv inn ID-en til chatten i **Chat-ID**, skriv meldingen i **Meldingstekst**, og sett inn feltene til varselet med **{ }**.
 :::
@@ -80,7 +80,7 @@ For å teste uten å utløse et varsel klikker du på **Kjør arbeidsflyt** og v
 
 - **Ren tekst.** Trinnet sender teksten slik den er skrevet, uten Telegrams formatering, så `*` og `_` vises som de er.
 - **Følg med på grensen på 4 096 tegn.** Telegram tar imot meldinger på opptil 4 096 tegn. En lengre blir kuttet og slutter med "… (truncated — see OneUptime for the full text)" i stedet for å bli avvist.
-- **Hendelser også.** Bygg den samme arbeidsflyten på **On Create Incident**, eller på **On Update Incident** for tilstandsendringer. For å sende bare noen varsler setter du en blokk **Hvis / Ellers** foran trinnet.
+- **Hendelser også.** Bygg den samme arbeidsflyten på **Ved oppretting: Hendelse**, eller på **Ved oppdatering: Hendelse** for tilstandsendringer. For å sende bare noen varsler setter du en blokk **Hvis / Ellers** foran trinnet.
 - **Formen på tokenet kontrolleres.** Et token som ikke har formen `123456789:ABCdef…`, stopper kjøringen før noe sendes, og tokenet skrives aldri til loggen.
 
 ## Feilsøking

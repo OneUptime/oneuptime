@@ -1,4 +1,4 @@
-# Nettsted-overvåking
+# Nettsted-monitor
 
 En nettstedsmonitor sjekker at en nettside svarer. Ved hver sjekk ber en sonde om sidens URL, og monitoren går frakoblet og erklærer en hendelse når siden ikke svarer eller svarer med en feil. For å kalle et endepunkt med en metode, hoder eller en brødtekst bruker du heller en [API-monitor](/docs/monitor/api-monitor).
 
@@ -71,7 +71,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ### Nettsted-URL
 
-Siden som skal sjekkes, som fullstendig URL med skjema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan sette en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`, for eksempel et token i spørrestrengen.
+Siden som skal sjekkes, som fullstendig URL med skjema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`, for eksempel et token i spørrestrengen.
 
 ### Dynamiske URL-plassholdere
 
@@ -131,7 +131,7 @@ Det tilsvarer curls flagg `--cert` og `--key`:
 curl --cert client.crt --key client.key https://example.com/health
 ```
 
-For å holde nøkkelen utenfor monitorens innstillinger lagrer du sertifikatet og nøkkelen som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets) og angir `{{monitorSecrets.NAME}}` i disse feltene. Hemmeligheter fylles inn på serveren, og verdiene deres vises aldri i dashbordet.
+For å holde nøkkelen utenfor monitorens innstillinger lagrer du sertifikatet og nøkkelen som [monitorhemmeligheter](/docs/monitor/monitor-secrets) og angir `{{monitorSecrets.NAME}}` i disse feltene. Hemmeligheter fylles inn på serveren, og verdiene deres vises aldri i dashbordet.
 
 Klientsertifikatet presenteres bare så lenge forespørselen blir på opprinnelsen til monitorens URL (samme skjema, vert og port). Etter en omdirigering til en annen opprinnelse fortsetter sonden uten det.
 
@@ -237,8 +237,8 @@ URL-en slås opp til en privat adresse, og sonden som kjørte sjekken, får ikke
 ## Neste steg
 
 :::cards
-- [API-overvåking](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Få beskjed før nettstedets sertifikat utløper.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Hold tokener og nøkler utenfor monitorinnstillingene.
+- [API-monitor](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Få beskjed før nettstedets sertifikat utløper.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Hold tokener og nøkler utenfor monitorinnstillingene.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

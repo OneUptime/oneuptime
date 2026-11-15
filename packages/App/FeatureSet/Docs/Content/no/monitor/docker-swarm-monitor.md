@@ -1,4 +1,4 @@
-# Docker Swarm-overvåking
+# Docker Swarm-monitor
 
 En Docker Swarm-monitor overvåker containerne bak tjenesteoppgavene i en Swarm-klynge og sier fra når en oppgave starter på nytt, går varm eller går tom for minne. Den leser containermålingene som OneUptimes Docker Swarm-agent sender, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
 
@@ -224,7 +224,7 @@ Begge leser seriene agentens inventarpoller sender fra versjon 0.161.3 av filene
 
 :::cards
 - [Docker Swarm-agent](/docs/telemetry/docker-swarm): Installer og oppgrader agenten denne monitoren leser.
-- [Docker-overvåking](/docs/monitor/docker-monitor): Overvåk containerne på én Docker-vert.
+- [Docker-monitor](/docs/monitor/docker-monitor): Overvåk containerne på én Docker-vert.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 - [Vaktplaner](/docs/on-call/schedules): Bestem hvem som varsles når en oppgave går i stykker.
 :::

@@ -16,7 +16,7 @@ Toda integração move dados em um sentido ou nos dois. **De entrada**: outra fe
 ```mermaid title="De entrada e de saída"
 flowchart TB
     tool["Ferramenta de alerta<br/>ou de segurança"] -->|"de entrada"| record["Incidente ou alerta,<br/>plantão chamado"]
-    record -->|"de saída"| workflow["Workflow, como<br/>On Create Incident"]
+    record -->|"de saída"| workflow["Workflow, como<br/>Ao criar: Incidente"]
     workflow -->|"chamada de API<br/>ou mensagem"| other["Ferramenta de tickets,<br/>chamadas ou chat"]
     other -.->|"webhook de volta"| record
 ```
@@ -118,7 +118,7 @@ Para uma ferramenta de alerta, comece com um [monitor de requisições recebidas
 1. Abra **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em **Começar do zero**. Dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
 2. Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Webhook**. Clique no gatilho e depois em **Copiar URL**.
 3. Na outra ferramenta, envie o webhook dela para essa URL como um `POST` com `Content-Type: application/json`.
-4. Adicione os blocos que agem sobre ele. Eles leem a requisição com referências como `{{local.components.webhook-1.returnValues.request-body.status}}`: um bloco **Se / Senão** para verificar um campo e depois **Create One Incident** para declarar um incidente.
+4. Adicione os blocos que agem sobre ele. Eles leem a requisição com referências como `{{local.components.webhook-1.returnValues.request-body.status}}`: um bloco **Se / Senão** para verificar um campo e depois **Criar: Incidente (um registro)** para declarar um incidente.
 5. Ative **Habilitado** no topo do **Construtor**, envie um teste a partir da outra ferramenta e abra **Registros → Execuções** para ver o que chegou.
 :::
 
@@ -128,7 +128,7 @@ A URL é a única credencial, então trate-a como uma senha. Veja [Webhook](/doc
 
 :::steps
 1. Salve a chave de API da ferramenta como uma variável global secreta, como mostrado [abaixo](#proteger-as-credenciais).
-2. Crie um workflow, clique no bloco tracejado e escolha um gatilho de evento, como **On Create Incident**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos a enviar, como **Descrição**.
+2. Crie um workflow, clique no bloco tracejado e escolha um gatilho de evento, como **Ao criar: Incidente**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos a enviar, como **Descrição**.
 3. Clique em **Adicionar componente** e adicione um bloco **Chamada de API POST (JSON)**. Ligue a ele o ponto **Sucesso** do gatilho.
 4. Preencha a **URL**, os **Cabeçalhos da Requisição** com o cabeçalho `Authorization` e o **Corpo da Requisição** com os campos do incidente, como `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Clique em **Executar fluxo de trabalho**, escolha um incidente em **Incidente** e execute. Uma execução de teste envia a requisição de verdade. Depois, ative **Habilitado**.

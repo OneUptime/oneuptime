@@ -1,4 +1,4 @@
-# DNS-overvåking
+# DNS-monitor
 
 En DNS-monitor slår opp en DNS-post etter en tidsplan og sjekker svaret: at navnet kan slås opp, hvor raskt, og hva postene sier. Bruk den til å fange opp et DNS-brudd, en post som er endret eller forsvunnet, eller en treg løser, før brukerne merker det.
 
@@ -171,8 +171,8 @@ Serveren i **DNS-server (valgfritt)** validerer ikke DNSSEC og setter derfor ald
 ## Neste steg
 
 :::cards
-- [DNSSEC-overvåking](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
-- [Domene-overvåking](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
+- [DNSSEC-monitor](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
+- [Domene-monitor](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

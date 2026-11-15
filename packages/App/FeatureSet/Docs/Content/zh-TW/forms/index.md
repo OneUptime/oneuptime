@@ -257,7 +257,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 工作流程
 
-表單擁有自動產生的工作流程元件，例如 **On Create Form**、**On Update Form** 等。若要對表單建立的內容執行動作，請使用 **On Create Incident** 或 **On Create Maintenance Event**。
+表單擁有自動產生的工作流程元件，例如 **建立表單時**、**更新表單時** 等。若要對表單建立的內容執行動作，請使用 **建立事件時** 或 **建立維護事件時**。
 
 ### 公開頁面自己的端點
 

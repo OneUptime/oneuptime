@@ -197,7 +197,7 @@ Fai clic su **Aggiungi componente**, aggiungi un blocco **Se / Altrimenti** e co
 
 ### Dichiarare l'incidente
 
-Aggiungi un blocco **Create One Incident** e collegaci il lato **Sì** del blocco **Se / Altrimenti**. In **Modello di incidente**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **Oggetto JSON**, imposta ciò che arriva da Alertmanager:
+Aggiungi un blocco **Crea: Incidente (un record)** e collegaci il lato **Sì** del blocco **Se / Altrimenti**. In **Modello di incidente**, scegli un modello che imposti la gravità e le policy di reperibilità da chiamare (vedi [Modelli di incidenti](/docs/incidents/settings#modelli-di-incidenti)). In **Oggetto JSON**, imposta ciò che arriva da Alertmanager:
 
 ```json
 {

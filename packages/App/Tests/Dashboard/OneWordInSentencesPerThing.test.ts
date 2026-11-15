@@ -164,12 +164,16 @@ describe("a thing's sentences in each language", () => {
  *
  * A docs page names the thing as the Dashboard does: every line whose
  * English line (the same line of the English page, as the docs suites read
- * them) names the thing says the language's word in its prose. What a line
- * quotes is read elsewhere: a bold label or a quote is the words of the
- * product that draws it, which the docs suites check against that product's
- * locale, and a link's text is the title of the page or heading it opens.
- * Headings and the docs navigation keep their titles here, for the anchors
- * and the cards that name them, and so do fenced blocks and code spans.
+ * them) names the thing says the language's word, in its prose, its
+ * headings and its links' texts. What a line quotes is read elsewhere: a
+ * bold label or a quote is the words of the product that draws it, which
+ * the docs suites check against that product's locale. Fenced blocks and
+ * code spans keep their words.
+ *
+ * The titles say it too (#8705): a page's title in the docs navigation, its
+ * heading, and every card and link that names it. A heading's words are its
+ * anchor's, so a renamed heading takes its anchor with it, and every link
+ * to it follows (docs:check-anchors, DocsLinksResolve).
  */
 const DOCS_CONTENT: string = path.resolve(
   __dirname,
@@ -183,8 +187,55 @@ const NOT_DOCS_WORDS: RegExp =
 // A fenced block's first or last line.
 const FENCE: RegExp = /^\s*(```|~~~)/;
 
-// A heading, whose words are its anchor's.
-const HEADING: RegExp = /^\s*#/;
+/*
+ * A link, whose text is the title of the page or heading it opens. It is
+ * read by its own English, the same link of the English line: "see
+ * [Criteria](#criteria)" on a line about a monitor names no monitor.
+ */
+const LINK: RegExp = /\[([^\]]*)\]\([^)]*\)/g;
+
+function linkTexts(line: string): Array<string> {
+  return Array.from(line.matchAll(LINK), (match: RegExpMatchArray): string => {
+    return match[1]!.replace(/`[^`]*`/g, " ");
+  });
+}
+
+// The docs navigation's titles, by their English (Docs/Locales/<code>.json).
+const DOCS_LOCALES: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/Docs/Locales",
+);
+
+function navTitles(language: string): Record<string, string> {
+  const locale: Record<string, Record<string, unknown>> = JSON.parse(
+    fs.readFileSync(path.join(DOCS_LOCALES, `${language}.json`), "utf8"),
+  );
+  const titles: Record<string, string> = {};
+
+  for (const group of ["navGroups", "navLinks"]) {
+    for (const [english, title] of Object.entries(locale[group] || {})) {
+      if (typeof title === "string") {
+        titles[english] = title;
+      }
+    }
+  }
+
+  return titles;
+}
+
+// The titles of `rule.language`'s docs navigation that name the thing and still say the dropped word.
+function navTitlesStillDropped(rule: SentenceRule): Array<string> {
+  const except: RegExp | undefined = rule.docsExcept || rule.except;
+  const titles: Record<string, string> = navTitles(rule.language);
+
+  return Object.keys(titles).filter((english: string): boolean => {
+    return (
+      (rule.docsEnglish || rule.english).test(english) &&
+      !(except && except.test(english)) &&
+      rule.dropped.test(titles[english]!)
+    );
+  });
+}
 
 function docsPages(language: string): Array<string> {
   const pages: Array<string> = [];
@@ -232,19 +283,31 @@ function docsLinesStillDropped(rule: SentenceRule): Array<string> {
       }
 
       const englishLine: string = english[index] || "";
+      const names: (text: string) => boolean = (text: string): boolean => {
+        return (
+          (rule.docsEnglish || rule.english).test(text) &&
+          !(except && except.test(text))
+        );
+      };
 
-      if (
-        inFence ||
-        HEADING.test(line) ||
-        !(rule.docsEnglish || rule.english).test(englishLine) ||
-        (except && except.test(englishLine))
-      ) {
+      if (inFence) {
         return;
       }
 
-      if (rule.dropped.test(line.replace(NOT_DOCS_WORDS, " "))) {
+      if (
+        names(englishLine) &&
+        rule.dropped.test(line.replace(NOT_DOCS_WORDS, " "))
+      ) {
         found.push(`${page}:${index + 1}`);
       }
+
+      const englishLinks: Array<string> = linkTexts(englishLine);
+
+      linkTexts(line).forEach((text: string, link: number): void => {
+        if (names(englishLinks[link] || "") && rule.dropped.test(text)) {
+          found.push(`${page}:${index + 1} [${text}]`);
+        }
+      });
     });
   }
 
@@ -252,7 +315,7 @@ function docsLinesStillDropped(rule: SentenceRule): Array<string> {
 }
 
 describe("a thing's docs in each language", () => {
-  test("read a line's prose, not what it quotes or its headings", () => {
+  test("read a line's words and its headings, not what it quotes", () => {
     expect(
       "See `registro` at [Registri](/docs/a#registri), **Registri** and «registro».".replace(
         NOT_DOCS_WORDS,
@@ -266,11 +329,37 @@ describe("a thing's docs in each language", () => {
         " ",
       ),
     ).toMatch(/registri/);
-    expect(HEADING.test("### Registri")).toBe(true);
+  });
+
+  test("read each link's text by its own English link", () => {
+    expect(
+      linkTexts("Vedi [Registri di audit](/docs/a) e [`registro`](#b)."),
+    ).toEqual(["Registri di audit", " "]);
+    expect(linkTexts("See [Audit Logs](/docs/a) and [`log`](#b).")).toEqual([
+      "Audit Logs",
+      " ",
+    ]);
     expect(docsPages("it")).toEqual(
       expect.arrayContaining(["telemetry/logs-explorer.md"]),
     );
   });
+
+  test("read the docs navigation's titles by their English", () => {
+    expect(navTitles("it")["Audit Logs"]).toBe("Log di audit");
+    expect(navTitles("no")["Website Monitor"]).toBe("Nettsted-monitor");
+    expect(navTitles("en")["Audit Logs"]).toBe("Audit Logs");
+  });
+
+  test.each(
+    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+      return [rule.language, rule.thing, rule];
+    }),
+  )(
+    "%s's docs navigation titles %s with its one word",
+    (_language: string, _thing: string, rule: SentenceRule) => {
+      expect(navTitlesStillDropped(rule)).toEqual([]);
+    },
+  );
 
   test.each(
     RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
@@ -280,6 +369,90 @@ describe("a thing's docs in each language", () => {
     "%s's docs name %s with its one word",
     (_language: string, _thing: string, rule: SentenceRule) => {
       expect(docsLinesStillDropped(rule)).toEqual([]);
+    },
+  );
+});
+
+/*
+ * THE ADMIN DASHBOARD SAYS THE WORD TOO (#8740).
+ *
+ * The Admin Dashboard names the same things as the Dashboard: an instance's
+ * monitors, logs, queues and runbooks. A string of its locale
+ * (AdminDashboard/src/Locales/<code>.json) whose English names the thing
+ * says the language's word: the key's English, or for a nested key the
+ * English locale's string at the same place. Italian still called the
+ * audit log "registro di audit" there after the Dashboard and the docs said
+ * "log di audit".
+ */
+const ADMIN_LOCALES: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/AdminDashboard/src/Locales",
+);
+
+// Each string of an Admin locale, by its place in the file ("pages.home.title").
+function adminWords(language: string): Record<string, string> {
+  const words: Record<string, string> = {};
+  const walk: (node: Record<string, unknown>, prefix: string) => void = (
+    node: Record<string, unknown>,
+    prefix: string,
+  ): void => {
+    for (const [key, value] of Object.entries(node)) {
+      if (value && typeof value === "object") {
+        walk(value as Record<string, unknown>, `${prefix}${key}.`);
+      } else if (typeof value === "string") {
+        words[`${prefix}${key}`] = value;
+      }
+    }
+  };
+
+  walk(
+    JSON.parse(
+      fs.readFileSync(path.join(ADMIN_LOCALES, `${language}.json`), "utf8"),
+    ),
+    "",
+  );
+
+  return words;
+}
+
+// The Admin strings of `rule.language` whose English names the thing and still say the dropped word.
+function adminStillDropped(rule: SentenceRule): Array<string> {
+  if (!fs.existsSync(path.join(ADMIN_LOCALES, `${rule.language}.json`))) {
+    return [];
+  }
+
+  const english: Record<string, string> = adminWords("en");
+  const words: Record<string, string> = adminWords(rule.language);
+
+  return Object.keys(words).filter((place: string): boolean => {
+    const named: string = englishOf(english[place] ?? place);
+
+    return (
+      rule.english.test(named) &&
+      !(rule.except && rule.except.test(named)) &&
+      rule.dropped.test(words[place]!.replace(NOT_WORDS, " "))
+    );
+  });
+}
+
+describe("a thing's Admin Dashboard strings in each language", () => {
+  test("read a nested string by the English at its place", () => {
+    expect(adminWords("en")["pages.settings.dataRetention.logCardTitle"]).toBe(
+      "Monitor Log Retention",
+    );
+    expect(
+      adminWords("it")["pages.settings.dataRetention.logCardTitle"],
+    ).toMatch(/\blog\b/);
+  });
+
+  test.each(
+    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+      return [rule.language, rule.thing, rule];
+    }),
+  )(
+    "%s's Admin Dashboard names %s with its one word",
+    (_language: string, _thing: string, rule: SentenceRule) => {
+      expect(adminStillDropped(rule)).toEqual([]);
     },
   );
 });

@@ -1,6 +1,6 @@
 # Ceph-agent
 
-OneUptimes Ceph-agent overvåker en Ceph-klynge: tilstanden, monitor-quorumet, OSD-ene, poolene og placement groups. Den scraper Ceph mgr-modulen `prometheus` på hver mgr-daemon, stempler hver måling med navnet på klyngen din og sender den til OneUptime, der klyngen vises med OSD-ene, poolene og daemonene sine. [Ceph-overvåkere](/docs/monitor/ceph-monitor) varsler ut fra det som kommer inn.
+OneUptimes Ceph-agent overvåker en Ceph-klynge: tilstanden, monitor-quorumet, OSD-ene, poolene og placement groups. Den scraper Ceph mgr-modulen `prometheus` på hver mgr-daemon, stempler hver måling med navnet på klyngen din og sender den til OneUptime, der klyngen vises med OSD-ene, poolene og daemonene sine. [Ceph-monitorer](/docs/monitor/ceph-monitor) varsler ut fra det som kommer inn.
 
 :::cards
 - [Installer agenten](#installer-agenten): Aktiver mgr-modulen, deretter installasjonsskriptet eller Docker Compose.
@@ -305,7 +305,7 @@ OneUptime registrerer en Ceph-klynge etter `ceph.cluster.name`, som agenten tar 
 ## Neste trinn
 
 :::cards
-- [Ceph-overvåking](/docs/monitor/ceph-monitor): Varsle om tilstand, OSD-er, placement groups, kapasitet, krasj og trege operasjoner.
+- [Ceph-monitor](/docs/monitor/ceph-monitor): Varsle om tilstand, OSD-er, placement groups, kapasitet, krasj og trege operasjoner.
 - [Proxmox-agent](/docs/telemetry/proxmox): Kjører du Ceph under Proxmox VE? Overvåk klyngen også.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva Ceph-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Operativsystemets visning av hver Ceph-vert.

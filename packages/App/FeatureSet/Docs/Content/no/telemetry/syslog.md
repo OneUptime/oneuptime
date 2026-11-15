@@ -251,5 +251,5 @@ Sett `x-oneuptime-service-name` for å overstyre standardgjenkjenningen, som bru
 :::cards
 - [Loggpipelines](/docs/telemetry/log-pipelines): Gjør `key=value`-meldinger om til attributter.
 - [Opptaksregler for logger](/docs/telemetry/log-recording-rules): Gjør tallene i syslog-en din om til målinger.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle når samsvarende syslog-meldinger kommer inn.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle når samsvarende syslog-meldinger kommer inn.
 :::

@@ -15,7 +15,7 @@ OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi re
 flowchart TB
     app["La GitHub App"] --> repos["I tuoi repository,<br/>importati"]
     repos --> pr["Pull request di<br/>correzione<br/>dall'AI di OneUptime"]
-    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>Alla creazione:<br/>Incidente"]
     workflow -->|"POST issues"| issue["Issue GitHub"]
 ```
 
@@ -62,7 +62,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
 
 ### Aprire la issue
 

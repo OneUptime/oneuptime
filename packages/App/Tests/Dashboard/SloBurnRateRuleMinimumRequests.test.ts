@@ -122,7 +122,7 @@ describe("the burn rate rule form, by what the SLO measures", () => {
     expect(field.placeholder).toBe("100");
     expect(field.stepId).toBe("burn-window");
     expect(field.description).toBe(
-      "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.",
+      "Skip the rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.",
     );
   });
 });

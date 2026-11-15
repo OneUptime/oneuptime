@@ -48,7 +48,7 @@ Udløs en advarsel, når dit team bør kigge, før nogen udenfor opdager noget, 
 - **En SLO's forbrugsrate.** En forbrugsrateregel kan oprette en advarsel, når en SLO bruger sit fejlbudget for hurtigt. Se [Forbrugsrateadvarsler og -hændelser](/docs/slo/burn-rate-alerts).
 - **Netværkslokationer og sikkerhedsbegivenheder.** En netværkslokation, der er sat til at advare, når den er usund, åbner en advarsel, når dens samlede tilstand ikke længere er operationel, og dine detektionsregler for sikkerhedsbegivenheder åbner også advarsler. Se [Netværkslokationer (tilstandsoversigt og oppetid)](/docs/monitor/network-sites) og [Sikkerhedsbegivenheder (SIEM)](/docs/telemetry/security-events).
 - **En tilkaldelse.** `/oneuptime page` i Slack eller Microsoft Teams, alle steder undtagen en hændelses eller en advarsels egen kanal, åbner en advarsel med din besked som titel og tilkalder de personer, du nævner. En arbejdsgangs tilkaldelsesblokke gør det samme med den titel og besked, du giver dem. Se [Tilkald nogen fra Slack](/docs/workspace-connections/slack#tilkald-nogen-fra-slack) og [Paging](/docs/workflows/components#paging).
-- **API'et, Terraform og arbejdsgange.** Advarsler er en almindelig ressource: `/api/alert`, Terraform-ressourcen `oneuptime_alert` og en arbejdsgangs trin **Create One Alert**.
+- **API'et, Terraform og arbejdsgange.** Advarsler er en almindelig ressource: `/api/alert`, Terraform-ressourcen `oneuptime_alert` og en arbejdsgangs trin **Opret Advarsel (én post)**.
 
 ## Hvor advarsler findes i dashboardet
 
@@ -104,9 +104,9 @@ I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne ræ
 7. **Grupperingsregler lægger den i en episode**, når en af dem matcher. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påmindelser planlægges**, når en påmindelsesregel matcher, og **OneUptime AI** undersøger advarslen, når **Undersøg nye advarsler** er slået til under **Advarsler → AI → Indstillinger**, og retter den, når **Ret nye advarsler automatisk** er slået til. Se [AI SRE](/docs/ai/ai-sre).
 
-Et baggrundsjob giver advarslens ejere besked omkring et minut efter, at den er oprettet, alle de ejere, den har til den tid, og arbejdsgangsudløseren **On Create Alert** starter enhver arbejdsgang, der bygger på den.
+Et baggrundsjob giver advarslens ejere besked omkring et minut efter, at den er oprettet, alle de ejere, den har til den tid, og arbejdsgangsudløseren **Ved oprettelse: Advarsel** starter enhver arbejdsgang, der bygger på den.
 
-For at gøre personer og teams til advarslens ejere, når den oprettes, så denne besked når dem og ikke Projektejere, giver du dem med ved oprettelsen: over API'et sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` med `POST /api/alert`; i en arbejdsgang vælger du dem under **Ejer-brugere** og **Ejer-teams** i **Create One Alert**; over MCP giver du `ownerUsers` og `ownerTeams` til `create_alert`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes. Ejere, som en separat anmodning tilføjer efter oprettelsen, hører kun om den, hvis de er tilføjet inden for det minut.
+For at gøre personer og teams til advarslens ejere, når den oprettes, så denne besked når dem og ikke Projektejere, giver du dem med ved oprettelsen: over API'et sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` med `POST /api/alert`; i en arbejdsgang vælger du dem under **Ejer-brugere** og **Ejer-teams** i **Opret Advarsel (én post)**; over MCP giver du `ownerUsers` og `ownerTeams` til `create_alert`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes. Ejere, som en separat anmodning tilføjer efter oprettelsen, hører kun om den, hvis de er tilføjet inden for det minut.
 
 ### Oprettet allerede bekræftet eller løst
 

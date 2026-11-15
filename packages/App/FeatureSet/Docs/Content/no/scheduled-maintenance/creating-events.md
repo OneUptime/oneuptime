@@ -90,7 +90,7 @@ I det øyeblikket du klikker på **Opprett vedlikeholdshendelse**, går OneUptim
 5. **Runbook-regler starter** runbookene som matcher hendelsen.
 6. **Påminnelser planlegges**, når en påminnelsesregel matcher, for eierne.
 
-Innen et minutt etter at den publiseres, som skjer med en gang med mindre du har valgt et **Publiser den**, får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **On Create Maintenance Event** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på den varslingen: se [Varslingsinnstillinger](/docs/notifications/notification-settings).
+Innen et minutt etter at den publiseres, som skjer med en gang med mindre du har valgt et **Publiser den**, får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **Ved oppretting: Vedlikeholdshendelse** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på den varslingen: se [Varslingsinnstillinger](/docs/notifications/notification-settings).
 
 ## Publiser den senere
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Bryteren **Når hendelsen planlegges**. De to andre tidspunktene har egne felt.            |
 | `publishOnStatusPageAt`                               | Når hendelsen publiseres på statussidene sine og abonnentene får beskjed om at den er planlagt. Utelatt: med en gang. |
 
-Den samme hendelsen som kode er Terraform-ressursen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedlikehold). En arbeidsflyt oppretter en med trinnet **Create One Maintenance Event**, og `/oneuptime maintenance` åpner skjemaet i Slack: se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
+Den samme hendelsen som kode er Terraform-ressursen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedlikehold). En arbeidsflyt oppretter en med trinnet **Opprett Vedlikeholdshendelse (én post)**, og `/oneuptime maintenance` åpner skjemaet i Slack: se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
 
 ## Feilsøking
 

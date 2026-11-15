@@ -1,4 +1,4 @@
-# IP-overvåking
+# IP-monitor
 
 En IP-monitor sjekker at en IPv4- eller IPv6-adresse svarer på ping (ICMP-ekkoforespørsler), og måler tur-retur-tiden, pakketapet og jitteren. Bruk den for infrastruktur du kjenner på adressen, som en gateway, den virtuelle IP-en til en lastbalanserer eller en server med fast adresse.
 
@@ -153,8 +153,8 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 ## Neste steg
 
 :::cards
-- [Ping-overvåking](/docs/monitor/ping-monitor): Ping en vert ved navn, og følg DNS-endringer.
-- [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på adressen, ikke bare adressen.
+- [Ping-monitor](/docs/monitor/ping-monitor): Ping en vert ved navn, og følg DNS-endringer.
+- [Port-monitor](/docs/monitor/port-monitor): Sjekk en tjeneste på adressen, ikke bare adressen.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk private adresser og IPv6-adresser fra ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

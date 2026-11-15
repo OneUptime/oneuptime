@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * A monitor's Status Timeline and an incident's State Timeline (the name of
@@ -1952,4 +1953,21 @@ test.describe("every other status timeline page", () => {
       ),
     ).toBe(true);
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese, Arabic and Persian whole, parsed on every page load of
+ * every test. English is in the bundle now, and each other language a chunk
+ * of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "ar", "fa"],
+  address: (language: string): string => {
+    return language === "en"
+      ? MONITOR_ROUTE
+      : `${MONITOR_ROUTE}?lang=${language}`;
+  },
 });

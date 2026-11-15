@@ -222,7 +222,7 @@ export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
 
 只有当组织中的每个导出器都使用 `cumulative` 时才固定它，并且不要在同一批机器中混用两种方式。OneUptime 的用量标签页和预算两种都能计算：delta 把数据点相加，累积计数器按时间范围内增长了多少来计算。
 
-## 跟踪（测试版）
+## 追踪（测试版）
 
 Claude Code 还有一个测试版追踪导出器，它把每次交互绘制成一棵 span 树：`claude_code.interaction` 下面是 `claude_code.llm_request` 和 `claude_code.tool`。
 

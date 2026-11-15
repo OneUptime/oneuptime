@@ -56,6 +56,7 @@ import ComponentMetadata from "Common/Types/Workflow/Component";
 import fs from "fs";
 import path from "path";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 
 /*
  * Docs overhaul task 14: Label and Owner Rules, Import and Export Label
@@ -183,11 +184,6 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Read Form Domain",
     // The group the generated Permission Reference heads them with.
     "Form",
-    // Workflow components, which the workflow builder names in English.
-    "On Create Form",
-    "On Update Form",
-    "On Create Incident",
-    "On Create Maintenance Event",
     // The questions an upgraded incident form got, stored with these labels.
     "Your Name",
     "Your Email",
@@ -219,7 +215,11 @@ const MODEL_CREATE_BUTTONS: Record<string, Array<string>> = {
 
 const CREATE_PREFIX: string = "Create ";
 
-// Workflow components a model gets, named after it.
+/*
+ * Workflow components a model gets, named after it: the builder draws each
+ * as the sentence it was built from, in the reader's words (#8642), and the
+ * page names it so (drawnStepName, #8708).
+ */
 const WORKFLOW_COMPONENTS: Array<string> = [
   "On Create Form",
   "On Update Form",
@@ -955,7 +955,6 @@ describe("the lists this test keeps", () => {
             PLANS.includes(name) ||
             isPermissionTitleKeptInEnglish(name) ||
             name === "Form" ||
-            WORKFLOW_COMPONENTS.includes(name) ||
             STORED_QUESTION_LABELS.includes(name) ||
             LEGACY_NAMES.includes(name) ||
             OPTION_VALUES.includes(name) ||
@@ -1045,7 +1044,7 @@ describe("the lists this test keeps", () => {
       `On Create ${new ScheduledMaintenance().singularName}`,
     ]);
 
-    // Every language names them as the builder does, in English, in bold.
+    // Every language names them as its builder draws them, in bold.
     for (const lang of SUPPORTED_DOCS_LANGUAGE_CODES) {
       const spans: Array<string> = boldSpans(readPage(lang, FORMS));
 
@@ -1053,8 +1052,16 @@ describe("the lists this test keeps", () => {
         expect({ lang, component, named: true }).toEqual({
           lang,
           component,
-          named: spans.includes(component),
+          named: spans.includes(drawnStepName(lang, component)),
         });
+
+        if (drawnStepName(lang, component) !== component) {
+          expect({ lang, component, english: false }).toEqual({
+            lang,
+            component,
+            english: spans.includes(component),
+          });
+        }
       }
 
       expect({ lang, stale: false }).toEqual({
@@ -1185,6 +1192,7 @@ describe("the lists this test keeps", () => {
         ...notDashboardLabels(page),
         ...listed(KEPT_IN_ENGLISH, page),
         ...listed(PROSE_LEADS, page),
+        ...(page === FORMS ? WORKFLOW_COMPONENTS : []),
       ];
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
         (span: string): boolean => {

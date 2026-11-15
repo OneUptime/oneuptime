@@ -13,8 +13,8 @@ Envía un mensaje a un chat, grupo o canal de [Telegram](https://telegram.org) c
 
 ```mermaid title="De una alerta a un mensaje de Telegram"
 flowchart TB
-    fired["Alerta disparada"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Alerta disparada"] --> trigger["Al crear Alerta"]
+    trigger --> step["Enviar mensaje<br/>a Telegram"]
     step -->|"Éxito"| chat["Mensaje en<br/>tu chat"]
     step -->|"Error"| failed["La ejecución falla<br/>y dice por qué"]
 ```
@@ -53,11 +53,11 @@ Empieza desde la plantilla, que crea todo el flujo de trabajo para las alertas, 
 3. Deja el nombre **Notify Telegram on new alert** o cámbialo, y haz clic en **Siguiente**.
 4. Pega el token en **Token del bot de Telegram** y el ID en **Telegram Chat ID**, y haz clic en **Crear flujo de trabajo**.
 
-El flujo de trabajo se abre en el **Constructor** con dos pasos: **On Create Alert** y **Enviar mensaje a Telegram**, que envía el número, el título, la gravedad y el estado de la alerta. El token se guarda como la variable secreta `telegramBotToken` del flujo de trabajo, y el ID como `telegramChatId`.
+El flujo de trabajo se abre en el **Constructor** con dos pasos: **Al crear Alerta** y **Enviar mensaje a Telegram**, que envía el número, el título, la gravedad y el estado de la alerta. El token se guarda como la variable secreta `telegramBotToken` del flujo de trabajo, y el ID como `telegramChatId`.
 @tab Desde cero
 1. Guarda el token como variable global secreta: ve a **Flujos de trabajo → Variables globales**, haz clic en **Crear Variable del flujo de trabajo**, ponle el nombre `TELEGRAM_BOT_TOKEN` y haz clic en **Siguiente**. Pega el token en **Contenido**, activa **Secreto** y haz clic en **Crear Variable del flujo de trabajo**.
 2. Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo**, elige **Empezar desde cero**, ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
-3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **On Create Alert** en **Populares**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que muestra tu mensaje, por ejemplo **Número de alerta con prefijo**.
+3. En el **Constructor**, haz clic en **Elige qué inicia este flujo de trabajo** y elige **Al crear Alerta** en **Populares**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que muestra tu mensaje, por ejemplo **Número de alerta con prefijo**.
 4. Haz clic en **Añadir componente**, busca `telegram` y haz clic en **Enviar mensaje a Telegram**. Conecta la salida **Éxito** del disparador a este paso.
 5. Haz clic en el paso nuevo. En **Token del bot de Telegram**, haz clic en **{ }** y elige `TELEGRAM_BOT_TOKEN` en **Variables globales**. Escribe el ID del chat en **ID del chat**, escribe el mensaje en **Texto del mensaje** e inserta los campos de la alerta con **{ }**.
 :::
@@ -80,7 +80,7 @@ Para probarlo sin disparar una alerta, haz clic en **Ejecutar flujo de trabajo**
 
 - **Texto sin formato.** El paso envía el texto tal como se escribe, sin el formato de Telegram, así que `*` y `_` aparecen tal cual.
 - **Tener en cuenta el límite de 4.096 caracteres.** Telegram acepta mensajes de hasta 4.096 caracteres. Uno más largo se recorta, y termina con "… (truncated — see OneUptime for the full text)", en lugar de rechazarse.
-- **También incidentes.** Crea el mismo flujo de trabajo sobre **On Create Incident**, o sobre **On Update Incident** para los cambios de estado. Para enviar solo algunas alertas, pon un bloque **Si / Si no** antes del paso.
+- **También incidentes.** Crea el mismo flujo de trabajo sobre **Al crear Incidente**, o sobre **Al actualizar Incidente** para los cambios de estado. Para enviar solo algunas alertas, pon un bloque **Si / Si no** antes del paso.
 - **Se comprueba la forma del token.** Un token que no tiene la forma de `123456789:ABCdef…` detiene la ejecución antes de enviar nada, y el token nunca se escribe en el registro.
 
 ## Solución de problemas

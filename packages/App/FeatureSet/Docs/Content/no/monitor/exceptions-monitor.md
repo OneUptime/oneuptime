@@ -1,4 +1,4 @@
-# Unntak-overvåking
+# Unntak-monitor
 
 En unntaksmonitor teller innenfor et tidsvindu unntakene tjenestene dine rapporterer til OneUptime som samsvarer med filtrene dine (melding, unntakstype, miljø, tjeneste). Når antallet oppfyller kriteriene dine, endrer den monitorens status, oppretter et varsel eller erklærer en hendelse. Bruk den til å bli varslet om hvert nytt krasj i produksjon, om én unntakstype eller om en plutselig økning i feil.
 
@@ -211,8 +211,8 @@ Se på **Statustidslinje**: Den viser det forventede området, antallet som tren
 ## Neste steg
 
 :::cards
-- [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans og endepunkter.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
+- [Trase-monitor](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans og endepunkter.
+- [Logg-monitor](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Skriv nyttige titler og beskrivelser for varsler.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send unntak til OneUptime.
 :::

@@ -15,7 +15,7 @@ Un agent IA tombe rarement en panne en plantant. Il tombe en panne en continuant
 flowchart TB
     agent["Votre agent envoie<br/>des spans gen_ai.*"] --> ingest["OneUptime"]
     ingest --> wire{"Déclencheur : alerte<br/>de budget ou de boucle"}
-    wire -->|"Alerte créée"| workflow["Flux de travail :<br/>On Create Alert"]
+    wire -->|"Alerte créée"| workflow["Flux de travail :<br/>À la création : Alerte"]
     workflow -->|"API Post (JSON)"| endpoint["Votre endpoint d'arrêt"]
     endpoint --> runner["L'exécuteur met en pause<br/>ou arrête l'agent"]
 ```
@@ -125,7 +125,7 @@ Ouvrez **Produits → Flux de travail** et cliquez sur **Créer un flux de trava
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** dans le panneau **Ajouter un déclencheur**. Cliquez sur le déclencheur : **Champs à transmettre** commence avec le titre, alors cliquez sur **Ajouter un champ**, cochez la description, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Alerte** dans le panneau **Ajouter un déclencheur**. Cliquez sur le déclencheur : **Champs à transmettre** commence avec le titre, alors cliquez sur **Ajouter un champ**, cochez la description, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
 
 ### Vérifier le titre
 

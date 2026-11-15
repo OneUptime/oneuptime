@@ -142,7 +142,7 @@ Den, der kan redigere dashboardet, bestemmer, hvad denne widget kører, og alle,
 
 Trace-widgets tæller kun rod-spans, som trace-udforskeren gør, medmindre du medtager underordnede spans i deres indstillinger. Et almindeligt mønster er et latenstidsdiagram øverst med en liste over langsomme traces nedenunder.
 
-## Hændelser, advarsler og overvågninger
+## Hændelser, advarsler og monitorer
 
 | Widget | Hvad den viser | Filtre |
 | --- | --- | --- |

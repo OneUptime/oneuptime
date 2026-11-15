@@ -1,4 +1,4 @@
-# DNSSEC-overvåking
+# DNSSEC-monitor
 
 En DNSSEC-monitor sjekker at en signert DNS-sone fortsatt validerer: at den publiserer nøklene sine, at den overordnede sonen går god for den, at signaturene ikke har utløpt, og at validerende løsere godtar den. Bruk den til å fange opp en brutt tillitskjede før løsere begynner å svare `SERVFAIL` for domenet ditt.
 
@@ -144,8 +144,8 @@ Alle spørringene i ett forsøk deler tre ganger **Tidsavbrudd (ms)**. En treg e
 ## Neste steg
 
 :::cards
-- [DNS-overvåking](/docs/monitor/dns-monitor): Sjekk at et navn kan slås opp, og hva postene sier.
-- [Domene-overvåking](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Følg med på sertifikatene som leveres på domenet.
+- [DNS-monitor](/docs/monitor/dns-monitor): Sjekk at et navn kan slås opp, og hva postene sier.
+- [Domene-monitor](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Følg med på sertifikatene som leveres på domenet.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

@@ -269,7 +269,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 인시던트마다 사례 열기
 
 :::steps
-1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **넘겨줄 필드**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다.
+1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **인시던트 생성 시** 트리거를 추가합니다. 그 **넘겨줄 필드**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다.
 2. **구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **Identifier**를 `create-case`로, **URL**을 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`로 설정합니다.
 3. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
 
@@ -323,7 +323,7 @@ Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `priori
 이것은 두 번째 워크플로로 만들어, 여기서의 실패가 사례 열기를 막지 않게 하세요.
 
 :::steps
-1. **On Update Incident** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다.
+1. **인시던트 업데이트 시** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다.
 2. **조건 분기** 블록을 추가합니다: **확인할 값**은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **비교**는 **참임**입니다.
 3. 그 **예** 쪽 뒤에 **Identifier**가 `find-case`이고, `Prefer`를 뺀 같은 헤더와 다음 **URL**을 가진 **API 호출 GET (JSON)** 블록을 추가합니다:
 
@@ -363,7 +363,7 @@ URL은 쓰인 그대로 전송되므로 `$filter`의 공백은 `%20`으로 씁�
    자체 호스팅 설치에서는 URL에 자체 호스트가 들어갑니다. URL을 비밀번호처럼 다루세요. URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다. 유출되면 같은 곳에서 **URL 재설정**을 클릭하세요. 이전 URL은 즉시 작동을 멈춥니다.
 
 3. 무엇보다 먼저 공유 시크릿을 확인하는 **조건 분기** 블록을 추가합니다: **확인할 값**은 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **비교**는 **같음**, **비교 대상**은 직접 정해 시크릿 전역 변수에 보관한 값입니다.
-4. 그 **예** 쪽 뒤에 **Update One Incident** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **데이터(JSON 객체)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **Find One Incident State** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
+4. 그 **예** 쪽 뒤에 **인시던트 1개 업데이트** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **데이터(JSON 객체)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **인시던트 상태 1개 찾기** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
 
 워크플로를 켠 다음 Dynamics 365가 이를 호출하게 하세요:
 
@@ -389,11 +389,11 @@ Dataverse는 포트 80과 443만 호출하고, 응답을 60초 동안 기다리�
 
 | 인시던트 | 경고 |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **인시던트 생성 시** (`incident-on-create-1`) | **경고 생성 시** (`alert-on-create-1`) |
+| **인시던트 업데이트 시** (`incident-on-update-1`) | **경고 업데이트 시** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **인시던트 상태 1개 찾기** | **경고 상태 1개 찾기** |
+| **인시던트 1개 업데이트** | **경고 1개 업데이트** |
 
 워크플로에는 트리거가 정확히 하나이므로 인시던트와 경고에는 각각 워크플로가 필요합니다. 둘 다에 같은 Dynamics 365 작업을 하려면 **수동** 트리거가 있는 워크플로에 한 번만 만들고, 둘 다에서 **다른 워크플로 실행** 블록으로 시작하세요.
 
@@ -438,7 +438,7 @@ Dataverse의 서비스 보호 한도는 임의의 5분 동안 사용자당 약 6
 :::
 
 :::details 워크플로는 실행되는데 인시던트가 바뀌지 않음
-**Update One Incident** 블록은 쿼리에 일치하는 것이 없으면 `Items Updated: 0`을 보고하며, 이는 오류가 아니라 성공입니다. 요청의 ID가 정말 OneUptime 인시던트의 ID인지, `_id`로 쿼리하는지 확인하세요.
+**인시던트 1개 업데이트** 블록은 쿼리에 일치하는 것이 없으면 `Items Updated: 0`을 보고하며, 이는 오류가 아니라 성공입니다. 요청의 ID가 정말 OneUptime 인시던트의 ID인지, `_id`로 쿼리하는지 확인하세요.
 :::
 
 ## 다음 단계

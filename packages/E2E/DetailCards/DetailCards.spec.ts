@@ -8,6 +8,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Detail cards (CardModelDetail -> ModelDetail -> Detail) in real Chromium,
@@ -1555,4 +1556,18 @@ test.describe("rows of cards", () => {
       Math.round((await box(cardTitled(page, "Riskiest entities"))).height),
     );
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Japanese and Persian whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "ja", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? PROFILE : `${PROFILE}?lang=${language}`;
+  },
 });

@@ -107,7 +107,7 @@ Denne arbeidsflyten sender et JSON-sammendrag av hver ny hendelse til en URL du 
 
 ```mermaid title="Det ferdige eksempelet"
 flowchart TB
-    trigger["On Create Incident"] -->|"Suksess"| post["API-kall POST (JSON)"]
+    trigger["Ved oppretting: Hendelse"] -->|"Suksess"| post["API-kall POST (JSON)"]
     post -->|"Feil"| log["Logg"]
     post -->|"Suksess"| done["Kjøringen slutter"]
 ```
@@ -124,7 +124,7 @@ Den nye arbeidsflyten åpnes i **Bygger**, slått av.
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og klikk deretter på **On Create Incident** under **Populære** i panelet **Legg til utløser**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og klikk deretter på **Ved oppretting: Hendelse** under **Populære** i panelet **Legg til utløser**.
 
 Triggeren tar plassen til den stiplede blokken. ID-en på den, `incident-on-create-1`, er det senere blokker viser til den med.
 
