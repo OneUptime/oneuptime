@@ -10,6 +10,8 @@ import {
   PermissionHolder,
 } from "../../../Types/Team/CustomRole";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * WHAT A TEAM AND AN API KEY MAY BE GIVEN (#8281).
@@ -286,6 +288,42 @@ describe("every permission no team may hold was taken from the teams that held i
         permission,
         offered: PermissionHelper.isAssignableToTenant(permission),
       }).toEqual({ permission, offered: false });
+    }
+  });
+});
+
+/*
+ * OneUptime's own writes are trusted with what they write (root), and the
+ * project's first teams are written without hooks: they are seeded only
+ * with what a team may be given, so no new project starts with a row the
+ * migration would take away.
+ */
+describe("a new project's first teams", () => {
+  const PROJECT_SERVICE: string = path.join(
+    __dirname,
+    "../../../Server/Services/ProjectService.ts",
+  );
+  const SEEDED_PERMISSION: RegExp =
+    /\b\w+Permissions\.permission = Permission\.(\w+);/g;
+
+  test("are given Project Owner, Project Admin and Project Member, each a team may hold", () => {
+    const seeded: Array<string> = [
+      ...fs.readFileSync(PROJECT_SERVICE, "utf8").matchAll(SEEDED_PERMISSION),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(seeded).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ]);
+
+    for (const permission of seeded) {
+      expect({
+        permission,
+        assignable: PermissionHelper.isAssignableToTenant(permission),
+      }).toEqual({ permission, assignable: true });
     }
   });
 });
