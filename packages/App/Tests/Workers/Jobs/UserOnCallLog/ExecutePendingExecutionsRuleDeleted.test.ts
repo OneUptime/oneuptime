@@ -180,6 +180,8 @@ let statusWrites: Array<{
 // A status write the database refuses, once.
 let failNextStatusWrite: boolean;
 let loggedErrors: Array<string>;
+// How many times a send read its rule by its id.
+let ruleReads: number;
 
 function rule(index: number, notifyAfterMinutes: number): UserNotificationRule {
   const notificationRule: UserNotificationRule = new UserNotificationRule();
@@ -346,6 +348,7 @@ beforeEach(() => {
   statusWrites = [];
   failNextStatusWrite = false;
   loggedErrors = [];
+  ruleReads = 0;
 
   spy(OneUptimeDate, "getCurrentDate", () => {
     return new Date(clock);
@@ -463,6 +466,8 @@ beforeEach(() => {
     UserNotificationRuleService,
     "findOneById",
     async (args: { id: ObjectID }) => {
+      ruleReads++;
+
       const found: UserNotificationRule | undefined = rules.find(
         (candidate: UserNotificationRule) => {
           return candidate.id!.toString() === args.id.toString();
@@ -610,10 +615,6 @@ describe("a notification rule deleted while its owner is being paged", () => {
     const sms: UserNotificationRule = rule(1, 0);
     rules = [sms];
     const log: UserOnCallLog = pagingLog({ index: 1 });
-    const findOneById: jest.SpiedFunction<AnyFunction> = jest.spyOn(
-      UserNotificationRuleService as never,
-      "findOneById" as never,
-    );
 
     staleRulesRead = [sms];
     deleteRule(sms);
@@ -626,7 +627,7 @@ describe("a notification rule deleted while its owner is being paged", () => {
      * taken - the rule counts as done - so it is not sent, nor read, again,
      * and with nothing else left the page is complete.
      */
-    expect(findOneById).toHaveBeenCalledTimes(1);
+    expect(ruleReads).toBe(1);
     expect(sent).toEqual([]);
     expect(statusWrites).toEqual([
       {
