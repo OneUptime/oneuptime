@@ -89,11 +89,17 @@ function probeOf(
     isGlobalProbe?: boolean;
     projectId?: string;
     connectionStatus?: ProbeConnectionStatus;
+    // A probe whose name the reader may not read.
+    isNameless?: boolean;
   } = {},
 ): Probe {
   const item: Probe = new Probe();
   item._id = OWN;
-  item.name = "Datacenter probe";
+
+  if (!overrides.isNameless) {
+    item.name = "Datacenter probe";
+  }
+
   item.isGlobalProbe = overrides.isGlobalProbe === true;
   item.projectId = new ObjectID(overrides.projectId || PROJECT);
   item.connectionStatus =
@@ -102,8 +108,13 @@ function probeOf(
   return item;
 }
 
+// A vCenter's columns as a test sets them: undefined is a column left empty.
+type VCenterColumns = {
+  [Column in keyof VMwareVCenter]?: VMwareVCenter[Column] | undefined;
+};
+
 // What the claim needs to hand a vCenter to its probe (VMwareCollectionStop).
-const COLLECTABLE: Partial<VMwareVCenter> = {
+const COLLECTABLE: VCenterColumns = {
   projectId: new ObjectID(PROJECT),
   isVCenterPasswordSet: true,
   vcenterUrl: "https://vcsa.example.com",
@@ -419,14 +430,14 @@ describe("a vCenter no probe collects, and when one does next", () => {
     return new Date(NOW.getTime() + minutes * 60 * 1000);
   };
 
-  function vcenter(overrides: Partial<VMwareVCenter>): VMwareVCenter {
+  function vcenter(overrides: VCenterColumns): VMwareVCenter {
     const item: VMwareVCenter = new VMwareVCenter();
     Object.assign(item, COLLECTABLE, overrides);
     return item;
   }
 
   function view(
-    overrides: Partial<VMwareVCenter>,
+    overrides: VCenterColumns,
     isBillingEnabled: boolean = true,
   ): VMwareCollectionStatusView {
     return getVMwareCollectionStatusView(
@@ -437,7 +448,7 @@ describe("a vCenter no probe collects, and when one does next", () => {
     );
   }
 
-  const LAST_REPORTS: Array<[string, Partial<VMwareVCenter>]> = [
+  const LAST_REPORTS: Array<[string, VCenterColumns]> = [
     ["collecting", { collectionStatus: VMwareCollectionStatus.Succeeded }],
     [
       "failing",
@@ -482,12 +493,7 @@ describe("a vCenter no probe collects, and when one does next", () => {
     ],
   ])(
     "%s: not collecting, why and the fix, whatever it last reported",
-    (
-      _name: string,
-      stop: Partial<VMwareVCenter>,
-      title: string,
-      nextStep: string,
-    ) => {
+    (_name: string, stop: VCenterColumns, title: string, nextStep: string) => {
       for (const [, report] of LAST_REPORTS) {
         // The set-aside keeps its due time a few minutes off: never overdue.
         expect(
@@ -506,7 +512,7 @@ describe("a vCenter no probe collects, and when one does next", () => {
   );
 
   test("a shared probe on OneUptime Cloud: the probe may not collect it", () => {
-    const shared: Partial<VMwareVCenter> = {
+    const shared: VCenterColumns = {
       collectionStatus: VMwareCollectionStatus.Succeeded,
       collectionProbe: probeOf({ isGlobalProbe: true }),
     };
@@ -558,9 +564,9 @@ describe("a vCenter no probe collects, and when one does next", () => {
 
   test("a disconnected probe the reader may not name is 'its probe'", () => {
     const probe: Probe = probeOf({
+      isNameless: true,
       connectionStatus: ProbeConnectionStatus.Disconnected,
     });
-    probe.name = undefined;
 
     expect(view({ collectionProbe: probe }).message).toBe(
       "Nothing collects this vCenter while its probe is disconnected.",
@@ -610,8 +616,8 @@ describe("a vCenter no probe collects, and when one does next", () => {
   });
 
   test("next collection: a time only when a probe will collect it then", () => {
-    const next: (overrides: Partial<VMwareVCenter>) => string = (
-      overrides: Partial<VMwareVCenter>,
+    const next: (overrides: VCenterColumns) => string = (
+      overrides: VCenterColumns,
     ): string => {
       return getNextClaimWords(
         getVMwareNextCollection(vcenter(overrides), NOW, true),
@@ -645,7 +651,7 @@ describe("a vCenter no probe collects, and when one does next", () => {
           connectionStatus: ProbeConnectionStatus.Disconnected,
         }),
       },
-    ] as Array<Partial<VMwareVCenter>>) {
+    ] as Array<VCenterColumns>) {
       // The set-aside's time, a few minutes off, is never shown.
       expect(next({ ...stop, nextCollectionAt: minutesFromNow(17) })).toBe(
         "Not scheduled",

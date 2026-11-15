@@ -173,12 +173,17 @@ function probeOf(
     isGlobalProbe?: boolean;
     projectId?: string;
     connectionStatus?: ProbeConnectionStatus;
-    name?: string | undefined;
+    // A probe whose name the reader may not read.
+    isNameless?: boolean;
   } = {},
 ): Probe {
   const item: Probe = new Probe();
   item._id = OWN;
-  item.name = "name" in overrides ? overrides.name : "Datacenter probe";
+
+  if (!overrides.isNameless) {
+    item.name = "Datacenter probe";
+  }
+
   item.isGlobalProbe = overrides.isGlobalProbe === true;
   item.projectId = new ObjectID(overrides.projectId || PROJECT);
   item.connectionStatus =
@@ -187,8 +192,13 @@ function probeOf(
   return item;
 }
 
+// A cloud's columns as a test sets them: undefined is a column left empty.
+type CloudColumns = {
+  [Column in keyof OpenStackCloud]?: OpenStackCloud[Column] | undefined;
+};
+
 // What the claim needs to hand a cloud to its probe (OpenStackCollectionStop).
-const COLLECTABLE: Partial<OpenStackCloud> = {
+const COLLECTABLE: CloudColumns = {
   projectId: new ObjectID(PROJECT),
   isArchived: false,
   isCredentialSet: true,
@@ -198,15 +208,13 @@ const COLLECTABLE: Partial<OpenStackCloud> = {
 };
 
 // A cloud the claim may hand out, as it was with these columns.
-function collectable(data: Partial<OpenStackCloud>): OpenStackCloud {
+function collectable(data: CloudColumns): OpenStackCloud {
   const cloud: OpenStackCloud = new OpenStackCloud();
   Object.assign(cloud, COLLECTABLE, data);
   return cloud;
 }
 
-function statusView(
-  data: Partial<OpenStackCloud>,
-): OpenStackCollectionStatusView {
+function statusView(data: CloudColumns): OpenStackCollectionStatusView {
   return getOpenStackCollectionStatusView(collectable(data), ENGLISH);
 }
 
@@ -661,7 +669,7 @@ describe("a cloud no probe collects, and when one does next", () => {
   };
 
   function view(
-    overrides: Partial<OpenStackCloud>,
+    overrides: CloudColumns,
     isBillingEnabled: boolean = true,
   ): OpenStackCollectionStatusView {
     return getOpenStackCollectionStatusView(
@@ -672,7 +680,7 @@ describe("a cloud no probe collects, and when one does next", () => {
     );
   }
 
-  const LAST_REPORTS: Array<[string, Partial<OpenStackCloud>]> = [
+  const LAST_REPORTS: Array<[string, CloudColumns]> = [
     ["collecting", { collectionStatus: OpenStackCollectionStatus.Succeeded }],
     [
       "partly collecting",
@@ -719,12 +727,7 @@ describe("a cloud no probe collects, and when one does next", () => {
     ],
   ])(
     "%s: not collecting, why and the fix, whatever it last reported",
-    (
-      _name: string,
-      stop: Partial<OpenStackCloud>,
-      title: string,
-      nextStep: string,
-    ) => {
+    (_name: string, stop: CloudColumns, title: string, nextStep: string) => {
       for (const [, report] of LAST_REPORTS) {
         // The set-aside keeps its due time a few minutes off: never overdue.
         for (const nextCollectionAt of [
@@ -746,7 +749,7 @@ describe("a cloud no probe collects, and when one does next", () => {
   );
 
   test("a shared probe on OneUptime Cloud may not collect it; on a self-hosted instance it may", () => {
-    const shared: Partial<OpenStackCloud> = {
+    const shared: CloudColumns = {
       collectionStatus: OpenStackCollectionStatus.Succeeded,
       collectionProbe: probeOf({ isGlobalProbe: true }),
     };
@@ -805,7 +808,7 @@ describe("a cloud no probe collects, and when one does next", () => {
     expect(
       view({
         collectionProbe: probeOf({
-          name: undefined,
+          isNameless: true,
           connectionStatus: ProbeConnectionStatus.Disconnected,
         }),
       }).message,
@@ -845,8 +848,8 @@ describe("a cloud no probe collects, and when one does next", () => {
   });
 
   test("next collection: a time only when a probe will collect it then", () => {
-    const next: (overrides: Partial<OpenStackCloud>) => string = (
-      overrides: Partial<OpenStackCloud>,
+    const next: (overrides: CloudColumns) => string = (
+      overrides: CloudColumns,
     ): string => {
       return getNextClaimWords(
         getOpenStackNextCollection(collectable(overrides), NOW, true),
@@ -885,7 +888,7 @@ describe("a cloud no probe collects, and when one does next", () => {
           connectionStatus: ProbeConnectionStatus.Disconnected,
         }),
       },
-    ] as Array<Partial<OpenStackCloud>>) {
+    ] as Array<CloudColumns>) {
       // The set-aside's time, a few minutes off, is never shown.
       expect(next({ ...stop, nextCollectionAt: minutesFromNow(17) })).toBe(
         "Not scheduled",
