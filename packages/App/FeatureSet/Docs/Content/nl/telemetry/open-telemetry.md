@@ -52,7 +52,7 @@ flowchart TB
 2. Open in het zijmenu **Telemetrie & APM** en kies **Ingestiesleutels**.
 3. Klik op **Inname-sleutel aanmaken**. Het dialoogvenster vult een naam in en kiest het sleuteltype **Server**, waarmee een applicatie of een collector stuurt. Geef hem eventueel een andere naam en klik dan op **Inname-sleutel aanmaken**.
 
-![De pagina met telemetrie-ingestiesleutels in de projectinstellingen](/docs/static/images/TelemetryIngestionKeys.png)
+![De lijst "Ingestiesleutels", met "Inname-sleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
 De nieuwe sleutel opent op een eigen pagina. Kopieer de **Geheime sleutel** — dat is het token dat je als `x-oneuptime-token` stuurt.
 

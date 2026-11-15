@@ -33,7 +33,7 @@ flowchart TB
 
 前往 **产品 → 项目设置**，在侧边菜单中展开 **遥测与 APM**，然后选择 **摄取密钥**。
 
-![项目设置中的遥测摄取密钥页面](/docs/static/images/TelemetryIngestionKeys.png)
+![“摄取密钥”列表，“创建摄取密钥”已框出](screen:ingestion-keys)
 
 ### 创建密钥
 

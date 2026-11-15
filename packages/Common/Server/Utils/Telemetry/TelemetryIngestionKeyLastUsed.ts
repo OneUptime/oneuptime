@@ -12,12 +12,15 @@ import logger from "../Logger";
  *
  *   - the HTTP ingest middleware (TelemetryIngest), once a request has passed
  *     every check and is handed on to its route;
- *   - the OTLP gRPC server (GrpcServer), once the queue has taken the export.
+ *   - the OTLP gRPC server (GrpcServer), once the queue has taken the export;
+ *   - the MQTT broker (MqttServer), once the queue has taken a publish from a
+ *     client that connected with a project-wide ingestion key.
  *
  * One function, so the paths cannot stamp differently, and a new ingest path
  * has one call to make. Until the gRPC server made it (issue #7887), a key
  * used only over OTLP/gRPC - the OpenTelemetry Collector's default exporter -
- * read "never used" however much data it sent.
+ * read "never used" however much data it sent; until the MQTT broker made it
+ * (issue #8020), so did a key a gateway sent only over MQTT.
  *
  * Call it only for accepted telemetry. A refused key (disabled, expired, the
  * wrong type for the surface, over its limit or budget) is not "used", and
