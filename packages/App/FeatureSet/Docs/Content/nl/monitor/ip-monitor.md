@@ -39,7 +39,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en ka
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die het adres kan bereiken**, met ICMP toegestaan onderweg. De standaardsondes van uw project worden voor elke nieuwe monitor gekozen. Staat er een firewall voor, sta dan ICMP-echoverzoeken toe van de [IP-adressen van de sondes van OneUptime Cloud](/docs/configuration/ip-addresses). Een privéadres heeft een [aangepaste sonde](/docs/probe/custom-probe) in dat netwerk nodig, en een IPv6-adres een sonde met IPv6-connectiviteit.
 
 ## Een IP-monitor maken

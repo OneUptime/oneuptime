@@ -26,7 +26,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **En roll som kan bjuda in.** Project Owner, Project Admin eller en roll med behörigheten **Invite New Members**. Du kan bara bjuda in personer till ett team där du själv har behörigheterna, eftersom en inbjudan ger dem teamets åtkomst.
+- **En roll som kan bjuda in.** Projektägare, Projektadministratör eller en roll med behörigheten **Invite New Members**. Du kan bara bjuda in personer till ett team där du själv har behörigheterna, eftersom en inbjudan ger dem teamets åtkomst.
 - **I OneUptime Cloud: plats i din plan.** Varje person i projektet är en plats på fakturan, från det ögonblick personen bjuds in. Free-planen har plats för en person. Se [Fakturering och användning](/docs/configuration/billing#din-plan-och-dina-platser).
 - **Inga SCIM Push Groups.** Så länge din identitetsleverantör styr projektets team via SCIM Push Groups bjuder du in och tar bort personer där, inte i OneUptime.
 
@@ -47,7 +47,7 @@ Skriv adressen i **E-post**. Om inget OneUptime-konto använder den ännu ber di
 
 ### Välj teamet
 
-**Team** börjar på projektets medlemsteam: teamet som har Project Member för hela projektet, annars det som heter Members. Välj ett annat team för att ge mer eller mindre åtkomst. **Team** är tomt när projektet inte har något sådant team, eller när du inte själv kunde bjuda in någon till det.
+**Team** börjar på projektets medlemsteam: teamet som har Projektmedlem för hela projektet, annars det som heter Members. Välj ett annat team för att ge mer eller mindre åtkomst. **Team** är tomt när projektet inte har något sådant team, eller när du inte själv kunde bjuda in någon till det.
 
 ### Skicka inbjudan
 
@@ -86,7 +86,7 @@ Filtrera listan efter **Användare**, **Status** eller **Team**. Klicka på en r
 | --- | --- |
 | **Profil** | Namn, e-postadress, bild och användar-ID. |
 | **Team** | Teamen personen är med i. Lägg till eller ta bort ett team här. |
-| **Beredskap**, **Aviseringsmetoder**, **Så når man mig** | Om personen kan larmas, och hur. Visas för Project Owners, Project Admins, personen själv och alla som kan läsa andras aviseringsregler. Se [Beredskap och rapporter](/docs/on-call/readiness). |
+| **Beredskap**, **Aviseringsmetoder**, **Så når man mig** | Om personen kan larmas, och hur. Visas för Projektägare, Projektadministratörer, personen själv och alla som kan läsa andras aviseringsregler. Se [Beredskap och rapporter](/docs/on-call/readiness). |
 | **Anpassade fält** | Projektets anpassade fält för personer, om det har några. |
 | **Ta bort från projekt** | Ta bort personen från projektet. |
 

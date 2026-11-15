@@ -23,7 +23,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 ## Voordat je begint
 
-- In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
+- In OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Een superbeheerder van Google Workspace, om domeinbrede delegatie toe te staan, en een beheerder als wie het serviceaccount optreedt, met het privilege Reports. Een superbeheerder heeft het.
 - Een Google Cloud-project waarin je een serviceaccount kunt maken en de Admin SDK API kunt inschakelen.
 - Voor Drive-activiteit: een editie met het auditlogboek van Drive, zoals Business Standard, Business Plus, Enterprise of Education.

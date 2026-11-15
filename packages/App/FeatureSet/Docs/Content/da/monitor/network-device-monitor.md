@@ -1014,13 +1014,13 @@ Vælg enheder, eller hver enhed, der matcher søgningen, og derefter:
 
 En rækkes egne knapper gør det samme for én enhed. På kortet står en knudes IP-adresse under dens navn, og søgningen finder også en knude på dens IP-adresse eller MAC-adresse, uanset hvordan en switch skrev den. Klik på en opdaget enhed på kortet, og dens panel tilbyder **Føj til overvågning**, som tilføjer den på samme måde, og **Skjul på kortet**.
 
-En enhed, der ikke er set i 30 dage, fjernes fra listen og kortet, medmindre den overvåges, er klassificeret eller er tilføjet eller ændret af nogen. Linjen under listen siger, hvor længe enheder bliver; projektejere og projektadministratorer ændrer det under **Yderligere indstillinger → Usete enheder → Fjern efter**: 7, 14, 30, 60, 90, 180 eller 365 dage eller **Aldrig**. Listen kontrolleres hver time, og intet, som en switch eller controller har set, fjernes, mens den ikke rapporterer noget. En fjernet enhed, der ses igen, kommer tilbage som ny og vises på kortet, også selvom den var skjult før.
+En enhed, der ikke er set i 30 dage, fjernes fra listen og kortet, medmindre den overvåges, er klassificeret eller er tilføjet eller ændret af nogen. Linjen under listen siger, hvor længe enheder bliver; Projektejere og Projektadministratorer ændrer det under **Yderligere indstillinger → Usete enheder → Fjern efter**: 7, 14, 30, 60, 90, 180 eller 365 dage eller **Aldrig**. Listen kontrolleres hver time, og intet, som en switch eller controller har set, fjernes, mens den ikke rapporterer noget. En fjernet enhed, der ses igen, kommer tilbage som ny og vises på kortet, også selvom den var skjult før.
 
 ### Vælg det layout, kortet åbner med
 
 **Map options → Arrange the map** lægger kortet ud som **Automatisk**, **By network layer**, **Concentric**, **Hub and spoke** eller **Parent and child**. Kortet åbner med det layout, der er mærket **Standard**: **Automatisk** for alle enheder og **By network layer** for en lokation, medmindre dit projekt har valgt et layout for alle. Alle kan skifte layout, mens de kigger; næste gang åbner kortet igen med standarden.
 
-Projektejere og projektadministratorer vælger standarden: skift til et layout, og vælg **Make default for everyone**. Derefter åbner hver visning af enhedskortet med det: **Enhedstopologi**, en lokation på **Kort** og fanen **Netværk** under **Topologi**. På standardlayoutet sender **Clear default** hvert kort tilbage til dets egen standard. Flyttede positioner gemmes for hvert layout i din browser, så kortet åbner med den opstilling, du lavede i det layout.
+Projektejere og Projektadministratorer vælger standarden: skift til et layout, og vælg **Make default for everyone**. Derefter åbner hver visning af enhedskortet med det: **Enhedstopologi**, en lokation på **Kort** og fanen **Netværk** under **Topologi**. På standardlayoutet sender **Clear default** hvert kort tilbage til dets egen standard. Flyttede positioner gemmes for hvert layout i din browser, så kortet åbner med den opstilling, du lavede i det layout.
 
 ### Find rundt i et stort netværk
 

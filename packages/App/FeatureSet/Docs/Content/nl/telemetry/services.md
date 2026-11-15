@@ -43,7 +43,7 @@ Telkens als er telemetrie binnenkomt, schuift **Laatst gezien** van de service o
 ## Voordat u begint
 
 - **Binnenkomende telemetrie** met een `service.name`. Zie [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` stelt hem in.
-- **Een rol die services mag lezen.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member of Settings Viewer, of een aangepaste rol met de machtiging Read Service. Services aanmaken, wijzigen en verwijderen vraagt Project Owner, Project Admin, Project Member, Settings Admin of Settings Member, of de bijbehorende servicemachtigingen.
+- **Een rol die services mag lezen.** Projecteigenaar, Projectbeheerder, Projectlid, Kijker, Instellingenbeheerder, Instellingenlid of Instellingenkijker, of een aangepaste rol met de machtiging Read Service. Services aanmaken, wijzigen en verwijderen vraagt Projecteigenaar, Projectbeheerder, Projectlid, Instellingenbeheerder of Instellingenlid, of de bijbehorende servicemachtigingen.
 
 ## Een service vinden
 

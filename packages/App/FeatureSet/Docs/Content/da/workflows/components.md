@@ -473,7 +473,7 @@ En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet typ
 
 Sådan læser og ændrer et workflow OneUptime-data. For eksempel kan en webhook fra dit CI-værktøj bruge **Create One Incident** til at åbne en hændelse med detaljerne om fejlen.
 
-Disse komponenter handler som Project Admin for workflowets projekt: det, en Project Admin ikke må, eller som dit abonnement ikke omfatter, afvises, og kørslens log siger hvorfor. Se [Hvad workflow-trin må gøre](/docs/workflows/configuration#hvad-workflow-trin-må-gøre).
+Disse komponenter handler som Projektadministrator for workflowets projekt: det, en Projektadministrator ikke må, eller som dit abonnement ikke omfatter, afvises, og kørslens log siger hvorfor. Se [Hvad workflow-trin må gøre](/docs/workflows/configuration#hvad-workflow-trin-må-gøre).
 
 ### Erklær en hændelse ud fra en skabelon
 

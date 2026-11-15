@@ -1092,7 +1092,7 @@ Fordi markeringen når hver tjeneste, som en browserforespørgsel passerede, fje
 
 ## Hvem kan se en optagelse
 
-At se en optagelse er en separat tilladelse fra at vise sessioner, og ingen af dem gives af Viewer-rollen for hele projektet. Projektejere og -administratorer har dem alle.
+At se en optagelse er en separat tilladelse fra at vise sessioner, og ingen af dem gives af Seer-rollen for hele projektet. Projektejere og -administratorer har dem alle.
 
 | Tilladelse | Låser op for |
 | --- | --- |

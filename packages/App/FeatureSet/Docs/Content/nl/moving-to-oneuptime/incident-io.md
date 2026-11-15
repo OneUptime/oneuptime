@@ -25,7 +25,7 @@ flowchart TB
 
 ## Voordat u begint
 
-- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
+- **Een OneUptime-project en het recht om aan te maken wat u overneemt.** Projecteigenaren en Projectbeheerders kunnen alles overnemen. Andere rollen kunnen ook een import uitvoeren en de soorten records overnemen die ze mogen aanmaken. De rest wordt getoond als niet overgenomen, met de reden.
 - **Een incident.io-API-sleutel die alleen gegevens kan bekijken.** De import schrijft nooit naar incident.io, dus de sleutel heeft geen recht nodig om iets aan te maken, te bewerken of te beheren.
 
 ## Uw incident.io-account importeren
@@ -79,7 +79,7 @@ Eén import maakt hooguit 2.000 records aan: hooguit 500 personen, 200 teams, 20
 
 In OneUptime Cloud worden records die uw abonnement niet bevat, getoond als niet overgenomen, met het abonnement dat ze nodig hebben.
 
-Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en projectbeheerders zien de voortgang en het rapport van elke import.
+Een voorbeeld wordt een dag bewaard. Alleen wie het account heeft uitgelezen, kan items aanvinken en de import starten. Projecteigenaren en Projectbeheerders zien de voortgang en het rapport van elke import.
 
 ## Rond de overstap af
 

@@ -43,7 +43,7 @@ flowchart TB
 
 ## Voordat je begint
 
-- **Een rol die het kan instellen.** Project Owners, Project Admins en Security Admins wijzigen de instellingen van Gegevensbeveiliging. Security Members handelen problemen af en scannen opslagen, en Security Viewers lezen wat het vond. Andere rollen zien er niets van, tenzij hun team de machtigingen ervoor krijgt: welke buckets kaartnummers bevatten, is precies wat een aanvaller wil weten. Zie [Rollen](/docs/permissions/reference#rollen).
+- **Een rol die het kan instellen.** Projecteigenaren, Projectbeheerders en Beveiligingsbeheerders wijzigen de instellingen van Gegevensbeveiliging. Beveiligingsleden handelen problemen af en scannen opslagen, en Beveiligingskijkers lezen wat het vond. Andere rollen zien er niets van, tenzij hun team de machtigingen ervoor krijgt: welke buckets kaartnummers bevatten, is precies wat een aanvaller wil weten. Zie [Rollen](/docs/permissions/reference#rollen).
 - **Een cloudaccount om te lezen, of een database.** Gegevensbeveiliging leest een cloudaccount via een [cloudkoppeling](/docs/telemetry/cloud-accounts), en een database die je zelf beheert via een alleen-lezen verbindingsreeks. Telemetrie heeft niets nodig: die wordt elk uur gescand.
 
 ## Snel aan de slag

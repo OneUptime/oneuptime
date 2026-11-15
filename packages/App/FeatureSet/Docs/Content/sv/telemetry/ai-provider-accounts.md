@@ -25,7 +25,7 @@ Ett kontos användning är det som det fakturerades för, en dag i taget. Den in
 
 ## Innan du börjar
 
-- Rollen Project Owner eller Project Admin. Bara de kan ansluta, ändra eller ta bort ett konto; alla som läser projektets telemetri ser anslutningarna och användningen.
+- Rollen Projektägare eller Projektadministratör. Bara de kan ansluta, ändra eller ta bort ett konto; alla som läser projektets telemetri ser anslutningarna och användningen.
 - Inloggningsuppgifter för kontot från någon som administrerar det. Varje leverantörs avsnitt nedan säger vilka och var de skapas.
 - Inget att installera: OneUptime anropar leverantörens API från sina egna servrar.
 

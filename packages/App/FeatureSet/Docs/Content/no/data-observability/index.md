@@ -41,7 +41,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **En rolle som kan sette det opp.** Prosjekteiere, prosjektadministratorer og telemetriadministratorer kobler til databaser. Alle som kan redigere dataressurser, legger til sjekker, avstemminger og dataprodukter; de med rollen Leser ser det den har funnet. Se [Tillatelsesreferanse](/docs/permissions/reference).
+- **En rolle som kan sette det opp.** Prosjekteiere, Prosjektadministratorer og Telemetriadministratorer kobler til databaser. Alle som kan redigere dataressurser, legger til sjekker, avstemminger og dataprodukter; de med rollen Leser ser det den har funnet. Se [Tillatelsesreferanse](/docs/permissions/reference).
 - **En skrivebeskyttet bruker på hver database.** [Koble til en database](/docs/data-observability/connect) viser det minste hver databasemotor trenger. OneUptime foreslår databasene sporene dine, skykontoene dine og Databaseovervåking allerede kjenner til.
 
 ## Kom i gang
