@@ -2164,6 +2164,10 @@ export default class ChatAgentRunner {
       id: citationId,
       toolName: toolCall.name,
       label: outcome.result.citationLabel,
+      // The label in the reader's language, on the chip (issue #7980).
+      ...(outcome.result.citationWords
+        ? { words: outcome.result.citationWords }
+        : {}),
       queryArguments: toolCall.arguments,
       rowCount: outcome.result.rowCount,
       target: outcome.result.citationTarget,
