@@ -386,6 +386,13 @@ describe("PromQL: a label named __proto__ (issue #8025)", () => {
       [key({ ["__proto__"]: "us", instance: "b" })]: 50,
       [key({ instance: "c" })]: 10,
     });
+    // Copied onto series that have no __proto__ label of their own.
+    expect(
+      await vector("up * on (instance) group_left (__proto__) region_info"),
+    ).toEqual({
+      [key({ ["__proto__"]: "eu", instance: "a", job: "api" })]: 1,
+      [key({ ["__proto__"]: "us", instance: "b", job: "web" })]: 0,
+    });
     /*
      * Two series apart only by __proto__ are two, with ignoring (...) too:
      * its signature left __proto__ out, so they were one match group of
