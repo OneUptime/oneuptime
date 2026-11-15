@@ -145,6 +145,7 @@
     "Web",
     "Webhook",
     "Webhook URL",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

@@ -160,6 +160,7 @@
     "VMware VM",
     "VMware vCenter",
     "Vital",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
