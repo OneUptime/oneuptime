@@ -28,7 +28,7 @@ En sonde, der har mistet sin egen netværksforbindelse, rapporterer intet result
 
 ## Før du starter
 
-- **En rolle, der kan oprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor.
+- **En rolle, der kan oprette monitorer**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor.
 - **En sonde, der kan nå DNS-serveren.** Dit projekts standardsonder vælges for hver ny monitor. For at slå op i en DNS-server på et privat netværk, for eksempel en intern resolver, skal du bruge en [brugerdefineret sonde](/docs/probe/custom-probe) i det netværk.
 
 ## Opret en DNS-monitor

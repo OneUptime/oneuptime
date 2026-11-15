@@ -33,7 +33,7 @@ Een server die antwoordt, wordt niet opnieuw gevraagd, ook niet als hij antwoord
 
 ## Voordat je begint
 
-- **Een rol die monitors kan maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitors kan maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een sonde die UDP-poort 123 op de server kan bereiken.** Elke sonde kan een publieke tijdserver controleren. Gebruik voor een server in een privénetwerk een [aangepaste sonde](/docs/probe/custom-probe) binnen dat netwerk. Een firewall voor de server moet UDP doorlaten, niet alleen TCP, vanaf de [IP-adressen van de sondes van OneUptime Cloud](/docs/configuration/ip-addresses) of vanaf je aangepaste sonde.
 
 ## Een NTP-monitor maken

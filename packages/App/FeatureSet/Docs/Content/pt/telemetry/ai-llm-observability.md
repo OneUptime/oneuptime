@@ -321,7 +321,7 @@ Prompts e respostas enviados como eventos de log são armazenados como logs, ent
 
 Em ambos os casos, uma regra lê cada texto dentro de uma lista ou de um valor estruturado, como as mensagens que uma instrumentação envia como lista em vez de texto JSON, e mantém a forma do valor: um endereço de e-mail em um prompt é mascarado onde quer que esteja. Veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis).
 
-As conversas são lidas com a mesma permissão dos traces: quem pode ler os traces do projeto pode ler suas conversas, e mais ninguém. As conversas de uma ferramenta de IA da empresa são a exceção: só os proprietários e administradores do projeto podem lê-las, a menos que a conexão dela diga outra coisa ([Ferramentas de IA da empresa](/docs/telemetry/ai-company-tools#privacidade)).
+As conversas são lidas com a mesma permissão dos traces: quem pode ler os traces do projeto pode ler suas conversas, e mais ninguém. As conversas de uma ferramenta de IA da empresa são a exceção: só os Proprietários do projeto e Administradores do projeto podem lê-las, a menos que a conexão dela diga outra coisa ([Ferramentas de IA da empresa](/docs/telemetry/ai-company-tools#privacidade)).
 
 ## Atributos que o OneUptime lê
 

@@ -53,7 +53,7 @@ Abra **Configurações do usuário**, à direita da barra abaixo da barra superi
 
 **Primeiros passos** e **Alertas e notificações** ficam abertas; as outras seções começam recolhidas, e uma seção se abre sozinha quando você está em uma das páginas dela. **Espaço de trabalho** só aparece quando o projeto conectou o Slack, o Microsoft Teams ou o Mattermost.
 
-Proprietários e administradores do projeto também podem ver a sua configuração: em **Usuários**, eles abrem a sua linha e a seção **Plantão** dela, com **Prontidão**, **Métodos de notificação** e **Como me contatar**. Eles podem adicionar um método para você ali, mas o código vai para o próprio método, então só você pode verificá-lo.
+Proprietários do projeto e Administradores do projeto também podem ver a sua configuração: em **Usuários**, eles abrem a sua linha e a seção **Plantão** dela, com **Prontidão**, **Métodos de notificação** e **Como me contatar**. Eles podem adicionar um método para você ali, mas o código vai para o próprio método, então só você pode verificá-lo.
 
 ## Com o que você começa
 
@@ -116,7 +116,7 @@ Abra **Configurações do usuário → Registros de plantão**. Nenhuma linha pa
 :::
 
 :::details Recebo e-mails sobre registros que nunca pedi
-Você é proprietário do registro, diretamente ou por meio de uma equipe, ou o registro não tem proprietários e você é proprietário do projeto. Desative o evento em **Configurações do usuário → Configurações de notificação**, ou reduza o volume em **Configurações do usuário → Preferências de e-mail**.
+Você é proprietário do registro, diretamente ou por meio de uma equipe, ou o registro não tem proprietários e você é Proprietário do projeto. Desative o evento em **Configurações do usuário → Configurações de notificação**, ou reduza o volume em **Configurações do usuário → Preferências de e-mail**.
 :::
 
 :::details Meus acionamentos estão em inglês, mas o painel não

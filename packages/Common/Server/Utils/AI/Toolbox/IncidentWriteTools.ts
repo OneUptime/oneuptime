@@ -72,6 +72,8 @@ import {
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import NewIncidentSubscriberNotificationDefaultReader from "../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
  * Resolved lazily rather than at module load: this module is pulled in through
@@ -551,7 +553,10 @@ export const CreateIncidentTool: ObservabilityTool = {
           : ""
       }\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Created incident #${created.incidentNumber}`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.createdIncident, {
+        incident: `#${created.incidentNumber}`,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },
@@ -799,7 +804,9 @@ export const AddIncidentAffectedResourcesTool: ObservabilityTool = {
     return {
       dataForLlm: `${lines.join("\n")}\n${serialized.text}`,
       rowCount: lists.added.length,
-      citationLabel: `Linked incident #${incident.incidentNumber}`,
+      ...citationSentence(AI_TOOL_CITATIONS.linkedIncident, {
+        incident: `#${incident.incidentNumber}`,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },
@@ -902,7 +909,11 @@ async function changeIncidentStateTool(data: {
   return {
     dataForLlm: `Incident #${incident.incidentNumber} ("${incident.title}") is now ${newStateName}.\n${serialized.text}`,
     rowCount: 1,
-    citationLabel: `${newStateName} incident #${incident.incidentNumber}`,
+    // The state as the project named it: data.
+    ...citationSentence(AI_TOOL_CITATIONS.incidentInState, {
+      state: newStateName,
+      incident: `#${incident.incidentNumber}`,
+    }),
     citationTarget: {
       type: AIChatCitationTargetType.IncidentView,
       params: { incidentId: incidentIdString },

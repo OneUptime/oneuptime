@@ -224,17 +224,13 @@ function archiveCardTitles(page: string): Array<string> {
 }
 
 // Names the SLO pages draw in English in every language: the Dashboard has no wording for them.
+/*
+ * The banners' titles were here, in English, until the banner worded them
+ * in every language (#8446), and the audit log card's Edit Audit Log
+ * Settings and Audit logging is off until the audit log table did: each
+ * page now names them as its Dashboard draws them.
+ */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  [INTRODUCTION]: [
-    "Waiting for SLO evaluation",
-    "Measurement is paused",
-    "The target is out of range",
-    "This SLO is disabled",
-    "This SLO is archived",
-    // A request SLO's banners (#6799).
-    "No latency threshold",
-    "Waiting for requests",
-  ],
   [MONITOR_RULES]: ["Auto-Add Monitors With Labels"],
   [METRICS]: [
     "Monitor Metric Retention (Days)",
@@ -250,7 +246,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SLI History",
     "Burn Rate History",
   ],
-  [FEED]: ["Edit Audit Log Settings", "Audit logging is off"],
 };
 
 /*

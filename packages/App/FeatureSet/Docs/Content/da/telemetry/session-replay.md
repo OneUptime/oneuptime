@@ -1064,7 +1064,7 @@ Vær opmærksom på, at sessionsrækken udløber sammen med sin optagelse: antal
 
 ### Slet sessioner
 
-For at efterkomme en sletteanmodning skal du indsende en sletteanmodning via OneUptimes API — ressourcen `/rum-session-erasure-request`; der er endnu ingen formular i dashboardet til det. En anmodning kræver `CreateRumSessionErasureRequest` (eller en projektejer / -administrator) og tager:
+For at efterkomme en sletteanmodning skal du indsende en sletteanmodning via OneUptimes API — ressourcen `/rum-session-erasure-request`; der er endnu ingen formular i dashboardet til det. En anmodning kræver `CreateRumSessionErasureRequest` (eller en Projektejer / Projektadministrator) og tager:
 
 | Felt | Værdier |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Fordi markeringen når hver tjeneste, som en browserforespørgsel passerede, fje
 
 ## Hvem kan se en optagelse
 
-At se en optagelse er en separat tilladelse fra at vise sessioner, og ingen af dem gives af Viewer-rollen for hele projektet. Projektejere og -administratorer har dem alle.
+At se en optagelse er en separat tilladelse fra at vise sessioner, og ingen af dem gives af Seer-rollen for hele projektet. Projektejere og Projektadministratorer har dem alle.
 
 | Tilladelse | Låser op for |
 | --- | --- |

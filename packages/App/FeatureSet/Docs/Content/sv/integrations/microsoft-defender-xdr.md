@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - En Microsoft Entra-klientorganisation med en licens för Microsoft Defender XDR: vilken Defender-arbetsbelastning som helst som är ansluten till Microsoft Defender-portalen, till exempel Defender for Endpoint, for Identity, for Office 365 eller for Cloud Apps.
 - En Entra-roll som kan registrera program, till exempel Programadministratör, och en Global administratör eller Administratör för privilegierade roller för att ge administratörsmedgivande.
 - Utgående HTTPS från OneUptime-appen och -workerna till `login.microsoftonline.com` och `graph.microsoft.com`, eller till `login.microsoftonline.us` och `graph.microsoft.us` för Azure Government.

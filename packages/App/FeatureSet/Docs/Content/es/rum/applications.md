@@ -145,7 +145,7 @@ Para borrar los datos de una persona en lugar de toda una aplicación, presenta 
 
 ## Permisos
 
-Cualquiera con el rol Viewer del proyecto puede ver las aplicaciones RUM y su telemetría. La reproducción de sesiones no forma parte de ese rol a propósito: listar grabaciones, ver una y leer quién la vio son permisos distintos. Los propietarios y administradores del proyecto los tienen todos. Los selectores de permisos muestran cada permiso por su título, que aquí aparece en cursiva.
+Cualquiera con el rol Visor del proyecto puede ver las aplicaciones RUM y su telemetría. La reproducción de sesiones no forma parte de ese rol a propósito: listar grabaciones, ver una y leer quién la vio son permisos distintos. Los Propietarios del proyecto y Administradores del proyecto los tienen todos. Los selectores de permisos muestran cada permiso por su título, que aquí aparece en cursiva.
 
 | Permiso | Permite a un miembro |
 | --- | --- |

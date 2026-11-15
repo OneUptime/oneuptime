@@ -7,6 +7,9 @@ import {
 import {
   AUDIT_LOG_SESSION_FIELD_LABELS,
   AUDIT_LOG_SESSION_FIELDS,
+  AUDIT_LOG_SESSION_NOT_USED_FOR,
+  AUDIT_LOG_SESSION_SIGN_IN_WORDS,
+  AUDIT_LOG_SESSION_SIGNED_IN,
   AuditLogSessionField,
   SESSION_END_CAUSE_DESCRIPTIONS,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
@@ -187,22 +190,43 @@ describe("the words the audit log's screens draw", () => {
   });
 });
 
-describe("a session's field labels", () => {
-  test("are every label the dialog draws, and nothing else in the file", () => {
-    expect(textsOf(extractedFrom(SESSION_LABELS))).toEqual(
-      new Set(
-        AUDIT_LOG_SESSION_FIELDS.map((field: AuditLogSessionField): string => {
-          return AUDIT_LOG_SESSION_FIELD_LABELS[field];
+describe("a session entry's words", () => {
+  /*
+   * The labels the dialog gives each field (#8291), and the values that are
+   * OneUptime's own words (#8459): why a session ended, how its person
+   * signed in, the second factor, thirty days without use as a count. The
+   * server still stores them in English; the screens draw them in the
+   * reader's words.
+   */
+  test("are every label the dialog draws, and every word of OneUptime's an entry stores, and nothing else in the file", () => {
+    const expected: Set<string> = new Set<string>([
+      ...AUDIT_LOG_SESSION_FIELDS.map((field: AuditLogSessionField): string => {
+        return AUDIT_LOG_SESSION_FIELD_LABELS[field];
+      }),
+      ...Object.values(SessionEndCause)
+        .filter((cause: SessionEndCause): boolean => {
+          return cause !== SessionEndCause.Expired;
+        })
+        .map((cause: SessionEndCause): string => {
+          return SESSION_END_CAUSE_DESCRIPTIONS[cause];
         }),
-      ),
-    );
+      ...AUDIT_LOG_SESSION_SIGN_IN_WORDS,
+      AUDIT_LOG_SESSION_SIGNED_IN,
+      AUDIT_LOG_SESSION_NOT_USED_FOR.one,
+      AUDIT_LOG_SESSION_NOT_USED_FOR.other,
+    ]);
+
+    expect(textsOf(extractedFrom(SESSION_LABELS))).toEqual(expected);
   });
 
-  test("the values a session entry stored are not keys: the server writes them, and the dialog draws them as recorded", () => {
-    const found: Set<string> = textsOf(extractedFrom(SESSION_LABELS));
+  test("thirty days without use is a count, never the stored sentence with its number", () => {
+    const entries: Array<ExtractedString> = extractedFrom(SESSION_LABELS);
 
-    for (const cause of Object.values(SessionEndCause)) {
-      expect(found.has(SESSION_END_CAUSE_DESCRIPTIONS[cause])).toBe(false);
-    }
+    expect(
+      entries.find((entry: ExtractedString): boolean => {
+        return entry.kind === "plural";
+      })?.pluralOne,
+    ).toBe("Not used for {{count}} day");
+    expect(textsOf(entries).has("Not used for 30 days")).toBe(false);
   });
 });

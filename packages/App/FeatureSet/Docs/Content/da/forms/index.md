@@ -56,7 +56,7 @@ Formularer starter med disse to, og flere slags poster følger.
 ## Før du begynder
 
 - **En plan, der omfatter formularer.** På OneUptime Cloud kræver formularer planen **Growth** eller højere. Se [Plan](#plan).
-- **Tilladelse til at oprette formularer.** **Create Form** har projektejere og -administratorer samt de roller, du giver den til. Se [Tilladelser](#tilladelser).
+- **Tilladelse til at oprette formularer.** **Create Form** har Projektejere og Projektadministratorer samt de roller, du giver den til. Se [Tilladelser](#tilladelser).
 - **For en hændelsesformular, en alvorsgrad.** Hver hændelse har brug for én: fra et spørgsmål, fra formularens indstillinger eller fra dens hændelsesskabelon. Uden den afvises hver indsendelse. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-hændelse).
 
 ## Opret din første formular
@@ -127,22 +127,22 @@ Indsendelser skrives af formularen, aldrig manuelt, og kan ikke redigeres. Når 
 
 ## Tilladelser
 
-Formularer lader folk uden for dit team oprette hændelser og vedligeholdelseshændelser i dit projekt, så de styres af projektejere og -administratorer samt af de roller, du giver tilladelserne **Form**. De står i gruppen **Form** i [Tilladelsesreference](/docs/permissions/reference):
+Formularer lader folk uden for dit team oprette hændelser og vedligeholdelseshændelser i dit projekt, så de styres af Projektejere og Projektadministratorer samt af de roller, du giver tilladelserne **Form**. De står i gruppen **Form** i [Tilladelsesreference](/docs/permissions/reference):
 
 | Tilladelse | Hvad den tillader | Hvem har den som standard |
 | --- | --- | --- |
-| **Create Form** | Oprette formularer og duplikere dem. | Project Owner, Project Admin |
-| **Edit Form** | Ændre en formular: dens spørgsmål, branding, skabeloner, indstillinger under Ved indsendelse, **Modtager indsendelser**, dens link og **IP-tilladelsesliste**. | Project Owner, Project Admin |
-| **Delete Form** | Slette en formular og dermed dens indsendelser. | Project Owner, Project Admin |
-| **Read Form** | Se formularer, deres spørgsmål, indstillinger og links. | De ovennævnte plus Project Member, Viewer og rollerne for hændelser og planlagt vedligeholdelse |
-| **Read Form Submission** | Se indsendelserne og deres svar. | Project Owner, Project Admin |
-| **Delete Form Submission** | Slette indsendelser. | Project Owner, Project Admin |
-| **Create Form Domain** | Tilføje et [brugerdefineret domæne](/docs/forms/sharing-and-security#brugerdefinerede-domæner) til en formular. | Project Owner, Project Admin og **Edit Form** |
-| **Edit Form Domain** | Tjekke en formulars brugerdefinerede domæner, og bestille, genudstede eller skifte deres certifikater. | Project Owner, Project Admin og **Edit Form** |
-| **Delete Form Domain** | Fjerne en formulars brugerdefinerede domæner. | Project Owner, Project Admin og **Edit Form** |
+| **Create Form** | Oprette formularer og duplikere dem. | Projektejer, Projektadministrator |
+| **Edit Form** | Ændre en formular: dens spørgsmål, branding, skabeloner, indstillinger under Ved indsendelse, **Modtager indsendelser**, dens link og **IP-tilladelsesliste**. | Projektejer, Projektadministrator |
+| **Delete Form** | Slette en formular og dermed dens indsendelser. | Projektejer, Projektadministrator |
+| **Read Form** | Se formularer, deres spørgsmål, indstillinger og links. | De ovennævnte plus Projektmedlem, Seer og rollerne for hændelser og planlagt vedligeholdelse |
+| **Read Form Submission** | Se indsendelserne og deres svar. | Projektejer, Projektadministrator |
+| **Delete Form Submission** | Slette indsendelser. | Projektejer, Projektadministrator |
+| **Create Form Domain** | Tilføje et [brugerdefineret domæne](/docs/forms/sharing-and-security#brugerdefinerede-domæner) til en formular. | Projektejer, Projektadministrator og **Edit Form** |
+| **Edit Form Domain** | Tjekke en formulars brugerdefinerede domæner, og bestille, genudstede eller skifte deres certifikater. | Projektejer, Projektadministrator og **Edit Form** |
+| **Delete Form Domain** | Fjerne en formulars brugerdefinerede domæner. | Projektejer, Projektadministrator og **Edit Form** |
 | **Read Form Domain** | Se en formulars brugerdefinerede domæner, deres DNS-poster og hvor langt hvert er på vejen mod HTTPS. | Alle med **Read Form** |
 
-Indsendelser indeholder det, fremmede har skrevet (navne, e-mailadresser og svar, der måske aldrig når posten), så kun projektejere og -administratorer ser dem, medmindre du giver **Read Form Submission**. Alle, der kan læse en formular, kan se og dele dens link. Det kræver ingen tilladelse at indsende en formular. Hvordan roller og detaljerede tilladelser spiller sammen, kan du læse om i [Brugere, teams og tilladelser](/docs/permissions/index).
+Indsendelser indeholder det, fremmede har skrevet (navne, e-mailadresser og svar, der måske aldrig når posten), så kun Projektejere og Projektadministratorer ser dem, medmindre du giver **Read Form Submission**. Alle, der kan læse en formular, kan se og dele dens link. Det kræver ingen tilladelse at indsende en formular. Hvordan roller og detaljerede tilladelser spiller sammen, kan du læse om i [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Plan
 
@@ -231,7 +231,7 @@ En formulars skabeloner er dens kolonne `templates`, en JSON-liste i den rækkef
 }
 ```
 
-Spørgsmål, skabeloner og indstillinger kontrolleres, hver gang de gemmes (fra dashboardet, API'et, Terraform eller et workflow), og en liste, der bryder en regel, afvises med en besked, der nævner, hvad der er galt. `shareKey`, nøglen i formularens link, angives af OneUptime, når formularen oprettes, og at ændre den er det, **Nulstil link** gør.
+Spørgsmål, skabeloner og indstillinger kontrolleres, hver gang de gemmes (fra dashboardet, API'et, Terraform eller en arbejdsgang), og en liste, der bryder en regel, afvises med en besked, der nævner, hvad der er galt. `shareKey`, nøglen i formularens link, angives af OneUptime, når formularen oprettes, og at ændre den er det, **Nulstil link** gør.
 
 ### Branding i API'et
 
@@ -255,9 +255,9 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 Et filspørgsmåls svar er filerne, som de blev gemt, hver med sin `fileId`, `name`, `fileType` og `size`. Selve filerne ligger på det, indsendelsen oprettede: i dets brugerdefinerede filfelt eller vedhæftet dets private note.
 
-### Workflows
+### Arbejdsgange
 
-Formularer har de genererede workflow-komponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Maintenance Event** for at reagere på det, en formular har oprettet.
+Formularer har de genererede arbejdsgangskomponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Maintenance Event** for at reagere på det, en formular har oprettet.
 
 ### Den offentlige sides egne endepunkter
 

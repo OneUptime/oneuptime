@@ -1458,8 +1458,10 @@ describe("what happens when an alert is created", () => {
 
     expect(job).toContain("schedule: EVERY_MINUTE");
     expect(job).toContain("owners = await ProjectService.getOwners(");
+    // It waits a minute for the owners a script or a workflow adds (CreatedNotificationHold).
+    expect(job).toContain("await AlertService.findCreatedNotificationsDue(");
     expect(page).toContain(
-      "A background job tells the alert's owners within a minute",
+      "A background job tells the alert's owners about a minute after it is created, every owner it has by then",
     );
   });
 });

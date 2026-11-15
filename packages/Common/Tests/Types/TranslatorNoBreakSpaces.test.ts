@@ -22,9 +22,11 @@ import { dashboardTranslator } from "../Helpers/DashboardLocales";
  *
  * Every sentence a component, a page or the server fills through the
  * Translator comes out with French's marks held to their words and each
- * number held to its unit (Types/NoBreakSpaces). Only the language's own
- * wording is set: never a value, never an English sentence - English is
- * byte for byte as it always was. NB is U+00A0, NNB is U+202F.
+ * number held to its unit (Types/NoBreakSpaces). Only OneUptime's own words
+ * are set: never a value. English's templates are set too (#8302): "Every
+ * 5 min" broke as "Every 5" over "min" on a narrow pill; an English text
+ * that no locale words (translateText) may be a value, and is left as it
+ * is. NB is U+00A0, NNB is U+202F.
  */
 
 const NB: string = NO_BREAK_SPACE;
@@ -106,10 +108,10 @@ describe("a French reader's sentences", () => {
     expect(FRENCH.translateText("Last 24h")).toBe(`Dernières 24${NB}h`);
   });
 
-  test("an English sentence left in the locale stays English, and the lookup still reads it as none", () => {
+  test("an English sentence left in the locale stays English, its number held to its unit, and the lookup still reads it as none", () => {
     expect(
       FRENCH.translateTemplate("Every {{minutes}} min", { minutes: 5 }),
-    ).toBe("Every 5 min");
+    ).toBe(`Every 5${NB}min`);
     expect(FRENCH.hasTranslation("Every {{minutes}} min")).toBe(false);
   });
 
@@ -186,19 +188,94 @@ describe("another language's sentences", () => {
   });
 });
 
-describe("English", () => {
-  test("is byte for byte as it always was", () => {
-    const english: Translator = createTranslator(undefined, "en");
+describe("English (#8302)", () => {
+  const english: Translator = createTranslator(undefined, "en");
 
+  test("a template's number keeps the unit it is written beside with a space", () => {
     expect(
       english.translateTemplate("Every {{minutes}} min", { minutes: 5 }),
-    ).toBe("Every 5 min");
+    ).toBe(`Every 5${NB}min`);
+    expect(english.translateTemplate("{{value}} ms", { value: "1,234" })).toBe(
+      `1,234${NB}ms`,
+    );
+    expect(
+      english.translateTemplate(
+        "Latest: {{median}} ms median across {{count}} probes ({{min}}–{{max}} ms)",
+        { median: 182, count: 3, min: 120, max: 240 },
+      ),
+    ).toBe(`Latest: 182${NB}ms median across 3 probes (120–240${NB}ms)`);
+  });
+
+  test("a number written in the template, and one written with no space, are as before", () => {
+    expect(
+      english.translateTemplate("Choose a JSON file smaller than 10 MB."),
+    ).toBe(`Choose a JSON file smaller than 10${NB}MB.`);
     expect(
       english.translateTemplate("Uptime ({{hours}}h)", { hours: 24 }),
     ).toBe("Uptime (24h)");
+    expect(english.translateTemplate("{{percent}}%", { percent: 12 })).toBe(
+      "12%",
+    );
+  });
+
+  test("a plural, in each of its forms", () => {
+    const plural: { one: string; other: string } = {
+      one: "Runs every {{count}} min",
+      other: "Runs every {{count}} min",
+    };
+
+    expect(english.translatePlural(plural, 1)).toBe(`Runs every 1${NB}min`);
+    expect(english.translatePlural(plural, 1500)).toBe(
+      `Runs every 1,500${NB}min`,
+    );
+  });
+
+  test("a word after a number, a value, and an untranslated text are left as they are", () => {
+    expect(english.translateTemplate("{{count}} minutes", { count: 5 })).toBe(
+      "5 minutes",
+    );
+    // A value goes in as written: a monitor named "Every 5 min".
+    expect(
+      english.translateTemplate("Monitor {{name}}", { name: "Every 5 min" }),
+    ).toBe("Monitor Every 5 min");
+    // translateText of a text no locale words may be a value too.
+    expect(english.translateText("Every 5 min")).toBe("Every 5 min");
     expect(english.translateText("Use only - _ . / : # (no spaces).")).toBe(
       "Use only - _ . / : # (no spaces).",
     );
+  });
+
+  test("a sentence whose values are set apart, as a page draws it", () => {
+    expect(
+      english.translateTemplate(
+        "Every {{minutes}} min",
+        { minutes: 5 },
+        { setsValuesApart: true },
+      ),
+    ).toBe(`Every 5${NB}min`);
+  });
+
+  test("the same sentence in each language, through the Dashboard's own locales", () => {
+    const drawn: Record<string, string> = {};
+
+    for (const language of ["en", "de", "fr", "ar", "fa"]) {
+      drawn[language] = dashboardTranslator(language).translateTemplate(
+        "{{value}} ms",
+        { value: "411" },
+      );
+    }
+
+    expect(drawn).toEqual({
+      en: `411${NB}ms`,
+      de: `411${NB}ms`,
+      fr: `411${NB}ms`,
+      ar: `411${NB}ملي${NB}ث`,
+      fa: `411${NB}میلی\u200Cثانیه`,
+    });
+
+    for (const text of Object.values(drawn)) {
+      expect(text).not.toMatch(/[ \u2000-\u2006\u2008-\u200A\u205F]/);
+    }
   });
 });
 
@@ -247,12 +324,22 @@ describe("the server's French", () => {
     );
   });
 
-  test("English, from the server, is as it always was", () => {
+  test("English, from the server, is as it always was where it writes no unit", () => {
     expect(
       getServerTranslator("en").translateTemplate(
         "A new alert has been created: {{identifier}} in {{project}}. Click to view details.",
         { identifier: "#12", project: "Acme" },
       ),
     ).toBe("A new alert has been created: #12 in Acme. Click to view details.");
+  });
+
+  test("English, from the server, keeps a number with its unit, and an SMS still goes out in GSM-7", () => {
+    const sentence: string = getServerTranslator("en").translateTemplate(
+      "Response Time (in ms) was {{value}} ms",
+      { value: 411 },
+    );
+
+    expect(sentence).toBe(`Response Time (in ms) was 411${NB}ms`);
+    expect(toGsm7Message(sentence)).toBe("Response Time (in ms) was 411 ms");
   });
 });

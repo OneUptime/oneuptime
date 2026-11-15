@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **En af dit projekts egne sonder.** Globale sonder bærer andre projekters trafik, så de opsamler aldrig. Se [Brugerdefinerede sonder](/docs/probe/custom-probe) for at installere din egen sonde.
 - **En sonde fra denne udgivelse eller nyere.** Ældre sonder rapporterer ikke, hvad de kan opsamle på.
-- **De rette tilladelser.** At starte og standse en opsamling kræver **Start Packet Capture**, og at downloade en fil kræver **Download Packet Capture**. Projektejere og -administratorer har begge. Se [Tilladelser](#tilladelser).
+- **De rette tilladelser.** At starte og standse en opsamling kræver **Start Packet Capture**, og at downloade en fil kræver **Download Packet Capture**. Projektejere og Projektadministratorer har begge. Se [Tilladelser](#tilladelser).
 - **En spejlet port, til trafik, der ikke når sonden.** En sonde ser kun trafikken på sin egen værts interfaces. For at opsamle trafik mellem andre enheder skal du spejle deres switchport (SPAN) til et ledigt interface på sondens vært.
 
 ## Slå pakkeopsamling til
@@ -188,10 +188,10 @@ Et filter, du selv skriver, er én linje på højst 500 tegn, lavet af bogstaver
 
 | Tilladelse | Lader en person | Hvem har den som standard |
 | --- | --- | --- |
-| **Start Packet Capture** | Starte opsamlinger og standse dem | Project Owner, Project Admin |
-| **Download Packet Capture** | Downloade opsamlingsfiler | Project Owner, Project Admin |
-| **Delete Packet Capture** | Slette opsamlinger og deres filer | Project Owner, Project Admin |
-| **Read Packet Capture** | Se opsamlinger: hvornår de kørte, på hvilken sonde og med hvilket filter | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Starte opsamlinger og standse dem | Projektejer, Projektadministrator |
+| **Download Packet Capture** | Downloade opsamlingsfiler | Projektejer, Projektadministrator |
+| **Delete Packet Capture** | Slette opsamlinger og deres filer | Projektejer, Projektadministrator |
+| **Read Packet Capture** | Se opsamlinger: hvornår de kørte, på hvilken sonde og med hvilket filter | Projektejer, Projektadministrator, Projektmedlem, Seer |
 
 For at give et team **Start Packet Capture** eller **Download Packet Capture** skal du åbne det under **Indstillinger → Teams** og tilføje tilladelsen på dets side **Tilladelser**. Se [Tilladelser](/docs/permissions/index).
 

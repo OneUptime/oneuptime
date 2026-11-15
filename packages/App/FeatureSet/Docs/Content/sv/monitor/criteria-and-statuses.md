@@ -176,7 +176,7 @@ Dra statusen i dess handtag. En status längre ned i listan räknas som värre �
 En status gör ingenting förrän ett kriterium flyttar monitorer till den. Välj den i **Ändra övervakningsstatus till** på det kriterium som ska sätta den.
 :::
 
-Den fungerande statusen och offline-statusen är markerade som **Inbyggd**: du kan byta namn på dem och ändra deras färg, men inte ta bort dem. På OneUptime Cloud kräver det Growth-planen att skapa eller ändra en status. Att hantera statusar kräver rollen Project Owner, Project Admin eller Monitor Admin, eller en anpassad roll med motsvarande behörighet för monitorstatusar.
+Den fungerande statusen och offline-statusen är markerade som **Inbyggd**: du kan byta namn på dem och ändra deras färg, men inte ta bort dem. På OneUptime Cloud kräver det Growth-planen att skapa eller ändra en status. Att hantera statusar kräver rollen Projektägare, Projektadministratör eller Monitoradministratör, eller en anpassad roll med motsvarande behörighet för monitorstatusar.
 
 ### Statustidslinjen
 

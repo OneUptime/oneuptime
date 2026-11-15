@@ -26,7 +26,7 @@ flowchart TB
 
 ## Før du går i gang
 
-- **En rolle, der må invitere.** Project Owner, Project Admin eller en rolle med tilladelsen **Invite New Members**. Du kan kun invitere folk til et team, hvis tilladelser du selv har, fordi en invitation giver dem teamets adgang.
+- **En rolle, der må invitere.** Projektejer, Projektadministrator eller en rolle med tilladelsen **Invite New Members**. Du kan kun invitere folk til et team, hvis tilladelser du selv har, fordi en invitation giver dem teamets adgang.
 - **I OneUptime Cloud: plads i din plan.** Hver person i projektet er en plads på regningen, fra det øjeblik de inviteres. Free-planen har plads til én person. Se [Fakturering og forbrug](/docs/configuration/billing#din-plan-og-dine-pladser).
 - **Ingen SCIM Push Groups.** Så længe din identitetsudbyder styrer projektets teams via SCIM Push Groups, inviterer og fjerner du folk dér, ikke i OneUptime.
 
@@ -47,7 +47,7 @@ Skriv adressen i **E-mail**. Hvis ingen OneUptime-konto bruger den endnu, beder 
 
 ### Vælg teamet
 
-**Team** starter på projektets medlemsteam: det team, der har Project Member for hele projektet, ellers det, der hedder Members. Vælg et andet team for at give mere eller mindre adgang. **Team** er tomt, når projektet ikke har sådan et team, eller når du ikke selv kunne invitere nogen til det.
+**Team** starter på projektets medlemsteam: det team, der har Projektmedlem for hele projektet, ellers det, der hedder Members. Vælg et andet team for at give mere eller mindre adgang. **Team** er tomt, når projektet ikke har sådan et team, eller når du ikke selv kunne invitere nogen til det.
 
 ### Send invitationen
 
@@ -86,7 +86,7 @@ Filtrér listen efter **Bruger**, **Status** eller **Team**. Klik på en række 
 | --- | --- |
 | **Profil** | Navn, e-mailadresse, billede og bruger-ID. |
 | **Teams** | De teams, personen er med i. Tilføj eller fjern et team her. |
-| **Parathed**, **Notifikationsmetoder**, **Sådan når man mig** | Om personen kan blive tilkaldt, og hvordan. Vises for Project Owners, Project Admins, personen selv og alle, der må læse andres notifikationsregler. Se [Parathed og rapporter](/docs/on-call/readiness). |
+| **Parathed**, **Notifikationsmetoder**, **Sådan når man mig** | Om personen kan blive tilkaldt, og hvordan. Vises for Projektejere, Projektadministratorer, personen selv og alle, der må læse andres notifikationsregler. Se [Parathed og rapporter](/docs/on-call/readiness). |
 | **Brugerdefinerede felter** | Projektets brugerdefinerede felter for personer, hvis det har nogen. |
 | **Fjern fra projekt** | Tag personen ud af projektet. |
 

@@ -66,6 +66,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
   TranslatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -113,6 +114,13 @@ function formatTick(time: string, isIntraday: boolean): string {
   return OneUptimeDate.getDateAsLocalDayMonthString(date);
 }
 
+/*
+ * A tooltip's line for one kind of occurrence, "Unhandled: 3": the label
+ * and its count as one sentence, the count where the reader's language puts
+ * it. It read the label and then the count in English's order (#8290).
+ */
+export const TOOLTIP_COUNT: string = translationKey("{{label}}: {{count}}");
+
 const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
   props: TrendTooltipProps,
 ): ReactElement => {
@@ -145,8 +153,10 @@ const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
                 className="h-2 w-2 rounded-sm"
                 style={{ backgroundColor: EXCEPTION_TREND_COLORS.unhandled }}
               />
-              {translator.translateText("Unhandled")}{" "}
-              {formatOccurrenceCount(row.unhandled)}
+              {translator.translateTemplate(TOOLTIP_COUNT, {
+                label: translatableTerm("Unhandled"),
+                count: formatOccurrenceCount(row.unhandled),
+              })}
             </div>
           )}
           {row.handled > 0 && (
@@ -155,8 +165,10 @@ const TrendTooltip: FunctionComponent<TrendTooltipProps> = (
                 className="h-2 w-2 rounded-sm"
                 style={{ backgroundColor: EXCEPTION_TREND_COLORS.handled }}
               />
-              {translator.translateText("Handled")}{" "}
-              {formatOccurrenceCount(row.handled)}
+              {translator.translateTemplate(TOOLTIP_COUNT, {
+                label: translatableTerm("Handled"),
+                count: formatOccurrenceCount(row.handled),
+              })}
             </div>
           )}
         </div>

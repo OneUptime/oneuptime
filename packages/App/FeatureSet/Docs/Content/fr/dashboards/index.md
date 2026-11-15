@@ -94,7 +94,7 @@ L'objectif : une page pour le service checkout, avec sa latence, son taux d'erre
 - **Les moniteurs et la télémétrie** sont l'origine des données. Chaque métrique, journal et trace que vous envoyez peut figurer sur un widget.
 - **Les incidents et les alertes** apparaissent dans les widgets **Liste des incidents** et **Liste des alertes**. Un tableau de bord ne fait que les afficher : vous les traitez sur leurs propres pages.
 - **Les pages de statut** indiquent à vos clients si votre service fonctionne. Les tableaux de bord montrent en détail comment il se comporte. Les deux fonctionnent côte à côte.
-- **Les workflows** agissent sur ce qui se passe. Les tableaux de bord sont l'endroit où vous le lisez.
+- **Les flux de travail** agissent sur ce qui se passe. Les tableaux de bord sont l'endroit où vous le lisez.
 
 ## Prochaines étapes
 

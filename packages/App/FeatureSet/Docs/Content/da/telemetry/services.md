@@ -43,7 +43,7 @@ Hver gang der ankommer telemetri, rykker tjenestens **Sidst set** frem, og dens 
 ## Før du begynder
 
 - **Telemetri, der ankommer** med et `service.name`. Se [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` sætter det.
-- **En rolle, der må læse tjenester.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member eller Settings Viewer, eller en brugerdefineret rolle med tilladelsen Read Service. At oprette, ændre og slette tjenester kræver Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member, eller de tilsvarende tjenestetilladelser.
+- **En rolle, der må læse tjenester.** Projektejer, Projektadministrator, Projektmedlem, Seer, Indstillingsadministrator, Indstillingsmedlem eller Indstillingsseer, eller en brugerdefineret rolle med tilladelsen Read Service. At oprette, ændre og slette tjenester kræver Projektejer, Projektadministrator, Projektmedlem, Indstillingsadministrator eller Indstillingsmedlem, eller de tilsvarende tjenestetilladelser.
 
 ## Find en tjeneste
 
@@ -61,7 +61,7 @@ En tjenestes sidemenu har fem sektioner:
 
 | Sektion | Sider |
 | --- | --- |
-| **Grundlæggende** | **Oversigt**: forespørgsler, fejlrate og p95-latens fra dens spans, diagrammer og dens detaljer. **Anbefalinger**: færdige monitorer til tjenesten, valgt efter dens sprog. **Ejere**: de personer og teams, der har ansvaret for den. **Feed**: alt, hvad der er sket med den, fra hvordan den blev oprettet, til hver ændring siden. |
+| **Grundlæggende** | **Oversigt**: forespørgsler, fejlrate og p95-latens fra dens spans, diagrammer og dens detaljer. **Anbefalinger**: færdige monitorer til tjenesten, valgt efter dens sprog. **SLOs**: de SLO'er, der måler dens anmodninger, hvor du kan oprette et, der allerede måler tjenesten. **Ejere**: de personer og teams, der har ansvaret for den. **Feed**: alt, hvad der er sket med den, fra hvordan den blev oprettet, til hver ændring siden. |
 | **Telemetri** | Dens **Protokoller**, **Spor**, **Metrikker**, **Profiler**, **Undtagelser** og **Source maps**, allerede filtreret til denne tjeneste. |
 | **Aktivitet** | De **Hændelser**, **Advarsler** og begivenheder under **Planlagt vedligeholdelse**, der berører den. |
 | **Udvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styret fra kode. Sektionen er foldet sammen fra start. |

@@ -366,7 +366,7 @@ describe("a created, deleted or downloaded entry's dialog", () => {
 
 describe("a session's dialog", () => {
   test.each(LANGUAGES)(
-    "%s: says what it shows, and names each field it recorded in its words, the values as recorded",
+    "%s: says what it shows, and names each field it recorded in its words, a device and an address as recorded",
     (language: string) => {
       drawDialog({ language, action: "SignIn", changes: SESSION_SIGN_IN });
 
@@ -436,7 +436,7 @@ describe("a session's dialog", () => {
     ).toEqual(["Signed in with", "Second factor", "Device", "IP address"]);
   });
 
-  test("with the German translator, the labels are German and the values as recorded", () => {
+  test("with the German translator, the labels are German, OneUptime's own words German (#8459) and the rest as recorded", () => {
     const rows: Array<SessionDetailRow> = readSessionDetailRows(
       SESSION_SIGN_IN,
       dashboardTranslator("de"),
@@ -447,8 +447,8 @@ describe("a session's dialog", () => {
         return [row.label, row.value];
       }),
     ).toEqual([
-      ["Angemeldet mit", "Password"],
-      ["Zweiter Faktor", "Security key"],
+      ["Angemeldet mit", "Passwort"],
+      ["Zweiter Faktor", "Sicherheitsschlüssel"],
       ["Gerät", "Chrome 130 on macOS"],
       ["IP-Adresse", "203.0.113.7"],
     ]);

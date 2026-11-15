@@ -88,7 +88,7 @@ Para desactivar el incluido, define `GLOBAL_RUNNER_REPLICAS=0` en el `config.env
 ## Antes de empezar
 
 - **Un host con Docker** dentro de tu infraestructura, que llegue a la URL de tu OneUptime por HTTPS y a los sistemas sobre los que actúan tus pasos.
-- **Un rol que cree Runners.** Project Owner, Project Admin, Project Member y Runbook Admin pueden crear uno. Solo un Project Owner, un Project Admin o un Runbook Admin pueden ver la clave de un Runner, que incluye el comando de instalación.
+- **Un rol que cree Runners.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto y Administrador de runbooks pueden crear uno. Solo un Propietario del proyecto, un Administrador del proyecto o un Administrador de runbooks pueden ver la clave de un Runner, que incluye el comando de instalación.
 
 ## Instalar un Runner
 
@@ -109,7 +109,7 @@ Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace
 
 En la fila del Runner, haz clic en **Mostrar instrucciones de configuración**. El diálogo **Configuración del agente de runbook** muestra un comando `docker run` con el ID y la clave de este Runner ya incluidos. El mismo comando está en la página del Runner, en **Instrucciones de configuración**.
 
-Solo un Project Owner, un Project Admin o un Runbook Admin pueden leer la clave. Los demás ven «No tienes permiso para ver la clave de este agente de runbook» en lugar del comando.
+Solo un Propietario del proyecto, un Administrador del proyecto o un Administrador de runbooks pueden leer la clave. Los demás ven «No tienes permiso para ver la clave de este agente de runbook» en lugar del comando.
 
 ### 3. Ejecutarlo en un host de tu infraestructura
 
@@ -293,7 +293,7 @@ La gestión de agentes está en el grupo de permisos de Runbooks existente:
 
 Desencadenar un runbook (y con ello enviar sus pasos a los Runners) requiere un rol que ejecute runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` o `RunbookMember` — o `CreateRunbookExecution`; completar, omitir o cancelar una ejecución también acepta `EditRunbookExecution`. Un rol solo ejecuta los runbooks a los que llega su alcance.
 
-La clave de un Runner solo la pueden leer los Project Owners, los Project Admins y los Runbook Admins.
+La clave de un Runner solo la pueden leer los Propietarios del proyecto, los Administradores del proyecto y los Administradores de runbooks.
 
 ## API del agente
 

@@ -37,7 +37,7 @@ Une requête est un span d'entrée de l'un des services du SLO : le span où une
 ## Avant de commencer
 
 - Les services envoient des traces à OneUptime : voir [OpenTelemetry](/docs/telemetry/open-telemetry). Chacun d'eux figure dans le [catalogue des services](/docs/telemetry/services) sous son `service.name`.
-- Un rôle autorisé à créer des SLO : Project Owner, Project Admin ou un rôle personnalisé avec la permission Create Service Level Objective.
+- Un rôle autorisé à créer des SLO : Propriétaire du projet, Administrateur du projet ou un rôle personnalisé avec la permission Create Service Level Objective.
 
 ## Créer un SLO de requêtes
 
@@ -59,7 +59,7 @@ Saisissez un **Nom**, par exemple « Checkout requests », et une **Cible (%)** 
 La première évaluation, dans les 5 minutes, compte les requêtes des 6 dernières heures : le SLO a donc des chiffres tout de suite. Les évaluations suivantes comptent aussi des requêtes plus anciennes, jusqu'à couvrir la fenêtre de conformité.
 :::
 
-Pour modifier plus tard ce qu'un SLO mesure, ses services ou son seuil, ouvrez ses **Paramètres** et cliquez sur **Modifier ce qui est mesuré**.
+La page **SLOs** propre à un service liste les SLO qui le mesurent, et son bouton **Créer : Objectif de niveau de service** ouvre le même formulaire avec le service déjà choisi. Pour modifier plus tard ce qu'un SLO mesure, ses services ou son seuil, ouvrez ses **Paramètres** et cliquez sur **Modifier ce qui est mesuré**.
 
 ## Comment les requêtes sont comptées
 
@@ -86,7 +86,7 @@ Un SLO de requêtes reçoit les mêmes règles **Fast burn**, **Slow burn** et *
 
 ## Dépannage
 
-:::details Le SLO affiche Waiting for requests
+:::details Le SLO affiche En attente de requêtes
 Aucun de ses services n'a encore servi de requête dans la fenêtre. Vérifiez que les services envoient des traces à OneUptime, et que leurs spans comprennent des spans d'entrée : un service dont tous les spans sont internes n'a aucune requête à compter.
 :::
 

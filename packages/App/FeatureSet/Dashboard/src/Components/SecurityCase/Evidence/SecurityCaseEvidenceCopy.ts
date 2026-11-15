@@ -156,16 +156,16 @@ export function formatEvidenceSize(bytes: number | undefined | null): string {
   }
 
   if (bytes < 1024) {
-    return `${bytes} B`;
+    return `${bytes}\u00A0B`;
   }
 
   const kilobytes: number = bytes / 1024;
 
   if (kilobytes < 1024) {
-    return `${Math.round(kilobytes * 10) / 10} KB`;
+    return `${Math.round(kilobytes * 10) / 10}\u00A0KB`;
   }
 
-  return `${Math.round((kilobytes / 1024) * 10) / 10} MB`;
+  return `${Math.round((kilobytes / 1024) * 10) / 10}\u00A0MB`;
 }
 
 /*

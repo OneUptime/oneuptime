@@ -66,10 +66,10 @@ Spellistor har egna behörigheter, som du får genom ett team precis som instrum
 
 | För att | Krävs |
 | --- | --- |
-| Se och spela upp spellistor | `ReadDashboardPlaylist`, eller en projektroll: Project Owner, Project Admin, Project Member, Viewer eller en Settings-roll |
-| Skapa spellistor | `CreateDashboardPlaylist`, Project Owner eller Project Admin |
-| Ändra en spellista: dess namn, instrumentpaneler och tid | `EditDashboardPlaylist`, Project Owner eller Project Admin |
-| Ta bort en spellista | `DeleteDashboardPlaylist`, Project Owner eller Project Admin |
+| Se och spela upp spellistor | `ReadDashboardPlaylist`, eller en projektroll: Projektägare, Projektadministratör, Projektmedlem, Tittare eller en Settings-roll |
+| Skapa spellistor | `CreateDashboardPlaylist`, Projektägare eller Projektadministratör |
+| Ändra en spellista: dess namn, instrumentpaneler och tid | `EditDashboardPlaylist`, Projektägare eller Projektadministratör |
+| Ta bort en spellista | `DeleteDashboardPlaylist`, Projektägare eller Projektadministratör |
 
 En spellista visar aldrig någon en instrumentpanel som personen inte får läsa. Spelaren spelar bara upp de instrumentpaneler som personen som är inloggad på skärmen får läsa och som inte är arkiverade, och hoppar över resten: en borttagen instrumentpanel, en arkiverad eller en som personens behörigheter håller den borta från. Spellistans sida säger varför den hoppar över var och en. När en spellista sparas behåller den de instrumentpaneler i den som redaktören inte själv kan se, så att inget går förlorat som någon annan har lagt dit.
 
@@ -81,7 +81,7 @@ En spellista visar aldrig någon en instrumentpanel som personen inte får läsa
 | En läsning som misslyckades | **Spellistan kunde inte läsas in**, och den försöker igen varje minut, eller vid **Försök igen**. |
 
 > [!NOTE]
-> Spelaren är till för någon som är inloggad i OneUptime. För att köra en spellista på en skärm loggar du in på den skärmen med ett konto som får läsa spellistan och dess instrumentpaneler, till exempel en teammedlem med rollen Viewer.
+> Spelaren är till för någon som är inloggad i OneUptime. För att köra en spellista på en skärm loggar du in på den skärmen med ett konto som får läsa spellistan och dess instrumentpaneler, till exempel en teammedlem med rollen Tittare.
 
 ## Nästa steg
 

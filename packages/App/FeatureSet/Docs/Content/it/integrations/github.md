@@ -1,11 +1,11 @@
 # GitHub
 
-OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi repository tramite la GitHub App di OneUptime, e l'AI di OneUptime apre pull request che correggono ciò che trova, e risponde quando la menzioni in una issue o in una pull request. Oppure costruisci un workflow che apre una issue GitHub per ogni incidente, così il lavoro che ne segue viene tracciato nel repository a cui appartiene il servizio.
+OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi repository tramite la GitHub App di OneUptime, e l'AI di OneUptime apre pull request che correggono ciò che trova, e risponde quando la menzioni in una issue o in una pull request. Oppure costruisci un flusso di lavoro che apre una issue GitHub per ogni incidente, così il lavoro che ne segue viene tracciato nel repository a cui appartiene il servizio.
 
 :::cards
-- [Scegliere come collegarsi](#scegliere-come-collegarsi): La GitHub App o un workflow, e cosa fa ciascuno.
+- [Scegliere come collegarsi](#scegliere-come-collegarsi): La GitHub App o un flusso di lavoro, e cosa fa ciascuno.
 - [Collegare i tuoi repository](#collegare-i-tuoi-repository): La GitHub App, per le pull request di correzione.
-- [Aprire una issue per ogni incidente](#aprire-una-issue-github-per-ogni-incidente): Un workflow, due blocchi.
+- [Aprire una issue per ogni incidente](#aprire-una-issue-github-per-ogni-incidente): Un flusso di lavoro, due blocchi.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando GitHub rifiuta una richiesta.
 :::
 
@@ -15,18 +15,18 @@ OneUptime lavora con [GitHub](https://github.com) in due modi. Collega i tuoi re
 flowchart TB
     app["La GitHub App"] --> repos["I tuoi repository,<br/>importati"]
     repos --> pr["Pull request di<br/>correzione<br/>dall'AI di OneUptime"]
-    declared["Incidente dichiarato"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>On Create Incident"]
     workflow -->|"POST issues"| issue["Issue GitHub"]
 ```
 
-I due sono indipendenti, e puoi usarne uno o entrambi. La GitHub App lavora nei repository in cui la installi. Il workflow ha bisogno solo di un token, e chiama la [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) di GitHub come qualsiasi altra API.
+I due sono indipendenti, e puoi usarne uno o entrambi. La GitHub App lavora nei repository in cui la installi. Il flusso di lavoro ha bisogno solo di un token, e chiama la [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) di GitHub come qualsiasi altra API.
 
 ## Scegliere come collegarsi
 
 | Modo | Cosa fa | Di cosa ha bisogno |
 | --- | --- | --- |
 | La GitHub App | Importa i tuoi repository. L'AI di OneUptime vi apre pull request che correggono eccezioni, trace lente e le cause trovate dalle sue indagini, e risponde alle menzioni in issue e pull request. | Un'organizzazione o un account su cui installare l'app. Su OneUptime Cloud, il piano **Growth**. |
-| Un workflow | Apre una issue GitHub per ogni incidente, nel repository che scegli. | Un token GitHub che possa creare issue, e un workflow di due blocchi. |
+| Un flusso di lavoro | Apre una issue GitHub per ogni incidente, nel repository che scegli. | Un token GitHub che possa creare issue, e un flusso di lavoro di due blocchi. |
 
 ## Collegare i tuoi repository
 
@@ -38,10 +38,10 @@ Un'istanza self-hosted ha prima bisogno di una sua GitHub App: [Integrazione Git
 
 ## Prima di iniziare
 
-Il resto di questa pagina costruisce il workflow. Serve:
+Il resto di questa pagina costruisce il flusso di lavoro. Serve:
 
 - Un token GitHub che possa creare issue nel repository: un personal access token fine-grained per quel repository, con il permesso **Issues** impostato su **Read and write**, oppure un token classico con lo scope `repo`. Creane uno nelle [impostazioni dei token](https://github.com/settings/tokens) di GitHub.
-- In OneUptime, il permesso di creare workflow e variabili globali. Su OneUptime Cloud, i workflow richiedono il piano **Growth** o superiore.
+- In OneUptime, il permesso di creare flussi di lavoro e variabili globali. Su OneUptime Cloud, i flussi di lavoro richiedono il piano **Growth** o superiore.
 
 ## Salvare il token
 
@@ -56,7 +56,7 @@ Una variabile segreta viene sostituita da `[REDACTED]` nei log delle esecuzioni,
 ## Aprire una issue GitHub per ogni incidente
 
 :::steps
-### Creare il workflow
+### Creare il flusso di lavoro
 
 Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Chiamalo `Incidents to GitHub` e fai clic su **Crea flusso di lavoro**.
 
@@ -124,7 +124,7 @@ Il proprietario o il repository nell'**URL** è sbagliato, oppure il token non p
 
 :::cards
 - [GitHub App](/docs/ai/github-app): Chiedi all'AI di OneUptime una modifica, una revisione o una review direttamente da GitHub.
-- [GitLab](/docs/integrations/gitlab): Lo stesso workflow, per le issue GitLab.
-- [Componenti del workflow](/docs/workflows/components#api): Ogni impostazione dei blocchi API.
+- [GitLab](/docs/integrations/gitlab): Lo stesso flusso di lavoro, per le issue GitLab.
+- [Componenti del flusso di lavoro](/docs/workflows/components#api): Ogni impostazione dei blocchi API.
 - [Panoramica delle integrazioni](/docs/integrations/index): Gli schemi dietro ogni integrazione.
 :::

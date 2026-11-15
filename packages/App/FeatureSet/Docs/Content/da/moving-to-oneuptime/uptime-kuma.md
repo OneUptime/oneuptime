@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynder
 
-- **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
+- **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og Projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
 - **En fil fra Uptime Kuma.** I Uptime Kuma 1 indeholder JSON-backuppen hver monitor med dens indstillinger. Uptime Kuma 2 har ingen backup, så gem i stedet dens metrikside: Den angiver hver monitors navn, type og adresse, men ikke hvor ofte den kontrolleres, eller hvad den leder efter.
 - **En betalingsmetode, i OneUptime Cloud.** Monitorer, der udfører kontroller, faktureres efter forbrug, også på Free-abonnementet, så tilføj en under **Projektindstillinger** > **Fakturering og fakturaer** > **Fakturering**, før du importerer. Uden en vises de monitorer som ikke overført.
 
@@ -80,7 +80,7 @@ Hver monitor kontrolleres fra dit projekts sonder, ligesom en, du selv opretter.
 
 I OneUptime Cloud kræver monitorer, der udfører kontroller, en betalingsmetode, og det, dit abonnement ikke har plads til, vises som ikke overført, med det, det kræver.
 
-En forhåndsvisning gemmes i en dag. Kun den person, der læste filen, kan markere elementer og starte importen. Projektejere og projektadministratorer ser forløbet og rapporten for hver import.
+En forhåndsvisning gemmes i en dag. Kun den person, der læste filen, kan markere elementer og starte importen. Projektejere og Projektadministratorer ser forløbet og rapporten for hver import.
 
 ## Gør skiftet færdigt
 

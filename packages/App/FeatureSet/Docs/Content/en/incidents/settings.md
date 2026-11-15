@@ -183,7 +183,7 @@ Most projects need one step. Add another when a note needs a second approval, fo
 - **Changes count at once.** Who may approve is read when somebody decides, and notes already waiting follow your changes. When you add, delete or reorder steps, or change who a step names, whoever can now approve a waiting note and was not asked about it yet is asked, by their notification settings, and so is somebody who joins a team named on the step a note waits for. Nobody is asked twice about the same step of a note. Somebody taken off the step, or out of its team, can no longer decide on the note, and their Slack, Microsoft Teams or Mattermost message about it says so. A note keeps the approvals it has.
 - **Nobody approves their own note, or two steps of one note.** Whoever sent a note for approval cannot approve or reject it, and whoever approved one of its steps cannot approve another.
 
-Only project owners and admins can change these settings, and everyone who reads the notes can see who approves them. **Scheduled Maintenance → Settings → Public Note Approval** is the same page for maintenance events, with a switch and steps of its own. What a note does while it waits, and how approvers decide, is under [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+Only Project Owners and Project Admins can change these settings, and everyone who reads the notes can see who approves them. **Scheduled Maintenance → Settings → Public Note Approval** is the same page for maintenance events, with a switch and steps of its own. What a note does while it waits, and how approvers decide, is under [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 ## Subscriber notifications
 
@@ -664,7 +664,7 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 
 **A rule can inherit.** Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches that also hand on the labels (or owners) of the incident's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. A rule that inherits can leave **Labels to Add** empty, and is then named after what it inherits from (_Inherit labels from monitors, hosts_); a new rule that neither names nor inherits anything cannot be saved — from the form, the API or Terraform. Episode rules, on the **Episode Rules** tab, have no inherit switches. On an incident or alert owner rule, **Inherit Owners** ends with **Creator's Team**: of the teams listed there, each one the person who declares the incident, or creates the alert, is in becomes an owner too.
 
-An incident owner rule can belong to teams too: **Owning Teams**, under **More fields**, says who may edit or delete the rule — only the members of those teams and project admins — not who the rule makes owners. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+An incident owner rule can belong to teams too: **Owning Teams**, under **More fields**, says who may edit or delete the rule — only the members of those teams and Project Admins — not who the rule makes owners. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
 
 **Older rules that add nothing** — saved before OneUptime asked what they add — can still be renamed, switched off or deleted, and the list marks each one **Adds nothing**. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step.
 
@@ -723,7 +723,7 @@ A rule pages its policies' people to respond: acknowledging the page acknowledge
 
 Rules run when an incident is declared, and again whenever its severity or labels change while it is open. When it is raised to a severity a rule matches, or given a label one matches, that rule's policies page then, as responders or as observers, and the incident's feed says the rule now matches it, and why. A policy that has already paged about the incident does not page again, unless it paged as observers and is now asked to respond. Nothing is undone when the incident stops matching, and a changed title, description or monitor does not run the rules again.
 
-A rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and project admins can edit or delete it, and everyone else who can see rules sees it read-only. A rule no team owns can be changed by everyone who can edit on-call rules, and episode rules can belong to teams too. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
+A rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to the teams you pick: only their members and Project Admins can edit or delete it, and everyone else who can see rules sees it read-only. A rule no team owns can be changed by everyone who can edit on-call rules, and episode rules can belong to teams too. See [Rules owned by teams](/docs/permissions/index#rules-owned-by-teams).
 
 ### How matching resolves
 

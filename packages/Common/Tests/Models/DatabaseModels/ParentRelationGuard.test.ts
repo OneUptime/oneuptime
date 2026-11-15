@@ -102,6 +102,15 @@ describe("records with no labels of their own", () => {
       AutoRemediationSuggestion: ["resourceId"],
       InventoryItem: ["resourceId"],
       /*
+       * The incident or alert an owner notification is about (resourceId),
+       * and the record whose notification it is (eventId: the incident or
+       * alert, its state change, its note or its owner row, which kind its
+       * `kind` column says), so one owner is told once (#8199, #8517). Only
+       * OneUptime reads the table (every access list is empty, and it has
+       * no API), so no read of it runs under a block.
+       */
+      OwnerNotificationDelivery: ["eventId", "resourceId"],
+      /*
        * The public note a request to approve was about - an incident's, an
        * episode's or a scheduled maintenance event's, which kind its note
        * column says - so the unique index holds each request once. Only

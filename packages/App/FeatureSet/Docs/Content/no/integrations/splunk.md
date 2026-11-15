@@ -1,6 +1,6 @@
 # Splunk Enterprise Security
 
-Importer notable events som korrelasjonssøkene i [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) oppretter, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem ved å kjøre et søk på search headen din som en Splunk-bruker du selv oppretter, og endrer ingenting i Splunk. Siden det bare er et søk, importerer det hvilken som helst indeks eller utdataene fra et hvilket som helst lagret søk, ikke bare notable events.
+Importer notable events som korrelasjonssøkene i [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) oppretter, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem ved å kjøre et søk på search headen din som en Splunk-bruker du selv oppretter, og endrer ingenting i Splunk. Siden det bare er et søk, importerer det hvilken som helst indeks eller utdataene fra et hvilket som helst lagret søk, ikke bare notable events.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): Et token, en rolle og skjemaet for tilkoblingen.
@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet er g
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - En search head med Splunk Enterprise 9.0.1 eller nyere, eller Splunk Cloud Platform. OneUptime snakker med REST API-et på administrasjonsporten, vanligvis `8089`. Splunk Web, på port `8000`, tilbyr ikke REST API-et.
 - En Splunk-bruker for OneUptime, der rollen har capabilityen `search` og kan lese indeksen søket leser: `notable` for notable events. Enterprise Security-rollene `ess_analyst` og `ess_user` gir begge deler. Tilkoblingen leser bare, så rollen trenger ingenting annet.
 - En search head som OneUptime kan nå over HTTPS. OneUptime Cloud kobler til fra internett, så search headen trenger en offentlig adresse: private adresser avvises. En selvdriftet OneUptime kobler til fra app- og workercontainerne sine og kan nå en search head på det private nettverket ditt, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`.

@@ -41,7 +41,7 @@ Lo SCIM di progetto permette ai provider di identità di gestire i membri dei te
 
 ### Configurare lo SCIM di progetto
 
-Solo un proprietario del progetto può aggiungere o modificare la connessione SCIM di un progetto, o vedere o reimpostare il suo token bearer: tramite SCIM, il tuo provider di identità può aggiungere persone a qualsiasi team del progetto.
+Solo un Proprietario del progetto può aggiungere o modificare la connessione SCIM di un progetto, o vedere o reimpostare il suo token bearer: tramite SCIM, il tuo provider di identità può aggiungere persone a qualsiasi team del progetto.
 :::steps
 1. **Aprire le impostazioni del progetto**
 
@@ -88,7 +88,7 @@ Alcuni provider di identità non conservano un token bearer e chiedono invece cr
 
 Il tuo provider di identità invia il client ID e il secret all'endpoint del token e ottiene un token di accesso che vale un'ora. Il token bearer della connessione continua a funzionare accanto a esso.
 
-Per sostituire un secret, fai clic su **Make New Client Secret**. Il secret precedente continua a funzionare finché non scade o finché non fai clic su **Delete Previous Secret**, così puoi dare quello nuovo al tuo provider di identità senza interrompere il provisioning: elimina quello vecchio quando il provider usa quello nuovo. Un secret che scade o viene eliminato chiude subito i token di accesso emessi con esso. Chi può modificare il token bearer di una connessione può creare ed eliminare i suoi secret: un proprietario del progetto o, per una pagina di stato, chiunque possa modificarne il single sign-on.
+Per sostituire un secret, fai clic su **Make New Client Secret**. Il secret precedente continua a funzionare finché non scade o finché non fai clic su **Delete Previous Secret**, così puoi dare quello nuovo al tuo provider di identità senza interrompere il provisioning: elimina quello vecchio quando il provider usa quello nuovo. Un secret che scade o viene eliminato chiude subito i token di accesso emessi con esso. Chi può modificare il token bearer di una connessione può creare ed eliminare i suoi secret: un Proprietario del progetto o, per una pagina di stato, chiunque possa modificarne il single sign-on.
 
 ## SCIM per le pagine di stato
 
@@ -394,7 +394,7 @@ Su OneUptime Cloud, il provisioning SCIM funziona completamente solo finché il 
 
 Non viene eliminato nulla. Passa al piano **Scale** e le connessioni tornano a funzionare completamente così come sono, con lo stesso token bearer e niente da riconfigurare nel provider di identità; un cambio di piano ha effetto entro un minuto. I provider di identità continuano a chiamare secondo i propri tempi: Okta elenca i rifiuti tra i suoi errori di provisioning, ed Entra ID li mostra nei suoi registri di provisioning e può mettere in quarantena un job che continua a fallire, rallentando le sue sincronizzazioni — rimozioni comprese — a circa una al giorno. Riavvia lì il provisioning dopo il cambio di piano, così le persone aggiunte nel frattempo vengono provisionate.
 
-Sotto **Scale**, **Impostazioni del progetto** > **Sicurezza** > **SCIM**, e la pagina **SCIM** di una pagina di stato, elencano le connessioni sotto l'offerta del piano (**Connessioni SCIM ancora configurate**) e indicano che si limitano a rimuovere persone. Elimina una connessione per rimuoverla. Aggiungere una connessione, modificarne una o sostituire il suo token bearer richiede **Scale**. L'elenco non mostra i token bearer, e solo i proprietari del progetto possono leggere un token, con qualsiasi piano.
+Sotto **Scale**, **Impostazioni del progetto** > **Sicurezza** > **SCIM**, e la pagina **SCIM** di una pagina di stato, elencano le connessioni sotto l'offerta del piano (**Connessioni SCIM ancora configurate**) e indicano che si limitano a rimuovere persone. Elimina una connessione per rimuoverla. Aggiungere una connessione, modificarne una o sostituire il suo token bearer richiede **Scale**. L'elenco non mostra i token bearer, e solo i Proprietari del progetto possono leggere un token, con qualsiasi piano.
 
 ## Risoluzione dei problemi
 

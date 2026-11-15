@@ -443,9 +443,9 @@ describe("denominators, units and caps", () => {
     expect(readPage("Overview.tsx")).toContain(
       "const formatMemoryBytes: (bytes: number | null | undefined) => string =\n  formatHostBytes;",
     );
-    expect(formatHostBytes(1024 * 1024 ** 2)).toBe("1.0 GiB");
-    expect(formatHostBytes(1023 * 1024 ** 2)).toBe("1023 MiB");
-    expect(formatHostBytes(1536)).toBe("1.5 KiB");
+    expect(formatHostBytes(1024 * 1024 ** 2)).toBe("1.0\u00A0GiB");
+    expect(formatHostBytes(1023 * 1024 ** 2)).toBe("1023\u00A0MiB");
+    expect(formatHostBytes(1536)).toBe("1.5\u00A0KiB");
   });
 
   test("process memory is compared with the host's total RAM", () => {

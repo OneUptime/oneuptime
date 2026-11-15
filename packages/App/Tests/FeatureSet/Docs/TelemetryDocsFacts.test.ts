@@ -1279,7 +1279,7 @@ describe("Source Maps", () => {
       "Read Telemetry Source Map",
     );
     expect(page).toContain(
-      "can only be read back by project owners and admins, and by anyone given the **Read Telemetry Source Map** permission",
+      "can only be read back by Project Owners and Project Admins, and by anyone given the **Read Telemetry Source Map** permission",
     );
   });
 

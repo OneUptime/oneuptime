@@ -43,7 +43,7 @@ Varje gång telemetri kommer in flyttas tjänstens **Senast sedd** fram, och des
 ## Innan du börjar
 
 - **Telemetri som kommer in** med ett `service.name`. Se [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` sätter det.
-- **En roll som får läsa tjänster.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member eller Settings Viewer, eller en anpassad roll med behörigheten Read Service. Att skapa, ändra och ta bort tjänster kräver Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member, eller motsvarande tjänstebehörigheter.
+- **En roll som får läsa tjänster.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Inställningsadministratör, Inställningsmedlem eller Inställningstittare, eller en anpassad roll med behörigheten Read Service. Att skapa, ändra och ta bort tjänster kräver Projektägare, Projektadministratör, Projektmedlem, Inställningsadministratör eller Inställningsmedlem, eller motsvarande tjänstebehörigheter.
 
 ## Hitta en tjänst
 
@@ -61,7 +61,7 @@ En tjänsts sidomeny har fem avsnitt:
 
 | Avsnitt | Sidor |
 | --- | --- |
-| **Grundläggande** | **Översikt**: förfrågningar, felfrekvens och p95-latens från dess spans, diagram och dess detaljer. **Rekommendationer**: färdiga monitorer för tjänsten, valda efter dess språk. **Ägare**: de personer och team som ansvarar för den. **Feed**: allt som har hänt den, från hur den skapades till varje ändring sedan dess. |
+| **Grundläggande** | **Översikt**: förfrågningar, felfrekvens och p95-latens från dess spans, diagram och dess detaljer. **Rekommendationer**: färdiga monitorer för tjänsten, valda efter dess språk. **SLOs**: de SLO:er som mäter dess begäranden, där du kan skapa ett som redan mäter tjänsten. **Ägare**: de personer och team som ansvarar för den. **Feed**: allt som har hänt den, från hur den skapades till varje ändring sedan dess. |
 | **Telemetri** | Dess **Loggar**, **Spår**, **Mätvärden**, **Profiler**, **Undantag** och **Source maps**, redan filtrerade på den här tjänsten. |
 | **Aktivitet** | De **Incidenter**, **Larm** och händelser under **Schemalagt underhåll** som berör den. |
 | **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter**: tjänsten styrd från kod. Avsnittet är hopfällt från början. |

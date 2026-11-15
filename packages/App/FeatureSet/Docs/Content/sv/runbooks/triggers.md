@@ -163,7 +163,7 @@ return { host };
 
 ## Vem får konfigurera utlösare
 
-Ett schema eller en webhook startar körningar utan att någon är där, så att konfigurera en kräver behörighet att redigera runbooket och att köra den: Project Owner, Project Admin eller Runbook Admin, eller **Edit Runbook** tillsammans med Project Member, Runbook Member eller **Create Runbook Execution**. De etiketter som en roll är begränsad till räknas, som för **Kör nu**. Att se eller återställa webhook-URL:en kräver detsamma.
+Ett schema eller en webhook startar körningar utan att någon är där, så att konfigurera en kräver behörighet att redigera runbooket och att köra den: Projektägare, Projektadministratör eller Runbook-administratör, eller **Edit Runbook** tillsammans med Projektmedlem, Runbook-medlem eller **Create Runbook Execution**. De etiketter som en roll är begränsad till räknas, som för **Kör nu**. Att se eller återställa webhook-URL:en kräver detsamma.
 
 Att stänga av ett schema eller en webhook startar ingenting, så det kräver bara behörighet att redigera runbooket. Den som får redigera runbooket men inte köra den ser sidan **Utlösare** med **Konfigurera schema** låst, och får veta vem som kan se webhook-URL:en.
 
@@ -178,7 +178,7 @@ En körning pågick fortfarande och schemat hoppar över sådana tidpunkter, ell
 :::
 
 :::details Att spara ett schema misslyckas med "You do not have permission to set up this runbook's schedule or webhook."
-Att konfigurera en utlösare kräver behörighet att köra runbooket och att redigera den. Be om Runbook Admin, eller om Runbook Member eller **Create Runbook Execution** utöver **Edit Runbook**.
+Att konfigurera en utlösare kräver behörighet att köra runbooket och att redigera den. Be om Runbook-administratör, eller om Runbook-medlem eller **Create Runbook Execution** utöver **Edit Runbook**.
 :::
 
 :::details Ett anrop får svaret "No runbook webhook answers at this URL."

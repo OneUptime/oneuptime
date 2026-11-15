@@ -4,7 +4,7 @@ En widget er én flis på et dashbord. Denne siden går gjennom hver widget i ka
 
 :::cards
 - [Hvilken widget bør jeg bruke?](#hvilken-widget-bør-jeg-bruke): Velg ut fra spørsmålet flisen svarer på.
-- [Diagrammer og tall](#diagrammer-og-tall): Diagram, Verdi, Måler og Tabell, fra en metrikkspørring.
+- [Diagrammer og tall](#diagrammer-og-tall): Diagram, Verdi, Måler og Tabell, fra en målingsspørring.
 - [Logger, spor og sikkerhet](#logger-spor-og-sikkerhet): Volumdiagrammer, sanntidsstrømmer og lister.
 - [Sortere lister og tabeller](#sortere-lister-og-tabeller): Sorter etter en kolonne, og velg rekkefølgen alle ser.
 - [Når en widget ikke kan vises](#når-en-widget-ikke-kan-vises): Hva en ødelagt widget viser, og hvordan du fikser den.
@@ -16,7 +16,7 @@ Start med spørsmålet flisen skal svare på:
 
 | Spørsmålet | Widgeten |
 | --- | --- |
-| Hvordan har en metrikk endret seg over tid? | **Diagram** |
+| Hvordan har en måling endret seg over tid? | **Diagram** |
 | Hvor mange logger, av hvilken alvorlighet, over tid? | **Loggdiagram** |
 | Hvor raske er forespørslene, og hvor mange feiler, over tid? | **Spordiagram** |
 | Hva er ett bestemt tall akkurat nå? | **Verdi**, eller **Måler** når det har et kjent område |
@@ -45,17 +45,17 @@ De fleste dashbord blander noen få: et diagram øverst, en verdi eller to ved s
 
 ## Diagrammer og tall
 
-Disse fire widgetene leser en metrikkspørring, bygget slik metrikkutforskeren bygger en: velg en metrikk og en aggregering, legg til attributtfiltre, og grupper etter et attributt for å få én serie per verdi.
+Disse fire widgetene leser en målingsspørring, bygget slik målingsutforskeren bygger en: velg en måling og en aggregering, legg til attributtfiltre, og grupper etter et attributt for å få én serie per verdi.
 
 ### Diagram
 
-En tidsserie med én eller flere metrikkspørringer over dashbordets tidsintervall. **Chart Type** tegner den som et linje-, stolpe-, areal-, stablet areal- eller kakediagram. **Additional Queries** legger flere metrikker på de samme aksene, og **Formulas** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver spørrings visningsinnstillinger legger til en forklaring og en enhet, en farge, varsel- og kritiske linjer og en rate per sekund for tellere som bare vokser.
+En tidsserie med én eller flere målingsspørringer over dashbordets tidsintervall. **Chart Type** tegner den som et linje-, stolpe-, areal-, stablet areal- eller kakediagram. **Additional Queries** legger flere målinger på de samme aksene, og **Formulas** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver spørrings visningsinnstillinger legger til en forklaring og en enhet, en farge, varsel- og kritiske linjer og en rate per sekund for tellere som bare vokser.
 
 Bruk den når formen på linjen forteller historien: ventetid, feil, gjennomstrømning eller kødybde.
 
 ### Verdi
 
-Ett stort tall med en sparkline: spørringens verdi over hele tidsintervallet, summert for en sum eller en telling, den høyeste for et maksimum, den laveste for et minimum og ellers gjennomsnittet. En pil sammenligner den andre halvdelen av intervallet med den første, hver halvdel regnet ut på samme måte, farget etter **Trend Direction**: om en høyere verdi er bedre eller verre, eller lest ut fra metrikkens navn. Pek på pilen for å se verdien for hver halvdel, og på sparklinen for å lese verdien og tidspunktet for et punkt. **Warning Threshold** gjør bakgrunnen gul og **Critical Threshold** rød når verdien når dem.
+Ett stort tall med en sparkline: spørringens verdi over hele tidsintervallet, summert for en sum eller en telling, den høyeste for et maksimum, den laveste for et minimum og ellers gjennomsnittet. En pil sammenligner den andre halvdelen av intervallet med den første, hver halvdel regnet ut på samme måte, farget etter **Trend Direction**: om en høyere verdi er bedre eller verre, eller lest ut fra målingens navn. Pek på pilen for å se verdien for hver halvdel, og på sparklinen for å lese verdien og tidspunktet for et punkt. **Warning Threshold** gjør bakgrunnen gul og **Critical Threshold** rød når verdien når dem.
 
 Bruk den når ett tall svarer på spørsmålet: feilraten, P95-ventetiden eller antall forespørsler betjent i dag.
 
@@ -67,11 +67,11 @@ Bruk den når verdien lever i et kjent område: CPU- eller diskbruk i prosent, e
 
 ### Tabell
 
-Metrikkverdier som rader. **Group By Attributes** gir én rad per verdi, for eksempel én per `host.name`; uten den er hver rad en tidsbolk. **Metrics & Columns** angir kolonnene: metrikker og formler over dem, som tilgjengelighet i prosent. Når du grupperer, gjør **Reduce across time** hver rads serie om til én verdi: den siste verdien, gjennomsnittet, summen, minimum eller maksimum.
+Målingsverdier som rader. **Group By Attributes** gir én rad per verdi, for eksempel én per `host.name`; uten den er hver rad en tidsbolk. **Metrics & Columns** angir kolonnene: målinger og formler over dem, som tilgjengelighet i prosent. Når du grupperer, gjør **Reduce across time** hver rads serie om til én verdi: den siste verdien, gjennomsnittet, summen, minimum eller maksimum.
 
 Slå på **Farg etter terskler** i en kolonne for å farge verdiene: En verdi som når **Advarselsterskel**, blir ravgul med en trekant, og en som når **Kritisk terskel**, blir rød og fet med en sirkel. En prosentkolonne starter på 80 og 90. For en kolonne der lave verdier er problemet, som ledig diskplass, velger du **Lavere er verre** under **Retning**.
 
-Terskler leser tallet tabellen viser, så en utnyttelsesmetrikk som sendes som en brøkdel av 1, som `system.cpu.utilization`, vises og sammenlignes som prosent. Under **Terskelfarger** fyller **Farget bakgrunn** hele cellen i stedet for å farge tallet.
+Terskler leser tallet tabellen viser, så en utnyttelsesmåling som sendes som en brøkdel av 1, som `system.cpu.utilization`, vises og sammenlignes som prosent. Under **Terskelfarger** fyller **Farget bakgrunn** hele cellen i stedet for å farge tallet.
 
 Bruk den til en oppdeling i stedet for en trend: de mest støyende vertene, feilene per tjeneste, forespørslene per endepunkt.
 
@@ -134,7 +134,7 @@ Den som kan redigere dashbordet, bestemmer hva denne widgeten kjører, og alle s
 | --- | --- | --- |
 | **Loggdiagram** | Loggvolum over tid, én serie per alvorlighet, som stolper, linjer eller arealer. | Alvorligheter, tekst innholdet inneholder, attributtfiltre. |
 | **Loggstrøm** | De nyeste logglinjene som samsvarer med et filter. | Alvorlighet, tekst innholdet inneholder, attributtfiltre som `@service.name:checkout`, hvor mange rader. |
-| **Spordiagram** | Antall forespørsler, antall feil eller responstid (gjennomsnitt, minimum, maksimum, P50 til P99) over tid. | Metrikken, hvilke spenn som telles, og et attributt seriene deles opp etter. |
+| **Spordiagram** | Antall forespørsler, antall feil eller responstid (gjennomsnitt, minimum, maksimum, P50 til P99) over tid. | Målingen, hvilke spenn som telles, og et attributt seriene deles opp etter. |
 | **Sporliste** | De nyeste sporene, med varighet og status. | Status, hvor mange rader. |
 | **Sportabell** | De største spennavnene, statusene eller attributtverdiene etter antall forespørsler, med median, gjennomsnittlig, minste og største responstid. | Hva radene grupperes etter, og hvilke spenn som telles. |
 | **Sikkerhetshendelser** | De nyeste sikkerhetshendelsene, med alvorlighet, hendelsesklasse og vert. | Alvorligheter, hendelsesklasser, tekst meldingen inneholder. |
@@ -169,7 +169,7 @@ SLO-widgeten fungerer på [offentlige dashbord](/docs/dashboards/sharing). Det s
 
 ### SLO List
 
-Hvert SLO med status, SLI, feilbudsjett og burn rate, med minst gjenstående budsjett først. Filtrer den etter status eller etiketter, eller med en **Etikettvariabel** som seerne velger i verktøylinjen. [SLO-metrikker og -dashbord](/docs/slo/metrics) viser begge SLO-widgetene i bruk.
+Hvert SLO med status, SLI, feilbudsjett og burn rate, med minst gjenstående budsjett først. Filtrer den etter status eller etiketter, eller med en **Etikettvariabel** som seerne velger i verktøylinjen. [SLO-målinger og -dashbord](/docs/slo/metrics) viser begge SLO-widgetene i bruk.
 
 ## Produktanalyse
 

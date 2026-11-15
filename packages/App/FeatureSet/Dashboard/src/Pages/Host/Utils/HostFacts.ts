@@ -235,5 +235,5 @@ export function formatHostBytes(bytes: number | null | undefined): string {
   // The number in the reader's digits, the unit as written: "۱۶ GiB".
   return `${formatReaderFigure(value, {
     decimals: index > 0 && value < 10 ? 1 : 0,
-  })} ${units[index]}`;
+  })}\u00A0${units[index]}`;
 }

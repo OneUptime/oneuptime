@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-Send spor, logger og metrikker fra Amazon ECS-oppgavene dine til OneUptime, både med Fargate- og EC2-oppstartstypen. Hver oppgave som rapporterer `cloud.platform=aws_ecs`, havner i ett **Skymiljø** per AWS-konto og region, for eksempel _AWS ECS · us-east-1 · 123456789012_, enten den kjører én tjeneste eller femti.
+Send spor, logger og målinger fra Amazon ECS-oppgavene dine til OneUptime, både med Fargate- og EC2-oppstartstypen. Hver oppgave som rapporterer `cloud.platform=aws_ecs`, havner i ett **Skymiljø** per AWS-konto og region, for eksempel _AWS ECS · us-east-1 · 123456789012_, enten den kjører én tjeneste eller femti.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva ECS-detektoren og sidecar-collectoren gjør.
@@ -35,9 +35,9 @@ ECS-detektoren setter disse ressursattributtene:
 | `cloud.region` | `us-east-1` | En del av miljønøkkelen |
 | `aws.ecs.task.arn` | oppgavens ARN | Gir én kjørende oppgave navn under **Instanser**, etter oppgave-ID-en på slutten |
 | `aws.ecs.task.id` | oppgave-ID-en | Det samme; nyere detektorversjoner setter begge |
-| `aws.ecs.cluster.arn`, `aws.ecs.task.family`, `aws.ecs.launchtype` | clusteret og oppgaven | Beholdes på hvert spenn, hver logg og metrikk så du kan søke på dem; ikke en del av miljøet |
+| `aws.ecs.cluster.arn`, `aws.ecs.task.family`, `aws.ecs.launchtype` | clusteret og oppgaven | Beholdes på hvert spenn, hver logg og måling så du kan søke på dem; ikke en del av miljøet |
 
-Miljønøkkelen er `aws_ecs|123456789012|us-east-1`. Oppgave-ID-en gir en instans navn også når SDK-en i tillegg setter `service.instance.id`: containermetrikkene fra sidecaren har bare oppgave-ID-en, så når den er nøkkelen, holdes spennene til en oppgave og CPU og minne for den på én rad. Se [Skymiljøer](/docs/telemetry/cloud-environments) for hele regelen.
+Miljønøkkelen er `aws_ecs|123456789012|us-east-1`. Oppgave-ID-en gir en instans navn også når SDK-en i tillegg setter `service.instance.id`: containermålingene fra sidecaren har bare oppgave-ID-en, så når den er nøkkelen, holdes spennene til en oppgave og CPU og minne for den på én rad. Se [Skymiljøer](/docs/telemetry/cloud-environments) for hele regelen.
 
 ## Før du begynner
 
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-Collectorens CloudWatch-loggstrøm (`otel/otel-collector/...`) skal vise `Everything is ready`, uten linjer med `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **App-plattformer → Alle miljøer** som _AWS ECS · us-east-1 · 123456789012_.
+Collectorens CloudWatch-loggstrøm (`otel/otel-collector/...`) skal vise `Everything is ready`, uten linjer med `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller målingen vises miljøet under **App-plattformer → Alle miljøer** som _AWS ECS · us-east-1 · 123456789012_.
 :::
 
 ## Den fullstendige oppgavedefinisjonen
@@ -321,7 +321,7 @@ aws ecs update-service \
 
 ## Hva du får
 
-- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine, flisene **CPU** og **Minne** og **Toppinstanser etter CPU**. Flisene fylles fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`, eller fra enhver metrikk `container.cpu.utilization` og `container.memory.usage` som bærer oppgavens identitet. SDK direct sender ingen av dem.
+- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine, flisene **CPU** og **Minne** og **Toppinstanser etter CPU**. Flisene fylles fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`, eller fra enhver måling `container.cpu.utilization` og `container.memory.usage` som bærer oppgavens identitet. SDK direct sender ingen av dem.
 - **Instanser**: én rad per kjørende oppgave, navngitt etter oppgave-ID-en (slutten av `aws.ecs.task.arn`), med siste CPU, minne og tidspunkt for sist sett. En oppgave som slutter å rapportere, blir **Foreldet**.
 - **Logger**, **Spor** og **Målinger**: alt som bar `cloud.platform=aws_ecs` for denne kontoen og regionen.
 - **Tjenester**: de samme oppgavene, delt opp etter `service.name`.
@@ -343,7 +343,7 @@ Telemetrien har ingen oppgaveidentitet. Sørg for at detektoren `ecs` kjører: r
 :::
 
 :::details Instanser fylles, men flisene CPU og Minne forblir tomme
-Receiveren `awsecscontainermetrics` mangler i pipelinen `metrics`, eller den pipelinen hopper over prosessoren `resourcedetection`, så containermetrikkene kommer uten `cloud.platform`. SDK direct fyller aldri disse flisene.
+Receiveren `awsecscontainermetrics` mangler i pipelinen `metrics`, eller den pipelinen hopper over prosessoren `resourcedetection`, så containermålingene kommer uten `cloud.platform`. SDK direct fyller aldri disse flisene.
 :::
 
 Et miljø som aldri vises, havner under **Verter** eller **Serverløse funksjoner**, viser **Frakoblet** eller deler seg i to, er dekket på [Feilsøking i skyen](/docs/telemetry/cloud-troubleshooting).

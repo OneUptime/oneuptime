@@ -35,6 +35,14 @@ import {
  * number is filled with a figure of its own, and nothing a line breaks at
  * may follow that figure. The unit symbols English writes are listed here,
  * apart from the code, so a unit the code forgets fails here.
+ *
+ * English is held too (#8302): "Every 5 min" broke as "Every 5" over
+ * "min". And a unit a language writes in two words holds together after
+ * its figure (#8304): Arabic's "411 ملي ث" could end a line with "ملي".
+ * A lone quantity's key - "{{value}} ms", "{{count}} s" - is drawn with no
+ * space a line breaks at anywhere in it, which finds such a unit in any
+ * language; the units of two words its sentences write are listed here
+ * too (UNITS_OF_TWO_WORDS).
  */
 
 const PACKAGES: string = path.resolve(__dirname, "../../..");
@@ -50,6 +58,9 @@ const STARTS_WITH_A_DIGIT: RegExp = /^[0-9]/;
 // The unit symbols English writes beside a number.
 const UNITS: ReadonlyArray<string> = [
   "%",
+  "ns",
+  "µs",
+  "μs",
   "ms",
   "s",
   "min",
@@ -95,6 +106,26 @@ const DIGITS_WITH_A_UNIT: RegExp = new RegExp(
 
 const ONE_SUFFIX: string = "_one";
 
+// A lone quantity's English: a placeholder and a unit, nothing else.
+const LONE_QUANTITY: RegExp = new RegExp(`^\\{\\{\\w+\\}\\} ?(?:${UNIT})$`);
+
+const PLACEHOLDER: RegExp = /\{\{\s*\w+\s*\}\}/g;
+
+const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]/;
+
+/*
+ * The units a language's sentences write in two words after a number,
+ * listed here apart from the code: Arabic's milliseconds, long, in each
+ * spelling its sentences use, and its nanoseconds. A lone quantity's key
+ * adds the ones each language writes there ("ملي ث").
+ */
+const UNITS_OF_TWO_WORDS: ReadonlyArray<string> = [
+  "ملي ثانية",
+  "مللي ثانية",
+  "ميلي ثانية",
+  "نانو ثانية",
+];
+
 interface Checked {
   sentences: number;
   breaks: Array<string>;
@@ -126,10 +157,34 @@ function inLatinDigits(text: string): string {
   });
 }
 
-// Each place in `drawn` where `figure` is followed by a space a line breaks at.
-function breaksAfter(drawn: string, figure: string): Array<string> {
+/*
+ * A unit of two words as it follows a held figure, its words apart by a
+ * space a line breaks at: "\u00A0ملي ث".
+ */
+function unitBrokenInside(unit: string): RegExp {
+  return new RegExp(
+    `^\\u00A0${unit
+      .split(" ")
+      .map((word: string): string => {
+        return escapeRegExp(word);
+      })
+      .join("[ \\u2000-\\u2006\\u2008-\\u200A\\u205F]+")}(?![\\p{L}\\p{M}])`,
+    "u",
+  );
+}
+
+/*
+ * Each place in `drawn` where `figure` is followed by a space a line breaks
+ * at, or by a unit of two words a line could break inside.
+ */
+function breaksAfter(
+  drawn: string,
+  figure: string,
+  unitsOfTwoWords: ReadonlyArray<string> = UNITS_OF_TWO_WORDS,
+): Array<string> {
   const text: string = inLatinDigits(drawn);
   const found: Array<string> = [];
+  const brokenUnits: Array<RegExp> = unitsOfTwoWords.map(unitBrokenInside);
   let at: number = text.indexOf(figure);
 
   while (at >= 0) {
@@ -140,15 +195,43 @@ function breaksAfter(drawn: string, figure: string): Array<string> {
     if (
       !PART_OF_A_NUMBER_OR_NAME.test(before) &&
       !STARTS_WITH_A_DIGIT.test(after) &&
-      BREAKING_SPACE.test(after)
+      (BREAKING_SPACE.test(after) ||
+        brokenUnits.some((broken: RegExp): boolean => {
+          return broken.test(after);
+        }))
     ) {
-      found.push(text.slice(Math.max(0, at - 12), at + figure.length + 6));
+      found.push(text.slice(Math.max(0, at - 12), at + figure.length + 12));
     }
 
     at = text.indexOf(figure, at + 1);
   }
 
   return found;
+}
+
+/*
+ * The units each language writes in two words after a number: the ones
+ * listed here, and every one a lone quantity's key writes ("{{value}} ms":
+ * "{{value}} ملي ث").
+ */
+function unitsOfTwoWordsIn(locale: Record<string, string>): Array<string> {
+  const units: Set<string> = new Set<string>(UNITS_OF_TWO_WORDS);
+
+  for (const key of Object.keys(locale)) {
+    const wording: string | undefined = locale[key];
+
+    if (typeof wording !== "string" || !LONE_QUANTITY.test(key)) {
+      continue;
+    }
+
+    const unit: string = wording.replace(PLACEHOLDER, "").trim();
+
+    if (BREAKING_SPACES.test(unit)) {
+      units.add(unit.split(/\s+/).join(" "));
+    }
+  }
+
+  return Array.from(units);
 }
 
 /*
@@ -164,8 +247,11 @@ function checkLanguage(data: {
     english: string,
     figures: Record<string, string>,
   ) => string;
+  // English itself: every key is its own wording, and is checked.
+  isEnglish?: boolean;
 }): Checked {
   const checked: Checked = { sentences: 0, breaks: [] };
+  const unitsOfTwoWords: Array<string> = unitsOfTwoWordsIn(data.locale);
 
   for (const key of Object.keys(data.locale)) {
     const wording: string | undefined = data.locale[key];
@@ -180,7 +266,7 @@ function checkLanguage(data: {
       : key;
 
     // English left in the locale is no wording of the language's own.
-    if (wording === key || wording === englishText) {
+    if (!data.isEnglish && (wording === key || wording === englishText)) {
       continue;
     }
 
@@ -215,7 +301,7 @@ function checkLanguage(data: {
       }),
       ...digits,
     ]) {
-      for (const spot of breaksAfter(drawn, figure)) {
+      for (const spot of breaksAfter(drawn, figure, unitsOfTwoWords)) {
         checked.breaks.push(
           `${data.language} ${JSON.stringify(key)}: "${spot}"`,
         );
@@ -324,6 +410,88 @@ describe("a number keeps its unit on its line", () => {
     expect(checked.breaks).toEqual([]);
   });
 
+  test("the Dashboard in English, through the Translator (#8302)", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
+    const checked: Checked = checkLanguage({
+      language: "en",
+      english,
+      locale: english,
+      draw: drawThrough(dashboardTranslator("en")),
+      isEnglish: true,
+    });
+
+    // About 160 English sentences write a number, a space and a unit.
+    expect(checked.sentences).toBeGreaterThan(150);
+    expect(checked.breaks).toEqual([]);
+  });
+
+  test("the server in English, through its translator (#8302)", () => {
+    const english: Record<string, string> = SERVER_LOCALES["en"] as Record<
+      string,
+      string
+    >;
+    const checked: Checked = checkLanguage({
+      language: "en",
+      english,
+      locale: english,
+      draw: drawThrough(getServerTranslator("en")),
+      isEnglish: true,
+    });
+
+    expect(checked.breaks).toEqual([]);
+  });
+
+  test.each(["en", ...DASHBOARD_LANGUAGES])(
+    "a lone quantity in the Dashboard in %s is drawn with no space a line breaks at in it (#8304)",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const drawn: Array<string> = [];
+
+      for (const key of Object.keys(readDashboardLocale("en"))) {
+        if (!LONE_QUANTITY.test(key)) {
+          continue;
+        }
+
+        const text: string = translator.translateTemplate(key, figuresFor(key));
+
+        if (BREAKING_SPACES.test(text)) {
+          drawn.push(`${language} ${JSON.stringify(key)}: "${text}"`);
+        }
+      }
+
+      expect(drawn).toEqual([]);
+    },
+  );
+
+  test("the lone quantities checked are the Dashboard's durations, among others", () => {
+    const lone: Array<string> = Object.keys(readDashboardLocale("en")).filter(
+      (key: string): boolean => {
+        return LONE_QUANTITY.test(key);
+      },
+    );
+
+    expect(lone).toEqual(
+      expect.arrayContaining([
+        "{{value}} ms",
+        "{{value}} s",
+        "{{count}} ms",
+        "{{count}} s",
+        "{{minutes}} min",
+      ]),
+    );
+  });
+
+  test("Arabic's milliseconds hold together in every sentence that writes them (#8304)", () => {
+    const arabic: Translator = dashboardTranslator("ar");
+
+    expect(arabic.translateTemplate("{{value}} ms", { value: "411" })).toBe(
+      "411\u00A0ملي\u00A0ث",
+    );
+    expect(unitsOfTwoWordsIn(readDashboardLocale("ar")).sort()).toEqual(
+      [...UNITS_OF_TWO_WORDS, "ملي ث"].sort(),
+    );
+  });
+
   test("the sentences checked are the ones the issue found, among many", () => {
     const german: Checked = checkLanguage({
       language: "de",
@@ -351,6 +519,53 @@ describe("the check finds a number a line could part from its unit (control)", (
     expect(breaksAfter("من 5\u00A0ms (و10 ms", "10")).toEqual([
       "من 5\u00A0ms (و10 ms",
     ]);
+  });
+
+  test("a unit of two words that a line could break inside (#8304)", () => {
+    expect(breaksAfter("زمن 9001\u00A0ملي ث", "9001")).toEqual([]);
+    expect(breaksAfter("زمن 9001\u00A0ملي ث", "9001", ["ملي ث"])).toEqual([
+      "زمن 9001\u00A0ملي ث",
+    ]);
+    expect(breaksAfter("زمن 9001\u00A0ملي\u00A0ث", "9001", ["ملي ث"])).toEqual(
+      [],
+    );
+    expect(breaksAfter("9001\u00A0مللي ثانية أو", "9001")).toEqual([
+      "9001\u00A0مللي ثانية ",
+    ]);
+    // A longer word that starts like the unit is none.
+    expect(breaksAfter("9001\u00A0ملي ثقيل", "9001", ["ملي ث"])).toEqual([]);
+  });
+
+  test("a lone quantity's unit of two words is found in a locale", () => {
+    expect(
+      unitsOfTwoWordsIn({
+        "{{value}} ms": "{{value}} ملي ث",
+        "{{value}} s": "{{value}} ث",
+        "Every {{minutes}} min": "كل {{minutes}} د",
+      }),
+    ).toContain("ملي ث");
+    expect(unitsOfTwoWordsIn({ "{{value}} s": "{{value}} ث" })).not.toContain(
+      "ث",
+    );
+  });
+
+  test("English drawn with the plain space it is written with fails", () => {
+    const checked: Checked = checkLanguage({
+      language: "en",
+      english: {},
+      locale: { "Every {{minutes}} min": "Every {{minutes}} min" },
+      draw: (
+        _key: string,
+        _english: string,
+        figures: Record<string, string>,
+      ): string => {
+        return `Every ${figures["minutes"]} min`;
+      },
+      isEnglish: true,
+    });
+
+    expect(checked.sentences).toBe(1);
+    expect(checked.breaks).toHaveLength(1);
   });
 
   test("another number, or a name that ends in the figure, is none of its business", () => {

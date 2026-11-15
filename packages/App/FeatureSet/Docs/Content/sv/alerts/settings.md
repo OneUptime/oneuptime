@@ -93,7 +93,7 @@ En regel larmar så snart ett larm matchar den. För att låta den vänta på ar
 
 En regel larmar personerna i sina policyer för att hantera larmet: den som bekräftar larmningen bekräftar larmet. För att hålla ett team informerat medan ett annat hanterar det svarar du **Observatörer** på **Larma personerna i de här policyerna som** under **Fler fält**. Deras larmning säger att de är observatörer, och bekräftar de den säger det bara att de har sett den: larmet bekräftas inte, och ingen annans larmning stoppas. Deras larmning fortsätter tills någon av dem svarar eller larmet är löst, och i listan säger regeln under sitt namn att den larmar som observatörer. En policy som en matchande regel larmar för att hantera larmet och en annan som observatörer larmar för att hantera det.
 
-En regel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och projektadministratörer kan redigera eller ta bort den, och alla andra som ser regler ser den skrivskyddad. En regel som inget team äger kan ändras av alla som får redigera jourregler, och episodregler kan också tillhöra team. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
+En regel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåller den de team du väljer: bara deras medlemmar och Projektadministratörer kan redigera eller ta bort den, och alla andra som ser regler ser den skrivskyddad. En regel som inget team äger kan ändras av alla som får redigera jourregler, och episodregler kan också tillhöra team. Se [Regler som tillhör team](/docs/permissions/index#regler-som-tillhör-team).
 
 ## Incidentregler
 
@@ -161,7 +161,7 @@ I **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur ofta �
 
 ### Medlemskap i episoder
 
-**Larm → Inställningar → Medlemskap i episoder** avgör om ett larm kan ingå i mer än en episod. Slå på **Ett larm kan bara ingå i en episod**, så läggs ett larm som finns i en episod inte till i någon annan, varken från instrumentpanelen eller via API:t, ett arbetsflöde eller en grupperingsregel, förrän det har tagits ut ur den episoden. Reglaget är avslaget tills du slår på det, och bara Project Owners och Project Admins kan ändra det. Att slå på det tar inte ut något larm ur en episod. Se [En episod per incident](/docs/incidents/episodes#en-episod-per-incident), som fungerar på samma sätt för larm.
+**Larm → Inställningar → Medlemskap i episoder** avgör om ett larm kan ingå i mer än en episod. Slå på **Ett larm kan bara ingå i en episod**, så läggs ett larm som finns i en episod inte till i någon annan, varken från instrumentpanelen eller via API:t, ett arbetsflöde eller en grupperingsregel, förrän det har tagits ut ur den episoden. Reglaget är avslaget tills du slår på det, och bara Projektägare och Projektadministratörer kan ändra det. Att slå på det tar inte ut något larm ur en episod. Se [En episod per incident](/docs/incidents/episodes#en-episod-per-incident), som fungerar på samma sätt för larm.
 
 ### Numrering
 
@@ -171,7 +171,7 @@ Kortet **Nästa nummer** under det anger numret som nästa larm och nästa episo
 
 ### Datalagring
 
-**Larm → Inställningar → Datalagring** tar bort larm när de har varit lösta tillräckligt länge, som [Datalagring](/docs/incidents/settings#datalagring) gör för incidenter. Kortet **Lösta larm** frågar efter **Ta bort efter**, **Aldrig** tills du väljer en tid, och ber om bekräftelse innan mer tas bort, med **Ta bort gamla larm**. Ett larm finns kvar så länge det inte är löst, så länge det ingår i en episod som fortfarande är öppen eller löstes för kortare tid sedan, och så länge en incident som det är länkat till finns kvar. Bara Project Owners och Project Admins kan ändra den; i API:t är det projektets `alertRetentionInDays`.
+**Larm → Inställningar → Datalagring** tar bort larm när de har varit lösta tillräckligt länge, som [Datalagring](/docs/incidents/settings#datalagring) gör för incidenter. Kortet **Lösta larm** frågar efter **Ta bort efter**, **Aldrig** tills du väljer en tid, och ber om bekräftelse innan mer tas bort, med **Ta bort gamla larm**. Ett larm finns kvar så länge det inte är löst, så länge det ingår i en episod som fortfarande är öppen eller löstes för kortare tid sedan, och så länge en incident som det är länkat till finns kvar. Bara Projektägare och Projektadministratörer kan ändra den; i API:t är det projektets `alertRetentionInDays`.
 
 > [!NOTE]
 > På OneUptime Cloud kräver anteckningsmallar och anpassade fält planen **Growth** eller högre.
@@ -182,7 +182,7 @@ Varje larmmodell har arbetsflödesutlösare och åtgärder som är uppkallade ef
 
 ## Vem som kan ändra dem
 
-Regler, anpassade fält och mätningar kräver en Project Owner eller Project Admin, eller en anpassad roll med regelns egen behörighet. **Larmmedlem** arbetar med larm och episoder, deras anteckningar, ägare och tillståndstidslinjer, och anteckningsmallar, och **Larmadministratör** hanterar dessutom larmtillstånd och allvarlighetsgrader. Se [Användare, team och behörigheter](/docs/permissions/index).
+Regler, anpassade fält och mätningar kräver en Projektägare eller Projektadministratör, eller en anpassad roll med regelns egen behörighet. **Larmmedlem** arbetar med larm och episoder, deras anteckningar, ägare och tillståndstidslinjer, och anteckningsmallar, och **Larmadministratör** hanterar dessutom larmtillstånd och allvarlighetsgrader. Se [Användare, team och behörigheter](/docs/permissions/index).
 
 ## Nästa steg
 

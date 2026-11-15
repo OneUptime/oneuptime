@@ -28,7 +28,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når DNS-serveren.** Prosjektets standardsonder velges for hver nye monitor. For å spørre en DNS-server på et privat nettverk, for eksempel en intern løser, bruker du en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket.
 
 ## Opprett en DNS-monitor
@@ -173,6 +173,6 @@ Serveren i **DNS-server (valgfritt)** validerer ikke DNSSEC og setter derfor ald
 :::cards
 - [DNSSEC-overvåking](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
 - [Domene-overvåking](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
-- [Egendefinerte probes](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

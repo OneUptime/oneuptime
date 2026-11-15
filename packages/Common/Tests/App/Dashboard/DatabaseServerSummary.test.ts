@@ -112,7 +112,7 @@ describe("summarizeDatabaseFleet", () => {
     expect(tiles[1]).toEqual({
       title: "Seen recently",
       value: "7",
-      sublabel: `in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES} min`,
+      sublabel: `in the last ${DATABASE_SERVER_LIVE_WINDOW_MINUTES}\u00A0min`,
     });
     expect(tiles[2]).toEqual({
       title: "Engine metrics",

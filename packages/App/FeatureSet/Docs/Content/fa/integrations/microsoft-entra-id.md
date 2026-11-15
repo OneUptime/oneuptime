@@ -23,7 +23,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 ## پیش از شروع
 
-- در OneUptime، نقش Project Owner، Project Admin یا Security Admin. Security Member و Security Viewer می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
+- در OneUptime، نقش مالک پروژه، مدیر پروژه یا مدیر امنیت. عضو امنیت و بیننده امنیت می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
 - برای ورودها و تشخیص‌های ریسک، Microsoft Entra ID P1 یا P2، که در Microsoft 365 E3، E5 و Business Premium هست: Microsoft Graph آن‌ها را فقط به چنین مستأجرهایی می‌دهد، و P2 جزئیات هر تشخیص ریسک را می‌دهد. تغییرات دایرکتوری در هر مستأجری خوانده می‌شوند.
 - یک نقش Entra که بتواند برنامه ثبت کند، مانند Application Administrator، و یک Global Administrator یا Privileged Role Administrator برای اعطای رضایت مدیر.
 - برای لاگ ممیزی Microsoft 365، ممیزی روشن برای مستأجر، که به‌طور پیش‌فرض روشن است: در [درگاه Microsoft Purview](https://purview.microsoft.com)، **Audit** نباید **Start recording user and admin activity** را پیشنهاد کند.

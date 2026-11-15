@@ -16,7 +16,7 @@ Den här sidan handlar om servrar som OneUptime AI ansluter till. Om du i ställ
 - **OneUptime AI är påslaget** för projektet, med en LLM-leverantör som den kan använda: se [LLM-leverantörer](/docs/ai/llm-provider).
 - **Serverns MCP-adress.** Både Streamable HTTP och det äldre HTTP med SSE fungerar: OneUptime tar reda på vilket servern talar när den ansluter.
 - **Hur OneUptime loggar in på den:** en API-token, serverns egna headers eller OAuth-klientautentiseringsuppgifter från din identitetsleverantör.
-- **En Project Owner eller en Project Admin** lägger till, ändrar, testar och tar bort servrar; Project Members och Viewers kan se dem. På OneUptime Cloud krävs Growth-planen eller högre för att lägga till en server.
+- **En Project Owner eller en Project Admin** lägger till, ändrar, testar och tar bort servrar; Projektmedlemmar och Tittare kan se dem. På OneUptime Cloud krävs Growth-planen eller högre för att lägga till en server.
 
 ## Lägg till en server
 

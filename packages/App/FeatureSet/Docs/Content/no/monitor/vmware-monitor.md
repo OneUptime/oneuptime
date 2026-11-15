@@ -1,28 +1,28 @@
 # VMware-overvåking
 
-En VMware-monitor følger med på ett vCenter - datasentrene, klyngene, ESXi-vertene, de virtuelle maskinene, datastorene, ressurspoolene og vSAN - og sier fra når en vert blir mettet, en VM mangler CPU eller minne, en datastore blir full, eller vSphere sender ut en alarm. Den leser `vcenter.*`-metrikkene som OneUptime VMware Agent samler inn, eller som en av probene dine samler inn uten en agent.
+En VMware-monitor følger med på ett vCenter - datasentrene, klyngene, ESXi-vertene, de virtuelle maskinene, datastorene, ressurspoolene og vSAN - og sier fra når en vert blir mettet, en VM mangler CPU eller minne, en datastore blir full, eller vSphere sender ut en alarm. Den leser `vcenter.*`-målingene som OneUptime VMware Agent samler inn, eller som en av sondene dine samler inn uten en agent.
 
 :::cards
 - [Opprett monitoren](#opprett-en-vmware-monitor): Seks trinn i dashbordet.
 - [Maler](#ferdige-varslingsmaler): Tjuefem ferdige varsler, én hendelse per vert, VM eller datastore.
 - [Identitetsattributter](#identitetsattributter): Slik treffer du én vert, VM eller datastore.
-- [Metrikker](#innsamlede-metrikker): Hver `vcenter.*`-serie monitoren kan varsle på.
+- [Målinger](#innsamlede-målinger): Hver `vcenter.*`-serie monitoren kan varsle på.
 :::
 
 ## Slik fungerer det
 
-Metrikkene kommer fra vCenters API og leses med en skrivebeskyttet konto på en av to måter:
+Målingene kommer fra vCenters API og leses med en skrivebeskyttet konto på en av to måter:
 
 - **VMware Agent**, en OpenTelemetry Collector med receiveren `vcenter`, som du kjører på en maskin som kan nå vCenter. Se [VMware-agent](/docs/telemetry/vmware).
-- **A probe**, uten noe å installere: du kobler til vCenteret i OneUptime og velger proben som kan nå det. Se [VMware uten agent](/docs/telemetry/vmware-agentless).
+- **A probe**, uten noe å installere: du kobler til vCenteret i OneUptime og velger sonden som kan nå det. Se [VMware uten agent](/docs/telemetry/vmware-agentless).
 
-Begge sender de samme seriene hvert innsamlingsintervall (2 minutter som standard), merket med vCenterets navn, `vmware.vcenter.name`. Et vCenter er ett vSphere-endepunkt: en vCenter Server eller en frittstående ESXi-vert. En VMware-monitor er knyttet til ett vCenter. Hvert minutt kjører den spørringen sin på det vCenterets metrikker og sammenligner resultatet med kriteriene sine.
+Begge sender de samme seriene hvert innsamlingsintervall (2 minutter som standard), merket med vCenterets navn, `vmware.vcenter.name`. Et vCenter er ett vSphere-endepunkt: en vCenter Server eller en frittstående ESXi-vert. En VMware-monitor er knyttet til ett vCenter. Hvert minutt kjører den spørringen sin på det vCenterets målinger og sammenligner resultatet med kriteriene sine.
 
 ```mermaid title="Fra et vCenter til en hendelse"
 flowchart TB
     vcenter["vCenter Server eller ESXi-vert"] --> agent["VMware Agent"]
-    vcenter --> probe["Proben din"]
-    agent -->|"vcenter-metrikker<br/>over OTLP"| oneuptime["OneUptime"]
+    vcenter --> probe["Sonden din"]
+    agent -->|"vcenter-målinger<br/>over OTLP"| oneuptime["OneUptime"]
     probe --> oneuptime
     oneuptime --> monitor["VMware-monitor"]
     monitor -->|"hvert minutt"| criteria{"Kriterier oppfylt?"}
@@ -32,7 +32,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Samle inn vCenterets metrikker**, med [VMware Agent](/docs/telemetry/vmware) eller [uten en agent](/docs/telemetry/vmware-agentless). Begge bruker en vSphere-bruker med rollen **Read-Only** på det øverste vCenter-objektet, med **Propagate to children** avkrysset. Agenten leser `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `VMWARE_VCENTER_NAME`, `VCENTER_ENDPOINT`, `VCENTER_USERNAME` og `VCENTER_PASSWORD`.
+- **Samle inn vCenterets målinger**, med [VMware Agent](/docs/telemetry/vmware) eller [uten en agent](/docs/telemetry/vmware-agentless). Begge bruker en vSphere-bruker med rollen **Read-Only** på det øverste vCenter-objektet, med **Propagate to children** avkrysset. Agenten leser `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `VMWARE_VCENTER_NAME`, `VCENTER_ENDPOINT`, `VCENTER_USERNAME` og `VCENTER_PASSWORD`.
 - **Sjekk at vCenteret er registrert.** Det vises under **Produkter → Infrastruktur → VMware → Alle vCenter**: via agenten, oppkalt etter dens `VMWARE_VCENTER_NAME`, etter den første fullstendige innsamlingen; uten agent fra det øyeblikket du kobler det til.
 
 ## Opprett en VMware-monitor
@@ -54,13 +54,13 @@ Velg vCenteret i **vCenter** under **VMware Monitor Configuration**. Hvert vCent
 
 En ny monitor starter med **vCenter Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) - velg én metrikk i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter målingen, attributtfiltrene, aggregeringen, tidsintervallet, grupperingen og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én måling i **VMware Metric**, og sett deretter **Aggregering** og **Tidsintervall**. Skjemaet grupperer den etter objektet den beskriver, så hver vert, VM eller datastore vurderes for seg, og [filtrene](#monitorinnstillinger) snevrer den inn til ett datasenter, én klynge, én vert, én VM, én datastore eller én ressurspool.
 - **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, med filtre på attributter som `disk_state`, `power_state` eller `status`. Bruk **Grupper etter** med et [identitetsattributt](#identitetsattributter) for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Kriterier**, og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
+Åpne hvert kriterium under **Kriterier**, og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at målingen ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -81,8 +81,8 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Virtuell maskin** | Custom Metric, Avansert | Valgfritt. Én VM: `resource.vcenter.vm.name`. VM-navn trenger ikke være unike: legg til en vert eller en klynge når to VM-er deler et navn. |
 | **Datalager** | Custom Metric, Avansert | Valgfritt. Én datastore: `resource.vcenter.datastore.name`. |
 | **Resource Pool Path** | Custom Metric, Avansert | Valgfritt. Én ressurspool, via inventarstien (`/DC/host/Cluster/Resources/pool`): `resource.vcenter.resource_pool.inventory_path`. En sti, fordi poolnavn bare er unike innenfor det overordnede objektet. |
-| **VMware Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
+| **VMware Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
+| **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; maler setter sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
@@ -106,13 +106,13 @@ I monitorfiltre og grupperingsnøkler begynner ressursattributter med `resource.
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 25 maler for vanlige VMware-problemer, og listen under **Hva det skal varsles om** tilbyr alle. Hver bygger en komplett monitor: metrikkspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 25 maler for vanlige VMware-problemer, og listen under **Hva det skal varsles om** tilbyr alle. Hver bygger en komplett monitor: målingsspørringen, attributtfiltrene, en gruppering på objektets eget identitetsattributt, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet, og et terskelkriterium gjenoppretter 10 % forbi terskelen, så en verdi som svinger rundt linjen, ikke skifter fram og tilbake.
 
 | Mal | Kategori | Alvorlighetsgrad | Overvåker | Utløser når | Gjenoppretter når |
 | --- | --- | --- | --- | --- | --- |
-| vCenter Stopped Reporting | Tilgjengelighet | Kritisk | `vcenter.datacenter.cpu.limit`, Count over hele vCenteret, **siste 10 minutter** | Ingen data i hele vinduet: agenten eller proben har stoppet, eller vCenteret sluttet å svare den | Data kommer inn igjen |
+| vCenter Stopped Reporting | Tilgjengelighet | Kritisk | `vcenter.datacenter.cpu.limit`, Count over hele vCenteret, **siste 10 minutter** | Ingen data i hele vinduet: agenten eller sonden har stoppet, eller vCenteret sluttet å svare den | Data kommer inn igjen |
 | Host Not Responding | Vert | Kritisk | `vcenter.host.memory.usage`, Max per `resource.vcenter.host.name` | Ved 0, ikke noe minne i bruk: vCenter har mistet kontakten med verten (den krasjet, mistet strømmen eller administrasjonsnettverket, eller ble koblet fra), eller den er slått av eller i standby. Der vSphere DPM setter verter i standby, bruker du **Datacenter Hosts Not Responding**, som utelater dem | Over 0 |
 | Host CPU Saturation | Vert | Advarsel | `vcenter.host.cpu.utilization`, Avg per vert | Over 90 %: hver VM på verten konkurrerer om kjerner og viser CPU-ready-tid | Ved 81 % eller mindre |
 | Host Memory Saturation | Vert | Advarsel | `vcenter.host.memory.utilization`, Avg per vert | Over 90 %: verten begynner å ta tilbake minne med ballooning, komprimering og swapping | Ved 81 % eller mindre |
@@ -141,20 +141,20 @@ Malene leser de siste 5 minuttene, med mindre tabellen sier noe annet. Et kriter
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.
 
 - **Utnyttelsesmaler bruker Avg:** receiveren rapporterer en ekte prosent fra 0 til 100 for hvert objekt, så gjennomsnittet i et minutt er den vedvarende utnyttelsen.
-- **Latensmaler bruker Max:** metrikken er allerede den verste latensen på tvers av objektets disker, så den høyeste prøven er den ærlige.
+- **Latensmaler bruker Max:** målingen er allerede den verste latensen på tvers av objektets disker, så den høyeste prøven er den ærlige.
 - **Antalls- og tilstandsmaler bruker Max**, så én innsamling som viser tilstanden, utløser dem: pakkefeil, ballooning, swapping, rød og gul status, verter som ikke er effektive, overbelastning.
 - **Host Not Responding bruker Max og utløses ved 0:** en ESXi-vert som kjører, bruker alltid minne, så én innsamling som rapporterer minne i bruk, er en vert som svarer, og bare et vindu der ingen gjorde det, utløser den.
 - **Hver mal grupperer på objektets eget identitetsattributt**, så det utløses én hendelse per berørt objekt, og hendelsen nevner det. Unntaket er **vCenter Stopped Reporting**, som overvåker hele vCenteret: når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Datasenter-tellemaler gjenoppretter når serien deres er borte:** mottakeren registrerer bare et antall for tilstander som finnes, så når den siste røde verten blir grønn, er det ingen serie igjen, og gjenopprettingskriteriene deres teller en manglende serie som 0. Når ingen datasentre har en serie igjen, gjenoppretter de bare hvis `vcenter.datacenter.cpu.limit` kom i samme vindu, så en vCenter som har sluttet å rapportere, lukker ingenting.
 - **Terskler er låst i enheten sin** (`%`, `ms`, `us`), så de beholder betydningen sin uansett hvilken enhet en graf viser.
 
-## Innsamlede metrikker
+## Innsamlede målinger
 
-Metrikkene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens egne: `MHz`, `%`, `MiBy` (mebibyte), `By` (byte), `KiBy`, `ms`, `us` (mikrosekunder), `{KiBy/s}`, `By/s` og antall. En metrikk merket _av som standard_ samles ikke inn før du slår den på i agentens `otel-collector-config.yaml`; den medfølgende konfigurasjonen slår allerede på `vcenter.host.memory.capacity`.
+Målingene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens egne: `MHz`, `%`, `MiBy` (mebibyte), `By` (byte), `KiBy`, `ms`, `us` (mikrosekunder), `{KiBy/s}`, `By/s` og antall. En måling merket _av som standard_ samles ikke inn før du slår den på i agentens `otel-collector-config.yaml`; den medfølgende konfigurasjonen slår allerede på `vcenter.host.memory.capacity`.
 
 ### Datasenter
 
-| Metrikk                              | Enhet               | Beskrivelse                                                                                                                                                    |
+| Måling                              | Enhet               | Beskrivelse                                                                                                                                                    |
 | ------------------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `vcenter.datacenter.cluster.count`   | `{clusters}`        | Klynger i datasenteret, delt opp etter `status` (`red` / `yellow` / `green` / `gray`). Summer for totalen; filtrer `status = red` for klynger med en kritisk alarm |
 | `vcenter.datacenter.cpu.limit`       | `MHz`               | Total CPU tilgjengelig for datasenteret på tvers av alle ESXi-verter                                                                                           |
@@ -166,7 +166,7 @@ Metrikkene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens
 
 ### Klynge
 
-| Metrikk                             | Enhet                         | Beskrivelse                                                                                                                                                  |
+| Måling                             | Enhet                         | Beskrivelse                                                                                                                                                  |
 | ----------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `vcenter.cluster.cpu.effective`     | `MHz`                         | CPU klyngen faktisk kan planlegge — uten verter i vedlikeholdsmodus eller verter som ikke svarer. Sammenlign med `vcenter.cluster.cpu.limit` for kapasitet ute av drift |
 | `vcenter.cluster.cpu.limit`         | `MHz`                         | Total CPU for hver ESXi-vert i klyngen, uavhengig av vertens tilstand                                                                                        |
@@ -178,7 +178,7 @@ Metrikkene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens
 
 ### Vert (ESXi)
 
-| Metrikk                                  | Enhet         | Beskrivelse                                                                                                                                                       |
+| Måling                                  | Enhet         | Beskrivelse                                                                                                                                                       |
 | ---------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `vcenter.host.cpu.capacity`              | `MHz`         | ESXi-vertens totale CPU-kapasitet (kjerner × klokke) — nevneren for `vcenter.host.cpu.usage`                                                                      |
 | `vcenter.host.cpu.reserved`              | `MHz`         | CPU reservert for virtuelle maskiner, delt opp etter `cpu_reservation_type` (`total` / `used`). Når `used` nærmer seg `total`, vil nye reservasjoner feile i tilgangskontrollen |
@@ -201,7 +201,7 @@ Metrikkene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens
 
 ### Virtuell maskin
 
-| Metrikk                                    | Enhet         | Beskrivelse                                                                                                                                                                   |
+| Måling                                    | Enhet         | Beskrivelse                                                                                                                                                                   |
 | ------------------------------------------ | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `vcenter.vm.cpu.readiness`                 | `%`           | Andelen av tiden VM-en var klar til å kjøre, men ikke kunne planlegges på en fysisk CPU (CPU ready). Over 5 % føles gjesten treg; over 10 % er verten overbooket. Bare påslåtte VM-er |
 | `vcenter.vm.cpu.time`                      | `%`           | Tid VM-ens vCPU-er brukte i hver tilstand, etter `cpu_state` (`idle` / `ready` / `wait`) og `object` (vCPU). _Av som standard_ — slå på `vcenter.vm.cpu.time`                  |
@@ -227,14 +227,14 @@ Metrikkene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens
 
 ### Datastore
 
-| Metrikk                              | Enhet | Beskrivelse                                                                                                                                  |
+| Måling                              | Enhet | Beskrivelse                                                                                                                                  |
 | ------------------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `vcenter.datastore.disk.usage`       | `By`  | Plass på datastoren, delt opp etter `disk_state` (`used` / `available`). used + available er datastorens kapasitet                         |
 | `vcenter.datastore.disk.utilization` | `%`   | Prosentandel (0–100) av datastorens kapasitet som er i bruk. En full datastore setter hver VM som skriver til den, på pause, så varsle i god tid før 100 % |
 
 ### Ressurspool
 
-| Metrikk                                  | Enhet      | Beskrivelse                                                                                                                                                              |
+| Måling                                  | Enhet      | Beskrivelse                                                                                                                                                              |
 | ---------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `vcenter.resource_pool.cpu.shares`       | `{shares}` | CPU-andeler konfigurert på poolen — dens relative prioritet mot søskenpooler når det overordnede objektet er under press                                                  |
 | `vcenter.resource_pool.cpu.usage`        | `MHz`      | CPU forbrukt av hver VM i poolen (og underpoolene)                                                                                                                       |
@@ -248,7 +248,7 @@ Metrikkene nedenfor er katalogen monitorskjemaet tilbyr. Enhetene er receiverens
 
 Sendes bare for klynger med vSAN, vertene i dem og VM-ene på en vSAN-datastore. Latenser er i **mikrosekunder** (`us`), i motsetning til latensene i millisekunder for verter og VM-er:
 
-| Metrikk                             | Enhet             | Beskrivelse                                                                                                                                     |
+| Måling                             | Enhet             | Beskrivelse                                                                                                                                     |
 | ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `vcenter.cluster.vsan.congestions`  | `{congestions/s}` | Overbelastningshendelser per sekund rettet mot I/O fra hver vSAN-klient i klyngen — vSAN sitt eget mottrykkssignal                              |
 | `vcenter.cluster.vsan.latency.avg`  | `us`              | Gjennomsnittlig latens klyngen ser ved tilgang til vSAN-lagring, etter `type` (`read` / `write`). 20 000 µs = 20 ms                             |
@@ -264,23 +264,23 @@ Sendes bare for klynger med vSAN, vertene i dem og VM-ene på en vSAN-datastore.
 | `vcenter.vm.vsan.throughput`        | `By/s`            | VM-ens vSAN-gjennomstrømning, etter `direction`                                                                                                 |
 
 > [!NOTE]
-> En VMs strømtilstand er ikke en metrikk. Receiveren sender bare `vcenter.vm.cpu.*` for påslåtte VM-er, så OneUptime skiller **Powered on** fra **Slått av** ut fra om CPU-data kom i samme innsamling som VM-ens minne- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For å varsle om avslåtte verter eller om hvor mange VM-er som kjører, bruker du attributtet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
+> En VMs strømtilstand er ikke en måling. Receiveren sender bare `vcenter.vm.cpu.*` for påslåtte VM-er, så OneUptime skiller **Powered on** fra **Slått av** ut fra om CPU-data kom i samme innsamling som VM-ens minne- og diskdata; vCenterets side **Virtuelle maskiner** viser resultatet. For å varsle om avslåtte verter eller om hvor mange VM-er som kjører, bruker du attributtet `power_state` på `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count` eller `vcenter.cluster.vm.count`.
 
 ## Overvåkingskriterier
 
-Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en VMware-monitor har ingen **Filtertype**: hver regel sjekker metrikkverdien, med disse feltene.
+Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en VMware-monitor har ingen **Filtertype**: hver regel sjekker målingsverdien, med disse feltene.
 
 | Felt | Hva det gjør |
 | --- | --- |
 | **Måling** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må samsvare, i hele vinduet) eller **Minst én verdi** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
-| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når målingens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når målingen har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen prøver: **Ignore** (standarden), **Treat As Zero** eller **Utløser**. |
 
-Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 Noen kriterier å starte med:
 
@@ -300,7 +300,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 
@@ -340,8 +340,8 @@ monitor_steps = [{
 Et vCenter som agenten samler inn fra, registrerer seg selv ut fra agentens data. Sjekk at agenten kjører og sender data (se [Bekreft installasjonen](/docs/telemetry/vmware#bekreft-installasjonen)), at `VMWARE_VCENTER_NAME` er satt, og at et innsamlingsintervall har gått: ingenting sendes før den første fullstendige gjennomgangen av inventaret er ferdig.
 :::
 
-:::details Verter har metrikker, men VM-er, datastorer eller klynger har ikke
-Den skrivebeskyttede vSphere-brukeren fikk rollen sin uten **Propagate to children**, eller på et objekt under vCenterets rot. Objekter brukeren ikke kan se, mangler rett og slett i metrikkene. Sett tillatelsen på det øverste vCenter-objektet, med videreføring avkrysset.
+:::details Verter har målinger, men VM-er, datastorer eller klynger har ikke
+Den skrivebeskyttede vSphere-brukeren fikk rollen sin uten **Propagate to children**, eller på et objekt under vCenterets rot. Objekter brukeren ikke kan se, mangler rett og slett i målingene. Sett tillatelsen på det øverste vCenter-objektet, med videreføring avkrysset.
 :::
 
 :::details Host CPU Saturation utløser aldri
@@ -356,7 +356,7 @@ Malen tar gjennomsnittet av `vcenter.host.cpu.utilization` per `resource.vcenter
 Receiverens boolske attributt `effective` lagres som teksten `"true"` eller `"false"`. Filtrer det med teksten, ikke med en boolsk verdi.
 :::
 
-:::details Metrikker for disklatens eller gjennomstrømning mangler
+:::details Målinger for disklatens eller gjennomstrømning mangler
 `vcenter.host.disk.latency.avg` og `vcenter.vm.disk.*` krever vCenters statistikknivå 2, `vcenter.host.disk.latency.max` krever nivå 3, og `vcenter.host.disk.throughput` nivå 4. Øk statistikknivået for 5-minuttersintervallet under _vCenter → Configure → General → Statistics_.
 :::
 
@@ -368,7 +368,7 @@ vCenter leses én gang per innsamlingsintervall, 2 minutter som standard og ofte
 
 :::cards
 - [VMware-agent](/docs/telemetry/vmware): Installer agenten som samler inn fra vCenter.
-- [VMware uten agent](/docs/telemetry/vmware-agentless): La en probe samle inn i stedet.
+- [VMware uten agent](/docs/telemetry/vmware-agentless): La en sonde samle inn i stedet.
 - [Proxmox-overvåking](/docs/monitor/proxmox-monitor): Samme type monitor for Proxmox VE.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

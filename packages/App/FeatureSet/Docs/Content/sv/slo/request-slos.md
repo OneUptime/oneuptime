@@ -37,7 +37,7 @@ Därifrån fungerar ett SLO för begäranden som alla andra. Dess status, regler
 ## Innan du börjar
 
 - Tjänsterna skickar spår till OneUptime: se [OpenTelemetry](/docs/telemetry/open-telemetry). Var och en finns i [tjänstekatalogen](/docs/telemetry/services) under sitt `service.name`.
-- En roll som får skapa SLO:er: Project Owner, Project Admin eller en anpassad roll med behörigheten Create Service Level Objective.
+- En roll som får skapa SLO:er: Projektägare, Projektadministratör eller en anpassad roll med behörigheten Create Service Level Objective.
 
 ## Skapa ett SLO för begäranden
 
@@ -59,7 +59,7 @@ Ange ett **Namn**, till exempel ”Checkout requests”, och ett **Mål (%)**: d
 Den första utvärderingen, inom 5 minuter, räknar begärandena från de senaste 6 timmarna, så SLO:et har siffror direkt. Utvärderingarna efter den räknar även äldre begäranden, tills hela efterlevnadsfönstret är täckt.
 :::
 
-För att senare ändra vad ett SLO mäter, dess tjänster eller dess gräns öppnar du dess **Inställningar** och klickar på **Redigera vad den mäter**.
+En tjänsts egen sida **SLOs** visar de SLO:er som mäter den, och dess **Skapa Service Level Objective** öppnar samma formulär med tjänsten redan vald. För att senare ändra vad ett SLO mäter, dess tjänster eller dess gräns öppnar du dess **Inställningar** och klickar på **Redigera vad den mäter**.
 
 ## Så räknas begäranden
 
@@ -86,7 +86,7 @@ Ett SLO för begäranden får samma regler **Fast burn**, **Slow burn** och **Sl
 
 ## Felsökning
 
-:::details SLO:et visar Waiting for requests
+:::details SLO:et visar Väntar på begäranden
 Ingen av dess tjänster har besvarat en begäran i fönstret ännu. Kontrollera att tjänsterna skickar spår till OneUptime och att deras spans innehåller ingångsspans: en tjänst vars spans alla är interna har inga begäranden att räkna.
 :::
 

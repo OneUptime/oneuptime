@@ -15,7 +15,12 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
-import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_WIDGET_LINES,
+  AI_READ_WIDGET_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
 import {
   ObservabilityTool,
@@ -243,7 +248,14 @@ export const QueryAlertsTool: ObservabilityTool = {
         widget:
           rows.length > 0
             ? WidgetBuilder.alertList({
-                title: `Alert #${alert?.alertNumber ?? ""}`.trim(),
+                // In the reader's language (issue #8312): by its number.
+                words: {
+                  title: alert?.alertNumber
+                    ? aiActionSentence(AI_READ_CITATIONS.alert, {
+                        alert: `#${alert.alertNumber}`,
+                      })
+                    : aiActionSentence(AI_READ_WIDGET_TITLES.alert),
+                },
                 items: rows,
                 link: {
                   type: AIChatCitationTargetType.AlertView,
@@ -426,11 +438,20 @@ export const QueryAlertsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.alertList({
-              title: `Alerts (${rows.length})`,
-              description:
-                state === "active" && !hasExplicitWindow
-                  ? "Currently unresolved alerts"
-                  : `Created in the last ${createdWithinHours}h`,
+              // In the reader's language (issue #8312).
+              words: {
+                title: aiActionSentence(AI_READ_WIDGET_TITLES.alerts, {
+                  count: countFigure(rows.length),
+                }),
+                description:
+                  state === "active" && !hasExplicitWindow
+                    ? aiActionSentence(
+                        AI_READ_WIDGET_LINES.currentlyUnresolvedAlerts,
+                      )
+                    : aiActionSentence(AI_READ_WIDGET_LINES.createdInHours, {
+                        hours: countFigure(createdWithinHours),
+                      }),
+              },
               items: rows,
               link: { type: AIChatCitationTargetType.Alerts },
             })

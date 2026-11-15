@@ -17,6 +17,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC,
  * and resolved lazily for the same circular-import reason as MonitorTools.
@@ -143,7 +145,12 @@ export const QueryNetworkTransceiversTool: ObservabilityTool = {
     return {
       dataForLlm: `${serialized.text || "No matching data."}\n${note}`,
       rowCount: serialized.rowCount,
-      citationLabel: `${device.name || "Network device"} transceivers`,
+      // In the reader's language (issue #8311).
+      ...(device.name
+        ? citationSentence(AI_TOOL_CITATIONS.transceivers, {
+            name: device.name,
+          })
+        : citationSentence(AI_TOOL_CITATIONS.transceiversUnnamed)),
       citationTarget: {
         type: AIChatCitationTargetType.TelemetryResourceView,
         params: {

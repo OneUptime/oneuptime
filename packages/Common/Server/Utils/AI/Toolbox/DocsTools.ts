@@ -22,6 +22,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, ToolCitation } from "./ReadTableWords";
 /*
  * "HOW DO I...?" ANSWERED FROM OneUptime's OWN DOCS (issue #6828).
  *
@@ -99,13 +101,13 @@ export const getDocsLanguageArgument: (args: JSONObject) => string = (
   return isSupportedDocsLanguage(base) ? base : DEFAULT_DOCS_LANGUAGE;
 };
 
-const unavailable: (citationLabel: string) => ToolExecutionResult = (
-  citationLabel: string,
+const unavailable: (citation: ToolCitation) => ToolExecutionResult = (
+  citation: ToolCitation,
 ): ToolExecutionResult => {
   return {
     dataForLlm: DOCS_UNAVAILABLE_MESSAGE,
     rowCount: 0,
-    citationLabel,
+    ...citation,
     redactionCount: 0,
     isTruncated: false,
   };
@@ -218,11 +220,15 @@ export const SearchDocsTool: ObservabilityTool = {
       min: 1,
       max: MAX_SEARCH_LIMIT,
     });
-    const citationLabel: string = `Docs search: ${query}`;
+    // In the reader's language (issue #8311).
+    const citation: ToolCitation = citationSentence(
+      AI_TOOL_CITATIONS.docsSearch,
+      { query },
+    );
     const reader: AIDocsReader | null = AIDocsLibrary.getReader();
 
     if (!reader) {
-      return unavailable(citationLabel);
+      return unavailable(citation);
     }
 
     if (!query) {
@@ -230,7 +236,7 @@ export const SearchDocsTool: ObservabilityTool = {
         dataForLlm:
           "Error: pass query, the words to look for in the docs. Adjust the arguments and try again.",
         rowCount: 0,
-        citationLabel,
+        ...citation,
         redactionCount: 0,
         isTruncated: false,
       };
@@ -246,7 +252,7 @@ export const SearchDocsTool: ObservabilityTool = {
       return {
         dataForLlm: `No docs page matched "${query}". Try other words, or English words, once; if nothing matches, the docs do not cover this.`,
         rowCount: 0,
-        citationLabel,
+        ...citation,
         redactionCount: 0,
         isTruncated: false,
       };
@@ -273,7 +279,7 @@ export const SearchDocsTool: ObservabilityTool = {
         1,
       ),
       rowCount: hits.length,
-      citationLabel,
+      ...citation,
       redactionCount: 0,
       isTruncated: false,
     };
@@ -312,7 +318,9 @@ export const ReadDocsTool: ObservabilityTool = {
     const reader: AIDocsReader | null = AIDocsLibrary.getReader();
 
     if (!reader) {
-      return unavailable(`Docs: ${pageArgument}`);
+      return unavailable(
+        citationSentence(AI_TOOL_CITATIONS.docsPage, { page: pageArgument }),
+      );
     }
 
     const page: AIDocsPage | null = pageArgument
@@ -323,7 +331,9 @@ export const ReadDocsTool: ObservabilityTool = {
       return {
         dataForLlm: `There is no docs page "${pageArgument}". Find the page with search_docs, and pass its page exactly as returned.`,
         rowCount: 0,
-        citationLabel: `Docs: ${pageArgument}`,
+        ...citationSentence(AI_TOOL_CITATIONS.docsPage, {
+          page: pageArgument,
+        }),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -375,9 +385,12 @@ export const ReadDocsTool: ObservabilityTool = {
         1,
       ),
       rowCount: 1,
-      citationLabel: section
-        ? `Docs: ${page.title} > ${section.title}`
-        : `Docs: ${page.title}`,
+      ...(section
+        ? citationSentence(AI_TOOL_CITATIONS.docsSection, {
+            page: page.title,
+            section: section.title,
+          })
+        : citationSentence(AI_TOOL_CITATIONS.docsPage, { page: page.title })),
       citationTarget: {
         type: AIChatCitationTargetType.DocsPage,
         params: {
@@ -416,7 +429,10 @@ export const FindDashboardPageTool: ObservabilityTool = {
       0,
       200,
     );
-    const citationLabel: string = `Dashboard page: ${query}`;
+    const citation: ToolCitation = citationSentence(
+      AI_TOOL_CITATIONS.dashboardPageSearch,
+      { query },
+    );
     const pages: Array<AIDashboardPage> = query
       ? DashboardPageFinder.find({
           query,
@@ -430,7 +446,7 @@ export const FindDashboardPageTool: ObservabilityTool = {
       return {
         dataForLlm: `No page of the Dashboard is named like "${query}". Try the name the docs give the page, once; otherwise end the answer without a page.`,
         rowCount: 0,
-        citationLabel,
+        ...citation,
         redactionCount: 0,
         isTruncated: false,
       };
@@ -452,7 +468,9 @@ export const FindDashboardPageTool: ObservabilityTool = {
         1,
       ),
       rowCount: pages.length,
-      citationLabel: `Page: ${[...first.where, first.title].join(" > ")}`,
+      ...citationSentence(AI_TOOL_CITATIONS.dashboardPage, {
+        path: [...first.where, first.title].join(" > "),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.DashboardPage,
         params: { path: first.path, title: first.title },

@@ -36,9 +36,9 @@ sequenceDiagram
 
 ## Før du begynner
 
-- **En av prosjektets egne sonder.** Globale sonder bærer andre prosjekters trafikk, så de tar aldri opp. Se [Egendefinerte probes](/docs/probe/custom-probe) for å installere en egen sonde.
+- **En av prosjektets egne sonder.** Globale sonder bærer andre prosjekters trafikk, så de tar aldri opp. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å installere en egen sonde.
 - **En sonde fra denne utgivelsen eller nyere.** Eldre sonder rapporterer ikke hva de kan ta opp på.
-- **De riktige tillatelsene.** Å starte og stoppe et opptak krever **Start Packet Capture**, og å laste ned en fil krever **Download Packet Capture**. Prosjekteiere og -administratorer har begge. Se [Tillatelser](#tillatelser).
+- **De riktige tillatelsene.** Å starte og stoppe et opptak krever **Start Packet Capture**, og å laste ned en fil krever **Download Packet Capture**. Prosjekteiere og Prosjektadministratorer har begge. Se [Tillatelser](#tillatelser).
 - **En speilet port, for trafikk som ikke når sonden.** En sonde ser bare trafikken på sin egen verts grensesnitt. For å ta opp trafikk mellom andre enheter speiler du switchporten deres (SPAN) til et ledig grensesnitt på sondens vert.
 
 ## Slå på pakkeopptak
@@ -188,10 +188,10 @@ Et filter du skriver selv, er én linje på høyst 500 tegn, laget av bokstaver,
 
 | Tillatelse | Lar en person | Hvem har den som standard |
 | --- | --- | --- |
-| **Start Packet Capture** | Starte opptak, og stoppe dem | Project Owner, Project Admin |
-| **Download Packet Capture** | Laste ned opptaksfiler | Project Owner, Project Admin |
-| **Delete Packet Capture** | Slette opptak og filene deres | Project Owner, Project Admin |
-| **Read Packet Capture** | Se opptak: når de kjørte, på hvilken sonde og med hvilket filter | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Starte opptak, og stoppe dem | Prosjekteier, Prosjektadministrator |
+| **Download Packet Capture** | Laste ned opptaksfiler | Prosjekteier, Prosjektadministrator |
+| **Delete Packet Capture** | Slette opptak og filene deres | Prosjekteier, Prosjektadministrator |
+| **Read Packet Capture** | Se opptak: når de kjørte, på hvilken sonde og med hvilket filter | Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser |
 
 For å gi et team **Start Packet Capture** eller **Download Packet Capture** åpner du det under **Innstillinger → Team** og legger til tillatelsen på siden **Tillatelser**. Se [Tillatelser](/docs/permissions/index).
 
@@ -234,7 +234,7 @@ En sonde kjører 2 opptak om gangen. Vent til ett er ferdig, eller stopp ett, og
 ## Neste steg
 
 :::cards
-- [Egendefinerte probes](/docs/probe/custom-probe): Installer en sonde i nettverket du vil ta opp i.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Installer en sonde i nettverket du vil ta opp i.
 - [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor): Overvåk enhetene du tar opp trafikken til.
 - [Tillatelser](/docs/permissions/index): Gi et team tillatelsene for pakkeopptak.
 :::

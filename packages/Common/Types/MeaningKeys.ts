@@ -48,12 +48,29 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "Test (dbt test)",
   /*
+   * The environment a data store serves, beside Production and Staging:
+   * its form's and the Data Stores list's choice, its Overview and its
+   * settings (DATA_STORE_ENVIRONMENT_TITLES). The bare "Test" read
+   * "Testen" on a German store and "Probar" ("to try") on a Spanish one
+   * (#8342).
+   */
+  "Test (environment)",
+  /*
    * The storage array a hardware component or a volume is in: the storage
    * widgets' column, a tile's row and the Sort setting's choice (#7522).
    * The bare "Array" read as a programming array in six languages (配列,
    * Matriz, Tableau, 배열, 数组, Matrise).
    */
   "Array (storage array)",
+  /*
+   * The two ends of a range: a date or number filter's "is between", a
+   * custom time range, a dashboard's time range and a facet's date range
+   * (#8201). The bare "From" and "To" are a message's sender and recipient
+   * - the notification logs' columns - so a German filter read "Von" ...
+   * "An" (to someone), a Japanese one 差出人 ... 宛先.
+   */
+  "From (range start)",
+  "To (range end)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

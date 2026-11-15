@@ -371,7 +371,7 @@ describe("a Kubernetes cluster's Overview on a Persian page", () => {
     const figures: Array<string> = topPodFigures();
 
     expect(figures).toContain("۰٫۴٪");
-    expect(figures).toContain("۵۱۲٫۰ MB");
+    expect(figures).toContain("۵۱۲٫۰\u00A0MB");
 
     for (const figure of figures) {
       expect({ figure, latin: LATIN_DIGIT.test(figure) }).toEqual({
@@ -391,7 +391,7 @@ describe("a Kubernetes cluster's Overview on a Persian page", () => {
       return withoutIsolateMarks(element.textContent || "").trim();
     });
 
-    expect(sizes).toContain("۵۱۲٫۰ MB");
+    expect(sizes).toContain("۵۱۲٫۰\u00A0MB");
   });
 });
 
@@ -439,7 +439,7 @@ describe("the same page in English (the negative control)", () => {
 
     expect(tileValues()).toContain("100.0%");
     expect(topPodFigures()).toContain("0.4%");
-    expect(topPodFigures()).toContain("512.0 MB");
+    expect(topPodFigures()).toContain("512.0\u00A0MB");
     expect(
       [...tileValues(), ...topPodFigures()].some((text: string): boolean => {
         return PERSIAN_DIGIT.test(text);

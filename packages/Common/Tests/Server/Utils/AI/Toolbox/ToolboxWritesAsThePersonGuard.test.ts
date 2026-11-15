@@ -257,20 +257,40 @@ function isReadMethod(receiver: string, method: string): boolean {
   return READ_METHOD.test(method) && !WRITE_IN_A_READ_NAME.test(method);
 }
 
+// The person's props, as they are or saying only where the change came from.
+function isPersonProps(expression: ts.Expression): boolean {
+  return (
+    expression.getText() === PERSON_PROPS ||
+    isPersonPropsWithAttribution(expression)
+  );
+}
+
+/*
+ * Whether a write passes the person's props: as `props:` in its options
+ * object (`updateOneById({ ..., props: ctx.props })`), or as an argument of
+ * their own, which is how a service method that takes its props last
+ * receives them (`MonitorService.addOwners(projectId, monitorId, userIds,
+ * teamIds, notify, ctx.props)`, #8513).
+ */
 function passesPersonProps(call: ts.CallExpression): boolean {
   const options: ts.Expression | undefined = call.arguments[0];
 
-  if (!options || !ts.isObjectLiteralExpression(options)) {
-    return false;
+  if (
+    options &&
+    ts.isObjectLiteralExpression(options) &&
+    options.properties.some((property: ts.ObjectLiteralElement) => {
+      return (
+        ts.isPropertyAssignment(property) &&
+        property.name.getText() === "props" &&
+        isPersonProps(property.initializer)
+      );
+    })
+  ) {
+    return true;
   }
 
-  return options.properties.some((property: ts.ObjectLiteralElement) => {
-    return (
-      ts.isPropertyAssignment(property) &&
-      property.name.getText() === "props" &&
-      (property.initializer.getText() === PERSON_PROPS ||
-        isPersonPropsWithAttribution(property.initializer))
-    );
+  return call.arguments.some((argument: ts.Expression): boolean => {
+    return isPersonProps(argument);
   });
 }
 
@@ -799,6 +819,34 @@ describe("the scan's negative controls", () => {
         return problem.split(":")[1] as string;
       }),
     ).toEqual(["7", "8", "9", "10"]);
+  });
+
+  test("D: takes the person's props passed as an argument of their own, and nothing else there (#8513)", () => {
+    const result: GuardResult = checkSnippet(
+      'import MonitorService from "../../../Services/MonitorService";\n' +
+        `export const SetUpTool: ObservabilityTool = {
+  name: "set_up_monitoring",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, ctx.props);
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { ...ctx.props, writeSource: WriteSource.AskAi });
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { isRoot: true });
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { ...ctx.props, isRoot: true });
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, rootProps);
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false);
+  },
+};
+`,
+    );
+
+    // Lines 6 and 7 pass the person's props; 8 to 11 pass someone else's, or none.
+    expect(
+      result.notAsThePerson.map((problem: string): string => {
+        return problem.split(":")[1] as string;
+      }),
+    ).toEqual(["8", "9", "10", "11"]);
+    // ctx.props.userId names the person; it is not their props.
+    expect(result.notAsThePerson[3]).toContain("MonitorService.addOwners");
   });
 
   test("D: finds a write that passes no props", () => {

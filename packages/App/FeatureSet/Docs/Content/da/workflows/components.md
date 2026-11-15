@@ -1,8 +1,8 @@
-# Workflow-komponenter
+# Arbejdsgangskomponenter
 
 Komponenter er de blokke, du tilføjer efter triggeren. Hver gør én ting — sender en besked, kalder en API, tjekker en betingelse, ændrer en OneUptime-post — og tager derefter en af sine udgange til de blokke, der er forbundet til den. Denne side er kataloget: hvad hver blok har brug for, hvad den returnerer, og hvornår den tager hver udgang.
 
-Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstillinger slutter med **How to use**: hvad blokken gør, trinnene til at konfigurere den, et eksempel bygget ud fra dit eget workflow og de fejl, folk ofte laver. Se [Opret et workflow](/docs/workflows/authoring) om at tilføje og forbinde blokke.
+Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstillinger slutter med **How to use**: hvad blokken gør, trinnene til at konfigurere den, et eksempel bygget ud fra din egen arbejdsgang og de fejl, folk ofte laver. Se [Opret en arbejdsgang](/docs/workflows/authoring) om at tilføje og forbinde blokke.
 
 :::cards
 - [Send en besked](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost og e-mail.
@@ -25,7 +25,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | Fortsætte kun, når et par linjer JavaScript siger det        | [Check With JavaScript](#check-with-javascript)                   |
 | Omforme data mellem to blokke                                 | [JSON](#json) eller [Custom Code](#custom-code)                   |
 | Vente før den næste blok                                      | [Sleep](#sleep)                                                   |
-| Starte et andet workflow                                      | [Execute Workflow](#execute-workflow)                             |
+| Starte en anden arbejdsgang                                      | [Execute Workflow](#execute-workflow)                             |
 | Læse eller ændre hændelser, monitorer og andre poster         | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Åbne, kvittere for og løse hændelser eller advarsler for et andet værktøjs problemer | [Hændelser og advarsler fra andre værktøjer](#hændelser-og-advarsler-fra-andre-værktøjer) |
 | Kvittere for eller lukke et Zabbix-problem                    | [Zabbix](#zabbix)                                                 |
@@ -85,7 +85,7 @@ Generér ét tekstsvar ud fra en prompt og valgfri JSON-kontekst. Blokken bruger
 | **Temperatur**           | Under **Flere felter**. Variation fra `0` til `1`; standardværdien er `0.2`, for forudsigelig automatik. Nuværende Claude-modeller, Opus 4.7 og nyere og alle Claude 5-modeller, vælger selv deres sampling: OneUptime udelader **Temperatur** fra deres forespørgsler, så den har ingen virkning på dem. |
 | **Maximum Output Tokens** | Under **Flere felter**. Fra `1` til `4096`; standardværdien er `1024`.                                                                                           |
 
-System Instructions, Prompt og den serialiserede Context er tilsammen begrænset til 50.000 tegn. Et billede, der er indlejret i dem som base64, som et skærmbillede fra en syntetisk monitor i en hændelses beskrivelse, erstattes af en kort note som `[image omitted: PNG, 340 KB]`, før de måles, fordi modellen læser tekst, ikke billeder. Kørslens log siger, hvad der blev udeladt. Forespørgslen til udbyderen varer højst 60 sekunder og forsøges én gang. Højst tre AI-forespørgsler fra workflows kan køre samtidig pr. projekt.
+System Instructions, Prompt og den serialiserede Context er tilsammen begrænset til 50.000 tegn. Et billede, der er indlejret i dem som base64, som et skærmbillede fra en syntetisk monitor i en hændelses beskrivelse, erstattes af en kort note som `[image omitted: PNG, 340 KB]`, før de måles, fordi modellen læser tekst, ikke billeder. Kørslens log siger, hvad der blev udeladt. Forespørgslen til udbyderen varer højst 60 sekunder og forsøges én gang. Højst tre AI-forespørgsler fra arbejdsgange kan køre samtidig pr. projekt.
 
 Den returnerer **Svar** (den genererede tekst), **Udbyder** og **Model** (det, der svarede), **Total Tokens** og **Completion Tokens** (forbruget, som udbyderen rapporterede), **LLM Log ID** (kaldets post i AI-loggene) og **Fejl**.
 
@@ -161,7 +161,7 @@ Under **Flere felter**:
 
 **Fejl** udløses, når serveren ikke kan nås, afviser forbindelsen, kaldenavnet, en adgangskode eller kanalen, eller afviser beskeden. Den videregiver årsagen, med serverens egne ord, hvor den gav dem. En manglende **IRC Server**, **Kanal** eller **Message Text**, eller en indstilling, der aldrig kunne virke, stopper derimod kørslen.
 
-Hver kørsel af blokken er sin egen forbindelse, og IRC-netværk begrænser, hvor ofte én adresse må forbinde: en byge af beskeder kan afvises med en årsag som "Reconnecting too fast", og tager **Fejl** som enhver anden afvisning. For et workflow, der kan udløses mange gange i minuttet, så saml det, det har at sige, i én besked, eller send det gennem din egen server.
+Hver kørsel af blokken er sin egen forbindelse, og IRC-netværk begrænser, hvor ofte én adresse må forbinde: en byge af beskeder kan afvises med en årsag som "Reconnecting too fast", og tager **Fejl** som enhver anden afvisning. For en arbejdsgang, der kan udløses mange gange i minuttet, så saml det, den har at sige, i én besked, eller send det gennem din egen server.
 
 Opbevar adgangskoderne i [hemmelige globale variabler](/docs/workflows/variables#globale-variabler), og brug variablen i indstillingen; de er skjult i kørselsloggene under alle omstændigheder. Forbindelser til loopback- (`localhost`, `127.0.0.1`), link-local- og cloudmetadata-adresser afvises. I OneUptime Cloud afvises også en server på en privat netværksadresse eller et navn, der peger på en. Selvhostede installationer kan nå en IRC-server på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`.
 
@@ -202,13 +202,13 @@ Send en e-mail gennem en SMTP-server, som du angiver på blokken. Blokken hedder
 
 **Succes** udløses, når SMTP-serveren tog imod beskeden. **Fejl** udløses, når SMTP-værten afvises, serveren ikke kan nås, eller den afviser beskeden, og videregiver fejlmeddelelsen. En manglende **To Email**, **E-mail fra**, **SMTP HOST** eller **SMTP Port** stopper derimod kørslen.
 
-Blokken forbinder direkte til serveren i sine indstillinger. Den bruger ikke dit projekts [SMTP](/docs/emails/smtp)-indstillinger eller OneUptimes egen mailserver, og de e-mails, den sender, vises ikke i notifikationsloggene. For at tjekke, hvad den gjorde, ser du på workflowets [Kørsler](/docs/workflows/runs-and-logs).
+Blokken forbinder direkte til serveren i sine indstillinger. Den bruger ikke dit projekts [SMTP](/docs/emails/smtp)-indstillinger eller OneUptimes egen mailserver, og de e-mails, den sender, vises ikke i notifikationsloggene. For at tjekke, hvad den gjorde, ser du på arbejdsgangens [Kørsler](/docs/workflows/runs-and-logs).
 
 Forbindelser til loopback- (`localhost`, `127.0.0.1`), link-local- og cloudmetadata-adresser afvises. I OneUptime Cloud afvises også en SMTP-vært på en privat netværksadresse eller et navn, der peger på en. Selvhostede installationer kan nå en mailserver på deres eget netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er sat til `true`. En afvist vært tager udgangen **Fejl**, og intet sendes.
 
 ## Paging
 
-Tilkald personer fra et workflow: hver person får et opkald, en sms, en pushnotifikation eller en e-mail, som personens egne vagtregler siger, indtil nogen kvitterer. Der er en blok for hver måde at sige, hvem der skal tilkaldes. Søg efter `page` i panelet **Tilføj komponent**.
+Tilkald personer fra en arbejdsgang: hver person får et opkald, en sms, en pushnotifikation eller en e-mail, som personens egne vagtregler siger, indtil nogen kvitterer. Der er en blok for hver måde at sige, hvem der skal tilkaldes. Søg efter `page` i panelet **Tilføj komponent**.
 
 | Blok                        | Hvem den tilkalder |
 | --------------------------- | ------------------ |
@@ -227,18 +227,18 @@ flowchart TB
     check -->|"Ja"| page["Page Whoever Is On Call"]
 ```
 
-Når du opretter et workflow, har skabelonerne under **Vagt** dette klar, og et, der tilkalder efter alvorlighed med **Switch / Case**. Dialogen **Opret en arbejdsgang** spørger, hvem hver af en skabelons tilkaldeblokke tilkalder, så workflowet åbner med det valgt. En tilkaldeblok, du tilføjer i Byggeren, siger **Click to set up**, indtil du vælger, hvem den tilkalder.
+Når du opretter en arbejdsgang, har skabelonerne under **Vagt** dette klar, og et, der tilkalder efter alvorlighed med **Switch / Case**. Dialogen **Opret en arbejdsgang** spørger, hvem hver af en skabelons tilkaldeblokke tilkalder, så arbejdsgangen åbner med det valgt. En tilkaldeblok, du tilføjer i Byggeren, siger **Click to set up**, indtil du vælger, hvem den tilkalder.
 
 | Indstilling | Hvad den gør |
 | ----------- | ------------ |
 | **Brugere**, **Teams**, **Vagtplaner** eller **Vagtpolitikker** | Hvem der tilkaldes: hver blok har den, der hører til dens navn. Vælg efter navn, eller tryk på **{ }** for enden af rækken for at tilføje en værdi fra en tidligere blok. En værdi kan indeholde ét ID eller flere og, for **Brugere**, en e-mailadresse. |
 | **Page About** | Hvad tilkaldet handler om: **A new alert**, **An incident** eller **An alert**. At kvittere for tilkaldet kvitterer også for det. |
 | **Titel** og **Besked** | Til en ny advarsel. OneUptime opretter en advarsel ud fra dem, og den bliver blandt dine advarsler som enhver anden. |
-| **Hændelses-ID** eller **Advarsels-ID** | Til en hændelse eller en advarsel, der allerede findes, som regel den, workflowet startede på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **Hændelses-ID** eller **Advarsels-ID** | Til en hændelse eller en advarsel, der allerede findes, som regel den, arbejdsgangen startede på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 | **Page As** | Til en hændelse eller en advarsel, der allerede findes, under **Flere felter**. **Modtagere** tager sig af den. **Observatører** holdes orienteret, mens andre håndterer den: når de kvitterer for deres tilkaldelse, siger det kun, at de har set den, og hændelsen eller advarslen bliver ikke kvitteret. |
 | **Alvorlighed** | Til en ny advarsel, under **Flere felter**. Den afgør, hvilke af hver persons vagtregler der tilkalder personen. Står den tom, er det projektets mest alvorlige. |
 
-En blok, der føjes til et workflow, som starter på en hændelse eller en advarsel, er allerede sat til at tilkalde om den post, så den kun spørger, hvem der skal tilkaldes.
+En blok, der føjes til en arbejdsgang, som starter på en hændelse eller en advarsel, er allerede sat til at tilkalde om den post, så den kun spørger, hvem der skal tilkaldes.
 
 **Succes** kører, så snart mindst én person er tilkaldt, eller én politik er startet. **Fejl** kører, når ingen blev tilkaldt, og blokkens værdi **Fejl** siger hvorfor, for eksempel at ingen har vagt i vagtplanen. **Oversigt** siger i én sætning, hvem der blev tilkaldt, og hvem der blev udeladt, klar til at slå op i en kanal, og **Paged Users** oplister de tilkaldte personer.
 
@@ -247,7 +247,7 @@ En person, der er fraværende, tilkaldes ikke: i stedet tilkaldes den, personens
 Et tilkald uden en vagtpolitik bag sig står sammen med politikkernes kørsler som **Direkte tilkald**: i vagtloggene for hændelsen eller advarslen, i dens feed og dens Slack- eller Microsoft Teams-kanal og i loggene hos hver tilkaldt person. Det står åbent i 30 minutter, og derefter så længe der stadig går tilkald ud. Har ingen kvitteret til den tid, slutter det uden at tilkalde andre.
 
 > [!WARNING]
-> **Kør arbejdsgang** tilkalder personer i virkeligheden, uanset om workflowet er slået til eller fra, og det gør **Run just this step** også. Angiv dig selv, mens du tester.
+> **Kør arbejdsgang** tilkalder personer i virkeligheden, uanset om arbejdsgangen er slået til eller fra, og det gør **Run just this step** også. Angiv dig selv, mens du tester.
 
 ## Custom Code
 
@@ -279,7 +279,7 @@ Koden kører i en sandkasse med `args`, `console.log` (skrevet til kørslens log
 
 ## Check With JavaScript
 
-Kør et par linjer JavaScript, og tag derefter **Ja** eller **Nej** efter det, de returnerer: en [Custom Code](#custom-code)-blok og en [If / Else](#conditions) efter den, i én blok. Brug den, når én sammenligning ikke er nok til at afgøre det, for eksempel for at læse, hvad et andet værktøj sendte, og springe over det, workflowet skal lade være.
+Kør et par linjer JavaScript, og tag derefter **Ja** eller **Nej** efter det, de returnerer: en [Custom Code](#custom-code)-blok og en [If / Else](#conditions) efter den, i én blok. Brug den, når én sammenligning ikke er nok til at afgøre det, for eksempel for at læse, hvad et andet værktøj sendte, og springe over det, arbejdsgangen skal lade være.
 
 | Indstilling         | Hvad den gør |
 | ------------------- | ------------ |
@@ -365,7 +365,7 @@ Sæt kørslen på pause før den næste blok, for at give et andet system et øj
 
 **Dage**, **Timer**, **Minutter** og **Sekunder** lægges sammen. Den længste ventetid er 30 dage: en længere afkortes til 30 dage, og kørslens log siger det.
 
-Mens den venter, lægges kørslen til side med status **Venter** og samles op igen, når tiden er gået, så en lang ventetid holder intet op. En kørsel, hvis workflow i mellemtiden blev slået fra eller arkiveret, annulleres, når den vågner. En testkørsel, startet mens workflowet var slået fra, annulleres ikke, fordi det er slået fra.
+Mens den venter, lægges kørslen til side med status **Venter** og samles op igen, når tiden er gået, så en lang ventetid holder intet op. En kørsel, hvis arbejdsgang i mellemtiden blev slået fra eller arkiveret, annulleres, når den vågner. En testkørsel, startet mens arbejdsgangen var slået fra, annulleres ikke, fordi den er slået fra.
 
 ## Log
 
@@ -375,20 +375,20 @@ Skriv en værdi til kørslens log. Den ændrer intet andet sted, hvilket gør de
 
 ## Execute Workflow
 
-Start et andet workflow i samme projekt. Dit workflow fortsætter uden at vente på, at det andet bliver færdigt.
+Start en anden arbejdsgang i samme projekt. Din arbejdsgang fortsætter uden at vente på, at den anden bliver færdig.
 
 | Indstilling   | Hvad den gør                                                                                                                              |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Arbejdsgang**  | Det workflow, der skal startes. Det skal være aktiveret og, for at modtage argumenter, have en **Manuel**-trigger.                        |
-| **Arguments** | JSON, der skal sendes med. Det andet workflows Manual-trigger giver hver nøgle videre som en værdi for sig: med `{"customerId": "42"}` læser det `{{local.components.manual-1.returnValues.customerId}}`. |
+| **Arbejdsgang**  | Den arbejdsgang, der skal startes. Den skal være aktiveret og, for at modtage argumenter, have en **Manuel**-trigger.                        |
+| **Arguments** | JSON, der skal sendes med. Den anden arbejdsgangs Manual-trigger giver hver nøgle videre som en værdi for sig: med `{"customerId": "42"}` læser det `{{local.components.manual-1.returnValues.customerId}}`. |
 
-**Ud** udløses, så snart det andet workflow står i kø. **Fejl** udløses, når det ikke kan: det findes ikke, er slået fra eller arkiveret, eller at starte det ville give en løkke.
+**Ud** udløses, så snart den anden arbejdsgang står i kø. **Fejl** udløses, når det ikke kan: det findes ikke, er slået fra eller arkiveret, eller at starte det ville give en løkke.
 
-Brug det til at dele fælles logik: byg et «post i hændelseskanalen»-workflow én gang, og start det fra hvert workflow, der har brug for det. En kæde af workflows, der starter hinanden, kan ikke gå i ring tilbage til sig selv og er højst 10 led dyb. Se [Konfiguration og sikkerhed](/docs/workflows/configuration#grænse-for-at-kalde-andre-workflows).
+Brug det til at dele fælles logik: byg en «post i hændelseskanalen»-arbejdsgang én gang, og start den fra hver arbejdsgang, der har brug for det. En kæde af arbejdsgange, der starter hinanden, kan ikke gå i ring tilbage til sig selv og er højst 10 led dyb. Se [Konfiguration og sikkerhed](/docs/workflows/configuration#grænse-for-at-kalde-andre-arbejdsgange).
 
 ## Hændelser og advarsler fra andre værktøjer
 
-Hold én hændelse, eller én advarsel, for hvert problem, et andet værktøj fortæller dig om, parret via det værktøjs eget ID for det. **Incident From Another Tool** og **Alert From Another Tool** er det, skabelonerne til Zabbix, Huntress, Jira og Dynamics 365 er bygget på, og de virker for ethvert værktøj, der kan kalde et workflows [Webhook-trigger](/docs/workflows/triggers#webhook). I panelet **Tilføj komponent** ligger de under **From Other Tools**.
+Hold én hændelse, eller én advarsel, for hvert problem, et andet værktøj fortæller dig om, parret via det værktøjs eget ID for det. **Incident From Another Tool** og **Alert From Another Tool** er det, skabelonerne til Zabbix, Huntress, Jira og Dynamics 365 er bygget på, og de virker for ethvert værktøj, der kan kalde en arbejdsgangs [Webhook-trigger](/docs/workflows/triggers#webhook). I panelet **Tilføj komponent** ligger de under **From Other Tools**.
 
 Hver kørsel giver blokken én begivenhed: **Hvad der skete**, og **Outside ID**, værktøjets ID for problemet. Blokken leder efter den post, der har det ID, og gør, hvad **Hvad der skete** siger:
 
@@ -434,7 +434,7 @@ For at kvittere eller lukke læser blokken først problemet. Et problem, som Zab
 
 ### Propose an OpenStack fix
 
-Beder en person om at godkende én ændring af den OpenStack-cloud, en advarsel eller hændelse handler om. Den foretager aldrig ændringen. Rettelsen venter på advarslen eller hændelsen og i de kanaler, den skriver til, ligesom en, OneUptime AI foreslår, uanset cloudens rettelsestilstand. Et workflow kan ikke godkende det, det selv foreslår.
+Beder en person om at godkende én ændring af den OpenStack-cloud, en advarsel eller hændelse handler om. Den foretager aldrig ændringen. Rettelsen venter på advarslen eller hændelsen og i de kanaler, den skriver til, ligesom en, OneUptime AI foreslår, uanset cloudens rettelsestilstand. En arbejdsgang kan ikke godkende det, den selv foreslår.
 
 Den kræver ingen AI-model og følger de samme regler som en rettelse, OneUptime AI foreslår: kommandopolitikken, agentens skrivemål og beskyttede mål samt agentens læsning af, hvad ændringen berører. En evakuering af en vært, der stadig er oppe, eller en, agenten ikke kan læse fuldt ud, foreslås ikke.
 
@@ -443,12 +443,12 @@ Den kræver ingen AI-model og følger de samme regler som en rettelse, OneUptime
 | **Advarsels-ID** | Den advarsel, rettelsen er til, som regel det ID, din trigger returnerede. Udfyld enten denne eller **Hændelses-ID**, og cloudens kommer fra det, posten er knyttet til. |
 | **Hændelses-ID** | Den hændelse, rettelsen er til, som regel det ID, din trigger returnerede. Udfyld enten denne eller **Advarsels-ID**. |
 | **Kommando** | Den ændring, der skal foreslås, i den ene stavemåde, OneUptime tager imod. Se [de ændringer, en rettelse kan foretage](/docs/telemetry/openstack#rettelser). Den kan bruge værdier fra tidligere blokke og læses, når de er udfyldt. |
-| **Hvorfor** | Det, den person, der godkender, læser først. Står den tom, siger den, hvilket workflow der bad om det. |
+| **Hvorfor** | Det, den person, der godkender, læser først. Står den tom, siger den, hvilken arbejdsgang der bad om det. |
 | **OpenStack-cloud-ID** | Under **Flere felter**. Kun for en post, der er knyttet til mere end én cloud eller til ingen. |
 
 Den returnerer **Forslags-ID** (rettelsen, der venter på godkendelse), **Niveau** (Sikker eller Mere risikabelt, som OneUptime læser kommandoen) og **Venter allerede** (sand, når den samme ændring på den cloud allerede ventede, så der ikke blev tilføjet en anden).
 
-**Succes** udløses, når en person er blevet spurgt, uden at vente på svaret. **Fejl** udløses, når intet blev foreslået, med årsagen i **Fejl**: kommandoen afvises, rettelser er ikke tilladt på den cloud endnu, eller et projekts workflows har foreslået 20 rettelser den seneste time.
+**Succes** udløses, når en person er blevet spurgt, uden at vente på svaret. **Fejl** udløses, når intet blev foreslået, med årsagen i **Fejl**: kommandoen afvises, rettelser er ikke tilladt på den cloud endnu, eller et projekts arbejdsgange har foreslået 20 rettelser den seneste time.
 
 Skabelonen [Foreslå at tage en fejlende OpenStack compute-tjeneste ud af planlægningen](/docs/workflows/authoring) er et sted at starte.
 
@@ -471,9 +471,9 @@ Det samme sæt giver dig fire triggere — **On Create Monitor**, **On Update Mo
 
 En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet type har de to Find-komponenter og intet andet, så finder du ikke **Delete One Monitor** i panelet, tillader den type det ikke.
 
-Sådan læser og ændrer et workflow OneUptime-data. For eksempel kan en webhook fra dit CI-værktøj bruge **Create One Incident** til at åbne en hændelse med detaljerne om fejlen.
+Sådan læser og ændrer en arbejdsgang OneUptime-data. For eksempel kan en webhook fra dit CI-værktøj bruge **Create One Incident** til at åbne en hændelse med detaljerne om fejlen.
 
-Disse komponenter handler som Project Admin for workflowets projekt: det, en Project Admin ikke må, eller som dit abonnement ikke omfatter, afvises, og kørslens log siger hvorfor. Se [Hvad workflow-trin må gøre](/docs/workflows/configuration#hvad-workflow-trin-må-gøre).
+Disse komponenter handler som Projektadministrator for arbejdsgangens projekt: det, en Projektadministrator ikke må, eller som dit abonnement ikke omfatter, afvises, og kørslens log siger hvorfor. Se [Hvad arbejdsgangstrin må gøre](/docs/workflows/configuration#hvad-arbejdsgangstrin-må-gøre).
 
 ### Erklær en hændelse ud fra en skabelon
 
@@ -486,6 +486,12 @@ Hændelsen registrerer den skabelon, den blev erklæret ud fra, i `createdIncide
 **Create One Incident** og **Create One Alert** har en indstilling **Berørte ressourcer**: de værter, netværksenheder, klynger, databaser eller tjenester, posten handler om, efter navn, adresse eller ID, adskilt af kommaer — skrevet ind eller hentet fra et tidligere trin, som den vært, en advarsel fra et andet værktøj nævner. Hver post søges i alle de slags ressourcer, posten kan rumme, som hel værdi og uden hensyn til store og små bogstaver: efter navn, en netværksenhed også efter den adresse, den polles på, eller sit DNS-navn, en vært efter det navn, dens agent rapporterer, eller en af dens IP-adresser, og en cloudressource efter udbyderens ID. Hver ressource, en post passer på, knyttes til, ved siden af det, **JSON Object** og skabelonen allerede knytter til, op til 50 ud fra de første 25 poster.
 
 En post, der ikke passer på noget, stopper ikke trinnet: posten oprettes alligevel, og kørselsloggen siger, hvad hver post knyttede til, og hvilke der ikke passede på noget. Arkiverede ressourcer knyttes ikke til. Monitorer slås ikke op: nævn dem i **JSON Object** (`monitors` på en hændelse, `monitorId` på en advarsel), fordi det at knytte en monitor til en hændelse sætter dens overvågning på pause.
+
+### Hvem der ejer den fra starten
+
+**Create One Incident** og **Create One Alert** har indstillingerne **Ejer-brugere** og **Ejer-teams**: de personer og teams, der ejer posten, fra den bliver oprettet. Vælg dem, eller tag dem fra et tidligere trin: en brugers id eller e-mailadresse, et teams id, flere adskilt af kommaer eller en liste. Postens ejere hører, at den er oprettet, omkring et minut efter oprettelsen, alle de ejere, den har til den tid: dem, der vælges her, er altid blandt dem, mens ejere, som et senere trin tilføjer, går glip af det, når det trin kører mere end et minut senere, og projektets ejere får besked i stedet.
+
+Trinnet spørger, om det må tilføje dem, som Projektadministrator for arbejdsgangens projekt, før posten gemmes: ejere, det ikke må tilføje, får oprettelsen afvist. En person, der ikke er medlem af projektet, eller et team, der ikke er et af projektets, udelades, og kørselsloggen siger det: posten oprettes alligevel. Ejere, der tilføjes på denne måde, får ikke besked om, at de er tilføjet: beskeden om, at posten er oprettet, er den, de får.
 
 ## Arbejd med poster
 
@@ -501,7 +507,7 @@ Hvert felt på en datakomponent bruger postens egne **kolonne**navne — de samm
 { "monitorType": "Website", "isEnabled": true }
 ```
 
-En forespørgsel er altid begrænset til det projekt, workflowet kører i. Du kan ikke nå et andet projekts poster, og du behøver ikke selv tilføje projektet til forespørgslen.
+En forespørgsel er altid begrænset til det projekt, arbejdsgangen kører i. Du kan ikke nå et andet projekts poster, og du behøver ikke selv tilføje projektet til forespørgslen.
 
 **JSON Object** på Create One, **JSON Array** på Create Many og **Data (JSON Object)** på Update-komponenterne bærer de felter, der skal skrives, med de samme nøgler:
 
@@ -517,15 +523,15 @@ En nøgle, der ikke er en kolonne, ignoreres i stedet for at blive afvist — k�
 { "customFields": { "Notification Count": 1 } }
 ```
 
-sætter **Notification Count** og lader postens andre brugerdefinerede felter være, som de var. Sæt et brugerdefineret felt til `null` for at rydde det, eller sæt selve `customFields` til `null` for at rydde dem alle. To workflows, der opdaterer forskellige brugerdefinerede felter på samme post i samme øjeblik, lander begge. Det gælder kun Update-komponenterne: OneUptime-API'et skriver `customFields` i sin helhed, så en forespørgsel til det skal have hvert brugerdefineret felt med, du vil beholde.
+sætter **Notification Count** og lader postens andre brugerdefinerede felter være, som de var. Sæt et brugerdefineret felt til `null` for at rydde det, eller sæt selve `customFields` til `null` for at rydde dem alle. To arbejdsgange, der opdaterer forskellige brugerdefinerede felter på samme post i samme øjeblik, lander begge. Det gælder kun Update-komponenterne: OneUptime-API'et skriver `customFields` i sin helhed, så en forespørgsel til det skal have hvert brugerdefineret felt med, du vil beholde.
 
-Hvert brugerdefineret felt i projektet vises som sit eget felt, hvor en komponent nævner en posts felter: i de felter, en komponent skriver, med typens eget inputfelt og en rullelistes egne muligheder; i betingelserne for en forespørgsel; i de værdier, et senere trin kan bruge; og i de felter, en trigger overvåger, så et workflow kan køre, når ét brugerdefineret felt ændres. Et brugerdefineret filfelt uploades til en post, så det er den eneste type, der forbliver i JSON.
+Hvert brugerdefineret felt i projektet vises som sit eget felt, hvor en komponent nævner en posts felter: i de felter, en komponent skriver, med typens eget inputfelt og en rullelistes egne muligheder; i betingelserne for en forespørgsel; i de værdier, et senere trin kan bruge; og i de felter, en trigger overvåger, så en arbejdsgang kan køre, når ét brugerdefineret felt ændres. Et brugerdefineret filfelt uploades til en post, så det er den eneste type, der forbliver i JSON.
 
 Du skriver sjældent disse nøgler selv. I komponentens indstillinger viser **Add a field** (eller **Add a condition** på en forespørgsel) modellens kolonner ved navn, med den slags værdi, hver tager. Søg ved navn, ved kolonnenøgle eller ved det, feltet gør, og tryk på **Enter** for at tilføje det bedste match. Ved oprettelse kommer de felter, posten ikke kan oprettes uden, først, derefter modellens hovedfelter (dem, den selv udfylder, hvis du udelader dem) og så resten.
 
 Et felt, der peger på en anden post, for eksempel en hændelses alvorlighed, viser projektets poster efter navn: Vælg en, så skrives dens ID for dig. En liste over poster, for eksempel en hændelses etiketter, fungerer på samme måde. Klik på `{ }` ved siden af listen for i stedet at bruge en værdi fra et tidligere trin.
 
-Felter, som OneUptime selv udfylder, tilbydes ikke, når du skriver en post: postens `_id`, **Oprettet den**, **Opdateret den**, **Oprettet af bruger**, slugs, postnumre og notifikationsstatusser. Hvem der oprettede, arkiverede eller løste en post, og hvornår, er aldrig et workflows at sætte: en post, som et workflow opretter, er oprettet af ingen, en værdi, et workflow sender for et af de felter ved siden af andre felter, ignoreres, og en Update, der ikke sender andet, mislykkes med en meddelelse, der nævner dem. En opdatering tilbyder kun felter, der kan ændres, efter at en post findes. En forespørgsel tilbyder stadig ID'et, tidsstemplerne og **Oprettet af bruger**, fordi de er nyttige at filtrere på. **Deleted At** tilbydes ingen steder: poster slettes helt, så det er altid tomt.
+Felter, som OneUptime selv udfylder, tilbydes ikke, når du skriver en post: postens `_id`, **Oprettet den**, **Opdateret den**, **Oprettet af bruger**, slugs, postnumre og notifikationsstatusser. Hvem der oprettede, arkiverede eller løste en post, og hvornår, er aldrig en arbejdsgangs at sætte: en post, som en arbejdsgang opretter, er oprettet af ingen, en værdi, en arbejdsgang sender for et af de felter ved siden af andre felter, ignoreres, og en Update, der ikke sender andet, mislykkes med en meddelelse, der nævner dem. En opdatering tilbyder kun felter, der kan ændres, efter at en post findes. En forespørgsel tilbyder stadig ID'et, tidsstemplerne og **Oprettet af bruger**, fordi de er nyttige at filtrere på. **Deleted At** tilbydes ingen steder: poster slettes helt, så det er altid tomt.
 
 **Spring over** og **Limit** er to talfelter på Find Many, Update Many og Delete Many, under **Flere felter** — `Skip: 0` med `Limit: 100` tager de første hundrede match. **Limit** er som standard `10`, og på Update Many og Delete Many begrænser den, hvor mange poster der faktisk skrives, ikke kun hvor mange der kommer tilbage. Så `Items Deleted: 10` betyder, at ti poster blev slettet, ikke at ti matchede. Hæv **Limit**, når du vil ændre mere end ti.
 

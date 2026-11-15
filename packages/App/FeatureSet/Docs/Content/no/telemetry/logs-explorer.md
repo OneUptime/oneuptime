@@ -37,7 +37,7 @@ Utforskeren har fem faner:
 ## Før du begynner
 
 - **Logger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), [Fluent Bit](/docs/telemetry/fluentbit), [Fluentd](/docs/telemetry/fluentd) eller [Syslog](/docs/telemetry/syslog). Fanen **Oppsettveiledning** viser konfigurasjonen for språket eller collectoren din.
-- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Logs. Omfanget avgjør hvem sine logger du ser: se [Telemetri](/docs/permissions/index#telemetri).
+- **En rolle som kan lese telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Logs. Omfanget avgjør hvem sine logger du ser: se [Telemetri](/docs/permissions/index#telemetri).
 
 ## Finn en logglinje
 
@@ -118,7 +118,7 @@ Klikk på **Liste** for å gå tilbake til selve linjene.
 
 ## Åpne tilhørende spor og målinger
 
-Knappene **Spor** og **Målinger** ved siden av **Lagrede visninger** åpner [Sporutforsker](/docs/telemetry/traces-explorer) eller [Metrikkutforsker](/docs/telemetry/metrics-explorer) for det samme tidsvinduet, med så mye av filtreringen din som den utforskeren kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
+Knappene **Spor** og **Målinger** ved siden av **Lagrede visninger** åpner [Sporutforsker](/docs/telemetry/traces-explorer) eller [Målingsutforsker](/docs/telemetry/metrics-explorer) for det samme tidsvinduet, med så mye av filtreringen din som den utforskeren kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
 
 ## Innsikt i logger
 

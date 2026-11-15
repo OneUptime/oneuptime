@@ -66,10 +66,10 @@ Spillelister har sine egne tillatelser, som gis gjennom et team slik dashbordene
 
 | For å | Kreves |
 | --- | --- |
-| Se og spille av spillelister | `ReadDashboardPlaylist`, eller en prosjektrolle: Project Owner, Project Admin, Project Member, Viewer eller en Settings-rolle |
-| Opprette spillelister | `CreateDashboardPlaylist`, Project Owner eller Project Admin |
-| Endre en spilleliste: navnet, dashbordene og tiden | `EditDashboardPlaylist`, Project Owner eller Project Admin |
-| Slette en spilleliste | `DeleteDashboardPlaylist`, Project Owner eller Project Admin |
+| Se og spille av spillelister | `ReadDashboardPlaylist`, eller en prosjektrolle: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser eller en Settings-rolle |
+| Opprette spillelister | `CreateDashboardPlaylist`, Prosjekteier eller Prosjektadministrator |
+| Endre en spilleliste: navnet, dashbordene og tiden | `EditDashboardPlaylist`, Prosjekteier eller Prosjektadministrator |
+| Slette en spilleliste | `DeleteDashboardPlaylist`, Prosjekteier eller Prosjektadministrator |
 
 En spilleliste viser aldri noen et dashbord de ikke får lese. Spilleren spiller bare av dashbordene som personen som er logget inn på skjermen, får lese, og som ikke er arkivert, og hopper over resten: et slettet dashbord, et arkivert eller et som tillatelsene deres holder dem unna. Siden til spillelisten sier hvorfor den hopper over hvert av dem. Når en spilleliste lagres, beholder den dashbordene i den som redaktøren ikke selv kan se, så ingenting går tapt som noen andre har lagt inn.
 
@@ -81,7 +81,7 @@ En spilleliste viser aldri noen et dashbord de ikke får lese. Spilleren spiller
 | En lesing som mislyktes | **Spillelisten kunne ikke lastes inn**, og den prøver igjen hvert minutt, eller ved **Prøv igjen**. |
 
 > [!NOTE]
-> Spilleren er for noen som er logget inn på OneUptime. For å kjøre en spilleliste på en skjerm logger du inn på den skjermen med en konto som får lese spillelisten og dashbordene dens, for eksempel et teammedlem med rollen Viewer.
+> Spilleren er for noen som er logget inn på OneUptime. For å kjøre en spilleliste på en skjerm logger du inn på den skjermen med en konto som får lese spillelisten og dashbordene dens, for eksempel et teammedlem med rollen Leser.
 
 ## Neste steg
 

@@ -33,7 +33,7 @@ En server som svarar tillfrågas inte igen, inte ens när den svarar utan tillf�
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når UDP-port 123 på servern.** Alla sonder kan kontrollera en publik tidsserver. För en server i ett privat nätverk använder du en [anpassad sond](/docs/probe/custom-probe) inne i det nätverket. En brandvägg framför servern måste släppa igenom UDP, inte bara TCP, från [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses) eller från din anpassade sond.
 
 ## Skapa en NTP-monitor
@@ -157,6 +157,6 @@ Sonden ligger långt från servern, eller vägen är långsammare åt ena hålle
 :::cards
 - [Ping-övervakning](/docs/monitor/ping-monitor): Kontrollera att själva värden kan nås.
 - [Portövervakning](/docs/monitor/port-monitor): Kontrollera TCP-tjänsterna på samma värd.
-- [Anpassade probes](/docs/probe/custom-probe): Kontrollera tidsservrar i ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kontrollera tidsservrar i ditt eget nätverk.
 - [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg stratum och avvikelse i en incidents titel.
 :::

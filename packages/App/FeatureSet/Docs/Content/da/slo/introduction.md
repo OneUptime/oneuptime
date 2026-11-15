@@ -40,7 +40,7 @@ Et fejlbudget gør pålidelighed til noget, du kan bruge. Er der meget tilbage, 
 
 ## Opret et SLO
 
-Du skal have en rolle, der må oprette SLO'er: Project Owner, Project Admin eller en tilpasset rolle med tilladelsen Create Service Level Objective.
+Du skal have en rolle, der må oprette SLO'er: Projektejer, Projektadministrator eller en tilpasset rolle med tilladelsen Create Service Level Objective.
 
 :::steps
 ### Åbn SLO'er
@@ -146,7 +146,7 @@ Et deaktiveret eller arkiveret SLO evalueres ikke, så dets status bliver, som d
 
 ## SLO-listen
 
-Siden **SLOs** viser hvert SLO, der ikke er arkiveret, med status, SLI, resterende budget, forbrugsrate, mål, vindue, monitorer, etiketter og ejere.
+Siden **SLOs** viser hvert SLO, der ikke er arkiveret, med status, SLI, resterende budget, forbrugsrate, mål, vindue, monitorer, etiketter og ejere. Kolonnen **Hvad det måler** viser et anmodnings-SLO's tjenester, hvor den for et oppetids-SLO viser dets monitorer, og filteret **Tjenester** finder de SLO'er, der måler en tjeneste.
 
 - Felterne over listen tæller SLO'er efter status: **Sund**, **I risiko**, **Budget opbrugt**, **Forkert konfigureret**, **Sat på pause** og **Deaktiveret**. De vises, så snart der er et SLO, der ikke er arkiveret. Klik på et felt for kun at se de SLO'er, og igen for at se dem alle.
 - Vælg SLO'er for at tilføje eller fjerne etiketter og ejere, aktivere eller deaktivere dem, give dem de [anbefalede forbrugsrateregler](/docs/slo/burn-rate-alerts#tilføj-dem-til-mange-sloer-på-én-gang), de mangler, arkivere dem eller slette dem, alle på én gang.
@@ -256,15 +256,15 @@ Et banner øverst på SLO'ets sider fortæller, hvad der forhindrer det i at må
 | Banner | Hvad det betyder | Hvad du gør |
 | --- | --- | --- |
 | **Ingen monitorer tilknyttet** | SLO'et har ingen monitorer, så der er intet at måle. | Tilknyt monitorer, eller opret en monitorregel. |
-| **Waiting for SLO evaluation** | Der er tilknyttet monitorer, men den seneste evaluering havde ingen statusdata fra dem. | Tjek, at monitorerne bliver tjekket. Tallene vises efter den næste evaluering med data. |
-| **Measurement is paused** | Alle monitorer, det måler, er arkiveret eller har aktiv overvågning slået fra. | Slå overvågning til igen for mindst én monitor, eller vent på, at vedligeholdelsen slutter. |
-| **The target is out of range** | Målet er ikke større end 0 og mindre end 100. | Sæt et mål som 99,9 under **Indstillinger** → **Mål**. |
-| **This SLO is disabled** | Evalueringen er slået fra. | Klik på **Slå evaluering til**. |
-| **This SLO is archived** | SLO'et er arkiveret. | Fjern det fra arkivet under **Indstillinger**. |
+| **Venter på SLO-evaluering** | Der er tilknyttet monitorer, men den seneste evaluering havde ingen statusdata fra dem. | Tjek, at monitorerne bliver tjekket. Tallene vises efter den næste evaluering med data. |
+| **Målingen er sat på pause** | Alle monitorer, det måler, er arkiveret eller har aktiv overvågning slået fra. | Slå overvågning til igen for mindst én monitor, eller vent på, at vedligeholdelsen slutter. |
+| **Målet er uden for det tilladte interval** | Målet er ikke større end 0 og mindre end 100. | Sæt et mål som 99,9 under **Indstillinger** → **Mål**. |
+| **Denne SLO er deaktiveret** | Evalueringen er slået fra. | Klik på **Slå evaluering til**. |
+| **Denne SLO er arkiveret** | SLO'et er arkiveret. | Fjern det fra arkivet under **Indstillinger**. |
 | **Endnu ikke evalueret** | SLO'et er lige blevet oprettet. | Vent på den første evaluering, højst et par minutter. |
 | **Ingen tjenester valgt** | Et anmodnings-SLO har ingen tjenester, så det har ingen anmodninger at tælle. | Vælg dets tjenester under **Indstillinger** → **Hvad det måler**. |
-| **No latency threshold** | Et SLO for anmodningslatens har ingen grænse, så ingen anmodning kan tælle som hurtig nok. | Angiv **Latensgrænse (ms)** under **Indstillinger** → **Hvad det måler**. |
-| **Waiting for requests** | Ingen af et anmodnings-SLO's tjenester har besvaret en anmodning i dets vindue endnu. | Tjek, at tjenesterne sender spor til OneUptime. Tallene vises efter den næste evaluering, der tæller en anmodning. |
+| **Ingen latensgrænse** | Et SLO for anmodningslatens har ingen grænse, så ingen anmodning kan tælle som hurtig nok. | Angiv **Latensgrænse (ms)** under **Indstillinger** → **Hvad det måler**. |
+| **Venter på anmodninger** | Ingen af et anmodnings-SLO's tjenester har besvaret en anmodning i dets vindue endnu. | Tjek, at tjenesterne sender spor til OneUptime. Tallene vises efter den næste evaluering, der tæller en anmodning. |
 
 ## Næste trin
 

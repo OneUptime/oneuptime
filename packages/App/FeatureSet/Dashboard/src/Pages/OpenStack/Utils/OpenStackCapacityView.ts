@@ -43,6 +43,31 @@ export const OPENSTACK_CAPACITY_RESOURCE_TITLES: Readonly<
   [OPENSTACK_CAPACITY_RESOURCE_STORAGE_BYTES]: translationKey("Storage"),
 };
 
+/*
+ * The zones table's column over what is allocated of each main class, one
+ * key each: "vCPUs allocated" was the class's name and the word
+ * "allocated" looked up apart, in English's order in every language
+ * (#8290). The page's other tiles and charts already say these.
+ */
+export const OPENSTACK_CAPACITY_ALLOCATED_TITLES: Readonly<
+  Record<string, string>
+> = {
+  [OPENSTACK_RESOURCE_VCPU]: translationKey("vCPUs allocated"),
+  [OPENSTACK_RESOURCE_PCPU]: translationKey("Pinned CPUs allocated"),
+  [OPENSTACK_RESOURCE_MEMORY_MB]: translationKey("Memory allocated"),
+  [OPENSTACK_RESOURCE_DISK_GB]: translationKey("Local disk allocated"),
+};
+
+// What the zones table heads a main class's column with: its key, or its name for a class it has none for.
+export function getOpenStackCapacityAllocatedTitle(
+  resourceClass: string,
+): string {
+  return (
+    OPENSTACK_CAPACITY_ALLOCATED_TITLES[resourceClass] ||
+    getOpenStackCapacityResourceTitle(resourceClass)
+  );
+}
+
 // A class Placement knows and this page doesn't, such as a bare metal node's, reads as its name.
 export function getOpenStackCapacityResourceTitle(
   resourceClass: string,

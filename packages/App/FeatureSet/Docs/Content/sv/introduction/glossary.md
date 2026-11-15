@@ -54,7 +54,7 @@ Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
 En maskin som kör monitorernas kontroller enligt ett schema: den hämtar en sida, anropar ett API eller pingar en värd. OneUptime Cloud kör sonder i flera regioner, och en anpassad sond som du kör i ditt eget nätverk kontrollerar det som bara det nätverket når.
 
-Kallas även: **Anpassade probes**. Se [Anpassade probes](/docs/probe/custom-probe).
+Kallas även: **Anpassade sonder**. Se [Anpassade sonder](/docs/probe/custom-probe).
 
 ### Incident
 
@@ -436,7 +436,7 @@ Se [Grundbegrepp](/docs/introduction/core-concepts#olika-slags-regler).
 
 ### Roll
 
-Fyra olika saker: behörigheterna som ett team ger, till exempel Project Owner eller Project Admin; en **Anpassad roll** som du sätter ihop av behörigheter; en **Incidentroll**, den roll någon har i en incident; och en **Network Device Role**, vad en enhet i ditt nätverk gör.
+Fyra olika saker: behörigheterna som ett team ger, till exempel Projektägare eller Projektadministratör; en **Anpassad roll** som du sätter ihop av behörigheter; en **Incidentroll**, den roll någon har i en incident; och en **Network Device Role**, vad en enhet i ditt nätverk gör.
 
 Se [Användare, team och behörigheter](/docs/permissions/index).
 

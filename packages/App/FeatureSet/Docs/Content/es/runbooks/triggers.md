@@ -163,7 +163,7 @@ return { host };
 
 ## Quién puede configurar desencadenantes
 
-Una programación o un webhook inicia ejecuciones sin nadie presente, así que configurar uno requiere permiso para editar el runbook y para ejecutarlo: Project Owner, Project Admin o Runbook Admin, o **Edit Runbook** junto con Project Member, Runbook Member o **Create Runbook Execution**. Cuentan las etiquetas a las que se limita un rol, como en **Ejecutar ahora**. Ver o restablecer la URL del webhook requiere lo mismo.
+Una programación o un webhook inicia ejecuciones sin nadie presente, así que configurar uno requiere permiso para editar el runbook y para ejecutarlo: Propietario del proyecto, Administrador del proyecto o Administrador de runbooks, o **Edit Runbook** junto con Miembro del proyecto, Miembro de runbooks o **Create Runbook Execution**. Cuentan las etiquetas a las que se limita un rol, como en **Ejecutar ahora**. Ver o restablecer la URL del webhook requiere lo mismo.
 
 Desactivar una programación o un webhook no inicia nada, así que solo requiere permiso para editar el runbook. Quien puede editar el runbook pero no ejecutarlo ve la página **Desencadenantes** con **Configurar programación** bloqueado, y se le dice quién puede ver la URL del webhook.
 
@@ -178,7 +178,7 @@ Una ejecución seguía en curso y la programación omite esas horas, o OneUptime
 :::
 
 :::details Guardar una programación falla con "You do not have permission to set up this runbook's schedule or webhook."
-Configurar un desencadenante requiere permiso para ejecutar el runbook además de para editarlo. Pide Runbook Admin, o Runbook Member o **Create Runbook Execution** además de **Edit Runbook**.
+Configurar un desencadenante requiere permiso para ejecutar el runbook además de para editarlo. Pide el rol Administrador de runbooks, o el rol Miembro de runbooks o **Create Runbook Execution** además de **Edit Runbook**.
 :::
 
 :::details Una llamada recibe la respuesta "No runbook webhook answers at this URL."

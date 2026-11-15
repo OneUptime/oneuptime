@@ -56,7 +56,7 @@ Formulär börjar med de här två, och fler sorters poster kommer.
 ## Innan du börjar
 
 - **En plan som omfattar formulär.** På OneUptime Cloud kräver formulär planen **Growth** eller högre. Se [Plan](#plan).
-- **Behörighet att skapa formulär.** **Create Form** har projektägare och -administratörer, och de roller som du ger den till. Se [Behörigheter](#behörigheter).
+- **Behörighet att skapa formulär.** **Create Form** har Projektägare och Projektadministratörer, och de roller som du ger den till. Se [Behörigheter](#behörigheter).
 - **För ett incidentformulär, en allvarlighetsgrad.** Varje incident behöver en: från en fråga, från formulärets inställningar eller från dess incidentmall. Utan den avvisas varje inlämning. Se [Vad en inlämning skapar](/docs/forms/on-submit#så-blir-en-inlämning-en-incident).
 
 ## Skapa ditt första formulär
@@ -127,22 +127,22 @@ Inlämningar skrivs av formuläret, aldrig för hand, och kan inte redigeras. Om
 
 ## Behörigheter
 
-Formulär låter personer utanför ditt team skapa incidenter och underhållshändelser i ditt projekt, så de hanteras av projektägare och -administratörer, och av de roller som du ger behörigheterna **Form**. De finns i gruppen **Form** i [Behörighetsreferens](/docs/permissions/reference):
+Formulär låter personer utanför ditt team skapa incidenter och underhållshändelser i ditt projekt, så de hanteras av Projektägare och Projektadministratörer, och av de roller som du ger behörigheterna **Form**. De finns i gruppen **Form** i [Behörighetsreferens](/docs/permissions/reference):
 
 | Behörighet | Vad den tillåter | Vem har den som standard |
 | --- | --- | --- |
-| **Create Form** | Skapa formulär och duplicera dem. | Project Owner, Project Admin |
-| **Edit Form** | Ändra ett formulär: dess frågor, varumärke, mallar, inställningar under Vid inlämning, **Tar emot inlämningar**, dess länk och **IP-tillåtelselista**. | Project Owner, Project Admin |
-| **Delete Form** | Ta bort ett formulär, och därmed dess inlämningar. | Project Owner, Project Admin |
-| **Read Form** | Se formulär, deras frågor, inställningar och länkar. | De ovanstående, plus Project Member, Viewer och rollerna för incidenter och planerat underhåll |
-| **Read Form Submission** | Se inlämningarna och deras svar. | Project Owner, Project Admin |
-| **Delete Form Submission** | Ta bort inlämningar. | Project Owner, Project Admin |
-| **Create Form Domain** | Lägga till en [anpassad domän](/docs/forms/sharing-and-security#anpassade-domäner) i ett formulär. | Project Owner, Project Admin och **Edit Form** |
-| **Edit Form Domain** | Kontrollera ett formulärs anpassade domäner, och beställa, utfärda på nytt eller byta deras certifikat. | Project Owner, Project Admin och **Edit Form** |
-| **Delete Form Domain** | Ta bort ett formulärs anpassade domäner. | Project Owner, Project Admin och **Edit Form** |
+| **Create Form** | Skapa formulär och duplicera dem. | Projektägare, Projektadministratör |
+| **Edit Form** | Ändra ett formulär: dess frågor, varumärke, mallar, inställningar under Vid inlämning, **Tar emot inlämningar**, dess länk och **IP-tillåtelselista**. | Projektägare, Projektadministratör |
+| **Delete Form** | Ta bort ett formulär, och därmed dess inlämningar. | Projektägare, Projektadministratör |
+| **Read Form** | Se formulär, deras frågor, inställningar och länkar. | De ovanstående, plus Projektmedlem, Tittare och rollerna för incidenter och planerat underhåll |
+| **Read Form Submission** | Se inlämningarna och deras svar. | Projektägare, Projektadministratör |
+| **Delete Form Submission** | Ta bort inlämningar. | Projektägare, Projektadministratör |
+| **Create Form Domain** | Lägga till en [anpassad domän](/docs/forms/sharing-and-security#anpassade-domäner) i ett formulär. | Projektägare, Projektadministratör och **Edit Form** |
+| **Edit Form Domain** | Kontrollera ett formulärs anpassade domäner, och beställa, utfärda på nytt eller byta deras certifikat. | Projektägare, Projektadministratör och **Edit Form** |
+| **Delete Form Domain** | Ta bort ett formulärs anpassade domäner. | Projektägare, Projektadministratör och **Edit Form** |
 | **Read Form Domain** | Se ett formulärs anpassade domäner, deras DNS-poster och hur långt var och en har kommit på vägen till HTTPS. | Alla med **Read Form** |
 
-Inlämningar innehåller det som främlingar har skrivit (namn, e-postadresser och svar som kanske aldrig når posten), så bara projektägare och -administratörer ser dem, om du inte ger **Read Form Submission**. Alla som kan läsa ett formulär kan se och dela dess länk. Att skicka ett formulär kräver ingen behörighet alls. Hur roller och detaljerade behörigheter samverkar kan du läsa i [Användare, team och behörigheter](/docs/permissions/index).
+Inlämningar innehåller det som främlingar har skrivit (namn, e-postadresser och svar som kanske aldrig når posten), så bara Projektägare och Projektadministratörer ser dem, om du inte ger **Read Form Submission**. Alla som kan läsa ett formulär kan se och dela dess länk. Att skicka ett formulär kräver ingen behörighet alls. Hur roller och detaljerade behörigheter samverkar kan du läsa i [Användare, team och behörigheter](/docs/permissions/index).
 
 ## Plan
 

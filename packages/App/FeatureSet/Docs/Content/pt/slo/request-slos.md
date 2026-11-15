@@ -37,7 +37,7 @@ A partir daí, um SLO de requisições funciona como qualquer outro. O status, a
 ## Antes de começar
 
 - Os serviços enviam traços ao OneUptime: veja [OpenTelemetry](/docs/telemetry/open-telemetry). Cada um aparece no [catálogo de serviços](/docs/telemetry/services) com o seu `service.name`.
-- Uma função que possa criar SLOs: Project Owner, Project Admin ou uma função personalizada com a permissão Create Service Level Objective.
+- Uma função que possa criar SLOs: Proprietário do projeto, Administrador do projeto ou uma função personalizada com a permissão Create Service Level Objective.
 
 ## Criar um SLO de requisições
 
@@ -59,7 +59,7 @@ Informe um **Nome**, por exemplo "Checkout requests", e uma **Meta (%)**: a parc
 A primeira avaliação, em até 5 minutos, conta as requisições das últimas 6 horas, então o SLO já tem números logo de início. As avaliações seguintes contam também requisições mais antigas, até cobrir a janela de conformidade.
 :::
 
-Para mudar depois o que um SLO mede, os serviços dele ou o limite, abra as **Configurações** dele e clique em **Editar o que mede**.
+A página **SLOs** de um serviço lista os SLOs que o medem, e o seu **Criar: Service Level Objective** abre o mesmo formulário com o serviço já escolhido. Para mudar depois o que um SLO mede, os serviços dele ou o limite, abra as **Configurações** dele e clique em **Editar o que mede**.
 
 ## Como as requisições são contadas
 
@@ -86,7 +86,7 @@ Um SLO de requisições recebe as mesmas regras **Fast burn**, **Slow burn** e *
 
 ## Solução de problemas
 
-:::details O SLO mostra "Waiting for requests"
+:::details O SLO mostra "Aguardando requisições"
 Nenhum dos serviços dele atendeu uma requisição na janela ainda. Confira se os serviços enviam traços ao OneUptime e se os spans deles incluem spans de entrada: um serviço cujos spans são todos internos não tem requisições para contar.
 :::
 

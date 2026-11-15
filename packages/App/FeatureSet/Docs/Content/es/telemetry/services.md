@@ -43,7 +43,7 @@ Cada vez que llega telemetría, el **Visto por última vez** del servicio avanza
 ## Antes de empezar
 
 - **Telemetría que llega** con un `service.name`. Consulte [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` lo establece.
-- **Un rol que pueda leer servicios.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member o Settings Viewer, o un rol personalizado con el permiso Read Service. Crear, cambiar y eliminar servicios requiere Project Owner, Project Admin, Project Member, Settings Admin o Settings Member, o los permisos de servicio correspondientes.
+- **Un rol que pueda leer servicios.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Visor, Administrador de ajustes, Miembro de ajustes o Visor de ajustes, o un rol personalizado con el permiso Read Service. Crear, cambiar y eliminar servicios requiere Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de ajustes o Miembro de ajustes, o los permisos de servicio correspondientes.
 
 ## Encontrar un servicio
 
@@ -61,7 +61,7 @@ El menú lateral de un servicio tiene cinco secciones:
 
 | Sección | Páginas |
 | --- | --- |
-| **Básico** | **Vista general**: solicitudes, tasa de errores y latencia p95 de sus spans, gráficos y sus detalles. **Recomendaciones**: monitores listos para usar para el servicio, elegidos según su lenguaje. **Propietarios**: las personas y los equipos responsables de él. **Feed**: todo lo que le ha ocurrido, desde cómo se creó hasta cada cambio posterior. |
+| **Básico** | **Vista general**: solicitudes, tasa de errores y latencia p95 de sus spans, gráficos y sus detalles. **Recomendaciones**: monitores listos para usar para el servicio, elegidos según su lenguaje. **SLO**: los SLO que miden sus solicitudes, donde puedes crear uno que ya mide el servicio. **Propietarios**: las personas y los equipos responsables de él. **Feed**: todo lo que le ha ocurrido, desde cómo se creó hasta cada cambio posterior. |
 | **Telemetría** | Sus **Registros**, **Trazas**, **Métricas**, **Perfiles**, **Excepciones** y **Source maps**, ya filtrados a este servicio. |
 | **Actividad** | Los **Incidentes**, las **Alertas** y los eventos de **Mantenimiento programado** que le afectan. |
 | **Desarrolladores** | **Terraform**, **API**, **CLI** y **Asistentes de IA**: el servicio gestionado desde código. Empieza contraída. |

@@ -473,7 +473,7 @@ En typ erbjuder bara de komponenter som dess modell tillåter. En skrivskyddad t
 
 Så läser och ändrar ett arbetsflöde OneUptime-data. Till exempel kan en webhook från ditt CI-verktyg använda **Create One Incident** för att öppna en incident med detaljerna om felet.
 
-De här komponenterna agerar som Project Admin för arbetsflödets projekt: det en Project Admin inte får göra, eller som din plan inte omfattar, avvisas, och körningens logg säger varför. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
+De här komponenterna agerar som Projektadministratör för arbetsflödets projekt: det en Projektadministratör inte får göra, eller som din plan inte omfattar, avvisas, och körningens logg säger varför. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 
 ### Deklarera en incident från en mall
 
@@ -486,6 +486,12 @@ Incidenten registrerar mallen den deklarerades från i `createdIncidentTemplateI
 **Create One Incident** och **Create One Alert** har inställningen **Berörda resurser**: de värdar, nätverksenheter, kluster, databaser eller tjänster som posten gäller, med namn, adress eller ID, åtskilda med kommatecken — inskrivna eller hämtade från ett tidigare steg, som värden som ett larm från ett annat verktyg nämner. Varje post söks i alla sorters resurser som posten kan hålla, som helt värde och utan hänsyn till versaler: på namn, en nätverksenhet också på adressen den avsöks på eller sitt DNS-namn, en värd på namnet dess agent rapporterar eller en av dess IP-adresser, och en molnresurs på leverantörens ID. Varje resurs som en post matchar länkas, bredvid det som **JSON Object** och mallen redan länkar, upp till 50 från de första 25 posterna.
 
 En post som inte matchar något stoppar inte steget: posten skapas ändå, och körningsloggen säger vad varje post länkade och vilka som inte matchade något. Arkiverade resurser länkas inte. Monitorer slås inte upp: ange dem i **JSON Object** (`monitors` på en incident, `monitorId` på ett larm), eftersom att länka en monitor till en incident pausar dess övervakning.
+
+### Vem som äger den från början
+
+**Create One Incident** och **Create One Alert** har inställningarna **Ägaranvändare** och **Ägarteam**: de personer och team som äger posten från det att den skapas. Välj dem, eller ta dem från ett tidigare steg: en användares id eller e-postadress, ett teams id, flera åtskilda med kommatecken, eller en lista. Postens ägare får veta att den skapats ungefär en minut efter att den skapats, alla ägare den har då: de som väljs här är alltid bland dem, medan ägare som ett senare steg lägger till missar det när det steget körs mer än en minut senare, och projektets ägare meddelas i deras ställe.
+
+Steget frågar, som Projektadministratör för arbetsflödets projekt, om det får lägga till dem innan posten sparas: ägare som det inte får lägga till gör att skapandet avvisas. Den som inte är medlem i projektet, eller ett team som inte är ett av projektets, utelämnas, och körningsloggen säger det: posten skapas ändå. Ägare som läggs till på det här sättet får inte veta att de lagts till: aviseringen om att posten skapats är den de får.
 
 ## Arbeta med poster
 

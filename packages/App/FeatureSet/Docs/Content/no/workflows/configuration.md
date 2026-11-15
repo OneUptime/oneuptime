@@ -5,7 +5,7 @@ Dette bør du vite før du retter en arbeidsflyt mot ekte trafikk: hvordan du sl
 :::cards
 - [Gå live](#å-slå-en-arbeidsflyt-på-eller-av): Test med Kjør arbeidsflyt mens den er av, og slå den deretter på.
 - [Tillatelser](#tillatelser): Arbeidsflytrollene og de enkelte tillatelsene bak dem.
-- [Hva trinn kan gjøre](#hva-arbeidsflyttrinn-kan-gjøre): Trinn handler som Project Admin i prosjektet til arbeidsflyten.
+- [Hva trinn kan gjøre](#hva-arbeidsflyttrinn-kan-gjøre): Trinn handler som Prosjektadministrator i prosjektet til arbeidsflyten.
 - [Grenser](#plangrenser): Kjøringer per plan, kjøretid og kall mellom arbeidsflyter.
 :::
 
@@ -147,7 +147,7 @@ Hva blokken krever, og hva den koster:
 
 - **Aktiver AI** må være slått på under **Prosjektinnstillinger → KI → AI-funksjoner**. I OneUptime Cloud må prosjektet også ha planen Growth eller høyere og et betalt abonnement. Selvhostede installasjoner uten fakturering har ikke noe plankrav.
 - Kall gjennom en global leverandør med kostnad bruker prosjektets AI-kreditter.
-- Hvert kall teller mot [prosjektets egne daglige AI-grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser), når en prosjekteier setter dem. Når en grense er nådd, tar blokken **Feil** uten å kontakte modellen, frem til midnatt UTC.
+- Hvert kall teller mot [prosjektets egne daglige AI-grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser), når en Prosjekteier setter dem. Når en grense er nådd, tar blokken **Feil** uten å kontakte modellen, frem til midnatt UTC.
 
 | Grense                                                        | Verdi                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -170,7 +170,7 @@ Arbeidsflyter følger den rollebaserte tilgangskontrollen i prosjektet ditt. De 
 - **Arbeidsflytmedlem** — bruker dem: åpner arbeidsflyter og kjøringene deres, og kjører en arbeidsflyt manuelt med **Kjør arbeidsflyt**. Et medlem kan ikke opprette, endre eller slette en arbeidsflyt, eller kjøre ett av trinnene for seg. **Bygger** viser dem en arbeidsflyt slik den er, merket **Kun visning**: Et trinn åpnes for å leses, og ingenting de gjør der, lagres.
 - **Arbeidsflytleser** — leser arbeidsflyter og kjøringene deres.
 
-**Prosjekteier** og **Prosjektadministrator** kan alt en Workflow Admin kan. **Prosjektmedlem** kan opprette og slette arbeidsflyter, men ikke endre eller kjøre dem.
+**Prosjekteier** og **Prosjektadministrator** kan alt en Arbeidsflytadministrator kan. **Prosjektmedlem** kan opprette og slette arbeidsflyter, men ikke endre eller kjøre dem.
 
 De enkelte tillatelsene, for et team eller en API-nøkkel som trenger nøyaktig én ting:
 
@@ -185,18 +185,18 @@ Gi dem som bygger automatisering, **Arbeidsflytadministrator**, og dem som bare 
 
 ## Hva arbeidsflyttrinn kan gjøre
 
-Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Update og Delete, og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Prosjektadministrator** i prosjektet til arbeidsflyten. Uansett hvem som bygde arbeidsflyten, møter et trinn de samme kontrollene som en Project Admin møter i dashbordet og API-et:
+Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Update og Delete, og triggerne On Create, On Update, On Create or Update og On Delete — handler som en **Prosjektadministrator** i prosjektet til arbeidsflyten. Uansett hvem som bygde arbeidsflyten, møter et trinn de samme kontrollene som en Prosjektadministrator møter i dashbordet og API-et:
 
 - **Bare arbeidsflytens eget prosjekt.** Et trinn leser og skriver postene i prosjektet arbeidsflyten hører til, og ingen andre, og en Update flytter aldri en post til et annet prosjekt.
-- **Bare det en Project Admin har lov til.** Et trinn kan ikke gjøre det bare **Prosjekteier** og tillatelser for fakturering eller prosjektsletting gir lov til, og det kan ikke lese hvem som opprettet en probe eller en AI-agent, noe bare prosjekteiere ser.
-- **Ikke hvem som har tilgang.** Et trinn oppretter, endrer og sletter ikke team, teammedlemmer, teamtillatelser, egendefinerte roller eller API-nøkkeltillatelser, selv om en Project Admin har lov til det. Den som bygger en arbeidsflyt, bestemmer hva trinnene gjør, og det kan være en **Prosjektmedlem**, så et trinn som kunne det, ville gitt den som bygde den, tilgang vedkommende ikke har fått, som **Prosjektadministrator**. Trinnet avvises, og loggen til kjøringen sier at en person som administrerer prosjektets team og API-nøkler, må gjøre endringen. Triggere og Find-trinn på disse postene virker fortsatt.
-- **Ikke lesing av innstillinger som inneholder påloggingsinformasjon.** En Project Admin har lov til å lese SMTP-servere, leverandører for anrop og SMS, SNMP-påloggingsinformasjon, videosamtaletilkoblinger og API-nøkler, men det lånes aldri ut til et trinn, uansett hvem som bygde eller lagret arbeidsflyten. Et trinn kan ikke angi noen av disse innstillingene, som SMTP-serveren en statusside sender e-post med, eller API-nøkkelen en tillatelse gis til. Trinnet avvises, og kjøreloggen sier at en person som kan lese dem (lesetillatelsen for den typen innstilling, eller en Project Owner eller Project Admin), må gjøre endringen. Et trinn som beholder innstillingen en post allerede angir, eller tømmer den, avvises ikke.
+- **Bare det en Project Admin har lov til.** Et trinn kan ikke gjøre det bare **Prosjekteier** og tillatelser for fakturering eller prosjektsletting gir lov til, og det kan ikke lese hvem som opprettet en sonde eller en AI-agent, noe bare Prosjekteiere ser.
+- **Ikke hvem som har tilgang.** Et trinn oppretter, endrer og sletter ikke team, teammedlemmer, teamtillatelser, egendefinerte roller eller API-nøkkeltillatelser, selv om en Prosjektadministrator har lov til det. Den som bygger en arbeidsflyt, bestemmer hva trinnene gjør, og det kan være en **Prosjektmedlem**, så et trinn som kunne det, ville gitt den som bygde den, tilgang vedkommende ikke har fått, som **Prosjektadministrator**. Trinnet avvises, og loggen til kjøringen sier at en person som administrerer prosjektets team og API-nøkler, må gjøre endringen. Triggere og Find-trinn på disse postene virker fortsatt.
+- **Ikke lesing av innstillinger som inneholder påloggingsinformasjon.** En Prosjektadministrator har lov til å lese SMTP-servere, leverandører for anrop og SMS, SNMP-påloggingsinformasjon, videosamtaletilkoblinger og API-nøkler, men det lånes aldri ut til et trinn, uansett hvem som bygde eller lagret arbeidsflyten. Et trinn kan ikke angi noen av disse innstillingene, som SMTP-serveren en statusside sender e-post med, eller API-nøkkelen en tillatelse gis til. Trinnet avvises, og kjøreloggen sier at en person som kan lese dem (lesetillatelsen for den typen innstilling, eller en Prosjekteier eller Prosjektadministrator), må gjøre endringen. Et trinn som beholder innstillingen en post allerede angir, eller tømmer den, avvises ikke.
 - **Bare det planen din inkluderer.** I OneUptime Cloud avvises et trinn som oppretter eller endrer noe planen din ikke inkluderer, med planen det krever, akkurat som i dashbordet. Selvhostede installasjoner uten fakturering har ingen plangrenser.
 - **Ingenting OneUptime holder for seg selv.** Dette avvises for alle, arbeidsflyter inkludert:
   - å redigere eller slette en feedoppføring (feedene til hendelser, varsler, episoder, monitorer, vaktpolicyer og planlagt vedlikehold);
   - å skrive en varslingslogg (loggene for SMS, anrop, e-post, WhatsApp, Telegram, push, webhooker og arbeidsområdemeldinger);
   - verdier OneUptime setter etter hvert som ting skjer: om CNAME-en til et egendefinert domene er verifisert, beskyttelsesbryterne til et team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), hvilken hendelsesrolle som er den primære, og om den kan slettes, om en eier eller et medlem har fått varsel, tidspunkter og antall for påminnelser, hvem som har vakt i en vaktplan nå og som neste, fremdriften i en vaktkjøring, den nåværende burn raten og error budgeten til en SLO, en monitor som er satt på pause av en hendelse eller en vedlikeholdshendelse, tokenet for tilbakestilling av passord og siste pålogging for en privat statussidebruker, opplysningene en tjeneste rapporterer om seg selv (versjon, runtime, sky), og siste kjøring av en deteksjonsregel eller en trusselfeed;
-  - å erklære en hendelse ut fra en mal ved å sende `createdIncidentTemplateId` til **Create One Incident** — velg i stedet malen under trinnets innstilling **Hendelsesmal**: trinnet erklærer da hendelsen ut fra den, som Project Admin, og registrerer malen;
+  - å erklære en hendelse ut fra en mal ved å sende `createdIncidentTemplateId` til **Create One Incident** — velg i stedet malen under trinnets innstilling **Hendelsesmal**: trinnet erklærer da hendelsen ut fra den, som Prosjektadministrator, og registrerer malen;
   - å endre hvilken post en post hører til etter at den er opprettet, som monitoren en eierrad gjelder, eller hendelsen et notat står på.
 - **Som ingen person.** En post som en arbeidsflyt oppretter, har ingen oppretter, og revisjonsloggen oppgir arbeidsflyten, med navnet den hadde da, som den som gjorde endringen.
 

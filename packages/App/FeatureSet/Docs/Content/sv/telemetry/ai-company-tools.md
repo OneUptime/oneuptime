@@ -1,6 +1,6 @@
 # Företagets AI-verktyg
 
-Se vad dina medarbetare frågar de AI-verktyg som ditt företag betalar för, som konversationer per person. Anslut Claude Enterprise eller Microsoft 365 Copilot med inloggningsuppgifter som bara kan läsa, så hämtar OneUptime varje ny chatt till **Konversationer** var 15:e minut. Bara projektets ägare och administratörer kan läsa dem, om du inte väljer något annat.
+Se vad dina medarbetare frågar de AI-verktyg som ditt företag betalar för, som konversationer per person. Anslut Claude Enterprise eller Microsoft 365 Copilot med inloggningsuppgifter som bara kan läsa, så hämtar OneUptime varje ny chatt till **Konversationer** var 15:e minut. Bara Projektägare och Projektadministratörer kan läsa dem, om du inte väljer något annat.
 
 :::cards
 - [Berätta för dina medarbetare först](#berätta-för-dina-medarbetare-först): Deras chattar är deras egna ord.
@@ -29,7 +29,7 @@ Chattarna kommer in på samma sätt som dina appars AI-anrop, så scrub-regler, 
 
 ## Innan du börjar
 
-- Rollen Project Owner eller Project Admin. Bara de kan ansluta, ändra eller ta bort ett verktyg.
+- Rollen Projektägare eller Projektadministratör. Bara de kan ansluta, ändra eller ta bort ett verktyg.
 - En administratör av verktyget som skapar inloggningsuppgifterna: varje verktygs avsnitt nedan säger vem.
 - Dina medarbetare informerade, och svaret från er juridiska avdelning eller HR.
 

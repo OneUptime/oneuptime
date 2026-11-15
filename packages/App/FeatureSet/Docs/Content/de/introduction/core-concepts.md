@@ -46,7 +46,7 @@ Die **Kriterien** eines Monitors entscheiden, was jedes Ergebnis bedeutet. Sie w
 
 :::cards
 - [Einen Monitor erstellen](/docs/monitor/create-monitor): Einen Typ wählen, festlegen, was geprüft wird, und wie oft.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Prüfen, was nur Ihr eigenes Netzwerk erreicht.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Prüfen, was nur Ihr eigenes Netzwerk erreicht.
 :::
 
 ## Was Sie überwachen

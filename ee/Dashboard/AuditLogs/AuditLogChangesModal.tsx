@@ -12,6 +12,7 @@ import {
   AUDIT_LOG_SESSION_FIELDS,
   AUDIT_LOG_SESSION_TIME_FIELDS,
   AuditLogSessionField,
+  getSessionEntryValueInLanguage,
   isSessionAuditLogAction,
   readSessionEntryFields,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
@@ -165,8 +166,9 @@ export interface SessionDetailRow {
 /*
  * A session entry's details as the dialog lists them (issue #6762): each
  * field it recorded, in the order the audit log names them, by its words -
- * in the reader's language when handed their translator (#8291) - and a
- * time in the reader's own zone.
+ * in the reader's language when handed their translator (#8291), and so is
+ * a value that is one of OneUptime's own words, why it ended or how they
+ * signed in (#8459) - and a time in the reader's own zone.
  */
 export const readSessionDetailRows: (
   changes: unknown,
@@ -193,7 +195,7 @@ export const readSessionDetailRows: (
       label: translator?.translateText(label) || label,
       value: AUDIT_LOG_SESSION_TIME_FIELDS.includes(field)
         ? formatScalar(value)
-        : value,
+        : getSessionEntryValueInLanguage({ field, value, translator }),
     });
   }
 

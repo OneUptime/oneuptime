@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **Una sonda del tuo progetto.** Le sonde globali trasportano il traffico di altri progetti, quindi non catturano mai. Per installare una sonda tua, vedi [Sonde personalizzate](/docs/probe/custom-probe).
 - **Una sonda di questa versione o successiva.** Le sonde precedenti non segnalano su cosa possono catturare.
-- **Le autorizzazioni giuste.** Per avviare e fermare una cattura serve **Start Packet Capture**, per scaricare un file **Download Packet Capture**. I proprietari e gli amministratori del progetto le hanno entrambe. Vedi [Autorizzazioni](#autorizzazioni).
+- **Le autorizzazioni giuste.** Per avviare e fermare una cattura serve **Start Packet Capture**, per scaricare un file **Download Packet Capture**. I Proprietari del progetto e gli Amministratori del progetto le hanno entrambe. Vedi [Autorizzazioni](#autorizzazioni).
 - **Una porta replicata, per il traffico che non raggiunge la sonda.** Una sonda vede solo il traffico delle interfacce del proprio host. Per catturare il traffico tra altri dispositivi, replica la loro porta dello switch (SPAN) su un'interfaccia libera dell'host della sonda.
 
 ## Attivare la cattura dei pacchetti
@@ -188,10 +188,10 @@ Un filtro scritto da te è una riga di al massimo 500 caratteri, fatta di letter
 
 | Autorizzazione | Permette di | Chi la ha per impostazione predefinita |
 | --- | --- | --- |
-| **Start Packet Capture** | Avviare le catture e fermarle | Project Owner, Project Admin |
-| **Download Packet Capture** | Scaricare i file di cattura | Project Owner, Project Admin |
-| **Delete Packet Capture** | Eliminare le catture e i loro file | Project Owner, Project Admin |
-| **Read Packet Capture** | Vedere le catture: quando sono state eseguite, su quale sonda e con quale filtro | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | Avviare le catture e fermarle | Proprietario del progetto, Amministratore del progetto |
+| **Download Packet Capture** | Scaricare i file di cattura | Proprietario del progetto, Amministratore del progetto |
+| **Delete Packet Capture** | Eliminare le catture e i loro file | Proprietario del progetto, Amministratore del progetto |
+| **Read Packet Capture** | Vedere le catture: quando sono state eseguite, su quale sonda e con quale filtro | Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore |
 
 Per dare a un team **Start Packet Capture** o **Download Packet Capture**, aprilo in **Impostazioni → Team** e aggiungi l'autorizzazione nella sua pagina **Autorizzazioni**. Vedi [Autorizzazioni](/docs/permissions/index).
 

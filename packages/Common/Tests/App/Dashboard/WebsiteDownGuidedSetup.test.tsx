@@ -262,6 +262,8 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
+import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -2692,12 +2694,305 @@ describe("the run's policy deleted in another tab or by a teammate (#8235)", () 
 });
 
 /*
+ * THE RUN'S POLICY ARCHIVED - in another tab, or by a teammate - while the
+ * page was open (#8432). An archived policy is still there, but pages no
+ * one: the setup read it as there, and its done line and the summary said
+ * '"Default on-call policy" pages Ada Lovelace.' of a policy that pages
+ * nobody. Now it is forgotten as a deleted one is, and step 2 says, in a
+ * sentence of its own, that it was archived.
+ */
+describe("the run's policy archived in another tab or by a teammate (#8432)", () => {
+  const ARCHIVED: string =
+    "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.";
+  const DELETED: string =
+    "The on-call policy this setup made was deleted, so choose who is told again.";
+
+  const NO_POLICY_IN_SERVICE: Record<string, unknown> = {
+    policyCount: 0,
+    incidentRuleCount: 0,
+    alertRuleCount: 0,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
+
+  const ANOTHER_POLICY: Record<string, unknown> = {
+    policyCount: 1,
+    incidentRuleCount: 1,
+    alertRuleCount: 1,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
+
+  const ARCHIVED_POLICY: Record<string, unknown> = {
+    id: POLICY_ID,
+    name: "Default on-call policy",
+    responders: ["Ada Lovelace"],
+    isArchived: true,
+  };
+
+  // Step 2 open again on the run's policy, as a done step opens to look at.
+  const atWhoIsToldWithPolicy: () => Promise<void> =
+    async (): Promise<void> => {
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+      expect(stepState("test")).toBe("open");
+      await act(async () => {
+        fireEvent.click(
+          screen
+            .getByTestId("guided-setup-step-who_is_told")
+            .querySelector("button")!,
+        );
+      });
+      expect(stepState("who_is_told")).toBe("open");
+    };
+
+  // The test step, its test acknowledged: Continue opens the summary.
+  const atAcknowledgedTest: () => Promise<void> = async (): Promise<void> => {
+    keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+    await renderSetup();
+    expect(stepState("test")).toBe("open");
+    await press("send-test-page");
+    await act(async () => {
+      reportTestResult(result(OnCallTestPageStatus.Acknowledged));
+    });
+    expect(screen.getByTestId("guided-setup-test-continue")).toBeVisible();
+  };
+
+  // Another tab, or a teammate, archives the policy: it reads, archived.
+  const archiveThePolicy: (factsAfter?: Record<string, unknown>) => void = (
+    factsAfter?: Record<string, unknown>,
+  ): void => {
+    api["loadPolicy"]!.mockResolvedValue(ARCHIVED_POLICY);
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(
+      factsAfter || NO_POLICY_IN_SERVICE,
+    );
+  };
+
+  // The run forgot its policy, and step 2 is open, saying it was archived.
+  const expectStepTwoAgain: () => void = (): void => {
+    expect(storedRun()["policyId"]).toBeUndefined();
+    expect(storedRun()["monitorId"]).toBe(MONITOR_ID);
+    expect(stepState("check")).toBe("done");
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+    expect(
+      screen.getByTestId("guided-setup-policy-archived"),
+    ).toHaveTextContent(ARCHIVED);
+    // Its own sentence: never the deleted one's.
+    expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+    expect(screen.queryByText(DELETED)).toBeNull();
+    expect(
+      screen
+        .getByTestId("guided-setup-who-region")
+        .contains(screen.getByTestId("guided-setup-policy-archived")),
+    ).toBe(true);
+    // Nothing says the archived policy pages anyone.
+    expect(screen.queryByTestId("guided-setup-who-done-line")).toBeNull();
+    expect(document.body.textContent).not.toContain(
+      '"Default on-call policy" pages Ada Lovelace.',
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  };
+
+  test("the sentence is the website-down setup's own, a translation key, apart from the deleted one", () => {
+    expect(WEBSITE_DOWN_COPY.policyArchived).toBe(ARCHIVED);
+    expect(WEBSITE_DOWN_COPY.policyArchived).not.toBe(
+      WEBSITE_DOWN_COPY.policyDeleted,
+    );
+  });
+
+  describe("Continue on who should be told", () => {
+    test("archived: the run forgets it, makes nothing, and step 2 opens on making one, saying why", async () => {
+      await atWhoIsToldWithPolicy();
+      archiveThePolicy();
+
+      await press("guided-setup-who-continue");
+
+      expectStepTwoAgain();
+      expect(api["createPolicy"]).not.toHaveBeenCalled();
+      // The project's policies were counted again: making one is offered.
+      expect(api["loadWhoIsToldFacts"]).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+      expect(screen.getByTestId("guided-setup-who-continue")).toHaveTextContent(
+        WEBSITE_DOWN_COPY.whoSave,
+      );
+    });
+
+    test("negative control: the policy read in service (isArchived false) goes on, as before", async () => {
+      await atWhoIsToldWithPolicy();
+      api["loadPolicy"]!.mockResolvedValue({
+        ...ARCHIVED_POLICY,
+        isArchived: false,
+      });
+
+      await press("guided-setup-who-continue");
+
+      expect(stepState("who_is_told")).toBe("done");
+      expect(stepState("test")).toBe("open");
+      expect(storedRun()["policyId"]).toBe(POLICY_ID);
+      expect(screen.queryByTestId("guided-setup-policy-archived")).toBeNull();
+      expect(api["loadWhoIsToldFacts"]).toHaveBeenCalledTimes(1);
+    });
+
+    test("the sentence is read out first, in the step's polite live region", async () => {
+      await atWhoIsToldWithPolicy();
+      const region: HTMLElement = screen.getByTestId("guided-setup-who-region");
+
+      expect(region).toHaveAttribute("aria-live", "polite");
+      expect(region).not.toHaveTextContent(ARCHIVED);
+
+      archiveThePolicy();
+      await press("guided-setup-who-continue");
+
+      expect(screen.getByTestId("guided-setup-who-region")).toBe(region);
+      expect(region).toHaveTextContent(ARCHIVED);
+      expect(region.firstElementChild).toBe(
+        screen.getByTestId("guided-setup-policy-archived"),
+      );
+      expect(
+        region.contains(screen.getByTestId("guided-setup-who-continue")),
+      ).toBe(false);
+    });
+
+    test("made again: the new policy is the run's, and the sentence is said no more", async () => {
+      await atWhoIsToldWithPolicy();
+      archiveThePolicy();
+      await press("guided-setup-who-continue");
+
+      const NEW_POLICY_ID: string = "60000000-0000-4000-8000-000000000099";
+      api["createPolicy"]!.mockResolvedValue(NEW_POLICY_ID);
+      api["loadPolicy"]!.mockResolvedValue({
+        id: NEW_POLICY_ID,
+        name: "Default on-call policy",
+        responders: ["Grace Hopper"],
+        isArchived: false,
+      });
+      await press("guided-setup-who-continue");
+
+      expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+      expect(storedRun()["policyId"]).toBe(NEW_POLICY_ID);
+      expect(screen.queryByTestId("guided-setup-policy-archived")).toBeNull();
+      expect(stepState("who_is_told")).toBe("done");
+      expect(
+        screen.getByTestId("guided-setup-step-who_is_told-done-line"),
+      ).toHaveTextContent('"Default on-call policy" pages Grace Hopper.');
+    });
+
+    test("archived, while the project pages people through other policies: they decide", async () => {
+      await atWhoIsToldWithPolicy();
+      archiveThePolicy(ANOTHER_POLICY);
+
+      await press("guided-setup-who-continue");
+
+      expectStepTwoAgain();
+      expect(screen.queryByTestId("guided-setup-people")).toBeNull();
+      expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+        WEBSITE_DOWN_COPY.whoExistingHelp,
+      );
+    });
+  });
+
+  describe("on the test step, before the summary", () => {
+    test("Continue, the policy archived: no summary saying it pages people; step 2 opens, saying why", async () => {
+      await atAcknowledgedTest();
+      archiveThePolicy();
+
+      await press("guided-setup-test-continue");
+
+      expectStepTwoAgain();
+      expect(
+        screen.queryByTestId("guided-setup-summary-who_is_told"),
+      ).toBeNull();
+      expect(stepState("test")).toBe("upcoming");
+      // The test went to the person, not the policy: it is kept.
+      expect(storedRun()["testExecutionLogId"]).toBe("log-1");
+    });
+
+    test("Skip, the policy archived: not saved as skipped, and step 2 opens, saying why", async () => {
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+      archiveThePolicy();
+
+      await press("guided-setup-skip-test");
+
+      expectStepTwoAgain();
+      expect(storedRun()["testSkipped"]).toBeUndefined();
+    });
+  });
+
+  describe("opening the page", () => {
+    test("on a finished run whose policy was archived: step 2, saying why, and no summary", async () => {
+      api["loadPolicy"]!.mockResolvedValue(ARCHIVED_POLICY);
+      keepRun({
+        monitorId: MONITOR_ID,
+        policyId: POLICY_ID,
+        testExecutionLogId: "log-1",
+      });
+      await renderSetup();
+
+      expectStepTwoAgain();
+    });
+
+    test("on a run whose policy was deleted: it still says deleted, never archived", async () => {
+      api["loadPolicy"]!.mockResolvedValue(null);
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+
+      expect(
+        screen.getByTestId("guided-setup-policy-deleted"),
+      ).toHaveTextContent(DELETED);
+      expect(screen.queryByTestId("guided-setup-policy-archived")).toBeNull();
+    });
+
+    test("on a run whose policy is in service: nothing is said of either", async () => {
+      api["loadPolicy"]!.mockResolvedValue({
+        ...ARCHIVED_POLICY,
+        isArchived: false,
+      });
+      keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+      await renderSetup();
+
+      expect(stepState("test")).toBe("open");
+      expect(screen.queryByTestId("guided-setup-policy-archived")).toBeNull();
+      expect(screen.queryByTestId("guided-setup-policy-deleted")).toBeNull();
+    });
+  });
+
+  test("Check another address starts without the sentence", async () => {
+    await atAcknowledgedTest();
+    archiveThePolicy();
+    await press("guided-setup-test-continue");
+    expect(screen.getByTestId("guided-setup-policy-archived")).toBeVisible();
+
+    api["loadPolicy"]!.mockResolvedValue({
+      ...ARCHIVED_POLICY,
+      isArchived: false,
+    });
+    await press("guided-setup-who-continue");
+    await press("guided-setup-test-continue");
+    await waitFor(() => {
+      expect(screen.getByTestId("guided-setup-start-over")).toBeVisible();
+    });
+    await press("guided-setup-start-over");
+
+    typeAddress("acme.example");
+    await startChecking();
+    await press("guided-setup-check-continue");
+
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.queryByTestId("guided-setup-policy-archived")).toBeNull();
+  });
+});
+/*
  * ARCHIVED POLICIES ARE NOT THE PROJECT'S POLICIES (#8234). A project
  * whose only on-call policy was archived was told its policies decide who
  * is paged - an archived policy pages no one - so the setup made none.
  * Here the project is counted by the real WebsiteDownApi.loadWhoIsToldFacts
  * from a fake server that counts as the real one does: only the records its
- * query matches.
+ * query matches. Its on-call rules are read with the policies they run, as
+ * the real list answers them, each policy archived or not (#8433).
  */
 describe("archived on-call policies (#8234)", () => {
   const realApi: { loadWhoIsToldFacts: () => Promise<unknown> } = (
@@ -2706,10 +3001,51 @@ describe("archived on-call policies (#8234)", () => {
     ) as { default: { loadWhoIsToldFacts: () => Promise<unknown> } }
   ).default;
 
-  const holds: (policies: Array<{ isArchived: boolean }>) => void = (
+  // An on-call rule, as the list reads it: the policies it runs, archived or not.
+  const ruleRunning: <T extends IncidentOnCallRule | AlertOnCallRule>(
+    type: { new (): T },
+    policiesArchived: Array<boolean>,
+  ) => T = <T extends IncidentOnCallRule | AlertOnCallRule>(
+    type: { new (): T },
+    policiesArchived: Array<boolean>,
+  ): T => {
+    return Object.assign(new type(), {
+      _id: ObjectID.generate().toString(),
+      onCallDutyPolicies: policiesArchived.map(
+        (isArchived: boolean): OnCallDutyPolicy => {
+          return Object.assign(new OnCallDutyPolicy(), {
+            _id: ObjectID.generate().toString(),
+            isArchived: isArchived,
+          });
+        },
+      ),
+    });
+  };
+
+  const holds: (
     policies: Array<{ isArchived: boolean }>,
+    rules?: { incident?: Array<Array<boolean>>; alert?: Array<Array<boolean>> },
+  ) => void = (
+    policies: Array<{ isArchived: boolean }>,
+    rules?: { incident?: Array<Array<boolean>>; alert?: Array<Array<boolean>> },
   ): void => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (args: {
+      modelType: { new (): unknown };
+    }) => {
+      const data: Array<unknown> =
+        args.modelType === IncidentOnCallRule
+          ? (rules?.incident || []).map((archived: Array<boolean>) => {
+              return ruleRunning(IncidentOnCallRule, archived);
+            })
+          : args.modelType === AlertOnCallRule
+            ? (rules?.alert || []).map((archived: Array<boolean>) => {
+                return ruleRunning(AlertOnCallRule, archived);
+              })
+            : [];
+
+      return { data: data, count: data.length, skip: 0, limit: data.length };
+    }) as unknown as typeof ModelAPI.getList);
     jest.spyOn(ModelAPI, "count").mockImplementation((async (args: {
       modelType: { new (): unknown };
       query: Record<string, unknown>;
@@ -2757,5 +3093,78 @@ describe("archived on-call policies (#8234)", () => {
 
     expect(api["createPolicy"]).not.toHaveBeenCalled();
     expect(storedRun()).toMatchObject({ whoIsToldConfirmed: true });
+  });
+
+  /*
+   * #8433: the issue's project - its one policy archived, and the two
+   * rules that run it. Counted, the rules told the setup the project pages
+   * people already, and it made nothing: nobody was paged when the monitor
+   * opened an incident.
+   */
+  test("its only policy archived, with the rules that run it: the setup still makes one (#8433)", async () => {
+    holds([{ isArchived: true }], { incident: [[true]], alert: [[true]] });
+    await toWhoIsTold();
+
+    expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+    expect(screen.queryByTestId("guided-setup-who-help")).toBeNull();
+    expect(screen.queryByText(WEBSITE_DOWN_COPY.whoExistingHelp)).toBeNull();
+
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+  });
+
+  test("a rule that runs a policy in service beside an archived one: the project's policies and rules decide (#8433)", async () => {
+    holds([{ isArchived: true }, { isArchived: false }], {
+      incident: [[true, false]],
+    });
+    await toWhoIsTold();
+
+    expect(screen.queryByTestId("guided-setup-people")).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+  });
+
+  /*
+   * #8432 and #8433 together, as the issue's steps reproduce them: the run
+   * made its policy and the two rules that run it; another tab archives
+   * the policy; Continue reads it again, forgets it, and counts the
+   * project again - its rules run only the archived policy, so making one
+   * is offered, not "the project's policies and rules decide".
+   */
+  test("the run's policy archived in another tab: Continue offers to make one again, its rules not counted (#8432, #8433)", async () => {
+    holds([{ isArchived: false }], { incident: [[false]], alert: [[false]] });
+    keepRun({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+    await renderSetup();
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_is_told")
+          .querySelector("button")!,
+      );
+    });
+    expect(screen.getByTestId("guided-setup-who-done-line")).toHaveTextContent(
+      '"Default on-call policy" pages Ada Lovelace.',
+    );
+
+    // Another tab archives it: its rules now run only an archived policy.
+    holds([{ isArchived: true }], { incident: [[true]], alert: [[true]] });
+    api["loadPolicy"]!.mockResolvedValue({
+      id: POLICY_ID,
+      name: "Default on-call policy",
+      responders: ["Ada Lovelace"],
+      isArchived: true,
+    });
+    await press("guided-setup-who-continue");
+
+    expect(storedRun()["policyId"]).toBeUndefined();
+    expect(screen.getByTestId("guided-setup-policy-archived")).toBeVisible();
+    expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+    expect(screen.queryByTestId("guided-setup-who-help")).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-continue")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoSave,
+    );
   });
 });

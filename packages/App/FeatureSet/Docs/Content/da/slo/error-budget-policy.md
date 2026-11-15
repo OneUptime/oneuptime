@@ -295,11 +295,11 @@ Selve niveauerne er en ressource for sig, `/api/service-level-objective-error-bu
 | **Edit SLO Error Budget Policy Tier** | Ændre niveauer og slå dem til eller fra. |
 | **Delete SLO Error Budget Policy Tier** | Fjerne niveauer. |
 
-Disse tilladelser ligger i en rolles SLO-gruppe. Rollerne Project Owner og Project Admin har dem alle, og rollerne Project Member og Viewer kan læse niveauer.
+Disse tilladelser ligger i en rolles SLO-gruppe. Rollerne Projektejer og Projektadministrator har dem alle, og rollerne Projektmedlem og Seer kan læse niveauer.
 
 ## Endnu ikke tilgængeligt
 
-Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: en særskilt workflow-udløser for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget. OneUptime stopper ikke selv en udgivelse: Det gør en pipeline, der tjekker `deploymentsAllowed`, som [Udrulningsspærre](#udrulningsspærre) viser.
+Nogle dele af en fejlbudgetpolitik er endnu ikke tilgængelige: en særskilt arbejdsgangsudløser for hvert niveau, en politik, som flere SLO'er deler, at kvittere for et niveau eller give en undtagelse fra det, og niveauer, der bygger på budgettets rækkevidde i stedet for det resterende budget. OneUptime stopper ikke selv en udgivelse: Det gør en pipeline, der tjekker `deploymentsAllowed`, som [Udrulningsspærre](#udrulningsspærre) viser.
 
 ## Næste trin
 

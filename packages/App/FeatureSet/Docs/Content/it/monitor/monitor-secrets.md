@@ -25,7 +25,7 @@ La sonda che esegue il controllo riceve il valore, quindi un monitor che usa un 
 ## Prima di iniziare
 
 - **Il piano Growth o superiore**, su OneUptime Cloud. Le installazioni self-hosted non hanno piani.
-- **Un ruolo che può gestire i segreti**: Project Owner, Project Admin, oppure un ruolo personalizzato con il permesso Create Monitor Secret.
+- **Un ruolo che può gestire i segreti**: Proprietario del progetto, Amministratore del progetto, oppure un ruolo personalizzato con il permesso Create Monitor Secret.
 
 ## Lavorare con i segreti
 

@@ -159,6 +159,12 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveryService from "Common/Server/Services/OwnerNotificationDeliveryService";
+import { OwnerNotificationDeliveryStatus } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  InMemoryOwnerNotificationDeliveries,
+  useInMemoryOwnerNotificationDeliveries,
+} from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendCreatedResourceNotification";
@@ -348,6 +354,7 @@ async function runWorkerTick(): Promise<void> {
 
 describe("AlertOwner:SendCreatedResourceEmail worker", () => {
   let markdownSpy: jest.SpyInstance;
+  let deliveries: InMemoryOwnerNotificationDeliveries;
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -355,6 +362,12 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Whom each alert tells is written down before it is taken, and each
+     * owner told through it (OwnerNotificationDeliveries, #8199).
+     */
+    deliveries = useInMemoryOwnerNotificationDeliveries();
 
     // Real conversion, spied - call counts are the regression under test.
     markdownSpy = jest.spyOn(Markdown, "convertToHTML");
@@ -847,6 +860,8 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       expect(sentVars()[0]!["flapWarning"]).toBe("");
 
       jest.clearAllMocks();
+      // Another firing: another alert's owners to tell, not this one's again.
+      deliveries = useInMemoryOwnerNotificationDeliveries();
       alertService.findAllBy.mockResolvedValue([flappingAlert()] as never);
       alertService.findOwners.mockResolvedValue([makeOwner("a")]);
       alertService.getAlertLinkInDashboard.mockResolvedValue({
@@ -1163,6 +1178,8 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
         }),
       ] as never);
       notificationService.sendUserNotification.mockClear();
+      // Another firing: another alert's owners to tell, not this one's again.
+      deliveries = useInMemoryOwnerNotificationDeliveries();
 
       await runWorkerTick();
 
@@ -1267,7 +1284,7 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       );
     });
 
-    test("takes each alert it read, as it read it, before reading its owners or telling anyone", async () => {
+    test("writes whom it is to tell, then takes each alert it read, as it read it, before telling anyone", async () => {
       const first: Alert = makeAlert({});
       const second: Alert = secondAlert();
       alertService.findAllBy.mockResolvedValue([first, second] as never);
@@ -1289,9 +1306,19 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       const takenFirst: number =
         alertService.takeCreatedNotification.mock.invocationCallOrder[0]!;
 
-      expect(takenFirst).toBeLessThan(
-        alertService.findOwners.mock.invocationCallOrder[0]!,
+      /*
+       * Its owners are read and written down first, so a worker stopped
+       * after the take leaves them to be told (#8199) - and nobody is told
+       * before the take.
+       */
+      expect(alertService.findOwners.mock.invocationCallOrder[0]!).toBeLessThan(
+        takenFirst,
       );
+      expect(
+        (
+          OwnerNotificationDeliveryService.writeOwnersToTell as unknown as jest.Mock
+        ).mock.invocationCallOrder[0]!,
+      ).toBeLessThan(takenFirst);
       expect(takenFirst).toBeLessThan(
         notificationService.sendUserNotification.mock.invocationCallOrder[0]!,
       );
@@ -1315,11 +1342,17 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       expect(sentFor(ALERT_ID)).toEqual([]);
       expect(sentFor(OTHER_ALERT_ID)).toEqual(["a"]);
 
-      // Nothing read or written for the one it did not take.
-      expect(alertService.findOwners).toHaveBeenCalledTimes(1);
-      expect(alertService.findOwners.mock.calls[0]![0].toString()).toBe(
-        OTHER_ALERT_ID.toString(),
-      );
+      /*
+       * Its owners were written down before the take, and wait, to be told,
+       * for the run that takes it; nothing was sent or written for it.
+       */
+      expect(alertService.findOwners).toHaveBeenCalledTimes(2);
+      expect(deliveries.statusesOf(ALERT_ID)).toEqual({
+        ["a"]: OwnerNotificationDeliveryStatus.Pending,
+      });
+      expect(deliveries.statusesOf(OTHER_ALERT_ID)).toEqual({
+        ["a"]: OwnerNotificationDeliveryStatus.Sent,
+      });
       expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
       expect(
         (

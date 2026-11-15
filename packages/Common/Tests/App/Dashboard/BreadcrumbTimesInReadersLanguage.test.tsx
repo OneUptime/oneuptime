@@ -146,26 +146,26 @@ describe.each([
     test.each([
       [0, "at exception"],
       [-9, "at exception"],
-      [-880, "-880 ms"],
-      [40, "+40 ms"],
-      [-1234, "-1.2 s"],
-      [3000, "+3.0 s"],
-      [9999, "+10.0 s"],
-      [-12500, "-12 s"],
-      [-60000, "-1 m"],
-      [-125000, "-2 m 5 s"],
-      [200000, "+3 m 20 s"],
+      [-880, "-880\u00A0ms"],
+      [40, "+40\u00A0ms"],
+      [-1234, "-1.2\u00A0s"],
+      [3000, "+3.0\u00A0s"],
+      [9999, "+10.0\u00A0s"],
+      [-12500, "-12\u00A0s"],
+      [-60000, "-1\u00A0m"],
+      [-125000, "-2\u00A0m 5\u00A0s"],
+      [200000, "+3\u00A0m 20\u00A0s"],
     ])("%d ms from the exception reads %s", (ms: number, expected: string) => {
       expect(offset(ms, translator)).toBe(expected);
     });
 
     test.each([
-      [0, "0 ms"],
-      [880, "880 ms"],
-      [1500, "1.5 s"],
-      [45000, "45 s"],
-      [120000, "2 m"],
-      [200000, "3 m 20 s"],
+      [0, "0\u00A0ms"],
+      [880, "880\u00A0ms"],
+      [1500, "1.5\u00A0s"],
+      [45000, "45\u00A0s"],
+      [120000, "2\u00A0m"],
+      [200000, "3\u00A0m 20\u00A0s"],
     ])("a span of %d ms reads %s", (ms: number, expected: string) => {
       expect(formatBreadcrumbSpan(ms, translator)).toBe(expected);
     });
@@ -176,22 +176,22 @@ describe.each([
       [
         "events in milliseconds",
         { shownCount: 8, msBefore: 880 },
-        "8 events in the 880 ms before the exception",
+        "8 events in the 880\u00A0ms before the exception",
       ],
       [
         "events in seconds",
         { shownCount: 8, msBefore: 12000 },
-        "8 events in the 12 s before the exception",
+        "8 events in the 12\u00A0s before the exception",
       ],
       [
         "one event in seconds",
         { shownCount: 1, msBefore: 1500 },
-        "1 event in the 1.5 s before the exception",
+        "1 event in the 1.5\u00A0s before the exception",
       ],
       [
         "events in minutes",
         { shownCount: 1234, msBefore: 200000 },
-        "1234 events in the 3 m 20 s before the exception",
+        "1234 events in the 3\u00A0m 20\u00A0s before the exception",
       ],
       [
         "one event at the exception",
@@ -206,7 +206,7 @@ describe.each([
       [
         "the latest of more",
         { shownCount: 50, totalCount: 72, msBefore: 12000 },
-        "50 events in the 12 s before the exception (latest 50 of 72)",
+        "50 events in the 12\u00A0s before the exception (latest 50 of 72)",
       ],
       [
         "a filter",
@@ -234,9 +234,9 @@ describe("in German", () => {
   });
 
   test.each([
-    [-1234, "-1,2 s"],
-    [3000, "+3,0 s"],
-    [-12500, "-12 s"],
+    [-1234, "-1,2\u00A0s"],
+    [3000, "+3,0\u00A0s"],
+    [-12500, "-12\u00A0s"],
     [-60000, "-1\u00A0Min."],
     [-125000, "-2\u00A0Min. 5\u00A0s"],
     [200000, "+3\u00A0Min. 20\u00A0s"],
@@ -248,7 +248,7 @@ describe("in German", () => {
   );
 
   test.each([
-    [1500, "1,5 s"],
+    [1500, "1,5\u00A0s"],
     [120000, "2\u00A0Min."],
     [200000, "3\u00A0Min. 20\u00A0s"],
   ])("a span of %d ms reads %s", (ms: number, expected: string) => {
@@ -261,12 +261,12 @@ describe("in German", () => {
     [
       "events in seconds",
       { shownCount: 8, msBefore: 12000 },
-      "8 Ereignisse in 12 s vor der Ausnahme",
+      "8 Ereignisse in 12\u00A0s vor der Ausnahme",
     ],
     [
       "one event in seconds",
       { shownCount: 1, msBefore: 1500 },
-      "1 Ereignis in 1,5 s vor der Ausnahme",
+      "1 Ereignis in 1,5\u00A0s vor der Ausnahme",
     ],
     [
       "events in minutes",
@@ -281,7 +281,7 @@ describe("in German", () => {
     [
       "the latest of more",
       { shownCount: 50, totalCount: 72, msBefore: 12000 },
-      "50 Ereignisse in 12 s vor der Ausnahme (die neuesten 50 von 72)",
+      "50 Ereignisse in 12\u00A0s vor der Ausnahme (die neuesten 50 von 72)",
     ],
     [
       "a filter",
@@ -594,7 +594,12 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
   test("English: as it always read", async () => {
     await renderIn("en");
 
-    expect(times()).toEqual(["-2 m 5 s", "-12 s", "-1.2 s", "at exception"]);
+    expect(times()).toEqual([
+      "-2\u00A0m 5\u00A0s",
+      "-12\u00A0s",
+      "-1.2\u00A0s",
+      "at exception",
+    ]);
     expect(
       screen.getByText("4 events in the 2 m 5 s before the exception"),
     ).toBeInTheDocument();
@@ -605,8 +610,8 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
 
     expect(times()).toEqual([
       "-2\u00A0Min. 5\u00A0s",
-      "-12 s",
-      "-1,2 s",
+      "-12\u00A0s",
+      "-1,2\u00A0s",
       "bei der Ausnahme",
     ]);
     expect(

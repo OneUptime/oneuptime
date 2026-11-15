@@ -27,7 +27,7 @@ flowchart TB
 
 ## Før du starter
 
-- **En rolle som kan opprette maler**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor Template. Å endre en mal krever de samme rollene, eller tillatelsen Edit Monitor Template.
+- **En rolle som kan opprette maler**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor Template. Å endre en mal krever de samme rollene, eller tillatelsen Edit Monitor Template.
 - **Tillatelse til å oppdatere de tilkoblede monitorene.** En synkronisering skriver til hver tilkoblede monitor som deg, og hopper over monitorene som tillatelsene dine ikke dekker.
 
 ## Opprett en mal
@@ -159,7 +159,7 @@ Utelat matrisen, eller sett den til `[]`, for å synkronisere alle støttede tri
 | Logger, Security Events, Spor, AI / LLM, Målinger, Unntak, Profiler | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (hele monitorens konfigurasjon) |
 | Sondestatus | `probeStatusMonitor.probeIds` |
 
-Infrastrukturmonitorer (Kubernetes, Docker Container, Vert, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) tilbyr ressursvelgeren, filtre (alle unntatt Vert), metrikkspørringer og spørringens tidsvindu. Navnene deres står under **Innstillinger for malsynkronisering** på en mal av den typen.
+Infrastrukturmonitorer (Kubernetes, Docker Container, Vert, Podman Container, Proxmox, Docker Swarm, Ceph, Lagringsarray, IoT Device) tilbyr ressursvelgeren, filtre (alle unntatt Vert), målingsspørringer og spørringens tidsvindu. Navnene deres står under **Innstillinger for malsynkronisering** på en mal av den typen.
 :::
 
 ## Feilsøking

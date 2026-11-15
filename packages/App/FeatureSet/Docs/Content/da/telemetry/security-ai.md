@@ -27,7 +27,7 @@ En vurdering læser kun. Den kører på projektets egen AI: **Aktivér AI**, pro
 
 - **Aktivér AI** slået til under **Projektindstillinger → AI → AI-funktioner**. Er den slået fra, viser sikkerhed intet fra OneUptime AI, og intet kører.
 - En LLM-udbyder, som OneUptime AI kan bruge, under **Projektindstillinger → AI → LLM-udbydere**. OneUptime Cloud stiller en til rådighed.
-- En rolle, der må arbejde med sikkerhedssager, for at starte en vurdering: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer kan læse alle vurderinger, men ikke starte nogen. Se [Roller](/docs/permissions/reference#roller).
+- En rolle, der må arbejde med sikkerhedssager, for at starte en vurdering: Projektejer, Projektadministrator, Sikkerhedsadministrator eller Sikkerhedsmedlem. Sikkerhedsseer kan læse alle vurderinger, men ikke starte nogen. Se [Roller](/docs/permissions/reference#roller).
 
 ## Vurder en sag
 
@@ -40,7 +40,7 @@ En vurdering læser kun. Den kører på projektets egen AI: **Aktivér AI**, pro
 | En vurdering som **Sandsynligvis ondsindet** | Vurderingen er færdig. **Vurder igen** læser sagen forfra. |
 | **Vurderingen blev ikke færdig** | Kørslen stoppede. **Prøv igen** starter en ny. |
 
-En Security Viewer ser det samme kort: **Vurder med AI** og **Prøv igen** forbliver nedtonede ved siden af en linje, der siger, hvem der kan starte en vurdering, og **Vurder igen** og **Angiv prioritet** tilbydes ikke.
+En Sikkerhedsseer ser det samme kort: **Vurder med AI** og **Prøv igen** forbliver nedtonede ved siden af en linje, der siger, hvem der kan starte en vurdering, og **Vurder igen** og **Angiv prioritet** tilbydes ikke.
 
 En vurdering læser:
 
@@ -82,7 +82,7 @@ Begivenheder, advarsler og værdier for entiteter kommer udefra, og en angriber 
 
 ## Vurder nye sager automatisk
 
-Åbn **Produkter → Sikkerhedshændelser → AI → Indstillinger**, og slå **Vurder nye sager** til: så bliver hver sag, som en detektion åbner, vurderet, så snart den åbner. Kontakten gemmer, så snart du slår den om. Project Owner og Project Admin kan ændre den.
+Åbn **Produkter → Sikkerhedshændelser → AI → Indstillinger**, og slå **Vurder nye sager** til: så bliver hver sag, som en detektion åbner, vurderet, så snart den åbner. Kontakten gemmer, så snart du slår den om. Projektejer og Projektadministrator kan ændre den.
 
 Nye projekter starter med den slået til; et projekt, der blev oprettet før, har den slået fra, indtil nogen slår den til. En sag, der er åbnet i hånden, og sagen fra testangrebet i **Send et testangreb** bliver vurderet, når nogen klikker på **Vurder med AI**.
 
@@ -123,7 +123,7 @@ Tjek, at **Aktivér AI** er slået til, og **Vurder nye sager** under **Produkte
 :::
 
 :::details Kortet siger, at projektet er løbet tør for AI-kreditter eller har nået sin daglige AI-grænse
-En projektejer eller en person med Manage Billing kan tilføje kreditter under **Projektindstillinger → AI → AI-kreditter** eller hæve eller fjerne grænsen under **Projektindstillinger → AI → AI-funktioner**. Klik derefter på **Vurder med AI** på sagen.
+En Projektejer eller en person med Manage Billing kan tilføje kreditter under **Projektindstillinger → AI → AI-kreditter** eller hæve eller fjerne grænsen under **Projektindstillinger → AI → AI-funktioner**. Klik derefter på **Vurder med AI** på sagen.
 :::
 
 :::details Kortet siger, at tekst i sagen lyder som instruktioner til en AI

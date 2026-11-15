@@ -42,7 +42,7 @@ Elke uitvoering, door een regel gestart of niet, ziet u onder **Runbooks → Uit
 ## Voordat u begint
 
 - **Een runbook dat kan lopen.** Het heeft minstens één stap nodig en **Dit runbook uitvoeren** aan, op de pagina **Instellingen** ervan. Zie [Een runbook schrijven](/docs/runbooks/authoring).
-- **De machtiging om regels te beheren.** Project Owner, Project Admin en Runbook Admin maken runbook-regels, net als iedereen met de machtiging **Create Runbook Rule**.
+- **De machtiging om regels te beheren.** Projecteigenaar, Projectbeheerder en Runbookbeheerder maken runbook-regels, net als iedereen met de machtiging **Create Runbook Rule**.
 
 ## Een runbook-regel maken
 

@@ -56,7 +56,7 @@ Spør AI leser prosjektet ditt med dine egne tillatelser, så den ser det du kan
 | Hendelseshåndtering | Hendelser og varsler, med tilstandsfiltre ("hva er aktivt akkurat nå?"), aktivitetstidslinjene deres (tilstandsendringer, interne og offentlige notater, feeden) og eierne, og et søk i tidligere hendelser for å gjenbruke hvordan de ble løst. |
 | Vakttjeneste | Hvem som har vakt nå, retningslinjer og eskaleringskjeder, og om de siste utkallingene ble levert og bekreftet. |
 | AI-ens eget arbeid | Resultatene av AI SRE-undersøkelser og AI Insights, slik at "hva fant AI-en?" besvares ut fra den publiserte analysen i stedet for å utledes på nytt. |
-| Plattform | Monitorer (med statusfiltre), planlagt vedlikehold, statussider og kunngjøringene deres, SLO-er, runbooks, kjøringer av arbeidsflyter, probenes helse, team og koden i tilkoblede repositorier på GitHub, GitLab, Forgejo, Gitea og Azure DevOps (se [Hva AI leser i et Git-repositorium](/docs/ai/ai-agent#hva-ai-leser-i-et-git-repositorium)). |
+| Plattform | Monitorer (med statusfiltre), planlagt vedlikehold, statussider og kunngjøringene deres, SLO-er, runbooks, kjøringer av arbeidsflyter, sondenes helse, team og koden i tilkoblede repositorier på GitHub, GitLab, Forgejo, Gitea og Azure DevOps (se [Hva AI leser i et Git-repositorium](/docs/ai/ai-agent#hva-ai-leser-i-et-git-repositorium)). |
 
 ## Sidekontekst
 
@@ -115,7 +115,7 @@ Spør AI setter opp fra én setning det de veiledede oppsettene setter opp: "Ove
 - **Én plan, én godkjenning.** Spør AI foreslår hver del på ett godkjenningskort, hver med enkle ord: en monitor for et nettsted eller et API, prosjektets første vaktretningslinje, en statusside og monitorene den viser. Kortet slutter med "Ingenting annet endres." Velg **Hopp over** på alle deler du ikke vil ha, og kjør resten. Ingenting opprettes før det.
 - **Spør alltid.** Oppsettet venter på godkjenningen din i alle moduser, også **Kjør automatisk**, fordi det oppretter ting som kaller ut folk og som kundene dine ser. **Skrivebeskyttet** tilbyr det ikke.
 - **De veiledede oppsettenes poster.** Monitoren er den **Vite når nettstedet eller API-et mitt er nede** oppretter for den samme adressen: standardverdiene fra Opprett monitor, som åpner en hendelse når adressen ikke svarer eller svarer med en feil, sjekket hvert 5. minutt med mindre du ber om et annet av Opprett monitors intervaller. Den er din, så du får en e-post når statusen endres. Statussiden er den **Publiser en statusside** oppretter: offentlig så snart den er opprettet, og den viser hver monitors status, oppetid og historikk.
-- **Hvem som kalles ut.** I et prosjekt som ennå ikke kaller ut noen, foreslår Spør AI prosjektets første vaktretningslinje, "Default on-call policy", som kaller ut deg, og medlemmene og teamene du nevner, ved hver ny hendelse og hvert nytt varsel. Et prosjekt som allerede kaller ut folk, beholder sine egne vaktretningslinjer og vaktregler, og Spør AI sier det i stedet for å opprette enda en.
+- **Hvem som kalles ut.** I et prosjekt som ennå ikke kaller ut noen, foreslår Spør AI prosjektets første vaktretningslinje, **Standard vaktpolicy**, som kaller ut deg, og medlemmene og teamene du nevner, ved hver ny hendelse og hvert nytt varsel. Et prosjekt som allerede kaller ut folk, beholder sine egne vaktretningslinjer og vaktregler, og Spør AI sier det i stedet for å opprette enda en.
 - **Hva som mangler.** Spør AI legger aldri til et telefonnummer eller mobilappen: Du legger dem til og bekrefter dem selv under **Brukerinnstillinger → Varselmetoder**. Ber du om SMS uten et bekreftet nummer, sier kortet det, og svaret lenker til siden. En del Spør AI ikke kan opprette, foreslås ikke, for eksempel når rollen din ikke tillater det, adressen ikke er en adresse eller monitorene ikke finnes: Svaret sier hva som trengs.
 - **Hva hver del trenger.** En monitor trenger tillatelse til å opprette monitorer. Utkalling trenger tillatelse til å opprette vaktretningslinjer, eskaleringsreglene deres og vaktregler for hendelser og varsler. En statusside trenger tillatelse til å opprette statussider og legge til monitorer på dem. Prosjektets abonnementsgrenser gjelder, som i de veiledede oppsettene.
 - **Test det etterpå.** Når planen har kjørt, åpner hvert kort det som ble opprettet, og **Test denne policyen** (eller **Send meg et testoppkall**, for en monitor alene) under svaret sender et testoppkall som du bekrefter fra meldingen. Feiler en del, sier svaret hva som ble opprettet og hva som ikke ble det.
@@ -146,7 +146,7 @@ Spør AI sier hvorfor før du skriver: prosjektets abonnement omfatter ikke AI, 
 :::
 
 :::details En handling ble avvist
-Spør AI sier hvilken tillatelse handlingen trenger, eller hvilket team som blokkerer den. Be noen som har lov til å gjøre endringen, eller be en prosjekteier om å gi rollen din tillatelsen. Ingenting ble endret.
+Spør AI sier hvilken tillatelse handlingen trenger, eller hvilket team som blokkerer den. Be noen som har lov til å gjøre endringen, eller be en Prosjekteier om å gi rollen din tillatelsen. Ingenting ble endret.
 :::
 
 :::details Svarene er vage eller bruker aldri data

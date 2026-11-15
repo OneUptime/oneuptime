@@ -1,6 +1,6 @@
 # Strumenti di IA aziendali
 
-Guarda cosa chiedono le tue persone agli strumenti di IA che la tua azienda paga, come conversazioni per persona. Collega Claude Enterprise o Microsoft 365 Copilot con una credenziale che può solo leggere, e OneUptime porta ogni nuova chat in **Conversazioni** ogni 15 minuti. Solo i proprietari e gli amministratori del progetto possono leggerle, a meno che tu non decida diversamente.
+Guarda cosa chiedono le tue persone agli strumenti di IA che la tua azienda paga, come conversazioni per persona. Collega Claude Enterprise o Microsoft 365 Copilot con una credenziale che può solo leggere, e OneUptime porta ogni nuova chat in **Conversazioni** ogni 15 minuti. Solo i Proprietari del progetto e gli Amministratori del progetto possono leggerle, a meno che tu non decida diversamente.
 
 :::cards
 - [Avvisa prima le tue persone](#avvisa-prima-le-tue-persone): Le loro chat sono parole loro.
@@ -29,7 +29,7 @@ Le chat arrivano come le chiamate di IA delle tue app, quindi regole di scrub, f
 
 ## Prima di iniziare
 
-- Il ruolo Project Owner o Project Admin. Solo loro possono collegare, modificare o rimuovere uno strumento.
+- Il ruolo Proprietario del progetto o Amministratore del progetto. Solo loro possono collegare, modificare o rimuovere uno strumento.
 - Un amministratore dello strumento, per creare la credenziale: la sezione di ogni strumento, più sotto, dice quale.
 - Le tue persone avvisate, e la risposta del tuo ufficio legale o HR.
 

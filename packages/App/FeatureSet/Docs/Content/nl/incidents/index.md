@@ -67,7 +67,7 @@ Workflows openen ook incidenten: de [Huntress](/docs/integrations/huntress)-work
 
 Bij het aanmaken voert OneUptime de automatisering uit die je hebt ingesteld: privacyregels, eigenaarsregels, labelregels, bereikbaarheidsregels en runbook-regels. Al het bereikbaarheidsbeleid dat aan het incident hangt — met de hand, vanuit een sjabloon, of toegevoegd door een overeenkomende bereikbaarheidsregel — wordt parallel uitgevoerd.
 
-Eigenaren krijgen een melding via de kanalen die ieder van hen heeft aangezet in **Gebruikersinstellingen → Meldingsinstellingen**: e-mail, sms, spraakoproep, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost of webhook. Heeft een incident helemaal geen eigenaren, dan gaat de melding naar de projecteigenaren in plaats van verloren te gaan.
+Eigenaren krijgen een melding via de kanalen die ieder van hen heeft aangezet in **Gebruikersinstellingen → Meldingsinstellingen**: e-mail, sms, spraakoproep, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost of webhook. Heeft een incident helemaal geen eigenaren, dan gaat de melding naar de Projecteigenaren in plaats van verloren te gaan.
 
 Is het incident zichtbaar op een statuspagina en staan meldingen aan abonnees aan, dan horen de abonnees het ook: de abonnees van elke statuspagina die een van zijn monitoren toont, of alleen die van de pagina's waartoe je het hebt beperkt. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience) om elke doelgroep een eigen statuspagina te geven.
 
@@ -157,7 +157,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk. Het zijmenu i
 
 | Sectie         | Wat je daar doet                                                                                                                                                           |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overzicht**  | **Alle incidenten**, **Actieve incidenten** en **Postmortem-analyses** — de tweede draagt een rode badge met het aantal incidenten in een status boven de opgeloste status, en de derde toont het postmortem van elk incident, om te filteren op eigenaar, ernst of status. |
+| **Overzicht**  | **Alle incidenten**, **Actieve incidenten**, **Postmortem-analyses** en **Actiepunten** — de tweede draagt een rode badge met het aantal incidenten in een status boven de opgeloste status, de derde toont het postmortem van elk incident, om te filteren op eigenaar, ernst of status, en de vierde toont de actiepunten van alle postmortems, met de vroegste deadline bovenaan. Zie [Postmortem-analyses](/docs/incidents/postmortems#alle-actiepunten-zien). |
 | **Episoden**   | Incidentepisodes, een aparte groeperingsfunctie met eigen pagina's.                                                                                                       |
 | **AI**         | **Inzichten**, **Logboeken**, **Instellingen**: wat OneUptime AI van je incidenten heeft geleerd en alles wat het ervoor heeft gedaan, en wat het zelf mag doen — met de regels voor welke incidenten het onderzoekt en herstelt. Zie [AI SRE](/docs/ai/ai-sre). |
 | **Werkruimte** | De chatwerkruimten die dit project heeft gekoppeld: **Slack**, **Microsoft Teams** en **Mattermost**, elk met zijn meldingsregels voor incidenten. Is er geen gekoppeld, dan staat hier **Werkruimte koppelen**, een pagina die alle drie toont en hoe je ze koppelt. |

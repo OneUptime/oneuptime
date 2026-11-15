@@ -473,7 +473,7 @@ Een type biedt alleen de componenten die zijn model toestaat. Een alleen-lezenty
 
 Zo leest en wijzigt een workflow OneUptime-gegevens. Een webhook van je CI-tool kan bijvoorbeeld **Create One Incident** gebruiken om een incident te openen met de details van de fout.
 
-Deze componenten handelen als Project Admin van het project van de workflow: wat een Project Admin niet mag, of wat je abonnement niet bevat, wordt geweigerd, en het logboek van de uitvoering zegt waarom. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
+Deze componenten handelen als Projectbeheerder van het project van de workflow: wat een Projectbeheerder niet mag, of wat je abonnement niet bevat, wordt geweigerd, en het logboek van de uitvoering zegt waarom. Zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
 
 ### Een incident melden vanuit een sjabloon
 
@@ -486,6 +486,12 @@ Het incident legt het sjabloon waarvan het is gemeld vast in `createdIncidentTem
 **Create One Incident** en **Create One Alert** hebben een instelling **Getroffen resources**: de hosts, netwerkapparaten, clusters, databases of services waar het record over gaat, op naam, adres of ID, gescheiden door komma's — ingetypt of overgenomen uit een eerdere stap, zoals de host die een waarschuwing uit een andere tool noemt. Elke vermelding wordt gezocht in elke soort middel die het record kan bevatten, als hele waarde en zonder op hoofdletters te letten: op naam, een netwerkapparaat ook op het adres waarop het wordt gepold of op zijn DNS-naam, een host op de naam die zijn agent meldt of op een van zijn IP-adressen, en een cloudresource op de ID van de provider. Elk middel waarop een vermelding past, wordt gekoppeld, naast wat **JSON Object** en het sjabloon al koppelen, tot 50 uit de eerste 25 vermeldingen.
 
 Een vermelding die nergens op past, houdt de stap niet tegen: het record wordt toch gemaakt, en het logboek van de uitvoering zegt wat elke vermelding koppelde en welke nergens op pasten. Gearchiveerde middelen worden niet gekoppeld. Monitoren worden niet opgezocht: noem ze in **JSON Object** (`monitors` bij een incident, `monitorId` bij een waarschuwing), omdat een monitor aan een incident koppelen zijn bewaking pauzeert.
+
+### Wie het vanaf het begin bezit
+
+**Create One Incident** en **Create One Alert** hebben de instellingen **Eigenaarsgebruikers** en **Eigenaarsteams**: de personen en teams die het record bezitten vanaf het moment dat het wordt gemaakt. Kies ze, of neem ze over uit een eerdere stap: de id of het e-mailadres van een gebruiker, de id van een team, meerdere gescheiden door komma's, of een lijst. De eigenaren van het record horen ongeveer een minuut na het aanmaken dat het is gemaakt, iedere eigenaar die het dan heeft: wie je hier kiest, hoort er altijd bij, terwijl eigenaren die een latere stap toevoegt het missen zodra die stap meer dan een minuut later draait, en in hun plaats de eigenaren van het project worden ingelicht.
+
+De stap vraagt als Projectbeheerder van het project van de workflow of hij ze mag toevoegen, voordat het record wordt opgeslagen: eigenaren die hij niet mag toevoegen, laten het aanmaken weigeren. Wie geen lid is van het project, of een team dat niet van het project is, wordt weggelaten, en het logboek van de uitvoering zegt dat: het record wordt toch gemaakt. Eigenaren die zo zijn toegevoegd, horen niet dat ze zijn toegevoegd: de melding dat het record is gemaakt, is degene die ze krijgen.
 
 ## Werken met records
 

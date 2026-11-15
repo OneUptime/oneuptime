@@ -93,7 +93,7 @@ En regel tilkalder, så snart en advarsel matcher den. For at lade den vente på
 
 En regel tilkalder sine politikkers personer for at håndtere advarslen: Den, der bekræfter tilkaldelsen, bekræfter advarslen. For at holde et team orienteret, mens et andet håndterer den, svarer du **Observatører** på **Tilkald personerne i disse politikker som** under **Flere felter**. Deres tilkaldelse siger, at de er observatører, og bekræfter de den, siger det kun, at de har set den: Advarslen bliver ikke bekræftet, og ingen andres tilkaldelse stopper. Deres tilkaldelse fortsætter, indtil en af dem svarer, eller advarslen er løst, og på listen siger reglen under sit navn, at den tilkalder som observatører. En politik, som én matchende regel tilkalder til at håndtere advarslen og en anden som observatører, tilkalder til at håndtere den.
 
-En regel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og projektadministratorer kan redigere eller slette den, og alle andre, der kan se regler, ser den skrivebeskyttet. En regel, som intet team ejer, kan ændres af alle, der må redigere vagtregler, og episoderegler kan også tilhøre teams. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
+En regel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og Projektadministratorer kan redigere eller slette den, og alle andre, der kan se regler, ser den skrivebeskyttet. En regel, som intet team ejer, kan ændres af alle, der må redigere vagtregler, og episoderegler kan også tilhøre teams. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
 
 ## Hændelsesregler
 
@@ -161,7 +161,7 @@ Ejere får hver påmindelse som **Påmindelse om advarsel**, som er slået til v
 
 ### Medlemskab af episoder
 
-**Advarsler → Indstillinger → Medlemskab af episoder** afgør, om en advarsel kan være i mere end én episode. Slå **En advarsel kan kun være i én episode** til, så bliver en advarsel, der er i en episode, ikke føjet til nogen anden, hverken fra dashboardet eller via API'et, en arbejdsgang eller en grupperingsregel, før den er taget ud af den episode. Kontakten er slået fra, indtil du slår den til, og kun Project Owners og Project Admins kan ændre den. At slå den til tager ingen advarsel ud af en episode. Se [Én episode pr. hændelse](/docs/incidents/episodes#én-episode-pr-hændelse), som fungerer på samme måde for advarsler.
+**Advarsler → Indstillinger → Medlemskab af episoder** afgør, om en advarsel kan være i mere end én episode. Slå **En advarsel kan kun være i én episode** til, så bliver en advarsel, der er i en episode, ikke føjet til nogen anden, hverken fra dashboardet eller via API'et, en arbejdsgang eller en grupperingsregel, før den er taget ud af den episode. Kontakten er slået fra, indtil du slår den til, og kun Projektejere og Projektadministratorer kan ændre den. At slå den til tager ingen advarsel ud af en episode. Se [Én episode pr. hændelse](/docs/incidents/episodes#én-episode-pr-hændelse), som fungerer på samme måde for advarsler.
 
 ### Nummerering
 
@@ -171,18 +171,18 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste advarsel og d
 
 ### Dataopbevaring
 
-**Advarsler → Indstillinger → Dataopbevaring** sletter advarsler, når de har været løst længe nok, ligesom [Dataopbevaring](/docs/incidents/settings#dataopbevaring) gør for hændelser. Kortet **Løste advarsler** spørger om **Slet efter**, **Aldrig**, indtil du vælger en periode, og beder om bekræftelse, før der slettes mere, med **Slet gamle advarsler**. En advarsel bliver, så længe den ikke er løst, så længe den er i en episode, der stadig er åben eller blev løst for kortere tid siden, og så længe en hændelse, den er knyttet til, bliver. Kun Project Owners og Project Admins kan ændre den; i API'et er det projektets `alertRetentionInDays`.
+**Advarsler → Indstillinger → Dataopbevaring** sletter advarsler, når de har været løst længe nok, ligesom [Dataopbevaring](/docs/incidents/settings#dataopbevaring) gør for hændelser. Kortet **Løste advarsler** spørger om **Slet efter**, **Aldrig**, indtil du vælger en periode, og beder om bekræftelse, før der slettes mere, med **Slet gamle advarsler**. En advarsel bliver, så længe den ikke er løst, så længe den er i en episode, der stadig er åben eller blev løst for kortere tid siden, og så længe en hændelse, den er knyttet til, bliver. Kun Projektejere og Projektadministratorer kan ændre den; i API'et er det projektets `alertRetentionInDays`.
 
 > [!NOTE]
 > På OneUptime Cloud kræver noteskabeloner og brugerdefinerede felter planen **Growth** eller højere.
 
-## Workflows
+## Arbejdsgange
 
-Hver advarselsmodel har workflow-udløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarselsepisode**, **Tilstandstidslinje for advarsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen workflow-udløsere. Se [Workflows – Oversigt](/docs/workflows/index).
+Hver advarselsmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Advarselsepisode**, **Tilstandstidslinje for advarsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definitionerne af brugerdefinerede felter for advarsler er den eneste undtagelse: De har ingen arbejdsgangsudløsere. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 
-Regler, brugerdefinerede felter og målinger kræver en Project Owner eller Project Admin eller en brugerdefineret rolle med reglens egen tilladelse. **Advarselsmedlem** arbejder med advarsler og episoder, deres noter, ejere og tilstandstidslinjer og noteskabeloner, og **Advarselsadministrator** administrerer også advarselstilstande og alvorsgrader. Se [Brugere, teams og tilladelser](/docs/permissions/index).
+Regler, brugerdefinerede felter og målinger kræver en Projektejer eller Projektadministrator eller en brugerdefineret rolle med reglens egen tilladelse. **Advarselsmedlem** arbejder med advarsler og episoder, deres noter, ejere og tilstandstidslinjer og noteskabeloner, og **Advarselsadministrator** administrerer også advarselstilstande og alvorsgrader. Se [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Næste skridt
 

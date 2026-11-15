@@ -88,7 +88,7 @@ Pour désactiver celui qui est fourni, définissez `GLOBAL_RUNNER_REPLICAS=0` da
 ## Avant de commencer
 
 - **Un hôte avec Docker** dans votre infrastructure, qui joint l'URL de votre OneUptime en HTTPS ainsi que les systèmes sur lesquels agissent vos étapes.
-- **Un rôle qui crée des agents Runbook.** Project Owner, Project Admin, Project Member et Runbook Admin peuvent en créer un. Seuls un Project Owner, un Project Admin ou un Runbook Admin voient la clé d'un agent, que contient la commande d'installation.
+- **Un rôle qui crée des agents Runbook.** Propriétaire du projet, Administrateur du projet, Membre du projet et Administrateur des runbooks peuvent en créer un. Seuls un Propriétaire du projet, un Administrateur du projet ou un Administrateur des runbooks voient la clé d'un agent, que contient la commande d'installation.
 
 ## Installer un agent Runbook
 
@@ -109,7 +109,7 @@ Un agent Runbook prend en compte un changement de ses capacités à son prochain
 
 Sur la ligne de l'agent, cliquez sur **Afficher les instructions de configuration**. La boîte de dialogue **Configuration de l'agent Runbook** montre une commande `docker run` préremplie avec l'ID et la clé de cet agent. La même commande figure sur la page de l'agent, sous **Instructions de configuration**.
 
-Seuls un Project Owner, un Project Admin ou un Runbook Admin peuvent lire la clé. Les autres voient « Vous n'avez pas l'autorisation d'afficher la clé de cet agent Runbook » à la place de la commande.
+Seuls un Propriétaire du projet, un Administrateur du projet ou un Administrateur des runbooks peuvent lire la clé. Les autres voient « Vous n'avez pas l'autorisation d'afficher la clé de cet agent Runbook » à la place de la commande.
 
 ### 3. La lancer sur un hôte de votre infrastructure
 
@@ -293,7 +293,7 @@ La gestion des agents relève du groupe d'autorisations Runbooks existant :
 
 Déclencher un runbook (et donc envoyer ses étapes aux agents) demande un rôle qui exécute les runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` ou `RunbookMember` — ou `CreateRunbookExecution` ; terminer, ignorer ou annuler une exécution accepte aussi `EditRunbookExecution`. Un rôle n'exécute que les runbooks que sa portée atteint.
 
-La clé d'un agent n'est lisible que par les Project Owners, les Project Admins et les Runbook Admins.
+La clé d'un agent n'est lisible que par les Propriétaires du projet, les Administrateurs du projet et les Administrateurs des runbooks.
 
 ## API côté agent
 
