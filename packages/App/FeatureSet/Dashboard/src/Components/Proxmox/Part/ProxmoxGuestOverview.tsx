@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -171,7 +172,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
         ? tx("Failed")
         : backup.state === "not-in-job"
           ? tx("None")
-          : "—";
+          : EMPTY_VALUE_MARK;
   const backupSublabel: string =
     backupDetails.length > 0
       ? backupDetails.join(" · ")

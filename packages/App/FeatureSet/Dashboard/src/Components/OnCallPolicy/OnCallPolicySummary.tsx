@@ -1,4 +1,5 @@
 import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "./OnCallLabelClasses";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -458,7 +459,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       overview.repeatEnabled && overview.repeatCount > 0;
     const timeToFinalValue: string =
       overview.levels <= 1
-        ? "—"
+        ? EMPTY_VALUE_MARK
         : overview.timeToFinalLevelMinutes > 0
           ? formatDuration(overview.timeToFinalLevelMinutes, translator)
           : translator.translateText("Instant") || "Instant";

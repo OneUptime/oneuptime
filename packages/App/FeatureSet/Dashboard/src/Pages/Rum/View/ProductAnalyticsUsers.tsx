@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -83,7 +84,9 @@ export function buildProductAnalyticsUserTiles(data: {
   const count: (value: number | undefined) => string = (
     value: number | undefined,
   ): string => {
-    return summary ? formatProductAnalyticsCount(value || 0, translator) : "-";
+    return summary
+      ? formatProductAnalyticsCount(value || 0, translator)
+      : EMPTY_VALUE_MARK;
   };
   const change: (
     read: (period: ProductAnalyticsSummaryDto["current"]) => number,

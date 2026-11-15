@@ -4,21 +4,22 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.Schedule,
-    title: "Schedule",
-    category: "Schedule",
-    description: "Run this workflow on particular schedule",
+    title: translationKey("Schedule"),
+    category: translationKey("Schedule"),
+    description: translationKey("Run this workflow on particular schedule"),
     iconProp: IconProp.Clock,
     componentType: ComponentType.Trigger,
     runWorkflowManuallyArguments: [],
     arguments: [
       {
         type: ComponentInputType.CronTab,
-        name: "Schedule at",
-        description: "Trigger this workflow at",
+        name: translationKey("Schedule at"),
+        description: translationKey("Trigger this workflow at"),
         required: true,
         id: "schedule",
       },
@@ -27,8 +28,10 @@ const components: Array<ComponentMetadata> = [
     inPorts: [],
     outPorts: [
       {
-        title: "Execute",
-        description: "Connect the steps to run at each scheduled time.",
+        title: translationKey("Execute"),
+        description: translationKey(
+          "Connect the steps to run at each scheduled time.",
+        ),
         id: "execute",
       },
     ],

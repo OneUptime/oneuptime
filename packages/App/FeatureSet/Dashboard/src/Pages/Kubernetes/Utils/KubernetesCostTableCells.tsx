@@ -3,7 +3,9 @@ import { formatCost, formatEfficiency } from "./KubernetesCostUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Shared cell renderers for the Kubernetes cost breakdown tables (project
@@ -79,7 +81,7 @@ export function getEfficiencyElement(efficiency: number | null): ReactElement {
     <span
       className={`inline-flex rounded px-2 py-0.5 text-xs font-medium tabular-nums ${badgeClassName}`}
     >
-      {formatEfficiency(efficiency)}
+      {getValueOrQuietDash(formatEfficiency(efficiency), { isSmall: true })}
     </span>
   );
 }

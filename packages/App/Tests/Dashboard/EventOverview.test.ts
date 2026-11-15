@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import { StateListType } from "Common/Utils/StateOrder";
 import Timezone from "Common/Types/Timezone";
@@ -450,7 +451,7 @@ describe("getTimeToStateText", () => {
         reachedAt: START,
         fallbackStateName: "resolved",
       }),
-    ).toBe("-");
+    ).toBe(EMPTY_VALUE_MARK);
   });
 });
 
@@ -696,7 +697,7 @@ describe("the time to acknowledge after paging", () => {
         },
         GERMAN,
       ),
-    ).toBe("4 Minuten nach der Alarmierung");
+    ).toBe("4\u00A0Minuten nach der Alarmierung");
     expect(
       getAcknowledgedAfterPagingText(
         {
@@ -894,7 +895,7 @@ describe("how long impact had gone on when the record started", () => {
         },
         german,
       ),
-    ).toBe("3 Minuten nach Beginn der Auswirkungen");
+    ).toBe("3\u00A0Minuten nach Beginn der Auswirkungen");
   });
 });
 

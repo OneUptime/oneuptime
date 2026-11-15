@@ -214,7 +214,7 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
             icon: IconProp.Error,
             onClick: (item: WhatsAppLog, onCompleteAction: VoidFunction) => {
               const fallbackStatusMessage: string = (
-                (item["statusMessage"] as string) || "-"
+                (item["statusMessage"] as string) || ""
               )
                 .split(" | ")
                 .join("\n");
@@ -235,7 +235,7 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
               }
 
               setModalTitle("Status Message");
-              setModalText(messageParts.join("\n") || "-");
+              setModalText(messageParts.join("\n") || "");
               setShowModal(true);
               onCompleteAction();
             },
@@ -246,7 +246,7 @@ const WhatsAppLogsTable: FunctionComponent<WhatsAppLogsTableProps> = (
       {showModal && (
         <ConfirmModal
           title={modalTitle}
-          description={modalText || "-"}
+          description={modalText || "No data"}
           onSubmit={() => {
             setShowModal(false);
           }}

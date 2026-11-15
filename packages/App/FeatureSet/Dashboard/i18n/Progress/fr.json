@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 4653
+    "keys": 55628,
+    "untranslated": 4600
   },
   "sameAsEnglish": [
     " incidents",
@@ -79,6 +79,7 @@
     "Application {{application}}",
     "Applications",
     "Architecture",
+    "Arguments",
     "Aruba",
     "Association",
     "Atmosphere",

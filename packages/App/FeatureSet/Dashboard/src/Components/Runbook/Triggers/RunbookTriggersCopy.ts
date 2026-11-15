@@ -11,7 +11,7 @@ import {
   getFeedZoneName,
 } from "Common/UI/Components/Feed/FeedTime";
 import OneUptimeDate from "Common/Types/Date";
-import { getHourOption } from "Common/Types/DateLanguage";
+import { formatRelativeAmount, getHourOption } from "Common/Types/DateLanguage";
 import {
   RUNBOOK_SCHEDULE_DAY_ORDER,
   RUNBOOK_SCHEDULE_HOUR_INTERVALS,
@@ -720,17 +720,8 @@ export interface RunTimeText {
   relative: string;
 }
 
-/*
- * The parts of Intl.RelativeTimeFormat used here, typed structurally:
- * Common's test programs compile against the ES2017 library, which does not
- * declare it (FeedTime does the same).
- */
+// The units a run's time is counted in.
 type RelativeUnit = "second" | "minute" | "hour" | "day" | "month" | "year";
-
-type RelativeTimeFormatConstructor = new (
-  locale: string,
-  options: { numeric: "auto" | "always" },
-) => { format: (value: number, unit: RelativeUnit) => string };
 
 const MINUTE_IN_MS: number = 60 * 1000;
 const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
@@ -797,22 +788,20 @@ export function formatRunRelativeTime(data: {
     unit = "minute";
   }
 
-  const RelativeTimeFormat: RelativeTimeFormatConstructor | undefined = (
-    Intl as unknown as {
-      RelativeTimeFormat?: RelativeTimeFormatConstructor | undefined;
-    }
-  ).RelativeTimeFormat;
+  // The number held to its unit: "in 23\u00A0hours" (#8456).
+  const relative: string | null = formatRelativeAmount({
+    count: value,
+    unit: unit,
+    isFuture: sign > 0,
+    locale: getFeedLocale(data.language),
+    numeric: value === 0 ? "auto" : "always",
+  });
 
-  try {
-    if (RelativeTimeFormat) {
-      return new RelativeTimeFormat(getFeedLocale(data.language), {
-        numeric: value === 0 ? "auto" : "always",
-      }).format(sign * value, unit);
-    }
-  } catch {
-    // An unknown language: English, below.
+  if (relative) {
+    return relative;
   }
 
+  // An unknown language, or no Intl.RelativeTimeFormat: English.
   if (value === 0) {
     return "now";
   }

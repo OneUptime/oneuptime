@@ -365,14 +365,14 @@ describe("how far a date is from now, rounded as moment's fromNow rounds", () =>
   });
 
   test.each([
-    ["de", -5 * 3600000, "vor 5 Stunden"],
-    ["de", 3 * 86400000 + 1000, "in 3 Tagen"],
+    ["de", -5 * 3600000, "vor 5\u00A0Stunden"],
+    ["de", 3 * 86400000 + 1000, "in 3\u00A0Tagen"],
     ["de", -10000, "jetzt"],
-    ["de", -60000, "vor 1 Minute"],
-    ["fr", -5 * 3600000, "il y a 5 heures"],
-    ["ja", -5 * 3600000, "5 時間前"],
-    ["ru", 3 * 86400000 + 1000, "через 3 дня"],
-    ["fa", -5 * 3600000, "۵ ساعت پیش"],
+    ["de", -60000, "vor 1\u00A0Minute"],
+    ["fr", -5 * 3600000, "il y a 5\u00A0heures"],
+    ["ja", -5 * 3600000, "5\u00A0時間前"],
+    ["ru", 3 * 86400000 + 1000, "через 3\u00A0дня"],
+    ["fa", -5 * 3600000, "۵\u00A0ساعت پیش"],
   ])(
     "in %s, %i ms from now reads %s",
     (language: string, offset: number, text: string) => {
@@ -437,7 +437,7 @@ describe("durations and figures", () => {
         unitDisplay: "long",
         listStyle: "long",
       }),
-    ).toBe("1 Stunde");
+    ).toBe("1\u00A0Stunde");
     expect(
       formatDurationText({
         parts: [],
@@ -483,7 +483,7 @@ describe("durations and figures", () => {
         unitDisplay: "long",
         listStyle: "long",
       }),
-    ).toBe("2 Stunden");
+    ).toBe("2\u00A0Stunden");
   });
 
   test.each([
@@ -588,7 +588,7 @@ describe("formatRelativeAmount", () => {
         isFuture: false,
         locale: "de",
       }),
-    ).toBe("vor 5 Minuten");
+    ).toBe("vor 5\u00A0Minuten");
     expect(
       formatRelativeAmount({
         count: 5,
@@ -597,7 +597,7 @@ describe("formatRelativeAmount", () => {
         locale: "de",
         style: "short",
       }),
-    ).toBe("vor 5 Min.");
+    ).toBe("vor 5\u00A0Min.");
     expect(
       formatRelativeAmount({
         count: 2,
@@ -606,7 +606,7 @@ describe("formatRelativeAmount", () => {
         locale: "de",
         style: "short",
       }),
-    ).toBe("in 2 Std.");
+    ).toBe("in 2\u00A0Std.");
   });
 
   test("the long and the short form of one locale are kept apart", () => {
@@ -624,7 +624,7 @@ describe("formatRelativeAmount", () => {
       locale: "en",
     });
 
-    expect(long).toBe("4 hours ago");
+    expect(long).toBe("4\u00A0hours ago");
     expect(short).not.toBe(long);
   });
 
@@ -637,7 +637,7 @@ describe("formatRelativeAmount", () => {
         locale: "de",
         style: "short",
       }),
-    ).toBe("vor 0 Sek.");
+    ).toBe("vor 0\u00A0Sek.");
   });
 
   test("writes the reader's digits: Persian's, and Arabic's Latin ones", () => {
@@ -649,7 +649,7 @@ describe("formatRelativeAmount", () => {
         locale: "fa",
         style: "short",
       }),
-    ).toBe("۱۲ ثانیه پیش");
+    ).toBe("۱۲\u00A0ثانیه پیش");
     expect(
       formatRelativeAmount({
         count: 12,
@@ -658,6 +658,6 @@ describe("formatRelativeAmount", () => {
         locale: "ar",
         style: "short",
       }),
-    ).toBe("قبل 12 ثانية");
+    ).toBe("قبل 12\u00A0ثانية");
   });
 });

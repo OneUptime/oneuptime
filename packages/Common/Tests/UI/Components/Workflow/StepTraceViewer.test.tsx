@@ -753,7 +753,8 @@ describe("StepTraceViewer", () => {
         screen.queryByTestId("workflow-run-step-error"),
       ).not.toBeInTheDocument();
       expect(outcomeOf(stepCards()[0]!)).toHaveTextContent(
-        "Took Error → which led to Step 2 Log log-1",
+        // The words a screen reader hears, then the arrow and the steps they lead to (#8570).
+        "Took Error which led to → Step 2 Log log-1",
       );
     });
 

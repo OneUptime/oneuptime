@@ -2,6 +2,18 @@ enum EventName {
   ListenToModalEvent = "ListenToModelEvent",
 
   /*
+   * Client -> server. The page wants to hear that what a project uses
+   * changed (#8626): a product's first record, its last one deleted, a
+   * telemetry product's first data - made anywhere, by anyone. The payload
+   * is { tenantId }. The join is asked as a model's is (RealtimeJoinAccess),
+   * and the socket joins the project's usage room
+   * (RealtimeUtil.getProjectUsageRoomId), where each change is an event of
+   * the room's name with an empty payload: only "ask again". A refused join
+   * is answered as a model's is, with the refused { tenantId }.
+   */
+  ListenToProjectUsage = "ListenToProjectUsage",
+
+  /*
    * Server -> client. The socket's session cannot be used for live updates,
    * and a fresh one would fix that:
    *

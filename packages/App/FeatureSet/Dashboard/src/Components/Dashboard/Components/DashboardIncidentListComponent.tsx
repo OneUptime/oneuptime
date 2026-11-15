@@ -272,18 +272,16 @@ const DashboardIncidentListComponentElement: FunctionComponent<
        * the reader's words, a project's own as written - so the tile reads
        * them as written from here on, never looking them up again.
        */
-      const stateName: string =
-        translateRecordName(
-          translator,
-          StateListType.IncidentState,
-          incident.currentIncidentState?.name,
-        ) || "—";
-      const severityName: string =
-        translateRecordName(
-          translator,
-          StateListType.IncidentSeverity,
-          incident.incidentSeverity?.name,
-        ) || "—";
+      const stateName: string | undefined = translateRecordName(
+        translator,
+        StateListType.IncidentState,
+        incident.currentIncidentState?.name,
+      );
+      const severityName: string | undefined = translateRecordName(
+        translator,
+        StateListType.IncidentSeverity,
+        incident.incidentSeverity?.name,
+      );
       const severityColor: Color | undefined = incident.incidentSeverity
         ?.color as Color | undefined;
       const stateColor: Color | undefined = incident.currentIncidentState
@@ -332,20 +330,18 @@ const DashboardIncidentListComponentElement: FunctionComponent<
     (incident: Incident): ReactElement => {
       const incidentId: string = (incident._id as string) || "";
       // By their lists, as the tiles read them.
-      const stateName: string =
-        translateRecordName(
-          translator,
-          StateListType.IncidentState,
-          incident.currentIncidentState?.name,
-        ) || "—";
+      const stateName: string | undefined = translateRecordName(
+        translator,
+        StateListType.IncidentState,
+        incident.currentIncidentState?.name,
+      );
       const stateColor: Color | undefined = incident.currentIncidentState
         ?.color as Color | undefined;
-      const severityName: string =
-        translateRecordName(
-          translator,
-          StateListType.IncidentSeverity,
-          incident.incidentSeverity?.name,
-        ) || "—";
+      const severityName: string | undefined = translateRecordName(
+        translator,
+        StateListType.IncidentSeverity,
+        incident.incidentSeverity?.name,
+      );
       const severityColor: Color | undefined = incident.incidentSeverity
         ?.color as Color | undefined;
       const declared: DashboardDateTime = getDashboardDateTime(

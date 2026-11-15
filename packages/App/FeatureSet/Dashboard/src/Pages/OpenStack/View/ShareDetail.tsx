@@ -78,7 +78,9 @@ const OpenStackCloudShareDetail: FunctionComponent<
         detailRows.push({
           key: "zone",
           label: "Availability Zone",
-          value: row.availabilityZone ? <bdi>{row.availabilityZone}</bdi> : "—",
+          value: row.availabilityZone ? (
+            <bdi>{row.availabilityZone}</bdi>
+          ) : undefined,
           description:
             "The zone of the backend that holds it. A share with none never reached a backend.",
         });
@@ -123,7 +125,7 @@ const OpenStackCloudShareDetail: FunctionComponent<
                   </Link>
                 ),
               }
-            : { key: "project", label: "Project", value: "—" },
+            : { key: "project", label: "Project", value: undefined },
         );
         if (row.regionName) {
           detailRows.push({

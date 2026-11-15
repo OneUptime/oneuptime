@@ -256,14 +256,14 @@ Um [site de rede](/docs/monitor/network-sites#padrões-de-monitoramento) carrega
 
 ## A substituição por monitor vinculado
 
-Alguns equipamentos nenhuma sonda consegue alcançar ou consultar com ping de forma útil: um dispositivo atrás de um NAT, um appliance cuja saúde é melhor avaliada por uma verificação HTTP, um serviço cujo sinal real é uma verificação de porta. Para esses, **Editar definições** na página **Configurações** do dispositivo tem um **Monitoring Method**:
+Alguns equipamentos nenhuma sonda consegue alcançar ou consultar com ping de forma útil: um dispositivo atrás de um NAT, um appliance cuja saúde é melhor avaliada por uma verificação HTTP, um serviço cujo sinal real é uma verificação de porta. Para esses, **Editar definições** na página **Configurações** do dispositivo tem um **Método de monitoramento**:
 
 | Método | O que significa |
 | --- | --- |
 | **Sonda** | O padrão. Recebe ping da sonda atribuída no agendamento dela, e walk SNMP quando tem credenciais. |
-| **Bound monitor** | O status de um monitor existente é o status deste dispositivo. |
+| **Monitor vinculado** | O status de um monitor existente é o status deste dispositivo. |
 
-Mudar um dispositivo para **Bound monitor** interrompe a sondagem dele. A sonda, o intervalo e o interruptor de sondagem saem do cartão **Polling & Data Collection**, os resultados de sondagem antigos do dispositivo são apagados, e o status dele vem do monitor que você vincular. Vincular um é opcional: até você fazer isso, o dispositivo aparece como **Pendente**, marcado com **Sem monitor**.
+Mudar um dispositivo para **Monitor vinculado** interrompe a sondagem dele. A sonda, o intervalo e o interruptor de sondagem saem do cartão **Polling & Data Collection**, os resultados de sondagem antigos do dispositivo são apagados, e o status dele vem do monitor que você vincular. Vincular um é opcional: até você fazer isso, o dispositivo aparece como **Pendente**, marcado com **Sem monitor**.
 
 Voltar para **Sonda** restaura a sondagem e pede uma sonda. Um monitor que estava vinculado continua vinculado e continua alertando; ele só deixa de decidir o status do dispositivo.
 

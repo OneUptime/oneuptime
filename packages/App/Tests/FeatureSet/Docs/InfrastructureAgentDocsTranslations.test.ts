@@ -268,7 +268,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "OpenStack application credential created",
     "OpenStack security group opened to the world",
     "OpenStack public image published",
-    "Propose an OpenStack fix",
     "Propose taking a failing OpenStack compute service out of scheduling",
     "Capacity Forecast Under 14 Days",
   ],

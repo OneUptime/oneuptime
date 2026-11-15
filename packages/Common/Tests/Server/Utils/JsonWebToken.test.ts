@@ -28,6 +28,35 @@ const ALL_PURPOSES: Array<JsonWebTokenPurpose> = Object.values(
   JsonWebTokenPurpose,
 ) as Array<JsonWebTokenPurpose>;
 
+/*
+ * Whether `token` is read as `purpose` by the product's own reader of that
+ * kind: JSONWebToken.decode, or for a browser's sign-out cookie - which
+ * names no one's identity, and which decode never reads -
+ * JSONWebToken.decodeSessionToSignOut.
+ */
+function isReadAs(token: string, purpose: JsonWebTokenPurpose): boolean {
+  try {
+    if (purpose === JsonWebTokenPurpose.UserSessionSignOut) {
+      JSONWebToken.decodeSessionToSignOut(token);
+    } else {
+      JSONWebToken.decode(token, purpose);
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// The user a token is read as belonging to, by its kind's own reader.
+function userReadAs(token: string, purpose: JsonWebTokenPurpose): string {
+  if (purpose === JsonWebTokenPurpose.UserSessionSignOut) {
+    return JSONWebToken.decodeSessionToSignOut(token).userId.toString();
+  }
+
+  return JSONWebToken.decode(token, purpose).userId.toString();
+}
+
 describe("JSONWebToken", () => {
   const userId: ObjectID = ObjectID.generate();
   const sessionId: ObjectID = ObjectID.generate();
@@ -337,6 +366,260 @@ describe("JSONWebToken", () => {
       expect(verify.mock.calls[0]![2]).toEqual({ ignoreExpiration: true });
 
       verify.mockRestore();
+    });
+  });
+
+  /*
+   * A browser's sign-out cookie (issue #8638): which session the browser
+   * holds, kept beside its refresh token and for as long, so a sign-out
+   * can name its session after a renewal whose answer was lost, once the
+   * fifteen-minute access-token cookie has gone. It is read only to end
+   * that session, and it is no one's identity.
+   */
+  describe("a browser's sign-out cookie: signSessionSignOutToken and decodeSessionToSignOut", () => {
+    function signOutToken(expiresInSeconds: number = 300): string {
+      return JSONWebToken.signSessionSignOutToken({
+        userId: userId,
+        sessionId: sessionId,
+        expiresInSeconds: expiresInSeconds,
+      });
+    }
+
+    test("names the user and the session, and is read back as them", () => {
+      const read: { userId: ObjectID; sessionId: ObjectID } =
+        JSONWebToken.decodeSessionToSignOut(signOutToken());
+
+      expect(read.userId.toString()).toBe(userId.toString());
+      expect(read.sessionId.toString()).toBe(sessionId.toString());
+      expect(Object.keys(read).sort()).toEqual(["sessionId", "userId"]);
+    });
+
+    /*
+     * Every reader of a person's token makes an address of the token's
+     * own - this release's decode, and the one before tokens said what they
+     * were for, which read any token this key signed as a session (commit
+     * a4613e2e80b): new Email(claims.email). A token that holds no address
+     * is refused by all of them, however long it lives.
+     */
+    test("says what it is for, and holds no address and nothing of a session's access token", () => {
+      const claims: JSONObject = JSONWebToken.decodeJsonPayload(signOutToken());
+
+      expect(Object.keys(claims).sort()).toEqual(
+        [
+          "exp",
+          "iat",
+          // JSONWebToken.sign writes these two, empty, into every token of claims.
+          "name",
+          "projectId",
+          PURPOSE_CLAIM,
+          "sessionId",
+          "userId",
+        ].sort(),
+      );
+      expect(claims[PURPOSE_CLAIM]).toBe(
+        JsonWebTokenPurpose.UserSessionSignOut,
+      );
+      expect(claims["name"]).toBe("");
+      expect(claims["projectId"]).toBe("");
+      expect(claims["email"]).toBeUndefined();
+
+      expect(() => {
+        return new Email(claims["email"] as string);
+      }).toThrow(BadDataException);
+    });
+
+    test("lives as long as it is asked to, in whole seconds, and not at all when asked for none", () => {
+      for (const [asked, lives] of [
+        [30 * 24 * 60 * 60, 30 * 24 * 60 * 60],
+        [60, 60],
+        [59.2, 60],
+        [0.4, 1],
+      ] as Array<[number, number]>) {
+        const claims: JSONObject = JSONWebToken.decodeJsonPayload(
+          signOutToken(asked),
+        );
+
+        expect({
+          asked,
+          lives: (claims["exp"] as number) - (claims["iat"] as number),
+        }).toEqual({ asked, lives });
+      }
+
+      for (const asked of [0, -60, Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(() => {
+          return JSONWebToken.decodeSessionToSignOut(signOutToken(asked));
+        }).toThrow("AccessToken is invalid or expired");
+      }
+    });
+
+    test("is refused once it has expired: nothing reads it past its end", () => {
+      const issuedAt: number = Math.floor(Date.now() / 1000);
+
+      // Signed here thirty days and a minute ago, for thirty days.
+      const ranOut: string = jwt.sign(
+        {
+          ...JSONWebToken.decodeJsonPayload(signOutToken()),
+          iat: issuedAt - 30 * 24 * 60 * 60 - 60,
+          exp: issuedAt - 60,
+        },
+        TokenSigningKey.get(),
+      );
+
+      expect(() => {
+        return JSONWebToken.decodeSessionToSignOut(ranOut);
+      }).toThrow("AccessToken is invalid or expired");
+
+      // The same claims, still within their time, are read.
+      expect(
+        JSONWebToken.decodeSessionToSignOut(
+          jwt.sign(
+            {
+              ...JSONWebToken.decodeJsonPayload(signOutToken()),
+              iat: issuedAt - 60,
+              exp: issuedAt + 60,
+            },
+            TokenSigningKey.get(),
+          ),
+        ).sessionId.toString(),
+      ).toBe(sessionId.toString());
+
+      const verify: jest.SpyInstance = jest.spyOn(jwt, "verify");
+
+      JSONWebToken.decodeSessionToSignOut(signOutToken());
+
+      // The signature is checked once, and the expiry with it.
+      expect(verify).toHaveBeenCalledTimes(1);
+      expect(verify.mock.calls[0]![2]).toBeUndefined();
+
+      verify.mockRestore();
+    });
+
+    test("is refused when another key signed it, nobody signed it, or its claims were swapped", () => {
+      const claims: JSONObject = {
+        userId: userId.toString(),
+        sessionId: sessionId.toString(),
+        [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSessionSignOut,
+      };
+      const segment: (value: JSONObject) => string = (
+        value: JSONObject,
+      ): string => {
+        return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+      };
+      const [header, , signature] = signOutToken().split(".");
+      const issuedAt: number = Math.floor(Date.now() / 1000);
+
+      for (const forged of [
+        jwt.sign(claims, "another installation's key", { expiresIn: 300 }),
+        `${segment({ alg: "none", typ: "JWT" })}.${segment({ ...claims, iat: issuedAt, exp: issuedAt + 300 })}.`,
+        // Another session's id under this token's signature.
+        `${header}.${segment({
+          ...claims,
+          sessionId: ObjectID.generate().toString(),
+          iat: issuedAt,
+          exp: issuedAt + 300,
+        })}.${signature}`,
+        // Another person's id under this token's signature.
+        `${header}.${segment({
+          ...claims,
+          userId: ObjectID.generate().toString(),
+          iat: issuedAt,
+          exp: issuedAt + 300,
+        })}.${signature}`,
+      ]) {
+        expect(() => {
+          return JSONWebToken.decodeSessionToSignOut(forged);
+        }).toThrow("AccessToken is invalid or expired");
+      }
+    });
+
+    test("takes no other token: a session's access token, expired or not, an SSO sign-in, a status page's session, an earlier release's access token, or garbage", () => {
+      const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
+      privateUser.id = ObjectID.generate();
+      privateUser.email = new Email("reader@example.com");
+
+      for (const token of [
+        sessionToken(),
+        sessionToken(-60),
+        CookieUtil.getSSOToken({
+          user: buildUser(),
+          projectId: ObjectID.generate(),
+          ssoProviderId: ObjectID.generate(),
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        }),
+        CookieUtil.getGlobalSSOToken({
+          user: buildUser(),
+          ssoProviderId: ObjectID.generate(),
+          ssoProviderType: SsoProviderType.GlobalOIDC,
+        }),
+        CookieUtil.setStatusPagePrivateUserCookie({
+          expressResponse: noCookies(),
+          user: privateUser,
+          statusPageId: ObjectID.generate(),
+          sessionId: sessionId,
+          refreshToken: "refresh-token",
+          refreshTokenExpiresAt: OneUptimeDate.getSomeDaysAfter(1),
+        }),
+        JSONWebToken.signJsonPayload(
+          {
+            userId: userId.toString(),
+            email: email.toString(),
+            name: "Test User",
+            isMasterAdmin: true,
+            isGlobalLogin: true,
+            sessionId: sessionId.toString(),
+          },
+          EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+        ),
+        "not-a-token",
+        "",
+      ]) {
+        expect(() => {
+          return JSONWebToken.decodeSessionToSignOut(token);
+        }).toThrow("AccessToken is invalid or expired");
+      }
+    });
+
+    test("is never read by decode, whatever it is asked for, expired or not", () => {
+      for (const purpose of ALL_PURPOSES) {
+        for (const options of [undefined, { acceptExpired: true }]) {
+          expect(() => {
+            return JSONWebToken.decode(signOutToken(), purpose, options);
+          }).toThrow("AccessToken is invalid or expired");
+        }
+      }
+    });
+
+    /*
+     * decode refuses the kind itself, not only a token without an address:
+     * one that says it is a sign-out cookie and holds everything a session's
+     * access token does is read as nothing by decode either.
+     */
+    test("decode refuses the kind, even a token of it that holds an address and a whole session's claims", () => {
+      const withAnAddress: string = JSONWebToken.signJsonPayload(
+        {
+          userId: userId.toString(),
+          email: email.toString(),
+          name: "Test User",
+          isMasterAdmin: true,
+          isGlobalLogin: true,
+          sessionId: sessionId.toString(),
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSessionSignOut,
+        },
+        300,
+      );
+
+      // It is a sign-out cookie, and read as one where one is read.
+      expect(
+        JSONWebToken.decodeSessionToSignOut(withAnAddress).sessionId.toString(),
+      ).toBe(sessionId.toString());
+
+      for (const purpose of ALL_PURPOSES) {
+        for (const options of [undefined, { acceptExpired: true }]) {
+          expect(() => {
+            return JSONWebToken.decode(withAnAddress, purpose, options);
+          }).toThrow("AccessToken is invalid or expired");
+        }
+      }
     });
   });
 
@@ -664,6 +947,38 @@ function noCookies(): ExpressResponse {
 
 const THIRTY_DAYS_IN_SECONDS: number = 30 * 24 * 60 * 60;
 
+/*
+ * A browser's sign-out cookie, as a sign-in or a renewal hands it out
+ * (CookieUtil.setUserCookie), for a session of buildUser().
+ */
+function signOutCookieOf(sessionId: ObjectID = ObjectID.generate()): string {
+  let value: string = "";
+
+  CookieUtil.setUserCookie({
+    expressResponse: {
+      cookie: (name: string, cookieValue: string): void => {
+        if (name === CookieUtil.getSessionSignOutKey()) {
+          value = cookieValue;
+        }
+      },
+      clearCookie: (): void => {
+        // The master-admin flag of a member; not read here.
+      },
+    } as unknown as ExpressResponse,
+    user: buildUser(),
+    isGlobalLogin: true,
+    sessionId: sessionId,
+    refreshToken: "refresh-token",
+    refreshTokenExpiresAt: OneUptimeDate.getSomeDaysAfter(30),
+  });
+
+  if (!value) {
+    throw new Error("setUserCookie set no sign-out cookie");
+  }
+
+  return value;
+}
+
 interface TokenKind {
   name: string;
   token: () => string;
@@ -922,6 +1237,35 @@ const TOKEN_KINDS: Array<TokenKind> = [
     },
     readAs: null,
   },
+  {
+    name: "a browser's sign-out cookie",
+    token: (): string => {
+      return signOutCookieOf();
+    },
+    readAs: JsonWebTokenPurpose.UserSessionSignOut,
+  },
+  {
+    name: "a session's claims put in a token that says it is a sign-out cookie",
+    token: (): string => {
+      return JSONWebToken.signJsonPayload(
+        {
+          userId: buildUser().id!.toString(),
+          email: "member@example.com",
+          name: "Member",
+          isMasterAdmin: true,
+          isGlobalLogin: true,
+          sessionId: ObjectID.generate().toString(),
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSessionSignOut,
+        },
+        15 * 60,
+      );
+    },
+    /*
+     * It says what it is for, and only that is read: it ends the session it
+     * names, and is no session itself.
+     */
+    readAs: JsonWebTokenPurpose.UserSessionSignOut,
+  },
 ];
 
 describe("every token that names a person says what it is for, where it is made", () => {
@@ -946,6 +1290,13 @@ describe("every token that names a person says what it is for, where it is made"
       kind: TOKEN_KINDS[5]!,
       purpose: JsonWebTokenPurpose.StatusPageSession,
     },
+    {
+      name: "a browser's sign-out cookie",
+      kind: TOKEN_KINDS.find((kind: TokenKind): boolean => {
+        return kind.name === "a browser's sign-out cookie";
+      })!,
+      purpose: JsonWebTokenPurpose.UserSessionSignOut,
+    },
   ])(
     "$name",
     ({ kind, purpose }: { kind: TokenKind; purpose: JsonWebTokenPurpose }) => {
@@ -962,14 +1313,7 @@ describe("what a token is for: each kind is read as what it is, and as nothing e
     const value: string = token();
 
     for (const purpose of ALL_PURPOSES) {
-      const reads: boolean = ((): boolean => {
-        try {
-          JSONWebToken.decode(value, purpose);
-          return true;
-        } catch {
-          return false;
-        }
-      })();
+      const reads: boolean = isReadAs(value, purpose);
 
       expect({ purpose, reads }).toEqual({
         purpose,
@@ -1106,26 +1450,19 @@ describe("a token says what it is for only when this server signed it", () => {
 
       // The same claims, signed here: read as what they say.
       expect(
-        JSONWebToken.decode(
+        userReadAs(
           jwt.sign(withoutTimes(claims), TokenSigningKey.get(), {
             expiresIn: 15 * 60,
           }),
           purpose,
-        ).userId.toString(),
+        ),
       ).toBe(buildUser().id!.toString());
 
       for (const forgery of FORGERIES) {
         const token: string = forgery.forge(claims);
 
         for (const asked of ALL_PURPOSES) {
-          const reads: boolean = ((): boolean => {
-            try {
-              JSONWebToken.decode(token, asked);
-              return true;
-            } catch {
-              return false;
-            }
-          })();
+          const reads: boolean = isReadAs(token, asked);
 
           expect({ forgery: forgery.name, asked, reads }).toEqual({
             forgery: forgery.name,
@@ -1375,6 +1712,88 @@ describe("JSONWebToken.isFor", () => {
         JsonWebTokenPurpose.StatusPageSession,
       ),
     ).toBe(true);
+  });
+
+  const signOutClaims: JSONObject = {
+    userId: ObjectID.generate().toString(),
+    sessionId: ObjectID.generate().toString(),
+    [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSessionSignOut,
+  };
+
+  /*
+   * A browser's sign-out cookie (issue #8638) says it is one - no release
+   * signed one that did not - and names its user and its session, and no
+   * status page or SSO provider.
+   */
+  test("a browser's sign-out cookie says it is one, and names its user and its session", () => {
+    expect(
+      JSONWebToken.isFor(signOutClaims, JsonWebTokenPurpose.UserSessionSignOut),
+    ).toBe(true);
+
+    const issuedAt: number = Math.floor(Date.now() / 1000);
+
+    for (const refused of [
+      without(signOutClaims, PURPOSE_CLAIM),
+      {
+        ...without(signOutClaims, PURPOSE_CLAIM),
+        iat: issuedAt,
+        exp: issuedAt + 60,
+      },
+      without(signOutClaims, "sessionId"),
+      without(signOutClaims, "userId"),
+      { ...signOutClaims, sessionId: "not-an-id" },
+      { ...signOutClaims, sessionId: 42 },
+      { ...signOutClaims, userId: "not-an-id" },
+      { ...signOutClaims, userId: ["5a5a5a5a-5a5a-4a5a-8a5a-5a5a5a5a5a5a"] },
+      { ...signOutClaims, statusPageId: ObjectID.generate().toString() },
+      { ...signOutClaims, ssoProviderType: SsoProviderType.ProjectSSO },
+      { ...signOutClaims, ssoProviderId: ObjectID.generate().toString() },
+      { ...signOutClaims, [PURPOSE_CLAIM]: "User-Session-Sign-Out" },
+      { ...signOutClaims, [PURPOSE_CLAIM]: "user-session-sign-out " },
+      { ...signOutClaims, [PURPOSE_CLAIM]: ["user-session-sign-out"] },
+      { ...signOutClaims, [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession },
+      // A session's access token, of this release or an earlier one.
+      sessionClaims,
+      {
+        ...without(sessionClaims, PURPOSE_CLAIM),
+        iat: issuedAt,
+        exp: issuedAt + EARLIER_RELEASE_ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+      },
+      ssoClaims,
+      statusPageClaims,
+    ]) {
+      expect({
+        claims: refused,
+        isSignOut: JSONWebToken.isFor(
+          refused,
+          JsonWebTokenPurpose.UserSessionSignOut,
+        ),
+      }).toEqual({ claims: refused, isSignOut: false });
+    }
+  });
+
+  test("a browser's sign-out cookie is no session, no SSO sign-in and no status page's session, whatever else it holds", () => {
+    for (const claims of [
+      signOutClaims,
+      // Everything a session's access token holds, and that it is a sign-out cookie.
+      {
+        ...sessionClaims,
+        name: "Member",
+        isMasterAdmin: true,
+        isGlobalLogin: true,
+        [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSessionSignOut,
+      },
+    ]) {
+      for (const purpose of [
+        JsonWebTokenPurpose.UserSession,
+        JsonWebTokenPurpose.SsoSignIn,
+        JsonWebTokenPurpose.StatusPageSession,
+      ]) {
+        expect({ purpose, reads: JSONWebToken.isFor(claims, purpose) }).toEqual(
+          { purpose, reads: false },
+        );
+      }
+    }
   });
 
   test("a status page's session is never a dashboard session, nor an SSO sign-in", () => {

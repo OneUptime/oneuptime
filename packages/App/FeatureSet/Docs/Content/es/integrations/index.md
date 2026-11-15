@@ -118,7 +118,7 @@ Para una herramienta de alertas, empieza con un [monitor de solicitudes entrante
 1. Abre **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **Empezar desde cero**. Ponle nombre al flujo de trabajo y haz clic en **Crear flujo de trabajo**.
 2. Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **Webhook**. Haz clic en el disparador y luego en **Copiar URL**.
 3. En la otra herramienta, envía su webhook a esa URL como `POST` con `Content-Type: application/json`.
-4. Añade los bloques que actúan sobre él. Leen la solicitud con referencias como `{{local.components.webhook-1.returnValues.request-body.status}}`: un bloque **If / Else** para comprobar un campo y luego **Create One Incident** para declarar un incidente.
+4. Añade los bloques que actúan sobre él. Leen la solicitud con referencias como `{{local.components.webhook-1.returnValues.request-body.status}}`: un bloque **Si / Si no** para comprobar un campo y luego **Create One Incident** para declarar un incidente.
 5. Activa **Habilitado** en la parte superior del **Constructor**, envía una prueba desde la otra herramienta y abre **Registros → Ejecuciones** para ver lo que llegó.
 :::
 
@@ -128,8 +128,8 @@ La URL es la única credencial, así que trátala como una contraseña. Consulta
 
 :::steps
 1. Guarda la clave de API de la herramienta como variable global secreta, como se muestra [más abajo](#proteger-las-credenciales).
-2. Crea un flujo de trabajo, haz clic en el bloque discontinuo y elige un disparador de evento, como **On Create Incident**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que quieres enviar, como **Descripción**.
-3. Haz clic en **Añadir componente** y añade un bloque **API Post (JSON)**. Conecta a él el punto **Éxito** del disparador.
+2. Crea un flujo de trabajo, haz clic en el bloque discontinuo y elige un disparador de evento, como **On Create Incident**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige los demás campos que quieres enviar, como **Descripción**.
+3. Haz clic en **Añadir componente** y añade un bloque **Llamada a API POST (JSON)**. Conecta a él el punto **Éxito** del disparador.
 4. Rellena su **URL**, sus **Encabezados de la solicitud** con la cabecera `Authorization` y su **Cuerpo de la solicitud** con los campos del incidente, como `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Haz clic en **Ejecutar flujo de trabajo**, elige un incidente en **Incidente** y ejecútalo. Una ejecución de prueba envía de verdad la solicitud. Después, activa **Habilitado**.
 :::

@@ -804,7 +804,7 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Events",
-      value: m ? formatCompact(m.total, translator) : "—",
+      value: m ? formatCompact(m.total, translator) : undefined,
       icon: IconProp.Activity,
       iconColor: "sky",
       loading: metricsLoading,
@@ -813,7 +813,7 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
@@ -830,7 +830,9 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Event duration (p95)",
-      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
+      value: m
+        ? formatDurationMsInLanguage(m.p95DurationMs, translator)
+        : undefined,
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: metricsLoading,
@@ -852,7 +854,7 @@ const RumApplicationOverview: FunctionComponent<
       title: "Clients",
       value:
         clientCountFailed || clientCount === null
-          ? "—"
+          ? undefined
           : formatCompact(clientCount, translator),
       icon: IconProp.Window,
       iconColor: "amber",
@@ -864,9 +866,9 @@ const RumApplicationOverview: FunctionComponent<
     {
       title: "Sessions recorded",
       value: sessionReplayCountFailed
-        ? "—"
+        ? undefined
         : sessionReplayCount === null
-          ? "—"
+          ? undefined
           : `${formatCompact(sessionReplayCount, translator)}${
               sessionReplayHasMore ? "+" : ""
             }`,

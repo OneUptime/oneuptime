@@ -251,7 +251,13 @@ describe("the names a step defines", () => {
     expect(WORKFLOW_STEP_OUTPUTS.has("Success")).toBe(true);
     expect(WORKFLOW_STEP_TITLES.has("Log")).toBe(true);
     expect(isLookedUp("Success")).toBe(true);
-    expect(isLookedUp("Send Message to Slack")).toBe(false);
+    // Every name of the step catalogue is a key since #8359.
+    expect(isLookedUp("Send Message to Slack")).toBe(true);
+    expect(
+      Array.from(WORKFLOW_STEP_NAMES).filter((name: string): boolean => {
+        return !isLookedUp(name);
+      }),
+    ).toEqual([]);
   });
 
   it("are drawn in German and Persian as the locales word them", () => {
@@ -262,12 +268,39 @@ describe("the names a step defines", () => {
     expect(drawnStepName("fa", "Success")).toBe("موفق");
     expect(drawnStepName("fa", "Incident Template")).toBe("قالب حادثه");
     expect(drawnStepName("de", "Response Body")).toBe("Antworttext");
-    // No key: drawn in English in every language.
+    // Drawn in English in every language until #8359 gave them keys.
     expect(drawnStepName("de", "Send Message to Slack")).toBe(
-      "Send Message to Slack",
+      "Nachricht an Slack senden",
     );
-    expect(isDrawnOtherwise("de", "Send Message to Slack")).toBe(false);
+    expect(drawnStepName("de", "Response Status")).toBe("Antwortstatus");
+    expect(drawnStepName("fa", "IRC Server")).toBe("سرور IRC");
+    expect(isDrawnOtherwise("de", "Send Message to Slack")).toBe(true);
     expect(isDrawnOtherwise("de", "Success")).toBe(true);
+    // A record step's title is built from its model's name, and has no key yet.
+    expect(isLookedUp("On Create Incident")).toBe(false);
+    expect(drawnStepName("de", "On Create Incident")).toBe(
+      "On Create Incident",
+    );
+    expect(isDrawnOtherwise("de", "On Create Incident")).toBe(false);
+    // A product's name is kept as written, on the same-as-English list.
+    expect(isDrawnOtherwise("de", "Zabbix 6.0")).toBe(false);
+  });
+
+  it("are quoted as drawn on a translated page: the IRC step's settings in German, #8359's example", () => {
+    const page: string = readPage("de", "integrations/irc");
+
+    for (const name of [
+      "Nachricht an IRC senden",
+      "IRC-Server",
+      "SASL-Benutzername",
+      "Ohne Beitritt senden",
+    ]) {
+      expect(boldNames(page)).toContain(name);
+    }
+
+    for (const name of ["Send Message to IRC", "IRC Server", "SASL Username"]) {
+      expect(boldNames(page)).not.toContain(name);
+    }
   });
 });
 

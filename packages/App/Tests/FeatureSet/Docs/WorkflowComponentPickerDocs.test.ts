@@ -162,8 +162,11 @@ describe("docs for the Add Component and Add Trigger panels", () => {
     (language: string) => {
       const page: string = readPage(language, "workflows/components.md");
 
-      // If / Else is no Dashboard label: it is the block's own name.
-      lineWith(page, ["**If / Else**", drawn(language, "Popular")]);
+      // The block's own name, as the Add Component panel draws it (#8359).
+      lineWith(page, [
+        drawn(language, "If / Else"),
+        drawn(language, "Popular"),
+      ]);
       lineWith(page, [
         drawn(language, "OneUptime resources"),
         drawn(language, "Browse all resources"),

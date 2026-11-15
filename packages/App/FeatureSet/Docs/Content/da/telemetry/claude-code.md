@@ -64,7 +64,7 @@ Variablerne læses, når Claude Code starter. Metrikker sendes hvert 60. sekund 
 
 ### Tjek, at data ankommer
 
-Åbn **Målinger**, og søg efter `claude_code.token.usage`, åbn derefter **Produkter → AI / LLM**, og gå til **Forbrug**: dine omkostninger vises under din e-mail, markeret med **Fra forbrugsmetrikker**.
+Åbn **Metrikker**, og søg efter `claude_code.token.usage`, åbn derefter **Produkter → AI / LLM**, og gå til **Forbrug**: dine omkostninger vises under din e-mail, markeret med **Fra forbrugsmetrikker**.
 :::
 
 For at sende metrikker og hændelser til forskellige steder sætter du i stedet `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` og `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` med den fulde sti (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).

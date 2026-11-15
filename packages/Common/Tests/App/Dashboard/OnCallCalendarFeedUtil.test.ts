@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import {
   FeedSettings,
   FeedStatus,
@@ -974,10 +975,22 @@ describe("getFeedHealth", () => {
     expect(FEED_HEALTH_LABELS).toEqual({
       [FeedHealth.Active]: "Active",
       [FeedHealth.WaitingForFirstSync]: "Waiting for first sync",
-      [FeedHealth.NotFetched]: "Not fetched yet",
+      // The link's own key, worded to agree with Active and Disabled (#8659).
+      [FeedHealth.NotFetched]: "Not fetched yet (calendar feed)",
       [FeedHealth.Disabled]: "Disabled",
       [FeedHealth.NeedsRegeneration]: "Needs regeneration",
     });
+
+    // English reads each as the mobile app's word.
+    expect(
+      Object.values(FEED_HEALTH_LABELS).map(withMeaningKeyAsItsWord),
+    ).toEqual([
+      "Active",
+      "Waiting for first sync",
+      "Not fetched yet",
+      "Disabled",
+      "Needs regeneration",
+    ]);
   });
 });
 

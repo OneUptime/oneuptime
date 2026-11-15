@@ -1195,12 +1195,21 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnMenuGroup("nl", "Resources")).not.toBe(
       drawnDashboardLabel("nl", "Resources"),
     );
-    // The Russian menu names Logs "Логи"; a Logs label reads "Журналы".
+    /*
+     * A product after Products is the menu's item. The Russian menu named
+     * Logs "Логи" over pages titled "Журналы" until #8229 made every menu
+     * title its page's; Chat's page draws no title, so its item is the
+     * menu's own word.
+     */
     expect(drawnPathSegment("ru", ["Products", "Logs"], 1)).toBe(
       drawnMenuItem("ru", "Logs"),
     );
-    expect(drawnMenuItem("ru", "Logs")).not.toBe(
-      drawnDashboardLabel("ru", "Logs"),
+    expect(drawnMenuItem("ru", "Logs")).toBe(drawnDashboardLabel("ru", "Logs"));
+    expect(drawnPathSegment("fa", ["Products", "Chat"], 1)).toBe(
+      drawnMenuItem("fa", "Chat"),
+    );
+    expect(drawnMenuItem("fa", "Chat")).not.toBe(
+      drawnDashboardLabel("fa", "Chat"),
     );
     // Services read "Сервисы" in the menu and as a label alike (#7387).
     expect(drawnMenuItem("ru", "Services")).toBe(

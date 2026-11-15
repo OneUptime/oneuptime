@@ -110,10 +110,21 @@ describe("the probe's timeout sentence after Cause", () => {
     expect(word(stored, "en")).toBe(stored);
   });
 
+  // #8267: the AggregateError sentence is one of the probe's causes with values.
+  test("the AggregateError sentence reads in the reader's language, the message it holds as stored", () => {
+    const stored: string = rootCauseWithCause(
+      "Request failed with AggregateError (all connection attempts failed). connect ECONNREFUSED 203.0.113.7:443",
+    );
+
+    expect(lineStarting(word(stored, "de"), "**Ursache**")).toBe(
+      mdText`**Ursache**: ${"Die Anfrage ist mit AggregateError fehlgeschlagen (alle Verbindungsversuche sind fehlgeschlagen). connect ECONNREFUSED 203.0.113.7:443"}`.toString(),
+    );
+  });
+
   test.each([
     "connect ECONNREFUSED 203.0.113.7:443",
     "Request was tried 3 times and it timed out",
-    "Request failed with AggregateError (all connection attempts failed). Request was tried 3 times and it timed out.",
+    "Request failed with AggregateError, all connection attempts failed. Request was tried 3 times and it timed out.",
   ])("any other cause stays as stored: %s", (cause: string) => {
     const stored: string = rootCauseWithCause(cause);
     const worded: string = word(stored, "de");

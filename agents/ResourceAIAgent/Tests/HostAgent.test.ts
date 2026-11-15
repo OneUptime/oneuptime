@@ -269,7 +269,7 @@ test("a fix on a read-only agent is refused before nsenter starts, and reported 
   assert.strictEqual(result!.body["exitCode"], undefined);
   assert.match(
     String(result!.body["errorMessage"]),
-    /^Refused by the Host AI agent: "systemctl restart nginx" changes the Host, and this agent is read-only/,
+    /^Refused by the Host AI agent: "systemctl restart nginx" changes the host, and this agent is read-only/,
   );
   assert.strictEqual(
     callsOf("systemctl").filter((call: HostSpawnRecord) => {
@@ -380,7 +380,7 @@ test("without HOST_NAME, and unable to read the hostname, the agent stays miscon
   assert.strictEqual(snapshot.phase, "misconfigured");
   assert.match(
     String(snapshot.configProblems[0]),
-    /^HOST_NAME is not set, and the agent could not read this Host's name itself/,
+    /^HOST_NAME is not set, and the agent could not read this host's name itself/,
   );
   assert.ok(
     logs.messages("warn").some((message: string): boolean => {

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ResourceTable, {
@@ -78,7 +79,9 @@ const DockerSwarmClusterStacks: FunctionComponent<
           key: "serviceCount",
           description: DOCKER_SWARM_METRIC_DESCRIPTIONS.stackServices,
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["serviceCount"] || "-";
+            return (
+              resource.additionalAttributes["serviceCount"] || EMPTY_VALUE_MARK
+            );
           },
         },
       ]}

@@ -113,7 +113,7 @@ Hver post bærer disse ressourceattributter:
 
 | Attribut | Hvad den er |
 | --- | --- |
-| `service.name` | Altid `cursor`: filtrér stifinderne for **Protokoller** og **Målinger** på den |
+| `service.name` | Altid `cursor`: filtrér stifinderne for **Protokoller** og **Metrikker** på den |
 | `cursor.team.id` | Dit team, et heltal; altid til stede |
 | `cursor.user.id` | Personen, et heltal inden for teamet; valgfri |
 | `cursor.surface` | Hvor aktiviteten kom fra, som `desktop`, `cli`, `cloud_agent` eller `bugbot` |
@@ -176,7 +176,7 @@ Cursor forbinder fra sine egne servere: dit OTLP-endpoint skal kunne nås fra in
 :::
 
 :::details Logs ankommer, men fanen Forbrug viser intet forbrug fra Cursor
-Cursors forbrug kommer fra dets metrikker, ikke fra dets logs: tjek, at Cursors signal for metrikker er slået til, og søg efter `cursor.cost.usage` under **Målinger**. Hvis din rolle ikke må læse metrikker, udelader fanen Forbrug dem og siger det.
+Cursors forbrug kommer fra dets metrikker, ikke fra dets logs: tjek, at Cursors signal for metrikker er slået til, og søg efter `cursor.cost.usage` under **Metrikker**. Hvis din rolle ikke må læse metrikker, udelader fanen Forbrug dem og siger det.
 :::
 
 :::details Personer vises som tal

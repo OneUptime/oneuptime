@@ -24,7 +24,7 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
     {
       title: "Pod / Group",
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumeGroupColumn,
-      value: row.groupName || "—",
+      value: row.groupName,
     },
     {
       title: "Provisioned",
@@ -94,7 +94,7 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
       description: STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumeHostsColumn,
       value:
         row.connectionCount === null || row.connectionCount === undefined
-          ? "—"
+          ? undefined
           : String(row.connectionCount),
     },
   ];

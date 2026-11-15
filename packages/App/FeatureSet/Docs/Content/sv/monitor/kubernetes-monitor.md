@@ -85,15 +85,15 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 
 | Kategori | Mätvärden |
 | --- | --- |
-| Podd | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Nod | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Arbetsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Podd | Poddens CPU-förbrukning, Pod-minnesanvändning, Poddens fas (kod), Poddens filsystemsanvändning, Poddens utnyttjande av minnesgränsen, Poddens utnyttjande av CPU-gränsen, Poddens nätverks-I/O (ackumulerad, båda riktningarna) |
+| Nod | Nodens CPU-förbrukning, Nodens allokerbara CPU, Minnesanvändning för nod, Nodens working set för minne, Filsystemsanvändning för nod, Nodens allokerbara minne, Nodens Ready-villkor, Nodens MemoryPressure-villkor, Nodens DiskPressure-villkor, Nodens PIDPressure-villkor, Nodens tillgängliga filsystem |
+| Container | Containerns omstarter, Containerns omstarter (ökning), Containerns CPU-gräns, Containerns CPU-begäran, Containerns minnesgräns, Containerns minnesbegäran, Container redo |
+| Arbetsbelastning | Deploymentens tillgängliga repliker, Deploymentens önskade repliker, DaemonSetets önskade noder, DaemonSetets felschemalagda noder, DaemonSetets redo noder, StatefulSetets önskade repliker, StatefulSetets redo repliker, Jobbets misslyckade poddar, Jobbets misslyckade poddar (ökning), Jobbets lyckade poddar |
+| HPA | HPA:ns aktuella repliker, HPA:ns önskade repliker, HPA:ns maximala repliker, HPA:ns minimala repliker |
+| Kontrollplan | etcd har en ledare, API-serverns pågående förfrågningar, Schemaläggarens väntande poddar |
 
 > [!NOTE]
-> **Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Pod Phase (Code)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Node Ready Condition** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Container Restarts** är containerns löpande omstartsräknare; **Container Restarts (Increase)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det. Den bär det som **Container Restarts** bär, inklusive arbetsbelastningsnamnen för containerns podd, men inte containerns ID, som ändras vid varje omstart. **Job Failed Pods** är ett Jobs löpande räknare för misslyckade poddar; **Job Failed Pods (Increase)** är det agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet, så summan över ett fönster är felen i det. Den bär det som **Job Failed Pods** bär: Jobbets namn och namnrymd.
+> **Poddens CPU-förbrukning** och **Nodens CPU-förbrukning** anges i kärnor, inte procent: `0.18` är 0,18 av en kärna. **Poddens fas (kod)** är en kod (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregera den med Maximum eller Minimum, aldrig Summa. Kontrollplansmått kommer bara när agentens insamling från kontrollplanet är påslagen. **Nodens Ready-villkor** är 1 vid Ready, 0 vid NotReady och -1 vid Unknown, vilket är vad en nod som gått ner rapporterar: larma vid mindre än 1. **Containerns omstarter** är containerns löpande omstartsräknare; **Containerns omstarter (ökning)** är det agenten skickar med varje mätning: omstarterna sedan dess förra mätning av containern, så summan över ett fönster är omstarterna i det. Den bär det som **Containerns omstarter** bär, inklusive arbetsbelastningsnamnen för containerns podd, men inte containerns ID, som ändras vid varje omstart. **Jobbets misslyckade poddar** är ett Jobs löpande räknare för misslyckade poddar; **Jobbets misslyckade poddar (ökning)** är det agenten skickar med varje mätning: Jobbets poddar som har misslyckats sedan dess förra mätning av Jobbet, så summan över ett fönster är felen i det. Den bär det som **Jobbets misslyckade poddar** bär: Jobbets namn och namnrymd.
 
 ## Övervakningskriterier
 
@@ -191,7 +191,7 @@ Kluster registrerar sig själva utifrån agentens data, under det `clusterName` 
 :::
 
 :::details En CPU-tröskel utlöses aldrig
-**Pod CPU Usage** och **Node CPU Usage** anges i kärnor, inte procent, så en tröskel på `80` betyder 80 kärnor. Ange tröskeln i kärnor, eller utgå från **High Node CPU Utilization** eller **Pod CPU Saturating Container Limit**, som jämför en procentandel.
+**Poddens CPU-förbrukning** och **Nodens CPU-förbrukning** anges i kärnor, inte procent, så en tröskel på `80` betyder 80 kärnor. Ange tröskeln i kärnor, eller utgå från **High Node CPU Utilization** eller **Pod CPU Saturating Container Limit**, som jämför en procentandel.
 :::
 
 :::details CrashLoopBackOff Detection utlöstes inte vid en omstart

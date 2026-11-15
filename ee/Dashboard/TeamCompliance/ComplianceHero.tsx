@@ -14,6 +14,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import StatusBadge, {
   StatusBadgeType,
@@ -454,10 +455,10 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
             data-testid="compliance-hero-refresh-error"
             className="mt-4 text-sm text-red-700"
           >
-            {translator.translateTemplate(
-              "Could not check again - showing the last results that loaded. {{error}}",
-              { error: props.refreshError },
-            )}
+            <ErrorSentence
+              template="Could not check again - showing the last results that loaded. {{error}}"
+              error={props.refreshError}
+            />
           </p>
         ) : (
           <></>

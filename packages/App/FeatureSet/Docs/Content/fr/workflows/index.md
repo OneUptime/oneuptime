@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Non"| saved["Exécution enregistrée avec ses étapes et son journal"]
 ```
 
-Vous construisez tout cela visuellement, sur un canevas. La plupart des flux de travail ne demandent aucun code ; quand il en faut, un bloc **Run Custom JavaScript** exécute quelques lignes de JavaScript.
+Vous construisez tout cela visuellement, sur un canevas. La plupart des flux de travail ne demandent aucun code ; quand il en faut, un bloc **Exécuter du JavaScript personnalisé** exécute quelques lignes de JavaScript.
 
 ## Ce que vous pouvez faire avec les flux de travail
 
@@ -44,7 +44,7 @@ Vous construisez tout cela visuellement, sur un canevas. La plupart des flux de 
 - **Réagir à ce qui se passe dans OneUptime** — à la création d'un incident, prévenir le bon canal et ouvrir un ticket automatiquement.
 - **Exécuter des tâches selon une planification** — toutes les cinq minutes, chaque nuit, chaque lundi matin.
 - **Recevoir des données de l'extérieur** — laisser d'autres systèmes démarrer un flux de travail en appelant son URL ou en écrivant à son adresse e-mail.
-- **Réutiliser les automatisations courantes** — construisez-la une fois, puis démarrez-la depuis n'importe quel autre flux de travail avec un bloc **Execute Workflow**.
+- **Réutiliser les automatisations courantes** — construisez-la une fois, puis démarrez-la depuis n'importe quel autre flux de travail avec un bloc **Exécuter un autre flux de travail**.
 
 ## Termes clés
 
@@ -107,7 +107,7 @@ Ce flux de travail envoie un résumé JSON de chaque nouvel incident à une URL 
 
 ```mermaid title="L'exemple terminé"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succès"| post["API Post (JSON)"]
+    trigger["On Create Incident"] -->|"Succès"| post["Appel d'API POST (JSON)"]
     post -->|"Erreur"| log["Journal"]
     post -->|"Succès"| done["L'exécution se termine"]
 ```
@@ -130,13 +130,13 @@ Le déclencheur prend la place du bloc en pointillés. L'ID qui y figure, `incid
 
 ### Choisir les champs de l'incident
 
-Cliquez sur le déclencheur. **Fields to pass on** commence avec le titre : cliquez sur **Ajouter un champ**, cochez la description et tout autre champ que la requête doit transporter, puis cliquez sur **Enregistrer**.
+Cliquez sur le déclencheur. **Champs à transmettre** commence avec le titre : cliquez sur **Ajouter un champ**, cochez la description et tout autre champ que la requête doit transporter, puis cliquez sur **Enregistrer**.
 
 Le déclencheur transmet le nouvel incident avec ces champs. Un champ que vous ne sélectionnez pas arrive vide.
 
 ### Ajouter le bloc API
 
-Cliquez sur **Ajouter un composant**, puis sur **API Post (JSON)** sous **Populaires**. Faites glisser depuis le point **Succès** du déclencheur jusqu'au point supérieur du nouveau bloc.
+Cliquez sur **Ajouter un composant**, puis sur **Appel d'API POST (JSON)** sous **Populaires**. Faites glisser depuis le point **Succès** du déclencheur jusqu'au point supérieur du nouveau bloc.
 
 ### Remplir la requête
 
@@ -162,7 +162,7 @@ Une requête qui échoue — une URL injoignable, ou une réponse qui n'est pas 
 
 Cliquez sur **Exécuter le flux de travail** et choisissez un incident de ce projet sous **Incident** : les plus récents sont listés, et saisir son numéro ou une partie de son titre en trouve un autre. Cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le flux de travail est toujours désactivé : c'est donc une **Exécution de test**, et la requête est vraiment envoyée.
 
-Un panneau **Exécution du flux de travail** s'ouvre et suit l'exécution. Ouvrez l'étape **API Post (JSON)** pour voir le corps qu'elle a envoyé et la réponse qu'elle a reçue.
+Un panneau **Exécution du flux de travail** s'ouvre et suit l'exécution. Ouvrez l'étape **Appel d'API POST (JSON)** pour voir le corps qu'elle a envoyé et la réponse qu'elle a reçue.
 
 ### L'activer
 

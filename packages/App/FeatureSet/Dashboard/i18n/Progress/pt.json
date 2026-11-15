@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 8548
+    "keys": 55628,
+    "untranslated": 8389
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -23,6 +23,7 @@
     "Active + Clean",
     "Agenda",
     "Alias",
+    "Amazon EKS",
     "Amperes",
     "Amphora",
     "Amphorae",
@@ -34,6 +35,8 @@
     "Array",
     "Atmosphere",
     "Auto",
+    "Azure AKS",
+    "Azure Kubernetes Service.",
     "Backend",
     "Backup",
     "Backups",
@@ -45,6 +48,7 @@
     "Bucket",
     "Buckets",
     "Bytes",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -92,6 +96,7 @@
     "Down + In",
     "Down + Out",
     "Driver",
+    "EKS Fargate",
     "Edge",
     "Embedding",
     "Endpoint",
@@ -108,6 +113,7 @@
     "Flavor",
     "Flavors",
     "Fluent Bit",
+    "GKE Autopilot",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -115,6 +121,7 @@
     "Gigahertz",
     "Global",
     "Golden Signals",
+    "Google GKE",
     "Google SecOps",
     "Google UDM",
     "Goroutines",

@@ -54,11 +54,11 @@ Vá para **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois 
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Fields to pass on** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
+Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha **Descrição**.
 
 ### Criar o registro
 
-Clique em **Adicionar componente**, adicione um bloco **API Post (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://your-instance.service-now.com/api/now/table/incident`. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
+Clique em **Adicionar componente**, adicione um bloco **Chamada de API POST (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina a **URL** dele como `https://your-instance.service-now.com/api/now/table/incident`. Em **Mais campos**, defina os **Cabeçalhos da Requisição** dele como:
 
 ```json
 {
@@ -81,7 +81,7 @@ E o **Corpo da Requisição** como:
 
 ### Testar e depois ativar
 
-Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **API Post (JSON)** mostra uma resposta `201` com o novo registro, o `sys_id` e o `number` dele, como `INC0012345`. Depois, ative **Habilitado** no topo do **Construtor**.
+Clique em **Executar fluxo de trabalho**, escolha um incidente de teste em **Incidente** e execute. A etapa **Chamada de API POST (JSON)** mostra uma resposta `201` com o novo registro, o `sys_id` e o `number` dele, como `INC0012345`. Depois, ative **Habilitado** no topo do **Construtor**.
 :::
 
 `urgency` e `impact` aceitam `1` para alto, `2` para médio e `3` para baixo, e o ServiceNow calcula a prioridade a partir dos dois. Qualquer outra coluna da tabela `incident` pode ir no corpo, com o nome da coluna.
@@ -93,7 +93,7 @@ Um workflow tem um só gatilho, então resolver exige um segundo workflow, inici
 :::steps
 ### Adicionar o gatilho On Update Incident
 
-Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update Incident** como gatilho. Em **Fields to watch**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Fields to pass on**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
+Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update Incident** como gatilho. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**, para que ele só rode quando o estado mudar. Em **Campos a repassar**, peça se o novo estado é um estado resolvido: clique em **Adicionar campo**, abra **Current Incident State** e escolha **Is Resolved State**. Ou clique em **Editar como JSON** e substitua o JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Crie um workflow chamado `Resolve ServiceNow incidents` e escolha **On Update In
 
 ### Verificar que o incidente está resolvido
 
-Adicione um bloco **If / Else** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
+Adicione um bloco **Se / Senão** depois do gatilho. Defina **Valor a verificar** como `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparação** como **é verdadeiro**.
 
 ### Encontrar o registro
 
-Adicione um bloco **API Get (JSON)** depois do lado **Sim**, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
+Adicione um bloco **Chamada de API GET (JSON)** depois do lado **Sim**, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,7 +113,7 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Resolver o registro
 
-Adicione um bloco **API Patch (JSON)** depois do **Sucesso** do bloco de busca, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
+Adicione um bloco **Chamada de API PATCH (JSON)** depois do **Sucesso** do bloco de busca, com os mesmos **Cabeçalhos da Requisição** e esta **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}

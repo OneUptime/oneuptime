@@ -124,7 +124,7 @@ describe("the forecast conditions of a Metrics rule", () => {
         horizonInHours: 168,
       }),
     ).toBe(
-      "Alerts when the trend of Disk Used over the last 7 days is forecast to rise above 90 % within 7 days.",
+      "Alerts when the trend of Disk Used over the last 7\u00A0days is forecast to rise above 90 % within 7\u00A0days.",
     );
     expect(
       sentence({
@@ -133,7 +133,7 @@ describe("the forecast conditions of a Metrics rule", () => {
         horizonInHours: 12,
       }),
     ).toBe(
-      "Alerts when the trend of Disk Used over the last 7 days is forecast to fall below 10 % within 12 hours.",
+      "Alerts when the trend of Disk Used over the last 7\u00A0days is forecast to fall below 10 % within 12\u00A0hours.",
     );
   });
 
@@ -141,12 +141,12 @@ describe("the forecast conditions of a Metrics rule", () => {
     expect(
       sentence({ filterType: FilterType.ForecastAbove, threshold: undefined }),
     ).toBe(
-      "Alerts when the trend of Disk Used over the last 7 days is forecast to rise above the value you enter within 7 days.",
+      "Alerts when the trend of Disk Used over the last 7\u00A0days is forecast to rise above the value you enter within 7\u00A0days.",
     );
     expect(
       sentence({ filterType: FilterType.ForecastBelow, threshold: undefined }),
     ).toBe(
-      "Alerts when the trend of Disk Used over the last 7 days is forecast to fall below the value you enter within 7 days.",
+      "Alerts when the trend of Disk Used over the last 7\u00A0days is forecast to fall below the value you enter within 7\u00A0days.",
     );
   });
 
@@ -165,7 +165,7 @@ describe("the forecast conditions of a Metrics rule", () => {
     });
 
     expect(german).toContain("voraussichtlich über 90 % steigt");
-    expect(german).toContain("Prognosezeitraum: 7 Tage");
+    expect(german).toContain("Prognosezeitraum: 7\u00A0Tage");
     expect(german).not.toContain("forecast");
     expect(japanese).toContain("10 %を下回ると予測される");
     expect(japanese).not.toContain("forecast");

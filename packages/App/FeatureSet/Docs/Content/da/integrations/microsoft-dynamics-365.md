@@ -104,7 +104,7 @@ Skabelonerne til advarsler gør det samme arbejde for advarsler. Der er én mind
 
 Ingen af skabelonerne OneUptime → Dynamics 365 sender en hændelse markeret som **Privat hændelse** eller en advarsel markeret som **Privat advarsel** til Dynamics 365: hverken posten, dens tilstand eller dens noter, medmindre du slår det til. Se [Ændr, hvad en skabelon gør](#ændr-hvad-en-skabelon-gør).
 
-**Monitorer udløser selv advarsler, og det kan blive mange.** **Create a Dynamics 365 case when an alert is created** opretter en sag for hver eneste. Medmindre hver advarsel fortjener en sag, så sæt en **If / Else**-blok mellem triggeren og resten af arbejdsgangen, f.eks. på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og forbind kun dens **Ja**-side videre.
+**Monitorer udløser selv advarsler, og det kan blive mange.** **Create a Dynamics 365 case when an alert is created** opretter en sag for hver eneste. Medmindre hver advarsel fortjener en sag, så sæt en **Hvis / Ellers**-blok mellem triggeren og resten af arbejdsgangen, f.eks. på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og forbind kun dens **Ja**-side videre.
 
 ### Hvad skabelonerne beder om
 
@@ -184,7 +184,7 @@ Før du stoler på en af dem:
 Hver kørsels **Trin** siger, hvad skabelonen gjorde, så åbn kørslen i **Protokoller → Kørsler** og se, hvordan den sluttede:
 
 - **Udført**: den gjorde sit arbejde, og dens sidste trin nævner sagen, hændelsen eller advarslen.
-- **Udført**, med trinnet **Check With JavaScript** på **Nej**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra den anden side, posten er privat, eller den nye tilstand lukker ikke sagen.
+- **Udført**, med trinnet **Tjek med JavaScript** på **Nej**: den sprang begivenheden over med vilje, og trinnet siger hvorfor: sagen er ikke forbundet med en post af denne slags, noten kom fra den anden side, posten er privat, eller den nye tilstand lukker ikke sagen.
 - **Fejl**: et trin mislykkedes, og dets post under **Trin** siger hvorfor. Ved et Dynamics 365-kald indeholder den Dynamics 365's svar.
 - **Fejl** ved `link-case-1`: en skabelon, der opretter en post ud fra en sag, oprettede den, men Dynamics 365 tog ikke imod forbindelsen, så de andre skabeloner kan ikke finde den endnu. Skriv forbindelsen i sagens kolonne i hånden.
 
@@ -221,7 +221,7 @@ Behold markørerne, når du redigerer skabelonerne. De er konstanterne `FROM_ONE
 
 ### Ændr, hvad en skabelon gør
 
-Åbn arbejdsgangens **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript-kode** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
+Åbn arbejdsgangens **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript-kode** i en **Tjek med JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
 
 | Konstant | Skabelon og blok | Hvad den styrer |
 | --- | --- | --- |
@@ -269,8 +269,8 @@ Scopet skal være din miljø-URL efterfulgt af `/.default`. En forkert miljø-UR
 ### Opret en sag for hver hændelse
 
 :::steps
-1. Opret en arbejdsgang fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Fields to pass on** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre.
-2. Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-case` og dens **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+1. Opret en arbejdsgang fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Felter, der sendes videre** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre.
+2. Klik på **Tilføj komponent**, tilføj en **API-kald POST (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-case` og dens **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
    ```json
@@ -306,7 +306,7 @@ Hver sag skal have en kunde, så `customerid` er påkrævet. Den kan pege på en
 
 ### Tilknyt prioritet og status
 
-Dynamics 365 leveres med `severitycode` med en enkelt mulighed, så sæt i stedet `prioritycode`, og forgren på hændelsens alvorlighed med en **If / Else**-blok for at få en prioritet pr. alvorlighed. Send disse kolonner som tal:
+Dynamics 365 leveres med `severitycode` med en enkelt mulighed, så sæt i stedet `prioritycode`, og forgren på hændelsens alvorlighed med en **Hvis / Ellers**-blok for at få en prioritet pr. alvorlighed. Send disse kolonner som tal:
 
 | Kolonne | Værdier |
 | --- | --- |
@@ -323,15 +323,15 @@ Dynamics 365 leveres med `severitycode` med en enkelt mulighed, så sæt i stede
 Byg dette som en anden arbejdsgang, så en fejl her aldrig forhindrer, at der oprettes sager.
 
 :::steps
-1. Opret en arbejdsgang med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Fields to pass on**, åbn **Current Incident State**, og vælg **Is Resolved State**.
-2. Tilføj en **If / Else**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Sammenligning** **er sand**.
-3. Tilføj efter dens **Ja**-side en **API Get (JSON)**-blok med **Identifier** `find-case`, de samme headere uden `Prefer` og denne **URL**:
+1. Opret en arbejdsgang med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Felter, der sendes videre**, åbn **Current Incident State**, og vælg **Is Resolved State**.
+2. Tilføj en **Hvis / Ellers**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Sammenligning** **er sand**.
+3. Tilføj efter dens **Ja**-side en **API-kald GET (JSON)**-blok med **Identifier** `find-case`, de samme headere uden `Prefer` og denne **URL**:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
    ```
 
-4. Tilføj efter den en **API Post (JSON)**-blok til `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, med de samme headere og denne brødtekst:
+4. Tilføj efter den en **API-kald POST (JSON)**-blok til `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`, med de samme headere og denne brødtekst:
 
    ```json
    {
@@ -347,7 +347,7 @@ Byg dette som en anden arbejdsgang, så en fejl her aldrig forhindrer, at der op
 
 URL'en sendes præcis, som den er skrevet, så mellemrummene i `$filter` skrives som `%20`. En forespørgsel svarer med en `value`-liste, og `value[0]` er dens første sag. `Status` er en `statuscode` for tilstanden Resolved: `5` er Problem Solved.
 
-Brug `CloseIncident` til at løse i stedet for en `PATCH` af `statecode`: den registrerer den Case Resolution, som en løst sag forventes at have, og en `PATCH` afvises, hvor en administrator har konfigureret statusovergange. Til alt andet, f.eks. en prioritet eller en titel, sender du en **API Patch (JSON)**-blok til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` med en `If-Match: *`-header, som forhindrer den i at oprette en ny sag, og kun de kolonner, du ændrer.
+Brug `CloseIncident` til at løse i stedet for en `PATCH` af `statecode`: den registrerer den Case Resolution, som en løst sag forventes at have, og en `PATCH` afvises, hvor en administrator har konfigureret statusovergange. Til alt andet, f.eks. en prioritet eller en titel, sender du en **API-kald PATCH (JSON)**-blok til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)` med en `If-Match: *`-header, som forhindrer den i at oprette en ny sag, og kun de kolonner, du ændrer.
 
 ### Modtag ændringer fra Dynamics 365
 
@@ -362,8 +362,8 @@ Byg først den modtagende arbejdsgang:
 
    På en selvhostet installation har URL'en din egen vært. Behandl URL'en som en adgangskode: alle, der har den, kan starte arbejdsgangen. Hvis den slipper ud, så klik på **Nulstil URL** samme sted, og den gamle URL holder op med at virke med det samme.
 
-3. Tilføj en **If / Else**-blok, der tjekker en delt hemmelighed før alt andet: **Værdi, der skal tjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lig med**, **Sammenlign med** en værdi, du selv finder på, gemt i en hemmelig global variabel.
-4. Tilføj efter dens **Ja**-side en **Update One Incident**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON Object)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Tilføj en **Hvis / Ellers**-blok, der tjekker en delt hemmelighed før alt andet: **Værdi, der skal tjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lig med**, **Sammenlign med** en værdi, du selv finder på, gemt i en hemmelig global variabel.
+4. Tilføj efter dens **Ja**-side en **Update One Incident**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON-objekt)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå det til, og få derefter Dynamics 365 til at kalde det:
 
@@ -378,7 +378,7 @@ Microsoft Dataverse-connectoren er premium: flowets ejer skal have licensen, og 
 @tab Dataverse webhook
 1. Registrer arbejdsgangens URL med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, med **HttpHeader**-godkendelse og headeren `X-OneUptime-Secret`.
 2. Registrer et trin for meddelelsen **Update** på `incident`, med **Filtering Attributes** begrænset til de kolonner, du har brug for, **PostOperation** og **Asynchronous**.
-3. Læs payloaden i arbejdsgangen: det er plug-in'ets kørselskontekst, hvor `InputParameters` er en liste af `{key, value}`-par, og den ændrede række ligger under `Target`. En **Run Custom JavaScript**-blok er den nemmeste måde at læse den på.
+3. Læs payloaden i arbejdsgangen: det er plug-in'ets kørselskontekst, hvor `InputParameters` er en liste af `{key, value}`-par, og den ændrede række ligger under `Target`. En **Kør egen JavaScript**-blok er den nemmeste måde at læse den på.
 
 Dataverse kalder kun portene 80 og 443, venter 60 sekunder på et svar og prøver igen én gang, kun ved `502`, `503` og `504`. En opdatering indeholder kun de kolonner, der ændrede sig, så registrer et post-image til de andre.
 :::
@@ -395,7 +395,7 @@ Advarsler fungerer på samme måde. Skift posttypen, og intet andet ændrer sig:
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-En arbejdsgang har præcis én trigger, så hændelser og advarsler skal have én arbejdsgang hver. For at udføre det samme Dynamics 365-arbejde for begge bygger du det én gang i en arbejdsgang med en **Manuel**-trigger og starter det fra begge med en **Execute Workflow**-blok.
+En arbejdsgang har præcis én trigger, så hændelser og advarsler skal have én arbejdsgang hver. For at udføre det samme Dynamics 365-arbejde for begge bygger du det én gang i en arbejdsgang med en **Manuel**-trigger og starter det fra begge med en **Kør en anden arbejdsgang**-blok.
 
 ## Fejlfinding
 
@@ -430,7 +430,7 @@ En regel til dubletregistrering gav et match. Indsnævr reglen, eller stop med a
 :::
 
 :::details 429 Too Many Requests
-Dataverses grænser for tjenestebeskyttelse tillader omkring 6.000 anmodninger og 20 minutters kørselstid pr. bruger i enhver periode på fem minutter. Svaret indeholder `Retry-After` i sekunder. Sæt en **Sleep**-blok i en arbejdsgang, der sender i bølger, eller flyt arbejdet til en planlagt arbejdsgang.
+Dataverses grænser for tjenestebeskyttelse tillader omkring 6.000 anmodninger og 20 minutters kørselstid pr. bruger i enhver periode på fem minutter. Svaret indeholder `Retry-After` i sekunder. Sæt en **Pause**-blok i en arbejdsgang, der sender i bølger, eller flyt arbejdet til en planlagt arbejdsgang.
 :::
 
 :::details Intet når OneUptime

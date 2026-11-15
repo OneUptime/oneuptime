@@ -37,6 +37,7 @@ import {
   MembersNotSignedUp,
   useMembersNotSignedUp,
 } from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -547,11 +548,15 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                 item.projectId?.toString() || item.project?._id?.toString();
 
               if (!projectId) {
-                throw new BadDataException("Please select a project.");
+                throw new BadDataException(
+                  translateText("Please select a project.") as string,
+                );
               }
 
               if (!item.teamId && !item.team?._id) {
-                throw new BadDataException("Please select a team.");
+                throw new BadDataException(
+                  translateText("Please select a team.") as string,
+                );
               }
 
               item.userId = modelId;

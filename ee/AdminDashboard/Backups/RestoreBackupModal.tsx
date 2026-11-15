@@ -1,4 +1,5 @@
 import { BackupsCopy, RESTORE_ISSUE_COPY } from "./BackupsCopy";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import BackupsApi, { RestoreIssue, RestorePreview } from "./BackupsApi";
 import {
   describeBackupCounts,
@@ -453,7 +454,7 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
                               clickhouseSize,
                               translator.language,
                             )
-                          : "—",
+                          : EMPTY_VALUE_MARK,
                     },
                   ),
                 ]}
