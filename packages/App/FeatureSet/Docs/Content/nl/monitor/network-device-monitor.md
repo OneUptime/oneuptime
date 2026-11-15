@@ -795,7 +795,7 @@ Zolang er nog geen beleid is, biedt de pagina **Create the recommended policy** 
 
 ### Eén apparaat tegelijk
 
-Open de pagina van het apparaat en klik op **Monitor maken** op de kaart **Monitors alerting on this device**. Het monitorformulier opent met het type Network Device en het apparaat gekozen, en het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket) ingevuld: bekijk het, stel ernstniveaus en dienstroosterbeleid in, en sla op.
+Open de pagina van het apparaat en klik op **Monitor maken** op de kaart **Monitors alerting on this device**. Het monitorformulier opent met het type Netwerkapparaat en het apparaat gekozen, en het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket) ingevuld: bekijk het, stel ernstniveaus en dienstroosterbeleid in, en sla op.
 
 De meeste switches, routers, firewalls en printers bieden op hun eigen adres ook een webinterface. **Webinterface monitoren**, op dezelfde kaart, opent daarvoor een **Website**-monitor: `https://` op het adres van het apparaat, met **Zelfondertekende certificaten toestaan** aan, omdat de webinterface van een apparaat er bijna altijd een heeft, gecontroleerd vanaf de eigen sonde van het apparaat en genoemd naar het apparaat. Pas de URL aan als de interface antwoordt via `http`, op een andere poort of onder een pad, en sla daarna op. De kaart toont de monitor zolang zijn naam de naam van het apparaat bevat en zijn URL op het adres van het apparaat ligt; de status van het apparaat verandert er niet door.
 

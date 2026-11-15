@@ -1,21 +1,21 @@
 # Monitor de saúde de banco de dados
 
-O monitor Database Health se conecta ao PostgreSQL, ao MySQL ou ao Microsoft SQL Server em um agendamento e informa os sinais de saúde do próprio servidor — folga de conexões, sessões bloqueadas, atraso de replicação, taxa de acerto do cache, tamanho do banco de dados, wraparound de IDs de transação e mais umas trinta — para que você possa alertar sobre eles do mesmo jeito que alerta quando um site cai.
+O monitor Integridade do banco de dados se conecta ao PostgreSQL, ao MySQL ou ao Microsoft SQL Server em um agendamento e informa os sinais de saúde do próprio servidor — folga de conexões, sessões bloqueadas, atraso de replicação, taxa de acerto do cache, tamanho do banco de dados, wraparound de IDs de transação e mais umas trinta — para que você possa alertar sobre eles do mesmo jeito que alerta quando um site cai.
 
 Você não escreve SQL. A sonda executa um conjunto fixo de consultas de catálogo somente leitura, escolhido conforme o mecanismo, e informa um pequeno conjunto de números com nome.
 
 :::cards
 - [Criar um usuário de monitoramento](#criar-um-usuário-de-monitoramento): As permissões de que cada mecanismo precisa. É a etapa que mais importa.
-- [Criar o monitor](#criar-um-monitor-database-health): Apontar uma sonda para o banco de dados e escolher o que coletar.
+- [Criar o monitor](#criar-um-monitor-integridade-do-banco-de-dados): Apontar uma sonda para o banco de dados e escolher o que coletar.
 - [Métricas coletadas](#métricas-coletadas): Cada série, com os mecanismos que a informam.
 - [Configurar critérios](#configurar-critérios): Alertar sobre conexões, bloqueios, atraso e wraparound.
 :::
 
-## Database Health ou SQL Query?
+## Integridade do banco de dados ou Consulta SQL?
 
 Os dois tipos de monitor de banco de dados respondem a perguntas diferentes e foram feitos para serem usados juntos.
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | Integridade do banco de dados | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | Pergunta que responde | "O banco de dados em si está saudável?" | "Meus dados são o que eu espero?" |
 | Consulta | Embutida, por mecanismo, somente leitura | A sua |
@@ -23,7 +23,7 @@ Os dois tipos de monitor de banco de dados respondem a perguntas diferentes e fo
 | Alerta típico | Conexões usadas acima de 90% | Mais de 50 pedidos cancelados nos últimos cinco minutos |
 | Permissões necessárias | Leitura de estatísticas/DMVs — veja [Criar um usuário de monitoramento](#criar-um-usuário-de-monitoramento) | `SELECT` nas tabelas que a sua consulta acessa |
 
-Se você quer alertar sobre uma condição de negócio, use o monitor SQL Query. Se você quer saber que o servidor está ficando sem conexões antes mesmo de a condição de negócio ter chance de falhar, use este.
+Se você quer alertar sobre uma condição de negócio, use o monitor Consulta SQL. Se você quer saber que o servidor está ficando sem conexões antes mesmo de a condição de negócio ter chance de falhar, use este.
 
 ## Bancos de dados compatíveis
 
@@ -37,7 +37,7 @@ O Azure SQL Database e o Azure SQL Managed Instance se conectam como **Microsoft
 
 Mecanismos compatíveis com PostgreSQL e MySQL que falam o mesmo protocolo de rede costumam funcionar, mas podem expor menos views de estatísticas; nesse caso, as métricas afetadas são informadas como indisponíveis em vez de coletadas. Só os três mecanismos acima são testados oficialmente.
 
-Cada banco de dados que seus aplicativos, clusters e hosts usam — esses três mecanismos e muitos outros — também tem uma página própria com as métricas do mecanismo, os logs e os serviços que o chamam: veja [Bancos de dados](/docs/telemetry/databases). Quando o host e a porta a que um monitor Database Health se conecta são um dos endpoints de um banco de dados, os alertas e incidentes do monitor também aparecem na página desse banco de dados (veja [Alertas em um banco de dados](/docs/telemetry/databases#alertas-sobre-um-banco-de-dados)).
+Cada banco de dados que seus aplicativos, clusters e hosts usam — esses três mecanismos e muitos outros — também tem uma página própria com as métricas do mecanismo, os logs e os serviços que o chamam: veja [Bancos de dados](/docs/telemetry/databases). Quando o host e a porta a que um monitor Integridade do banco de dados se conecta são um dos endpoints de um banco de dados, os alertas e incidentes do monitor também aparecem na página desse banco de dados (veja [Alertas em um banco de dados](/docs/telemetry/databases#alertas-sobre-um-banco-de-dados)).
 
 ## Como funciona
 
@@ -155,7 +155,7 @@ A sonda reconhece o Azure SQL Database por `SERVERPROPERTY('EngineEdition')`, e 
 - **As conexões são por banco de dados.** Com `VIEW DATABASE STATE`, o Azure SQL Database mostra só as sessões do banco de dados monitorado, então **Conexões** conta esse banco de dados, e não o servidor lógico. Monitore cada banco de dados que importa para você.
 - **Em um pool elástico, "Espaço livre do TempDB" é o do pool.** Os bancos de dados de um pool compartilham um único tempdb.
 
-## Criar um monitor Database Health
+## Criar um monitor Integridade do banco de dados
 
 :::steps
 ### Começar um novo monitor
@@ -191,7 +191,7 @@ Selecione as **Sondas** que conseguem alcançar o banco de dados e um **Interval
 | **Host** | O host do banco de dados acessível pela sonda (por exemplo `db.internal`). |
 | **Porta** | A porta do banco de dados. |
 | **Nome do Banco de Dados** | O banco de dados ao qual se conectar. Métricas de escopo de banco de dados (tamanho, taxa de acerto do cache, uso de arquivos temporários) são informadas para este banco de dados; métricas de escopo de servidor (conexões, tempo de atividade, replicação), para o servidor inteiro — exceto no Azure SQL Database, onde as conexões são contadas só para o banco de dados monitorado. |
-| **Autenticação** | Só Microsoft SQL Server: **Usuário e senha**, o padrão, ou **Windows Integrated Authentication**, que entra como o processo da sonda. Veja [Autenticação integrada do Windows](/docs/monitor/sql-monitor#autenticação-integrada-do-windows) na página do monitor SQL Query — a configuração é idêntica. |
+| **Autenticação** | Só Microsoft SQL Server: **Usuário e senha**, o padrão, ou **Windows Integrated Authentication**, que entra como o processo da sonda. Veja [Autenticação integrada do Windows](/docs/monitor/sql-monitor#autenticação-integrada-do-windows) na página do monitor Consulta SQL — a configuração é idêntica. |
 | **Nome de usuário** | O usuário de monitoramento. Obrigatório, a menos que você use a autenticação integrada do Windows. |
 | **Senha** | A senha. Referencie um [segredo do monitor](/docs/monitor/monitor-secrets) com `{{monitorSecrets.name}}` em vez de digitá-la em texto puro (veja [Usar um segredo do monitor](#usar-um-segredo-do-monitor-para-a-senha)). |
 | **Use SSL/TLS** | Conectar via TLS. Quando ativado, você pode desligar **Verify server certificate** para um certificado autoassinado. |
@@ -205,7 +205,7 @@ Selecione as **Sondas** que conseguem alcançar o banco de dados e um **Interval
 | **Connection Timeout (ms)** | `10000` | `30000` | Quanto tempo esperar para estabelecer uma conexão. |
 | **Statement Timeout (ms)** | `10000` | `60000` | O teto de cada consulta de catálogo. |
 
-O tempo limite de instrução padrão é deliberadamente mais curto que o do monitor SQL Query: essas consultas respondem em milissegundos em um servidor saudável, então, se `pg_stat_activity` levar dez segundos, o sinal útil é "este servidor está com problemas", não uma espera maior. Um valor acima do máximo é reduzido ao máximo.
+O tempo limite de instrução padrão é deliberadamente mais curto que o do monitor Consulta SQL: essas consultas respondem em milissegundos em um servidor saudável, então, se `pg_stat_activity` levar dez segundos, o sinal útil é "este servidor está com problemas", não uma espera maior. Um valor acima do máximo é reduzido ao máximo.
 
 ## Usar um segredo do monitor para a senha
 
@@ -381,7 +381,7 @@ Os limites são números inteiros. Escreva `90`, não `90.5` — porcentagens e 
 
 ### Variáveis das expressões JavaScript
 
-Em um monitor Database Health, a expressão tem acesso a:
+Em um monitor Integridade do banco de dados, a expressão tem acesso a:
 
 | Variável | Tipo | Descrição |
 |---|---|---|

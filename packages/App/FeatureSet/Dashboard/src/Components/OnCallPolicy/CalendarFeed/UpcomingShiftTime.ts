@@ -12,6 +12,7 @@ import {
   getFeedLocale,
   getFeedZoneName,
 } from "Common/UI/Components/Feed/FeedTime";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * HOW THE UPCOMING SHIFTS CARD WRITES TIMES.
@@ -476,7 +477,7 @@ export const formatShiftLength: (
       .map((part: { count: number; unit: LengthUnit }): string => {
         const names: [string, string] = ENGLISH_UNITS[part.unit];
 
-        return `${part.count} ${part.count === 1 ? names[0] : names[1]}`;
+        return `${part.count}${NO_BREAK_SPACE}${part.count === 1 ? names[0] : names[1]}`;
       })
       .join(", ")
   );

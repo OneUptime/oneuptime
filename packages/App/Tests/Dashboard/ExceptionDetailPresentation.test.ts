@@ -43,25 +43,25 @@ describe("formatRelativeTime", () => {
   test.each([
     ["a few seconds ago", 10 * SECOND, "just now"],
     ["exactly now", 0, "just now"],
-    ["one minute ago", 60 * SECOND, "1 minute ago"],
-    ["45 seconds rounds up to a minute", 45 * SECOND, "1 minute ago"],
-    ["several minutes ago", 4 * MINUTE, "4 minutes ago"],
-    ["just under the hour threshold", 44 * MINUTE, "44 minutes ago"],
-    ["45 minutes reads as an hour", 45 * MINUTE, "1 hour ago"],
-    ["several hours ago", 5 * HOUR, "5 hours ago"],
-    ["a day ago", 22 * HOUR, "1 day ago"],
-    ["several days ago", 6 * DAY, "6 days ago"],
-    ["about a month ago", 30 * DAY, "1 month ago"],
-    ["several months ago", 150 * DAY, "5 months ago"],
-    ["about a year ago", 365 * DAY, "1 year ago"],
-    ["several years ago", 3 * 365 * DAY, "3 years ago"],
+    ["one minute ago", 60 * SECOND, "1\u00A0minute ago"],
+    ["45 seconds rounds up to a minute", 45 * SECOND, "1\u00A0minute ago"],
+    ["several minutes ago", 4 * MINUTE, "4\u00A0minutes ago"],
+    ["just under the hour threshold", 44 * MINUTE, "44\u00A0minutes ago"],
+    ["45 minutes reads as an hour", 45 * MINUTE, "1\u00A0hour ago"],
+    ["several hours ago", 5 * HOUR, "5\u00A0hours ago"],
+    ["a day ago", 22 * HOUR, "1\u00A0day ago"],
+    ["several days ago", 6 * DAY, "6\u00A0days ago"],
+    ["about a month ago", 30 * DAY, "1\u00A0month ago"],
+    ["several months ago", 150 * DAY, "5\u00A0months ago"],
+    ["about a year ago", 365 * DAY, "1\u00A0year ago"],
+    ["several years ago", 3 * 365 * DAY, "3\u00A0years ago"],
   ])("%s", (_name: string, offsetMs: number, expected: string) => {
     expect(formatRelativeTime(ago(offsetMs), NOW)).toBe(expected);
   });
 
   test("describes future times without 'ago'", () => {
     expect(formatRelativeTime(new Date(NOW.getTime() + 3 * HOUR), NOW)).toBe(
-      "in 3 hours",
+      "in 3\u00A0hours",
     );
     expect(formatRelativeTime(new Date(NOW.getTime() + 20 * SECOND), NOW)).toBe(
       "just now",
@@ -70,10 +70,10 @@ describe("formatRelativeTime", () => {
 
   test("accepts ISO strings and epoch milliseconds", () => {
     expect(formatRelativeTime(ago(2 * DAY).toISOString(), NOW)).toBe(
-      "2 days ago",
+      "2\u00A0days ago",
     );
     expect(formatRelativeTime(ago(2 * HOUR).getTime(), NOW)).toBe(
-      "2 hours ago",
+      "2\u00A0hours ago",
     );
   });
 
@@ -91,11 +91,11 @@ describe("formatRelativeTime", () => {
 describe("formatActiveSpan", () => {
   test.each([
     ["under a minute", 20 * SECOND, "less than a minute"],
-    ["minutes", 12 * MINUTE, "12 minutes"],
-    ["one hour", HOUR, "1 hour"],
-    ["hours", 7 * HOUR, "7 hours"],
-    ["one day", DAY, "1 day"],
-    ["days", 6 * DAY + 3 * HOUR, "6 days"],
+    ["minutes", 12 * MINUTE, "12\u00A0minutes"],
+    ["one hour", HOUR, "1\u00A0hour"],
+    ["hours", 7 * HOUR, "7\u00A0hours"],
+    ["one day", DAY, "1\u00A0day"],
+    ["days", 6 * DAY + 3 * HOUR, "6\u00A0days"],
   ])("formats %s", (_name: string, spanMs: number, expected: string) => {
     expect(formatActiveSpan(ago(spanMs), NOW)).toBe(expected);
   });
@@ -488,7 +488,7 @@ describe("describeExceptionStatusChange", () => {
         inactiveText: "Open",
         now: NOW,
       }),
-    ).toBe("Resolved 2 hours ago by Priya Raman");
+    ).toBe("Resolved 2\u00A0hours ago by Priya Raman");
   });
 
   test("leaves out an unknown time or person", () => {
@@ -511,7 +511,7 @@ describe("describeExceptionStatusChange", () => {
         inactiveText: "Open",
         now: NOW,
       }),
-    ).toBe("Archived 1 day ago");
+    ).toBe("Archived 1\u00A0day ago");
     expect(
       describeExceptionStatusChange({
         isActive: true,
@@ -553,13 +553,13 @@ describe("relative times in the reader's language", () => {
     );
     expect(formatRelativeTime(ago(10 * SECOND), NOW, "de")).toBe("jetzt");
     expect(formatRelativeTime(ago(4 * MINUTE), NOW, "en")).toBe(
-      "4 minutes ago",
+      "4\u00A0minutes ago",
     );
     expect(formatRelativeTime(ago(10 * SECOND), NOW, "en-GB")).toBe("just now");
-    expect(formatRelativeTime(ago(4 * MINUTE), NOW)).toBe("4 minutes ago");
+    expect(formatRelativeTime(ago(4 * MINUTE), NOW)).toBe("4\u00A0minutes ago");
     // A language tag Intl rejects reads in English.
     expect(formatRelativeTime(ago(4 * MINUTE), NOW, "not a language!")).toBe(
-      "4 minutes ago",
+      "4\u00A0minutes ago",
     );
   });
 
@@ -581,7 +581,7 @@ describe("relative times in the reader's language", () => {
     );
     // A sentence it does not have yet: English, all of it.
     expect(german.translateTemplate("Archived {{time}}", { time })).toBe(
-      "Archived 4 minutes ago",
+      "Archived 4\u00A0minutes ago",
     );
     expect(exceptionTimeValue(undefined, NOW)).toBeUndefined();
   });

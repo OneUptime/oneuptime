@@ -148,7 +148,7 @@ Omita el array o póngalo en `[]` para sincronizar todos los ajustes de paso adm
 | Solo API | `requestHeaders`, `requestType`, `requestBody` |
 | Sitio web y API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (el certificado de cliente, la clave y la frase de contraseña juntos) |
 | Puerto, NTP | `monitorDestinationPort` |
-| Monitor sintético, Custom JavaScript Code | `customCode` |
+| Monitor sintético, Código JavaScript personalizado | `customCode` |
 | Monitor sintético | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (el servidor DNS y el puerto juntos), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | Dominio | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
@@ -159,7 +159,7 @@ Omita el array o póngalo en `[]` para sincronizar todos los ajustes de paso adm
 | Registros, Eventos de seguridad, Trazas, IA / LLM, Métricas, Excepciones, Perfiles | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (toda la configuración del monitor) |
 | Estado de la sonda | `probeStatusMonitor.probeIds` |
 
-Los monitores de infraestructura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Cabina de almacenamiento, Dispositivo IoT) ofrecen su selector de recursos, filtros (todos salvo Host), consultas de métricas y ventana de tiempo de consulta. Sus nombres aparecen en **Ajustes de sincronización de la plantilla** en una plantilla de ese tipo.
+Los monitores de infraestructura (Kubernetes, Contenedor de Docker, Host, Contenedor de Podman, Proxmox, Docker Swarm, Ceph, Cabina de almacenamiento, Dispositivo IoT) ofrecen su selector de recursos, filtros (todos salvo Host), consultas de métricas y ventana de tiempo de consulta. Sus nombres aparecen en **Ajustes de sincronización de la plantilla** en una plantilla de ese tipo.
 :::
 
 ## Solución de problemas

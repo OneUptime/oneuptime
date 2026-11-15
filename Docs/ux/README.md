@@ -688,17 +688,22 @@ work out, starts from a default for everything else, and folds what most people 
   symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
   itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
   as `formatMilliseconds` does, and so does code that holds the unit in a variable or a property
-  (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457): a holder
+  (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457) or writes them
+  as JSX text (`` {`${figure}\u00A0dBm`} ``, in the Admin Dashboard, the Status Page and the
+  server's forms too, #8720): a holder
   named `unit` or `symbol` holds a unit's symbol, and a word is named for what it holds (`word`,
-  `noun`, `unitName`) and keeps its plain space ("5 minutes", "2,340 groups"). Text that is no page's -
-  a prompt, a Markdown export, a stored name, an API's answer the docs quote - keeps its plain
-  space, listed with its reason, and a CSV export writes a plain one (`TableColumnsToCsv`). Intl
-  writes a plain space there too ("5 Min.", "vor 5 Minuten", "2 Tage, 3 Stunden", #8456), so ask
-  Intl for a unit or a relative time only through `Common/Types/DateLanguage`
-  (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`, `getUnitAmountParts`,
-  `formatRelativeAmount`), which holds the number to its unit in every language, English
-  included, and keeps French's own no-break spaces; never with `style: "unit"` or
-  `Intl.RelativeTimeFormat` yourself. Enforced by
+  `noun`, `unitName`) and keeps its plain space ("2,340 groups"), unless it is a duration's word
+  (below). Text that is no page's - a prompt, a Markdown export, a stored name, an API's answer
+  the docs quote - keeps its plain space, listed with its reason, and a CSV export writes a plain
+  one (`TableColumnsToCsv`). Intl writes a plain space there too ("5 Min.", "vor 5 Minuten", "2
+  Tage, 3 Stunden", #8456), so ask Intl for a unit or a relative time only through
+  `Common/Types/DateLanguage` (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`,
+  `getUnitAmountParts`, `formatRelativeAmount`), which holds the number to its unit in every
+  language, English included, and keeps French's own no-break spaces; never with `style: "unit"`
+  or `Intl.RelativeTimeFormat` yourself. English OneUptime writes in words holds its number too
+  ("5 hours ago", "1 min 47 secs", "10 days, 23 hours", #8669): code joins a figure to a
+  duration's word with `NO_BREAK_SPACE` (`` `${count}${NO_BREAK_SPACE}minutes` ``), and English it
+  did not join itself, such as moment's, goes through `withDurationWordsHeld`. Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
   [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and

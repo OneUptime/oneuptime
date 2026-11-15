@@ -795,7 +795,7 @@ Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended 
 
 ### Én enhet om gangen
 
-Åpne enhetens side og klikk på **Opprett monitor** på kortet **Monitors alerting on this device**. Monitorskjemaet åpner med typen Network Device og enheten valgt, og den [anbefalte varslingspakken](#anbefalt-varslingspakke) fylt ut: gå gjennom den, sett alvorlighetsgrader og vaktpolicyer, og lagre.
+Åpne enhetens side og klikk på **Opprett monitor** på kortet **Monitors alerting on this device**. Monitorskjemaet åpner med typen Nettverksenhet og enheten valgt, og den [anbefalte varslingspakken](#anbefalt-varslingspakke) fylt ut: gå gjennom den, sett alvorlighetsgrader og vaktpolicyer, og lagre.
 
 De fleste svitsjer, rutere, brannmurer og skrivere har også et nettgrensesnitt på sin egen adresse. **Overvåk nettgrensesnitt**, på det samme kortet, åpner en **Nettsted**-monitor for det: `https://` på enhetens adresse, med **Tillat selvsignerte sertifikater** slått på, siden en enhets nettgrensesnitt nesten alltid har et, kontrollert fra enhetens egen sonde og med navn etter enheten. Endre URL-en hvis grensesnittet svarer på `http`, på en annen port eller under en sti, og lagre deretter. Kortet viser monitoren så lenge navnet inneholder enhetens navn og URL-en er på enhetens adresse; den endrer ikke enhetens status.
 

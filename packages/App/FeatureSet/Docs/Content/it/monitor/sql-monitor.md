@@ -231,7 +231,7 @@ Aggiungete criteri per decidere quando il monitor è considerato online, degrada
 | **Errore della query SQL** | Il messaggio d'errore della query. Avvisi quando è (o non è) vuoto, o quando corrisponde a una stringa precisa. |
 | **Espressione JavaScript** | Valutare un'espressione JavaScript personalizzata su `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` e `isOnline`. Consultate [Espressioni JavaScript](/docs/monitor/javascript-expression#monitor-delle-query-sql). |
 
-Le soglie numeriche sono numeri interi: scrivete `10`, non `10.5`. I filtri SQL Query non si possono valutare su un periodo di tempo; ogni controllo fa storia a sé.
+Le soglie numeriche sono numeri interi: scrivete `10`, non `10.5`. I filtri Query SQL non si possono valutare su un periodo di tempo; ogni controllo fa storia a sé.
 
 Un nuovo monitor di query SQL parte con due criteri: **SQL online** è falso (il monitor va offline e dichiara un incidente che si risolve da solo) e **SQL online** è vero, che lo segna online. **Aggiungi criteri** ne aggiunge uno in fondo; trascinatelo sopra il criterio online, perché i criteri vengono controllati dall'alto e decide il primo che corrisponde.
 

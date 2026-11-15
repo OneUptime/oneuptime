@@ -795,7 +795,7 @@ Sem nenhuma política ainda, a página oferece **Create the recommended policy**
 
 ### Um dispositivo de cada vez
 
-Abra a página do dispositivo e clique em **Criar monitor** no cartão **Monitors alerting on this device**. O formulário do monitor abre com o tipo Network Device e o dispositivo já escolhidos, e com o [pacote de alertas recomendado](#pacote-de-alertas-recomendado) preenchido: revise, defina as severidades e as políticas de plantão e salve.
+Abra a página do dispositivo e clique em **Criar monitor** no cartão **Monitors alerting on this device**. O formulário do monitor abre com o tipo Dispositivo de rede e o dispositivo já escolhidos, e com o [pacote de alertas recomendado](#pacote-de-alertas-recomendado) preenchido: revise, defina as severidades e as políticas de plantão e salve.
 
 A maioria dos switches, roteadores, firewalls e impressoras também oferece uma interface web no próprio endereço. **Monitorar a interface web**, no mesmo cartão, abre um monitor de **Site** para ela: `https://` no endereço do dispositivo, com **Permitir certificados autoassinados** ativado, já que a interface web de um dispositivo quase sempre usa um, verificado a partir da própria sonda do dispositivo e com o nome do dispositivo. Altere a URL se a interface responder em `http`, em outra porta ou sob um caminho, e então salve. O cartão lista o monitor enquanto o nome dele contiver o nome do dispositivo e a URL estiver no endereço do dispositivo; ele não altera o status do dispositivo.
 

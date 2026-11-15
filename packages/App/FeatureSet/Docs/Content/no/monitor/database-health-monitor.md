@@ -1,21 +1,21 @@
 # Databasehelse-monitor
 
-Database Health-monitoren kobler til PostgreSQL, MySQL eller Microsoft SQL Server etter en tidsplan og rapporterer serverens egne helsesignaler — ledig kapasitet for tilkoblinger, blokkerte økter, replikeringsforsinkelse, treffrate i hurtigbufferen, databasestørrelse, transaksjons-ID-wraparound og rundt tretti til — slik at du kan varsle på dem på samme måte som du varsler når et nettsted er nede.
+Databasehelse-monitoren kobler til PostgreSQL, MySQL eller Microsoft SQL Server etter en tidsplan og rapporterer serverens egne helsesignaler — ledig kapasitet for tilkoblinger, blokkerte økter, replikeringsforsinkelse, treffrate i hurtigbufferen, databasestørrelse, transaksjons-ID-wraparound og rundt tretti til — slik at du kan varsle på dem på samme måte som du varsler når et nettsted er nede.
 
 Du skriver ingen SQL. Sonden kjører et fast sett skrivebeskyttede katalogspørringer, valgt etter databasemotor, og rapporterer et lite sett navngitte tall.
 
 :::cards
 - [Opprett en overvåkingsbruker](#opprett-en-overvåkingsbruker): Rettighetene hver motor trenger. Dette er steget som betyr mest.
-- [Opprett monitoren](#opprett-en-database-health-monitor): Rett en sonde mot databasen og velg hva som skal samles inn.
+- [Opprett monitoren](#opprett-en-databasehelse-monitor): Rett en sonde mot databasen og velg hva som skal samles inn.
 - [Innsamlede målinger](#innsamlede-målinger): Hver serie, med motorene som rapporterer den.
 - [Sett opp kriterier](#sett-opp-kriterier): Varsle om tilkoblinger, blokkering, forsinkelse og wraparound.
 :::
 
-## Database Health eller SQL Query?
+## Databasehelse eller SQL-spørring?
 
 De to monitortypene for databaser svarer på ulike spørsmål og er ment å brukes sammen.
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | Databasehelse | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | Spørsmål den svarer på | «Er selve databasen frisk?» | «Er dataene mine slik jeg forventer?» |
 | Spørring | Innebygd, per motor, skrivebeskyttet | Din egen |
@@ -23,7 +23,7 @@ De to monitortypene for databaser svarer på ulike spørsmål og er ment å bruk
 | Typisk varsel | Brukte tilkoblinger over 90 % | Over 50 kansellerte ordrer de siste fem minuttene |
 | Nødvendige rettigheter | Lesetilgang til statistikk/DMV-er — se [Opprett en overvåkingsbruker](#opprett-en-overvåkingsbruker) | `SELECT` på tabellene spørringen din berører |
 
-Vil du varsle om en forretningsbetingelse, bruker du SQL Query-monitoren. Vil du vite at serveren er i ferd med å gå tom for tilkoblinger før forretningsbetingelsen i det hele tatt får sjansen til å feile, bruker du denne.
+Vil du varsle om en forretningsbetingelse, bruker du SQL-spørring-monitoren. Vil du vite at serveren er i ferd med å gå tom for tilkoblinger før forretningsbetingelsen i det hele tatt får sjansen til å feile, bruker du denne.
 
 ## Støttede databaser
 
@@ -37,7 +37,7 @@ Azure SQL Database og Azure SQL Managed Instance kobler til som **Microsoft SQL 
 
 PostgreSQL- og MySQL-kompatible motorer som snakker samme wire-protokoll, fungerer vanligvis, men de kan ha færre statistikkvisninger; da rapporteres de berørte målingene som utilgjengelige i stedet for å bli samlet inn. Bare de tre motorene over er offisielt testet.
 
-Hver database som applikasjonene, klyngene og vertene dine bruker — disse tre motorene og mange flere — får også sin egen side med motorens målinger, logger og tjenestene som kaller den: se [Databaser](/docs/telemetry/databases). Når verten og porten en Database Health-monitor kobler til er et av endepunktene til en database, vises monitorens varsler og hendelser også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#varsler-for-en-database)).
+Hver database som applikasjonene, klyngene og vertene dine bruker — disse tre motorene og mange flere — får også sin egen side med motorens målinger, logger og tjenestene som kaller den: se [Databaser](/docs/telemetry/databases). Når verten og porten en Databasehelse-monitor kobler til er et av endepunktene til en database, vises monitorens varsler og hendelser også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#varsler-for-en-database)).
 
 ## Slik fungerer det
 
@@ -155,7 +155,7 @@ Sonden gjenkjenner Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og i
 - **Tilkoblinger gjelder per database.** Med `VIEW DATABASE STATE` viser Azure SQL Database bare øktene til den overvåkede databasen, så **Tilkoblinger** teller den databasen og ikke den logiske serveren. Overvåk hver database du bryr deg om.
 - **I en elastisk pool er «Ledig plass i TempDB» poolens.** Databasene i en pool deler én tempdb.
 
-## Opprett en Database Health-monitor
+## Opprett en Databasehelse-monitor
 
 :::steps
 ### Start en ny monitor
@@ -191,7 +191,7 @@ Velg **Sonder** som kan nå databasen, og et **Overvåkingsintervall**, og klikk
 | **Vert** | Databaseverten som kan nås fra sonden (for eksempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasenavn** | Databasen det kobles til. Målinger på databasenivå (størrelse, treffrate i hurtigbufferen, utskriving til midlertidige filer) rapporteres for denne databasen; målinger på servernivå (tilkoblinger, oppetid, replikering) for hele serveren — unntatt på Azure SQL Database, der tilkoblinger bare telles for den overvåkede databasen. |
-| **Autentisering** | Bare Microsoft SQL Server: **Brukernavn og passord**, standardvalget, eller **Windows Integrated Authentication**, som logger på som sondeprosessen. Se [Integrert Windows-autentisering](/docs/monitor/sql-monitor#integrert-windows-autentisering) på siden om SQL Query-monitoren — oppsettet er det samme. |
+| **Autentisering** | Bare Microsoft SQL Server: **Brukernavn og passord**, standardvalget, eller **Windows Integrated Authentication**, som logger på som sondeprosessen. Se [Integrert Windows-autentisering](/docs/monitor/sql-monitor#integrert-windows-autentisering) på siden om SQL-spørring-monitoren — oppsettet er det samme. |
 | **Brukernavn** | Overvåkingsbrukeren. Påkrevd, med mindre du bruker integrert Windows-autentisering. |
 | **Passord** | Passordet. Henvis til en [monitorhemmelighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive det inn i klartekst (se [Bruk en monitorhemmelighet](#bruk-en-monitorhemmelighet-for-passordet)). |
 | **Use SSL/TLS** | Koble til over TLS. Når dette er slått på, kan du slå av **Verify server certificate** for et selvsignert sertifikat. |
@@ -205,7 +205,7 @@ Velg **Sonder** som kan nå databasen, og et **Overvåkingsintervall**, og klikk
 | **Connection Timeout (ms)** | `10000` | `30000` | Hvor lenge det ventes på å opprette en tilkobling. |
 | **Statement Timeout (ms)** | `10000` | `60000` | Taket for hver enkelt katalogspørring. |
 
-Standard tidsavbrudd for setninger er bevisst strammere enn SQL Query-monitorens: disse spørringene svarer på millisekunder på en frisk server, så hvis `pg_stat_activity` bruker ti sekunder, er det nyttige signalet «denne serveren er i trøbbel», ikke lengre venting. En verdi over maksimum senkes til maksimum.
+Standard tidsavbrudd for setninger er bevisst strammere enn SQL-spørring-monitorens: disse spørringene svarer på millisekunder på en frisk server, så hvis `pg_stat_activity` bruker ti sekunder, er det nyttige signalet «denne serveren er i trøbbel», ikke lengre venting. En verdi over maksimum senkes til maksimum.
 
 ## Bruk en monitorhemmelighet for passordet
 
@@ -381,7 +381,7 @@ Terskler er heltall. Skriv `90`, ikke `90.5` — prosenter og sekunder sammenlig
 
 ### Variabler for JavaScript-uttrykk
 
-For en Database Health-monitor har uttrykket tilgang til:
+For en Databasehelse-monitor har uttrykket tilgang til:
 
 | Variabel | Type | Beskrivelse |
 |---|---|---|

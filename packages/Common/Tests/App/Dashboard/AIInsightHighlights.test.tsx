@@ -259,7 +259,7 @@ describe("the highlights' words", () => {
 
   test("a finding's line: its kind, its service, how often and when last", () => {
     expect(describeHighlightFinding(topFinding(), "Error Log Spike")).toBe(
-      "Error Log Spike · in checkout · seen 3 times · last seen 2 hours ago",
+      "Error Log Spike · in checkout · seen 3 times · last seen 2\u00A0hours ago",
     );
     expect(
       describeHighlightFinding(
@@ -304,7 +304,7 @@ describe("the highlights' words", () => {
         severity: "",
         firstSeenAt: ago(4),
       }),
-    ).toBe("The newest: Latency regressed, first seen 4 hours ago.");
+    ).toBe("The newest: Latency regressed, first seen 4\u00A0hours ago.");
     expect(
       describeNewestFinding({
         id: NEWEST_ID,

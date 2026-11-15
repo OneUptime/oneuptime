@@ -172,7 +172,7 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_key_passphrase` | string (機密) | ウェブサイト、API | 秘密鍵のパスフレーズ。 |
 | `request_timeout_in_ms` | number | プローブが行うチェック | 試行ごとにかけられる時間 (ミリ秒)。プローブは 60000 を超える値を 60000 に下げます。 |
 | `retry_count` | number | プローブが行うチェック | 最初の試行が失敗した後の再試行回数。`0` なら一度だけ、`3` なら最大四回チェックします。プローブは 3 を超える値を 3 に下げます。 |
-| `custom_code` | string | Custom JavaScript Code、Synthetic | ステップが実行するスクリプト。 |
+| `custom_code` | string | カスタム JavaScript コード、Synthetic | ステップが実行するスクリプト。 |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`、`Tablet`、`Desktop`。 |
 | `browser_types` | list(string) | Synthetic | `Chromium` と `Firefox`。 |
 | `retry_count_on_error` | number | Synthetic | スクリプトが失敗したときの再試行回数。`0` なら一度だけ実行します。 |

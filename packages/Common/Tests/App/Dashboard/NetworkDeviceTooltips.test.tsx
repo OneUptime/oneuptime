@@ -770,8 +770,13 @@ describe("the Inventory card's Uptime value", () => {
       </div>,
     );
 
-    // Fake timers hold the clock, so both read the same instant.
-    expect(screen.getAllByText(expected)).toHaveLength(2);
+    /*
+     * Fake timers hold the clock, so both read the same instant; read as
+     * written, its numbers held to their units (#8669).
+     */
+    expect(
+      screen.getAllByText(expected, { collapseWhitespace: false }),
+    ).toHaveLength(2);
     await expectExplained("Hardware Uptime", DESCRIPTIONS.hardwareUptime);
     await expectExplained("Uptime", DESCRIPTIONS.hardwareUptime);
   });

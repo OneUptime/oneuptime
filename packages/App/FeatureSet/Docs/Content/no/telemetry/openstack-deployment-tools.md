@@ -41,11 +41,11 @@ Ethvert verktøy med en Alertmanager kan ha hendelser i dag: et varsel som utlø
 :::steps
 ### Lag monitoren
 
-Lag en Incoming Request-overvåker slik [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#motta-varsler-med-en-monitor) sier, og kopier dens **Heartbeat URL**. Det er `<secret key>`-adressen i hvert verktøys mottaker nedenfor.
+Lag en Innkommende forespørsel-overvåker slik [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#motta-varsler-med-en-monitor) sier, og kopier dens **Heartbeat URL**. Det er `<secret key>`-adressen i hvert verktøys mottaker nedenfor.
 
 ### Legg den på skyen
 
-Åpne monitorens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen. Hver hendelse er da på den skyens **Hendelser**-side: en Incoming Request-monitors egne innstillinger navngir ingen sky, så hver skys Alertmanager trenger en monitor for seg. Skyen dukker opp i den listen når de første dataene kommer, så gjør dette etter stegene nedenfor, eller legg til skyen under **OpenStack → Alle skyer** først.
+Åpne monitorens **Oversikt → Tilkoblede ressurser** og legg til OpenStack-skyen. Hver hendelse er da på den skyens **Hendelser**-side: en Innkommende forespørsel-monitors egne innstillinger navngir ingen sky, så hver skys Alertmanager trenger en monitor for seg. Skyen dukker opp i den listen når de første dataene kommer, så gjør dette etter stegene nedenfor, eller legg til skyen under **OpenStack → Alle skyer** først.
 :::
 
 Alertmanager, i versjonen Kolla-Ansible fester, er tatt opp mens den poster i akkurat denne formen, og det den postet åpnet én hendelse på en kjørende OneUptime, som dens egen `resolved`-status løste.

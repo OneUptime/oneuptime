@@ -1050,7 +1050,7 @@ describe("what a device said, word for word", () => {
 
     // The whole instant, to the second, with its zone - and how long ago.
     expect(facts[0]).toBe(
-      "WhenTuesday, October 13, 2026 at 11:59:00 UTC1 minute ago",
+      "WhenTuesday, October 13, 2026 at 11:59:00 UTC1\u00A0minute ago",
     );
     expect(
       within(panel).getByTestId("network-event-details-ago"),
@@ -2564,7 +2564,7 @@ describe("an event, opened", () => {
     const panel: HTMLElement = await open("interface.down");
 
     expect(factsOf(panel)[0]).toBe(
-      "WhenMonday, October 12, 2026 at 06:00:00 UTC1 day ago",
+      "WhenMonday, October 12, 2026 at 06:00:00 UTC1\u00A0day ago",
     );
   });
 });

@@ -117,7 +117,7 @@ OneUptime geeft de workflow een eigen e-mailadres. Elke e-mail naar dat adres st
 
 Handig voor: handelen op e-mail van systemen die geen webhook kunnen aanroepen — waarschuwingen van oudere monitoringtools, statusmeldingen van een leverancier, het rapport dat een nachtelijke taak mailt.
 
-Om het adres te krijgen, klik je op de Incoming Email-trigger op het canvas. Het adres staat bovenaan de instellingen, met een knop **Adres kopiëren**. Geef het aan wat de workflow moet starten: een tool die alleen e-mail kan sturen, de meldingsinstellingen van een leverancier of een doorstuurregel in je eigen mailbox.
+Om het adres te krijgen, klik je op de Inkomende e-mail-trigger op het canvas. Het adres staat bovenaan de instellingen, met een knop **Adres kopiëren**. Geef het aan wat de workflow moet starten: een tool die alleen e-mail kan sturen, de meldingsinstellingen van een leverancier of een doorstuurregel in je eigen mailbox.
 
 Elke e-mail start een eigen uitvoering. E-mail bereikt de workflow of het adres nu in Aan of CC staat, als bcc wordt meegestuurd of via een doorstuurregel binnenkomt. Een e-mail die het adres twee keer noemt, start één uitvoering.
 
@@ -139,7 +139,7 @@ Zodra er een e-mail is binnengekomen, weet de waardekiezer in elk blok na de tri
 
 Om de workflow te proberen zonder een e-mail te sturen, klik je op **Workflow uitvoeren** op de pagina **Bouwer** en vul je een afzender, een onderwerp en een body in. De waarden die je weglaat, komen leeg aan.
 
-E-mail start de workflow alleen zolang hij aan staat. E-mail naar een workflow die uit staat, wordt genegeerd, net als e-mail naar een workflow waarvan de trigger niet langer Incoming Email is.
+E-mail start de workflow alleen zolang hij aan staat. E-mail naar een workflow die uit staat, wordt genegeerd, net als e-mail naar een workflow waarvan de trigger niet langer Inkomende e-mail is.
 
 ### Houd het adres geheim
 

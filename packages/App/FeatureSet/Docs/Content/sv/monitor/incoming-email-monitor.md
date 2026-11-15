@@ -37,7 +37,7 @@ sequenceDiagram
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj Incoming Email
+### Välj Inkommande e-post
 
 Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Inkommande e-post** under **Inkommande övervakning**, eller skriver `email` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 

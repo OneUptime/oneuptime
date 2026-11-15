@@ -231,7 +231,7 @@ Legg til kriterier for å avgjøre når monitoren regnes som online, redusert el
 | **SQL-spørringsfeil** | Feilmeldingen fra spørringen. Varsle når den er (eller ikke er) tom, eller samsvarer med en bestemt streng. |
 | **JavaScript-uttrykk** | Evaluer et egendefinert JavaScript-uttrykk over `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` og `isOnline`. Se [JavaScript-uttrykk](/docs/monitor/javascript-expression#monitorer-for-sql-spørringer). |
 
-Numeriske terskler er heltall: skriv `10`, ikke `10.5`. SQL Query-filtre kan ikke evalueres over en tidsperiode; hver kontroll står for seg selv.
+Numeriske terskler er heltall: skriv `10`, ikke `10.5`. SQL-spørring-filtre kan ikke evalueres over en tidsperiode; hver kontroll står for seg selv.
 
 En ny SQL-spørring-monitor starter med to kriterier: **SQL er tilkoblet** er usann — monitoren blir frakoblet og erklærer en hendelse som løser seg selv — og **SQL er tilkoblet** er sann, som markerer den som online. **Legg til kriterier** legger til ett nederst; dra det over online-kriteriet, fordi kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør.
 

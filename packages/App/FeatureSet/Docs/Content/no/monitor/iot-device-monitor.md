@@ -44,7 +44,7 @@ flowchart TB
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**.
 
-### Velg IoT Device
+### Velg IoT-enhet
 
 Klikk på **Flere monitortyper** under **Monitortype**, og velg **IoT-enhet** under **Infrastruktur**, eller skriv `iot` i søkefeltet. Skriv inn et **Navn** - det brukes i titlene på hendelser og varsler - og klikk på **Neste**.
 

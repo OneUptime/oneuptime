@@ -141,7 +141,7 @@ describe("set up but quiet", () => {
       }),
     ).toEqual({
       title: "No exceptions in this time range",
-      detail: "The last exception arrived 3 hours ago.",
+      detail: "The last exception arrived 3\u00A0hours ago.",
       action: {
         kind: "set-range",
         label: "Show the past week",
@@ -165,7 +165,7 @@ describe("set up but quiet", () => {
     });
 
     expect(copy?.title).toBe("No logs in this time range");
-    expect(copy?.detail).toBe("The last log arrived 10 days ago.");
+    expect(copy?.detail).toBe("The last log arrived 10\u00A0days ago.");
     expect(copy?.action).toEqual({
       kind: "set-range",
       label,
@@ -181,7 +181,7 @@ describe("set up but quiet", () => {
       }),
     ).toEqual({
       title: "No logs in this time range",
-      detail: "The last log arrived 20 minutes ago.",
+      detail: "The last log arrived 20\u00A0minutes ago.",
       action: undefined,
     });
   });
@@ -481,7 +481,7 @@ describe("the setup check's rows", () => {
       line("traces", "receiving", { lastArrivalAt: ago(2 * MINUTE) }),
     ).toEqual({
       tone: "ok",
-      text: "Arriving. The latest came in 2 minutes ago.",
+      text: "Arriving. The latest came in 2\u00A0minutes ago.",
     });
   });
 
@@ -490,7 +490,7 @@ describe("the setup check's rows", () => {
       line("exceptions", "quiet", { lastArrivalAt: ago(3 * DAY) }),
     ).toEqual({
       tone: "waiting",
-      text: "Quiet. The latest came in 3 days ago.",
+      text: "Quiet. The latest came in 3\u00A0days ago.",
     });
   });
 
@@ -655,7 +655,7 @@ describe("the Session Replay row", () => {
     ).toEqual({
       tone: "ok",
       text: "Healthy",
-      detail: "The latest recording came in 4 minutes ago.",
+      detail: "The latest recording came in 4\u00A0minutes ago.",
       action: undefined,
     });
   });

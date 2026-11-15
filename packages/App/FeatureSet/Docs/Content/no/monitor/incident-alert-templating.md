@@ -452,17 +452,17 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 
 ### Målings- og infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagringsarray- og IoT-enhet-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
 | `metricName` | Navnet på målingen monitorens første spørring leser, som `container.cpu.time`. | `string` |
 
-Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT Device-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
+Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT-enhet-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
 
 ### Andre monitortyper
 
-Logs-, Traces-, Exceptions-, Security Events-, AI / LLM- og SQL Query-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
+Logs-, Traces-, Exceptions-, Sikkerhetshendelser-, AI / LLM- og SQL-spørring-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
 
 ## Eksempler
 

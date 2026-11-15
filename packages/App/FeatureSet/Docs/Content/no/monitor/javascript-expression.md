@@ -46,7 +46,7 @@ Lagre monitoren. Filteret evalueres ved monitorens neste sjekk.
 
 ## Variabler etter monitortype
 
-JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende forespørsel, Incoming Email, SQL Query og Database Health.
+JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende forespørsel, Innkommende e-post, SQL-spørring og Databasehelse.
 
 ### Nettsted- og API-monitorer
 

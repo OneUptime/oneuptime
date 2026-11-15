@@ -782,7 +782,7 @@ describe("EpisodeMembersCard: rows", () => {
     const time: HTMLElement = firstRow.querySelector("time") as HTMLElement;
 
     expect(time).toHaveAttribute("dateTime", declaredAt.toISOString());
-    expect(time).toHaveTextContent(OneUptimeDate.fromNow(declaredAt));
+    expect(time.textContent).toContain(OneUptimeDate.fromNow(declaredAt));
     expect(time).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(declaredAt),

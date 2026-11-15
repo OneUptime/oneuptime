@@ -392,7 +392,7 @@ OneUptime の AI サイト信頼性エンジニアです。新しいインシデ
 
 ### インフラストラクチャエージェント
 
-Server / VM モニターの裏で動く `oneuptime-infrastructure-agent` サービスです。1 台のマシンの CPU、メモリ、ディスク、プロセスを 30 秒ごとに、モニターのシークレットキーで署名して報告します。
+サーバー / VM モニターの裏で動く `oneuptime-infrastructure-agent` サービスです。1 台のマシンの CPU、メモリ、ディスク、プロセスを 30 秒ごとに、モニターのシークレットキーで署名して報告します。
 
 [サーバー / VM モニター](/docs/monitor/server-monitor) を参照してください。
 

@@ -3,6 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import { ENGLISH_DURATION_WORDS } from "../../Types/NoBreakSpaces";
 import { escapeRegExp } from "../../Utils/RegExpEscape";
 import { listSourceFiles, toRelativePath } from "../ForeignHiddenRuleGuard";
 
@@ -59,18 +60,84 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 /*
  * The source read, relative to the repository (ee/ is not in every
  * checkout). Common/Types is drawn on pages too: a file's size, a web
- * vital, an installation's health (#8457).
+ * vital, an installation's health (#8457). So are the Admin Dashboard's
+ * and the Status Page's own sources, and what the server writes for a page
+ * or a person to read: an email, a notification, an API's refusal (#8720).
  */
 const SCAN_SCOPES: ReadonlyArray<string> = [
   "packages/Common/UI",
   "packages/Common/Utils",
   "packages/Common/Types",
+  "packages/Common/Server",
   "packages/App/FeatureSet/Dashboard/src",
+  "packages/App/FeatureSet/AdminDashboard/src",
+  "packages/App/FeatureSet/StatusPage/src",
   "ee/Dashboard",
+  "ee/AdminDashboard",
 ];
+
+/*
+ * What the server writes that keeps its plain space (#8720): text it logs,
+ * stores or sends to a machine, read back or matched as written. A form's
+ * or a search's refusal, which a person reads where they typed it, is held.
+ */
+const SERVER_LOG: string = "a line of the server's own log";
+const SQL: string = "a SQL statement the server runs";
+const FOR_THE_AI: string =
+  "text for OneUptime AI to read: a prompt, a tool's answer, an insight's evidence";
+const STORED_RESULT: string =
+  "a check's or a criteria's result, stored with it and shown as it was written";
 
 // Files whose text is no page's, each with what it writes.
 const AS_WRITTEN: Readonly<Record<string, string>> = {
+  "packages/Common/Server/Infrastructure/Postgres/CancelOnTimeoutClient.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts": SERVER_LOG,
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationRunner.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrationWait.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts": SERVER_LOG,
+  "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
+    SERVER_LOG,
+  "packages/Common/Server/Utils/Aws/AwsDefaultCredentialChain.ts":
+    "a credential chain's failure, logged and stored on the connection",
+  "packages/Common/Server/Utils/CloudConnection/Kafka/KafkaClient.ts":
+    "a Kafka connection's failure, stored as the connection's last error",
+  "packages/Common/Server/Utils/LLM/LLMService.ts":
+    "an LLM provider's failure, logged and stored on the provider",
+  "packages/Common/Server/Utils/AI/Mcp/McpHttpTransport.ts":
+    "an external MCP server's failure, stored on the server and read by the AI agent",
+  "packages/Common/Server/Types/AnalyticsDatabase/AggregateBy.ts": SQL,
+  "packages/Common/Server/Types/Database/QueryHelper.ts": SQL,
+  "packages/Common/Server/Utils/Monitor/CountWindowBaseline.ts": SQL,
+  "packages/Common/Server/Utils/AI/SRE/ChangeImpact.ts": FOR_THE_AI,
+  "packages/Common/Server/Utils/AI/SRE/Insights/Detectors/TraceLatencyRegressionDetector.ts":
+    FOR_THE_AI,
+  "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionExplanationPrompt.ts":
+    FOR_THE_AI,
+  "packages/Common/Server/Utils/AI/Toolbox/MetricTools.ts": FOR_THE_AI,
+  "packages/Common/Server/Utils/CloudConnection/CloudLiveRead.ts": FOR_THE_AI,
+  "packages/Common/Server/Utils/CloudConnection/LiveRead/AwsLiveRead.ts":
+    FOR_THE_AI,
+  "packages/Common/Server/Utils/DataObservability/AthenaApi.ts": STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/Criteria/SnmpTransceiverCriteria.ts":
+    STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaMessageFormatter.ts":
+    STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaObservationBuilder.ts":
+    STORED_RESULT,
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts":
+    "a root cause's response time, stored and read back exactly by RootCauseFacts",
+  "packages/Common/Server/Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch.ts":
+    "a detection rule's last error, stored on the rule",
+  "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts":
+    "a production review posted as Markdown on the code host's pull request",
+  "packages/Common/Server/Utils/SampleProject/SampleProjectTelemetry.ts":
+    "a sample project's logs and spans, stored as telemetry data",
+  "packages/Common/Server/Services/TelemetrySourceMapService.ts":
+    "the source map upload API's answer to the tool that sent it",
   "packages/Common/Utils/AI/PromptText.ts": "a prompt for OneUptime AI",
   "packages/Common/UI/Utils/AIChatExport/ChatWidgetMarkdown.ts":
     "the AI chat's Markdown export",
@@ -193,10 +260,25 @@ const PLAIN_SPACE_BEFORE_A_UNIT: RegExp = new RegExp(
   "u",
 );
 
+// A unit's symbol, not the start of a longer word.
+const UNIT_ALONE: RegExp = new RegExp(`(?:${UNIT})(?![\\p{L}\\p{N}_-])`, "u");
+
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
 // A run of spaces a line breaks at, and nothing else.
 const ONLY_PLAIN_SPACES: RegExp = /^[ \u2000-\u2006\u2008-\u200A\u205F]+$/;
+
+/*
+ * JSX TEXT (#8720). `{figure} dBm` draws the figure, a space and the unit
+ * as JSX text, and `{figure} {unit}` and `{figure}{" "}{unit}` a unit held
+ * in a variable; a figure written in the text ("up to 10 MB") is one too.
+ * A space that starts a new line is no space in JSX (it is left out), so
+ * only a space on the figure's own line counts.
+ */
+const WRITTEN_FIGURE_BEFORE_A_UNIT: RegExp = new RegExp(
+  `(?<![\\p{L}\\p{N}_.,])\\p{Nd}+(?:[.,]\\p{Nd}+)*[ ](?:${UNIT})(?![\\p{L}\\p{N}_-])`,
+  "u",
+);
 
 // A unit picked from a list: `units[index]`, `BYTE_UNITS[unit]`.
 const UNIT_FROM_A_LIST: RegExp =
@@ -384,12 +466,130 @@ const findPlainSpacesBeforeUnits: (data: {
       report(node);
     }
 
+    if (ts.isJsxElement(node) || ts.isJsxFragment(node)) {
+      for (const child of findJsxFiguresBeforeUnits(node.children)) {
+        report(child);
+      }
+    }
+
     ts.forEachChild(node, visit);
   };
 
   visit(sourceFile);
 
   return findings;
+};
+
+// A JSX child that is an expression: `{figure}`, `{" "}`, `{unit}`.
+const expressionOf: (
+  child: ts.JsxChild | undefined,
+) => ts.Expression | undefined = (
+  child: ts.JsxChild | undefined,
+): ts.Expression | undefined => {
+  return child && ts.isJsxExpression(child) ? child.expression : undefined;
+};
+
+/*
+ * The text of a JSX child as JSX draws it: each line trimmed where it meets
+ * a line break, the lines left joined by one space. " dBm" starts with a
+ * space; a line break and "dBm" does not.
+ */
+const drawnTextOf: (child: ts.JsxChild | undefined) => string | undefined = (
+  child: ts.JsxChild | undefined,
+): string | undefined => {
+  if (!child || !ts.isJsxText(child)) {
+    return undefined;
+  }
+
+  const lines: Array<string> = child.text.split("\n");
+
+  if (lines.length === 1) {
+    return child.text;
+  }
+
+  return lines
+    .map((line: string, index: number): string => {
+      const start: string = index === 0 ? line : line.trimStart();
+
+      return index === lines.length - 1 ? start : start.trimEnd();
+    })
+    .filter((line: string): boolean => {
+      return line.length > 0;
+    })
+    .join(" ");
+};
+
+/*
+ * The JSX children of an element that draw a figure, a space a line
+ * breaks at and a unit: `{figure} dBm`, `{figure} {unit}`, `{figure}{" "}
+ * {unit}` and a figure written in the text ("up to 10 MB").
+ */
+const findJsxFiguresBeforeUnits: (
+  children: ts.NodeArray<ts.JsxChild>,
+) => Array<ts.JsxChild> = (
+  children: ts.NodeArray<ts.JsxChild>,
+): Array<ts.JsxChild> => {
+  const found: Array<ts.JsxChild> = [];
+
+  children.forEach((child: ts.JsxChild, index: number): void => {
+    const next: ts.JsxChild | undefined = children[index + 1];
+    const afterNext: ts.JsxChild | undefined = children[index + 2];
+    // A held unit the text after it spells a word with: `{count} {unit}s`.
+    const spellsAWord: boolean = CONTINUES_A_WORD.test(
+      drawnTextOf(children[index + 3]) || "",
+    );
+
+    if (ts.isJsxText(child)) {
+      if (WRITTEN_FIGURE_BEFORE_A_UNIT.test(drawnTextOf(child) || "")) {
+        found.push(child);
+      }
+
+      return;
+    }
+
+    if (!expressionOf(child)) {
+      return;
+    }
+
+    // `{figure} dBm`: a space on the figure's line, then a unit's symbol.
+    const text: string | undefined = drawnTextOf(next);
+
+    if (text !== undefined && PLAIN_SPACE_BEFORE_A_UNIT.test(text)) {
+      found.push(next!);
+      return;
+    }
+
+    // `{figure} {unit}`: only spaces on the line, then a held unit.
+    const held: ts.Expression | undefined = expressionOf(afterNext);
+
+    if (
+      text !== undefined &&
+      ONLY_PLAIN_SPACES.test(text) &&
+      held !== undefined &&
+      isUnitHolder(held) &&
+      !spellsAWord
+    ) {
+      found.push(afterNext!);
+      return;
+    }
+
+    // `{figure}{" "}{unit}` and `{figure}{" "}dBm`.
+    const space: ts.Expression | undefined = expressionOf(next);
+
+    if (
+      space !== undefined &&
+      ts.isStringLiteralLike(space) &&
+      ONLY_PLAIN_SPACES.test(space.text) &&
+      ((held !== undefined && isUnitHolder(held) && !spellsAWord) ||
+        new RegExp(`^${UNIT_ALONE.source}`, "u").test(
+          drawnTextOf(afterNext) || "",
+        ))
+    ) {
+      found.push(next!);
+    }
+  });
+
+  return found;
 };
 
 interface ScanResult {
@@ -497,6 +697,14 @@ describe("a number code joins to its unit keeps it on its line", () => {
     expect(filesRead["packages/Common/UI"]).toBeGreaterThan(500);
     expect(filesRead["packages/Common/Utils"]).toBeGreaterThan(200);
     expect(filesRead["packages/Common/Types"]).toBeGreaterThan(1000);
+    // The Admin Dashboard, the Status Page and the server (#8720).
+    expect(filesRead["packages/Common/Server"]).toBeGreaterThan(1000);
+    expect(
+      filesRead["packages/App/FeatureSet/AdminDashboard/src"],
+    ).toBeGreaterThan(50);
+    expect(filesRead["packages/App/FeatureSet/StatusPage/src"]).toBeGreaterThan(
+      50,
+    );
     expect(filesRead["packages/App/FeatureSet/Dashboard/src"]).toBeGreaterThan(
       2000,
     );
@@ -525,6 +733,39 @@ describe("a number code joins to its unit keeps it on its line", () => {
       "packages/Common/Types/Telemetry/TelemetryIngestionBudget.ts",
       "packages/Common/Types/PacketCapture/PacketCaptureLimits.ts",
     ]) {
+      expect({
+        file,
+        found: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, found: false });
+    }
+  });
+
+  test("the figures #8720 named, written as JSX text or in the Admin Dashboard and the server, are held now", () => {
+    const { findings } = readAllFindings();
+
+    for (const file of [
+      "packages/App/FeatureSet/Dashboard/src/Pages/IoT/View/Devices.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/ClickhouseCapacity.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/ClickhouseCapacitySummary.tsx",
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/InstanceHealthLogs.tsx",
+      "packages/App/FeatureSet/StatusPage/src/Utils/LiveRefresh.ts",
+      "packages/Common/Server/Utils/HostCollector/HostCollectorConfigPolicy.ts",
+      "packages/Common/Server/Utils/SecurityEvent/Watchlists/SecurityWatchlistQueryBinder.ts",
+      "ee/AdminDashboard/Health/ClickhouseCluster.tsx",
+      "ee/AdminDashboard/Health/Overview.tsx",
+      "ee/AdminDashboard/Health/PostgresCluster.tsx",
+      "ee/AdminDashboard/Health/RedisHealth.tsx",
+      "ee/AdminDashboard/Health/TelemetryIngestionUtils.ts",
+    ]) {
+      if (
+        file.startsWith("ee/") &&
+        !fs.existsSync(path.join(REPOSITORY_ROOT, file))
+      ) {
+        continue;
+      }
+
       expect({
         file,
         found: findings.some((finding: UnitFinding): boolean => {
@@ -923,6 +1164,55 @@ describe("a unit or a relative time is asked of Intl only where its number is he
   });
 });
 
+describe("negative controls: JSX text (#8720)", () => {
+  test("a figure, a space on its line and a unit: written, held in a variable, or after a space of its own", () => {
+    expect(
+      linesOf(
+        [
+          "const a = <span>{value} dBm</span>;",
+          "const b = <span>{Number(t).toFixed(1)} °C</span>;",
+          "const c = <span>{value} {unit}</span>;",
+          'const d = <span>{value}{" "}{reading.unit}</span>;',
+          'const e = <span>{value}{" "}ms</span>;',
+          "const f = <p>Up to 10 MB each</p>;",
+          "const g = <>{size} GB free</>;",
+          "const h = <span>{used} of {total} GiB</span>;",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "1 dBm",
+      "2 °C",
+      "3 {unit}",
+      '4 {" "}',
+      '5 {" "}',
+      "6 Up to 10 MB each",
+      "7 GB free",
+      "8 GiB",
+    ]);
+  });
+
+  test("a no-break space, a line break, a word, a plural or a figure that is a name's is no unit apart from its figure", () => {
+    expect(
+      linesOf(
+        [
+          'const a = <span>{value}{"\\u00A0"}dBm</span>;',
+          "const b = <span>{`${value}\\u00A0dBm`}</span>;",
+          "const c = <span>{count} hosts</span>;",
+          "const d = <span>\n  {value}\n  ms\n</span>;",
+          "const e = <span>{value}ms</span>;",
+          "const f = <span>{count} {noun}</span>;",
+          "const g = <span>{count} {unit}s ago</span>;",
+          "const h = <p>Version v2 MB</p>;",
+          "const i = <p>Top 10 hosts</p>;",
+          "const j = <span>{label}: {name}</span>;",
+          "// const k = <span>{value} ms</span>;",
+          'const l = <span title="5 ms">{value}</span>;',
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("negative controls: the Intl scan catches what it is for", () => {
   test("a unit's options and a relative time, however they are written", () => {
     expect(
@@ -983,5 +1273,364 @@ describe("negative controls: the Intl scan catches what it is for", () => {
     expect(MAY_ASK_INTL.test('{ style: "unit" }')).toBe(true);
     expect(MAY_ASK_INTL.test("Intl.RelativeTimeFormat")).toBe(true);
     expect(MAY_ASK_INTL.test("const units: number = 5;")).toBe(false);
+  });
+});
+
+/*
+ * A NUMBER CODE JOINS TO A DURATION'S WORD KEEPS IT ON ITS LINE (#8669).
+ *
+ * English that code writes in words - `${count} minutes ago`, `days + "
+ * days"`, `Every ${step} hours` - joined the figure to the word with a
+ * plain space, so a narrow cell could end a line with "5" and start the
+ * next with "minutes ago". Code holds them with a no-break space
+ * (`${count}${NO_BREAK_SPACE}minutes`), or writes moment's English through
+ * withDurationWordsHeld (Common/Types/NoBreakSpaces), as OneUptimeDate
+ * does. A word that is no duration ("5 hosts") is none of this rule's.
+ *
+ * Text that is no page's - a monitor template stored when the monitor is
+ * made, a query, an English refusal the API sends - keeps its plain space,
+ * each file listed in WORDS_AS_WRITTEN with why. A page's English that
+ * another issue rewords is listed in WORDS_OWNED_ELSEWHERE with that
+ * issue. Both lists only shrink.
+ */
+
+// Every page's code, and the shared code a page draws (Common/Types too).
+const WORD_SCAN_SCOPES: ReadonlyArray<string> = [
+  "packages/Common/UI",
+  "packages/Common/Utils",
+  "packages/Common/Types",
+  "packages/App/FeatureSet/Dashboard/src",
+  "packages/App/FeatureSet/Accounts/src",
+  "packages/App/FeatureSet/StatusPage/src",
+  "packages/App/FeatureSet/AdminDashboard/src",
+  "ee/Dashboard",
+  "ee/AdminDashboard",
+];
+
+// Files whose English duration is no page's, each with what it writes.
+const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
+  ...AS_WRITTEN,
+  "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts":
+    "an OpenStack alert template's names and descriptions, stored with the monitor made from it",
+  "packages/Common/Types/Monitor/CloudAlertTemplates.ts":
+    "a cloud alert template's names and descriptions, stored with the monitor made from it",
+  "packages/Common/Types/ToolImport/ToolImportMonitorBuilder.ts":
+    "a monitor built from another tool's import, its descriptions stored with it",
+  "packages/Common/Types/Telemetry/InventoryLiveness.ts":
+    "an interval in a SQL query",
+  "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts":
+    "a security case's feed item, written by the server and stored as Markdown",
+  "packages/Common/Types/CloudConnection/CloudAiAgentSetupCommands.ts":
+    "a line a setup shell command echoes, in double quotes",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyRunRetry.ts":
+    "an on-call policy run's status message, stored in its column",
+  "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackCapacityView.ts":
+    "a cell of the capacity page's CSV export, opened in a spreadsheet",
+};
+
+// Files another issue rewords, each with the issue.
+const WORDS_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
+  ...OWNED_ELSEWHERE,
+  // English sentences built in code with a duration's word (#8695).
+  "packages/App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/EntityRiskGuide.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Processes.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Services.tsx": "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/SystemdUnits.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanFormValidation.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName.ts":
+    "#8695",
+  "packages/Common/Types/AI/AIAgentRunLimits.ts": "#8695",
+  "packages/Common/Types/AI/CodeTask.ts": "#8695",
+  "packages/Common/Types/AI/InvestigationRuleWait.ts": "#8695",
+  "packages/Common/Types/Alert/AlertIncidentRuleWait.ts": "#8695",
+  "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts": "#8695",
+  "packages/Common/Types/DataObservability/DataReconciliation.ts": "#8695",
+  "packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts": "#8695",
+  "packages/Common/Types/NetworkController/NetworkControllerConnectionSettings.ts":
+    "#8695",
+  "packages/Common/Types/NetworkDevice/DiscoveredDeviceRetention.ts": "#8695",
+  "packages/Common/Types/NetworkDevice/DiscoveryImport.ts": "#8695",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold.ts": "#8695",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallSentLine.ts": "#8695",
+  "packages/Common/Types/OnCallDutyPolicy/OnCallTestPage.ts": "#8695",
+  "packages/Common/Types/OpenStack/OpenStackCheck.ts": "#8695",
+  "packages/Common/Types/PacketCapture/PacketCaptureLimits.ts": "#8695",
+  "packages/Common/Types/Retention/ResolvedRecordRetention.ts": "#8695",
+  "packages/Common/Types/Runbook/RunbookStepTimeout.ts": "#8695",
+  "packages/Common/Types/StateTimeline/RowsKeptOnDelete.ts": "#8695",
+  "packages/Common/Types/Telemetry/TelemetryUsage.ts": "#8695",
+  "packages/Common/Utils/CertificateReissue.ts": "#8695",
+  "packages/Common/Utils/CronTab.ts": "#8695",
+  "packages/Common/Utils/DeveloperDocs/ResourceProfiles.ts": "#8695",
+  "packages/Common/Utils/NetworkDiscovery/UnclaimedScanDiagnosis.ts": "#8695",
+  "packages/Common/Utils/OpenStack/OpenStackCheckFindings.ts": "#8695",
+  "packages/Common/Utils/OpenStack/OpenStackCollectionSettings.ts": "#8695",
+  "packages/Common/Utils/PromQL/PromQLEngine.ts": "#8695",
+  "packages/Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser.ts": "#8695",
+  "packages/Common/Utils/SessionReplay/SessionReplayBudgetMetricType.ts":
+    "#8695",
+  "packages/Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType.ts":
+    "#8695",
+  "packages/Common/Utils/VMware/VMwareCollectionSettings.ts": "#8695",
+};
+
+const DURATION_WORD: string = [...ENGLISH_DURATION_WORDS]
+  .sort((a: string, b: string): number => {
+    return b.length - a.length;
+  })
+  .join("|");
+
+// A space a line breaks at, then a duration's word, and not a longer word.
+const PLAIN_SPACE_BEFORE_A_DURATION_WORD: RegExp = new RegExp(
+  `^[ \u2000-\u2006\u2008-\u200A\u205F](?:${DURATION_WORD})(?![\\p{L}\\p{N}_-])`,
+  "u",
+);
+
+// Every place `source` joins a figure to a duration's word with a plain space.
+const findPlainSpacesBeforeDurationWords: (data: {
+  file: string;
+  source: string;
+}) => Array<UnitFinding> = (data: {
+  file: string;
+  source: string;
+}): Array<UnitFinding> => {
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    data.file,
+    data.source,
+    ts.ScriptTarget.Latest,
+    true,
+    data.file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const findings: Array<UnitFinding> = [];
+
+  const report: (node: ts.Node) => void = (node: ts.Node): void => {
+    findings.push({
+      file: data.file,
+      line:
+        sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
+          .line + 1,
+      text: node.getText(sourceFile).replace(WHITESPACE_RUN, " ").slice(0, 120),
+    });
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isTemplateExpression(node) &&
+      node.templateSpans.some((span: ts.TemplateSpan): boolean => {
+        return PLAIN_SPACE_BEFORE_A_DURATION_WORD.test(span.literal.text);
+      })
+    ) {
+      report(node);
+    }
+
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
+      (ts.isStringLiteral(node.right) ||
+        ts.isNoSubstitutionTemplateLiteral(node.right)) &&
+      !ts.isStringLiteral(node.left) &&
+      PLAIN_SPACE_BEFORE_A_DURATION_WORD.test(node.right.text)
+    ) {
+      report(node);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return findings;
+};
+
+let wordScanResult: ScanResult | undefined = undefined;
+
+const readAllWordFindings: () => ScanResult = (): ScanResult => {
+  if (wordScanResult) {
+    return wordScanResult;
+  }
+
+  const findings: Array<UnitFinding> = [];
+  const filesRead: Record<string, number> = {};
+
+  for (const scope of WORD_SCAN_SCOPES) {
+    filesRead[scope] = 0;
+
+    for (const filePath of listSourceFiles(path.join(REPOSITORY_ROOT, scope))) {
+      const file: string = toRelativePath(REPOSITORY_ROOT, filePath);
+
+      if (TEST_FILE.test(file)) {
+        continue;
+      }
+
+      filesRead[scope] = (filesRead[scope] || 0) + 1;
+      findings.push(
+        ...findPlainSpacesBeforeDurationWords({
+          file,
+          source: fs.readFileSync(filePath, "utf8"),
+        }),
+      );
+    }
+  }
+
+  wordScanResult = { findings, filesRead };
+
+  return wordScanResult;
+};
+
+const wordLinesOf: (source: string) => Array<string> = (
+  source: string,
+): Array<string> => {
+  return findPlainSpacesBeforeDurationWords({
+    file: "packages/App/FeatureSet/Dashboard/src/Made.tsx",
+    source,
+  }).map((finding: UnitFinding): string => {
+    return `${finding.line} ${finding.text}`;
+  });
+};
+
+describe("a number code joins to a duration's word keeps it on its line", () => {
+  test("no page's code joins a figure to a duration's word with a plain space", () => {
+    const { findings } = readAllWordFindings();
+
+    expect(
+      findings
+        .filter((finding: UnitFinding): boolean => {
+          return (
+            WORDS_AS_WRITTEN[finding.file] === undefined &&
+            WORDS_OWNED_ELSEWHERE[finding.file] === undefined
+          );
+        })
+        .map((finding: UnitFinding): string => {
+          return `${finding.file}:${finding.line} ${finding.text}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("a file listed for its words still joins one so: the lists only shrink", () => {
+    const { findings } = readAllWordFindings();
+    const own: ReadonlyArray<string> = [
+      ...Object.keys(WORDS_AS_WRITTEN).filter((file: string): boolean => {
+        return AS_WRITTEN[file] === undefined;
+      }),
+      ...Object.keys(WORDS_OWNED_ELSEWHERE).filter((file: string): boolean => {
+        return OWNED_ELSEWHERE[file] === undefined;
+      }),
+    ];
+
+    for (const file of own) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(REPOSITORY_ROOT, file)),
+        stillJoins: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, exists: true, stillJoins: true });
+    }
+
+    for (const issue of Object.values(WORDS_OWNED_ELSEWHERE)) {
+      expect(issue).toMatch(/^#\d+$/);
+    }
+
+    for (const reason of Object.values(WORDS_AS_WRITTEN)) {
+      expect(reason.length).toBeGreaterThan(10);
+    }
+  });
+
+  test("the word scan reads the pages, the shared code and Common/Types", () => {
+    const { filesRead } = readAllWordFindings();
+
+    expect(filesRead["packages/Common/Types"]).toBeGreaterThan(500);
+    expect(filesRead["packages/App/FeatureSet/Dashboard/src"]).toBeGreaterThan(
+      2000,
+    );
+  });
+
+  test("the English the issue named is held now", () => {
+    const { findings } = readAllWordFindings();
+
+    for (const file of [
+      "packages/Common/Types/Date.ts",
+      "packages/App/FeatureSet/Dashboard/src/Utils/EventDuration.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistDashboards.ts",
+      "packages/App/FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessions.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/UpcomingShiftTime.ts",
+      "packages/Common/UI/Components/Feed/FeedTime.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/Home/HomeRelativeTime.ts",
+      "packages/App/FeatureSet/StatusPage/src/Utils/LiveRefresh.ts",
+      "ee/AdminDashboard/Backups/BackupFormat.ts",
+      "ee/Dashboard/AuditLogExport/AuditLogExportForm.ts",
+    ]) {
+      expect({
+        file,
+        found: findings.some((finding: UnitFinding): boolean => {
+          return finding.file === file;
+        }),
+      }).toEqual({ file, found: false });
+    }
+  });
+});
+
+describe("negative controls: the word scan catches what it is for", () => {
+  test("a figure, a plain space and a duration's word, however it is joined", () => {
+    expect(
+      wordLinesOf(
+        [
+          "const a: string = `${count} minutes ago`;",
+          'const b: string = days + " days";',
+          "const c: string = `Every ${step} hours at ${time}`;",
+          "const d: string = `${count} secs`;",
+          "const e: string = `in ${value} day`;",
+          "const f: string = `${n}\\u2009weeks`;",
+        ].join("\n"),
+      ),
+    ).toEqual([
+      "1 `${count} minutes ago`",
+      '2 days + " days"',
+      "3 `Every ${step} hours at ${time}`",
+      "4 `${count} secs`",
+      "5 `in ${value} day`",
+      "6 `${n}\\u2009weeks`",
+    ]);
+  });
+
+  test("a held space, another word, a longer word or a unit in a variable is none of this rule's", () => {
+    expect(
+      wordLinesOf(
+        [
+          "const a: string = `${count}${NO_BREAK_SPACE}minutes ago`;",
+          "const b: string = `${count} hosts`;",
+          "const c: string = `${count} daysOff`;",
+          "const d: string = `${count} ${unit}s ago`;",
+          "const e: string = `${count}\\u00A0hours`;",
+          "// const f: string = `${count} minutes`;",
+          'const g: string = "Every " + "5 minutes";',
+          "const h: string = `${count} minute-long`;",
+          "const i: string = `${count} months_ago`;",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
   });
 });
