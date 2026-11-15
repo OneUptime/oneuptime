@@ -157,6 +157,20 @@ function markdownsOf(content: SetupGuideContent): Array<string> {
 function keysOf(content: SetupGuideContent): Array<string> {
   const keys: Array<string> = [];
 
+  /*
+   * The key step: what it asks, and the label and hint over the address it
+   * shows (IngestionKeySelector words both, as the card words the rest).
+   */
+  for (const text of [
+    content.keyStep?.description,
+    content.keyStep?.endpointLabel,
+    content.keyStep?.endpointHint,
+  ]) {
+    if (text) {
+      keys.push(text);
+    }
+  }
+
   for (const step of content.steps) {
     keys.push(step.title);
     if (step.description) {
