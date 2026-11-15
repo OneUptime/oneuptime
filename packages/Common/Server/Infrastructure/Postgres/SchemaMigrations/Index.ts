@@ -998,6 +998,9 @@ import { SetMonitorFillfactor1809172000000 } from "./1809172000000-SetMonitorFil
 import { AddNetworkEndpointCoarseLastSeenAt1809173000000 } from "./1809173000000-AddNetworkEndpointCoarseLastSeenAt";
 import { SwapNetworkEndpointLastSeenIndexes1809173100000 } from "./1809173100000-SwapNetworkEndpointLastSeenIndexes";
 import { SetNetworkEndpointFillfactor1809173200000 } from "./1809173200000-SetNetworkEndpointFillfactor";
+import { AddIncidentPostmortemActionItem1809173300000 } from "./1809173300000-AddIncidentPostmortemActionItem";
+import { AddSavedAsRunbookToAutoRemediationSuggestion1809173400000 } from "./1809173400000-AddSavedAsRunbookToAutoRemediationSuggestion";
+import { AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809173410000 } from "./1809173410000-AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2000,4 +2003,7 @@ export default [
   AddNetworkEndpointCoarseLastSeenAt1809173000000,
   SwapNetworkEndpointLastSeenIndexes1809173100000,
   SetNetworkEndpointFillfactor1809173200000,
+  AddIncidentPostmortemActionItem1809173300000,
+  AddSavedAsRunbookToAutoRemediationSuggestion1809173400000,
+  AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809173410000,
 ];

@@ -499,6 +499,69 @@ export default class AutoRemediationSuggestion extends BaseModel {
   public runbookNameSnapshot?: string = undefined;
 
   /*
+   * The runbook a verified fix was saved as (issue #6801): written by
+   * OneUptime from the commands the fix ran, turned off until someone
+   * reviews it (VerifiedFixRunbook). Set once, by Save as Runbook on the
+   * fix; cleared when that runbook is deleted, so the fix can be saved
+   * again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "savedAsRunbookId",
+    type: TableColumnType.Entity,
+    modelType: Runbook,
+    title: "Saved As Runbook",
+    description:
+      "The runbook this fix was saved as once it was verified: written from the commands that ran, and off until someone reviews it.",
+  })
+  @ManyToOne(
+    () => {
+      return Runbook;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "savedAsRunbookId" })
+  public savedAsRunbook?: Runbook = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Saved As Runbook ID",
+    description:
+      "ID of the runbook this fix was saved as. Empty until someone saves the verified fix as a runbook.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public savedAsRunbookId?: ObjectID = undefined;
+
+  /*
    * How the proposed runbook went the last times OneUptime AI ran it as a
    * fix for other incidents and alerts of the project, when it was proposed
    * (RemediationTrackRecord shape, from RemediationTrackRecordReader): what
