@@ -693,7 +693,7 @@ export const QueryStatusPageAnnouncementsTool: ObservabilityTool = {
     });
 
     const endTime: Date = OneUptimeDate.getCurrentDate();
-    const startTime: Date = OneUptimeDate.addRemoveDays(
+    const startTime: Date = OneUptimeDate.addRemoveDurationInDays(
       endTime,
       -1 * withinDays,
     );

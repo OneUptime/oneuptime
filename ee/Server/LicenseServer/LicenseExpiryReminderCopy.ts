@@ -59,7 +59,7 @@ export const getLicenseExpiryReminderCopy: (data: {
   expiresAt: Date;
   now: Date;
 }): LicenseExpiryReminderCopy => {
-  const daysUntilExpiry: number = OneUptimeDate.getDaysBetweenTwoDates(
+  const daysUntilExpiry: number = OneUptimeDate.getWholeDaysOfTimeBetween(
     data.now,
     data.expiresAt,
   );

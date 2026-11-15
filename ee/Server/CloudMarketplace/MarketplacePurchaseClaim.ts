@@ -449,7 +449,7 @@ export default class MarketplacePurchaseClaim {
       SubscriptionStatus.Active;
 
     if (data.plan.getTrialPeriod() > 0) {
-      project.trialEndsAt = OneUptimeDate.addRemoveDays(
+      project.trialEndsAt = OneUptimeDate.addRemoveDurationInDays(
         OneUptimeDate.getCurrentDate(),
         data.plan.getTrialPeriod(),
       );

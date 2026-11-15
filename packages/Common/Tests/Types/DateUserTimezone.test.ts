@@ -24,9 +24,17 @@ const KOLKATA: Timezone = Timezone.AsiaKolkata;
 /*
  * The zone this process reports, in the name OneUptimeDate uses for it. On
  * a machine in India the raw guess is "Asia/Calcutta" and the answer is
- * "Asia/Kolkata"; elsewhere the two are usually the same.
+ * "Asia/Kolkata"; elsewhere the two are usually the same. On UTC, Intl's
+ * "UTC" is too short a name for moment, which guesses Africa/Abidjan from
+ * the offsets: the answer is UTC (issue #8475, DateRuntimeTimezoneCases).
  */
 const currentGuess: () => string = (): string => {
+  const intlName: string = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  if (intlName === "UTC") {
+    return "UTC";
+  }
+
   return TimezoneAlias.getCanonicalTimezone(moment.tz.guess());
 };
 

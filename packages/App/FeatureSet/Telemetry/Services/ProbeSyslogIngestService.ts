@@ -593,7 +593,7 @@ export default class ProbeSyslogIngestService {
       projectRetentionInDays: serviceMetadata.projectRetentionInDays,
     });
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       ingestionDate,
       retentionDays,
     );

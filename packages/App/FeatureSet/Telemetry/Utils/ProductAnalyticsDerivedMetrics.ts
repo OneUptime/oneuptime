@@ -241,7 +241,7 @@ export default class ProductAnalyticsDerivedMetrics {
           explicitBounds: [],
           value: bucket.count,
           retentionDate: OneUptimeDate.toClickhouseDateTime(
-            OneUptimeDate.addRemoveDays(start, retentionInDays),
+            OneUptimeDate.addRemoveDurationInDays(start, retentionInDays),
           ),
         } as JSONObject;
       },
