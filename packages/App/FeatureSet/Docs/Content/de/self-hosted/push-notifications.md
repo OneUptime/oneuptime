@@ -204,7 +204,7 @@ Ein Gerät behält den Systemton, bis darauf eine Version der App läuft, die di
 
 ### Einen Alarm bis zur Bestätigung wiederholen
 
-Eine Push-Regel kann ihren Alarm erneut senden, bis jemand ihn bestätigt. Unter **Benutzereinstellungen > Wie ich erreichbar bin** legen Sie **Wiederholen bis zur Bestätigung** beim Hinzufügen einer Push-Regel fest oder ändern es später in der Zeile der Regel: jede Minute oder alle 2, 3, 5, 10, 15 oder 30 Minuten. Der Alarm wird in diesem Abstand erneut gesendet, höchstens 10 weitere Male, und hört auf, sobald der Vorfall, die Warnung oder die Episode bestätigt ist. Gespeichert pro Regel in `UserNotificationRule.repeatEveryMinutes`, wobei 0, die Voreinstellung, den Alarm nur einmal sendet.
+Eine Push-Regel kann ihren Alarm erneut senden, bis jemand ihn bestätigt. Unter **Benutzereinstellungen > Wie ich erreichbar bin** legen Sie **Wiederholen bis zur Bestätigung** beim Hinzufügen einer Push-Regel fest oder ändern es später in der Zeile der Regel: jede Minute oder alle 2, 3, 5, 10, 15 oder 30 Minuten. Der Alarm wird in diesem Abstand erneut gesendet, höchstens 10 weitere Male, und hört auf, sobald der Vorfall, die Warnung oder die Episode bestätigt ist. Eine Alarmierung, die nach einer Bestätigung weitergeht, etwa eine erneute Alarmierung, wiederholt sich, bis jemand antwortet, den sie alarmiert hat, oder bis der Vorfall, die Warnung oder die Episode behoben ist: [Wenn mehrere Richtlinien alarmieren](/docs/on-call/policies#wenn-mehrere-richtlinien-alarmieren) nennt sie. Gespeichert pro Regel in `UserNotificationRule.repeatEveryMinutes`, wobei 0, die Voreinstellung, den Alarm nur einmal sendet.
 
 ## Fehlerbehebung
 
