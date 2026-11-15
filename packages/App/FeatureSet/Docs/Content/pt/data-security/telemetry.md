@@ -45,7 +45,7 @@ A gravação de um replay de sessão guarda o texto das páginas que as pessoas 
 
 O prompt de uma chamada de IA carrega o chat inteiro anterior à mensagem mais recente da pessoa, então até 16.384 caracteres de cada valor de uma chamada de IA são lidos. Quando as conversas de IA contêm dados sensíveis, mais duas coisas acontecem: o provedor de IA para o qual as chamadas foram é um fluxo desses dados, e [Dados sensíveis estão sendo enviados a um provedor de IA](/docs/data-security/checks-and-issues#ia) falha no repositório.
 
-As conversas de uma [ferramenta de IA da empresa](/docs/telemetry/ai-company-tools) ficam de fora. Só Project Owners e Project Admins podem lê-las, e uma descoberta fica onde todos que leem a Segurança de dados podem lê-la, então os spans desses serviços nunca são lidos, e as conversas de IA deles são informadas como não lidas.
+As conversas de uma [ferramenta de IA da empresa](/docs/telemetry/ai-company-tools) ficam de fora. Só Proprietários do projeto e Administradores do projeto podem lê-las, e uma descoberta fica onde todos que leem a Segurança de dados podem lê-la, então os spans desses serviços nunca são lidos, e as conversas de IA deles são informadas como não lidas.
 
 ## Como uma varredura coleta amostras
 
@@ -101,7 +101,7 @@ Algumas descobertas não podem ser limpas por uma regra, e **Limpar** diz por qu
 - Um dos seus próprios tipos de dados: adicione você mesmo uma regra de limpeza personalizada com o padrão dele.
 - Os detalhes da própria sessão (`sessions.*`): a ingestão de replays de sessão não executa regras de limpeza.
 
-**Limpar** cria a regra em seu nome, com as suas próprias permissões: Project Owners e Project Admins podem pressioná-lo, assim como uma equipe que pode criar regras de limpeza de logs, e regras de limpeza de traces para spans, exceções e chamadas de IA.
+**Limpar** cria a regra em seu nome, com as suas próprias permissões: Proprietários do projeto e Administradores do projeto podem pressioná-lo, assim como uma equipe que pode criar regras de limpeza de logs, e regras de limpeza de traces para spans, exceções e chamadas de IA.
 
 ## O que conta como limpo
 

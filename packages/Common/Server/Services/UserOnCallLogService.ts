@@ -37,6 +37,10 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import logger from "../Utils/Logger";
+import OnCallRuleClaimsInFlight, {
+  OnCallRuleClaimInFlight,
+  OnCallRuleClaimSettlement,
+} from "../Utils/OnCall/OnCallRuleClaimsInFlight";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import { ON_CALL_PAGE_SENT_STATUS_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
@@ -158,16 +162,156 @@ export class Service extends DatabaseService<Model> {
     userNotificationRuleId: ObjectID;
     // Absent (or 0) for the rule's first push.
     repeatNumber?: number | undefined;
+    // The moment the claim holds, so it can be given back (issue #8407); now when absent.
+    claimedAt?: Date | undefined;
   }): Promise<boolean> {
-    const ruleId: string = data.userNotificationRuleId.toString();
-
     return await this.claimNotificationExecution({
       userOnCallLogId: data.userOnCallLogId,
-      claimKey:
-        data.repeatNumber && data.repeatNumber > 0
-          ? getRepeatClaimKey(ruleId, data.repeatNumber)
-          : ruleId,
+      claimKey: this.getNotificationRuleClaimKey(data),
+      claimedAt: data.claimedAt,
     });
+  }
+
+  // A rule's claim key: the rule's id for its first push, a key of its own for each repeat.
+  public getNotificationRuleClaimKey(data: {
+    userNotificationRuleId: ObjectID;
+    repeatNumber?: number | undefined;
+  }): string {
+    const ruleId: string = data.userNotificationRuleId.toString();
+
+    return data.repeatNumber && data.repeatNumber > 0
+      ? getRepeatClaimKey(ruleId, data.repeatNumber)
+      : ruleId;
+  }
+
+  /*
+   * Gives a rule's claim back, so the next tick sends it (issue #8407): its
+   * send failed before anything of it reached a sender (OnCallSendAttempt),
+   * so sending it again pages nobody twice. Only the claim taken at
+   * `claimedAt` - the one the caller took - is given back: one UPDATE that
+   * removes the key while it still holds that moment. Returns whether it
+   * did; throws as the database does.
+   */
+  @CaptureSpan()
+  public async releaseNotificationRuleClaim(data: {
+    userOnCallLogId: ObjectID;
+    claimKey: string;
+    claimedAt: Date;
+  }): Promise<boolean> {
+    const rows: Array<{ _id: string }> =
+      await this.getRepository().manager.query(
+        `UPDATE "UserOnCallLog"
+           SET "executedNotificationRules" = (
+                 COALESCE("executedNotificationRules", '{}')::jsonb - $2::text
+               )::json
+         WHERE "_id" = $1::uuid
+           AND (COALESCE("executedNotificationRules", '{}')::jsonb ->> $2::text) = $3::text
+         RETURNING "_id"`,
+        [
+          data.userOnCallLogId.toString(),
+          data.claimKey,
+          data.claimedAt.toISOString(),
+        ],
+      );
+
+    return Array.isArray(rows) && rows.length > 0;
+  }
+
+  /*
+   * A rule's claim whose page never finished (OnCallRuleClaimsInFlight,
+   * issue #8407), at the log's next try: the person's-log worker
+   * (UserOnCallLog:ExecutePendingExecutions) settles it before it works on
+   * the log.
+   *
+   * Left alone while its page may still be on its way - less than
+   * SETTLE_AFTER_MS old, unless it was owed back. Forgotten when the log no
+   * longer holds it: it was given back, or never taken. Kept when a
+   * notification row of its rule was written since it was taken: that send
+   * may have reached its sender, and sending it again could page twice.
+   * Otherwise nothing of it was sent, and it is given back - and taken off
+   * `log`, as the worker read it, so this try sends the rule. Says which
+   * it was; throws as the database does, and the claim stays in flight for
+   * the try after.
+   */
+  @CaptureSpan()
+  public async settleRuleClaimInFlight(data: {
+    // The log, as the worker read it: with its executedNotificationRules.
+    log: Model;
+    claim: OnCallRuleClaimInFlight;
+    now: Date;
+  }): Promise<OnCallRuleClaimSettlement> {
+    const log: Model = data.log;
+    const claim: OnCallRuleClaimInFlight = data.claim;
+
+    if (
+      !claim.owed &&
+      data.now.getTime() - claim.claimedAt.getTime() <
+        OnCallRuleClaimsInFlight.SETTLE_AFTER_MS
+    ) {
+      return OnCallRuleClaimSettlement.NotYet;
+    }
+
+    const executed: JSONObject = log.executedNotificationRules || {};
+
+    if (
+      !OnCallRuleClaimsInFlight.isClaimTakenAt(claim, executed[claim.claimKey])
+    ) {
+      await OnCallRuleClaimsInFlight.forget(log.id);
+      return OnCallRuleClaimSettlement.Settled;
+    }
+
+    if (!claim.owed) {
+      const rowsSinceTheClaim: PositiveNumber =
+        await UserOnCallLogTimelineService.countBy({
+          query: {
+            userNotificationLogId: log.id!,
+            // The fallback has no rule: any notification of the log since is its own.
+            ...(claim.ruleId
+              ? { userNotificationRuleId: new ObjectID(claim.ruleId) }
+              : {}),
+            // A little before: the row's moment is the database's, the claim's this process's.
+            createdAt: QueryHelper.greaterThanEqualTo(
+              OneUptimeDate.addRemoveSeconds(claim.claimedAt, -30),
+            ),
+          },
+          skip: 0,
+          limit: 1,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (rowsSinceTheClaim.toNumber() > 0) {
+        logger.warn(
+          `On-call log ${log.id?.toString()}: the page of notification rule ${claim.ruleId} claimed at ${claim.claimedAt.toISOString()} never finished, and wrote a notification; it may have been sent, so it is not sent again.`,
+        );
+
+        await OnCallRuleClaimsInFlight.forget(log.id);
+        return OnCallRuleClaimSettlement.Settled;
+      }
+    }
+
+    const released: boolean = await this.releaseNotificationRuleClaim({
+      userOnCallLogId: log.id!,
+      claimKey: claim.claimKey,
+      claimedAt: claim.claimedAt,
+    });
+
+    await OnCallRuleClaimsInFlight.forget(log.id);
+
+    if (!released) {
+      return OnCallRuleClaimSettlement.Settled;
+    }
+
+    logger.warn(
+      `On-call log ${log.id?.toString()}: the page of notification rule ${claim.ruleId} claimed at ${claim.claimedAt.toISOString()} never reached a sender; its claim is given back, and it is sent now.`,
+    );
+
+    const remaining: JSONObject = { ...executed };
+    delete remaining[claim.claimKey];
+    log.executedNotificationRules = remaining;
+
+    return OnCallRuleClaimSettlement.GivenBack;
   }
 
   /**
@@ -200,12 +344,15 @@ export class Service extends DatabaseService<Model> {
   public async claimNotificationExecution(data: {
     userOnCallLogId: ObjectID;
     claimKey: string;
+    // The moment the claim holds (releaseNotificationRuleClaim); now when absent.
+    claimedAt?: Date | undefined;
   }): Promise<boolean> {
     const ruleKey: string = data.claimKey;
+    const nowIso: string = (
+      data.claimedAt || OneUptimeDate.getCurrentDate()
+    ).toISOString();
 
     try {
-      const nowIso: string = OneUptimeDate.getCurrentDate().toISOString();
-
       const rows: Array<{ _id: string }> =
         await this.getRepository().manager.query(
           `UPDATE "UserOnCallLog"
@@ -248,7 +395,8 @@ export class Service extends DatabaseService<Model> {
         return false;
       }
 
-      executed[ruleKey] = OneUptimeDate.getCurrentDate();
+      // The same moment the atomic claim holds, so it can be given back the same way.
+      executed[ruleKey] = nowIso;
 
       await this.updateOneById({
         id: log.id!,
@@ -261,6 +409,115 @@ export class Service extends DatabaseService<Model> {
 
       return true;
     }
+  }
+
+  /*
+   * A PERSON'S LOG WITH NO RULE FOR ITS PAGE, THAT NEVER SENT ANYTHING, AT
+   * THE PERSON'S-LOG WORKER (issues #8469, #8470).
+   *
+   * A log's start pages a person with no rule for the page through their
+   * verified methods (handleNoMatchingNotificationRule, the fallback). A
+   * start that never got as far - its process stopped, or the database
+   * failed before it counted the person's rules - was handed to the worker
+   * (TimeoutStuckExecutions), which found no rules and completed the log
+   * having sent nothing; a fallback that failed for a moment ended the log
+   * in Error. Either way the person was paged by nothing.
+   *
+   * The worker hands such a log here, once it has checked the record still
+   * needs somebody: the start's no-rule handling runs for it - an opt-out,
+   * the project's switch, the fallback - and ends it as the start would
+   * have. A fallback that fails for a moment is thrown for the worker's
+   * next try, and ended as failed, with its alert, at the worker's last.
+   */
+  @CaptureSpan()
+  public async sendToLogWithNoRules(data: {
+    log: Model;
+    notificationRuleType: NotificationRuleType;
+    incidentSeverityId?: ObjectID | undefined;
+    alertSeverityId?: ObjectID | undefined;
+    // The worker's last try of the log: a fallback that fails ends it.
+    isLastTry: boolean;
+  }): Promise<void> {
+    await this.handleNoMatchingNotificationRule({
+      createdItem: data.log,
+      notificationRuleType: data.notificationRuleType,
+      incidentSeverityId: data.incidentSeverityId,
+      alertSeverityId: data.alertSeverityId,
+      severityName: await this.readSeverityNameForMessage({
+        incidentSeverityId: data.incidentSeverityId,
+        alertSeverityId: data.alertSeverityId,
+      }),
+      onRetryableFailure: data.isLastTry ? "end" : "rethrow",
+    });
+  }
+
+  // The severity's name, for prose: "this severity" when it cannot be read.
+  private async readSeverityNameForMessage(data: {
+    incidentSeverityId?: ObjectID | undefined;
+    alertSeverityId?: ObjectID | undefined;
+  }): Promise<string> {
+    try {
+      if (data.incidentSeverityId) {
+        const severity: IncidentSeverity | null =
+          await IncidentSeverityService.findOneById({
+            id: data.incidentSeverityId,
+            select: { name: true },
+            props: { isRoot: true },
+          });
+
+        return severity?.name || "this severity";
+      }
+
+      if (data.alertSeverityId) {
+        const severity: AlertSeverity | null =
+          await AlertSeverityService.findOneById({
+            id: data.alertSeverityId,
+            select: { name: true },
+            props: { isRoot: true },
+          });
+
+        return severity?.name || "this severity";
+      }
+    } catch (err) {
+      logger.debug(
+        `Could not read the name of a severity for an on-call message; it says "this severity": ${err}`,
+      );
+    }
+
+    return "this severity";
+  }
+
+  /*
+   * An immediate rule of a new log failed as the log started (issue #8407):
+   * a database error as it was sent, say. The log is handed to the
+   * person's-log worker (UserOnCallLog:ExecutePendingExecutions) now, which
+   * sends within a minute what the start did not - a rule whose send
+   * reached no sender gave its claim back - and tries a log that keeps
+   * failing a few more times before it ends it (OnCallPolicyRunRetry). It
+   * used to stay Started, and TimeoutStuckExecutions ended it in Error five
+   * minutes later: the person's rules - all of them - were never sent.
+   *
+   * Nothing is thrown back to the page that created the log: the person is
+   * paged from here, and the page goes on to the next person.
+   */
+  private async handStartedLogToTheWorker(
+    createdItem: Model,
+    error: unknown,
+  ): Promise<void> {
+    logger.error(
+      `On-call log ${createdItem.id?.toString()}: a notification rule failed as the log started; the person's-log worker sends what is left of it.`,
+    );
+    logger.error(error);
+
+    await this.updateOneById({
+      id: createdItem.id!,
+      data: {
+        status: UserNotificationExecutionStatus.Executing,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()
@@ -664,29 +921,34 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-    for (const immediateNotificationRuleItem of immediateNotificationRule) {
-      await UserNotificationRuleService.executeNotificationRuleItem(
-        immediateNotificationRuleItem.id!,
-        {
-          userNotificationLogId: createdItem.id!,
-          projectId: createdItem.projectId!,
-          triggeredByIncidentId: createdItem.triggeredByIncidentId,
-          triggeredByAlertId: createdItem.triggeredByAlertId,
-          triggeredByAlertEpisodeId: createdItem.triggeredByAlertEpisodeId,
-          triggeredByIncidentEpisodeId:
-            createdItem.triggeredByIncidentEpisodeId,
-          userNotificationEventType: createdItem.userNotificationEventType!,
-          onCallPolicyExecutionLogId:
-            createdItem.onCallDutyPolicyExecutionLogId,
-          onCallPolicyId: createdItem.onCallDutyPolicyId,
-          onCallPolicyEscalationRuleId:
-            createdItem.onCallDutyPolicyEscalationRuleId,
-          userBelongsToTeamId: createdItem.userBelongsToTeamId,
-          onCallDutyPolicyExecutionLogTimelineId:
-            createdItem.onCallDutyPolicyExecutionLogTimelineId,
-          onCallScheduleId: createdItem.onCallDutyScheduleId,
-        },
-      );
+    try {
+      for (const immediateNotificationRuleItem of immediateNotificationRule) {
+        await UserNotificationRuleService.executeNotificationRuleItem(
+          immediateNotificationRuleItem.id!,
+          {
+            userNotificationLogId: createdItem.id!,
+            projectId: createdItem.projectId!,
+            triggeredByIncidentId: createdItem.triggeredByIncidentId,
+            triggeredByAlertId: createdItem.triggeredByAlertId,
+            triggeredByAlertEpisodeId: createdItem.triggeredByAlertEpisodeId,
+            triggeredByIncidentEpisodeId:
+              createdItem.triggeredByIncidentEpisodeId,
+            userNotificationEventType: createdItem.userNotificationEventType!,
+            onCallPolicyExecutionLogId:
+              createdItem.onCallDutyPolicyExecutionLogId,
+            onCallPolicyId: createdItem.onCallDutyPolicyId,
+            onCallPolicyEscalationRuleId:
+              createdItem.onCallDutyPolicyEscalationRuleId,
+            userBelongsToTeamId: createdItem.userBelongsToTeamId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              createdItem.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: createdItem.onCallDutyScheduleId,
+          },
+        );
+      }
+    } catch (err) {
+      await this.handStartedLogToTheWorker(createdItem, err);
+      return createdItem;
     }
 
     // update this item to be processed.
@@ -1023,6 +1285,13 @@ export class Service extends DatabaseService<Model> {
     incidentSeverityId: ObjectID | undefined;
     alertSeverityId: ObjectID | undefined;
     severityName: string;
+    /*
+     * A fallback that failed before anything of it reached a sender, and
+     * can be tried again (issue #8469): handed to the person's-log worker
+     * as the log starts, thrown for the worker's next try when it is the
+     * worker's, ended as failed at the worker's last try.
+     */
+    onRetryableFailure?: "hand-to-worker" | "rethrow" | "end" | undefined;
   }): Promise<void> {
     const createdItem: Model = data.createdItem;
 
@@ -1149,6 +1418,37 @@ export class Service extends DatabaseService<Model> {
      * nothing about them needs fixing, so the log says so and no owner is
      * told a page went undelivered.
      */
+    /*
+     * The fallback failed before it sent anything, for a reason a retry can
+     * outlast - the database lost as it read the person's methods - and its
+     * claim was given back (issue #8469): it is tried again rather than the
+     * log ended in Error, and the person paged by nothing. As the log starts,
+     * the person's-log worker takes it from here (sendToLogWithNoRules), and
+     * tries it a few more times before it ends it.
+     */
+    if (fallbackResult?.toTryAgainAfter && data.onRetryableFailure !== "end") {
+      if (data.onRetryableFailure === "rethrow") {
+        throw fallbackResult.toTryAgainAfter;
+      }
+
+      logger.error(
+        `On-call fallback for UserOnCallLog ${createdItem.id?.toString()} failed before it sent anything; the person's-log worker tries it again.`,
+      );
+      logger.error(fallbackResult.toTryAgainAfter);
+
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          status: UserNotificationExecutionStatus.Executing,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return;
+    }
+
     if (
       fallbackResult &&
       fallbackResult.outcome === FallbackNotificationOutcome.NotAProjectMember

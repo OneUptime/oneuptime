@@ -23,7 +23,7 @@ Ogni minuto, OneUptime interroga ogni connessione abilitata il cui intervallo di
 
 ## Prima di iniziare
 
-- In OneUptime, il ruolo Project Owner, Project Admin o Security Admin. I ruoli Security Member e Security Viewer vedono le connessioni e la cronologia delle loro esecuzioni, ma non possono modificarle.
+- In OneUptime, il ruolo Proprietario del progetto, Amministratore del progetto o Amministratore della sicurezza. I ruoli Membro della sicurezza e Visualizzatore della sicurezza vedono le connessioni e la cronologia delle loro esecuzioni, ma non possono modificarle.
 - Un tenant Microsoft Entra con una licenza Microsoft Defender XDR: qualsiasi carico di lavoro di Defender integrato nel portale Microsoft Defender, come Defender for Endpoint, for Identity, for Office 365 o for Cloud Apps.
 - Un ruolo Entra che può registrare applicazioni, come Amministratore applicazione, e un Amministratore globale o un Amministratore ruolo con privilegi per concedere il consenso dell'amministratore.
 - HTTPS in uscita dall'app e dai worker di OneUptime verso `login.microsoftonline.com` e `graph.microsoft.com`, o verso `login.microsoftonline.us` e `graph.microsoft.us` per Azure Government.

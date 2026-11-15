@@ -15,6 +15,7 @@ import {
   CAFE_PAGE,
   CAFE_SPELLINGS,
   PAGES_WITH_PERSONAL_DATA,
+  PAGES_WITH_SECRETS,
   PAGE_SPELLINGS,
   PageSpellingCase,
   addressOf,
@@ -698,7 +699,11 @@ describe("ProductAnalytics", (): void => {
      * (Common Tests/Helpers/PageSpellings).
      */
     it.each(
-      PAGES_WITH_PERSONAL_DATA.map(
+      /*
+       * #8385: and a JSON Web Token, or an address escaped twice, which the
+       * scrubber kept until then (PAGES_WITH_SECRETS).
+       */
+      [...PAGES_WITH_PERSONAL_DATA, ...PAGES_WITH_SECRETS].map(
         (row: PageSpellingCase): [string, PageSpellingCase] => {
           return [row.name, row];
         },
@@ -710,6 +715,8 @@ describe("ProductAnalytics", (): void => {
 
         expect(page).toBe(row.page);
         expect(page).not.toContain("@");
+        expect(page).not.toContain("eyJhbGci");
+        expect(page).not.toContain("%2540");
 
         const serverPages: Array<string> = [page, row.sent, addressOf(row)].map(
           (sentPage: string): string => {
@@ -745,7 +752,11 @@ describe("ProductAnalytics", (): void => {
     );
 
     it("names every page as the server names the location's whole address", (): void => {
-      for (const row of [...PAGE_SPELLINGS, ...PAGES_WITH_PERSONAL_DATA]) {
+      for (const row of [
+        ...PAGE_SPELLINGS,
+        ...PAGES_WITH_PERSONAL_DATA,
+        ...PAGES_WITH_SECRETS,
+      ]) {
         expect([
           row.name,
           readProductAnalyticsPage(row.location as Location),

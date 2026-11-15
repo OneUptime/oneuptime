@@ -111,11 +111,11 @@ flowchart TB
 | Estado | Qué significa |
 | --- | --- |
 | **Esperando** | Una regla de guardia configurada como **Solo en horario laboral** hace esperar la ejecución hasta que empieza ese horario: dice cuándo empiezan los avisos, y hasta entonces no avisa a nadie. Termina sin avisar si el incidente o la alerta se reconoce o se resuelve antes. Empieza a avisar en ese momento si el incidente o la alerta cambia y ahora coincide con una regla de guardia que avisa de inmediato. |
-| **Programado**, **Iniciado** | La ejecución se está preparando. Una que sigue aquí al cabo de 5 minutos se detiene como **Error**. |
-| **Ejecutándose** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. |
+| **Programado**, **Iniciado** | La ejecución se está preparando. Una que sigue aquí al cabo de 5 minutos no terminó de iniciarse: pasa a **Ejecutándose** y avisa desde donde se detuvo su inicio. Un aviso directo o un aviso de prueba que sigue aquí se detiene como **Error**. |
+| **Ejecutándose** | La ejecución está avisando. OneUptime la hace avanzar cada minuto. Un paso que falla un momento, por ejemplo porque no se pudo llegar a la base de datos, se vuelve a intentar un minuto después, luego a los 2 y a los 4 minutos, y después cada 5 minutos. |
 | **Ejecución completada** | Alguien lo reconoció, el incidente o la alerta se resolvió, se usaron todas las reglas y repeticiones, o la política se archivó. |
 | **Ejecución completada - no se notificó a nadie** | La ejecución recorrió todas las reglas sin avisar a nadie: normalmente una programación sin nadie de guardia, o un nivel sin destinatarios. |
-| **Error** | La ejecución falló. **Ver mensaje de estado** dice por qué. |
+| **Error** | La ejecución falló: un paso falló de una forma que un nuevo intento no puede arreglar, como una regla de escalado eliminada, o falló 10 intentos seguidos, durante unos 37 minutos. **Ver mensaje de estado** dice por qué. |
 
 Encontrarás registros de ejecución en tres lugares:
 

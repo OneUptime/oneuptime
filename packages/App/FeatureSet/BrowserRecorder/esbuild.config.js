@@ -170,9 +170,20 @@ const FORBIDDEN_IN_BUNDLE = [
  * bytes raw / 104678 gzip; before it 348775 / 104156. The gzip budget still
  * holds it and is unchanged. The loader does not carry any of it and is
  * unchanged at 13333 bytes raw. Same rule.
+ *
+ * Raised again from 344 KB to 346 KB on 2026-11-15 for what Common's
+ * UrlScrubber and page matcher read now (issues #8384, #8385, #8195): a
+ * scheme with no origin keeps its scheme and host instead of "null", a
+ * JSON Web Token and an address escaped twice in a path are redacted, and a
+ * page pattern is compared in the spelling a person reads ("/café"). The
+ * build was already over the budget before them: 352562 bytes raw / 105250
+ * gzip, 306 bytes past it, after the recorder named its pages with
+ * ProductAnalyticsEvents' scrubbing rule (#8197). Measured after:
+ * recorder.js 352794 bytes raw / 105343 gzip. The gzip budget still holds
+ * it and is unchanged; the loader carries none of it. Same rule.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
-const RECORDER_MAX_BYTES = 344 * 1024;
+const RECORDER_MAX_BYTES = 346 * 1024;
 
 /*
  * Gzip budgets, which are the numbers a customer's browser actually pays.

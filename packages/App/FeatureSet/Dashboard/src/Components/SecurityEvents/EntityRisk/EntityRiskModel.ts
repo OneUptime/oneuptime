@@ -7,9 +7,10 @@ import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   SecurityEntityCriticality,
   SecurityEntityRiskContribution,
-  SecurityEntityRiskHistoryPoint,
+  SecurityEntityRiskHistoryDay,
   SecurityEntityRiskLevel,
 } from "Common/Types/SecurityCase/SecurityEntityRisk";
+import Timezone from "Common/Types/Timezone";
 import {
   getCriticalityWeight,
   getEntityRiskLevel,
@@ -192,23 +193,25 @@ export function getEntityRiskBreakdown(data: {
 
 /*
  * The history as the day bars draw it: each day's score under its level, so
- * a bar is coloured by how risky the entity was that day.
+ * a bar is coloured by how risky the entity was that day. The days are the
+ * reader's, in `timezone` - the zone they picked, the days the Security
+ * overview's bars count (issue #8207) - and UTC's when none is given.
  */
 export function getEntityRiskHistoryDays(data: {
   history: unknown;
   threshold: number;
   now: Date;
   days?: number | undefined;
+  timezone?: Timezone | undefined;
 }): Array<DayCount> {
-  const series: Array<SecurityEntityRiskHistoryPoint> = getRiskHistorySeries({
-    history: Array.isArray(data.history)
-      ? (data.history as Array<SecurityEntityRiskHistoryPoint>)
-      : [],
+  const series: Array<SecurityEntityRiskHistoryDay> = getRiskHistorySeries({
+    history: data.history,
     now: data.now,
     days: data.days || ENTITY_RISK_HISTORY_DAYS,
+    timezone: data.timezone,
   });
 
-  return series.map((point: SecurityEntityRiskHistoryPoint): DayCount => {
+  return series.map((point: SecurityEntityRiskHistoryDay): DayCount => {
     const level: SecurityEntityRiskLevel = getEntityRiskLevel(
       point.score,
       data.threshold,

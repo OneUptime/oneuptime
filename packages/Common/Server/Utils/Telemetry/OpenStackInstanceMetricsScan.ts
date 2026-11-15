@@ -14,6 +14,7 @@ import {
   findOpenStackInstanceId,
 } from "../../../Types/OpenStack/OpenStackInstanceMetrics";
 import { OPENSTACK_REGION_ATTRIBUTE } from "./OpenStackSnapshotScan";
+import { readOwnValue, writeOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * ------------------------------------------------------------------
@@ -837,8 +838,15 @@ export function applyOpenStackInstanceMetricSamples(data: {
         data.states,
         sample,
       );
+      /*
+       * The domain is libvirt's name for it, as its exporter labels it:
+       * written and read as the map's own key, so a domain named
+       * "__proto__" is kept (an assignment dropped it), and one named
+       * "constructor" that nothing identified is no instance (a plain
+       * read found the Object function, and used it as an instance's id).
+       */
       if (sample.domain) {
-        state.d[sample.domain] = sample.instanceId;
+        writeOwnValue(state.d, sample.domain, sample.instanceId);
       }
       const instance: OpenStackInstanceMetricsInstanceState = instanceOf(
         state,
@@ -874,7 +882,7 @@ export function applyOpenStackInstanceMetricSamples(data: {
     );
     const instanceId: string | null =
       sample.instanceId ||
-      (sample.domain ? state.d[sample.domain] || null : null);
+      (sample.domain ? readOwnValue(state.d, sample.domain) || null : null);
 
     const placement: OpenStackInstancePlacement | undefined = instanceId
       ? data.placements.get(instanceId)

@@ -24,7 +24,7 @@ flowchart LR
 
 ## Avant de commencer
 
-- **Un rôle qui peut modifier le projet.** Les Project Owners et les Project Admins modifient la plupart de ces paramètres. La facturation, les canaux de notification et la suppression du projet demandent davantage, comme le dit chaque section.
+- **Un rôle qui peut modifier le projet.** Les Propriétaires du projet et les Administrateurs du projet modifient la plupart de ces paramètres. La facturation, les canaux de notification et la suppression du projet demandent davantage, comme le dit chaque section.
 - **Sur OneUptime Cloud, le forfait qui inclut un paramètre.** Certains paramètres demandent un forfait : voir [Paramètres qui demandent un forfait](/docs/configuration/billing#paramètres-qui-demandent-un-forfait).
 
 ## Trouver un paramètre
@@ -50,11 +50,11 @@ flowchart LR
 
 **Détails du projet** montre le nom du projet et son ID :
 
-- **Nom du projet** : cliquez sur **Modifier : Projet** pour renommer le projet. Un nom compte au moins 2 caractères. Renommer demande un Project Owner, ou l'autorisation de modifier le projet ou de gérer la facturation.
+- **Nom du projet** : cliquez sur **Modifier : Projet** pour renommer le projet. Un nom compte au moins 2 caractères. Renommer demande un Propriétaire du projet, ou l'autorisation de modifier le projet ou de gérer la facturation.
 - **ID du projet** : copiez-le pour l'API, la CLI et Terraform, ou quand vous écrivez au support.
 - **Résidence des données** : sur OneUptime Cloud, l'endroit où les données de votre projet doivent être conservées, quand OneUptime l'a enregistré. Seul OneUptime le définit.
 
-**Accès du support client**, sur OneUptime Cloud, décide si l'équipe de support de OneUptime peut ouvrir le projet. Activez **Autoriser le support OneUptime à accéder à ce projet** quand vous voulez son aide : OneUptime demande d'abord, car le support peut alors voir et modifier tout le projet, et vous cliquez sur **Autoriser le support**. Désactivez-le une fois qu'il a terminé : c'est enregistré aussitôt. Les Project Owners et les Project Admins le modifient.
+**Accès du support client**, sur OneUptime Cloud, décide si l'équipe de support de OneUptime peut ouvrir le projet. Activez **Autoriser le support OneUptime à accéder à ce projet** quand vous voulez son aide : OneUptime demande d'abord, car le support peut alors voir et modifier tout le projet, et vous cliquez sur **Autoriser le support**. Désactivez-le une fois qu'il a terminé : c'est enregistré aussitôt. Les Propriétaires du projet et les Administrateurs du projet le modifient.
 
 ## Produits
 
@@ -66,9 +66,9 @@ Sur un serveur auto-hébergé, un administrateur principal peut aussi désactive
 
 Un nouveau projet part de ce que son propriétaire a dit vouloir faire sur l'accueil : les essentiels, les paramètres et ce dont ces objectifs ont besoin sont affichés, et le reste est masqué. Un projet qui a passé la question, ou qui a été créé avant elle, affiche tous les produits. Dès que quelqu'un modifie la liste ici, les objectifs ne la modifient plus.
 
-Chaque produit indique ce qu'il est pour ce projet : **Utilisée**, **Non configuré** ou, sur OneUptime Cloud, l'offre dont il a besoin. Quand un produit masqué commence à recevoir des données, l'accueil le signale aux propriétaires et aux administrateurs du projet et propose **L'afficher** ou **Laisser masqué**.
+Chaque produit indique ce qu'il est pour ce projet : **Utilisée**, **Non configuré** ou, sur OneUptime Cloud, l'offre dont il a besoin. Quand un produit masqué commence à recevoir des données, l'accueil le signale aux Propriétaires du projet et aux Administrateurs du projet et propose **L'afficher** ou **Laisser masqué**.
 
-Les propriétaires du projet, ses administrateurs et toute personne autorisée à modifier le projet la changent ; tous les autres membres du projet peuvent la consulter.
+Les Propriétaires du projet, les Administrateurs du projet et toute personne autorisée à modifier le projet la changent ; tous les autres membres du projet peuvent la consulter.
 
 ## Étiquettes
 
@@ -96,7 +96,7 @@ Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au l
 
 **Paramètres du projet → Notifications** contient la façon dont le projet envoie ses notifications :
 
-- **Canaux de notification** : la carte **Canaux de notification** active ou désactive les SMS, les appels téléphoniques, WhatsApp et Telegram pour le projet. Les quatre sont désactivés au départ. Un Project Owner, un **Administrateur de la facturation** ou une personne avec **Manage Billing** les active. La page contient aussi, repliés sous **Plus de paramètres**, les propres serveurs de messagerie du projet, dans **Configurations SMTP personnalisées** (voir [SMTP](/docs/emails/smtp)), et son propre compte Twilio (voir [Intégration Twilio](/docs/self-hosted/twilio-integration)). Sur OneUptime Cloud, elle contient le solde qui paie ces messages : voir [Soldes prépayés](/docs/configuration/billing#soldes-prépayés).
+- **Canaux de notification** : la carte **Canaux de notification** active ou désactive les SMS, les appels téléphoniques, WhatsApp et Telegram pour le projet. Les quatre sont désactivés au départ. Un Propriétaire du projet, un **Administrateur de la facturation** ou une personne avec **Manage Billing** les active. La page contient aussi, repliés sous **Plus de paramètres**, les propres serveurs de messagerie du projet, dans **Configurations SMTP personnalisées** (voir [SMTP](/docs/emails/smtp)), et son propre compte Twilio (voir [Intégration Twilio](/docs/self-hosted/twilio-integration)). Sur OneUptime Cloud, elle contient le solde qui paie ces messages : voir [Soldes prépayés](/docs/configuration/billing#soldes-prépayés).
 - **Journaux de notification** : chaque notification que le projet a envoyée, avec un onglet par canal : **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Appel**, **Push** et **Espace de travail**.
 - **Applications mobiles** : où obtenir les applications iOS et Android. Voir [Vue d'ensemble des applications](/docs/mobile-desktop-apps/index).
 
@@ -127,7 +127,7 @@ Cliquez sur **Supprimer le projet**. OneUptime supprime le projet et vous en fai
 :::
 
 > [!CAUTION]
-> La suppression du projet est irréversible. Elle demande un Project Owner, ou l'autorisation de supprimer le projet.
+> La suppression du projet est irréversible. Elle demande un Propriétaire du projet, ou l'autorisation de supprimer le projet.
 
 Sur OneUptime Cloud, supprimer le projet est la façon de résilier son forfait : la facturation s'arrête quand le projet est supprimé. Un projet facturé via une marketplace cloud reçoit un dernier prélèvement pour son utilisation, et son achat sur la marketplace reste actif jusqu'à ce que vous l'y résiliiez.
 
@@ -138,7 +138,7 @@ Toutes les sections sauf **Basique** sont repliées au départ. Cliquez sur le t
 :::
 
 :::details Modifier : Projet est verrouillé
-Renommer le projet demande un Project Owner, ou l'autorisation de modifier le projet ou de gérer la facturation. Le bouton verrouillé nomme l'autorisation qu'il vous faut.
+Renommer le projet demande un Propriétaire du projet, ou l'autorisation de modifier le projet ou de gérer la facturation. Le bouton verrouillé nomme l'autorisation qu'il vous faut.
 :::
 
 :::details Supprimer le projet reste verrouillé dans la boîte de dialogue

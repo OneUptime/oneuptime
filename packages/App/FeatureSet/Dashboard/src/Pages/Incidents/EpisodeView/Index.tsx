@@ -46,6 +46,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -57,6 +58,7 @@ import { EventMetricSubject } from "../../../Utils/EventMetricInvestigation";
 import {
   DerivedTelemetrySnapshot,
   EMPTY_TELEMETRY_SNAPSHOT,
+  TelemetrySnapshotSource,
   deriveTelemetrySnapshot,
 } from "../../../Utils/TelemetrySnapshot";
 import { JSONObject } from "Common/Types/JSON";
@@ -100,6 +102,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { EventStateTimelineDate } from "../../../Utils/EventDuration";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getUnsetText } from "../../../Components/Dashboard/Components/DashboardWidgetFallbackWords";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useRecordChannelLinks, {
   getOpenInChatActions,
@@ -164,8 +167,24 @@ const IncidentEpisodeView: FunctionComponent<
    * Members are the episode's membership, as on the member card: an incident
    * that joined this episode and then a later one is still this one's.
    */
-  const [telemetrySnapshot, setTelemetrySnapshot] =
-    useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
+  const [snapshotSource, setSnapshotSource] =
+    useState<TelemetrySnapshotSource | null>(null);
+
+  /*
+   * Worked out as the page is drawn, so the line saying which series the
+   * charts were narrowed to is in the reader's words, and follows the
+   * language when it changes after the episode was read: "(nicht gesetzt)"
+   * for a group whose attribute held nothing, on a German page (#8269).
+   */
+  const unsetLabel: string = getUnsetText(translator);
+  const telemetrySnapshot: DerivedTelemetrySnapshot = useMemo(() => {
+    return snapshotSource
+      ? deriveTelemetrySnapshot({
+          ...snapshotSource,
+          unsetLabel: unsetLabel,
+        })
+      : EMPTY_TELEMETRY_SNAPSHOT;
+  }, [snapshotSource, unsetLabel]);
 
   // The member whose telemetry the snapshot shows: its monitor's rule is drawn.
   const [snapshotMemberId, setSnapshotMemberId] = useState<string | undefined>(
@@ -308,12 +327,10 @@ const IncidentEpisodeView: FunctionComponent<
         return;
       }
 
-      setTelemetrySnapshot(
-        deriveTelemetrySnapshot({
-          storedTelemetryQuery: firstMember?.telemetryQuery,
-          seriesLabels: firstMember?.seriesLabels as JSONObject | undefined,
-        }),
-      );
+      setSnapshotSource({
+        storedTelemetryQuery: firstMember?.telemetryQuery,
+        seriesLabels: firstMember?.seriesLabels as JSONObject | undefined,
+      });
       setSnapshotMemberId(firstMember?.id?.toString() || undefined);
 
       setEpisode(loaded);

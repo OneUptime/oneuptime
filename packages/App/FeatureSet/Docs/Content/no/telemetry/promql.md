@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynner
 
 - **Målinger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller fra en agent som [OpenTelemetry-collectoren for verter](/docs/telemetry/host-otel-collector).
-- **En rolle som kan lese målinger.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Metrics. En rolle som er begrenset til bestemte tjenester, leser bare målingene deres.
+- **En rolle som kan lese målinger.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Metrics. En rolle som er begrenset til bestemte tjenester, leser bare målingene deres.
 - **For Grafana eller et skript: en API-nøkkel for prosjektet** med en av disse rollene eller tillatelsen Read Metrics. Se [Opprett en API-nøkkel](/docs/api-reference/api-reference#opprett-en-api-nøkkel). På OneUptime Cloud krever API-nøkler abonnementet **Growth**.
 
 ## Skriv en spørring

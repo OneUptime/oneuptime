@@ -1,5 +1,6 @@
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { readStoredAddress } from "Common/Utils/Rum/UserFlow";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -436,20 +437,24 @@ export function overlayCurrentReplayUserSession(
  * pathname + search of an absolute URL, so a list of sessions from one
  * application reads "/checkout?step=2" rather than repeating the host on
  * every row; a value that is not a URL (a relative path, a route name)
- * is shown as it is. A local copy rather than the list page's pathOf:
- * see the module comment on why this file does not import the table.
+ * is shown as it is, and a React Native screen stored as "null/<route>"
+ * before #8384 by its route (readStoredAddress). A local copy rather than
+ * the list page's pathOf: see the module comment on why this file does not
+ * import the table.
  */
 export function replayUserSessionPathOf(url: string): string {
   if (!url) {
     return "";
   }
 
+  const stored: string = readStoredAddress(url);
+
   try {
-    const parsed: globalThis.URL = new globalThis.URL(url);
+    const parsed: globalThis.URL = new globalThis.URL(stored);
 
     return `${parsed.pathname}${parsed.search}` || "/";
   } catch {
-    return url;
+    return stored;
   }
 }
 

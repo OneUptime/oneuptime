@@ -87,6 +87,7 @@ const MODEL_ID: ObjectID = new ObjectID("33333333-0000-4000-8000-000000000002");
 const SETTINGS_PATH: string = `/dashboard/${PROJECT_ID}/slos/${MODEL_ID.toString()}/settings`;
 
 const CARD_TITLES_IN_ORDER: Array<string> = [
+  "What It Measures",
   "Objective",
   "Compliance Period",
   "Downtime Calculation",
@@ -94,6 +95,7 @@ const CARD_TITLES_IN_ORDER: Array<string> = [
 ];
 
 const DETAIL_IDS: Array<string> = [
+  "slo-settings-measures",
   "slo-settings-objective",
   "slo-settings-period",
   "slo-settings-downtime",
@@ -254,7 +256,7 @@ afterEach(() => {
 });
 
 describe("SLO Settings page", () => {
-  test("stacks the four settings cards, then the archive card", async () => {
+  test("stacks the five settings cards, then the archive card", async () => {
     openSettings();
 
     await findText("Archive SLO");
@@ -1050,5 +1052,85 @@ describe("the Evaluation switch", () => {
       submitButtonText: SloEvaluationSwitchCopy.turnOffConfirmButton,
       submitButtonType: ButtonStyleType.DANGER,
     });
+  });
+});
+
+/*
+ * A request SLO's Settings: What It Measures names its SLI type, services
+ * and threshold; its error budget is in requests; and it has no downtime to
+ * calculate, so that card is not drawn at all.
+ */
+describe("SLO Settings page - a request SLO", () => {
+  const REQUEST_SLO: SloFields = {
+    sliType: SliType.RequestLatency,
+    latencyThresholdInMilliseconds: 300,
+    services: [
+      { _id: "6c000000-0000-4000-8000-000000000001", name: "checkout" },
+      { _id: "6c000000-0000-4000-8000-000000000002", name: "payments" },
+    ],
+  };
+
+  test("names what it measures: the SLI type, its services and its threshold", async () => {
+    serveSlo(REQUEST_SLO);
+    openSettings();
+
+    await findText("Request latency");
+    await findText("checkout");
+    await findText("payments");
+    await findText("300 ms");
+    await findText("A request served within this counts as fast enough.");
+  });
+
+  test("says its error budget in requests", async () => {
+    serveSlo(REQUEST_SLO);
+    openSettings();
+
+    await findText("0.1% of requests: 1 bad request in every 1,000");
+    await findText(
+      "The bad requests this objective allows before it is breached.",
+    );
+    expect(
+      screen.queryByText("43m 12s of downtime per 30-day window"),
+    ).toBeNull();
+  });
+
+  test("has no Downtime Calculation card", async () => {
+    serveSlo(REQUEST_SLO);
+    openSettings();
+
+    await findText("Archive SLO");
+    await findText("checkout");
+
+    const headings: Array<string> = Array.from(
+      document.querySelectorAll('[data-testid="card-details-heading"]'),
+    ).map((heading: Element): string => {
+      return heading.textContent?.trim() || "";
+    });
+
+    expect(headings).toEqual([
+      "What It Measures",
+      "Objective",
+      "Compliance Period",
+      "Evaluation",
+      "Archive SLO",
+    ]);
+  });
+
+  test("a request SLO with no services says so", async () => {
+    serveSlo({ ...REQUEST_SLO, services: [] });
+    openSettings();
+
+    await findText("No services chosen");
+  });
+
+  test("a Monitor Uptime SLO shows neither services nor a threshold", async () => {
+    openSettings();
+
+    await findText("Monitor uptime");
+    await findText("Downtime Calculation");
+    expect(screen.queryByText("No services chosen")).toBeNull();
+    expect(
+      screen.queryByText("A request served within this counts as fast enough."),
+    ).toBeNull();
   });
 });

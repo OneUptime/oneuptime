@@ -430,7 +430,7 @@ Queste funzionano senza credenziali, con i soli strumenti delle pagine di stato 
 | Cosa fa l'agente | Scegli in **Accesso** |
 | --- | --- |
 | Legge soltanto | **Visualizzatore**, oppure aggiungi permessi di lettura nella pagina della chiave |
-| Crea, aggiorna ed elimina anche | **Amministratore del progetto**, oppure aggiungi il ruolo Project Admin nella pagina della chiave |
+| Crea, aggiorna ed elimina anche | **Amministratore del progetto**, oppure aggiungi il ruolo Amministratore del progetto nella pagina della chiave |
 
 Dai a ogni chiave il minimo che le serve, ruota le chiavi regolarmente, tieni una chiave separata per ogni ambiente e controlla in OneUptime cosa fa ogni chiave.
 

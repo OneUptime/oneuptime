@@ -436,7 +436,7 @@ Vedi [Concetti fondamentali](/docs/introduction/core-concepts#i-tipi-di-regola).
 
 ### Ruolo
 
-Quattro cose diverse: le autorizzazioni che un team concede, come Project Owner o Project Admin; un **Ruolo personalizzato** che componi a partire dalle autorizzazioni; un **Ruolo dell'incidente**, la parte che qualcuno svolge in un incidente; e un **Network Device Role**, cosa fa un dispositivo sulla tua rete.
+Quattro cose diverse: le autorizzazioni che un team concede, come Proprietario del progetto o Amministratore del progetto; un **Ruolo personalizzato** che componi a partire dalle autorizzazioni; un **Ruolo dell'incidente**, la parte che qualcuno svolge in un incidente; e un **Network Device Role**, cosa fa un dispositivo sulla tua rete.
 
 Vedi [Utenti, team e autorizzazioni](/docs/permissions/index).
 

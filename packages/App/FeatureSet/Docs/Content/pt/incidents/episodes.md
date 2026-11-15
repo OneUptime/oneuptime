@@ -37,7 +37,7 @@ Em **Incidentes de membros**, **Remover** em uma linha, ou nas linhas selecionad
 
 ## Um só episódio por incidente
 
-Um incidente pode estar em vários episódios ao mesmo tempo. Para manter cada incidente em no máximo um episódio, ative **Um incidente só pode estar em um episódio** em **Incidentes → Configurações → Participação em episódios**. Para alertas, o interruptor é **Um alerta só pode estar em um episódio**, em **Alertas → Configurações → Participação em episódios**. Os dois ficam desativados até você ativá-los, e só Project Owners e Project Admins podem alterá-los.
+Um incidente pode estar em vários episódios ao mesmo tempo. Para manter cada incidente em no máximo um episódio, ative **Um incidente só pode estar em um episódio** em **Incidentes → Configurações → Participação em episódios**. Para alertas, o interruptor é **Um alerta só pode estar em um episódio**, em **Alertas → Configurações → Participação em episódios**. Os dois ficam desativados até você ativá-los, e só Proprietários do projeto e Administradores do projeto podem alterá-los.
 
 Enquanto ele está ativado, um incidente que está em um episódio não é adicionado a nenhum outro:
 
@@ -51,7 +51,7 @@ Ativá-lo não tira nenhum incidente de um episódio: um incidente que já está
 
 ## Quem pode adicionar
 
-Adicionar exige permissão para adicionar incidentes a um episódio, que os papéis Project Owner, Project Admin, Project Member, Incident Admin e Incident Member têm, assim como um papel personalizado com Create Incident Episode Member. Você só pode adicionar incidentes que consegue ver: um incidente privado só pode ser adicionado por seus proprietários e pelos proprietários e administradores do projeto. Adicionar a um novo episódio também exige permissão para criar um episódio. Quando você não pode usar uma ação, ela fica bloqueada, e a dica dela nomeia a permissão que falta.
+Adicionar exige permissão para adicionar incidentes a um episódio, que os papéis Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de incidentes e Membro de incidentes têm, assim como um papel personalizado com Create Incident Episode Member. Você só pode adicionar incidentes que consegue ver: um incidente privado só pode ser adicionado por seus proprietários e pelos proprietários e administradores do projeto. Adicionar a um novo episódio também exige permissão para criar um episódio. Quando você não pode usar uma ação, ela fica bloqueada, e a dica dela nomeia a permissão que falta.
 
 ## Com a API
 

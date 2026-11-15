@@ -12,6 +12,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import SliType from "../../Types/ServiceLevelObjective/SliType";
 import {
   SloRecommendedAlertSeverities,
   SloRecommendedAlertSeverity,
@@ -108,6 +109,15 @@ export const SLO_ARCHIVED_ROOT_CAUSE: string =
 export const SLO_DISABLED_OR_DELETED_ROOT_CAUSE: string =
   "Auto-resolved because the Service Level Objective was disabled or deleted.";
 
+// The largest latency threshold, in milliseconds: an hour.
+export const SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS: number = 3600000;
+
+export const SLO_LATENCY_THRESHOLD_ERROR_MESSAGE: string =
+  "The latency threshold must be a whole number of milliseconds from 1 to 3600000 (one hour).";
+
+export const SLO_LATENCY_THRESHOLD_REQUIRED_ERROR_MESSAGE: string =
+  "A Request Latency SLO needs a latency threshold: the milliseconds within which a request counts as good. Set latencyThresholdInMilliseconds, such as 300.";
+
 /*
  * What onBeforeDelete reads for onDeleteSuccess: the SLOs the delete may
  * remove, and the burn rate rules of each - Postgres cascades those away with
@@ -184,6 +194,30 @@ export class Service extends ProjectReferencesService<Model> {
         this.validateAtRiskThresholdPercentage(
           createBy.data.atRiskThresholdPercentage,
         );
+    }
+
+    /*
+     * A Request Latency SLO is measured against its threshold, so it is not
+     * created without one: it would only ever read Misconfigured. The
+     * threshold is validated whatever the SLI type, as windowDays is, so a
+     * later switch to Request Latency finds a usable value.
+     */
+    if (
+      createBy.data.latencyThresholdInMilliseconds !== undefined &&
+      createBy.data.latencyThresholdInMilliseconds !== null
+    ) {
+      createBy.data.latencyThresholdInMilliseconds =
+        this.validateLatencyThresholdInMilliseconds(
+          createBy.data.latencyThresholdInMilliseconds,
+        );
+    }
+
+    if (
+      createBy.data.sliType === SliType.RequestLatency &&
+      (createBy.data.latencyThresholdInMilliseconds === undefined ||
+        createBy.data.latencyThresholdInMilliseconds === null)
+    ) {
+      throw new BadDataException(SLO_LATENCY_THRESHOLD_REQUIRED_ERROR_MESSAGE);
     }
 
     /*
@@ -391,6 +425,21 @@ export class Service extends ProjectReferencesService<Model> {
         this.validateAtRiskThresholdPercentage(newAtRiskThresholdPercentage);
     }
 
+    const newLatencyThresholdInMilliseconds: unknown = updateBy.data
+      .latencyThresholdInMilliseconds as unknown;
+
+    if (
+      newLatencyThresholdInMilliseconds !== undefined &&
+      newLatencyThresholdInMilliseconds !== null
+    ) {
+      updateBy.data.latencyThresholdInMilliseconds =
+        this.validateLatencyThresholdInMilliseconds(
+          newLatencyThresholdInMilliseconds,
+        );
+    }
+
+    await this.assertRequestLatencySloKeepsThreshold(updateBy);
+
     await this.assertMonitorEditRespectsMonitorRules(updateBy);
 
     /*
@@ -553,9 +602,11 @@ export class Service extends ProjectReferencesService<Model> {
      * "Inputs" means every column the worker's result depends on, not only
      * the objective's: the downtime statuses and multi-monitor mode decide
      * which seconds count as bad, the timezone moves calendar-month
-     * boundaries, and the at-risk threshold decides the status. All four are
-     * edited on the Settings page, and without them a saved change kept
-     * showing the old numbers until the SLO's regular cadence came round.
+     * boundaries, the at-risk threshold decides the status, and a request
+     * SLO's SLI type, services and latency threshold decide which requests
+     * count. All of them are edited on the Settings page, and without them a
+     * saved change kept showing the old numbers until the SLO's regular
+     * cadence came round.
      */
     const isEvaluationConfigUpdated: boolean =
       onUpdate.updateBy.data.targetPercentage !== undefined ||
@@ -566,6 +617,13 @@ export class Service extends ProjectReferencesService<Model> {
       onUpdate.updateBy.data.downtimeMonitorStatuses !== undefined ||
       onUpdate.updateBy.data.atRiskThresholdPercentage !== undefined ||
       onUpdate.updateBy.data.timezone !== undefined ||
+      /*
+       * What a request SLO counts: a change starts its counting again
+       * (SloRequestCounting's fingerprint), and the next tick should show it.
+       */
+      onUpdate.updateBy.data.sliType !== undefined ||
+      onUpdate.updateBy.data.services !== undefined ||
+      onUpdate.updateBy.data.latencyThresholdInMilliseconds !== undefined ||
       /*
        * Unarchived: the worker stopped looking at this SLO while it was
        * archived, so its status and budget are frozen at archive time. Its
@@ -948,6 +1006,17 @@ export class Service extends ProjectReferencesService<Model> {
         downtimeMonitorStatuses: {
           _id: true,
         },
+        // What a request SLO counts, and how far its counting has got.
+        services: {
+          _id: true,
+        },
+        latencyThresholdInMilliseconds: true,
+        goodEventCount: true,
+        totalEventCount: true,
+        errorBudgetTotalEvents: true,
+        errorBudgetRemainingEvents: true,
+        firstAccumulatedBucketStartAt: true,
+        eventAccumulationFingerprint: true,
         metricQueryConfig: true,
         targetPercentage: true,
         windowType: true,
@@ -2121,6 +2190,80 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return windowDays;
+  }
+
+  private validateLatencyThresholdInMilliseconds(value: unknown): number {
+    const latencyThresholdInMilliseconds: number =
+      this.normalizeNumericInput(value);
+
+    // Integer column — see validateWindowDays.
+    if (
+      !Number.isInteger(latencyThresholdInMilliseconds) ||
+      latencyThresholdInMilliseconds < 1 ||
+      latencyThresholdInMilliseconds > SLO_MAX_LATENCY_THRESHOLD_IN_MILLISECONDS
+    ) {
+      throw new BadDataException(SLO_LATENCY_THRESHOLD_ERROR_MESSAGE);
+    }
+
+    return latencyThresholdInMilliseconds;
+  }
+
+  /*
+   * An update that would leave a Request Latency SLO without a threshold -
+   * switching an SLO to Request Latency without one, or clearing the
+   * threshold of one that is - is refused, as a create without one is. Only
+   * those two payloads read anything: every other update, the worker's
+   * included, passes straight through.
+   */
+  private async assertRequestLatencySloKeepsThreshold(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const nextSliType: unknown = updateBy.data.sliType as unknown;
+    const nextThreshold: unknown = updateBy.data
+      .latencyThresholdInMilliseconds as unknown;
+
+    const isSwitchingToLatency: boolean =
+      nextSliType === SliType.RequestLatency;
+    const isClearingThreshold: boolean = nextThreshold === null;
+
+    if (!isSwitchingToLatency && !isClearingThreshold) {
+      return;
+    }
+
+    if (
+      isSwitchingToLatency &&
+      nextThreshold !== undefined &&
+      nextThreshold !== null
+    ) {
+      return;
+    }
+
+    const slos: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        sliType: true,
+        latencyThresholdInMilliseconds: true,
+      },
+    );
+
+    for (const slo of slos) {
+      const sliTypeAfter: unknown =
+        nextSliType !== undefined ? nextSliType : slo.sliType;
+
+      const thresholdAfter: unknown = isClearingThreshold
+        ? null
+        : slo.latencyThresholdInMilliseconds;
+
+      if (
+        sliTypeAfter === SliType.RequestLatency &&
+        (thresholdAfter === undefined || thresholdAfter === null)
+      ) {
+        throw new BadDataException(
+          SLO_LATENCY_THRESHOLD_REQUIRED_ERROR_MESSAGE,
+        );
+      }
+    }
   }
 
   private validateAtRiskThresholdPercentage(value: unknown): number {

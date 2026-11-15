@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 稼働率",
-    "uptimePercent": "稼働率 {{percent}}%",
+    "uptimePercent": "稼働率 {{percent}}",
     "operational": "稼働中",
     "notMonitored": "未監視",
     "noResourcesInGroup": "このグループにリソースが追加されていません。",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "影響を受けるリソース",
-    "stateChangedTo": "状態が次に変更されました:",
     "view": "{{eventType}} を表示",
     "updateTo": "この {{eventType}} の更新",
-    "postedOn": "投稿日:"
+    "postedOnDate": "{{date}} に投稿"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} 日前",
@@ -473,5 +472,6 @@
     "warning": "警告"
   },
   "No options available": "利用できるオプションはありません",
-  "No matches found": "一致するものが見つかりません"
+  "No matches found": "一致するものが見つかりません",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました"
 }

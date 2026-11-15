@@ -24,7 +24,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Des métriques qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), ou depuis un agent comme le [Collecteur OpenTelemetry sur l'hôte](/docs/telemetry/host-otel-collector).
-- **Un rôle qui peut lire les métriques.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Metrics. Un rôle limité à certains services ne lit que leurs métriques.
+- **Un rôle qui peut lire les métriques.** Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, Administrateur de la télémétrie, Membre de la télémétrie ou Lecteur de la télémétrie, ou un rôle personnalisé avec la permission Read Metrics. Un rôle limité à certains services ne lit que leurs métriques.
 - **Pour Grafana ou un script : une clé API du projet** avec l'un de ces rôles ou la permission Read Metrics. Voir [Créer une clé API](/docs/api-reference/api-reference#créer-une-clé-api). Sur OneUptime Cloud, les clés API nécessitent l'offre **Growth**.
 
 ## Écrire une requête

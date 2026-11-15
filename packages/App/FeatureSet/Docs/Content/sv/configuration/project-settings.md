@@ -24,7 +24,7 @@ flowchart LR
 
 ## Innan du börjar
 
-- **En roll som kan ändra projektet.** Project Owners och Project Admins ändrar de flesta av de här inställningarna. Fakturering, aviseringskanaler och borttagning av projektet kräver mer, som varje avsnitt anger.
+- **En roll som kan ändra projektet.** Projektägare och Projektadministratörer ändrar de flesta av de här inställningarna. Fakturering, aviseringskanaler och borttagning av projektet kräver mer, som varje avsnitt anger.
 - **I OneUptime Cloud: planen som innehåller en inställning.** Vissa inställningar kräver en plan: se [Inställningar som kräver en plan](/docs/configuration/billing#inställningar-som-kräver-en-plan).
 
 ## Hitta en inställning
@@ -50,11 +50,11 @@ flowchart LR
 
 **Projektdetaljer** visar projektets namn och ID:
 
-- **Projektnamn**: klicka på **Redigera Projekt** för att byta namn på projektet. Ett namn har minst 2 tecken. Att byta namn kräver en Project Owner eller behörighet att redigera projektet eller hantera fakturering.
+- **Projektnamn**: klicka på **Redigera Projekt** för att byta namn på projektet. Ett namn har minst 2 tecken. Att byta namn kräver en Projektägare eller behörighet att redigera projektet eller hantera fakturering.
 - **Projekt-ID**: kopiera det till API:et, CLI:t och Terraform, eller när du skriver till supporten.
 - **Data Residency**: i OneUptime Cloud, var ditt projekts data ska ligga, när OneUptime har registrerat det. Bara OneUptime anger det.
 
-**Åtkomst för kundsupport** avgör i OneUptime Cloud om OneUptimes supportteam får öppna projektet. Slå på **Ge OneUptimes support åtkomst till det här projektet** när du vill ha hjälp: OneUptime frågar först, eftersom supporten då kan se och ändra allt i projektet, och du klickar på **Släpp in support**. Stäng av det när de är klara: det sparas direkt. Project Owners och Project Admins ändrar det.
+**Åtkomst för kundsupport** avgör i OneUptime Cloud om OneUptimes supportteam får öppna projektet. Slå på **Ge OneUptimes support åtkomst till det här projektet** när du vill ha hjälp: OneUptime frågar först, eftersom supporten då kan se och ändra allt i projektet, och du klickar på **Släpp in support**. Stäng av det när de är klara: det sparas direkt. Projektägare och Projektadministratörer ändrar det.
 
 ## Produkter
 
@@ -66,9 +66,9 @@ På en självhostad server kan en huvudadministratör också stänga av en produ
 
 Ett nytt projekt börjar med det som ägaren sade på Hem att det ska användas till: det grundläggande, inställningarna och det som de målen behöver visas, och resten döljs. Ett projekt som hoppade över frågan, eller som skapades före den, visar alla produkter. Så snart någon ändrar listan här ändrar målen den inte längre.
 
-Varje produkt säger vad den är för det här projektet: **Används**, **Inte konfigurerad** eller, i OneUptime Cloud, den plan den behöver. När en dold produkt börjar ta emot data säger Hem det till projektets ägare och administratörer och erbjuder **Visa den** eller **Behåll dold**.
+Varje produkt säger vad den är för det här projektet: **Används**, **Inte konfigurerad** eller, i OneUptime Cloud, den plan den behöver. När en dold produkt börjar ta emot data säger Hem det till Projektägare och Projektadministratörer och erbjuder **Visa den** eller **Behåll dold**.
 
-Projektägare, projektadministratörer och alla som får redigera projektet ändrar den; alla andra i projektet kan se den.
+Projektägare, Projektadministratörer och alla som får redigera projektet ändrar den; alla andra i projektet kan se den.
 
 ## Etiketter
 
@@ -96,7 +96,7 @@ För att fasa ut en etikett arkiverar du den från radens meny **⋯** i ställe
 
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:
 
-- **Aviseringskanaler**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Project Owner, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
+- **Aviseringskanaler**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
 - **Aviseringsloggar**: varje avisering som projektet har skickat, med en flik per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** och **Arbetsyta**.
 - **Mobilappar**: var du hämtar apparna för iOS och Android. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 
@@ -127,7 +127,7 @@ Klicka på **Ta bort Projekt**. OneUptime tar bort projektet och tar ut dig ur d
 :::
 
 > [!CAUTION]
-> Att ta bort projektet kan inte ångras. Det kräver en Project Owner eller behörighet att ta bort projektet.
+> Att ta bort projektet kan inte ångras. Det kräver en Projektägare eller behörighet att ta bort projektet.
 
 I OneUptime Cloud säger du upp ett projekts plan genom att ta bort projektet: faktureringen upphör när projektet har tagits bort. Ett projekt som faktureras via en molnmarknadsplats får en sista debitering för sin användning, och köpet på marknadsplatsen förblir aktivt tills du säger upp det där.
 
@@ -138,7 +138,7 @@ Alla avsnitt utom **Grundläggande** är hopfällda från början. Klicka på av
 :::
 
 :::details Redigera Projekt är låst
-Att byta namn kräver en Project Owner eller behörighet att redigera projektet eller hantera fakturering. Den låsta knappen nämner behörigheten du saknar.
+Att byta namn kräver en Projektägare eller behörighet att redigera projektet eller hantera fakturering. Den låsta knappen nämner behörigheten du saknar.
 :::
 
 :::details Ta bort Projekt förblir låst i dialogen

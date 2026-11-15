@@ -111,11 +111,11 @@ flowchart TB
 | Stato | Che cosa significa |
 | --- | --- |
 | **In attesa** | Una regola di reperibilità impostata su **Solo durante l'orario di lavoro** fa attendere l'esecuzione finché quell'orario non inizia: dice quando iniziano le chiamate, e fino ad allora non chiama nessuno. Termina senza chiamare se l'incidente o l'avviso viene riconosciuto o risolto prima. Inizia a chiamare in quel momento se l'incidente o l'avviso cambia e ora corrisponde a una regola di reperibilità che chiama subito. |
-| **Programmato**, **Iniziata** | L'esecuzione è in preparazione. Una che è ancora qui dopo 5 minuti viene fermata come **Errore**. |
-| **In esecuzione** | L'esecuzione sta avvisando. OneUptime la fa avanzare ogni minuto. |
+| **Programmato**, **Iniziata** | L'esecuzione è in preparazione. Una che è ancora qui dopo 5 minuti non ha finito di avviarsi: passa a **In esecuzione** e avvisa da dove il suo avvio si è fermato. Una chiamata diretta o una chiamata di prova ancora qui viene fermata come **Errore**. |
+| **In esecuzione** | L'esecuzione sta avvisando. OneUptime la fa avanzare ogni minuto. Un passo che fallisce per un momento, per esempio perché non è stato possibile raggiungere il database, viene ritentato un minuto dopo, poi dopo 2 e 4 minuti, poi ogni 5 minuti. |
 | **Esecuzione completata** | Qualcuno ha riconosciuto, l'incidente o l'avviso è stato risolto, sono state usate tutte le regole e le ripetizioni, oppure la policy è stata archiviata. |
 | **Esecuzione completata - nessuno è stato notificato** | L'esecuzione ha percorso ogni regola senza avvisare nessuno: di solito una pianificazione in cui nessuno è reperibile, o un livello senza destinatari. |
-| **Errore** | L'esecuzione non è riuscita. **Visualizza messaggio di stato** dice perché. |
+| **Errore** | L'esecuzione non è riuscita: un passo è fallito in un modo che un nuovo tentativo non può correggere, come una regola di escalation eliminata, oppure è fallito per 10 tentativi di fila, in circa 37 minuti. **Visualizza messaggio di stato** dice perché. |
 
 Trovate i registri di esecuzione in tre posti:
 

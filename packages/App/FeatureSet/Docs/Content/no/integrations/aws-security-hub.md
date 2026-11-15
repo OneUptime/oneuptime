@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet er g
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - En AWS-konto med Security Hub aktivert i regionen du kobler til. Security Hub er regionalt: en tilkobling leser funnene én konto har i én region.
 - For å lese funnene til alle kontoer og regioner gjennom én tilkobling: Security Hubs delegerte administratorkonto, i hjemmeregionen sin, med [aggregering på tvers av regioner](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) slått på. **Security Hub → Settings → Regions** viser hjemmeregionen.
 - Utgående HTTPS fra OneUptime-appen og -workerne til `securityhub.<region>.amazonaws.com`, eller `securityhub.<region>.amazonaws.com.cn` i Kina, og en riktig klokke på vertene deres: AWS avviser en forespørsel som er signert med mer enn 5 minutters avvik.

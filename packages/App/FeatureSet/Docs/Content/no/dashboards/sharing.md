@@ -139,9 +139,9 @@ På en selvdriftet installasjon slås egendefinerte domener for dashbord på med
 
 ### Hvem som kan sjekke og utstede på nytt
 
-**Sjekk nå**, bestilling av et domenes sertifikat og **Reissue SSL** endrer domenet, så de krever tillatelse til å redigere det: **Edit Dashboard Domain**, eller en rolle som inkluderer den (Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member).
+**Sjekk nå**, bestilling av et domenes sertifikat og **Reissue SSL** endrer domenet, så de krever tillatelse til å redigere det: **Edit Dashboard Domain**, eller en rolle som inkluderer den (Prosjekteier, Prosjektadministrator, Prosjektmedlem, Innstillingsadministrator eller Innstillingsmedlem).
 
-Den som bare kan lese domenet, for eksempel en Viewer eller en Settings Viewer, ser fortsatt kolonnen **Status** og posten som skal legges til, i **DNS-oppsett**. For dem er **Sjekk nå** og **Reissue SSL** låst, og sier hvilken tillatelse som trengs. OneUptime fortsetter uansett å sjekke hvert domene og bestille sertifikatet på egen hånd.
+Den som bare kan lese domenet, for eksempel en Leser eller en Innstillingsleser, ser fortsatt kolonnen **Status** og posten som skal legges til, i **DNS-oppsett**. For dem er **Sjekk nå** og **Reissue SSL** låst, og sier hvilken tillatelse som trengs. OneUptime fortsetter uansett å sjekke hvert domene og bestille sertifikatet på egen hånd.
 
 Det samme gjelder API-nøkler. En nøkkel som bare kan lese dashborddomener, kan ikke kalle `verify-cname`, `order-ssl` eller `reissue-ssl` på `/dashboard-domain`. Gi den **Read Dashboard Domain** og **Edit Dashboard Domain** hvis den trenger det.
 

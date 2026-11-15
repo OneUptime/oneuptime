@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Ein Microsoft-Entra-Mandant mit einer Lizenz für Microsoft Defender XDR: jede im Microsoft Defender-Portal eingebundene Defender-Arbeitslast, etwa Defender for Endpoint, for Identity, for Office 365 oder for Cloud Apps.
 - Eine Entra-Rolle, die Anwendungen registrieren darf, etwa Anwendungsadministrator, und einen globalen Administrator oder Administrator für privilegierte Rollen, um die Administratorzustimmung zu erteilen.
 - Ausgehendes HTTPS von der OneUptime-App und den Workern zu `login.microsoftonline.com` und `graph.microsoft.com`, oder zu `login.microsoftonline.us` und `graph.microsoft.us` für Azure Government.

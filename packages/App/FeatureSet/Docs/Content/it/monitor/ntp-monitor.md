@@ -33,7 +33,7 @@ A un server che risponde non viene chiesto di nuovo, anche quando risponde senza
 
 ## Prima di iniziare
 
-- **Un ruolo che possa creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che possa creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una sonda che raggiunga la porta UDP 123 del server.** Qualsiasi sonda può controllare un server dell'ora pubblico. Per un server su una rete privata, usa una [sonda personalizzata](/docs/probe/custom-probe) all'interno di quella rete. Un firewall davanti al server deve lasciar passare UDP, non solo TCP, dagli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses) o dalla tua sonda personalizzata.
 
 ## Creare un monitor NTP

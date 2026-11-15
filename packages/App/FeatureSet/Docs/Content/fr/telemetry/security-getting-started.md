@@ -11,7 +11,7 @@ OneUptime détecte les menaces dans les données dont vous disposez déjà - vos
 
 ## Avant de commencer
 
-Mettre en place la sécurité demande le rôle Project Owner, Project Admin ou Security Admin. Les rôles Security Member et Security Viewer consultent ce qui est trouvé ; voir [Rôles](/docs/permissions/reference#rôles).
+Mettre en place la sécurité demande le rôle Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité. Les rôles Membre de la sécurité et Lecteur de la sécurité consultent ce qui est trouvé ; voir [Rôles](/docs/permissions/reference#rôles).
 
 ## Mettre en place
 
@@ -84,7 +84,7 @@ Si votre équipe travaille déjà dans un SIEM, OneUptime y envoie aussi ce qu'i
 ## Dépannage
 
 :::details Turn on recommended est grisé
-Votre rôle ne peut pas ajouter de règles de détection, de playbooks ni la source de journaux. Adressez-vous à un Project Owner, un Project Admin ou un Security Admin, ou demandez-lui de vous donner le rôle Security Admin.
+Votre rôle ne peut pas ajouter de règles de détection, de playbooks ni la source de journaux. Adressez-vous à un Propriétaire du projet, un Administrateur du projet ou un Administrateur de la sécurité, ou demandez-lui de vous donner le rôle Administrateur de la sécurité.
 :::
 
 :::details Turn on recommended n'a pas pu tout activer

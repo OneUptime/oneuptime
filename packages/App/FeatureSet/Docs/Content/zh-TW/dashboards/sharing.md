@@ -139,9 +139,9 @@ OneUptime 每 15 分鐘檢查一次所有未驗證的網域，檢查找到記錄
 
 ### 誰可以檢查和重新核發
 
-**立即檢查** 、訂購網域憑證和 **Reissue SSL** 都會變更網域，因此需要編輯網域的權限： **Edit Dashboard Domain** ，或包含該權限的角色（Project Owner、Project Admin、Project Member、Settings Admin 或 Settings Member）。
+**立即檢查** 、訂購網域憑證和 **Reissue SSL** 都會變更網域，因此需要編輯網域的權限： **Edit Dashboard Domain** ，或包含該權限的角色（專案擁有者、專案管理員、專案成員、設定管理員或設定成員）。
 
-只能讀取網域的人，例如 Viewer 或 Settings Viewer，仍然可以看到 **狀態** 欄以及 **DNS 設定** 中要新增的記錄。對他們來說， **立即檢查** 和 **Reissue SSL** 處於鎖定狀態，並說明需要哪個權限。無論如何，OneUptime 都會自行持續檢查每個網域並為它訂購憑證。
+只能讀取網域的人，例如檢視者或設定檢視者，仍然可以看到 **狀態** 欄以及 **DNS 設定** 中要新增的記錄。對他們來說， **立即檢查** 和 **Reissue SSL** 處於鎖定狀態，並說明需要哪個權限。無論如何，OneUptime 都會自行持續檢查每個網域並為它訂購憑證。
 
 API 金鑰也是如此。只能讀取儀表板網域的金鑰無法呼叫 `/dashboard-domain` 上的 `verify-cname` 、 `order-ssl` 或 `reissue-ssl` 。如有需要，請為它授予 **Read Dashboard Domain** 和 **Edit Dashboard Domain** 。
 

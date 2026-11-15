@@ -39,7 +39,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die die Adresse erreicht**, mit ICMP auf dem Weg erlaubt. Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Steht eine Firewall davor, lassen Sie ICMP-Echo-Anfragen von den [Sonden-IP-Adressen von OneUptime Cloud](/docs/configuration/ip-addresses) zu. Eine private Adresse braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk, und eine IPv6-Adresse eine Sonde mit IPv6-Konnektivität.
 
 ## Einen IP-Monitor erstellen

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53450,
-    "untranslated": 2535
+    "keys": 53571,
+    "untranslated": 2523
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -176,6 +176,7 @@
     "Curaçao",
     "Cursor",
     "Customize → Connectors",
+    "Cyan",
     "Côte d'Ivoire",
     "DB.*maintenance",
     "DE",
@@ -297,6 +298,7 @@
     "In Slack",
     "In {{status}}",
     "Index",
+    "Indigo",
     "Info",
     "Initiator",
     "Integration",
@@ -438,6 +440,7 @@
     "Panama",
     "Panics",
     "Paraguay",
+    "Passkey",
     "Passkeys",
     "Passthrough",
     "Payload",
@@ -824,6 +827,7 @@
     "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
+    "{{rate}}/s",
     "{{size}} in {{duration}}",
     "{{value}} ms",
     "{{value}} s",

@@ -88,7 +88,7 @@ For at slå den medfølgende fra skal du sætte `GLOBAL_RUNNER_REPLICAS=0` i Doc
 ## Før du går i gang
 
 - **En vært med Docker** i din infrastruktur, som kan nå din OneUptime-URL over HTTPS og de systemer, dine trin virker på.
-- **En rolle, der opretter Runners.** Project Owner, Project Admin, Project Member og Runbook Admin kan oprette en. Kun en Project Owner, Project Admin eller Runbook Admin kan se en Runners nøgle, som opsætningskommandoen indeholder.
+- **En rolle, der opretter Runners.** Projektejer, Projektadministrator, Projektmedlem og Runbook-administrator kan oprette en. Kun en Projektejer, Projektadministrator eller Runbook-administrator kan se en Runners nøgle, som opsætningskommandoen indeholder.
 
 ## Installer en Runner
 
@@ -109,7 +109,7 @@ En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den sk
 
 Klik på **Vis opsætningsvejledning** i Runnerens række. Dialogen **Opsætning af runbook-agent** viser en `docker run`-kommando, der allerede indeholder denne Runners ID og nøgle. Samme kommando står på Runnerens egen side under **Opsætningsvejledning**.
 
-Kun en Project Owner, Project Admin eller Runbook Admin kan læse nøglen. Alle andre ser "Du har ikke tilladelse til at se denne runbook-agents nøgle" i stedet for kommandoen.
+Kun en Projektejer, Projektadministrator eller Runbook-administrator kan læse nøglen. Alle andre ser "Du har ikke tilladelse til at se denne runbook-agents nøgle" i stedet for kommandoen.
 
 ### 3. Kør den på en vært i din infrastruktur
 
@@ -293,7 +293,7 @@ Administration af agenter ligger i den eksisterende tilladelsesgruppe Runbooks:
 
 At udløse et runbook (og dermed sende dets trin til Runners) kræver en rolle, der kører runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` eller `RunbookMember` — eller `CreateRunbookExecution`; at fuldføre, springe over eller annullere en kørsel accepterer også `EditRunbookExecution`. En rolle kører kun de runbooks, dens omfang når.
 
-En Runners nøgle kan kun læses af Project Owners, Project Admins og Runbook Admins.
+En Runners nøgle kan kun læses af Projektejere, Projektadministratorer og Runbook-administratorer.
 
 ## API til agenter
 

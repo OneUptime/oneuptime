@@ -36,6 +36,13 @@ export default interface MetricQueryConfigData {
   eventScope?: MetricsQuery["attributes"] | undefined;
   getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
   chartType?: MetricChartType | undefined;
+  /*
+   * The chart's own figure for a value - "1.5 GiB", "2.3 GHz" - written in
+   * English, as a page's shared formatters write it: the chart draws it
+   * on its value axis, in its tooltip and in its series list in the
+   * reader's digits and decimal sign, its unit kept (writeFigureInLanguage,
+   * #8349, #8428).
+   */
   yAxisValueFormatter?: ((value: number) => string) | undefined;
   /*
    * Optional post-aggregation transform of each datapoint's plotted

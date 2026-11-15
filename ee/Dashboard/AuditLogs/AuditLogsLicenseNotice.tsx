@@ -4,7 +4,13 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
-import React, { FunctionComponent, ReactElement } from "react";
+import {
+  createTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * What Settings > Audit Logs shows above the recording switch when the
@@ -28,26 +34,53 @@ import React, { FunctionComponent, ReactElement } from "react";
  * recording when it cannot read the license, so the page must not claim it
  * stopped.
  *
- * The strings are plain English, like the rest of these screens. Alert
- * translates them when a locale has an entry under the same English key.
+ * The strings are plain English, keys of the Dashboard's locales: Alert
+ * translates them, and the audit log table looks them up, in the reader's
+ * language (#8319). The grace period's description holds the trial's and
+ * the grace period's lengths, so it is a template the notice fills in the
+ * reader's language and digits (#8460).
  */
 
-export const AUDIT_LOGS_LAPSED_TITLE: string =
-  "Enterprise license required: audit logging is not recording.";
+export const AUDIT_LOGS_LAPSED_TITLE: string = translationKey(
+  "Enterprise license required: audit logging is not recording.",
+);
 
-export const AUDIT_LOGS_LAPSED_DESCRIPTION: string =
-  "Without a valid Enterprise license nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license is activated in the Admin Dashboard.";
+export const AUDIT_LOGS_LAPSED_DESCRIPTION: string = translationKey(
+  "Without a valid Enterprise license nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license is activated in the Admin Dashboard.",
+);
 
-export const AUDIT_LOGS_NOT_INCLUDED_TITLE: string =
-  "Your Enterprise license does not include audit logs: audit logging is not recording.";
+export const AUDIT_LOGS_NOT_INCLUDED_TITLE: string = translationKey(
+  "Your Enterprise license does not include audit logs: audit logging is not recording.",
+);
 
-export const AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION: string =
-  "The installed license leaves audit logs out, so nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license that includes audit logs is activated in the Admin Dashboard.";
+export const AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION: string = translationKey(
+  "The installed license leaves audit logs out, so nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license that includes audit logs is activated in the Admin Dashboard.",
+);
 
-export const AUDIT_LOGS_GRACE_TITLE: string =
-  "No valid Enterprise license: audit logging stops when the trial or grace period ends.";
+export const AUDIT_LOGS_GRACE_TITLE: string = translationKey(
+  "No valid Enterprise license: audit logging stops when the trial or grace period ends.",
+);
 
-export const AUDIT_LOGS_GRACE_DESCRIPTION: string = `Audit logging records as configured during the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial of an installation with no license, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.`;
+export const AUDIT_LOGS_GRACE_DESCRIPTION_TEMPLATE: string = translationKey(
+  "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.",
+);
+
+/*
+ * What the trial and the grace period mean for audit logging, in the
+ * reader's language, each length in the reader's digits.
+ */
+export const getAuditLogsGraceDescription: (
+  translator: Translator,
+) => string = (translator: Translator): string => {
+  return translator.translateTemplate(AUDIT_LOGS_GRACE_DESCRIPTION_TEMPLATE, {
+    trialDays: translator.formatNumber(ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS),
+    graceDays: translator.formatNumber(ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS),
+  });
+};
+
+// The same, in English.
+export const AUDIT_LOGS_GRACE_DESCRIPTION: string =
+  getAuditLogsGraceDescription(createTranslator(undefined, "en"));
 
 export interface AuditLogsStoppedCopy {
   title: string;
@@ -88,6 +121,7 @@ export interface ComponentProps {
 const AuditLogsLicenseNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const stoppedCopy: AuditLogsStoppedCopy | null = getAuditLogsStoppedCopy(
     props.mode,
   );
@@ -109,7 +143,8 @@ const AuditLogsLicenseNotice: FunctionComponent<ComponentProps> = (
       <Alert
         type={AlertType.WARNING}
         strongTitle={AUDIT_LOGS_GRACE_TITLE}
-        title={AUDIT_LOGS_GRACE_DESCRIPTION}
+        // Worded already: handed over as drawn, never looked up again.
+        title={<Fragment>{getAuditLogsGraceDescription(translator)}</Fragment>}
         dataTestId="audit-logs-license-grace-notice"
         className="mb-5"
       />

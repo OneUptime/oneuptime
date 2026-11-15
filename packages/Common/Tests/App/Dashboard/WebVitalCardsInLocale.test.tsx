@@ -33,6 +33,9 @@ import { WebVital } from "../../../../App/FeatureSet/Dashboard/src/Components/Te
  * nothing changes direction.
  */
 
+// Arabic's 640 ms, in its own short unit (a no-break space or a space before it).
+const ARABIC_640_MS: RegExp = /^640[\s\u00a0]\u0645\u0644\u064a\s\u062b$/u;
+
 const LOCALES_DIR: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
@@ -114,18 +117,24 @@ afterEach(() => {
 });
 
 describe("the web vitals card's values on a page read from the right", () => {
-  test("Arabic: '640 ms' reads from the left; a bare CLS number reads as the page does", async () => {
+  /*
+   * A vital's duration is written in the reader's words now, as every
+   * duration on an Arabic page is (#8349, Locales/ARABIC.md): "640 ملي ث",
+   * which reads from the right as the page does, never "ms 640".
+   */
+  test("Arabic: '640 ملي ث' in the page's own words; a bare CLS number reads as the page does", async () => {
     await i18next.changeLanguage("ar");
     render(<WebVitalsCard vitals={VITALS} loading={false} />);
 
-    const ms: Array<HTMLElement> = screen.getAllByText(/^640\s?ms$/);
+    const ms: Array<HTMLElement> = screen.getAllByText(ARABIC_640_MS);
     const cls: HTMLElement = screen.getByText("0.120");
 
     expect(ms.length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/^640\s?ms$/)).toHaveLength(0);
 
     for (const value of ms) {
       expect(value.tagName).toBe("SPAN");
-      expect(value).toHaveAttribute("dir", "ltr");
+      expect(value).not.toHaveAttribute("dir", "ltr");
     }
 
     expect(cls.tagName).toBe("SPAN");
@@ -162,8 +171,8 @@ describe("the web vital by route table on a page read from the right", () => {
 
     expect(shown(route)).toBe("/checkout/:orderId/payment");
     expect(route).toHaveAttribute("dir", "ltr");
-    expect(shown(average)).toMatch(/^640\s?ms$/);
-    expect(average).toHaveAttribute("dir", "ltr");
+    expect(shown(average)).toMatch(ARABIC_640_MS);
+    expect(average).not.toHaveAttribute("dir", "ltr");
 
     // The cells themselves follow the page: no dir, logical sides only.
     for (const cell of [routeCell!, averageCell!, ratingCell!]) {

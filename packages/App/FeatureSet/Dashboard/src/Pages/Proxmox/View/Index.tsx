@@ -89,6 +89,10 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
+import {
   computeCounterRate,
   makeSeriesKeyFromAttributes,
   CounterRatePoint,
@@ -1869,7 +1873,9 @@ const ProxmoxClusterOverview: FunctionComponent<
             netTotal === null
               ? tx("running")
               : translator.translateTemplate("running · net {{throughput}}", {
-                  throughput: ValueFormatter.formatValue(netTotal, "By/s"),
+                  throughput: ValueFormatter.formatValue(netTotal, "By/s", {
+                    language: getDateDisplayLanguage(),
+                  }),
                 })
           }
           percent={inventory ? guestsRunningPct : null}
@@ -1947,7 +1953,10 @@ const ProxmoxClusterOverview: FunctionComponent<
         min: 0,
         max: 100,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
         precision: YAxisPrecision.NoDecimals,
       },
@@ -1983,7 +1992,9 @@ const ProxmoxClusterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By");
+          return ValueFormatter.formatValue(value, "By", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1996,7 +2007,9 @@ const ProxmoxClusterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };

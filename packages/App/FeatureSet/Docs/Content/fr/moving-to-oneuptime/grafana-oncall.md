@@ -26,7 +26,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les propriétaires et administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
+- **Un projet OneUptime, et le droit de créer ce que vous importez.** Les Propriétaires du projet et les Administrateurs du projet peuvent tout importer. Les autres rôles peuvent aussi lancer un import, et importer les types d'enregistrements qu'ils peuvent créer. Le reste est affiché comme non importé, avec la raison.
 - **Un jeton d'API Grafana OnCall.** Utilisez un jeton d'API OnCall, pas le jeton d'un compte de service Grafana. L'import n'écrit jamais dans Grafana OnCall. Supprimez le jeton une fois l'import terminé.
 - **Votre URL d'API OnCall.** Les paramètres d'OnCall l'affichent à côté des jetons d'API. Sur Grafana Cloud, elle ressemble à `https://oncall-prod-us-central-0.grafana.net/oncall`. Sur votre propre installation, c'est l'adresse de votre moteur OnCall.
 
@@ -77,7 +77,7 @@ Un import crée au plus 2 000 enregistrements : au plus 500 personnes, 200 équi
 
 Sur OneUptime Cloud, les enregistrements que votre offre n'inclut pas sont affichés comme non importés, avec l'offre nécessaire.
 
-Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les propriétaires et administrateurs du projet voient la progression et le rapport de chaque import.
+Un aperçu est conservé un jour. Seule la personne qui a lu le compte peut cocher et lancer l'import. Les Propriétaires du projet et les Administrateurs du projet voient la progression et le rapport de chaque import.
 
 ## Terminer la migration
 

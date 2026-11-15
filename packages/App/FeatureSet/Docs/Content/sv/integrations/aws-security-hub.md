@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - Ett AWS-konto med Security Hub aktiverat i den region som du ansluter. Security Hub är regionalt: en anslutning läser de fynd som ett konto har i en region.
 - För att läsa alla kontons och regioners fynd via en anslutning: Security Hubs delegerade administratörskonto, i sin hemregion, med [aggregering mellan regioner](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) påslagen. **Security Hub → Settings → Regions** visar hemregionen.
 - Utgående HTTPS från OneUptime-appen och -workerna till `securityhub.<region>.amazonaws.com`, eller `securityhub.<region>.amazonaws.com.cn` i Kina, och en korrekt klocka på deras värdar: AWS avvisar en begäran som är signerad med mer än 5 minuters avvikelse.

@@ -33,6 +33,11 @@ import Search from "../../../Types/BaseDatabase/Search";
  * cast an object in: the chips are built from query objects that reach the
  * viewer through `as` casts, which is how the untyped value got here in the
  * first place. The component must not be the thing that breaks.
+ *
+ * Such a chip says its filter as one sentence, in the reader's language
+ * (DictionaryFilterSentence, #8309): "logtype is any of: web", not the
+ * operator's English label glued before the value. These render without a
+ * translator, so the sentence reads English.
  */
 
 afterEach(() => {
@@ -55,6 +60,15 @@ function chipWithValue(
   return filter;
 }
 
+// What the first chip reads, its slots joined as the reader sees them.
+function chipText(): string {
+  return (
+    document.querySelector(
+      "[data-testid='locked-filter-chip'], .bg-indigo-50, .bg-red-50",
+    )?.textContent || ""
+  );
+}
+
 function renderChips(filters: Array<ActiveFilter>): void {
   render(
     <ActiveFilterChips
@@ -71,21 +85,21 @@ describe("ActiveFilterChips given operator-valued filters", () => {
       renderChips([chipWithValue(new Includes(["web"]))]);
     }).not.toThrow();
 
-    expect(screen.getByText("logtype:")).toBeInTheDocument();
-    expect(screen.getByText("is any of web")).toBeInTheDocument();
+    expect(chipText()).toBe("logtype is any of: web");
+    expect(screen.queryByText("logtype:")).not.toBeInTheDocument();
   });
 
-  test("a Search value renders as readable text", () => {
+  test("a Search value renders as one sentence", () => {
     renderChips([chipWithValue(new Search<string>("web"))]);
 
-    expect(screen.getByText("contains web")).toBeInTheDocument();
+    expect(chipText()).toBe("logtype contains web");
   });
 
   test("the object never reaches the DOM as [object Object]", () => {
     renderChips([chipWithValue(new Includes(["web", "api"]))]);
 
     expect(document.body.textContent).not.toContain("[object Object]");
-    expect(document.body.textContent).toContain("is any of web, api");
+    expect(chipText()).toBe("logtype is any of: web, api");
   });
 
   test("the tooltip is text too, not a stringified object", () => {
@@ -97,7 +111,7 @@ describe("ActiveFilterChips given operator-valued filters", () => {
 
     expect(chip).not.toBeNull();
     expect(chip!.getAttribute("title")).toBe(
-      "logtype: contains web (applied filter)",
+      "logtype contains web (applied filter)",
     );
   });
 
@@ -110,13 +124,13 @@ describe("ActiveFilterChips given operator-valued filters", () => {
       renderChips([chipWithValue(new Includes(["web"]), { readOnly: false })]);
     }).not.toThrow();
 
-    expect(screen.getByText("is any of web")).toBeInTheDocument();
+    expect(chipText()).toBe("logtype is any of: web");
 
     const removeButton: HTMLElement | null =
       document.querySelector("[title^='Remove ']");
 
     expect(removeButton!.getAttribute("title")).toBe(
-      "Remove logtype: is any of web",
+      "Remove logtype is any of: web",
     );
   });
 

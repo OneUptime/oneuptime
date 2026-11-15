@@ -88,6 +88,34 @@ export default class IncomingRequestReceivedAtStore {
   }
 
   /*
+   * Ingest edge: whether a trusted caller has registered this secret key -
+   * that is, whether it is a real monitor's key the worker or the cron saw
+   * in the last day. The endpoint looks a key up in Postgres only when it is
+   * (IncomingRequestSecretGate), so a flood of made-up keys costs it no
+   * database read. False when Redis cannot say; never throws.
+   */
+  @CaptureSpan()
+  public static async isTracked(
+    secretKey: string | ObjectID | null | undefined,
+  ): Promise<boolean> {
+    const key: string | null = this.getKey(secretKey);
+
+    if (!key) {
+      return false;
+    }
+
+    try {
+      return (await GlobalCache.getString(this.NAMESPACE, key)) !== null;
+    } catch (err) {
+      logger.debug(
+        "Could not read whether an incoming request monitor's key is tracked.",
+      );
+      logger.debug(err);
+      return false;
+    }
+  }
+
+  /*
    * Ingest worker and heartbeat cron: create or advance the marker with
    * receivedAt and return the latest receipt OneUptime knows of for this
    * secret key - never earlier than receivedAt. Falls back to receivedAt when

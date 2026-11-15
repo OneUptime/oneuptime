@@ -430,7 +430,7 @@ Ces requêtes fonctionnent sans identifiants, avec les seuls outils des pages de
 | Ce que fait l'agent | Choisir sous **Accès** |
 | --- | --- |
 | Lit seulement | **Lecteur**, ou ajoutez des autorisations de lecture sur la page de la clé |
-| Crée, met à jour et supprime aussi | **Administrateur du projet**, ou ajoutez le rôle Project Admin sur la page de la clé |
+| Crée, met à jour et supprime aussi | **Administrateur du projet**, ou ajoutez le rôle Administrateur du projet sur la page de la clé |
 
 Donnez à chaque clé le minimum dont elle a besoin, renouvelez les clés régulièrement, gardez une clé distincte pour chaque environnement, et surveillez ce que fait chaque clé dans OneUptime.
 

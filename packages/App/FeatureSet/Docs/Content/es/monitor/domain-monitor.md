@@ -32,7 +32,7 @@ Los nombres de dominio internacionalizados se aceptan en cualquiera de sus forma
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Acceso saliente desde la sonda** a los registros. Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo; una [sonda personalizada](/docs/probe/custom-probe) necesita llegar a:
 
 | Destino | Protocolo | Se usa para |

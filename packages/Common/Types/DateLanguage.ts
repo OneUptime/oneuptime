@@ -386,6 +386,58 @@ export const formatReaderFigure: (
 };
 
 /*
+ * A FIGURE A FORMATTER WROTE IN ENGLISH, IN THE READER'S LANGUAGE.
+ *
+ * Many of the product's formatters write a figure with toFixed and a unit
+ * of their own - "0.025", "2.5k", "1.2K/s", "12%", "3.5 TiB", "4.0 ms" -
+ * and a chart's value axis, its tooltip and the tiles beside it drew them
+ * so on every page: "3.5 TiB" on a Persian page whose dashboard widget
+ * said "۳٫۵ TiB". Written here, the number is in the reader's digits,
+ * decimal sign, minus and percent sign, with exactly the decimals it was
+ * written with ("0,025", "12 %", "3,5 TiB" in German; "۰٫۰۲۵", "۱۲٪",
+ * "۳٫۵ TiB" in Persian; Latin digits in Arabic), and everything after it -
+ * a count's "k" or "K", a size's unit, a rate's "/s" - stays as written:
+ * the symbols a chart writes alike in every language (#8060, #8349).
+ *
+ * Only a figure as an English formatter writes one: ASCII digits, a point
+ * for its decimals and no thousands separator. Anything else - "—", "1e-7",
+ * a figure already in the reader's language, a name - comes back as it
+ * came, and so does every figure in English or with no language.
+ */
+const ENGLISH_FIGURE: RegExp =
+  /^(-?\d{1,15}(?:\.(\d{1,10}))?)([kKMBT]?)(%|\/\S.*|\s+\S.*)?$/;
+
+export const writeFigureInLanguage: (
+  english: string,
+  language: string | null | undefined,
+) => string = (
+  english: string,
+  language: string | null | undefined,
+): string => {
+  if (!language || isEnglishDateLanguage(language)) {
+    return english;
+  }
+
+  const figure: RegExpMatchArray | null = english.match(ENGLISH_FIGURE);
+
+  if (!figure) {
+    return english;
+  }
+
+  const scale: string = figure[3] || "";
+  const unit: string = figure[4] || "";
+  // A percent of thousands ("2.5k%") keeps its sign as written.
+  const isPercent: boolean = unit === "%" && !scale;
+  const number: string = formatReaderFigure(Number(figure[1]), {
+    decimals: (figure[2] || "").length,
+    isPercent: isPercent,
+    language: language,
+  });
+
+  return isPercent ? number : `${number}${scale}${unit}`;
+};
+
+/*
  * THE ENGLISH OF A DATE WRITTEN IN ANOTHER LANGUAGE.
  *
  * Kept for the most recent texts only: a page writes its dates again on

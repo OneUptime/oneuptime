@@ -139,9 +139,9 @@ Numa instalação auto-hospedada, os domínios personalizados de painéis são l
 
 ### Quem pode verificar e reemitir
 
-**Verificar agora**, a solicitação do certificado de um domínio e **Reissue SSL** alteram o domínio, então exigem permissão para editá-lo: **Edit Dashboard Domain**, ou um papel que a inclua (Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member).
+**Verificar agora**, a solicitação do certificado de um domínio e **Reissue SSL** alteram o domínio, então exigem permissão para editá-lo: **Edit Dashboard Domain**, ou um papel que a inclua (Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de configurações ou Membro de configurações).
 
-Quem só pode ler o domínio, como um Viewer ou um Settings Viewer, ainda vê a coluna **Status** e o registro a adicionar em **Configuração de DNS**. Para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados, e dizem qual permissão é necessária. O OneUptime continua verificando cada domínio e solicitando o certificado dele sozinho, de qualquer forma.
+Quem só pode ler o domínio, como um Visualizador ou um Visualizador de configurações, ainda vê a coluna **Status** e o registro a adicionar em **Configuração de DNS**. Para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados, e dizem qual permissão é necessária. O OneUptime continua verificando cada domínio e solicitando o certificado dele sozinho, de qualquer forma.
 
 O mesmo vale para as chaves de API. Uma chave que só pode ler domínios de painéis não pode chamar `verify-cname`, `order-ssl` ou `reissue-ssl` em `/dashboard-domain`. Dê a ela **Read Dashboard Domain** e **Edit Dashboard Domain** se ela precisar.
 

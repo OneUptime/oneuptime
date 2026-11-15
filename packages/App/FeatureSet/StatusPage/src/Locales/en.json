@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% uptime",
-    "uptimePercent": "{{percent}}% uptime",
+    "uptimePercent": "{{percent}} uptime",
     "operational": "Operational",
     "notMonitored": "Not monitored",
     "noResourcesInGroup": "No resources added to this group.",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "Affected resources",
-    "stateChangedTo": "state changed to",
     "view": "View {{eventType}}",
     "updateTo": "Update to this {{eventType}}",
-    "postedOn": "posted on"
+    "postedOnDate": "posted on {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} days ago",
@@ -473,5 +472,6 @@
     "warning": "Warning"
   },
   "No options available": "No options available",
-  "No matches found": "No matches found"
+  "No matches found": "No matches found",
+  "{{eventType}} state changed to {{state}}": "{{eventType}} state changed to {{state}}"
 }

@@ -28,7 +28,7 @@ flowchart LR
 ## 始める前に
 
 - **届いているテレメトリ。** サービスマップにはトレースが必要です。[OpenTelemetry](/docs/telemetry/open-telemetry) を参照してください。インフラストラクチャビューにはデータを送るホストまたはクラスターが必要です。[Kubernetes エージェント](/docs/telemetry/kubernetes-agent) を参照してください。ネットワークビューにはネットワークデバイスが必要です。[ネットワークデバイス モニター](/docs/monitor/network-device-monitor) を参照してください。
-- **テレメトリを読み取るロール。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member、Telemetry Viewer、または Read Inventory Item 権限を持つカスタムロールです。
+- **テレメトリを読み取るロール。** プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、閲覧者、テレメトリ管理者、テレメトリメンバー、テレメトリ閲覧者、または Read Inventory Item 権限を持つカスタムロールです。
 
 ## トポロジーを開く
 

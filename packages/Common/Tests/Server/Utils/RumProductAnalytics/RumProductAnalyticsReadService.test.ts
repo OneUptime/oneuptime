@@ -17,6 +17,8 @@ import {
   ProductAnalyticsSummaryDto,
   ProductAnalyticsTrendDto,
 } from "../../../../Types/Rum/ProductAnalytics";
+import { pathSpellingKeySql } from "../../../../Server/Utils/AnalyticsDatabase/PathSpelling";
+import { productAnalyticsPageOfUrlSql } from "../../../../Models/AnalyticsModels/RumProductAnalyticsSession";
 import {
   afterEach,
   beforeEach,
@@ -431,13 +433,116 @@ describe("getBreakdown", () => {
       /* Only the pages are joined out: a session counts once on each page it saw. */
       if (dimension === ProductAnalyticsDimension.Page) {
         expect(statements[0]!.query).toContain(
-          "ARRAY JOIN if(empty(paPages), [''], paPages) AS paValue",
+          `ARRAY JOIN arrayMap(paUrl -> ${productAnalyticsPageOfUrlSql("paUrl")}, if(empty(paPages), [''], paPages)) AS paPage`,
         );
       } else {
         expect(statements[0]!.query).not.toContain("ARRAY JOIN");
       }
     },
   );
+
+  /*
+   * #8194: a page is one row in every spelling it was stored in. A session
+   * recorded before the scrubber wrote one spelling holds "/caf%c3%a9" or
+   * "/cafe%CC%81" where a later one holds "/caf%C3%A9"; grouped as stored,
+   * each was a row of its own and its people were split between them.
+   */
+  test("groups an entry page and a page by its one spelling, and a session's pages once each", async () => {
+    await RumProductAnalyticsReadService.getBreakdown({
+      ...range,
+      dimension: ProductAnalyticsDimension.EntryPage,
+    });
+
+    expect(statements[0]!.query).toContain("SELECT min(paValue) AS paLabel");
+    expect(statements[0]!.query).toContain(
+      `GROUP BY ${pathSpellingKeySql("paValue")} ORDER BY paUsers DESC, paSessions DESC, paLabel ASC`,
+    );
+
+    statements = [];
+
+    await RumProductAnalyticsReadService.getBreakdown({
+      ...range,
+      dimension: ProductAnalyticsDimension.Page,
+    });
+
+    const page: string = statements[0]!.query;
+
+    expect(page).toContain("SELECT min(paPageName) AS paLabel");
+    // One row per session and page first, then per page.
+    expect(page).toContain(
+      `${pathSpellingKeySql("paPage")} AS paKey, min(paPage) AS paPageName`,
+    );
+    expect(page).toContain(
+      "GROUP BY paSessionId, paStartTime, paPersonKey, paKey) GROUP BY paKey ORDER BY paUsers DESC, paSessions DESC, paLabel ASC",
+    );
+
+    // Any other dimension groups its values as they are.
+    statements = [];
+
+    await RumProductAnalyticsReadService.getBreakdown({
+      ...range,
+      dimension: ProductAnalyticsDimension.Browser,
+    });
+
+    expect(statements[0]!.query).toContain(
+      "GROUP BY paValue ORDER BY paUsers DESC, paSessions DESC, paValue ASC",
+    );
+    expect(statements[0]!.query).not.toContain("normalizeUTF8NFC");
+  });
+
+  test("names an entry page and a page in the scrubber's one spelling, scrubbed", async () => {
+    answer = (statement: Statement): Array<JSONObject> => {
+      if (statement.query.includes("AS paLabel")) {
+        return [
+          { paLabel: "/caf%c3%a9", paUsers: 3, paSessions: 4 },
+          { paLabel: "/cafe%CC%81/men%c3%bc", paUsers: 2, paSessions: 2 },
+          {
+            paLabel: "/auth/eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
+            paUsers: 1,
+            paSessions: 1,
+          },
+          { paLabel: "", paUsers: 1, paSessions: 1 },
+        ];
+      }
+
+      return [{ paUsers: 7, paSessions: 8 }];
+    };
+
+    for (const dimension of [
+      ProductAnalyticsDimension.EntryPage,
+      ProductAnalyticsDimension.Page,
+    ]) {
+      const breakdown: ProductAnalyticsBreakdownDto =
+        await RumProductAnalyticsReadService.getBreakdown({
+          ...range,
+          dimension: dimension,
+        });
+
+      expect(
+        breakdown.rows.map((row: { value: string }): string => {
+          return row.value;
+        }),
+      ).toEqual(["/caf%C3%A9", "/caf%C3%A9/men%C3%BC", "/auth/[redacted]", ""]);
+    }
+  });
+
+  test("a device type is not named as a page", async () => {
+    answer = (statement: Statement): Array<JSONObject> => {
+      if (statement.query.includes("GROUP BY paValue")) {
+        return [{ paValue: "caf%c3%a9", paUsers: 1, paSessions: 1 }];
+      }
+
+      return [{ paUsers: 1, paSessions: 1 }];
+    };
+
+    const breakdown: ProductAnalyticsBreakdownDto =
+      await RumProductAnalyticsReadService.getBreakdown({
+        ...range,
+        dimension: ProductAnalyticsDimension.AppVersion,
+      });
+
+    expect(breakdown.rows[0]!.value).toBe("caf%c3%a9");
+  });
 
   test("reads the column each dimension names", async () => {
     const columns: Record<string, string> = {
@@ -464,11 +569,11 @@ describe("getBreakdown", () => {
 
   test("a full page says there is more, and the totals come with it", async () => {
     answer = (statement: Statement): Array<JSONObject> => {
-      if (statement.query.includes("GROUP BY paValue")) {
+      if (statement.query.includes("GROUP BY paKey")) {
         return Array.from(
           { length: PRODUCT_ANALYTICS_BREAKDOWN_LIMIT + 1 },
           (_unused: unknown, index: number): JSONObject => {
-            return { paValue: `/page-${index}`, paUsers: 2, paSessions: 3 };
+            return { paLabel: `/page-${index}`, paUsers: 2, paSessions: 3 };
           },
         );
       }
@@ -885,5 +990,54 @@ describe("getPerson", () => {
     expect(nameless.includesLabels).toBe(false);
     expect(nameless.person?.identifiedUserLabel).toBeUndefined();
     expectNoName();
+  });
+
+  /*
+   * #8194: a session's pages are its routes, whole addresses; each is read
+   * as the page it is, its hash route included, as the breakdown names it,
+   * once in one spelling, and scrubbed as the ingest scrubs a page now.
+   */
+  test("names a session's entry page and its pages as the breakdown does", async () => {
+    answer = (statement: Statement): Array<JSONObject> => {
+      if (statement.query.includes("AS paPageList")) {
+        return [
+          {
+            paSessionId: "s1",
+            paStartedAt: 1700000000000,
+            paEntryPage: "/caf%c3%a9",
+            paPageList: [
+              "/caf%c3%a9",
+              "/caf%C3%A9",
+              "/orders/42",
+              "/t/eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
+            ],
+          },
+        ];
+      }
+
+      return [];
+    };
+
+    const detail: ProductAnalyticsPersonDetailDto = await person(
+      `u:${userKey}`,
+      false,
+    );
+
+    expect(detail.sessions[0]!.entryPage).toBe("/caf%C3%A9");
+    expect(detail.sessions[0]!.pages).toEqual([
+      "/caf%C3%A9",
+      "/orders/42",
+      "/t/[redacted]",
+    ]);
+
+    const sessions: Statement | undefined = statements.find(
+      (statement: Statement): boolean => {
+        return statement.query.includes("AS paPageList");
+      },
+    );
+
+    expect(sessions!.query).toContain(
+      `arrayDistinct(arrayMap(paUrl -> ${productAnalyticsPageOfUrlSql("paUrl")}, groupUniqArrayArray(pages))) AS paPageList`,
+    );
   });
 });

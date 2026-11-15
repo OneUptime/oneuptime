@@ -78,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Erstatt `https://oneuptime.com` med URL-en til OneUptime-instansen din hvis du drifter selv.
 
-Send **GET**- eller **POST**-forespørsler til denne URL-en. HEAD godtas og behandles som GET; PUT, PATCH og DELETE returnerer 404. Den hemmelige nøkkelen i stien er den eneste legitimasjonen — det kreves ingen header eller token. Spørrestrenger ignoreres: send det kriteriene skal lese, i forespørselsteksten eller i headerne.
+Send **GET**- eller **POST**-forespørsler til denne URL-en. HEAD godtas og behandles som GET; PUT, PATCH og DELETE returnerer 404. Den hemmelige nøkkelen i stien er legitimasjonen: Det kreves ingen header eller token, med mindre prosjektet [krever en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel). Spørrestrenger ignoreres: send det kriteriene skal lese, i forespørselsteksten eller i headerne.
 
 > [!WARNING]
 > Alle som kjenner denne URL-en, kan markere monitoren som frisk, så behandle den som en hemmelighet. Hvis den lekker, åpner du monitorens side **Innstillinger** og klikker på **Tilbakestill hemmelig nøkkel for innkommende forespørsel**, og deretter oppdaterer du hver avsender. Monitorens oversikt viser den siste forespørselen slik loggene beholder den: med hemmeligheter og personopplysninger maskert, og uten headere eller brødtekst når **Behold forespørselsinnhold** er slått av. Maskeringen fanger bare navnene og mønstrene den kjenner, så ikke send API-nøkler eller tokener til dette endepunktet.
 
 > [!IMPORTANT]
-> OneUptime svarer `200` med et tomt JSON-objekt (`{}`) med en gang og behandler forespørselen via en kø. Svaret skrives før noen validering skjer, så en `200` er **ikke** en bekreftelse på at forespørselen ble godtatt — en feil hemmelig nøkkel, en slettet monitor og en deaktivert monitor returnerer også `200`. Sjekk monitorens egen tidslinje for å bekrefte at forespørslene kommer frem.
+> OneUptime svarer `200` med et tomt JSON-objekt (`{}`) med en gang og behandler forespørselen via en kø. Svaret skrives før noen validering skjer, så en `200` er **ikke** en bekreftelse på at forespørselen ble godtatt — en feil hemmelig nøkkel, en slettet monitor og en deaktivert monitor returnerer også `200`. Sjekk monitorens egen tidslinje for å bekrefte at forespørslene kommer frem. Det eneste unntaket er et prosjekt som krever en hemmelighet ved hver forespørsel: En forespørsel uten hemmelighet besvares med `401`.
 
 ### Send en forespørselstekst
 
@@ -188,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Krev en hemmelighet ved hver forespørsel
+
+Alle som har URL-en til en overvåker, kan sende den forespørsler. En prosjekteier eller -administrator kan få alle overvåkere av innkommende forespørsler i prosjektet til også å kreve en av prosjektets egne hemmeligheter, uansett hvem som satte opp overvåkeren: slå på **Krev en hemmelighet ved hver forespørsel**. En forespørsel uten hemmelighet avvises med `401` og årsaken, før den teller som heartbeat, lagres som overvåkerens siste forespørsel eller når noen kriterier. En forespørsel med hemmelighet går videre til overvåkerens egne kriterier, som før.
+
+:::steps
+### Opprett en hemmelighet
+
+Gå til **Monitorer → Innstillinger → Hemmeligheter for innkommende forespørsler** og opprett en hemmelighet. Gi den et navn, så genererer OneUptime verdien; kopier den fra listen.
+
+### Send den fra alle avsendere
+
+Send hemmeligheten i headeren `X-OneUptime-Secret`, eller som Bearer-token i headeren `Authorization`, avhengig av hva avsenderen din kan sette.
+
+### Slå på kravet
+
+Slå på **Krev en hemmelighet ved hver forespørsel**. Kravet kan ikke slås på mens prosjektet ikke har noen hemmelighet, så ingen avsender avvises ved en feil.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime lagrer aldri hemmeligheten: Den fjerner headeren fra forespørselen og maskerer et Bearer-token som er en av prosjektets hemmeligheter, før den lagrer noe.
+
+> [!TIP]
+> For å bytte ut en hemmelighet uten å avvise noen, opprett en ny, flytt avsenderne dine til den, og slett den gamle når **Sist brukt** slutter å endre seg. Alle prosjektets hemmeligheter godtas, og den siste kan ikke slettes mens kravet er slått på.
 
 ## Overvåkingskriterier
 
@@ -393,6 +425,10 @@ Event Grid validerer et endepunkt som sender en kode tilbake til Event Grid, ell
 
 :::details Avsenderen min får en 200, men ingenting vises på monitoren
 `200` sendes før forespørselen valideres, så den beviser ikke at forespørselen ble godtatt. Sjekk at den hemmelige nøkkelen i URL-en samsvarer med monitorens **Heartbeat URL**, og at monitoren ikke er deaktivert. Se deretter på monitorens tidslinje om forespørslene kommer frem.
+:::
+
+:::details Avsenderen min får en 401
+Prosjektet krever en hemmelighet ved hver forespørsel, og forespørselen sendte ingen, eller en som ikke er prosjektets: Svaret sier hvilken. Send en av prosjektets hemmeligheter i headeren `X-OneUptime-Secret` eller som Bearer-token, slik [Krev en hemmelighet ved hver forespørsel](#krev-en-hemmelighet-ved-hver-forespørsel) viser. En avvist forespørsel når aldri overvåkeren.
 :::
 
 :::details Monitoren blir aldri frakoblet når heartbeats stopper

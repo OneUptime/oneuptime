@@ -109,6 +109,30 @@ import {
   getSloPolicyTierChangedFeedParts,
 } from "Common/Utils/Slo/SloFeedMarkdown";
 import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
+import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
+import {
+  SLO_REQUEST_COUNT_CHUNK_MINUTES,
+  SLO_REQUEST_MAX_BACKFILL_CHUNKS,
+  SLO_REQUEST_RESTATE_STEPS,
+  SLO_REQUEST_SETTLE_MINUTES,
+  SLO_REQUEST_STEP_MINUTES,
+} from "Common/Utils/Slo/SloRequestSli";
+import {
+  SLO_RELEASE_CHECK_DEFAULT_MAX_BURN_RATE,
+  SLO_RELEASE_CHECK_DEFAULT_MINIMUM_REQUEST_COUNT,
+  SLO_RELEASE_CHECK_DEFAULT_WINDOW_MINUTES,
+  SLO_RELEASE_CHECK_MAX_WINDOW_MINUTES,
+  SLO_RELEASE_CHECK_MIN_WINDOW_MINUTES,
+  SLO_RELEASE_CHECK_ROUTE,
+  SLO_RELEASE_CHECK_VERSION_ATTRIBUTE,
+  SloReleaseCheckDecision,
+  SloReleaseCheckOptions,
+  SloReleaseCheckVerdict,
+  buildSloReleaseCheckResponse,
+  decideSloReleaseCheck,
+  parseSloReleaseCheckOptions,
+} from "Common/Utils/Slo/SloReleaseCheck";
+import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -154,6 +178,12 @@ const SOURCES: Record<string, string> = {
   sloWorkspaceNotifications:
     "Common/Server/Utils/Slo/SloWorkspaceNotifications.ts",
   sloHistory: "Common/Models/AnalyticsModels/SloHistory.ts",
+  requestCounting: "Common/Server/Utils/Slo/SloRequestCounting.ts",
+  releaseCheckApi: "Common/Server/API/ServiceLevelObjectiveAPI.ts",
+  releaseCheckMeasurement:
+    "Common/Server/Utils/Slo/SloReleaseCheckMeasurement.ts",
+  burnRuleModel:
+    "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule.ts",
   projectModel: "Common/Models/DatabaseModels/Project.ts",
   dashboardTemplates: "Common/Types/Dashboard/DashboardTemplates.ts",
   ruleRunPermission: "Common/Server/Utils/Rules/RuleRun/RuleRunPermission.ts",
@@ -205,6 +235,8 @@ const MONITOR_RULES: string = "slo/monitor-rules";
 const ERROR_BUDGET: string = "slo/error-budget";
 const BURN_RATE: string = "slo/burn-rate-alerts";
 const ERROR_BUDGET_POLICY: string = "slo/error-budget-policy";
+const REQUEST_SLOS: string = "slo/request-slos";
+const RELEASE_CHECKS: string = "slo/release-checks";
 const METRICS: string = "slo/metrics";
 const FEED: string = "slo/feed-and-audit-logs";
 const LABEL_RULES: string = "slo/label-and-owner-rules";
@@ -480,11 +512,20 @@ describe("SLOs Overview, against the product", () => {
     );
     const titles: Array<string> = allMatches(fields, TITLE_ENTRY);
 
-    // The open fields, then the folded ones, then the shared Labels field.
-    expect(titles.slice(0, 2)).toEqual(["Name", "Target (%)"]);
+    /*
+     * What it measures (with a request SLO's services and threshold), the
+     * open fields, then the folded ones, then the shared Labels field.
+     */
+    expect(titles.slice(0, 5)).toEqual([
+      "What It Measures",
+      "Services",
+      "Latency Threshold (ms)",
+      "Name",
+      "Target (%)",
+    ]);
     expect(fields).toContain("getLabelsFormField<ServiceLevelObjective>({");
 
-    const folded: Array<string> = [...titles.slice(2), "Labels"];
+    const folded: Array<string> = [...titles.slice(5), "Labels"];
     const table: string = page.slice(
       page.indexOf("The fields under **More fields**:"),
     );
@@ -546,8 +587,9 @@ describe("SLOs Overview, against the product", () => {
     }
 
     expect(page).toContain("shows **Choose what this SLO measures**");
+    // A request SLO has no monitors to attach, so the step names its type.
     expect(page).toContain(
-      "Click **Create a monitor rule** to attach every monitor that matches",
+      "For a monitor uptime SLO, click **Create a monitor rule** to attach every monitor that matches",
     );
     expect(page).toContain("or **Add monitors** to pick them by hand");
   });
@@ -880,15 +922,26 @@ describe("SLOs Overview, against the product", () => {
     );
 
     expect(cards).toEqual([
+      "What It Measures",
       "Objective",
       "Compliance Period",
       "Downtime Calculation",
     ]);
     expect(allMatches(settings, /editButtonText="([^"]+)"/g)).toEqual([
+      "Edit What It Measures",
       "Edit Objective",
       "Edit Period",
       "Edit Downtime Calculation",
     ]);
+    // What It Measures edits the create form's own three fields.
+    expect(settings).toContain(
+      '"sliType",\n  "services",\n  "latencyThresholdInMilliseconds",',
+    );
+    expect(settings).toContain(
+      "return pickSloFormFields(SLO_MEASURES_COLUMNS);",
+    );
+    // Downtime Calculation is drawn only for a monitor uptime SLO.
+    expect(settings).toContain("{sliType === null || isRequestSlo ? (");
     expect(copy).toContain('cardTitle: translationKey("Evaluation")');
     expect(copy).toContain('switchTitle: translationKey("Evaluate this SLO")');
     expect(copy).toContain(
@@ -912,12 +965,16 @@ describe("SLOs Overview, against the product", () => {
     const table: string = section(page, "Settings");
 
     expect(firstCells(table)).toEqual([
+      "**What It Measures**",
       "**Objective**",
       "**Compliance Period**",
       "**Downtime Calculation**",
       "**Evaluation**",
       "**Archive SLO**",
     ]);
+    expect(table).toContain(
+      "**What It Measures**, **Services** and **Latency Threshold (ms)**, with **Edit What It Measures**",
+    );
     expect(table).toContain(
       "**Target (%)** and **At-Risk Threshold (%)**, with **Edit Objective**",
     );
@@ -962,6 +1019,29 @@ describe("SLOs Overview, against the product", () => {
       getSloNotice({ ...base, isEnabled: false }),
       getSloNotice({ ...base, isArchived: true }),
       getSloNotice({ ...base, lastEvaluatedAt: undefined as unknown as Date }),
+      // A request SLO's own banners (#6799).
+      getSloNotice({
+        ...base,
+        sliType: SliType.RequestSuccess,
+        monitorCount: 0,
+        serviceCount: 0,
+        sloStatus: SloStatus.Misconfigured,
+      }),
+      getSloNotice({
+        ...base,
+        sliType: SliType.RequestLatency,
+        monitorCount: 0,
+        serviceCount: 1,
+        latencyThresholdInMilliseconds: null,
+        sloStatus: SloStatus.Misconfigured,
+      }),
+      getSloNotice({
+        ...base,
+        sliType: SliType.RequestSuccess,
+        monitorCount: 0,
+        serviceCount: 1,
+        sloStatus: SloStatus.Misconfigured,
+      }),
     ];
 
     const titles: Array<string> = notices.map(
@@ -1873,9 +1953,15 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
   it("says a rule waits for a full long window, and resolves on Paused or Misconfigured", () => {
     const worker: string = readSource("worker");
 
-    expect(worker).toContain("const hasFullLongWindow: boolean = Boolean(");
+    /*
+     * Each rule reads its windows through the SLO's burn windows: monitor
+     * timelines, or a request SLO's counts (SloBurnWindows.hasFullWindow).
+     */
     expect(worker).toContain(
-      "burnRateLong >= threshold && burnRateShort >= threshold",
+      "const hasFullLongWindow: boolean = context.burnWindows.hasFullWindow(",
+    );
+    expect(worker).toMatch(
+      /burnRateLong >= threshold &&\s+burnRateShort >= threshold/,
     );
     expect(
       blockFrom(
@@ -3693,5 +3779,291 @@ describe("Label and Owner Rules, against the rule forms and the run's permission
       "for (const ownerModelType of definition.ownerModelTypes || [])",
     );
     expect(run).toContain("projectWideOnly: true,");
+  });
+});
+
+/*
+ * Request and Latency SLOs (#6799): what counts as a request, and when it is
+ * counted, as the counting plan and the counting query do it.
+ */
+describe("Request and Latency SLOs, against the product", () => {
+  const page: string = englishPage(REQUEST_SLOS);
+
+  it("names the two request SLIs as the create form offers them", () => {
+    const form: string = readSource("sloFormFields");
+
+    expect(form).toContain(
+      '[SliType.RequestSuccess]: translationKey("Request success")',
+    );
+    expect(form).toContain(
+      '[SliType.RequestLatency]: translationKey("Request latency")',
+    );
+    expect(
+      firstCells(section(page, "Request success and request latency")),
+    ).toEqual(["**Request success**", "**Request latency**"]);
+    expect(form).toContain('title: "Latency Threshold (ms)"');
+    expect(page).toContain("**Latency Threshold (ms)**");
+  });
+
+  it("counts entry spans: failed ones for Request Success, slow ones for Request Latency", () => {
+    const counting: string = readSource("requestCounting");
+
+    expect(counting).toContain("AND isEntrySpan = 1");
+    expect(counting).toContain("SQL`countIf(statusCode = ${{");
+    expect(counting).toContain("value: SpanStatus.Error,");
+    expect(counting).toContain("SQL`countIf(durationUnixNano > ${{");
+    expect(page).toContain(
+      "A request is an entry span of one of the SLO's services",
+    );
+    expect(page).toContain(
+      "Its span's status is `Error`. A span with no status counts as good",
+    );
+    expect(page).toContain(
+      "It took longer than the SLO's **Latency Threshold (ms)**, whatever its status.",
+    );
+  });
+
+  it("states the counting plan's steps, settling, restating and first count", () => {
+    expect(SLO_REQUEST_STEP_MINUTES).toBe(5);
+    expect(page).toContain(
+      `counts each SLO's good and total requests in ${SLO_REQUEST_STEP_MINUTES}-minute steps`,
+    );
+    expect(page).toContain(
+      `A step is counted ${SLO_REQUEST_SETTLE_MINUTES} minutes after it ends`,
+    );
+    expect(SLO_REQUEST_RESTATE_STEPS).toBe(2);
+    expect(page).toContain(
+      "the next evaluation counts the last two steps again",
+    );
+    expect(page).toContain(
+      `A new SLO starts with the last ${SLO_REQUEST_COUNT_CHUNK_MINUTES / 60} hours.`,
+    );
+    expect(page).toContain(
+      `counts the last ${SLO_REQUEST_COUNT_CHUNK_MINUTES / 60} hours of requests, so the SLO has numbers at once`,
+    );
+    // Up to four 6-hour pieces of older requests an evaluation: a day.
+    expect(
+      SLO_REQUEST_MAX_BACKFILL_CHUNKS * SLO_REQUEST_COUNT_CHUNK_MINUTES,
+    ).toBe(24 * 60);
+    expect(page).toContain(
+      "counts up to a day of older requests, newest first",
+    );
+  });
+
+  it("keeps the counts as long as the SLO's history", () => {
+    expect(readSource("sloHistory")).toContain(
+      "`bucketStart + INTERVAL 400 DAY` TTL",
+    );
+    expect(page).toContain("Counted steps are kept for 400 days");
+  });
+
+  it("names the metric a request SLO does not post, and the one to chart instead", () => {
+    expect(page).toContain(
+      `The \`${SloMetricType.ErrorBudgetRemainingSeconds}\` metric is not posted for a request SLO; chart \`${SloMetricType.ErrorBudgetRemainingPercent}\` instead.`,
+    );
+    expect(readSource("worker")).toContain("ErrorBudgetRemainingSeconds");
+  });
+
+  it("names the burn rate rule's minimum sample count by its API field", () => {
+    const rule: string = readSource("burnRuleModel");
+
+    expect(rule).toContain("public minimumSampleCount?: number");
+    expect(rule).toContain(
+      "skip this rule when the long window has fewer than this many total events",
+    );
+    expect(page).toContain(
+      "set the rule's `minimumSampleCount` through the API",
+    );
+  });
+
+  it("names the banners a request SLO can show, with the same titles", () => {
+    const intro: string = englishPage(INTRODUCTION);
+    const health: string = fs.readFileSync(
+      path.join(PACKAGES_DIR, "Common/Utils/Slo/SloHealth.ts"),
+      "utf8",
+    );
+
+    for (const title of [
+      "No services chosen",
+      "No latency threshold",
+      "Waiting for requests",
+    ]) {
+      expect(health).toContain(`title: "${title}",`);
+      expect(firstCells(section(intro, "Troubleshooting"))).toContain(
+        `**${title}**`,
+      );
+    }
+
+    expect(page).toContain(":::details The SLO says Waiting for requests");
+  });
+});
+
+/*
+ * Release Checks (#6799): the address, the options and their defaults, the
+ * verdicts and the answer, as the API builds them.
+ */
+describe("Release Checks, against the product", () => {
+  const page: string = englishPage(RELEASE_CHECKS);
+
+  it("asks the SLO's release-check address, with the API key header", () => {
+    const api: string = readSource("releaseCheckApi");
+
+    expect(SLO_RELEASE_CHECK_ROUTE).toBe("/release-check");
+    expect(new ServiceLevelObjective().getCrudApiPath()?.toString()).toBe(
+      "/service-level-objective",
+    );
+    expect(api).toContain("this.router.get(");
+    expect(api).toContain("this.router.post(");
+    expect(page).toContain(
+      `https://oneuptime.com/api/service-level-objective/<slo-id>${SLO_RELEASE_CHECK_ROUTE}?windowInMinutes=10`,
+    );
+    expect(page).toContain('-H "ApiKey: $ONEUPTIME_API_KEY"');
+  });
+
+  it("lists every option with the default the API reads", () => {
+    const defaults: SloReleaseCheckOptions = parseSloReleaseCheckOptions({});
+    const rows: Record<string, Array<string>> = {};
+
+    for (const row of tableRows(
+      section(page, "Ask the check").split("The options:")[1] || "",
+    )) {
+      rows[row[0] as string] = row;
+    }
+
+    expect(Object.keys(rows)).toEqual([
+      "`windowInMinutes`",
+      "`maxBurnRate`",
+      "`minimumRequestCount`",
+      "`serviceVersion`",
+      "`includeDeploymentGate`",
+      "`failWithStatusCode`",
+    ]);
+    expect(Object.keys(defaults).sort()).toEqual(
+      [
+        "windowInMinutes",
+        "maxBurnRate",
+        "minimumRequestCount",
+        "serviceVersion",
+        "includeDeploymentGate",
+        "failWithStatusCode",
+      ].sort(),
+    );
+
+    expect(defaults.windowInMinutes).toBe(
+      SLO_RELEASE_CHECK_DEFAULT_WINDOW_MINUTES,
+    );
+    expect(rows["`windowInMinutes`"]![1]).toBe(
+      `\`${SLO_RELEASE_CHECK_DEFAULT_WINDOW_MINUTES}\``,
+    );
+    expect(rows["`windowInMinutes`"]![2]).toContain(
+      `from ${SLO_RELEASE_CHECK_MIN_WINDOW_MINUTES} to ${SLO_RELEASE_CHECK_MAX_WINDOW_MINUTES}`,
+    );
+    expect(rows["`maxBurnRate`"]![1]).toBe(
+      `\`${SLO_RELEASE_CHECK_DEFAULT_MAX_BURN_RATE}\``,
+    );
+    expect(rows["`minimumRequestCount`"]![1]).toBe(
+      `\`${SLO_RELEASE_CHECK_DEFAULT_MINIMUM_REQUEST_COUNT}\``,
+    );
+    expect(defaults.serviceVersion).toBeNull();
+    expect(rows["`serviceVersion`"]![1]).toBe("None");
+    expect(rows["`includeDeploymentGate`"]![1]).toBe(
+      `\`${String(defaults.includeDeploymentGate)}\``,
+    );
+    expect(rows["`failWithStatusCode`"]![1]).toBe(
+      `\`${String(defaults.failWithStatusCode)}\``,
+    );
+  });
+
+  it("answers a no with the status code the page names", () => {
+    expect(
+      numberConstant(
+        readSource("releaseCheckApi"),
+        "SLO_RELEASE_CHECK_FAILED_STATUS_CODE",
+      ),
+    ).toBe(412);
+    expect(page).toContain("Answer a no with HTTP status 412 instead of 200");
+    expect(page).toContain("With `failWithStatusCode=true`, a no is HTTP 412");
+  });
+
+  it("lists the three verdicts", () => {
+    expect(firstCells(section(page, "How it works"))).toEqual(
+      Object.values(SloReleaseCheckVerdict).map((verdict: string): string => {
+        return `\`${verdict}\``;
+      }),
+    );
+  });
+
+  it("matches the version against the attribute the counting reads", () => {
+    expect(SLO_RELEASE_CHECK_VERSION_ATTRIBUTE).toBe(
+      "resource.service.version",
+    );
+    expect(page).toContain(
+      "OneUptime matches it against the `service.version` resource attribute of the spans",
+    );
+  });
+
+  it("shows the answer the API builds, with the reason it writes", () => {
+    const json: string = page.split("```json")[1]!.split("```")[0]!;
+    const example: JSONObject = JSON.parse(
+      json.replace('"<slo-id>"', '"slo-id"'),
+    ) as JSONObject;
+    const options: SloReleaseCheckOptions = parseSloReleaseCheckOptions({
+      windowInMinutes: "10",
+      serviceVersion: "1.4.2",
+    });
+    const measurement: {
+      burnRate: number;
+      sliPercentage: number;
+      goodRequestCount: number;
+      totalRequestCount: number;
+    } = {
+      burnRate: 3.2,
+      sliPercentage: 99.68,
+      goodRequestCount: 2492,
+      totalRequestCount: 2500,
+    };
+    const decision: SloReleaseCheckDecision = decideSloReleaseCheck({
+      sliType: SliType.RequestSuccess,
+      targetPercentage: 99.9,
+      options: options,
+      measurement: measurement,
+      deploymentsAllowed: true,
+    });
+    const built: JSONObject = buildSloReleaseCheckResponse({
+      sloId: "slo-id",
+      sloName: "Checkout requests",
+      sliType: SliType.RequestSuccess,
+      targetPercentage: 99.9,
+      sloStatus: SloStatus.Healthy,
+      deploymentsAllowed: true,
+      errorBudgetPolicyTierName: null,
+      options: options,
+      measurement: measurement,
+      decision: decision,
+      checkedAt: new Date("2026-11-15T12:00:00.000Z"),
+    });
+
+    expect(example).toEqual(built);
+    // 2492 of 2500 good is 99.68%: 0.32% bad against 0.1% allowed, 3.2x.
+    expect((1 - 2492 / 2500) / (1 - 0.999)).toBeCloseTo(3.2, 6);
+  });
+
+  it("names the SLOs the check refuses to measure, as the measurement does", () => {
+    const measurement: string = readSource("releaseCheckMeasurement");
+
+    for (const key of [
+      "noServices",
+      "noLatencyThreshold",
+      "noMonitors",
+      "versionForMonitors",
+    ]) {
+      expect(measurement).toContain(
+        `SLO_RELEASE_CHECK_MEASUREMENT_ERRORS.${key}`,
+      );
+    }
+
+    expect(page).toContain(
+      "a request SLO with no services, a latency SLO with no threshold, a monitor uptime SLO with no monitors - is answered with HTTP 400",
+    );
   });
 });

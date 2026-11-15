@@ -251,11 +251,13 @@ describe("a Gauge on a span of time", () => {
 });
 
 /*
- * A unit the formatter names in words ("Hertz", "Volts") reads in the
- * reader's words; a rate keeps the slash a chart writes it with (#8049):
- * "12,5/s", "۱۲٫۵/s".
+ * A unit with a symbol ("Hz", "V") reads by its symbol beside the number,
+ * as "ms" and "MB" always have, in every language: the same as the chart
+ * beside the Gauge writes it (#8284). A unit the formatter names in words
+ * and has no symbol for ("Kelvin") reads in the reader's words; a rate
+ * keeps the slash a chart writes it with (#8049): "12,5/s", "۱۲٫۵/s".
  */
-describe("a Gauge on a unit named in words, and on a rate", () => {
+describe("a Gauge on a unit with a symbol, one named in words, and a rate", () => {
   const RATE: Partial<GaugeWidgetViewProps> = {
     value: 12.5,
     rawUnit: "1/s",
@@ -264,9 +266,10 @@ describe("a Gauge on a unit named in words, and on a rate", () => {
   };
 
   test.each([
-    ["en", "50", "Hertz"],
-    ["fa", "۵۰", "هرتز"],
-    ["ar", "50", "هرتز"],
+    ["en", "50", "Hz"],
+    ["de", "50", "Hz"],
+    ["fa", "۵۰", "Hz"],
+    ["ar", "50", "Hz"],
   ])(
     "on a %s board a frequency reads %s %s",
     async (language: string, value: string, unit: string) => {
@@ -278,12 +281,26 @@ describe("a Gauge on a unit named in words, and on a rate", () => {
     },
   );
 
-  test("on a Persian board, a voltage in Persian's words and digits", async () => {
+  test("on a Persian board, a voltage in Persian's digits and its symbol", async () => {
     await inLanguage("fa");
     renderGauge({ value: 230, rawUnit: "V", minValue: 0, maxValue: 400 });
 
-    expect(gaugeCentre()).toEqual({ value: "۲۳۰", unit: "ولت", gap: "0.15em" });
+    expect(gaugeCentre()).toEqual({ value: "۲۳۰", unit: "V", gap: "0.15em" });
   });
+
+  test.each([
+    ["en", "300", "Kelvin"],
+    ["fa", "۳۰۰", "کلوین"],
+  ])(
+    "on a %s board a unit with no symbol reads in the reader's words: %s %s",
+    async (language: string, value: string, unit: string) => {
+      await inLanguage(language);
+      renderGauge({ value: 300, rawUnit: "K", minValue: 0, maxValue: 400 });
+
+      expect(gaugeCentre().value).toBe(value);
+      expect(gaugeCentre().unit).toBe(unit);
+    },
+  );
 
   test.each([
     ["en", "12.5"],

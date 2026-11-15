@@ -31,7 +31,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **들어오는 로그나 스팬.** [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요.
-- **텔레메트리 설정을 바꾸는 역할.** Project Owner 또는 Project Admin, 아니면 바꾸려는 대상에 대한 권한(예: Create Log Drop Filter 또는 Create Trace Scrub Rule)이 있는 사용자 지정 역할입니다. Telemetry 역할은 필터와 규칙을 볼 수 있지만 바꿀 수는 없습니다.
+- **텔레메트리 설정을 바꾸는 역할.** 프로젝트 소유자 또는 프로젝트 관리자, 아니면 바꾸려는 대상에 대한 권한(예: Create Log Drop Filter 또는 Create Trace Scrub Rule)이 있는 사용자 지정 역할입니다. Telemetry 역할은 필터와 규칙을 볼 수 있지만 바꿀 수는 없습니다.
 
 ## 레코드 버리기 또는 샘플링
 

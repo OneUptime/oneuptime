@@ -1,3 +1,5 @@
+import UrlScrubber from "../../Utils/Rum/UrlScrubber";
+
 /*
  * What counts as frustration in one RUM application's recordings.
  *
@@ -490,6 +492,14 @@ export function readSessionReplayFrustrationSignalsConfig(
 /*
  * Lower case, and without the slashes at the end: /Checkout/ and /checkout
  * are the same page to the person who wrote the pattern. The root stays /.
+ *
+ * In the spelling a person reads (#8195): the browser escapes every letter
+ * beyond ASCII in a path ("/café" is "/caf%C3%A9"), a link can write it in
+ * lower-case hex or with its accent decomposed ("/cafe%CC%81"), and a
+ * pattern is written as the address bar shows the page. So the words of
+ * both are decoded and composed (UrlScrubber.normalizePathSpelling, asRead)
+ * before case is folded - on the letters, so "/CAFÉ" is "/café" too. An
+ * escape of anything else stays an escape: "/a%2Fb" is not "/a/b".
  */
 function canonicalPath(path: string): string {
   let end: number = path.length;
@@ -498,13 +508,17 @@ function canonicalPath(path: string): string {
     end--;
   }
 
-  return path.slice(0, end).toLowerCase();
+  return UrlScrubber.normalizePathSpelling(
+    path.slice(0, end),
+    true,
+  ).toLowerCase();
 }
 
 /*
  * Does a page's path match a pattern? A star stands for any run of
  * characters, slashes included; everything else is compared as written,
- * ignoring case and the slashes at the end. /checkout/error matches only
+ * ignoring case and the slashes at the end, in the spelling a person reads
+ * (canonicalPath: "/café" matches "/caf%C3%A9"). /checkout/error matches only
  * that page; /checkout* matches /checkout and every page under it;
  * /orders/x/failed with a star for x matches the failed page of any order;
  * a pattern that starts with a star matches the end of any path.

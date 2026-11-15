@@ -32,7 +32,7 @@ flowchart TB
 
 - **Sur OneUptime Cloud, le forfait Enterprise.** Avec les autres forfaits, les pages du journal d'audit montrent ce que fait la fonctionnalité et comment l'obtenir.
 - **Quand vous hébergez vous-même, l'Enterprise Edition**, avec une licence qui inclut les journaux d'audit. Voir [Édition Enterprise](/docs/self-hosted/enterprise).
-- **Un rôle qui peut lire le journal d'audit.** Project Owner, Project Admin, Settings Admin, ou l'autorisation **Read Audit Log**. Activer la journalisation d'audit et modifier ses paramètres demande un Project Owner, un Project Admin, ou l'autorisation de modifier le projet.
+- **Un rôle qui peut lire le journal d'audit.** Propriétaire du projet, Administrateur du projet, Administrateur des paramètres, ou l'autorisation **Read Audit Log**. Activer la journalisation d'audit et modifier ses paramètres demande un Propriétaire du projet, un Administrateur du projet, ou l'autorisation de modifier le projet.
 
 ## Activer la journalisation d'audit
 
@@ -120,7 +120,7 @@ Chaque fois qu'un membre du projet se connecte à OneUptime, le journal d'audit 
 
 La **Ressource** d'une entrée est la session, nommée d'après l'appareil depuis lequel elle s'est connectée, par exemple `Chrome 130 on macOS`. Son **Acteur** est la personne à qui appartient la session, donc filtrer par **E-mail de l'utilisateur** trouve toutes ses connexions et sessions. Ses détails indiquent comment la personne s'est connectée et avec quel second facteur, l'adresse IP et la localisation, et, pour une session terminée, quand elle s'est connectée, quand elle a été utilisée pour la dernière fois et quand elle a expiré. Le fournisseur SSO propre à un projet n'est nommé que dans le journal d'audit de ce projet.
 
-Les connexions et les sessions sont enregistrées que le projet stocke ou non les événements système. Une durée de session ou 30 jours sans utilisation sont enregistrés dans les minutes qui suivent leur échéance. Un délai d'inactivité est enregistré quand le navigateur de la personne ou l'application mobile contacte de nouveau OneUptime : depuis un onglet resté ouvert, ou quand la personne rouvre OneUptime.
+Les connexions et les sessions sont enregistrées que le projet stocke ou non les événements système. Une durée de session ou 30 jours sans utilisation sont enregistrés dans les minutes qui suivent leur échéance. Un délai d'inactivité dans le navigateur est enregistré dans les 35 minutes qui suivent son échéance, que la personne revienne ou non. Dans l'application mobile, il est enregistré quand l'application contacte de nouveau OneUptime.
 
 ## Combien de temps les entrées sont conservées
 

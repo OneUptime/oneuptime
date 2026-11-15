@@ -111,11 +111,11 @@ flowchart TB
 | Status | Hvad den betyder |
 | --- | --- |
 | **Venter** | En vagtregel sat til **Kun i arbejdstiden** lader kørslen vente, til arbejdstiden begynder: den siger, hvornår tilkaldelsen starter, og tilkalder ingen indtil da. Den slutter uden at tilkalde, hvis hændelsen eller advarslen bliver bekræftet eller løst først. Den begynder at tilkalde straks, hvis hændelsen eller advarslen ændrer sig og nu matcher en vagtregel, der tilkalder med det samme. |
-| **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, stoppes som **Fejl**. |
-| **Udføres** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
+| **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, blev ikke færdig med at starte: den går videre til **Udføres** og tilkalder derfra, hvor starten stoppede. Et direkte tilkald eller et testtilkald, der stadig står her, stoppes som **Fejl**. |
+| **Udføres** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. Et skridt, der fejler et øjeblik, for eksempel fordi databasen ikke kunne nås, prøves igen et minut senere, så 2 og 4 minutter senere, og derefter hvert 5. minut. |
 | **Udførelse fuldført** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |
 | **Udførelse fuldført - ingen underrettet** | Kørslen gik gennem alle regler og tilkaldte ingen: som regel en vagtplan, hvor ingen har vagt, eller et niveau uden modtagere. |
-| **Fejl** | Kørslen mislykkedes. **Vis statusbesked** siger hvorfor. |
+| **Fejl** | Kørslen mislykkedes: et skridt fejlede på en måde, som et nyt forsøg ikke kan rette, for eksempel en slettet eskaleringsregel, eller fejlede 10 forsøg i træk over omkring 37 minutter. **Vis statusbesked** siger hvorfor. |
 
 Du finder udførelseslogs tre steder:
 

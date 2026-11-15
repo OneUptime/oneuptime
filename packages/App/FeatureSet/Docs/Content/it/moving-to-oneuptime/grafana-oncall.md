@@ -26,7 +26,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Un progetto OneUptime e il diritto di creare ciò che importi.** I proprietari e gli amministratori del progetto possono importare tutto. Anche gli altri ruoli possono eseguire un'importazione e importare i tipi di record che possono creare. Il resto viene mostrato come non importato, con il motivo.
+- **Un progetto OneUptime e il diritto di creare ciò che importi.** I Proprietari del progetto e gli Amministratori del progetto possono importare tutto. Anche gli altri ruoli possono eseguire un'importazione e importare i tipi di record che possono creare. Il resto viene mostrato come non importato, con il motivo.
 - **Un token API di Grafana OnCall.** Usa un token API di OnCall, non il token di un service account di Grafana. L'importazione non scrive mai in Grafana OnCall. Elimina il token quando l'importazione è finita.
 - **L'URL dell'API di OnCall.** Le impostazioni di OnCall lo mostrano accanto ai token API. Su Grafana Cloud è simile a `https://oncall-prod-us-central-0.grafana.net/oncall`. Su un'installazione tua, è l'indirizzo del tuo motore OnCall.
 
@@ -77,7 +77,7 @@ Un'importazione crea al massimo 2.000 record: al massimo 500 persone, 200 team, 
 
 Su OneUptime Cloud, i record che il tuo piano non include vengono mostrati come non importati, con il piano che richiedono.
 
-Un'anteprima viene conservata per un giorno. Solo chi ha letto l'account può selezionare gli elementi e avviarla. I proprietari e gli amministratori del progetto vedono l'avanzamento e il report di ogni importazione.
+Un'anteprima viene conservata per un giorno. Solo chi ha letto l'account può selezionare gli elementi e avviarla. I Proprietari del progetto e gli Amministratori del progetto vedono l'avanzamento e il report di ogni importazione.
 
 ## Completa il passaggio
 
