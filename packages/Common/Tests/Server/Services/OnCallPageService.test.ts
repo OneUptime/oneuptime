@@ -744,13 +744,13 @@ describe("OnCallPageService.page", () => {
   describe("who may page", () => {
     const MAY: Array<[string, () => DatabaseCommonInteractionProps]> = [
       [
-        "a project owner",
+        "a Project Owner",
         (): DatabaseCommonInteractionProps => {
           return member([Permission.ProjectOwner]);
         },
       ],
       [
-        "a project admin",
+        "a Project Admin",
         (): DatabaseCommonInteractionProps => {
           return member([Permission.ProjectAdmin]);
         },

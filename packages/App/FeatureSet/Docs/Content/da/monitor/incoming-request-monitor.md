@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Kræv en hemmelighed ved hver anmodning
 
-Alle, der har en overvågnings URL, kan sende den anmodninger. En projektejer eller -administrator kan få alle overvågninger af indgående anmodninger i projektet til også at kræve en af projektets egne hemmeligheder, uanset hvem der har sat overvågningen op: slå **Kræv en hemmelighed ved hver anmodning** til. En anmodning uden en hemmelighed afvises med `401` og årsagen, før den tæller som heartbeat, gemmes som overvågningens seneste anmodning eller når nogen kriterier. En anmodning med en hemmelighed går videre til overvågningens egne kriterier som hidtil.
+Alle, der har en overvågnings URL, kan sende den anmodninger. En Projektejer eller Projektadministrator kan få alle overvågninger af indgående anmodninger i projektet til også at kræve en af projektets egne hemmeligheder, uanset hvem der har sat overvågningen op: slå **Kræv en hemmelighed ved hver anmodning** til. En anmodning uden en hemmelighed afvises med `401` og årsagen, før den tæller som heartbeat, gemmes som overvågningens seneste anmodning eller når nogen kriterier. En anmodning med en hemmelighed går videre til overvågningens egne kriterier som hidtil.
 
 :::steps
 ### Opret en hemmelighed

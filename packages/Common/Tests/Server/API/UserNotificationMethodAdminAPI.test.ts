@@ -605,7 +605,7 @@ describe("who may write", () => {
       expect(writeCase.spy()).not.toHaveBeenCalled();
     });
 
-    test(`${writeCase.label} is allowed for a project owner`, async () => {
+    test(`${writeCase.label} is allowed for a Project Owner`, async () => {
       /*
        * And with NO granular permission. Existing project teams are seeded with
        * roles, never with individual granular permissions, so a gate naming

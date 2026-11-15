@@ -334,7 +334,7 @@ afterEach((): void => {
 
 describe("DatabaseService: a read-only credential and the write hooks", () => {
   test.each(named(WRITE_OPERATIONS))(
-    "%s refuses a read-only project owner BEFORE its hook runs",
+    "%s refuses a read-only Project Owner BEFORE its hook runs",
     async (_name: string, operation: OperationFixture) => {
       const harness: Harness = makeHarness();
 

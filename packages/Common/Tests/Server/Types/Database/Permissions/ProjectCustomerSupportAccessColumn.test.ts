@@ -122,7 +122,7 @@ describe("Project.letCustomerSupportAccessProject column access", () => {
   });
 
   describe("the customer side of the switch", () => {
-    it("lets a project owner turn support access on", () => {
+    it("lets a Project Owner turn support access on", () => {
       expect(
         checkColumnUpdate({ letCustomerSupportAccessProject: true }, [
           Permission.ProjectOwner,
@@ -130,7 +130,7 @@ describe("Project.letCustomerSupportAccessProject column access", () => {
       ).not.toThrow();
     });
 
-    it("lets a project admin turn support access off again", () => {
+    it("lets a Project Admin turn support access off again", () => {
       expect(
         checkColumnUpdate({ letCustomerSupportAccessProject: false }, [
           Permission.ProjectAdmin,

@@ -1067,7 +1067,7 @@ const CodeTaskLogPage: FunctionComponent<
             type={AlertType.INFO}
             strongTitle="Prompts and model output are hidden"
             title={
-              "These embed your source code, so only project owners and admins can read them. Everything else about the run is shown below."
+              "These embed your source code, so only Project Owners and Project Admins can read them. Everything else about the run is shown below."
             }
           />
         ) : (

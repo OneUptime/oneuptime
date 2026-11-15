@@ -955,7 +955,7 @@ describe("a call of a private incident none of the caller's teams that may work 
 
     expect(thrownBy()).toBeInstanceOf(NotAuthorizedException);
     expect((thrownBy() as Error).message).toBe(
-      `You do not have permission to work on this incident's calls. ${PRIVATE_REASON} Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.`,
+      `You do not have permission to work on this incident's calls. ${PRIVATE_REASON} Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`,
     );
     expect(writes).toHaveLength(0);
     expect(IncidentCallSummary.start).not.toHaveBeenCalled();
@@ -1042,7 +1042,7 @@ describe("a call of a private incident none of the caller's teams that may work 
     expect(writes).toHaveLength(0);
   });
 
-  test("a project admin works on it: they act on every private incident, and the incident is not even asked", async () => {
+  test("a Project Admin works on it: they act on every private incident, and the incident is not even asked", async () => {
     setPermissions([Permission.ProjectAdmin]);
 
     await handlerOf("post", TRANSCRIPT_ROUTE)(

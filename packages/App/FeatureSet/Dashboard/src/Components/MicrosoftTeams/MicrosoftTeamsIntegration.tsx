@@ -118,7 +118,7 @@ export const TEAMS_NOT_CONNECTED_TO_PROJECT_TITLE: string = translationKey(
 
 export const TEAMS_NOT_CONNECTED_TO_PROJECT_DESCRIPTION: string =
   translationKey(
-    "A project admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
+    "A Project Admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
   );
 
 // The OneUptime app in the server's Microsoft Teams (MicrosoftTeamsAppLink).

@@ -372,7 +372,7 @@ afterEach(() => {
 describe.each(PAGES)(
   "editing a saved dropdown field: $name",
   (page: PageCase) => {
-    test("the Edit form shows the field's options to a project admin", async () => {
+    test("the Edit form shows the field's options to a Project Admin", async () => {
       answerField({
         modelType: page.modelType,
         customFieldType: CustomFieldType.Dropdown,

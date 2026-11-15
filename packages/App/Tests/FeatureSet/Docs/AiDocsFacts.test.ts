@@ -1900,7 +1900,7 @@ describe("GitHub App", () => {
         ),
       ),
     ).toContain(
-      "A project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
+      "A Project Admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
     );
     // ... with a link that opens More settings at the switch itself.
     expect(

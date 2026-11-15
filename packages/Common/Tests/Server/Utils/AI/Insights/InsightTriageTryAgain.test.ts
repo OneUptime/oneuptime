@@ -345,12 +345,12 @@ describe("InsightTriage.tryAgain", () => {
         InsightTriageNotEnqueuedReason.AiOff
       ],
     ).toContain(
-      "A project owner or someone with Manage Billing can turn it on",
+      "A Project Owner or someone with Manage Billing can turn it on",
     );
     expect(
       INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
         InsightTriageNotEnqueuedReason.SwitchOff
       ],
-    ).toContain("A project owner or admin can turn on");
+    ).toContain("A Project Owner or Project Admin can turn on");
   });
 });

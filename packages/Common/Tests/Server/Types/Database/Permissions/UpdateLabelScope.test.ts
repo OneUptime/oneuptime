@@ -407,7 +407,7 @@ describe("whose permission to update is limited by labels", () => {
       "a permission over the whole project",
       [row(Permission.EditProjectMonitor)],
     ],
-    ["a project admin", [row(Permission.ProjectAdmin)]],
+    ["a Project Admin", [row(Permission.ProjectAdmin)]],
     [
       "a permission over the whole project beside one limited to labels",
       [

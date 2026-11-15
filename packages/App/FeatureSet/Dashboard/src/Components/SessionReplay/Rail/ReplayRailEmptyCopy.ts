@@ -193,14 +193,14 @@ function slotCopy(
         ? {
             title: titles.locked,
             detail: translationKey(
-              'Your role lacks "{{permission}}". Ask a project admin for that permission to see these rows.',
+              'Your role lacks "{{permission}}". Ask a Project Admin for that permission to see these rows.',
             ),
             detailValues: { permission: slot.lockedPermission },
           }
         : {
             title: titles.locked,
             detail: translationKey(
-              "Your role lacks the read permission for these rows. Ask a project admin to grant it.",
+              "Your role lacks the read permission for these rows. Ask a Project Admin to grant it.",
             ),
           };
     case "error":

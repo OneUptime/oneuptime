@@ -50,7 +50,7 @@ export const ON_CALL_TEST_PAGE_API_PATH: string = "/on-call-test-page";
 
 // What a caller who may not test a policy is told, whichever check refused them.
 export const ON_CALL_TEST_POLICY_NOT_ALLOWED_MESSAGE: string =
-  "You can test an on-call policy you can edit. Ask a project admin, or an owner of the policy.";
+  "You can test an on-call policy you can edit. Ask a Project Admin, or an owner of the policy.";
 
 const router: ExpressRouter = Express.getRouter();
 

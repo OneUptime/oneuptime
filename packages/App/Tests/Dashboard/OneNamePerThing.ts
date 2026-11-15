@@ -155,6 +155,30 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
         },
       ],
     },
+    /*
+     * An on-call policy is a "policy di reperibilità", as the On-Call
+     * menu (Reperibilità) and its Policy di reperibilità list say it; 48
+     * Dashboard strings said "criterio di reperibilità" (#8435).
+     */
+    {
+      title: "On-Call",
+      word: /reperibilità/i,
+      others: /criteri[oi] di reperibilità/i,
+    },
+  ],
+  /*
+   * "Plantão" is the On-Call menu's name, so a menu's path keeps its
+   * capital ("Plantão > Prontidão"), and so does a label in Title Case
+   * ("Minhas Políticas de Plantão"); in the middle of a name in sentence
+   * case it is a common noun: "ID da política de plantão", as "Políticas
+   * de plantão" says it (#8435).
+   */
+  pt: [
+    {
+      title: "On-Call",
+      word: /plantão/i,
+      others: /(?:^|\s)\p{Ll}\S* d[eoa] Plantão/u,
+    },
   ],
   da: [
     {
@@ -275,9 +299,10 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
      * avspillingspolicy), and a new project's first policy is named
      * "Standard vaktpolicy". The list, the menu and about a hundred
      * sentences said vaktretningslinje, vakttjenesteretningslinje or
-     * retningslinje for vakttjeneste beside it (#8527). Both nouns are
-     * common gender (en retningslinje, en policy), so en, den, denne and
-     * dens stayed as they were.
+     * retningslinje for vakttjeneste beside it (#8527; #8435 had settled on
+     * the list's word, and #8527 moved the list and #8435's names to the
+     * one policy's). Both nouns are common gender (en retningslinje, en
+     * policy), so en, den, denne and dens stayed as they were.
      */
     {
       title: "On-Call",

@@ -156,7 +156,7 @@ const DeleteAccount: FunctionComponent<
             </ul>
             <p className="text-sm text-gray-600 mt-4">
               {translator.translateText(
-                "To leave a project, go to the project settings and remove yourself from all teams, or ask a project admin to remove you.",
+                "To leave a project, go to the project settings and remove yourself from all teams, or ask a Project Admin to remove you.",
               )}
             </p>
           </div>

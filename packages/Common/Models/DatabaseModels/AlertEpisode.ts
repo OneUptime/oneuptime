@@ -1552,7 +1552,7 @@ export default class AlertEpisode extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Private?",
     description:
-      "If true, this alert episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+      "If true, this alert episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     defaultValue: false,
   })
   @Column({

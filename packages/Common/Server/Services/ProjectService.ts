@@ -4234,7 +4234,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     ownerTeam.isTeamEditable = false;
     ownerTeam.isTeamDeleteable = false;
     ownerTeam.description =
-      "This team is for project owners. Adding team members to this team will give them root level permissions.";
+      "This team is for Project Owners. Adding team members to this team will give them root level permissions.";
 
     ownerTeam = await TeamService.create({
       data: ownerTeam,
@@ -4283,7 +4283,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     adminTeam.isTeamDeleteable = false;
     adminTeam.isTeamEditable = false;
     adminTeam.description =
-      "This team is for project admins. Admins can invite members to any team and create project resources.";
+      "This team is for Project Admins. Admins can invite members to any team and create project resources.";
 
     await TeamService.create({
       data: adminTeam,

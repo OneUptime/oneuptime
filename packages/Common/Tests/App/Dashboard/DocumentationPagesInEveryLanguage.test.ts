@@ -56,6 +56,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DataObservability: { way: "a text per language" },
   Docker: { way: "a setup guide's words" },
   Podman: { way: "a setup guide's words" },
+  DockerSwarm: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
@@ -82,7 +83,6 @@ const PAGES: Readonly<Record<string, PageReading>> = {
 const STILL_IN_ENGLISH: ReadonlyArray<string> = [
   "Ceph",
   "Database",
-  "DockerSwarm",
   "Host",
   "Inventory",
   "IoT",

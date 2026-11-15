@@ -270,7 +270,7 @@ describe("the postmortem page's action items", () => {
       'FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm',
     );
     expect(INCIDENT_PRIVACY_FILTER).toContain(
-      " * Project owners and admins, plus root/master-admin contexts, see all\n * private incidents.",
+      " * Project Owners and Project Admins, plus root/master-admin contexts, see all\n * private incidents.",
     );
 
     expect(flat(section(POSTMORTEMS, "### See every action item"))).toContain(

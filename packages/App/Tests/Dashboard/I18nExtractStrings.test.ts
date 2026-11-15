@@ -1663,6 +1663,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Utils/Incident/IncidentMetricType.ts",
       "keys packages/Common/Utils/Alerts/AlertMetricType.ts",
       "keys packages/Common/Utils/Slo/SloMetricType.ts",
+      // What the server stores as each monitor series' description.
+      "keys packages/Common/Server/Utils/Monitor/MonitorMetricUtil.ts",
       // A duration in milliseconds: the views' and the overview hero's "{{value}} ms".
       "ui packages/Common/Utils/Milliseconds.ts",
       // The Incident and Alert List widgets' settings, and every list widget's View Mode (#8164).

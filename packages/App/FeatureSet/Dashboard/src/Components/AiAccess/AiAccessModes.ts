@@ -208,7 +208,7 @@ export function getAiFixesOffHint(canTurnOnFixes: boolean): string {
   return translateTemplate(
     canTurnOnFixes
       ? "Want AI to propose fixes? Click Change and choose Ask for approval."
-      : "Want AI to propose fixes? Ask a project owner or admin to choose Ask for approval.",
+      : "Want AI to propose fixes? Ask a Project Owner or Project Admin to choose Ask for approval.",
   );
 }
 
