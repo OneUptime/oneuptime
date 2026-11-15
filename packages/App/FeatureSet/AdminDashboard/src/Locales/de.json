@@ -3259,7 +3259,7 @@
   "Send Test": "Test senden",
   "Edit Provider": "Anbieter bearbeiten",
   "Twilio": "Twilio",
-  "SMS and calls go out through the Twilio account below.": "SMS und Anrufe gehen über das Twilio-Konto unten hinaus.",
+  "SMS and calls go out through the Twilio account below.": "SMS und Anrufe werden über das Twilio-Konto unten versendet.",
   "Your own gateway": "Ihr eigenes Gateway",
   "OneUptime posts each SMS and call to a URL you run, which sends it through your own provider. Nothing goes through Twilio.": "OneUptime sendet jede SMS und jeden Anruf an eine URL, die Sie betreiben und die sie über Ihren eigenen Anbieter verschickt. Nichts läuft über Twilio.",
   "OneUptime posts each SMS and call here as a signed JSON request. It can be on your private network.": "OneUptime sendet jede SMS und jeden Anruf als signierte JSON-Anfrage hierher. Die Adresse darf in Ihrem privaten Netzwerk liegen.",
