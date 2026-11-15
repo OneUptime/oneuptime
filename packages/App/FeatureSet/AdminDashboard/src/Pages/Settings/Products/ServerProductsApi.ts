@@ -13,6 +13,7 @@ import {
 } from "Common/Types/Product/ServerProductsAnswer";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Admin Dashboard > Settings > Products, over HTTP (issue #6815): GET and
@@ -38,7 +39,9 @@ const readAnswer: (
   );
 
   if (!answer) {
-    throw new Error("The server did not answer with its products.");
+    throw new Error(
+      translateText("The server did not answer with its products.") as string,
+    );
   }
 
   return answer;
