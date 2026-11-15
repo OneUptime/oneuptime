@@ -332,16 +332,14 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
                 <div className="flex flex-col items-start gap-1">
                   <Pill
                     color={getSecurityEventDestinationHealthColor(health)}
+                    // In English: the badge looks them up, once (#8067).
                     text={
-                      translator.translateText(
-                        SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health].title,
-                      ) || health
+                      SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health].title ||
+                      health
                     }
                     tooltip={
-                      translator.translateText(
-                        SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health]
-                          .description,
-                      ) || undefined
+                      SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health]
+                        .description || undefined
                     }
                   />
                   {lastSent ? (

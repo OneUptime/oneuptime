@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52236,
-    "untranslated": 5115
+    "keys": 52351,
+    "untranslated": 5087
   },
   "sameAsEnglish": [
     " incidents",
@@ -766,6 +766,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{protocol}} port {{port}}",
+    "{{rate}}/min",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",
     "{{value}} s"

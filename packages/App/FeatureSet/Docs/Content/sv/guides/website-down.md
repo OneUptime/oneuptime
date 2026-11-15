@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Sonder i flera regioner kontrollerar adressen, så den måste gå att nå från internet. Free-planen har 10 aktiva monitorer.
+Sonder i flera regioner kontrollerar adressen, så den måste gå att nå från internet, och en incident öppnas bara när alla finner den nere. Free-planen har 10 aktiva monitorer. De faktureras efter användning, så projektet behöver först en betalningsmetod: utan en säger det första steget det, med **Lägg till betalningsmetod**.
 @tab Egenvärdad
-Adressen kontrolleras från din servers egen sond, så den måste gå att nå därifrån. För att du ska få e-post måste servern kunna skicka e-post: serverns huvudadministratör konfigurerar det på `/admin/setup`, som sidan [Guide för självhosting](/docs/installation/self-hosting-guide) visar. Huvudadministratören blir inte ägare till det som hen skapar, så för att få e-post lägger hen till sig själv på monitorns sida **Ägare**.
+Adressen kontrolleras från din servers egen sond, så den måste gå att nå därifrån. För att du ska få e-post måste servern kunna skicka e-post: serverns huvudadministratör konfigurerar det på `/admin/setup`, som sidan [Guide för självhosting](/docs/installation/self-hosting-guide) visar.
 :::
 
 ## Steg
@@ -28,7 +28,7 @@ Adressen kontrolleras från din servers egen sond, så den måste gå att nå d�
 
 ![Hem frågar ”Vad vill du göra först?”, med ”Veta när min webbplats eller mitt API ligger nere” ikryssat](screen:home-goal-website)
 
-I ett nytt projekt börjar sidan **Hem** med frågan **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere** och klicka på **Fortsätt**. Klicka sedan på **Skapa din första övervakare** i checklistan **Välkommen till OneUptime 👋**. Om checklistan inte visar det steget trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` och väljer **Veta när min webbplats eller mitt API ligger nere**.
+I ett nytt projekt börjar sidan **Hem** med frågan **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere** och klicka på **Fortsätt**. Klicka sedan på **Skapa din första monitor** i checklistan **Välkommen till OneUptime 👋**. Om checklistan inte visar det steget trycker du på `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` och väljer **Veta när min webbplats eller mitt API ligger nere**.
 
 ### Ange adressen
 
@@ -63,7 +63,7 @@ Under **Skicka ett test** klickar du på **Skicka ett testlarm till mig**. Välj
 
 - Konfigurationen avslutas med sin sammanfattning, som bygger på det som faktiskt har sparats: **Kontrollerad**, **När den går ner**, **Vem som får veta** och **Testat**.
 - Klicka på **Öppna monitorn** och sedan på **Visa kedjan** på monitorns kort **När den går ner**: där visas kedjan från monitorn till de personer som den når, och när inget skulle stoppa kedjan står det **Inget stoppar kedjan.**
-- På sidan **Hem** markerar checklistan **Skapa din första övervakare** som klar så snart den första kontrollen har kommit in. Om det var det sista steget försvinner checklistan.
+- På sidan **Hem** markerar checklistan **Skapa din första monitor** som klar så snart den första kontrollen har kommit in. Om det var det sista steget försvinner checklistan.
 
 För att konfigurera ytterligare en adress senare öppnar du konfigurationen igen och klickar på **Kontrollera en annan adress**.
 

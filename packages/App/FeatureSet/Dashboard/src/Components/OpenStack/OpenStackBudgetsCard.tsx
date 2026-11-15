@@ -227,13 +227,15 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
                   data-tone={status.tone}
                 >
                   <Pill
+                    // Worded here either way: drawn as given (#8067).
                     text={
                       status.threshold !== undefined
                         ? translator.translateTemplate(status.label, {
                             percent: `${translator.formatNumber(status.threshold)}%`,
                           })
-                        : status.label
+                        : translator.translateText(status.label) || status.label
                     }
+                    isUserContent={true}
                     color={CLOUD_BUDGET_TONE_COLORS[status.tone]}
                   />
                 </span>

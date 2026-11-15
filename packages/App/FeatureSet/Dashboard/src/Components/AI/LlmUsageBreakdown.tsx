@@ -55,6 +55,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const DEFAULT_WINDOW_DAYS: number = 7;
 
@@ -481,8 +482,8 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
    * a dash, lighter than the figures around it.
    */
   const notCounted: ReactElement = (
-    <span className="text-gray-400" data-testid="llm-usage-not-counted">
-      —
+    <span data-testid="llm-usage-not-counted">
+      <TableEmptyValue />
     </span>
   );
 

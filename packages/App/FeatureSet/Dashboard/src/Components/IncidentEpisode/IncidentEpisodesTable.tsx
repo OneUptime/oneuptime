@@ -47,6 +47,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<IncidentEpisode> | undefined;
@@ -349,7 +350,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: IncidentEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (

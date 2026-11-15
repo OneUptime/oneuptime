@@ -1,4 +1,4 @@
-import TableEmptyValue from "./TableEmptyValue";
+import { isEmptyValueElement } from "./TableEmptyValue";
 import { TABLE_FOLDED_MAIN_ATTRIBUTE } from "./FullValueTitle";
 import { TABLE_SHRINKABLE_ATTRIBUTE } from "./TableLayout";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -142,7 +142,7 @@ export const isEmptyFoldedContent: (content: React.ReactNode) => boolean = (
     return content.trim() === "";
   }
 
-  return React.isValidElement(content) && content.type === TableEmptyValue;
+  return isEmptyValueElement(content);
 };
 
 /*

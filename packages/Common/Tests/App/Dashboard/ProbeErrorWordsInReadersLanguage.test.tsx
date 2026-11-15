@@ -71,6 +71,7 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { quietDashTextIn } from "../../Helpers/QuietDash";
 
 /*
  * A FAILED CHECK'S ERROR, IN THE READER'S LANGUAGE (#7422, #7424).
@@ -344,7 +345,10 @@ describe("a phase the probe did not name", () => {
     );
 
     expect(factValue(container, "de", "Failed Phase")).toBe("QUIC Handshake");
-    expect(factValue(container, "de", "Error Details")).toBe("-");
+    // The quiet dash, "Not set" in German for a screen reader (#7603).
+    expect(factValue(container, "de", "Error Details")).toBe(
+      quietDashTextIn("Nicht festgelegt"),
+    );
   });
 });
 

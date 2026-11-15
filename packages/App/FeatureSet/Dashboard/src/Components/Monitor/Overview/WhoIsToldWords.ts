@@ -157,6 +157,7 @@ export const BREAK_SENTENCES: Readonly<{
   nothingHappens: string;
   nobodyPagedIncidents: string;
   nobodyPagedAlerts: string;
+  nobodyPagedNoPolicy: string;
   onlyIncidentsHaveRules: string;
   policyHasNoLevels: string;
   hiddenPolicyHasNoLevels: string;
@@ -175,6 +176,14 @@ export const BREAK_SENTENCES: Readonly<{
   ),
   nobodyPagedAlerts: translationKey(
     "Nobody is paged: no on-call rule matches alerts from this monitor.",
+  ),
+  /*
+   * A project with no on-call policy yet: Set Up Paging opens the on-call
+   * guided setup, which makes one, rather than rules with nothing to page
+   * (#7369).
+   */
+  nobodyPagedNoPolicy: translationKey(
+    "Nobody is paged: this project has no on-call policy yet.",
   ),
   onlyIncidentsHaveRules: translationKey(
     "Nobody is paged for this monitor's alerts: only incidents have on-call rules.",
@@ -224,6 +233,15 @@ export const BREAK_SENTENCES: Readonly<{
   },
 };
 
+/*
+ * Said after the channels of somebody no rule of theirs covers the severity
+ * for: those channels are what the project's fallback picks of their
+ * methods, not every one they verified (#7528).
+ */
+export const FALLBACK_CHANNELS_NOTE: string = translationKey(
+  "Picked by the fallback: no on-call rule of theirs covers this severity",
+);
+
 // "Ana Lopez", or "Someone" when the name is not known.
 function nameOr(name: string | undefined, translator: Translator): string {
   return name || translator.translateText("Someone") || "Someone";
@@ -247,6 +265,12 @@ export function getBreakSentence(
     case WhoIsToldBreakKind.NothingHappens:
       return translator.translateTemplate(BREAK_SENTENCES.nothingHappens);
     case WhoIsToldBreakKind.NobodyPaged:
+      if (brk.fix === WhoIsToldFix.OnCallGuidedSetup) {
+        return translator.translateTemplate(
+          BREAK_SENTENCES.nobodyPagedNoPolicy,
+        );
+      }
+
       return translator.translateTemplate(
         brk.recordKind === OnCallTestPageRecordKind.Alert
           ? BREAK_SENTENCES.nobodyPagedAlerts
@@ -310,6 +334,7 @@ const FIX_WORDS: Readonly<Record<WhoIsToldFix, string>> = {
   [WhoIsToldFix.MonitorCriteria]: translationKey("Open Criteria"),
   [WhoIsToldFix.IncidentOnCallRules]: translationKey("Set Up Paging"),
   [WhoIsToldFix.AlertOnCallRules]: translationKey("Set Up Paging"),
+  [WhoIsToldFix.OnCallGuidedSetup]: translationKey("Set Up Paging"),
   [WhoIsToldFix.OnCallPolicy]: translationKey("Open On-Call Policy"),
   [WhoIsToldFix.OnCallReadiness]: translationKey("Open Readiness"),
   [WhoIsToldFix.ProjectNotificationSettings]: translationKey(
@@ -323,6 +348,11 @@ const FIX_PAGES: Readonly<Partial<Record<WhoIsToldFix, PageMap>>> = {
   [WhoIsToldFix.MonitorCriteria]: PageMap.MONITOR_VIEW_CRITERIA,
   [WhoIsToldFix.IncidentOnCallRules]: PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES,
   [WhoIsToldFix.AlertOnCallRules]: PageMap.ALERTS_SETTINGS_ON_CALL_RULES,
+  /*
+   * No policy yet: the on-call guided setup makes the project's first, with
+   * the rules that page it for every new incident and alert (#7369).
+   */
+  [WhoIsToldFix.OnCallGuidedSetup]: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
   [WhoIsToldFix.OnCallPolicy]: PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
   [WhoIsToldFix.OnCallReadiness]: PageMap.ON_CALL_DUTY_READINESS,
   [WhoIsToldFix.ProjectNotificationSettings]:

@@ -451,6 +451,15 @@ När det är på körs en sådan åtgärd först när två olika personer har go
 
 Regeln läses när någon godkänner: påslagen håller den kvar de åtgärder som redan väntar; avstängd kör nästa godkännande dem. En åtgärd med bara säkra ändringar, en runbook och en åtgärd via MCP-servrar behöver ett godkännande, som tidigare. En ändring som ett kluster eller en resurs kör på egen hand, i läget **Automatiskt** eller **Hoppa över godkännande** eller för att dess lista över tillåtna kommandon nämner den, väntar inte på något godkännande alls.
 
+### Spara en lyckad åtgärd som runbook
+
+När en åtgärd som OneUptime AI körde på egen hand har verifierats – kommandon på en Runner, en ändring via AI-agenten för ett kluster eller en resurs, eller anrop till MCP-servrar – erbjuder dess kort **Spara som runbook**. OneUptime skriver en runbook med de steg som kördes och fungerade, i den ordning de kördes:
+
+- ett kommando på en Runner blir ett Bash-steg på samma Runner, ordagrant, med samma tidsgräns; ett kommando som krävde godkännande väntar på godkännande även i runbooken;
+- en ändring via en AI-agent eller en MCP-server blir ett Manual-steg som innehåller det exakta kommandot eller anropet, eftersom en runbooks egna steg inte kan nå de agenterna.
+
+Varje steg säger varför OneUptime AI körde det, vad det gör och hur det ångras. Runbooken får sitt namn efter incidenten eller larmet som den åtgärdade, och är avstängd från början: ingen kan köra den, och OneUptime AI väljer den aldrig, förrän någon har granskat dess steg och slagit på den. Kortet länkar sedan till runbooken, och flödet säger att den har sparats. En åtgärd som inte är verifierad, eller som redan körde en runbook, har inget att spara, och att spara kräver behörighet att skapa runbooks.
+
 ## OneUptime AI reagerar först
 
 En jourregel för incidenter eller larm kan låta OneUptime AI ta larmet först. Under **Fler fält** svarar du **Efter att OneUptime AI har försökt** på **När ska den här regeln larma?**. När OneUptime AI får åtgärda det en matchande incident eller ett matchande larm gäller, väntar regelns policyer medan AI undersöker, åtgärdar och kontrollerar sin åtgärd, i högst den tid som anges i **Vänta på OneUptime AI i upp till (minuter)**: 10 minuter som standard, från 1 till 30. Om AI:s åtgärd bekräftas löser OneUptime AI posten och ingen larmas.

@@ -62,6 +62,7 @@ const ServiceAddedModal: FunctionComponent<ComponentProps> = (
         return (
           <TelemetryDocumentation
             telemetryType="traces"
+            everySignal={true}
             serviceName={props.name}
             isBare={true}
           />

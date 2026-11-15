@@ -478,6 +478,149 @@ describe("Markdown email renderer - a link across the end of an over-long line's
   });
 });
 
+/*
+ * ISSUE #7600: on a line over 64 KB, a link whose text crossed where the
+ * line is cut showed as Markdown - "run run ... run](https://...)" with the
+ * address autolinked, or "[run run ..." and the address as text - and a
+ * long bare address at the line's end was not linked. Each renders as
+ * marked alone renders it now.
+ */
+describe("Markdown email renderer - a link's text across a cut, and a bare address across the end (#7600)", () => {
+  const FILLER: string = "log line text ".repeat(5000);
+  const RUNS: string = "run ".repeat(400);
+
+  test.each([
+    [
+      "a link's text across the end",
+      `${FILLER}see [${RUNS}](https://example.com/x) now`,
+    ],
+    [
+      "a link's text across the start",
+      `[${RUNS}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "a long bare address at the end",
+      `${FILLER}see https://example.com/${"a".repeat(2000)} now`,
+    ],
+    [
+      "a long bare www address at the end",
+      `${FILLER}see www.example.com/${"a".repeat(2000)} now`,
+    ],
+    [
+      "an image's text across the end",
+      `${FILLER}see ![${"shot ".repeat(320)}](https://example.com/x.png) now`,
+    ],
+    [
+      "an image's text across the start",
+      `![${"shot ".repeat(320)}](https://example.com/x.png) ${FILLER}`,
+    ],
+    [
+      "a link's text with a title, across the start",
+      `[${RUNS}](https://example.com/x "Run") ${FILLER}`,
+    ],
+    [
+      "a link's text with brackets nested in it, across the end",
+      `${FILLER}see [run [42] ${RUNS}](https://example.com/x) now`,
+    ],
+    [
+      "a link's text with brackets nested in it, across the start",
+      `[run [42] ${RUNS}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "a link's text with an escaped bracket, across the start",
+      `[run \\] ${RUNS}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "a link's text with code, across the start",
+      `[run \`code\` ${RUNS}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "a bare address and a ')' and a '.' after it",
+      `${FILLER}(see https://example.com/${"a".repeat(2000)}). Done`,
+    ],
+    [
+      "a bare address and a '.' at the line's end",
+      `${FILLER}see https://example.com/${"a".repeat(2000)}.`,
+    ],
+    [
+      "a link's text across the end, in a list item",
+      `- ${FILLER}see [${RUNS}](https://example.com/x) now`,
+    ],
+    [
+      "a link's text across the start, in a quote",
+      `> [${RUNS}](https://example.com/x) ${FILLER}`,
+    ],
+    [
+      "a link's text across each end of one line",
+      `[${RUNS}](https://example.com/a) ${FILLER}see [${RUNS}](https://example.com/b) now`,
+    ],
+  ])(
+    "renders exactly as marked alone does: %s",
+    async (_label: string, markdown: string) => {
+      const html: string = await render(markdown);
+      const expected: string = await renderWithMarkedAlone(markdown);
+
+      expect(markdown.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+      // A boolean, so a failure does not print hundreds of kilobytes.
+      expect(html === expected).toBe(true);
+    },
+  );
+
+  test("the issue's rows are links to their whole addresses, and none of their Markdown is shown", async () => {
+    const acrossTheEnd: string = await render(
+      `${FILLER}see [${RUNS}](https://example.com/x) now`,
+    );
+    const acrossTheStart: string = await render(
+      `[${RUNS}](https://example.com/x) ${FILLER}`,
+    );
+    const address: string = `https://example.com/${"a".repeat(2000)}`;
+    const bare: string = await render(`${FILLER}see ${address} now`);
+    const www: string = await render(
+      `${FILLER}see www.example.com/${"a".repeat(2000)} now`,
+    );
+
+    expect(
+      acrossTheEnd.endsWith(
+        ` see <a href="https://example.com/x">${RUNS}</a> now</p>\n`,
+      ),
+    ).toBe(true);
+    expect(
+      acrossTheStart.startsWith(
+        `<p><a href="https://example.com/x">${RUNS}</a> log line`,
+      ),
+    ).toBe(true);
+    expect(
+      bare.endsWith(` see <a href="${address}">${address}</a> now</p>\n`),
+    ).toBe(true);
+    expect(www).toContain(
+      `<a href="http://www.example.com/${"a".repeat(2000)}">www.example.com/`,
+    );
+
+    for (const html of [acrossTheEnd, acrossTheStart, bare, www]) {
+      expect(html).not.toContain("](");
+      expect(html).not.toContain("[run");
+    }
+  });
+
+  test.each([
+    ["an escaped bracket", "run \\] ", "run \\] "],
+    ["code", "run `code` ", "run `code` "],
+    ["emphasis", "run *now* ", "run *now* "],
+  ])(
+    "a link's text with %s in what the middle holds of it is a link, that part of its text as written",
+    async (_name: string, markup: string, shown: string) => {
+      const html: string = await render(
+        `${FILLER}see [${markup}${RUNS}](https://example.com/x) now`,
+      );
+
+      expect(html.endsWith(`${RUNS}</a> now</p>\n`)).toBe(true);
+      expect(html).toContain(
+        ` see <a href="https://example.com/x">${shown}run run`,
+      );
+    },
+  );
+});
+
 describe("Markdown email renderer - the last resort", () => {
   test("if marked still runs out of stack, the Markdown is sent as text, escaped, and logged", async () => {
     mockMarkedState.failWith = new RangeError(

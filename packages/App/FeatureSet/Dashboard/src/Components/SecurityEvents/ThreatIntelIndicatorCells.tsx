@@ -62,7 +62,7 @@ export const IndicatorTypeCell: FunctionComponent<IndicatorTypeCellProps> = (
   const label: string = getIndicatorTypeLabel(props.type);
 
   if (!label) {
-    return <span className="text-gray-500">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (

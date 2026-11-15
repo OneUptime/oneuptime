@@ -38,16 +38,19 @@ const Settings: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.globalLlmProviders"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
           ),
@@ -153,9 +156,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             type: FieldType.Text,
             // As the form's cards name it: "Azure OpenAI / Microsoft Foundry".
             getElement: (item: LlmProvider): ReactElement => {
-              return (
-                <LlmProviderTypeLabel llmType={item.llmType} emptyText="-" />
-              );
+              return <LlmProviderTypeLabel llmType={item.llmType} />;
             },
           },
           {

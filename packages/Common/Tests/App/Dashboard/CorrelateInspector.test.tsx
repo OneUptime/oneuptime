@@ -38,6 +38,7 @@ import {
   CorrelateOverviewProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/CorrelateInspector";
 import { CorrelationGraphNode } from "../../../../App/FeatureSet/Dashboard/src/Utils/CorrelationGraph";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * The inspector beside the correlation graph: the overview list (the
@@ -863,8 +864,9 @@ describe("CorrelateClassEventsPanel", () => {
       "correlate-drilldown-event-0",
     );
     expect(within(first).getByText("db-01")).toBeInTheDocument();
-    // Missing time and missing message each render a dash.
-    expect(within(first).getAllByText("-")).toHaveLength(2);
+    // Missing time and missing message each render the quiet dash (#7603).
+    expect(within(first).getAllByText(EMPTY_VALUE_MARK)).toHaveLength(2);
+    expect(within(first).queryByText("-")).toBeNull();
     // Missing severity falls back to the pill's Unknown.
     expect(within(first).getByTestId("pill")).toHaveTextContent("Unknown");
 

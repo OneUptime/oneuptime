@@ -169,6 +169,7 @@ Die Ausführung bleibt auf der Seite **Runbooks** des Vorfalls. Wenn Sie das Pos
 - **[Bereitschaftsrichtlinien](/docs/on-call/schedules)** entscheiden, wer alarmiert wird. Runbooks entscheiden, was diese Person tut, sobald sie wach ist.
 - **[Workspace-Verbindungen](/docs/workspace-connections/slack)** wie Slack und Microsoft Teams sind naheliegende Ziele für HTTP-Anfrage-Schritte, die Updates posten.
 - **[Statusseiten](/docs/status-pages/index)** werden oft als Manual-Schritt eines kundenwirksamen Runbooks aktualisiert.
+- **[OneUptime AI](/docs/ai/ai-sre#eine-erfolgreiche-korrektur-als-runbook-speichern)** schreibt aus einer eigenen Korrektur, die funktioniert hat, ein Runbook: **Als Runbook speichern** bei einer verifizierten Korrektur speichert die ausgeführten Schritte, und das Runbook bleibt ausgeschaltet, bis Sie sie geprüft haben.
 
 ## Nächste Schritte
 

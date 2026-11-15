@@ -27,6 +27,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How wide the two free-text cells of the connected clients table may grow.
@@ -194,7 +195,7 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
             contentClassName: CONNECTED_BY_CELL_WIDTH_CLASS_NAME,
             getElement: (item: McpOAuthGrant): ReactElement => {
               if (!item.user) {
-                return <p>-</p>;
+                return <TableEmptyValue />;
               }
 
               const user: User = item.user as User;

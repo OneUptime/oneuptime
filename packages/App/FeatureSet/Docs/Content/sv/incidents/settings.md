@@ -676,7 +676,7 @@ Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler
 
 | Mall                                                 | Grupperar                                                  | Tidsfönster |
 | ---------------------------------------------------- | ---------------------------------------------------------- | ----------- |
-| **Gruppera incidenter från samma övervakare**        | En episod per monitor                                      | 30 minuter  |
+| **Gruppera incidenter från samma monitor**        | En episod per monitor                                      | 30 minuter  |
 | **Gruppera incidenter som sker samtidigt**           | En gemensam episod, oavsett monitor                        | 10 minuter  |
 | **Gruppera incidenter i anslutna tjänster** | En episod för tjänster som anropar varandra på tjänstekartan | 30 minuter  |
 | **Gruppera incidenter efter allvarlighetsgrad**      | En episod per allvarlighetsgrad                            | 30 minuter  |

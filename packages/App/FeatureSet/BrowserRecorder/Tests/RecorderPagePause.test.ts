@@ -10,6 +10,7 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import {
   SessionReplayCustomEventTag,
   SessionReplayIdlePausedPayload,
+  SessionReplayIdleResumedPayload,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { RecorderInitOptions } from "../src/Config";
@@ -451,6 +452,86 @@ describe("Recorder page pause (#6834)", (): void => {
       expect(allText()).not.toContain(NOT_RECORDED);
     });
 
+    /*
+     * Issue #7498: the player names the stretch from the resumed marker
+     * alone when the paused one is in a chunk it has not read, so the
+     * resume says whose pause it ended too.
+     */
+    it("says on its resumed marker that the page paused, with the pause's start", async (): Promise<void> => {
+      const instance: Recorder = build();
+      instance.start();
+      await drainMicrotasks();
+
+      instance.pause();
+      await advance(1000);
+      input("mousedown");
+      input("keydown");
+      await advance(60 * 1000);
+      instance.resume();
+      await flushTick();
+
+      const paused: SessionReplayIdlePausedPayload = (
+        markers(SessionReplayCustomEventTag.IdlePaused)[0] as RecordedEvent
+      ).data["payload"] as SessionReplayIdlePausedPayload;
+      const resumedMarkers: Array<RecordedEvent> = markers(
+        SessionReplayCustomEventTag.IdleResumed,
+      );
+
+      expect(resumedMarkers).toHaveLength(1);
+
+      const resumed: SessionReplayIdleResumedPayload = (
+        resumedMarkers[0] as RecordedEvent
+      ).data["payload"] as SessionReplayIdleResumedPayload;
+
+      expect(paused.reason).toBe("page");
+      expect(resumed.reason).toBe("page");
+      expect(resumed.pausedAtUnixMs).toBe(paused.pausedAtUnixMs);
+      expect(resumed.resumedAtUnixMs - resumed.pausedAtUnixMs).toBe(61 * 1000);
+    });
+
+    it("says page again on the next pause and resume, and on none of an idle pause between them", async (): Promise<void> => {
+      const instance: Recorder = build();
+      instance.start();
+      await drainMicrotasks();
+
+      instance.pause();
+      await advance(1000);
+      instance.resume();
+      await flushTick();
+
+      // Nobody touches the page: an idle pause, which input ends.
+      await advance(
+        SESSION_REPLAY_IDLE_PAUSE_MS + SESSION_REPLAY_FLUSH_INTERVAL_MS,
+      );
+      expect(instance.isPausedForIdle()).toBe(true);
+      input("mousedown");
+      await flushTick();
+
+      instance.pause();
+      await advance(1000);
+      instance.resume();
+      await flushTick();
+
+      const reasons: (tag: string) => Array<string | undefined> = (
+        tag: string,
+      ): Array<string | undefined> => {
+        return markers(tag).map((marker: RecordedEvent): string | undefined => {
+          return (marker.data["payload"] as { reason?: string }).reason;
+        });
+      };
+
+      expect(reasons(SessionReplayCustomEventTag.IdlePaused)).toEqual([
+        "page",
+        undefined,
+        "page",
+      ]);
+      expect(reasons(SessionReplayCustomEventTag.IdleResumed)).toEqual([
+        "page",
+        undefined,
+        "page",
+      ]);
+    });
+
     it("records again after it, until the next pause", async (): Promise<void> => {
       const instance: Recorder = build();
       instance.start();
@@ -656,6 +737,47 @@ describe("Recorder page pause (#6834)", (): void => {
 
       // An idle pause says no reason: every pause older recorders made.
       expect(idleMarker.reason).toBeUndefined();
+
+      const resumed: SessionReplayIdleResumedPayload = (
+        markers(SessionReplayCustomEventTag.IdleResumed)[0] as RecordedEvent
+      ).data["payload"] as SessionReplayIdleResumedPayload;
+
+      // Nor does its resume (#7498).
+      expect(resumed.reason).toBeUndefined();
+      expect(resumed.pausedAtUnixMs).toBe(idleMarker.pausedAtUnixMs);
+    });
+
+    it("resumes an idle pause the page took over as the idle pause it began as", async (): Promise<void> => {
+      const instance: Recorder = build();
+      instance.start();
+      await drainMicrotasks();
+
+      await advance(
+        SESSION_REPLAY_IDLE_PAUSE_MS + SESSION_REPLAY_FLUSH_INTERVAL_MS,
+      );
+      const idlePaused: SessionReplayIdlePausedPayload = (
+        markers(SessionReplayCustomEventTag.IdlePaused)[0] as RecordedEvent
+      ).data["payload"] as SessionReplayIdlePausedPayload;
+
+      instance.pause();
+      await advance(1000);
+      instance.resume();
+      await flushTick();
+
+      /*
+       * One stretch, a marker at each end: it began because nobody was
+       * there, so neither end says the page. (Still nobody is, so the next
+       * idle check pauses again: that is another stretch, not this one.)
+       */
+      expect(markers(SessionReplayCustomEventTag.IdleResumed)).toHaveLength(1);
+
+      const resumed: SessionReplayIdleResumedPayload = (
+        markers(SessionReplayCustomEventTag.IdleResumed)[0] as RecordedEvent
+      ).data["payload"] as SessionReplayIdleResumedPayload;
+
+      expect(idlePaused.reason).toBeUndefined();
+      expect(resumed.pausedAtUnixMs).toBe(idlePaused.pausedAtUnixMs);
+      expect(resumed.reason).toBeUndefined();
     });
   });
 });

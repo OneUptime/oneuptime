@@ -1639,3 +1639,66 @@ describe("the real MarkdownViewer shows a link across either end of an over-long
     expect(html).not.toContain("![Shot](");
   });
 });
+
+describe("the real MarkdownViewer shows a link's text across a cut, and a bare address across the end of an over-long line (#7600)", () => {
+  const FILLER: string = "log line text ".repeat(5000);
+  const RUNS: string = "run ".repeat(400);
+  // No run of base64 in it: it comes back as it is, not compacted.
+  const PATH: string = `${"a-".repeat(1000)}run`;
+
+  const cases: Array<RenderCase> = [
+    {
+      name: "a link's text across the end",
+      text: `${FILLER}see [${RUNS}](https://example.com/x) now`,
+    },
+    {
+      name: "a link's text across the start",
+      text: `[${RUNS}](https://example.com/x) ${FILLER}`,
+    },
+    {
+      name: "a bare address at the end",
+      text: `${FILLER}see https://example.com/${PATH} now`,
+    },
+    {
+      name: "a bare www address at the end",
+      text: `${FILLER}see www.example.com/${PATH} now`,
+    },
+  ];
+
+  let report: RenderReport;
+
+  beforeAll(() => {
+    report = renderWithRealViewer(cases);
+  }, 600000);
+
+  const htmlOf: (name: string) => string = (name: string): string => {
+    expect({ name: name, ok: report.rendered[name]!.ok }).toEqual({
+      name: name,
+      ok: true,
+    });
+
+    return report.rendered[name]!.html!;
+  };
+
+  test("the cases are lines over 64 KB", () => {
+    for (const item of cases) {
+      expect(item.text.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+    }
+  });
+
+  test.each([
+    ["a link's text across the end", "https://example.com/x"],
+    ["a link's text across the start", "https://example.com/x"],
+    ["a bare address at the end", `https://example.com/${PATH}`],
+    ["a bare www address at the end", `http://www.example.com/${PATH}`],
+  ])(
+    "%s is a link to its whole address, none of its Markdown shown",
+    (name: string, address: string) => {
+      const html: string = htmlOf(name);
+
+      expect(hrefsIn(html)).toEqual([address]);
+      expect(html).not.toContain("](");
+      expect(html).not.toContain("[run");
+    },
+  );
+});

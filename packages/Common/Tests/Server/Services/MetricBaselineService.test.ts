@@ -29,6 +29,8 @@ import {
   test,
 } from "@jest/globals";
 import { decodedQueryParams } from "../../Helpers/StatementEcho";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
+import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 
 /*
  * What a metric's baseline asks ClickHouse, and what it makes of the answer.
@@ -1198,6 +1200,47 @@ describe("MetricBaselineService", () => {
           expect.arrayContaining(["host", "state"]),
         );
       });
+
+      /*
+       * Issues #8026 and #8025: a series grouped by an attribute named like
+       * what every object inherits is found under the fingerprint the
+       * worker gives it, from the grouped read's own map. The key named
+       * __proto__ was not written into the attributes this fingerprints, so
+       * every series of such a monitor had one baseline, under a
+       * fingerprint the worker never used.
+       */
+      test.each(INHERITED_PROPERTY_NAMES)(
+        "grouped by %s, each series has a baseline of its own, under the worker's fingerprint",
+        async (name: string) => {
+          answerWith({ cell: [CELL], days: TWO_WEEKS, points: GROUPED });
+
+          const baselines: MetricSeriesBaselines = await readSeries({
+            groupByAttributeKeys: [name],
+          });
+
+          // What the worker keys a series by: the grouped read's JSON map.
+          const workerFingerprint: (value: string) => string = (
+            value: string,
+          ): string => {
+            return fingerprintOf(
+              MetricSeriesFingerprint.extractSeriesLabels({
+                sample: {
+                  timestamp: new Date(),
+                  value: 1,
+                  attributes: JSON.parse(
+                    JSON.stringify({ [name]: value }),
+                  ) as JSONObject,
+                } as unknown as AggregatedModel,
+                attributeKeys: [name],
+              }),
+            );
+          };
+
+          expect(baselines.series.size).toBe(2);
+          expect(baselines.series.get(workerFingerprint("a"))?.mean).toBe(10);
+          expect(baselines.series.get(workerFingerprint("b"))?.mean).toBe(90);
+        },
+      );
 
       test("an attribute a series does not carry is empty, as the worker keeps it", async () => {
         answerWith({

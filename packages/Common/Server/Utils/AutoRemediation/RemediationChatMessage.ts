@@ -21,11 +21,9 @@ import {
 } from "../../../Types/AutoRemediation/RemediationTrackRecord";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../Types/ObjectID";
-import AiResourceType, {
-  AI_RESOURCE_TYPE_INFO,
-  isAiResourceType,
-} from "../../../Types/ResourceAiAgent/AiResourceType";
+import { isAiResourceType } from "../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceCommandTier } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
+import { getResourceSentenceName } from "../../../Types/AI/ResourceAiAccessPermissions";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import {
   WorkspaceMessageBlock,
@@ -265,10 +263,8 @@ export function describeChangeTarget(
     command.stepType === RunbookStepType.ResourceCommand &&
     isAiResourceType(command.resourceType)
   ) {
-    const noun: string =
-      command.resourceType === AiResourceType.Host
-        ? "host"
-        : AI_RESOURCE_TYPE_INFO[command.resourceType].displayName;
+    // After "on", mid-sentence: "host", "database server", "Docker host".
+    const noun: string = getResourceSentenceName(command.resourceType);
     const name: string = command.resourceNameSnapshot || "";
 
     return name ? `${noun} "${capped(name, 120)}"` : noun;

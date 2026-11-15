@@ -55,7 +55,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 - 在某個叢集上，**成本** 會顯示其支出趨勢、依 CPU、記憶體和儲存空間拆分的 **Spend by Namespace**、**Spend by Workload**、閒置支出、效率，以及 **Right-Sizing** 卡片。
 :::
 
-成本指標（`node_total_hourly_cost`、`pv_hourly_cost` 等）都是一般指標：它們會出現在指標瀏覽器中、自訂儀表板上和指標監控器中。若要使用現成的儀表板，請前往 **產品 → 儀表板**，選取 **建立儀表板**，然後挑選 **Kubernetes Cost Dashboard**：其中包含節點每小時成本趨勢、CPU 和記憶體單價，以及磁碟區和負載平衡器的支出。
+成本指標（`node_total_hourly_cost`、`pv_hourly_cost` 等）都是一般指標：它們會出現在指標瀏覽器中、自訂儀表板上和指標監測器中。若要使用現成的儀表板，請前往 **產品 → 儀表板**，選取 **建立儀表板**，然後挑選 **Kubernetes Cost Dashboard**：其中包含節點每小時成本趨勢、CPU 和記憶體單價，以及磁碟區和負載平衡器的支出。
 
 ## 已經在執行 Kubecost 或 OpenCost？
 
@@ -148,7 +148,7 @@ Prometheus 中斷永遠不會停止支出的收集：峰值只是附加資訊，
 
 ## 針對成本發出警示
 
-成本指標都是一般指標，因此 [指標監控器](/docs/monitor/metrics-monitor) 可以像對待其他任何指標一樣對它們發出警示：例如，當平均 `node_total_hourly_cost` 超出預算時，或者當叢集中出現某個本不應存在的磁碟區類別的 `pv_hourly_cost` 時。
+成本指標都是一般指標，因此 [指標監測器](/docs/monitor/metrics-monitor) 可以像對待其他任何指標一樣對它們發出警示：例如，當平均 `node_total_hourly_cost` 超出預算時，或者當叢集中出現某個本不應存在的磁碟區類別的 `pv_hourly_cost` 時。
 
 ## 資料模型和保留
 

@@ -291,6 +291,7 @@ const ChoiceRows: <TValue extends string>(
               <span id={planId} className="mt-2 inline-flex sm:mt-0">
                 <Pill
                   text={getChoiceRowPlanPillText(translator, option.planNeeded)}
+                  isUserContent={true}
                   color={Yellow}
                 />
               </span>

@@ -384,7 +384,7 @@ export default class ResourceCommandPolicy {
 
       return deniedResult(
         argv,
-        `"${program}" is not a program the ${info.agentDisplayName} runs: a command for a ${info.displayName} starts with ${programList}${
+        `"${program}" is not a program the ${info.agentDisplayName} runs: a command for this ${info.sentenceName} starts with ${programList}${
           program.includes("/")
             ? " (write the program name without a path)"
             : ""
@@ -731,7 +731,7 @@ export default class ResourceCommandPolicy {
 
     if (data.allowWrites !== true) {
       return `The ${agentName} for this ${
-        info ? info.displayName : "resource"
+        info ? info.sentenceName : "resource"
       } is read-only, so it refuses every change, including "${shown}". To let OneUptime AI change it, set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the agent and restart it.`;
     }
 

@@ -6,7 +6,7 @@ OneUptime-providern fungerar med [OpenTofu](https://opentofu.org) på samma sät
 - [Använd providern med OpenTofu](#använd-providern-med-opentofu): Samma konfiguration, körd med `tofu`.
 - [Vad som skiljer sig från Terraform](#vad-som-skiljer-sig-från-terraform): Register, låsfiler, `.tofu`-filer och versioner.
 - [Flytta en konfiguration till OpenTofu](#flytta-en-konfiguration-till-opentofu): Byt en befintlig konfiguration i fyra steg.
-- [En återanvändbar modul](#en-återanvändbar-modul): Övervakare, en jourpolicy och en statussida för en tjänst.
+- [En återanvändbar modul](#en-återanvändbar-modul): Monitorer, en jourpolicy och en statussida för en tjänst.
 :::
 
 ## Använd providern med OpenTofu
@@ -97,7 +97,7 @@ Checka in `.terraform.lock.hcl`, och kör konfigurationen med `tofu` från och m
 
 ## En återanvändbar modul
 
-[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) i OneUptime-repot innehåller konfigurationer som går att köra direkt, och en modul som sätter upp en tjänst: en webbplatsövervakare för varje adress som du ger den, en etikett på allt som den skapar, en jourpolicy med en eskaleringsregel, och en statussida som listar övervakarna. Det är vanlig HCL, så den fungerar även under Terraform.
+[`Examples/opentofu/`](https://github.com/OneUptime/oneuptime/tree/main/Examples/opentofu) i OneUptime-repot innehåller konfigurationer som går att köra direkt, och en modul som sätter upp en tjänst: en webbplatsmonitor för varje adress som du ger den, en etikett på allt som den skapar, en jourpolicy med en eskaleringsregel, och en statussida som listar monitorerna. Det är vanlig HCL, så den fungerar även under Terraform.
 
 ```hcl title="main.tf"
 module "storefront" {

@@ -39,6 +39,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Everything this user belongs to, across every project on the instance.
@@ -99,10 +100,19 @@ const UserProjects: FunctionComponent = (): ReactElement => {
     return (
       <div className="flex flex-wrap gap-1">
         {teams.map((team: Team, index: number) => {
+          const name: string = team.name?.toString() || "";
+
+          // A team with no name: the quiet dash, not a pill holding a hyphen.
+          if (!name) {
+            return (
+              <TableEmptyValue key={team._id?.toString() || index.toString()} />
+            );
+          }
+
           return (
             <Pill
               key={team._id?.toString() || index.toString()}
-              text={team.name?.toString() || "-"}
+              text={name}
               /*
                * Looked up, as before: whether the teams every project starts
                * with (Owners, Admin, Members) read in the reader's language
@@ -127,14 +137,17 @@ const UserProjects: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.users"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
           title: t("breadcrumbs.user"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
             {
@@ -144,6 +157,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.userProjects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_PROJECTS] as Route,
             {
@@ -247,13 +261,13 @@ const UserProjects: FunctionComponent = (): ReactElement => {
               disableSort: true,
               getElement: (item: TeamMember): ReactElement => {
                 if (!item.project) {
-                  return <p>-</p>;
+                  return <TableEmptyValue />;
                 }
 
                 return (
                   <div>
                     <p className="font-medium">
-                      {item.project.name?.toString() || "-"}
+                      {item.project.name?.toString() || <TableEmptyValue />}
                     </p>
                     <p className="text-xs text-gray-500">
                       {item.projectId?.toString() ||
@@ -307,6 +321,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   return (
                     <Pill
                       text={t("pages.userProjects.statusInvited")}
+                      isUserContent={true}
                       color={Yellow}
                     />
                   );
@@ -325,6 +340,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   <div className="flex space-x-2">
                     <Pill
                       text={t("pages.userProjects.statusMember")}
+                      isUserContent={true}
                       color={Green}
                     />
                     {pendingTeamCount > 0 && (
@@ -332,6 +348,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                         text={t("pages.userProjects.pendingInvitations", {
                           pending: pendingTeamCount,
                         })}
+                        isUserContent={true}
                         color={Yellow}
                       />
                     )}
@@ -418,7 +435,9 @@ const UserProjects: FunctionComponent = (): ReactElement => {
               title: t("pages.userProjects.columnProject"),
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
-                return <p>{item.project?.name?.toString() || "-"}</p>;
+                return (
+                  <p>{item.project?.name?.toString() || <TableEmptyValue />}</p>
+                );
               },
             },
             {
@@ -430,7 +449,9 @@ const UserProjects: FunctionComponent = (): ReactElement => {
               title: t("pages.userProjects.columnTeam"),
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
-                return <p>{item.team?.name?.toString() || "-"}</p>;
+                return (
+                  <p>{item.team?.name?.toString() || <TableEmptyValue />}</p>
+                );
               },
             },
             {
@@ -444,6 +465,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   return (
                     <Pill
                       text={t("pages.userProjects.statusMember")}
+                      isUserContent={true}
                       color={Green}
                     />
                   );
@@ -452,6 +474,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                 return (
                   <Pill
                     text={t("pages.userProjects.statusInvited")}
+                    isUserContent={true}
                     color={Yellow}
                   />
                 );

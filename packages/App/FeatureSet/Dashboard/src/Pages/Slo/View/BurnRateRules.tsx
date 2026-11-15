@@ -60,6 +60,7 @@ import {
   getNamesOrNothingPicked,
   getSeverityOrNothingPicked,
 } from "../Utils/BurnRateRuleLines";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const documentationMarkdown: string = `
 ### How Burn Rate Rules Work
@@ -204,7 +205,7 @@ const renderLines: RenderLinesFunction = (
   lines: Array<string>,
 ): ReactElement => {
   if (lines.length === 0) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -439,7 +440,7 @@ const SloBurnRateRules: FunctionComponent<
               );
 
               if (threshold === null) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <span className="text-sm text-gray-900">{threshold}</span>;
             },
@@ -771,7 +772,7 @@ const SloBurnRateRules: FunctionComponent<
               }
 
               if (labels.length === 0) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
 
               return <LabelsElement labels={labels} />;

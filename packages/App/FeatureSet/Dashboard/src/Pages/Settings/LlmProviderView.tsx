@@ -38,6 +38,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -247,7 +248,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
                 if (item.isDefault) {
                   return <Pill text="Default" color={Green} />;
                 }
-                return <span className="text-gray-400">-</span>;
+                return <EmptyValue />;
               },
             },
           ],

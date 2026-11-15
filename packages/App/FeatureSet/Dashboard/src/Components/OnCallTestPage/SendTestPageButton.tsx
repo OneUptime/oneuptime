@@ -26,6 +26,12 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
   onSent?: ((executionLogId: string) => void) | undefined;
   onResult?: ((result: OnCallTestPageResult) => void) | undefined;
+  /*
+   * The dialog closed, whatever became of the test: a guided setup reads
+   * its policy again then, as one deleted meanwhile could not be tested
+   * (#7516).
+   */
+  onClose?: (() => void) | undefined;
 }
 
 export function getDefaultButtonTitle(target: OnCallTestPageTarget): string {
@@ -64,6 +70,7 @@ const SendTestPageButton: FunctionComponent<ComponentProps> = (
           target={props.target}
           onClose={() => {
             setIsOpen(false);
+            props.onClose?.();
           }}
           onSent={props.onSent}
           onResult={props.onResult}

@@ -249,7 +249,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 - **網路** 下的 **路由** 和 **服務**：每個 Route 在哪裡回應、如何終止 TLS、將流量傳送到哪些服務以及各占多少比例，以及路由器拒絕它的原因。Route 的 TLS 金鑰絕不會離開叢集：代理程式在傳送 Route 之前會將其取代。
 - **工作負載** 下的 **DeploymentConfigs** 的顯示方式與 Deployment 相同：它們的推出、Pod 的 CPU 和記憶體，以及它們執行的 ReplicationController 和 Pod 的事件。
 
-**關於 Operator 和更新的警示。** OpenShift 叢集的 **建議** 頁面提供 **Cluster Operator Unavailable**、**Cluster Operator Degraded** 和 **Cluster Update Failing**。每一項都是一個日誌監視器，監視代理程式每隔 `resourceSpecs.interval` 傳送的快照。一旦兩個快照都回報問題就會發出警示，因此 Operator 在更新期間短暫切換狀態不會觸發任何警示；當快照表明問題已結束時，警示才會解決，絕不會因為代理程式停止傳送而解決。
+**關於 Operator 和更新的警示。** OpenShift 叢集的 **建議** 頁面提供 **Cluster Operator Unavailable**、**Cluster Operator Degraded** 和 **Cluster Update Failing**。每一項都是一個日誌監測器，監視代理程式每隔 `resourceSpecs.interval` 傳送的快照。一旦兩個快照都回報問題就會發出警示，因此 Operator 在更新期間短暫切換狀態不會觸發任何警示；當快照表明問題已結束時，警示才會解決，絕不會因為代理程式停止傳送而解決。
 
 **OpenShift 本身的警示。** OpenShift 內建 Prometheus 和 Alertmanager，並為其 Operator、etcd 和節點提供警示。若要為每則警示在 OneUptime 中建立一個事件，請在 Web 主控台的 **Administration → Cluster Settings → Configuration → Alertmanager** 下為 OneUptime 新增一個 Webhook 接收器，詳情請參閱 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。
 
@@ -309,7 +309,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-可以在 **日誌** 中搜尋它們，或用捨棄過濾器捨棄不需要的事件。要在事件發生時收到通知，請在叢集的 **建議** 頁面開啟 **Warning Events**，或在其 **事件** 頁面底部選取 **開啟警告警示**：這是一個針對叢集警告的 [日誌監視器](/docs/monitor/logs-monitor)，每個物件和原因一則警示，5 分鐘內沒有新的相關警告即自動解決。只想收到部分原因的通知時，請在其篩選條件中加入 `k8s.event.reason`。
+可以在 **日誌** 中搜尋它們，或用捨棄過濾器捨棄不需要的事件。要在事件發生時收到通知，請在叢集的 **建議** 頁面開啟 **Warning Events**，或在其 **事件** 頁面底部選取 **開啟警告警示**：這是一個針對叢集警告的 [日誌監測器](/docs/monitor/logs-monitor)，每個物件和原因一則警示，5 分鐘內沒有新的相關警告即自動解決。只想收到部分原因的通知時，請在其篩選條件中加入 `k8s.event.reason`。
 
 ## 設定選項
 
@@ -433,7 +433,7 @@ Kubernetes 事件不會在代理程式端依命名空間篩選：代理程式會
 
 - `regexp` 不錨定：`system.cpu` 也會比對到 `system.cpu.time`。如果你指的正好是一個指標，請加上錨點（`^system\.cpu$`）。
 - RE2 沒有前瞻，因此 `^(?!container_)` 無法編譯。若要表達「除此之外的全部」，請使用 `include`，而不是否定模式。
-- `include` 一次作用於所有接收器。漏掉某個指標的允許清單會悄悄移除建立在它之上的監控器，所以除非你需要一個封閉集合，否則請優先使用 `exclude`。
+- `include` 一次作用於所有接收器。漏掉某個指標的允許清單會悄悄移除建立在它之上的監測器，所以除非你需要一個封閉集合，否則請優先使用 `exclude`。
 - 清單請使用 `--set-json`（或 values 檔案）：一般的 `--set` 會取代清單，而不是附加。
 
 > [!WARNING]
@@ -452,8 +452,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 這樣每十筆追蹤會保留一筆，其餘九筆會在離開叢集之前就在代理程式端被捨棄。
 
 - **你得到的是完整的追蹤，而不是片段。** 判定依據的是追蹤 ID 的雜湊，而不是對每個 Span 擲硬幣，因此一筆追蹤的所有 Span 會一起保留或一起捨棄，保留下來的追蹤可以從頭讀到尾。
-- **以指標為基礎的監控器不受影響。** OBI 會根據每個要求計算 eBPF RED 指標（要求速率、錯誤率、持續時間），這些指標走的是不經過取樣器的指標管道。設為 10% 時，你會得到十分之一的追蹤，而速率、錯誤和延遲仍然精確。
-- **以 Span 為基礎的監控器會受影響。** OneUptime 根據 Span 本身統計的任何內容都會依比率縮小：請參閱下面的警告。
+- **以指標為基礎的監測器不受影響。** OBI 會根據每個要求計算 eBPF RED 指標（要求速率、錯誤率、持續時間），這些指標走的是不經過取樣器的指標管道。設為 10% 時，你會得到十分之一的追蹤，而速率、錯誤和延遲仍然精確。
+- **以 Span 為基礎的監測器會受影響。** OneUptime 根據 Span 本身統計的任何內容都會依比率縮小：請參閱下面的警告。
 
 | 鍵 | 意義 |
 | --- | --- |
@@ -468,7 +468,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 - Pod 日誌永遠不會被取樣，因此在 `ebpf.logToTraceCorrelation: true` 時，每筆日誌記錄仍帶有追蹤 ID，而這些追蹤只有被保留的那部分存在。於是大約 (100 − `percentage`)% 的日誌記錄會連結到不存在的追蹤；從追蹤跳到其日誌則不受影響。
 
 > [!WARNING]
-> 設定此項時，請重新調整以 Span 為基礎的監控器。取樣會減少送達 OneUptime 的 Span，因此任何對它們計數的東西都會計得更少：針對 `Span Count` 的 **追蹤** 監控器和針對 `Exception Count` 的 **例外** 監控器只會看到昨天資料量的大約 `percentage`%。依未取樣流量調好的臨界值會悄悄地不再被越過：監控器不會報錯，只是變得沉默。請將這些臨界值除以相同的係數；比率作用於整個叢集，因此無法豁免任何服務。錯誤分組的退化比線性更糟：常見的例外仍會出現，但罕見的一次性例外更可能直接消失，而不是以十分之一的頻率出現。
+> 設定此項時，請重新調整以 Span 為基礎的監測器。取樣會減少送達 OneUptime 的 Span，因此任何對它們計數的東西都會計得更少：針對 `Span Count` 的 **追蹤** 監測器和針對 `Exception Count` 的 **例外** 監測器只會看到昨天資料量的大約 `percentage`%。依未取樣流量調好的臨界值會悄悄地不再被越過：監測器不會報錯，只是變得沉默。請將這些臨界值除以相同的係數；比率作用於整個叢集，因此無法豁免任何服務。錯誤分組的退化比線性更糟：常見的例外仍會出現，但罕見的一次性例外更可能直接消失，而不是以十分之一的頻率出現。
 
 > [!NOTE]
 > 為什麼沒有日誌或指標取樣：Collector 的取樣器完全無法對指標取樣。它可以對日誌取樣，但它的隨機性來自追蹤 ID，而 Pod 日誌沒有追蹤 ID，因此每筆日誌記錄的雜湊都相同，日誌取樣率會依種子不同而全部保留或全部刪除。與其提供一個會悄悄刪除日誌的設定，chart 選擇不提供。若要精簡日誌，請使用 [依日誌嚴重性篩選](#依日誌嚴重性篩選) 和 [命名空間篩選](#命名空間篩選)，它們對移除的內容都很精確。
@@ -824,7 +824,7 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 
 如果升級以 `namespaces "<name>" not found` 失敗，表示 `aiAgent.remediation.namespaces`（或較舊的 `aiAccess.remediation.namespaces`）列出了一個不存在（或已不再存在）的命名空間：chart 會在每個列出的命名空間中放置一個 RoleBinding，但從不建立命名空間。請建立該命名空間，或用移除該命名空間的清單進行升級（`--set "aiAgent.remediation.namespaces={web}"`），或使用 `--set-json 'aiAgent.remediation.namespaces=[]'` 恢復為整個叢集範圍的繫結。在 `--reuse-values` 下，`--set aiAgent.remediation.namespaces=null` 不會重設已儲存的清單，因此會以同樣的錯誤失敗。
 
-> **eBPF Span 指標有了新名稱。** `ebpf.features.spanMetrics` 現在會傳送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），而不是 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：同樣的序列，使用 OBI 保留的名稱（它已淘汰舊名稱）。以舊名稱為基礎的儀表板、圖表或指標監控器在升級後不會再收到新資料，也不會報錯——請將它改用新名稱，並更新任何引用舊名稱的 `filters.metrics` 項目。
+> **eBPF Span 指標有了新名稱。** `ebpf.features.spanMetrics` 現在會傳送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），而不是 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：同樣的序列，使用 OBI 保留的名稱（它已淘汰舊名稱）。以舊名稱為基礎的儀表板、圖表或指標監測器在升級後不會再收到新資料，也不會報錯——請將它改用新名稱，並更新任何引用舊名稱的 `filters.metrics` 項目。
 
 ### 升級到 Kubernetes AI 代理程式
 
@@ -855,7 +855,7 @@ kubectl delete namespace oneuptime-agent
 
 ## 減少收集的資料量
 
-代理程式開箱即用的設定以涵蓋範圍為優先：它會從整個叢集傳送指標、Pod 日誌和 eBPF 追蹤，因此每個儀表板和監控器從第一天起就能運作。在大型或忙碌的叢集上，這可能超出你的需求，表現為擷取量增加（在 OneUptime Cloud 上還表現為成本增加）。這裡的內容都不是必要的，但如果某個叢集傳送的資料超出你的需求，這些就是需要變更的設定，大致依影響大小排列。每一項都是 Helm 值：在 `helm upgrade --reset-then-reuse-values` 上用 `--set` 套用它，並用同樣的方式復原。
+代理程式開箱即用的設定以涵蓋範圍為優先：它會從整個叢集傳送指標、Pod 日誌和 eBPF 追蹤，因此每個儀表板和監測器從第一天起就能運作。在大型或忙碌的叢集上，這可能超出你的需求，表現為擷取量增加（在 OneUptime Cloud 上還表現為成本增加）。這裡的內容都不是必要的，但如果某個叢集傳送的資料超出你的需求，這些就是需要變更的設定，大致依影響大小排列。每一項都是 Helm 值：在 `helm upgrade --reset-then-reuse-values` 上用 `--set` 套用它，並用同樣的方式復原。
 
 ### 資料量從何而來
 
@@ -873,7 +873,7 @@ kubectl delete namespace oneuptime-agent
 - **在篩選處理器端**：資料被收集後，在傳送之前被捨棄。`filters.logs.minSeverity`、`filters.metrics.*`，以及範圍為 `metrics` 或 `traces` 的 `namespaceFilters.rules`。會多占用一點 Collector 的 CPU，但它跨所有接收器生效，而且能表達接收器無法表達的條件。
 - **在取樣器端**：資料被收集後，保留其中具代表性的一部分。`sampling.traces.percentage`。另外兩種方式會移除一整類遙測；取樣則會保留所有類別並加以稀釋，因此保留下來的資料仍然完整且具代表性。
 
-這三種方式都無法復原：你捨棄的東西永遠不會送達 OneUptime，而這三種方式都可能讓監控器變得沉默。前兩種會透過移除監控器所監控的對象讓其沉默。取樣的影響範圍較窄：eBPF RED 指標會在取樣器之前計算，因此指標監控器會保持精確，但統計 Span 的監控器（針對 `Span Count` 的 **追蹤**、針對 `Exception Count` 的 **例外**）看到的數量會依比例減少，需要重新調整臨界值。如果想以後再決定，請在 OneUptime 中捨棄資料（**日誌 → 設定 → 捨棄過濾器**、**指標 → 設定 → 管道規則**）：這仍會產生輸出流量成本，但不需重新部署即可變更。
+這三種方式都無法復原：你捨棄的東西永遠不會送達 OneUptime，而這三種方式都可能讓監測器變得沉默。前兩種會透過移除監測器所監控的對象讓其沉默。取樣的影響範圍較窄：eBPF RED 指標會在取樣器之前計算，因此指標監測器會保持精確，但統計 Span 的監測器（針對 `Span Count` 的 **追蹤**、針對 `Exception Count` 的 **例外**）看到的數量會依比例減少，需要重新調整臨界值。如果想以後再決定，請在 OneUptime 中捨棄資料（**日誌 → 設定 → 捨棄過濾器**、**指標 → 設定 → 管道規則**）：這仍會產生輸出流量成本，但不需重新部署即可變更。
 
 ### 先削減 Pod 日誌
 
@@ -904,7 +904,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-這只會停止 Pod 日誌。節點、Pod 和容器指標會繼續傳送，以它們為基礎的監控器（當機迴圈、未就緒的節點、觸及限制的 Pod、節點磁碟已滿）也會繼續運作：節點 Collector 仍會保留，只是不再讀取 `/var/log/pods`。`logs.mode: api` 和 `logs.mode: disabled` 也是如此。
+這只會停止 Pod 日誌。節點、Pod 和容器指標會繼續傳送，以它們為基礎的監測器（當機迴圈、未就緒的節點、觸及限制的 Pod、節點磁碟已滿）也會繼續運作：節點 Collector 仍會保留，只是不再讀取 `/var/log/pods`。`logs.mode: api` 和 `logs.mode: disabled` 也是如此。
 
 ### 精簡 eBPF 自動檢測
 
@@ -958,9 +958,9 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 基數，也就是不同序列的數量，與頻率同樣重要，因為每個序列都會個別儲存和計費。
 
-- cAdvisor 刻意採用允許清單。cAdvisor 接收器（預設開啟）可以發出數百個指標；chart 只會轉送 `cadvisor.metricsAllowlist` 中的 CPU 節流和 OOM kill 計數器，供你自己的圖表和指標監控器使用：沒有內建範本會讀取它們。請保持清單簡短：每個項目都會依容器保存，因此多一個指標就會乘以叢集的容器數量。kube-state-metrics 預設為關閉；如果你開啟它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也會以同樣的方式運作，而且每個項目都必須與指標的完整名稱相符。
+- cAdvisor 刻意採用允許清單。cAdvisor 接收器（預設開啟）可以發出數百個指標；chart 只會轉送 `cadvisor.metricsAllowlist` 中的 CPU 節流和 OOM kill 計數器，供你自己的圖表和指標監測器使用：沒有內建範本會讀取它們。請保持清單簡短：每個項目都會依容器保存，因此多一個指標就會乘以叢集的容器數量。kube-state-metrics 預設為關閉；如果你開啟它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 也會以同樣的方式運作，而且每個項目都必須與指標的完整名稱相符。
 - 每個 PVC 的磁碟區指標（`kubeletstats.volumeMetrics.enabled`，預設開啟）會為每個 Pod 的每個 PVC 發出一個序列：對大多數叢集來說沒有問題，但在擁有數千個 PVC 的有狀態工作負載（Kafka、資料庫）上會很多。如果你不監控 PVC 磁碟空間，請在那裡使用 `--set kubeletstats.volumeMetrics.enabled=false` 關閉它們。
-- 飽和度指標（`kubeletstats.utilizationMetrics.enabled`，預設開啟）會增加 8 個衍生的「占 request 或 limit 的 %」指標系列。它們不需要額外的抓取，但如果你不使用針對 limit 的 CPU 和記憶體監控器，請使用 `--set kubeletstats.utilizationMetrics.enabled=false` 捨棄它們。
+- 飽和度指標（`kubeletstats.utilizationMetrics.enabled`，預設開啟）會增加 8 個衍生的「占 request 或 limit 的 %」指標系列。它們不需要額外的抓取，但如果你不使用針對 limit 的 CPU 和記憶體監測器，請使用 `--set kubeletstats.utilizationMetrics.enabled=false` 捨棄它們。
 - 對於接收器允許清單無法表達的內容，請用作用於所有接收器的 `filters.metrics.exclude` 依名稱捨棄指標（請參閱 [依名稱包含或排除指標](#依名稱包含或排除指標)）：
 
 ```bash
@@ -1002,11 +1002,11 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set sampling.traces.percentage=10
 ```
 
-這會讓追蹤資料量減少 90%，而你保留的追蹤是完整的，RED 指標也會保持精確。你放棄的主要是範例追蹤：當監控器觸發時，你能開啟的追蹤只有原本的十分之一。在每秒處理數千個相同要求的叢集上，這通常是划算的交換；在安靜的叢集上則不然，因為你可能沒有出問題的那種罕見要求的範例。請先檢查統計 Span 的監控器（請參閱 [追蹤取樣](#追蹤取樣)），而當你想完全停止對某些東西進行檢測時，請優先關閉 eBPF 功能。
+這會讓追蹤資料量減少 90%，而你保留的追蹤是完整的，RED 指標也會保持精確。你放棄的主要是範例追蹤：當監測器觸發時，你能開啟的追蹤只有原本的十分之一。在每秒處理數千個相同要求的叢集上，這通常是划算的交換；在安靜的叢集上則不然，因為你可能沒有出問題的那種罕見要求的範例。請先檢查統計 Span 的監測器（請參閱 [追蹤取樣](#追蹤取樣)），而當你想完全停止對某些東西進行檢測時，請優先關閉 eBPF 功能。
 
 ### 精簡的起點
 
-為了在每個監控器仍然運作的前提下減少傳送量，這個設定檔會保持完整的指標涵蓋範圍，同時削減推高資料量的兩樣東西：日誌行和 eBPF Span：
+為了在每個監測器仍然運作的前提下減少傳送量，這個設定檔會保持完整的指標涵蓋範圍，同時削減推高資料量的兩樣東西：日誌行和 eBPF Span：
 
 ```yaml title="lean-values.yaml"
 # lean-values.yaml
@@ -1058,11 +1058,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 視需要進一步收緊：將 `minSeverity` 提高到 `ERROR`，將 `metrics` 加入命名空間規則的範圍，或者如果你已經透過 OpenTelemetry SDK 傳送追蹤，就設定 `ebpf.enabled=false`。
 
 > [!CAUTION]
-> 請注意你削減的內容。有些監控器依賴特定的訊號：關閉 `kubeletstats.utilizationMetrics` 會讓兩個依容器限制衡量 Pod 的範本失效，關閉日誌會移除以日誌為基礎的警示，關閉 `cadvisor` 或 `kubeletstats.volumeMetrics` 會移除你自己的圖表和指標監控器可能讀取的節流、OOM kill 和 PVC 序列。`sampling.traces.percentage` 不會移除任何監控器，但會依比例縮小以 Span 為基礎的監控器（針對 `Span Count` 的 **追蹤**、針對 `Exception Count` 的 **例外**），因此請重新調整它們的臨界值。請削減你不會據此採取行動的訊號，而不是監控器正在監控的訊號。
+> 請注意你削減的內容。有些監測器依賴特定的訊號：關閉 `kubeletstats.utilizationMetrics` 會讓兩個依容器限制衡量 Pod 的範本失效，關閉日誌會移除以日誌為基礎的警示，關閉 `cadvisor` 或 `kubeletstats.volumeMetrics` 會移除你自己的圖表和指標監測器可能讀取的節流、OOM kill 和 PVC 序列。`sampling.traces.percentage` 不會移除任何監測器，但會依比例縮小以 Span 為基礎的監測器（針對 `Span Count` 的 **追蹤**、針對 `Exception Count` 的 **例外**），因此請重新調整它們的臨界值。請削減你不會據此採取行動的訊號，而不是監測器正在監控的訊號。
 
 ### 衡量效果
 
-遙測用量以天計算，因此請在一兩天內於 **專案設定 → 遙測與 APM → 使用量** 下查看趨勢：它不會在你套用變更的那一刻就有所變化。一次只變更一項設定（先關閉日誌，再調高間隔，再精簡 eBPF），這樣你就能分辨每一項的效果，而不是一下子把所有東西都調低，結果失去了你依賴的監控器。
+遙測用量以天計算，因此請在一兩天內於 **專案設定 → 遙測與 APM → 使用量** 下查看趨勢：它不會在你套用變更的那一刻就有所變化。一次只變更一項設定（先關閉日誌，再調高間隔，再精簡 eBPF），這樣你就能分辨每一項的效果，而不是一下子把所有東西都調低，結果失去了你依賴的監測器。
 
 ## 疑難排解
 

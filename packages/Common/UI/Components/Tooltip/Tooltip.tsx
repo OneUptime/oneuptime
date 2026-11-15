@@ -15,7 +15,16 @@ import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 import { TOOLTIP_PLUGINS } from "./TooltipEscape";
 
 export interface ComponentProps {
+  // In English, looked up here.
   text?: string | undefined;
+  /*
+   * The text is drawn as given, never looked up: words the page has put in
+   * the reader's language already, or words someone wrote - a label's
+   * description reads as its owner wrote it (#8067). Looked up again, a
+   * translation, or a description, that is also an English key read as
+   * another word.
+   */
+  isTextUserContent?: boolean | undefined;
   children: ReactElement;
   richContent?: ReactElement | undefined;
   // Large collections can wait to create a tooltip until first opened.
@@ -85,7 +94,11 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
   const tooltipContent: ReactElement = props.richContent ? (
     props.richContent
   ) : (
-    <span>{translateString(props.text) ?? props.text}</span>
+    <span>
+      {props.isTextUserContent
+        ? props.text
+        : translateString(props.text) ?? props.text}
+    </span>
   );
 
   const isRich: boolean = Boolean(props.richContent);

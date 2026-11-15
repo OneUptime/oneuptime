@@ -1555,7 +1555,7 @@ export class Service extends DatabaseService<Model> {
     if (policy.tier === ResourceCommandTier.Denied) {
       throw new ResourceCommandEnqueueRefusedException(
         "policy_denied",
-        `Denied by the ${info.displayName} command policy: ${policy.reason}.`,
+        `Denied by the ${noun} command policy: ${policy.reason}.`,
       );
     }
 

@@ -4,6 +4,8 @@ import {
   LlmProviderTypeCopy,
 } from "./LlmProviderFormCopy";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "../Table/TableEmptyValue";
+import { isDashText } from "../Detail/EmptyValue";
 
 /*
  * An LLM provider's kind, as a list of providers shows it: the provider's
@@ -27,13 +29,19 @@ const LlmProviderTypeLabel: FunctionComponent<ComponentProps> = (
   );
 
   if (!copy) {
-    return (
-      <span>
-        {typeof props.llmType === "string" && props.llmType
-          ? props.llmType
-          : props.emptyText || ""}
-      </span>
-    );
+    if (typeof props.llmType === "string" && props.llmType) {
+      return <span>{props.llmType}</span>;
+    }
+
+    /*
+     * No kind: the provider's own words for that, or the quiet dash every
+     * empty value is - not a hyphen a page passes in (#7603).
+     */
+    if (props.emptyText?.trim() && !isDashText(props.emptyText)) {
+      return <span>{props.emptyText}</span>;
+    }
+
+    return <TableEmptyValue />;
   }
 
   return (

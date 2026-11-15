@@ -9,6 +9,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import WhoIsToldApi from "./WhoIsToldApi";
 import {
   ADMIN_DASHBOARD_FIX_WORDS,
+  FALLBACK_CHANNELS_NOTE,
   WhoIsToldFixLink,
   getBreakSentence,
   getChannelName,
@@ -143,6 +144,11 @@ const ChainRow: FunctionComponent<{
  * code, as the test page's dialog words it ("Team Platform", "Schedule
  * Primary (next in rotation)"), the name set apart from the words around
  * it; a server that sends no code has its English shown (#7261).
+ *
+ * Somebody no rule of theirs covers the severity for is reached by what the
+ * project's fallback picks (#7528): often their email alone, though they
+ * verified a number too. The line says so after the channels, so "Email"
+ * never reads as a gap in their own rules.
  */
 const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
   person: WhoIsToldPerson;
@@ -182,14 +188,26 @@ const PersonLine: FunctionComponent<{ person: WhoIsToldPerson }> = (props: {
         )}
         {separator}
         {person.isReachable ? (
-          <span className="text-gray-600">
-            {formatList(
-              person.channels.map((channel: OnCallPageChannel): string => {
-                return getChannelName(channel, translator);
-              }),
-              translator,
+          <>
+            <span className="text-gray-600">
+              {formatList(
+                person.channels.map((channel: OnCallPageChannel): string => {
+                  return getChannelName(channel, translator);
+                }),
+                translator,
+              )}
+            </span>
+            {person.isFallback ? (
+              <>
+                {separator}
+                <span data-testid="who-is-told-fallback">
+                  {translator.translateText(FALLBACK_CHANNELS_NOTE)}
+                </span>
+              </>
+            ) : (
+              <></>
             )}
-          </span>
+          </>
         ) : (
           <span className="text-amber-700">
             {translator.translateText("Can't be paged")}

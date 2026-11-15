@@ -36,6 +36,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ProjectTeamView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -68,16 +69,19 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.projects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECTS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.project"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_VIEW] as Route,
             { modelId: projectId },
@@ -85,6 +89,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectTeams"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_TEAMS] as Route,
             { modelId: projectId },
@@ -92,6 +97,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectTeam"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_TEAM_VIEW] as Route,
             { modelId: projectId, subModelId: teamId },
@@ -285,7 +291,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
                 if (!item.user) {
-                  return <p>-</p>;
+                  return <TableEmptyValue />;
                 }
                 const name: string =
                   item.user.name?.toString() ||

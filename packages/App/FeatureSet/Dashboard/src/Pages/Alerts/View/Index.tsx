@@ -154,6 +154,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 // What the alert's state gate asks about: a row of its state timeline.
 const PRIVATE_RECORD_STATE_TIMELINE: AlertStateTimeline =
@@ -1846,7 +1847,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   fieldType: FieldType.Element,
                   getElement: (item: Alert): ReactElement => {
                     if (!item.alertNumber) {
-                      return <>-</>;
+                      return <EmptyValue />;
                     }
 
                     return (

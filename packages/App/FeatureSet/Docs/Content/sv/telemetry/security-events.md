@@ -589,7 +589,7 @@ level: high
 
 ## Monitorer för säkerhetshändelser
 
-En monitor för säkerhetshändelser räknar händelserna som träffar dess filter över ett glidande fönster och kör de vanliga monitorkriterierna på räkningen: den ändrar monitorns status, öppnar larm eller incidenter och larmar jourhavande. Skapa en under **Övervakare → Skapa monitor**, med **Säkerhetshändelser** som typ; den listas där med dina andra monitorer.
+En monitor för säkerhetshändelser räknar händelserna som träffar dess filter över ett glidande fönster och kör de vanliga monitorkriterierna på räkningen: den ändrar monitorns status, öppnar larm eller incidenter och larmar jourhavande. Skapa en under **Monitorer → Skapa monitor**, med **Säkerhetshändelser** som typ; den listas där med dina andra monitorer.
 
 Dess formulär visar **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** och **Händelseklass**. **Filtrera efter tjänst**, **Filtrera efter attribut** och **Filtrera efter bevakningslistor** väntar under **Fler fält**, vars rubrik visar vilka en monitor använder. **Filtrera efter bevakningslistor** behåller händelserna vars fält finns eller inte finns på någon av dina [bevakningslistor](#bevakningslistor). Dess kriterier kontrollerar **Antal säkerhetshändelser**.
 

@@ -1,6 +1,5 @@
 import Pill, { PillSize } from "../Pill/Pill";
 import { Indigo500 } from "../../../Types/BrandColors";
-import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -28,8 +27,6 @@ export interface ComponentProps {
 const CurrentlyActiveIndicator: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
-
   return (
     <span
       data-testid="currently-active-indicator"
@@ -37,7 +34,8 @@ const CurrentlyActiveIndicator: FunctionComponent<ComponentProps> = (
     >
       <Pill
         color={Indigo500}
-        text={translateString(CURRENTLY_ACTIVE_TEXT) || CURRENTLY_ACTIVE_TEXT}
+        // In English: the badge looks it up, once (#8067).
+        text={CURRENTLY_ACTIVE_TEXT}
         size={props.size}
         isPulsing={true}
       />

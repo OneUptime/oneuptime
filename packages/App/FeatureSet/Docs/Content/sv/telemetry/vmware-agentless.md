@@ -15,10 +15,10 @@ flowchart TB
     OU["OneUptime"] -->|"samla in nu,<br/>med några<br/>minuters<br/>mellanrum"| P["Din sond"]
     P -->|"HTTPS 443, skrivskyddat<br/>vSphere-API"| VC["vCenter Server<br/>eller ESXi-värd"]
     P -->|"mätvärden,<br/>så som<br/>VMware-agenten<br/>skickar dem"| OU
-    OU --> V["VMware-sidor,<br/>övervakare, larm och AI"]
+    OU --> V["VMware-sidor,<br/>monitorer, larm och AI"]
 ```
 
-Med några minuters mellanrum loggar sonden in på vCenter med kontot du sparade, läser inventariet, prestandaräknarna och vSAN-statistiken och skickar dem till OneUptime. De kommer fram precis som VMware-agentens gör, så varje VMware-sida, varje [VMware-övervakare](/docs/monitor/vmware-monitor), varje larmmall och OneUptime AI läser dem på samma sätt. Sonden behåller sin vCenter-session mellan insamlingarna, så att vCenters händelselogg inte fylls med inloggningar.
+Med några minuters mellanrum loggar sonden in på vCenter med kontot du sparade, läser inventariet, prestandaräknarna och vSAN-statistiken och skickar dem till OneUptime. De kommer fram precis som VMware-agentens gör, så varje VMware-sida, varje [VMware-monitor](/docs/monitor/vmware-monitor), varje larmmall och OneUptime AI läser dem på samma sätt. Sonden behåller sin vCenter-session mellan insamlingarna, så att vCenters händelselogg inte fylls med inloggningar.
 
 ## Sond eller agent?
 
@@ -123,7 +123,7 @@ Dess mätvärden är större än en uppladdning från en sond får vara. Använd
 ## Nästa steg
 
 :::cards
-- [VMware-övervakare](/docs/monitor/vmware-monitor): Larm om värdar, virtuella maskiner, datalager och kluster.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Larm om värdar, virtuella maskiner, datalager och kluster.
 - [Anpassad sond](/docs/probe/custom-probe): Kör en sond i vCenters nätverk.
 - [VMware-agent](/docs/telemetry/vmware): Samla in en vCenter med agenten i stället.
 :::

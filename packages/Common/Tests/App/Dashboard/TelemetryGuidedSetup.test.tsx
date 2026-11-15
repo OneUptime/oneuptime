@@ -90,6 +90,7 @@ jest.mock(
       __esModule: true,
       default: (props: {
         telemetryType?: string;
+        everySignal?: boolean;
         isBare?: boolean;
         onSelectedKeyChange?: unknown;
       }) => {
@@ -97,6 +98,7 @@ jest.mock(
           <div
             data-testid="telemetry-guide"
             data-type={props.telemetryType}
+            data-every-signal={String(Boolean(props.everySignal))}
             data-bare={String(Boolean(props.isBare))}
             data-reports-key={String(Boolean(props.onSelectedKeyChange))}
           />
@@ -355,6 +357,15 @@ describe("1. Send your first data", () => {
     expect(screen.getByTestId("telemetry-guide")).toHaveAttribute(
       "data-type",
       "traces",
+    );
+    /*
+     * Its snippets set up logs, metrics and traces, as the setup says, not
+     * the traces guide's alone, and a key it creates is not a Traces key
+     * (issue #7927).
+     */
+    expect(screen.getByTestId("telemetry-guide")).toHaveAttribute(
+      "data-every-signal",
+      "true",
     );
     expect(screen.getByTestId("telemetry-guide")).toHaveAttribute(
       "data-bare",

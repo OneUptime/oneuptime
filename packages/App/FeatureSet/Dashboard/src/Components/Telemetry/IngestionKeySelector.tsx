@@ -33,6 +33,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import OneUptimeDate from "Common/Types/Date";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Why a key cannot send right now (issue #6378): turned off, or past its
@@ -561,7 +562,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                     {translator.translateText("Ingestion Token")}
                   </div>
                   <div className="text-sm text-gray-900 font-mono mt-0.5 break-all select-all">
-                    {selectedKey.secretKey?.toString() || "—"}
+                    {selectedKey.secretKey?.toString() || <TableEmptyValue />}
                   </div>
                   {renderSelectedKeyCaution(selectedKey)}
                 </div>

@@ -211,6 +211,7 @@ function offline(
 function result(
   criteria: Array<WhoIsToldCriteria>,
   overrides: Partial<WhoIsToldResult> = {},
+  project: { hasOnCallPolicies: boolean } = { hasOnCallPolicies: true },
 ): WhoIsToldResult {
   return {
     monitorId: MONITOR_ID.toString(),
@@ -223,6 +224,7 @@ function result(
       channels: channels(),
       projectHasIncidentOnCallRules: true,
       projectHasAlertOnCallRules: false,
+      projectHasOnCallPolicies: project.hasOnCallPolicies,
     }),
     ...overrides,
   };
@@ -537,6 +539,22 @@ describe("a break, in the reader's words, with where to fix it", () => {
         recordKind: OnCallTestPageRecordKind.Alert,
       }),
     ).toBe(BREAK_SENTENCES.nobodyPagedAlerts);
+    // No on-call policy yet (#7369), for incidents and alerts alike.
+    for (const recordKind of [
+      OnCallTestPageRecordKind.Incident,
+      OnCallTestPageRecordKind.Alert,
+    ]) {
+      expect(
+        brk({
+          kind: WhoIsToldBreakKind.NobodyPaged,
+          fix: WhoIsToldFix.OnCallGuidedSetup,
+          recordKind: recordKind,
+        }),
+      ).toBe("Nobody is paged: this project has no on-call policy yet.");
+    }
+    expect(BREAK_SENTENCES.nobodyPagedNoPolicy).toBe(
+      "Nobody is paged: this project has no on-call policy yet.",
+    );
     expect(
       brk({
         kind: WhoIsToldBreakKind.PolicyHasNoLevels,
@@ -618,6 +636,49 @@ describe("a break, in the reader's words, with where to fix it", () => {
         fix: WhoIsToldFix.IncidentOnCallRules,
       }),
     ).toMatchObject({ text: "Set Up Paging" });
+    expect(
+      link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.IncidentOnCallRules,
+      })!.route.toString(),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+      ).toString(),
+    );
+    // No on-call policy yet (#7369): the on-call guided setup, by the same words.
+    expect(
+      link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.OnCallGuidedSetup,
+        recordKind: OnCallTestPageRecordKind.Alert,
+      }),
+    ).toEqual({
+      text: "Set Up Paging",
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route,
+      ),
+    });
+    expect(
+      link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.OnCallGuidedSetup,
+      })!.route.toString(),
+    ).toContain("/on-call-duty/setup");
+    // Every fix has its words.
+    for (const fix of Object.values(WhoIsToldFix)) {
+      const found: WhoIsToldFixLink | null = link({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: fix,
+      });
+
+      if (fix === WhoIsToldFix.ServerSettings) {
+        expect(found).toBeNull();
+        continue;
+      }
+
+      expect(found?.text.length || 0).toBeGreaterThan(3);
+    }
     expect(
       link({
         kind: WhoIsToldBreakKind.OnlyIncidentsHaveRules,
@@ -771,6 +832,82 @@ describe("MonitorWhoIsToldCard", () => {
     expect(chain).not.toHaveTextContent(/Critical Incident incident/i);
     expect(screen.getByTestId("who-is-told-summary")).not.toHaveTextContent(
       /Critical Incident incident/i,
+    );
+  });
+
+  /*
+   * #7369: a new project's first monitor, before any on-call policy. Set Up
+   * Paging opened the incident on-call rules builder, whose rules page
+   * policies the project does not have; it opens the on-call guided setup,
+   * which makes one that pages for every new incident and alert. With a
+   * policy, it still opens the rules (the test above).
+   */
+  test("a project with no on-call policy yet: Set Up Paging opens the on-call guided setup, and the break says why", async () => {
+    getForMonitor.mockResolvedValue(
+      result(
+        [offline({ events: [event({ rules: [], policies: [] })] })],
+        {},
+        {
+          hasOnCallPolicies: false,
+        },
+      ),
+    );
+    renderCard();
+
+    const brk: HTMLElement = await screen.findByTestId("who-is-told-break");
+
+    expect(brk).toHaveAttribute("data-kind", WhoIsToldBreakKind.NobodyPaged);
+    expect(brk).toHaveTextContent(
+      "Nobody is paged: this project has no on-call policy yet.",
+    );
+    expect(brk).not.toHaveTextContent("no on-call rule matches");
+
+    const fix: HTMLElement = within(brk).getByTestId("who-is-told-fix");
+
+    expect(fix).toHaveTextContent("Set Up Paging");
+    expect(fix.getAttribute("href")).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route,
+      ).toString(),
+    );
+    expect(fix.getAttribute("href")).not.toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+      ).toString(),
+    );
+    expect(screen.getByTestId("who-is-told-summary")).toHaveTextContent(
+      "Nobody is paged.",
+    );
+  });
+
+  test("an alert that pages nobody, with no policy yet, goes to the guided setup too", async () => {
+    getForMonitor.mockResolvedValue(
+      result(
+        [
+          offline({
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        {},
+        { hasOnCallPolicies: false },
+      ),
+    );
+    renderCard();
+
+    const brk: HTMLElement = await screen.findByTestId("who-is-told-break");
+
+    expect(
+      within(brk).getByTestId("who-is-told-fix").getAttribute("href"),
+    ).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY_GUIDED_SETUP] as Route,
+      ).toString(),
     );
   });
 
@@ -1248,6 +1385,94 @@ describe("MonitorWhoIsToldCard", () => {
       `Ana Lopez${mark}Team Platform${mark}SMS, Email`,
       `Ben Ito${mark}Can't be paged`,
     ]);
+  });
+
+  /*
+   * #7528: somebody no rule of theirs covers the severity for is paged by
+   * what the project's fallback picks - their email alone, though they
+   * verified a number too. Their line lists only that, and says why after
+   * it, so "Email" never reads as a gap in their own rules.
+   */
+  test("somebody the fallback pages: the channels it picks, then why, after the same mark", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({
+          events: [
+            event({
+              policies: [
+                policy({
+                  people: [
+                    person(),
+                    person({
+                      userId: BEN,
+                      name: "Ben Ito",
+                      reachedThrough: "Schedule Primary",
+                      channels: [OnCallPageChannel.Email],
+                      isFallback: true,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const mark: string = `${NO_BREAK_SPACE}${MIDDLE_DOT} `;
+    const lines: Array<HTMLElement> =
+      screen.getAllByTestId("who-is-told-person");
+
+    expect(
+      lines.map((line: HTMLElement): string => {
+        return line.querySelector("p")!.textContent || "";
+      }),
+    ).toEqual([
+      `Ana Lopez${mark}SMS, Email`,
+      `Ben Ito${mark}Schedule Primary${mark}Email${mark}Picked by the fallback: no on-call rule of theirs covers this severity`,
+    ]);
+    // Said once, on the fallback's line only.
+    expect(screen.getAllByTestId("who-is-told-fallback")).toHaveLength(1);
+    expect(lines[1]).toContainElement(
+      screen.getByTestId("who-is-told-fallback"),
+    );
+    expect(lines[1]).toHaveAttribute("data-reachable", "true");
+  });
+
+  test("somebody the fallback can't page says they can't be paged, and nothing of what it picks", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({
+          events: [
+            event({
+              policies: [
+                policy({
+                  people: [
+                    person({
+                      channels: [],
+                      isFallback: true,
+                      isReachable: false,
+                      problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    expect(screen.getByTestId("who-is-told-person")).toHaveTextContent(
+      "Can't be paged",
+    );
+    expect(screen.queryByTestId("who-is-told-fallback")).toBeNull();
   });
 
   /*

@@ -3,6 +3,7 @@ import {
   describeToolImportNote,
   describeToolImportSummary,
   formatToolImportDate,
+  formatToolImportDateTime,
   namesValue,
   TOOL_IMPORT_ACTION_LABELS,
   TOOL_IMPORT_FIELD_TYPE_LABELS,
@@ -48,7 +49,9 @@ import {
   PluralTemplate,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import OneUptimeDate from "Common/Types/Date";
+import Timezone from "Common/Types/Timezone";
 import fs from "fs";
 import path from "path";
 
@@ -835,5 +838,78 @@ describe("names in a sentence", () => {
     expect(names(["Alice", "Bob", "Carol", "Dan"])).toBe(
       "Alice, Bob and 2 others",
     );
+  });
+});
+
+/*
+ * When an import read the tool, and when a run finished: in the reader's
+ * zone, on their 12- or 24-hour clock and in their language, as every other
+ * date and time on the Dashboard (OneUptimeDate). Written with the language's
+ * own clock and the browser's zone, it read "5:14" in German beside a
+ * table's "05:14" (#7649).
+ */
+describe("a tool import's date and time", () => {
+  const onTheReadersClock: (twelveHour: boolean) => void = (
+    twelveHour: boolean,
+  ): void => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(twelveHour);
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  test.each<[string, boolean, string, string]>([
+    ["en", true, "Nov 5, 2026, 5:14 AM", "Nov 5, 2026, 5:14 PM"],
+    ["en", false, "Nov 5, 2026, 05:14", "Nov 5, 2026, 17:14"],
+    ["de", false, "5. Nov. 2026, 05:14", "5. Nov. 2026, 17:14"],
+    ["fr", false, "5 nov. 2026, 05:14", "5 nov. 2026, 17:14"],
+    ["ru", false, "5 нояб. 2026 г., 05:14", "5 нояб. 2026 г., 17:14"],
+    ["ko", true, "2026년 11월 5일 오전 5:14", "2026년 11월 5일 오후 5:14"],
+    ["ar", true, "5 نوفمبر 2026، 5:14 ص", "5 نوفمبر 2026، 5:14 م"],
+  ])(
+    "in %s, 12-hour %p: %p and %p",
+    (
+      language: string,
+      twelveHour: boolean,
+      morning: string,
+      afternoon: string,
+    ) => {
+      onTheReadersClock(twelveHour);
+
+      expect(
+        formatToolImportDateTime("2026-11-05T05:14:00.000Z", language).replace(
+          /\s/g,
+          " ",
+        ),
+      ).toBe(morning);
+      expect(
+        formatToolImportDateTime("2026-11-05T17:14:00.000Z", language).replace(
+          /\s/g,
+          " ",
+        ),
+      ).toBe(afternoon);
+    },
+  );
+
+  test("read in the reader's zone", () => {
+    onTheReadersClock(false);
+    OneUptimeDate.setUserTimezone("Asia/Tokyo" as Timezone);
+
+    expect(
+      formatToolImportDateTime("2026-11-05T05:14:00.000Z", "de").replace(
+        /\s/g,
+        " ",
+      ),
+    ).toBe("5. Nov. 2026, 14:14");
+  });
+
+  test("not a date: shown as it came", () => {
+    expect(formatToolImportDateTime("soon", "de")).toBe("soon");
+    expect(formatToolImportDateTime("", "de")).toBe("");
   });
 });

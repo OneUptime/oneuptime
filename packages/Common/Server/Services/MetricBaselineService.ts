@@ -42,6 +42,7 @@ import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import MetricSeriesFingerprint from "../../Utils/Metrics/MetricSeriesFingerprint";
+import { writeOwnValue } from "../../Utils/LookupTable";
 import crypto from "crypto";
 
 /**
@@ -1371,8 +1372,16 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
     const attributes: Dictionary<string> = {};
 
+    /*
+     * As the row's own keys, so a series grouped by an attribute named
+     * __proto__ is found by the fingerprint the worker gave it.
+     */
     data.seriesKeys.forEach((key: string, index: number): void => {
-      attributes[key] = String(data.row[`seriesKey${index}`] ?? "");
+      writeOwnValue(
+        attributes,
+        key,
+        String(data.row[`seriesKey${index}`] ?? ""),
+      );
     });
 
     return MetricSeriesFingerprint.computeFingerprint(

@@ -8,6 +8,7 @@ import Dictionary from "../../../Types/Dictionary";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import logger from "../Logger";
 import ContainerStatsPercentUnit from "../../../Utils/Metrics/ContainerStatsPercentUnit";
+import { writeOwnValue } from "../../../Utils/LookupTable";
 import crypto from "crypto";
 
 export type AttributeType = string | number | boolean | null;
@@ -501,6 +502,13 @@ export default class TelemetryUtil {
       return finalObj;
     }
 
+    /*
+     * Each key is the sender's, so each is written as the map's own key
+     * (writeOwnValue): an assignment drops a key named __proto__ - a
+     * string under it is ignored, and an array under it became the map's
+     * prototype. The ingest services merge these maps with assignOwnValues
+     * for the same reason.
+     */
     for (const attribute of attributes) {
       if (!attribute["key"] || typeof attribute["key"] !== "string") {
         continue;
@@ -515,12 +523,16 @@ export default class TelemetryUtil {
         | null = this.getAttributeValues(keyWithPrefix, attribute["value"]);
 
       if (value === null) {
-        finalObj[keyWithPrefix] = null;
+        writeOwnValue(finalObj, keyWithPrefix, null);
         continue;
       }
 
       if (Array.isArray(value)) {
-        finalObj[keyWithPrefix] = value;
+        writeOwnValue<AttributeType | Array<AttributeType>>(
+          finalObj,
+          keyWithPrefix,
+          value,
+        );
         continue;
       }
 
@@ -528,15 +540,17 @@ export default class TelemetryUtil {
         for (const [nestedKey, nestedValue] of Object.entries(
           value as Dictionary<AttributeType | Array<AttributeType>>,
         )) {
-          finalObj[nestedKey] = nestedValue as
-            | AttributeType
-            | Array<AttributeType>;
+          writeOwnValue(
+            finalObj,
+            nestedKey,
+            nestedValue as AttributeType | Array<AttributeType>,
+          );
         }
 
         continue;
       }
 
-      finalObj[keyWithPrefix] = value as AttributeType;
+      writeOwnValue(finalObj, keyWithPrefix, value as AttributeType);
     }
 
     return finalObj;
