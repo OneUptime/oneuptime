@@ -289,7 +289,7 @@ Con l'invio nativo di Proxmox VE, un nodo tolto dal cluster sembra uguale a uno 
 :::
 
 :::details Contatori come pve_network_receive_bytes crescono soltanto
-Le serie di I/O di rete e di disco sono contatori sull'intera vita, e i criteri confrontano valori grezzi: non esiste un operatore di tasso, e **Convert to per-second rate** nel costruttore di query cambia solo il grafico. Mostrateli come tasso, oppure avvisate sulla loro crescita con una formula, come una query **Massimo** meno una query **Minimo** dello stesso contatore.
+Le serie di I/O di rete e di disco sono contatori sull'intera vita, e i criteri confrontano valori grezzi: non esiste un operatore di tasso, e **Converti in tasso al secondo** nel costruttore di query cambia solo il grafico. Mostrateli come tasso, oppure avvisate sulla loro crescita con una formula, come una query **Massimo** meno una query **Minimo** dello stesso contatore.
 :::
 
 ## Passaggi successivi

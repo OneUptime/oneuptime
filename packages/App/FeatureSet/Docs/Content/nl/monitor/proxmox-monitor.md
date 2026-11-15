@@ -289,7 +289,7 @@ Bij de native push van Proxmox VE ziet een node die uit het cluster is gehaald e
 :::
 
 :::details Tellers zoals pve_network_receive_bytes groeien alleen maar
-Netwerk- en schijf-I/O-reeksen zijn tellers over de hele levensduur, en criteria vergelijken ruwe waarden: er is geen rate-operator, en **Convert to per-second rate** in de querybouwer verandert alleen de grafiek. Toon ze als rate in een grafiek, of waarschuw op hun groei met een formule, zoals een **Maximum**-query min een **Minimum**-query van dezelfde teller.
+Netwerk- en schijf-I/O-reeksen zijn tellers over de hele levensduur, en criteria vergelijken ruwe waarden: er is geen rate-operator, en **Omzetten naar snelheid per seconde** in de querybouwer verandert alleen de grafiek. Toon ze als rate in een grafiek, of waarschuw op hun groei met een formule, zoals een **Maximum**-query min een **Minimum**-query van dezelfde teller.
 :::
 
 ## Volgende stappen

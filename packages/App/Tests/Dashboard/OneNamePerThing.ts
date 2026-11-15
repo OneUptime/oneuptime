@@ -1,3 +1,5 @@
+import { HtmlMarkupReplacer, replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
+
 /*
  * EACH LANGUAGE'S ONE NAME FOR A THING IT ONCE NAMED TWO OR THREE WAYS
  * (#8029, #8030, #8031).
@@ -317,12 +319,24 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
  * <code> in the API reference), a tag and an address are not words a reader
  * reads as a name ({{workflowName}}, {queueName}, `workflow.yml`,
  * <code>Workflow</code>, https://.../workflows).
+ *
+ * The tags go last, each a space, through the shared walk
+ * (replaceHtmlMarkup), which reads a "<" as a browser does: "(< slower,
+ * > faster)" is words. An address goes whole first, a <placeholder> in it
+ * too, and ends at a quote, as one in a tag's attribute does, so it never
+ * runs on into the words of its link.
  */
 const NOT_WORDS: RegExp =
-  /\{\{[^{}]*\}\}|\{[A-Za-z_][\w.]*\}|`[^`]*`|<code>[\s\S]*?<\/code>|<[^<>]*>|\]\([^)]*\)|https?:\/\/\S+/g;
+  /\{\{[^{}]*\}\}|\{[A-Za-z_][\w.]*\}|`[^`]*`|<code>[\s\S]*?<\/code>|\]\([^)]*\)|https?:\/\/[^\s"]+/g;
+
+const AS_A_SPACE: HtmlMarkupReplacer = (): string => {
+  return " ";
+};
 
 export function wordsOf(text: string): string {
-  return text.replace(NOT_WORDS, " ");
+  return replaceHtmlMarkup(text.replace(NOT_WORDS, " "), AS_A_SPACE, {
+    lessThanAsText: true,
+  });
 }
 
 /*

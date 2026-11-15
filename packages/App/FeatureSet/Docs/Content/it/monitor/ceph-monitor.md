@@ -275,7 +275,7 @@ Un health check che non è mai scattato non ha alcuna serie, `ceph_daemon_health
 :::
 
 :::details Contatori come ceph_pool_wr_bytes crescono soltanto
-Le serie di I/O dei pool sono contatori cumulativi, e i criteri confrontano valori grezzi: non esiste un operatore di tasso, e **Convert to per-second rate** nel generatore di query cambia solo il grafico. Visualizzali come tasso, oppure crea un avviso sulla loro crescita con una formula, per esempio una query **Massimo** meno una query **Minimo** dello stesso contatore.
+Le serie di I/O dei pool sono contatori cumulativi, e i criteri confrontano valori grezzi: non esiste un operatore di tasso, e **Converti in tasso al secondo** nel generatore di query cambia solo il grafico. Visualizzali come tasso, oppure crea un avviso sulla loro crescita con una formula, per esempio una query **Massimo** meno una query **Minimo** dello stesso contatore.
 :::
 
 ## Passaggi successivi

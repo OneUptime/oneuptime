@@ -289,7 +289,7 @@ Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likad
 :::
 
 :::details Räknare som pve_network_receive_bytes bara växer
-Serier för nätverks- och disk-I/O är räknare över hela livstiden, och kriterier jämför råa värden: det finns ingen rate-operator, och **Convert to per-second rate** i frågebyggaren ändrar bara diagrammet. Visa dem som en takt i ett diagram, eller varna på deras ökning med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga på samma räknare.
+Serier för nätverks- och disk-I/O är räknare över hela livstiden, och kriterier jämför råa värden: det finns ingen rate-operator, och **Räkna om till takt per sekund** i frågebyggaren ändrar bara diagrammet. Visa dem som en takt i ett diagram, eller varna på deras ökning med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga på samma räknare.
 :::
 
 ## Nästa steg

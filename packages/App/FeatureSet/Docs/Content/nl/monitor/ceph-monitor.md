@@ -275,7 +275,7 @@ Een health check die nooit is afgegaan heeft geen serie, ook in `ceph_daemon_hea
 :::
 
 :::details Tellers zoals ceph_pool_wr_bytes stijgen alleen maar
-I/O-reeksen van pools zijn tellers over de hele levensduur, en criteria vergelijken ruwe waarden: er is geen rate-operator, en **Convert to per-second rate** in de querybouwer verandert alleen de grafiek. Toon ze als rate, of waarschuw op hun groei met een formule, zoals een **Maximum**-query min een **Minimum**-query van dezelfde teller.
+I/O-reeksen van pools zijn tellers over de hele levensduur, en criteria vergelijken ruwe waarden: er is geen rate-operator, en **Omzetten naar snelheid per seconde** in de querybouwer verandert alleen de grafiek. Toon ze als rate, of waarschuw op hun groei met een formule, zoals een **Maximum**-query min een **Minimum**-query van dezelfde teller.
 :::
 
 ## Volgende stappen

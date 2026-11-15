@@ -275,7 +275,7 @@ Um health check que nunca disparou não tem série, `ceph_daemon_health_metrics`
 :::
 
 :::details Contadores como ceph_pool_wr_bytes só crescem
-As séries de E/S dos pools são contadores acumulados, e os critérios comparam valores brutos: não há operador de taxa, e **Convert to per-second rate** no construtor de consultas só muda o gráfico. Mostre-as como taxa no gráfico, ou alerte sobre o crescimento com uma fórmula, como uma consulta **Máximo** menos uma consulta **Mínimo** do mesmo contador.
+As séries de E/S dos pools são contadores acumulados, e os critérios comparam valores brutos: não há operador de taxa, e **Converter em taxa por segundo** no construtor de consultas só muda o gráfico. Mostre-as como taxa no gráfico, ou alerte sobre o crescimento com uma fórmula, como uma consulta **Máximo** menos uma consulta **Mínimo** do mesmo contador.
 :::
 
 ## Próximos passos

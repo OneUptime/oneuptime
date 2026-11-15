@@ -200,7 +200,13 @@ describe("getEpisodeTiming", () => {
     expect(timing.timeToResolve).toBe("15 minutes");
   });
 
-  test("uses the state names the project configured", () => {
+  /*
+   * A name the project gave its state is its own and reads as written
+   * (Common/Utils/DefaultRecordNames, #8064); only OneUptime's own names
+   * are cased for the middle of the sentence, as the tests above and below
+   * read "Not yet acknowledged" and "Not yet resolved".
+   */
+  test("uses the state names the project configured, as written", () => {
     const timing: EpisodeTiming = getEpisodeTiming({
       list: StateListType.IncidentState,
       startedAt: START,
@@ -213,8 +219,8 @@ describe("getEpisodeTiming", () => {
 
     expect(timing.acknowledgedStateName).toBe("Triaged");
     expect(timing.resolvedStateName).toBe("Fixed");
-    expect(timing.timeToAcknowledge).toBe("Not yet triaged");
-    expect(timing.timeToResolve).toBe("Not yet fixed");
+    expect(timing.timeToAcknowledge).toBe("Not yet Triaged");
+    expect(timing.timeToResolve).toBe("Not yet Fixed");
   });
 
   test("falls back to generic names when no state is flagged", () => {
