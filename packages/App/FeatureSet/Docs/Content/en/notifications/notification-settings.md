@@ -21,7 +21,7 @@ flowchart TB
 - Each row is an event, and each column a channel: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost and Webhook. Slack, Microsoft Teams and Mattermost are columns only when the project has connected them.
 - A channel that is on sends to every verified method you have on it in this project, not just one.
 - A channel that is on, with no verified method behind it, sends nothing. **Your setup checklist** says so under **Staying informed**.
-- An update goes to the record's owners: the people named as owners, and the members of its owner teams. When a record has no owners, it goes to the project's owners instead. An event about being added as an owner goes only to the person added. If OneUptime stops while it is sending an update to a record's owners, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.
+- An update goes to the record's owners: the people named as owners, and the members of its owner teams. When a record has no owners, it goes to the Project Owners instead. An event about being added as an owner goes only to the person added. If OneUptime stops while it is sending an update to a record's owners, the people it had not got to yet get it once OneUptime is back, a few minutes late, and nobody gets it twice.
 - Security cases have no owners. A new case goes to everyone who can see the project's cases, at the priority each of them chooses, and an assigned case to the people it is assigned to. See [Security Cases](/docs/telemetry/security-cases#notifications).
 - Every owner email ends with a "Manage notification preferences" link back to this page.
 

@@ -138,7 +138,7 @@ API 金鑰需要 Growth 或更高的方案，而在 Scale 方案以下，SCIM �
 在**自動儲值**卡片上點選**編輯自動儲值**，然後開啟**啟用自動儲值**。它預設關閉。開啟後，每當餘額降到 $10 時，OneUptime 就會儲值 $20，金額也可以自行設定。
 :::
 
-當餘額不足以支付時，訊息不會傳送，或 OneUptime AI 會停止，專案的擁有者會收到電子郵件。請參閱[呼叫未送出時](/docs/on-call/escalation-rules#呼叫未送出時)和[AI 點數用完時](/docs/ai/ai-sre#ai-點數用完時)。
+當餘額不足以支付時，訊息不會傳送，或 OneUptime AI 會停止，專案擁有者會收到電子郵件。請參閱[呼叫未送出時](/docs/on-call/escalation-rules#呼叫未送出時)和[AI 點數用完時](/docs/ai/ai-sre#ai-點數用完時)。
 
 ## 誰可以做什麼
 

@@ -27,7 +27,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Un projet Google Cloud connecté.** Connectez-le d'abord dans **Cloud → Connecter** : voir [Connecter un compte cloud](/docs/telemetry/cloud-accounts).
-- **Un propriétaire ou un administrateur du projet.** Eux seuls peuvent créer une clé de flux et arrêter la diffusion.
+- **Un Propriétaire du projet ou un Administrateur du projet.** Eux seuls peuvent créer une clé de flux et arrêter la diffusion.
 - **Google Cloud Shell**, connecté en tant que **Owner** des projets, ou que personne autorisée à y créer des comptes de service, des sujets Pub/Sub et des récepteurs de journaux.
 - **Une adresse HTTPS, pour un OneUptime auto-hébergé.** Pub/Sub n'envoie qu'à des adresses `https://`, avec un certificat reconnu par Google, et l'adresse doit être joignable depuis Google Cloud.
 

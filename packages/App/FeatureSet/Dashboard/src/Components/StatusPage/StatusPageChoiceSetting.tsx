@@ -146,7 +146,9 @@ const StatusPageChoiceSetting: FunctionComponent<ComponentProps> = (
           {updateGate.isAllowed ? (
             dropdown
           ) : (
-            <Tooltip text={updateGate.disabledReason}>{dropdown}</Tooltip>
+            <Tooltip text={updateGate.disabledReason} isTextTranslated={true}>
+              {dropdown}
+            </Tooltip>
           )}
           <SaveStatus
             state={setting.saveState}

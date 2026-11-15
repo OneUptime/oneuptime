@@ -27,7 +27,7 @@ flowchart TB
 ## 開始之前
 
 - **一個已連線的 Google Cloud 專案。** 先在 **雲端 → 連線** 中連線：請參閱 [連線雲端帳戶](/docs/telemetry/cloud-accounts)。
-- **專案擁有者或管理員。** 只有他們可以建立串流金鑰和停止串流。
+- **專案擁有者或專案管理員。** 只有他們可以建立串流金鑰和停止串流。
 - **Google Cloud Shell**，以專案的 **Owner** 身分登入，或以可在這些專案中建立服務帳戶、Pub/Sub 主題和日誌接收器的人員身分登入。
 - **在自行託管的 OneUptime 上，需要 HTTPS 位址。** Pub/Sub 只會推送到 `https://` 位址，憑證須受 Google 信任，而且該位址必須能從 Google Cloud 連到。
 

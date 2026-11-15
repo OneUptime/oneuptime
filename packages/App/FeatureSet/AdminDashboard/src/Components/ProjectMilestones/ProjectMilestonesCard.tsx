@@ -15,6 +15,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -40,6 +42,7 @@ export const PROJECT_MILESTONES_CARD_TEST_ID: string = "project-milestones";
 const ProjectMilestonesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [milestones, setMilestones] = useState<Array<ProjectMilestone> | null>(
     null,
   );
@@ -94,8 +97,12 @@ const ProjectMilestonesCard: FunctionComponent<ComponentProps> = (
           data-testid="project-milestones-summary"
         >
           {summary.isSetUp
-            ? "Set up: its monitors run and OneUptime has reached a person."
-            : `Stuck at: ${summary.text}.`}
+            ? translator.translateText(
+                "Set up: its monitors run and OneUptime has reached a person.",
+              )
+            : translator.translateTemplate("Stuck at: {{step}}.", {
+                step: translator.translateText(summary.text) || summary.text,
+              })}
         </p>
         <ul className="divide-y divide-gray-100">
           {ACTIVATION_MILESTONE_DETAILS.map(
@@ -116,13 +123,24 @@ const ProjectMilestonesCard: FunctionComponent<ComponentProps> = (
                       className={`h-4 w-4 flex-shrink-0 ${row ? "text-green-600" : "text-gray-300"}`}
                     />
                     <span className={row ? "text-gray-900" : "text-gray-500"}>
-                      {detail.title}
+                      {translator.translateText(detail.title) || detail.title}
                     </span>
                   </span>
                   <span className="flex-shrink-0 text-gray-500">
                     {row && row.reachedAt
-                      ? `${OneUptimeDate.getDateAsLocalFormattedString(row.reachedAt)}${row.wasBackfilled ? " (from earlier data)" : ""}`
-                      : "Not yet"}
+                      ? row.wasBackfilled
+                        ? translator.translateTemplate(
+                            "{{date}} (from earlier data)",
+                            {
+                              date: OneUptimeDate.getDateAsLocalFormattedString(
+                                row.reachedAt,
+                              ),
+                            },
+                          )
+                        : OneUptimeDate.getDateAsLocalFormattedString(
+                            row.reachedAt,
+                          )
+                      : translator.translateText("Not yet")}
                   </span>
                 </li>
               );

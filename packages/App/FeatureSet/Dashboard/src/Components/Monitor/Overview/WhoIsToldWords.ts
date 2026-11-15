@@ -115,8 +115,8 @@ const OWNER_SENTENCES: Readonly<
     unnamed: translationKey("It emails the owners added by owner rules."),
   },
   [WhoIsToldOwnersSource.ProjectOwners]: {
-    named: translationKey("It emails the project's owners ({{names}})."),
-    unnamed: translationKey("It emails the project's owners."),
+    named: translationKey("It emails the Project Owners ({{names}})."),
+    unnamed: translationKey("It emails the Project Owners."),
   },
   [WhoIsToldOwnersSource.MonitorOwners]: {
     named: translationKey("It emails the monitor's owners ({{names}})."),

@@ -91,6 +91,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   // See ModelSwitchRow.
   locksWhenPlanNeeded?: boolean | undefined;
   lockedReason?: string | undefined;
+  isLockedReasonTranslated?: boolean | undefined;
   /*
    * The card's place on its page (Card's `id`, Utils/PageAnchor): a link
    * naming it after the address's "#" lands on this switch - and opens the
@@ -333,6 +334,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
             dataTestId={props.dataTestId}
             locksWhenPlanNeeded={props.locksWhenPlanNeeded}
             lockedReason={props.lockedReason}
+            isLockedReasonTranslated={props.isLockedReasonTranslated}
           />
         </div>
         {getDetails()}

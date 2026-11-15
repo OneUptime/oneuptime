@@ -201,7 +201,7 @@ La página **Ajustes** reúne cómo mide un SLO, una tarjeta para cada cosa:
 
 | Tarjeta | Qué cambias | Conviene saber |
 | --- | --- | --- |
-| **Qué mide** | **Qué mide**, **Servicios** y **Umbral de latencia (ms)**, con **Editar qué mide**. | Tras un cambio, un SLO de solicitudes vuelve a contar sus solicitudes desde el principio. |
+| **Qué mide** | **Qué mide**, **Servicios**, **Umbral de latencia (ms)** y **Filtro de solicitudes**, con **Editar qué mide**. | Tras un cambio, un SLO de solicitudes vuelve a contar sus solicitudes desde el principio. |
 | **Objetivo** | **Objetivo (%)** y **Umbral de riesgo (%)**, con **Editar objetivo**. | Muestra el tiempo de inactividad que permite el objetivo, por ejemplo «43 min 12 s de tiempo de inactividad por ventana de 30 días». |
 | **Periodo de cumplimiento** | **Tipo de ventana**, **Ventana (días)** y **Zona horaria**, con **Editar periodo**. | Las reglas de tasa de consumo conservan sus umbrales cuando cambia la ventana, así que revísalas después. |
 | **Cálculo del tiempo de inactividad** | **Modo de varios monitores** y **Estados de monitor de tiempo de inactividad**, con **Editar cálculo del tiempo de inactividad**. | Solo en los SLO de disponibilidad de monitores. Sin estados se cuentan todos los estados no operativos, incluidos los que se añadan después. |

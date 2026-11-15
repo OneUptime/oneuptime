@@ -226,7 +226,7 @@ describe("the AI SRE page says what happens when a limit is reached", () => {
     });
 
     expect(text).toContain("#### When a limit is reached");
-    expect(text).toContain("**The project's owners are emailed.**");
+    expect(text).toContain("**Project Owners are emailed.**");
     expect(text).toContain("once a day for each limit");
     expect(email).toContain("once a day for each limit");
     expect(text).toContain("a link to **Project Settings → AI → AI Features**");

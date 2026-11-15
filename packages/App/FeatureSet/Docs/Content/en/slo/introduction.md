@@ -201,7 +201,7 @@ The **Settings** page holds how an SLO measures, one card each:
 
 | Card | What you change | Worth knowing |
 | --- | --- | --- |
-| **What It Measures** | **What It Measures**, **Services** and **Latency Threshold (ms)**, with **Edit What It Measures**. | A request SLO counts its requests again from the start after a change. |
+| **What It Measures** | **What It Measures**, **Services**, **Latency Threshold (ms)** and **Request Filter**, with **Edit What It Measures**. | A request SLO counts its requests again from the start after a change. |
 | **Objective** | **Target (%)** and **At-Risk Threshold (%)**, with **Edit Objective**. | Shows the downtime the objective allows, for example "43m 12s of downtime per 30-day window". |
 | **Compliance Period** | **Window Type**, **Window (Days)** and **Timezone**, with **Edit Period**. | Burn rate rules keep their thresholds when the window changes, so review them afterwards. |
 | **Downtime Calculation** | **Multi Monitor Mode** and **Downtime Monitor Statuses**, with **Edit Downtime Calculation**. | Monitor uptime SLOs only. Empty statuses count every non-operational status, including ones added later. |
