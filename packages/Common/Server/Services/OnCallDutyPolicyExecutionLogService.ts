@@ -961,7 +961,7 @@ export class Service extends ProjectReferencesService<Model> {
      * Told once the page again's run is written: a page again whose run
      * was never written gives its acknowledgement clock back (issue #8514).
      */
-    onRunCreated?: ((runId: ObjectID) => void) | undefined;
+    onRunCreated?: ((runId: ObjectID) => void | Promise<void>) | undefined;
   }): Promise<ObjectID | null> {
     const log: Model = new Model();
 
@@ -998,7 +998,7 @@ export class Service extends ProjectReferencesService<Model> {
     const runId: ObjectID = run.id!;
 
     if (data.onRunCreated) {
-      data.onRunCreated(runId);
+      await data.onRunCreated(runId);
     }
 
     // Archived meanwhile: the run says it was not executed, as any run does.
@@ -1022,21 +1022,12 @@ export class Service extends ProjectReferencesService<Model> {
      * in Error with nobody paged - the acknowledgement clock is stopped,
      * and no later page again would come.
      */
-    const startInFlight: OnCallLevelInFlight = {
-      ruleId: data.startAtRuleId?.toString() || "",
-      startedAt: OneUptimeDate.getCurrentDate(),
-      heartbeatAt: OneUptimeDate.getCurrentDate(),
-      stopped: false,
-      ...(data.acknowledgedByUserId
-        ? { firstUserIds: [data.acknowledgedByUserId.toString()] }
-        : {}),
-      pageStart: { startedAt: pageStart.startedAt, start: pageStart.start },
-      pageAgain: {
-        startAtRuleId: data.startAtRuleId?.toString() || null,
-        acknowledgedByUserId: data.acknowledgedByUserId?.toString() || null,
-        minutes: data.minutes,
-      },
-    };
+    const startInFlight: OnCallLevelInFlight = this.getPageAgainStart({
+      startAtRuleId: data.startAtRuleId?.toString() || null,
+      acknowledgedByUserId: data.acknowledgedByUserId?.toString() || null,
+      minutes: data.minutes,
+      pageStart: pageStart,
+    });
 
     await OnCallLevelsInFlight.keep(runId, startInFlight);
 
@@ -1329,15 +1320,115 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  // A page again's start, as it is kept in flight until its rule is recorded (issue #8514).
+  private getPageAgainStart(data: {
+    startAtRuleId: string | null;
+    acknowledgedByUserId: string | null;
+    minutes: number;
+    pageStart: OnCallPageStartMoment;
+  }): OnCallLevelInFlight {
+    return {
+      ruleId: data.startAtRuleId || "",
+      startedAt: OneUptimeDate.getCurrentDate(),
+      heartbeatAt: OneUptimeDate.getCurrentDate(),
+      stopped: false,
+      ...(data.acknowledgedByUserId
+        ? { firstUserIds: [data.acknowledgedByUserId] }
+        : {}),
+      pageStart: {
+        startedAt: data.pageStart.startedAt,
+        start: data.pageStart.start,
+      },
+      pageAgain: {
+        startAtRuleId: data.startAtRuleId,
+        acknowledgedByUserId: data.acknowledgedByUserId,
+        minutes: data.minutes,
+      },
+    };
+  }
+
+  /*
+   * Keeps the start of a page again whose run was written, and whose
+   * process stopped before it kept its start (issue #8549): the page-again
+   * tick asks for this once the page again has been in flight a while
+   * (OnCallPageAgainClaimsInFlight). Only for a run still starting - no
+   * rule recorded, Scheduled or Started - with no start kept already: the
+   * stuck-run job then hands it to its escalation, and the policy-run
+   * worker starts it from where it starts, the person who acknowledged
+   * first (startHandedOverPageAgain). Throws as the database does, and
+   * when Redis did not take the start.
+   */
+  @CaptureSpan()
+  public async keepPageAgainStartIfMissing(data: {
+    runId: ObjectID;
+    startAtRuleId: string | null;
+    acknowledgedByUserId: string | null;
+    minutes: number;
+    dueAt: Date;
+  }): Promise<boolean> {
+    const run: Model | null = await this.findOneById({
+      id: data.runId,
+      select: {
+        status: true,
+        lastExecutedEscalationRuleId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !run ||
+      run.lastExecutedEscalationRuleId ||
+      (run.status !== OnCallDutyPolicyStatus.Scheduled &&
+        run.status !== OnCallDutyPolicyStatus.Started)
+    ) {
+      return false;
+    }
+
+    const kept: Map<string, OnCallLevelInFlight> =
+      await OnCallLevelsInFlight.read([data.runId]);
+
+    if (kept.has(data.runId.toString())) {
+      return false;
+    }
+
+    await OnCallLevelsInFlight.keep(data.runId, {
+      ...this.getPageAgainStart({
+        startAtRuleId: data.startAtRuleId,
+        acknowledgedByUserId: data.acknowledgedByUserId,
+        minutes: data.minutes,
+        pageStart: OnCallPageTiming.startPage({ dueAt: data.dueAt }),
+      }),
+      stopped: true,
+    });
+
+    // Kept only once Redis has it: else the page-again tick tries again at its next.
+    if (
+      !(await OnCallLevelsInFlight.read([data.runId])).has(
+        data.runId.toString(),
+      )
+    ) {
+      throw new Error(
+        `Could not keep the start of the page again of on-call execution log ${data.runId.toString()}.`,
+      );
+    }
+
+    return true;
+  }
+
   /*
    * Gives a run's acknowledgement clock back (issue #8514): its page
    * again's run was never written, so the next tick pages again. Only
-   * while the clock is still stopped. Never throws.
+   * while the clock is still stopped. Never throws, unless asked to: the
+   * page-again tick's settle (issue #8549) keeps its page again in flight
+   * for its next tick on a database error.
    */
   @CaptureSpan()
   public async restartAcknowledgementTimeoutClock(data: {
     executionLogId: ObjectID;
     startedAt: Date;
+    throwOnError?: boolean | undefined;
   }): Promise<boolean> {
     try {
       return await this.compareAndSetColumnsByIdWithoutHooks({
@@ -1351,6 +1442,10 @@ export class Service extends ProjectReferencesService<Model> {
         skipUpdateDateColumn: true,
       });
     } catch (err) {
+      if (data.throwOnError) {
+        throw err;
+      }
+
       logger.error(
         `Could not give back the acknowledgement clock of on-call execution log ${data.executionLogId.toString()}; its page again is not tried again.`,
       );
