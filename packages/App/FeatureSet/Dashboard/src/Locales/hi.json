@@ -9712,7 +9712,7 @@
   "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).": "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).",
   "Device Class": "डिवाइस क्लास",
   "Device Count": "Device Count",
-  "Device Health (Polled OIDs)": "डिवाइस की स्थिति (पोल किए गए OID)",
+  "Device Health (Polled OIDs)": "डिवाइस स्वास्थ्य (पोल किए गए OID)",
   "Device ID": "Device ID",
   "Device Id": "Device Id",
   "Device Links": "डिवाइस लिंक",
