@@ -183,7 +183,7 @@ const SecurityLogsCaseSeverity: FunctionComponent<ComponentProps> = (
         {gate.isAllowed ? (
           dropdown
         ) : (
-          <Tooltip text={gate.disabledReason}>{dropdown}</Tooltip>
+          <Tooltip text={gate.disabledReason} isTextTranslated={true}>{dropdown}</Tooltip>
         )}
         <SaveStatus
           state={setting.saveState}

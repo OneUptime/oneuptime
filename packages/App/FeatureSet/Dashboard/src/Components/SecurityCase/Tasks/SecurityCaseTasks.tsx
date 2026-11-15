@@ -508,6 +508,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
                       text={SECURITY_CASE_TASKS_COPY.assignToMe}
                       isDisabled={!updateGate.isAllowed || isWorking}
                       tooltip={updateGate.disabledReason}
+                      isTooltipTranslated={true}
                       onClick={() => {
                         void change(task, {
                           assignedToUserId: myUserId,
@@ -522,6 +523,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
                 text={SECURITY_CASE_TASKS_COPY.assignToSomeoneElse}
                 isDisabled={!updateGate.isAllowed || isWorking}
                 tooltip={updateGate.disabledReason}
+                isTooltipTranslated={true}
                 onClick={() => {
                   openDialog({ kind: "assign", task });
                 }}
@@ -534,6 +536,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
                       text={SECURITY_CASE_TASKS_COPY.unassign}
                       isDisabled={!updateGate.isAllowed || isWorking}
                       tooltip={updateGate.disabledReason}
+                      isTooltipTranslated={true}
                       onClick={() => {
                         void change(task, { assignedToUserId: null });
                       }}
@@ -546,6 +549,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
                 text={SECURITY_CASE_TASKS_COPY.editTask}
                 isDisabled={!updateGate.isAllowed || isWorking}
                 tooltip={updateGate.disabledReason}
+                isTooltipTranslated={true}
                 onClick={() => {
                   openDialog({ kind: "edit", task });
                 }}
@@ -558,6 +562,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
                 isDestructive={true}
                 isDisabled={!deleteGate.isAllowed || isWorking}
                 tooltip={deleteGate.disabledReason}
+                isTooltipTranslated={true}
                 onClick={() => {
                   openDialog({ kind: "delete", task });
                 }}

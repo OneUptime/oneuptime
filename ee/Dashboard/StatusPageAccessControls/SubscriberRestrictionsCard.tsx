@@ -270,7 +270,7 @@ const AllowedEmailDomainsSetting: FunctionComponent<
       {updateGate.isAllowed ? (
         editor
       ) : (
-        <Tooltip text={updateGate.disabledReason}>{editor}</Tooltip>
+        <Tooltip text={updateGate.disabledReason} isTextTranslated={true}>{editor}</Tooltip>
       )}
       {setting.error ? (
         <p
