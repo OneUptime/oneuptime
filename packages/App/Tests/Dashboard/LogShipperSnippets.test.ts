@@ -1,13 +1,23 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { JSONObject } from "Common/Types/JSON";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { CompatibleIngestEndpoint } from "../../FeatureSet/Dashboard/src/Components/Telemetry/CompatibleIngestGuide";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import {
+  FLUENTD_BUFFER_PATHS,
+  FLUENTD_BUFFER_TOTAL_LIMIT,
+  FLUENTD_COMPOSE_CAPABILITIES,
   FLUENTD_EVENT_TIME_KEY,
+  FLUENTD_FORWARD_BINDS,
+  FLUENTD_FORWARD_PORT,
+  FLUENTD_FORWARD_PUBLISHED,
   FLUENTD_LOGS_PATH,
+  FLUENTD_OTHER_HOSTS_DOCS_PATH,
   FLUENTD_POSITION_FILES,
   FLUENTD_RETRYABLE_RESPONSE_CODES,
+  FLUENTD_STATE_FOLDERS,
   FLUENT_BIT_LOGS_URI,
   FluentdRunsIn,
   getFluentBitConfig,
@@ -19,6 +29,7 @@ import {
 import FluentRecordTimeUtil, {
   FLUENTD_EVENT_TIME_FIELD,
   FLUENT_RECORD_TIME_FIELDS,
+  FluentRecordTime,
 } from "../../FeatureSet/Telemetry/Utils/FluentRecordTime";
 
 /*
@@ -196,6 +207,9 @@ describe("Fluentd's file", () => {
 <source>
   @type forward
   port 24224
+  # Every address of the container: docker-compose.yml publishes the port to this host alone.
+  # To take events from other hosts, with a shared key and TLS, see
+  # http://localhost:18811/docs/telemetry/fluentd#take-records-from-other-hosts
   bind 0.0.0.0
 </source>
 
@@ -219,7 +233,9 @@ describe("Fluentd's file", () => {
   emit_invalid_record_to_error false
   <parse>
     @type json
-    keep_time_key true
+    # Leave each line's "time" as it is, for OneUptime to read: Fluentd drops a line
+    # whose "time" is null, true, a list or an object. The next filter adds fluentd_time.
+    time_key fluentd_time
   </parse>
 </filter>
 
@@ -243,7 +259,11 @@ describe("Fluentd's file", () => {
     @type json
   </format>
   <buffer>
-    @type memory
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /fluentd/log/buffer/oneuptime
+    # At most 512 MB: when it is full, the tail waits, at its place in each file
+    total_limit_size 512m
     flush_interval 5s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -260,7 +280,7 @@ describe("Fluentd's file", () => {
 </label>`);
   });
 
-  test("on the host, the same file but for where the tail keeps its place", () => {
+  test("on the host, the same file but for where it listens and keeps its state", () => {
     const host: Array<string> = getFluentdConfig(
       SELF_HOSTED,
       FluentdRunsIn.Host,
@@ -281,13 +301,34 @@ describe("Fluentd's file", () => {
         }),
     ).toEqual([
       [
+        "  # This host alone may send here.",
+        "  # Every address of the container: docker-compose.yml publishes the port to this host alone.",
+      ],
+      ["  bind 127.0.0.1", "  bind 0.0.0.0"],
+      [
         "  pos_file /var/log/fluent/fluentd.pos",
         "  pos_file /fluentd/log/fluentd.pos",
       ],
+      [
+        "    path /var/log/fluent/buffer/oneuptime",
+        "    path /fluentd/log/buffer/oneuptime",
+      ],
     ]);
+    expect(FLUENTD_STATE_FOLDERS).toEqual({
+      [FluentdRunsIn.Host]: "/var/log/fluent",
+      [FluentdRunsIn.DockerCompose]: "/fluentd/log",
+    });
     expect(FLUENTD_POSITION_FILES).toEqual({
       [FluentdRunsIn.Host]: "/var/log/fluent/fluentd.pos",
       [FluentdRunsIn.DockerCompose]: "/fluentd/log/fluentd.pos",
+    });
+    expect(FLUENTD_BUFFER_PATHS).toEqual({
+      [FluentdRunsIn.Host]: "/var/log/fluent/buffer/oneuptime",
+      [FluentdRunsIn.DockerCompose]: "/fluentd/log/buffer/oneuptime",
+    });
+    expect(FLUENTD_FORWARD_BINDS).toEqual({
+      [FluentdRunsIn.Host]: "127.0.0.1",
+      [FluentdRunsIn.DockerCompose]: "0.0.0.0",
     });
   });
 
@@ -332,15 +373,22 @@ services:
     image: fluent/fluentd:latest
     # Root reads every file in /var/log, the ones only root may read too
     user: root
+    # Of root's powers, it keeps only reading and writing any file
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
     volumes:
       - ./fluentd.conf:/fluentd/etc/fluent.conf
       - /var/log:/var/log:ro
-      - fluentd-positions:/fluentd/log
+      # Fluentd's place in each file, and the batches it has yet to send
+      - fluentd-state:/fluentd/log
     ports:
-      - "24224:24224"
+      # This host alone may send: fluentd.conf says how to take events from other hosts
+      - "127.0.0.1:24224:24224"
 
 volumes:
-  fluentd-positions:`);
+  fluentd-state:`);
     expect(compose).not.toContain("http");
   });
 
@@ -559,20 +607,23 @@ const httpOutput: (config: string) => FluentdSection = (
   return outputs[0]!;
 };
 
-// Fluentd's own chunk size when <buffer> sets none (Buffer::DEFAULT_CHUNK_LIMIT_SIZE).
-const FLUENTD_DEFAULT_CHUNK_BYTES: number = 8 * 1024 * 1024;
+const MB: number = 1024 * 1024;
 
-// A buffer chunk's most bytes: chunk_limit_size, as Fluentd reads a size.
-const chunkLimitBytes: (output: FluentdSection) => number = (
-  output: FluentdSection,
-): number => {
-  const size: string | undefined = sectionsNamed(output, "buffer")[0]
-    ?.parameters["chunk_limit_size"];
+/*
+ * Fluentd's own limits when <buffer> sets none, by the buffer's @type
+ * (memory when it names none): Buffer::DEFAULT_CHUNK_LIMIT_SIZE and
+ * DEFAULT_TOTAL_LIMIT_SIZE, which buf_file sets again (Fluentd 1.20.1).
+ */
+const FLUENTD_BUFFER_DEFAULTS: Record<
+  string,
+  { chunkBytes: number; totalBytes: number }
+> = {
+  memory: { chunkBytes: 8 * MB, totalBytes: 512 * MB },
+  file: { chunkBytes: 256 * MB, totalBytes: 64 * 1024 * MB },
+};
 
-  if (size === undefined) {
-    return FLUENTD_DEFAULT_CHUNK_BYTES;
-  }
-
+// A Fluentd size parameter in bytes, as Fluentd reads one ("900k", "512m", "1g").
+const fluentdBytes: (size: string) => number = (size: string): number => {
   const match: RegExpMatchArray | null = size.match(/^(\d+)([kmgt]?)$/i);
 
   if (!match) {
@@ -584,6 +635,57 @@ const chunkLimitBytes: (output: FluentdSection) => number = (
   );
 
   return parseInt(match[1]!, 10) * Math.pow(1024, power);
+};
+
+// An output's <buffer>, which every output here has.
+const bufferOf: (output: FluentdSection) => FluentdSection = (
+  output: FluentdSection,
+): FluentdSection => {
+  const buffers: Array<FluentdSection> = sectionsNamed(output, "buffer");
+
+  expect(buffers.length).toBe(1);
+
+  return buffers[0]!;
+};
+
+// A buffer's @type, as Fluentd reads it: memory when it names none.
+const bufferType: (output: FluentdSection) => string = (
+  output: FluentdSection,
+): string => {
+  return bufferOf(output).parameters["@type"] || "memory";
+};
+
+// A buffer limit in bytes: what the buffer sets, else its @type's default.
+const bufferLimitBytes: (
+  output: FluentdSection,
+  setting: "chunk_limit_size" | "total_limit_size",
+) => number = (
+  output: FluentdSection,
+  setting: "chunk_limit_size" | "total_limit_size",
+): number => {
+  const size: string | undefined = bufferOf(output).parameters[setting];
+
+  if (size !== undefined) {
+    return fluentdBytes(size);
+  }
+
+  const defaults: { chunkBytes: number; totalBytes: number } | undefined =
+    FLUENTD_BUFFER_DEFAULTS[bufferType(output)];
+
+  if (!defaults) {
+    throw new Error(`A buffer this test does not read: ${bufferType(output)}`);
+  }
+
+  return setting === "chunk_limit_size"
+    ? defaults.chunkBytes
+    : defaults.totalBytes;
+};
+
+// A buffer chunk's most bytes: chunk_limit_size, as Fluentd reads a size.
+const chunkLimitBytes: (output: FluentdSection) => number = (
+  output: FluentdSection,
+): number => {
+  return bufferLimitBytes(output, "chunk_limit_size");
 };
 
 // A Compose volume line of the fluentd service: "source:target[:ro]".
@@ -802,13 +904,13 @@ describe("Fluentd's files run as handed out (issue #7886)", () => {
 
     expect(holders).toEqual([
       {
-        source: "fluentd-positions",
+        source: "fluentd-state",
         target: IMAGE_USER_FOLDER,
         readOnly: false,
       },
     ]);
     // A named volume, which a new one starts as a copy of the image's folder, owner and all.
-    expect(compose).toMatch(/^volumes:\n {2}fluentd-positions:$/m);
+    expect(compose).toMatch(/^volumes:\n {2}fluentd-state:$/m);
   });
 
   test("every line is sent: a JSON line with its own fields, any other line as it is", () => {
@@ -1013,6 +1115,84 @@ const filtersOf: (config: FluentdSection) => Array<FluentdSection> = (
   return sectionsNamed(config, "filter");
 };
 
+// The one parser filter, which reads a JSON line's fields out of "message".
+const jsonParserOf: (config: FluentdSection) => FluentdSection = (
+  config: FluentdSection,
+): FluentdSection => {
+  const parsers: Array<FluentdSection> = filtersOf(config).filter(
+    (section: FluentdSection): boolean => {
+      return section.parameters["@type"] === "parser";
+    },
+  );
+
+  expect(parsers.length).toBe(1);
+  expect(parserOf(parsers[0]!)).toBe("json");
+
+  return parsers[0]!;
+};
+
+// The json parser's own time_key when <parse> sets none (parser_json.rb).
+const JSON_PARSER_DEFAULT_TIME_KEY: string = "time";
+
+/*
+ * What Fluentd's json parser does with a JSON line's fields, as Fluentd
+ * 1.20.1 does it (Parser#parse_time): the field its time_key names, when
+ * the line has it, is read as the event's time - taken out of the record
+ * unless keep_time_key is true - and a value that is no text and no
+ * number raises TimeParseError ("value must be a string or a number"),
+ * which the parser filter, with emit_invalid_record_to_error false, turns
+ * into a dropped line, with no warning. reserve_data does not keep it: that
+ * is for a line that is no JSON at all. time_type float, the json parser's,
+ * and mixed read text and numbers alike.
+ */
+const jsonParserOutcome: (
+  parse: FluentdSection,
+  line: JSONObject,
+) => { dropped: boolean; record: JSONObject | null } = (
+  parse: FluentdSection,
+  line: JSONObject,
+): { dropped: boolean; record: JSONObject | null } => {
+  const timeKey: string =
+    parse.parameters["time_key"] ?? JSON_PARSER_DEFAULT_TIME_KEY;
+  const record: JSONObject = { ...line };
+
+  if (!Object.prototype.hasOwnProperty.call(record, timeKey)) {
+    return { dropped: false, record };
+  }
+
+  const value: unknown = record[timeKey];
+
+  if (parse.parameters["keep_time_key"] !== "true") {
+    delete record[timeKey];
+  }
+
+  if (typeof value !== "string" && typeof value !== "number") {
+    return { dropped: true, record: null };
+  }
+
+  return { dropped: false, record };
+};
+
+// The values a JSON line's time field may hold that Fluentd cannot read as a time.
+const NOT_TEXT_OR_NUMBER: Array<[string, unknown]> = [
+  ["null", null],
+  ["true", true],
+  ["false", false],
+  ["a list", [1, 2]],
+  ["an empty list", []],
+  ["an object", { s: 1 }],
+  ["an empty object", {}],
+];
+
+// And values it reads, as text or a number, whatever they mean.
+const TEXT_OR_NUMBER: Array<[string, unknown]> = [
+  ["an ISO time", "2026-11-14T08:00:00.123Z"],
+  ["epoch seconds", 1763107202],
+  ["pino's milliseconds", 1763107204123],
+  ["a word", "soon"],
+  ["empty text", ""],
+];
+
 describe("Fluentd reads every file in /var/log, the ones only root may read too (issue #8005)", () => {
   const compose: string = getFluentdDockerCompose();
 
@@ -1039,7 +1219,7 @@ describe("Fluentd reads every file in /var/log, the ones only root may read too 
     // Root writes any folder; only a read-only mount stops it.
     expect(holders).toEqual([
       {
-        source: "fluentd-positions",
+        source: "fluentd-state",
         target: IMAGE_USER_FOLDER,
         readOnly: false,
       },
@@ -1230,27 +1410,30 @@ describe("a log keeps its own time (issue #8010)", () => {
    * arrived. The ingest now reads a record's time (FluentRecordTime).
    */
   test.each(RUNS_IN)(
-    "%s: a JSON line keeps its time field, and its event the time the tail read it",
+    "%s: a JSON line keeps its time fields as written, and its event the time the tail read it",
     (runsIn: FluentdRunsIn) => {
-      const config: FluentdSection = configOf(runsIn);
-      const parser: FluentdSection = filtersOf(config).find(
-        (section: FluentdSection): boolean => {
-          return section.parameters["@type"] === "parser";
-        },
-      )!;
+      const parser: FluentdSection = jsonParserOf(configOf(runsIn));
       const parse: FluentdSection = sectionsNamed(parser, "parse")[0]!;
+      const line: JSONObject = {
+        time: "2026-11-14T08:00:00.123Z",
+        timestamp: 1763107202123,
+        "@timestamp": "2026-11-14T08:00:00+01:00",
+        ts: 1763107205.5,
+        level: "error",
+        message: "payment failed",
+      };
 
-      expect(parse.parameters["keep_time_key"]).toBe("true");
+      // Every time field the ingest reads goes on as the line wrote it.
+      expect(jsonParserOutcome(parse, line)).toEqual({
+        dropped: false,
+        record: line,
+      });
       /*
-       * Fluentd reads a JSON line's time as seconds (the json parser's
-       * time_type float): "2026-11-14T08:00:00Z" was the 2026th second of
-       * 1970. reserve_time keeps the time the tail read the line instead.
+       * The event keeps the time the tail read the line: Fluentd read a
+       * JSON line's time as seconds (the json parser's time_type float),
+       * so "2026-11-14T08:00:00Z" was the 2026th second of 1970.
        */
       expect(parser.parameters["reserve_time"]).toBe("true");
-      // The time key is the one the ingest reads first.
-      expect(parse.parameters["time_key"] ?? "time").toBe(
-        FLUENT_RECORD_TIME_FIELDS[0],
-      );
     },
   );
 
@@ -1342,6 +1525,613 @@ describe("a log keeps its own time (issue #8010)", () => {
   });
 });
 
+/*
+ * The three follow-ups of #8249, each checked here the way Fluentd and
+ * Compose read the files, and again in a run of the files as handed out
+ * (fluent/fluentd 1.20.1 in Docker Compose, and fluent-package 5.0.9 with
+ * Fluentd 1.16.11 on Debian 12, against a stub of /fluentd/logs; the pull
+ * request that closes them has it).
+ */
+
+/*
+ * What the stub of /fluentd/logs got from the guide's Compose files, in
+ * the run, for the lines the old parser dropped and their neighbours.
+ */
+const RUN_BATCH: Array<JSONObject> = [
+  {
+    time: null,
+    message: "b1 null time",
+    fluentd_time: "2026-11-15T17:39:28.041016696Z",
+  },
+  {
+    time: true,
+    message: "b1 true time",
+    fluentd_time: "2026-11-15T17:39:28.041037898Z",
+  },
+  {
+    time: [1, 2],
+    message: "b1 list time",
+    fluentd_time: "2026-11-15T17:39:28.041039701Z",
+  },
+  {
+    time: { s: 1 },
+    message: "b1 object time",
+    fluentd_time: "2026-11-15T17:39:28.041041193Z",
+  },
+  { message: "b1 no time", fluentd_time: "2026-11-15T17:39:28.041042766Z" },
+  {
+    time: "2026-11-14T08:00:00.123Z",
+    level: "error",
+    message: "b1 iso time",
+    fluentd_time: "2026-11-15T17:39:28.041043907Z",
+  },
+];
+
+describe("a JSON line is never dropped for its time (issue #8241)", () => {
+  /*
+   * In the run of the files as #8249 left them, {"time":null,...},
+   * {"time":true,...}, {"time":[1,2],...} and {"time":{"s":1},...} never
+   * reached the stub, and Fluentd logged nothing: the json parser read
+   * "time" as the event's time and the parser filter dropped the line.
+   * With the files below, all of them arrived.
+   */
+  const OLD_PARSE: FluentdSection = parseFluentd(
+    "<parse>\n  @type json\n  keep_time_key true\n</parse>",
+  ).sections[0]!;
+
+  test("the model of the json parser drops what Fluentd dropped with the old settings, and reads the rest", () => {
+    for (const [what, value] of NOT_TEXT_OR_NUMBER) {
+      expect({
+        what,
+        outcome: jsonParserOutcome(OLD_PARSE, { time: value, message: "x" }),
+      }).toEqual({ what, outcome: { dropped: true, record: null } });
+    }
+
+    for (const [what, value] of TEXT_OR_NUMBER) {
+      expect({
+        what,
+        outcome: jsonParserOutcome(OLD_PARSE, { time: value, message: "x" }),
+      }).toEqual({
+        what,
+        outcome: { dropped: false, record: { time: value, message: "x" } },
+      });
+    }
+
+    // Without keep_time_key, as Fluentd's own default, "time" left the record.
+    expect(
+      jsonParserOutcome(
+        parseFluentd("<parse>\n  @type json\n</parse>").sections[0]!,
+        {
+          time: "2026-11-14T08:00:00Z",
+          message: "x",
+        },
+      ),
+    ).toEqual({ dropped: false, record: { message: "x" } });
+  });
+
+  test.each(RUNS_IN)(
+    "%s: no line is dropped or changed for what a time field the ingest reads holds",
+    (runsIn: FluentdRunsIn) => {
+      const parse: FluentdSection = sectionsNamed(
+        jsonParserOf(configOf(runsIn)),
+        "parse",
+      )[0]!;
+      const loggersFields: Array<string> = FLUENT_RECORD_TIME_FIELDS.filter(
+        (field: string): boolean => {
+          return field !== FLUENTD_EVENT_TIME_KEY;
+        },
+      );
+
+      expect(loggersFields).toEqual(["time", "timestamp", "@timestamp", "ts"]);
+
+      for (const field of loggersFields) {
+        for (const [what, value] of [
+          ...NOT_TEXT_OR_NUMBER,
+          ...TEXT_OR_NUMBER,
+        ]) {
+          const line: JSONObject = {
+            [field]: value as JSONObject,
+            message: "x",
+          };
+
+          expect({
+            field,
+            what,
+            outcome: jsonParserOutcome(parse, line),
+          }).toEqual({
+            field,
+            what,
+            outcome: { dropped: false, record: line },
+          });
+        }
+      }
+    },
+  );
+
+  test.each(RUNS_IN)(
+    "%s: the one field the parser reads a time from is the one the next filter writes over",
+    (runsIn: FluentdRunsIn) => {
+      const config: FluentdSection = configOf(runsIn);
+      const parser: FluentdSection = jsonParserOf(config);
+      const parse: FluentdSection = sectionsNamed(parser, "parse")[0]!;
+      const stamper: FluentdSection = filtersOf(config).find(
+        (section: FluentdSection): boolean => {
+          return section.parameters["@type"] === "record_transformer";
+        },
+      )!;
+
+      expect(parse.parameters["time_key"]).toBe(FLUENTD_EVENT_TIME_KEY);
+      expect(
+        Object.keys(sectionsNamed(stamper, "record")[0]!.parameters),
+      ).toEqual([parse.parameters["time_key"]]);
+      // After the parser, and on every line the parser reads.
+      expect(filtersOf(config).indexOf(stamper)).toBeGreaterThan(
+        filtersOf(config).indexOf(parser),
+      );
+      expect(
+        patternTakes(stamper.argument, tailOf(config).parameters["tag"]!),
+      ).toBe(true);
+      /*
+       * A line's own fluentd_time is written over whatever the parser does
+       * with it, so keep_time_key would change nothing; "time" is no
+       * longer the time key, and stays in the record without it.
+       */
+      expect(parse.parameters["keep_time_key"]).toBeUndefined();
+      // Text or a number in a line's own fluentd_time is read, and the line goes on.
+      expect(
+        jsonParserOutcome(parse, {
+          message: "x",
+          [FLUENTD_EVENT_TIME_KEY]: "2020-01-01T00:00:00Z",
+        }),
+      ).toEqual({ dropped: false, record: { message: "x" } });
+    },
+  );
+
+  test("the ingest stores such a line at the time Fluentd read it, and keeps its time as an attribute", () => {
+    const arrivedAt: Date = new Date("2026-11-15T17:39:33.100Z");
+
+    expect(
+      RUN_BATCH.map((record: JSONObject): [unknown, string | null, string] => {
+        const read: FluentRecordTime = FluentRecordTimeUtil.read(
+          record,
+          arrivedAt,
+        );
+
+        return [record["message"], read.field, read.timeUnixNano];
+      }),
+    ).toEqual([
+      ["b1 null time", FLUENTD_EVENT_TIME_KEY, "1794764368041016696"],
+      ["b1 true time", FLUENTD_EVENT_TIME_KEY, "1794764368041037898"],
+      ["b1 list time", FLUENTD_EVENT_TIME_KEY, "1794764368041039701"],
+      ["b1 object time", FLUENTD_EVENT_TIME_KEY, "1794764368041041193"],
+      ["b1 no time", FLUENTD_EVENT_TIME_KEY, "1794764368041042766"],
+      ["b1 iso time", "time", "1794643200123000000"],
+    ]);
+
+    // Without the guide's fluentd_time, at the time OneUptime takes it in.
+    for (const record of RUN_BATCH.slice(0, 4)) {
+      const own: JSONObject = { ...record };
+
+      delete own[FLUENTD_EVENT_TIME_KEY];
+
+      expect(FluentRecordTimeUtil.read(own, arrivedAt)).toEqual({
+        timeUnixNano: `${arrivedAt.getTime()}000000`,
+        timeDate: arrivedAt,
+        field: null,
+      });
+    }
+  });
+});
+
+// A list setting of the fluentd service, as `    ports:` and its `      - ...` lines write it.
+const composeServiceList: (compose: string, name: string) => Array<string> = (
+  compose: string,
+  name: string,
+): Array<string> => {
+  const lines: Array<string> = compose.split("\n");
+  const start: number = lines.indexOf(`    ${name}:`);
+
+  if (start < 0) {
+    return [];
+  }
+
+  const values: Array<string> = [];
+
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith("      #")) {
+      continue;
+    }
+
+    const item: RegExpMatchArray | null = line.match(/^ {6}- (.+)$/);
+
+    if (!item) {
+      break;
+    }
+
+    values.push(item[1]!.replace(/^"(.*)"$/, "$1"));
+  }
+
+  return values;
+};
+
+describe("the batches still to send outlive Fluentd (issue #8242)", () => {
+  /*
+   * The buffer was in memory. In the run, a batch the stub answered 503
+   * for was lost when the container was made again: its five lines never
+   * arrived, and the tail had moved past them. With the file buffer, the
+   * chunk stayed in the volume, the new container sent it again, and when
+   * the stub answered 200 Fluentd logged "retry succeeded" for the same
+   * chunk. On the host, the same when the service was stopped and started.
+   */
+  test.each(RUNS_IN)(
+    "%s: the output keeps its batches in a file buffer, in Fluentd's state folder",
+    (runsIn: FluentdRunsIn) => {
+      const output: FluentdSection = httpOutput(
+        getFluentdConfig(SELF_HOSTED, runsIn),
+      );
+      const bufferPath: string = bufferOf(output).parameters["path"]!;
+
+      expect(bufferType(output)).toBe("file");
+      expect(bufferPath).toBe(FLUENTD_BUFFER_PATHS[runsIn]);
+      expect(isUnder(bufferPath, FLUENTD_STATE_FOLDERS[runsIn])).toBe(true);
+      // Beside the tail's place, which outlives Fluentd for the same reason.
+      expect(
+        isUnder(
+          tailOf(configOf(runsIn)).parameters["pos_file"]!,
+          FLUENTD_STATE_FOLDERS[runsIn],
+        ),
+      ).toBe(true);
+      // Its own folder: Fluentd refuses two buffers on one path.
+      expect(path.posix.basename(bufferPath)).toBe("oneuptime");
+    },
+  );
+
+  test("in Docker Compose, the buffer is in the state volume, under no read-only mount", () => {
+    const compose: string = getFluentdDockerCompose();
+    const holders: Array<ComposeMount> = composeMounts(compose).filter(
+      (mount: ComposeMount): boolean => {
+        return isUnder(
+          FLUENTD_BUFFER_PATHS[FluentdRunsIn.DockerCompose],
+          mount.target,
+        );
+      },
+    );
+
+    expect(holders).toEqual([
+      {
+        source: "fluentd-state",
+        target: FLUENTD_STATE_FOLDERS[FluentdRunsIn.DockerCompose],
+        readOnly: false,
+      },
+    ]);
+    // A named volume, which a container made again finds as it was left.
+    expect(compose).toMatch(/^volumes:\n {2}fluentd-state:$/m);
+  });
+
+  test("on the host, the buffer is in the package's folder, which its user owns, beside the package's own", () => {
+    const bufferPath: string = FLUENTD_BUFFER_PATHS[FluentdRunsIn.Host];
+
+    // fluent-package's _fluentd owns /var/log/fluent; its own file buffers to /var/log/fluent/buffer/td.
+    expect(isUnder(bufferPath, "/var/log/fluent")).toBe(true);
+    expect(isUnder(bufferPath, "/fluentd")).toBe(false);
+    expect(bufferPath).not.toBe("/var/log/fluent/buffer/td");
+    expect(path.posix.dirname(bufferPath)).toBe("/var/log/fluent/buffer");
+  });
+
+  test.each(RUNS_IN)(
+    "%s: the tail reads none of the buffer's files",
+    (runsIn: FluentdRunsIn) => {
+      const glob: string = tailOf(configOf(runsIn)).parameters["path"]!;
+      const bufferPath: string = FLUENTD_BUFFER_PATHS[runsIn];
+
+      // The names Fluentd gave the chunk and its meta file in the run: staged (b) and queued (q).
+      for (const file of [
+        "buffer.b6605425b03973fb1f2abdf218e4d140e.log",
+        "buffer.b6605425b03973fb1f2abdf218e4d140e.log.meta",
+        "buffer.q6605425b03973fb1f2abdf218e4d140e.log",
+        "buffer.q6605425b03973fb1f2abdf218e4d140e.log.meta",
+      ]) {
+        expect({
+          file,
+          read: globTakes(glob, `${bufferPath}/${file}`),
+        }).toEqual({ file, read: false });
+      }
+    },
+  );
+
+  test.each(RUNS_IN)(
+    "%s: it keeps at most 512 MB, what the memory buffer held, and a chunk is still one request",
+    (runsIn: FluentdRunsIn) => {
+      const output: FluentdSection = httpOutput(
+        getFluentdConfig(SELF_HOSTED, runsIn),
+      );
+      const totalBytes: number = bufferLimitBytes(output, "total_limit_size");
+      const limit: number = ingressBodyLimitBytes(
+        readFromHere("../../../Nginx/default.conf.template"),
+        readFromHere("../../../Nginx/nginx.conf"),
+        FLUENTD_LOGS_PATH,
+      );
+
+      expect(FLUENTD_BUFFER_TOTAL_LIMIT).toBe("512m");
+      // Set in the file: the file buffer's own limit is not the memory buffer's.
+      expect(bufferOf(output).parameters["total_limit_size"]).toBe(
+        FLUENTD_BUFFER_TOTAL_LIMIT,
+      );
+      expect(bufferType(output)).toBe("file");
+      expect(totalBytes).toBe(512 * MB);
+      // A file buffer's own limit is 64 GB, more than a small host's disk.
+      expect(totalBytes).toBe(FLUENTD_BUFFER_DEFAULTS["memory"]!.totalBytes);
+      expect(totalBytes).toBeLessThan(
+        FLUENTD_BUFFER_DEFAULTS["file"]!.totalBytes,
+      );
+      // A file buffer's own chunk is 256 MB: the file sets 900k, as for memory.
+      expect(chunkLimitBytes(output)).toBe(900 * 1024);
+      expect(chunkLimitBytes(output) + 1).toBeLessThanOrEqual(limit);
+      expect(chunkLimitBytes(output)).toBeLessThan(totalBytes);
+      /*
+       * Full, it takes no more: in the run, with the buffer full, Fluentd
+       * logged "buffer space has too many data", the tail kept its place,
+       * and every line arrived once when the stub answered 200 again.
+       */
+      expect(bufferOf(output).parameters["overflow_action"]).toBeUndefined();
+    },
+  );
+});
+
+describe("the forward port takes events from this host alone (issue #8243)", () => {
+  const compose: string = getFluentdDockerCompose();
+
+  // Where Docker's fluentd log driver sends when fluentd-address is not set.
+  const DOCKER_LOG_DRIVER_DEFAULT_ADDRESS: string = "localhost:24224";
+
+  const forwardOf: (config: FluentdSection) => FluentdSection = (
+    config: FluentdSection,
+  ): FluentdSection => {
+    const forwards: Array<FluentdSection> = sectionsNamed(
+      config,
+      "source",
+    ).filter((section: FluentdSection): boolean => {
+      return section.parameters["@type"] === "forward";
+    });
+
+    expect(forwards.length).toBe(1);
+
+    return forwards[0]!;
+  };
+
+  test.each(RUNS_IN)(
+    "%s: the forward input listens on the port Docker's log driver sends to",
+    (runsIn: FluentdRunsIn) => {
+      const forward: FluentdSection = forwardOf(configOf(runsIn));
+
+      expect(forward.parameters["port"]).toBe(String(FLUENTD_FORWARD_PORT));
+      expect(forward.parameters["bind"]).toBe(FLUENTD_FORWARD_BINDS[runsIn]);
+      expect(DOCKER_LOG_DRIVER_DEFAULT_ADDRESS).toBe(
+        `localhost:${FLUENTD_FORWARD_PORT}`,
+      );
+    },
+  );
+
+  test("on the host, Fluentd listens on the loopback address alone", () => {
+    expect(forwardOf(configOf(FluentdRunsIn.Host)).parameters["bind"]).toBe(
+      "127.0.0.1",
+    );
+  });
+
+  test("in Docker Compose, the port is published on the host's loopback alone, to the forward input", () => {
+    const ports: Array<string> = composeServiceList(compose, "ports");
+
+    expect(ports).toEqual([FLUENTD_FORWARD_PUBLISHED]);
+    expect(FLUENTD_FORWARD_PUBLISHED).toBe("127.0.0.1:24224:24224");
+
+    for (const port of ports) {
+      // host address : host port : container port; with no address, Docker publishes on every one.
+      const [hostAddress, hostPort, containerPort] = port.split(":");
+
+      expect({ port, hostAddress }).toEqual({ port, hostAddress: "127.0.0.1" });
+      expect(hostPort).toBe(String(FLUENTD_FORWARD_PORT));
+      expect(containerPort).toBe(String(FLUENTD_FORWARD_PORT));
+    }
+
+    // A published port reaches the container on its own address, not its loopback.
+    expect(
+      forwardOf(configOf(FluentdRunsIn.DockerCompose)).parameters["bind"],
+    ).toBe("0.0.0.0");
+    // Nor does the container share the host's network, where 0.0.0.0 is every address the host has.
+    expect(compose).not.toMatch(/network_mode|^\s+expose:/m);
+  });
+
+  test("in Docker Compose, root keeps none of its powers but reading and writing any file", () => {
+    /*
+     * In the run: the container's effective capabilities were 0x2
+     * (DAC_OVERRIDE alone), and it read a root:root 0600 file and a
+     * 104:adm 0640 one, and wrote the volume. With no capability at all,
+     * Fluentd logged "/var/log/syslog.log unreadable. It is excluded".
+     */
+    expect(composeServiceList(compose, "cap_drop")).toEqual(["ALL"]);
+    expect(composeServiceList(compose, "cap_add")).toEqual(
+      FLUENTD_COMPOSE_CAPABILITIES,
+    );
+    expect(FLUENTD_COMPOSE_CAPABILITIES).toEqual(["DAC_OVERRIDE"]);
+    expect(compose).not.toMatch(/privileged|security_opt/);
+    expect(composeServiceSetting(compose, "user")).toBe("root");
+  });
+
+  test.each([SELF_HOSTED, CLOUD])(
+    "the file says where the server's own docs say how to take events from other hosts ($host)",
+    (endpoint: CompatibleIngestEndpoint) => {
+      for (const runsIn of RUNS_IN) {
+        expect(getFluentdConfig(endpoint, runsIn)).toContain(
+          `\n  # ${endpoint.protocol}://${endpoint.host}${FLUENTD_OTHER_HOSTS_DOCS_PATH}\n  bind `,
+        );
+      }
+
+      // And the Compose file points at fluentd.conf, which says it.
+      expect(compose).toContain(
+        "# This host alone may send: fluentd.conf says how to take events from other hosts",
+      );
+    },
+  );
+
+  test("the docs section the file links to is on the English Fluentd page", () => {
+    const [pagePath, anchor] = FLUENTD_OTHER_HOSTS_DOCS_PATH.split("#") as [
+      string,
+      string,
+    ];
+
+    expect(pagePath).toBe("/docs/telemetry/fluentd");
+
+    const page: string = readFromHere(
+      `../../FeatureSet/Docs/Content/en${pagePath.replace(/^\/docs/, "")}.md`,
+    );
+    const slugs: Array<string> = Array.from(
+      page.matchAll(/^#{2,3} (.+)$/gm),
+    ).map((match: RegExpMatchArray): string => {
+      return slugifyMarkdownHeading(match[1]!);
+    });
+
+    expect(slugs).toContain(anchor);
+  });
+});
+
+/*
+ * A forward input other hosts can reach - listening on an address that is
+ * not a loopback one, or published on one by Compose - must ask each
+ * sender for a shared key, over TLS.
+ */
+const LOOPBACK: RegExp = /^(127\.\d+\.\d+\.\d+|::1|localhost)$/;
+
+const forwardSafetyProblems: (
+  forward: FluentdSection,
+  publishedOn: Array<string> | null,
+) => Array<string> = (
+  forward: FluentdSection,
+  publishedOn: Array<string> | null,
+): Array<string> => {
+  const bind: string = forward.parameters["bind"] ?? "0.0.0.0";
+  const reachable: boolean =
+    publishedOn === null
+      ? !LOOPBACK.test(bind)
+      : publishedOn.some((address: string): boolean => {
+          return !LOOPBACK.test(address);
+        });
+
+  if (!reachable) {
+    return [];
+  }
+
+  const problems: Array<string> = [];
+  const security: FluentdSection | undefined = sectionsNamed(
+    forward,
+    "security",
+  )[0];
+  const transport: FluentdSection | undefined = sectionsNamed(
+    forward,
+    "transport",
+  ).find((section: FluentdSection): boolean => {
+    return section.argument === "tls";
+  });
+
+  if (
+    !security?.parameters["shared_key"] ||
+    !security.parameters["self_hostname"]
+  ) {
+    problems.push("no shared key");
+  }
+
+  if (
+    !transport?.parameters["cert_path"] ||
+    !transport.parameters["private_key_path"]
+  ) {
+    problems.push("no TLS");
+  }
+
+  return problems;
+};
+
+describe("a forward input other hosts can reach asks for a shared key and TLS", () => {
+  const forwardIn: (config: string) => FluentdSection = (
+    config: string,
+  ): FluentdSection => {
+    return sectionsNamed(parseFluentd(config), "source").find(
+      (section: FluentdSection): boolean => {
+        return section.parameters["@type"] === "forward";
+      },
+    )!;
+  };
+
+  test("the rule finds the files as they were: every address, no key, no TLS", () => {
+    const old: FluentdSection = forwardIn(
+      "<source>\n  @type forward\n  port 24224\n  bind 0.0.0.0\n</source>",
+    );
+
+    expect(forwardSafetyProblems(old, null)).toEqual([
+      "no shared key",
+      "no TLS",
+    ]);
+    // Inside a container on 0.0.0.0, and Compose publishing "24224:24224" on every address.
+    expect(forwardSafetyProblems(old, ["0.0.0.0"])).toEqual([
+      "no shared key",
+      "no TLS",
+    ]);
+    // No bind is every address, Fluentd's own default.
+    expect(
+      forwardSafetyProblems(
+        forwardIn("<source>\n  @type forward\n</source>"),
+        null,
+      ),
+    ).toEqual(["no shared key", "no TLS"]);
+  });
+
+  test.each(RUNS_IN)("%s: the guide's file", (runsIn: FluentdRunsIn) => {
+    const published: Array<string> | null =
+      runsIn === FluentdRunsIn.DockerCompose
+        ? composeServiceList(getFluentdDockerCompose(), "ports").map(
+            (port: string): string => {
+              return port.split(":")[0]!;
+            },
+          )
+        : null;
+
+    expect(
+      forwardSafetyProblems(
+        forwardIn(getFluentdConfig(CLOUD, runsIn)),
+        published,
+      ),
+    ).toEqual([]);
+  });
+
+  test("the docs page's files: the complete example on this host alone, and the one for other hosts with a key and TLS", () => {
+    const page: string = readFromHere(
+      "../../FeatureSet/Docs/Content/en/telemetry/fluentd.md",
+    );
+    const blocks: Array<string> = Array.from(
+      page.matchAll(/^```text title="fluentd\.conf[^"]*"\n([\s\S]*?)\n```$/gm),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+    const forwards: Array<FluentdSection> = blocks
+      .filter((block: string): boolean => {
+        return (
+          /@type forward\n\s+port/.test(block) && block.includes("<source>")
+        );
+      })
+      .map(forwardIn);
+
+    expect(
+      forwards.map((forward: FluentdSection): [string, Array<string>] => {
+        return [
+          forward.parameters["bind"]!,
+          forwardSafetyProblems(forward, null),
+        ];
+      }),
+    ).toEqual([
+      ["127.0.0.1", []],
+      ["0.0.0.0", []],
+    ]);
+  });
+});
+
 describe("the Fluentd docs page's files agree with the guide's", () => {
   const docsConfigs: Array<string> = Array.from(
     readFromHere(
@@ -1427,6 +2217,150 @@ describe("the Fluentd docs page's files agree with the guide's", () => {
       );
     },
   );
+
+  test.each([0, 1])(
+    "file %i keeps its batches on disk, in fluent-package's folder, as much as the guide's host file (issue #8242)",
+    (index: number) => {
+      const docsOutput: FluentdSection = httpOutput(docsConfigs[index]!);
+      const hostOutput: FluentdSection = httpOutput(
+        getFluentdConfig(CLOUD, FluentdRunsIn.Host),
+      );
+
+      // The page's Fluentd is the package's: its file is /etc/fluent/fluentd.conf.
+      expect(bufferType(docsOutput)).toBe("file");
+      expect(bufferOf(docsOutput).parameters["path"]).toBe(
+        FLUENTD_BUFFER_PATHS[FluentdRunsIn.Host],
+      );
+      expect(bufferLimitBytes(docsOutput, "total_limit_size")).toBe(
+        bufferLimitBytes(hostOutput, "total_limit_size"),
+      );
+    },
+  );
+
+  test("the complete example's forward input listens on this host alone, as the guide's host file does (issue #8243)", () => {
+    const forward: FluentdSection = sectionsNamed(
+      parseFluentd(docsConfigs[1]!),
+      "source",
+    ).find((section: FluentdSection): boolean => {
+      return section.parameters["@type"] === "forward";
+    })!;
+
+    expect(forward.parameters["bind"]).toBe(
+      FLUENTD_FORWARD_BINDS[FluentdRunsIn.Host],
+    );
+    expect(forward.parameters["port"]).toBe(String(FLUENTD_FORWARD_PORT));
+  });
+
+  describe("the files that take records from other hosts (issue #8243)", () => {
+    const page: string = readFromHere(
+      "../../FeatureSet/Docs/Content/en/telemetry/fluentd.md",
+    );
+    const titledText: (title: string) => string = (title: string): string => {
+      const blocks: Array<string> = Array.from(
+        page.matchAll(
+          new RegExp(
+            `^\`\`\`text title="${escapeRegExp(title)}"\\n([\\s\\S]*?)\\n\`\`\`$`,
+            "gm",
+          ),
+        ),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      });
+
+      expect(blocks.length).toBe(1);
+
+      return blocks[0]!;
+    };
+    const titled: (title: string) => FluentdSection = (
+      title: string,
+    ): FluentdSection => {
+      return parseFluentd(titledText(title));
+    };
+    const receiver: FluentdSection = sectionsNamed(
+      titled("fluentd.conf on this host"),
+      "source",
+    )[0]!;
+    const sender: FluentdSection = sectionsNamed(
+      titled("fluentd.conf on each sender"),
+      "match",
+    )[0]!;
+    const receiverSecurity: FluentdSection = sectionsNamed(
+      receiver,
+      "security",
+    )[0]!;
+    const senderSecurity: FluentdSection = sectionsNamed(
+      sender,
+      "security",
+    )[0]!;
+
+    test("this host listens on every address, on the guide's port, for a shared key over TLS", () => {
+      expect(receiver.parameters).toEqual({
+        "@type": "forward",
+        port: String(FLUENTD_FORWARD_PORT),
+        bind: "0.0.0.0",
+      });
+      expect(
+        sectionsNamed(receiver, "transport").map(
+          (section: FluentdSection): string => {
+            return section.argument;
+          },
+        ),
+      ).toEqual(["tls"]);
+      expect(Object.keys(receiverSecurity.parameters).sort()).toEqual([
+        "self_hostname",
+        "shared_key",
+      ]);
+      // A sender with no key is not let in as an anonymous one (Fluentd's own default).
+      expect(
+        receiverSecurity.parameters["allow_anonymous_source"],
+      ).toBeUndefined();
+      expect(receiverSecurity.parameters["user_auth"]).toBeUndefined();
+    });
+
+    test("each sender sends to it over TLS, with the same key, to the name its certificate is for", () => {
+      expect(sender.parameters["@type"]).toBe("forward");
+      expect(sender.parameters["transport"]).toBe("tls");
+      expect(senderSecurity.parameters["shared_key"]).toBe(
+        receiverSecurity.parameters["shared_key"],
+      );
+      expect(receiverSecurity.parameters["shared_key"]).toBe("YOUR_SHARED_KEY");
+      // Each side names itself: the same name on both would not tell them apart in Fluentd's log.
+      expect(senderSecurity.parameters["self_hostname"]).not.toBe(
+        receiverSecurity.parameters["self_hostname"],
+      );
+
+      const server: FluentdSection = sectionsNamed(sender, "server")[0]!;
+
+      expect(server.parameters).toEqual({
+        host: receiverSecurity.parameters["self_hostname"],
+        port: String(FLUENTD_FORWARD_PORT),
+      });
+      // The hostname is checked against the certificate (tls_verify_hostname, true by default).
+      expect(sender.parameters["tls_verify_hostname"]).toBeUndefined();
+      expect(sender.parameters["tls_insecure_mode"]).toBeUndefined();
+    });
+
+    test("a sender keeps its own logs to itself, as this host does", () => {
+      // Without the label, its <match **> sent Fluentd's own logs on, and Fluentd warned it is deprecated.
+      expect(ownLogOutputs(titledText("fluentd.conf on each sender"))).toEqual(
+        FLUENTD_OWN_LOG_TAGS.map((): string => {
+          return "null";
+        }),
+      );
+    });
+
+    test("a sender keeps its batches on disk too, on a path of its own", () => {
+      const senderBuffer: FluentdSection = bufferOf(sender);
+
+      expect(bufferType(sender)).toBe("file");
+      expect(senderBuffer.parameters["path"]).not.toBe(
+        FLUENTD_BUFFER_PATHS[FluentdRunsIn.Host],
+      );
+      expect(isUnder(senderBuffer.parameters["path"]!, "/var/log/fluent")).toBe(
+        true,
+      );
+    });
+  });
 });
 
 describe("the paths are the ones a server serves", () => {
