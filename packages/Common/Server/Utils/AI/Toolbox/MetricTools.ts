@@ -26,6 +26,23 @@ import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import {
+  aiActionMoment,
+  aiActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_WIDGET_LINES,
+  AI_READ_WIDGET_TITLES,
+  AI_TOOL_CITATIONS,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  citationOf,
+  citationSentence,
+  countFigure,
+  windowSentence,
+  windowValues,
+  ToolCitation,
+} from "./ReadTableWords";
 import { getMetricReadPermissions } from "../../Telemetry/MetricReadPermissions";
 import OneUptimeDate from "../../../../Types/Date";
 import {
@@ -120,18 +137,22 @@ async function readGroupedQueryMetrics(data: {
     }),
   ].filter(Boolean);
 
-  const window: string = `${data.startTime.toISOString()} – ${data.endTime.toISOString()}`;
   // The keys the series differ in: "state", not "state, cpu.mode".
   const by: string = GroupedMetricSeries.getShownGroupBy(
     read.series,
     data.groupBy,
   ).join(", ");
-  const label: string = `${data.aggregationType}(${data.metricName}) by ${by}`;
 
   return {
     dataForLlm: `${serialized.text}\n${notes.join("\n")}`,
     rowCount: read.series.length,
-    citationLabel: `${label}, ${window}`,
+    // In the reader's language and time (issue #8311).
+    ...citationSentence(AI_TOOL_CITATIONS.metricBy, {
+      aggregation: data.aggregationType,
+      metric: data.metricName,
+      groupBy: by,
+      ...windowValues(data.startTime, data.endTime),
+    }),
     citationTarget: {
       type: AIChatCitationTargetType.Metrics,
     },
@@ -140,9 +161,15 @@ async function readGroupedQueryMetrics(data: {
     widget:
       read.series.length > 0
         ? WidgetBuilder.timeSeries({
-            // As the ungrouped chart is titled: "Avg of <metric>".
-            title: `${data.aggregationType} of ${data.metricName} by ${by}`,
-            description: window,
+            // As the ungrouped chart is titled: "Avg of <metric>" (issue #8312).
+            words: {
+              title: aiActionSentence(AI_READ_WIDGET_TITLES.metricBy, {
+                aggregation: data.aggregationType,
+                metric: data.metricName,
+                groupBy: by,
+              }),
+              description: windowSentence(data.startTime, data.endTime),
+            },
             series: GroupedMetricSeries.toWidgetSeries(
               read.series,
               data.groupBy,
@@ -376,7 +403,12 @@ export const QueryMetricsTool: ObservabilityTool = {
     return {
       dataForLlm: notes ? `${serialized.text}\n${notes}` : serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `${aggregationTypeString}(${metricName}), ${startTime.toISOString()} – ${endTime.toISOString()}`,
+      // The window in the reader's time (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.metric, {
+        aggregation: aggregationTypeString,
+        metric: metricName,
+        ...windowValues(startTime, endTime),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.Metrics,
       },
@@ -385,8 +417,14 @@ export const QueryMetricsTool: ObservabilityTool = {
       widget:
         points.length > 0
           ? WidgetBuilder.timeSeries({
-              title: `${aggregationTypeString} of ${metricName}`,
-              description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
+              // In the reader's language and time (issue #8312).
+              words: {
+                title: aiActionSentence(AI_READ_WIDGET_TITLES.metric, {
+                  aggregation: aggregationTypeString,
+                  metric: metricName,
+                }),
+                description: windowSentence(startTime, endTime),
+              },
               series: [{ name: seriesName, points: points }],
               valueLabel: aggregationTypeString,
               link: { type: AIChatCitationTargetType.Metrics },
@@ -541,9 +579,22 @@ export const BaselineAnomalyTool: ObservabilityTool = {
         windowDays,
       });
 
-    const citationLabel: string = `baseline_anomaly(${metricName}${
-      entityId ? ` · ${entityId.toString()}` : ""
-    }) @ ${atTime.toISOString()}`;
+    /*
+     * What the chip names, in people's words and the reader's language
+     * (issue #8311): it said the tool's notation, "baseline_anomaly(...)".
+     */
+    const citation: ToolCitation = citationOf(
+      entityId
+        ? aiActionSentence(AI_TOOL_CITATIONS.metricBaselineOfEntity, {
+            metric: metricName,
+            entity: entityId.toString(),
+            at: aiActionMoment(atTime),
+          })
+        : aiActionSentence(AI_TOOL_CITATIONS.metricBaseline, {
+            metric: metricName,
+            at: aiActionMoment(atTime),
+          }),
+    );
 
     /*
      * Cold start: no baseline (or too few samples) for this hour-of-week cell.
@@ -582,7 +633,7 @@ export const BaselineAnomalyTool: ObservabilityTool = {
       return {
         dataForLlm: serializedColdStart.text,
         rowCount: serializedColdStart.rowCount,
-        citationLabel,
+        ...citation,
         citationTarget: { type: AIChatCitationTargetType.Metrics },
         redactionCount: serializedColdStart.redactionCount,
         isTruncated: serializedColdStart.isTruncated,
@@ -762,15 +813,30 @@ export const BaselineAnomalyTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel,
+      ...citation,
       citationTarget: { type: AIChatCitationTargetType.Metrics },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget:
         bandSeries.length > 0
           ? WidgetBuilder.timeSeries({
-              title: `${metricName} vs expected range`,
-              description: `Hour-of-week baseline (±${sigma}σ, ${windowDays}-day window), ${chartStart.toISOString()} – ${atTime.toISOString()}`,
+              // In the reader's language and time (issue #8312).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_WIDGET_TITLES.metricVsExpected,
+                  {
+                    metric: metricName,
+                  },
+                ),
+                description: aiActionSentence(
+                  AI_READ_WIDGET_LINES.baselineWindow,
+                  {
+                    sigma: sigma,
+                    days: countFigure(windowDays),
+                    ...windowValues(chartStart, atTime),
+                  },
+                ),
+              },
               series: [
                 {
                   name: "expected high",

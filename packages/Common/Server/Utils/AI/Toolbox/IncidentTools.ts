@@ -18,7 +18,13 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
-import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_WIDGET_LINES,
+  AI_READ_WIDGET_TITLES,
+  AI_TOOL_CITATIONS,
+} from "../../../../Types/AI/AIReadTableWords";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
 import {
   ObservabilityTool,
@@ -282,7 +288,14 @@ export const QueryIncidentsTool: ObservabilityTool = {
         widget:
           rows.length > 0
             ? WidgetBuilder.incidentList({
-                title: `Incident #${incident?.incidentNumber ?? ""}`.trim(),
+                // In the reader's language (issue #8312): by its number.
+                words: {
+                  title: incident?.incidentNumber
+                    ? aiActionSentence(AI_READ_CITATIONS.incident, {
+                        incident: `#${incident.incidentNumber}`,
+                      })
+                    : aiActionSentence(AI_READ_WIDGET_TITLES.incident),
+                },
                 items: rows,
                 link: {
                   type: AIChatCitationTargetType.IncidentView,
@@ -422,15 +435,15 @@ export const QueryIncidentsTool: ObservabilityTool = {
      * What the chip under the answer names, in the reader's language (issue
      * #7980): which incidents, over how many hours, and how many in all.
      */
-    let stateLabel: string = "Incidents";
+    let titleTemplate: string = AI_READ_WIDGET_TITLES.incidents;
     let citationTemplate: string;
     if (stateFilter === "active") {
-      stateLabel = "Active incidents";
+      titleTemplate = AI_READ_WIDGET_TITLES.activeIncidents;
       citationTemplate = applyTimeFilter
         ? AI_READ_CITATIONS.activeIncidentsInHours
         : AI_READ_CITATIONS.activeIncidents;
     } else if (stateFilter === "resolved") {
-      stateLabel = "Resolved incidents";
+      titleTemplate = AI_READ_WIDGET_TITLES.resolvedIncidents;
       citationTemplate = applyTimeFilter
         ? AI_READ_CITATIONS.resolvedIncidentsInHours
         : AI_READ_CITATIONS.resolvedIncidents;
@@ -455,10 +468,17 @@ export const QueryIncidentsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.incidentList({
-              title: `${stateLabel} (${total})`,
-              description: applyTimeFilter
-                ? `Created in the last ${createdWithinHours}h`
-                : "Regardless of when they were created",
+              // In the reader's language (issue #8312).
+              words: {
+                title: aiActionSentence(titleTemplate, {
+                  count: countFigure(total),
+                }),
+                description: applyTimeFilter
+                  ? aiActionSentence(AI_READ_WIDGET_LINES.createdInHours, {
+                      hours: countFigure(createdWithinHours),
+                    })
+                  : aiActionSentence(AI_READ_WIDGET_LINES.regardlessOfCreation),
+              },
               items: rows,
               link: { type: AIChatCitationTargetType.Incidents },
             })
@@ -508,7 +528,7 @@ export const SearchIncidentsTool: ObservabilityTool = {
         dataForLlm:
           "Error: searchText is required. Provide the text to search past incidents for.",
         rowCount: 0,
-        citationLabel: "Incident search (no query)",
+        ...citationSentence(AI_TOOL_CITATIONS.incidentSearchNoQuery),
         redactionCount: 0,
         isTruncated: false,
       };
@@ -603,7 +623,13 @@ export const SearchIncidentsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.incidentList({
-              title: `Incidents matching "${searchText}" (${rows.length})`,
+              // In the reader's language (issue #8312).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_WIDGET_TITLES.incidentsMatching,
+                  { query: searchText, count: countFigure(rows.length) },
+                ),
+              },
               items: rows,
               link: { type: AIChatCitationTargetType.Incidents },
             })
