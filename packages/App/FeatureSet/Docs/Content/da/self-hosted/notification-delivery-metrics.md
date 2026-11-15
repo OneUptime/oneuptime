@@ -52,7 +52,7 @@ OneUptime skal have både endpointet og headerne: uden en header sender det inte
 
 ### Send deltaer til et OneUptime-projekt
 
-OneUptime sender tællere og histogrammer, som OpenTelemetry gør som standard: hvert punkt indeholder den løbende total, siden den serverproces startede. Måleudforskeren lægger punkterne i hvert trin af et diagram sammen, så den læser kun antal og percentiler for et tidsrum præcist ud fra deltaer, punkter, der indeholder det, der er sket siden det forrige. Når metrikkerne går til et OneUptime-projekt, så send deltaer:
+OneUptime sender tællere og histogrammer, som OpenTelemetry gør som standard: hvert punkt indeholder den løbende total, siden den serverproces startede. Metrikudforskeren lægger punkterne i hvert trin af et diagram sammen, så den læser kun antal og percentiler for et tidsrum præcist ud fra deltaer, punkter, der indeholder det, der er sket siden det forrige. Når metrikkerne går til et OneUptime-projekt, så send deltaer:
 
 :::tabs
 @tab Kubernetes
@@ -187,7 +187,7 @@ En percentil beregnes ud fra buckets og tegnes som midten af den bucket, den fal
 
 ## SLO'er at starte med
 
-Fire mål, som de fleste installationer kan love, hvert bygget af en eller to forespørgsler i måleudforskeren i det projekt, der modtager metrikkerne. De læser et tidsrum præcist, når metrikkerne ankommer som deltaer: se [Send deltaer til et OneUptime-projekt](#send-deltaer-til-et-oneuptime-projekt).
+Fire mål, som de fleste installationer kan love, hvert bygget af en eller to forespørgsler i metrikudforskeren i det projekt, der modtager metrikkerne. De læser et tidsrum præcist, når metrikkerne ankommer som deltaer: se [Send deltaer til et OneUptime-projekt](#send-deltaer-til-et-oneuptime-projekt).
 
 ### Byg et i måleudforskeren
 

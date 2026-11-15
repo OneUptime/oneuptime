@@ -48,7 +48,7 @@ Klikk på **Start oppgave**, eller trykk Enter. Oppgavens side åpnes, og arbeid
 | **Lenke** | En nettadresse, som referanse. |
 | **Hendelse** eller **Varsel** | Tilstanden, beskrivelsen og rotårsaken, slik de er når du sender forespørselen. |
 | **Unntak** | Meldingen og stack tracen. |
-| **Overvåking** | Typen, statusen og beskrivelsen. |
+| **Monitor** | Typen, statusen og beskrivelsen. |
 | **Spor** | Spanene: navnene, tidene og feilene deres. |
 | **Logger** | De siste 20 logglinjene som inneholder søket ditt, fra den siste timen, dagen eller uken. |
 | **Ytelsesprofil** | Hvor tiden til en funksjon går i profilene til tjenesten dens: hvem som kaller den, hva den kaller og de varmeste linjene. |

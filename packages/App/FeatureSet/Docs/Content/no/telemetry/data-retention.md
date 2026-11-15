@@ -91,8 +91,8 @@ Tjenester, verter, Kubernetes-klynger, Docker- og Podman-verter, Docker Swarm-, 
 | Data | Oppbevares i | Hvor det endres |
 | --- | --- | --- |
 | Session Replays | 7 dager, med mindre det endres | Replay-policyen til RUM-applikasjonen: se [Administrere applikasjoner](/docs/rum/applications#oppbevaring-av-øktavspillinger). |
-| Overvåkingslogger, én rad per sjekk | 1 dag, med mindre det endres | På en selvhostet installasjon, **Loggoppbevaring for overvåking (dager)** i Admin Dashboard |
-| Overvåkingsmålinger, og målingene SLO-er registrerer | 30 dager, med mindre det endres | På en selvhostet installasjon, **Målingsoppbevaring for overvåking (dager)** i Admin Dashboard |
+| Monitorlogger, én rad per sjekk | 1 dag, med mindre det endres | På en selvhostet installasjon, **Loggoppbevaring for overvåking (dager)** i Admin Dashboard |
+| Monitormålinger, og målingene SLO-er registrerer | 30 dager, med mindre det endres | På en selvhostet installasjon, **Målingsoppbevaring for overvåking (dager)** i Admin Dashboard |
 | [Telemetriforbruk](/docs/telemetry/usage), én telling per ressurs, signal og dag | 120 dager, med mindre det endres | På en selvhostet installasjon, **Oppbevaring av telemetriforbruk (dager)** i Admin Dashboard |
 
 ## Hva oppbevaring koster

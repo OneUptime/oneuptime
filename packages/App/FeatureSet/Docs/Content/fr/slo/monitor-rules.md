@@ -122,7 +122,7 @@ Cela vaut aussi pour l'API. Désactivez toutes les règles pour choisir de nouve
 
 ## Les SLO auxquels un moniteur contribue
 
-La page d'un moniteur liste les SLO qui le mesurent : ouvrez le moniteur et allez dans **SLOs** dans son menu latéral. Consultez-la avant de mettre en pause ou de modifier un moniteur, pour voir quels objectifs en dépendent. Les SLO archivés n'y figurent pas, car ils ne sont pas évalués.
+La page d'un moniteur liste les SLO qui le mesurent : ouvrez le moniteur et allez dans **SLO** dans son menu latéral. Consultez-la avant de mettre en pause ou de modifier un moniteur, pour voir quels objectifs en dépendent. Les SLO archivés n'y figurent pas, car ils ne sont pas évalués.
 
 ## Venir de Auto-Add Monitors With Labels
 

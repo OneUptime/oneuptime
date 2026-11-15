@@ -3,7 +3,7 @@
 En Server- / VM-monitor övervakar en maskin genom OneUptimes infrastrukturagent (`oneuptime-infrastructure-agent`), en liten tjänst som var 30:e sekund rapporterar CPU, minne, diskar, belastning, nätverk och körande processer till OneUptime. Den här sidan visar hur du ansluter agenten till en Server- / VM-monitor, vad agenten rapporterar och hur du skriver de kriterier som avgör när servern är online eller offline.
 
 > [!IMPORTANT]
-> **Skapa monitor** erbjuder inte längre **Server / VM**. Server- / VM-monitorer som du redan har fortsätter att fungera, och allt på den här sidan gäller för dem. För att övervaka en ny server skapar du i stället en [värdmonitor](/docs/monitor/host-monitor): den varnar på de värdmått som [OpenTelemetry-collectorn på värden](/docs/telemetry/host-otel-collector) skickar.
+> **Skapa monitor** erbjuder inte längre **Server / VM**. Server- / VM-monitorer som du redan har fortsätter att fungera, och allt på den här sidan gäller för dem. För att övervaka en ny server skapar du i stället en [värdmonitor](/docs/monitor/host-monitor): den varnar på de värdmätvärden som [OpenTelemetry-collectorn på värden](/docs/telemetry/host-otel-collector) skickar.
 
 :::cards
 - [Anslut agenten](#anslut-agenten): Installera den, ge den monitorns hemliga nyckel och starta den.
@@ -292,7 +292,7 @@ Bara ett **Är online**-kriterium markerar en tyst server som offline. Lägg til
 ## Nästa steg
 
 :::cards
-- [Värdövervakning](/docs/monitor/host-monitor): Monitorn för nya servrar, byggd på OpenTelemetry-värdmått.
-- [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector): Skicka värdmått och loggar från Linux, macOS och Windows.
+- [Värdövervakning](/docs/monitor/host-monitor): Monitorn för nya servrar, byggd på OpenTelemetry-värdmätvärden.
+- [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector): Skicka värdmätvärden och loggar från Linux, macOS och Windows.
 - [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in CPU-, minnes-, disk- och processuppgifter i incidenttitlar.
 :::

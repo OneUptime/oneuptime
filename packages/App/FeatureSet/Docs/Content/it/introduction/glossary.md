@@ -284,7 +284,7 @@ Altri nomi: **Caso**. Vedi [Casi di sicurezza e playbook (SOAR)](/docs/telemetry
 
 ## Telemetria e dashboard
 
-### Registri
+### Log
 
 Le righe che scrivono i tuoi servizi, host e agenti, in cui cerchi con l'esploratore log e che tieni sotto controllo con un monitor log.
 

@@ -79,10 +79,10 @@ Hver betingelse sammenligner én ting ved hændelsen, advarslen eller vedligehol
 | **Monitorer** | De monitorer, hændelsen eller vedligeholdelseshændelsen berører, eller den monitor, der udløste advarslen. |
 | **Alvorlighedsgrader for hændelser** / **Alvorlighedsgrader for advarsler** | Hændelsens eller advarslens alvorlighed. Vedligeholdelseshændelser har ingen alvorlighed, så deres regler tilbyder det ikke. |
 | **Hændelsesetiketter** / **Advarselsmærkater** / **Begivenhedsetiketter** | Etiketterne på selve hændelsen, advarslen eller begivenheden, inklusive dem, etiketregler tilføjede ved oprettelsen. |
-| **Overvågningsetiketter** | Etiketterne på dens monitorer. Giv dine monitorer etiketten `production` eller `staging` for kun at køre et runbook i ét miljø. |
+| **Monitoretiketter** | Etiketterne på dens monitorer. Giv dine monitorer etiketten `production` eller `staging` for kun at køre et runbook i ét miljø. |
 | **Hændelsestitel** / **Advarselstitel** / **Begivenhedstitel** | Dens titel. |
 | **Hændelsesbeskrivelse** / **Beskrivelse af advarsel** | Dens beskrivelse (også for begivenheder, hvor dashboardet bruger samme betegnelse). |
-| **Overvågningsnavn** / **Overvågningsbeskrivelse** | Navnet eller beskrivelsen af dens monitorer. |
+| **Monitornavn** / **Monitorbeskrivelse** | Navnet eller beskrivelsen af dens monitorer. |
 
 Vælg en operator for hver betingelse:
 
@@ -95,7 +95,7 @@ Med to eller flere betingelser vælger du **Alle skal matche** (hver betingelse 
 
 - En regel uden betingelser gælder hver begivenhed af dens type (en global "kør altid"-regel).
 - Flere regler kan matche samme begivenhed. Hvert match udløses, og foreningsmængden af deres runbooks kører: hvert runbook får sin egen udførelse, og et runbook, som to matchende regler nævner, kører én gang.
-- Monitorbetingelser kontrolleres én monitor ad gangen. Med **Alle skal matche** kræver "**Overvågningsnavn** indeholder `api`" og "**Overvågningsetiketter** har en af _Production_" én monitor, der opfylder begge, ikke én monitor for hver.
+- Monitorbetingelser kontrolleres én monitor ad gangen. Med **Alle skal matche** kræver "**Monitornavn** indeholder `api`" og "**Monitoretiketter** har en af _Production_" én monitor, der opfylder begge, ikke én monitor for hver.
 - Runbook-regler kører efter etiketregler, så en etiket, som en etiketregel sætter på en ny hændelse, advarsel eller begivenhed, kan starte et runbook.
 - En hændelse eller advarsel, der oprettes allerede løst, starter intet runbook: den var forbi, før den blev registreret. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 - En betingelse på et andet produkts alvorlighed — f.eks. **Alvorlighedsgrader for advarsler** i en hændelsesregel — kan aldrig blive sand, så API'et nægter at gemme den.

@@ -913,7 +913,8 @@ then `npm run i18n:validate` from the root.
   "Any" is the Match Condition's word. A word that means something else in one place takes a key
   that names its meaning, the word then what it means in brackets: "View (database object)", a
   database's view beside the View buttons' verb. A Spanish catalog named a view "Ver" ("see it")
-  and headed its schema changes "Cambiar" ("change it", #8078). List the key in
+  and headed its schema changes "Cambiar" ("change it", #8078), and named an explorer's Insights tab
+  and OneUptime AI's findings both "Análisis" (#8629: the tab is "Insights (explorer analytics)"). List the key in
   [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), so English reads it as
   the word alone, "View", wherever it is drawn: a column's or a filter's title, an option, a pill.
   Look such a key up as any key, and never write its English by hand: no `hasTranslation` check,
@@ -932,7 +933,11 @@ then `npm run i18n:validate` from the root.
   called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
   status page three ways (#8029, #8030, #8031). The Products menu says a product's page title word for
   word: Danish "Overvågninger" opened a page titled "Monitorer", and German "Status-Seiten" one titled
-  "Statusseiten" (#8229). A word that names another product's thing keeps that
+  "Statusseiten" (#8229). A string whose English names the thing says that word too, even where the
+  other word has a meaning of its own: Korean said 알림, its word for a notification, for an alert in
+  600 strings beside 경고 in 1,100, and Danish said "overvågning" (monitoring) for a monitor (#8628).
+  The docs prose says it on every line whose English line names the thing (#8692).
+  A word that names another product's thing keeps that
   product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
   in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). A probe is the
   Dashboard's word too, in the apps and every docs page: the Danish docs said "probes" over a list
@@ -942,6 +947,7 @@ then `npm run i18n:validate` from the root.
   درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
   Enforced by
   [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
+  [OneWordInSentencesPerThing](../../packages/App/Tests/Dashboard/OneWordInSentencesPerThing.test.ts),
   [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).

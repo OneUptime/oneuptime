@@ -201,7 +201,7 @@ For at teste en begivenhedstrigger uden at vente på begivenheden klikker du på
 | ----------------------------------------- | ----------------------------------------------------------------------------------------- |
 | **Hændelse**                              | Reagere, når en hændelse erklæres, opdateres (kvitteret, løst) eller slettes.             |
 | **Advarsel**                              | De samme tre begivenheder, for advarsler.                                                 |
-| **Overvågning**                           | Reagere, når en monitor tilføjes, redigeres eller fjernes.                                |
+| **Monitor**                           | Reagere, når en monitor tilføjes, redigeres eller fjernes.                                |
 | **Vedligeholdelseshændelse**   | Annoncere et vedligeholdelsesvindue automatisk, når det planlægges.                       |
 | **Statussideabonnent**                   | Byde en person velkommen, der abonnerer på en statusside.                                 |
 | **Vagtpolitik**                           | Synkronisere ændringer i politikken med et andet vagtplansystem.                          |

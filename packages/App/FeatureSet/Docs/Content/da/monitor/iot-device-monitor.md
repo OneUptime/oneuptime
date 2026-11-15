@@ -58,7 +58,7 @@ En ny monitor starter med **Device Offline** under **Hvad der skal advares om**.
 
 - **Skift** - vælg en anden [skabelon](#færdige-advarselsskabeloner). Den sætter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) - vælg én metrik i **IoT Metric**, og sæt derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til én enhed eller én enhedstype. En brugerdefineret metrik grupperes ikke: den bedømmer flåden som helhed.
-- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg målinger**, også over dine egne metriknavne, for eksempel hukommelse i brug i procent af en enheds hukommelsesstørrelse. Brug **Gruppér efter** `device.id` for at bedømme hver enhed for sig.
+- **Avanceret** (under **Flere felter**) - byg selv forespørgsler og formler under **Vælg metrikker**, også over dine egne metriknavne, for eksempel hukommelse i brug i procent af en enheds hukommelsesstørrelse. Brug **Gruppér efter** `device.id` for at bedømme hver enhed for sig.
 
 ### Tjek kriterierne
 
@@ -82,7 +82,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **IoT Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner sætter deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 Filtrene virker sammen: med et **Device ID** og en **Enhedstype** matcher en enhed af en anden type intet.
 

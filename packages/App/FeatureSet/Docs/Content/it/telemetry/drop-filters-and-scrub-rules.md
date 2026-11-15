@@ -11,7 +11,7 @@ I filtri di scarto e le regole di mascheramento agiscono sui vostri log e span m
 
 ## Dove vengono eseguiti
 
-I log hanno i loro in **Registri → Impostazioni**, e gli span in **Tracce → Impostazioni**. Quando arriva un record, OneUptime li esegue in quest'ordine:
+I log hanno i loro in **Log → Impostazioni**, e gli span in **Tracce → Impostazioni**. Quando arriva un record, OneUptime li esegue in quest'ordine:
 
 ```mermaid title="Che cosa succede a un log o a uno span quando arriva"
 flowchart TB
@@ -38,7 +38,7 @@ I filtri di scarto e le regole di mascheramento dei log si applicano allo stesso
 :::steps
 ### Aprire i filtri di scarto
 
-Andate in **Registri → Impostazioni → Filtri di scarto**, oppure in **Tracce → Impostazioni → Filtri di scarto** per gli span.
+Andate in **Log → Impostazioni → Filtri di scarto**, oppure in **Tracce → Impostazioni → Filtri di scarto** per gli span.
 
 ### Selezionare i record
 
@@ -81,7 +81,7 @@ Il campionamento decide record per record: con una **Percentuale di campionament
 :::steps
 ### Aprire le regole di mascheramento
 
-Andate in **Registri → Impostazioni → Regole di mascheramento**, oppure in **Tracce → Impostazioni → Regole di mascheramento** per gli span.
+Andate in **Log → Impostazioni → Regole di mascheramento**, oppure in **Tracce → Impostazioni → Regole di mascheramento** per gli span.
 
 ### Scegliere che cosa cercare
 

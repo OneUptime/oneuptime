@@ -1,6 +1,6 @@
 # Notifikationsindstillinger
 
-Notifikationsindstillinger afgør, hvilke nyheder der når dig om de ting, du ejer, som en hændelse, en overvågning eller en statusside, og om dine egne vagter, og via hvilke kanaler. De tilkalder dig aldrig: at tilkalde er dine vagtreglers opgave. Du sætter dem op under **Brugerindstillinger → Notifikationsindstillinger**, med én kontakt pr. begivenhed og kanal.
+Notifikationsindstillinger afgør, hvilke nyheder der når dig om de ting, du ejer, som en hændelse, en monitor eller en statusside, og om dine egne vagter, og via hvilke kanaler. De tilkalder dig aldrig: at tilkalde er dine vagtreglers opgave. Du sætter dem op under **Brugerindstillinger → Notifikationsindstillinger**, med én kontakt pr. begivenhed og kanal.
 
 :::cards
 - [Sådan virker indstillingerne](#sådan-virker-indstillingerne): Én kontakt pr. begivenhed og kanal, sendt til hver bekræftet metode.
@@ -49,14 +49,14 @@ Når du bliver medlem af et projekt, er disse begivenheder slået til, via e-mai
 | --- | --- | --- |
 | **Hændelser** | **Hændelse oprettet**, **Hændelsestilstand ændret**, **Påmindelse om hændelse**, **Hændelsens SLA overskredet**, **Hændelsesepisode oprettet**, **Tilstand for hændelsesepisode ændret**, **Hændelse tilføjet til hændelsesepisode** | **Hændelsesnote oprettet**, **Tilføjet som hændelsesejer**, **Tildelt en hændelse**, **Note til hændelsesepisode oprettet**, **Tilføjet som ejer af hændelsesepisode** |
 | **Advarsler** | **Advarsel oprettet**, **Advarselstilstand ændret**, **Påmindelse om advarsel**, **Advarselsepisode oprettet**, **Tilstand for advarselsepisode ændret**, **Advarsel tilføjet til advarselsepisode** | **Advarselsnote offentliggjort**, **Tilføjet som advarselsejer**, **Note til advarselsepisode offentliggjort**, **Tilføjet som ejer af advarselsepisode** |
-| **Overvågning** | **Sondestatus ændret for din overvågning**, **Overvågning har ingen aktive sonder**, **SLO-status ændret**, **Tilføjet som SLO-ejer**, **Undtagelse tildelt mig**, **Sondestatus ændret**, **Tilføjet som sondeejer** | **Overvågning oprettet**, **Overvågningsstatus ændret**, **Tilføjet som overvågningsejer**, **AI-agentstatus ændret**, **Tilføjet som AI-agentejer** |
+| **Overvågning** | **Sondestatus ændret for din monitor**, **Monitor har ingen aktive sonder**, **SLO-status ændret**, **Tilføjet som SLO-ejer**, **Undtagelse tildelt mig**, **Sondestatus ændret**, **Tilføjet som sondeejer** | **Monitor oprettet**, **Monitorstatus ændret**, **Tilføjet som monitorejer**, **AI-agentstatus ændret**, **Tilføjet som AI-agentejer** |
 | **Statussider** | **Min offentlige note godkendt eller afvist**, og også via push: **Offentlig note venter på min godkendelse** | **Statusside oprettet**, **Statusside-meddelelse offentliggjort**, **Tilføjet som statussideejer** |
 | **Planlagt vedligeholdelse** | **Påmindelse om vedligeholdelse** | **Vedligeholdelseshændelse oprettet**, **Vedligeholdelsestilstand ændret**, **Vedligeholdelsesnote oprettet**, **Tilføjet som vedligeholdelsesejer** |
 | **Vagt** | **Du går på vagt**, **Du er den næste på vagt**, **Du går af vagt**, **Tilføjet til vagtordningspolitik**, **Fjernet fra vagtordningspolitik**, **Ubesvaret opkald**, og også via push: **Før min vagt starter**, **Min kommende vagt bliver tildelt en anden** | Ingen |
 | **Sikkerhed** | Også via push: **Ny sikkerhedssag** (sager med prioritet High og Kritisk), **Sikkerhedssag tildelt mig**, **Playbook-trin venter på min godkendelse**, **Responsmål for sikkerhedssag**, **Opgave i sikkerhedssag tildelt mig**, **En hunt fandt sikkerhedsbegivenheder** | Ingen |
 
 > [!IMPORTANT]
-> **Overvågningsstatus ændret** starter slået fra. Vil du vide, når en overvågning, du ejer, går ned eller kommer op igen, så slå den til på fanen **Overvågning**.
+> **Monitorstatus ændret** starter slået fra. Vil du vide, når en overvågning, du ejer, går ned eller kommer op igen, så slå den til på fanen **Overvågning**.
 
 ## Dine vagter
 
@@ -91,7 +91,7 @@ Se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godke
 Disse kontakter afgør, hvilke nyheder der når dig, ikke hvor mange e-mails de bliver til. **Brugerindstillinger → E-mailindstillinger** har to kort til det, begge kun for dig, i dette projekt:
 
 - **Email Rollup** samler en bølge af nyheder i én e-mail: de første kommer stadig én ad gangen, resten samlet et par minutter senere.
-- **Fewer routine emails** slår med **Reduce routine emails** e-mails fra om noter, nye ejere, nye overvågninger og statussider, tilføjelser til episoder og ændringer i vagtpolitikker.
+- **Fewer routine emails** slår med **Reduce routine emails** e-mails fra om noter, nye ejere, nye monitorer og statussider, tilføjelser til episoder og ændringer i vagtpolitikker.
 
 Se [Notifikationsoversigt](/docs/emails/notification-rollup).
 
@@ -101,8 +101,8 @@ Se [Notifikationsoversigt](/docs/emails/notification-rollup).
 Tjek, at du har en bekræftet metode på den kanal under **Brugerindstillinger → Notifikationsmetoder**. For sms, opkald, WhatsApp og Telegram skal projektet også have slået kanalen til.
 :::
 
-:::details Jeg ejer en overvågning, men hører aldrig, når den går ned
-**Overvågningsstatus ændret** starter slået fra. Slå en kanal til for den, på fanen **Overvågning**.
+:::details Jeg ejer en monitor, men hører aldrig, når den går ned
+**Monitorstatus ændret** starter slået fra. Slå en kanal til for den, på fanen **Overvågning**.
 :::
 
 :::details Jeg får stadig e-mails, efter at jeg har slået alt fra

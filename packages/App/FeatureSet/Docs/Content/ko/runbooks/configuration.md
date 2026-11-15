@@ -106,7 +106,7 @@ Manual 단계가 API로 체크되면 실행은 다음 단계부터 계속하기 
 | --- | --- |
 | `Runbook` | 템플릿: 이름, slug, 설명, `isEnabled`, 레이블, JSON 형식의 단계. |
 | `RunbookExecution` | 실행마다 한 행. null을 허용하는 외래 키 `incidentId`, `alertId`, `scheduledMaintenanceId`와, 단계와 각 단계의 상태를 스냅샷으로 담은 JSON 배열 `stepExecutions`가 있습니다. |
-| `RunbookRule` | 자동 트리거 규칙. 판별자 `triggerEntityType`(Incident, Alert, ScheduledMaintenance), 시작할 Runbook과의 다대다 관계, 그리고 일치 대상(JSON 열 `criteria`(조건)와 모니터, 인시던트 심각도, 알림 심각도, 레이블, 모니터 레이블에 대한 다대다 링크, 제목, 설명, 모니터 이름, 모니터 설명 패턴)이 있습니다. |
+| `RunbookRule` | 자동 트리거 규칙. 판별자 `triggerEntityType`(Incident, Alert, ScheduledMaintenance), 시작할 Runbook과의 다대다 관계, 그리고 일치 대상(JSON 열 `criteria`(조건)와 모니터, 인시던트 심각도, 경고 심각도, 레이블, 모니터 레이블에 대한 다대다 링크, 제목, 설명, 모니터 이름, 모니터 설명 패턴)이 있습니다. |
 | `Runner` | 설치된 Runner마다 한 행: 이름, 비밀 키, `lastAlive`, `connectionStatus`, 호스트 정보, 기능. 글로벌 Runner는 `isGlobalRunner`가 설정되어 있고 프로젝트가 없습니다. 프로젝트 기본 Runner는 `isProjectDefault`가 설정되어 있습니다. |
 | `RunnerJob` | Runner에 보낸 단계마다 한 행: `targetAgentId`(단계 작성자가 고른 Runner), 단계 유형, 스크립트 또는 페이로드, 상태(`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` 또는 `Cancelled`), claim 기한, 리스, 출력, 종료 코드. `runsOnGlobalRunner`는 어느 글로벌 Runner든 가져갈 수 있는 단계를 표시합니다. |
 | `RunbookVariable` | Runbook 변수. 프로젝트의 전역 변수와, `runbookId`로 Runbook을 지정하는 Runbook 자체 변수입니다. 시크릿 값은 암호화되며, 시크릿을 받을 수 있는 Runner도 저장합니다. |
