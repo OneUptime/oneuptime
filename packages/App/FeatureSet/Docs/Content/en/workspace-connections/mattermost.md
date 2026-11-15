@@ -112,7 +112,7 @@ To post to an existing channel, enter its name as it appears in its address, suc
 
 People join a rule's channel by the Mattermost account they connected, or else by the Mattermost account with their email address, when your server shows email addresses to the bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime names whoever it could not add in one message in the channel, with a link to connect their account.
 
-An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Mattermost** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, on your Mattermost server. A record with two channels of its own lists both under the button. A record that also has channels in Slack or Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
+An incident, alert, episode or maintenance event with a channel of its own has **Open in Mattermost** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, on your Mattermost server. A record with two channels of its own lists both under the button. A record that also has channels in Slack or Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
 
 **Test Rule** on a rule's row posts a test message for that rule to the channels it names, as it does for Slack.
 
@@ -120,7 +120,7 @@ OneUptime's messages notify nobody with what they quote: a name or a description
 
 ## Who is in a record's channel
 
-An incident, alert, episode or scheduled maintenance event with a Mattermost channel of its own has a **Mattermost Channel** card on its page in OneUptime. The card shows the channel, as a link that opens it on your Mattermost server, whether it is private, and who is in it, you first. From the card, without a Mattermost admin:
+An incident, alert, episode or maintenance event with a Mattermost channel of its own has a **Mattermost Channel** card on its page in OneUptime. The card shows the channel, as a link that opens it on your Mattermost server, whether it is private, and who is in it, you first. From the card, without a Mattermost admin:
 
 - **Join channel** adds you, when you are not in the channel.
 - **Add people** opens a list of the project's people and teams: pick a person to add them, or a team to add everyone in it.
@@ -145,7 +145,7 @@ OneUptime's messages carry buttons, and a **More actions** menu for what fewer p
 | **Incident episode, alert episode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Scheduled maintenance** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** and **Execute On-Call Policy** open a form in Mattermost. A note on an incident or a scheduled maintenance event can be public, shown on the status page, or private; a note on a private incident is always private, and on an alert always private too. Every message also has a link that opens its record in OneUptime, for everything else. When the project's public notes need approval, a public note sent from the form waits for it, and a message only you see says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
+**Add Note**, **Change State**, **Change Severity** and **Execute On-Call Policy** open a form in Mattermost. A note on an incident or a maintenance event can be public, shown on the status page, or private; a note on a private incident is always private, and on an alert always private too. Every message also has a link that opens its record in OneUptime, for everything else. When the project's public notes need approval, a public note sent from the form waits for it, and a message only you see says who it waits for: see [Public note approval](/docs/incidents/notes-owners-and-feed#public-note-approval).
 
 If your Mattermost account is not connected yet, a button tells you so, with a link to **User Settings** > **Workspace** > **Mattermost**. Connect your account, then press the button again.
 

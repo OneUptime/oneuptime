@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Confirmar, resolver e adicionar notas
 
-Incidentes, alertas, os episódios deles e eventos de manutenção programada têm comandos para o que os botões do painel fazem neles:
+Incidentes, alertas, os episódios deles e eventos de manutenção têm comandos para o que os botões do painel fazem neles:
 
 | Comando | O que ele faz | Recursos |
 | --- | --- | --- |

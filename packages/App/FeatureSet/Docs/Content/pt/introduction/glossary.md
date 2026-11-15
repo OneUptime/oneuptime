@@ -384,7 +384,7 @@ Também chamado: **Tarefas**. Veja [Código](/docs/ai/ai-agent).
 
 ### Formulário
 
-Uma página que qualquer pessoa com o link pode preencher, sem conta. Cada envio cria um incidente, para um relato de problema, ou um evento de manutenção programada, para uma solicitação de mudança.
+Uma página que qualquer pessoa com o link pode preencher, sem conta. Cada envio cria um incidente, para um relato de problema, ou um evento de manutenção, para uma solicitação de mudança.
 
 Veja [Visão geral dos formulários](/docs/forms/index).
 

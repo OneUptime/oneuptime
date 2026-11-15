@@ -39,9 +39,9 @@ En ny kørsel er **Planlagt**, indtil en Worker tager den og markerer den som **
 
 Der er fem måder, en runbook-udførelse oprettes på:
 
-1. **Automatisk via en regel**: en [runbook-regel](/docs/runbooks/rules) starter den, når en matchende hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed oprettes. En AI-regel kan også starte en; se [AI SRE](/docs/ai/ai-sre).
-2. **Manuelt fra en begivenhed**: klik på **Kør runbook** på en hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed. Udførelsen knyttes til den begivenhed.
-3. **Manuelt fra runbookets side**: klik på **Kør nu** på et runbooks side **Oversigt**. Kørslen knyttes ikke til nogen hændelse, advarsel eller planlagt vedligeholdelsesbegivenhed.
+1. **Automatisk via en regel**: en [runbook-regel](/docs/runbooks/rules) starter den, når en matchende hændelse, advarsel eller vedligeholdelseshændelse oprettes. En AI-regel kan også starte en; se [AI SRE](/docs/ai/ai-sre).
+2. **Manuelt fra en begivenhed**: klik på **Kør runbook** på en hændelse, advarsel eller vedligeholdelseshændelse. Udførelsen knyttes til den begivenhed.
+3. **Manuelt fra runbookets side**: klik på **Kør nu** på et runbooks side **Oversigt**. Kørslen knyttes ikke til nogen hændelse, advarsel eller vedligeholdelseshændelse.
 4. **Efter en tidsplan**: runbookets tidsplan starter den på faste tidspunkter. Se [Kør efter en tidsplan](/docs/runbooks/triggers#kør-efter-en-tidsplan).
 5. **Fra et andet værktøj**: en `POST` til runbookets webhook-URL starter den med de værdier, kaldet sender. Se [Kald webhooken](/docs/runbooks/triggers#kald-webhooken).
 
@@ -49,7 +49,7 @@ Sådan starter du en manuelt:
 
 :::tabs
 @tab Fra en begivenhed
-1. Åbn hændelsen, advarslen eller den planlagte vedligeholdelsesbegivenhed, og gå til dens side **Runbooks**.
+1. Åbn hændelsen, advarslen eller vedligeholdelseshændelsen, og gå til dens side **Runbooks**.
 2. Klik på **Kør runbook**. Dialogen **Kør en runbook** viser projektets runbooks, der er slået til.
 3. Klik på **Kør** ud for runbooket. Kørslen vises på begivenhedens liste: klik på **Vis** for at åbne den.
 @tab Fra runbooket
