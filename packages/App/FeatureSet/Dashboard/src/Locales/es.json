@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} reconoció el episodio de incidente.",
   "{{name}} acknowledged the incident.": "{{name}} reconoció el incidente.",
   "Active · seen {{time}}": "Activo · visto {{time}}",
+  "Call ID: {{id}}.": "ID de llamada: {{id}}.",
   "Inactive · seen {{time}}": "Inactivo · visto {{time}}",
   "Runs on {{count}} of these": "Se ejecuta en {{count}} de estos",
-  "Runs on {{count}} of these_one": "Se ejecuta en {{count}} de estos"
+  "Runs on {{count}} of these_one": "Se ejecuta en {{count}} de estos",
+  "The call could not be connected.": "No se pudo conectar la llamada.",
+  "The call was answered and lasted {{count}} seconds.": "La llamada se contestó y duró {{count}} segundos.",
+  "The call was answered and lasted {{count}} seconds._one": "La llamada se contestó y duró {{count}} segundo.",
+  "The call was answered.": "La llamada se contestó.",
+  "The call was not answered: it rang out.": "La llamada no se contestó: sonó sin respuesta.",
+  "The call was not answered: the line was busy, or the call was declined.": "La llamada no se contestó: la línea estaba ocupada o se rechazó la llamada.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

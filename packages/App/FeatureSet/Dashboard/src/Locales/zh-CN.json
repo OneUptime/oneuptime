@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} 已确认事件片段。",
   "{{name}} acknowledged the incident.": "{{name}} 已确认事件。",
   "Active · seen {{time}}": "活动 · 最近出现于 {{time}}",
+  "Call ID: {{id}}.": "通话 ID：{{id}}。",
   "Inactive · seen {{time}}": "不活跃 · 最近出现于 {{time}}",
   "Runs on {{count}} of these": "在其中 {{count}} 个上运行",
-  "Runs on {{count}} of these_one": "在其中 {{count}} 个上运行"
+  "Runs on {{count}} of these_one": "在其中 {{count}} 个上运行",
+  "The call could not be connected.": "无法接通电话。",
+  "The call was answered and lasted {{count}} seconds.": "电话已接听，通话持续了 {{count}} 秒。",
+  "The call was answered and lasted {{count}} seconds._one": "电话已接听，通话持续了 {{count}} 秒。",
+  "The call was answered.": "电话已接听。",
+  "The call was not answered: it rang out.": "电话未接听：一直响铃无人接。",
+  "The call was not answered: the line was busy, or the call was declined.": "电话未接听：线路忙，或电话被拒接。",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

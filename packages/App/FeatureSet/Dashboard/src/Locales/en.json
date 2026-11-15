@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} acknowledged the incident episode.",
   "{{name}} acknowledged the incident.": "{{name}} acknowledged the incident.",
   "Active · seen {{time}}": "Active · seen {{time}}",
+  "Call ID: {{id}}.": "Call ID: {{id}}.",
   "Inactive · seen {{time}}": "Inactive · seen {{time}}",
   "Runs on {{count}} of these": "Runs on {{count}} of these",
-  "Runs on {{count}} of these_one": "Runs on {{count}} of these"
+  "Runs on {{count}} of these_one": "Runs on {{count}} of these",
+  "The call could not be connected.": "The call could not be connected.",
+  "The call was answered and lasted {{count}} seconds.": "The call was answered and lasted {{count}} seconds.",
+  "The call was answered and lasted {{count}} seconds._one": "The call was answered and lasted {{count}} second.",
+  "The call was answered.": "The call was answered.",
+  "The call was not answered: it rang out.": "The call was not answered: it rang out.",
+  "The call was not answered: the line was busy, or the call was declined.": "The call was not answered: the line was busy, or the call was declined.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

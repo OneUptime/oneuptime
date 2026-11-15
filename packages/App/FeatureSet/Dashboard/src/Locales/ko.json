@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} 님이 인시던트 에피소드를 인지했습니다.",
   "{{name}} acknowledged the incident.": "{{name}} 님이 인시던트를 인지했습니다.",
   "Active · seen {{time}}": "활성 · 마지막 확인 {{time}}",
+  "Call ID: {{id}}.": "통화 ID: {{id}}.",
   "Inactive · seen {{time}}": "비활성 · 마지막 확인 {{time}}",
   "Runs on {{count}} of these": "이 중 {{count}}개에서 실행",
-  "Runs on {{count}} of these_one": "이 중 {{count}}개에서 실행"
+  "Runs on {{count}} of these_one": "이 중 {{count}}개에서 실행",
+  "The call could not be connected.": "전화를 연결할 수 없었습니다.",
+  "The call was answered and lasted {{count}} seconds.": "전화를 받았으며 {{count}}초 동안 통화했습니다.",
+  "The call was answered and lasted {{count}} seconds._one": "전화를 받았으며 {{count}}초 동안 통화했습니다.",
+  "The call was answered.": "전화를 받았습니다.",
+  "The call was not answered: it rang out.": "전화를 받지 않았습니다: 신호만 가다 끊겼습니다.",
+  "The call was not answered: the line was busy, or the call was declined.": "전화를 받지 않았습니다: 통화 중이었거나 전화가 거절되었습니다.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

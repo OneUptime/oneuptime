@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} ने घटना एपिसोड को स्वीकार किया।",
   "{{name}} acknowledged the incident.": "{{name}} ने घटना को स्वीकार किया।",
   "Active · seen {{time}}": "सक्रिय · {{time}} देखा गया",
+  "Call ID: {{id}}.": "कॉल ID: {{id}}।",
   "Inactive · seen {{time}}": "निष्क्रिय · {{time}} देखा गया",
   "Runs on {{count}} of these": "इनमें से {{count}} पर चलता है",
-  "Runs on {{count}} of these_one": "इनमें से {{count}} पर चलता है"
+  "Runs on {{count}} of these_one": "इनमें से {{count}} पर चलता है",
+  "The call could not be connected.": "कॉल कनेक्ट नहीं हो सकी।",
+  "The call was answered and lasted {{count}} seconds.": "कॉल का जवाब दिया गया और यह {{count}} सेकंड चली।",
+  "The call was answered and lasted {{count}} seconds._one": "कॉल का जवाब दिया गया और यह {{count}} सेकंड चली।",
+  "The call was answered.": "कॉल का जवाब दिया गया।",
+  "The call was not answered: it rang out.": "कॉल का जवाब नहीं दिया गया: घंटी बजती रही।",
+  "The call was not answered: the line was busy, or the call was declined.": "कॉल का जवाब नहीं दिया गया: लाइन व्यस्त थी, या कॉल अस्वीकार कर दी गई।",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

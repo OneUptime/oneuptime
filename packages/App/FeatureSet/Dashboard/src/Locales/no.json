@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} bekreftet hendelsesepisoden.",
   "{{name}} acknowledged the incident.": "{{name}} bekreftet hendelsen.",
   "Active · seen {{time}}": "Aktiv · sist sett {{time}}",
+  "Call ID: {{id}}.": "Anrops-ID: {{id}}.",
   "Inactive · seen {{time}}": "Inaktiv · sist sett {{time}}",
   "Runs on {{count}} of these": "Kjører på {{count}} av disse",
-  "Runs on {{count}} of these_one": "Kjører på {{count}} av disse"
+  "Runs on {{count}} of these_one": "Kjører på {{count}} av disse",
+  "The call could not be connected.": "Anropet kunne ikke kobles til.",
+  "The call was answered and lasted {{count}} seconds.": "Anropet ble besvart og varte i {{count}} sekunder.",
+  "The call was answered and lasted {{count}} seconds._one": "Anropet ble besvart og varte i {{count}} sekund.",
+  "The call was answered.": "Anropet ble besvart.",
+  "The call was not answered: it rang out.": "Anropet ble ikke besvart: det ringte ut.",
+  "The call was not answered: the line was busy, or the call was declined.": "Anropet ble ikke besvart: linjen var opptatt, eller anropet ble avvist.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

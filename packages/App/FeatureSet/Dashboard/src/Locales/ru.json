@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "Эпизод инцидентов подтверждён пользователем {{name}}.",
   "{{name}} acknowledged the incident.": "Инцидент подтверждён пользователем {{name}}.",
   "Active · seen {{time}}": "Активен · замечен {{time}}",
+  "Call ID: {{id}}.": "ID звонка: {{id}}.",
   "Inactive · seen {{time}}": "Неактивен · замечен {{time}}",
   "Runs on {{count}} of these": "Работает на {{count}} из них",
-  "Runs on {{count}} of these_one": "Работает на {{count}} из них"
+  "Runs on {{count}} of these_one": "Работает на {{count}} из них",
+  "The call could not be connected.": "Не удалось соединить звонок.",
+  "The call was answered and lasted {{count}} seconds.": "На звонок ответили; длительность разговора, с: {{count}}.",
+  "The call was answered and lasted {{count}} seconds._one": "На звонок ответили, разговор длился {{count}} секунду.",
+  "The call was answered.": "На звонок ответили.",
+  "The call was not answered: it rang out.": "На звонок не ответили: никто не взял трубку.",
+  "The call was not answered: the line was busy, or the call was declined.": "На звонок не ответили: линия была занята, или звонок отклонили.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

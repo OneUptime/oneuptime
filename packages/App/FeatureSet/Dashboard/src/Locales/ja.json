@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} がインシデントエピソードを確認しました。",
   "{{name}} acknowledged the incident.": "{{name}} がインシデントを確認しました。",
   "Active · seen {{time}}": "アクティブ · 最終確認 {{time}}",
+  "Call ID: {{id}}.": "通話 ID: {{id}}。",
   "Inactive · seen {{time}}": "非アクティブ · 最終確認 {{time}}",
   "Runs on {{count}} of these": "このうち {{count}} 件で実行",
-  "Runs on {{count}} of these_one": "このうち {{count}} 件で実行"
+  "Runs on {{count}} of these_one": "このうち {{count}} 件で実行",
+  "The call could not be connected.": "通話を接続できませんでした。",
+  "The call was answered and lasted {{count}} seconds.": "通話に応答があり、{{count}} 秒間続きました。",
+  "The call was answered and lasted {{count}} seconds._one": "通話に応答があり、{{count}} 秒間続きました。",
+  "The call was answered.": "通話に応答がありました。",
+  "The call was not answered: it rang out.": "通話に応答がありませんでした。呼び出し音が鳴り続けました。",
+  "The call was not answered: the line was busy, or the call was declined.": "通話に応答がありませんでした。話し中だったか、通話が拒否されました。",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

@@ -54664,7 +54664,16 @@
   "{{name}} acknowledged the incident episode.": "{{name}} a pris en compte l'épisode d'incident.",
   "{{name}} acknowledged the incident.": "{{name}} a pris en compte l'incident.",
   "Active · seen {{time}}": "Actif · vu {{time}}",
+  "Call ID: {{id}}.": "ID de l'appel : {{id}}.",
   "Inactive · seen {{time}}": "Inactif · vu {{time}}",
   "Runs on {{count}} of these": "S'exécute sur {{count}} d'entre eux",
-  "Runs on {{count}} of these_one": "S'exécute sur {{count}} d'entre eux"
+  "Runs on {{count}} of these_one": "S'exécute sur {{count}} d'entre eux",
+  "The call could not be connected.": "L'appel n'a pas pu être établi.",
+  "The call was answered and lasted {{count}} seconds.": "L'appel a été décroché et a duré {{count}} secondes.",
+  "The call was answered and lasted {{count}} seconds._one": "L'appel a été décroché et a duré {{count}} seconde.",
+  "The call was answered.": "L'appel a été décroché.",
+  "The call was not answered: it rang out.": "L'appel n'a pas été décroché : personne n'a répondu.",
+  "The call was not answered: the line was busy, or the call was declined.": "L'appel n'a pas été décroché : la ligne était occupée, ou l'appel a été refusé.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }
