@@ -55,13 +55,13 @@ Usalo quando è la forma della linea a raccontare la storia: latenza, errori, th
 
 ### Valore
 
-Un grande numero con uno sparkline: il valore della query sull'intero intervallo di tempo, sommato per una somma o un conteggio, il più alto per un massimo, il più basso per un minimo, e la media negli altri casi. Una freccia confronta la seconda metà dell'intervallo con la prima, ciascuna metà calcolata allo stesso modo, colorata in base a **Trend Direction**: se un valore più alto è meglio o peggio, oppure dedotto dal nome della metrica. Punta il cursore sulla freccia per vedere il valore di ciascuna metà, e sullo sparkline per leggere valore e ora di qualsiasi punto. **Warning Threshold** rende lo sfondo giallo e **Critical Threshold** rosso quando il valore li raggiunge.
+Un grande numero con uno sparkline: il valore della query sull'intero intervallo di tempo, sommato per una somma o un conteggio, il più alto per un massimo, il più basso per un minimo, e la media negli altri casi. Una freccia confronta la seconda metà dell'intervallo con la prima, ciascuna metà calcolata allo stesso modo, colorata in base a **Trend Direction**: se un valore più alto è meglio o peggio, oppure dedotto dal nome della metrica. Punta il cursore sulla freccia per vedere il valore di ciascuna metà, e sullo sparkline per leggere valore e ora di qualsiasi punto. **Soglia di avviso** rende lo sfondo giallo e **Soglia critica** rosso quando il valore li raggiunge.
 
 Usalo quando un numero risponde alla domanda: il tasso di errori, la latenza P95 o le richieste servite oggi.
 
 ### Indicatore
 
-Un quadrante tra un minimo e un massimo, 0 e 100 se non li imposti, con una zona gialla a partire da **Warning Threshold** e una zona rossa a partire da **Critical Threshold**.
+Un quadrante tra un minimo e un massimo, 0 e 100 se non li imposti, con una zona gialla a partire da **Soglia di avviso** e una zona rossa a partire da **Soglia critica**.
 
 Usalo quando il valore vive in un intervallo noto: l'uso di CPU o disco in percentuale, o la capacità di una coda.
 
