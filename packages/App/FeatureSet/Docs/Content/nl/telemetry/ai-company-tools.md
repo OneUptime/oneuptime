@@ -97,7 +97,7 @@ Vul **Directory-ID (tenant)**, **Applicatie-ID (client)** en **Clientgeheim** in
 
 | Instelling | Wat ze doet |
 | --- | --- |
-| **Wie gesprekken kan lezen** | **Projecteigenaren en beheerders**, de standaard: niemand anders in het project ziet deze gesprekken, of de AI-aanroepen waaruit ze bestaan, waar dan ook in OneUptime. **Iedereen die AI-aanroepen mag lezen**: iedereen die de traces van het project mag lezen. |
+| **Wie gesprekken kan lezen** | **Projecteigenaren en Projectbeheerders**, de standaard: niemand anders in het project ziet deze gesprekken, of de AI-aanroepen waaruit ze bestaan, waar dan ook in OneUptime. **Iedereen die AI-aanroepen mag lezen**: iedereen die de traces van het project mag lezen. |
 | **Bewaren wat geschreven is** | Aan, de standaard: de vragen en antwoorden blijven bewaard. Uit: OneUptime bewaart wie vroeg, wanneer, met welk model en in welke app, maar niet de woorden. |
 
 Een wijziging van wie mag lezen geldt binnen een minuut. **Bewaren wat geschreven is** uitzetten geldt voor de chats die daarna gelezen worden; wat eerder bewaard is, blijft tot de bewaartermijn afloopt.
@@ -139,7 +139,7 @@ Verleen voor Copilot beheerderstoestemming voor de Graph-machtigingen van de app
 :::
 
 :::details Iemand kan de gesprekken niet zien
-**Wie gesprekken kan lezen** staat op **Projecteigenaren en beheerders**. Een eigenaar of beheerder kan dat wijzigen met **Bewerken** in de rij van de verbinding.
+**Wie gesprekken kan lezen** staat op **Projecteigenaren en Projectbeheerders**. Een eigenaar of beheerder kan dat wijzigen met **Bewerken** in de rij van de verbinding.
 :::
 
 :::details De gesprekken tonen wie de vraag stelde, maar geen woorden
