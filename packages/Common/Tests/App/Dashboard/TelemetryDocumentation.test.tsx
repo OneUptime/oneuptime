@@ -380,7 +380,12 @@ describe("TelemetryDocumentation", () => {
       );
     });
 
-    test("Fluentd: one run step, on the host or in Docker Compose", () => {
+    /*
+     * The file differs between the host and Docker Compose - where the tail
+     * keeps its place (#8007) - so the file's step and the run step each
+     * offer both, and a pick in either switches both.
+     */
+    test("Fluentd: the file and the run step, on the host or in Docker Compose, switched together", () => {
       const container: HTMLElement = renderGuide("logs");
       pickMethod("Fluentd");
 
@@ -389,10 +394,76 @@ describe("TelemetryDocumentation", () => {
         "Create Fluentd Configuration",
         "Run Fluentd",
       ]);
-      expect(container.textContent).toContain("fluentd -c fluentd.conf");
+      expect(
+        screen.getAllByRole("tab").map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+      ).toEqual([
+        "On the host",
+        "Docker Compose",
+        "On the host",
+        "Docker Compose",
+      ]);
 
-      fireEvent.click(screen.getByRole("tab", { name: "Docker Compose" }));
+      const onTheHost: () => void = (): void => {
+        expect(container.textContent).toContain(
+          "pos_file /var/log/fluent/fluentd.pos",
+        );
+        expect(container.textContent).toContain(
+          "sudo cp fluentd.conf /etc/fluent/fluentd.conf",
+        );
+        expect(container.textContent).toContain(
+          "sudo systemctl restart fluentd",
+        );
+        expect(container.textContent).not.toContain("/fluentd/log/fluentd.pos");
+        expect(container.textContent).not.toContain("image: fluent/fluentd");
+      };
+      const inDockerCompose: () => void = (): void => {
+        expect(container.textContent).toContain(
+          "pos_file /fluentd/log/fluentd.pos",
+        );
+        expect(container.textContent).toContain("image: fluent/fluentd");
+        expect(container.textContent).toContain("user: root");
+        expect(container.textContent).not.toContain(
+          "/var/log/fluent/fluentd.pos",
+        );
+        expect(container.textContent).not.toContain("systemctl");
+      };
+
+      // The host first, in both steps; the old foreground run is gone.
+      onTheHost();
       expect(container.textContent).not.toContain("fluentd -c fluentd.conf");
+
+      // Docker Compose in the run step switches the file too,
+      fireEvent.click(screen.getAllByRole("tab")[3]!);
+      inDockerCompose();
+      expect(
+        screen.getAllByRole("tab").map((tab: HTMLElement): string | null => {
+          return tab.getAttribute("aria-selected");
+        }),
+      ).toEqual(["false", "true", "false", "true"]);
+
+      // and the host in the file's step switches the run step back.
+      fireEvent.click(screen.getAllByRole("tab")[0]!);
+      onTheHost();
+      expect(
+        screen.getAllByRole("tab").map((tab: HTMLElement): string | null => {
+          return tab.getAttribute("aria-selected");
+        }),
+      ).toEqual(["true", "false", "true", "false"]);
+    });
+
+    test("Fluent Bit's run step is not switched by Fluentd's tabs", () => {
+      renderGuide("logs");
+      pickMethod("Fluentd");
+      fireEvent.click(screen.getAllByRole("tab")[1]!);
+      pickMethod("FluentBit");
+
+      expect(
+        screen.getAllByRole("tab").map((tab: HTMLElement): string | null => {
+          return tab.getAttribute("aria-selected");
+        }),
+      ).toEqual(["true", "false"]);
     });
 
     test("the log shippers have no Advanced section", () => {

@@ -48,6 +48,7 @@ import useProductFirstRun, {
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ServicesPage: FunctionComponent<
   PageComponentProps
@@ -281,7 +282,7 @@ const ServicesPage: FunctionComponent<
                 techStack: item.techStack,
               });
               if (!language) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">

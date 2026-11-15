@@ -362,12 +362,12 @@ describe("the Russian banner, as a Russian reader reads it", () => {
   test("an archived status page's", async () => {
     const drawn: DrawnBanner = await renderBanner(BANNER_CASES[2]!);
 
-    expect(drawn.title).toBe("Эта статус-страница архивирована");
+    expect(drawn.title).toBe("Эта страница статуса архивирована");
     expect(drawn.body).toBe(
       "Она недоступна (посетители видят «Страница не найдена») и ничего не отправляет подписчикам. Извлеките её из архива, чтобы она снова стала доступна.",
     );
     expect(drawn.button).toBe("Извлечь из архива");
-    expect(drawn.dialogTitle).toBe("Извлечь из архива: статус-страница");
+    expect(drawn.dialogTitle).toBe("Извлечь из архива: страница статуса");
   });
 });
 

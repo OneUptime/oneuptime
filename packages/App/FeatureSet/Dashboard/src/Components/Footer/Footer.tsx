@@ -23,6 +23,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 interface VersionInfo {
   version?: string;
@@ -174,7 +175,7 @@ const DashboardFooter: () => JSX.Element = () => {
                     {t("footer.versionLabel")}
                   </span>
                   <span className="font-mono text-sm text-gray-900">
-                    {versionInfo.version || "—"}
+                    {versionInfo.version || <EmptyValue />}
                   </span>
                 </div>
                 <div className="flex items-center justify-between px-4 py-3">
@@ -182,7 +183,7 @@ const DashboardFooter: () => JSX.Element = () => {
                     {t("footer.commitLabel")}
                   </span>
                   <span className="font-mono text-sm text-gray-900">
-                    {versionInfo.commit || "—"}
+                    {versionInfo.commit || <EmptyValue />}
                   </span>
                 </div>
               </div>

@@ -362,9 +362,17 @@ work out, starts from a default for everything else, and folds what most people 
 - **An empty value is the quiet dash, never a hyphen a page writes.** An empty cell or detail field
   draws the light grey dash a screen reader reads as "Not set" (`TableEmptyValue`,
   `Detail/EmptyValue`). A column's `noValueMessage: "-"` or a field's `placeholder: "-"` drew a
-  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). A page
-  that wants words writes words ("Never", "No labels attached."). Enforced by
-  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts).
+  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). So did
+  some six hundred dashes pages wrote by hand: `<span className="text-gray-400">—</span>`, or
+  `{team.name || "-"}`, which a phone's card showed as "Team: -" where it leaves every other empty
+  field out (#7603, #8209). Draw `<TableEmptyValue />` or `<EmptyValue />` where the dash was
+  (`{team.name || <TableEmptyValue />}`, `isSmall` in a line of `text-xs`); a monitor summary's
+  fact is handed no value and draws it itself. A page that wants words writes words ("Never", "No
+  labels attached."). A dash between two values, a minus sign, code and a tile's big figure are
+  not empty values. Enforced by
+  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
+  and
+  [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
 
 ### Empty states and suggestions
 
@@ -377,6 +385,14 @@ work out, starts from a default for everything else, and folds what most people 
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
   page that embeds it. Enforced by
   [LogsEmptyHintsGuard](../../packages/App/Tests/Dashboard/LogsEmptyHintsGuard.test.ts).
+- **A dashboard widget that read and found nothing says so under its icon, as its setup and error
+  lines are drawn.** A time range or filters with nothing in them was bare gray-400 words (2.5:1 on
+  white) with no icon, so a Log Chart that found nothing looked like no other state on its board
+  (#8038). Draw it with `DashboardWidgetEmpty`: the widget's own icon (the one its error shows) over
+  one gray-500 line, centred and balanced, in the reader's words. A list or table that keeps its
+  column headers draws a no-data row in the same gray (`DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME`).
+  Enforced by
+  [WidgetEmptyLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetEmptyLineGuard.test.ts).
 - **A suggestion shows only when it applies,** decided by one helper per kind in
   `Common/Utils/Suggestions`, never in a page. Enforced by
   [SuggestionRulesGuard](../../packages/Common/Tests/App/Dashboard/SuggestionRulesGuard.test.ts).
@@ -432,6 +448,16 @@ work out, starts from a default for everything else, and folds what most people 
 - **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
   the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
   [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
+- **A chart's title is the one thing its row must say.** The zoom hint beside it is the shared
+  `TimeRangeZoomHint`, never drawn on a phone's width or on a screen that is only touched, where no
+  finger drags or double-clicks, and a title row wraps, so a hint that does not fit beside the title
+  goes under it. A Russian hint that never gave way cut the Kubernetes Control Plane's etcd titles to
+  "Размер…" on a 390px phone (#8048). The hint's words keep a length budget in every language.
+  Enforced by
+  [ChartTitleRowZoomHint](../../packages/Common/Tests/UI/Components/Charts/ChartTitleRowZoomHint.test.tsx),
+  [ChartTitleRowTailwind](../../packages/Common/Tests/UI/Components/Charts/ChartTitleRowTailwind.test.tsx)
+  and
+  [ZoomHintWordsFitBesideATitle](../../packages/Common/Tests/App/Dashboard/ZoomHintWordsFitBesideATitle.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
@@ -520,10 +546,17 @@ work out, starts from a default for everything else, and folds what most people 
   sentence takes the sentence's language (`figureInSentence`, `withSentenceDigits`), and a count in
   a list column is a count column (`isCount`). Arabic is written in Latin digits. A name, an id, a
   port or a Kubernetes quantity ("500m") is drawn as written. Checked on the Host and Kubernetes
-  pages. Enforced by
-  [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx)
+  pages, and on a database's Runtime charts. Enforced by
+  [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
+  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx)
   and
-  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx).
+  [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx).
+- **A rate on a chart keeps its slash:** "100 req/s", as "1.5 MB/s" always read, on the value axis,
+  in the legend and in the tooltip, and the value axis is as wide as its widest tick. Written out,
+  "100 req per Second" broke over two lines on a 64px axis and was cut at the card's edge, with
+  "Second" in English in every language (#8049). The words stay where there is room for them, in
+  the reader's language: the unit chip and the metric's details. Enforced by
+  [RateUnitsOnChartAxes](../../packages/Common/Tests/UI/Components/Charts/RateUnitsOnChartAxes.test.tsx).
 - **A negative number in a right-to-left sentence takes the language's own minus:** in Persian a
   left-to-right mark and a minus sign (U+2212) before the digits, in Arabic the word
   ([ARABIC.md](../../packages/App/FeatureSet/Dashboard/src/Locales/ARABIC.md)),
@@ -532,6 +565,16 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A time of day writes its hour the way its clock does:** no zero on a 12-hour clock ("5:14 AM",
+  "오전 5:14", "5:14 ص"), the zero on a 24-hour one ("05:14"), in every component and the mobile app.
+  A feed and a status timeline read "5:14" in German beside a table's "05:14" (#7649), and the
+  mobile app "Nov 5, 05:14 AM" (#7650). An Intl options object asks `getHourOption` for its hour
+  (`Common/Types/DateLanguage`, or the mobile app's own in `src/utils/date`), or
+  `getLocaleClockHourOption` for a language's own clock, and names `"numeric"` or `"2-digit"` only
+  beside the clock it is right on. Enforced by
+  [TwelveHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwelveHourClockLeadingZeroGuard.test.ts)
+  and
+  [TwentyFourHourClockLeadingZeroGuard](../../packages/Common/Tests/Types/TwentyFourHourClockLeadingZeroGuard.test.ts).
 - **A date and time people fill in shows and keeps hours and minutes, never seconds.** Add User
   Override's Starts read "13/11/2026 11:15:52", and nobody schedules a shift to the second (#7593).
   Draw the field with the shared Input. Only a field read against telemetry's own timestamps, like a
@@ -548,9 +591,10 @@ work out, starts from a default for everything else, and folds what most people 
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
-  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
-  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
-  right-to-left line. Enforced by
+  (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
+  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
+  any other message whole in a right-to-left line. Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
@@ -581,9 +625,21 @@ then `npm run i18n:validate` from the root.
   [DashboardComponentsAToLHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsAToLHardcodedGuard.test.ts),
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
-  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
+  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts),
+  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts)
+  and, for the service map and the infrastructure explorer, whose cards built "3 active incidents"
+  and "10.0% errors" in English at run time (#7725),
+  [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts).
+- **A chart's words reach it in the reader's language.** A page hands each metric chart its title,
+  description and legend, and the chart draws them as handed: the Kubernetes resource pages, Docker,
+  Proxmox and the other resource pages handed English, so "CPU Utilization" read English under a
+  German description (#8047). A page that writes its chart words as English literals hands its
+  queries through `chartWordsInReadersLanguage`, once, where they go to the chart; a page that words
+  a chart itself (a description built around a node's name) looks each literal up where it writes
+  it. Never both: a translation looked up again can itself be an English key. Enforced by
+  [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts)
   and
-  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+  [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
@@ -626,6 +682,14 @@ then `npm run i18n:validate` from the root.
   [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
   and
   [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
+- **A thing has one name in each language: the one its menus say.** The side menu, the Products menu
+  and a page's title name a thing, and every count, sentence and button on its pages says the same
+  noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list
+  called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
+  status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
+  product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
+  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). Enforced by
+  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a

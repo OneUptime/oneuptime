@@ -60,7 +60,7 @@ En ny monitor starter med **vCenter Stopped Reporting** under **Hva det skal var
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Kriterier**, og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
+Åpne hvert kriterium under **Kriterier**, og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -84,7 +84,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **VMware Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 vCenter leses én gang per innsamlingsintervall, 2 minutter som standard, så et vindu på 1 minutt inneholder kanskje ingen prøve i det hele tatt. Hold vinduet på 5 minutter eller mer, og lengre hvis du har økt innsamlingsintervallet for et stort inventar.
 
@@ -272,7 +272,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Metrikk** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
+| **Måling** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må samsvare, i hele vinduet) eller **Minst én verdi** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
 | **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |

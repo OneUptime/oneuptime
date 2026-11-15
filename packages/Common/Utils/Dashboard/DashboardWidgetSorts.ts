@@ -845,7 +845,12 @@ const DASHBOARD_WIDGET_SORT_SPECS: Partial<
         title: "Used / Provisioned",
         path: "usedBytes",
       }),
-      textColumn({ key: "array", title: "Array", path: "storageArray.name" }),
+      // The storage array's own key, as the header's (#7522, MeaningKeys).
+      textColumn({
+        key: "array",
+        title: "Array (storage array)",
+        path: "storageArray.name",
+      }),
     ],
     defaultSort: NAME_ASCENDING,
     thenBy: BY_NAME,
@@ -863,7 +868,11 @@ const DASHBOARD_WIDGET_SORT_SPECS: Partial<
         path: ["kind", "componentType"],
       }),
       storageHardwareStatusColumn(),
-      textColumn({ key: "array", title: "Array", path: "storageArray.name" }),
+      textColumn({
+        key: "array",
+        title: "Array (storage array)",
+        path: "storageArray.name",
+      }),
     ],
     defaultSort: NAME_ASCENDING,
     thenBy: BY_NAME,

@@ -104,7 +104,7 @@ Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 :::steps
 ### 開啟清單的 Terraform 頁面
 
-開啟清單，然後在它的側邊選單中依序開啟 **開發者** 和 **Terraform**，例如 **監測 → 開發者 → Terraform**。
+開啟清單，然後在它的側邊選單中依序開啟 **開發者** 和 **Terraform**，例如 **監測器 → 開發者 → Terraform**。
 
 ### 複製 import 區塊
 

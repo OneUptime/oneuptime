@@ -129,6 +129,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const POLICY_ID: string = "dddddddd-0000-4000-8000-000000000001";
@@ -718,7 +719,7 @@ describe("a run's timeline", () => {
             "Notification Sent To",
             line(teamName === undefined ? {} : { teamName: teamName }),
           ),
-        ).toBe("-");
+        ).toBe(QUIET_DASH_TEXT);
       },
     );
 
@@ -780,7 +781,9 @@ describe("User Settings > Notification Logs", () => {
     expect(cellText(recordedTable, "On-Call Policy", item)).toContain(
       "Direct page",
     );
-    expect(cellText(recordedTable, "Escalation Rule", item)).toBe("-");
+    expect(cellText(recordedTable, "Escalation Rule", item)).toBe(
+      QUIET_DASH_TEXT,
+    );
   });
 
   test("a page whose policy or rule the reader may not read still says so", () => {

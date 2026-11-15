@@ -41,6 +41,7 @@ import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
 import IncidentInternalNoteService from "./IncidentInternalNoteService";
+import IncidentPostmortemActionItemService from "./IncidentPostmortemActionItemService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
 import IncidentOwnerRuleOwningTeamService from "./IncidentOwnerRuleOwningTeamService";
@@ -677,6 +678,7 @@ const services: Array<BaseService> = [
   FormSubmissionService,
   FormDomainService,
   IncidentInternalNoteService,
+  IncidentPostmortemActionItemService,
   IncidentOwnerTeamService,
   IncidentOwnerRuleService,
   IncidentOwnerRuleOwningTeamService,

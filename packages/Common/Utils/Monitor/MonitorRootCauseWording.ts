@@ -7,6 +7,12 @@ import {
   WordEvaluationSentenceOptions,
   wordStoredEvaluationText,
 } from "../../Types/Monitor/EvaluationSentence";
+import {
+  getReadingDirection,
+  LEFT_TO_RIGHT,
+  ReadingDirection,
+  setApartInSentence,
+} from "../../Types/ReadingDirection";
 import { translationKey, Translator } from "../../Types/Translator";
 import {
   getRequestFailedPhaseText,
@@ -14,6 +20,10 @@ import {
   readProbeTimeoutFailureCause,
   writeProbeTimeoutFailureCause,
 } from "./ProbeFailureReading";
+import {
+  getRequestFailureDescriptionText,
+  readRequestFailureDescription,
+} from "./RequestFailureDescriptions";
 
 /*
  * THE ROOT CAUSE A MONITOR WROTE, IN THE READER'S LANGUAGE (issue #6542).
@@ -40,11 +50,27 @@ import {
  * written. A root cause somebody edited reads as they wrote it, but for a
  * line that is still OneUptime's own.
  *
- * Two of the check's values are OneUptime's own words too, and read in the
- * reader's language when the whole value is exactly them: the probe's
+ * Three of the check's values are OneUptime's own words too, and read in
+ * the reader's language when the whole value is exactly them: the probe's
  * timeout sentence after **Cause** ("Request was tried 3 times and it
- * timed out.", ProbeFailureReading), and the phase after "- Failed Phase:"
- * (DNS Resolution, TLS Handshake).
+ * timed out.", ProbeFailureReading), the phase after "- Failed Phase:"
+ * (DNS Resolution, TLS Handshake), and what the failed request means after
+ * "- Error Description:" ("DNS resolution failed. ...",
+ * RequestFailureDescriptions).
+ *
+ * On a page read from the right, a line OneUptime words is its words with
+ * a stored value after them - "**نام معیار**: Website is down", "- کد
+ * خطا: ETIMEDOUT" - and the value usually has more letters than the
+ * label. The viewer lays each block out the way most of its letters read
+ * (MarkdownReadingDirection), so the line was laid out from the left, its
+ * label's colon and its bullet on the wrong side, and the card turned
+ * from side to side line by line. Drawn on the page (setsValuesApart),
+ * each value kept as stored is set apart from the label in an isolate
+ * (FSI ... PDI) where it could move the words round it, as a sentence's
+ * values are (SentenceOptions.setsValuesApart): the line reads the way its
+ * label does, the value as written inside it, its full stop at its own
+ * end. A root cause somebody typed has no line of OneUptime's, and reads
+ * the way its own words do.
  *
  * Line by line, and only a whole line, or a label at a line's start, is
  * ever replaced: nothing else in the text is read as one of OneUptime's.
@@ -127,6 +153,16 @@ const CAUSE: string = "Cause";
 // "- Failed Phase: <the phase a request broke in>".
 const FAILED_PHASE: string = "Failed Phase";
 
+// "- Error Description: <what the failed request means>".
+const ERROR_DESCRIPTION: string = "Error Description";
+
+/*
+ * A backslash before ASCII punctuation: how mdText escapes a value's
+ * Markdown (FeedMarkdown). Read back to the value's text, which is only
+ * trusted when mdText writes it back to the very line.
+ */
+const MARKDOWN_ESCAPE: RegExp = /\\([!-/:-@[-`{-~])/g;
+
 /*
  * "**Label**" or "**Label**: rest" - a label of at most 80 characters with
  * no asterisk or line break in it, so the match is linear in the line.
@@ -168,12 +204,45 @@ export default class MonitorRootCauseWording {
     translator: Translator;
     findings?: ReadonlyArray<RootCauseFinding> | undefined;
     options?: WordEvaluationSentenceOptions | undefined;
+    /*
+     * Each value kept as stored set apart from the label OneUptime words
+     * before it, where it could move the words round it. Only for a root
+     * cause drawn on the page and nothing else: the isolate's marks are
+     * characters.
+     */
+    setsValuesApart?: boolean | undefined;
   }): string {
     const translator: Translator = data.translator;
 
     if (!data.rootCause || translator.language === "en") {
       return data.rootCause;
     }
+
+    const setsValuesApart: boolean = Boolean(data.setsValuesApart);
+    const readerDirection: ReadingDirection = getReadingDirection(
+      translator.language,
+    );
+
+    /*
+     * A stored value after `label`, set apart (when asked) by the way the
+     * line reads: the reader's, once their language words the label;
+     * English's while it does not.
+     */
+    const storedValue: (label: string, stored: string) => MarkdownText = (
+      label: string,
+      stored: string,
+    ): MarkdownText => {
+      if (!setsValuesApart) {
+        return FeedMarkdown.asMarkdown(stored);
+      }
+
+      return FeedMarkdown.asMarkdown(
+        MonitorRootCauseWording.setApart(
+          stored,
+          translator.hasTranslation(label) ? readerDirection : LEFT_TO_RIGHT,
+        ),
+      );
+    };
 
     const findings: Array<WordedFinding> =
       MonitorRootCauseWording.getWordedFindings({
@@ -212,7 +281,7 @@ export default class MonitorRootCauseWording {
           const label: string = boldLabel[1]!;
           const stored: string = boldLabel[3] || "";
           // What follows the label: as stored, unless this language words it.
-          let rest: MarkdownText = FeedMarkdown.asMarkdown(stored);
+          let rest: MarkdownText = storedValue(label, stored);
 
           // "**Cause**: <the probe's timeout sentence>", worded with its count.
           if (label === CAUSE && stored.startsWith(" ")) {
@@ -263,10 +332,11 @@ export default class MonitorRootCauseWording {
           const label: string = fact[1]!;
           const stored: string = fact[2] || "";
           /*
-           * OneUptime's own yes or no, and the phase a request broke in, are
-           * worded; any other value is as stored.
+           * OneUptime's own yes or no, the phase a request broke in and what
+           * the failed request means are worded; any other value is as
+           * stored.
            */
-          let value: MarkdownValue = FeedMarkdown.asMarkdown(stored);
+          let value: MarkdownValue = storedValue(label, stored);
 
           if (
             YES_NO_FACTS.has(label) &&
@@ -274,7 +344,17 @@ export default class MonitorRootCauseWording {
           ) {
             value = MonitorRootCauseWording.word(stored, translator);
           } else if (label === FAILED_PHASE) {
-            value = MonitorRootCauseWording.wordFailedPhase(stored, translator);
+            value =
+              MonitorRootCauseWording.wordFailedPhase(stored, translator) ??
+              value;
+          } else if (label === ERROR_DESCRIPTION) {
+            value =
+              MonitorRootCauseWording.wordErrorDescription({
+                line: line,
+                stored: stored,
+                translator: translator,
+                setsValuesApart: setsValuesApart,
+              }) || value;
           }
 
           return mdText`- ${MonitorRootCauseWording.word(label, translator)}: ${value}`.toString();
@@ -332,19 +412,75 @@ export default class MonitorRootCauseWording {
 
   /*
    * The phase a request broke in: a phase the probe names, in the reader's
-   * word; any other value as stored.
+   * word; null for any other value, which stays as stored.
    */
   private static wordFailedPhase(
     stored: string,
     translator: Translator,
-  ): MarkdownValue {
+  ): string | null {
     const phase: string = stored.trim();
     const worded: string = getRequestFailedPhaseText({
       translator: translator,
       failedPhase: phase,
     });
 
-    return phase && worded !== phase ? worded : FeedMarkdown.asMarkdown(stored);
+    return phase && worded !== phase ? worded : null;
+  }
+
+  /*
+   * What the failed request means, as the engine placed it after "- Error
+   * Description:" (written with mdText): one of OneUptime's explanations
+   * (RequestFailureDescriptions) in the reader's language, the message
+   * that came with it kept as written - set apart from the reader's words
+   * when asked. Null for any other value, and when the reader's language
+   * does not word the explanation.
+   *
+   * The stored value is Markdown: it is read back to its text, which is
+   * only taken for the explanation when mdText writes it back to the very
+   * line the engine stored.
+   */
+  private static wordErrorDescription(data: {
+    line: string;
+    stored: string;
+    translator: Translator;
+    setsValuesApart: boolean;
+  }): string | null {
+    const text: string = data.stored.replace(MARKDOWN_ESCAPE, "$1");
+
+    if (
+      !readRequestFailureDescription(text) ||
+      mdText`- ${ERROR_DESCRIPTION}: ${text}`.toString() !== data.line
+    ) {
+      return null;
+    }
+
+    const worded: string = getRequestFailureDescriptionText({
+      translator: data.translator,
+      description: text,
+      options: { setsValuesApart: data.setsValuesApart },
+    });
+
+    return worded === text.trim() ? null : worded;
+  }
+
+  /*
+   * A stored value set apart from the line it is in (setApartInSentence),
+   * the space round it left outside the isolate: a value of the line's own
+   * script, or with no letter or digit, is left as it is.
+   */
+  private static setApart(
+    stored: string,
+    lineDirection: ReadingDirection,
+  ): string {
+    const value: string = stored.trim();
+
+    if (!value) {
+      return stored;
+    }
+
+    const start: number = stored.length - stored.trimStart().length;
+
+    return `${stored.slice(0, start)}${setApartInSentence(value, lineDirection)}${stored.slice(start + value.length)}`;
   }
 
   // Each finding with a sentence its reader's language words.

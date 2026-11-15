@@ -36,6 +36,7 @@ import Model from "../../Models/DatabaseModels/ResourceAiAgent";
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import { VMwareVCenterFeedEventType } from "../../Models/DatabaseModels/VMwareVCenterFeed";
 import CloudAccountFeedService from "./CloudAccountFeedService";
+import { getResourceSentenceName } from "../../Types/AI/ResourceAiAccessPermissions";
 import { CloudAccountFeedEventType } from "../../Models/DatabaseModels/CloudAccountFeed";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -756,18 +757,13 @@ const CLOUD_ACCOUNT_NOUNS: Readonly<Record<CloudCatalogProvider, string>> = {
 
 /*
  * How the resource is named mid-sentence: "Docker host", "Ceph cluster",
- * but "host" and "database server" (common nouns, not product names).
+ * but "host" and "database server" (common nouns, not product names) - the
+ * AI Investigation card's words for it (getResourceSentenceName).
  */
-const COMMON_NOUN_DISPLAY_NAME_PATTERN: RegExp = /^(Host|Database)\b/;
-
 export function describeResourceInSentence(
   resourceType: AiResourceType,
 ): string {
-  const displayName: string = AI_RESOURCE_TYPE_INFO[resourceType].displayName;
-
-  return COMMON_NOUN_DISPLAY_NAME_PATTERN.test(displayName)
-    ? `${displayName.charAt(0).toLowerCase()}${displayName.slice(1)}`
-    : displayName;
+  return getResourceSentenceName(resourceType);
 }
 
 // Where a database endpoint identity came from, for DB registration.
@@ -1994,8 +1990,6 @@ export class Service extends DatabaseService<Model> {
     posture: ResourceAiAgentPosture;
     cloudRegistration?: CloudRegistrationContext | undefined;
   }): Promise<ResourceAiAgentResource> {
-    const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
-
     if (isCloudAiResourceType(data.resourceType)) {
       const cloudAccountId: ObjectID = await this.resolveCloudAccountId({
         projectId: data.projectId,
@@ -2014,7 +2008,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!cloudAccount) {
         throw new BadDataException(
-          `The ${info.displayName} could not be resolved.`,
+          `The ${describeResourceInSentence(data.resourceType)} could not be resolved.`,
         );
       }
 
@@ -2034,7 +2028,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!databaseServer) {
         throw new BadDataException(
-          `The ${info.displayName} could not be resolved.`,
+          `The ${describeResourceInSentence(data.resourceType)} could not be resolved.`,
         );
       }
 
@@ -2076,7 +2070,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!resource) {
       throw new BadDataException(
-        `The ${info.displayName} could not be resolved.`,
+        `The ${describeResourceInSentence(data.resourceType)} could not be resolved.`,
       );
     }
 
@@ -2104,9 +2098,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!found || !found.id) {
       throw new BadDataException(
-        `The ${
-          AI_RESOURCE_TYPE_INFO[data.resourceType].displayName
-        } could not be resolved.`,
+        `The ${describeResourceInSentence(data.resourceType)} could not be resolved.`,
       );
     }
 

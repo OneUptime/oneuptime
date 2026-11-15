@@ -72,6 +72,7 @@ import {
   ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const RUN_ID: string = "aaaaaaaa-0000-4000-8000-000000000002";
 const RULE_ID: string = "aaaaaaaa-0000-4000-8000-000000000003";
@@ -308,7 +309,7 @@ describe("the other rows about nobody read as before", () => {
   test("a row about nobody with any other message is a dash, as it was", () => {
     drawSentTo(levelLine("Something else happened."));
 
-    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText(EMPTY_VALUE_MARK)).toBeInTheDocument();
     expect(
       screen.queryByTestId("on-call-timeline-level-paged-nobody"),
     ).not.toBeInTheDocument();

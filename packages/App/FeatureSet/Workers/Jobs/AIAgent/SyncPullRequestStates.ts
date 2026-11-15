@@ -41,6 +41,7 @@ import {
 
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import PostmortemActionItemCodeTasks from "Common/Server/Utils/Incident/PostmortemActionItemCodeTasks";
 
 /**
  * Syncs the state of AI-agent-created pull requests from their host - GitHub,
@@ -349,6 +350,14 @@ export async function syncPullRequestOnCodeHost(data: {
         newState: updateData.pullRequestState,
         aiRunId: pullRequest.aiRunId,
       });
+
+      // A postmortem's action item whose pull request merged is done.
+      if (updateData.pullRequestState === PullRequestState.Merged) {
+        await PostmortemActionItemCodeTasks.onPullRequestMerged({
+          aiRunId: pullRequest.aiRunId,
+          pullRequestNumber: pullRequest.pullRequestNumber,
+        });
+      }
     }
 
     if (ciChangeMessage && pullRequest.aiRunId && pullRequest.projectId) {
@@ -622,6 +631,14 @@ RunCron(
               newState: updateData.pullRequestState,
               aiRunId: pullRequest.aiRunId,
             });
+
+            // A postmortem's action item whose pull request merged is done.
+            if (updateData.pullRequestState === PullRequestState.Merged) {
+              await PostmortemActionItemCodeTasks.onPullRequestMerged({
+                aiRunId: pullRequest.aiRunId,
+                pullRequestNumber: pullRequest.pullRequestNumber,
+              });
+            }
           }
         }
 

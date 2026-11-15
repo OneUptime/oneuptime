@@ -21,6 +21,7 @@ import {
   Translator,
   createTranslator,
 } from "../../../UI/Utils/TranslateTemplate";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 jest.mock("../../../UI/Utils/Analytics", () => {
   return { __esModule: true, default: { capture: jest.fn() } };
@@ -479,7 +480,7 @@ describe("the cell", () => {
       />,
     );
 
-    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText(EMPTY_VALUE_MARK)).toBeInTheDocument();
   });
 
   test("leaves the reason to the list's own column when asked", () => {

@@ -28,7 +28,7 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | En `priority` eller `order` ändras efter apply | Ge var och en ett nummer som ingen annan har: se [En prioritet eller ordning som flyttar sig](#en-prioritet-eller-ordning-som-flyttar-sig) |
 | `Invalid Configuration for Read-Only Attribute` | Ta bort attributet från konfigurationen: se [Skrivskyddade attribut](#skrivskyddade-attribut) |
 | `has been renamed to` | Byt namn på resurstypen, med ett `moved`-block: se [En resurstyp med nytt namn](#en-resurstyp-med-nytt-namn) |
-| En övervakare som skapats med Terraform visar aldrig sina kontroller | Uppgradera OneUptime: se [Övervakare från före steg-ID:n](#övervakare-från-före-steg-idn) |
+| En monitor som skapats med Terraform visar aldrig sina kontroller | Uppgradera OneUptime: se [Monitorer från före steg-ID:n](#monitorer-från-före-steg-idn) |
 | `must contain at least 1 elements` | Utelämna attributet i stället för att lämna det tomt: se [Tomma värden](#tomma-värden) |
 | `Not an ID` | Hänvisa till posten i stället för att nämna den: se [Ett namn där ett ID ska stå](#ett-namn-där-ett-id-ska-stå) |
 | JSON från instrumentpanelen i en `.tf`-fil | Skriv det som HCL: se [JSON från instrumentpanelen](#json-från-instrumentpanelen) |
@@ -79,7 +79,7 @@ Att sätta tillbaka en sådan inställning till standardvärdet, vilket slår av
 
 Detsamma gäller de resurser som ditt abonnemang säljer och som ett projekt behåller efter att det har nedgraderats - SSO-leverantörer, SCIM-anslutningar, API-nycklar, jourscheman, och regler och sammanfattningar för Slack och Microsoft Teams: under abonnemanget (medan projektet fortfarande är på Growth, som providerns egen API-nyckel behöver) kan de som projektet redan har fortfarande läsas (så `terraform plan` och `import` fungerar), tas bort (så det går att ta bort dem från konfigurationen, eller köra `terraform destroy`) och stängas av där de har ett attribut `is_enabled`. Att skapa dem, ändra dem eller slå på dem igen svarar fortfarande 402.
 
-Andra resurser som ditt abonnemang säljer, som mallar, anpassade fält och övervakargrupper, kräver fortfarande abonnemanget för att läsas, så en plan som uppdaterar dem svarar 402; de kan ändå tas bort, till exempel med `terraform destroy -refresh=false`.
+Andra resurser som ditt abonnemang säljer, som mallar, anpassade fält och monitorgrupper, kräver fortfarande abonnemanget för att läsas, så en plan som uppdaterar dem svarar 402; de kan ändå tas bort, till exempel med `terraform destroy -refresh=false`.
 
 En API-nyckels behörigheter tas inte bort en i taget under Growth, eftersom det skulle ge nyckeln mer åtkomst att ta bort en blockerande behörighet: kör `terraform state rm` på behörighetsresurserna, förstör sedan nyckeln, så följer dess behörigheter med.
 
@@ -91,7 +91,7 @@ En API-nyckels behörigheter tas inte bort en i taget under Growth, eftersom det
 
 ### ID:n från ett annat projekt
 
-Varje ID som en resurs nämner - en övervakares etiketter, en statussidegrupps statussida, en nätverksenhets plats, en eskaleringsregels team - måste vara en post i projektet som din API-nyckel hör till. Ett ID för en post i ett annat projekt, ett ID som inte finns och ett ID för en post som nyckeln inte får läsa får alla samma svar, som nämner fältet och ID:t:
+Varje ID som en resurs nämner - en monitors etiketter, en statussidegrupps statussida, en nätverksenhets plats, en eskaleringsregels team - måste vara en post i projektet som din API-nyckel hör till. Ett ID för en post i ett annat projekt, ett ID som inte finns och ett ID för en post som nyckeln inte får läsa får alla samma svar, som nämner fältet och ID:t:
 
 ```text
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
@@ -107,7 +107,7 @@ En datakälla hittar exakt en post, eller så stoppar den planen. `Not Found` s�
 
 ### Inkonsekvent resultat efter apply
 
-`Provider produced inconsistent result after apply` betyder att providern returnerade andra värden än den hade planerat. Äldre providers gjorde det med värden som servern räknar ut: standardvärden som servern lägger till i `monitor_steps`, tidsstämplar som servern skrev på ett annat sätt, inslagna värden som `probe_version`, och attribut som servern håller uppdaterade, som när en övervakare för inkommande begäranden senast tog emot sitt heartbeat. De läste också ett decimaltal som null när API:et skickade det som text, så varje apply av en färgregel för statussidans staplar misslyckades på `uptime_percent_greater_than_or_equal_to`. Nuvarande providers hanterar allt detta: tidsstämplar jämförs som tidpunkter, listor med etiketter är mängder, tal läses tillbaka som du skrev dem, och ett attribut som du inte har angett behåller sitt planerade värde tills nästa uppdatering läser serverns.
+`Provider produced inconsistent result after apply` betyder att providern returnerade andra värden än den hade planerat. Äldre providers gjorde det med värden som servern räknar ut: standardvärden som servern lägger till i `monitor_steps`, tidsstämplar som servern skrev på ett annat sätt, inslagna värden som `probe_version`, och attribut som servern håller uppdaterade, som när en monitor för inkommande begäranden senast tog emot sitt heartbeat. De läste också ett decimaltal som null när API:et skickade det som text, så varje apply av en färgregel för statussidans staplar misslyckades på `uptime_percent_greater_than_or_equal_to`. Nuvarande providers hanterar allt detta: tidsstämplar jämförs som tidpunkter, listor med etiketter är mängder, tal läses tillbaka som du skrev dem, och ett attribut som du inte har angett behåller sitt planerade värde tills nästa uppdatering läser serverns.
 
 :::steps
 1. Uppgradera providern: behåll `version = "{{TERRAFORM_PROVIDER_VERSION}}"` i providerkravet, och kör `terraform init -upgrade`.
@@ -156,11 +156,11 @@ moved {
 
 `terraform plan` visar då flytten och ingen annan ändring. Att flytta mellan resurstyper kräver Terraform 1.8 eller senare, eller OpenTofu 1.12 eller senare; på en äldre version behåller du det gamla namnet, som fortsätter att fungera. Datakällor har fått nya namn på samma sätt: ändra namnet, och ingenting annat.
 
-### Övervakare från före steg-ID:n
+### Monitorer från före steg-ID:n
 
-ID:na i en övervakares steg - för varje steg, kriterium, och varje incident- och larmmall - är serverns att ge. Äldre OneUptime-versioner gav bara kriterier ID:n, och en ny uppsättning vid varje skrivning, så en övervakare som skrevs via API:et, som varje övervakare som providern skapade, sparades med ett steg utan ID. Dess prober kontrollerade den fortfarande och dess status ändrades fortfarande, men övervakarens sida hittade inte dess kontroller, dess incidenter kunde inte lösa sig själva, och varje `terraform apply` som ändrade `monitor_steps` slet loss öppna incidenter från deras kriterier.
+ID:na i en monitors steg - för varje steg, kriterium, och varje incident- och larmmall - är serverns att ge. Äldre OneUptime-versioner gav bara kriterier ID:n, och en ny uppsättning vid varje skrivning, så en monitor som skrevs via API:et, som varje monitor som providern skapade, sparades med ett steg utan ID. Dess prober kontrollerade den fortfarande och dess status ändrades fortfarande, men monitorns sida hittade inte dess kontroller, dess incidenter kunde inte lösa sig själva, och varje `terraform apply` som ändrade `monitor_steps` slet loss öppna incidenter från deras kriterier.
 
-Nuvarande OneUptime ger var och en av dem ett ID när de skapas, behåller dem vid varje apply, och fyller i de saknade på befintliga övervakare när det uppgraderas. Ingenting ändras i din konfiguration: det finns fortfarande inga ID:n att skriva. En incident som det gamla beteendet lämnade öppen stängs vid övervakarens nästa återhämtning, så länge kriteriet som öppnade den fortfarande finns; en incident vars kriterium en tidigare apply ersatte måste lösas en gång för hand.
+Nuvarande OneUptime ger var och en av dem ett ID när de skapas, behåller dem vid varje apply, och fyller i de saknade på befintliga monitorer när det uppgraderas. Ingenting ändras i din konfiguration: det finns fortfarande inga ID:n att skriva. En incident som det gamla beteendet lämnade öppen stängs vid monitorns nästa återhämtning, så länge kriteriet som öppnade den fortfarande finns; en incident vars kriterium en tidigare apply ersatte måste lösas en gång för hand.
 
 ## Konfiguration som providern avvisar
 
@@ -190,7 +190,7 @@ Den JSON som instrumentpanelen och API:et visar för en resurs är det som API:e
 
 - För att ta över resursen [importerar du den](/docs/terraform/importing-resources): instrumentpanelens sida **Terraform** skriver konfigurationen åt dig.
 - För att skriva en ny börjar du från [Exempel](/docs/terraform/examples).
-- För en övervakares steg skriver du det typade attributet `monitor_steps` som [Monitorsteg](/docs/terraform/monitor-steps) beskriver: ta bort `{_type, value}`-omslagen, skriv camelCase-nycklarna i snake_case, och utelämna varje `id`.
+- För en monitors steg skriver du det typade attributet `monitor_steps` som [Monitorsteg](/docs/terraform/monitor-steps) beskriver: ta bort `{_type, value}`-omslagen, skriv camelCase-nycklarna i snake_case, och utelämna varje `id`.
 
 ## Versioner och registret
 
@@ -245,5 +245,5 @@ TF_LOG_PROVIDER=WARN TF_LOG_PATH=terraform.log terraform plan
 - [Importera resurser](/docs/terraform/importing-resources): Ta över det du har skapat i instrumentpanelen, och åtgärda importfel.
 - [Självhostad konfiguration](/docs/terraform/self-hosted): Adressen, versionen och certifikaten för ditt eget OneUptime.
 - [Komplett guide](/docs/terraform/complete-guide): Autentisering, datakällor, state och uppgraderingar.
-- [Monitorsteg](/docs/terraform/monitor-steps): Varje attribut i en övervakares kontroller.
+- [Monitorsteg](/docs/terraform/monitor-steps): Varje attribut i en monitors kontroller.
 :::

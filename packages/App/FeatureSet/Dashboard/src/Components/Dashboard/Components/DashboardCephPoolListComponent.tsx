@@ -25,6 +25,7 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * `pool_id` is the datapoint label every per-pool data series carries
@@ -130,7 +131,7 @@ function getUsageColor(percent: number | null): string {
 
 function renderUsageBar(percent: number | null): ReactElement {
   if (percent === null) {
-    return <span className="text-xs text-gray-400">—</span>;
+    return <TableEmptyValue isSmall={true} />;
   }
   const clamped: number = Math.max(0, Math.min(100, percent));
   return (

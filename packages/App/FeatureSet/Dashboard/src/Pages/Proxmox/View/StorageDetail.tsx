@@ -277,12 +277,12 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
   const usageQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "storage_usage",
-      title: "Storage Usage",
+      title: translator.translateText("Storage Usage"),
       description: translator.translateTemplate(
         "Disk space used on storage volume {{storageName}} over time.",
         { storageName: storageName },
       ),
-      legend: "Used",
+      legend: translator.translateText("Used"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -302,12 +302,12 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
   const sizeQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "storage_size",
-      title: "Storage Size",
+      title: translator.translateText("Storage Size"),
       description: translator.translateTemplate(
         "Total capacity of storage volume {{storageName}}.",
         { storageName: storageName },
       ),
-      legend: "Total",
+      legend: translator.translateText("Total"),
       legendUnit: "",
     },
     metricQueryData: {

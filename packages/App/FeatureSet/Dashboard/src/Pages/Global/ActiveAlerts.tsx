@@ -22,6 +22,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveAlerts: FunctionComponent<
   PageComponentProps
@@ -187,7 +188,7 @@ const ActiveAlerts: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: Alert): ReactElement => {
               if (!item.alertNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
@@ -269,7 +270,7 @@ const ActiveAlerts: FunctionComponent<
               if (item["monitor"]) {
                 return <MonitorElement monitor={item["monitor"]!} />;
               }
-              return <span>-</span>;
+              return <TableEmptyValue />;
             },
           },
           {
