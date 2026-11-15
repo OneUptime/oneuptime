@@ -1,7 +1,8 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import {
   EVENT_OVERLAY_SCOPE_QUERY_LIMIT,
   EventOverlayScope,
+  addPredicate,
   getEventOverlayScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/EventOverlayScope";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
@@ -18,6 +19,7 @@ import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationTyp
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
 import { buildQueryConfigsFromSerializedQueries } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricConfigReconstruct";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
 
 const RESOURCE_A: string = "11111111-1111-4111-8111-111111111111";
 const RESOURCE_B: string = "22222222-2222-4222-8222-222222222222";
@@ -1500,4 +1502,106 @@ describe("incidents and alerts on a chart filtered to no resource", () => {
     getEventOverlayScope([query]);
     expect(JSON.stringify(query)).toBe(before);
   });
+});
+
+/*
+ * Issue #8488: addPredicate sets a path in a copy of each query - a deep
+ * set. Every path the overlays use is OneUptime's own, but each step is
+ * read and written as the copy's own key, so no path reaches what every
+ * object inherits: "constructor" then "prototype" is two objects of the
+ * copy's own, never the Object function and Object.prototype.
+ */
+describe("a predicate's path is the query's own keys", () => {
+  afterEach(() => {
+    // A walk by plain reads writes here: never leave it for another test.
+    delete (Object.prototype as Record<string, unknown>)["polluted"];
+  });
+
+  test.each([
+    [["constructor", "prototype", "polluted"]],
+    [["__proto__", "polluted"]],
+    [["attributes", "constructor", "prototype", "polluted"]],
+    [["attributes", "__proto__", "polluted"]],
+    [["seriesLabels", "__proto__", "constructor", "prototype", "polluted"]],
+  ])(
+    "a path of %j is set in the copy, never on a prototype",
+    (path: Array<string>) => {
+      const queries: ReturnType<typeof addPredicate> = addPredicate(
+        [{}],
+        path,
+        ["yes"],
+      );
+
+      expect(
+        Object.prototype.hasOwnProperty.call(Object.prototype, "polluted"),
+      ).toBe(false);
+      expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+      expect(queries).toHaveLength(1);
+
+      let cursor: unknown = queries[0];
+
+      for (const key of path.slice(0, -1)) {
+        expect({
+          key,
+          isOwn: Object.prototype.hasOwnProperty.call(cursor, key),
+        }).toEqual({ key, isOwn: true });
+        cursor = Object.getOwnPropertyDescriptor(cursor, key)!.value;
+        expect(Object.getPrototypeOf(cursor)).toBe(Object.prototype);
+      }
+
+      expect(
+        Object.getOwnPropertyDescriptor(cursor, path[path.length - 1]!)?.value,
+      ).toBe("yes");
+    },
+  );
+
+  test("what a query already holds under __proto__ - text, an object, a list - is kept as its own", () => {
+    const query: Record<string, unknown> = JSON.parse(
+      '{"seriesLabels":{"__proto__":"text"},"metricEventQuery":{"__proto__":[{"a":"b"}]},"__proto__":{"c":"d"}}',
+    ) as Record<string, unknown>;
+    const queries: ReturnType<typeof addPredicate> = addPredicate(
+      [query as Parameters<typeof addPredicate>[0][number]],
+      ["monitorId"],
+      ["11111111-1111-4111-8111-111111111111"],
+    );
+
+    expect(queries).toHaveLength(1);
+    expect(JSON.stringify(queries[0])).toBe(
+      '{"__proto__":{"c":"d"},"metricEventQuery":{"__proto__":[{"a":"b"}]},"monitorId":"11111111-1111-4111-8111-111111111111","seriesLabels":{"__proto__":"text"}}',
+    );
+    expect(Object.getPrototypeOf(queries[0])).toBe(Object.prototype);
+  });
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "an attribute named %s is a predicate of the query's own, one query per value",
+    (name: string) => {
+      const queries: ReturnType<typeof addPredicate> = addPredicate(
+        [{}],
+        ["attributes", name],
+        ["a", "b"],
+      );
+      const valuesOf: (
+        list: ReturnType<typeof addPredicate>,
+      ) => Array<unknown> = (
+        list: ReturnType<typeof addPredicate>,
+      ): Array<unknown> => {
+        return list.map((query: unknown): unknown => {
+          const attributes: unknown = Object.getOwnPropertyDescriptor(
+            query,
+            "attributes",
+          )?.value;
+
+          expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+
+          return Object.getOwnPropertyDescriptor(attributes, name)?.value;
+        });
+      };
+
+      expect(valuesOf(queries)).toEqual(["a", "b"]);
+      // A query that already sets the attribute to another value is left out.
+      expect(
+        valuesOf(addPredicate(queries, ["attributes", name], ["a"])),
+      ).toEqual(["a"]);
+    },
+  );
 });
