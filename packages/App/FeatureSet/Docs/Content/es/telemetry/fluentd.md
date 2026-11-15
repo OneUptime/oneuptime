@@ -54,6 +54,15 @@ El archivo de configuración de Fluentd suele ser `/etc/fluent/fluentd.conf`, o 
 Añade una sección `<match>` que envíe los registros a OneUptime. Sustituye `YOUR_SERVICE_TOKEN` por tu clave de ingesta y `YOUR_SERVICE_NAME` por el nombre con el que deben aparecer los registros (el que quieras):
 
 ```text title="fluentd.conf"
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 # Match all patterns
 <match **>
   @type http
@@ -66,12 +75,18 @@ Añade una sección `<match>` que envíe los registros a OneUptime. Sustituye `Y
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -84,6 +99,8 @@ Añade una sección `<match>` que envíe los registros a OneUptime. Sustituye `Y
 ```
 
 `json_array true` envía cada fragmento del búfer como un único array JSON, y `flush_interval 10s` envía el búfer cada 10 segundos. `chunk_limit_size 900k` mantiene cada solicitud por debajo de 1 MB, lo máximo que OneUptime acepta en este endpoint.
+
+`retryable_response_codes 429,502,503,504` vuelve a enviar un lote cuando OneUptime está ocupado (`429`) o reiniciándose (`502`, `503`, `504`); sin él, Fluentd descarta un lote ante cualquier respuesta que no sea `503`. `retry_max_interval 30s` espera como mucho 30 segundos entre intentos, y `retry_timeout 72h` descarta un lote que aún no ha podido enviar tras 72 horas. El filtro `record_transformer` añade la hora que Fluentd dio a cada registro, como `fluentd_time`: la salida HTTP envía solo el registro, y OneUptime lee de él la hora de un log.
 
 ### Reiniciar Fluentd
 
@@ -111,6 +128,15 @@ Esta configuración recibe registros por el protocolo forward de Fluentd en el p
   bind 0.0.0.0
 </source>
 
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 <match **>
   @type http
 
@@ -122,12 +148,18 @@ Esta configuración recibe registros por el protocolo forward de Fluentd en el p
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -152,7 +184,7 @@ OneUptime lee estos campos de cada registro:
 | ID de traza | `trace_id`, `traceId`, `traceid` | Enlaza el registro con su traza. |
 | ID de span | `span_id`, `spanId`, `spanid` | Enlaza el registro con su span. |
 | Servicio | la cabecera `x-oneuptime-service-name` | `Fluentd` cuando la cabecera no está definida. |
-| Hora | — | La hora a la que OneUptime recibe el registro. |
+| Hora | `time`, `timestamp`, `@timestamp`, `ts`, `fluentd_time` | Una hora ISO 8601, como `2026-11-14T08:00:00.123Z`, o segundos, milisegundos, microsegundos o nanosegundos desde la época Unix; una hora sin zona horaria es UTC. No se lee una hora anterior a 2000 ni una que vaya más de un día por delante. El campo del que se lee la hora no se guarda como atributo. Un registro sin hora se guarda a la hora a la que OneUptime lo recibe. |
 
 Cualquier otro campo se convierte en un atributo llamado `fluentd.` seguido del nombre del campo, por el que puedes buscar y filtrar: un campo `container_name` es `@fluentd.container_name` en el explorador de registros. Un objeto anidado se aplana con puntos, como `fluentd.kubernetes.pod_name`, y una lista se guarda como JSON.
 
@@ -174,6 +206,14 @@ Falta la clave de ingesta, es desconocida o ha caducado. Revisa el valor de `x-o
 
 :::details Fluentd registra `413`
 La solicitud supera 1 MB, lo máximo que OneUptime acepta en este endpoint. Pon `chunk_limit_size 900k` en la sección `<buffer>`, como en la configuración de arriba.
+:::
+
+:::details Fluentd registra `429`, `502`, `503` o `504`
+OneUptime está ocupado o reiniciándose. Con `retryable_response_codes 429,502,503,504` en la sección `<match>`, como en la configuración de arriba, Fluentd conserva el lote y lo vuelve a enviar; sin él, Fluentd descarta el lote.
+:::
+
+:::details Los logs muestran la hora a la que OneUptime los recibió, no la suya
+OneUptime lee la hora de un log de su registro, y la salida HTTP de Fluentd envía solo el registro. Una sección `<parse>` saca el campo `time` del registro: añádele `keep_time_key true`. Añade también el filtro `record_transformer` de la configuración de arriba: añade la hora que Fluentd dio a cada registro, como `fluentd_time`.
 :::
 
 :::details Los registros llegan al servicio `Fluentd`
