@@ -8,6 +8,7 @@ import {
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
+import { withSpacesShown, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -690,8 +691,14 @@ test.describe("probe checks", () => {
       "Probes",
       "Owners",
     ]);
-    expect(await factValue(page, "Latest result")).toBe(
-      "Up · 182 ms · HTTP 200from Frankfurt (eu-central-1)",
+    /*
+     * Read as a string, so the space is held: the response time keeps its
+     * unit on its line (#8302), as the product writes it (#8689).
+     */
+    expect(withSpacesShown(await factValue(page, "Latest result"))).toBe(
+      withSpacesShown(
+        `Up · ${withUnit(182, "ms")} · HTTP 200from Frankfurt (eu-central-1)`,
+      ),
     );
     expect(await factValue(page, "Probes")).toBe("3 of 3 reporting");
 
@@ -816,7 +823,8 @@ test.describe("probe checks", () => {
     await expect(created.getByTestId("detail-created-at-label")).toHaveText(
       "Created",
     );
-    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM GMT");
+    // In the browser's zone, UTC, named as it is (#8475).
+    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM UTC");
     await expect(createdValue).toHaveAttribute(
       "datetime",
       "2026-03-02T09:30:00.000Z",
@@ -850,7 +858,7 @@ test.describe("probe checks", () => {
     // The time to the second, on hover.
     await createdValue.hover();
     await expect(page.getByRole("tooltip")).toHaveText(
-      "Mar 02 2026, 09:30:00 AM GMT",
+      "Mar 02 2026, 09:30:00 AM UTC",
     );
   });
 
@@ -870,7 +878,11 @@ test.describe("probe checks", () => {
     await expect(headline(page)).toHaveText("Offline for 12 minutes");
 
     const latest: string = await factValue(page, "Latest result");
-    expect(latest.startsWith("Down · 94 ms · HTTP 503")).toBe(true);
+    expect(withSpacesShown(latest)).toMatch(
+      new RegExp(
+        `^${escapeRegExp(withSpacesShown(`Down · ${withUnit(94, "ms")} · HTTP 503`))}`,
+      ),
+    );
     expect(latest).toContain(
       "HTTP 503 Service Unavailable: upstream connect error before headers.",
     );
@@ -1197,8 +1209,8 @@ test.describe("probe checks", () => {
     await expect(page.getByTestId("monitor-overview-icon")).toHaveClass(
       /bg-amber-50/,
     );
-    expect(await factValue(page, "Latest result")).toContain(
-      "Up · 2,410 ms · HTTP 200",
+    expect(withSpacesShown(await factValue(page, "Latest result"))).toContain(
+      withSpacesShown(`Up · ${withUnit("2,410", "ms")} · HTTP 200`),
     );
   });
 
@@ -1912,9 +1924,13 @@ test.describe("failures", () => {
  * ---------------------------------------------------------------------------
  */
 
-// The database upgrade's window, 08:00 to 10:00 UTC two days ago.
+/*
+ * The database upgrade's window, 08:00 to 10:00 UTC two days ago, on the
+ * reader's clock: the browser runs in UTC, which the Dashboard names UTC
+ * (#8475; moment's guess, Africa/Abidjan, read GMT until then).
+ */
 const MAINTENANCE_WINDOW_TEXT: RegExp =
-  /^Sep 19, (08:00|8:00 AM) – (10:00|10:00 AM) (UTC|GMT)$/;
+  /^Sep 19, (08:00|8:00 AM) – (10:00|10:00 AM) UTC$/;
 
 // The list reads of scheduled maintenance, and of its states.
 const SCHEDULED_MAINTENANCE_LIST: RegExp = /^ScheduledMaintenance$/;
@@ -2034,7 +2050,7 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     await expect(dialog).toContainText(
       "No incidents were reported on this day.",
     );
-    // On the reader's clock: the browser runs in UTC, which moment names GMT.
+    // On the reader's clock: the browser runs in UTC, named UTC.
     await expect(
       dialog.getByTestId("uptime-day-maintenance-window"),
     ).toHaveText(MAINTENANCE_WINDOW_TEXT);
@@ -2233,12 +2249,13 @@ test.describe("refresh and polling", () => {
     );
     /*
      * The zone every other time on the Dashboard is shown in (f46caf43d95):
-     * User Settings', else the browser's as moment-timezone guesses it. It
-     * reads the browser's own name only when that is longer than three
-     * letters, so this browser's UTC is guessed from its clock as
-     * Africa/Abidjan, which keeps UTC all year: the bars cut the same days.
+     * User Settings', else the browser's. moment-timezone reads the
+     * browser's own name only when it is longer than three letters, so it
+     * guessed this browser's UTC from its clock as Africa/Abidjan; the
+     * Dashboard takes the browser's own "UTC" where the guess keeps its
+     * clock (#8475), and the page sends that.
      */
-    expect(summaryUrl.searchParams.get("timezone")).toBe("Africa/Abidjan");
+    expect(summaryUrl.searchParams.get("timezone")).toBe("UTC");
 
     // The monitor's own probe rows, not every probe in the project.
     const probeRead: RecordedModelRequest | undefined = (
