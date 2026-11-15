@@ -20,6 +20,7 @@ import {
   WhiteLabelImageSlot as Slot,
   WhiteLabelSettingsView,
 } from "./WhiteLabelSettingsAPI";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * One white-label image: a preview on the background it is for, and Upload
@@ -206,7 +207,7 @@ const WhiteLabelImageSlot: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid={getSlotTestId(props.slot, "error")}
         >
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

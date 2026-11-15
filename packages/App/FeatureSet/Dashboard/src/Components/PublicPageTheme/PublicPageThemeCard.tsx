@@ -29,6 +29,7 @@ import {
   getPublicPageThemeErrorTestId,
   getShownPublicPageTheme,
 } from "./PublicPageThemeCopy";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Theme, on the Branding page of a page OneUptime shows to the public - a
@@ -165,7 +166,7 @@ const ThemeSetting: <TBaseModel extends BaseModel>(
           role="alert"
           data-testid={getPublicPageThemeErrorTestId(props.testId)}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

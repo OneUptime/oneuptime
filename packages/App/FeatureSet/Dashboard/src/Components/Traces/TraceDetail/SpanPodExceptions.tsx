@@ -44,6 +44,7 @@ import {
   groupPodLogLines,
   selectPodRecordsInWindow,
 } from "../../../Utils/TracePodLogs";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   podEntityKey: string;
@@ -283,7 +284,7 @@ const SpanPodExceptions: FunctionComponent<ComponentProps> = (
           className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700"
           role="alert"
         >
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </div>
       );
     }

@@ -41,7 +41,7 @@ Kunnen uw diensten `https://oneuptime.com` (of uw zelf gehoste URL) al rechtstre
 
 ## Voordat u begint
 
-- **Een draaiende aangepaste sonde.** Zijn **Status** toont **Verbonden**. Zie [Aangepaste probes](/docs/probe/custom-probe) om er een te installeren.
+- **Een draaiende aangepaste sonde.** Zijn **Status** toont **Verbonden**. Zie [Aangepaste sondes](/docs/probe/custom-probe) om er een te installeren.
 - **Een monitor voor inkomende verzoeken.** Zijn heartbeat-URL bevat de geheime sleutel die uw dienst stuurt: zie [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor).
 - **Een poort op de host van de sonde die uw diensten kunnen bereiken.** De voorbeelden gebruiken `3875`.
 
@@ -176,7 +176,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Hoe lang elk doorsturen naar OneUptime mag duren, in milliseconden. Een waarde onder `1000` valt terug op de standaard. |
 | `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Hoe vaak een mislukt doorsturen opnieuw wordt geprobeerd. `0` zet herhalingen uit. |
 
-De gewone variabelen van de sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` en de proxyvariabelen) gelden allemaal: zie [Aangepaste probes](/docs/probe/custom-probe) voor de volledige lijst.
+De gewone variabelen van de sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` en de proxyvariabelen) gelden allemaal: zie [Aangepaste sondes](/docs/probe/custom-probe) voor de volledige lijst.
 
 ## Beveiligingsoverwegingen
 
@@ -192,7 +192,7 @@ De gewone variabelen van de sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` en d
 :::
 
 :::details De sonde logt `Probe ingress: failed to forward to <url> after N attempts`
-De sonde kon OneUptime niet bereiken, ook niet na de herhalingen. Controleer de uitgaande connectiviteit van de sonde, de proxy-instellingen en de waarde van `ONEUPTIME_URL`. Toont de sonde ook **Verbinding verbroken**, zie dan [Aangepaste probes](/docs/probe/custom-probe) om te vinden waar zijn verzoeken blijven steken.
+De sonde kon OneUptime niet bereiken, ook niet na de herhalingen. Controleer de uitgaande connectiviteit van de sonde, de proxy-instellingen en de waarde van `ONEUPTIME_URL`. Toont de sonde ook **Verbinding verbroken**, zie dan [Aangepaste sondes](/docs/probe/custom-probe) om te vinden waar zijn verzoeken blijven steken.
 :::
 
 :::details De sonde logt `Probe ingress: probe ID not available, forwarding without it`
@@ -211,5 +211,5 @@ Het verzoek heeft de sonde nooit bereikt. Controleer of de dienst de host van de
 
 :::cards
 - [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor): Bepalen wat telt als een gezonde heartbeat.
-- [Aangepaste probes](/docs/probe/custom-probe): De sonde installeren, en elke instelling die hij leest.
+- [Aangepaste sondes](/docs/probe/custom-probe): De sonde installeren, en elke instelling die hij leest.
 :::

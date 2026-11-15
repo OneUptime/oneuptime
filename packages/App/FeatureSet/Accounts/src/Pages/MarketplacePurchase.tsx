@@ -19,6 +19,7 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import { DASHBOARD_URL } from "Common/UI/Config";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import API from "Common/UI/Utils/API/API";
 import MarketplacePendingPurchase from "Common/UI/Utils/MarketplacePendingPurchase";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -253,7 +254,9 @@ const MarketplacePurchase: () => JSX.Element = () => {
             data-testid="marketplace-purchase-message"
           >
             <p className="text-sm font-medium text-gray-900">{state.title}</p>
-            <p className="mt-2 text-sm text-gray-600">{state.message}</p>
+            <p className="mt-2 text-sm text-gray-600">
+              <ErrorInSentence message={state.message} showWhereToLook={true} />
+            </p>
             <div className="mt-6 flex justify-end">
               <Button
                 title={t("marketplacePurchase.goToDashboard")}

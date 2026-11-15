@@ -35,7 +35,7 @@ Hiervoor hoef je niets te sturen. OneUptime legt ze vast op basis van de telemet
 | Een runbook | Een runbook dat OneUptime uitvoerde, wordt voltooid, mislukt of wordt geannuleerd nadat het is gestart | `runbook` |
 | Een cloudwijziging | Het activiteitenlogboek van een gekoppeld cloudaccount legt een wijziging vast: AWS CloudTrail, het Azure-activiteitenlogboek of het auditlogboek Admin Activity van Google Cloud | `cloud` |
 | Een gebeurtenis van de provider | De cloudprovider publiceert een statusgebeurtenis over het account: AWS Health, Azure Service Health of Resource Health, of Google Cloud Service Health | `cloud-health` |
-| Een OpenStack-wijziging | De eigen notificaties van een OpenStack-cloud zeggen wat een van zijn onderdelen is overkomen, of de leesactie van een probe naar Nova doet dat: zie [Levenscyclusgebeurtenissen](/docs/telemetry/openstack#levenscyclusgebeurtenissen) | `openstack` |
+| Een OpenStack-wijziging | De eigen notificaties van een OpenStack-cloud zeggen wat een van zijn onderdelen is overkomen, of de leesactie van een sonde naar Nova doet dat: zie [Levenscyclusgebeurtenissen](/docs/telemetry/openstack#levenscyclusgebeurtenissen) | `openstack` |
 
 - **De eerste versie die een service rapporteert, is zijn uitgangspunt, geen deploy.** Een service die al maanden draait, wordt niet gedeployd op het moment dat OneUptime zijn telemetrie begint te ontvangen.
 - **Een rollback naar een versie die in de afgelopen 30 dagen is gezien, wordt niet vastgelegd,** omdat die versie niet nieuw is. Een rollback die OneUptime AI uitvoert, wordt als fix vastgelegd.

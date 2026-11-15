@@ -797,7 +797,7 @@ Uden politikker endnu tilbyder siden **Create the recommended policy**: en monit
 
 Åbn enhedens side, og klik på **Opret monitor** på kortet **Monitors alerting on this device**. Monitorformularen åbner med typen Network Device og enheden valgt og den [anbefalede advarselspakke](#anbefalet-advarselspakke) udfyldt: gennemgå den, sæt alvorsgrader og vagtpolitikker, og gem.
 
-De fleste switche, routere, firewalls og printere har også en webgrænseflade på deres egen adresse. **Overvåg webgrænseflade**, på samme kort, åbner en **Websted**-monitor for den: `https://` på enhedens adresse, med **Tillad selvsignerede certifikater** slået til, da en enheds webgrænseflade næsten altid har et, kontrolleret fra enhedens egen probe og opkaldt efter enheden. Ret URL'en, hvis grænsefladen svarer på `http`, på en anden port eller under en sti, og gem så. Kortet viser monitoren, så længe dens navn indeholder enhedens navn, og dens URL er på enhedens adresse; den ændrer ikke enhedens status.
+De fleste switche, routere, firewalls og printere har også en webgrænseflade på deres egen adresse. **Overvåg webgrænseflade**, på samme kort, åbner en **Websted**-monitor for den: `https://` på enhedens adresse, med **Tillad selvsignerede certifikater** slået til, da en enheds webgrænseflade næsten altid har et, kontrolleret fra enhedens egen sonde og opkaldt efter enheden. Ret URL'en, hvis grænsefladen svarer på `http`, på en anden port eller under en sti, og gem så. Kortet viser monitoren, så længe dens navn indeholder enhedens navn, og dens URL er på enhedens adresse; den ændrer ikke enhedens status.
 
 For at oprette en fra **Monitorer** i stedet:
 

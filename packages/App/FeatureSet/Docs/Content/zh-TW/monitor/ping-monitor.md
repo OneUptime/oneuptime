@@ -152,6 +152,6 @@ flowchart TB
 :::cards
 - [IP 監控](/docs/monitor/ip-monitor): 監測固定的 IPv4 或 IPv6 位址。
 - [連接埠監控](/docs/monitor/port-monitor): 檢查主機上的服務，而不只是主機本身。
-- [自訂探針](/docs/probe/custom-probe): ping 您自己網路中的主機。
+- [自訂探測器](/docs/probe/custom-probe): ping 您自己網路中的主機。
 - [事件](/docs/incidents/index): 監測器宣告事件之後會發生什麼。
 :::

@@ -1,4 +1,5 @@
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { CustomSqlRefusal } from "../../../Types/DataObservability/DataCheckRefusals";
 import {
   DataCheckType,
   FAILING_ROW_CHECK_TYPES,
@@ -405,11 +406,11 @@ export function checkCustomSql(value: string): string {
   const sql: string = value.trim().replace(/;\s*$/, "");
 
   if (!sql) {
-    throw new BadDataException("Custom SQL needs a query.");
+    throw new BadDataException(CustomSqlRefusal.noQuery);
   }
 
   if (sql.length > MAX_CUSTOM_SQL_LENGTH) {
-    throw new BadDataException("Custom SQL is too long.");
+    throw new BadDataException(CustomSqlRefusal.tooLong);
   }
 
   const withoutStrings: string = sql
@@ -418,15 +419,15 @@ export function checkCustomSql(value: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, " ");
 
   if (withoutStrings.includes(";")) {
-    throw new BadDataException("Custom SQL must be a single query.");
+    throw new BadDataException(CustomSqlRefusal.notSingleQuery);
   }
 
   if (!READ_START.test(withoutStrings)) {
-    throw new BadDataException("Custom SQL must start with SELECT or WITH.");
+    throw new BadDataException(CustomSqlRefusal.notARead);
   }
 
   if (WRITE_WORDS.test(withoutStrings)) {
-    throw new BadDataException("Custom SQL may only read.");
+    throw new BadDataException(CustomSqlRefusal.writes);
   }
 
   return sql;
@@ -440,7 +441,7 @@ export function checkCustomSql(value: string): string {
 export const DATAVERSE_NO_REGEX_MESSAGE: string =
   "Dataverse's SQL has no regular expressions: use an Invalid Percent check, or Custom SQL with LIKE.";
 export const DATAVERSE_NO_WITH_MESSAGE: string =
-  "Dataverse's SQL has no WITH: write the query as one SELECT, with a subquery where it needs one.";
+  CustomSqlRefusal.dataverseNoWith;
 // A query that starts with a common table expression, which Dataverse's SQL lacks.
 export const STARTS_WITH_WITH: RegExp = /^\s*with\b/i;
 

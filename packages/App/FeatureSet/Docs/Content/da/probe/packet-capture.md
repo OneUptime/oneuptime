@@ -36,7 +36,7 @@ sequenceDiagram
 
 ## Før du begynder
 
-- **En af dit projekts egne sonder.** Globale sonder bærer andre projekters trafik, så de opsamler aldrig. Se [Brugerdefinerede probes](/docs/probe/custom-probe) for at installere din egen sonde.
+- **En af dit projekts egne sonder.** Globale sonder bærer andre projekters trafik, så de opsamler aldrig. Se [Brugerdefinerede sonder](/docs/probe/custom-probe) for at installere din egen sonde.
 - **En sonde fra denne udgivelse eller nyere.** Ældre sonder rapporterer ikke, hvad de kan opsamle på.
 - **De rette tilladelser.** At starte og standse en opsamling kræver **Start Packet Capture**, og at downloade en fil kræver **Download Packet Capture**. Projektejere og -administratorer har begge. Se [Tilladelser](#tilladelser).
 - **En spejlet port, til trafik, der ikke når sonden.** En sonde ser kun trafikken på sin egen værts interfaces. For at opsamle trafik mellem andre enheder skal du spejle deres switchport (SPAN) til et ledigt interface på sondens vært.
@@ -234,7 +234,7 @@ En sonde kører 2 opsamlinger ad gangen. Vent på, at en bliver færdig, eller s
 ## Næste skridt
 
 :::cards
-- [Brugerdefinerede probes](/docs/probe/custom-probe): Installer en sonde i det netværk, du vil opsamle i.
+- [Brugerdefinerede sonder](/docs/probe/custom-probe): Installer en sonde i det netværk, du vil opsamle i.
 - [Netværksenheds-monitor](/docs/monitor/network-device-monitor): Overvåg de enheder, hvis trafik du opsamler.
 - [Tilladelser](/docs/permissions/index): Giv et team tilladelserne til pakkeopsamling.
 :::
