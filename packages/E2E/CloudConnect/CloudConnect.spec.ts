@@ -3591,8 +3591,14 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
        * one bounding box spans both lines, and was read as drawn over
        * Azure's sentence, which nothing is (#8690).
        */
-      const [[lineBox], writtenLines, wordedLines]: Array<Array<FrameBox>> =
-        await lineBoxesInOneFrame([caused, written, worded]);
+      const lines: Array<Array<FrameBox>> = await lineBoxesInOneFrame([
+        caused,
+        written,
+        worded,
+      ]);
+      const lineBox: FrameBox = lines[0]![0]!;
+      const writtenLines: Array<FrameBox> = lines[1]!;
+      const wordedLines: Array<FrameBox> = lines[2]!;
       const rightToLeft: boolean = reader.code === "fa";
       // Where a box starts and ends, in the reader's direction.
       const startOf: (box: FrameBox) => number = (box: FrameBox): number => {
@@ -3614,7 +3620,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
       // Every line of Azure's words starts at the reader's start.
       for (const [index, line] of writtenLines.entries()) {
         expect(
-          Math.abs(startOf(lineBox!) - startOf(line)),
+          Math.abs(startOf(lineBox) - startOf(line)),
           `Azure's words, line ${index + 1}, start the line`,
         ).toBeLessThan(1.5);
       }
@@ -3630,7 +3636,7 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
           lastWritten.y + lastWritten.height / 2,
         );
         expect(
-          Math.abs(startOf(lineBox!) - startOf(wordedLines[0]!)),
+          Math.abs(startOf(lineBox) - startOf(wordedLines[0]!)),
           "OneUptime's words start the line after Azure's",
         ).toBeLessThan(1.5);
       }
@@ -3641,12 +3647,12 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
         // Under it: an inline box can reach a pixel into the next line's.
         expect(line.y).toBeGreaterThan(above.y + above.height / 2);
         expect(
-          Math.abs(startOf(lineBox!) - startOf(line)),
+          Math.abs(startOf(lineBox) - startOf(line)),
           `OneUptime's words, line ${index + 1}, start the line`,
         ).toBeLessThan(1.5);
       }
       expect(lastWorded.y + lastWorded.height).toBeLessThanOrEqual(
-        lineBox!.y + lineBox!.height + 0.5,
+        lineBox.y + lineBox.height + 0.5,
       );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
       await shoot(page, `azure-health-${reader.code}`);

@@ -289,6 +289,27 @@ test.describe("lineBoxesInOneFrame and joinPiecesByLine", () => {
 </body></html>`;
   }
 
+  interface TenCharacterLines {
+    line: FrameBox;
+    before: FrameBox;
+    wrapped: Array<FrameBox>;
+  }
+
+  // The paragraph's box, "abcd"'s, and the wrapped span's, line by line.
+  async function readTenCharacterLines(page: Page): Promise<TenCharacterLines> {
+    const read: Array<Array<FrameBox>> = await lineBoxesInOneFrame([
+      page.locator("#line"),
+      page.locator("#before"),
+      page.locator("#wrapped"),
+    ]);
+
+    return {
+      line: read[0]![0]!,
+      before: read[1]![0]!,
+      wrapped: read[2]!,
+    };
+  }
+
   // Whether two edges are the same, to well under a pixel.
   function expectSameEdge(edge: number, other: number, what: string): void {
     expect(Math.abs(edge - other), what).toBeLessThan(0.5);
@@ -355,25 +376,21 @@ test.describe("lineBoxesInOneFrame and joinPiecesByLine", () => {
   }) => {
     await page.setContent(tenCharacterLines("ltr"));
 
-    const [[line], [before], wrapped]: Array<Array<FrameBox>> =
-      await lineBoxesInOneFrame([
-        page.locator("#line"),
-        page.locator("#before"),
-        page.locator("#wrapped"),
-      ]);
+    const { line, before, wrapped }: TenCharacterLines =
+      await readTenCharacterLines(page);
     const [bounds]: Array<FrameBox> = await boxesInOneFrame([
       page.locator("#wrapped"),
     ]);
 
     expect(wrapped).toHaveLength(2);
     // Its first line after "abcd ", its second from the line's start, under it.
-    expect(wrapped[0]!.y).toBe(before!.y);
-    expect(wrapped[0]!.x).toBeGreaterThanOrEqual(before!.x + before!.width);
-    expectSameEdge(wrapped[1]!.x, line!.x, "the second line's start");
+    expect(wrapped[0]!.y).toBe(before.y);
+    expect(wrapped[0]!.x).toBeGreaterThanOrEqual(before.x + before.width);
+    expectSameEdge(wrapped[1]!.x, line.x, "the second line's start");
     expectLineUnder(wrapped[1]!, wrapped[0]!);
     // The bounding box starts at the first line's top and overlaps "abcd".
     expect(bounds!.y).toBe(wrapped[0]!.y);
-    expect(bounds!.x).toBeLessThan(before!.x + before!.width);
+    expect(bounds!.x).toBeLessThan(before.x + before.width);
   });
 
   test("right to left, a wrapped element's first line is left of what starts the line, and its next starts at the right", async ({
@@ -383,12 +400,8 @@ test.describe("lineBoxesInOneFrame and joinPiecesByLine", () => {
   }) => {
     await page.setContent(tenCharacterLines("rtl"));
 
-    const [[line], [before], wrapped]: Array<Array<FrameBox>> =
-      await lineBoxesInOneFrame([
-        page.locator("#line"),
-        page.locator("#before"),
-        page.locator("#wrapped"),
-      ]);
+    const { line, before, wrapped }: TenCharacterLines =
+      await readTenCharacterLines(page);
     const [bounds]: Array<FrameBox> = await boxesInOneFrame([
       page.locator("#wrapped"),
     ]);
@@ -398,19 +411,19 @@ test.describe("lineBoxesInOneFrame and joinPiecesByLine", () => {
 
     expect(wrapped).toHaveLength(2);
     // "abcd" starts the line at its right; "efgh" follows it, to its left.
-    expectSameEdge(rightOf(before!), rightOf(line!), "abcd starts the line");
-    expect(wrapped[0]!.y).toBe(before!.y);
-    expect(rightOf(wrapped[0]!)).toBeLessThanOrEqual(before!.x + 0.5);
+    expectSameEdge(rightOf(before), rightOf(line), "abcd starts the line");
+    expect(wrapped[0]!.y).toBe(before.y);
+    expect(rightOf(wrapped[0]!)).toBeLessThanOrEqual(before.x + 0.5);
     // "ijkl" starts the next line at its right.
     expectSameEdge(
       rightOf(wrapped[1]!),
-      rightOf(line!),
+      rightOf(line),
       "the second line's start",
     );
     expectLineUnder(wrapped[1]!, wrapped[0]!);
     // The bounding box reaches the right edge, over "abcd": the trap of #8690.
-    expect(rightOf(bounds!)).toBeGreaterThan(before!.x);
-    expect(bounds!.y).toBe(before!.y);
+    expect(rightOf(bounds!)).toBeGreaterThan(before.x);
+    expect(bounds!.y).toBe(before.y);
   });
 
   test("a line that runs both ways is one box, whatever pieces the browser draws it in", async ({
