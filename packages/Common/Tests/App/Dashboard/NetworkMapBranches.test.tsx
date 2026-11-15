@@ -283,6 +283,40 @@ describe("folding a branch from under its device", () => {
     expect(onCollapsedNodeIdsChange).toHaveBeenCalledTimes(1);
   });
 
+  test("focus from the keyboard is ringed; focus from a click is not", () => {
+    const originalMatches: (selectors: string) => boolean =
+      Element.prototype.matches;
+    let isFocusVisible: boolean = true;
+    Element.prototype.matches = function (selectors: string): boolean {
+      if (selectors === ":focus-visible") {
+        return isFocusVisible;
+      }
+      return originalMatches.call(this, selectors);
+    };
+    try {
+      renderMap();
+      const toggle: HTMLElement = screen.getByTestId(
+        "network-topology-branch-toggle-sw-a",
+      );
+      fireEvent.focus(toggle);
+      expect(
+        screen.getByTestId("network-topology-branch-toggle-focus-sw-a"),
+      ).toBeInTheDocument();
+      fireEvent.blur(toggle);
+      expect(
+        screen.queryByTestId("network-topology-branch-toggle-focus-sw-a"),
+      ).not.toBeInTheDocument();
+
+      isFocusVisible = false;
+      fireEvent.focus(toggle);
+      expect(
+        screen.queryByTestId("network-topology-branch-toggle-focus-sw-a"),
+      ).not.toBeInTheDocument();
+    } finally {
+      Element.prototype.matches = originalMatches;
+    }
+  });
+
   test("in German, the controls are worded in German", async () => {
     await act(async () => {
       await i18next.changeLanguage("de");

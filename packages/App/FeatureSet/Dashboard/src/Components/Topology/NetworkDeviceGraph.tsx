@@ -676,6 +676,14 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
 
   // The search match "next match" last moved to, if any (issue #6606).
   const [locatedMatchId, setLocatedMatchId] = useState<string | null>(null);
+  /*
+   * The fold control that has the keyboard's focus, if it got there from the
+   * keyboard: an SVG element draws no focus ring of its own, so the map
+   * draws one (issue #6606).
+   */
+  const [keyboardFocusedToggleId, setKeyboardFocusedToggleId] = useState<
+    string | null
+  >(null);
 
   const adjacency: Map<string, Set<string>> = useMemo(() => {
     return buildAdjacencyIndex(edges);
@@ -1744,8 +1752,47 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           event.stopPropagation();
           toggleBranch(toggle.nodeId);
         }}
+        onFocus={(event: React.FocusEvent<SVGGElement>) => {
+          /*
+           * Only focus the keyboard brought here: a click focuses the
+           * control too, and a ring left behind by every click would read
+           * as a selection.
+           */
+          let isKeyboardFocus: boolean = false;
+          try {
+            isKeyboardFocus = event.currentTarget.matches(":focus-visible");
+          } catch {
+            // A browser that cannot answer draws no ring.
+          }
+          if (isKeyboardFocus) {
+            setKeyboardFocusedToggleId(toggle.nodeId);
+          }
+        }}
+        onBlur={() => {
+          setKeyboardFocusedToggleId(
+            (current: string | null): string | null => {
+              return current === toggle.nodeId ? null : current;
+            },
+          );
+        }}
       >
         <title>{label}</title>
+        {keyboardFocusedToggleId === toggle.nodeId ? (
+          <rect
+            data-testid={`network-topology-branch-toggle-focus-${toggle.nodeId}`}
+            x={toggle.x - pillHalfWidth - 3 * hairline}
+            y={centreY - radius - 3 * hairline}
+            width={2 * pillHalfWidth + 6 * hairline}
+            height={2 * radius + 6 * hairline}
+            rx={radius + 3 * hairline}
+            fill="none"
+            stroke="var(--ou-link, #4f46e5)"
+            strokeWidth={2 * hairline}
+            pointerEvents="none"
+          />
+        ) : (
+          <></>
+        )}
         {toggle.isCollapsed ? (
           <>
             <rect
