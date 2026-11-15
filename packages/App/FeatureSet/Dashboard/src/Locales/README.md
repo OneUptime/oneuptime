@@ -375,6 +375,14 @@ number or a date, which the space sets apart. It never adds one: the key
 (issue #7864). A space beside punctuation (`。`, `：`, `？`) is yours to write
 or leave out.
 
+A value can be a sentence of its own inside yours (a `composedValue` in the
+code): a criteria filter's summary is a comparison, `{{subject}} 大于
+{{value}}`, around `{{measure}} 的平均值`. Write the space beside it too. The
+Translator drops it the same way where the inner sentence's letter on that
+side is OneUptime's words, and keeps it where that letter is a name someone
+typed: `过去 5 分钟内的 /dev/sda 上的 "磁盘使用率（%）" 的平均值大于 90%`
+(issue #8532).
+
 Korean writes a space between its words anyway, so none of this applies to
 `ko`.
 
