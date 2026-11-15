@@ -1,7 +1,7 @@
 import yaml from "js-yaml";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Dictionary from "../../../Types/Dictionary";
-import lookupTable from "../../LookupTable";
+import lookupTable, { writeOwnValue } from "../../LookupTable";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import SigmaRule, {
   SIGMA_DEFAULT_LEVEL,
@@ -280,10 +280,15 @@ function parseAliases(
         );
       }
 
-      byRule[ruleReference] = field;
+      writeOwnValue(byRule, ruleReference, field);
     }
 
-    aliases[alias] = byRule;
+    /*
+     * The rule's names, written as the maps' own keys (validateAliases reads
+     * them so): assigned, an alias named "__proto__" made its rules the
+     * aliases' prototype and was never validated.
+     */
+    writeOwnValue(aliases, alias, byRule);
   }
 
   return aliases;

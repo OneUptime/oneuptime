@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { writeOwnValue } from "../../LookupTable";
 
 /*
  * A stored security event as a destination sends it: the SecurityEvent
@@ -136,6 +137,11 @@ export function readClickhouseDate(value: JSONValue | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+/*
+ * The stored attributes, each as the record's own key (writeOwnValue): a
+ * source may name one "__proto__", and an assignment dropped it from what
+ * every destination is sent.
+ */
 function readAttributes(value: JSONValue | undefined): Record<string, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -144,7 +150,7 @@ function readAttributes(value: JSONValue | undefined): Record<string, string> {
   const attributes: Record<string, string> = {};
 
   for (const key of Object.keys(value as JSONObject)) {
-    attributes[key] = readText((value as JSONObject)[key]);
+    writeOwnValue(attributes, key, readText((value as JSONObject)[key]));
   }
 
   return attributes;
