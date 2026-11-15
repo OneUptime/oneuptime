@@ -306,7 +306,8 @@ work out, starts from a default for everything else, and folds what most people 
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
   failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
   the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
-  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278); never
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278, or
+  the App's own 50 MB limit, which it answers with that sentence and a 413, #8419); never
   a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
