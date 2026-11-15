@@ -9,6 +9,7 @@ import {
   SessionReplayWebVitalRating,
   SessionReplayInteractionType,
   SessionReplayNavigationType,
+  SessionReplayPauseReason,
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { SessionReplayCustomSignalTrigger } from "Common/Types/Rum/SessionReplayFrustrationSignals";
 
@@ -210,6 +211,14 @@ export interface ReplayTimelineEvent {
    * at most the row's offsetMs.
    */
   pausedAtOffsetMs?: number;
+  /*
+   * Both edges: "page" when the page paused recording itself
+   * (OneUptimeReplay.pause()), absent for a pause because nobody touched
+   * the page (issue #7498). A row takes it from its own marker; a resumed
+   * row whose recorder did not repeat it there takes it from the paused
+   * row with the same pausedAtUnixMs, once ChunkLoader has read that one.
+   */
+  pauseReason?: SessionReplayPauseReason;
 }
 
 /*

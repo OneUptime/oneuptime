@@ -764,9 +764,7 @@ async function assertResourceCommandsStillRunnable(data: {
 
       if (policy.tier === ResourceCommandTier.Denied) {
         throw new BadDataException(
-          `Command ${command.sequence}${part.label} is denied by the ${
-            AI_RESOURCE_TYPE_INFO[status.resourceType].displayName
-          } command policy (${policy.reason}), so it can never run. Nothing ran. Dismiss the suggestion and let a new plan be composed.`,
+          `Command ${command.sequence}${part.label} is denied by the ${noun} command policy (${policy.reason}), so it can never run. Nothing ran. Dismiss the suggestion and let a new plan be composed.`,
         );
       }
 

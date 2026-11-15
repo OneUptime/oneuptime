@@ -14,6 +14,7 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
+import { SessionReplayPauseReason } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { ReplayIdleBand } from "./Engine/ReplayEngineTypes";
 import {
   ReplaySignal,
@@ -195,6 +196,11 @@ export interface ReplayTrackBand {
    * exact (from decoded events). Paused bands are always exact.
    */
   fidelity?: "coarse" | "exact" | undefined;
+  /*
+   * Paused bands only: "page" when the page paused recording itself, so
+   * the band's name says so rather than that the page was idle (#7498).
+   */
+  pauseReason?: SessionReplayPauseReason | undefined;
 }
 
 /* The bands drawn full height over the track, each with a label. */
@@ -322,14 +328,20 @@ export function buildTrackBands(
       continue;
     }
 
-    bands.push({
+    const trackBand: ReplayTrackBand = {
       kind: band.kind,
       startMs: startMs,
       endMs: endMs,
       label: describeTrackBandLabel(band.kind, endMs - startMs),
       lengthMs: endMs - startMs,
       fidelity: band.fidelity,
-    });
+    };
+
+    if (band.kind === "paused" && band.pauseReason) {
+      trackBand.pauseReason = band.pauseReason;
+    }
+
+    bands.push(trackBand);
   }
 
   return bands;

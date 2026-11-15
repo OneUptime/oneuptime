@@ -52,6 +52,7 @@ import ModelPermission, {
 } from "../Types/AnalyticsDatabase/ModelPermission";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { MetricSeriesArrivalAggregates } from "../../Utils/Metrics/MetricSeriesArrivalUtil";
+import { readOwnValue } from "../../Utils/LookupTable";
 
 const MAX_GROUP_BY_ATTRIBUTE_KEYS: number = 10;
 const MAX_GROUP_BY_ATTRIBUTE_KEY_LENGTH: number = 256;
@@ -700,7 +701,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
       return JSON.stringify([
         ...attributeKeys.map((key: string): string => {
-          const value: unknown = attributes[key];
+          // The row's own value: a grouped key may be named constructor.
+          const value: unknown = readOwnValue(attributes, key);
           return value === undefined || value === null ? "" : String(value);
         }),
         ...columnKeys.map((key: string): string => {

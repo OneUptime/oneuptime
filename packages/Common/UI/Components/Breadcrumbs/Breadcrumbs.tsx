@@ -1,7 +1,7 @@
 import Icon from "../Icon/Icon";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import UILink from "../Link/Link";
-import { getRecordCrumbName } from "../Page/RecordNameInTrail";
+import { getCrumbTitle, getRecordCrumbName } from "../Page/RecordNameInTrail";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -71,10 +71,15 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
         {links &&
           links.length > 0 &&
           links.map((link: Link, i: number) => {
-            // A record's name is drawn as typed (Link.isRecordName).
-            const translatedTitle: string = link.isRecordName
-              ? link.title
-              : translateString(link.title) || link.title;
+            /*
+             * A record's name is drawn as typed (Link.isRecordName), and a
+             * title in the reader's words already as given
+             * (Link.isTitleTranslated): neither is looked up again.
+             */
+            const translatedTitle: string = getCrumbTitle(
+              link,
+              translateString,
+            );
 
             /*
              * The record's name in place of the page's ("View Monitor"),

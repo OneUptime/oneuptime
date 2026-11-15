@@ -6,7 +6,7 @@
 - [安装 OneUptime](#安装-oneuptime): 在一台服务器上用 Docker Compose，或在 Kubernetes 上用 Helm chart。
 - [完成服务器设置](#完成服务器设置): 先是邮件，然后是短信和电话，每一项都带测试。
 - [检查你的安装](#检查你的安装): 一条命令，指出哪里有问题。
-- [快速开始](/docs/introduction/quickstart): 你的第一个监控器、第一个值班策略和第一个状态页。
+- [快速开始](/docs/introduction/quickstart): 你的第一个监视器、第一个值班策略和第一个状态页。
 :::
 
 ## 你需要什么
@@ -146,7 +146,7 @@ npm run doctor
 
 ## 监控点什么并接收告警
 
-现在你的服务器可以发邮件并向人们发送告警了。[快速开始](/docs/introduction/quickstart)在产品中继续：一个监控你网站的监控器，一个在网站宕机时向你告警的值班策略，以及一个状态页，大约十五分钟完成。它的最后一部分会宣布一次测试事件，让你看到告警到达。
+现在你的服务器可以发邮件并向人们发送告警了。[快速开始](/docs/introduction/quickstart)在产品中继续：一个监控你网站的监视器，一个在网站宕机时向你告警的值班策略，以及一个状态页，大约十五分钟完成。它的最后一部分会宣布一次测试事件，让你看到告警到达。
 
 ## 故障排除
 
@@ -165,7 +165,7 @@ Let's Encrypt 需要能从互联网访问的端口 80 和 443，以及指向这�
 ## 后续步骤
 
 :::cards
-- [快速开始](/docs/introduction/quickstart): 十五分钟内建好一个监控器、一个值班策略和一个状态页。
+- [快速开始](/docs/introduction/quickstart): 十五分钟内建好一个监视器、一个值班策略和一个状态页。
 - [Docker Compose](/docs/installation/docker-compose): 你自己的代理、备份、更新和生产环境清单。
 - [升级](/docs/installation/upgrading): 升级到新版本，一次只升一个主版本。
 - [架构](/docs/self-hosted/architecture): OneUptime 的各部分如何协同工作。

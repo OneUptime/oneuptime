@@ -99,6 +99,8 @@ describe("the suggestion helpers", () => {
   test("are one per kind of suggestion, plus the shared offer and set-up step", () => {
     expect(helpers.sort()).toEqual(
       [
+        // A postmortem's action item becoming a pull request or a test (#6801).
+        "ActionItemCodeTaskSuggestion.ts",
         "AiSuggestion.ts",
         "CodeFixSuggestion.ts",
         // The fix in the code an incident's or alert's investigation recommends.
@@ -109,6 +111,8 @@ describe("the suggestion helpers", () => {
         "TelemetryAiFixSuggestion.ts",
         "TelemetryImprovementSuggestion.ts",
         "TracePerformanceFixSuggestion.ts",
+        // A verified fix written down as a runbook (#6801).
+        "VerifiedFixRunbookSuggestion.ts",
       ].sort(),
     );
   });

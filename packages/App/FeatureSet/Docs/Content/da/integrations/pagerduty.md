@@ -32,9 +32,9 @@ Begge workflows kalder PagerDutys [Events API v2](https://developer.pagerduty.co
 ## Gem routing key'en
 
 :::steps
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 2. Giv den navnet `PAGERDUTY_ROUTING_KEY`, og klik på **Næste**.
-3. Indsæt integrationsnøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+3. Indsæt integrationsnøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så nøglen vises aldrig i en kørsel.

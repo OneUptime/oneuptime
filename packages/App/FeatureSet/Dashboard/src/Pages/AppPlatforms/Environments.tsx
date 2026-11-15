@@ -365,11 +365,7 @@ const AppPlatformEnvironments: FunctionComponent<
                         : "Disconnected"
                   }
                   color={isConnected ? Green : isWaiting ? Gray500 : Red}
-                  tooltip={
-                    isWaiting
-                      ? translator.translateText("Waiting for its first data")
-                      : undefined
-                  }
+                  tooltip={isWaiting ? "Waiting for its first data" : undefined}
                 />
               );
             },

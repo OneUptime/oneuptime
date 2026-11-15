@@ -169,6 +169,7 @@ La ejecución se queda en la página **Runbooks** del incidente. Cuando escribas
 - Las **[políticas de guardia](/docs/on-call/schedules)** deciden a quién se avisa. Los runbooks deciden qué hace esa persona una vez despierta.
 - Las **[conexiones de espacio de trabajo](/docs/workspace-connections/slack)**, como Slack y Microsoft Teams, son destinos naturales de los pasos de solicitud HTTP que publican actualizaciones.
 - Las **[páginas de estado](/docs/status-pages/index)** suelen actualizarse en un paso Manual de un runbook de cara al cliente.
+- **[OneUptime AI](/docs/ai/ai-sre#guardar-como-runbook-una-corrección-que-funcionó)** escribe un runbook a partir de una corrección propia que funcionó: **Guardar como runbook** en una corrección verificada guarda los pasos que se ejecutaron en un runbook desactivado hasta que revises sus pasos.
 
 ## Siguientes pasos
 

@@ -111,6 +111,7 @@ export const SecurityCaseTargetChip: FunctionComponent<ComponentProps> = (
     >
       <Pill
         text={translator.translateTemplate(due.template, { time })}
+        isUserContent={true}
         icon={IconProp.Clock}
         color={getSecurityCaseTargetToneColor(due.tone)}
         tooltip={translator.translateTemplate(SECURITY_CASE_TARGET_DUE_AT, {
@@ -118,6 +119,7 @@ export const SecurityCaseTargetChip: FunctionComponent<ComponentProps> = (
             due.dueAt,
           ),
         })}
+        isTooltipUserContent={true}
       />
     </span>
   );

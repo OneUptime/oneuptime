@@ -219,6 +219,7 @@ export const CloudInstancesTable: FunctionComponent<
                         { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
                       )
                 }
+                isTooltipUserContent={true}
               />
             );
           },

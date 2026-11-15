@@ -44,6 +44,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
    * breadcrumb, a pin and the phone's menu draw it as given. Looked up
    * again, a translation that is itself an English word was translated
    * twice - Spanish says "Red" for Network, and "Red" is "Rojo" (#7790).
+   * So is every product's description and category, and each says so too
+   * (isDescriptionTranslated, isCategoryTranslated): the products menu
+   * looks up an item's words that do not (#8075).
    */
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
@@ -106,6 +109,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "heartbeat",
       ],
       description: t("navbar.items.monitorsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
       activeRoute: RouteMap[PageMap.MONITORS],
       // Monitor Groups share the Monitors side menu, so they are Monitors too.
@@ -113,6 +117,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.AltGlobe,
       iconColor: "blue",
       category: essentialsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Incidents,
@@ -120,6 +125,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["outage", "downtime", "incident response", "postmortem"],
       description: t("navbar.items.incidentsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.INCIDENTS] as Route,
       ),
@@ -127,6 +133,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Alert,
       iconColor: "rose",
       category: essentialsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Alerts,
@@ -134,11 +141,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["notifications", "alarms", "thresholds", "warnings"],
       description: t("navbar.items.alertsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route),
       activeRoute: RouteMap[PageMap.ALERTS],
       icon: IconProp.ExclaimationCircle,
       iconColor: "amber",
       category: essentialsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.OnCall,
@@ -159,6 +168,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "schedule",
       ],
       description: t("navbar.items.onCallDutyDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY] as Route,
       ),
@@ -169,6 +179,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Call,
       iconColor: "stone",
       category: essentialsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.StatusPages,
@@ -181,6 +192,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "uptime page",
       ],
       description: t("navbar.items.statusPagesDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.STATUS_PAGES] as Route,
       ),
@@ -188,6 +200,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.CheckCircle,
       iconColor: "emerald",
       category: essentialsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.ScheduledMaintenance,
@@ -202,6 +215,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "scheduled events",
       ],
       description: t("navbar.items.scheduledMaintenanceDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
       ),
@@ -209,6 +223,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Clock,
       iconColor: "cyan",
       category: essentialsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Slos,
@@ -226,11 +241,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.slosDescription",
         "Service level objectives and error budgets.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SLOS] as Route),
       activeRoute: RouteMap[PageMap.SLOS],
       icon: IconProp.Gauge,
       iconColor: "violet",
       category: essentialsCategory,
+      isCategoryTranslated: true,
     },
     // Observability
     {
@@ -239,11 +256,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["logging", "log search", "log explorer", "syslog"],
       description: t("navbar.items.logsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
       activeRoute: RouteMap[PageMap.LOGS],
       icon: IconProp.Logs,
       iconColor: "amber",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Metrics,
@@ -258,11 +277,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "gauges",
       ],
       description: t("navbar.items.metricsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       activeRoute: RouteMap[PageMap.METRICS],
       icon: IconProp.Heartbeat,
       iconColor: "purple",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Traces,
@@ -276,11 +297,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "opentelemetry",
       ],
       description: t("navbar.items.tracesDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
       activeRoute: RouteMap[PageMap.TRACES],
       icon: IconProp.Waterfall,
       iconColor: "yellow",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Profiles,
@@ -298,11 +321,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "memory",
       ],
       description: t("navbar.items.performanceProfilesDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.PROFILES] as Route),
       activeRoute: RouteMap[PageMap.PROFILES],
       icon: IconProp.Fire,
       iconColor: "red",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Exceptions,
@@ -318,6 +343,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "stack traces",
       ],
       description: t("navbar.items.exceptionsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.EXCEPTIONS] as Route,
       ),
@@ -325,6 +351,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Bug,
       iconColor: "orange",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Llm,
@@ -343,12 +370,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.llmObservabilityDescription",
         "Observe LLM and AI-agent calls — tokens, cost, latency, prompts and completions.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LLM] as Route),
       // Every AI / LLM tab, not only the one the product opens on.
       activeRoute: new Route(`/dashboard/${RouteParams.ProjectID}/llm`),
       icon: IconProp.Sparkles,
       iconColor: "violet",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.DataObservability,
@@ -368,6 +397,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.dataObservabilityDescription",
         "Know when a table goes stale, shrinks or changes shape - and which tables in your databases are late.",
       ),
+      isDescriptionTranslated: true,
       // The overview opens the product; every Data Observability page keeps it lit.
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DATA_OBSERVABILITY_OVERVIEW] as Route,
@@ -376,6 +406,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.TableCells,
       iconColor: "cyan",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Topology,
@@ -388,11 +419,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "architecture",
       ],
       description: t("navbar.items.topologyDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
       activeRoute: RouteMap[PageMap.TOPOLOGY],
       icon: IconProp.FlowDiagram,
       iconColor: "indigo",
       category: observabilityCategory,
+      isCategoryTranslated: true,
     },
     /*
      * Security - right after Observability, where both products sat before
@@ -418,6 +451,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.securityEventsDescription",
         "Detect threats in your security events, work them as cases, and respond with playbooks.",
       ),
+      isDescriptionTranslated: true,
       // The overview opens the product; every Security Events page keeps it lit.
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SECURITY_EVENTS_OVERVIEW] as Route,
@@ -426,6 +460,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.ShieldExclamation,
       iconColor: "rose",
       category: securityCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.DataSecurity,
@@ -447,6 +482,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.dataSecurityDescription",
         "Find sensitive data in your clouds, databases and telemetry, see who can reach it, and fix what matters first.",
       ),
+      isDescriptionTranslated: true,
       // The overview opens the product; every Data Security page keeps it lit.
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DATA_SECURITY_OVERVIEW] as Route,
@@ -455,6 +491,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.ShieldCheck,
       iconColor: "violet",
       category: securityCategory,
+      isCategoryTranslated: true,
     },
     // AI
     {
@@ -466,6 +503,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.aiChatDescription",
         "Chat with AI — it answers from your logs, traces, metrics, incidents, alerts and monitors, and cites every query.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_COPILOT] as Route,
       ),
@@ -473,6 +511,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.ChatBubbleLeftRight,
       iconColor: "violet",
       category: aiCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.AIInsights,
@@ -489,6 +528,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.sentinelInsightsDescription",
         "Proactive findings from OneUptime AI's telemetry watch — new exceptions, spikes, latency regressions and metric drift.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_INSIGHTS] as Route,
       ),
@@ -496,6 +536,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.LightBulb,
       iconColor: "violet",
       category: aiCategory,
+      isCategoryTranslated: true,
     },
     /*
      * Code — your repositories, and AI you ask to work in them. One item:
@@ -530,11 +571,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.codeDescription",
         "Ask AI to change your code and open pull requests. Connect GitHub here.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.CODE] as Route),
       activeRoute: RouteMap[PageMap.CODE],
       icon: IconProp.Code,
       iconColor: "violet",
       category: codeCategory,
+      isCategoryTranslated: true,
     },
     // Resources — the catalogs that span every kind of infrastructure
     {
@@ -546,6 +589,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.inventoryDescription",
         "Everything OneUptime knows about your estate, in one list.",
       ),
+      isDescriptionTranslated: true,
       /*
        * Lands on the Overview; every page under /inventory (the item list,
        * an item, Archived, Documentation, Settings) keeps it lit.
@@ -557,6 +601,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Cube,
       iconColor: "indigo",
       category: resourcesCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Services,
@@ -574,11 +619,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "telemetry services",
       ],
       description: t("navbar.items.servicesDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICES] as Route),
       activeRoute: RouteMap[PageMap.SERVICES],
       icon: IconProp.SquareStack,
       iconColor: "indigo",
       category: resourcesCategory,
+      isCategoryTranslated: true,
     },
     /*
      * Databases span every platform (traces, Kubernetes, Docker, Podman, the
@@ -608,6 +655,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.databasesDescription",
         "Every database your applications query, with engine metrics.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DATABASE_SERVERS] as Route,
       ),
@@ -615,6 +663,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Database,
       iconColor: "indigo",
       category: resourcesCategory,
+      isCategoryTranslated: true,
     },
     /*
      * Queues span every broker and platform (Kafka, RabbitMQ, SQS, Pub/Sub,
@@ -654,6 +703,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.queuesDescription",
         "Message queues and topics from your traces and brokers.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.MESSAGE_QUEUES] as Route,
       ),
@@ -661,6 +711,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.QueueList,
       iconColor: "indigo",
       category: resourcesCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Rum,
@@ -676,6 +727,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "user experience",
       ],
       description: t("navbar.items.rumDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.RUM_APPLICATIONS] as Route,
       ),
@@ -683,6 +735,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Globe,
       iconColor: "blue",
       category: resourcesCategory,
+      isCategoryTranslated: true,
     },
     // Infrastructure — one product per platform, most common first
     {
@@ -691,11 +744,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["servers", "machines", "infrastructure", "linux", "windows"],
       description: t("navbar.items.hostsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),
       activeRoute: RouteMap[PageMap.HOSTS],
       icon: IconProp.Server,
       iconColor: "slate",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Kubernetes,
@@ -703,6 +758,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["k8s", "kube", "kubectl", "pods", "containers", "clusters"],
       description: t("navbar.items.kubernetesDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.KUBERNETES_CLUSTERS] as Route,
       ),
@@ -710,6 +766,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Kubernetes,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Docker,
@@ -717,6 +774,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["containers", "container monitoring", "docker hosts"],
       description: t("navbar.items.dockerDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DOCKER_HOSTS] as Route,
       ),
@@ -724,6 +782,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Docker,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.DockerSwarm,
@@ -734,6 +793,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.dockerSwarmDescription",
         "Monitor Docker Swarm clusters, nodes, services and tasks.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DOCKER_SWARM_CLUSTERS] as Route,
       ),
@@ -741,6 +801,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.DockerSwarm,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Podman,
@@ -748,6 +809,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["containers", "container monitoring", "rootless containers"],
       description: t("navbar.items.podmanDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PODMAN_HOSTS] as Route,
       ),
@@ -755,6 +817,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Podman,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Proxmox,
@@ -771,6 +834,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.proxmoxDescription",
         "Monitor Proxmox clusters, nodes and guests.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROXMOX_CLUSTERS] as Route,
       ),
@@ -778,6 +842,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Proxmox,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.OpenStack,
@@ -797,6 +862,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.openstackDescription",
         "Monitor OpenStack clouds, services, hypervisors and instances.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.OPENSTACK_CLOUDS] as Route,
       ),
@@ -804,6 +870,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Cloud,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.VMware,
@@ -821,6 +888,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.vmwareDescription",
         "Monitor vCenter, ESXi hosts, virtual machines and datastores.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.VMWARE_VCENTERS] as Route,
       ),
@@ -828,6 +896,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.VMware,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Ceph,
@@ -838,6 +907,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.cephDescription",
         "Monitor Ceph clusters, OSDs and pools.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.CEPH_CLUSTERS] as Route,
       ),
@@ -845,6 +915,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Ceph,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.StorageArrays,
@@ -864,6 +935,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.storageArraysDescription",
         "Monitor storage arrays such as Pure Storage FlashArray and FlashBlade.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.STORAGE_ARRAYS] as Route,
       ),
@@ -871,6 +943,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.StorageArray,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Network,
@@ -888,6 +961,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.networkDescription",
         "Monitor network devices via SNMP and group them into sites.",
       ),
+      isDescriptionTranslated: true,
       // Land on the fleet Overview; devices and sites both keep this highlighted.
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.NETWORK_OVERVIEW] as Route,
@@ -897,6 +971,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Signal,
       iconColor: "indigo",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.IoT,
@@ -907,6 +982,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.iotDescription",
         "Monitor IoT device fleets — battery, connectivity, temperature and availability.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.IOT_FLEETS] as Route,
       ),
@@ -914,6 +990,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.IoT,
       iconColor: "blue",
       category: infrastructureCategory,
+      isCategoryTranslated: true,
     },
     // Cloud: the accounts, the apps on the clouds' platforms, their functions.
     /*
@@ -954,6 +1031,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.cloudDescription",
         "Connect your AWS, Azure and Google Cloud accounts and monitor every resource in them.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.CLOUD_OVERVIEW] as Route,
       ),
@@ -961,6 +1039,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Cloud,
       iconColor: "blue",
       category: cloudCategory,
+      isCategoryTranslated: true,
     },
     /*
      * The apps a managed app or container platform runs for you, found in
@@ -995,6 +1074,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.appPlatformsDescription",
         "Monitor the apps you run on ECS and Fargate, Cloud Run, App Service and other managed platforms.",
       ),
+      isDescriptionTranslated: true,
       /*
        * Lands on the Overview; every page under /app-platforms (the
        * environments, one environment, Archived, Settings) keeps it lit.
@@ -1006,6 +1086,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.RocketLaunch,
       iconColor: "blue",
       category: cloudCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Serverless,
@@ -1019,6 +1100,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "faas",
       ],
       description: t("navbar.items.serverlessDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
       ),
@@ -1026,6 +1108,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.Bolt,
       iconColor: "blue",
       category: cloudCategory,
+      isCategoryTranslated: true,
     },
     // Dashboards & Automation
     {
@@ -1034,6 +1117,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["charts", "graphs", "widgets", "visualizations"],
       description: t("navbar.items.dashboardsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.DASHBOARDS] as Route,
       ),
@@ -1041,6 +1125,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.ChartPie,
       iconColor: "indigo",
       category: analyticsAutomationCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Workflows,
@@ -1048,6 +1133,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["automation", "automations", "integrations", "triggers"],
       description: t("navbar.items.workflowsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.WORKFLOWS] as Route,
       ),
@@ -1055,6 +1141,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.FlowDiagram,
       iconColor: "sky",
       category: analyticsAutomationCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Runbooks,
@@ -1072,11 +1159,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "runners",
       ],
       description: t("navbar.items.runbooksDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.RUNBOOKS] as Route),
       activeRoute: RouteMap[PageMap.RUNBOOKS],
       icon: IconProp.BookOpen,
       iconColor: "teal",
       category: analyticsAutomationCategory,
+      isCategoryTranslated: true,
     },
     /*
      * Forms sit with the automation products: a form turns what someone
@@ -1104,11 +1193,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "navbar.items.formsDescription",
         "Forms anyone can fill in that create incidents or maintenance events.",
       ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.FORMS] as Route),
       activeRoute: RouteMap[PageMap.FORMS],
       icon: IconProp.ClipboardDocumentList,
       iconColor: "teal",
       category: analyticsAutomationCategory,
+      isCategoryTranslated: true,
     },
     // Settings
     {
@@ -1117,11 +1208,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["members", "people", "teammates", "invite"],
       description: t("navbar.items.usersDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
       activeRoute: RouteMap[PageMap.USERS],
       icon: IconProp.User,
       iconColor: "blue",
       category: settingsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.Teams,
@@ -1129,11 +1222,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isTitleTranslated: true,
       keywords: ["groups", "departments", "team members"],
       description: t("navbar.items.teamsDescription"),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TEAMS] as Route),
       activeRoute: RouteMap[PageMap.TEAMS],
       icon: IconProp.Team,
       iconColor: "emerald",
       category: settingsCategory,
+      isCategoryTranslated: true,
     },
     {
       key: ProductKey.ProjectSettings,
@@ -1158,11 +1253,13 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
             "navbar.items.projectSettingsDescriptionWithoutBilling",
             "API keys, SSO, labels and notification channels.",
           ),
+      isDescriptionTranslated: true,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
       activeRoute: RouteMap[PageMap.SETTINGS],
       icon: IconProp.Settings,
       iconColor: "slate",
       category: settingsCategory,
+      isCategoryTranslated: true,
     },
   ];
 

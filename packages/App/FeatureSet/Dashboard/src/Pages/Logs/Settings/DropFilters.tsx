@@ -246,13 +246,15 @@ const LogDropFilters: FunctionComponent<
               return (
                 <Pill
                   color={Yellow}
+                  // Worded here either way: drawn as given (#8067).
                   text={
                     item.samplePercentage
                       ? translator.translateTemplate("Sample {{percent}}%", {
                           percent: item.samplePercentage,
                         })
-                      : "Sample"
+                      : translator.translateText("Sample") || "Sample"
                   }
+                  isUserContent={true}
                 />
               );
             }

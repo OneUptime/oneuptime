@@ -2,12 +2,15 @@ import {
   buildOtlpMetricsBody,
   parseMqttPublish,
   MqttIngestPayload,
+  MqttMetricPoint,
   MqttPublishParseResult,
   scopePublishToDevice,
   MQTT_MAX_METRICS_PER_PUBLISH,
   MQTT_MAX_PAYLOAD_BYTES,
 } from "../../FeatureSet/Telemetry/Utils/MqttTelemetryMapper";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { readOwnValue } from "Common/Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "Common/Tests/Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -504,5 +507,112 @@ describe("scopePublishToDevice", () => {
         }),
       ).toBe(null);
     }
+  });
+});
+
+/*
+ * Issue #8025: a device names its attributes and its readings, and every
+ * name an object inherits is one it may use. The mapper wrote both maps
+ * with assignments, and copied the attributes for the implied
+ * iot_device_up with a spread: a key named __proto__ was dropped each time.
+ */
+describe("parseMqttPublish — names like what every object inherits", () => {
+  const attributesOf: (point: { attributes: Record<string, string> }) => {
+    keys: Array<string>;
+    values: Array<string | undefined>;
+  } = (point: {
+    attributes: Record<string, string>;
+  }): { keys: Array<string>; values: Array<string | undefined> } => {
+    return {
+      keys: Object.keys(point.attributes),
+      values: Object.keys(point.attributes).map(
+        (key: string): string | undefined => {
+          return readOwnValue(point.attributes, key);
+        },
+      ),
+    };
+  };
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "an attribute named %s is kept on every reading, the implied iot_device_up too",
+    (name: string) => {
+      const payload: MqttIngestPayload = expectPayload(
+        parse(
+          "oneuptime/fleet/dev/telemetry",
+          JSON.stringify({
+            metrics: { humidity_percent: 40 },
+            attributes: { [name]: "own", "iot.device.kind": "Sensor" },
+          }),
+        ),
+      );
+
+      expect(
+        payload.points.map((point: MqttMetricPoint): string => {
+          return point.name;
+        }),
+      ).toEqual(["humidity_percent", "iot_device_up"]);
+
+      for (const point of payload.points) {
+        expect(attributesOf(point)).toEqual({
+          keys: [name, "iot.device.kind"],
+          values: ["own", "Sensor"],
+        });
+        expect(Object.getPrototypeOf(point.attributes)).toBe(Object.prototype);
+      }
+
+      // Two readings never share the one map.
+      expect(payload.points[0]!.attributes).not.toBe(
+        payload.points[1]!.attributes,
+      );
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a reading named %s is a metric, wrapped or flat, and the OTLP body carries its attribute",
+    (name: string) => {
+      for (const body of [
+        { metrics: { [name]: 5 } },
+        { [name]: 5, attributes: { [name]: "own" } },
+      ]) {
+        const payload: MqttIngestPayload = expectPayload(
+          parse("oneuptime/fleet/dev/telemetry", JSON.stringify(body)),
+        );
+
+        expect(
+          payload.points.map((point: MqttMetricPoint): [string, number] => {
+            return [point.name, point.value];
+          }),
+        ).toEqual([
+          [name, 5],
+          ["iot_device_up", 1],
+        ]);
+      }
+
+      const otlp: JSONObject = buildOtlpMetricsBody(
+        expectPayload(
+          parse(
+            "oneuptime/fleet/dev/telemetry",
+            JSON.stringify({ [name]: 5, attributes: { [name]: "own" } }),
+          ),
+        ),
+      );
+
+      expect(JSON.stringify(otlp)).toContain(
+        `{"key":"${name}","value":{"stringValue":"own"}}`,
+      );
+    },
+  );
+
+  test("a single-metric publish keeps an attribute named __proto__", () => {
+    const payload: MqttIngestPayload = expectPayload(
+      parse(
+        "oneuptime/fleet/dev/metrics/temperature",
+        JSON.stringify({ value: 21, attributes: { ["__proto__"]: "own" } }),
+      ),
+    );
+
+    expect(readOwnValue(payload.points[0]!.attributes, "__proto__")).toBe(
+      "own",
+    );
   });
 });

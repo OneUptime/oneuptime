@@ -197,7 +197,7 @@ curl -X POST "<url>" \
 
 :::cards
 - [工作流模板](/docs/workflows/authoring): 从模板创建工作流，并在生成器中修改它。
-- [Datadog](/docs/integrations/datadog): 相同的模板，适用于 Datadog 监控器。
+- [Datadog](/docs/integrations/datadog): 相同的模板，适用于 Datadog 监视器。
 - [升级规则](/docs/on-call/escalation-rules): 决定值班策略呼叫谁、何时呼叫。
 - [集成概述](/docs/integrations/index): 你可以连接的其他工具。
 :::

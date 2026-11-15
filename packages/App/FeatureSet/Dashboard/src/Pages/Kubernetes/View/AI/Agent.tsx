@@ -1546,16 +1546,19 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                           {row.command}
                         </span>
                         <Pill
+                          // Worded here either way: drawn as given (#8067).
                           text={
                             row.succeeded
-                              ? "succeeded"
+                              ? translator.translateText("succeeded") ||
+                                "succeeded"
                               : row.exitCode !== null
                                 ? translator.translateTemplate(
                                     "failed (exit {{exitCode}})",
                                     { exitCode: row.exitCode },
                                   )
-                                : "failed"
+                                : translator.translateText("failed") || "failed"
                           }
+                          isUserContent={true}
                           color={row.succeeded ? Green500 : Red500}
                         />
                       </div>

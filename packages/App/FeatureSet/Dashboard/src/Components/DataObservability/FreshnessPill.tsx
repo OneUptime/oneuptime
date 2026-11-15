@@ -44,6 +44,7 @@ const FreshnessPill: FunctionComponent<ComponentProps> = (
       return (
         <Pill
           text={formatOverdue(translator, result.overdueBySeconds)}
+          isUserContent={true}
           color={Red500}
         />
       );
