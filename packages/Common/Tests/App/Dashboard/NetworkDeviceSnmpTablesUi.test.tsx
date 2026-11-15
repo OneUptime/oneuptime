@@ -461,7 +461,11 @@ describe("SnmpTableSnapshotCard", () => {
     );
 
     expect(utilisation).toHaveTextContent("12 %");
+    // The figure held to its column's unit by a no-break space (#8457).
+    expect(utilisation!.textContent).toBe("12 %");
     expect(utilisation).toHaveClass("whitespace-nowrap");
+    // Negative control: a value that writes its own unit gets none added.
+    expect(band!.textContent).toBe("2.4 GHz");
 
     expect(label).toHaveTextContent("Branch office in Frankfurt / tunnel 1");
     expect(label).toHaveClass("min-w-[10rem]");
