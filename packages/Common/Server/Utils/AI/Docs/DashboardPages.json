@@ -1419,6 +1419,16 @@
     "kind": "setting"
   },
   {
+    "title": "Requests Without a Secret",
+    "where": [
+      "Monitors",
+      "Settings",
+      "Incoming Request Secrets"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/incoming-request-secrets",
+    "kind": "setting"
+  },
+  {
     "title": "Templates",
     "where": [
       "Monitors",

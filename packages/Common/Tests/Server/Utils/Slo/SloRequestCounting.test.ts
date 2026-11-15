@@ -21,6 +21,7 @@ import {
   SloRequestCounts,
 } from "../../../../Utils/Slo/SloRequestSli";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * SloRequestCounting: how a request SLO's requests are counted from its
@@ -281,7 +282,7 @@ describe("SloRequestCounting.countRange", () => {
   });
 
   test("an empty range reads nothing", async () => {
-    const query: jest.SpiedFunction<typeof SpanService.executeQuery> = jest
+    const query: SpyInstance<typeof SpanService.executeQuery> = jest
       .spyOn(SpanService, "executeQuery")
       .mockResolvedValue(resultOf([]) as never);
 
@@ -420,10 +421,9 @@ describe("SloRequestCounting.readWindowSums", () => {
   });
 
   test("reads nothing when this evaluation counted the whole read range itself", async () => {
-    const query: jest.SpiedFunction<typeof SloHistoryService.executeQuery> =
-      jest
-        .spyOn(SloHistoryService, "executeQuery")
-        .mockResolvedValue(resultOf([]) as never);
+    const query: SpyInstance<typeof SloHistoryService.executeQuery> = jest
+      .spyOn(SloHistoryService, "executeQuery")
+      .mockResolvedValue(resultOf([]) as never);
 
     const sums: Array<SloRequestCounts> =
       await SloRequestCounting.readWindowSums({
@@ -537,7 +537,7 @@ describe("SloRequestCounting.measure", () => {
   // Every step of every range counted as 100 requests, `bad` of them bad.
   function stubCounts(
     bad: number = 1,
-  ): jest.SpiedFunction<typeof SloRequestCounting.countRange> {
+  ): SpyInstance<typeof SloRequestCounting.countRange> {
     return jest
       .spyOn(SloRequestCounting, "countRange")
       .mockImplementation(async (args: CountRangeArgs) => {
@@ -558,7 +558,7 @@ describe("SloRequestCounting.measure", () => {
       });
   }
 
-  function stubInsert(): jest.SpiedFunction<
+  function stubInsert(): SpyInstance<
     typeof SloHistoryService.insertHistoryRows
   > {
     return jest
@@ -567,19 +567,16 @@ describe("SloRequestCounting.measure", () => {
   }
 
   test("a new SLO counts the newest 6 hours and older pieces, keeps them, and sums them from memory", async () => {
-    const countRange: jest.SpiedFunction<typeof SloRequestCounting.countRange> =
+    const countRange: SpyInstance<typeof SloRequestCounting.countRange> =
       stubCounts();
-    const insert: jest.SpiedFunction<
-      typeof SloHistoryService.insertHistoryRows
-    > = stubInsert();
-    const readSums: jest.SpiedFunction<
-      typeof SloRequestCounting.readWindowSums
-    > = jest.spyOn(SloRequestCounting, "readWindowSums");
-    const historyQuery: jest.SpiedFunction<
-      typeof SloHistoryService.executeQuery
-    > = jest
-      .spyOn(SloHistoryService, "executeQuery")
-      .mockResolvedValue(resultOf([]) as never);
+    const insert: SpyInstance<typeof SloHistoryService.insertHistoryRows> =
+      stubInsert();
+    const readSums: SpyInstance<typeof SloRequestCounting.readWindowSums> =
+      jest.spyOn(SloRequestCounting, "readWindowSums");
+    const historyQuery: SpyInstance<typeof SloHistoryService.executeQuery> =
+      jest
+        .spyOn(SloHistoryService, "executeQuery")
+        .mockResolvedValue(resultOf([]) as never);
 
     const measurement: SloRequestMeasurement = await SloRequestCounting.measure(
       {
@@ -626,15 +623,15 @@ describe("SloRequestCounting.measure", () => {
   });
 
   test("an evaluation that carries on reads the earlier steps from SloHistory and adds the new ones", async () => {
-    const countRange: jest.SpiedFunction<typeof SloRequestCounting.countRange> =
+    const countRange: SpyInstance<typeof SloRequestCounting.countRange> =
       stubCounts(0);
     stubInsert();
-    const readSums: jest.SpiedFunction<
-      typeof SloRequestCounting.readWindowSums
-    > = jest.spyOn(SloRequestCounting, "readWindowSums").mockResolvedValue([
-      { goodCount: 5000, totalCount: 5100 },
-      { goodCount: 800, totalCount: 900 },
-    ]);
+    const readSums: SpyInstance<typeof SloRequestCounting.readWindowSums> = jest
+      .spyOn(SloRequestCounting, "readWindowSums")
+      .mockResolvedValue([
+        { goodCount: 5000, totalCount: 5100 },
+        { goodCount: 800, totalCount: 900 },
+      ]);
 
     const measurement: SloRequestMeasurement = await SloRequestCounting.measure(
       {
@@ -677,9 +674,7 @@ describe("SloRequestCounting.measure", () => {
   test("a window older than what is counted is summed from the oldest counted step", async () => {
     stubCounts();
     stubInsert();
-    const readSums: jest.SpiedFunction<
-      typeof SloRequestCounting.readWindowSums
-    > = jest
+    const readSums: SpyInstance<typeof SloRequestCounting.readWindowSums> = jest
       .spyOn(SloRequestCounting, "readWindowSums")
       .mockResolvedValue([{ goodCount: 0, totalCount: 0 }]);
 
@@ -731,7 +726,7 @@ describe("SloRequestCounting.measure", () => {
     jest
       .spyOn(SloRequestCounting, "readWindowSums")
       .mockResolvedValue([{ goodCount: 0, totalCount: 0 }]);
-    const error: jest.SpiedFunction<typeof logger.error> = jest
+    const error: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation(() => {
         return undefined;
@@ -798,9 +793,8 @@ describe("SloRequestCounting.measure", () => {
     jest
       .spyOn(SloRequestCounting, "countRange")
       .mockRejectedValue(new Error("ClickHouse is down"));
-    const insert: jest.SpiedFunction<
-      typeof SloHistoryService.insertHistoryRows
-    > = stubInsert();
+    const insert: SpyInstance<typeof SloHistoryService.insertHistoryRows> =
+      stubInsert();
 
     await expect(
       SloRequestCounting.measure({

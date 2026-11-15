@@ -55,7 +55,7 @@
 
 ### ‏OneUptime Cloud
 
-[ثبت‌نام کنید](https://oneuptime.com/accounts/register) و یک پروژه بسازید. طرح رایگان به کارت اعتباری نیاز ندارد.
+[ثبت‌نام کنید](https://oneuptime.com/accounts/register) و یک پروژه بسازید. یک پروژه به کارت نیاز ندارد. در طرح Free، بررسی یک وب‌سایت به یک روش پرداخت نیاز دارد.
 
 ### میزبانی روی سرور خودتان با Docker Compose
 

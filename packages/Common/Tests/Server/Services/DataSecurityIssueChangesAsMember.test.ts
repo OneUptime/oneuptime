@@ -77,8 +77,8 @@ async function refusalOf(promise: Promise<unknown>): Promise<unknown> {
 
 // Who may change an issue: the model's update list.
 const EDITORS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["a security admin", [Permission.SecurityAdmin]],
   ["a security member", [Permission.SecurityMember]],
   [

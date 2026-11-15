@@ -613,7 +613,7 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
             <p className="text-sm text-gray-500">
               {props.disabledReason ||
                 translator.translateText(
-                  "Only project owners, project administrators, and security administrators can start runs. You can still review run history.",
+                  "Only Project Owners, Project Admins, and Security Admins can start runs. You can still review run history.",
                 )}
             </p>
           )}

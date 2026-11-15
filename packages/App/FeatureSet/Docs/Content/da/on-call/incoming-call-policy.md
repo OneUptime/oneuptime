@@ -155,7 +155,7 @@ En regel ringer til en person på det nummer, personen har bekræftet til indgå
 :::steps
 1. Åbn **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre**. **Indgående opkaldspolitik** er et afsnit i sidemenuen, der starter foldet sammen.
 2. Klik i kortet **Telefonnumre til indgående opkaldsrouting** på **Tilføj Telefonnummer til indgående opkaldsrouting**, og indtast nummeret med landekode, fx `+15551234567`.
-3. Indtast den 6-cifrede kode, som OneUptime sender til nummeret via SMS, under **Bekræftelseskode**, og klik på **Bekræft**. **Send a new code** sender en ny.
+3. Indtast den 6-cifrede kode, som OneUptime sender til nummeret via SMS, under **Bekræftelseskode**, og klik på **Bekræft**. **Send en ny kode** sender en ny.
 :::
 
 Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
@@ -275,7 +275,7 @@ Kontoen kan kun ændres, mens politikken ikke har nogen telefonnumre: siden sige
 :::
 
 :::details Koden til en ingeniørs nummer kommer ikke frem
-SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt uden sin egen standard-Twilio-konfiguration for SMS'erne af sin saldo, som skal være over 1 USD. Koder kan være et minut om at komme frem; klik på **Send a new code** for at sende en ny, og **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** viser, hvad der skete med den.
+SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt uden sin egen standard-Twilio-konfiguration for SMS'erne af sin saldo, som skal være over 1 USD. Koder kan være et minut om at komme frem; klik på **Send en ny kode** for at sende en ny, og **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** viser, hvad der skete med den.
 :::
 
 ## Næste trin

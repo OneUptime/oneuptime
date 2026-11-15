@@ -228,7 +228,7 @@ describe.each(
       );
     });
 
-    test("returns nobody when the only owner left, so the jobs fall back to the project owners", async () => {
+    test("returns nobody when the only owner left, so the jobs fall back to the Project Owners", async () => {
       stubOwners(c, {
         directOwners: [DEPARTED_OWNER],
         teamOwners: [],

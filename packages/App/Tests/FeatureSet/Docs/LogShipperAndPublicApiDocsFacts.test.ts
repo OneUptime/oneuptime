@@ -1475,9 +1475,18 @@ describe("the Fluentd page", () => {
       }
     }
 
-    expect(FLUENT.extractSeverityFromEntry({ level: "verbose" }).text).toBe(
+    /*
+     * A word that names no level. (`verbose` used to be the example here;
+     * it is the Windows Event Log's and ETW's Debug, and every log ingest
+     * now reads one table of level words - issue #8425.)
+     */
+    expect(FLUENT.extractSeverityFromEntry({ level: "chatty" }).text).toBe(
       LogSeverity.Unspecified,
     );
+    expect(FLUENT.extractSeverityFromEntry({ level: "constructor" })).toEqual({
+      number: 0,
+      text: LogSeverity.Unspecified,
+    });
     expect(FLUENT.extractSeverityFromEntry({ priority: 3 }).text).toBe(
       LogSeverity.Unspecified,
     );
@@ -3413,8 +3422,13 @@ describe("the Public API page", () => {
     expect(uptime).toContain(
       'if (OneUptimeDate.isAfter(startDate, endDate)) { throw new BadDataException("Start date cannot be after end date"); }',
     );
+    /*
+     * The range's days, counted as lengths of 24 hours and the day it
+     * starts on, so a server outside UTC counts the same 90 across a clock
+     * change (8876c082b44, #8473).
+     */
     expect(uptime).toContain(
-      "OneUptimeDate.getDaysBetweenTwoDatesInclusive(startDate, endDate) > 90",
+      "OneUptimeDate.getWholeDaysOfTimeBetween(startDate, endDate) + 1 > 90",
     );
 
     expect(tableAfter(PUBLIC_API, "| Field | Default | Notes |")).toEqual([

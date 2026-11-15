@@ -196,7 +196,7 @@ export const ON_CALL_SETUP_COPY: {
   ),
   addBalance: translationKey("Add balance"),
   whoCanAddBalance: translationKey(
-    "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
+    "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
   ),
   serverNoTwilio: translationKey(
     "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email and the app still reach you.",
@@ -226,7 +226,7 @@ export const ON_CALL_SETUP_COPY: {
     "Page this policy for every new incident and alert",
   ),
   whoCannotCreate: translationKey(
-    "Setting up an on-call policy needs permission you do not have in this project. Ask a project owner or admin to set it up; your own notification methods are ready above.",
+    "Setting up an on-call policy needs permission you do not have in this project. Ask a Project Owner or Project Admin to set it up; your own notification methods are ready above.",
   ),
   /*
    * Said when Save and continue finds a policy another tab or device made

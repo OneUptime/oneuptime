@@ -52,7 +52,7 @@ Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af 
 
 | Begreb                 | Hvad det betyder                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Arbejdsgang**           | Hele automatikken: et navn, et lærred med blokke og en kontakt til at slå det til og fra.                         |
+| **Arbejdsgang**           | Hele automatikken: et navn, et lærred med blokke og en kontakt til at slå den til og fra.                         |
 | **Trigger**            | Den første blok. Den afgør, hvornår arbejdsgangen kører. Hver arbejdsgang har præcis én.                               |
 | **Komponent**          | Enhver anden blok: den sender en besked, laver en forespørgsel, tjekker en betingelse eller ændrer en post.        |
 | **Udgang**             | Et punkt nederst på en blok, som **Succes** eller **Fejl**. Linjer derfra fører til de næste blokke.             |

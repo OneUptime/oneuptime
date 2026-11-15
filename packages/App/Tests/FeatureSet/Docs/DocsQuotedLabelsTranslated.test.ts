@@ -290,7 +290,7 @@ const NOT_THE_LABEL: ReadonlyArray<NotTheLabel> = [
         page: `monitor/${kind}-monitor`,
         label: "Online",
         reason:
-          "The docs' name for the monitor's default online criteria, which the criteria list calls 'Check if (name) is online'.",
+          "The docs' name for the monitor's default online criteria, which the criteria list calls 'Check if _monitor name_ is online'.",
       };
     },
   ),

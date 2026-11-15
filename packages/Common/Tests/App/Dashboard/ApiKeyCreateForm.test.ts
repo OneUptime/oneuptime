@@ -254,7 +254,7 @@ describe("the Access cards", () => {
 });
 
 describe("the Access cards for the signed-in user", () => {
-  test("a project owner gets every card", () => {
+  test("a Project Owner gets every card", () => {
     holding([Permission.ProjectOwner]);
 
     expect(
@@ -267,7 +267,7 @@ describe("the Access cards for the signed-in user", () => {
     ]);
   });
 
-  test("a project admin gets the role they hold, as the server would allow", () => {
+  test("a Project Admin gets the role they hold, as the server would allow", () => {
     holding([Permission.ProjectAdmin]);
 
     expect(

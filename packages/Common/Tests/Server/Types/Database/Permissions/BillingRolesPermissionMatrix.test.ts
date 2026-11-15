@@ -386,7 +386,7 @@ describe("the billing contact details", () => {
   });
 });
 
-describe("what stays with a project owner and Manage Billing", () => {
+describe("what stays with a Project Owner and Manage Billing", () => {
   const CHARGES_THE_CARD: Array<Record<string, unknown>> = [
     { paymentProviderPlanId: "price_scale_year" },
     { enableAutoRechargeSmsOrCallBalance: true },
@@ -430,7 +430,7 @@ describe("what stays with a project owner and Manage Billing", () => {
     });
   }
 
-  test("a project owner and Manage Billing still may", () => {
+  test("a Project Owner and Manage Billing still may", () => {
     for (const permission of [
       Permission.ProjectOwner,
       Permission.ManageProjectBilling,

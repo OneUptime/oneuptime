@@ -181,7 +181,7 @@ Um monitor de API novo começa com dois critérios, então funciona sem que voc�
 - **Offline** — a API não responde, ou responde com um código de status `400` ou maior (ou menor que `200`). O monitor é marcado como **Offline** e um incidente é criado. O incidente se resolve sozinho quando a API volta.
 - **No ar** — a API responde com qualquer código de status `2xx` ou `3xx`, como `200`, `201`, `202` ou `204`. O monitor é marcado como **Operacional**.
 
-Na lista de critérios, eles levam o nome do monitor: _Check if (name) is offline_ e _Check if (name) is online_.
+Na lista de critérios, eles levam o nome do monitor: "Verificar se _nome do monitor_ está offline" e "Verificar se _nome do monitor_ está online".
 
 Então um endpoint que responde `201 Created` ou `204 No Content` conta como no ar. Se para você só um código de status significa que está saudável, altere os dois critérios na página **Configuração → Critérios** do monitor: por exemplo **Código de status da resposta** / **Igual a** / `200` no critério online e **Diferente de** / `200` no critério offline, no lugar dos dois filtros de código de status que cada um tem. Para verificar também o que a API retorna, adicione um filtro **Corpo da Resposta** ou **Expressão JavaScript** ao critério offline.
 

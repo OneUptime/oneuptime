@@ -17,7 +17,7 @@ import { permissionRow, tenantPermissionsFor } from "./PermissionRows";
 /*
  * GET /billing/customer-balance: the credit the payment provider holds for
  * the project, shown on Settings > Billing. Reading it is billing, so it is
- * the billing roles' as well as a project owner's and Manage Billing's
+ * the billing roles' as well as a Project Owner's and Manage Billing's
  * (Utils/Project/ProjectBilling) - Billing Viewer reads every billing page.
  * Anyone else, a project admin included, is refused, as before.
  */

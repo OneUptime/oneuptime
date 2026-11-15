@@ -771,7 +771,7 @@ describe("an ask that fails as a whole", () => {
     personProps = [
       () => {
         throw new NotAuthorizedException(
-          "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+          "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
         );
       },
     ];
@@ -781,7 +781,7 @@ describe("an ask that fails as a whole", () => {
     expect(lastState()).toMatchObject({
       status: NetworkControllerDeviceAddStatus.Failed,
       message:
-        "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+        "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
     });
   });
 

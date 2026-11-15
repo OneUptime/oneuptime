@@ -181,7 +181,7 @@ En ny API-monitor starter med to kriterier, så den fungerer uten at du endrer n
 - **Frakoblet** — API-et svarer ikke, eller svarer med en statuskode på `400` eller høyere (eller under `200`). Monitoren merkes som **Frakoblet**, og en hendelse opprettes. Hendelsen løser seg selv når API-et er tilbake.
 - **Oppe** — API-et svarer med en hvilken som helst statuskode `2xx` eller `3xx`, som `200`, `201`, `202` eller `204`. Monitoren merkes som **I drift**.
 
-I listen over kriterier har de navn etter monitoren: _Check if (name) is offline_ og _Check if (name) is online_.
+I listen over kriterier har de navn etter monitoren: "Sjekk om _monitornavn_ er frakoblet" og "Sjekk om _monitornavn_ er tilkoblet".
 
 Et endepunkt som svarer `201 Created` eller `204 No Content`, regnes altså som oppe. Hvis bare én statuskode betyr frisk for deg, endrer du begge kriteriene på monitorens side **Konfigurasjon → Kriterier**: for eksempel **Statuskode for svar** / **Lik** / `200` i det tilkoblede kriteriet og **Ikke lik** / `200` i det frakoblede, i stedet for de to statuskodefiltrene hvert av dem har. For også å sjekke hva API-et returnerer, legger du til et filter **Svartekst** eller **JavaScript-uttrykk** i det frakoblede kriteriet.
 

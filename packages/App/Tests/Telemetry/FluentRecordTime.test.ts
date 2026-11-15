@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { JSONObject } from "Common/Types/JSON";
 import FluentRecordTimeUtil, {
   EARLIEST_RECORD_TIME_MS,
@@ -323,10 +324,18 @@ describe("only a time a log has", () => {
     expect(read(padded)).toBeNull();
     expect(read("1".repeat(MAX_TIME_TEXT_LENGTH + 1))).toBeNull();
     // A long run of digits takes no time to turn down.
-    const started: number = Date.now();
-    expect(read(`${"9".repeat(100000)}`)).toBeNull();
-    expect(read(`2026-11-14T08:00:00${" ".repeat(100000)}x`)).toBeNull();
-    expect(Date.now() - started).toBeLessThan(1000);
+    const turnedDown: FastestRun<Array<RecordTimeRead | null>> = fastestRun({
+      run: (): Array<RecordTimeRead | null> => {
+        return [
+          read(`${"9".repeat(100000)}`),
+          read(`2026-11-14T08:00:00${" ".repeat(100000)}x`),
+        ];
+      },
+      limitInMs: 1000,
+    });
+
+    expect(turnedDown.result).toEqual([null, null]);
+    expect(turnedDown.inMs).toBeLessThan(1000);
   });
 });
 

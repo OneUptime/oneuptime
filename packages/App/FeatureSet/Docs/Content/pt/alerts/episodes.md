@@ -141,7 +141,7 @@ flowchart TB
     grouped -->|"Entra em um episódio"| none["Nada mais é executado"]
 ```
 
-- **Um novo episódio** executa as **Políticas de plantão** da regra, mais as de qualquer regra correspondente na aba **Regras de episódios** de **Alertas → Regras → Regras de Plantão**.
+- **Um novo episódio** executa as **Políticas de plantão** da regra, mais as de qualquer regra correspondente na aba **Regras de episódios** de **Alertas → Regras → Regras de plantão**.
 - **Um alerta que entra em um episódio aberto** executa apenas suas próprias políticas. As do episódio não são executadas de novo.
 - **Um alerta que aguarda mais alertas** também executa apenas suas próprias políticas. Quando **Aguardar mais alertas** está ativado e as políticas da regra são as únicas que acionam, um alerta isolado não aciona ninguém até que haja alertas suficientes em andamento.
 - **Responder ao acionamento de um episódio** confirma o episódio e, com ele, cada alerta que ele contém.

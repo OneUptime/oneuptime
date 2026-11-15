@@ -1369,7 +1369,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
       },
     );
 
-    test("a project owner passes the table-level delete check on the Community Edition", () => {
+    test("a Project Owner passes the table-level delete check on the Community Edition", () => {
       for (const modelType of [ProjectSCIM, ProjectSSO, StatusPageOIDC]) {
         expect(() => {
           TablePermission.checkTableLevelPermissions(
@@ -1383,7 +1383,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
   });
 
   describe("TablePermission: the operation reaches the edition check", () => {
-    test("a project owner's create of SCIM configuration is refused on the Community Edition", () => {
+    test("a Project Owner's create of SCIM configuration is refused on the Community Edition", () => {
       expect(() => {
         TablePermission.checkTableLevelPermissions(
           ProjectSCIM,
@@ -1397,7 +1397,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
       );
     });
 
-    test("a project owner's read of SCIM configuration is allowed on the Community Edition", () => {
+    test("a Project Owner's read of SCIM configuration is allowed on the Community Edition", () => {
       expect(() => {
         TablePermission.checkTableLevelPermissions(
           ProjectSCIM,
@@ -1407,7 +1407,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
       }).not.toThrow();
     });
 
-    test("a project owner's create of SCIM configuration passes with a valid license", () => {
+    test("a Project Owner's create of SCIM configuration passes with a valid license", () => {
       installFakeEnterpriseModule();
 
       expect(() => {
@@ -1450,7 +1450,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
         });
 
         test.each(PROJECT_SSO_MODELS)(
-          "a project owner can create and read %s",
+          "a Project Owner can create and read %s",
           (_name: string, modelType: ModelType) => {
             for (const operation of [
               DatabaseRequestType.Create,
@@ -1469,7 +1469,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
         );
 
         test.each(PROJECT_SSO_MODELS)(
-          "a project admin can create %s",
+          "a Project Admin can create %s",
           (_name: string, modelType: ModelType) => {
             expect(() => {
               TablePermission.checkTableLevelPermissions(
@@ -1496,7 +1496,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
         );
 
         test.each(GLOBAL_SSO_MODELS)(
-          "a project owner still cannot create %s (global single sign-on is for master admins)",
+          "a Project Owner still cannot create %s (global single sign-on is for master admins)",
           (_name: string, modelType: ModelType) => {
             expect(() => {
               TablePermission.checkTableLevelPermissions(
@@ -1585,7 +1585,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
       }) as never);
     });
 
-    test("a project owner's ordinary SCIM update is refused on the Community Edition", async () => {
+    test("a Project Owner's ordinary SCIM update is refused on the Community Edition", async () => {
       await expect(
         UpdatePermission.checkUpdatePermissions(
           ProjectSCIM,
@@ -1601,7 +1601,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
     });
 
     test.each(UNUSABLE_STATUSES)(
-      "a project owner cannot change SCIM provisioning with a %s license",
+      "a Project Owner cannot change SCIM provisioning with a %s license",
       async (status: EnterpriseLicenseStatus) => {
         installFakeEnterpriseModule({
           snapshot: createLicenseSnapshotWithStatus(status),
@@ -1623,7 +1623,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
     );
 
     test.each(UNUSABLE_STATUSES)(
-      "a project owner can rotate a leaked SCIM bearer token with a %s license",
+      "a Project Owner can rotate a leaked SCIM bearer token with a %s license",
       async (status: EnterpriseLicenseStatus) => {
         installFakeEnterpriseModule({
           snapshot: createLicenseSnapshotWithStatus(status),
@@ -1640,7 +1640,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
       },
     );
 
-    test("a project owner cannot rotate the token and change anything else in one update", async () => {
+    test("a Project Owner cannot rotate the token and change anything else in one update", async () => {
       installFakeEnterpriseModule({
         snapshot: createLicenseSnapshotWithStatus("expired"),
       });
@@ -1706,7 +1706,7 @@ describe("EditionPermission wiring through the permission entry points", () => {
         ];
       }),
     ] as Array<[string, () => void]>)(
-      "on %s a project owner can edit, switch on and switch off single sign-on providers",
+      "on %s a Project Owner can edit, switch on and switch off single sign-on providers",
       async (_state: string, install: () => void) => {
         install();
 

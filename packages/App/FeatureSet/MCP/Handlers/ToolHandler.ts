@@ -224,11 +224,11 @@ function getSuggestionForStatusCode(
      * subscription, or a balance to add. Retrying cannot help.
      */
     case 402:
-      return "The project's billing does not allow this, and the error says why: a plan the project is not on, an unpaid subscription, or a balance to add. Do not retry: ask a project owner to resolve it in Project Settings > Billing and Invoices > Billing.";
+      return "The project's billing does not allow this, and the error says why: a plan the project is not on, an unpaid subscription, or a balance to add. Do not retry: ask a Project Owner to resolve it in Project Settings > Billing and Invoices > Billing.";
     case 403:
       return isOAuth
-        ? "The signed-in user lacks permission for this operation in this project. Ask a project admin to grant their team the relevant permission."
-        : "The API key lacks permission for this operation. Ask a project admin to grant the relevant permission to the key.";
+        ? "The signed-in user lacks permission for this operation in this project. Ask a Project Admin to grant their team the relevant permission."
+        : "The API key lacks permission for this operation. Ask a Project Admin to grant the relevant permission to the key.";
     case 404:
       return "The resource was not found. Use the corresponding list tool to find valid IDs.";
     case 429:

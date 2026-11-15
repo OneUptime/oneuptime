@@ -328,7 +328,7 @@ describe("connecting a company AI tool", () => {
       "llm-connection-readers",
     );
     const admins: HTMLElement = within(readers).getByRole("radio", {
-      name: "Project owners and admins",
+      name: "Project Owners and Project Admins",
     });
     const everyone: HTMLElement = within(readers).getByRole("radio", {
       name: "Everyone who can read AI calls",

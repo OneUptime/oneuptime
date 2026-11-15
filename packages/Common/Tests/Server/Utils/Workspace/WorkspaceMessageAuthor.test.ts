@@ -728,7 +728,7 @@ describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot", () => {
         workspaceType: WorkspaceType.MicrosoftTeams,
         threads: [],
         notSentReason:
-          "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
+          "This project is not connected to Microsoft Teams. Please ask a Project Admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
       },
     ]);
   });

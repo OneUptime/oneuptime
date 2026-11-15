@@ -582,6 +582,62 @@ describe("DashboardAPI public resource-list", () => {
       }
     });
 
+    /*
+     * A request SLO's budget is a count of requests (#8441): its widgets
+     * word that line from what the SLO measures and the bad requests left.
+     * Those two are headline numbers like the minutes; what the SLO is made
+     * of - its services, threshold, monitors, counts - stays private.
+     */
+    it("publishes what a request SLO's budget line needs, and nothing of its definition", () => {
+      for (const componentType of [
+        DashboardComponentType.Slo,
+        DashboardComponentType.SloList,
+      ]) {
+        const { widget } = buildWidget({
+          componentType: componentType,
+          argumentsObject:
+            componentType === DashboardComponentType.Slo
+              ? { serviceLevelObjectiveId: SLO_ID.toString() }
+              : {},
+        });
+        const select: JSONObject = PublicDashboardResourceListPolicy.build({
+          widget,
+          variables: [],
+          requestedVariables: [],
+          requestedQuery: {},
+        }).select;
+
+        expect({ componentType, select }).toMatchObject({
+          componentType,
+          select: {
+            sliType: true,
+            errorBudgetRemainingEvents: true,
+            errorBudgetRemainingSeconds: true,
+          },
+        });
+
+        for (const privateColumn of [
+          "services",
+          "latencyThresholdInMilliseconds",
+          "monitors",
+          "description",
+          "goodEventCount",
+          "totalEventCount",
+          "eventAccumulationFingerprint",
+        ]) {
+          expect({
+            componentType,
+            column: privateColumn,
+            published: select[privateColumn],
+          }).toEqual({
+            componentType,
+            column: privateColumn,
+            published: undefined,
+          });
+        }
+      }
+    });
+
     it("does not return sibling-only Proxmox, VMware, Swarm or Storage Array fields", async () => {
       const cases: Array<{
         resourceType: string;

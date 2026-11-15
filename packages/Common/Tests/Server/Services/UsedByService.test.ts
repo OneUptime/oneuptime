@@ -231,7 +231,7 @@ function installFakesOf(service: AnyService): void {
 
       if (found.reader === "refuse") {
         throw new NotAuthorizedException(
-          "You do not have permission to read these. Ask a project admin for access.",
+          "You do not have permission to read these. Ask a Project Admin for access.",
         );
       }
 
@@ -260,7 +260,7 @@ function installFakesOf(service: AnyService): void {
 
       if (!args.props.isRoot && found.reader === "refuse") {
         throw new NotAuthorizedException(
-          "You do not have permission to read these. Ask a project admin for access.",
+          "You do not have permission to read these. Ask a Project Admin for access.",
         );
       }
 

@@ -58,6 +58,9 @@ export const TABLE_FOLDED_VALUE_TEST_ID: string = "table-folded-value";
 
 export const TABLE_FOLDED_VALUE_TITLE_TEST_ID: string = "table-folded-title";
 
+// The break between a folded value's title and the value.
+export const TABLE_FOLDED_VALUE_BREAK_TEST_ID: string = "table-folded-break";
+
 /*
  * A title or a name above what is folded under it: on two lines before it
  * is cut short. A folded table leaves its row's title little room - 165px
@@ -219,12 +222,23 @@ const TableFoldedValues: FunctionComponent<ComponentProps> = (
             {...shrinkable}
           >
             {value.isTitleShown ? (
-              <span
-                className={TABLE_FOLDED_VALUE_TITLE_CLASS_NAME}
-                data-testid={TABLE_FOLDED_VALUE_TITLE_TEST_ID}
-              >
-                {title}
-              </span>
+              <>
+                <span
+                  className={TABLE_FOLDED_VALUE_TITLE_CLASS_NAME}
+                  data-testid={TABLE_FOLDED_VALUE_TITLE_TEST_ID}
+                >
+                  {title}
+                </span>
+                {/*
+                 * Where the line may break: the title's margin is no space,
+                 * so the title and the value's first word were one word -
+                 * "WarnungUngewöhnlich" ran past a German check's Status
+                 * column at 1100px, under the sticky Run Now column
+                 * (#8345). The value now goes onto a line of its own where
+                 * the two do not fit on one.
+                 */}
+                <wbr data-testid={TABLE_FOLDED_VALUE_BREAK_TEST_ID} />
+              </>
             ) : (
               <span className="sr-only">{title}</span>
             )}

@@ -205,7 +205,7 @@ describe("CardModelDetail weighs the card's own fields", () => {
     );
   });
 
-  test("a project admin finds the channels card locked, naming a Billing Admin among who may", async () => {
+  test("a Project Admin finds the channels card locked, naming a Billing Admin among who may", async () => {
     permissionsForTest = [Permission.ProjectAdmin];
 
     renderCard(["enableSmsNotifications", "enableCallNotifications"]);
@@ -224,7 +224,7 @@ describe("CardModelDetail weighs the card's own fields", () => {
    * Project.name's update list is a project owner, Manage Billing and Edit
    * Project: a project admin's Edit on that card used to open an empty form.
    */
-  test("a project admin finds the name card locked too: a project's name is not theirs to change", async () => {
+  test("a Project Admin finds the name card locked too: a project's name is not theirs to change", async () => {
     permissionsForTest = [Permission.ProjectAdmin];
 
     renderCard(["name"]);

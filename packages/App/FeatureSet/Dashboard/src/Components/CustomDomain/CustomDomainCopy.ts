@@ -398,7 +398,7 @@ export const CustomDomainCopy: {
   ),
   addSubmit: translationKey("Continue"),
   addNeedsDomainPermission: translationKey(
-    "{{domain}} is not one of this project's domains yet, and only somebody who may add project domains can add it. Ask a project owner or admin to add {{domain}} in Project Settings → Advanced → Domains, then add this address again.",
+    "{{domain}} is not one of this project's domains yet, and only somebody who may add project domains can add it. Ask a Project Owner or Project Admin to add {{domain}} in Project Settings → Advanced → Domains, then add this address again.",
   ),
   dnsSetupTxtPurpose: translationKey(
     "Shows this project owns {{domain}}. You add it once, for every address on {{domain}}.",

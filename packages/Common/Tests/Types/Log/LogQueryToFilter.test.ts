@@ -174,6 +174,75 @@ describe("queryStringToFilter - top-level fields", () => {
     expect(queryStringToFilter("service:api").primaryEntityId).toBe("api");
   });
 
+  /*
+   * Issue #8538: a level word names the severity ingest stores a log sent
+   * with that level as - one table of level words for ingest and search
+   * (LOG_SEVERITY_NUMBER_BY_TEXT). `severity:critical` used to stay
+   * "critical", which no row stores, and matched nothing.
+   */
+  test.each([
+    ["critical", "Fatal"],
+    ["CRITICAL", "Fatal"],
+    ["crit", "Error"],
+    ["alert", "Error"],
+    ["err", "Error"],
+    ["emerg", "Fatal"],
+    ["notice", "Information"],
+    ["informational", "Information"],
+    ["verbose", "Debug"],
+    ["WARN2", "Warning"],
+    ["fatal4", "Fatal"],
+    ["unspecified", "Unspecified"],
+  ])(
+    "severity:%s names the severity ingest stores it as: %s",
+    (word: string, stored: string) => {
+      expect(queryStringToFilter(`severity:${word}`).severityText).toBe(stored);
+    },
+  );
+
+  test("every operator reads the level words the same way", () => {
+    const filter: LogFilter = queryStringToFilter("level:(critical OR crit)");
+
+    expect((filter.severityText as unknown as Includes).values).toEqual([
+      "Fatal",
+      "Error",
+    ]);
+
+    const negated: LogFilter = queryStringToFilter("-severity:notice");
+    expect((negated.severityText as unknown as NotEqual<string>).value).toBe(
+      "Information",
+    );
+  });
+
+  /*
+   * The old table was an object literal: `severity:constructor` found the
+   * Object function, and the filter was built with a function as its value.
+   */
+  test.each([
+    "constructor",
+    "toString",
+    "valueOf",
+    "hasOwnProperty",
+    "__proto__",
+  ])(
+    "severity:%s is searched for as the word typed, a string",
+    (word: string) => {
+      const value: unknown = queryStringToFilter(
+        `severity:${word}`,
+      ).severityText;
+
+      expect(typeof value).toBe("string");
+      expect(value).toBe(word);
+    },
+  );
+
+  test("a word that names no level is searched for as typed", () => {
+    expect(queryStringToFilter("severity:custom-level").severityText).toBe(
+      "custom-level",
+    );
+    expect(queryStringToFilter("severity:INFO5").severityText).toBe("INFO5");
+  });
+
   test("negation produces a NotEqual with the normalized severity", () => {
     const filter: LogFilter = queryStringToFilter("-severity:debug");
 

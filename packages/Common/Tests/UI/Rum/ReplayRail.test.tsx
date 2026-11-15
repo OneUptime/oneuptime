@@ -1815,7 +1815,7 @@ describe("ReplayRail empty copy", () => {
     });
 
     expect(locked.detail).toBe(
-      'Your role lacks "{{permission}}". Ask a project admin for that permission to see these rows.',
+      'Your role lacks "{{permission}}". Ask a Project Admin for that permission to see these rows.',
     );
     expect(locked.detailValues).toEqual({ permission: "Read Logs" });
     expect(locked.isDetailAsWritten).toBeFalsy();

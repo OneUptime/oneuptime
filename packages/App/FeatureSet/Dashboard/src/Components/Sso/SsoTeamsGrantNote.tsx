@@ -102,9 +102,9 @@ const SsoTeamsGrantNote: FunctionComponent<ComponentProps> = (
       <span>
         {translator.translatePlural(
           {
-            one: "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+            one: "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save this provider.",
             other:
-              "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+              "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save this provider.",
           },
           teamNames.length,
           { teams: teamNames.join(", ") },

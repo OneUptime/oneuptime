@@ -244,8 +244,8 @@ Um monitor que você não monta a partir de um modelo começa com dois critério
 
 | Ordem | Critério | Atendido quando | Então |
 | --- | --- | --- | --- |
-| 1 | Check if _nome do monitor_ is offline | A primeira consulta não tem dados em toda a janela | Marca o monitor como **Offline** e declara o incidente "_nome do monitor_ is offline", que se resolve sozinho quando o monitor se recupera. |
-| 2 | Check if _nome do monitor_ is online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
+| 1 | Verificar se _nome do monitor_ está offline | A primeira consulta não tem dados em toda a janela | Marca o monitor como **Offline** e declara o incidente "_nome do monitor_ está offline", que se resolve sozinho quando o monitor se recupera. |
+| 2 | Verificar se _nome do monitor_ está online | A primeira consulta tem dados | Marca o monitor como **Operacional**. |
 
 > [!IMPORTANT]
 > Um valor de `0` é um dado, então uma métrica que costuma ser zero, como reinícios ou erros, não deixa o monitor offline. Para receber alertas sobre um valor, comece por um modelo ou adicione um critério com um limite. Quando nenhum dado chega e nenhum critério corresponde, o monitor mantém o status e os incidentes abertos continuam abertos: silêncio não é recuperação. O tempo em que o próprio OneUptime não recebia dados nunca conta como falta de dados: uma verificação cuja janela o inclui espera, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -275,7 +275,7 @@ Um health check que nunca disparou não tem série, `ceph_daemon_health_metrics`
 :::
 
 :::details Contadores como ceph_pool_wr_bytes só crescem
-As séries de E/S dos pools são contadores acumulados, e os critérios comparam valores brutos: não há operador de taxa, e **Convert to per-second rate** no construtor de consultas só muda o gráfico. Mostre-as como taxa no gráfico, ou alerte sobre o crescimento com uma fórmula, como uma consulta **Máximo** menos uma consulta **Mínimo** do mesmo contador.
+As séries de E/S dos pools são contadores acumulados, e os critérios comparam valores brutos: não há operador de taxa, e **Converter em taxa por segundo** no construtor de consultas só muda o gráfico. Mostre-as como taxa no gráfico, ou alerte sobre o crescimento com uma fórmula, como uma consulta **Máximo** menos uma consulta **Mínimo** do mesmo contador.
 :::
 
 ## Próximos passos

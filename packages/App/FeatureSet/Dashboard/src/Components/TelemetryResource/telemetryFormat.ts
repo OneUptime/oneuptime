@@ -1,4 +1,5 @@
 import { Translator } from "Common/Types/Translator";
+import { writeFigureInLanguage } from "Common/Types/DateLanguage";
 import {
   formatDurationInUnit,
   formatMilliseconds,
@@ -7,30 +8,55 @@ import {
  * Number formatting for the telemetry overview pages. Pure and import-free,
  * so React-free helpers (and the node tests that exercise them) can share
  * the exact wording the tiles show. telemetryMetrics.ts re-exports these.
+ *
+ * Each figure is written as English writes it - "1.2k", "2.5%", "1.5 GiB",
+ * exactly as every test pins it - and, handed the reader's translator, in
+ * their digits, decimal sign and percent sign with its scale letter and
+ * unit kept: "1,2k", "2,5 %", "1,5 GiB" in German, "۱٫۲k", "۲٫۵٪" in
+ * Persian, Latin digits in Arabic. The Requests, Error rate and Memory
+ * tiles of a service's, a function's, a site's and a cloud app's Overview
+ * read in Latin digits beside a p95 tile and charts in the reader's
+ * (#8481, Docs/ux/README.md#numbers-dates-and-plurals).
  */
-
-export const formatCompact: (n: number | null) => string = (
-  n: number | null,
+const inLanguage: (english: string, translator?: Translator) => string = (
+  english: string,
+  translator?: Translator,
 ): string => {
+  return translator
+    ? writeFigureInLanguage(english, translator.language)
+    : english;
+};
+
+export const formatCompact: (
+  n: number | null,
+  translator?: Translator,
+) => string = (n: number | null, translator?: Translator): string => {
   if (n === null || !Number.isFinite(n)) {
     return "—";
   }
   if (n < 1000) {
-    return String(Math.round(n));
+    return inLanguage(String(Math.round(n)), translator);
   }
   if (n < 1_000_000) {
-    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+    return inLanguage(
+      `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`,
+      translator,
+    );
   }
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  return inLanguage(
+    `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`,
+    translator,
+  );
 };
 
-export const formatPercent: (n: number | null) => string = (
+export const formatPercent: (
   n: number | null,
-): string => {
+  translator?: Translator,
+) => string = (n: number | null, translator?: Translator): string => {
   if (n === null || !Number.isFinite(n)) {
     return "—";
   }
-  return `${n.toFixed(1)}%`;
+  return inLanguage(`${n.toFixed(1)}%`, translator);
 };
 
 /*
@@ -100,12 +126,16 @@ export const getBytesReading: (bytes: number) => BytesReading = (
   };
 };
 
-export const formatBytes: (bytes: number | null) => string = (
+export const formatBytes: (
   bytes: number | null,
-): string => {
+  translator?: Translator,
+) => string = (bytes: number | null, translator?: Translator): string => {
   if (bytes === null || !Number.isFinite(bytes)) {
     return "—";
   }
   const reading: BytesReading = getBytesReading(bytes);
-  return `${reading.value.toFixed(reading.decimals)} ${reading.unit}`;
+  return inLanguage(
+    `${reading.value.toFixed(reading.decimals)} ${reading.unit}`,
+    translator,
+  );
 };

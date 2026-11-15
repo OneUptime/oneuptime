@@ -782,7 +782,7 @@ describe("2. Who should be told?", () => {
     await toWhoIsTold();
 
     expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
-      "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a project owner or admin to set one up.",
+      "You own this monitor, so you are emailed when it goes down. Paging a team needs an on-call policy: ask a Project Owner or Project Admin to set one up.",
     );
     expect(screen.queryByTestId("guided-setup-people")).toBeNull();
 
@@ -2121,7 +2121,7 @@ describe("a payment method first, on Cloud's Free plan (#7367)", () => {
     await renderSetup();
 
     expect(screen.getByTestId("guided-setup-payment-needed")).toHaveTextContent(
-      "Ask a project owner to add a payment method before you start checking.",
+      "Ask a Project Owner to add a payment method before you start checking.",
     );
     expect(screen.queryByTestId("guided-setup-add-payment-method")).toBeNull();
   });

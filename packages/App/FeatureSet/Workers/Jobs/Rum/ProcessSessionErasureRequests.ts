@@ -1719,7 +1719,7 @@ export async function processErasureRequest(data: {
         );
       } catch (mailError) {
         logger.error(
-          `${JOB_NAME}: could not notify project owners about failed erasure request ${requestId.toString()}: ${getErrorMessage(mailError)}`,
+          `${JOB_NAME}: could not notify Project Owners about failed erasure request ${requestId.toString()}: ${getErrorMessage(mailError)}`,
         );
       }
     }

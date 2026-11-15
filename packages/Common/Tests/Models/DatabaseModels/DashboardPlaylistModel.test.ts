@@ -149,7 +149,7 @@ describe("DashboardPlaylist: what it is", () => {
 });
 
 describe("DashboardPlaylist: who makes, plays, changes and deletes one", () => {
-  test("project owners and admins, or the playlist permission, make, change and delete playlists", () => {
+  test("Project Owners and Project Admins, or the playlist permission, make, change and delete playlists", () => {
     expect(playlist.getCreatePermissions()).toEqual(CREATORS);
     expect(playlist.getUpdatePermissions()).toEqual(EDITORS);
     expect(playlist.getDeletePermissions()).toEqual(DELETERS);

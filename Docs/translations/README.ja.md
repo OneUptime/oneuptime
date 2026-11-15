@@ -55,7 +55,7 @@ OneUptime はオープンソースのオブザーバビリティプラットフ�
 
 ### OneUptime Cloud
 
-[サインアップ](https://oneuptime.com/accounts/register)してプロジェクトを作成します。無料プランにクレジットカードは不要です。
+[サインアップ](https://oneuptime.com/accounts/register)してプロジェクトを作成します。プロジェクトにクレジットカードは不要です。Free プランでは、Web サイトのチェックに支払い方法の登録が必要です。
 
 ### Docker Compose でセルフホストする
 

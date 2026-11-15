@@ -83,8 +83,13 @@ export const isDashPlaceholder: (node: React.ReactNode) => boolean = (
  * On the value's own 24px line (leading-6): text-sm alone sets a 20px one,
  * which put the dash 2px above the values beside it in its row, and made a
  * row of empty fields 4px shorter than a row of set ones.
+ *
+ * `relative`, so the sr-only words (position: absolute) stay inside the
+ * dash's own box, as the table's do (TableEmptyValue): placed against the
+ * page, they reach past a box that scrolls sideways and widen a phone's page.
  */
-export const EMPTY_VALUE_CLASS_NAME: string = "text-sm leading-6 text-gray-400";
+export const EMPTY_VALUE_CLASS_NAME: string =
+  "relative text-sm leading-6 text-gray-400";
 
 export const EMPTY_VALUE_TEST_ID: string = "detail-empty-value";
 
@@ -92,7 +97,8 @@ export const EMPTY_VALUE_TEST_ID: string = "detail-empty-value";
  * In a line of small text (text-xs) - a card's footnote, a compact list's
  * row: the dash at that size, on that line's own height.
  */
-export const EMPTY_VALUE_SMALL_CLASS_NAME: string = "text-xs text-gray-400";
+export const EMPTY_VALUE_SMALL_CLASS_NAME: string =
+  "relative text-xs text-gray-400";
 
 export interface ComponentProps {
   // The field's own words, in English: looked up where they are drawn.

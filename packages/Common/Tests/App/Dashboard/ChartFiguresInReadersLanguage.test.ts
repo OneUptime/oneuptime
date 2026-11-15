@@ -6,7 +6,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 import { formatDurationMsInLanguage as formatTelemetryDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
 import { formatRuntimeValue } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/serviceGoldenMetrics";
-import { formatVital } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalsCard";
+import {
+  formatVital,
+  RatedValue,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalsCard";
 import {
   formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
@@ -210,7 +213,7 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     expectPersian(formatRuntimeValue(2500, "count", translators["fa"]!));
     expectPersian(formatRuntimeValue(42, "milliseconds", translators["fa"]!));
 
-    const lcp: { value: number; unit: string; thresholds: never } = {
+    const lcp: RatedValue = {
       value: 2500,
       unit: "ms",
       thresholds: undefined as never,
@@ -219,7 +222,7 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     expectPersian(formatVital(lcp, translators["fa"]!));
     expect(
       formatVital(
-        { value: 0.1, unit: "", thresholds: undefined as never },
+        { value: 0.1, unit: "score", thresholds: undefined as never },
         translators["de"]!,
       ),
     ).toBe("0,100");
@@ -380,21 +383,31 @@ describe("a database's and a queue's engine charts (#8283)", () => {
     );
   });
 
-  test("a tile in the reader's digits, its unit word kept", () => {
+  // The unit word in the reader's language too (#8482, EngineMetricTileUnitsInReadersLanguage).
+  test("a tile in the reader's digits and its unit in their words", () => {
     expect(formatDatabaseMetricValue(1, "databases", "gauge")).toBe(
       "1 database",
     );
     expect(
-      formatDatabaseMetricValue(
-        2500,
-        "connections",
-        "gauge",
-        translators["fa"]!,
+      spaced(
+        formatDatabaseMetricValue(
+          2500,
+          "connections",
+          "gauge",
+          translators["fa"]!,
+        ),
       ),
-    ).toBe("۲٫۵k connections");
+    ).toBe("۲٫۵k اتصال");
     expect(
-      formatDatabaseMetricValue(12.5, "commits", "counter", translators["de"]!),
-    ).toBe("12,5 commits/s");
+      spaced(
+        formatDatabaseMetricValue(
+          12.5,
+          "commits",
+          "counter",
+          translators["de"]!,
+        ),
+      ),
+    ).toBe("12,5 Commits/s");
     expect(
       formatDatabaseMetricValue(1024, "bytes", "counter", translators["de"]!),
     ).toBe("1,0\u00A0KiB/s");

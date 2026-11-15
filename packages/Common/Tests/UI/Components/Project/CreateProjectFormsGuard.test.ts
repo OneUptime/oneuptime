@@ -17,8 +17,10 @@ import ts from "typescript";
  *
  *   - a ModelFormModal or a creating ModelTable of Project takes its fields
  *     from getCreateProjectFormFields, and walks no steps;
- *   - only that builder asks for a promo code, and only it and the Billing
- *     page's Change Plan ask for a plan;
+ *   - only that builder asks for a promo code, and only it and the two
+ *     Change Plans ask for a plan: the Billing page's, and the one staff use
+ *     on a project's Subscription page in the Admin Dashboard (#6771). Both
+ *     draw the customer's own PlanPicker, as a plan change;
  *   - no source writes a yearly saving into its copy ("Save 20%").
  */
 
@@ -48,6 +50,14 @@ const BUILDER: string =
   "packages/Common/UI/Components/Project/CreateProjectFormFields.tsx";
 const BILLING_PAGE: string =
   "packages/App/FeatureSet/Dashboard/src/Pages/Settings/Billing.tsx";
+// Change Plan for staff, on a project's Subscription page (#6771, ac44851e91e).
+const ADMIN_SUBSCRIPTION_PAGE: string =
+  "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Subscription.tsx";
+// The pages that change a project's plan once it has one.
+const CHANGE_PLAN_PAGES: Array<string> = [
+  BILLING_PAGE,
+  ADMIN_SUBSCRIPTION_PAGE,
+];
 
 // The forms that create a project. A new one is added here on purpose.
 const PROJECT_CREATE_FORMS: Array<string> = [
@@ -318,10 +328,40 @@ describe("Every form that creates a project", () => {
     ]);
   });
 
-  it("asks for a plan only there, and on the Billing page's Change Plan", () => {
+  it("asks for a plan only there, and on the two Change Plans", () => {
     expect(filesWithFormFieldFor("paymentProviderPlanId")).toEqual(
-      [BILLING_PAGE, BUILDER].sort(),
+      [BUILDER, ...CHANGE_PLAN_PAGES].sort(),
     );
+  });
+
+  it("changes a plan with the customer's own PlanPicker, as a plan change, on each Change Plan page", () => {
+    for (const page of CHANGE_PLAN_PAGES) {
+      const source: SourceFile | undefined = SOURCES.find(
+        (candidate: SourceFile): boolean => {
+          return candidate.file === page;
+        },
+      );
+
+      expect([page, Boolean(source)]).toEqual([page, true]);
+      expect([
+        page,
+        source!.text.includes(
+          'import PlanPicker from "Common/UI/Components/Billing/PlanPicker/PlanPicker";',
+        ),
+      ]).toEqual([page, true]);
+      expect([page, source!.text.includes("<PlanPicker")]).toEqual([
+        page,
+        true,
+      ]);
+      expect([page, source!.text.includes("isPlanChange={true}")]).toEqual([
+        page,
+        true,
+      ]);
+      // A plan change asks for no promo code: that is the builder's alone.
+      expect([page, source!.text.includes("paymentProviderPromoCode")]).toEqual(
+        [page, false],
+      );
+    }
   });
 
   it("folds the promo code under More fields", () => {

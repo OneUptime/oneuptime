@@ -254,8 +254,9 @@ describe("the repeat summary reads as one sentence in the reader's language", ()
   test("Japanese", async () => {
     await readIn("ja");
 
+    // "最大" meets the count's own words with no space between them (#8532).
     expect(summaryText(ON_CALL_POLICY_REPEAT, onCallPair(2))).toBe(
-      "Level 1 からやり直す（最大 あと 2 回）",
+      "Level 1 からやり直す（最大あと 2 回）",
     );
   });
 

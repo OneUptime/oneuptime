@@ -257,6 +257,46 @@ describe("toLogsExplorerQueryParams", () => {
         ["severityText", ["Error"]],
       ]);
     });
+
+    /*
+     * Issue #8538: the words ingest reads a sender's level with name the
+     * severity it stores them as - one table of level words for ingest,
+     * the search and this scope.
+     */
+    test("a level word ingest reads names the severity ingest stores it as", () => {
+      const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+        severityTexts: [
+          "critical",
+          "crit",
+          "notice",
+          "emerg",
+          "WARN2",
+          "verbose",
+          "err",
+        ],
+      });
+
+      // emerg and err collapse into the Fatal and Error already there.
+      expect(JSON.parse(result.params["filters"] as string)).toEqual([
+        ["severityText", ["Fatal", "Error", "Information", "Warning", "Debug"]],
+      ]);
+    });
+
+    test("a value named like an Object member stays the string it was, never a function", () => {
+      const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+        severityTexts: ["constructor", "toString", "__proto__", "valueOf"],
+      });
+      const filters: Array<[string, Array<unknown>]> = JSON.parse(
+        result.params["filters"] as string,
+      ) as Array<[string, Array<unknown>]>;
+
+      expect(filters).toEqual([
+        ["severityText", ["constructor", "toString", "__proto__", "valueOf"]],
+      ]);
+      for (const value of filters[0]![1]) {
+        expect(typeof value).toBe("string");
+      }
+    });
   });
 
   describe("Escaping via JSON", () => {

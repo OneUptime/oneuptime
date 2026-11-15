@@ -329,7 +329,7 @@ describe("Cloud Environment overview", () => {
 
     const tile: string = instancesTile();
 
-    expect(tile).toContain("formatCompact(liveInstances.length)");
+    expect(tile).toContain("formatCompact(liveInstances.length, translator)");
     // The window under the count, unless the tile's note takes its place.
     expect(tile).toContain(
       "sublabel: instancesNote ? undefined : translator.translateTemplate(",
@@ -341,7 +341,9 @@ describe("Cloud Environment overview", () => {
   test("adds error rate and p95 latency tiles from the span metrics", () => {
     const errorTile: string = traceTile("Error rate");
 
-    expect(errorTile).toContain("formatPercent(m.errorRatePercent)");
+    expect(errorTile).toContain(
+      "formatPercent(m.errorRatePercent, translator)",
+    );
     // No meter for a rate the note says was never measured.
     expect(errorTile).toContain(
       "percent: m && !traceNote ? m.errorRatePercent : null",
