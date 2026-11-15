@@ -42,12 +42,26 @@
  *   - ../tsconfig.tests.rest.json (what was left, 9,613 files): 4.26 GB.
  * Tests/App, at 8.84 GB the same way (13,990 files), was split the same day,
  * by name, because nearly all of it is one directory (Tests/App/Dashboard,
- * some 1,650 tests): ../tsconfig.tests.app-dashboard-a-m.json (Dashboard
+ * some 1,650 tests): tsconfig.tests.app-dashboard-a-m.json (Dashboard
  * tests A to M, 12,069 files): 5.67 GB; ../tsconfig.tests.app-rest.json
  * (every other App test, 12,053 files): 7.19 GB. The two share most of the
  * Dashboard sources, which is why halving the tests did not halve the
  * memory. tsconfig.tests.app.json stays the whole of Tests/App, the program
  * editors and ESLint use for it.
+ *
+ * On 2026-11-15 (Tests/App/Dashboard at 2,573 tests) the App rest ran out of
+ * its 8 GiB heap, with only Common installed as in the compile-common job,
+ * and the A-to-M part used 7.49 GiB of it. Halving the rest was not enough
+ * either: its Dashboard tests N to Z alone used 7.81 GiB. So the Dashboard
+ * tests are five parts by name, and the App rest is every other App test:
+ *   - ../tsconfig.tests.app-dashboard-a-d.json (13,526 files): 6.16 GiB;
+ *   - ../tsconfig.tests.app-dashboard-e-l.json (12,586 files): 5.44 GiB;
+ *   - ../tsconfig.tests.app-dashboard-m-o.json (12,517 files): 5.52 GiB;
+ *   - ../tsconfig.tests.app-dashboard-p-r.json (12,031 files): 5.97 GiB;
+ *   - ../tsconfig.tests.app-dashboard-s-z.json (13,142 files): 5.91 GiB;
+ *   - ../tsconfig.tests.app-rest.json (10,317 files): 4.65 GiB.
+ * Each takes about two minutes here. When one nears its heap, draw its
+ * letters across two parts the same way.
  *
  * Nothing goes unchecked:
  *   - every part extends tsconfig.tests.json and changes only which files it
@@ -79,7 +93,11 @@ const ts = require("typescript");
 const COMMON_DIRECTORY = path.resolve(__dirname, "..");
 const WHOLE_PROGRAM = "tsconfig.tests.json";
 const PARTS = [
-  "tsconfig.tests.app-dashboard-a-m.json",
+  "tsconfig.tests.app-dashboard-a-d.json",
+  "tsconfig.tests.app-dashboard-e-l.json",
+  "tsconfig.tests.app-dashboard-m-o.json",
+  "tsconfig.tests.app-dashboard-p-r.json",
+  "tsconfig.tests.app-dashboard-s-z.json",
   "tsconfig.tests.app-rest.json",
   "tsconfig.tests.ui.json",
   "tsconfig.tests.server.json",
