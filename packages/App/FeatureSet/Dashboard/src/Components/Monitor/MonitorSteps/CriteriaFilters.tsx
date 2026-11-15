@@ -1,4 +1,3 @@
-import FilterCondition from "Common/Types/Filter/FilterCondition";
 import CriteriaFilterElement from "./CriteriaFilter";
 import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -6,10 +5,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   criteriaFilters: Array<CriteriaFilter>;
-  filterCondition: FilterCondition;
   monitorType?: MonitorType | undefined;
 }
 
+/*
+ * A criteria's filters, one sentence each. Whether all of them must match
+ * or any one is said once, by the heading above them
+ * (MonitorCriteriaInstance), rather than an "and," or "or," left at the
+ * end of every line but the last (#8533).
+ */
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -21,7 +25,11 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             const isLastItem: boolean =
               index === props.criteriaFilters.length - 1;
             return (
-              <li className="relative flex gap-x-4" key={index}>
+              <li
+                className="relative flex gap-x-4"
+                key={index}
+                data-testid="monitor-criteria-filter"
+              >
                 {!isLastItem && (
                   <div className="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
                     <div className="w-px bg-gray-200"></div>
@@ -33,9 +41,6 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                 <CriteriaFilterElement
                   key={index}
                   criteriaFilter={i}
-                  filterCondition={
-                    !isLastItem ? props.filterCondition : undefined
-                  }
                   monitorType={props.monitorType}
                 />{" "}
               </li>

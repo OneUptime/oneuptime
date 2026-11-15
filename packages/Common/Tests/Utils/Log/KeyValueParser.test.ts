@@ -251,13 +251,24 @@ describe("parseKeyValuePairs - keys", () => {
     expect(parseKeyValuePairs("1st=a -x=b ok=c")).toEqual({ ok: "c" });
   });
 
-  it("never treats __proto__ as a key", () => {
+  // A key like any other (issue #8487): the result's own, never its prototype.
+  it("keeps __proto__ and constructor as the result's own keys", () => {
     const pairs: Record<string, string> = parseKeyValuePairs(
-      "__proto__=polluted constructor=x a=1",
+      "__proto__=polluted constructor=x a=1 __proto__=again",
     );
 
-    expect(Object.keys(pairs)).toEqual(["constructor", "a"]);
+    expect(Object.keys(pairs)).toEqual(["__proto__", "constructor", "a"]);
+    expect(Object.getOwnPropertyDescriptor(pairs, "__proto__")).toEqual({
+      value: "polluted",
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+    expect(pairs["constructor"]).toBe("x");
     expect(Object.getPrototypeOf(pairs)).toBe(Object.prototype);
+    expect(JSON.stringify(pairs)).toBe(
+      '{"__proto__":"polluted","constructor":"x","a":"1"}',
+    );
     expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
   });
 

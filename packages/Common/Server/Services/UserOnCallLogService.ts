@@ -48,6 +48,7 @@ import {
   getOnCallFallbackNotifiedStatusMessage,
   getOnCallNoVerifiedMethodStatusMessage,
   getOnCallOptedOutStatusMessage,
+  NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
   NO_NOTIFICATION_RULES_STATUS_MESSAGE,
   NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
 } from "../../Types/OnCallDutyPolicy/OnCallPageLine";
@@ -86,11 +87,11 @@ export {
 
 /*
  * Why an on-call notification log stopped part way: the person left the
- * project (UserOnCallLog:ExecutePendingExecutions asks before every tick), so
- * the rules still due for them - "call me after 10 minutes" - are not run.
+ * project. Kept with the other lines a person's page says
+ * (Types/OnCallDutyPolicy/OnCallPageLine), where the on-call logs read it
+ * back (#8551).
  */
-export const NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
-  "Stopped because this user is no longer a member of the project. Their remaining notification rules were not run.";
+export { NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE };
 
 /*
  * FindWhereProperty is constrained to object types, so the parameter is `any`

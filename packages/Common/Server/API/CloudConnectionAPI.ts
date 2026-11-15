@@ -396,7 +396,7 @@ export default class CloudConnectionAPI extends BaseAPI<
       databaseProps: props,
       allowedPermissions: new CloudConnection().getUpdatePermissions(),
       errorMessage:
-        "Project Owners and project administrators can connect, test and read cloud accounts.",
+        "Project Owners and Project Admins can connect, test and read cloud accounts.",
     });
   }
 

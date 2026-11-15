@@ -7,6 +7,7 @@ import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
 import { radius } from "../theme/tokens";
 import type { MyOnCallShift } from "../api/types";
+import { onAPhoneThatReads } from "../__tests__/phoneClock";
 
 let mockColorScheme: "light" | "dark" = "light";
 
@@ -79,6 +80,27 @@ describe("MyShiftCard", () => {
     ).toBeTruthy();
     expect(screen.getByText("in 21h")).toBeTruthy();
   });
+
+  /*
+   * The window on the phone's own clock (#8232): a 24-hour phone read
+   * "Tomorrow 9:00 AM → Tomorrow 5:00 PM" here and "09:00" on an
+   * incident's Created row.
+   */
+  test.each<[boolean, RegExp]>([
+    [true, /^Tomorrow 9:00\sAM → Tomorrow 5:00\sPM$/],
+    [false, /^Tomorrow 09:00 → Tomorrow 17:00$/],
+  ])(
+    "writes the window on the phone's clock (12-hour: %p)",
+    async (twelveHour: boolean, window: RegExp): Promise<void> => {
+      onAPhoneThatReads(twelveHour);
+
+      await render(<MyShiftCard shift={shift()} now={NOW} />);
+
+      expect(screen.getByText(window)).toBeTruthy();
+
+      jest.restoreAllMocks();
+    },
+  );
 
   test("shows the useful schedule layer when the server named one", async (): Promise<void> => {
     await render(

@@ -59,6 +59,10 @@ import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
 import Exception from "../../Types/Exception/Exception";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { sendUnexplainedError } from "./UnexplainedServerError";
+import {
+  RequestBodyRefusal,
+  readRequestBodyRefusal,
+} from "./RequestBodyRefusal";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -650,6 +654,33 @@ export const expressErrorHandler: (
   res: ExpressResponse,
   next: NextFunction,
 ): void => {
+  /*
+   * A body a body parser refused - over the 50 MB limit, JSON that does not
+   * parse - is the client's: answered with its own 4xx and a sentence that
+   * says what to do, never as a fault the server could not explain (#8419,
+   * RequestBodyRefusal). Logged at debug, as GzipRequestBody logs its own
+   * 413s: it is reached before anyone signs in, so a level the log sink
+   * keeps by default would hand anyone a way to fill it, and it is nothing
+   * for the on-call person to fix.
+   */
+  const bodyRefusal: RequestBodyRefusal | null = readRequestBodyRefusal(err);
+
+  if (bodyRefusal) {
+    logger.debug(
+      `Refused a request body (${bodyRefusal.type}): answered ${bodyRefusal.status}.`,
+      getLogAttributesFromRequest(_req as OneUptimeRequest),
+    );
+
+    if (res.headersSent) {
+      next(err);
+      return;
+    }
+
+    res.status(bodyRefusal.status);
+    res.send({ error: bodyRefusal.message });
+    return;
+  }
+
   logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
 
   /*

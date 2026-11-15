@@ -97,7 +97,7 @@ Preencha **ID do diretório (tenant)**, **ID do aplicativo (cliente)** e **Segre
 
 | Configuração | O que faz |
 | --- | --- |
-| **Quem pode ler as conversas** | **Proprietários e administradores do projeto**, o padrão: ninguém mais no projeto vê essas conversas, nem as chamadas de IA que as compõem, em nenhum lugar do OneUptime. **Todos que podem ler chamadas de IA**: todos que podem ler os traces do projeto. |
+| **Quem pode ler as conversas** | **Proprietários do projeto e Administradores do projeto**, o padrão: ninguém mais no projeto vê essas conversas, nem as chamadas de IA que as compõem, em nenhum lugar do OneUptime. **Todos que podem ler chamadas de IA**: todos que podem ler os traces do projeto. |
 | **Manter o que foi escrito** | Ligado, o padrão: as perguntas e as respostas são guardadas. Desligado: o OneUptime guarda quem perguntou, quando, com qual modelo e em qual app, mas não as palavras. |
 
 Uma mudança em quem pode ler vale em até um minuto. Desligar **Manter o que foi escrito** vale para os chats lidos depois; o que foi guardado antes fica até o fim da retenção.
@@ -139,7 +139,7 @@ No Copilot, conceda o consentimento do administrador para as permissões do Grap
 :::
 
 :::details Alguém não consegue ver as conversas
-**Quem pode ler as conversas** está em **Proprietários e administradores do projeto**. Um proprietário ou administrador pode mudar isso com **Editar** na linha da conexão.
+**Quem pode ler as conversas** está em **Proprietários do projeto e Administradores do projeto**. Um proprietário ou administrador pode mudar isso com **Editar** na linha da conexão.
 :::
 
 :::details As conversas mostram quem perguntou, mas não as palavras
