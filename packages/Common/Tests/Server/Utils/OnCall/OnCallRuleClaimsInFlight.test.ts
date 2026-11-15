@@ -5,6 +5,7 @@ import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCall
 import logger from "../../../../Server/Utils/Logger";
 import OnCallRuleClaimsInFlight, {
   OnCallRuleClaimInFlight,
+  OnCallRuleClaimSettlement,
 } from "../../../../Server/Utils/OnCall/OnCallRuleClaimsInFlight";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -272,7 +273,7 @@ describe("the worker settling a claim whose page never finished", () => {
         claim: claim(),
         now: minutesAfterTheClaim(1),
       }),
-    ).resolves.toBe(false);
+    ).resolves.toBe(OnCallRuleClaimSettlement.NotYet);
 
     expect(statements).toEqual([]);
     expect(Object.keys(executed)).toEqual([RULE_ID]);
@@ -290,7 +291,7 @@ describe("the worker settling a claim whose page never finished", () => {
         claim: claim(),
         now: minutesAfterTheClaim(3),
       }),
-    ).resolves.toBe(true);
+    ).resolves.toBe(OnCallRuleClaimSettlement.GivenBack);
 
     expect(executed).toEqual({});
     expect(log.executedNotificationRules).toEqual({});
@@ -308,7 +309,7 @@ describe("the worker settling a claim whose page never finished", () => {
         claim: claim(),
         now: minutesAfterTheClaim(3),
       }),
-    ).resolves.toBe(false);
+    ).resolves.toBe(OnCallRuleClaimSettlement.Settled);
 
     expect(statements).toEqual([]);
     expect(Object.keys(executed)).toEqual([RULE_ID]);
@@ -347,7 +348,7 @@ describe("the worker settling a claim whose page never finished", () => {
         claim: claim({ owed: true }),
         now: minutesAfterTheClaim(0),
       }),
-    ).resolves.toBe(true);
+    ).resolves.toBe(OnCallRuleClaimSettlement.GivenBack);
 
     expect(UserOnCallLogTimelineService.countBy).not.toHaveBeenCalled();
     expect(executed).toEqual({});
@@ -363,7 +364,7 @@ describe("the worker settling a claim whose page never finished", () => {
         claim: claim(),
         now: minutesAfterTheClaim(10),
       }),
-    ).resolves.toBe(false);
+    ).resolves.toBe(OnCallRuleClaimSettlement.Settled);
 
     expect(statements).toEqual([]);
     expect(Object.keys(executed)).toEqual([RULE_ID]);
@@ -403,7 +404,7 @@ describe("the worker settling a claim whose page never finished", () => {
         claim: claim({ claimKey: repeatKey }),
         now: minutesAfterTheClaim(3),
       }),
-    ).resolves.toBe(true);
+    ).resolves.toBe(OnCallRuleClaimSettlement.GivenBack);
 
     expect(Object.keys(executed)).toEqual([RULE_ID]);
   });

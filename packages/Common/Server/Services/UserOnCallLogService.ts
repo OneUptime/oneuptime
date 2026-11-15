@@ -39,6 +39,7 @@ import { JSONObject } from "../../Types/JSON";
 import logger from "../Utils/Logger";
 import OnCallRuleClaimsInFlight, {
   OnCallRuleClaimInFlight,
+  OnCallRuleClaimSettlement,
 } from "../Utils/OnCall/OnCallRuleClaimsInFlight";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import { ON_CALL_PAGE_SENT_STATUS_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -228,9 +229,9 @@ export class Service extends DatabaseService<Model> {
    * notification row of its rule was written since it was taken: that send
    * may have reached its sender, and sending it again could page twice.
    * Otherwise nothing of it was sent, and it is given back - and taken off
-   * `log`, as the worker read it, so this try sends the rule. Returns
-   * whether it was given back; throws as the database does, and the claim
-   * stays in flight for the try after.
+   * `log`, as the worker read it, so this try sends the rule. Says which
+   * it was; throws as the database does, and the claim stays in flight for
+   * the try after.
    */
   @CaptureSpan()
   public async settleRuleClaimInFlight(data: {
@@ -238,7 +239,7 @@ export class Service extends DatabaseService<Model> {
     log: Model;
     claim: OnCallRuleClaimInFlight;
     now: Date;
-  }): Promise<boolean> {
+  }): Promise<OnCallRuleClaimSettlement> {
     const log: Model = data.log;
     const claim: OnCallRuleClaimInFlight = data.claim;
 
@@ -247,7 +248,7 @@ export class Service extends DatabaseService<Model> {
       data.now.getTime() - claim.claimedAt.getTime() <
         OnCallRuleClaimsInFlight.SETTLE_AFTER_MS
     ) {
-      return false;
+      return OnCallRuleClaimSettlement.NotYet;
     }
 
     const executed: JSONObject = log.executedNotificationRules || {};
@@ -256,7 +257,7 @@ export class Service extends DatabaseService<Model> {
       !OnCallRuleClaimsInFlight.isClaimTakenAt(claim, executed[claim.claimKey])
     ) {
       await OnCallRuleClaimsInFlight.forget(log.id);
-      return false;
+      return OnCallRuleClaimSettlement.Settled;
     }
 
     if (!claim.owed) {
@@ -283,7 +284,7 @@ export class Service extends DatabaseService<Model> {
         );
 
         await OnCallRuleClaimsInFlight.forget(log.id);
-        return false;
+        return OnCallRuleClaimSettlement.Settled;
       }
     }
 
@@ -296,7 +297,7 @@ export class Service extends DatabaseService<Model> {
     await OnCallRuleClaimsInFlight.forget(log.id);
 
     if (!released) {
-      return false;
+      return OnCallRuleClaimSettlement.Settled;
     }
 
     logger.warn(
@@ -307,7 +308,7 @@ export class Service extends DatabaseService<Model> {
     delete remaining[claim.claimKey];
     log.executedNotificationRules = remaining;
 
-    return true;
+    return OnCallRuleClaimSettlement.GivenBack;
   }
 
   /**

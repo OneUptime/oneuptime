@@ -38,6 +38,7 @@ import OnCallRecordStates, {
 import { UserOnCallLogRetries } from "Common/Server/Utils/OnCall/OnCallPolicyRunRetries";
 import OnCallRuleClaimsInFlight, {
   OnCallRuleClaimInFlight,
+  OnCallRuleClaimSettlement,
 } from "Common/Server/Utils/OnCall/OnCallRuleClaimsInFlight";
 import OnCallRunFailure, {
   OnCallRunFailureKind,
@@ -465,18 +466,22 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             await OnCallRuleClaimsInFlight.read([pendingNotificationLog.id])
           ).get(pendingNotificationLog.id?.toString() || "");
 
-      if (claimInFlight) {
-        await UserOnCallLogService.settleRuleClaimInFlight({
-          log: pendingNotificationLog,
-          claim: claimInFlight,
-          now: now,
-        });
-      }
+      const settlement: OnCallRuleClaimSettlement | null = claimInFlight
+        ? await UserOnCallLogService.settleRuleClaimInFlight({
+            log: pendingNotificationLog,
+            claim: claimInFlight,
+            now: now,
+          })
+        : null;
 
       await runPendingNotificationLog(
         pendingNotificationLog,
         membership,
         pageRead,
+        {
+          waitsForAClaimInFlight:
+            settlement === OnCallRuleClaimSettlement.NotYet,
+        },
       );
     } catch (err) {
       await onLogFailed({
@@ -621,13 +626,34 @@ const endLogInError: (
 };
 
 // What a log needs this minute. What a failure means is executePendingNotificationLog's.
-const runPendingNotificationLog: ExecutePendingNotificationLogFunction = async (
+type RunPendingNotificationLogFunction = (
   pendingNotificationLog: UserOnCallLog,
   membership: { isProjectMember: boolean },
-  pageRead?: {
-    recordStates: OnCallRecordStates;
-    rulesRead: NotificationRulesRead;
+  pageRead:
+    | {
+        recordStates: OnCallRecordStates;
+        rulesRead: NotificationRulesRead;
+      }
+    | undefined,
+  options: {
+    /*
+     * One of its rules' claims is still in flight, maybe still on its way
+     * (OnCallRuleClaimsInFlight): the log is not done until it is settled.
+     */
+    waitsForAClaimInFlight: boolean;
   },
+) => Promise<void>;
+
+const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
+  pendingNotificationLog: UserOnCallLog,
+  membership: { isProjectMember: boolean },
+  pageRead:
+    | {
+        recordStates: OnCallRecordStates;
+        rulesRead: NotificationRulesRead;
+      }
+    | undefined,
+  options: { waitsForAClaimInFlight: boolean },
 ): Promise<void> => {
   const page: {
     recordStates: OnCallRecordStates;
@@ -1038,6 +1064,18 @@ const runPendingNotificationLog: ExecutePendingNotificationLogFunction = async (
    */
   if (!isAllExecuted) {
     await rulesTick.finish();
+  }
+
+  /*
+   * Every rule is claimed, but one claim's page never finished and is
+   * settled at a later try (issue #8407): the log waits for it - it may
+   * be given back, and its rule sent then.
+   */
+  if (isAllExecuted && options.waitsForAClaimInFlight) {
+    logger.debug(
+      `On-call log ${pendingNotificationLog._id}: every rule is claimed, and one claim is still in flight; it is settled before the log completes.`,
+    );
+    return;
   }
 
   if (isAllExecuted) {

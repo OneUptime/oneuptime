@@ -43,6 +43,19 @@ export interface OnCallRuleClaimInFlight {
   owed: boolean;
 }
 
+// How the person's-log worker settled a claim in flight (settleRuleClaimInFlight).
+export enum OnCallRuleClaimSettlement {
+  /*
+   * Its page may still be on its way: left alone, and its log is not done
+   * until it is settled.
+   */
+  NotYet = "NotYet",
+  // Nothing of it was sent: given back, and its rule is due again.
+  GivenBack = "GivenBack",
+  // It may have been sent, or its log no longer holds it: it stands as it is.
+  Settled = "Settled",
+}
+
 // A claim kept in Redis: its moment in milliseconds since the epoch.
 type KeptClaim = {
   claimKey: string;
