@@ -175,7 +175,11 @@
       "noItems": "Non è stata ancora rilasciata alcuna licenza Enterprise.",
       "settingsCardTitle": "Impostazioni di notifica delle licenze",
       "settingsCardDescription": "Chi viene messo in copia nelle e-mail sulle licenze e con quanto anticipo vengono inviati i promemoria di scadenza. I promemoria vengono inviati ogni giorno via e-mail agli amministratori principali del cliente finché una licenza supera il limite di utenti o è prossima alla scadenza.",
-      "settingsEditButton": "Modifica impostazioni"
+      "settingsEditButton": "Modifica impostazioni",
+      "cloudOnlyTitle": "Disponibile solo su OneUptime Cloud",
+      "cloudOnlyDescription": "Le licenze Enterprise vengono rilasciate e monitorate su oneuptime.com, l'edizione hosted, dove la fatturazione è abilitata. Questa istanza self-hosted non gestisce licenze.",
+      "enterpriseEditionRequiredTitle": "Richiede la Enterprise Edition di OneUptime",
+      "enterpriseEditionRequiredDescription": "La gestione delle licenze fa parte della Enterprise Edition di OneUptime. Distribuisci l'immagine della Enterprise Edition per rilasciare e monitorare le licenze."
     },
     "enterpriseLicenseView": {
       "title": "Licenza Enterprise",

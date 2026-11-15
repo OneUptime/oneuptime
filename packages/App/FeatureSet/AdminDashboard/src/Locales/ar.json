@@ -175,7 +175,11 @@
       "noItems": "لم يصدر أي ترخيص مؤسسي بعد.",
       "settingsCardTitle": "إعدادات إشعارات الترخيص",
       "settingsCardDescription": "من يُنسخ في رسائل الترخيص، وكم مبكرًا تُرسل تذكيرات انتهاء الصلاحية. تُرسل التذكيرات يوميًا إلى المسؤولين الرئيسيين لدى العميل ما دام الترخيص متجاوزًا حد المستخدمين أو قريبًا من انتهاء صلاحيته.",
-      "settingsEditButton": "تعديل الإعدادات"
+      "settingsEditButton": "تعديل الإعدادات",
+      "cloudOnlyTitle": "متاح على OneUptime Cloud فقط",
+      "cloudOnlyDescription": "تُصدر تراخيص المؤسسات وتُتابَع على oneuptime.com المستضاف، حيث الفوترة مفعّلة. لا تدير هذه النسخة ذات الاستضافة الذاتية أي تراخيص.",
+      "enterpriseEditionRequiredTitle": "يتطلب إصدار المؤسسات من OneUptime",
+      "enterpriseEditionRequiredDescription": "إدارة التراخيص جزء من إصدار المؤسسات من OneUptime. انشر صورة إصدار المؤسسات لتتمكن من إصدار التراخيص ومتابعتها."
     },
     "enterpriseLicenseView": {
       "title": "ترخيص المؤسسة",

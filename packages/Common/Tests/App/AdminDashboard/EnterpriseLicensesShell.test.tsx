@@ -99,9 +99,19 @@ const FakeLicenseView: FunctionComponent = (): ReactElement => {
   return <div data-testid="ee-license-view" />;
 };
 
-const CLOUD_ONLY_TITLE: string = "Only available on OneUptime Cloud";
+/*
+ * The notices' entries in the Admin Dashboard's locales (#7962): t() here
+ * hands back the key it is asked for, so each notice reads as its key.
+ * EnterpriseLicensesUnavailableLocales renders them in the reader's
+ * language.
+ */
+const CLOUD_ONLY_TITLE: string = "pages.enterpriseLicenses.cloudOnlyTitle";
+const CLOUD_ONLY_DESCRIPTION: string =
+  "pages.enterpriseLicenses.cloudOnlyDescription";
 const ENTERPRISE_BUILD_TITLE: string =
-  "Requires the OneUptime Enterprise Edition";
+  "pages.enterpriseLicenses.enterpriseEditionRequiredTitle";
+const ENTERPRISE_BUILD_DESCRIPTION: string =
+  "pages.enterpriseLicenses.enterpriseEditionRequiredDescription";
 
 interface ShellCase {
   name: string;
@@ -150,11 +160,10 @@ describe.each(SHELLS)(
       render(<Shell />);
 
       expect(screen.getByText(CLOUD_ONLY_TITLE)).toBeInTheDocument();
+      expect(screen.getByText(CLOUD_ONLY_DESCRIPTION)).toBeInTheDocument();
       expect(
-        screen.getByText(
-          "Enterprise licenses are issued and tracked on the hosted oneuptime.com, where billing is enabled. This self-hosted instance does not manage licenses.",
-        ),
-      ).toBeInTheDocument();
+        screen.queryByText(ENTERPRISE_BUILD_TITLE),
+      ).not.toBeInTheDocument();
       expect(screen.getByTestId("page")).toHaveAttribute(
         "data-title",
         "pages.enterpriseLicenses.title",
@@ -192,6 +201,9 @@ describe.each(SHELLS)(
       render(<Shell />);
 
       expect(screen.getByText(ENTERPRISE_BUILD_TITLE)).toBeInTheDocument();
+      expect(
+        screen.getByText(ENTERPRISE_BUILD_DESCRIPTION),
+      ).toBeInTheDocument();
       expect(screen.queryByText(CLOUD_ONLY_TITLE)).not.toBeInTheDocument();
     });
 

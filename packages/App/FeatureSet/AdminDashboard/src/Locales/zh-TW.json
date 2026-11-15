@@ -175,7 +175,11 @@
       "noItems": "尚未核發任何企業版授權。",
       "settingsCardTitle": "授權通知設定",
       "settingsCardDescription": "設定哪些人會收到授權郵件副本，以及提前多久寄送到期提醒。當授權超出使用者數量上限或即將到期時，系統會每天寄送提醒郵件給該客戶的主要管理員。",
-      "settingsEditButton": "編輯設定"
+      "settingsEditButton": "編輯設定",
+      "cloudOnlyTitle": "僅在 OneUptime Cloud 上提供",
+      "cloudOnlyDescription": "企業版授權在已啟用帳單功能的託管版 oneuptime.com 上核發與追蹤。此自架執行個體不管理授權。",
+      "enterpriseEditionRequiredTitle": "需要 OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "授權管理是 OneUptime Enterprise Edition 的一部分。請部署 Enterprise Edition 映像檔以核發與追蹤授權。"
     },
     "enterpriseLicenseView": {
       "title": "企業版授權",
