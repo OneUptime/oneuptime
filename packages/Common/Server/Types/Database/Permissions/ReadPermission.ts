@@ -66,6 +66,8 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "UserNotificationEmailRollupItem.rollupBatchId",
     "NetworkDeviceDiscoveryImport.retryOfImportId",
     "AIRun.codeTaskId",
+    // The code task a postmortem's action item became: an AIRun, which carries no labels.
+    "IncidentPostmortemActionItem.codeTaskId",
     "SecurityCase.aiSuggestedPlaybookId",
     "AuditLogExport.cursorEntryId",
     "OnCallDutyPolicyExecutionLog.testPageSeverityId",

@@ -8,6 +8,7 @@ import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLev
 import SecurityCaseService from "../../../../Server/Services/SecurityCaseService";
 import SecurityPlaybookRunService from "../../../../Server/Services/SecurityPlaybookRunService";
 import SecurityCaseTaskService from "../../../../Server/Services/SecurityCaseTaskService";
+import IncidentPostmortemActionItemService from "../../../../Server/Services/IncidentPostmortemActionItemService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIConversationMessageService from "../../../../Server/Services/AIConversationMessageService";
@@ -384,6 +385,8 @@ describe("every model that sends live updates is read the way its service reads 
     SecurityCaseService,
     // A colleague ticking a task off shows on the case's Tasks page at once.
     SecurityCaseTaskService,
+    // A colleague ticking a postmortem's action item off shows on the postmortem at once.
+    IncidentPostmortemActionItemService,
     SecurityPlaybookRunService,
     AIRunService,
     AIRunEventService,

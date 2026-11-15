@@ -158,6 +158,7 @@ import IncidentInternalNote from "./IncidentInternalNote";
 import IncidentNoteTemplate from "./IncidentNoteTemplate";
 import IncidentPostmortemTemplate from "./IncidentPostmortemTemplate";
 import IncidentPostmortemStatus from "./IncidentPostmortemStatus";
+import IncidentPostmortemActionItem from "./IncidentPostmortemActionItem";
 import IncidentOwnerTeam from "./IncidentOwnerTeam";
 import IncidentOwnerUser from "./IncidentOwnerUser";
 import IncidentRole from "./IncidentRole";
@@ -814,6 +815,7 @@ const AllModelTypes: Array<{
   IncidentNoteTemplate,
   IncidentPostmortemTemplate,
   IncidentPostmortemStatus,
+  IncidentPostmortemActionItem,
   Form,
   FormSubmission,
   FormDomain,
