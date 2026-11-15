@@ -30,7 +30,7 @@ import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment
  * keeps the precise messages.
  */
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },
