@@ -55881,5 +55881,8 @@
   "MQTT WebSocket URL": "MQTT-WebSocket-URL",
   "OTLP metrics endpoint": "OTLP-Endpunkt für Metriken",
   "Send the ingestion token below as the MQTT password — the username is ignored.": "Senden Sie den Aufnahmeschlüssel unten als MQTT-Passwort — der Benutzername wird ignoriert.",
+  "Record the serial number, make, model and firmware version": "Seriennummer, Hersteller, Modell und Firmware-Version erfassen",
+  "Stamp the hardware facts no detector can read onto the host's Inventory item.": "Die Hardwaredaten, die kein Detektor lesen kann, fest in das Inventarelement des Hosts schreiben.",
+  "Upgrade the collector": "Collector aktualisieren",
   "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "Handeln Sie, wenn ein SLO sein Fehlerbudget zu schnell verbraucht, etwa indem Sie ein Feature-Flag ausschalten."
 }

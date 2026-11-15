@@ -55881,5 +55881,8 @@
   "MQTT WebSocket URL": "نشانی WebSocket برای MQTT",
   "OTLP metrics endpoint": "نقطهٔ پایانی OTLP متریک‌ها",
   "Send the ingestion token below as the MQTT password — the username is ignored.": "کلید دریافت داده زیر را به‌عنوان گذرواژه MQTT بفرستید — نام کاربری نادیده گرفته می‌شود.",
+  "Record the serial number, make, model and firmware version": "ثبت شماره سریال، سازنده، مدل و نسخه سفت‌افزار",
+  "Stamp the hardware facts no detector can read onto the host's Inventory item.": "داده‌های سخت‌افزاری را که هیچ آشکارسازی نمی‌تواند بخواند، روی مورد موجودی میزبان بنویسید.",
+  "Upgrade the collector": "ارتقای کالکتور",
   "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "وقتی یک SLO بودجه خطای خود را خیلی سریع مصرف می‌کند، کاری انجام دهید، مثلاً یک پرچم ویژگی را خاموش کنید."
 }
