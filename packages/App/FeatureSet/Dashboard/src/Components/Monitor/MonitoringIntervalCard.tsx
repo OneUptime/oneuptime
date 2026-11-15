@@ -31,6 +31,7 @@ import React, {
   useState,
 } from "react";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -235,7 +236,7 @@ const MonitoringIntervalCard: FunctionComponent<ComponentProps> = (
               role="alert"
               data-testid={`${MONITORING_INTERVAL_TEST_ID}-error`}
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </p>
           ) : (
             <></>

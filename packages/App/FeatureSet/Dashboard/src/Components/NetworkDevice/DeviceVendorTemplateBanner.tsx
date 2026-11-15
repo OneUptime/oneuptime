@@ -23,6 +23,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -176,7 +177,7 @@ const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
               className="text-red-700"
               data-testid="device-vendor-template-error"
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </div>
           )}
           <div>

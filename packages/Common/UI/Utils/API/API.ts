@@ -15,7 +15,10 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import Dictionary from "../../../Types/Dictionary";
 import APIException from "../../../Types/Exception/ApiException";
-import { isEmptyErrorPhrase } from "../../../Types/Exception/ErrorMessageRule";
+import {
+  isEmptyErrorPhrase,
+  isErrorPage,
+} from "../../../Types/Exception/ErrorMessageRule";
 import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SessionEndedException from "../../../Types/Exception/SessionEndedException";
@@ -74,6 +77,16 @@ const FETCH_FAILED_MESSAGES: ReadonlyArray<string> = [
   "NetworkError when attempting to fetch resource.",
   "Load failed",
   "Network request failed",
+];
+
+/*
+ * Besides a 502 and a 504, the statuses a gateway in front of OneUptime
+ * answers for a server it could not reach: a load balancer's or an
+ * ingress's 503 while no app is running, and Cloudflare's 520 to 524 (the
+ * origin answered nothing it could use, refused, timed out) and 530.
+ */
+const GATEWAY_DOWN_STATUSES: ReadonlyArray<number> = [
+  503, 520, 521, 522, 523, 524, 530,
 ];
 
 class BaseAPI extends API {
@@ -629,6 +642,21 @@ class BaseAPI extends API {
         return getUnexplainedServerErrorMessage(reference);
       }
 
+      /*
+       * The other statuses a gateway answers for a server it could not
+       * reach - a load balancer's or an ingress's 503 while no app is
+       * running, Cloudflare's 520 to 524 and 530 - are the server being
+       * down too, when they come as a page or say nothing. A 503 the API
+       * wrote itself, while it starts (StartupGate), is JSON whose message
+       * says so, and is kept.
+       */
+      if (
+        GATEWAY_DOWN_STATUSES.includes(err.statusCode) &&
+        (isErrorPage(err.message) || isEmptyErrorPhrase(err.message))
+      ) {
+        return SERVER_DOWN_MESSAGE;
+      }
+
       return BaseAPI.explainServerMessage(err.message);
     }
 
@@ -663,12 +691,15 @@ class BaseAPI extends API {
   }
 
   /*
-   * A message as the reader should see it: as it came, unless it says
-   * nothing - "Server Error", "Internal Server Error", an empty body - when
-   * it becomes the sentence for a failure the server did not explain.
+   * A message as the reader should see it: as it came, in whatever script
+   * it is written (#7536), unless it says nothing - "Server Error",
+   * "Internal Server Error", an empty body - or is a page rather than a
+   * message (a proxy's HTML for a 500, a 413 or a 404, which used to be
+   * shown as its markup): then it becomes the sentence for a failure the
+   * server did not explain.
    */
   private static explainServerMessage(message: string | undefined): string {
-    if (isEmptyErrorPhrase(message)) {
+    if (isEmptyErrorPhrase(message) || isErrorPage(message)) {
       return UNEXPLAINED_ERROR_MESSAGES.server;
     }
 

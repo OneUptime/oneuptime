@@ -69,6 +69,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const EXCEPTION_TREND_COLORS: { unhandled: string; handled: string } = {
   unhandled: "#ef4444",
@@ -408,7 +409,9 @@ const ExceptionOccurrenceTrend: FunctionComponent<ComponentProps> = (
           <p className="text-sm font-medium text-gray-700">
             {translator.translateText("Could not load the occurrence trend")}
           </p>
-          <p className="text-xs text-gray-500">{error}</p>
+          <p className="text-xs text-gray-500">
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </p>
         </div>
       );
     }

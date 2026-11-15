@@ -57,6 +57,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
@@ -221,7 +222,9 @@ const DetectionRuleRetrohuntPanel: FunctionComponent<ComponentProps> = (
             icon={IconProp.Error}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600"
           />
-          <span className="min-w-0 break-words">{error}</span>
+          <span className="min-w-0 break-words">
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </span>
         </div>
       ) : (
         <></>

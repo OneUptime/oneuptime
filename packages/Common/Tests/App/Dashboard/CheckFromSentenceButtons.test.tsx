@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -87,7 +88,28 @@ import CheckFromSentence, {
   CHECK_FROM_SENTENCE_ALERT_TEST_ID,
   CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME,
   CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+  CheckFromSentenceWhatFailed,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/CheckFromSentence";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import {
+  CHECK_NOT_WRITTEN_REFUSAL,
+  CustomSqlRefusal,
+  DataCheckFromSentenceRefusal,
+  MongoPipelineRefusal,
+  RULE_NOT_A_CHECK_REFUSAL,
+} from "../../../Types/DataObservability/DataCheckRefusals";
+import APIException from "../../../Types/Exception/ApiException";
+import { getRefusalText } from "../../../Types/Exception/RefusalWithValues";
+import {
+  getExplanationWords,
+  getUnexplainedServerErrorMessage,
+  readUnexplainedError,
+  SERVER_DOWN_MESSAGE,
+  UNEXPLAINED_ERROR_MESSAGES,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
+import { BILLING_ENABLED } from "../../../UI/Config";
+import { joinSentences } from "../../../UI/Utils/SentenceSeparator";
 import { CARD_HEADER_ACTION_CLASS_NAME } from "../../../UI/Components/Card/Card";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -668,21 +690,27 @@ describe("Write the Check, in the reader's language", () => {
 });
 
 /*
- * WHY THE CHECK COULD NOT BE WRITTEN OR ADDED, ON A RIGHT-TO-LEFT PAGE
- * (#7220's review).
+ * WHY THE CHECK COULD NOT BE WRITTEN OR ADDED, IN THE READER'S LANGUAGE
+ * (#7220's review, #7530).
  *
- * The card shows the server's message when OneUptime AI cannot make the
- * rule a check, or the check is not added - English, whatever the page's
- * language. Drawn as a paragraph of the page's, an Arabic or Persian page
- * put its full stop at its start (".OneUptime AI could not ... refunded").
- * It is now a line of its own (IsolatedLine), as the suggestion's name and
- * explanation are: an English message reads left to right, as wide as its
- * words at the page's start; a message in the page's language, and every
- * message on an English page, is drawn as before.
+ * The card shows why under its buttons. The server's own refusals are keys
+ * of the locales now (Common/Types/DataObservability/DataCheckRefusals):
+ * on a German, Arabic or Persian page they read in that language, and the
+ * two with a value in them keep the value where the language puts it. A
+ * message the language has no words for stays a line of its own read the
+ * way its words are (IsolatedLine), so an English message on an Arabic or
+ * Persian page keeps its full stop at its end. A failure nobody explained
+ * - a gateway's 502, a server failure with its reference, OneUptime not
+ * reached, an empty answer, a proxy's HTML page - is ErrorExplanation:
+ * what did not happen, why, what to do next, and the reference with its
+ * copy button. It was the English sentence as plain text.
  */
 describe("the card's error", () => {
-  const WRITE_FAILED: string =
-    "OneUptime AI could not write a check OneUptime can run for that rule (the table has no column for when an order was refunded) Say it another way, or write the check yourself.";
+  const MODEL_REASON: string =
+    "the table has no column for when an order was refunded";
+  const WRITE_FAILED: string = getRefusalText(CHECK_NOT_WRITTEN_REFUSAL, {
+    reason: MODEL_REASON,
+  });
   const ADD_FAILED: string = "You do not have permission to create a check.";
 
   // Writes the rule on a page in `language`.
@@ -690,11 +718,7 @@ describe("the card's error", () => {
     await inLanguage(language);
     renderCard();
 
-    const words: Record<string, string> =
-      language === "en" ? {} : readDashboardLocale(language);
-    const said: (text: string) => string = (text: string): string => {
-      return words[text] || text;
-    };
+    const said: (text: string) => string = wordsOf(language);
 
     fireEvent.change(
       screen.getByRole("textbox", { name: said("The rule, in a sentence") }),
@@ -705,28 +729,152 @@ describe("the card's error", () => {
     );
   }
 
-  test("on an English page: the server's words in a paragraph with no direction of its own", async () => {
-    suggestCheckMock.mockRejectedValue(new Error(WRITE_FAILED));
+  // The card's error line once a write in `language` failed with `rejection`.
+  async function writeFailsWith(
+    language: string,
+    rejection: unknown,
+  ): Promise<HTMLElement> {
+    suggestCheckMock.mockRejectedValue(rejection);
 
-    await writeIn("en");
+    await writeIn(language);
 
-    const error: HTMLElement = await screen.findByTestId(
-      CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+    return await screen.findByTestId(CHECK_FROM_SENTENCE_ERROR_TEST_ID);
+  }
+
+  // The words of `language`'s locale: English for a key it has no words for.
+  function wordsOf(language: string): (text: string) => string {
+    const words: Record<string, string> =
+      language === "en" ? {} : readDashboardLocale(language);
+
+    return (text: string): string => {
+      return words[text] || text;
+    };
+  }
+
+  // The sentence `template` in `language`, with its {{reason}} filled in.
+  function refusalIn(
+    language: string,
+    template: string,
+    reason: string,
+  ): string {
+    return wordsOf(language)(template).replace("{{reason}}", reason);
+  }
+
+  describe("the server's own words", () => {
+    test("on an English page: exactly as before, in a paragraph with no direction of its own", async () => {
+      const error: HTMLElement = await writeFailsWith(
+        "en",
+        new Error(WRITE_FAILED),
+      );
+
+      expect(error.tagName).toBe("P");
+      expect(error).toHaveTextContent(WRITE_FAILED);
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(WRITE_FAILED);
+      expect(error).not.toHaveAttribute("dir");
+      expect(error).toHaveClass("text-sm", "text-red-600");
+      expect(error).not.toHaveClass("w-fit");
+      expect(
+        within(error).queryByTestId("error-explanation"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("the refusal the server sends is the English it always sent", () => {
+      expect(WRITE_FAILED).toBe(
+        "OneUptime AI could not write a check OneUptime can run for that rule (the table has no column for when an order was refunded) Say it another way, or write the check yourself.",
+      );
+    });
+
+    test.each(["de", "ar", "fa", "ja", "hi", "ko"])(
+      "on a %s page: the refusal reads in the page's language, the reason where it puts it",
+      async (language: string) => {
+        const error: HTMLElement = await writeFailsWith(
+          language,
+          new Error(WRITE_FAILED),
+        );
+        const expected: string = refusalIn(
+          language,
+          CHECK_NOT_WRITTEN_REFUSAL.template,
+          MODEL_REASON,
+        );
+
+        expect(expected).not.toBe(WRITE_FAILED);
+        expect(withoutIsolateMarks(error.textContent || "")).toBe(expected);
+        // The page's own words: a line that reads the page's way.
+        expect(error).not.toHaveAttribute("dir");
+        expect(error).not.toHaveClass("w-fit");
+      },
     );
 
-    expect(error.tagName).toBe("P");
-    expect(error).toHaveTextContent(WRITE_FAILED);
-    expect(error).not.toHaveAttribute("dir");
-    expect(error).toHaveClass("text-sm", "text-red-600");
-    expect(error).not.toHaveClass("w-fit");
-  });
+    test("a why of OneUptime's own inside the refusal reads in the page's language too", async () => {
+      const message: string = getRefusalText(CHECK_NOT_WRITTEN_REFUSAL, {
+        reason: DataCheckFromSentenceRefusal.queryNamesNoValue,
+      });
+      const error: HTMLElement = await writeFailsWith(
+        "de",
+        new HTTPErrorResponse(400, { message: message }, {}),
+      );
+      const said: (text: string) => string = wordsOf("de");
 
-  test.each(["ar", "fa"])(
-    "on a %s page: the English message reads left to right, as wide as its words, its full stop at its end",
-    async (language: string) => {
-      suggestCheckMock.mockRejectedValue(new Error(WRITE_FAILED));
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(
+        refusalIn(
+          "de",
+          CHECK_NOT_WRITTEN_REFUSAL.template,
+          said(DataCheckFromSentenceRefusal.queryNamesNoValue),
+        ),
+      );
+      expect(error.textContent).not.toContain("Say the rule another way");
+    });
 
-      await writeIn(language);
+    test("the model's why, written in the page's language, keeps its words inside the page's sentence", async () => {
+      const reason: string =
+        "Die Tabelle hat keine Spalte für den Zeitpunkt einer Erstattung.";
+      const error: HTMLElement = await writeFailsWith(
+        "de",
+        new HTTPErrorResponse(
+          400,
+          {
+            message: getRefusalText(RULE_NOT_A_CHECK_REFUSAL, { reason }),
+          },
+          {},
+        ),
+      );
+
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(
+        refusalIn("de", RULE_NOT_A_CHECK_REFUSAL.template, reason),
+      );
+      expect(error.textContent).not.toContain("could not be made a check");
+    });
+
+    test.each([
+      ...Object.values(DataCheckFromSentenceRefusal),
+      ...Object.values(CustomSqlRefusal),
+      ...Object.values(MongoPipelineRefusal),
+    ])("%j reads in German and in Persian", async (refusal: string) => {
+      for (const language of ["de", "fa"]) {
+        const error: HTMLElement = await writeFailsWith(
+          language,
+          new HTTPErrorResponse(400, { message: refusal }, {}),
+        );
+        const said: string = wordsOf(language)(refusal);
+
+        expect(said).not.toBe(refusal);
+        expect(withoutIsolateMarks(error.textContent || "")).toBe(said);
+        cleanup();
+      }
+    });
+
+    test("on a Persian page, a message the language has no words for reads left to right, its full stop at its end, and the suggestion stays", async () => {
+      createMock.mockRejectedValue(new Error(ADD_FAILED));
+
+      await writeIn("fa");
+
+      const words: Record<string, string> = readDashboardLocale("fa");
+
+      expect(words[ADD_FAILED]).toBeUndefined();
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: words["Add Check"]! }),
+      );
 
       const error: HTMLElement = await screen.findByTestId(
         CHECK_FROM_SENTENCE_ERROR_TEST_ID,
@@ -737,44 +885,221 @@ describe("the card's error", () => {
       expect(error).toHaveClass("break-words", "w-fit", "max-w-full");
       // Never text-end beside wrapping lines: each lines up at its own start.
       expect(error).not.toHaveClass("text-end");
-      expect(withoutIsolateMarks(error.textContent || "")).toBe(WRITE_FAILED);
-    },
-  );
+      expect(withoutIsolateMarks(error.textContent || "")).toBe(ADD_FAILED);
+      expect(
+        screen.getByRole("button", { name: words["Add Check"]! }),
+      ).toBeInTheDocument();
+    });
 
-  test("on a Persian page, a check that is not added says why the same way, and its suggestion stays", async () => {
-    createMock.mockRejectedValue(new Error(ADD_FAILED));
+    test.each([
+      ["Persian", "این قاعده را نمی‌توان به یک بررسی تبدیل کرد."],
+      ["Japanese", "接続が拒否されました"],
+      ["Arabic", "تعذر الاتصال بقاعدة البيانات."],
+    ])(
+      "a message written in %s comes through as it was written (#7536)",
+      async (_script: string, message: string) => {
+        const error: HTMLElement = await writeFailsWith(
+          "fa",
+          new HTTPErrorResponse(400, { message: message }, {}),
+        );
 
-    await writeIn("fa");
-
-    const words: Record<string, string> = readDashboardLocale("fa");
-
-    fireEvent.click(
-      await screen.findByRole("button", { name: words["Add Check"]! }),
+        expect(withoutIsolateMarks(error.textContent || "")).toBe(message);
+        expect(
+          within(error).queryByTestId("error-explanation"),
+        ).not.toBeInTheDocument();
+      },
     );
-
-    const error: HTMLElement = await screen.findByTestId(
-      CHECK_FROM_SENTENCE_ERROR_TEST_ID,
-    );
-
-    expect(error).toHaveAttribute("dir", "ltr");
-    expect(withoutIsolateMarks(error.textContent || "")).toBe(ADD_FAILED);
-    expect(
-      screen.getByRole("button", { name: words["Add Check"]! }),
-    ).toBeInTheDocument();
   });
 
-  test("on an Arabic page, a failure the server could not explain reads left to right too", async () => {
-    // A request that failed with no message: the card says the page's sentence for it, in English for now.
-    suggestCheckMock.mockRejectedValue(new Error(""));
+  describe("a failure nobody explained", () => {
+    // The words ErrorExplanation says for `message`, in `language`.
+    function explanationIn(language: string, message: string): string {
+      const said: (text: string) => string = wordsOf(language);
+      const words: { why: string; next: string } = getExplanationWords({
+        error: readUnexplainedError(message)!,
+        isCloud: BILLING_ENABLED,
+        isMasterAdmin: false,
+        isVisitor: false,
+      });
 
-    await writeIn("ar");
+      return joinSentences([said(words.why), said(words.next)]);
+    }
 
-    const error: HTMLElement = await screen.findByTestId(
-      CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+    const NGINX_500: string =
+      "<html>\r\n<head><title>500 Internal Server Error</title></head>\r\n<body>\r\n<center><h1>500 Internal Server Error</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n";
+
+    test.each([
+      [
+        "a gateway's 502",
+        new HTTPErrorResponse(502, "<html>Bad Gateway</html>" as never, {}),
+        SERVER_DOWN_MESSAGE,
+      ],
+      [
+        "a load balancer's 503 page",
+        new HTTPErrorResponse(
+          503,
+          "<html><body><h1>503 Service Temporarily Unavailable</h1></body></html>" as never,
+          {},
+        ),
+        SERVER_DOWN_MESSAGE,
+      ],
+      [
+        "a server failure that named a reference",
+        new HTTPErrorResponse(
+          500,
+          {
+            error: getUnexplainedServerErrorMessage("1f0c9a2b"),
+            reference: "1f0c9a2b",
+          },
+          {},
+        ),
+        getUnexplainedServerErrorMessage("1f0c9a2b"),
+      ],
+      [
+        "an empty answer",
+        new HTTPErrorResponse(500, {}, {}),
+        UNEXPLAINED_ERROR_MESSAGES.server,
+      ],
+      [
+        "a proxy's HTML page",
+        new HTTPErrorResponse(500, NGINX_500 as never, {}),
+        UNEXPLAINED_ERROR_MESSAGES.server,
+      ],
+      [
+        "OneUptime not reached",
+        new APIException(
+          "Request failed to https://oneuptime.example.com/api/data-observability/check-suggest. Network Error",
+        ),
+        UNEXPLAINED_ERROR_MESSAGES.unreachable,
+      ],
+      [
+        "the browser's own network error",
+        new TypeError("Failed to fetch"),
+        UNEXPLAINED_ERROR_MESSAGES.unreachable,
+      ],
+    ])(
+      "%s: what was not written, why and what to do next, in German, with no English left",
+      async (_failure: string, rejection: unknown, message: string) => {
+        const error: HTMLElement = await writeFailsWith("de", rejection);
+        const said: (text: string) => string = wordsOf("de");
+        const explanation: HTMLElement =
+          within(error).getByTestId("error-explanation");
+
+        expect(error.tagName).toBe("P");
+        expect(error).toHaveClass("text-sm", "text-red-600");
+        expect(
+          within(explanation).getByTestId("error-what-failed"),
+        ).toHaveTextContent(said(CheckFromSentenceWhatFailed.write));
+        expect(
+          within(explanation).getByTestId("error-why-and-next").textContent,
+        ).toBe(explanationIn("de", message));
+        expect(error.textContent).not.toContain(message);
+        expect(error.textContent).not.toContain("<");
+        expect(error.textContent).not.toContain("https://");
+        expect(said(CheckFromSentenceWhatFailed.write)).not.toBe(
+          CheckFromSentenceWhatFailed.write,
+        );
+      },
     );
 
-    expect(error.textContent).not.toBe("");
-    expect(error).toHaveAttribute("dir", "ltr");
-    expect(error).toHaveClass("w-fit", "max-w-full");
+    test("a server failure's reference is code, with a Copy button", async () => {
+      const error: HTMLElement = await writeFailsWith(
+        "en",
+        new HTTPErrorResponse(
+          500,
+          {
+            error: getUnexplainedServerErrorMessage("1f0c9a2b"),
+            reference: "1f0c9a2b",
+          },
+          {},
+        ),
+      );
+      const reference: HTMLElement =
+        within(error).getByTestId("error-reference");
+
+      expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+      expect(
+        within(reference).getByRole("button", { name: "Copy" }),
+      ).toBeInTheDocument();
+    });
+
+    test("on an English page: the English words, what was not written first", async () => {
+      const error: HTMLElement = await writeFailsWith(
+        "en",
+        new HTTPErrorResponse(502, "" as never, {}),
+      );
+
+      expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+        "The check was not written.",
+      );
+      expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+        `${UnexplainedErrorWords.serverDownWhy} ${UnexplainedErrorWords.serverDownNext}`,
+      );
+      expect(error.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+    });
+
+    test.each(["ar", "fa"])(
+      "on a %s page: the explanation reads the page's way, with no English left",
+      async (language: string) => {
+        const error: HTMLElement = await writeFailsWith(
+          language,
+          new Error(""),
+        );
+        const said: (text: string) => string = wordsOf(language);
+
+        expect(error).not.toHaveAttribute("dir");
+        expect(
+          within(error).getByTestId("error-what-failed"),
+        ).toHaveTextContent(said(CheckFromSentenceWhatFailed.write));
+        expect(
+          within(error).getByTestId("error-why-and-next").textContent,
+        ).toBe(explanationIn(language, UNEXPLAINED_ERROR_MESSAGES.page));
+        expect(error.textContent).not.toMatch(/[A-Za-z]/);
+      },
+    );
+
+    test("a check that is not added says so first, and its suggestion stays", async () => {
+      createMock.mockRejectedValue(new HTTPErrorResponse(504, {}, {}));
+
+      await writeIn("de");
+
+      const said: (text: string) => string = wordsOf("de");
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: said("Add Check") }),
+      );
+
+      const error: HTMLElement = await screen.findByTestId(
+        CHECK_FROM_SENTENCE_ERROR_TEST_ID,
+      );
+
+      expect(within(error).getByTestId("error-what-failed")).toHaveTextContent(
+        said(CheckFromSentenceWhatFailed.add),
+      );
+      expect(within(error).getByTestId("error-why-and-next").textContent).toBe(
+        explanationIn("de", SERVER_DOWN_MESSAGE),
+      );
+      expect(
+        screen.getByRole("button", { name: said("Add Check") }),
+      ).toBeInTheDocument();
+    });
+
+    test("writing again clears the last error", async () => {
+      const error: HTMLElement = await writeFailsWith(
+        "en",
+        new HTTPErrorResponse(502, "" as never, {}),
+      );
+
+      expect(error).toBeInTheDocument();
+
+      suggestCheckMock.mockResolvedValue(SUGGESTION);
+      fireEvent.click(screen.getByRole("button", { name: "Write the Check" }));
+
+      await screen.findByRole("button", { name: "Add Check" });
+
+      expect(
+        screen.queryByTestId(CHECK_FROM_SENTENCE_ERROR_TEST_ID),
+      ).not.toBeInTheDocument();
+    });
   });
 });

@@ -26,6 +26,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, ReactElement, useEffect, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -183,7 +184,7 @@ const ArchivedResourceBanner: <TBaseModel extends BaseModel>(
               className="mt-1 text-sm text-red-600"
               data-testid="archived-resource-banner-error"
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </p>
           ) : (
             <></>

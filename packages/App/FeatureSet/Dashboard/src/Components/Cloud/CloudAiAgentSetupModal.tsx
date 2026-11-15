@@ -138,6 +138,7 @@ import React, {
   useId,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Let AI fix problems" on a cloud account, laid out as every "connect
@@ -780,7 +781,10 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                 className="min-w-0 flex-1 text-sm text-amber-700"
                 data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-organization-problem`}
               >
-                {organizationProblem}
+                <ErrorInSentence
+                  message={organizationProblem}
+                  showWhereToLook={true}
+                />
               </p>
               {organizationKeyError && canRetryOrganizationKeys ? (
                 <Button
@@ -933,7 +937,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
                 className="min-w-0 flex-1 text-sm text-amber-700"
                 data-testid={`${CLOUD_AI_AGENT_SETUP_TEST_ID}-problem`}
               >
-                {problem}
+                <ErrorInSentence message={problem} showWhereToLook={true} />
               </p>
               {/*
                * A key that could not be made for a reason that may pass (no
@@ -1391,7 +1395,7 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
               />
               {logsError ? (
                 <p className="ps-6 text-xs text-rose-600" role="alert">
-                  {logsError}
+                  <ErrorInSentence message={logsError} showWhereToLook={true} />
                 </p>
               ) : (
                 <></>

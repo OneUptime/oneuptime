@@ -28,6 +28,7 @@ import {
   getPickablePostmortemStatusChoices,
 } from "./PostmortemStatusChoices";
 import Color from "Common/Types/Color";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const POSTMORTEM_STATUS_MENU_TITLE: string =
   translationKey("Move postmortem to");
@@ -246,7 +247,8 @@ const PostmortemStatusPicker: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid={`${testId}-error`}
         >
-          {translator.translateText(POSTMORTEM_STATUS_SAVE_FAILED)} {error}
+          {translator.translateText(POSTMORTEM_STATUS_SAVE_FAILED)}{" "}
+          <ErrorInSentence message={error} />
         </p>
       ) : (
         <></>

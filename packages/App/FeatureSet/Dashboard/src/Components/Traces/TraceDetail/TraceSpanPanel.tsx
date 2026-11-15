@@ -83,6 +83,7 @@ import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
 import SpanPodExceptions from "./SpanPodExceptions";
 import SpanPodLogs from "./SpanPodLogs";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   traceId: string;
@@ -681,7 +682,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
           className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700"
           role="alert"
         >
-          {detailError}
+          <ErrorInSentence message={detailError} showWhereToLook={true} />
         </div>
       );
     }
@@ -898,7 +899,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700"
               role="alert"
             >
-              {logsError}
+              <ErrorInSentence message={logsError} showWhereToLook={true} />
             </div>
           );
         }
@@ -935,7 +936,10 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
               className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700"
               role="alert"
             >
-              {exceptionsError}
+              <ErrorInSentence
+                message={exceptionsError}
+                showWhereToLook={true}
+              />
             </div>
           );
         }

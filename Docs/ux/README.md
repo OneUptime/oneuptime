@@ -324,6 +324,15 @@ work out, starts from a default for everything else, and folds what most people 
   card read half in English, and a server failure's reference had no copy button (#7307).
   Enforced by
   [ErrorSentenceGuard](../../packages/Common/Tests/App/Dashboard/ErrorSentenceGuard.test.ts).
+- **An error drawn on its own is said in the reader's language too.** A line under a button, a red
+  paragraph in a card or a tooltip that shows `API.getFriendlyMessage`'s answer draws it with
+  `ErrorInSentence` (`showWhereToLook` where it stands alone), or hands it to a place that explains
+  it: an `Alert`'s title, `ErrorMessage`, `ErrorLine`, `TableEmptyState`. Drawn as it came
+  (`<p>{error}</p>`), a gateway's 502 read "Error connecting to server. Please try again in few
+  minutes." in English on a German or a Persian page, and a server failure's reference had no copy
+  button (#7537). A message the server wrote in any script is kept as written; only an empty or
+  generic one becomes the sentence for a failure nobody explained (#7536). Enforced by
+  [FriendlyMessageDrawnGuard](../../packages/Common/Tests/App/Dashboard/FriendlyMessageDrawnGuard.test.ts).
 - **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
   words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's
   `WidgetPlaceholder`, or a view that draws one of them. Each widget drew it its own way: the set

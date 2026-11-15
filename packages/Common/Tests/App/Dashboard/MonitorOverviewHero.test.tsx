@@ -34,7 +34,16 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
-import { TURN_MONITORING_ON_BUTTON_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitoringSwitchCopy";
+import {
+  TURN_MONITORING_ON_BUTTON_TEST_ID,
+  TURN_MONITORING_ON_ERROR_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitoringSwitchCopy";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_MESSAGE,
+  UnexplainedErrorWords,
+} from "../../../Types/Exception/UnexplainedError";
 import MonitorOverviewHero, {
   ComponentProps,
   getMonitorOverviewIcon,
@@ -1568,6 +1577,63 @@ describe("MonitorOverviewHero turns monitoring back on", () => {
     expect(
       screen.getByRole("button", { name: "Turn monitoring on" }),
     ).toBeEnabled();
+  });
+
+  /*
+   * #7537: the hero drew the hook's error as it came, so a gateway's 502
+   * read SERVER_DOWN_MESSAGE in English on every page, and a server
+   * failure's reference had no copy button.
+   */
+  test("a gateway's 502 says the server did not answer and to try again in a few minutes, never SERVER_DOWN_MESSAGE", async () => {
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new HTTPErrorResponse(502, "<html>Bad Gateway</html>" as never, {});
+    });
+
+    renderDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Turn monitoring on" }));
+    await flush();
+
+    const error: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_ERROR_TEST_ID,
+    );
+
+    expect(within(error).getByTestId("error-in-sentence")).toHaveTextContent(
+      `${UnexplainedErrorWords.serverDownWhy} ${UnexplainedErrorWords.serverDownNext}`,
+    );
+    expect(error.textContent).not.toContain(SERVER_DOWN_MESSAGE);
+    expect(error.textContent).not.toContain("<html>");
+  });
+
+  test("a server failure's reference is code, with a Copy button", async () => {
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new HTTPErrorResponse(
+        500,
+        {
+          error: getUnexplainedServerErrorMessage("1f0c9a2b"),
+          reference: "1f0c9a2b",
+        },
+        {},
+      );
+    });
+
+    renderDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Turn monitoring on" }));
+    await flush();
+
+    const error: HTMLElement = screen.getByTestId(
+      TURN_MONITORING_ON_ERROR_TEST_ID,
+    );
+    const reference: HTMLElement = within(error).getByTestId("error-reference");
+
+    expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
+    expect(
+      within(reference).getByRole("button", { name: "Copy" }),
+    ).toBeInTheDocument();
+    expect(error.textContent).not.toContain(
+      getUnexplainedServerErrorMessage("1f0c9a2b"),
+    );
   });
 
   test("someone who may not change it sees it locked, with why", () => {

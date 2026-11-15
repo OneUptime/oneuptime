@@ -21,6 +21,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   policyId: ObjectID;
@@ -98,7 +99,10 @@ const IncomingCallAnswerCallsOffBanner: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid={INCOMING_CALL_START_ANSWERING_ERROR_TEST_ID}
           >
-            {startAnswering.error}
+            <ErrorInSentence
+              message={startAnswering.error}
+              showWhereToLook={true}
+            />
           </p>
         ) : (
           <></>

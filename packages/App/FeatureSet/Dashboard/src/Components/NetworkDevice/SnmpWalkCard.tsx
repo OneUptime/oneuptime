@@ -90,6 +90,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   networkDeviceId: ObjectID;
@@ -1335,7 +1336,7 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     if (loadError) {
       return (
         <p className="text-sm text-red-700" data-testid="snmp-walk-load-error">
-          {loadError}
+          <ErrorInSentence message={loadError} showWhereToLook={true} />
         </p>
       );
     }
