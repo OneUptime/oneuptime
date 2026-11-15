@@ -42,6 +42,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
     default: {
       findAllBy: jest.fn(),
       updateOneById: jest.fn(),
+      handStartedRunToEscalation: jest.fn(),
     },
   };
 });
@@ -54,10 +55,29 @@ const JOB_NAME: string = "OnCallDutyPolicyExecutionLog:TimeoutStuckExecutions";
 const executionLogService: {
   findAllBy: jest.Mock;
   updateOneById: jest.Mock;
+  handStartedRunToEscalation: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
   findAllBy: jest.Mock;
   updateOneById: jest.Mock;
+  handStartedRunToEscalation: jest.Mock;
 };
+
+// The runs handed to their escalation, and the status each was handed over from.
+function handedOver(): Array<string> {
+  return executionLogService.handStartedRunToEscalation.mock.calls.map(
+    (call: Array<unknown>): string => {
+      const handOver: {
+        executionLogId: ObjectID;
+        fromStatuses: Array<OnCallDutyPolicyStatus>;
+      } = call[0] as {
+        executionLogId: ObjectID;
+        fromStatuses: Array<OnCallDutyPolicyStatus>;
+      };
+
+      return `${handOver.executionLogId.toString()} from ${handOver.fromStatuses.join(", ")}`;
+    },
+  );
+}
 
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
@@ -117,6 +137,7 @@ async function tick(): Promise<void> {
 beforeEach(() => {
   jest.clearAllMocks();
   executionLogService.updateOneById.mockResolvedValue(undefined);
+  executionLogService.handStartedRunToEscalation.mockResolvedValue(true);
 });
 
 describe("a run waiting for working hours", () => {
@@ -130,6 +151,7 @@ describe("a run waiting for working hours", () => {
     await tick();
 
     expect(timedOut()).toEqual([]);
+    expect(handedOver()).toEqual([]);
 
     for (const call of executionLogService.findAllBy.mock.calls) {
       expect(
@@ -148,6 +170,7 @@ describe("a run waiting for working hours", () => {
     await tick();
 
     expect(timedOut()).toEqual([]);
+    expect(handedOver()).toEqual([]);
   });
 
   test("is read with the moment its paging started", async () => {
@@ -172,29 +195,33 @@ describe("a run waiting for working hours", () => {
     expect(startedRead?.select["pagingStartsAt"]).toBe(true);
   });
 
-  test("still starting five minutes after its paging started is stuck, as any run", async () => {
+  /*
+   * Stuck, it is handed to its escalation (issue #8405), its page due when
+   * its paging started - not when it was created, hours before.
+   */
+  test("still starting five minutes after its paging started is stuck, as any run, and handed to its escalation", async () => {
+    const pagingStartsAt: Date = new Date(Date.now() - 6 * MINUTE);
     const stuck: OnCallDutyPolicyExecutionLog = run({
       status: OnCallDutyPolicyStatus.Started,
-      pagingStartsAt: new Date(Date.now() - 6 * MINUTE),
+      pagingStartsAt: pagingStartsAt,
     });
     stored([stuck]);
 
     await tick();
 
-    expect(timedOut()).toEqual([stuck.id!.toString()]);
-    expect(executionLogService.updateOneById).toHaveBeenCalledWith({
-      id: stuck.id,
-      data: {
-        status: OnCallDutyPolicyStatus.Error,
-        statusMessage: "Policy Execution timed out.",
+    expect(timedOut()).toEqual([]);
+    expect(executionLogService.handStartedRunToEscalation).toHaveBeenCalledWith(
+      {
+        executionLogId: stuck.id,
+        dueAt: pagingStartsAt,
+        fromStatuses: [OnCallDutyPolicyStatus.Started],
       },
-      props: { isRoot: true },
-    });
+    );
   });
 });
 
 describe("a run that never waited", () => {
-  test("is stuck five minutes after it was created, as it always was", async () => {
+  test("is stuck five minutes after it was created, as it always was, and its page was due then", async () => {
     const stuck: OnCallDutyPolicyExecutionLog = run({
       status: OnCallDutyPolicyStatus.Started,
     });
@@ -202,10 +229,19 @@ describe("a run that never waited", () => {
 
     await tick();
 
-    expect(timedOut()).toEqual([stuck.id!.toString()]);
+    expect(handedOver()).toEqual([
+      `${stuck.id!.toString()} from ${OnCallDutyPolicyStatus.Started}`,
+    ]);
+    expect(
+      (
+        executionLogService.handStartedRunToEscalation.mock.calls[0]![0] as {
+          dueAt: Date;
+        }
+      ).dueAt,
+    ).toEqual(stuck.createdAt);
   });
 
-  test("of the two in Started on one tick, only the stuck one is timed out", async () => {
+  test("of the two in Started on one tick, only the stuck one is handed over", async () => {
     const stuck: OnCallDutyPolicyExecutionLog = run({
       status: OnCallDutyPolicyStatus.Started,
     });
@@ -217,6 +253,9 @@ describe("a run that never waited", () => {
 
     await tick();
 
-    expect(timedOut()).toEqual([stuck.id!.toString()]);
+    expect(handedOver()).toEqual([
+      `${stuck.id!.toString()} from ${OnCallDutyPolicyStatus.Started}`,
+    ]);
+    expect(timedOut()).toEqual([]);
   });
 });

@@ -5,6 +5,11 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
+import OnCallLevelsInFlight, {
+  OnCallLevelInFlight,
+} from "../Utils/OnCall/OnCallLevelsInFlight";
+import UserOnCallLogService from "./UserOnCallLogService";
+import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallDutyPolicyChildService from "./OnCallDutyPolicyChildService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
@@ -248,6 +253,37 @@ export interface OnCallRuleExecutionOutcome extends OnCallPagingOutcome {
 interface PagedTargets {
   outcome: OnCallPagingOutcome;
   pagedLineIds: Array<ObjectID>;
+  // The lines a resumed level's earlier pass wrote (LevelPagedSoFar).
+  existingLineKeys: Set<string>;
+}
+
+/*
+ * What a level's earlier pass wrote before its paging stopped (issue #8406),
+ * read as the level is resumed (readLevelPagedSoFar).
+ */
+interface LevelPagedSoFar {
+  // Who this run paged for the rule since the level started.
+  pagedUserIds: Set<string>;
+  // The line of each of them.
+  lineIdByPagedUserId: Map<string, ObjectID>;
+  // The line it wrote for each person it never got to page.
+  unpagedLineIdByUserId: Map<string, ObjectID>;
+  // Every line it wrote, as getLineKey keys it.
+  lineKeys: Set<string>;
+}
+
+// How a policy run starts one of its escalation rules (startRuleExecution).
+export interface RuleExecutionOptions {
+  projectId: ObjectID;
+  triggeredByIncidentId?: ObjectID | undefined;
+  triggeredByAlertId?: ObjectID | undefined;
+  triggeredByAlertEpisodeId?: ObjectID | undefined;
+  triggeredByIncidentEpisodeId?: ObjectID | undefined;
+  userNotificationEventType: UserNotificationEventType;
+  onCallPolicyExecutionLogId: ObjectID;
+  onCallPolicyId: ObjectID;
+  passedOnUserIds?: Array<ObjectID> | undefined;
+  alsoPageUserIds?: Array<ObjectID> | undefined;
 }
 
 /*
@@ -448,18 +484,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   @CaptureSpan()
   public async startRuleExecution(
     ruleId: ObjectID,
-    options: {
-      projectId: ObjectID;
-      triggeredByIncidentId?: ObjectID | undefined;
-      triggeredByAlertId?: ObjectID | undefined;
-      triggeredByAlertEpisodeId?: ObjectID | undefined;
-      triggeredByIncidentEpisodeId?: ObjectID | undefined;
-      userNotificationEventType: UserNotificationEventType;
-      onCallPolicyExecutionLogId: ObjectID;
-      onCallPolicyId: ObjectID;
-      passedOnUserIds?: Array<ObjectID> | undefined;
-      alsoPageUserIds?: Array<ObjectID> | undefined;
-    },
+    options: RuleExecutionOptions,
   ): Promise<OnCallRuleExecutionOutcome> {
     logger.debug(`Starting rule execution for ruleId: ${ruleId.toString()}`, {
       projectId: options.projectId.toString(),
@@ -489,10 +514,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       onCallDutyPolicyEscalationRuleId: ruleId.toString(),
     } as LogAttributes);
 
+    // When the level starts paging: recorded on the run, and kept with the level in flight.
+    const startedAt: Date = OneUptimeDate.getCurrentDate();
+
     await OnCallDutyPolicyExecutionLogService.updateOneById({
       id: options.onCallPolicyExecutionLogId,
       data: {
-        lastEscalationRuleExecutedAt: OneUptimeDate.getCurrentDate(),
+        lastEscalationRuleExecutedAt: startedAt,
         lastExecutedEscalationRuleId: ruleId,
         lastExecutedEscalationRuleOrder: rule.order!,
         executeNextEscalationRuleInMinutes: rule.escalateAfterInMinutes || 0,
@@ -508,6 +536,129 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     } as LogAttributes);
 
     Service.assertTriggerMatchesEventType(options);
+
+    return await this.pageRule({
+      ruleId: ruleId,
+      options: options,
+      level: {
+        ruleId: ruleId.toString(),
+        startedAt: startedAt,
+        heartbeatAt: startedAt,
+        stopped: false,
+      },
+      resumeSince: null,
+    });
+  }
+
+  /*
+   * RESUMES A LEVEL WHOSE PAGING STOPPED PART WAY (issue #8406).
+   *
+   * startRuleExecution records the rule on its run, then pages each person
+   * it names in turn. A database error in the middle - paging the second of
+   * five people - or a process that stopped there left the rest of the
+   * level unpaged: the rule was recorded, so the step tried again could not
+   * start it again without paging the first person twice. Its level was
+   * kept in flight (OnCallLevelsInFlight), and the policy-run worker asks
+   * for it to be resumed (OnCallEscalationAdvance.resumeLevel): the rule's
+   * people are read again and paged as the level pages them, but anybody
+   * this run paged for the rule since the level started (`since`) is not
+   * paged again, and a line the earlier pass wrote is not written twice -
+   * one it wrote for a person it never got to page is theirs now. The rule
+   * stays recorded as it was: its wait runs from when the level started.
+   */
+  @CaptureSpan()
+  public async resumeRuleExecution(
+    ruleId: ObjectID,
+    options: RuleExecutionOptions & {
+      // When the level started paging.
+      since: Date;
+    },
+  ): Promise<OnCallRuleExecutionOutcome> {
+    Service.assertTriggerMatchesEventType(options);
+
+    return await this.pageRule({
+      ruleId: ruleId,
+      options: options,
+      level: {
+        ruleId: ruleId.toString(),
+        startedAt: options.since,
+        heartbeatAt: OneUptimeDate.getCurrentDate(),
+        stopped: false,
+      },
+      resumeSince: options.since,
+    });
+  }
+
+  /*
+   * Pages a recorded rule's people (startRuleExecution), or the ones a
+   * level that stopped did not get to (resumeRuleExecution). Kept in flight
+   * while it pages (OnCallLevelsInFlight): a sign of life after each person,
+   * stopped if it fails, forgotten once every person was handed a page.
+   */
+  private async pageRule(data: {
+    ruleId: ObjectID;
+    options: RuleExecutionOptions;
+    level: OnCallLevelInFlight;
+    // A level resumed: when it started.
+    resumeSince: Date | null;
+  }): Promise<OnCallRuleExecutionOutcome> {
+    const ruleId: ObjectID = data.ruleId;
+    const options: RuleExecutionOptions = data.options;
+    const runId: ObjectID = options.onCallPolicyExecutionLogId;
+
+    await OnCallLevelsInFlight.keep(runId, data.level);
+
+    let paging: PagedTargets;
+    let namesAnybody: boolean;
+
+    try {
+      const read: {
+        paging: PagedTargets;
+        namesAnybody: boolean;
+      } = await this.readAndPageRuleTargets({
+        ruleId: ruleId,
+        options: options,
+        resumeSince: data.resumeSince,
+        onTargetPaged: async (): Promise<void> => {
+          await OnCallLevelsInFlight.keep(runId, {
+            ...data.level,
+            heartbeatAt: OneUptimeDate.getCurrentDate(),
+          });
+        },
+      });
+
+      paging = read.paging;
+      namesAnybody = read.namesAnybody;
+    } catch (err) {
+      // It stopped part way: resumed at the run's next try.
+      await OnCallLevelsInFlight.keep(runId, {
+        ...data.level,
+        heartbeatAt: OneUptimeDate.getCurrentDate(),
+        stopped: true,
+      });
+
+      throw err;
+    }
+
+    await OnCallLevelsInFlight.forget(runId);
+
+    return await this.finishRulePaging({
+      ruleId: ruleId,
+      options: options,
+      paging: paging,
+      namesAnybody: namesAnybody,
+    });
+  }
+
+  // The rule's people, read, and paged (pageRule).
+  private async readAndPageRuleTargets(data: {
+    ruleId: ObjectID;
+    options: RuleExecutionOptions;
+    resumeSince: Date | null;
+    onTargetPaged: () => Promise<void>;
+  }): Promise<{ paging: PagedTargets; namesAnybody: boolean }> {
+    const ruleId: ObjectID = data.ruleId;
+    const options: RuleExecutionOptions = data.options;
 
     const usersInRule: Array<OnCallDutyPolicyEscalationRuleUser> =
       await OnCallDutyPolicyEscalationRuleUserService.findBy({
@@ -636,8 +787,32 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
        */
       notesEmptyTeams: true,
       passedOnUserIds: options.passedOnUserIds || [],
+      resume: data.resumeSince ? { since: data.resumeSince } : undefined,
+      onTargetPaged: data.onTargetPaged,
     });
 
+    return {
+      paging: paging,
+      namesAnybody:
+        firstUserIds.length +
+          teamIds.length +
+          userIds.length +
+          scheduleIds.length +
+          nextInRotationScheduleIds.length >
+        0,
+    };
+  }
+
+  // What a level that paged its people comes to, and its own line if it reached nobody (pageRule).
+  private async finishRulePaging(data: {
+    ruleId: ObjectID;
+    options: RuleExecutionOptions;
+    paging: PagedTargets;
+    namesAnybody: boolean;
+  }): Promise<OnCallRuleExecutionOutcome> {
+    const ruleId: ObjectID = data.ruleId;
+    const options: RuleExecutionOptions = data.options;
+    const paging: PagedTargets = data.paging;
     const outcome: OnCallPagingOutcome = paging.outcome;
 
     /*
@@ -667,22 +842,19 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           ruleId: ruleId,
         });
       log.statusMessage = getOnCallEmptyLevelTimelineMessage({
-        namesAnybody:
-          firstUserIds.length +
-            teamIds.length +
-            userIds.length +
-            scheduleIds.length +
-            nextInRotationScheduleIds.length >
-          0,
+        namesAnybody: data.namesAnybody,
       });
       log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
 
-      await OnCallDutyPolicyExecutionLogTimelineService.create({
-        data: log,
-        props: {
-          isRoot: true,
-        },
-      });
+      // A level resumed says so once (resumeRuleExecution).
+      if (!paging.existingLineKeys.has(Service.getLineKey(log))) {
+        await OnCallDutyPolicyExecutionLogTimelineService.create({
+          data: log,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
 
       logger.debug(
         `Escalation rule ${ruleId.toString()} reached nobody; the run moves on from it at once.`,
@@ -1072,6 +1244,14 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * again by it, whichever target names them.
      */
     passedOnUserIds: Array<ObjectID>;
+    /*
+     * A level whose paging stopped part way, paged again (issue #8406):
+     * when it started. Nobody this run paged for the rule since is paged
+     * again, and no line its earlier pass wrote is written twice.
+     */
+    resume?: { since: Date } | undefined;
+    // Told after each person is handed a page: the level's sign of life.
+    onTargetPaged?: (() => Promise<void>) | undefined;
   }): Promise<PagedTargets> {
     const options: PageContext = data.context;
     const ruleId: ObjectID | null = data.ruleId;
@@ -1101,6 +1281,34 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       paged: [],
       notPaged: [],
       hadScheduleGap: false,
+    };
+
+    // What a resumed level's earlier pass wrote before it stopped (issue #8406).
+    const earlier: LevelPagedSoFar | null =
+      data.resume && ruleId
+        ? await Service.readLevelPagedSoFar({
+            runId: options.onCallPolicyExecutionLogId,
+            ruleId: ruleId,
+            since: data.resume.since,
+          })
+        : null;
+
+    // A line saying why somebody was not paged: once, also when the level is resumed.
+    const writeSkipLine: (
+      log: OnCallDutyPolicyExecutionLogTimeline,
+    ) => Promise<void> = async (
+      log: OnCallDutyPolicyExecutionLogTimeline,
+    ): Promise<void> => {
+      if (earlier?.lineKeys.has(Service.getLineKey(log))) {
+        return;
+      }
+
+      await OnCallDutyPolicyExecutionLogTimelineService.create({
+        data: log,
+        props: {
+          isRoot: true,
+        },
+      });
     };
 
     type StartUserNotificationRuleExecutionFunction = (
@@ -1203,12 +1411,25 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           log.isNextInRotation = true;
         }
 
-        log = await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        /*
+         * A level resumed (issue #8406): the line its earlier pass wrote for
+         * them just before it stopped - with no page behind it - is theirs.
+         */
+        const unpagedLineId: ObjectID | undefined =
+          earlier?.unpagedLineIdByUserId.get(
+            Service.getUserKey(alertSentToUserId),
+          );
+
+        if (unpagedLineId) {
+          log.id = unpagedLineId;
+        } else {
+          log = await OnCallDutyPolicyExecutionLogTimelineService.create({
+            data: log,
+            props: {
+              isRoot: true,
+            },
+          });
+        }
 
         if (log?.id) {
           pagedLineIds.push(log.id);
@@ -1527,12 +1748,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.onCallDutyScheduleId = target.scheduleId;
 
-        await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        await writeSkipLine(log);
 
         outcome.notPaged.push({
           reason: OnCallNotPagedReason.NobodyOnCall,
@@ -1552,12 +1768,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.userBelongsToTeamId = target.teamId;
 
-        await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        await writeSkipLine(log);
 
         outcome.notPaged.push({
           reason: OnCallNotPagedReason.EmptyTeam,
@@ -1583,12 +1794,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         log.onCallDutyScheduleId = target.scheduleId;
         log.isNextInRotation = true;
 
-        await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        await writeSkipLine(log);
 
         outcome.notPaged.push({
           reason: OnCallNotPagedReason.NobodyNextInRotation,
@@ -1616,12 +1822,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           log.userBelongsToTeamId = target.teamId;
         }
 
-        await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        await writeSkipLine(log);
 
         outcome.notPaged.push({
           reason: OnCallNotPagedReason.Away,
@@ -1664,12 +1865,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           log.isNextInRotation = true;
         }
 
-        await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        await writeSkipLine(log);
 
         outcome.notPaged.push({
           reason: OnCallNotPagedReason.NotAProjectMember,
@@ -1724,12 +1920,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           log.isNextInRotation = true;
         }
 
-        await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        await writeSkipLine(log);
 
         outcome.notPaged.push({
           reason: OnCallNotPagedReason.PassedOn,
@@ -1737,6 +1928,40 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           teamId: target.teamId,
           scheduleId: target.scheduleId,
           awayUntil: null,
+        });
+
+        continue;
+      }
+
+      /*
+       * Paged by this level before its paging stopped (issue #8406): not
+       * paged again, and their page counts for the level as it did.
+       */
+      if (
+        earlier &&
+        !alreadyNotified(pagedUserId) &&
+        earlier.pagedUserIds.has(Service.getUserKey(pagedUserId))
+      ) {
+        uniqueUserIds.push(pagedUserId);
+
+        const earlierLineId: ObjectID | undefined =
+          earlier.lineIdByPagedUserId.get(Service.getUserKey(pagedUserId));
+
+        if (earlierLineId) {
+          pagedLineIds.push(earlierLineId);
+        }
+
+        outcome.paged.push({
+          userId: pagedUserId,
+          coveringForUserId:
+            pagedUserId.toString() !== onBehalfOfUserId.toString()
+              ? onBehalfOfUserId
+              : null,
+          teamId: target.teamId,
+          scheduleId: target.scheduleId,
+          ...(target.isNextInRotation
+            ? { isNextInRotation: true as const }
+            : {}),
         });
 
         continue;
@@ -1751,6 +1976,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           target.scheduleId,
           target.isNextInRotation,
         );
+
+        // A sign of life of the level, after each person it pages.
+        if (data.onTargetPaged) {
+          await data.onTargetPaged();
+        }
 
         outcome.paged.push({
           userId: pagedUserId,
@@ -1782,12 +2012,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           log.isNextInRotation = true;
         }
 
-        await OnCallDutyPolicyExecutionLogTimelineService.create({
-          data: log,
-          props: {
-            isRoot: true,
-          },
-        });
+        await writeSkipLine(log);
       }
     }
 
@@ -1796,7 +2021,122 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     return {
       outcome: outcome,
       pagedLineIds: pagedLineIds,
+      existingLineKeys: earlier?.lineKeys || new Set<string>(),
     };
+  }
+
+  /*
+   * What a level's earlier pass wrote before its paging stopped
+   * (issue #8406): who this run paged for the rule since the level started
+   * - a person's log of it - and the line of each; the lines of people it
+   * never got to page; and every line it wrote. From a little before the
+   * level started: the rows' moments are the database's.
+   */
+  private static async readLevelPagedSoFar(data: {
+    runId: ObjectID;
+    ruleId: ObjectID;
+    since: Date;
+  }): Promise<LevelPagedSoFar> {
+    const since: Date = OneUptimeDate.addRemoveSeconds(data.since, -30);
+
+    const logs: Array<UserOnCallLog> = await UserOnCallLogService.findBy({
+      query: {
+        onCallDutyPolicyExecutionLogId: data.runId,
+        onCallDutyPolicyEscalationRuleId: data.ruleId,
+        createdAt: QueryHelper.greaterThanEqualTo(since),
+      },
+      select: {
+        userId: true,
+        onCallDutyPolicyExecutionLogTimelineId: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const lines: Array<OnCallDutyPolicyExecutionLogTimeline> =
+      await OnCallDutyPolicyExecutionLogTimelineService.findBy({
+        query: {
+          onCallDutyPolicyExecutionLogId: data.runId,
+          onCallDutyPolicyEscalationRuleId: data.ruleId,
+          createdAt: QueryHelper.greaterThanEqualTo(since),
+        },
+        select: {
+          _id: true,
+          status: true,
+          statusMessage: true,
+          alertSentToUserId: true,
+          onCallDutyScheduleId: true,
+          userBelongsToTeamId: true,
+          isNextInRotation: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const soFar: LevelPagedSoFar = {
+      pagedUserIds: new Set<string>(),
+      lineIdByPagedUserId: new Map<string, ObjectID>(),
+      unpagedLineIdByUserId: new Map<string, ObjectID>(),
+      lineKeys: new Set<string>(),
+    };
+
+    for (const log of logs) {
+      if (!log.userId) {
+        continue;
+      }
+
+      soFar.pagedUserIds.add(Service.getUserKey(log.userId));
+
+      if (log.onCallDutyPolicyExecutionLogTimelineId) {
+        soFar.lineIdByPagedUserId.set(
+          Service.getUserKey(log.userId),
+          log.onCallDutyPolicyExecutionLogTimelineId,
+        );
+      }
+    }
+
+    for (const line of lines) {
+      soFar.lineKeys.add(Service.getLineKey(line));
+
+      const userKey: string | null = line.alertSentToUserId
+        ? Service.getUserKey(line.alertSentToUserId)
+        : null;
+
+      if (
+        userKey &&
+        line.id &&
+        line.status === OnCallDutyExecutionLogTimelineStatus.Executing &&
+        !soFar.pagedUserIds.has(userKey)
+      ) {
+        soFar.unpagedLineIdByUserId.set(userKey, line.id);
+      }
+    }
+
+    return soFar;
+  }
+
+  // A person's id as the level's reads key it.
+  private static getUserKey(userId: ObjectID): string {
+    return userId.toString().toLowerCase();
+  }
+
+  // What makes two lines of a level the same line: what they say, and about whom.
+  private static getLineKey(
+    line: OnCallDutyPolicyExecutionLogTimeline,
+  ): string {
+    return [
+      line.statusMessage || "",
+      line.alertSentToUserId?.toString().toLowerCase() || "",
+      line.onCallDutyScheduleId?.toString().toLowerCase() || "",
+      line.userBelongsToTeamId?.toString().toLowerCase() || "",
+      line.isNextInRotation ? "next-in-rotation" : "",
+    ].join("|");
   }
 
   public constructor() {
