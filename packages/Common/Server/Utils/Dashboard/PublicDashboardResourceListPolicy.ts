@@ -739,6 +739,11 @@ export default class PublicDashboardResourceListPolicy {
        * stamps, createdBy — stays private: an SLO's headline numbers are
        * publishable, its definition is not.
        */
+      /*
+       * A request SLO's budget is a count of requests, not minutes (#8441):
+       * the widget words it from what the SLO measures and the bad requests
+       * left - a headline number like the minutes, not its definition.
+       */
       case DashboardComponentType.Slo:
         return {
           _id: true,
@@ -749,6 +754,8 @@ export default class PublicDashboardResourceListPolicy {
           errorBudgetRemainingSeconds: true,
           currentBurnRate: true,
           sloStatus: true,
+          sliType: true,
+          errorBudgetRemainingEvents: true,
         };
       /*
        * The same seven per row, plus `isEnabled`. A disabled SLO is not
@@ -769,6 +776,8 @@ export default class PublicDashboardResourceListPolicy {
           currentBurnRate: true,
           sloStatus: true,
           isEnabled: true,
+          sliType: true,
+          errorBudgetRemainingEvents: true,
         };
       default:
         throw new BadDataException(
