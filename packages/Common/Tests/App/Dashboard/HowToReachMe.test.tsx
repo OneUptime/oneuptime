@@ -455,6 +455,18 @@ describe("which view it opens on", () => {
     // Each way to reach the person has its kind's icon.
     expect(screen.getAllByTestId("paging-ladder-method-icon")).toHaveLength(2);
 
+    /*
+     * Left out on a phone, drawn from sm up - and never by the bare
+     * `hidden` class, which a foreign `.hidden{display:none !important}`
+     * (Bootstrap 3, HTML5 Boilerplate, browser extensions) would keep
+     * hidden at every width (ForeignHiddenRuleGuard).
+     */
+    for (const icon of screen.getAllByTestId("paging-ladder-method-icon")) {
+      expect(icon.classList.contains("max-sm:hidden")).toBe(true);
+      expect(icon.classList.contains("sm:flex")).toBe(true);
+      expect(icon.classList.contains("hidden")).toBe(false);
+    }
+
     // What it is for, beside the way to make some severities differ.
     expect(screen.getByTestId("paging-ladder-scope")).toHaveTextContent(
       "Used for every incident, alert and episode, of every severity.",

@@ -984,6 +984,47 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  test("the first on-call policy's records give the locales its name and its two rules' words, and nothing else (#7995)", () => {
+    const root: string = path.join(__dirname, "..", "..", "..", "..");
+    const policyFile: string =
+      "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts";
+    const rulesFile: string =
+      "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts";
+
+    const policy: SourceScanResult = scanSourceRoots(
+      [{ directory: policyFile, kind: "keys" }],
+      root,
+    );
+    const rules: SourceScanResult = scanSourceRoots(
+      [{ directory: rulesFile, kind: "keys" }],
+      root,
+    );
+
+    // The policy's name, and nothing of its misc data's keys or modes.
+    expect(textsOf(policy)).toEqual(["Default on-call policy"]);
+    expect(textsOf(rules).sort()).toEqual(
+      [
+        "Page {{policy}} for every alert",
+        "Page {{policy}} for every incident",
+        "Pages this on-call policy for every new alert. Added when the policy was created.",
+        "Pages this on-call policy for every new incident. Added when the policy was created.",
+        "the new on-call policy",
+      ].sort(),
+    );
+
+    for (const [file, result] of [
+      [policyFile, policy],
+      [rulesFile, rules],
+    ] as Array<[string, SourceScanResult]>) {
+      expect(result.hardcoded).toEqual([]);
+      expect(
+        SOURCE_ROOTS.find((candidate: { directory: string }): boolean => {
+          return candidate.directory === file;
+        })?.kind,
+      ).toBe("keys");
+    }
+  });
+
   test("HostHealth gives the locales its words, each count as a plural, and nothing else", () => {
     const file: string = "packages/Common/Types/Host/HostHealth.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1109,6 +1150,90 @@ describe("a root that marks its keys", () => {
         return root.directory === file;
       })?.kind,
     ).toBe("keys");
+  });
+
+  /*
+   * Issue #7530: why a data check or a reconciliation was not written,
+   * added or set up. The server refuses in these English sentences, and
+   * Write a Check from a Sentence, Suggested Checks and the Reconciliations
+   * page say them in the reader's language, so each is a key of en.json.
+   * The names the code reads them by (noRule, tableNotFound) and the name
+   * of the value one carries (reason) are never words a reader sees.
+   */
+  test("DataCheckRefusals gives the locales every refusal, and none of the names the code reads them by", () => {
+    const file: string =
+      "packages/Common/Types/DataObservability/DataCheckRefusals.ts";
+    const repository: string = path.join(__dirname, "..", "..", "..", "..");
+    const result: SourceScanResult = scanSourceRoots(
+      [{ directory: file, kind: "keys" }],
+      repository,
+    );
+    const refusals: Array<string> = [
+      // Write a Check from a Sentence.
+      "Say the rule the check should hold to.",
+      "The table was not found.",
+      "Data Observability does not run checks on this table's database.",
+      "The AI's answer was not a check. Say the rule another way, or write the check yourself.",
+      "The AI's query does not name its number value. Say the rule another way, or write the check yourself.",
+      "The AI's pipeline does not name its number value. Say the rule another way, or write the check yourself.",
+      "The rule could not be made a check: {{reason}}",
+      "OneUptime AI could not write a check OneUptime can run for that rule ({{reason}}) Say it another way, or write the check yourself.",
+      // A Custom SQL check's query.
+      "Custom SQL needs a query.",
+      "Custom SQL is too long.",
+      "Custom SQL must be a single query.",
+      "Custom SQL must start with SELECT or WITH.",
+      "Custom SQL may only read.",
+      "Dataverse's SQL has no WITH: write the query as one SELECT, with a subquery where it needs one.",
+      // A MongoDB custom check's pipeline.
+      "A custom check needs an aggregation pipeline.",
+      "The aggregation pipeline is too long.",
+      'A MongoDB custom check is an aggregation pipeline as JSON: [{ "$match": ... }, { "$count": "value" }].',
+      "The aggregation pipeline may only read: no $out, $merge, $function, $accumulator or $where.",
+      // A reconciliation's checks and monitor.
+      "Reconciliation not found.",
+      "The reconciliation's source needs a table.",
+      "The reconciliation's target needs a table.",
+      "This project is missing an operational or offline monitor status, or an incident or alert severity. Add them in Settings, then save the reconciliation again.",
+    ];
+
+    expect([...textsOf(result)].sort()).toEqual([...refusals].sort());
+    for (const unmarked of [
+      "noRule",
+      "tableNotFound",
+      "engineNotChecked",
+      "answerNotACheck",
+      "noQuery",
+      "noPipeline",
+      "notFound",
+      "missingStatuses",
+      "reason",
+    ]) {
+      expect(textsOf(result)).not.toContain(unmarked);
+    }
+    expect(result.hardcoded).toEqual([]);
+    expect(
+      SOURCE_ROOTS.find((root: { directory: string }): boolean => {
+        return root.directory === file;
+      })?.kind,
+    ).toBe("keys");
+
+    // Each is in en.json, so every language has a key to word it by.
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          repository,
+          "packages/App/FeatureSet/Dashboard/src/Locales/en.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+
+    expect(
+      refusals.filter((refusal: string): boolean => {
+        return english[refusal] !== refusal;
+      }),
+    ).toEqual([]);
   });
 
   /*
@@ -1510,7 +1635,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, a duration in milliseconds, the monitor type cards, a new monitor's default criteria words, the name a guided setup's status page starts with, a monitor template's sync fields, the cron schedule words and its common schedules, what each Setup health finding says, why an email was not sent when the server has no email set up, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, what each of the traces explorer's span types is, an audit log entry's action and a workflow run's status, a naming rule's placeholders and what is wrong with its pattern or lookup table, why Add or Delete is locked on the Global User Overrides page, what a user override overlaps and why an edit of one is refused, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what a custom domain's DNS check found and what the server still needs before a custom domain works, what an error nobody explained says to do and where to look, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, what a monitor's evaluation says and the checks it names, and the checks a table's columns call for", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, a duration in milliseconds, the monitor type cards, a new monitor's default criteria words, the name a guided setup's status page starts with, a monitor template's sync fields, the cron schedule words and its common schedules, what each Setup health finding says, why an email was not sent when the server has no email set up, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, what each of the traces explorer's span types is, an audit log entry's action and a workflow run's status, a naming rule's placeholders and what is wrong with its pattern or lookup table, why Add or Delete is locked on the Global User Overrides page, what a user override overlaps and why an edit of one is refused, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, a database's status by its engine's alert lines, what a custom domain's DNS check found and what the server still needs before a custom domain works, what an error nobody explained says to do and where to look, why a data check or a reconciliation was not written, added or set up, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, what each managed app platform is, a cloud resource's status by its key metrics and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, what a monitor's evaluation says and the checks it names, and the checks a table's columns call for", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1540,6 +1665,9 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
       // The name a guided setup's status page starts with (#7247).
       "keys packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
+      // The first on-call policy's name, and its two rules' words (#7995).
+      "keys packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+      "keys packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
       // A template's sync fields: each one's name, and what it keeps together.
       "keys packages/Common/Types/Monitor/MonitorTemplateSyncField.ts",
       // A cron schedule in words.
@@ -1592,6 +1720,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/CustomDomain/CustomDomainServerReadiness.ts",
       // An error nobody explained: what happened, what to do, where to look.
       "keys packages/Common/Types/Exception/UnexplainedError.ts",
+      // Why a data check or a reconciliation was not written, added or set up.
+      "keys packages/Common/Types/DataObservability/DataCheckRefusals.ts",
       // A RUM application's status and what each means - not its stored values.
       "keys packages/Common/Types/Rum/RumApplicationStatus.ts",
       "keys packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",

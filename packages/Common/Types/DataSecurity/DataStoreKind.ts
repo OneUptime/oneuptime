@@ -251,6 +251,33 @@ export const TELEMETRY_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
 ];
 
 /*
+ * The kinds of self-managed database a probe samples: the ones its claim
+ * hands out (DataSecurityProbeClaim) and its DatabaseSampler reads. Here,
+ * not in the server's files, so a store's page tells the same kinds apart.
+ */
+export const PROBE_SCANNABLE_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.PostgreSql,
+  DataStoreKind.MySql,
+  DataStoreKind.SqlServer,
+];
+
+/*
+ * The kinds OneUptime's workers claim for a content scan
+ * (DataSecurityRunner.claimDueStores). A worker then samples only a kind
+ * whose info says contentScannable (DataSecurityRunner.sampleStore), so a
+ * SQL Server store is claimed by a worker but never sampled by one.
+ */
+export const WORKER_CLAIMED_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.AwsS3Bucket,
+  DataStoreKind.AzureStorageAccount,
+  DataStoreKind.GcpStorageBucket,
+  DataStoreKind.GcpBigQueryDataset,
+  DataStoreKind.PostgreSql,
+  DataStoreKind.MySql,
+  DataStoreKind.SqlServer,
+];
+
+/*
  * The database engines OneUptime's Database product monitors, mapped to the
  * kind of store each one is (the Database Agent's receiver names).
  */

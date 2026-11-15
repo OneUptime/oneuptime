@@ -186,6 +186,7 @@
   "Terraform",
   "TypeError, NullReferenceException",
   "URL",
+  "UUID",
   "VLAN {{id}}",
   "VMID",
   "VMware",

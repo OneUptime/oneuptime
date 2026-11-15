@@ -659,11 +659,11 @@ describe("the OSDs list", () => {
     expect(within(rowOf("osd.0")).getByText(/\(40\.0%\)$/)).not.toHaveAttribute(
       "data-tone",
     );
-    expect(within(rowOf("osd.4")).getByText("150 / 160 ms")).toHaveAttribute(
+    expect(within(rowOf("osd.4")).getByText("150 ms / 160 ms")).toHaveAttribute(
       "data-tone",
       "warning",
     );
-    expect(within(rowOf("osd.0")).getByText("4 / 5 ms")).not.toHaveAttribute(
+    expect(within(rowOf("osd.0")).getByText("4 ms / 5 ms")).not.toHaveAttribute(
       "data-tone",
     );
   });

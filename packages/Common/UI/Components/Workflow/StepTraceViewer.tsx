@@ -460,7 +460,15 @@ const ValueSection: FunctionComponent<ValueSectionProps> = (
                 data-testid="workflow-run-step-value"
               >
                 <dt className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-gray-600 sm:w-44 sm:shrink-0">
-                  <span>{row.name}</span>
+                  {/*
+                   * A setting or a returned value, named by its step's
+                   * catalogue: in the reader's words, as the step's
+                   * settings panel names it. Its id, beside it, is as
+                   * stored.
+                   */}
+                  <span data-testid="workflow-run-step-value-name">
+                    {translator.translateText(row.name) || row.name}
+                  </span>
                   {props.showIds && row.id !== row.name && (
                     <code className="font-mono text-[11px] font-normal text-gray-500">
                       {row.id}

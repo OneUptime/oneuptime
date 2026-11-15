@@ -15,7 +15,7 @@
 import Dictionary from "../../../../Types/Dictionary";
 import IconProp from "../../../../Types/Icon/IconProp";
 import ObjectID from "../../../../Types/ObjectID";
-import { translationKey } from "../../../Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../../Utils/TranslateTemplate";
 import type { SometimesBefore, UnavailableStep } from "./StepGraph";
 import {
   ComponentInputType,
@@ -75,7 +75,12 @@ export interface ValueSuggestionSearchOnly {
 export interface ValueSuggestion {
   /** What the picker inserts: a {{...}} reference. Unique within the list. */
   reference: string;
-  /** The value's own name, e.g. "Request Body". */
+  /**
+   * The value's own name, e.g. "Request Body", drawn as given: a step's
+   * value is named here in the reader's language (ReturnValueNames), and a
+   * variable's or a JSON key's as the person wrote it, so a search finds
+   * each by the words on screen.
+   */
   label: string;
   /** One line about it, shown under the name. */
   description?: string | undefined;
@@ -206,6 +211,11 @@ export interface ValueSuggestionContext {
    * its values instead.
    */
   isWorkflowOff?: boolean | undefined;
+  /*
+   * The reader's: a step's values are named in their language with it
+   * (ReturnValueNames), and in English without it.
+   */
+  translator?: Translator | undefined;
 }
 
 /**

@@ -1,6 +1,10 @@
 import { LLM_MONITOR_WINDOW_OPTIONS } from "Common/Types/Monitor/MonitorStepLlmMonitor";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatLlmDuration } from "../LlmConversations/LlmConversationFormat";
 
 /*
@@ -30,7 +34,9 @@ export function getLlmMonitorWindowLabel(
   }
 
   return translator.translateTemplate("Last {{duration}}", {
-    duration: formatLlmDuration(seconds * 1000),
+    duration: composedValue((sentence: Translator): string => {
+      return formatLlmDuration(seconds * 1000, sentence);
+    }),
   });
 }
 

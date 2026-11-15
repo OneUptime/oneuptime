@@ -467,7 +467,9 @@ describe("the checks outside the models are real", () => {
 /*
  * The source the scan reads: the product's TypeScript - Common's (but its
  * tests), the App's feature sets, and the enterprise edition's - without
- * the catalogue itself and the migration that removes the four by name.
+ * the catalogue itself and the migrations that remove the four by name
+ * (RemoveServiceTelemetryLinkPermissions, and RemovePermissionsTeamsCannotBeGiven,
+ * which removes them again with every other permission no team may hold).
  */
 const SCANNED_DIRECTORIES: Array<string> = [
   "packages/Common/Server",
@@ -484,6 +486,7 @@ const SCANNED_DIRECTORIES: Array<string> = [
 const NOT_SCANNED: Array<string> = [
   "packages/Common/Types/Permission.ts",
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809176500000-RemoveServiceTelemetryLinkPermissions.ts",
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809178100000-RemovePermissionsTeamsCannotBeGiven.ts",
 ];
 
 const SKIPPED_DIRECTORY_NAMES: Set<string> = new Set<string>([

@@ -44,7 +44,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**.
 
 ### Podman Container kiezen
 
-Klik onder **Monitortype** op **Meer monitortypen** en kies **Podman Container** onder **Infrastructuur**, of typ `podman` in het zoekvak. Vul een **Naam** in – die wordt gebruikt in de titels van incidenten en waarschuwingen – en klik op **Volgende**.
+Klik onder **Monitortype** op **Meer monitortypen** en kies **Podman-container** onder **Infrastructuur**, of typ `podman` in het zoekvak. Vul een **Naam** in – die wordt gebruikt in de titels van incidenten en waarschuwingen – en klik op **Volgende**.
 
 ### De host kiezen
 

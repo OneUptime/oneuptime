@@ -40,6 +40,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import {
   SPAN_STATUS_PRESENTATIONS,
   SpanStatusPresentation,
@@ -65,9 +66,14 @@ const HONEYCOMB_LEGEND: Array<HoneycombLegendItem> =
     },
   );
 
-const formatDuration: (durationNano: number) => string = (
+/*
+ * A span's duration, its milliseconds in the reader's language ("12.3 ms",
+ * "۱۲٫۳ میلی‌ثانیه"); the other units as short as they always were.
+ */
+export const formatTraceListDuration: (
   durationNano: number,
-): string => {
+  translator: Translator,
+) => string = (durationNano: number, translator: Translator): string => {
   if (durationNano < 1000) {
     return `${durationNano}ns`;
   }
@@ -77,7 +83,9 @@ const formatDuration: (durationNano: number) => string = (
   }
   const durationMs: number = durationMicro / 1000;
   if (durationMs < 1000) {
-    return `${Math.round(durationMs * 10) / 10}ms`;
+    return formatMilliseconds(translator, durationMs, {
+      maximumFractionDigits: 1,
+    });
   }
   const durationS: number = durationMs / 1000;
   return `${Math.round(durationS * 100) / 100}s`;
@@ -210,7 +218,10 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
         tooltip: {
           title: (span.name as string) || "—",
           details: [
-            { label: "Duration", value: formatDuration(durationNano) },
+            {
+              label: "Duration",
+              value: formatTraceListDuration(durationNano, translator),
+            },
             {
               label: "Time",
               value: startTimeLabel,
@@ -243,7 +254,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             className="px-3 py-2 text-xs text-gray-700 font-mono truncate"
           />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums font-medium">
-            {formatDuration(durationNano)}
+            {formatTraceListDuration(durationNano, translator)}
           </td>
           <td className="px-3 py-2">
             <span

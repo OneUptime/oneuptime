@@ -1,9 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
-import Probe from "Common/Models/DatabaseModels/Probe";
+import Probe, {
+  ProbeConnectionStatus,
+} from "Common/Models/DatabaseModels/Probe";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterConnectionTest from "Common/Models/DatabaseModels/VMwareVCenterConnectionTest";
 import ObjectID from "Common/Types/ObjectID";
-import VMwareCollectionErrorCode from "Common/Types/VMware/VMwareCollectionError";
+import VMwareCollectionErrorCode, {
+  VMwareCollectionErrorUtil,
+} from "Common/Types/VMware/VMwareCollectionError";
+import { ClaimDueState } from "Common/Utils/Probe/ClaimDueTime";
+import { getNextClaimWords } from "../../FeatureSet/Dashboard/src/Components/Probe/NextClaimWords";
 import VMwareCollectionMethod from "Common/Types/VMware/VMwareCollectionMethod";
 import VMwareCollectionStatus from "Common/Types/VMware/VMwareCollectionStatus";
 import VMwareConnectionTestStatus from "Common/Types/VMware/VMwareConnectionTestStatus";
@@ -13,6 +19,8 @@ import {
   createTranslator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
+  VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS,
+  VMwareCollectionStatusView,
   VMwareCollectionTone,
   VMwareConnectionTestPhase,
   getDefaultVMwareCollectionProbeId,
@@ -23,6 +31,7 @@ import {
   getVMwareConnectionTestInput,
   getVMwareConnectionTestView,
   getVMwareInventoryPhrases,
+  getVMwareNextCollection,
   getVMwareProductLine,
   isProbeCollected,
   isVMwareConnectionTestSettled,
@@ -70,6 +79,49 @@ const PROBES: Array<Probe> = [
   probe({ id: GLOBAL, name: "probe-1", isGlobalProbe: true }),
   probe({ name: "no id" }),
 ];
+
+const PROJECT: string = "22222222-0000-4000-8000-000000000001";
+const OTHER_PROJECT: string = "22222222-0000-4000-8000-000000000002";
+
+// The vCenter's probe as the card reads it: the project's own, connected.
+function probeOf(
+  overrides: {
+    isGlobalProbe?: boolean;
+    projectId?: string;
+    connectionStatus?: ProbeConnectionStatus;
+    // A probe whose name the reader may not read.
+    isNameless?: boolean;
+  } = {},
+): Probe {
+  const item: Probe = new Probe();
+  item._id = OWN;
+
+  if (!overrides.isNameless) {
+    item.name = "Datacenter probe";
+  }
+
+  item.isGlobalProbe = overrides.isGlobalProbe === true;
+  item.projectId = new ObjectID(overrides.projectId || PROJECT);
+  item.connectionStatus =
+    overrides.connectionStatus || ProbeConnectionStatus.Connected;
+
+  return item;
+}
+
+// A vCenter's columns as a test sets them: undefined is a column left empty.
+type VCenterColumns = {
+  [Column in keyof VMwareVCenter]?: VMwareVCenter[Column] | undefined;
+};
+
+// What the claim needs to hand a vCenter to its probe (VMwareCollectionStop).
+const COLLECTABLE: VCenterColumns = {
+  projectId: new ObjectID(PROJECT),
+  isVCenterPasswordSet: true,
+  vcenterUrl: "https://vcsa.example.com",
+  vcenterUsername: "monitoring@vsphere.local",
+  collectionProbeId: new ObjectID(OWN),
+  collectionProbe: probeOf(),
+};
 
 function summary(
   overrides: Partial<VMwareCollectionSummary> = {},
@@ -288,9 +340,10 @@ describe("a connection test, in words", () => {
 });
 
 describe("a probe-collected vCenter's collection, in words", () => {
+  // A vCenter the claim hands its probe: password, address, user name and the project's own probe.
   function vcenter(overrides: Partial<VMwareVCenter>): VMwareVCenter {
     const item: VMwareVCenter = new VMwareVCenter();
-    Object.assign(item, overrides);
+    Object.assign(item, COLLECTABLE, overrides);
     return item;
   }
 
@@ -362,6 +415,265 @@ describe("a probe-collected vCenter's collection, in words", () => {
     ).toBe(false);
     expect(isProbeCollected(vcenter({}))).toBe(false);
     expect(isProbeCollected(null)).toBe(false);
+  });
+});
+
+/*
+ * A vCenter nothing may collect is set aside by the probes' claim a quarter
+ * of an hour at a time (OneUptime issue #8042): its nextCollectionAt keeps
+ * moving and never comes, so its last report ("Collecting") is not what it
+ * is doing now, and its next collection is no time at all.
+ */
+describe("a vCenter no probe collects, and when one does next", () => {
+  const NOW: Date = new Date("2026-11-15T12:00:00.000Z");
+  const minutesFromNow: (minutes: number) => Date = (minutes: number): Date => {
+    return new Date(NOW.getTime() + minutes * 60 * 1000);
+  };
+
+  function vcenter(overrides: VCenterColumns): VMwareVCenter {
+    const item: VMwareVCenter = new VMwareVCenter();
+    Object.assign(item, COLLECTABLE, overrides);
+    return item;
+  }
+
+  function view(
+    overrides: VCenterColumns,
+    isBillingEnabled: boolean = true,
+  ): VMwareCollectionStatusView {
+    return getVMwareCollectionStatusView(
+      vcenter(overrides),
+      ENGLISH,
+      NOW,
+      isBillingEnabled,
+    );
+  }
+
+  const LAST_REPORTS: Array<[string, VCenterColumns]> = [
+    ["collecting", { collectionStatus: VMwareCollectionStatus.Succeeded }],
+    [
+      "failing",
+      {
+        collectionStatus: VMwareCollectionStatus.Failed,
+        collectionErrorCode: VMwareCollectionErrorCode.CertificateChanged,
+        presentedCertificate: {
+          fingerprint256: FINGERPRINT,
+          subject: "CN=vcsa",
+          issuer: "CN=CA",
+          isSelfSigned: false,
+        },
+      },
+    ],
+    ["never reported (checking)", {}],
+  ];
+
+  test.each([
+    [
+      "no password saved",
+      { isVCenterPasswordSet: false },
+      "No password is saved for this vCenter.",
+      "Enter the vCenter user's password in Settings, and test the connection.",
+    ],
+    [
+      "no address",
+      { vcenterUrl: undefined },
+      "This vCenter has no address.",
+      "Enter vCenter's address in Settings, and test the connection.",
+    ],
+    [
+      "no user name",
+      { vcenterUsername: undefined },
+      "This vCenter has no user name.",
+      "Enter the vCenter user's name in Settings, and test the connection.",
+    ],
+    [
+      "no probe named",
+      { collectionProbeId: undefined, collectionProbe: undefined },
+      "No probe is set to collect this vCenter.",
+      "Pick one of this project's probes in Settings.",
+    ],
+  ])(
+    "%s: not collecting, why and the fix, whatever it last reported",
+    (_name: string, stop: VCenterColumns, title: string, nextStep: string) => {
+      for (const [, report] of LAST_REPORTS) {
+        // The set-aside keeps its due time a few minutes off: never overdue.
+        expect(
+          view({ ...report, ...stop, nextCollectionAt: minutesFromNow(17) }),
+        ).toEqual({
+          tone: VMwareCollectionTone.Failing,
+          label: "Not collecting",
+          title: title,
+          message: null,
+          nextStep: nextStep,
+          certificate: null,
+          isPending: false,
+        });
+      }
+    },
+  );
+
+  test("a shared probe on OneUptime Cloud: the probe may not collect it", () => {
+    const shared: VCenterColumns = {
+      collectionStatus: VMwareCollectionStatus.Succeeded,
+      collectionProbe: probeOf({ isGlobalProbe: true }),
+    };
+    const advice: ReturnType<typeof VMwareCollectionErrorUtil.getAdvice> =
+      VMwareCollectionErrorUtil.getAdvice(
+        VMwareCollectionErrorCode.ProbeNotAllowed,
+      );
+
+    expect(view(shared, true)).toMatchObject({
+      tone: VMwareCollectionTone.Failing,
+      label: "Not collecting",
+      title: advice.title,
+      nextStep: advice.nextStep,
+    });
+    // On a self-hosted instance, its global probes are its own: they may.
+    expect(view(shared, false).tone).toBe(VMwareCollectionTone.Collecting);
+  });
+
+  test("another project's probe may not collect it, anywhere", () => {
+    for (const isBillingEnabled of [true, false]) {
+      expect(
+        view(
+          {
+            collectionStatus: VMwareCollectionStatus.Succeeded,
+            collectionProbe: probeOf({ projectId: OTHER_PROJECT }),
+          },
+          isBillingEnabled,
+        ).title,
+      ).toBe("This probe may not collect this vCenter");
+    }
+  });
+
+  test("a disconnected probe: not collecting, the probe named", () => {
+    expect(
+      view({
+        collectionStatus: VMwareCollectionStatus.Succeeded,
+        collectionProbe: probeOf({
+          connectionStatus: ProbeConnectionStatus.Disconnected,
+        }),
+      }),
+    ).toMatchObject({
+      tone: VMwareCollectionTone.Failing,
+      label: "Not collecting",
+      title: "The probe did not pick this up",
+      message:
+        "Nothing collects this vCenter while Datacenter probe is disconnected.",
+    });
+  });
+
+  test("a disconnected probe the reader may not name is 'its probe'", () => {
+    const probe: Probe = probeOf({
+      isNameless: true,
+      connectionStatus: ProbeConnectionStatus.Disconnected,
+    });
+
+    expect(view({ collectionProbe: probe }).message).toBe(
+      "Nothing collects this vCenter while its probe is disconnected.",
+    );
+  });
+
+  test("overdue with a probe able to take it: no probe has come for it, and the page goes on asking", () => {
+    const advice: ReturnType<typeof VMwareCollectionErrorUtil.getAdvice> =
+      VMwareCollectionErrorUtil.getAdvice(
+        VMwareCollectionErrorCode.ProbeNotAvailable,
+      );
+
+    for (const [, report] of LAST_REPORTS) {
+      expect(
+        view({ ...report, nextCollectionAt: minutesFromNow(-21) }),
+      ).toEqual({
+        tone: VMwareCollectionTone.Failing,
+        label: "Not collecting",
+        title: advice.title,
+        // When it was due, from the reader's clock ("21 minutes ago" on the day).
+        message: expect.stringMatching(
+          /^This vCenter was due to be collected .+, and no probe has come for it\.$/,
+        ),
+        nextStep: advice.nextStep,
+        certificate: null,
+        isPending: true,
+      });
+    }
+  });
+
+  test("due inside the grace, with a probe able to take it: what it last reported", () => {
+    expect(
+      view({
+        collectionStatus: VMwareCollectionStatus.Succeeded,
+        // A collection at its ten-minute budget, and its upload.
+        nextCollectionAt: minutesFromNow(-19),
+      }).tone,
+    ).toBe(VMwareCollectionTone.Collecting);
+    expect(VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS).toBe(20 * 60 * 1000);
+  });
+
+  test("never run, with a probe able to take it: checking, as before", () => {
+    expect(view({ nextCollectionAt: undefined })).toMatchObject({
+      tone: VMwareCollectionTone.Checking,
+      isPending: true,
+    });
+  });
+
+  test("next collection: a time only when a probe will collect it then", () => {
+    const next: (overrides: VCenterColumns) => string = (
+      overrides: VCenterColumns,
+    ): string => {
+      return getNextClaimWords(
+        getVMwareNextCollection(vcenter(overrides), NOW, true),
+        ENGLISH,
+      );
+    };
+
+    expect(
+      getVMwareNextCollection(
+        vcenter({ nextCollectionAt: minutesFromNow(2) }),
+        NOW,
+        true,
+      ),
+    ).toEqual({
+      state: ClaimDueState.Scheduled,
+      dueAt: minutesFromNow(2),
+      stop: null,
+    });
+    expect(next({ nextCollectionAt: undefined })).toBe("Due now");
+    expect(next({ nextCollectionAt: minutesFromNow(-1) })).toBe("Due now");
+    expect(next({ nextCollectionAt: minutesFromNow(-21) })).toBe("Overdue");
+
+    for (const stop of [
+      { isVCenterPasswordSet: false },
+      { vcenterUrl: undefined },
+      { vcenterUsername: undefined },
+      { collectionProbeId: undefined },
+      { collectionProbe: probeOf({ projectId: OTHER_PROJECT }) },
+      {
+        collectionProbe: probeOf({
+          connectionStatus: ProbeConnectionStatus.Disconnected,
+        }),
+      },
+    ] as Array<VCenterColumns>) {
+      // The set-aside's time, a few minutes off, is never shown.
+      expect(next({ ...stop, nextCollectionAt: minutesFromNow(17) })).toBe(
+        "Not scheduled",
+      );
+      expect(
+        getVMwareNextCollection(
+          vcenter({ ...stop, nextCollectionAt: minutesFromNow(17) }),
+          NOW,
+          true,
+        ).dueAt,
+      ).toBeNull();
+    }
+  });
+
+  test("an archived vCenter is still collected, and its next time still shown", () => {
+    expect(
+      getVMwareNextCollection(
+        vcenter({ isArchived: true, nextCollectionAt: minutesFromNow(2) }),
+        NOW,
+        true,
+      ).state,
+    ).toBe(ClaimDueState.Scheduled);
   });
 });
 

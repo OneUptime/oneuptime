@@ -20,7 +20,7 @@
 | 點選按鈕來執行工作流程                         | **手動**                  |
 | 依週期排程執行                                 | **排程**                    |
 | 讓另一個系統把資料送進來                       | **Webhook**                 |
-| 從一封電子郵件開始                             | **Incoming Email**          |
+| 從一封電子郵件開始                             | **傳入電子郵件**          |
 | 處理 Huntress 的事件報告                       | **Huntress Incident Report** |
 | 對 OneUptime 中的事做出反應                    | **OneUptime 事件**          |
 

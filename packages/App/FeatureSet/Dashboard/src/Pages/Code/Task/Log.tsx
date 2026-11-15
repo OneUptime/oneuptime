@@ -43,7 +43,11 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -368,7 +372,7 @@ const LogEntryRow: FunctionComponent<{
         </span>
         {entry.durationInMs !== undefined ? (
           <span className="ml-auto shrink-0 text-xs text-gray-400">
-            {entry.durationInMs} ms
+            {formatMilliseconds(translator, entry.durationInMs)}
           </span>
         ) : (
           <></>
@@ -585,7 +589,12 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
               }),
             )
           : ""}
-        {call.durationMs !== undefined ? ` · ${call.durationMs} ms` : ""}
+        {call.durationMs !== undefined
+          ? `${getInlineSeparator(translator.language)}${formatMilliseconds(
+              translator,
+              call.durationMs,
+            )}`
+          : ""}
       </span>
     </div>
   );
