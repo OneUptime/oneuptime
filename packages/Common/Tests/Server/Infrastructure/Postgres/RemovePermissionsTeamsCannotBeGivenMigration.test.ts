@@ -413,7 +413,9 @@ describe("nobody loses access when the ten go", () => {
           PermissionType.Allow,
         ),
       ),
-    ).toEqual(expect.arrayContaining([Permission.Public, Permission.CurrentUser]));
+    ).toEqual(
+      expect.arrayContaining([Permission.Public, Permission.CurrentUser]),
+    );
   });
 
   test("every member, and every key, holds Logged in User and UnAuthorizedSsoUser in their project", () => {
