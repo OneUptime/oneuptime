@@ -43,7 +43,7 @@ const ON_CALL_POLICY_WORD: Readonly<Record<string, string>> = {
   pt: "política de plantão",
   nl: "bereikbaarheidsbeleid",
   da: "vagtpolitik",
-  no: "vaktretningslinje",
+  no: "vaktpolicy",
   sv: "jourpolicy",
   ru: "политики дежурства",
   ja: "オンコールポリシー",

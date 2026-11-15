@@ -1791,7 +1791,7 @@ export default class IncidentEpisode extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Private?",
     description:
-      "If true, this incident episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+      "If true, this incident episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     defaultValue: false,
   })
   @Column({

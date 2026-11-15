@@ -226,7 +226,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
                   },
                   title: "Additional Parameters",
                   description:
-                    "Only project owners and admins can read them, like the API key.",
+                    "Only Project Owners and Project Admins can read them, like the API key.",
                   fieldType: FieldType.Boolean,
                   getElement: (item: LlmProvider): ReactElement => {
                     return (

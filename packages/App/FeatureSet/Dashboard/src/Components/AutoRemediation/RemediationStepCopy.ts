@@ -595,13 +595,13 @@ export const REMEDIATION_ROUND_TRY_AGAIN_REFUSAL_KEYS: Record<
     "Someone has just started this fix again.",
   ),
   [RemediationRoundTryAgainRefusal.AiOff]: translationKey(
-    "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+    "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
   ),
   [RemediationRoundTryAgainRefusal.NoProvider]: translationKey(
     "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
   ),
   [RemediationRoundTryAgainRefusal.CreditsUsedUp]: translationKey(
-    "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings > AI > AI Credits.",
+    "This project's AI credits are used up. A Project Owner or someone with Manage Billing can add AI credits in Project Settings > AI > AI Credits.",
   ),
   [RemediationRoundTryAgainRefusal.LimitReached]: translationKey(
     "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",

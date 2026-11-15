@@ -70,7 +70,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Incident Owner Rule Owning Teams",
   icon: IconProp.Signal,
   tableDescription:
-    "Teams that own an incident owner rule: only their members, and project admins, can change or delete it.",
+    "Teams that own an incident owner rule: only their members, and Project Admins, can change or delete it.",
 })
 @Entity({
   name: "IncidentOwnerRuleOwningTeam",

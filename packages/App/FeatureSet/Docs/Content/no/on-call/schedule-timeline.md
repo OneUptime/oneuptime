@@ -70,5 +70,5 @@ Under rutenettet viser **P책 vakt denne uken** (**P책 vakt denne m책neden** i m�
 :::cards
 - [Vaktplaner](/docs/on-call/schedules): Sett opp hvem som bytter p책, lag og vakttimer.
 - [Kalenderfeeder](/docs/on-call/calendar-feeds): F책 vaktene dine inn i Google Kalender, Outlook eller Apple Kalender.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem hvert niv책 i en vaktretningslinje varsler.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem hvert niv책 i en vaktpolicy varsler.
 :::

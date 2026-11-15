@@ -390,7 +390,7 @@ describe("where a message that did not go out is fixed", () => {
       OnCallTestPageFix.ProjectNotificationSettings,
     ],
     [
-      "This project's balance is used up. A project owner can recharge it.",
+      "This project's balance is used up. A Project Owner can recharge it.",
       OnCallTestPageFix.ProjectBalance,
     ],
     [

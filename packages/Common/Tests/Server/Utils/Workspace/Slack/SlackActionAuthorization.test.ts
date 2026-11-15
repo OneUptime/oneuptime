@@ -690,7 +690,7 @@ describe("Slack interactive actions still work for members who hold the permissi
 
     expect(resolveSpy).not.toHaveBeenCalled();
     expect(channelAnswerTexts()[0]).toContain(
-      "You do not have permission to resolve this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+      "You do not have permission to resolve this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
     );
     expect(channelAnswerTexts()[0]).not.toContain("not found");
   });

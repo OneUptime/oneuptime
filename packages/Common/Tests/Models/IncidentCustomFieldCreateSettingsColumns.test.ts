@@ -104,7 +104,7 @@ describe("IncidentCustomField create and notification settings", () => {
     expect(metadata("sortOrder").required).toBeFalsy();
   });
 
-  test("a project admin can create and edit the settings", () => {
+  test("a Project Admin can create and edit the settings", () => {
     const admin: DatabaseCommonInteractionProps = props([
       Permission.ProjectAdmin,
     ]);

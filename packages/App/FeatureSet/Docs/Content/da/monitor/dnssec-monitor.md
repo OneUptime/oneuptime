@@ -103,7 +103,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny DNSSEC-monitor starter med to kriterier:
 
-- **Kæden er brudt** — **DNSSEC-kæde er gyldig** er **Falsk**. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ DNSSEC chain is broken". Hændelsen løser sig selv, så snart kæden er gyldig igen.
+- **Kæden er brudt** — **DNSSEC-kæde er gyldig** er **Falsk**. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "DNSSEC-kæden for _monitornavn_ er brudt". Hændelsen løser sig selv, så snart kæden er gyldig igen.
 - **Kæden er gyldig** — monitoren markeres som **I drift**.
 
 Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hvad der sker. Når ingen matcher, viser monitoren sin standardstatus: **I drift**, medmindre du vælger en anden under **Flere felter** under kriterierne.

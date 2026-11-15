@@ -12,6 +12,7 @@ import IncomingRequestSecretRequest from "../../../../Server/Utils/Monitor/Incom
 import IncomingRequestSecret from "../../../../Models/DatabaseModels/IncomingRequestSecret";
 import Project from "../../../../Models/DatabaseModels/Project";
 import { JSONObject } from "../../../../Types/JSON";
+import { IncomingRequestSecretProblem } from "../../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterEach,
@@ -32,6 +33,10 @@ import { SpyInstance } from "jest-mock";
  *   - a project that does not require a secret is never refused anything;
  *   - one that does refuses a request with no secret, or with one that is not
  *     its own, and names which secret a request was accepted with;
+ *   - either way, while the project has a secret, the decision says whether
+ *     the request sent one of them and, if not, why - so a monitor's senders
+ *     that do not send one yet are known before the requirement is on
+ *     (issue #8498) - and the policy carries the secrets to check that;
  *   - the policy is read from Redis when it is kept there, from Postgres
  *     otherwise, and kept as hashes - never a secret;
  *   - a Redis that fails is a miss, never an error;
@@ -220,6 +225,7 @@ describe("decide", () => {
     expect(first).toEqual({
       verdict: IncomingRequestSecretVerdict.Accepted,
       matchedSecretId: SECRET_ID,
+      sentValidSecret: true,
     });
 
     const second: IncomingRequestSecretDecision =
@@ -234,6 +240,7 @@ describe("decide", () => {
     expect(second).toEqual({
       verdict: IncomingRequestSecretVerdict.Accepted,
       matchedSecretId: OTHER_SECRET_ID,
+      sentValidSecret: true,
     });
   });
 
@@ -245,6 +252,100 @@ describe("decide", () => {
       });
 
     expect(IncomingRequestSecretPolicy.isRefused(decision.verdict)).toBe(true);
+  });
+});
+
+describe("decide, for a monitor's record of requests with and without a secret", () => {
+  const NOT_REQUIRED: IncomingRequestSecretPolicyValue = {
+    isRequired: false,
+    secrets: REQUIRED.secrets,
+  };
+
+  test("before the project requires a secret, a request without one is accepted, and said to have none", () => {
+    for (const presented of [[], undefined]) {
+      const decision: IncomingRequestSecretDecision =
+        IncomingRequestSecretPolicy.decide({
+          policy: NOT_REQUIRED,
+          presentedSecretHashes: presented,
+        });
+
+      expect(decision).toEqual({
+        verdict: IncomingRequestSecretVerdict.NotRequired,
+        sentValidSecret: false,
+        problem: IncomingRequestSecretProblem.NoSecret,
+      });
+      expect(IncomingRequestSecretPolicy.isRefused(decision.verdict)).toBe(
+        false,
+      );
+    }
+  });
+
+  test("before the project requires a secret, a wrong one is accepted, and said to be wrong", () => {
+    const decision: IncomingRequestSecretDecision =
+      IncomingRequestSecretPolicy.decide({
+        policy: NOT_REQUIRED,
+        presentedSecretHashes: [hash("an-old-secret-of-the-sender")],
+      });
+
+    expect(decision).toEqual({
+      verdict: IncomingRequestSecretVerdict.NotRequired,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.WrongSecret,
+    });
+    expect(decision.matchedSecretId).toBeUndefined();
+  });
+
+  test("before the project requires a secret, one of its secrets is named, so its Last Used moves and a Bearer token is masked", () => {
+    const decision: IncomingRequestSecretDecision =
+      IncomingRequestSecretPolicy.decide({
+        policy: NOT_REQUIRED,
+        presentedSecretHashes: [hash(OTHER_SECRET)],
+      });
+
+    expect(decision).toEqual({
+      verdict: IncomingRequestSecretVerdict.NotRequired,
+      matchedSecretId: OTHER_SECRET_ID,
+      sentValidSecret: true,
+    });
+    expect(decision.problem).toBeUndefined();
+  });
+
+  test("a project with no secret says nothing either way: there is nothing to have sent", () => {
+    for (const presented of [[], [hash(SECRET)]]) {
+      const decision: IncomingRequestSecretDecision =
+        IncomingRequestSecretPolicy.decide({
+          policy: { isRequired: false, secrets: [] },
+          presentedSecretHashes: presented,
+        });
+
+      expect(decision.sentValidSecret).toBeUndefined();
+      expect(decision.problem).toBeUndefined();
+      expect(decision.matchedSecretId).toBeUndefined();
+    }
+  });
+
+  test("a refused request says why: none sent, or a wrong one", () => {
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy: REQUIRED,
+        presentedSecretHashes: [],
+      }),
+    ).toEqual({
+      verdict: IncomingRequestSecretVerdict.Missing,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.NoSecret,
+    });
+
+    expect(
+      IncomingRequestSecretPolicy.decide({
+        policy: REQUIRED,
+        presentedSecretHashes: [hash("not-one-of-the-project-secrets")],
+      }),
+    ).toEqual({
+      verdict: IncomingRequestSecretVerdict.NotRecognized,
+      sentValidSecret: false,
+      problem: IncomingRequestSecretProblem.WrongSecret,
+    });
   });
 });
 
@@ -321,14 +422,30 @@ describe("getPolicy", () => {
     });
   });
 
-  test("a project that does not require a secret reads no secrets", async () => {
+  test("a project that does not require a secret yet still reads its secrets, to tell who sends one", async () => {
     requireSecret = false;
+
+    const policy: IncomingRequestSecretPolicyValue =
+      await IncomingRequestSecretPolicy.getPolicy(PROJECT_ID);
+
+    expect(policy).toEqual({ isRequired: false, secrets: REQUIRED.secrets });
+    expect(secretFindBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a project that is gone requires nothing and has no secrets", async () => {
+    projectFindOneById.mockResolvedValueOnce(null);
 
     const policy: IncomingRequestSecretPolicyValue =
       await IncomingRequestSecretPolicy.getPolicy(PROJECT_ID);
 
     expect(policy).toEqual({ isRequired: false, secrets: [] });
     expect(secretFindBy).not.toHaveBeenCalled();
+  });
+
+  test("keeps the policy under a namespace of its own, not one a server from before #8498 wrote without the secrets", () => {
+    expect(IncomingRequestSecretPolicy.NAMESPACE).toBe(
+      "incoming-request-secret-policy-v2",
+    );
   });
 
   test("a secret with no value is left out of the policy", async () => {

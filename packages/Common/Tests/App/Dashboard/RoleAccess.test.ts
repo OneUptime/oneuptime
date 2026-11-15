@@ -547,7 +547,7 @@ describe("the cards for the signed-in user", () => {
    */
   test.each<[string, Array<Permission>, Array<string>, Array<string>]>([
     [
-      "a project owner",
+      "a Project Owner",
       [Permission.ProjectOwner],
       [
         Permission.ProjectAdmin,
@@ -563,13 +563,13 @@ describe("the cards for the signed-in user", () => {
       ],
     ],
     [
-      "a project admin: the role they hold, as the server allows",
+      "a Project Admin: the role they hold, as the server allows",
       [Permission.ProjectAdmin],
       [Permission.ProjectAdmin, ROLE_ACCESS_LATER],
       [Permission.ProjectAdmin, ROLE_ACCESS_LATER],
     ],
     [
-      "a project admin also in Members",
+      "a Project Admin also in Members",
       [Permission.ProjectAdmin, Permission.ProjectMember],
       [Permission.ProjectAdmin, Permission.ProjectMember, ROLE_ACCESS_LATER],
       [Permission.ProjectAdmin, Permission.ProjectMember, ROLE_ACCESS_LATER],
@@ -649,7 +649,7 @@ describe("the cards for the signed-in user", () => {
     }
   });
 
-  test("a project admin blocked from Project Admin is offered nothing", () => {
+  test("a Project Admin blocked from Project Admin is offered nothing", () => {
     allPermissionsForTest = [Permission.ProjectAdmin];
     projectPermissionsForTest = {
       projectId: PROJECT_ID,

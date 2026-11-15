@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 8867
+    "keys": 54234,
+    "untranslated": 8675
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -194,6 +194,7 @@
     "Podman CLI",
     "Podman Compose",
     "Pods",
+    "Policy",
     "Pool",
     "Pool {{name}}",
     "Pools",

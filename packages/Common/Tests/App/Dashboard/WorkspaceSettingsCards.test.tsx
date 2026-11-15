@@ -540,7 +540,7 @@ describe("User Settings > Slack", () => {
     expect(cardIn("slack-your-account")).toEqual({
       title: "Slack is not connected to this project yet",
       description:
-        "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
+        "A Project Admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
       buttons: [],
     });
     expect(allButtons()).toEqual([]);
@@ -717,7 +717,7 @@ describe("User Settings > Microsoft Teams", () => {
     expect(cardIn("microsoft-teams-your-account")).toEqual({
       title: "Microsoft Teams is not connected to this project yet",
       description:
-        "A project admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
+        "A Project Admin connects it under Project Settings → Workspace → Microsoft Teams. Then you can connect your own Microsoft Teams account here.",
       buttons: [],
     });
     expect(allButtons()).toEqual([]);

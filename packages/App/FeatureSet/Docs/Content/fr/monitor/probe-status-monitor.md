@@ -60,7 +60,7 @@ Ce sont des nombres entiers, comparés avec **Supérieur à**, **Inférieur à**
 
 | Critère | Filtre | Ce qu'il fait |
 | --- | --- | --- |
-| Vérifier si une sonde est déconnectée | **Sondes déconnectées** supérieur à `0` | Met le moniteur hors ligne et déclare un incident intitulé `Probe disconnected: {{disconnectedProbeNames}}`, qui se résout de lui-même. |
+| Vérifier si une sonde est déconnectée | **Sondes déconnectées** supérieur à `0` | Met le moniteur hors ligne et déclare un incident intitulé « Sonde déconnectée : {{disconnectedProbeNames}} », qui se résout de lui-même. |
 | Vérifier si toutes les sondes sont connectées | **Sondes déconnectées** égal à `0` | Met le moniteur en état opérationnel. |
 
 Le filtre **Sondes connectées** convient à un moniteur qui surveille plusieurs sondes et peut en perdre une : **Sondes connectées** inférieur à `2` ne déclare un incident que lorsqu'il en reste moins de deux.

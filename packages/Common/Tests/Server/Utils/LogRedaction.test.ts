@@ -1089,7 +1089,7 @@ describe("the keys OneUptime's own components present", () => {
       "Unable to register probe after 10 attempts. Check PROBE_KEY / REGISTER_PROBE_KEY / connectivity to https://oneuptime.com/probe-ingest.",
       "ONEUPTIME_RUNNER_KEY is not set. Create a Runner in your OneUptime dashboard (Runbooks > Runners) and copy its id and key into this container.",
       "Runner key not found - the Runner has not finished registering yet.",
-      "The ingestion key was rotated by a project admin.",
+      "The ingestion key was rotated by a Project Admin.",
       "A license key is required to turn this on.",
     ]) {
       expect(redactLogString(text)).toBe(text);

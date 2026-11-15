@@ -131,8 +131,8 @@ describe("the code tools, as every reader of code repositories", () => {
   });
 
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     ["a project member", [Permission.ProjectMember]],
     ["a viewer", [Permission.Viewer]],
     ["a settings admin", [Permission.SettingsAdmin]],
@@ -269,7 +269,7 @@ describe("the status page tool, as the members it is offered to", () => {
   });
 
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
+    ["a Project Owner", [Permission.ProjectOwner]],
     ["a project member", [Permission.ProjectMember]],
     ["a viewer", [Permission.Viewer]],
   ])(

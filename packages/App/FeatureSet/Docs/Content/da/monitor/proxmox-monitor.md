@@ -260,8 +260,8 @@ En monitor, som du ikke bygger ud fra en skabelon, starter med to kriterier:
 
 | Rækkefølge | Kriterium | Matcher, når | Så |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hændelsen "_monitor name_ is offline", som løser sig selv, når monitoren kommer sig. |
-| 2 | Check if _monitor name_ is online | Den første forespørgsel har data | Markerer monitoren som **I drift**. |
+| 1 | Tjek, om _monitornavn_ er offline | Den første forespørgsel har ingen data i hele vinduet | Markerer monitoren som **Offline** og erklærer hændelsen "_monitornavn_ er offline", som løser sig selv, når monitoren kommer sig. |
+| 2 | Tjek, om _monitornavn_ er online | Den første forespørgsel har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
 > En værdi på `0` er data, så en metrik, der ofte er nul, som genstarter eller fejl, gør ikke monitoren offline. For at få en advarsel om en værdi skal du starte fra en skabelon eller tilføje et kriterium med en tærskel. Når der slet ikke kommer data, og intet kriterium passer, beholder monitoren sin status, og åbne hændelser forbliver åbne: stilhed er ikke en bedring. Tid, hvor OneUptime selv ikke modtog data, tæller aldrig som manglende data: en kontrol, hvis vindue indeholder den, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
@@ -289,7 +289,7 @@ Med det indbyggede push i Proxmox VE ser en node, der er taget ud af klyngen, ud
 :::
 
 :::details Tællere som pve_network_receive_bytes vokser kun
-Serier for netværks- og disk-I/O er tællere over hele levetiden, og kriterier sammenligner rå værdier: der er ingen rateoperator, og **Convert to per-second rate** i forespørgselsbyggeren ændrer kun diagrammet. Vis dem som en rate i et diagram, eller advar på deres vækst med en formel, f.eks. en **Maksimum**-forespørgsel minus en **Minimum**-forespørgsel på den samme tæller.
+Serier for netværks- og disk-I/O er tællere over hele levetiden, og kriterier sammenligner rå værdier: der er ingen rateoperator, og **Omregn til rate pr. sekund** i forespørgselsbyggeren ændrer kun diagrammet. Vis dem som en rate i et diagram, eller advar på deres vækst med en formel, f.eks. en **Maksimum**-forespørgsel minus en **Minimum**-forespørgsel på den samme tæller.
 :::
 
 ## Næste trin

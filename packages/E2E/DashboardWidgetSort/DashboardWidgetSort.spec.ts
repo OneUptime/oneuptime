@@ -130,9 +130,12 @@ const MONITORS_BEST_FIRST: Array<string> = [
 ];
 
 /*
- * What each row's Status says, in the orders above: the project's own status
- * names as stored, and Disabled - the Monitors table's word, in the reader's
- * language - for the monitor whose monitoring is off.
+ * What each row's Status says, in the orders above: the fixture's statuses,
+ * which carry the names a new project starts with, and Disabled - the
+ * Monitors table's word - for the monitor whose monitoring is off. Each reads
+ * in the reader's language: since 1997f53f63b a status named as one of
+ * OneUptime's defaults is OneUptime's word, and only a name the project gave
+ * a status itself is drawn as written (Common/Utils/DefaultRecordNames).
  */
 const STATUSES_BY_NAME: Array<string> = [
   "Operational",
@@ -161,6 +164,14 @@ const STATUSES_BEST_FIRST: Array<string> = [
 
 // The monitor list's Status column.
 const STATUS_COLUMN: number = 1;
+
+// The words the German Dashboard reads each status above in (Locales/de.json).
+const STATUS_IN_GERMAN: Record<string, string> = {
+  Operational: "Betriebsbereit",
+  Degraded: "Beeinträchtigt",
+  Offline: "Offline",
+  Disabled: "Deaktiviert",
+};
 
 const PODS_BY_NAMESPACE: Array<string> = [
   "batch-7",
@@ -871,10 +882,12 @@ test.describe("a list on the dashboard inside OneUptime", () => {
       "title",
       "Sortiert: Schlechteste zuerst",
     );
-    // Disabled in German; the project's own statuses as the project named them.
+    // Disabled in German, and so is each default status the fixture carries.
     await expectRows(
       monitorsTable(page),
-      [...STATUSES_WORST_FIRST.slice(0, -1), "Deaktiviert"],
+      STATUSES_WORST_FIRST.map((status: string): string => {
+        return STATUS_IN_GERMAN[status] || status;
+      }),
       STATUS_COLUMN,
     );
     await expect(header(monitorsTable(page), "name")).toHaveAttribute(

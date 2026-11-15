@@ -231,7 +231,7 @@ Når du oppretter en arbeidsflyt, har malene under **Vakt** denne klar, og en so
 
 | Innstilling | Hva den gjør |
 | ----------- | ------------ |
-| **Brukere**, **Team**, **Vaktplaner** eller **Vaktretningslinjer** | Hvem som tilkalles: hver blokk har den som hører til navnet sitt. Velg etter navn, eller trykk på **{ }** på slutten av raden for å legge til en verdi fra en tidligere blokk. En verdi kan inneholde én ID eller flere og, for **Brukere**, en e-postadresse. |
+| **Brukere**, **Team**, **Vaktplaner** eller **Vaktpolicyer** | Hvem som tilkalles: hver blokk har den som hører til navnet sitt. Velg etter navn, eller trykk på **{ }** på slutten av raden for å legge til en verdi fra en tidligere blokk. En verdi kan inneholde én ID eller flere og, for **Brukere**, en e-postadresse. |
 | **Page About** | Hva tilkallingen gjelder: **A new alert**, **An incident** eller **An alert**. Å bekrefte tilkallingen bekrefter også den. |
 | **Tittel** og **Melding** | For et nytt varsel. OneUptime oppretter et varsel av dem, og det blir værende blant varslene dine som alle andre. |
 | **Hendelse-ID** eller **Varsel-ID** | For en hendelse eller et varsel som allerede finnes, vanligvis det arbeidsflyten startet på: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |

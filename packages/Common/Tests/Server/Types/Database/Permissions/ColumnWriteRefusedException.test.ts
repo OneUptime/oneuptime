@@ -30,7 +30,7 @@ const PROJECT_ID: ObjectID = ObjectID.generate();
 const PLAIN_COLUMN_REFUSAL: RegExp =
   /new BadDataException\(\s*`User is not allowed to/;
 
-// A project owner: the most a person in a project holds.
+// A Project Owner: the most a person in a project holds.
 function owner(): DatabaseCommonInteractionProps {
   return {
     userId: ObjectID.generate(),

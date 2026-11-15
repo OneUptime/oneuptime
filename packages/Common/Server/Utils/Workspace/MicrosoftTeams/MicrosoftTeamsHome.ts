@@ -698,7 +698,7 @@ export default class MicrosoftTeamsHome {
         type: "TextBlock",
         text: (data.isConnected
           ? mdText`To post incidents, alerts or scheduled maintenance to a team's channels, add a notification rule in ${productName} under **Incidents → Workspace → Microsoft Teams**.`
-          : mdText`To get started, a project admin connects your organization in ${productName}, under **Project Settings → Workspace → Microsoft Teams**.`
+          : mdText`To get started, a Project Admin connects your organization in ${productName}, under **Project Settings → Workspace → Microsoft Teams**.`
         ).toString(),
         wrap: true,
         spacing: "Medium",

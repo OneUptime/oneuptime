@@ -167,7 +167,7 @@ En ny webbplatsmonitor börjar med två kriterier, så den fungerar utan att du 
 - **Offline** — webbplatsen svarar inte, eller svarar med en statuskod på `400` eller högre (eller under `200`). Monitorn markeras som **Offline** och en incident skapas. Incidenten löser sig själv när webbplatsen är tillbaka.
 - **Uppe** — webbplatsen svarar med valfri statuskod `2xx` eller `3xx`, som `200`, `204` eller `301`. Monitorn markeras som **Fungerar**.
 
-I listan över kriterier är de namngivna efter monitorn: _Check if (name) is offline_ och _Check if (name) is online_.
+I listan över kriterier är de namngivna efter monitorn: "Kontrollera om _monitornamn_ är offline" och "Kontrollera om _monitornamn_ är online".
 
 En sida som svarar `204 No Content`, eller en omdirigering du bevakar med **Följ inte omdirigeringar** påslaget, räknas alltså som uppe. Om bara en statuskod betyder frisk för dig ändrar du båda kriterierna på monitorns sida **Konfiguration → Kriterier**: till exempel **Statuskod för svar** / **Lika med** / `200` i online-kriteriet och **Inte lika med** / `200` i offline-kriteriet, i stället för de två statuskodsfilter som vart och ett har.
 
