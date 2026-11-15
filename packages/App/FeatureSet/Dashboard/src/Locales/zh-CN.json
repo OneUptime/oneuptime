@@ -52899,7 +52899,7 @@
   "How many things the janitor removed at the start of the last lifecycle run: what a run that died left behind.": "清理程序（janitor）在最近一次生命周期运行开始时删除的对象数：即中途终止的运行遗留下来的内容。",
   "How many things the last lifecycle run could not delete. The janitor removes them once they are older than two intervals. A few for a while is a cloud in trouble, and many is a quota about to run out.": "最近一次生命周期运行未能删除的对象数。清理程序（janitor）会在它们存在超过两个间隔后将其删除。少量对象残留一段时间说明云出了问题，大量残留则说明配额即将用尽。",
   "How many times a hypervisor's inventory has changed, as Placement counts it. It climbs on every change, so it says something changed, not what.": "按 Placement 的统计，Hypervisor 清单的变更次数。每次变更都会增加，因此它只说明有变化，而不说明变了什么。",
-  "How many times over Placement will promise a hypervisor's resource. What it will promise is (capacity - reserved) x this ratio.": "Placement 对 Hypervisor 资源的超额承诺倍数。它将承诺的量为（容量 - 预留）x 此比率。",
+  "How many times over Placement will promise a hypervisor's resource. What it will promise is (capacity - reserved) x this ratio.": "Placement 对 Hypervisor 资源的超额承诺倍数。它承诺的量为（容量 - 预留）x 此比率。",
   "How many times this Memcached was asked each thing since the last collection: how much memcached_commands_total grew.": "自上次收集以来此 Memcached 收到每种请求的次数：即 memcached_commands_total 的增量。",
   "How many transmit errors a machine's Geneve tunnels reported since the last collection. The agent keeps Geneve's interfaces and none of the others, because a machine has one interface per port.": "自上次收集以来机器的 Geneve 隧道报告的发送错误数。代理只保留 Geneve 接口而不保留其他接口，因为机器上每个端口都有一个接口。",
   "How many users the cloud has.": "云中的用户数。",
