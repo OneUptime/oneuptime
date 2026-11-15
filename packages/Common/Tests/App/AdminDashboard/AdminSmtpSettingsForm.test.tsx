@@ -1238,6 +1238,174 @@ describe("Admin > Settings > Email > Host Settings", () => {
     );
   });
 
+  /*
+   * #8183: the From Name started empty on a fresh server, and it is
+   * required, so a newcomer had to make a name up before Save worked. It
+   * starts on the product's name, as the port starts on 587, and the
+   * newcomer types only the host and the address.
+   */
+  /*
+   * The row a fresh server holds: the columns' own defaults (SMTP, signing
+   * in with a username and password), and what UpdateGlobalConfigFromEnv
+   * writes when no SMTP variable is set - blank text, and no host or port.
+   */
+  const FRESH_SERVER: Record<string, unknown> = {
+    emailServerType: EmailServerType.CustomSMTP,
+    smtpTransportType: MailTransportType.SMTP,
+    smtpHost: null,
+    smtpPort: null,
+    smtpUsername: "",
+    smtpPassword: "",
+    isSMTPSecure: false,
+    smtpAuthType: SMTPAuthenticationType.UsernamePassword,
+    smtpFromEmail: "",
+    smtpFromName: "",
+  };
+
+  async function fillFreshServer(dialog: HTMLElement): Promise<void> {
+    await act(async () => {
+      fireEvent.change(within(dialog).getByPlaceholderText("smtp.server.com"), {
+        target: { value: "smtp.example.com" },
+      });
+    });
+    await settle();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-next-button"));
+    });
+    await settle();
+
+    const fromEmail: HTMLInputElement = await waitForField(
+      dialog,
+      "email@company.com",
+    );
+
+    await act(async () => {
+      fireEvent.change(fromEmail, { target: { value: "alerts@example.com" } });
+    });
+    await settle();
+  }
+
+  test.each([
+    ["blank, as the migration writes it", ""],
+    ["null", null],
+    ["only spaces", "   "],
+  ])(
+    "a fresh server's From Name (%s) starts on OneUptime, and Save goes through with only the host and the address typed (#8183)",
+    async (_label: string, fromName: string | null) => {
+      stored = { ...FRESH_SERVER, smtpFromName: fromName };
+
+      await renderPage();
+
+      const dialog: HTMLElement = await openEditDialog();
+
+      await waitForField(dialog, "smtp.server.com");
+      await fillFreshServer(dialog);
+
+      // A value, not only the box's example, which is still a company's.
+      expect(within(dialog).getByPlaceholderText("Company, Inc.")).toHaveValue(
+        "OneUptime",
+      );
+      expect(within(dialog).queryByText("From Name is required.")).toBeNull();
+
+      await act(async () => {
+        fireEvent.click(
+          within(dialog).getByTestId("modal-footer-submit-button"),
+        );
+      });
+
+      await waitFor(
+        () => {
+          expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+
+      const saved: Record<string, unknown> = savedValues();
+
+      expect({
+        smtpHost: asText(saved["smtpHost"]),
+        smtpPort: asText(saved["smtpPort"]),
+        smtpFromEmail: asText(saved["smtpFromEmail"]),
+        smtpFromName: saved["smtpFromName"],
+      }).toEqual({
+        smtpHost: "smtp.example.com",
+        smtpPort: "587",
+        smtpFromEmail: "alerts@example.com",
+        smtpFromName: "OneUptime",
+      });
+    },
+  );
+
+  test("a From Name the server holds is kept, and one cleared by hand says From Name is required (#8183)", async () => {
+    stored = { ...SMTP_INSTANCE, smtpFromName: "Example Status" };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+    await openLastStep(dialog);
+
+    const fromName: HTMLInputElement = await waitForField(
+      dialog,
+      "Company, Inc.",
+    );
+
+    expect(fromName).toHaveValue("Example Status");
+
+    // Emptied by hand, it stays empty: the default is a start, not a refill.
+    await act(async () => {
+      fireEvent.change(fromName, { target: { value: "" } });
+    });
+    await settle();
+
+    expect(fromName).toHaveValue("");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+    });
+    await settle();
+
+    expect(within(dialog).getByText("From Name is required.")).toBeVisible();
+    expect(mockCreateOrUpdate).not.toHaveBeenCalled();
+  });
+
+  test.each(["de", "ar", "fa"])(
+    "%s: a fresh server's From Name starts on OneUptime, as written, under the field's own words (#8183)",
+    async (language: string) => {
+      const locale: Locale = readLocale(language);
+
+      stored = { ...FRESH_SERVER };
+
+      await renderPage(language);
+
+      const dialog: HTMLElement = await openEditDialog(locale);
+
+      await waitForField(dialog, "smtp.server.com");
+
+      // The Sender step, from the step list, named in the page's language.
+      const steps: Array<HTMLElement> = within(
+        within(dialog).getByRole("navigation", {
+          name: text(locale, "Progress"),
+        }),
+      ).getAllByRole("listitem");
+
+      await act(async () => {
+        fireEvent.click(steps[steps.length - 1] as HTMLElement);
+      });
+      await settle();
+
+      // The product's name is never translated.
+      expect(await waitForField(dialog, "Company, Inc.")).toHaveValue(
+        "OneUptime",
+      );
+      expect(text(locale, "From Name")).not.toBe("From Name");
+      expect(within(dialog).getByText(text(locale, "From Name"))).toBeVisible();
+      expect(within(dialog).queryByText("From Name")).toBeNull();
+    },
+  );
+
   test("reads in the Admin Dashboard's languages: German", async () => {
     await renderPage("de");
 
@@ -2084,6 +2252,62 @@ describe("Admin > Settings > Email > a provider's own card", () => {
     expect(
       within(card).getByText(text(GERMAN, "Authentication Type")),
     ).toBeVisible();
+  });
+
+  /*
+   * #8183: a provider card's From Name starts on the product's name too,
+   * as the sender sends a blank one (Notification/Config.ts).
+   */
+  test("Mailgun: a server that never named its sender starts the From Name on OneUptime, and saves it", async () => {
+    stored = {
+      ...SMTP_INSTANCE,
+      emailServerType: EmailServerType.Mailgun,
+      mailgunApiKey: "key-0123",
+      mailgunDomain: "mg.example.com",
+      mailgunRegion: "EU",
+      mailgunFromEmail: "alerts@mg.example.com",
+      mailgunFromName: null,
+    };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Mailgun Settings");
+
+    fireEvent.click(within(card).getByRole("button", { name: "Edit Mailgun" }));
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal")).toBeInTheDocument();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const dialog: HTMLElement = screen.getByTestId("modal");
+
+    await settle();
+    await openLastStep(dialog);
+
+    expect(await waitForField(dialog, "Company, Inc.")).toHaveValue(
+      "OneUptime",
+    );
+
+    await save(dialog);
+
+    expect(savedValues()["mailgunFromName"]).toBe("OneUptime");
+  });
+
+  test("Amazon SES: a sender named by the server keeps its name (#8183)", async () => {
+    stored = { ...SES_INSTANCE };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openSesDialog();
+
+    await openLastStep(dialog);
+
+    expect(await waitForField(dialog, "Company, Inc.")).toHaveValue(
+      "Example Alerts",
+    );
   });
 
   test("Mailgun: its domain and region on the card", async () => {
