@@ -89,7 +89,9 @@ import Link from "Common/UI/Components/Link/Link";
 import EmptyValue, {
   EMPTY_VALUE_MARK,
 } from "Common/UI/Components/Detail/EmptyValue";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The Activity card's tiles. Last Run and Total Runs are the Overview's way
@@ -183,7 +185,9 @@ function triggerSourceElement(
               { modelId: new ObjectID(sm._id as string) },
             )}
           >
-            <span>{sm.title || translateText("View")}</span>
+            <span>
+              {getValueOrQuietDash(sm.title || translateText("View"))}
+            </span>
           </AppLink>
         </span>
       );

@@ -10,6 +10,8 @@ import DashboardWidgetLine from "../../../../App/FeatureSet/Dashboard/src/Compon
 import { ResourceListNameCell } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardResourceListBase";
 import ResourcePartDetailsCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartDetailsCard";
 import TopologyNodeCard from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyNodeCard";
+import DataTableWidget from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/DataTableWidget";
+import { AIChatWidgetType } from "../../../Types/AI/AIChatTypes";
 import StorageArrayResourceUtils from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayResourceUtils";
 import {
   formatBytes,
@@ -242,6 +244,49 @@ describe("a topology card's stat", () => {
       expect(empty).not.toBeNull();
       expect(spokenText(empty!)).toBe(NOT_SET[language]);
       expect(container).toHaveTextContent("12");
+    },
+  );
+});
+
+describe("an answer's table in the AI chat (#8679)", () => {
+  test.each(EVERY_LANGUAGE)(
+    "in %s, a cell a tool left empty is the quiet dash, with no title of a dash",
+    (language: Language) => {
+      const { getAllByTestId } = renderIn(
+        language,
+        <DataTableWidget
+          widget={{
+            id: "W1",
+            type: AIChatWidgetType.Table,
+            title: "Hosts",
+            data: {
+              columns: [
+                { key: "host", title: "Host", type: "text" },
+                { key: "count", title: "Count", type: "number" },
+              ],
+              rows: [
+                { host: "web-01", count: 12 },
+                { host: "", count: null },
+              ],
+            },
+          }}
+        />,
+      );
+
+      const cells: Array<HTMLElement> = getAllByTestId("ai-chat-table-cell");
+      // The first row reads as written.
+      expect(cells[0]!).toHaveTextContent("web-01");
+      expect(
+        within(cells[0]!).queryByTestId(TABLE_EMPTY_VALUE_TEST_ID),
+      ).toBeNull();
+      // The second row's two cells are the quiet dash, text and number alike.
+      for (const cell of [cells[2]!, cells[3]!]) {
+        expect(
+          within(cell).getByTestId(TABLE_EMPTY_VALUE_TEST_ID),
+        ).toBeTruthy();
+        expect(spokenText(cell)).toBe(NOT_SET[language]);
+        expect(cell).not.toHaveAttribute("title", EMPTY_VALUE_MARK);
+      }
     },
   );
 });

@@ -41,7 +41,7 @@ import { Translator } from "Common/Types/Translator";
 import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
 } from "../Utils/UseDashboardListWidgetSort";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSecurityEventsListComponent;
@@ -224,7 +224,7 @@ const DashboardSecurityEventsListComponentElement: FunctionComponent<
             className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-500 tabular-nums"
             title={time?.title}
           >
-            {time ? time.label : <TableEmptyValue isSmall={true} />}
+            {getValueOrQuietDash(time?.label, { isSmall: true })}
           </td>
           <td className="whitespace-nowrap px-3 py-1.5" title={severityText}>
             <span className="inline-flex items-center gap-1">
