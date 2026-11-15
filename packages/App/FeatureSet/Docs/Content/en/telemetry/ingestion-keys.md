@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **The key decides the project.** You never send a project ID: data sent with a key lands in the project the key belongs to.
-- **Changes reach every server within a minute.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect within about a minute.
+- **Changes reach every server within seconds.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect on every server within a few seconds.
 - **A key can have budgets of its own.** A daily budget and a per-second rate for each signal, within its project's: see [Ingestion Budgets](/docs/telemetry/ingestion-budgets).
 - **A Server key is a password.** Anyone who has it can send telemetry into your project. Keep it in your servers' secrets, never in source control or a web page.
 
@@ -139,8 +139,8 @@ The key's page keeps count too: **Refused Telemetry** lists what was refused fro
 
 For the other answers an OTLP exporter can get, see [Responses](/docs/telemetry/open-telemetry#responses).
 
-:::details Data still arrives a minute after I turned the key off
-Each OneUptime server keeps what it knows about a key for up to a minute, so a change reaches all of them within about a minute. Requests after that are refused. An MQTT client that connected with the key is cut off within a few seconds.
+:::details Data still arrives after I turned the key off
+Each OneUptime server checks for a change to a key at least once a second, so a change reaches all of them within a few seconds, and requests after that are refused. While a server cannot reach OneUptime's cache, it may go by what it knew of the key for up to a minute. An MQTT client that connected with the key is cut off within a few seconds.
 :::
 
 :::details A Browser key works on my laptop but not in production

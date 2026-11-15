@@ -24,7 +24,7 @@ import {
   isOnCallTestPageResultFinal,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import ResultLine from "./ResultLine";
 import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -87,15 +87,11 @@ export function describeAnswerTime(
 
 /*
  * A line of the result as its reader reads it: in their own words, from
- * the code the server sent with it (#7260), or else as the server wrote it.
- * Words the server wrote - a line it sent no code for, a provider's own
- * error - read the way they are written on a page read the other way
- * (#7182): an English line on an Arabic or Persian page keeps its phone
- * number and its full stop where they were written, and, run onto more
- * lines, each of its lines starts at its own start, at the page's side
- * (IsolatedLine) - not ragged where an English reader starts reading.
+ * the code the server sent with it (#7260), or else as the server wrote it,
+ * set apart on a page read the other way (ResultLine, which the on-call
+ * logs draw their lines with too).
  */
-interface ResultLineProps {
+interface CodedLineProps {
   line: {
     statusMessage: string;
     statusMessageCode?: OnCallTestPageLine | undefined;
@@ -103,23 +99,15 @@ interface ResultLineProps {
   className: string;
 }
 
-const ResultLine: FunctionComponent<ResultLineProps> = (
-  props: ResultLineProps,
+const CodedLine: FunctionComponent<CodedLineProps> = (
+  props: CodedLineProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const words: string | null = getResultLineSentence(
-    translator,
-    props.line.statusMessageCode,
-  );
-
-  if (words !== null) {
-    return <p className={props.className}>{words}</p>;
-  }
 
   return (
-    <IsolatedLine
-      as="p"
-      text={props.line.statusMessage}
+    <ResultLine
+      statusMessage={props.line.statusMessage}
+      words={getResultLineSentence(translator, props.line.statusMessageCode)}
       className={props.className}
     />
   );
@@ -245,7 +233,7 @@ const DeliveryLine: FunctionComponent<{
         <Pill text={status.text} color={status.color} size={PillSize.Small} />
       </div>
       {isFailed && delivery.statusMessage ? (
-        <ResultLine
+        <CodedLine
           line={delivery}
           className="text-sm text-gray-600 break-words"
         />
@@ -344,7 +332,7 @@ const StepBlock: FunctionComponent<{
         <Pill text={status.text} color={status.color} size={PillSize.Small} />
       </div>
       {step.deliveries.length === 0 && step.statusMessage ? (
-        <ResultLine
+        <CodedLine
           line={step}
           className="mt-2 text-sm text-gray-600 break-words"
         />
@@ -390,7 +378,7 @@ export const TestPageResultView: FunctionComponent<{
           />
         </div>
         {isRunLineShown(result) ? (
-          <ResultLine
+          <CodedLine
             line={result}
             className="text-sm text-gray-700 break-words"
           />

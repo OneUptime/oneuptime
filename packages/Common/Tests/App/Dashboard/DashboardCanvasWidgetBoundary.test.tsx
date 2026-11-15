@@ -95,6 +95,7 @@ import {
   DASHBOARD_WIDGET_FALLBACK_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetFallback";
 import DashboardBaseComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
+import { loadComponentSettingsModal } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/LazyComponentSettingsModal";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
@@ -470,6 +471,14 @@ describe("a short widget whose code will not download", () => {
 });
 
 describe("Edit widget, from the canvas", () => {
+  /*
+   * A widget's settings are a file of their own (LazyComponentSettingsModal),
+   * loaded first here, as a board that has opened them once has them.
+   */
+  beforeAll(async () => {
+    await loadComponentSettingsModal();
+  });
+
   const CONFIG: DashboardViewConfig = StoredDashboardViewConfig.read({
     components: [
       {

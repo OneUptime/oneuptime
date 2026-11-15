@@ -330,7 +330,13 @@ export default class WebsiteDownApi {
     };
   }
 
-  // What decides who is told: the project's policies and rules, and permissions.
+  /*
+   * What decides who is told: the project's policies and rules, and
+   * permissions. Only policies in service are counted: an archived one
+   * pages no one, so a project whose only policies are archived is one with
+   * no policy yet, and the setup makes one (#8234), as the monitor's "When
+   * this goes down" and Setup Health count them.
+   */
   public static async loadWhoIsToldFacts(): Promise<WhoIsToldFacts> {
     const permissions: Omit<
       WhoIsToldFacts,
@@ -352,7 +358,7 @@ export default class WebsiteDownApi {
         await Promise.all([
           ModelAPI.count<OnCallDutyPolicy>({
             modelType: OnCallDutyPolicy,
-            query: {},
+            query: { isArchived: false },
           }),
           ModelAPI.count<IncidentOnCallRule>({
             modelType: IncidentOnCallRule,
