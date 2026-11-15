@@ -68,7 +68,11 @@ import {
   AUDIT_LOG_SESSION_RESOURCE_TYPE,
   SESSION_AUDIT_LOG_ACTIONS,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
-import { DEFAULT_SESSION_IDLE_DAYS } from "Common/Types/UserSession/SessionLength";
+import {
+  DEFAULT_SESSION_IDLE_DAYS,
+  IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
+} from "Common/Types/UserSession/SessionLength";
+import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
   AUDIT_LOG_EXEMPTION_KINDS,
   AUDIT_LOG_EXEMPT_TABLES,
@@ -2455,6 +2459,45 @@ describe("Audit Logs", () => {
     );
     expect(sessionService).toContain("await this.recordSessionEnds({");
     expect(sessionService).toContain("public async endSessionsThatRanOut(");
+  });
+
+  /*
+   * Issue #8188: an idle timeout was recorded only when the browser came
+   * back, and for one that never did, 30 days later as "Not used for 30
+   * days". The five-minute sweep records it once the idle timeout and the
+   * margin have passed with nothing heard of the browser, so the page says
+   * within how long: the margin and one sweep. The mobile app's is still
+   * recorded when the app next reaches OneUptime.
+   */
+  it("says how soon an idle timeout is recorded, as the sweep's margin and its schedule make it", () => {
+    const sessions: string = section(page, "## Sign-ins and sessions");
+    const sweepEveryMinutes: number = 5;
+
+    expect(EVERY_FIVE_MINUTE).toBe(`*/${sweepEveryMinutes} * * * *`);
+    expect(sessions).toContain(
+      `An idle timeout in the browser is recorded within ${
+        IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES + sweepEveryMinutes
+      } minutes of running out, whether or not the person comes back. In the mobile app, it is recorded the next time the app reaches OneUptime.`,
+    );
+    expect(sessions).not.toContain("from a tab left open");
+
+    const sweepJob: string = fs.readFileSync(
+      path.join(
+        PACKAGES_DIR,
+        "..",
+        "ee",
+        "Server",
+        "AuditLog",
+        "Jobs",
+        "EndSessionsThatRanOut.ts",
+      ),
+      "utf8",
+    );
+
+    expect(sweepJob).toContain("schedule: EVERY_FIVE_MINUTE,");
+    expect(readCommonSource("Server/Services/UserSessionService.ts")).toContain(
+      "ended += await this.endSessionsPastIdleTimeout(condition);",
+    );
   });
 
   it("says an administrator's changes to someone else's notification setup are recorded", () => {
