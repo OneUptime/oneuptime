@@ -451,6 +451,15 @@ Når det er slået til, kører sådan en rettelse først, når to forskellige pe
 
 Reglen læses, når nogen godkender: slået til holder den de rettelser tilbage, der allerede venter; slået fra kører den næste godkendelse dem. En rettelse med kun sikre ændringer, en runbook og en rettelse via MCP-servere kræver én godkendelse som hidtil. En ændring, som en klynge eller en ressource kører af sig selv, i tilstanden **Automatisk** eller **Spring godkendelse over**, eller fordi dens liste over tilladte kommandoer nævner den, venter slet ikke på godkendelse.
 
+### Gem en vellykket rettelse som runbook
+
+Når en rettelse, som OneUptime AI kørte af sig selv, er verificeret (kommandoer på en Runner, en ændring via en klynges eller en ressources AI-agent eller kald til MCP-servere), tilbyder rettelsens kort **Gem som runbook**. OneUptime skriver en runbook med de trin, der kørte og virkede, i den rækkefølge, de kørte i:
+
+- en kommando på en Runner bliver et Bash-trin på samme Runner, præcis som den blev skrevet, med samme tidsgrænse; en, der krævede godkendelse, venter også på en godkendelse i runbooken;
+- en ændring via en AI-agent eller en MCP-server bliver et Manual-trin, der indeholder den nøjagtige kommando eller det nøjagtige kald, da en runbooks egne trin ikke kan nå disse agenter.
+
+Hvert trin siger, hvorfor OneUptime AI kørte det, hvad det gør, og hvordan det rulles tilbage. Runbooken får navn efter den hændelse eller advarsel, som rettelsen løste, og starter slået fra: ingen kan køre den, og OneUptime AI vælger den aldrig, før nogen har gennemgået dens trin og slået den til. Kortet linker derefter til runbooken, og feedet siger, at den er gemt. En rettelse, der ikke er verificeret, eller som allerede kørte en runbook, har intet at gemme, og for at gemme kræves tilladelse til at oprette runbooks.
+
 ## OneUptime AI reagerer først
 
 En vagtregel for hændelser eller alarmer kan lade OneUptime AI tage tilkaldet først. Under **Flere felter** skal du svare **Når OneUptime AI har prøvet** på **Hvornår skal denne regel tilkalde?**. Når OneUptime AI må rette det, en matchende hændelse eller alarm handler om, venter reglens politikker, mens AI undersøger, retter og kontrollerer sin rettelse, i højst den tid, der er angivet i **Vent på OneUptime AI i op til (minutter)**: 10 minutter som standard, fra 1 til 30. Hvis AI's rettelse bekræftes, løser OneUptime AI posten, og ingen bliver tilkaldt.

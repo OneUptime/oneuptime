@@ -47,6 +47,9 @@ const REMEDIATION_STEP: string = readSource(
 const ACTION_ITEM_SERVICE: string = readSource(
   "Common/Server/Services/IncidentPostmortemActionItemService.ts",
 );
+const INCIDENT_PRIVACY_FILTER: string = readSource(
+  "Common/Server/Utils/Incident/IncidentPrivacyFilter.ts",
+);
 const CODE_TASKS: string = readSource(
   "Common/Server/Utils/Incident/PostmortemActionItemCodeTasks.ts",
 );
@@ -258,8 +261,20 @@ describe("the postmortem page's action items", () => {
     ]);
     expect(model.canAccessIfCanReadOn).toBe("incident");
 
+    // A private incident's items are read through the incident's own privacy rule.
+    expect(ACTION_ITEM_SERVICE).toContain(
+      "findBy.query = applyIncidentRelatedRecordPrivacyFilter(",
+    );
+    expect(INCIDENT_PRIVACY_FILTER).toContain('FROM "IncidentOwnerUser" iou');
+    expect(INCIDENT_PRIVACY_FILTER).toContain(
+      'FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm',
+    );
+    expect(INCIDENT_PRIVACY_FILTER).toContain(
+      " * Project owners and admins, plus root/master-admin contexts, see all\n * private incidents.",
+    );
+
     expect(flat(section(POSTMORTEMS, "### See every action item"))).toContain(
-      "Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items are its team's, as the incident is.",
+      "Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, project admins and project owners.",
     );
   });
 

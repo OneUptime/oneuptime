@@ -451,6 +451,15 @@ Une fois activé, un tel correctif ne s'exécute que lorsque deux personnes diff
 
 La règle est lue au moment de l'approbation : activée, elle retient les correctifs qui attendent déjà ; désactivée, la prochaine approbation les exécute. Un correctif composé uniquement de modifications sûres, un runbook et un correctif via des serveurs MCP nécessitent une seule approbation, comme avant. Une modification qu'un cluster ou une ressource exécute de lui-même, en mode **Automatique** ou **Contourner l'approbation** ou parce que sa liste d'autorisation la nomme, n'attend aucune approbation.
 
+### Enregistrer comme runbook un correctif qui a fonctionné
+
+Quand un correctif que OneUptime AI a exécuté de lui-même est vérifié — des commandes sur un Runner, une modification via l'agent IA d'un cluster ou d'une ressource, ou des appels à des serveurs MCP — sa carte propose **Enregistrer comme runbook**. OneUptime rédige un runbook à partir des étapes qui ont été exécutées et ont fonctionné, dans l'ordre de leur exécution :
+
+- une commande sur un Runner devient une étape Bash sur ce Runner, telle qu'elle a été écrite, avec le même délai d'exécution ; une commande qui demandait une approbation attend aussi une approbation dans le runbook ;
+- une modification via un agent IA ou un serveur MCP devient une étape Manual qui contient la commande ou l'appel exact, puisque les étapes propres à un runbook ne peuvent pas atteindre ces agents.
+
+Chaque étape indique pourquoi OneUptime AI l'a exécutée, ce qu'elle fait et comment l'annuler. Le runbook porte le nom de l'incident ou de l'alerte qu'il a corrigé, et il est désactivé au départ : personne ne peut l'exécuter, et OneUptime AI ne le choisit jamais, tant que quelqu'un n'a pas relu ses étapes et ne l'a pas activé. La carte renvoie ensuite au runbook, et le fil indique qu'il a été enregistré. Un correctif qui n'est pas vérifié, ou qui a déjà exécuté un runbook, n'a rien à enregistrer, et l'enregistrement demande le droit de créer des runbooks.
+
 ## OneUptime AI répond en premier
 
 Une règle d'astreinte d'incident ou d'alerte peut laisser OneUptime AI prendre l'appel en premier. Sous **Plus de champs**, répondez **Après une tentative de OneUptime AI** à **Quand cette règle doit-elle alerter ?**. Lorsque OneUptime AI peut corriger ce dont parle un incident ou une alerte correspondant, les politiques de la règle attendent pendant que l'IA enquête, corrige et vérifie sa correction, au plus le temps réglé dans **Attendre OneUptime AI au plus (minutes)** : 10 minutes par défaut, de 1 à 30. Si la correction de l'IA est vérifiée, OneUptime AI résout l'enregistrement et personne n'est appelé.

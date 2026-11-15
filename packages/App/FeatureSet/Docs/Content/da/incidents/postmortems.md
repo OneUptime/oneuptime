@@ -8,6 +8,7 @@ En postmortem er gennemgangen efter en hændelse: hvad der skete, hvorfor, hvad 
 - [Offentliggør den på din statusside](#offentliggør-den-på-din-statusside): Vis den til kunderne, og giv abonnenter besked én gang.
 - [Følg, hvor langt hver postmortem er](#følg-hvor-langt-hver-postmortem-er): Ikke startet, Kladde, Fuldført eller en status, du selv laver.
 - [Se alle postmortems](#se-alle-postmortems): Filtrér efter ejer, alvorlighed og status for at finde dem, der stadig mangler.
+- [Følg op på handlingspunkter](#følg-op-på-handlingspunkter): Hvad teamet vil gøre, hvem der ejer hvert punkt, og hvad det blev til.
 - [Postmortems for episoder](#postmortems-for-episoder): Én gennemgang for en gruppe hændelser.
 :::
 
@@ -169,6 +170,47 @@ Filtrér listen med chippene over den: **Ejer**, en person eller et team; **Alvo
 
 For at ændre mange på én gang skal du vælge dem og åbne **Massehandlinger**: **Skift postmortem-status** flytter dem alle til én status, for eksempel **Ikke nødvendig** for hændelser, der ikke har brug for en, og **Tilføj ejer** og **Fjern ejer** ændrer, hvem der ejer dem.
 
+## Følg op på handlingspunkter
+
+En postmortems handlingspunkter er det, dit team vil gøre, så hændelsen ikke sker igen. Hvert af dem er en post på hændelsen med en ejer, en frist og en status, så ingen af dem forbliver en linje i noten, som ingen følger op på. Kortet **Handlingspunkter** ligger under kortet **Postmortem** på hændelsens side **Postmortem**.
+
+- For at tilføje et skal du skrive det i linjen under listen og klikke på **Tilføj handlingspunkt**.
+- For at give et en ejer skal du vælge **Tildel til mig** eller **Tildel til en anden** i dets menu **⋯**.
+- For at give et en frist skal du vælge **Rediger handlingspunkt** i dets menu **⋯** og angive dets **Frist**. Et åbent handlingspunkt, hvis frist er overskredet, viser med rødt, at det er forsinket.
+- For at lukke et skal du sætte flueben ved det, når det er udført. **Markér som »Udføres ikke«** i dets menu **⋯** lukker det, når teamet beslutter ikke at gøre det, og **Genåbn** åbner det igen. Hvert punkt viser, hvem der lukkede det og hvornår.
+
+Kortet viser, hvor mange der er udført, uden at medregne dem, der er markeret som **Udføres ikke**. Når et handlingspunkt tilføjes, lukkes eller overdrages, registreres det i hændelsens feed.
+
+### Følg op på de handlingspunkter, din note nævner
+
+OneUptime AI's udkast og alle postmortem-skabeloner slutter med et afsnit med handlingspunkter: en tjekliste eller en tabel med kolonnerne `Owner` og `Due Date`. Når noten har et, nævner kortet de punkter, hændelsen ikke følger endnu, med en knap, der tilføjer dem alle. Hvert punkt bliver et handlingspunkt:
+
+- et afkrydset punkt bliver et udført handlingspunkt;
+- en frist, som noten skriver som en dato, f.eks. 2026-11-20, bliver punktets frist i din tidszone;
+- et punkt med samme titel som et handlingspunkt, der allerede følges, udelades, så det tilføjer intet at gøre det igen.
+
+Afsnittets overskrift kan være `Action Items`, `Follow-ups`, `Next Steps` eller `How We Prevent It` eller de samme ord på et andet af dashboardets sprog.
+
+### Gør et handlingspunkt til en pull request, en test eller en monitor
+
+Hvert åbent handlingspunkt kan via sin menu **⋯** blive til det, det beder om:
+
+| Handling | Hvad der sker |
+| --- | --- |
+| **Åbn pull request med AI** | OneUptime AI foretager ændringen i et repository, du vælger, og åbner en pull request til gennemsyn. Hændelsen og dens postmortem følger med anmodningen. |
+| **Skriv en test med AI** | OneUptime AI skriver en test, der ville have fanget hændelsen, i repositoriets eget testframework, og åbner en pull request med den. |
+| **Opret monitor** | **Opret monitor** åbner med handlingspunktets navn. Når monitoren er oprettet, nævner handlingspunktet den og er udført. |
+
+Handlingspunktet viser derefter, hvad det blev til: hvor langt dets opgave er, f.eks. **Opgave i gang** eller **Pull request åben**, med link til opgaven i [Kode](/docs/ai/ai-agent), og dets pull request; eller monitoren. Når pull requesten flettes, er handlingspunktet udført af sig selv, og hændelsens feed siger det.
+
+De to AI-handlinger kræver, at AI er slået til for projektet, og et repository, som OneUptime AI kan arbejde i. Er der ikke forbundet noget, tilbyder menuen **Forbind et repository** i stedet. En anmodning kræver det samme som en anmodning i Kode, plus tilladelse til at redigere handlingspunktet.
+
+### Se alle handlingspunkter
+
+**Hændelser → Handlingspunkter** viser alle postmortems' handlingspunkter på tværs af projektet med den tidligste frist først, hver med sin hændelse, ejer, frist og status. Filtrér listen efter **Status**, **Ejer** og **Frist**, og **Vis** i en række åbner hændelsens side **Postmortem**.
+
+At læse handlingspunkter kræver det samme som at læse hændelsen. At tilføje, ændre og slette dem kræver rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en brugerdefineret rolle med den tilsvarende tilladelse til postmortem-handlingspunkter. En privat hændelses handlingspunkter er ligesom hændelsen kun synlige for de brugere, der ejer den, medlemmerne af de teams, der ejer den, projektadministratorer og projektejere.
+
 ## Postmortems for episoder
 
 En hændelsesepisode har også en side **Postmortem** under **Undersøgelse**: én gennemgang for alle hændelser i episoden. Klik på **Rediger obduktion** for at skrive den. **Anvend skabelon** og **Generate with AI** fungerer som på en hændelse, og AI læser episoden og dens medlemshændelser.
@@ -190,6 +232,8 @@ En postmortem er et sæt felter på hændelsen, som læses og skrives via `/api/
 | `postmortemStatusId` | Postmortemmens status: en af projektets statusser, under `/api/incident-postmortem-status`. |
 
 At skrive `showPostmortemOnStatusPage` som `true` oven på en skrevet `postmortemNote` offentliggør postmortem, ligesom dialogen gør. Det flytter også postmortem til **Fuldført**, medmindre samme skrivning sætter `postmortemStatusId`.
+
+En postmortems handlingspunkter er selvstændige poster under `/api/incident-postmortem-action-item`: hver med `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` og `status` (`Open`, `Done` eller `WontDo`). Workflows kan starte, når et oprettes, ændres eller slettes.
 
 ## Fejlfinding
 
