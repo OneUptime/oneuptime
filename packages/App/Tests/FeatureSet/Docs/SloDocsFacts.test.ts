@@ -4239,6 +4239,45 @@ describe("Release Checks, against the product", () => {
     );
   });
 
+  it("judges a Metric SLO on its metric's events, matching the version its points carry", () => {
+    const counting: string = readSource("metricCounting");
+
+    expect(page).toContain(
+      "- A [Metric SLO](/docs/slo/request-slos#slos-from-a-metric) is judged from its metric's events in the window, counted as its SLI counts them, so `minimumRequestCount`, `goodRequestCount` and `totalRequestCount` are events.",
+    );
+    expect(page).toContain(
+      "With `serviceVersion`, only the metric's points with that `service.version` resource attribute count",
+    );
+
+    // The measurement asks a Metric SLO's counting as it asks a request SLO's.
+    expect(readSource("releaseCheckMeasurement")).toContain(
+      "if (isEventSliType(slo.sliType)) {",
+    );
+    // The metric's recent count matches the version on the attribute the spans' does.
+    expect(counting).toMatch(
+      /if \(data\.serviceVersion\) \{[\s\S]{0,200}SLO_RELEASE_CHECK_VERSION_ATTRIBUTE/,
+    );
+
+    // Too few events is too little to judge, and the reason counts events.
+    const decision: SloReleaseCheckDecision = decideSloReleaseCheck({
+      sliType: SliType.Metric,
+      targetPercentage: 99.9,
+      options: parseSloReleaseCheckOptions({ windowInMinutes: "10" }),
+      measurement: {
+        burnRate: 0,
+        sliPercentage: 100,
+        goodRequestCount: 0,
+        totalRequestCount: 0,
+      },
+      deploymentsAllowed: true,
+    });
+
+    expect(decision.verdict).toBe(SloReleaseCheckVerdict.NotEnoughData);
+    expect(decision.reason).toBe(
+      "Only 0 events in the last 10 minutes, and this check needs at least 1 event to judge.",
+    );
+  });
+
   it("shows the answer the API builds, with the reason it writes", () => {
     const json: string = page.split("```json")[1]!.split("```")[0]!;
     const example: JSONObject = JSON.parse(
@@ -4299,8 +4338,13 @@ describe("Release Checks, against the product", () => {
       );
     }
 
+    // A Metric SLO with no metric it can count is refused by its counting (#8445).
+    expect(readSource("metricCounting")).toMatch(
+      /public static getCountableConfig\([\s\S]{0,400}throw new BadDataException\(/,
+    );
+
     expect(page).toContain(
-      "a request SLO with no services, a latency SLO with no threshold, a monitor uptime SLO with no monitors - is answered with HTTP 400",
+      "a request SLO with no services, a latency SLO with no threshold, a Metric SLO with no metric it can count, a monitor uptime SLO with no monitors - is answered with HTTP 400",
     );
   });
 });

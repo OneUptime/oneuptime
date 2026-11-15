@@ -42,6 +42,7 @@ Bij een verbruikssnelheid van 1 haalde het venster precies het doel van de SLO, 
 Wat de controle leest, hangt af van wat de SLO meet:
 
 - Een [SLO voor aanvragen](/docs/slo/request-slos) wordt beoordeeld op de aanvragen van zijn services in het venster, gelezen uit hun spans zodra die binnenkomen. Voeg `serviceVersion` toe om alleen de aanvragen van de nieuwe versie te beoordelen: OneUptime vergelijkt die waarde met het resource-attribuut `service.version` van de spans, dat een OpenTelemetry-SDK instelt vanuit `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Zo wordt de canary beoordeeld op zijn eigen aanvragen, zonder dat die van de oude versie het beeld verdunnen.
+- Een [SLO voor een metriek](/docs/slo/request-slos#slos-op-basis-van-een-metriek) wordt beoordeeld op de gebeurtenissen van zijn metriek in het venster, geteld zoals zijn SLI ze telt, dus `minimumRequestCount`, `goodRequestCount` en `totalRequestCount` zijn gebeurtenissen. Met `serviceVersion` tellen alleen de punten van de metriek waarvan het resource-attribuut `service.version` die waarde heeft: een OpenTelemetry-SDK zet het op zijn metrieken net als op zijn spans.
 - Een SLO voor monitorbeschikbaarheid wordt beoordeeld op de statustijdlijnen van zijn monitoren over het venster. `minimumRequestCount` geldt er niet voor, en een controle met `serviceVersion` wordt geweigerd: monitoren hebben geen versies.
 
 ## Voordat u begint
@@ -126,7 +127,7 @@ De velden van het antwoord:
 | `deploymentsAllowed` en `errorBudgetPolicyTier` | Of het foutbudgetbeleid van de SLO implementaties toestaat, en in welk niveau de SLO zit. |
 | `checkedAt` | Wanneer de controle is gemeten. |
 
-Een SLO die niet kan worden gemeten – een SLO voor aanvragen zonder services, een SLO voor latentie zonder drempel, een SLO voor monitorbeschikbaarheid zonder monitoren – krijgt als antwoord HTTP 400 en wat er moet worden opgelost, zodat een uitrol stopt op een duidelijke fout in plaats van op een gok. Gebruik op een zelfgehoste installatie het eigen adres van die installatie in plaats van oneuptime.com.
+Een SLO die niet kan worden gemeten – een SLO voor aanvragen zonder services, een SLO voor latentie zonder drempel, een SLO voor een metriek zonder telbare metriek, een SLO voor monitorbeschikbaarheid zonder monitoren – krijgt als antwoord HTTP 400 en wat er moet worden opgelost, zodat een uitrol stopt op een duidelijke fout in plaats van op een gok. Gebruik op een zelfgehoste installatie het eigen adres van die installatie in plaats van oneuptime.com.
 
 ## Argo Rollouts
 
