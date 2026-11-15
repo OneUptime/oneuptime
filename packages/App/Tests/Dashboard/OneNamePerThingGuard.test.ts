@@ -854,7 +854,9 @@ describe("the Italian and Portuguese on-call words (#8565)", () => {
     expect(otherWordIn(italian, "**Esegui criterio di reperibilità**")).toBe(
       "criterio di reperibilità",
     );
-    expect(otherWordIn(italian, "**Esegui policy di reperibilità**")).toBeNull();
+    expect(
+      otherWordIn(italian, "**Esegui policy di reperibilità**"),
+    ).toBeNull();
   });
 
   test("Portuguese: Plantão mid-name is read, a menu path and Title Case keep it", () => {
@@ -865,9 +867,10 @@ describe("the Italian and Portuguese on-call words (#8565)", () => {
       "Abra **Incidentes → Regras → Regras de Plantão**.",
       "- **Regras de Plantão** — executam uma política.",
     ]) {
-      expect({ dropped, read: otherWordIn(portuguese, dropped) !== null }).toEqual(
-        { dropped, read: true },
-      );
+      expect({
+        dropped,
+        read: otherWordIn(portuguese, dropped) !== null,
+      }).toEqual({ dropped, read: true });
     }
 
     for (const kept of [
@@ -934,7 +937,10 @@ describe("Norwegian calls every product's policy a policy (#8562)", () => {
       "henter applikasjonens retningslinje fra OneUptime",
       "Sidens retningslinje tillater ikke OneUptime ennå.",
     ]) {
-      expect({ policy, read: NORWEGIAN_RETNINGSLINJE.test(withoutKept(policy)) }).toEqual({
+      expect({
+        policy,
+        read: NORWEGIAN_RETNINGSLINJE.test(withoutKept(policy)),
+      }).toEqual({
         policy,
         read: true,
       });
@@ -1021,7 +1027,10 @@ describe("Norwegian calls every product's policy a policy (#8562)", () => {
     ["Reclaim Policy", "Gjenvinningspolicy"],
     ["Pod Management Policy", "Pod-administrasjonspolicy"],
     ["Policy Rules", "Policyregler"],
-    ["Not required by this application's policy", "Ikke påkrevd av denne applikasjonens policy"],
+    [
+      "Not required by this application's policy",
+      "Ikke påkrevd av denne applikasjonens policy",
+    ],
   ])("the Dashboard's %p reads %p", (key: string, worded: string) => {
     expect(readDashboardLocale("no")[key]).toBe(worded);
   });
