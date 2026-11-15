@@ -137,6 +137,153 @@ const JWT_VERIFY_CALL: RegExp = /\bjwt\.verify\(/g;
 
 const hasEe: boolean = fs.existsSync(path.join(REPOSITORY_DIRECTORY, "ee"));
 
+function visit(node: ts.Node, onNode: (node: ts.Node) => void): void {
+  onNode(node);
+  ts.forEachChild(node, (child: ts.Node): void => {
+    visit(child, onNode);
+  });
+}
+
+// `jwt.<method>(...)`.
+function isJwtCall(node: ts.Node, method: string): node is ts.CallExpression {
+  return (
+    ts.isCallExpression(node) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    ts.isIdentifier(node.expression.expression) &&
+    node.expression.expression.text === "jwt" &&
+    node.expression.name.text === method
+  );
+}
+
+function sourceOfText(text: string): ts.SourceFile {
+  return ts.createSourceFile(
+    "JsonWebToken.ts",
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+}
+
+// A node's code, its runs of whitespace as one space.
+function written(node: ts.Node, source: ts.SourceFile): string {
+  return node.getText(source).replace(/\s+/g, " ");
+}
+
+/*
+ * The key JsonWebToken checks every one of OneUptime's own tokens with: the
+ * key object jsonwebtoken would make of TokenSigningKey's key, made once
+ * (JsonWebTokenKeys, held below to the key it is given).
+ */
+const VERIFYING_KEY: string =
+  "JsonWebTokenKeys.forVerifying(TokenSigningKey.get()) as jwt.Secret";
+
+/*
+ * The one option the verify may be handed, and only as the caller asked for
+ * it: to take a token past its expiry (DecodeOptions.acceptExpired, which
+ * TokenPurposeGuard holds to the sign-out's read of a session, issue #8592).
+ * An expiry is no part of a signature, so the token is checked with
+ * TokenSigningKey alone either way.
+ */
+function isExpiryWaiverTheCallerAsks(
+  node: ts.Expression,
+  source: ts.SourceFile,
+): boolean {
+  if (!ts.isConditionalExpression(node)) {
+    return false;
+  }
+
+  const waiver: ts.Expression = node.whenTrue;
+
+  return (
+    written(node.condition, source) === "options?.acceptExpired" &&
+    ts.isObjectLiteralExpression(waiver) &&
+    waiver.properties.length === 1 &&
+    ts.isPropertyAssignment(waiver.properties[0]!) &&
+    ts.isIdentifier(waiver.properties[0].name) &&
+    waiver.properties[0].name.text === "ignoreExpiration" &&
+    waiver.properties[0].initializer.kind === ts.SyntaxKind.TrueKeyword &&
+    ts.isIdentifier(node.whenFalse) &&
+    node.whenFalse.text === "undefined"
+  );
+}
+
+/*
+ * Why JsonWebToken's check of a token, as written in `text`, does not check
+ * it with TokenSigningKey alone - none when it does. There is one jwt.verify,
+ * in decodeJsonPayload, handed the token, TokenSigningKey's key object and at
+ * most the expiry waiver its caller asks for (DecodeOptions). Nothing that
+ * changes how the signature is checked: no `algorithms`, which would let the
+ * token choose how it is checked, no `allowInvalidAsymmetricKeyTypes`, no
+ * options object handed through, and no waiver for every token.
+ */
+function verifyRefusals(text: string): Array<string> {
+  const source: ts.SourceFile = sourceOfText(text);
+  const calls: Array<ts.CallExpression> = [];
+
+  visit(source, (node: ts.Node): void => {
+    if (isJwtCall(node, "verify")) {
+      calls.push(node);
+    }
+  });
+
+  if (calls.length !== 1) {
+    return [`${calls.length} calls of jwt.verify, not one`];
+  }
+
+  const call: ts.CallExpression = calls[0]!;
+  const [token, key, options, ...more] = call.arguments;
+  const refusals: Array<string> = [];
+
+  let method: ts.Node | undefined = call.parent;
+
+  while (method && !ts.isMethodDeclaration(method)) {
+    method = method.parent;
+  }
+
+  if (
+    !method ||
+    !ts.isMethodDeclaration(method) ||
+    !ts.isIdentifier(method.name) ||
+    method.name.text !== "decodeJsonPayload"
+  ) {
+    refusals.push("it is not in decodeJsonPayload");
+  } else if (
+    !method.parameters.some((parameter: ts.ParameterDeclaration): boolean => {
+      return (
+        ts.isIdentifier(parameter.name) &&
+        parameter.name.text === "options" &&
+        Boolean(parameter.type) &&
+        written(parameter.type!, source) === "DecodeOptions"
+      );
+    })
+  ) {
+    refusals.push("its options are not its caller's DecodeOptions");
+  }
+
+  if (!token || !ts.isIdentifier(token) || token.text !== "token") {
+    refusals.push("it checks something other than the token handed in");
+  }
+
+  if (!key || written(key, source) !== VERIFYING_KEY) {
+    refusals.push(
+      `it checks with ${key ? written(key, source) : "no key"}, not TokenSigningKey's key object`,
+    );
+  }
+
+  if (options && !isExpiryWaiverTheCallerAsks(options, source)) {
+    refusals.push(
+      `it is handed ${written(options, source)}, not just the expiry waiver its caller asks for`,
+    );
+  }
+
+  if (more.length > 0) {
+    refusals.push(`it is handed ${more.length} more arguments`);
+  }
+
+  return refusals;
+}
+
 // The code of a file, its comments removed by TypeScript's own printer.
 function codeOf(relativePath: string): string {
   const source: string = fs.readFileSync(
@@ -246,9 +393,18 @@ describe("what a request presents is signed with TokenSigningKey", () => {
     expect(code).toContain(
       "jwt.sign(payload, JsonWebTokenKeys.forSigning(TokenSigningKey.get()) as jwt.Secret, {",
     );
-    expect(code).toContain(
-      "jwt.verify(token, JsonWebTokenKeys.forVerifying(TokenSigningKey.get()) as jwt.Secret)",
-    );
+    /*
+     * Checked with that key alone, taking at most the expiry waiver a
+     * caller asks for, and nothing that changes how a signature is checked.
+     */
+    expect(
+      verifyRefusals(
+        fs.readFileSync(
+          path.join(REPOSITORY_DIRECTORY, JSON_WEB_TOKEN),
+          "utf8",
+        ),
+      ),
+    ).toEqual([]);
     // The one other signing call: RS256, with the caller's private key.
     expect(code).toContain("jwt.sign(payload, privateKey, {");
     expect(code.match(JWT_SIGN_CALL)).toHaveLength(2);
@@ -306,5 +462,109 @@ describe("what a request presents is signed with TokenSigningKey", () => {
       expect(code).not.toMatch(TOKEN_SIGNING_KEY_USE);
       expect(code).not.toMatch(ENCRYPTION_SECRET_IDENTIFIER);
     }
+  });
+});
+
+/*
+ * The check above allows the verify one option - the expiry waiver a caller
+ * asks for, #8592's sign-out read - and nothing else (issue #8673). Run on
+ * JsonWebToken as it is, with its one jwt.verify written another way, it
+ * refuses every other way of handing the verify a key or an option.
+ */
+describe("JsonWebToken's verify may waive an expiry its caller asks to, and nothing else", () => {
+  const actual: string = fs.readFileSync(
+    path.join(REPOSITORY_DIRECTORY, JSON_WEB_TOKEN),
+    "utf8",
+  );
+
+  // JsonWebToken with its one jwt.verify(...) written as `call`.
+  function withVerify(call: string): string {
+    const source: ts.SourceFile = sourceOfText(actual);
+    let found: ts.CallExpression | null = null;
+
+    visit(source, (node: ts.Node): void => {
+      if (!found && isJwtCall(node, "verify")) {
+        found = node;
+      }
+    });
+
+    const verify: ts.CallExpression = found!;
+
+    return `${actual.slice(0, verify.getStart(source))}${call}${actual.slice(verify.getEnd())}`;
+  }
+
+  const KEY: string = VERIFYING_KEY;
+
+  test("as it is: the token, TokenSigningKey's key object, and the waiver only when its caller asks", () => {
+    expect(verifyRefusals(actual)).toEqual([]);
+  });
+
+  test("without the waiver at all, as before #8592: allowed", () => {
+    expect(verifyRefusals(withVerify(`jwt.verify(token, ${KEY})`))).toEqual([]);
+  });
+
+  test.each([
+    {
+      name: "the expiry waived for every token",
+      call: `jwt.verify(token, ${KEY}, { ignoreExpiration: true })`,
+    },
+    {
+      name: "the expiry waived for every token that did not ask",
+      call: `jwt.verify(token, ${KEY}, !options?.acceptExpired ? { ignoreExpiration: true } : undefined)`,
+    },
+    {
+      name: "the waiver decided by something other than its caller",
+      call: `jwt.verify(token, ${KEY}, process.env["ACCEPT_EXPIRED"] ? { ignoreExpiration: true } : undefined)`,
+    },
+    {
+      name: "the caller's options handed through",
+      call: `jwt.verify(token, ${KEY}, options)`,
+    },
+    {
+      name: "the caller's options spread into the waiver",
+      call: `jwt.verify(token, ${KEY}, options?.acceptExpired ? { ...options } : undefined)`,
+    },
+    {
+      name: "the algorithms the token may choose",
+      call: `jwt.verify(token, ${KEY}, { algorithms: ["HS256", "none"] })`,
+    },
+    {
+      name: "algorithms beside the waiver",
+      call: `jwt.verify(token, ${KEY}, options?.acceptExpired ? { ignoreExpiration: true, algorithms: ["none"] } : undefined)`,
+    },
+    {
+      name: "algorithms when the caller does not ask",
+      call: `jwt.verify(token, ${KEY}, options?.acceptExpired ? { ignoreExpiration: true } : { algorithms: ["RS256"] })`,
+    },
+    {
+      name: "another waiver in its place",
+      call: `jwt.verify(token, ${KEY}, options?.acceptExpired ? { ignoreNotBefore: true } : undefined)`,
+    },
+    {
+      name: "keys of a kind the algorithm is not for",
+      call: `jwt.verify(token, ${KEY}, { allowInvalidAsymmetricKeyTypes: true })`,
+    },
+    {
+      name: "ENCRYPTION_SECRET for the key",
+      call: "jwt.verify(token, EncryptionSecret as jwt.Secret)",
+    },
+    {
+      name: "TokenSigningKey's text, not its key object",
+      call: "jwt.verify(token, TokenSigningKey.get() as jwt.Secret)",
+    },
+    {
+      name: "a callback besides",
+      call: `jwt.verify(token, ${KEY}, undefined, () => {})`,
+    },
+  ])("refused: $name", ({ call }: { call: string }) => {
+    expect(verifyRefusals(withVerify(call)).length).toBeGreaterThan(0);
+  });
+
+  test("refused: a second jwt.verify, wherever it is", () => {
+    expect(
+      verifyRefusals(
+        `${actual}\nexport const second: unknown = jwt.verify("token", "key");\n`,
+      ),
+    ).toEqual(["2 calls of jwt.verify, not one"]);
   });
 });

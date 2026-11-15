@@ -711,8 +711,11 @@ work out, starts from a default for everything else, and folds what most people 
   attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
   timeout or a count is written in the reader's digits. A summary draws a probe's message with
   `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
-  right-to-left line. An incident's root cause words its figures the same way: a response time,
-  the attempts and an NTP server's facts in the reader's digits and units (#8268). A Database
+  right-to-left line, and so do a network device's diagnostics (a ping's Reason, a traceroute's
+  note, #8675). An incident's root cause words its figures the same way: a response time, the
+  attempts and an NTP server's facts in the reader's digits and units (#8268), and a metric
+  criteria's Time Window, Data Arrives and Forecast lines with a duration as the reader's
+  language says one in a sentence (#8674). A Database
   Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
