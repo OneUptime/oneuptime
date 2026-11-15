@@ -83,13 +83,13 @@ export function getSubscriberNotificationEventTypeText(
   eventType: string | undefined | null,
 ): string {
   if (!eventType) {
-    return translator.translateText("Unknown");
+    return translator.translateText("Unknown") ?? "Unknown";
   }
 
   const label: string | null =
     getSubscriberNotificationEventTypeLabel(eventType);
 
-  return label ? translator.translateText(label) : eventType;
+  return label ? translator.translateText(label) ?? label : eventType;
 }
 
 // Every event type, offered in the words its cells draw it in.
