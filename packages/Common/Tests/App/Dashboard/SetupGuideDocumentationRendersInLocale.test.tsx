@@ -109,9 +109,11 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
 import {
+  DatabaseDocumentationTarget,
   getDatabaseAgentEngine,
   getDatabaseAgentSetupGuide,
   getDatabaseHealthMonitorCreateUrl,
+  getDatabaseOwnCollectorSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -248,6 +250,52 @@ function databaseGuide(system: string = "postgresql"): SetupGuideContent {
         RouteMap[PageMap.MONITOR_CREATE] as Route,
       ).toString(),
     ),
+  });
+}
+
+/*
+ * The guide a database's own Documentation tab draws for its row before a
+ * key is picked, as DatabaseDocumentationCard builds it: the agent's guide
+ * for an engine it has a config for, the own-collector guide otherwise.
+ */
+function databaseRowGuide(
+  database: DatabaseDocumentationTarget,
+): SetupGuideContent {
+  const links: {
+    databaseHealthMonitorUrl: string;
+    recommendationsUrl: string;
+  } = {
+    databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITOR_CREATE] as Route,
+      ).toString(),
+    ),
+    recommendationsUrl: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS] as Route,
+      { modelId: database.id },
+    ).toString(),
+  };
+  const engine: ReturnType<typeof getDatabaseAgentEngine> =
+    getDatabaseAgentEngine(database.dbSystem || "");
+
+  if (!engine) {
+    return getDatabaseOwnCollectorSetupGuide({
+      oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+      apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+      hasApiKey: false,
+      database: database,
+      ...links,
+    });
+  }
+
+  return getDatabaseAgentSetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    engine: engine,
+    system: database.dbSystem,
+    database: database,
+    ...links,
   });
 }
 
@@ -1224,45 +1272,103 @@ describe("Databases > Help > Documentation", () => {
   );
 
   /*
-   * A database's own Documentation tab installs for its row - its identity,
-   * its server id - and has no words in another language yet (#8746): it reads in
-   * English whole, never half in the reader's words.
+   * A database's own Documentation tab, and Add Database once its row
+   * exists, install for that row (#8746): the agent's guide with the row's
+   * identity and server id, its Kubernetes Deployment for a row found
+   * there, and for an engine the agent has no config for the guide for the
+   * reader's own collector. Each reads in the reader's words.
    */
-  test("a database's own tab reads in English whole, in German too", async () => {
-    await drawIn(
-      "de",
-      <DatabaseDocumentationCard
-        title="Connect orders-db"
-        description="The agent for this database."
-        database={{
-          id: "4f7f2c9e-0000-4000-8000-000000000001",
-          name: "orders-db",
-          dbSystem: "postgresql",
-          serverAddress: "db.prod.internal",
-          serverPort: 5432,
-        }}
-      />,
-    );
+  const DATABASE_ID: string = "4f7f2c9e-0000-4000-8000-000000000001";
+  const ROWS: Array<[string, DatabaseDocumentationTarget, Array<string>]> = [
+    [
+      "a PostgreSQL row with an address",
+      {
+        id: DATABASE_ID,
+        name: "orders-db",
+        dbSystem: "postgresql",
+        serverAddress: "db.prod.internal",
+        serverPort: 5432,
+      },
+      ["`DATABASE_SERVER_ID`", "db.prod.internal", DATABASE_ID],
+    ],
+    [
+      "a MySQL row found in Kubernetes",
+      {
+        id: DATABASE_ID,
+        dbSystem: "mysql",
+        endpoints: ["orders.data.svc.cluster.local:3306@prod"],
+        kubernetesNamespace: "data",
+        isKubernetes: true,
+      },
+      ["kubectl -n data", "`DATABASE_SERVER_ID`", "kind: Deployment"],
+    ],
+    [
+      "a CockroachDB row, for your own collector",
+      {
+        id: DATABASE_ID,
+        name: "ledger",
+        dbSystem: "cockroachdb",
+        serverAddress: "crdb.prod.internal",
+        serverPort: 26257,
+      },
+      ["`/_status/vars`", "resource/database", "oneuptime.database.server.id"],
+    ],
+    [
+      "a SQLite row, from its application's traces",
+      { id: DATABASE_ID, name: "cache.db", dbSystem: "sqlite" },
+      ["OTEL_EXPORTER_OTLP_ENDPOINT", DATABASE_ID],
+    ],
+  ];
 
-    const drawn: string = drawnTexts().join("\n");
-    const german: SetupGuideContent = inLanguage(
-      "Database",
-      databaseGuide(),
-      "de",
-    );
+  test.each(
+    ["de", "ar"].flatMap(
+      (
+        language: string,
+      ): Array<
+        [string, string, DatabaseDocumentationTarget, Array<string>]
+      > => {
+        return ROWS.map(
+          ([label, database, written]: [
+            string,
+            DatabaseDocumentationTarget,
+            Array<string>,
+          ]): [string, string, DatabaseDocumentationTarget, Array<string>] => {
+            return [language, label, database, written];
+          },
+        );
+      },
+    ),
+  )(
+    "in %s, a database's own tab for %s reads in the reader's words, its code as written",
+    async (
+      language: string,
+      _label: string,
+      database: DatabaseDocumentationTarget,
+      written: Array<string>,
+    ) => {
+      await drawIn(
+        language,
+        <DatabaseDocumentationCard
+          title="Connect this database"
+          description="The guide for this database."
+          database={database}
+        />,
+      );
+      await openEveryVariant();
 
-    expect(drawn).toContain("`DATABASE_SERVER_ID`");
-    expect(drawn).toContain("db.prod.internal");
-    for (const piece of getSetupGuideWordPieces(german)) {
-      if (getSetupGuideWordPieces(databaseGuide()).includes(piece)) {
-        continue;
+      expectGuideInReadersWords(databaseRowGuide(database), language);
+
+      const drawn: string = drawnTexts().join("\n");
+      for (const text of written) {
+        expect(drawn).toContain(text);
       }
-      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
-        piece,
-        drawn: false,
-      });
-    }
-  });
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
 });
 
 describe("Podman > Help > Documentation", () => {

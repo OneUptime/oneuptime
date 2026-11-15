@@ -46,11 +46,17 @@ import {
 } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import {
   DATABASE_AGENT_SYSTEM_OPTIONS,
+  DatabaseDocumentationTarget,
   getDatabaseAgentEngine,
   getDatabaseAgentSetupGuide,
   getDatabaseHealthMonitorCreateUrl,
+  getDatabaseOwnCollectorSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import { DatabaseAgentEngine } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
+import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
+} from "../../Types/DatabaseServer/DatabaseSystem";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -337,34 +343,126 @@ export function getVMwareSetupGuideWays(): Array<SetupGuideWay> {
 }
 
 /*
- * The Database guide on the product page (and in Add Database before a row
- * exists): the reader picks the engine, and the guide installs the agent
- * for it, before and after a key is picked. A database's own Documentation
- * tab - the row's identity, or the guide for an engine the agent has no
- * config for - still reads in English (DatabaseDocumentationCard), so it is
- * not one of these ways.
+ * The rows a database's own Documentation tab installs for: one with a
+ * name, an address and a port; one discovered in Kubernetes, known by a
+ * cluster-local endpoint in its namespace; and one with no address yet.
+ */
+export function getDatabaseSetupGuideRows(
+  system: string,
+  port: number | null,
+): Array<{ label: string; database: DatabaseDocumentationTarget }> {
+  const id: string = "4f7f2c9e-0000-4000-8000-000000000001";
+
+  return [
+    {
+      label: "a row with an address",
+      database: {
+        id: id,
+        name: "orders-db",
+        dbSystem: system,
+        serverAddress: "db.prod.internal",
+        serverPort: port || undefined,
+      },
+    },
+    {
+      label: "a row in Kubernetes",
+      database: {
+        id: id,
+        dbSystem: system,
+        endpoints: ["db.data.svc.cluster.local:1234@prod"],
+        kubernetesNamespace: "data",
+        isKubernetes: true,
+      },
+    },
+    { label: "a row with no address", database: { id: id, dbSystem: system } },
+  ];
+}
+
+const DATABASE_HEALTH_MONITOR_URL: string = getDatabaseHealthMonitorCreateUrl(
+  "/dashboard/1/monitors/create",
+);
+const DATABASE_RECOMMENDATIONS_URL: string =
+  "/dashboard/1/database-servers/2/recommendations";
+
+function databaseAgentEngine(system: string): DatabaseAgentEngine {
+  const engine: DatabaseAgentEngine | null = getDatabaseAgentEngine(system);
+
+  if (!engine) {
+    throw new Error(`The agent has no engine for ${system}.`);
+  }
+
+  return engine;
+}
+
+/*
+ * Every way through the Database guide (DatabaseDocumentationCard), before
+ * and after a key is picked:
+ *
+ *   - the product page, and Add Database before its row exists: the
+ *     engine the reader picks, the agent's guide for it;
+ *   - a database's own Documentation tab, for each engine the agent
+ *     monitors: the agent's guide for that row (its identity and its
+ *     server id, the Kubernetes Deployment for a row found there);
+ *   - a database's own tab for each engine of the catalog the agent ships
+ *     no config for: the guide for the reader's own collector - its
+ *     receiver, its Prometheus endpoint, its cloud's monitoring API or, for
+ *     an engine inside the application, the application's traces.
  */
 export function getDatabaseSetupGuideWays(): Array<SetupGuideWay> {
-  return getSetupGuideWays({
+  const ways: Array<SetupGuideWay> = getSetupGuideWays({
     options: DATABASE_AGENT_SYSTEM_OPTIONS,
     names: [],
     build: (reader: SetupGuideReader, system: string): SetupGuideContent => {
-      const engine: DatabaseAgentEngine | null = getDatabaseAgentEngine(system);
-
-      if (!engine) {
-        throw new Error(`The agent has no engine for ${system}.`);
-      }
-
       return getDatabaseAgentSetupGuide({
         oneuptimeUrl: reader.oneuptimeUrl,
         apiKey: reader.apiKey,
         hasApiKey: reader.hasApiKey,
-        engine: engine,
+        engine: databaseAgentEngine(system),
         system: system,
-        databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
-          "/dashboard/1/monitors/create",
-        ),
+        databaseHealthMonitorUrl: DATABASE_HEALTH_MONITOR_URL,
       });
     },
   });
+
+  for (const descriptor of DATABASE_SYSTEMS as ReadonlyArray<DatabaseSystemDescriptor>) {
+    const hasAgent: boolean =
+      getDatabaseAgentEngine(descriptor.system) !== null;
+
+    for (const reader of SETUP_GUIDE_READERS) {
+      for (const row of getDatabaseSetupGuideRows(
+        descriptor.system,
+        descriptor.defaultPort,
+      )) {
+        ways.push({
+          label: [
+            descriptor.system,
+            hasAgent ? "the agent" : "your own collector",
+            reader.hasApiKey ? "with a key" : "before a key",
+            row.label,
+          ].join(", "),
+          content: hasAgent
+            ? getDatabaseAgentSetupGuide({
+                oneuptimeUrl: reader.oneuptimeUrl,
+                apiKey: reader.apiKey,
+                hasApiKey: reader.hasApiKey,
+                engine: databaseAgentEngine(descriptor.system),
+                system: descriptor.system,
+                database: row.database,
+                databaseHealthMonitorUrl: DATABASE_HEALTH_MONITOR_URL,
+                recommendationsUrl: DATABASE_RECOMMENDATIONS_URL,
+              })
+            : getDatabaseOwnCollectorSetupGuide({
+                oneuptimeUrl: reader.oneuptimeUrl,
+                apiKey: reader.apiKey,
+                hasApiKey: reader.hasApiKey,
+                database: row.database,
+                databaseHealthMonitorUrl: DATABASE_HEALTH_MONITOR_URL,
+                recommendationsUrl: DATABASE_RECOMMENDATIONS_URL,
+              }),
+        });
+      }
+    }
+  }
+
+  return ways;
 }

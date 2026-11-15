@@ -437,13 +437,17 @@ describe.each(
       }
     });
 
+    /*
+     * The shortest is a database's own tab for an engine inside the
+     * application (SQLite): its intro, the SDK step and the page's topics.
+     */
     test("the guide has pieces to word, in every way through it", () => {
       expect(WAYS[product.name]!.length).toBeGreaterThan(3);
 
       for (const way of WAYS[product.name]!) {
         expect({
           way: way.label,
-          pieces: getSetupGuideWordPieces(way.content).length > 5,
+          pieces: getSetupGuideWordPieces(way.content).length >= 3,
         }).toEqual({ way: way.label, pieces: true });
       }
     });

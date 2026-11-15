@@ -63,7 +63,6 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DockerSwarm: { way: "a setup guide's words" },
   OpenStack: { way: "a setup guide's words" },
   VMware: { way: "a setup guide's words" },
-  // The engine picker's guide; a database's own tab is #8746.
   Database: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",

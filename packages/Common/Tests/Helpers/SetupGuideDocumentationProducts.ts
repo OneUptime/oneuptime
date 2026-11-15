@@ -303,6 +303,10 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "AI",
         "AI agent",
         "The files the agent runs",
+        // A database's own tab: its Metrics tab and the chart's button.
+        "This database",
+        "Metrics",
+        "Create monitor",
       ],
     }),
   ];
