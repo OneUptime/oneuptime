@@ -151,6 +151,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const JANE: string = "10000000-0000-4000-8000-000000000001";
@@ -762,7 +763,7 @@ describe("the severity of a new alert", () => {
 
     // Asked of the API in the project's order, not the alphabet's.
     const request: JSONObject | undefined = (
-      ModelAPI.getList as unknown as jest.Mock<(args: JSONObject) => unknown>
+      ModelAPI.getList as unknown as Mock<(args: JSONObject) => unknown>
     ).mock.calls
       .map((call: Array<JSONObject>): JSONObject => {
         return call[0]!;

@@ -15,6 +15,7 @@ import { inspect } from "util";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * Contract under test — the create/update hooks on both drop-filter services.
@@ -125,7 +126,7 @@ describe.each(SUITES)(
      * The update hook reads the rows the update matches so it can merge the
      * patch over them. This stands in for that read.
      */
-    function mockStoredRow(row: StoredRow): jest.SpiedFunction<any> {
+    function mockStoredRow(row: StoredRow): SpyInstance<any> {
       const model: any = makeModel();
       model._id = FILTER_ID.toString();
       model.action = row.action;
@@ -138,7 +139,7 @@ describe.each(SUITES)(
         .spyOn(service, "findBy")
         .mockImplementation(async (): Promise<Array<any>> => {
           return [model];
-        }) as unknown as jest.SpiedFunction<any>;
+        }) as unknown as SpyInstance<any>;
     }
 
     describe("on create", () => {
@@ -227,7 +228,7 @@ describe.each(SUITES)(
        * row — renaming a filter or toggling it off is the common case.
        */
       it("skips the row read entirely when no validated field is touched", async () => {
-        const findBy: jest.SpiedFunction<any> = mockStoredRow({
+        const findBy: SpyInstance<any> = mockStoredRow({
           action: dropAction,
           samplePercentage: undefined,
           filterQuery: VALID_QUERY,
@@ -384,7 +385,7 @@ describe.each(SUITES)(
        * stringified function would be nonsense.
        */
       it("skips validation when a validated field is a raw SQL expression", async () => {
-        const findBy: jest.SpiedFunction<any> = mockStoredRow({
+        const findBy: SpyInstance<any> = mockStoredRow({
           action: dropAction,
           samplePercentage: undefined,
           filterQuery: VALID_QUERY,
@@ -696,7 +697,7 @@ describe.each(SUITES)(
     }
 
     it("reads the stored filter only within the caller's project", async () => {
-      const findBy: jest.SpiedFunction<any> = jest
+      const findBy: SpyInstance<any> = jest
         .spyOn(service, "findBy")
         .mockResolvedValue([storedFilter()] as never) as any;
 
@@ -725,7 +726,7 @@ describe.each(SUITES)(
     });
 
     it("reads nothing for a caller who may not edit drop filters", async () => {
-      const findBy: jest.SpiedFunction<any> = jest
+      const findBy: SpyInstance<any> = jest
         .spyOn(service, "findBy")
         .mockResolvedValue([] as never) as any;
 

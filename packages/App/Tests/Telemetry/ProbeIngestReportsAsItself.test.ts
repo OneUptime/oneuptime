@@ -20,7 +20,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * Every probe ingest route knows which probe a request is from by the probe
@@ -249,7 +249,7 @@ import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import NetworkFlowDeviceMatcher from "Common/Server/Utils/NetworkFlow/NetworkFlowDeviceMatcher";
 import NetworkFlowIngest from "Common/Server/Utils/NetworkFlow/NetworkFlowIngest";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 const queueService: {
   addProbeIngestJob: AnyMock;

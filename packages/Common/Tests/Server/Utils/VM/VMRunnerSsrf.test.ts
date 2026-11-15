@@ -10,6 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import axios from "axios";
 import dns from "dns";
 import http from "http";
@@ -61,7 +62,7 @@ type LoopbackRequestHandler = (
   response: http.ServerResponse,
 ) => void;
 
-type ValidationLookupSpy = jest.SpiedFunction<
+type ValidationLookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

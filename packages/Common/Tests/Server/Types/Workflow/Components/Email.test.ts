@@ -19,6 +19,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("nodemailer", () => {
   return {
@@ -81,7 +82,7 @@ function validArgs(overrides: JSONObject = {}): JSONObject {
 const createTransportMock: ReturnType<typeof jest.fn> =
   nodemailer.createTransport as unknown as ReturnType<typeof jest.fn>;
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

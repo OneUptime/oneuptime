@@ -13,6 +13,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -33,9 +34,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 const POLICY_A: string = "7d000000-0000-4000-8000-00000000000a";
 const POLICY_B: string = "7d000000-0000-4000-8000-00000000000b";
 
-let executePolicy: jest.SpiedFunction<
-  typeof OnCallDutyPolicyService.executePolicy
->;
+let executePolicy: SpyInstance<typeof OnCallDutyPolicyService.executePolicy>;
 
 beforeEach(() => {
   executePolicy = jest
@@ -159,11 +158,11 @@ describe("paging a record's observer policies", () => {
       new OnCallDutyPolicyExecutionLog();
     run.onCallDutyPolicyId = new ObjectID(POLICY_A.toUpperCase());
 
-    const findBy: jest.SpiedFunction<
+    const findBy: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.findBy
     > = jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
-      .mockResolvedValue([run] as never) as unknown as jest.SpiedFunction<
+      .mockResolvedValue([run] as never) as unknown as SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.findBy
     >;
 
