@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import WifiEmptyState from "../../../Components/NetworkDevice/WifiEmptyState";
 import WifiTablesNotReadState from "../../../Components/NetworkDevice/WifiTablesNotReadState";
@@ -588,7 +589,7 @@ const NetworkDeviceWiFi: FunctionComponent<
                 {tile.title}
               </div>
               <div className="mt-1 text-2xl font-semibold text-gray-900">
-                {tile.value}
+                {getFigure(tile.value)}
               </div>
             </div>
           );

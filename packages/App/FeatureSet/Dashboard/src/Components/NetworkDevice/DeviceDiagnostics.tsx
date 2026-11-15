@@ -1,4 +1,5 @@
 import TracerouteHopsTable from "./TracerouteHopsTable";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import {
   DIAGNOSTIC_MAX_CONSECUTIVE_POLL_FAILURES,
   DIAGNOSTIC_MAX_POLL_ATTEMPTS,
@@ -447,7 +448,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
                     />
                   </dt>
                   <dd className="font-medium text-right break-all">
-                    {diagnosticRow.value}
+                    {getValueOrQuietDash(diagnosticRow.value)}
                   </dd>
                 </div>
               );
