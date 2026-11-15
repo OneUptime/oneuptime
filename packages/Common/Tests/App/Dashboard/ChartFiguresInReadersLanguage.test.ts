@@ -6,7 +6,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 import { formatDurationMsInLanguage as formatTelemetryDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
 import { formatRuntimeValue } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/serviceGoldenMetrics";
-import { formatVital } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalsCard";
+import {
+  formatVital,
+  RatedValue,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalsCard";
 import {
   formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
@@ -210,7 +213,7 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     expectPersian(formatRuntimeValue(2500, "count", translators["fa"]!));
     expectPersian(formatRuntimeValue(42, "milliseconds", translators["fa"]!));
 
-    const lcp: { value: number; unit: string; thresholds: never } = {
+    const lcp: RatedValue = {
       value: 2500,
       unit: "ms",
       thresholds: undefined as never,
@@ -219,7 +222,7 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     expectPersian(formatVital(lcp, translators["fa"]!));
     expect(
       formatVital(
-        { value: 0.1, unit: "", thresholds: undefined as never },
+        { value: 0.1, unit: "score", thresholds: undefined as never },
         translators["de"]!,
       ),
     ).toBe("0,100");
