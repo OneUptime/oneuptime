@@ -1,6 +1,5 @@
 import net from "net";
 import http from "http";
-import { timingSafeEqual } from "crypto";
 import { Duplex } from "stream";
 import {
   Aedes,
@@ -21,6 +20,7 @@ import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedExcept
 import ProjectService from "Common/Server/Services/ProjectService";
 import TelemetryIngestionKeyLastUsed from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyLastUsed";
 import TelemetryIngestionKeySecretDigest from "Common/Server/Utils/Telemetry/TelemetryIngestionKeySecretDigest";
+import SecretDigest from "Common/Server/Utils/Telemetry/SecretDigest";
 import TelemetryIngestionKeyGuard, {
   TELEMETRY_INGEST_REFUSAL_REASON_FOR_KEY_REFUSAL,
   TelemetryIngestionKeyRefusal,
@@ -133,13 +133,25 @@ interface MqttAuthContext {
    * project-wide ingestion key. Device-authenticated clients may only
    * publish under their own oneuptime/<fleet>/<device>/... topics, and
    * every publish re-validates the credential through the service's
-   * cache so revocation cuts a connected device off within ~60s.
+   * cache, so a credential switched off or deleted cuts a connected device
+   * off within about a second on every server (issue #8371).
    */
-  device?: {
-    credentialId: string;
-    fleetName: string;
-    externalId: string;
-  };
+  device?: MqttDeviceContext;
+}
+
+/*
+ * The device credential a client connected with. The secret it presented is
+ * kept as its digest, never the secret (SecretDigest): a heap snapshot of a
+ * broker with a fleet on it holds no device's live password. Each publish
+ * compares it with the credential's current digest, so a credential whose
+ * secret is no longer the one the device holds stops the session too.
+ */
+interface MqttDeviceContext {
+  credentialId: string;
+  projectId: string;
+  fleetName: string;
+  externalId: string;
+  secretKeyDigest: string;
 }
 
 /*
@@ -187,18 +199,18 @@ const UUID_REGEX: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /*
- * Constant-time-ish secret comparison; both sides are fixed-length
- * UUIDs so timingSafeEqual applies cleanly.
+ * Whether a device credential, as it is now, is still the one a session
+ * proved it held: the same project, and the secret whose digest the session
+ * kept. Digests compare in constant time (SecretDigest.matches); both sides
+ * are digests of lower-cased UUIDs, as Postgres compares them.
  */
-function secretsMatch(presented: string, expected: string): boolean {
-  const presentedBuffer: Buffer = Buffer.from(presented.toLowerCase(), "utf8");
-  const expectedBuffer: Buffer = Buffer.from(expected.toLowerCase(), "utf8");
-  if (presentedBuffer.length !== expectedBuffer.length) {
-    return false;
-  }
-  return timingSafeEqual(
-    presentedBuffer as unknown as NodeJS.ArrayBufferView,
-    expectedBuffer as unknown as NodeJS.ArrayBufferView,
+function isSameDeviceCredential(
+  context: IoTDeviceCredentialContext,
+  device: MqttDeviceContext,
+): boolean {
+  return (
+    context.projectId.toLowerCase() === device.projectId.toLowerCase() &&
+    SecretDigest.matches(context.secretKeyDigest, device.secretKeyDigest)
   );
 }
 
@@ -224,7 +236,10 @@ async function resolveAuthContext(
       if (
         !passwordText ||
         !UUID_REGEX.test(passwordText) ||
-        !secretsMatch(passwordText, context.secretKey)
+        !SecretDigest.matches(
+          SecretDigest.of(passwordText),
+          context.secretKeyDigest,
+        )
       ) {
         return null;
       }
@@ -244,8 +259,10 @@ async function resolveAuthContext(
         projectId: new ObjectID(context.projectId),
         device: {
           credentialId: context.credentialId,
+          projectId: context.projectId,
           fleetName: context.fleetName,
           externalId: context.externalId,
+          secretKeyDigest: SecretDigest.of(passwordText),
         },
       };
     }
@@ -434,17 +451,23 @@ async function handleAuthorizePublish(
 
   if (authContext.device) {
     /*
-     * Revocation check on every publish, served from the service's
-     * short-TTL cache: disabling or deleting the credential cuts a
-     * connected device off within one cache window instead of
-     * lingering for the life of its session.
+     * Revocation check on every publish, served from the service's cache
+     * (no Postgres read per publish): a credential switched off or deleted
+     * through any server cuts a connected device off within about a second
+     * (the credential's generation, issue #8371), or within a minute while
+     * Redis is down, instead of lingering for the life of its session. A
+     * credential whose secret is no longer the one the device connected
+     * with stops it too.
      */
     const liveContext: IoTDeviceCredentialContext | null =
       await IoTDeviceCredentialService.getCredentialContext(
         authContext.device.credentialId,
       );
 
-    if (!liveContext) {
+    if (
+      !liveContext ||
+      !isSameDeviceCredential(liveContext, authContext.device)
+    ) {
       logger.warn(
         `MQTT: closing client "${client.id}" — device credential was revoked or deleted.`,
         { service: "telemetry" },

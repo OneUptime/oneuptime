@@ -962,15 +962,41 @@ describe("the MQTT endpoint facts match the server", () => {
     expect(markdown).toContain("`MQTT: dropped publish to …`");
   });
 
-  test("a revoked device credential is cut off within about a minute", () => {
+  /*
+   * Issue #8371: the broker's credential cache is kept under each
+   * credential's generation, which an update or a delete renews through
+   * Redis, so a revoked credential is refused on every server within a
+   * second (CacheGenerations.SHARED_READ_TTL_MS). The minute is the bound
+   * only while a server cannot reach Redis.
+   */
+  test("a revoked device credential is cut off within a few seconds", () => {
+    const credentialService: string = squash(
+      readRepoFile(
+        "packages/Common/Server/Services/IoTDeviceCredentialService.ts",
+      ),
+    );
+
+    expect(credentialService).toContain(
+      "const POSITIVE_TTL_MS: number = 60 * 1000;",
+    );
+    expect(credentialService).toContain(
+      "const generation: string = await this.generations.get(generationKey);",
+    );
+    expect(credentialService).toContain(
+      "await this.forgetCredentials(updatedItemIds);",
+    );
+    expect(credentialService).toContain(
+      "await this.forgetCredentials(itemIdsBeforeDelete);",
+    );
     expect(
       squash(
         readRepoFile(
-          "packages/Common/Server/Services/IoTDeviceCredentialService.ts",
+          "packages/Common/Server/Infrastructure/CacheGenerations.ts",
         ),
       ),
-    ).toContain("const POSITIVE_TTL_MS: number = 60 * 1000;");
-    expect(markdown).toContain("cut off within about a minute");
+    ).toContain("public static readonly SHARED_READ_TTL_MS: number = 1_000;");
+    expect(markdown).toContain("cut off within a few seconds");
+    expect(markdown).not.toContain("cut off within about a minute");
   });
 
   test("the fleet's Device Registry tab exists", () => {
