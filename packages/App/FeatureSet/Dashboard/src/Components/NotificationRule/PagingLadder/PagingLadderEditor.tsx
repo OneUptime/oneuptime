@@ -349,29 +349,33 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
           )}
         </div>
         {props.isEditable ? (
-          <Button
-            buttonStyle={ButtonStyleType.ICON}
-            icon={IconProp.Close}
-            tooltip={PAGING_LADDER_COPY.remove}
-            ariaLabel={translator.translateTemplate(
-              PAGING_LADDER_COPY.removeMethod,
-              {
-                name: choice
-                  ? NotificationMethodUtil.getMethodLabel(
-                      translator,
-                      choice.channel,
-                      choice.identifier,
-                    )
-                  : translator.translateText(UNKNOWN_METHOD_LABEL) ||
-                    UNKNOWN_METHOD_LABEL,
-              },
-            )}
-            isAriaLabelTranslated={true}
-            dataTestId="paging-ladder-step-remove"
-            onClick={() => {
-              removeStep(index);
-            }}
-          />
+          // As tall as the method's first line, so the × sits beside its name.
+          <div className="flex h-7 flex-none items-center">
+            <Button
+              buttonStyle={ButtonStyleType.ICON}
+              buttonSize={ButtonSize.Small}
+              icon={IconProp.Close}
+              tooltip={PAGING_LADDER_COPY.remove}
+              ariaLabel={translator.translateTemplate(
+                PAGING_LADDER_COPY.removeMethod,
+                {
+                  name: choice
+                    ? NotificationMethodUtil.getMethodLabel(
+                        translator,
+                        choice.channel,
+                        choice.identifier,
+                      )
+                    : translator.translateText(UNKNOWN_METHOD_LABEL) ||
+                      UNKNOWN_METHOD_LABEL,
+                },
+              )}
+              isAriaLabelTranslated={true}
+              dataTestId="paging-ladder-step-remove"
+              onClick={() => {
+                removeStep(index);
+              }}
+            />
+          </div>
         ) : (
           <></>
         )}

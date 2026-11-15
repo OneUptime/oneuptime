@@ -55,13 +55,16 @@ export const getMethodIcon: (step: {
   );
 };
 
-// A method's icon in a small tile, at the start of its row.
+/*
+ * A method's icon in a small tile, at the start of its row. Left out on a
+ * phone, where the row needs the room for the method's name.
+ */
 export const MethodIcon: FunctionComponent<{
   step: { methodColumn: PagingMethodColumn };
 }> = (props: { step: { methodColumn: PagingMethodColumn } }): ReactElement => {
   return (
     <span
-      className="flex h-7 w-7 flex-none items-center justify-center rounded-md bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-200"
+      className="hidden h-7 w-7 flex-none items-center justify-center rounded-md bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-200 sm:flex"
       aria-hidden="true"
       data-testid="paging-ladder-method-icon"
     >

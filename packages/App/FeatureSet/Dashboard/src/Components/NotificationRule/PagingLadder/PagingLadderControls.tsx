@@ -84,9 +84,14 @@ export const StepWaitMenu: FunctionComponent<StepWaitMenuProps> = (
       isMenuLeftAligned={true}
       dataTestId="paging-ladder-step-wait-menu"
       elementToBeShownInsteadOfButton={
+        /*
+         * No negative margin and no truncation: MoreMenu wraps its trigger
+         * in an inline-block, which a negative margin shrinks under the
+         * label, and "At once" was cut to "At o...".
+         */
         <button
           type="button"
-          className="-mx-1.5 inline-flex max-w-full items-center gap-1 rounded-md px-1.5 py-0.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           aria-label={translator.translateTemplate(
             PAGING_LADDER_COPY.changeWait,
             {
@@ -97,7 +102,7 @@ export const StepWaitMenu: FunctionComponent<StepWaitMenuProps> = (
           )}
           data-testid="paging-ladder-step-wait"
         >
-          <span className="truncate">{label}</span>
+          <span>{label}</span>
           <Icon
             icon={IconProp.ChevronDown}
             className="h-3.5 w-3.5 flex-shrink-0 text-gray-500"
