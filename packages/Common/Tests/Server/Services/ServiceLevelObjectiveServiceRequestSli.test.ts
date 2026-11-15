@@ -600,11 +600,21 @@ describe("ServiceLevelObjectiveService - a request filter", () => {
  * or a workflow alike.
  */
 describe("ServiceLevelObjectiveService - a Metric SLO's metric", () => {
-  // Whether any read before the update asked for the stored metric.
+  /*
+   * Whether a read made to judge the update asked for the stored metric.
+   * The feed's snapshot reads it too, so the SLO's feed can say what the
+   * metric was (readFeedSnapshotBeforeUpdate). It is told apart by the name
+   * it always reads with it.
+   */
+  function isFeedSnapshotRead(call: Array<unknown>): boolean {
+    return Boolean((call[1] as Record<string, unknown>)?.["name"]);
+  }
+
   function readTheStoredMetric(stored: jest.SpyInstance): boolean {
     return stored.mock.calls.some((call: Array<unknown>): boolean => {
-      return Boolean(
-        (call[1] as Record<string, unknown>)?.["metricQueryConfig"],
+      return (
+        !isFeedSnapshotRead(call) &&
+        Boolean((call[1] as Record<string, unknown>)?.["metricQueryConfig"])
       );
     });
   }
@@ -713,6 +723,29 @@ describe("ServiceLevelObjectiveService - a Metric SLO's metric", () => {
     });
 
     await expect(callHook("onBeforeUpdate", updateBy)).resolves.toBeDefined();
+    expect(readTheStoredMetric(stored)).toBe(false);
+  });
+
+  it("reads the metric it replaces only for the feed, to say what it was", async () => {
+    const stored: jest.SpyInstance = stubStoredRows([
+      { sliType: SliType.Metric, metricQueryConfig: COUNTER },
+    ]);
+
+    await callHook(
+      "onBeforeUpdate",
+      makeUpdateBy({
+        sliType: SliType.Metric,
+        metricQueryConfig: { ...COUNTER, metricName: "rpc_requests_total" },
+      }),
+    );
+
+    const feedReads: Array<Array<unknown>> =
+      stored.mock.calls.filter(isFeedSnapshotRead);
+
+    expect(feedReads).toHaveLength(1);
+    expect(
+      (feedReads[0]![1] as Record<string, unknown>)["metricQueryConfig"],
+    ).toBe(true);
     expect(readTheStoredMetric(stored)).toBe(false);
   });
 
