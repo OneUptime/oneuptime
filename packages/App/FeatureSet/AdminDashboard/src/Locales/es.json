@@ -175,7 +175,11 @@
       "noItems": "Aún no se ha emitido ninguna licencia Enterprise.",
       "settingsCardTitle": "Ajustes de notificaciones de licencia",
       "settingsCardDescription": "Quién recibe copia de los correos de licencia y con cuánta antelación se envían los recordatorios de caducidad. Los recordatorios se envían por correo a diario a los administradores maestros del cliente mientras una licencia supere su límite de usuarios o esté próxima a caducar.",
-      "settingsEditButton": "Editar ajustes"
+      "settingsEditButton": "Editar ajustes",
+      "cloudOnlyTitle": "Solo disponible en OneUptime Cloud",
+      "cloudOnlyDescription": "Las licencias Enterprise se emiten y se controlan en oneuptime.com, la edición alojada, donde la facturación está habilitada. Esta instancia autoalojada no gestiona licencias.",
+      "enterpriseEditionRequiredTitle": "Requiere OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "La gestión de licencias forma parte de OneUptime Enterprise Edition. Despliega la imagen de Enterprise Edition para emitir y controlar licencias."
     },
     "enterpriseLicenseView": {
       "title": "Licencia Enterprise",
@@ -2113,6 +2117,7 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Este servidor no puede enviar correos electrónicos, así que no se envió ningún correo a {{email}}. Copia este enlace y envíaselo tú. Funciona una sola vez, solo para esta dirección, durante 7 días.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "Este servidor no puede enviar correos electrónicos, así que no se envió ningún correo a {{email}}. Ya tiene una cuenta: envíale este enlace para iniciar sesión y desde ahí aceptará la invitación.",
   "Invited": "Invitado",
+  "Get Invitation Link": "Obtener enlace de invitación",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "El aprovisionamiento SCIM se detiene, el registro de auditoría deja de registrar, la configuración empresarial pasa a ser de solo lectura y los paneles de administración empresarial se bloquean. Todo se reanuda en cuanto se activa una licencia, y el monitoreo principal nunca se ve afectado.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sin una licencia válida (tras la prueba de {{days}} días), el aprovisionamiento SCIM se detiene, el registro de auditoría deja de registrar, la configuración empresarial pasa a ser de solo lectura y los paneles de administración empresarial se bloquean. Todo se reanuda en cuanto se activa una licencia, y el monitoreo principal nunca se ve afectado.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sin una licencia válida (tras el periodo de gracia de {{days}} días), el aprovisionamiento SCIM se detiene, el registro de auditoría deja de registrar, la configuración empresarial pasa a ser de solo lectura y los paneles de administración empresarial se bloquean. Todo se reanuda en cuanto se activa una licencia, y el monitoreo principal nunca se ve afectado.",

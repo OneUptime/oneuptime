@@ -501,6 +501,44 @@ describe("collectErrorSupportBundleRuntimeDetails", () => {
     expect(runtimeDetails.application.reactVersion.length).toBeGreaterThan(0);
   });
 
+  /*
+   * #8015: a hash router keeps the page in the fragment, and its path is
+   * "/" on every page. The bundle named the page by the path alone, so it
+   * said "/" for whichever route failed.
+   */
+  test("names a hash router's route as the page, scrubbed, without its query", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/app/#!/orders/48aa764b-b3a4-4995-b5f8-0d0c35fc1226/edit?token=route-secret",
+    );
+
+    const runtimeDetails: ErrorSupportBundleRuntimeDetails =
+      collectErrorSupportBundleRuntimeDetails();
+
+    expect(runtimeDetails.page.pathname).toBe("/app/#!/orders/[redacted]/edit");
+    expect(runtimeDetails.page.url).toContain("/app/#!/orders/[redacted]/edit");
+    expect(runtimeDetails.page.hadFragment).toBe(true);
+    expect(JSON.stringify(runtimeDetails.page)).not.toContain("route-secret");
+    expect(JSON.stringify(runtimeDetails.page)).not.toContain("48aa764b");
+
+    window.history.replaceState({}, "", "/#/caf%c3%a9");
+
+    expect(collectErrorSupportBundleRuntimeDetails().page.pathname).toBe(
+      "/#/caf%C3%A9",
+    );
+  });
+
+  test("still names only the path for a fragment that is no route", () => {
+    window.history.replaceState({}, "", "/dashboard/traces#access_token=abc");
+
+    const runtimeDetails: ErrorSupportBundleRuntimeDetails =
+      collectErrorSupportBundleRuntimeDetails();
+
+    expect(runtimeDetails.page.pathname).toBe("/dashboard/traces");
+    expect(JSON.stringify(runtimeDetails.page)).not.toContain("access_token");
+  });
+
   test("never includes cookie, storage, or arbitrary environment contents", () => {
     document.cookie = "supportBundleCookie=cookie-secret; path=/";
     window.localStorage.setItem("support-secret", "local-storage-secret");

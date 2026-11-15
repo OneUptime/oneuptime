@@ -6,6 +6,7 @@ import {
   matchesSessionReplayEventName,
   matchesSessionReplayPagePattern,
 } from "Common/Types/Rum/SessionReplayFrustrationSignals";
+import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 
 /*
  * The application's own signals (its Frustration Signals page): a click on
@@ -236,21 +237,20 @@ export default class CustomSignalDetector {
 
   /*
    * The paths a page can be matched on: its pathname, and for a hash-routed
-   * app (#/checkout/error) the route after the #, without its query.
+   * app (#/checkout/error, #!/checkout/error) the route after the #, without
+   * its query. Which fragment is a route is UrlScrubber.getHashRoute's rule,
+   * the one the ingest stores a page by and User Flows reads it by; this
+   * read only #/, so a hashbang app's page signals never fired.
    */
   public static pagePathsOf(location: {
     pathname: string;
     hash: string;
   }): Array<string> {
     const paths: Array<string> = [location.pathname || "/"];
-    const hash: string = location.hash || "";
+    const route: string | null = UrlScrubber.getHashRoute(location.hash || "");
 
-    if (hash.charAt(1) === "/") {
-      const route: string = hash.slice(1).split("?")[0] || "/";
-
-      if (route !== paths[0]) {
-        paths.push(route);
-      }
+    if (route !== null && route !== paths[0]) {
+      paths.push(route);
     }
 
     return paths;

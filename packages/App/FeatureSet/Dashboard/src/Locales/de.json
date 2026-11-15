@@ -52328,6 +52328,7 @@
   "Expand all branches": "Alle Zweige erweitern",
   "Expand {{name}}: {{count}} devices below it": "{{name}} erweitern: {{count}} Geräte darunter",
   "Expand {{name}}: {{count}} devices below it_one": "{{name}} erweitern: {{count}} Gerät darunter",
+  "Get Invitation Link": "Einladungslink abrufen",
   "Narrows the map to this device and the {{count}} devices below it.": "Zeigt auf der Karte nur dieses Gerät und die {{count}} Geräte darunter.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Zeigt auf der Karte nur dieses Gerät und {{count}} Gerät darunter.",
   "Opens the branches they are in.": "Öffnet die Zweige, in denen sie liegen.",
@@ -52345,6 +52346,7 @@
   "Failed runs": "Fehlgeschlagene Ausführungen",
   "Free memory": "Freier Arbeitsspeicher",
   "Healthy backends": "Fehlerfreie Backends",
+  "If nobody has acknowledged yet": "Falls noch niemand bestätigt hat",
   "Its cloud sent no value for this in the last read.": "Die Cloud hat beim letzten Lesen keinen Wert dafür gesendet.",
   "Network in": "Netzwerk eingehend",
   "Network out": "Netzwerk ausgehend",
@@ -52357,8 +52359,12 @@
   "Read operations": "Lesevorgänge",
   "Request units": "Anforderungseinheiten",
   "Showing what {{name}} is connected to.": "Angezeigt wird, womit {{name}} verbunden ist.",
+  "Used for every incident, alert and episode, of every severity.": "Gilt für jeden Vorfall, jede Warnung und jede Episode, bei jedem Schweregrad.",
   "What it is connected to": "Womit es verbunden ist",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Wenn Sie alarmiert werden, versucht OneUptime jeden Schritt der Reihe nach, bis jemand bestätigt.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Wenn {{name}} alarmiert wird, versucht OneUptime jeden Schritt der Reihe nach, bis jemand bestätigt.",
   "Write operations": "Schreibvorgänge",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an diesen Schritten. Wenn Sie die Seite jetzt verlassen, gehen sie verloren.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} weitere Teile sind nicht gezeichnet. Suchen Sie, um einen zu finden.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} weiterer Teil ist nicht gezeichnet. Suchen Sie, um ihn zu finden.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Browser-Schlüssel — zur Weitergabe an Clients gedacht. Web-Ursprünge dürfen Traces, Protokolle, Metriken, Sitzungswiedergaben und Sentry-Ereignisse senden; app://-Identitäten erlauben nur Sitzungswiedergaben aus React Native. Akzeptierte Identitäten: {{identities}}. Identitäten nativer Apps gibt die App selbst an; sie sind keine Bestätigung durch die Plattform.",
@@ -52391,5 +52397,6 @@
   "Void": "Storniert",
   "Change (schema change)": "Änderung",
   "Table (database object)": "Tabelle",
-  "View (database object)": "Sicht"
+  "View (database object)": "Sicht",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Ändern, wann dieser Schritt gesendet wird."
 }

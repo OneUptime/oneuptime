@@ -424,8 +424,16 @@ const INCIDENT: Kind = {
       incident.incidentNumber = 42;
       return incident;
     });
-    // Its owners' "Incident Created" notification, let go once its owners are in (CreatedNotificationHold).
     stub(IncidentService, "updateOneById");
+    // Its owners' "Incident Created" notification, let go once its owners are in (CreatedNotificationHold).
+    stub(
+      IncidentService,
+      "compareAndSetColumnsByIdWithoutHooks",
+      undefined,
+      () => {
+        return true;
+      },
+    );
     stub(
       IncidentPrivacyRuleEngineService,
       "applyRulesToIncident",
@@ -590,8 +598,16 @@ const ALERT: Kind = {
     stub(ProjectService, "incrementAndGetAlertCounter", undefined, () => {
       return { counter: 42, prefix: undefined };
     });
-    // Its owners' "Alert Created" notification, let go once its owners are in (CreatedNotificationHold).
     stub(AlertService, "updateOneById");
+    // Its owners' "Alert Created" notification, let go once its owners are in (CreatedNotificationHold).
+    stub(
+      AlertService,
+      "compareAndSetColumnsByIdWithoutHooks",
+      undefined,
+      () => {
+        return true;
+      },
+    );
     stub(
       AlertPrivacyRuleEngineService,
       "applyRulesToAlert",
