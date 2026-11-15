@@ -34,20 +34,20 @@ Upload en JSON-eksportfil, eller indsæt dens indhold.
 
 ### Valider og forhåndsvis
 
-Vælg **Validate and preview**. Hver regel kontrolleres, før nogen oprettes, og de ressourcer, der henvises til, skal findes i målprojektet med entydige, matchende navne.
+Vælg **Validér og forhåndsvis**. Hver regel kontrolleres, før nogen oprettes, og de ressourcer, der henvises til, skal findes i målprojektet med entydige, matchende navne.
 
 ### Gennemgå forhåndsvisningen
 
-Kontrollér reglernes navne, status, etiketter og betingelser. En stor batch vises én side ad gangen. For at rette noget vælger du **Edit JSON** og validerer igen.
+Kontrollér reglernes navne, status, etiketter og betingelser. En stor batch vises én side ad gangen. For at rette noget vælger du **Rediger JSON** og validerer igen.
 
 ### Importér
 
-Vælg importknappen, som tæller reglerne (for eksempel **Import 2 rules**), og hold vinduet åbent, indtil resultaterne vises.
+Vælg importknappen, som tæller reglerne (for eksempel **Importér 2 regler**), og hold vinduet åbent, indtil resultaterne vises.
 :::
 
 Importer tilføjer nye regler og beholder de eksisterende, så hvis du importerer den samme fil igen, oprettes endnu en kopi. De sædvanlige tilladelser til oprettelse og serverens validering gælder for hver regel.
 
-Hvis nogle regler mislykkes, vælger du **Download failed rules** for kun at gemme de rækker, retter dem og importerer den fil igen. Hvis en anmodning får timeout, så tjek listen over regler, før du prøver igen: serveren kan have gemt reglen, før svaret gik tabt.
+Hvis nogle regler mislykkes, vælger du **Download mislykkede regler** for kun at gemme de rækker, retter dem og importerer den fil igen. Hvis en anmodning får timeout, så tjek listen over regler, før du prøver igen: serveren kan have gemt reglen, før svaret gik tabt.
 
 ## Opret en batch i JSON
 

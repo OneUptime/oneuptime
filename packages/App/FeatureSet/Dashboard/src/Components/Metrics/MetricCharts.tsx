@@ -2800,10 +2800,12 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
 
       /*
        * Build metric info for the info icon modal (first query's).
-       * Skip empty key/value entries and surface the operator alongside
-       * the value so users can see what's actually filtered.
+       * Skip empty key/value entries. Each filter goes over as it is
+       * stored, and the modal says it as one sentence with its operator in
+       * the reader's language (DictionaryFilterSentence), so users can see
+       * what's actually filtered.
        */
-      const metricAttributes: Dictionary<string> = {};
+      const metricAttributes: Dictionary<unknown> = {};
       const filterAttributes: Dictionary<unknown> | undefined = firstQuery
         .metricQueryData.filterData.attributes as
         | Dictionary<unknown>
@@ -2825,9 +2827,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           if (!option.hidesValueInput && detected.rawValue.trim() === "") {
             continue;
           }
-          metricAttributes[key] = option.hidesValueInput
-            ? option.symbol
-            : `${option.symbol} ${detected.rawValue}`;
+          metricAttributes[key] = value;
         }
       }
 
