@@ -274,7 +274,7 @@ describe("in German", () => {
       `- Jetzt, laut Trend: **${percent(84.5)}**`,
     );
     // Placed as text, as the engine placed its label: its brackets escaped.
-    expect(lineLike(FORECAST_ROOT_CAUSE, worded, "- In 7 days:")).toBe(
+    expect(plain(lineLike(FORECAST_ROOT_CAUSE, worded, "- In 7 days:"))).toBe(
       mdText`- ${"Am Ende des Zeitraums (7 Tage)"}: **${percent(91.5)}**`.toString(),
     );
     expect(plain(lineLike(FORECAST_ROOT_CAUSE, worded, "- Trend:"))).toBe(

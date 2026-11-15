@@ -1,6 +1,6 @@
 import NtpLeapIndicator from "../../Types/Monitor/NtpMonitor/NtpLeapIndicator";
 import {
-  getNumberLocale,
+  formatUnitAmount,
   isEnglishDateLanguage,
 } from "../../Types/DateLanguage";
 import NtpMonitorUtil from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
@@ -442,18 +442,18 @@ const durationInWords: (duration: ReadDuration) => ComposedValue = (
         return `${duration.count} ${duration.unit}${duration.count === 1 ? "" : "s"}`;
       }
 
-      try {
-        return new Intl.NumberFormat(getNumberLocale(translator.language), {
-          style: "unit",
-          unit: duration.unit,
-          unitDisplay: "long",
-        } as Intl.NumberFormatOptions).format(duration.count);
-      } catch {
-        return translator.translatePlural(
-          DURATION_UNITS[duration.unit],
-          duration.count,
-        );
-      }
+      // The number held to its unit, as every amount Intl writes is.
+      const written: string | null = formatUnitAmount({
+        value: duration.count,
+        unit: duration.unit,
+        locale: translator.language,
+        unitDisplay: "long",
+      });
+
+      return (
+        written ??
+        translator.translatePlural(DURATION_UNITS[duration.unit], duration.count)
+      );
     },
   };
 };
