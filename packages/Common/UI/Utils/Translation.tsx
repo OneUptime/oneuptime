@@ -6,6 +6,7 @@ import {
   TermOptions,
   Translator,
 } from "./TranslateTemplate";
+import { withMeaningKeyAsItsWord } from "../../Types/MeaningKeys";
 import { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -78,6 +79,14 @@ const useTranslateValue: () => UseTranslateValueResult =
       });
       if (typeof translated !== "string") {
         return value;
+      }
+      /*
+       * A key that names its meaning, with no wording of its own here -
+       * English's "View (database object)" - reads as its word, "View"
+       * (MeaningKeys): a column's title, a filter's or a pill's text alike.
+       */
+      if (translated === value) {
+        return withMeaningKeyAsItsWord(value);
       }
       return translated;
     };

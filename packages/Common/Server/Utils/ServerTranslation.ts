@@ -13,6 +13,7 @@ import nl from "../Locales/nl.json";
 import no from "../Locales/no.json";
 import pt from "../Locales/pt.json";
 import ru from "../Locales/ru.json";
+import SameAsEnglish from "../Locales/SameAsEnglish.json";
 import sv from "../Locales/sv.json";
 import zhCN from "../Locales/zh-CN.json";
 import zhTW from "../Locales/zh-TW.json";
@@ -27,8 +28,10 @@ import {
   createTranslator,
   isComposedValue,
   PluralTemplate,
+  SAME_AS_ENGLISH_MARK,
   TemplateValue,
   TemplateValues,
+  TextLookup,
   Translator,
 } from "../../Types/Translator";
 
@@ -76,6 +79,48 @@ export const SERVER_LOCALES: Readonly<
   hi: hi,
   fa: fa,
   ar: ar,
+};
+
+/*
+ * The keys each language words exactly as English does, on purpose
+ * (SameAsEnglish.json: "Status" in German, "{{count}} minutes_one" in
+ * French).
+ */
+const SERVER_SAME_AS_ENGLISH: Readonly<Record<string, ReadonlyArray<string>>> =
+  SameAsEnglish;
+
+/*
+ * What a language's translator looks a text up in: the language's file -
+ * and, for a key it lists as worded the same as English, the key's mark
+ * (SAME_AS_ENGLISH_MARK in Types/Translator), holding the same wording. So
+ * a plural's one form French words as English does reads as French's own:
+ * "0 minute" at 0, which French counts as one, not English's "0 minutes".
+ */
+const lookupIn: (
+  code: string,
+  dictionary: Readonly<Record<string, string>>,
+) => TextLookup = (
+  code: string,
+  dictionary: Readonly<Record<string, string>>,
+): TextLookup => {
+  const listed: ReadonlyArray<string> = SERVER_SAME_AS_ENGLISH[code] || [];
+
+  return (text: string): string | undefined => {
+    if (Object.prototype.hasOwnProperty.call(dictionary, text)) {
+      return dictionary[text];
+    }
+
+    if (!text.endsWith(SAME_AS_ENGLISH_MARK)) {
+      return undefined;
+    }
+
+    const key: string = text.slice(0, -SAME_AS_ENGLISH_MARK.length);
+
+    return listed.includes(key) &&
+      Object.prototype.hasOwnProperty.call(dictionary, key)
+      ? dictionary[key]
+      : undefined;
+  };
 };
 
 const translators: Map<string, Translator> = new Map<string, Translator>();
@@ -223,11 +268,7 @@ export const getServerTranslator: (
   const lookingUp: Translator =
     code === DEFAULT_READER_LANGUAGE || !dictionary
       ? createTranslator(undefined, DEFAULT_READER_LANGUAGE)
-      : createTranslator((text: string): string | undefined => {
-          return Object.prototype.hasOwnProperty.call(dictionary, text)
-            ? dictionary[text]
-            : undefined;
-        }, code);
+      : createTranslator(lookupIn(code, dictionary), code);
 
   const translator: Translator = isRightToLeftLanguage(code)
     ? isolatingValues(lookingUp)
@@ -275,11 +316,7 @@ export const getRecordWordsTranslator: (
     return undefined;
   }
 
-  return createTranslator((text: string): string | undefined => {
-    return Object.prototype.hasOwnProperty.call(dictionary, text)
-      ? dictionary[text]
-      : undefined;
-  }, code);
+  return createTranslator(lookupIn(code, dictionary), code);
 };
 
 /*

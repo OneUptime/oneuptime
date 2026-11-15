@@ -204,7 +204,7 @@ Un dispositivo mantiene il suono di sistema finché non esegue una versione dell
 
 ### Ripetere un avviso fino al riconoscimento
 
-Una regola push può inviare di nuovo il suo avviso finché qualcuno non lo riconosce. In **Impostazioni utente > Come contattarmi**, imposta **Ripeti fino al riconoscimento** quando aggiungi una regola push, o cambialo in seguito nella riga della regola: ogni minuto, oppure ogni 2, 3, 5, 10, 15 o 30 minuti. L'avviso viene inviato di nuovo a quell'intervallo, al massimo altre 10 volte, e si ferma non appena l'incidente, l'avviso o l'episodio viene riconosciuto. Memorizzato per regola in `UserNotificationRule.repeatEveryMinutes`, dove 0, il valore predefinito, invia l'avviso una sola volta.
+Una regola push può inviare di nuovo il suo avviso finché qualcuno non lo riconosce. In **Impostazioni utente > Come contattarmi**, imposta **Ripeti fino al riconoscimento** quando aggiungi una regola push, o cambialo in seguito nella riga della regola: ogni minuto, oppure ogni 2, 3, 5, 10, 15 o 30 minuti. L'avviso viene inviato di nuovo a quell'intervallo, al massimo altre 10 volte, e si ferma non appena l'incidente, l'avviso o l'episodio viene riconosciuto. Un avviso che continua dopo un riconoscimento, come un nuovo avviso, si ripete finché non risponde qualcuno che ha avvisato o finché l'incidente, l'avviso o l'episodio non viene risolto: [Quando avvisano più policy](/docs/on-call/policies#quando-avvisano-più-policy) li elenca. Memorizzato per regola in `UserNotificationRule.repeatEveryMinutes`, dove 0, il valore predefinito, invia l'avviso una sola volta.
 
 ## Risoluzione dei problemi
 

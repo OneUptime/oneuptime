@@ -30,7 +30,7 @@ flowchart TB
 :::steps
 ### Je instellingen openen
 
-Ga naar **Gebruikersinstellingen → Meldingsinstellingen**. De tabbladen zijn **Incidenten**, **Waarschuwingen**, **Bewaking**, **Statuspagina's**, **Geplande onderhoud**, **Bereikbaarheid** en **Beveiliging**.
+Ga naar **Gebruikersinstellingen → Meldingsinstellingen**. De tabbladen zijn **Incidenten**, **Waarschuwingen**, **Bewaking**, **Statuspagina's**, **Gepland onderhoud**, **Bereikbaarheid** en **Beveiliging**.
 
 ### De gebeurtenis vinden
 
@@ -51,7 +51,7 @@ Wanneer je lid wordt van een project, staan deze gebeurtenissen aan, per e-mail.
 | **Waarschuwingen** | **Waarschuwing aangemaakt**, **Status van waarschuwing gewijzigd**, **Waarschuwingsherinnering**, **Waarschuwingsepisode aangemaakt**, **Status van waarschuwingsepisode gewijzigd**, **Waarschuwing toegevoegd aan waarschuwingsepisode** | **Notitie bij waarschuwing geplaatst**, **Toegevoegd als eigenaar van waarschuwing**, **Notitie bij waarschuwingsepisode geplaatst**, **Toegevoegd als eigenaar van waarschuwingsepisode** |
 | **Bewaking** | **Sondestatus gewijzigd voor uw monitor**, **Monitor heeft geen actieve sondes**, **SLO-status gewijzigd**, **Toegevoegd als eigenaar van SLO**, **Uitzondering aan mij toegewezen**, **Sondestatus gewijzigd**, **Toegevoegd als eigenaar van sonde** | **Monitor aangemaakt**, **Monitorstatus gewijzigd**, **Toegevoegd als eigenaar van monitor**, **Status van AI-agent gewijzigd**, **Toegevoegd als eigenaar van AI-agent** |
 | **Statuspagina's** | **Mijn openbare notitie goedgekeurd of afgewezen**, en ook per push: **Openbare notitie wacht op mijn goedkeuring** | **Statuspagina aangemaakt**, **Statuspagina-aankondiging geplaatst**, **Toegevoegd als eigenaar van statuspagina** |
-| **Geplande onderhoud** | **Onderhoudsherinnering** | **Onderhoudsgebeurtenis aangemaakt**, **Onderhoudsstatus gewijzigd**, **Onderhoudsnotitie geplaatst**, **Toegevoegd als eigenaar van onderhoud** |
+| **Gepland onderhoud** | **Onderhoudsherinnering** | **Onderhoudsgebeurtenis aangemaakt**, **Onderhoudsstatus gewijzigd**, **Onderhoudsnotitie geplaatst**, **Toegevoegd als eigenaar van onderhoud** |
 | **Bereikbaarheid** | **U gaat in bereikbaarheid**, **U bent de volgende voor bereikbaarheid**, **U gaat uit bereikbaarheid**, **Toegevoegd aan bereikbaarheidsbeleid**, **Verwijderd uit bereikbaarheidsbeleid**, **Gemiste oproep**, en ook per push: **Voordat mijn oproepdienst begint**, **Mijn komende oproepdienst wordt opnieuw toegewezen** | Geen |
 | **Beveiliging** | Ook per push: **Nieuwe beveiligingszaak** (zaken met prioriteit High en Kritiek), **Beveiligingszaak aan mij toegewezen**, **Playbookstap wacht op mijn goedkeuring**, **Reactiedoel van een beveiligingszaak**, **Aan mij toegewezen taak van een beveiligingszaak**, **Hunt heeft beveiligingsgebeurtenissen gevonden** | Geen |
 

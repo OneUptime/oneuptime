@@ -33,7 +33,7 @@ O sink agrupa os eventos de log e os envia em segundo plano. Cada propriedade no
 
 Vá em **Produtos → Configurações do projeto**, abra **Telemetria e APM** no menu lateral e selecione **Chaves de ingestão**.
 
-![A página de chaves de ingestão de telemetria nas configurações do projeto](/docs/static/images/TelemetryIngestionKeys.png)
+![A lista "Chaves de ingestão", com "Criar chave de ingestão" destacado](screen:ingestion-keys)
 
 ### Criar uma chave
 

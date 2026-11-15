@@ -24,6 +24,7 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import ObjectID from "Common/Types/ObjectID";
 import { isOnCallPageEndedOnlyByAnAnswer } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import { getOnCallPageRecordDeletedMessage } from "Common/Types/OnCallDutyPolicy/OnCallPageRecordGone";
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
 } from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
@@ -463,10 +464,31 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             )
           : null;
 
+      /*
+       * Every record it pages about is gone - deleted while some of the
+       * person's rules were still due - or it names none: nothing is left
+       * to page about, and that does not change with a retry. The log ends
+       * here, saying so (OnCallPageRecordGone). It used to throw a plain
+       * Error, which the catch below reads as transient: the log stayed
+       * Executing and failed, and logged an error, every minute, forever
+       * (issue #8106).
+       */
       if (!incident && !alert && !alertEpisode && !incidentEpisode) {
-        throw new Error(
-          "Incident, Alert, Alert Episode, or Incident Episode not found.",
-        );
+        await UserOnCallLogService.updateOneById({
+          id: pendingNotificationLog.id!,
+          data: {
+            status: UserNotificationExecutionStatus.Completed,
+            statusMessage: getOnCallPageRecordDeletedMessage(
+              OnCallAcknowledgementTimeout.getRunRecord(pendingNotificationLog)
+                ?.kind,
+            ),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
       }
 
       /*

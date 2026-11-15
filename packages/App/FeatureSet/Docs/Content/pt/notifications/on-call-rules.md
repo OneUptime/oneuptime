@@ -117,7 +117,7 @@ Uma regra que aciona um telefone diz como o push dela toca:
 | **Alerta crítico** | Toca mesmo quando o telefone está no silencioso ou em Não perturbe, depois que Critical On-Call Alerts é ativado no app OneUptime On-Call. Uma nova regra de telefone começa aqui. |
 | **Normal** | Segue as configurações de som, silencioso e Não perturbe do telefone. |
 
-Uma regra de push, para um telefone ou um navegador, também pode reenviar o push até alguém confirmar: **Não repetir**, o padrão, ou **A cada minuto**, **A cada 2 minutos**, **A cada 3 minutos**, **A cada 5 minutos**, **A cada 10 minutos**, **A cada 15 minutos** ou **A cada 30 minutos**. Ela se repete até 10 vezes a mais, e para assim que o incidente, o alerta ou o episódio é confirmado. Veja [Alertas de plantão críticos](/docs/self-hosted/push-notifications#alertas-críticos-de-plantão-ignorando-o-modo-silencioso).
+Uma regra de push, para um telefone ou um navegador, também pode reenviar o push até alguém confirmar: **Não repetir**, o padrão, ou **A cada minuto**, **A cada 2 minutos**, **A cada 3 minutos**, **A cada 5 minutos**, **A cada 10 minutos**, **A cada 15 minutos** ou **A cada 30 minutos**. Ela se repete até 10 vezes a mais, e para assim que o incidente, o alerta ou o episódio é confirmado. Um acionamento que continua depois de uma confirmação, como um novo acionamento, se repete até que alguém que ele acionou responda ou que o incidente, o alerta ou o episódio seja resolvido: [Quando várias políticas acionam](/docs/on-call/policies#quando-várias-políticas-acionam) os lista. Veja [Alertas de plantão críticos](/docs/self-hosted/push-notifications#alertas-críticos-de-plantão-ignorando-o-modo-silencioso).
 
 ## Quando uma gravidade não tem regra
 

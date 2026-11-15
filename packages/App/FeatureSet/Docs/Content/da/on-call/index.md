@@ -102,7 +102,7 @@ Når du har vagt for en politik, viser klokken øverst til højre det. Klik på 
 ## Fejlfinding
 
 :::details Ingen blev tilkaldt for en ny hændelse
-Åbn hændelsens side **Vagtudførelser**. Er den tom, havde hændelsen ingen vagtpolitik: ingen blev valgt på den, og ingen vagtregel matchede den. En kørsel med **Execution Completed - No One Notified** gik gennem alle eskaleringsregler uden at finde nogen: som regel en vagtplan, hvor ingen har vagt. Se [Udførelseslogs](/docs/on-call/policies#udførelseslogs). En kørsel med **Venter** venter på arbejdstiden for en vagtregel sat til **Kun i arbejdstiden** og tilkalder ingen, før den begynder.
+Åbn hændelsens side **Vagtudførelser**. Er den tom, havde hændelsen ingen vagtpolitik: ingen blev valgt på den, og ingen vagtregel matchede den. En kørsel med **Udførelse fuldført - ingen underrettet** gik gennem alle eskaleringsregler uden at finde nogen: som regel en vagtplan, hvor ingen har vagt. Se [Udførelseslogs](/docs/on-call/policies#udførelseslogs). En kørsel med **Venter** venter på arbejdstiden for en vagtregel sat til **Kun i arbejdstiden** og tilkalder ingen, før den begynder.
 :::
 
 :::details Nogen blev tilkaldt på den forkerte kanal, eller slet ikke

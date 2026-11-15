@@ -1,4 +1,4 @@
-# Opret vedligeholdelsesbegivenheder
+# Opret vedligeholdelseshændelser
 
 Planlæg vedligeholdelse i to korte trin: sig, hvad der sker og hvornår, og derefter hvad det påvirker, og hvem der skal høre om det. Kun titlen skal skrives; alt andet starter med en fornuftig standardværdi. Denne side gennemgår formularen, hvad der sker i det øjeblik, du opretter en begivenhed, hvordan du ændrer den senere, og hvordan du opretter begivenheder fra kode.
 

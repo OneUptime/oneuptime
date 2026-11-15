@@ -146,6 +146,24 @@ import OAuthProviderType from "../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
 import ObjectID from "../../../Types/ObjectID";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
+import ServerSendingTopAlert, {
+  ServerSendingAlertKind,
+} from "../../../UI/Components/ServerSending/ServerSendingTopAlert";
+import API from "../../../UI/Utils/API/API";
+import ServerSendingStatusLoader from "../../../UI/Utils/ServerSending";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Route from "../../../Types/API/Route";
+import { JSONObject } from "../../../Types/JSON";
+import {
+  ServerSendingChannel,
+  ServerSendingState,
+} from "../../../Types/ServerSending/ServerSendingStatus";
+import {
+  SMTP_SUMMARY_NO_SIGN_IN,
+  SMTP_SUMMARY_OAUTH,
+  SMTP_SUMMARY_PASSWORD,
+} from "../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
 import UserUtil from "../../../UI/Utils/User";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
@@ -961,7 +979,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
     expect(card).not.toHaveTextContent("Please configure");
   });
 
-  test("the card's Authentication Type reads as the dialog's answer, in the reader's language", async () => {
+  test("the card's Authentication Type says what the dialog says, in the reader's language", async () => {
     stored = {
       ...SMTP_INSTANCE,
       smtpAuthType: SMTPAuthenticationType.None,
@@ -972,17 +990,23 @@ describe("Admin > Settings > Email > Host Settings", () => {
 
     const card: HTMLElement = await smtpCard(GERMAN);
 
-    // The answer "None", in German: not the stored English.
+    // The dialog's sentence, in German: not the stored English.
     await waitFor(
       () => {
-        expect(within(card).getByText(text(GERMAN, "None"))).toBeVisible();
+        expect(
+          within(card).getByText(text(GERMAN, SMTP_SUMMARY_NO_SIGN_IN)),
+        ).toBeVisible();
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
-    expect(text(GERMAN, "None")).toBe("Keine");
+    expect(text(GERMAN, SMTP_SUMMARY_NO_SIGN_IN)).toBe(
+      "E-Mails werden ohne Anmeldung über SMTP gesendet.",
+    );
+    expect(within(card).queryByText(SMTP_SUMMARY_NO_SIGN_IN)).toBeNull();
+    expect(within(card).queryByText("None")).toBeNull();
   });
 
-  test("an instance that never picked a sign-in reads Username and Password, translated", async () => {
+  test("an instance that never picked a sign-in, with a username and password, signs in with them, translated", async () => {
     stored = { ...SMTP_INSTANCE, smtpAuthType: null };
 
     await renderPage("de");
@@ -992,12 +1016,226 @@ describe("Admin > Settings > Email > Host Settings", () => {
     await waitFor(
       () => {
         expect(
-          within(card).getByText(text(GERMAN, "Username and Password")),
+          within(card).getByText(text(GERMAN, SMTP_SUMMARY_PASSWORD)),
         ).toBeVisible();
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
-    expect(within(card).queryByText("Username and Password")).toBeNull();
+    expect(within(card).queryByText(SMTP_SUMMARY_PASSWORD)).toBeNull();
+  });
+
+  /*
+   * #7458: the card showed the stored Authentication Type, "Username and
+   * Password", on a server that was given no username or password - and
+   * so sends without signing in, as the Edit dialog's own summary said -
+   * and on one that never picked a sign-in at all. It says what the dialog
+   * says now, in the dialog's own sentence.
+   */
+  describe("the card and the dialog say the same thing about signing in (#7458)", () => {
+    const FRESH_SERVER_SAVED: Record<string, unknown> = {
+      ...SMTP_INSTANCE,
+      smtpPort: 587,
+      isSMTPSecure: false,
+      smtpUsername: null,
+      smtpPassword: null,
+      smtpAuthType: null,
+    };
+
+    // The card's Authentication Type row, as its words read.
+    async function cardSignIn(card: HTMLElement): Promise<string> {
+      let words: string = "";
+
+      await waitFor(
+        () => {
+          const sentence: HTMLElement | undefined = [
+            SMTP_SUMMARY_PASSWORD,
+            SMTP_SUMMARY_OAUTH,
+            SMTP_SUMMARY_NO_SIGN_IN,
+          ]
+            .map((candidate: string): HTMLElement | null => {
+              return within(card).queryByText(candidate);
+            })
+            .find((found: HTMLElement | null): boolean => {
+              return found !== null;
+            }) as HTMLElement | undefined;
+
+          expect(sentence).toBeDefined();
+          words = sentence!.textContent || "";
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+
+      return words;
+    }
+
+    test.each([
+      [
+        "saved with no username and no password, never having picked a sign-in",
+        FRESH_SERVER_SAVED,
+        SMTP_SUMMARY_NO_SIGN_IN,
+      ],
+      [
+        "Username and Password picked, with no username and no password",
+        {
+          ...FRESH_SERVER_SAVED,
+          smtpAuthType: SMTPAuthenticationType.UsernamePassword,
+        },
+        SMTP_SUMMARY_NO_SIGN_IN,
+      ],
+      [
+        "a username with no password",
+        { ...FRESH_SERVER_SAVED, smtpUsername: "postmaster@example.com" },
+        SMTP_SUMMARY_NO_SIGN_IN,
+      ],
+      [
+        "a password with no username",
+        { ...FRESH_SERVER_SAVED, smtpPassword: "smtp-password" },
+        SMTP_SUMMARY_NO_SIGN_IN,
+      ],
+      [
+        "a username and a password",
+        {
+          ...FRESH_SERVER_SAVED,
+          smtpUsername: "postmaster@example.com",
+          smtpPassword: "smtp-password",
+        },
+        SMTP_SUMMARY_PASSWORD,
+      ],
+      [
+        "a relay picked with no sign-in",
+        { ...FRESH_SERVER_SAVED, smtpAuthType: SMTPAuthenticationType.None },
+        SMTP_SUMMARY_NO_SIGN_IN,
+      ],
+      [
+        "OAuth",
+        {
+          ...FRESH_SERVER_SAVED,
+          smtpUsername: "alerts@example.com",
+          smtpAuthType: SMTPAuthenticationType.OAuth,
+          smtpOAuthProviderType: OAuthProviderType.ClientCredentials,
+          smtpClientId: "0f0e0d0c-0b0a-4000-8000-000000000001",
+          smtpClientSecret: "smtp-client-secret",
+          smtpTokenUrl:
+            "https://login.microsoftonline.com/tenant-id/oauth2/v2.0/token",
+          smtpScope: "https://outlook.office365.com/.default",
+        },
+        SMTP_SUMMARY_OAUTH,
+      ],
+    ] as Array<[string, Record<string, unknown>, string]>)(
+      "%s",
+      async (
+        _name: string,
+        instance: Record<string, unknown>,
+        expected: string,
+      ) => {
+        stored = { ...instance };
+
+        await renderPage();
+
+        const card: HTMLElement = await smtpCard();
+
+        expect(await cardSignIn(card)).toBe(expected);
+
+        const dialog: HTMLElement = await openEditDialog();
+
+        await waitForField(dialog, "smtp.server.com");
+
+        // The dialog's summary opens with the same sentence.
+        expect(summaryOf(dialog).startsWith(expected)).toBe(true);
+      },
+    );
+
+    test('never "Username and Password" for a server that signs in with nothing', async () => {
+      stored = {
+        ...FRESH_SERVER_SAVED,
+        smtpAuthType: SMTPAuthenticationType.UsernamePassword,
+      };
+
+      await renderPage();
+
+      const card: HTMLElement = await smtpCard();
+
+      expect(await cardSignIn(card)).toBe(SMTP_SUMMARY_NO_SIGN_IN);
+      expect(within(card).queryByText("Username and Password")).toBeNull();
+      expect(card).not.toHaveTextContent(SMTP_SUMMARY_PASSWORD);
+    });
+
+    test("the card reads whether a password is set, and never shows it", async () => {
+      stored = { ...SMTP_INSTANCE };
+
+      await renderPage();
+
+      const card: HTMLElement = await smtpCard();
+
+      expect(await cardSignIn(card)).toBe(SMTP_SUMMARY_PASSWORD);
+
+      const selects: Array<Record<string, unknown>> = mockGetItem.mock.calls
+        .map((call: Array<unknown>): Record<string, unknown> => {
+          return ((call[0] as { select?: Record<string, unknown> }).select ||
+            {}) as Record<string, unknown>;
+        })
+        .filter((select: Record<string, unknown>): boolean => {
+          return Boolean(select["smtpHost"]);
+        });
+
+      expect(selects.length).toBeGreaterThan(0);
+
+      for (const select of selects) {
+        expect({
+          smtpUsername: select["smtpUsername"],
+          smtpPassword: select["smtpPassword"],
+        }).toEqual({ smtpUsername: true, smtpPassword: true });
+      }
+
+      expect(card).not.toHaveTextContent("smtp-password");
+    });
+  });
+
+  /*
+   * #7458: a fresh server was seeded with port 25 when SMTP_PORT was not
+   * set. Seeded with none, its card says so, and Edit SMTP Config starts on
+   * 587 as its help says.
+   */
+  test("a fresh server's card shows no port, and Edit SMTP Config starts on 587 (#7458)", async () => {
+    stored = {
+      emailServerType: EmailServerType.CustomSMTP,
+      smtpTransportType: null,
+      smtpHost: null,
+      smtpPort: null,
+      smtpUsername: "",
+      smtpPassword: "",
+      isSMTPSecure: false,
+      smtpAuthType: null,
+      smtpFromEmail: null,
+      smtpFromName: "",
+    };
+
+    await renderPage();
+
+    const card: HTMLElement = await smtpCard();
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("SMTP Port")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    // Host, Port, Username, From Email and From Name: each "None", no 25.
+    expect(card).not.toHaveTextContent("25");
+    expect(within(card).getAllByText("None").length).toBeGreaterThanOrEqual(3);
+    expect(
+      await within(card).findByText(SMTP_SUMMARY_NO_SIGN_IN),
+    ).toBeVisible();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+
+    expect(within(dialog).getByPlaceholderText("587")).toHaveValue("587");
+    expect(summaryOf(dialog)).toBe(
+      "Mail is sent over SMTP without signing in. TLS is used only if the server offers it.",
+    );
   });
 
   test("reads in the Admin Dashboard's languages: German", async () => {
@@ -1035,6 +1273,193 @@ describe("Admin > Settings > Email > Host Settings", () => {
     expect(text(GERMAN, "Works with most mail servers.")).not.toBe(
       "Works with most mail servers.",
     );
+  });
+});
+
+/*
+ * #7459: THE BANNER FOLLOWS A SAVE, WITHOUT A RELOAD.
+ *
+ * "Email is not set up" sits at the top of every Admin Dashboard page
+ * (ServerSendingTopAlert, mounted once by the MasterPage), and read where
+ * email stands once, when it mounted. Saved settings and a test email
+ * that arrived left it saying email was not set up until a reload, while
+ * the Test email card under it said email was set up. Here the real page
+ * and the real banner are drawn together, the server's answer is the only
+ * stand-in, and a save takes the banner away by itself.
+ */
+describe("Admin > Settings > Email: the banner follows a save (#7459)", () => {
+  // What the server says of email, as GET /global-config/sending-status answers.
+  let emailState: ServerSendingState = ServerSendingState.NotSetUp;
+  let statusReads: number = 0;
+
+  function sendingStatus(state: ServerSendingState): JSONObject {
+    const channels: Array<Record<string, unknown>> = [
+      ServerSendingChannel.Email,
+      ServerSendingChannel.SMS,
+      ServerSendingChannel.Call,
+      ServerSendingChannel.Push,
+    ].map((channel: ServerSendingChannel): Record<string, unknown> => {
+      const channelState: ServerSendingState =
+        channel === ServerSendingChannel.Email
+          ? state
+          : channel === ServerSendingChannel.Push
+            ? ServerSendingState.Untested
+            : ServerSendingState.NotSetUp;
+
+      return {
+        channel: channel,
+        state: channelState,
+        hasWorked: channelState === ServerSendingState.Working,
+        lastWorkedAt: null,
+        failingSince: null,
+        lastFailure: null,
+        setUpProblem:
+          channelState === ServerSendingState.NotSetUp
+            ? "Nothing is set up under Settings > Emails yet."
+            : null,
+      };
+    });
+
+    return { channels: channels, globalProbes: null } as unknown as JSONObject;
+  }
+
+  beforeEach(() => {
+    emailState = ServerSendingState.NotSetUp;
+    statusReads = 0;
+    ServerSendingStatusLoader.clear();
+
+    getJestSpyOn(API, "fetch").mockImplementation((async (
+      options: unknown,
+    ): Promise<unknown> => {
+      const url: string = String((options as { url: unknown }).url);
+
+      if (url.endsWith("/global-config/sending-status")) {
+        statusReads++;
+        return new HTTPResponse<JSONObject>(200, sendingStatus(emailState), {});
+      }
+
+      // The checklist and the environment variables: not asked about here.
+      return new HTTPErrorResponse(404, { message: "Not found." }, {});
+    }) as never);
+  });
+
+  afterEach(() => {
+    ServerSendingStatusLoader.clear();
+  });
+
+  async function renderPageWithBanner(): Promise<void> {
+    const instance: i18n = await instanceFor("en");
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <ServerSendingTopAlert
+          emailSettingsLink={new Route("/admin/settings/smtp")}
+          globalProbesLink={new Route("/admin/settings/probes")}
+        />
+        <EmailSettings />
+      </I18nextProvider>,
+    );
+
+    await settle();
+  }
+
+  async function bannerSaysEmailIsNotSetUp(): Promise<void> {
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("server-sending-alert")).toHaveAttribute(
+          "data-kind",
+          ServerSendingAlertKind.EmailNotSetUp,
+        );
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+  }
+
+  test('saving the mail server takes "Email is not set up" away, without a reload', async () => {
+    stored = { ...SMTP_INSTANCE };
+
+    await renderPageWithBanner();
+    await bannerSaysEmailIsNotSetUp();
+
+    // Saved, the server holds working settings: set up, not tested yet.
+    emailState = ServerSendingState.Untested;
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+    await save(dialog);
+
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("server-sending-alert")).toBeNull();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(statusReads).toBe(2);
+  });
+
+  test("a save that leaves email not set up keeps the banner, read again", async () => {
+    stored = { ...SMTP_INSTANCE };
+
+    await renderPageWithBanner();
+    await bannerSaysEmailIsNotSetUp();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+    await save(dialog);
+
+    await waitFor(
+      () => {
+        expect(statusReads).toBe(2);
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    await bannerSaysEmailIsNotSetUp();
+  });
+
+  test("saved settings whose sends now fail: the banner says email is failing", async () => {
+    stored = { ...SMTP_INSTANCE };
+
+    await renderPageWithBanner();
+    await bannerSaysEmailIsNotSetUp();
+
+    emailState = ServerSendingState.Failing;
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+    await save(dialog);
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("server-sending-alert")).toHaveAttribute(
+          "data-kind",
+          ServerSendingAlertKind.EmailFailing,
+        );
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+  });
+
+  test("opening and closing the dialog without saving asks nothing again", async () => {
+    stored = { ...SMTP_INSTANCE };
+
+    await renderPageWithBanner();
+    await bannerSaysEmailIsNotSetUp();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    await waitForField(dialog, "smtp.server.com");
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
+    });
+    await settle();
+
+    expect(mockCreateOrUpdate).not.toHaveBeenCalled();
+    expect(statusReads).toBe(1);
+    await bannerSaysEmailIsNotSetUp();
   });
 });
 

@@ -1,3 +1,7 @@
+import {
+  MAINTENANCE_EVENT_WORDS,
+  MaintenanceEventWords,
+} from "./MaintenanceEventWords";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -120,83 +124,11 @@ const STALE: ReadonlyArray<string> = [
 /*
  * Each language's word for the record, as its Dashboard words "Maintenance
  * Event", in any of the forms a sentence takes; and the "scheduled" wording
- * it had before, which none of these sentences may keep.
+ * it had before, which none of these sentences may keep. The docs check
+ * (MaintenanceEventDocsWords) holds the docs to the same words.
  */
-const LANGUAGES: Record<string, { record: RegExp; scheduled: RegExp }> = {
-  en: {
-    record: /\b[Mm]aintenance events?\b/,
-    scheduled: /\bscheduled maintenance/i,
-  },
-  de: {
-    record: /Wartungsereignis/,
-    scheduled: /geplante\S* Wartung/i,
-  },
-  fr: {
-    record: /[ée]v[ée]nements? de maintenance/i,
-    scheduled: /maintenances? (?:planifi|programm)/i,
-  },
-  es: {
-    record: /eventos? de mantenimiento/i,
-    scheduled: /mantenimientos? (?:programad|planificad)/i,
-  },
-  it: {
-    record: /event[oi] di manutenzione/i,
-    scheduled: /manutenzion[ei] (?:pianificat|programmat)/i,
-  },
-  pt: {
-    record: /eventos? de manutenção/i,
-    scheduled: /manuten(?:ção|ções) (?:programad|agendad)/i,
-  },
-  nl: {
-    record: /onderhoudsgebeurtenis/i,
-    scheduled: /geplande? onderhoud/i,
-  },
-  da: {
-    record: /vedligeholdelseshændelse/i,
-    scheduled: /planlagte? vedligehold/i,
-  },
-  no: {
-    record: /vedlikeholdshendelse/i,
-    scheduled: /planlagte? vedlikehold/i,
-  },
-  sv: {
-    record: /underhållshändelse/i,
-    scheduled: /schemalagd|planerade? underhåll/i,
-  },
-  ru: {
-    record: /[Сс]обыти\S* обслуживания/,
-    scheduled:
-      /(?:планов|запланированн)\S* (?:событи\S* )?(?:обслуживани|работ)/i,
-  },
-  ja: {
-    record: /メンテナンスイベント/,
-    scheduled: /定期メンテナンス|予定されたメンテナンス/,
-  },
-  ko: {
-    record: /유지 관리 이벤트/,
-    scheduled: /예정된|예약된/,
-  },
-  "zh-CN": {
-    record: /维护事件/,
-    scheduled: /计划维护/,
-  },
-  "zh-TW": {
-    record: /維護事件/,
-    scheduled: /排定維護|排程維護|排定的維護/,
-  },
-  hi: {
-    record: /रखरखाव इवेंट/,
-    scheduled: /अनुसूचित|निर्धारित|मेंटेनेंस/,
-  },
-  fa: {
-    record: /رویداد(?:های)? تعمیر و نگهداری/,
-    scheduled: new RegExp(`زمان${String.fromCharCode(0x200c)}بندی`),
-  },
-  ar: {
-    record: /(?:حدث|أحداث) (?:ال)?صيانة/,
-    scheduled: /مجدول/,
-  },
-};
+const LANGUAGES: Record<string, MaintenanceEventWords> =
+  MAINTENANCE_EVENT_WORDS;
 
 function nested(locale: Locale, keys: ReadonlyArray<string>): unknown {
   let value: unknown = locale;
@@ -280,7 +212,7 @@ describe("the sentences #7824 renamed", () => {
     "%s names the record with its own word, never the scheduled one",
     (language: string) => {
       const locale: Locale = readLocale(language);
-      const words: { record: RegExp; scheduled: RegExp } = LANGUAGES[language]!;
+      const words: MaintenanceEventWords = LANGUAGES[language]!;
       const texts: Array<[string, unknown]> = [
         ...SENTENCES.map((sentence: string): [string, unknown] => {
           return [sentence, locale[sentence]];
@@ -446,7 +378,7 @@ describe("the texts Common writes for the record (#7825)", () => {
     "%s names the record with its own word, never the scheduled one",
     (language: string) => {
       const locale: Locale = readLocale(language);
-      const words: { record: RegExp; scheduled: RegExp } = LANGUAGES[language]!;
+      const words: MaintenanceEventWords = LANGUAGES[language]!;
 
       for (const [sentence, old] of Object.entries(COMMON_SENTENCES)) {
         const text: unknown = locale[sentence];
@@ -505,7 +437,7 @@ describe("the texts Common writes for the record (#7825)", () => {
         STATUS_PAGE_LOCALES_DIR,
         language,
       );
-      const words: { record: RegExp; scheduled: RegExp } = LANGUAGES[language]!;
+      const words: MaintenanceEventWords = LANGUAGES[language]!;
       const record: string = String(
         nested(statusPage, ["scheduledEvents", "singular"]),
       ).toLowerCase();

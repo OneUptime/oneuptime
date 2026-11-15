@@ -11,7 +11,9 @@ import { TopologyPoint, clamp } from "./TopologyGraphUtil";
 import {
   TopologyComponentBox,
   TopologyGroupBox,
+  TopologyHierarchy,
   TopologyLayoutModel,
+  TopologyLeafBlock,
 } from "./TopologyModel";
 import {
   ENDPOINT_LABEL_MAX_CHARS,
@@ -40,7 +42,9 @@ export type {
   TopologyPoint,
   TopologyComponentBox,
   TopologyGroupBox,
+  TopologyHierarchy,
   TopologyLayoutModel,
+  TopologyLeafBlock,
 };
 export {
   clamp,

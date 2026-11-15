@@ -35,7 +35,7 @@
     "overview": "Overzicht",
     "incidents": "Incidenten",
     "announcements": "Aankondigingen",
-    "scheduledEvents": "Geplande onderhoud",
+    "scheduledEvents": "Gepland onderhoud",
     "subscribe": "Abonneren",
     "login": "Inloggen",
     "logout": "Uitloggen"
@@ -46,7 +46,7 @@
     "notMonitored": "Niet bewaakt",
     "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",
     "activeIncidents": "Actieve incidenten",
-    "scheduledMaintenanceEvents": "Geplande onderhoud",
+    "scheduledMaintenanceEvents": "Gepland onderhoud",
     "allClearTitle": "Alles ziet er goed uit",
     "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
     "allResourcesAre": "Alle bronnen zijn {{status}}",
@@ -133,7 +133,7 @@
     "notFound": "Aankondiging niet gevonden op deze statuspagina."
   },
   "scheduledEvents": {
-    "title": "Geplande onderhoud",
+    "title": "Gepland onderhoud",
     "singular": "Onderhoudsgebeurtenis",
     "scheduledMaintenance": "Gepland onderhoud",
     "ongoing": "Lopend onderhoud",
@@ -149,7 +149,7 @@
       "subscribeTitle": "Abonneren op gepland onderhoud",
       "subscribeDescription": "Krijg het geplande onderhoud van deze pagina in uw agenda-app. Het blijft vanzelf up-to-date.",
       "eventTitle": "Toevoegen aan agenda",
-      "eventDescription": "Voeg dit onderhoud toe aan uw agenda-app.",
+      "eventDescription": "Voeg deze onderhoudsgebeurtenis toe aan uw agenda-app.",
       "addToCalendar": "Toevoegen aan agenda",
       "addHeading": "Toevoegen aan uw agenda",
       "google": "Google Agenda",
