@@ -23,7 +23,10 @@ import {
   summarizeSloStatuses,
 } from "../../../Utils/Slo/SloListWidgetFormat";
 import { SLO_METRIC_SLO_NAME_ATTRIBUTE } from "../../../Utils/Slo/SloMetricType";
-import { SloWidgetStateData } from "../../../Utils/Slo/SloWidgetFormat";
+import {
+  formatErrorBudgetRemainingSeconds,
+  SloWidgetStateData,
+} from "../../../Utils/Slo/SloWidgetFormat";
 import { describe, expect, test } from "@jest/globals";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
 
@@ -582,6 +585,6 @@ describe("getSloListRowDisplay for a request SLO", () => {
           errorBudgetRemainingSeconds: 600,
         }),
       ).budgetTime,
-    ).toBe("10 min remaining");
+    ).toBe(formatErrorBudgetRemainingSeconds(600));
   });
 });

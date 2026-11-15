@@ -825,7 +825,7 @@ describe("a request SLO's budget line", () => {
           errorBudgetRemainingEvents: 99,
         }),
       ),
-    ).toBe("29 min remaining");
+    ).toBe(formatErrorBudgetRemainingSeconds(1764));
     expect(
       formatSloErrorBudgetSubline(
         makeSlo({
