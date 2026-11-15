@@ -382,7 +382,7 @@ describe("a date a sentence is filled with", () => {
       germanTranslator().translateTemplate(UNWORDED, {
         time: OneUptimeDate.fromNow(FIVE_HOURS_AGO),
       }),
-    ).toBe("Last heard from 5 hours ago");
+    ).toBe("Last heard from 5\u00A0hours ago");
   });
 
   test("the heroes' Last seen reads German, its date too", () => {
@@ -421,14 +421,14 @@ describe("a date a sentence is filled with", () => {
     expect(getEventDurationText(NOW, NOW)).toBe(lessThanAMinute);
     // Remembered with its English, for a sentence still in English.
     expect(getEnglishOf(getEventDurationText(start, NOW))).toBe(
-      "2 days, 3 hours",
+      "2\u00A0days, 3\u00A0hours",
     );
   });
 
   test("English pages read English, word for word", () => {
     const start: Date = new Date(NOW.getTime() - (2 * DAY + 3 * HOUR));
 
-    expect(getEventDurationText(start, NOW)).toBe("2 days, 3 hours");
+    expect(getEventDurationText(start, NOW)).toBe("2\u00A0days, 3\u00A0hours");
     expect(getEventDurationText(NOW, NOW)).toBe("less than a minute");
   });
 });

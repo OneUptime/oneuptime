@@ -76,7 +76,9 @@ describe("withDurationWordsHeld", () => {
     expect(withDurationWordsHeld("5 hours ago")).toBe(
       `5${NO_BREAK_SPACE}hours ago`,
     );
-    expect(withDurationWordsHeld("in 3 days")).toBe(`in 3${NO_BREAK_SPACE}days`);
+    expect(withDurationWordsHeld("in 3 days")).toBe(
+      `in 3${NO_BREAK_SPACE}days`,
+    );
     expect(withDurationWordsHeld("2 hours 5 minutes")).toBe(
       `2${NO_BREAK_SPACE}hours 5${NO_BREAK_SPACE}minutes`,
     );
@@ -92,11 +94,14 @@ describe("withDurationWordsHeld", () => {
     );
   });
 
-  test.each(ENGLISH_DURATION_WORDS)("holds a number before %s", (word: string) => {
-    expect(withDurationWordsHeld(`for 7 ${word} now`)).toBe(
-      `for 7${NO_BREAK_SPACE}${word} now`,
-    );
-  });
+  test.each(ENGLISH_DURATION_WORDS)(
+    "holds a number before %s",
+    (word: string) => {
+      expect(withDurationWordsHeld(`for 7 ${word} now`)).toBe(
+        `for 7${NO_BREAK_SPACE}${word} now`,
+      );
+    },
+  );
 
   test("negative controls: no number, another word, a longer word, a held space", () => {
     for (const text of [
@@ -122,8 +127,19 @@ describe("OneUptimeDate's English holds each number to its word", () => {
     const texts: Array<string> = [];
 
     for (const seconds of [
-      30, 90, 5 * 60, 44 * 60, 50 * 60, 3 * 3600, 21 * 3600, 30 * 3600,
-      3 * 86400, 25 * 86400, 40 * 86400, 200 * 86400, 400 * 86400,
+      30,
+      90,
+      5 * 60,
+      44 * 60,
+      50 * 60,
+      3 * 3600,
+      21 * 3600,
+      30 * 3600,
+      3 * 86400,
+      25 * 86400,
+      40 * 86400,
+      200 * 86400,
+      400 * 86400,
       3 * 365 * 86400,
     ]) {
       texts.push(OneUptimeDate.fromNow(ago(seconds), NOW));
@@ -170,7 +186,9 @@ describe("OneUptimeDate's English holds each number to its word", () => {
     expect(OneUptimeDate.getHoursAndMinutesFromMinutes(0)).toBe(
       `0${NO_BREAK_SPACE}minutes`,
     );
-    expect(OneUptimeDate.convertMinutesToDaysHoursAndMinutes(3 * 1440 + 65)).toBe(
+    expect(
+      OneUptimeDate.convertMinutesToDaysHoursAndMinutes(3 * 1440 + 65),
+    ).toBe(
       `3${NO_BREAK_SPACE}days, 1${NO_BREAK_SPACE}hours, 5${NO_BREAK_SPACE}minutes`,
     );
     expect(
@@ -209,9 +227,9 @@ describe("the Dashboard's own English holds each number to its word", () => {
     expect(formatExceptionRelativeTime(ago(4 * 60), NOW, "en")).toBe(
       `4${NO_BREAK_SPACE}minutes ago`,
     );
-    expect(formatReplayUserSessionAge(NOW.getTime() - 5 * 60_000, NOW.getTime())).toBe(
-      `5${NO_BREAK_SPACE}minutes ago`,
-    );
+    expect(
+      formatReplayUserSessionAge(NOW.getTime() - 5 * 60_000, NOW.getTime()),
+    ).toBe(`5${NO_BREAK_SPACE}minutes ago`);
     // Words with no number are as they were.
     expect(
       formatReplayUserSessionAge(NOW.getTime() - 60 * 60_000, NOW.getTime()),

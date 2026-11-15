@@ -331,10 +331,10 @@ describe.each(TIMELINE_PAGES)("$name", (page: TimelinePage) => {
     await renderPage(page);
 
     expect(columnTitled("Duration").getExportValue!(FINISHED_ROW)).toBe(
-      "3 mins 46 secs",
+      "3\u00A0mins 46\u00A0secs",
     );
     expect(columnTitled("Duration").getExportValue!(LIVE_ROW)).toBe(
-      "2 mins 54 secs",
+      "2\u00A0mins 54\u00A0secs",
     );
   });
 

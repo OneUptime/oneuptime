@@ -152,7 +152,7 @@ describe("a row's Duration", () => {
     const duration: HTMLElement = screen.getByTestId("live-duration");
 
     expect(duration).toHaveTextContent("10 days, 23 hours");
-    expect(duration).toHaveAttribute("title", "10 days, 23 hours, 31 minutes");
+    expect(duration).toHaveAttribute("title", "10\u00A0days, 23\u00A0hours, 31\u00A0minutes");
   });
 
   test("a duration the two units say whole needs no tooltip", () => {

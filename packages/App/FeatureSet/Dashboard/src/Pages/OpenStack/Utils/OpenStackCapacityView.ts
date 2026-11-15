@@ -24,7 +24,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import { formatOpenStackBytes } from "./OpenStackFigures";
-import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * WHAT THE CAPACITY PAGE SAYS OF A SNAPSHOT.
@@ -262,7 +261,7 @@ function forecastCell(forecast: OpenStackForecast): string {
     case "full":
       return "Full now";
     case "days":
-      return `${Math.max(1, Math.round(forecast.days))}${NO_BREAK_SPACE}days`;
+      return `${Math.max(1, Math.round(forecast.days))} days`;
     case "not-growing":
       return "Not growing";
     default:

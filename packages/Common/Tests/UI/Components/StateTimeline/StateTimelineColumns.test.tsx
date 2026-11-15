@@ -1,6 +1,7 @@
 /** @timezone UTC */
 
 import "@testing-library/jest-dom";
+import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import {
   afterEach,
   beforeEach,
@@ -225,7 +226,8 @@ describe("getStateTimelineDurationColumn", () => {
   test("a finished row shows start to end, worded as it always was", () => {
     renderCell(column.getElement!(FINISHED_ROW));
 
-    expect(cell()).toHaveTextContent(
+    // Read as written: each number held to its unit (#8669).
+    expect(cell().textContent).toBe(
       OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
         FINISHED_ROW.startsAt!,
         FINISHED_ROW.endsAt!,
@@ -235,18 +237,18 @@ describe("getStateTimelineDurationColumn", () => {
   });
 
   test("exports the duration, not the end date its field holds", () => {
-    expect(column.getExportValue!(FINISHED_ROW)).toBe("3 mins 46 secs");
-    expect(column.getExportValue!(OLDEST_ROW)).toBe("1 hour");
+    expect(column.getExportValue!(FINISHED_ROW)).toBe("3\u00A0mins 46\u00A0secs");
+    expect(column.getExportValue!(OLDEST_ROW)).toBe("1\u00A0hour");
   });
 
   test("exports the row in effect's duration as of the export", () => {
-    expect(column.getExportValue!(LIVE_ROW)).toBe("2 mins 54 secs");
+    expect(column.getExportValue!(LIVE_ROW)).toBe("2\u00A0mins 54\u00A0secs");
 
     act(() => {
       jest.setSystemTime(new Date(NOW.getTime() + 60 * 1000));
     });
 
-    expect(column.getExportValue!(LIVE_ROW)).toBe("3 mins 54 secs");
+    expect(column.getExportValue!(LIVE_ROW)).toBe("3\u00A0mins 54\u00A0secs");
   });
 
   test("takes a page's own wording", () => {
@@ -265,7 +267,7 @@ describe("getStateTimelineDurationText", () => {
         FINISHED_ROW,
         new Date("2030-01-01T00:00:00.000Z"),
       ),
-    ).toBe("3 mins 46 secs");
+    ).toBe("3\u00A0mins 46\u00A0secs");
   });
 
   test("the row in effect: start to the given now", () => {
@@ -274,11 +276,11 @@ describe("getStateTimelineDurationText", () => {
         LIVE_ROW,
         new Date(WHOLE_SECOND.getTime() + 6 * 1000),
       ),
-    ).toBe("3 mins");
+    ).toBe("3\u00A0mins");
   });
 
   test("the row in effect: start to the current time when no now is given", () => {
-    expect(getStateTimelineDurationText(LIVE_ROW)).toBe("2 mins 54 secs");
+    expect(getStateTimelineDurationText(LIVE_ROW)).toBe("2\u00A0mins 54\u00A0secs");
   });
 
   test("a row with no start exports nothing", () => {
@@ -419,9 +421,9 @@ describe("in a CSV export", () => {
       );
 
     expect(lines[0]).toBe("Ends At,Duration");
-    expect(lines[1]).toBe(",2 mins 54 secs");
+    expect(lines[1]).toBe(",2\u00A0mins 54\u00A0secs");
     expect(lines[2]).toBe(
-      `${TableColumnsToCsv.escapeCsvValue(finishedEnd)},3 mins 46 secs`,
+      `${TableColumnsToCsv.escapeCsvValue(finishedEnd)},3${NO_BREAK_SPACE}mins 46${NO_BREAK_SPACE}secs`,
     );
   });
 });

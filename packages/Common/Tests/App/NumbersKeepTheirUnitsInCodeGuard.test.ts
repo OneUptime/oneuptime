@@ -775,27 +775,43 @@ const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
     "a line a setup shell command echoes, in double quotes",
   "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyRunRetry.ts":
     "an on-call policy run's status message, stored in its column",
+  "packages/App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackCapacityView.ts":
+    "a cell of the capacity page's CSV export, opened in a spreadsheet",
 };
 
 // Files another issue rewords, each with the issue.
 const WORDS_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
   ...OWNED_ELSEWHERE,
   // English sentences built in code with a duration's word (#8695).
-  "packages/App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo.tsx": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/EntityRiskGuide.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Processes.tsx": "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/PollingIntervalLabels.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/EntityRiskGuide.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Processes.tsx":
+    "#8695",
   "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/Services.tsx": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/SystemdUnits.tsx": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules.tsx": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanFormValidation.ts": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx": "#8695",
-  "packages/App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName.ts": "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Host/View/SystemdUnits.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/DocumentationMarkdown.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanFormValidation.ts":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView.tsx":
+    "#8695",
+  "packages/App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName.ts":
+    "#8695",
   "packages/Common/Types/AI/AIAgentRunLimits.ts": "#8695",
   "packages/Common/Types/AI/CodeTask.ts": "#8695",
   "packages/Common/Types/AI/InvestigationRuleWait.ts": "#8695",
@@ -803,7 +819,8 @@ const WORDS_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
   "packages/Common/Types/AuditLog/AuditLogSessionEvent.ts": "#8695",
   "packages/Common/Types/DataObservability/DataReconciliation.ts": "#8695",
   "packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts": "#8695",
-  "packages/Common/Types/NetworkController/NetworkControllerConnectionSettings.ts": "#8695",
+  "packages/Common/Types/NetworkController/NetworkControllerConnectionSettings.ts":
+    "#8695",
   "packages/Common/Types/NetworkDevice/DiscoveredDeviceRetention.ts": "#8695",
   "packages/Common/Types/NetworkDevice/DiscoveryImport.ts": "#8695",
   "packages/Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold.ts": "#8695",
@@ -823,8 +840,10 @@ const WORDS_OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
   "packages/Common/Utils/OpenStack/OpenStackCollectionSettings.ts": "#8695",
   "packages/Common/Utils/PromQL/PromQLEngine.ts": "#8695",
   "packages/Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser.ts": "#8695",
-  "packages/Common/Utils/SessionReplay/SessionReplayBudgetMetricType.ts": "#8695",
-  "packages/Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType.ts": "#8695",
+  "packages/Common/Utils/SessionReplay/SessionReplayBudgetMetricType.ts":
+    "#8695",
+  "packages/Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType.ts":
+    "#8695",
   "packages/Common/Utils/VMware/VMwareCollectionSettings.ts": "#8695",
 };
 

@@ -688,7 +688,10 @@ work out, starts from a default for everything else, and folds what most people 
   `Common/Types/DateLanguage` (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`,
   `getUnitAmountParts`, `formatRelativeAmount`), which holds the number to its unit in every
   language, English included, and keeps French's own no-break spaces; never with `style: "unit"`
-  or `Intl.RelativeTimeFormat` yourself. Enforced by
+  or `Intl.RelativeTimeFormat` yourself. English OneUptime writes in words holds its number too
+  ("5 hours ago", "1 min 47 secs", "10 days, 23 hours", #8669): code joins a figure to a
+  duration's word with `NO_BREAK_SPACE` (`` `${count}${NO_BREAK_SPACE}minutes` ``), and English it
+  did not join itself, such as moment's, goes through `withDurationWordsHeld`. Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
   [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and

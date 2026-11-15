@@ -240,7 +240,7 @@ describe("the sessions menu's rows, in each language's digits", () => {
   );
 
   test("the check would find a Latin digit in a Persian row", () => {
-    expect(LATIN_DIGIT.test("5 minutes ago")).toBe(true);
+    expect(LATIN_DIGIT.test("5\u00A0minutes ago")).toBe(true);
     expect(LATIN_DIGIT.test("۵ دقیقه پیش")).toBe(false);
   });
 });
@@ -251,10 +251,10 @@ describe("the sessions menu's rows, word for word", () => {
 
     expect(textsOf("replay-user-session-when")).toEqual([
       "just now",
-      "5 minutes ago",
-      "3 hours ago",
-      "6 days ago",
-      "3 weeks ago",
+      "5\u00A0minutes ago",
+      "3\u00A0hours ago",
+      "6\u00A0days ago",
+      "3\u00A0weeks ago",
     ]);
     expect(textsOf("replay-user-session-duration")).toEqual([
       "8s",
@@ -406,12 +406,12 @@ describe("formatReplayUserSessionAge, bucket by bucket", () => {
   const AGES: ReadonlyArray<[number, string, string, string]> = [
     [10 * 1000, "just now", "", ""],
     [60 * 1000, "a minute ago", "vor 1\u00A0Minute", "۱\u00A0دقیقه پیش"],
-    [5 * MINUTE_MS, "5 minutes ago", "vor 5\u00A0Minuten", "۵\u00A0دقیقه پیش"],
+    [5 * MINUTE_MS, "5\u00A0minutes ago", "vor 5\u00A0Minuten", "۵\u00A0دقیقه پیش"],
     [HOUR_MS, "an hour ago", "vor 1\u00A0Stunde", "۱\u00A0ساعت پیش"],
-    [3 * HOUR_MS, "3 hours ago", "vor 3\u00A0Stunden", "۳\u00A0ساعت پیش"],
+    [3 * HOUR_MS, "3\u00A0hours ago", "vor 3\u00A0Stunden", "۳\u00A0ساعت پیش"],
     [DAY_MS, "a day ago", "vor 1\u00A0Tag", "۱\u00A0روز پیش"],
-    [6 * DAY_MS, "6 days ago", "vor 6\u00A0Tagen", "۶\u00A0روز پیش"],
-    [21 * DAY_MS, "3 weeks ago", "vor 3\u00A0Wochen", "۳\u00A0هفته پیش"],
+    [6 * DAY_MS, "6\u00A0days ago", "vor 6\u00A0Tagen", "۶\u00A0روز پیش"],
+    [21 * DAY_MS, "3\u00A0weeks ago", "vor 3\u00A0Wochen", "۳\u00A0هفته پیش"],
   ];
 
   test.each(AGES)(

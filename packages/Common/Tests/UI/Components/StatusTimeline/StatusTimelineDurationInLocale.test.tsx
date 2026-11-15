@@ -107,30 +107,30 @@ afterEach(() => {
 
 describe("formatStatusTimelineCompactDuration in English, exactly as it read", () => {
   test.each([
-    [29 * DAY + 23 * HOUR + 52 * MINUTE + 12, "29 days 23 hours"],
-    [HOUR + 2 * MINUTE + 3, "1 hour 2 mins"],
-    [MINUTE + 47, "1 min 47 secs"],
-    [15 * MINUTE + 32, "15 mins 32 secs"],
-    [41 * MINUTE + 1, "41 mins 1 sec"],
-    [38, "38 secs"],
-    [1, "1 sec"],
-    [HOUR, "1 hour"],
-    [4 * HOUR + 30 * MINUTE, "4 hours 30 mins"],
+    [29 * DAY + 23 * HOUR + 52 * MINUTE + 12, "29\u00A0days 23\u00A0hours"],
+    [HOUR + 2 * MINUTE + 3, "1\u00A0hour 2\u00A0mins"],
+    [MINUTE + 47, "1\u00A0min 47\u00A0secs"],
+    [15 * MINUTE + 32, "15\u00A0mins 32\u00A0secs"],
+    [41 * MINUTE + 1, "41\u00A0mins 1\u00A0sec"],
+    [38, "38\u00A0secs"],
+    [1, "1\u00A0sec"],
+    [HOUR, "1\u00A0hour"],
+    [4 * HOUR + 30 * MINUTE, "4\u00A0hours 30\u00A0mins"],
     // The two largest units that are not zero, as the four words were.
-    [2 * DAY + 30, "2 days 30 secs"],
-    [LONG, "30 days 23 hours"],
+    [2 * DAY + 30, "2\u00A0days 30\u00A0secs"],
+    [LONG, "30\u00A0days 23\u00A0hours"],
   ])("%p seconds read %p", (seconds: number, text: string) => {
     expect(formatStatusTimelineCompactDuration(seconds)).toBe(text);
   });
 
   test("whole seconds: a fraction of one is dropped, as the legend floored it", () => {
-    expect(formatStatusTimelineCompactDuration(107.9)).toBe("1 min 47 secs");
+    expect(formatStatusTimelineCompactDuration(107.9)).toBe("1\u00A0min 47\u00A0secs");
   });
 
   test.each([0, 0.4, -5, Number.NaN, Number.POSITIVE_INFINITY])(
     "%p reads zero seconds, never a blank",
     (seconds: number) => {
-      expect(formatStatusTimelineCompactDuration(seconds)).toBe("0 secs");
+      expect(formatStatusTimelineCompactDuration(seconds)).toBe("0\u00A0secs");
     },
   );
 
@@ -147,7 +147,7 @@ describe("30 days 23 hours 42 minutes 40 seconds in the reader's language", () =
 
       expect(text).toBe(
         language === "en"
-          ? "30 days 23 hours"
+          ? "30\u00A0days 23\u00A0hours"
           : intlDuration(
               [
                 { count: 30, unit: "day" },
@@ -229,7 +229,7 @@ describe("30 days 23 hours 42 minutes 40 seconds in the reader's language", () =
         language,
         text:
           language === "en"
-            ? "1 min 47 secs"
+            ? "1\u00A0min 47\u00A0secs"
             : intlDuration(
                 [
                   { count: 1, unit: "minute" },
@@ -283,13 +283,13 @@ describe("OneUptimeDate.secondsToFormattedFriendlyTimeString's options", () => {
     const full: string =
       OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG);
 
-    expect(full).toBe("30 days 23 hours 42 mins 40 secs");
+    expect(full).toBe("30\u00A0days 23\u00A0hours 42\u00A0mins 40\u00A0secs");
     expect(
       OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG, { maxUnits: 1 }),
-    ).toBe("30 days");
+    ).toBe("30\u00A0days");
     expect(
       OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG, { maxUnits: 3 }),
-    ).toBe("30 days 23 hours 42 mins");
+    ).toBe("30\u00A0days 23\u00A0hours 42\u00A0mins");
     expect(
       OneUptimeDate.secondsToFormattedFriendlyTimeString(LONG, { maxUnits: 9 }),
     ).toBe(full);
@@ -315,13 +315,13 @@ describe("OneUptimeDate.secondsToFormattedFriendlyTimeString's options", () => {
       OneUptimeDate.secondsToFormattedFriendlyTimeString(0, {
         writesZero: true,
       }),
-    ).toBe("0 secs");
+    ).toBe("0\u00A0secs");
     // A duration that is not nothing is untouched by writesZero.
     expect(
       OneUptimeDate.secondsToFormattedFriendlyTimeString(38, {
         writesZero: true,
       }),
-    ).toBe("38 secs");
+    ).toBe("38\u00A0secs");
   });
 });
 
@@ -437,8 +437,8 @@ describe("the legend, drawn in Japanese", () => {
       "status-timeline-legend-item",
     );
 
-    expect(partsOf(items[0]!)[2]).toBe("30 days 23 hours");
-    expect(partsOf(items[1]!)[2]).toBe("15 mins 32 secs");
+    expect(partsOf(items[0]!)[2]).toBe("30\u00A0days 23\u00A0hours");
+    expect(partsOf(items[1]!)[2]).toBe("15\u00A0mins 32\u00A0secs");
     expect(
       screen.getByTestId("status-timeline-legend-monitoring-off"),
     ).toHaveTextContent("2 hours 5 mins");

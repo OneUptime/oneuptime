@@ -640,7 +640,7 @@ describe("SecurityEventConnectionsTable", () => {
       cells.map((cell: HTMLElement): string => {
         return cell.textContent || "";
       }),
-    ).toEqual(["2 minutes ago", "2 minutes ago", "3 minutes ago"]);
+    ).toEqual(["2\u00A0minutes ago", "2\u00A0minutes ago", "3\u00A0minutes ago"]);
 
     for (const cell of cells) {
       expect(cell.getAttribute("title")).toBeTruthy();

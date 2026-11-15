@@ -196,8 +196,8 @@ describe("the legend", () => {
       }),
     ).toEqual([
       // Never rounded up to a claim it is not.
-      "Operational99.99% · 29 days 23 hours",
-      "Offline<0.01% · 38 secs",
+      "Operational99.99% · 29\u00A0days 23\u00A0hours",
+      "Offline<0.01% · 38\u00A0secs",
     ]);
   });
 
@@ -279,7 +279,7 @@ describe("time with monitoring off", () => {
         .map((item: HTMLElement): string | null => {
           return item.textContent;
         }),
-    ).toEqual(["Operational96.15% · 25 days", "Offline3.85% · 1 day"]);
+    ).toEqual(["Operational96.15% · 25\u00A0days", "Offline3.85% · 1\u00A0day"]);
 
     const off: HTMLElement = screen.getByTestId(
       "status-timeline-legend-monitoring-off",
@@ -340,13 +340,13 @@ describe("time with monitoring off", () => {
     renderTimeline({ entries: WITH_MONITORING_OFF });
 
     expect(segmentFor("off-1")).toHaveAccessibleName(
-      "Operational, monitoring off, Sep 24, 08:36 – Sep 27, 08:36, 3 days",
+      "Operational, monitoring off, Sep 24, 08:36 – Sep 27, 08:36, 3\u00A0days",
     );
     expect(segmentFor("off-2")).toHaveAccessibleName(
-      "Offline, monitoring off, since Oct 13, 08:36, 1 day so far. Currently Active.",
+      "Offline, monitoring off, since Oct 13, 08:36, 1\u00A0day so far. Currently Active.",
     );
     expect(segmentFor("up-2")).toHaveAccessibleName(
-      "Operational, Sep 27, 08:36 – Oct 12, 08:36, 15 days",
+      "Operational, Sep 27, 08:36 – Oct 12, 08:36, 15\u00A0days",
     );
   });
 
@@ -421,7 +421,7 @@ describe("the band: every status placed and sized by its time", () => {
     ).toBeCloseTo(100, 3);
     expect(screen.getByTestId("status-timeline-now")).toHaveTextContent("Now");
     expect(current).toHaveAccessibleName(
-      "Operational, since Oct 9, 08:36, 4 days 23 hours 59 mins 22 secs so far. Currently Active.",
+      "Operational, since Oct 9, 08:36, 4\u00A0days 23\u00A0hours 59\u00A0mins 22\u00A0secs so far. Currently Active.",
     );
   });
 
@@ -435,7 +435,7 @@ describe("the band: every status placed and sized by its time", () => {
     expect(percentOf(blip.style.width)).toBeCloseTo(0.5, 3);
     // Both ends in one minute: to the second, never "08:36 – 08:36".
     expect(blip).toHaveAccessibleName(
-      "Offline, Oct 9, 08:36:00 – 08:36:38, 38 secs",
+      "Offline, Oct 9, 08:36:00 – 08:36:38, 38\u00A0secs",
     );
   });
 

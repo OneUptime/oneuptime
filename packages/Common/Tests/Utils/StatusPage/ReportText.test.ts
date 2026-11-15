@@ -482,7 +482,7 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
     test("the page's figures", () => {
       expect(withoutSpaces(german.averageUptimePercent)).toBe("95,22%");
       expect(german.totalDowntimeInHoursAndMinutes).toBe(
-        "5 Stunden, 0 Minuten",
+        "5\u00A0Stunden, 0\u00A0Minuten",
       );
       expect(german.totalIncidents).toBe(4);
       expect(german.totalResources).toBe(3);
@@ -494,7 +494,7 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
 
       expect(website.resourceName).toBe("Website");
       expect(withoutSpaces(website.uptimePercentAsString)).toBe("99,95%");
-      expect(website.downtimeInHoursAndMinutes).toBe("21 Minuten");
+      expect(website.downtimeInHoursAndMinutes).toBe("21\u00A0Minuten");
       expect(website.uptimePercent).toBe(99.95);
       expect(website.totalIncidentCount).toBe(1);
       expect(website.downtimeInMinutes).toBe(21);
@@ -514,14 +514,14 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
 
       expect(europe.groupName).toBe("Europe");
       expect(withoutSpaces(europe.uptimePercentAsString)).toBe("92,85%");
-      expect(europe.downtimeInHoursAndMinutes).toBe("4 Stunden, 39 Minuten");
+      expect(europe.downtimeInHoursAndMinutes).toBe("4\u00A0Stunden, 39\u00A0Minuten");
       expect(payments.groupPath).toBe("Europe / Payments");
-      expect(payments.downtimeInHoursAndMinutes).toBe("4 Stunden, 39 Minuten");
+      expect(payments.downtimeInHoursAndMinutes).toBe("4\u00A0Stunden, 39\u00A0Minuten");
       expect(
         payments.resources.map((item: StatusPageReportItem): string => {
           return item.downtimeInHoursAndMinutes;
         }),
-      ).toEqual(["4 Stunden, 39 Minuten", "0 minutes"]);
+      ).toEqual(["4\u00A0Stunden, 39\u00A0Minuten", "0 minutes"]);
     });
 
     test("the same rows, in the same order, written in German", () => {
@@ -554,7 +554,7 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
           return withoutSpaces(row.uptimePercentAsString);
         }),
       ).toEqual(["99,95%", "92,85%", "92,85%", "85,71%", "100%"]);
-      expect(german.rows[0]!.downtimeInHoursAndMinutes).toBe("21 Minuten");
+      expect(german.rows[0]!.downtimeInHoursAndMinutes).toBe("21\u00A0Minuten");
     });
 
     test("a resource is one item wherever the report holds it", () => {
@@ -568,7 +568,7 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
       expect(english.reportPeriodName).toBe("July 2026");
       expect(english.averageUptimePercent).toBe("95.22%");
       expect(english.resources[0]!.downtimeInHoursAndMinutes).toBe(
-        "21 minutes",
+        "21\u00A0minutes",
       );
       expect(english.rows[1]!.uptimePercentAsString).toBe("92.85%");
     });
@@ -616,7 +616,7 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
 
     expect(german.reportPeriodName).toBe("Juli 2026");
     expect(withoutSpaces(german.averageUptimePercent)).toBe("0%");
-    expect(german.totalDowntimeInHoursAndMinutes).toBe("0 Minuten");
+    expect(german.totalDowntimeInHoursAndMinutes).toBe("0\u00A0Minuten");
     expect(german.rows).toEqual([]);
   });
 
@@ -625,7 +625,7 @@ describe("StatusPageReportText.writeReportInLanguage", () => {
 
     // writeInLanguage writes in German only while it runs.
     expect(OneUptimeDate.convertMinutesToDaysHoursAndMinutes(21)).toBe(
-      "21 minutes",
+      "21\u00A0minutes",
     );
   });
 });

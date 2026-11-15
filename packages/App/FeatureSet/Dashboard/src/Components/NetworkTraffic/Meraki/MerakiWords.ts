@@ -185,7 +185,8 @@ export function getMerakiReadTime(
       unit: "second",
       isFuture: false,
       locale: options.language || "en",
-    }) || `${seconds}${NO_BREAK_SPACE}${seconds === 1 ? "second" : "seconds"} ago`
+    }) ||
+    `${seconds}${NO_BREAK_SPACE}${seconds === 1 ? "second" : "seconds"} ago`
   );
 }
 

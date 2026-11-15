@@ -1245,7 +1245,7 @@ describe("an incident's timeline: its whole history on one band", () => {
         .map((item: HTMLElement): string | null => {
           return item.textContent;
         }),
-    ).toEqual(["Created1 hour", "Acknowledged1 hour", "Resolved21 days"]);
+    ).toEqual(["Created1\u00A0hour", "Acknowledged1\u00A0hour", "Resolved21\u00A0days"]);
   });
 
   test("still open, it runs on to now, however long ago it last changed", async () => {
