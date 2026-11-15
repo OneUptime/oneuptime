@@ -1,6 +1,6 @@
 # Onderhoudsregels en instellingen
 
-De configuratie van onderhoud staat in **Geplande onderhoud**, niet in de **Projectinstellingen**: de regels die op elke nieuwe gebeurtenis werken, en de instellingen die elke gebeurtenis in het project vormgeven. Deze pagina is de naslag voor elk ervan, en voor wie ze mag wijzigen.
+De configuratie van onderhoud staat in **Gepland onderhoud**, niet in de **Projectinstellingen**: de regels die op elke nieuwe gebeurtenis werken, en de instellingen die elke gebeurtenis in het project vormgeven. Deze pagina is de naslag voor elk ervan, en voor wie ze mag wijzigen.
 
 :::cards
 - [De regels die een nieuwe gebeurtenis doorloopt](#de-regels-die-een-nieuwe-gebeurtenis-doorloopt): Op volgorde, en wat elke regel doet.
@@ -11,7 +11,7 @@ De configuratie van onderhoud staat in **Geplande onderhoud**, niet in de **Proj
 
 ## Waar de onderhoudsinstellingen staan
 
-Open **Geplande onderhoud** via het menu **Producten** in de bovenste balk. De secties **Regels** en **Instellingen** van het zijmenu zijn eerst ingeklapt, dus klap ze eerst uit. Elke pagina hier geldt voor het hele project, op een adres dat begint met `/dashboard/{projectId}/scheduled-maintenance-events/settings/`.
+Open **Gepland onderhoud** via het menu **Producten** in de bovenste balk. De secties **Regels** en **Instellingen** van het zijmenu zijn eerst ingeklapt, dus klap ze eerst uit. Elke pagina hier geldt voor het hele project, op een adres dat begint met `/dashboard/{projectId}/scheduled-maintenance-events/settings/`.
 
 | Regelpagina        | Wat ze doet                                                         |
 | ------------------ | ------------------------------------------------------------------- |
@@ -64,7 +64,7 @@ Een regel past alleen als elke voorwaarde die je invult klopt; een lege voorwaar
 
 ## Herinneringsregels
 
-**Geplande onderhoud → Regels → Herinneringsregels** herinnert de eigenaren van een gebeurtenis tot het werk is goedgekeurd. Elke gebeurtenis krijgt de eerste regel die bij haar past, van boven naar beneden in de lijst.
+**Gepland onderhoud → Regels → Herinneringsregels** herinnert de eigenaren van een gebeurtenis tot het werk is goedgekeurd. Elke gebeurtenis krijgt de eerste regel die bij haar past, van boven naar beneden in de lijst.
 
 :::steps
 ### Kiezen voor welke gebeurtenissen
@@ -92,23 +92,23 @@ Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je st
 
 ### Notitiesjablonen
 
-**Geplande onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privé-notitiesjablonen voor onderhoudsgebeurtenissen** toont ze; **Notitiesjabloon voor gepland onderhoud aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
+**Gepland onderhoud → Instellingen → Notitie-sjablonen** bevat kant-en-klare tekst voor onderhoudsupdates. De kaart **Openbare of privé-notitiesjablonen voor onderhoudsgebeurtenissen** toont ze; **Notitiesjabloon voor gepland onderhoud aanmaken** vraagt om een **Sjabloonnaam**, een **Sjabloonbeschrijving** en de **Notitie**. Een sjabloon wordt aangeboden wanneer iemand een openbare of privénotitie bij een gebeurtenis schrijft en wanneer iemand haar status wijzigt, en de tekst kan vóór het plaatsen worden bewerkt. Anders dan notitiesjablonen voor incidenten vullen notitiesjablonen voor onderhoud geen variabelen in.
 
 ### Goedkeuring van openbare notities
 
-**Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** laat de openbare notities van onderhoudsgebeurtenissen goedkeuren voordat ze worden gepubliceerd. De pagina werkt zoals die van de incidenten, met een eigen schakelaar en eigen stappen: zet **Goedkeuring vereisen voordat openbare notities worden gepubliceerd** aan en kies onder **Wie keurt goed** wie goedkeurt. Zo kunnen onderhoudsnotities goedkeuring nodig hebben terwijl incidentnotities dat niet hebben, of door andere mensen worden goedgekeurd. Alleen **Projecteigenaar** en **Projectbeheerder** kunnen haar wijzigen. Zie [Goedkeuring van openbare notities](/docs/incidents/settings#goedkeuring-van-openbare-notities) voor de stappen, en [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities) voor wat een notitie doet terwijl ze wacht.
+**Gepland onderhoud → Instellingen → Goedkeuring van openbare notities** laat de openbare notities van onderhoudsgebeurtenissen goedkeuren voordat ze worden gepubliceerd. De pagina werkt zoals die van de incidenten, met een eigen schakelaar en eigen stappen: zet **Goedkeuring vereisen voordat openbare notities worden gepubliceerd** aan en kies onder **Wie keurt goed** wie goedkeurt. Zo kunnen onderhoudsnotities goedkeuring nodig hebben terwijl incidentnotities dat niet hebben, of door andere mensen worden goedgekeurd. Alleen **Projecteigenaar** en **Projectbeheerder** kunnen haar wijzigen. Zie [Goedkeuring van openbare notities](/docs/incidents/settings#goedkeuring-van-openbare-notities) voor de stappen, en [Goedkeuring van openbare notities](/docs/incidents/notes-owners-and-feed#goedkeuring-van-openbare-notities) voor wat een notitie doet terwijl ze wacht.
 
 ### Aangepaste velden
 
-**Geplande onderhoud → Instellingen → Aangepaste velden** voegt eigen velden toe aan elke gebeurtenis, zoals een wijzigingsticket of een klantniveau. Vul ze in op de pagina **Aangepaste velden** van een gebeurtenis, of via de API als `customFields`. Een veld kan zijn waarde kopiëren uit een aangepast veld van een monitor in plaats van getypt te worden: zie [Velden gekopieerd van een monitor](/docs/incidents/settings#velden-die-uit-een-monitor-worden-gekopieerd), wat voor gebeurtenissen net zo werkt.
+**Gepland onderhoud → Instellingen → Aangepaste velden** voegt eigen velden toe aan elke gebeurtenis, zoals een wijzigingsticket of een klantniveau. Vul ze in op de pagina **Aangepaste velden** van een gebeurtenis, of via de API als `customFields`. Een veld kan zijn waarde kopiëren uit een aangepast veld van een monitor in plaats van getypt te worden: zie [Velden gekopieerd van een monitor](/docs/incidents/settings#velden-die-uit-een-monitor-worden-gekopieerd), wat voor gebeurtenissen net zo werkt.
 
 ### Metingen
 
-**Geplande onderhoud → Instellingen → Metingen** meet hoe lang dingen duren bij elke gebeurtenis. Kies **Vertraagde start**, van de geplande start tot de echte start, **Uitloop**, van het geplande einde tot het echte einde, of **Duur van het onderhoud**, van de start tot het einde; of twee eigen momenten met **Iets anders**. Elke meting wordt getoond op de pagina van de gebeurtenis en in een grafiek gezet als `oneuptime.scheduled-maintenance.measurement.<key>`. Zie [Metingen](/docs/incidents/settings#metingen), wat voor gebeurtenissen net zo werkt.
+**Gepland onderhoud → Instellingen → Metingen** meet hoe lang dingen duren bij elke gebeurtenis. Kies **Vertraagde start**, van de geplande start tot de echte start, **Uitloop**, van het geplande einde tot het echte einde, of **Duur van het onderhoud**, van de start tot het einde; of twee eigen momenten met **Iets anders**. Elke meting wordt getoond op de pagina van de gebeurtenis en in een grafiek gezet als `oneuptime.scheduled-maintenance.measurement.<key>`. Zie [Metingen](/docs/incidents/settings#metingen), wat voor gebeurtenissen net zo werkt.
 
 ### Nummering
 
-**Geplande onderhoud → Instellingen → Nummering** bepaalt de tekst vóór de nummers van gebeurtenissen: `SM-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** vraagt om het **Nummerprefix van geplande onderhoud** en toont het nummer als voorbeeld terwijl je typt. Alleen gebeurtenissen die daarna worden gemaakt, krijgen het nieuwe voorvoegsel; bestaande houden hun nummers. De regels voor een voorvoegsel staan in [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
+**Gepland onderhoud → Instellingen → Nummering** bepaalt de tekst vóór de nummers van gebeurtenissen: `SM-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** vraagt om het **Nummerprefix van gepland onderhoud** en toont het nummer als voorbeeld terwijl je typt. Alleen gebeurtenissen die daarna worden gemaakt, krijgen het nieuwe voorvoegsel; bestaande houden hun nummers. De regels voor een voorvoegsel staan in [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
 
 De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende gebeurtenis krijgt, om de nummers van een andere tool voort te zetten: **Bijwerken** opent **Volgend nummer van gepland onderhoud**, dat hoger moet zijn dan het hoogste tot nu toe. Zie [Volgende nummers](/docs/incidents/settings#volgende-nummers).
 

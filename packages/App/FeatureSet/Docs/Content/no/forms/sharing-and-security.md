@@ -232,7 +232,7 @@ En mals svar brukes bare så lenge det fortsatt passer til spørsmålet: et alte
 :::
 
 :::details Hendelsen eller begivenheten er ikke på statussiden
-Det er med vilje: hendelser fra et skjema opprettes skjult, og vedlikeholdsbegivenheter forblir skjult med mindre skjemaets innstillinger under **Publisering** sier noe annet. Se [Hva en innsending oppretter](/docs/forms/on-submit).
+Det er med vilje: hendelser fra et skjema opprettes skjult, og vedlikeholdshendelser forblir skjult med mindre skjemaets innstillinger under **Publisering** sier noe annet. Se [Hva en innsending oppretter](/docs/forms/on-submit).
 :::
 
 :::details Ingen ble tilkalt

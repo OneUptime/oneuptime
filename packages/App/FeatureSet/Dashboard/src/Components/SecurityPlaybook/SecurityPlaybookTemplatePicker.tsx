@@ -322,6 +322,7 @@ const SecurityPlaybookTemplatePicker: FunctionComponent<ComponentProps> = (
                       <Button
                         title="View"
                         ariaLabel={`${translator.translateText("View") || "View"}: ${name}`}
+                        isAriaLabelTranslated={true}
                         icon={IconProp.ArrowRight}
                         buttonStyle={ButtonStyleType.NORMAL}
                         buttonSize={ButtonSize.Small}
@@ -339,6 +340,7 @@ const SecurityPlaybookTemplatePicker: FunctionComponent<ComponentProps> = (
                     <Button
                       title="Add Playbook"
                       ariaLabel={`${translator.translateText("Add Playbook") || "Add Playbook"}: ${name}`}
+                      isAriaLabelTranslated={true}
                       icon={IconProp.Add}
                       buttonStyle={ButtonStyleType.NORMAL}
                       buttonSize={ButtonSize.Small}

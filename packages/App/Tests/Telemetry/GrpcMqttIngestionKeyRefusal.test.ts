@@ -786,8 +786,9 @@ describe("MQTT CONNECT — telemetry ingestion key refusals", () => {
      * ingest by the same script that scraped it, from any origin, with no
      * Origin check to fail — the broker does not inspect the WebSocket
      * handshake's Origin, and the key's allowlist is an HTTP-path control. No
-     * OneUptime browser SDK publishes MQTT (browser keys exist for OTLP and
-     * session replay), so a Browser key at CONNECT has no honest explanation.
+     * OneUptime browser SDK publishes MQTT (browser keys exist for OTLP,
+     * session replay and Sentry's browser SDKs), so a Browser key at CONNECT
+     * has no honest explanation.
      */
     const policy: TelemetryIngestionKeyPolicy = buildLegacyServerKeyPolicy({
       keyType: TelemetryIngestionKeyType.Browser,

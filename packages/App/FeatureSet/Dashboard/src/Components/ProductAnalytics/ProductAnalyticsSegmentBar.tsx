@@ -185,7 +185,7 @@ const ProductAnalyticsSegmentBar: FunctionComponent<
               options={options}
               value={selectedField}
               isClearable={false}
-              ariaLabel={translator.translateText("Field") || "Field"}
+              ariaLabel="Field"
               dataTestId={`${props.dataTestId}-field`}
               onChange={(
                 picked: DropdownValue | Array<DropdownValue> | null,

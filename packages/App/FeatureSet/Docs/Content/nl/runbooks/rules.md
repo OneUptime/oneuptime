@@ -4,7 +4,7 @@ Runbook-regels starten runbooks automatisch wanneer een **incident**, een **waar
 
 - Incidenten → Regels → **Runbook-regels**
 - Waarschuwingen → Regels → **Runbook-regels**
-- Geplande onderhoud → Regels → **Runbook-regels**
+- Gepland onderhoud → Regels → **Runbook-regels**
 
 Alle drie de pagina's bewerken hetzelfde soort regel, gefilterd op de regels van dat product.
 
@@ -49,7 +49,7 @@ Elke uitvoering, door een regel gestart of niet, ziet u onder **Runbooks → Uit
 :::steps
 ### Runbook-regels openen
 
-Open in **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** de pagina **Regels → Runbook-regels** en klik op **Runbook Rule aanmaken**.
+Open in **Incidenten**, **Waarschuwingen** of **Gepland onderhoud** de pagina **Regels → Runbook-regels** en klik op **Runbook Rule aanmaken**.
 
 ### Voorwaarden toevoegen
 

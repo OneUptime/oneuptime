@@ -128,7 +128,7 @@ OneUptime आम VMware समस्याओं के लिए 25 टेम�
 | VM Disk Usage High | वर्चुअल मशीन | चेतावनी | `vcenter.vm.disk.utilization`, VM के अनुसार Avg | उसके प्रोविज़न किए गए स्टोरेज का 90% से ज़्यादा कमिट: थिन-प्रोविज़न VM अपना पूरा आकार लेने वाला है | 81% या नीचे |
 | Datastore Capacity Warning | डेटास्टोर | चेतावनी | `vcenter.datastore.disk.utilization`, `resource.vcenter.datastore.name` के अनुसार Avg | 80% से ऊपर: एक शुरुआती चेतावनी, क्योंकि थिन डिस्क और स्नैपशॉट बाकी जगह जल्दी भर देते हैं | 72% या नीचे |
 | Datastore Capacity Critical | डेटास्टोर | गंभीर | `vcenter.datastore.disk.utilization`, डेटास्टोर के अनुसार Avg | 90% से ऊपर: भरा हुआ डेटास्टोर उस पर डिस्क वाले हर VM को रोक देता है | 81% या नीचे |
-| Cluster Host Not Effective | क्लस्टर | गंभीर | `vcenter.cluster.host.count` को `effective = false` पर फ़िल्टर, `resource.vcenter.cluster.name` के अनुसार Max | 0 से ऊपर: कोई होस्ट मेंटेनेंस मोड में है, डिस्कनेक्ट है या जवाब नहीं दे रहा, इसलिए क्लस्टर उस क्षमता से कम पर चलता है जिसके लिए उसे बनाया गया था | 0 पर |
+| Cluster Host Not Effective | क्लस्टर | गंभीर | `vcenter.cluster.host.count` को `effective = false` पर फ़िल्टर, `resource.vcenter.cluster.name` के अनुसार Max | 0 से ऊपर: कोई होस्ट रखरखाव मोड में है, डिस्कनेक्ट है या जवाब नहीं दे रहा, इसलिए क्लस्टर उस क्षमता से कम पर चलता है जिसके लिए उसे बनाया गया था | 0 पर |
 | Datacenter Hosts Unhealthy | डेटा सेंटर | गंभीर | `vcenter.datacenter.host.count` को `status = red` पर फ़िल्टर, `resource.vcenter.datacenter.name` के अनुसार Max | 0 से ऊपर: किसी होस्ट पर गंभीर अलार्म है, जैसे हार्डवेयर सेंसर, खोया हुआ स्टोरेज पाथ या HA एजेंट त्रुटि | 0 पर |
 | Datacenter Hosts Degraded | डेटा सेंटर | चेतावनी | `vcenter.datacenter.host.count` को `status = yellow` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: किसी होस्ट पर चेतावनी अलार्म है | 0 पर |
 | Datacenter Hosts Not Responding | डेटा सेंटर | गंभीर | `vcenter.datacenter.host.count` को `power_state = unknown` पर फ़िल्टर, डेटासेंटर के अनुसार Max | 0 से ऊपर: vCenter का किसी होस्ट से संपर्क टूट गया है - वह क्रैश हुआ, उसकी बिजली या प्रबंधन नेटवर्क चला गया, या उसे डिस्कनेक्ट किया गया। जानबूझकर बंद किया गया या DPM द्वारा स्टैंडबाय में रखा गया होस्ट नहीं गिना जाता | 0 पर |
@@ -168,10 +168,10 @@ OneUptime आम VMware समस्याओं के लिए 25 टेम�
 
 | मेट्रिक | इकाई | विवरण |
 | --- | --- | --- |
-| `vcenter.cluster.cpu.effective` | `MHz` | वह CPU जिसे क्लस्टर वास्तव में शेड्यूल कर सकता है — मेंटेनेंस मोड वाले या जवाब न देने वाले होस्ट को छोड़कर। सेवा से बाहर क्षमता के लिए `vcenter.cluster.cpu.limit` से तुलना करें |
+| `vcenter.cluster.cpu.effective` | `MHz` | वह CPU जिसे क्लस्टर वास्तव में शेड्यूल कर सकता है — रखरखाव मोड वाले या जवाब न देने वाले होस्ट को छोड़कर। सेवा से बाहर क्षमता के लिए `vcenter.cluster.cpu.limit` से तुलना करें |
 | `vcenter.cluster.cpu.limit` | `MHz` | होस्ट की स्थिति चाहे जो हो, क्लस्टर के हर ESXi होस्ट का कुल CPU |
-| `vcenter.cluster.host.count` | `{hosts}` | क्लस्टर के ESXi होस्ट, `effective` (`"true"` / `"false"`) के अनुसार बँटे हुए। मेंटेनेंस मोड में, डिस्कनेक्ट या जवाब न देने पर होस्ट प्रभावी नहीं होता |
-| `vcenter.cluster.memory.effective` | `By` | वह मेमोरी जिसे क्लस्टर वास्तव में VM को दे सकता है — मेंटेनेंस मोड / जवाब न देने वाले होस्ट और ESXi की अपनी आरक्षित मेमोरी को छोड़कर |
+| `vcenter.cluster.host.count` | `{hosts}` | क्लस्टर के ESXi होस्ट, `effective` (`"true"` / `"false"`) के अनुसार बँटे हुए। रखरखाव मोड में, डिस्कनेक्ट या जवाब न देने पर होस्ट प्रभावी नहीं होता |
+| `vcenter.cluster.memory.effective` | `By` | वह मेमोरी जिसे क्लस्टर वास्तव में VM को दे सकता है — रखरखाव मोड / जवाब न देने वाले होस्ट और ESXi की अपनी आरक्षित मेमोरी को छोड़कर |
 | `vcenter.cluster.memory.limit` | `By` | क्लस्टर के हर ESXi होस्ट की कुल भौतिक मेमोरी |
 | `vcenter.cluster.vm.count` | `{virtual_machines}` | क्लस्टर की वर्चुअल मशीनें, `power_state` के अनुसार बँटी हुई। कुल के लिए योग करें; चल रहे VM के लिए `power_state = on` फ़िल्टर करें |
 | `vcenter.cluster.vm_template.count` | `{virtual_machine_templates}` | क्लस्टर के वर्चुअल मशीन टेम्पलेट |

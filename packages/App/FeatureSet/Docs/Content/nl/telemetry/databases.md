@@ -640,7 +640,7 @@ Het **Overzicht** van een database zegt hetzelfde: zijn gezondheid in de kop (_G
 
 ## Waarschuwingen voor een database
 
-De tabbladen **Waarschuwingen** en **Incidenten** van een database tonen wat de monitors die hem noemen hebben geopend. Zolang de database in een lopend venster voor gepland onderhoud zit, openen die monitors geen nieuwe incidenten of waarschuwingen, tenzij ze ook een resource noemen die buiten het venster valt. Hun status wordt nog steeds bijgewerkt, en wat ze vóór het venster openden, wordt nog steeds opgelost. Databases kunnen ook met de hand aan incidenten, waarschuwingen en gepland onderhoud worden gekoppeld, net als elke andere resource: als je er een aanmaakt vanaf het eigen tabblad **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** van de database, is de database al geselecteerd.
+De tabbladen **Waarschuwingen** en **Incidenten** van een database tonen wat de monitors die hem noemen hebben geopend. Zolang de database in een lopend venster voor gepland onderhoud zit, openen die monitors geen nieuwe incidenten of waarschuwingen, tenzij ze ook een resource noemen die buiten het venster valt. Hun status wordt nog steeds bijgewerkt, en wat ze vóór het venster openden, wordt nog steeds opgelost. Databases kunnen ook met de hand aan incidenten, waarschuwingen en gepland onderhoud worden gekoppeld, net als elke andere resource: als je er een aanmaakt vanaf het eigen tabblad **Incidenten**, **Waarschuwingen** of **Gepland onderhoud** van de database, is de database al geselecteerd.
 
 ### Aanbevolen monitors
 

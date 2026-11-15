@@ -502,6 +502,26 @@ export const DOCS_SCREENS: ReadonlyArray<DocsScreen> = [
     highlight: "Your own domain",
   },
   {
+    /*
+     * The telemetry guides' "Open the ingestion keys" step (#7579): the list
+     * as Project Settings draws it, a Server key and three Browser keys in
+     * it, and the button the next step presses.
+     */
+    name: "ingestion-keys",
+    shows:
+      "Project Settings' Ingestion Keys list, with a Server key and three Browser keys, and Create Ingestion Key",
+    fixture: "Journeys",
+    page: "SETTINGS_TELEMETRY_INGESTION_KEYS",
+    path: "/dashboard/:projectId/settings/telemetry-ingestion-keys",
+    query: "?seed=ingestion-keys",
+    width: 1280,
+    height: 1000,
+    state: [{ waitFor: "card" }],
+    crop: '[data-testid="card"]:has(#api-keys-table-body)',
+    padding: 0,
+    highlight: "Create Ingestion Key",
+  },
+  {
     name: "incident-feed",
     shows:
       "A resolved incident's feed: who was paged, each state change, and the notes, newest first",
