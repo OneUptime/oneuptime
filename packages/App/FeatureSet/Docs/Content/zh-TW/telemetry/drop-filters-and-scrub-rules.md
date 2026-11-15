@@ -31,7 +31,7 @@ flowchart TB
 ## 開始之前
 
 - **正在到達的日誌或 Span。** 請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry)。
-- **能夠修改遙測設定的角色。** Project Owner 或 Project Admin，或者擁有你所修改內容之權限（例如 Create Log Drop Filter 或 Create Trace Scrub Rule）的自訂角色。Telemetry 角色可以檢視過濾器和規則，但不能修改它們。
+- **能夠修改遙測設定的角色。** 專案擁有者或專案管理員，或者擁有你所修改內容之權限（例如 Create Log Drop Filter 或 Create Trace Scrub Rule）的自訂角色。Telemetry 角色可以檢視過濾器和規則，但不能修改它們。
 
 ## 捨棄或取樣記錄
 

@@ -28,7 +28,7 @@ flowchart LR
 ## 開始之前
 
 - **正在到達的遙測。** 服務地圖需要追蹤：請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry)。基礎設施檢視需要一台傳送資料的主機或一個叢集：請參閱 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)。網路檢視需要網路設備：請參閱 [網路設備監控](/docs/monitor/network-device-monitor)。
-- **能夠讀取遙測的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者擁有 Read Inventory Item 權限的自訂角色。
+- **能夠讀取遙測的角色。** 專案擁有者、專案管理員、專案成員、檢視者、遙測管理員、遙測成員或遙測檢視者，或者擁有 Read Inventory Item 權限的自訂角色。
 
 ## 開啟拓撲
 

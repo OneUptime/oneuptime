@@ -131,15 +131,15 @@ flowchart TB
 
 | 권한 | 허용하는 것 | 기본으로 가진 역할 |
 | --- | --- | --- |
-| **Create Form** | 양식 만들기와 복제. | Project Owner, Project Admin |
-| **Edit Form** | 양식 변경: 질문, 브랜딩, 템플릿, 제출 시 설정, **제출 받기**, 링크, **IP 허용 목록**. | Project Owner, Project Admin |
-| **Delete Form** | 양식 삭제 (제출 내역도 함께 삭제됩니다). | Project Owner, Project Admin |
-| **Read Form** | 양식과 그 질문, 설정, 링크 보기. | 위의 역할과 Project Member, Viewer, 인시던트 및 예정된 유지 관리 역할 |
-| **Read Form Submission** | 제출과 그 답변 보기. | Project Owner, Project Admin |
-| **Delete Form Submission** | 제출 삭제. | Project Owner, Project Admin |
-| **Create Form Domain** | 양식에 [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 추가. | Project Owner, Project Admin, **Edit Form** |
-| **Edit Form Domain** | 양식의 사용자 정의 도메인 확인, 그리고 인증서 주문, 재발급 또는 변경. | Project Owner, Project Admin, **Edit Form** |
-| **Delete Form Domain** | 양식의 사용자 정의 도메인 제거. | Project Owner, Project Admin, **Edit Form** |
+| **Create Form** | 양식 만들기와 복제. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Edit Form** | 양식 변경: 질문, 브랜딩, 템플릿, 제출 시 설정, **제출 받기**, 링크, **IP 허용 목록**. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Delete Form** | 양식 삭제 (제출 내역도 함께 삭제됩니다). | 프로젝트 소유자, 프로젝트 관리자 |
+| **Read Form** | 양식과 그 질문, 설정, 링크 보기. | 위의 역할과 프로젝트 구성원, 뷰어, 인시던트 및 예정된 유지 관리 역할 |
+| **Read Form Submission** | 제출과 그 답변 보기. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Delete Form Submission** | 제출 삭제. | 프로젝트 소유자, 프로젝트 관리자 |
+| **Create Form Domain** | 양식에 [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 추가. | 프로젝트 소유자, 프로젝트 관리자, **Edit Form** |
+| **Edit Form Domain** | 양식의 사용자 정의 도메인 확인, 그리고 인증서 주문, 재발급 또는 변경. | 프로젝트 소유자, 프로젝트 관리자, **Edit Form** |
+| **Delete Form Domain** | 양식의 사용자 정의 도메인 제거. | 프로젝트 소유자, 프로젝트 관리자, **Edit Form** |
 | **Read Form Domain** | 양식의 사용자 정의 도메인, 그 DNS 레코드, 각 도메인이 HTTPS까지 어느 단계에 있는지 보기. | **Read Form** 이 있는 모든 사람 |
 
 제출에는 모르는 사람이 입력한 내용 (이름, 이메일 주소, 레코드에 들어가지 않을 수도 있는 답변) 이 담겨 있으므로, **Read Form Submission** 을 부여하지 않으면 프로젝트 소유자와 관리자만 볼 수 있습니다. 양식을 볼 수 있는 사람은 누구나 그 링크를 보고 공유할 수 있습니다. 양식을 제출하는 데에는 아무 권한도 필요 없습니다. 역할과 세분화된 권한이 어떻게 결합되는지는 [사용자, 팀 및 권한](/docs/permissions/index) 을 참조하세요.

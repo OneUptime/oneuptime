@@ -31,7 +31,7 @@ sequenceDiagram
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **能够访问该端口的探测器。** 每个新监视器都会选中您项目的默认探测器。如果服务前面有防火墙，请允许 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses) 连接到该端口。私有网络中的服务（例如数据库）需要在该网络内运行的 [自定义探测器](/docs/probe/custom-probe)。
 
 ## 创建端口监视器

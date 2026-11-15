@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - 로그인과 위험 탐지의 경우 Microsoft 365 E3, E5, Business Premium에 포함된 Microsoft Entra ID P1 또는 P2. Microsoft Graph는 이런 테넌트에만 이를 제공하며, 각 위험 탐지의 세부 정보는 P2에서 제공됩니다. 디렉터리 변경은 어떤 테넌트에서든 읽습니다.
 - Application Administrator처럼 애플리케이션을 등록할 수 있는 Entra 역할, 그리고 관리자 동의를 부여할 Global Administrator 또는 Privileged Role Administrator.
 - Microsoft 365 감사 로그의 경우 테넌트에서 감사가 켜져 있어야 하며, 기본값이 켜짐입니다. [Microsoft Purview 포털](https://purview.microsoft.com)의 **Audit**에 **Start recording user and admin activity**가 표시되면 안 됩니다.

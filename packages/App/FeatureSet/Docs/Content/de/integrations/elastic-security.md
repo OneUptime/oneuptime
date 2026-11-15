@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Elastic Security 8.x oder neuer, in Elastic Cloud oder auf Ihrem eigenen Elastic-Stack, mit Erkennungsregeln, die in einem Kibana-Space laufen.
 - Kibana-Zugriff, der Erkennungswarnungen in diesem Space sehen darf: die Indexberechtigungen `read` und `view_index_metadata` für `.alerts-security.alerts-<space-id>` und eine Kibana-Funktionsberechtigung für Security, mit der er dort Warnungen lesen kann.
 - Ein Kibana, das OneUptime über HTTPS erreicht. OneUptime Cloud verbindet sich aus dem Internet, Kibana braucht also eine öffentliche Adresse, wie sie Elastic-Cloud-Bereitstellungen haben: Private Adressen werden abgelehnt. Ein selbst gehostetes OneUptime verbindet sich aus seinen App- und Worker-Containern und erreicht ein Kibana in Ihrem privaten Netz, außer wenn `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` auf `true` steht.

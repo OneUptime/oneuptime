@@ -32,7 +32,7 @@ flowchart TB
 
 - **OneUptime Cloud では Enterprise プラン。** 他のプランでは、監査ログのページに機能の内容と入手方法が表示されます。
 - **セルフホストでは Enterprise Edition** と、監査ログを含むライセンスが必要です。[エンタープライズ版](/docs/self-hosted/enterprise) を参照してください。
-- **監査ログを読めるロール。** Project Owner、Project Admin、Settings Admin、または **Read Audit Log** 権限。監査ログを有効にして設定を変更するには、Project Owner、Project Admin、またはプロジェクトの編集権限が必要です。
+- **監査ログを読めるロール。** プロジェクト所有者、プロジェクト管理者、設定管理者、または **Read Audit Log** 権限。監査ログを有効にして設定を変更するには、プロジェクト所有者、プロジェクト管理者、またはプロジェクトの編集権限が必要です。
 
 ## 監査ログを有効にする
 

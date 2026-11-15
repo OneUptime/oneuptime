@@ -37,8 +37,8 @@ flowchart TB
 ## 開始之前
 
 - **您的方案。** 在 OneUptime Cloud 上，監測器群組需要 Scale 方案。
-- **開關。** 在為專案開啟 **監測器群組** 之前，監測器群組是隱藏的（見下文）。開啟它需要 Project Owner 角色，或擁有 Edit Project 或 Manage Billing 權限的自訂角色。
-- **您的角色。** 建立、變更和刪除群組需要 Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member 角色，或擁有相應監測器群組權限的自訂角色。Viewer 可以檢視群組，但不能變更。
+- **開關。** 在為專案開啟 **監測器群組** 之前，監測器群組是隱藏的（見下文）。開啟它需要專案擁有者角色，或擁有 Edit Project 或 Manage Billing 權限的自訂角色。
+- **您的角色。** 建立、變更和刪除群組需要專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員角色，或擁有相應監測器群組權限的自訂角色。檢視者可以檢視群組，但不能變更。
 
 ## 啟用監測器群組
 

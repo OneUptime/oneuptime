@@ -27,7 +27,7 @@ Eine Triage liest nur. Sie läuft mit der eigenen KI des Projekts: **KI aktivier
 
 - **KI aktivieren** eingeschaltet, unter **Projekteinstellungen → KI → KI-Funktionen**. Ist es aus, zeigt Sicherheit nichts von OneUptime AI, und nichts läuft.
 - Ein LLM-Anbieter, den OneUptime AI nutzen kann, unter **Projekteinstellungen → KI → LLM-Anbieter**. OneUptime Cloud stellt einen bereit.
-- Eine Rolle, die Sicherheitsfälle bearbeiten darf, um eine Triage zu starten: Project Owner, Project Admin, Security Admin oder Security Member. Security Viewer liest jede Triage, kann aber keine starten. Siehe [Rollen](/docs/permissions/reference#rollen).
+- Eine Rolle, die Sicherheitsfälle bearbeiten darf, um eine Triage zu starten: Projektinhaber, Projektadministrator, Sicherheits-Administrator oder Sicherheits-Mitglied. Sicherheits-Betrachter liest jede Triage, kann aber keine starten. Siehe [Rollen](/docs/permissions/reference#rollen).
 
 ## Einen Fall triagieren
 
@@ -40,7 +40,7 @@ Eine Triage liest nur. Sie läuft mit der eigenen KI des Projekts: **KI aktivier
 | Eine Einschätzung wie **Wahrscheinlich bösartig** | Die Triage ist fertig. **Erneut triagieren** liest den Fall neu. |
 | **Die Triage wurde nicht abgeschlossen** | Der Lauf wurde abgebrochen. **Erneut versuchen** startet einen neuen. |
 
-Ein Security Viewer liest dieselbe Karte: **Mit KI triagieren** und **Erneut versuchen** bleiben ausgegraut, und daneben steht, wer eine Triage starten kann; **Erneut triagieren** und **Priorität setzen** werden nicht angeboten.
+Ein Sicherheits-Betrachter liest dieselbe Karte: **Mit KI triagieren** und **Erneut versuchen** bleiben ausgegraut, und daneben steht, wer eine Triage starten kann; **Erneut triagieren** und **Priorität setzen** werden nicht angeboten.
 
 Eine Triage liest:
 
@@ -82,7 +82,7 @@ Ereignisse, Warnungen und Werte von Entitäten kommen von außerhalb des Projekt
 
 ## Neue Fälle automatisch triagieren
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → KI → Einstellungen** und schalten Sie **Neue Fälle triagieren** ein: Dann wird jeder Fall, den eine Erkennung eröffnet, beim Eröffnen triagiert. Der Schalter speichert, sobald Sie ihn umlegen. Project Owner und Project Admin können ihn ändern.
+Öffnen Sie **Produkte → Sicherheitsereignisse → KI → Einstellungen** und schalten Sie **Neue Fälle triagieren** ein: Dann wird jeder Fall, den eine Erkennung eröffnet, beim Eröffnen triagiert. Der Schalter speichert, sobald Sie ihn umlegen. Projektinhaber und Projektadministrator können ihn ändern.
 
 Neue Projekte starten mit ihm eingeschaltet; ein vorher angelegtes Projekt behält ihn aus, bis jemand ihn einschaltet. Ein von Hand eröffneter Fall und der Fall des Testangriffs aus **Testangriff senden** werden triagiert, wenn jemand auf **Mit KI triagieren** klickt.
 

@@ -31,7 +31,7 @@ sequenceDiagram
 
 ## 시작하기 전에
 
-- **모니터를 만들 수 있는 역할**: Project Owner, Project Admin, Project Member, Monitor Admin 또는 Monitor Member, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
+- **모니터를 만들 수 있는 역할**: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 모니터 관리자 또는 모니터 구성원, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
 - **포트에 연결할 수 있는 프로브.** 모든 새 모니터에는 프로젝트의 기본 프로브가 선택됩니다. 서비스 앞에 방화벽이 있으면 [OneUptime Cloud의 프로브 IP 주소](/docs/configuration/ip-addresses)가 포트에 연결하도록 허용합니다. 데이터베이스처럼 프라이빗 네트워크에 있는 서비스에는 그 네트워크 안의 [사용자 지정 프로브](/docs/probe/custom-probe)가 필요합니다.
 
 ## 포트 모니터 만들기

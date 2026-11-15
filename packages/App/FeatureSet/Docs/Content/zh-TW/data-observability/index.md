@@ -41,7 +41,7 @@ flowchart TB
 
 ## 開始之前
 
-- **能設定它的角色。** Project Owner、Project Admin 和 Telemetry Admin 可以連接資料庫。任何可以編輯資料資產的人都能新增檢查、對帳和資料產品；Viewer 可以讀取它找到的內容。請參閱 [權限參考](/docs/permissions/reference)。
+- **能設定它的角色。** 專案擁有者、專案管理員和遙測管理員可以連接資料庫。任何可以編輯資料資產的人都能新增檢查、對帳和資料產品；檢視者可以讀取它找到的內容。請參閱 [權限參考](/docs/permissions/reference)。
 - **每個資料庫上的唯讀登入。** [連接資料庫](/docs/data-observability/connect) 列出了每種引擎至少需要的權限。OneUptime 會建議你的追蹤、雲端帳戶和資料庫監控已經知道的資料庫。
 
 ## 快速入門

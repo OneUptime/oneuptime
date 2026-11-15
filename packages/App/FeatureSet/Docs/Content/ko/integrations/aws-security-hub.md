@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - 연결하는 리전에서 Security Hub가 활성화된 AWS 계정. Security Hub는 리전 단위입니다. 하나의 연결은 한 계정이 한 리전에 가진 검색 결과를 읽습니다.
 - 모든 계정과 리전의 검색 결과를 하나의 연결로 읽으려면, [리전 간 집계](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html)를 켠 홈 리전에서 Security Hub 위임 관리자 계정을 사용합니다. 홈 리전은 **Security Hub → Settings → Regions**에 나옵니다.
 - OneUptime 앱과 워커에서 `securityhub.<region>.amazonaws.com`(중국에서는 `securityhub.<region>.amazonaws.com.cn`)으로 나가는 아웃바운드 HTTPS와, 그 호스트의 정확한 시계. AWS는 5분 넘게 어긋나게 서명된 요청을 거부합니다.

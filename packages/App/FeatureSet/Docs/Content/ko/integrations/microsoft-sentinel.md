@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - Microsoft Sentinel이 활성화된 Log Analytics 워크스페이스. Azure 퍼블릭 클라우드 또는 Azure Government (US)에 있어야 합니다.
 - Microsoft Entra ID에서 앱 등록과 클라이언트 시크릿을 만들 권한.
 - 워크스페이스가 있는 리소스 그룹에서 Owner나 User Access Administrator처럼 역할을 할당할 수 있는 권한.

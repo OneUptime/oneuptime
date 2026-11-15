@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - Splunk Enterprise 9.0.1 以降を実行するサーチヘッド、または Splunk Cloud Platform。OneUptime は管理ポート（通常は `8089`）でその REST API と通信します。ポート `8000` の Splunk Web は REST API を提供しません。
 - OneUptime 用の Splunk ユーザー。そのロールには `search` ケイパビリティがあり、サーチが読むインデックス（notable event の場合は `notable`）を読めることが必要です。Enterprise Security の `ess_analyst` と `ess_user` ロールはその両方を付与します。接続は読み取るだけなので、ロールにはそれ以外は必要ありません。
 - OneUptime が HTTPS で到達できるサーチヘッド。OneUptime Cloud はインターネットから接続するため、サーチヘッドにはパブリックアドレスが必要です。プライベートアドレスは拒否されます。セルフホストの OneUptime はアプリと worker のコンテナから接続し、`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` が `true` でない限り、プライベートネットワーク上のサーチヘッドにも到達できます。

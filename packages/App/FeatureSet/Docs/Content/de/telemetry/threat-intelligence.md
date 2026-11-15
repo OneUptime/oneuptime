@@ -27,7 +27,7 @@ flowchart TB
 - Für einen TAXII-Feed ein TAXII-2.1-Server, der STIX-2.1-Objekte vom Typ `indicator` veröffentlicht, und die ID der abzufragenden Sammlung. Ein TAXII-Feed meldet sich anonym, mit einem Bearer-Token oder mit HTTP-Basic-Auth an.
 - Für einen Google SecOps-Feed eine [Google SecOps-Verbindung](/docs/integrations/google-secops#den-verwalteten-connector-einrichten), deren Dienstkonto Indikatortreffer durchsuchen darf: Die Rolle `roles/chronicle.viewer` darf das.
 - Server, die ein TLS-Client-Zertifikat verlangen (Mutual TLS), wie CISA AIS, werden nicht unterstützt. Der öffentliche ATT&CK-Server von MITRE veröffentlicht Techniken und Gruppen statt Indikatoren, also bleibt ein Feed, der auf ihn zeigt, leer.
-- Eine Rolle, die Feeds erstellen darf: Project Owner, Project Admin, Security Admin oder Security Member. Security Viewer kann Feeds und Indikatoren lesen. Siehe [Rollen](/docs/permissions/reference#rollen).
+- Eine Rolle, die Feeds erstellen darf: Projektinhaber, Projektadministrator, Sicherheits-Administrator oder Sicherheits-Mitglied. Sicherheits-Betrachter kann Feeds und Indikatoren lesen. Siehe [Rollen](/docs/permissions/reference#rollen).
 
 ## Eine kostenlose Liste hinzufügen
 
