@@ -25,6 +25,13 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import {
+  formatInline,
+  translateText,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatMillisecondsIn } from "./HealthUnits";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -277,13 +284,13 @@ const renderCell: (value: JSONValue) => ReactElement = (
   value: JSONValue,
 ): ReactElement => {
   if (value === null || value === undefined) {
-    return <span className="text-gray-300 italic">NULL</span>;
+    return <span className="text-gray-300 italic">{SQL_NULL}</span>;
   }
   if (typeof value === "object") {
     return <span className="font-mono text-xs">{JSON.stringify(value)}</span>;
   }
   if (typeof value === "boolean") {
-    return <span className="font-mono">{value ? "true" : "false"}</span>;
+    return <span className="font-mono">{String(value)}</span>;
   }
   return <span>{String(value)}</span>;
 };
@@ -309,7 +316,11 @@ const getResultColumnIds: (columns: Array<string>) => Array<string> = (
 
 // --- Component ------------------------------------------------------------
 
+// SQL's null, drawn as SQL writes it in every language.
+const SQL_NULL: string = "NULL";
+
 const QueryConsoleContent: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [engine, setEngine] = useState<QueryEngine>("postgres");
   const [queries, setQueries] = useState<Record<QueryEngine, string>>({
     postgres: "",
@@ -404,7 +415,9 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
       if (!data["success"]) {
         setResult({
           kind: "error",
-          error: String(data["error"] || "Query failed."),
+          error:
+            String(data["error"] || "") ||
+            (translateText("Query failed.") as string),
           executionTimeMs:
             typeof data["executionTimeMs"] === "number"
               ? (data["executionTimeMs"] as number)
@@ -533,7 +546,9 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
             });
           }}
         />
-        <span className="text-xs text-gray-400 -ml-2">⌘ / Ctrl + ↵</span>
+        <span className="text-xs text-gray-400 -ml-2">
+          {translator.translateText("⌘ / Ctrl + ↵")}
+        </span>
 
         <div className="flex items-center gap-2">
           {/*
@@ -552,13 +567,15 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
             htmlFor={readOnlySwitchId}
             className="cursor-pointer text-sm text-gray-600"
           >
-            Read-only
+            {translator.translateText("Read-only")}
           </label>
         </div>
 
         {config.tabular ? (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Row limit</span>
+            <span className="text-sm text-gray-600">
+              {translator.translateText("Row limit")}
+            </span>
             <select
               value={maxRows}
               onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -580,7 +597,9 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
         )}
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Examples</span>
+          <span className="text-sm text-gray-600">
+            {translator.translateText("Examples")}
+          </span>
           <select
             value=""
             onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -596,7 +615,9 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
             }}
             className="rounded-md border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="">Load an example… (replaces editor)</option>
+            <option value="">
+              {translator.translateText("Load an example… (replaces editor)")}
+            </option>
             {config.samples.map(
               (sample: { label: string; query: string }): ReactElement => {
                 return (
@@ -640,8 +661,29 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
           title={
             tableResult.message ||
             (tableResult.affectedRows !== null
-              ? `Statement executed in ${tableResult.executionTimeMs} ms. ${tableResult.affectedRows} row(s) affected.`
-              : `Statement executed in ${tableResult.executionTimeMs} ms. No rows returned.`)
+              ? translator.translatePlural(
+                  {
+                    one: "Statement executed in {{duration}}. {{count}} row affected.",
+                    other:
+                      "Statement executed in {{duration}}. {{count}} rows affected.",
+                  },
+                  tableResult.affectedRows,
+                  {
+                    duration: formatMillisecondsIn(
+                      tableResult.executionTimeMs,
+                      translator,
+                    ),
+                  },
+                )
+              : translator.translateTemplate(
+                  "Statement executed in {{duration}}. No rows returned.",
+                  {
+                    duration: formatMillisecondsIn(
+                      tableResult.executionTimeMs,
+                      translator,
+                    ),
+                  },
+                ))
           }
         />
       );
@@ -652,19 +694,28 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div className="text-sm text-gray-500">
             <span className="font-medium text-gray-700">
-              {tableResult.rowsReturned.toLocaleString()}
-            </span>{" "}
-            {tableResult.rowsReturned === 1 ? "row" : "rows"}
+              {translator.translatePlural(
+                { one: "{{count}} row", other: "{{count}} rows" },
+                tableResult.rowsReturned,
+              )}
+            </span>
             {tableResult.truncated ? (
               <span className="text-yellow-600">
                 {" "}
-                (truncated — more rows available; increase the row limit to see
-                more)
+                {translator.translateText(
+                  "(truncated — more rows available; increase the row limit to see more)",
+                )}
               </span>
             ) : (
               <></>
-            )}{" "}
-            · {tableResult.executionTimeMs} ms
+            )}
+            {formatInline(
+              [
+                "",
+                formatMillisecondsIn(tableResult.executionTimeMs, translator),
+              ],
+              translator,
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -758,7 +809,9 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
                     colSpan={tableResult.columns.length + 1}
                     className="px-3 py-6 text-center text-sm text-gray-400"
                   >
-                    0 rows — the query ran successfully but matched no rows.
+                    {translator.translateText(
+                      "0 rows — the query ran successfully but matched no rows.",
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -803,10 +856,15 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
       <div>
         <div className="text-sm text-gray-500 mb-3">
           <span className="font-medium text-gray-700">
-            {redisResult.commandsRun}
-          </span>{" "}
-          {redisResult.commandsRun === 1 ? "command" : "commands"} ·{" "}
-          {redisResult.executionTimeMs} ms
+            {translator.translatePlural(
+              { one: "{{count}} command", other: "{{count}} commands" },
+              redisResult.commandsRun,
+            )}
+          </span>
+          {formatInline(
+            ["", formatMillisecondsIn(redisResult.executionTimeMs, translator)],
+            translator,
+          )}
         </div>
         <div className="space-y-3">
           {redisResult.results.map(
@@ -850,7 +908,7 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
     if (!result) {
       return (
         <div className="text-sm text-gray-400 py-8 text-center">
-          Run a query to see results here.
+          {translator.translateText("Run a query to see results here.")}
         </div>
       );
     }
@@ -923,7 +981,10 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
       {history.length > 0 ? (
         <Card
           title="Query history"
-          description={`Your last ${config.label} queries (stored in this browser only).`}
+          description={translator.translateTemplate(
+            "Your last {{datastore}} queries (stored in this browser only).",
+            { datastore: config.label },
+          )}
         >
           <div className="space-y-2">
             {history.map((entry: HistoryEntry, index: number): ReactElement => {

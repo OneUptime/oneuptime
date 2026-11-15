@@ -9,6 +9,10 @@ import ProbeNetworkFailureUtil, {
   ProbeNetworkFailure,
   ProbeNetworkOperation,
 } from "Common/Utils/ProbeNetworkFailureUtil";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
 import logger from "Common/Server/Utils/Logger";
 import NetworkPathTrace, {
   DNSLookupResult,
@@ -408,12 +412,12 @@ export default class NetworkPathMonitor {
       });
 
     if (probeFailure) {
-      return `Traceroute could not run: ${ProbeNetworkFailureUtil.describeClause(
-        {
+      return writeProbeFailureCause(ProbeFailureCause.TracerouteCouldNotRun, {
+        clause: ProbeNetworkFailureUtil.describeClause({
           host: destination,
           failure: probeFailure,
-        },
-      )}.`;
+        }),
+      });
     }
 
     return stderr;

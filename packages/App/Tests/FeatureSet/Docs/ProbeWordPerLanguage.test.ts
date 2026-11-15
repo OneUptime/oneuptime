@@ -529,12 +529,24 @@ describe("the other eleven languages' old words (controls)", () => {
         "Без пробелов; пробный запуск; попробуйте снова.",
       ),
     ).toBeNull();
-    // A cloud's startup probe and an option drawn in English keep their word.
+    // A cloud's startup probe keeps its word.
     expect(
       otherProbeWordIn(
         "de",
         "",
         "Die Erweiterung beantwortet die Startup-Probe.",
+      ),
+    ).toBeNull();
+    /*
+     * The network device's Probe option is drawn as Sonde since #8308, so a
+     * sentence that names it says Sonde, and the English name is no longer
+     * kept.
+     */
+    expect(
+      otherProbeWordIn(
+        "no",
+        "",
+        "Bytt til Sonde ovenfor for at en sonde skal pinge den.",
       ),
     ).toBeNull();
     expect(
@@ -543,7 +555,7 @@ describe("the other eleven languages' old words (controls)", () => {
         "",
         "Bytt til Probe ovenfor for at en sonde skal pinge den.",
       ),
-    ).toBeNull();
+    ).toBe("Probe");
     expect(
       otherProbeWordIn(
         "ru",

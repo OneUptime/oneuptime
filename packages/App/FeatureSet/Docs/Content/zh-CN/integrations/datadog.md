@@ -55,7 +55,7 @@ Datadog 监视器在状态改变时，也就是触发、警告、恢复或没有
 
 ### 工作流做什么
 
-在 **Webhook** 触发器之后， **Check With JavaScript** 步骤 `read-event-1` 读取 Datadog 发送的 `transition`，再由 **Incident From Another Tool**（警报模板中为 **Alert From Another Tool** ）按告警的周期键执行它所代表的操作。Datadog 从告警触发的那一刻起到恢复为止保留这个键，下次触发时键是新的，所以每一次都有自己的事件。事件把该键保存在自定义字段 `datadogAlertCycleKey` 中。
+在 **Webhook** 触发器之后， **用 JavaScript 检查** 步骤 `read-event-1` 读取 Datadog 发送的 `transition`，再由 **来自其他工具的事件**（警报模板中为 **来自其他工具的警报** ）按告警的周期键执行它所代表的操作。Datadog 从告警触发的那一刻起到恢复为止保留这个键，下次触发时键是新的，所以每一次都有自己的事件。事件把该键保存在自定义字段 `datadogAlertCycleKey` 中。
 
 | 转换 | 工作流做什么 |
 | --- | --- |
@@ -82,7 +82,7 @@ Datadog 监视器在状态改变时，也就是触发、警告、恢复或没有
 使用你自己的严重程度时，P1、P2 和无优先级对应最严重的一个，P3 对应中间的一个，P4 和 P5 对应最轻的一个。
 
 - 要按名称把某个优先级映射到你的某个严重程度，请编辑 `read-event-1` 步骤中的 `SEVERITY_BY_NAME`，例如 `{ P3: 'Minor Incident' }`。
-- 要让 P3 也呼叫值班人员，请把 `if-page-1` **If / Else** 步骤的 **比较对象** 设为 `3`。
+- 要让 P3 也呼叫值班人员，请把 `if-page-1` **如果 / 否则** 步骤的 **比较对象** 设为 `3`。
 
 ## 用监视器接收告警
 

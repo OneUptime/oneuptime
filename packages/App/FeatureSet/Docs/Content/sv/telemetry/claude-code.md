@@ -64,7 +64,7 @@ Variablerna läses när Claude Code startar. Mätvärden skickas var 60:e sekund
 
 ### Kontrollera att data kommer in
 
-Öppna **Mått** och sök efter `claude_code.token.usage`, öppna sedan **Produkter → AI / LLM** och gå till **Användning**: din kostnad visas under din e-postadress, märkt med **Från användningsmätvärden**.
+Öppna **Mätvärden** och sök efter `claude_code.token.usage`, öppna sedan **Produkter → AI / LLM** och gå till **Användning**: din kostnad visas under din e-postadress, märkt med **Från användningsmätvärden**.
 :::
 
 För att skicka mätvärden och händelser till olika ställen sätter du i stället `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` och `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, med den fullständiga sökvägen (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).

@@ -129,6 +129,14 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * An invited member's card (MemberFirstSteps) reads the member's next
+ * shifts beside the steps. These tests are about the steps, so that read is
+ * left unanswered: refused at once, and taken as one it could not make.
+ */
+refuseRequestsTo(["/on-call-calendar/my-shifts"]);
 
 const PROJECT_ID: string = "65f00000000000000000dddd";
 

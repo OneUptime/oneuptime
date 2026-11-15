@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
@@ -41,7 +42,9 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 const ProfileViewPage: FunctionComponent<
   PageComponentProps
@@ -311,7 +314,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
   const badge: string = ProfileUtil.getProfileTypeBadgeColor(type);
   const durationLabel: string = p.durationNano
     ? ProfileUtil.formatProfileValue(Number(p.durationNano), "nanoseconds")
-    : "—";
+    : EMPTY_VALUE_MARK;
 
   const traceId: string | undefined = p.traceId?.toString();
 
@@ -396,7 +399,7 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
             {translator.translateText("Duration")}
           </div>
           <div className="text-sm font-medium text-gray-900 mt-0.5">
-            {durationLabel}
+            {getValueOrQuietDash(durationLabel)}
           </div>
         </div>
 

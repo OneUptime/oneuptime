@@ -1,4 +1,5 @@
 import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -55,7 +56,7 @@ export function keyForDockerSwarmCluster(
 
 export function formatBytes(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (bytes < 1024) {
     return `${Math.round(bytes)}\u00A0B`;
@@ -72,7 +73,7 @@ export function formatBytes(bytes: number | null | undefined): string {
 
 export function formatPercent(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 }
@@ -172,7 +173,7 @@ export function formatReplicas(row: DockerSwarmResourceModel): string {
       ? Number(row.desiredReplicas)
       : null;
   if (running === null && desired === null) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (desired === null) {
     return `${running ?? 0}`;

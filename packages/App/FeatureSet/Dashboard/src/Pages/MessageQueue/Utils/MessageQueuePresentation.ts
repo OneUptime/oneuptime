@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   MESSAGE_QUEUE_DISCOVERY_SOURCES,
   MessageQueueDiscoverySource,
@@ -255,7 +256,7 @@ export function getMessageQueueOtherSystemHint(
 export function getMessageQueueSystemLabel(
   system: string | null | undefined,
 ): string {
-  return getMessagingSystemDisplayName(system) || "—";
+  return getMessagingSystemDisplayName(system) || EMPTY_VALUE_MARK;
 }
 
 /*
@@ -417,7 +418,7 @@ export function getMessageQueueLastSeenText(
   }
   const date: Date | null = toMessageQueueDate(lastSeenAt);
   if (!date) {
-    return { text: "—", title: "" };
+    return { text: EMPTY_VALUE_MARK, title: "" };
   }
   return {
     text: OneUptimeDate.fromNow(date),

@@ -60,14 +60,14 @@ Beginnen Sie mit **Declare an incident for each Zabbix problem**, oder für Warn
 
 ### Was die Vorlagen abfragen
 
-- **Zabbix URL**: die Adresse, unter der Sie Zabbix öffnen, etwa `https://zabbix.example.com`, oder `https://example.com/zabbix`, wenn Zabbix unter einem Pfad läuft. Links zu einem Problem führen dorthin, und die Vorlagen, die Zabbix aufrufen, senden ihre Anfragen an dessen `api_jsonrpc.php`. Das Feld lehnt die Adresse einer Seite in Zabbix ab.
+- **Zabbix-URL**: die Adresse, unter der Sie Zabbix öffnen, etwa `https://zabbix.example.com`, oder `https://example.com/zabbix`, wenn Zabbix unter einem Pfad läuft. Links zu einem Problem führen dorthin, und die Vorlagen, die Zabbix aufrufen, senden ihre Anfragen an dessen `api_jsonrpc.php`. Das Feld lehnt die Adresse einer Seite in Zabbix ab.
 - **Zabbix API Token**: ein API-Token des Zabbix-Benutzers, als der der Workflow handelt. [Das API-Token erstellen](#das-api-token-erstellen) zeigt, wie. Es wird als geheime Variable gespeichert und nur an Zabbix gesendet: im Header `Authorization`, oder bei Zabbix 6.0 im Text der Anfrage.
 
 ### Probleme mit der Vorlage empfangen
 
 :::steps
 1. Gehen Sie zu **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**. Wählen Sie unter **Oder mit einer Vorlage beginnen** in der Kategorieliste **Zabbix**, klicken Sie auf **Declare an incident for each Zabbix problem** und dann auf **Diese Vorlage verwenden**.
-2. Füllen Sie **Zabbix URL** aus. Wählen Sie unter **Who to page for High and Disaster problems** die zu alarmierenden Bereitschaftsrichtlinien, oder keine, um niemanden zu alarmieren, und klicken Sie auf **Arbeitsablauf erstellen**. Der Workflow öffnet sich ausgeschaltet im **Editor**.
+2. Füllen Sie **Zabbix-URL** aus. Wählen Sie unter **Who to page for High and Disaster problems** die zu alarmierenden Bereitschaftsrichtlinien, oder keine, um niemanden zu alarmieren, und klicken Sie auf **Arbeitsablauf erstellen**. Der Workflow öffnet sich ausgeschaltet im **Editor**.
 3. Klicken Sie auf den Trigger **Webhook**, dann auf **URL kopieren**, und bewahren Sie die URL für Zabbix auf.
 4. Schalten Sie oben im **Editor** **Aktiviert** ein. Ein ausgeschalteter Workflow antwortet Zabbix mit `400`.
 :::
@@ -76,7 +76,7 @@ Dann [konfigurieren Sie Zabbix](#zabbix-konfigurieren), damit es seine Probleme 
 
 ### Was der Workflow tut
 
-Nach dem Trigger **Webhook** liest der Schritt **Check With JavaScript** `read-event-1` das `event`, das der Medientyp sendet, und **Incident From Another Tool**, in der Vorlage für Warnungen **Alert From Another Tool**, tut, was es bedeutet, über die Ereignis-ID des Problems:
+Nach dem Trigger **Webhook** liest der Schritt **Mit JavaScript prüfen** `read-event-1` das `event`, das der Medientyp sendet, und **Vorfall aus einem anderen Tool**, in der Vorlage für Warnungen **Warnung aus einem anderen Tool**, tut, was es bedeutet, über die Ereignis-ID des Problems:
 
 | Ereignis | Was der Workflow tut |
 | --- | --- |
@@ -102,13 +102,13 @@ In einem neuen Projekt bildet die Vorlage die sechs Schweregrade von Zabbix auf 
 Mit eigenen Schweregraden gehen Disaster und High an Ihren schwersten, Average und Warning an den mittleren und Information und Not classified an Ihren leichtesten. Zabbix nummeriert seine Schweregrade von 0 (Not classified) bis 5 (Disaster), und die Vorlage liest die Nummer, eine Umbenennung in Zabbix ändert also nichts.
 
 - Um einen Schweregrad per Namen einem Ihrer Schweregrade zuzuordnen, bearbeiten Sie `SEVERITY_BY_NAME` im Schritt `read-event-1`, etwa `{ 2: 'Minor Incident' }` für Warning.
-- Um auch bei Average-Problemen zu alarmieren, setzen Sie **Vergleichen mit** des Schritts `if-page-1` **If / Else** auf `3`.
+- Um auch bei Average-Problemen zu alarmieren, setzen Sie **Vergleichen mit** des Schritts `if-page-1` **Wenn / Sonst** auf `3`.
 
 ### Bestätigungen und Notizen an Zabbix zurücksenden
 
 :::steps
 1. [Erstellen Sie das API-Token](#das-api-token-erstellen).
-2. Erstellen Sie einen Workflow aus **Acknowledge or close the Zabbix problem with the incident**. Füllen Sie **Zabbix URL** und **Zabbix API Token** aus, klicken Sie auf **Arbeitsablauf erstellen** und schalten Sie **Aktiviert** ein.
+2. Erstellen Sie einen Workflow aus **Acknowledge or close the Zabbix problem with the incident**. Füllen Sie **Zabbix-URL** und **Zabbix API Token** aus, klicken Sie auf **Arbeitsablauf erstellen** und schalten Sie **Aktiviert** ein.
 3. Wenn Sie auch Notizen in Zabbix möchten, tun Sie dasselbe mit **Copy incident private notes to the Zabbix problem**.
 :::
 
@@ -126,7 +126,7 @@ Die Statusvorlage fragt Zabbix zuerst nach dem Problem, ein Problem, das Zabbix 
 
 ### Unter Zabbix 6.0
 
-Zabbix 6.0 liest das API-Token aus dem Text der Anfrage, nicht aus ihrem Header `Authorization`. Schalten Sie im Schritt **Update Zabbix Problem** jeder Vorlage, die Zabbix aufruft, **Zabbix 6.0** unter **Weitere Felder** ein. Zabbix 7.2 und neuer lehnen ein Token im Text ab, schalten Sie es also wieder aus, wenn Sie aktualisieren.
+Zabbix 6.0 liest das API-Token aus dem Text der Anfrage, nicht aus ihrem Header `Authorization`. Schalten Sie im Schritt **Zabbix-Problem aktualisieren** jeder Vorlage, die Zabbix aufruft, **Zabbix 6.0** unter **Weitere Felder** ein. Zabbix 7.2 und neuer lehnen ein Token im Text ab, schalten Sie es also wieder aus, wenn Sie aktualisieren.
 
 ## Probleme mit einem Monitor empfangen
 
@@ -344,7 +344,7 @@ Die Aktion hat vermutlich zwei Operationen, die an denselben Benutzer senden, et
 ## Sicherheit
 
 - **Behandeln Sie die URL wie ein Passwort.** Wer sie hat, kann Vorfälle eröffnen. Wird sie bekannt, setzen Sie sie zurück: mit **URL zurücksetzen** im **Webhook**-Trigger des Workflows oder mit **Geheimen Schlüssel für eingehende Anfragen zurücksetzen** auf der Seite **Einstellungen** des Monitors. Aktualisieren Sie dann **Send to** in den Medien des Zabbix-Benutzers.
-- **Links führen zu Ihrem Zabbix.** Die Vorlage verlinkt ein Problem auf der Site, die ihre **Zabbix URL** nennt, egal was eine Anfrage sagt, und schreibt, was Zabbix gesendet hat, als Text.
+- **Links führen zu Ihrem Zabbix.** Die Vorlage verlinkt ein Problem auf der Site, die ihre **Zabbix-URL** nennt, egal was eine Anfrage sagt, und schreibt, was Zabbix gesendet hat, als Text.
 - **Beschränken Sie das API-Token auf das, was der Workflow tut.** Es ist eine geheime Variable, aus Ausführungsprotokollen entfernt und nur an Zabbix gesendet, im Header `Authorization`, sofern **Zabbix 6.0** nicht eingeschaltet ist. Geben Sie seinem Benutzer eine Rolle mit nicht mehr als den obigen Aktionen, und löschen Sie das Token unter **Users → API tokens**, wenn es bekannt wird.
 - **Senden Sie nur, was einen Vorfall braucht.** Nutzen Sie die Bedingungen der Aktion oder die Schweregrade der Benutzermedien, um Probleme mit niedrigem Schweregrad in Zabbix zu lassen.
 - **Selbst gehostet?** Lassen Sie Ihren Zabbix-Server Ihr OneUptime über HTTPS durch Ihre Firewall erreichen. Um ein Zabbix in einem privaten Netzwerk aufzurufen, braucht der Workflow [ausgehenden Netzwerkzugriff](/docs/workflows/configuration#ausgehender-netzwerkzugriff).

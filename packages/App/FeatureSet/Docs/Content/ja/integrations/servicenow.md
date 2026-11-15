@@ -54,11 +54,11 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 
 ### トリガーを追加する
 
-点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックします。その **Fields to pass on** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** を選びます。
+点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックします。その **引き渡すフィールド** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** を選びます。
 
 ### レコードを作成する
 
-**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://your-instance.service-now.com/api/now/table/incident` に設定します。**その他の項目** で、**リクエストヘッダー** を次のように設定します:
+**コンポーネントを追加** をクリックし、**API 呼び出し POST (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://your-instance.service-now.com/api/now/table/incident` に設定します。**その他の項目** で、**リクエストヘッダー** を次のように設定します:
 
 ```json
 {
@@ -81,7 +81,7 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 
 ### テストしてからオンにする
 
-**ワークフローを実行** をクリックし、**インシデント** でテスト用インシデントを選んで実行します。**API Post (JSON)** ステップに、新しいレコード、その `sys_id`、`INC0012345` のような `number` を含む `201` の応答が表示されます。その後、**ビルダー** の上部で **有効** をオンにします。
+**ワークフローを実行** をクリックし、**インシデント** でテスト用インシデントを選んで実行します。**API 呼び出し POST (JSON)** ステップに、新しいレコード、その `sys_id`、`INC0012345` のような `number` を含む `201` の応答が表示されます。その後、**ビルダー** の上部で **有効** をオンにします。
 :::
 
 `urgency` と `impact` は、高に `1`、中に `2`、低に `3` を取り、ServiceNow はこの 2 つから優先度を算出します。`incident` テーブルのその他の列も、列名を使って本文に含められます。
@@ -93,7 +93,7 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 :::steps
 ### On Update Incident トリガーを追加する
 
-`Resolve ServiceNow incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選び、状態が変わったときだけ実行されるようにします。**Fields to pass on** で、新しい状態が解決済みの状態かどうかを要求します。**フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。または **JSON として編集** をクリックし、JSON を次の内容に置き換えます:
+`Resolve ServiceNow incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**監視するフィールド** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選び、状態が変わったときだけ実行されるようにします。**引き渡すフィールド** で、新しい状態が解決済みの状態かどうかを要求します。**フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。または **JSON として編集** をクリックし、JSON を次の内容に置き換えます:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Table API は Basic 認証を受け付けます。ユーザーの名前とパス
 
 ### インシデントが解決されたことを確認する
 
-トリガーの後に **If / Else** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
+トリガーの後に **条件分岐** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
 
 ### レコードを見つける
 
-**はい** 側の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API Get (JSON)** ブロックを追加します:
+**はい** 側の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API 呼び出し GET (JSON)** ブロックを追加します:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,7 +113,7 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### レコードを解決する
 
-検索ブロックの **成功** の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API Patch (JSON)** ブロックを追加します:
+検索ブロックの **成功** の後に、同じ **リクエストヘッダー** と次の **URL** を持つ **API 呼び出し PATCH (JSON)** ブロックを追加します:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}

@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -130,10 +131,10 @@ const KubernetesPartPods: FunctionComponent<ComponentProps> = (
         statusTone: pod.assessment.tone,
         age: KubernetesResourceUtils.formatAge(created),
         additionalAttributes: {
-          ready: pod.ready || "-",
+          ready: pod.ready || EMPTY_VALUE_MARK,
           restarts: String(pod.restarts),
-          node: pod.nodeName || "-",
-          owner: pod.ownerName || "-",
+          node: pod.nodeName || EMPTY_VALUE_MARK,
+          owner: pod.ownerName || EMPTY_VALUE_MARK,
         },
       };
     },

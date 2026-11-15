@@ -104,7 +104,7 @@ Terraform で管理したいモニター、ステータスページ、その他�
 | `oneuptime_on_call_policy`, `oneuptime_escalation_rule` | オンコールポリシーと、それが順に呼び出すルール |
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | インシデントと、その重大度と状態 |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | アラートと、その重大度と状態 |
-| `oneuptime_scheduled_maintenance_event` | 予定メンテナンスの時間帯 |
+| `oneuptime_scheduled_maintenance_event` | 定期メンテナンスの時間帯 |
 | `oneuptime_probe` | 自分のネットワークからチェックする独自のプローブ |
 
 [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) には、すべてのリソースとその属性がすべて載っています。

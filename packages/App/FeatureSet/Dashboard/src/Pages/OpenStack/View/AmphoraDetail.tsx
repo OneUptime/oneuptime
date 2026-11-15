@@ -100,9 +100,7 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
             >
               <bdi>{loadBalancerId}</bdi>
             </Link>
-          ) : (
-            "—"
-          ),
+          ) : undefined,
           description:
             "The load balancer it carries. A spare amphora waiting in the pool has none.",
         });
@@ -119,9 +117,7 @@ const OpenStackCloudAmphoraDetail: FunctionComponent<
             >
               <bdi>{computeId}</bdi>
             </Link>
-          ) : (
-            "—"
-          ),
+          ) : undefined,
           description:
             "The Nova instance it runs in. It sits in Octavia's own project, and the host it is on is that instance's page.",
         });

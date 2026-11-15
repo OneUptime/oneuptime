@@ -22,7 +22,8 @@ import {
  *
  * So the viewer holds back what Utils/Markdown/OverLongText holds back from
  * every parser - the middle of an over-long line, the plain lines of an
- * over-long run of lines - before react-markdown reads the text, puts a
+ * over-long run of lines, cut where remark reads a link's text plainly -
+ * before react-markdown reads the text, puts a
  * short token in its place, and rehypePutBackHeldText writes it back into
  * the rendered tree as text: React escapes it. A text of at most 64 KB with
  * no screenshot holds back nothing, and renders exactly as it always has.
@@ -206,7 +207,11 @@ export const holdBackForViewer: (text: string) => HeldBackViewerText = (
 
   const heldTokenCharacters: number = held.length;
   const markdown: string = holdBackSlowMarkdown(
-    holdBackOverLongText(holdBackBase64Data(withoutTokens, hold), hold),
+    holdBackOverLongText(
+      holdBackBase64Data(withoutTokens, hold),
+      hold,
+      "remark",
+    ),
     { holdLines: holdLines, holdCode: hold },
     VIEWER_SLOW_MARKDOWN_LIMITS,
   );

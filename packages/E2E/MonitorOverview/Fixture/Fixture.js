@@ -177,8 +177,8 @@ import { initReactI18next } from "react-i18next";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import TelemetryRulePreviewUtil from "Common/Types/Monitor/TelemetryRulePreview";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
@@ -3530,15 +3530,14 @@ function whoIsTold(monitorId) {
                 },
               ]
             : [],
-          rules:
-            isNobodyPaged
-              ? []
-              : [
-                  {
-                    id: "5f000000-0000-4000-8000-0000000000b1",
-                    name: isHidden ? "" : "Every incident",
-                  },
-                ],
+          rules: isNobodyPaged
+            ? []
+            : [
+                {
+                  id: "5f000000-0000-4000-8000-0000000000b1",
+                  name: isHidden ? "" : "Every incident",
+                },
+              ],
           policies: isNobodyPaged ? [] : [policy],
           statusPages: [
             {
@@ -3854,14 +3853,30 @@ for (const api of [API, BaseAPI]) {
 followLanguageForPage(i18next);
 followLanguageForDates(i18next);
 
+/*
+ * English, the fallback, is in the bundle; German and Persian are each a
+ * chunk of its own, loaded only by a page drawn in that language, as the
+ * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
+ * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: languageMode,
   fallbackLng: "en",
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    fa: { translation: FA },
-  },
+  resources: await localeResources({
+    language: languageMode,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

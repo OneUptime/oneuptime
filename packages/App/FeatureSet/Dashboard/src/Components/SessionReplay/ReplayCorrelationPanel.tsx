@@ -87,7 +87,9 @@ import { getReplayAssetFailureDocsHref } from "./ReplayRecordedAssets";
  */
 
 import type { ReplaySessionDetails } from "./ReplaySessionDetails";
-import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import EmptyValue, {
+  EMPTY_VALUE_MARK,
+} from "Common/UI/Components/Detail/EmptyValue";
 
 export type ReplayCorrelationPanelTabId = "session" | "provenance" | "fidelity";
 
@@ -627,7 +629,7 @@ const EnvironmentTile: FunctionComponent<EnvironmentTileProps> = (
 
 function formatBytes(bytes: number): string {
   if (!isFinite(bytes) || bytes <= 0) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const units: Array<string> = ["B", "KiB", "MiB", "GiB"];

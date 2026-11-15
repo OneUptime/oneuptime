@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -55,7 +56,7 @@ const TASK_COLUMNS: Array<ResourceColumn> = [
     // Whole, tag included: it breaks after its dots and slashes.
     isName: true,
     getValue: (resource: InfrastructureResource): string => {
-      return resource.additionalAttributes["image"] || "—";
+      return resource.additionalAttributes["image"] || EMPTY_VALUE_MARK;
     },
   },
 ];

@@ -9,6 +9,10 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import {
+  dashboardWord,
+  expectPageLoadsOnlyItsLanguage,
+} from "../SuiteHelpers/LocaleChunks";
 
 /*
  * CREATE MONITOR, IN A REAL BROWSER.
@@ -3053,4 +3057,38 @@ test.describe("Create Monitor at the plan's monitor limit", () => {
 
     await screenshot(page, "create-monitor-limit-dark");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8366). It imported
+ * German and Persian whole, 15 MB of JSON in every page's scripts, parsed on
+ * every page load of every test. English is in the bundle now, and each
+ * other language a chunk of its own, loaded only by a page drawn in it
+ * (SuiteHelpers/FixtureLocales.js), built as the Dashboard ships it
+ * (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+test.describe("the page's language, loaded as the Dashboard loads it", () => {
+  for (const language of ["en", "de", "fa"]) {
+    test(`a page in ${language} loads its own locale and no other, in its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.clock.setFixedTime(NOW);
+      await expectPageLoadsOnlyItsLanguage(
+        page,
+        {
+          address: (code: string): string => {
+            return code === "en" ? CREATE_PATH : `${CREATE_PATH}?lang=${code}`;
+          },
+          ready: (shown: Page, code: string): Locator => {
+            return shown.getByTestId("card-select-more-title").filter({
+              hasText: dashboardWord(code, "More monitor types"),
+            });
+          },
+        },
+        language,
+      );
+    });
+  }
 });

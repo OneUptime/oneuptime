@@ -1,4 +1,5 @@
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DataProduct from "Common/Models/DatabaseModels/DataProduct";
 import Team from "Common/Models/DatabaseModels/Team";
 import { Gray500, Green500, Yellow500 } from "Common/Types/BrandColors";
@@ -181,5 +182,5 @@ export function describeDataProductSla(
     );
   }
 
-  return parts.length > 0 ? joinList(parts) : "-";
+  return parts.length > 0 ? joinList(parts) : EMPTY_VALUE_MARK;
 }

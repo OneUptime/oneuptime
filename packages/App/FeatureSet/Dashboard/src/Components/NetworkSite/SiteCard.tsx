@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { SiteChildView, SiteStatusInfo } from "./SiteHierarchyTypes";
 import {
   HealthTone,
@@ -273,7 +274,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
             </div>
             <div className="flex-shrink-0 text-right">
               <div className="text-sm font-semibold leading-6 tabular-nums text-gray-900">
-                {formatUptimePercent(site.uptimePercent)}
+                {getValueOrQuietDash(formatUptimePercent(site.uptimePercent))}
               </div>
               <div className="text-[10px] leading-4 text-gray-400">
                 {translator.translateText("30d uptime")}

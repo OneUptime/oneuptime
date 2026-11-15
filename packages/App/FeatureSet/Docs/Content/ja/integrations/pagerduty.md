@@ -48,11 +48,11 @@ flowchart TB
 
 ### トリガーを追加する
 
-点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックします。その **Fields to pass on** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** を選びます。
+点線の **このワークフローを開始するものを選択** ブロックをクリックし、**On Create Incident** を選びます。トリガーをクリックします。その **引き渡すフィールド** は **タイトル** から始まるので、**フィールドを追加** をクリックして **説明** を選びます。
 
 ### trigger イベントを送信する
 
-**コンポーネントを追加** をクリックし、**API Post (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://events.pagerduty.com/v2/enqueue` に、**リクエストボディ** を次のように設定します:
+**コンポーネントを追加** をクリックし、**API 呼び出し POST (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**URL** を `https://events.pagerduty.com/v2/enqueue` に、**リクエストボディ** を次のように設定します:
 
 ```json
 {
@@ -72,7 +72,7 @@ flowchart TB
 
 ### テストしてからオンにする
 
-**ワークフローを実行** をクリックし、**インシデント** でテスト用インシデントを選んで実行します。**API Post (JSON)** ステップに `"status": "success"` を含む `202` の応答が表示され、PagerDuty でインシデントが開きます。その後、**ビルダー** の上部で **有効** をオンにします。
+**ワークフローを実行** をクリックし、**インシデント** でテスト用インシデントを選んで実行します。**API 呼び出し POST (JSON)** ステップに `"status": "success"` を含む `202` の応答が表示され、PagerDuty でインシデントが開きます。その後、**ビルダー** の上部で **有効** をオンにします。
 :::
 
 ブロックは JSON を送信するため、`Content-Type` ヘッダーは不要です。PagerDuty の `severity` は `critical`、`error`、`warning`、`info` のいずれかです。インシデントごとの重大度を送るには、[重大度を対応付ける](#重大度を対応付ける) を参照してください。
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### On Update Incident トリガーを追加する
 
-`Resolve PagerDuty incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**Fields to watch** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選び、状態が変わったときだけ実行されるようにします。**Fields to pass on** で、新しい状態が解決済みの状態かどうかを要求します。**フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。または **JSON として編集** をクリックし、JSON を次の内容に置き換えます:
+`Resolve PagerDuty incidents` という名前のワークフローを作成し、トリガーに **On Update Incident** を選びます。**監視するフィールド** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選び、状態が変わったときだけ実行されるようにします。**引き渡すフィールド** で、新しい状態が解決済みの状態かどうかを要求します。**フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **解決済みの状態** を選びます。または **JSON として編集** をクリックし、JSON を次の内容に置き換えます:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ flowchart TB
 
 ### インシデントが解決されたことを確認する
 
-トリガーの後に **If / Else** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
+トリガーの後に **条件分岐** ブロックを追加します。**確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`、**比較** を **が真** に設定します。
 
 ### resolve イベントを送信する
 
-**はい** 側の後に、同じ **URL** と次の **リクエストボディ** を持つ **API Post (JSON)** ブロックを追加します:
+**はい** 側の後に、同じ **URL** と次の **リクエストボディ** を持つ **API 呼び出し POST (JSON)** ブロックを追加します:
 
 ```json
 {
@@ -115,10 +115,10 @@ flowchart TB
 
 ## 重大度を対応付ける
 
-インシデントごとの重大度を送るには、トリガーと **API Post (JSON)** ブロックの間に **Run Custom JavaScript** ブロックを追加し、その応答を本文で読み取ります。
+インシデントごとの重大度を送るには、トリガーと **API 呼び出し POST (JSON)** ブロックの間に **カスタム JavaScript を実行** ブロックを追加し、その応答を本文で読み取ります。
 
-1. トリガーの **Fields to pass on** で **フィールドを追加** をクリックし、**インシデントの重大度** を開いて **名前** を選びます。
-2. ブロックの **Arguments** を `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` に、**JavaScript コード** を次のように設定します:
+1. トリガーの **引き渡すフィールド** で **フィールドを追加** をクリックし、**インシデントの重大度** を開いて **名前** を選びます。
+2. ブロックの **引数** を `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` に、**JavaScript コード** を次のように設定します:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ flowchart TB
 ## トラブルシューティング
 
 :::details PagerDuty が 400 を返す
-応答本文に PagerDuty が拒否した内容が書かれており、実行の **API Post (JSON)** ステップに表示されます。多くの場合、ルーティングキーが Events API v2 のインテグレーションキーではありません。サービスの **Integrations** からコピーし直してください。`summary`、`source`、`severity` のないイベントも拒否されます。
+応答本文に PagerDuty が拒否した内容が書かれており、実行の **API 呼び出し POST (JSON)** ステップに表示されます。多くの場合、ルーティングキーが Events API v2 のインテグレーションキーではありません。サービスの **Integrations** からコピーし直してください。`summary`、`source`、`severity` のないイベントも拒否されます。
 :::
 
 :::details resolve イベントが何も閉じない
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details ワークフローが一度も実行されない
-オンになっていることを確認します: **ビルダー** の上部の **有効** です。次に **ログ → 実行履歴** を開きます。**If / Else** ブロックの **いいえ** 側に進んだ実行は、解決ではない更新です。
+オンになっていることを確認します: **ビルダー** の上部の **有効** です。次に **ログ → 実行履歴** を開きます。**条件分岐** ブロックの **いいえ** 側に進んだ実行は、解決ではない更新です。
 :::
 
 :::details PagerDuty に値ではなく参照が表示される

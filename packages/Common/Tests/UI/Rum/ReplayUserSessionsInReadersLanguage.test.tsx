@@ -272,18 +272,18 @@ describe("the sessions menu's rows, word for word", () => {
 
     expect(textsOf("replay-user-session-when")).toEqual([
       translatorIn("de").translateText("just now"),
-      "vor 5 Minuten",
-      "vor 3 Stunden",
-      "vor 6 Tagen",
-      "vor 3 Wochen",
+      "vor 5\u00A0Minuten",
+      "vor 3\u00A0Stunden",
+      "vor 6\u00A0Tagen",
+      "vor 3\u00A0Wochen",
     ]);
 
     const lengths: Array<string> = textsOf("replay-user-session-duration");
 
-    expect(lengths[0]).toBe("8 Sek.");
-    expect(lengths[1]).toContain("4 Min.");
-    expect(lengths[1]).toContain("12 Sek.");
-    expect(lengths[2]).toContain("1 Std.");
+    expect(lengths[0]).toBe("8\u00A0Sek.");
+    expect(lengths[1]).toContain("4\u00A0Min.");
+    expect(lengths[1]).toContain("12\u00A0Sek.");
+    expect(lengths[2]).toContain("1\u00A0Std.");
     expect(lengths.join(" ")).not.toMatch(/\d[smh]\b/);
   });
 
@@ -294,8 +294,8 @@ describe("the sessions menu's rows, word for word", () => {
     const ages: Array<string> = textsOf("replay-user-session-when");
 
     expect(ages[0]).toBe(translatorIn("fa").translateText("just now"));
-    expect(ages[1]).toBe("۵ دقیقه پیش");
-    expect(ages[4]).toBe("۳ هفته پیش");
+    expect(ages[1]).toBe("۵\u00A0دقیقه پیش");
+    expect(ages[4]).toBe("۳\u00A0هفته پیش");
 
     const length: string = textsOf("replay-user-session-duration")[1]!;
 
@@ -312,9 +312,9 @@ describe("the sessions menu's rows, word for word", () => {
 
     const ages: Array<string> = textsOf("replay-user-session-when");
 
-    expect(ages[1]).toBe("قبل 5 دقائق");
-    expect(ages[4]).toBe("قبل 3 أسابيع");
-    expect(textsOf("replay-user-session-duration")[0]).toBe("8 ث");
+    expect(ages[1]).toBe("قبل 5\u00A0دقائق");
+    expect(ages[4]).toBe("قبل 3\u00A0أسابيع");
+    expect(textsOf("replay-user-session-duration")[0]).toBe("8\u00A0ث");
   });
 
   test("the menu's own words around the rows stay the locale's", async () => {
@@ -398,20 +398,20 @@ describe("describeReplayUserSession, with the reader's translator", () => {
 
     expect(line).toContain("/checkout");
     expect(LATIN_DIGIT.test(line)).toBe(false);
-    expect(line).toContain("۳ ساعت پیش");
+    expect(line).toContain("۳\u00A0ساعت پیش");
   });
 });
 
 describe("formatReplayUserSessionAge, bucket by bucket", () => {
   const AGES: ReadonlyArray<[number, string, string, string]> = [
     [10 * 1000, "just now", "", ""],
-    [60 * 1000, "a minute ago", "vor 1 Minute", "۱ دقیقه پیش"],
-    [5 * MINUTE_MS, "5 minutes ago", "vor 5 Minuten", "۵ دقیقه پیش"],
-    [HOUR_MS, "an hour ago", "vor 1 Stunde", "۱ ساعت پیش"],
-    [3 * HOUR_MS, "3 hours ago", "vor 3 Stunden", "۳ ساعت پیش"],
-    [DAY_MS, "a day ago", "vor 1 Tag", "۱ روز پیش"],
-    [6 * DAY_MS, "6 days ago", "vor 6 Tagen", "۶ روز پیش"],
-    [21 * DAY_MS, "3 weeks ago", "vor 3 Wochen", "۳ هفته پیش"],
+    [60 * 1000, "a minute ago", "vor 1\u00A0Minute", "۱\u00A0دقیقه پیش"],
+    [5 * MINUTE_MS, "5 minutes ago", "vor 5\u00A0Minuten", "۵\u00A0دقیقه پیش"],
+    [HOUR_MS, "an hour ago", "vor 1\u00A0Stunde", "۱\u00A0ساعت پیش"],
+    [3 * HOUR_MS, "3 hours ago", "vor 3\u00A0Stunden", "۳\u00A0ساعت پیش"],
+    [DAY_MS, "a day ago", "vor 1\u00A0Tag", "۱\u00A0روز پیش"],
+    [6 * DAY_MS, "6 days ago", "vor 6\u00A0Tagen", "۶\u00A0روز پیش"],
+    [21 * DAY_MS, "3 weeks ago", "vor 3\u00A0Wochen", "۳\u00A0هفته پیش"],
   ];
 
   test.each(AGES)(
@@ -449,7 +449,7 @@ describe("formatReplayUserSessionAge, bucket by bucket", () => {
     const klingon: Translator = createTranslator(undefined, "tlh");
 
     expect(formatReplayUserSessionAge(NOW - 5 * MINUTE_MS, NOW, klingon)).toBe(
-      "5 minutes ago",
+      "5\u00A0minutes ago",
     );
   });
 });

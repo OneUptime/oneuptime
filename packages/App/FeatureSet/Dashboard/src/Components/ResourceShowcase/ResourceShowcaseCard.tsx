@@ -227,8 +227,9 @@ const ALERT_CLASS_NAMES: Record<
  * A stat's figure: its amount in the tile's size, its unit after it smaller
  * and grey, as the Dashboard's value widgets draw a unit (ValueWidgetView).
  * A unit a language writes long ("۱۸۴ میلی‌ثانیه", "1.2 غيغابت/ث") then
- * fits beside its number; where a tile is too narrow even so, the whole
- * unit goes under the number, never a part of it ("غيغابت/" over "ث").
+ * fits beside its number. The separator is a no-break space, so the
+ * number never ends a line without its unit (#8456), and the unit is
+ * never split inside itself ("غيغابت/" over "ث").
  */
 const ShowcaseStatFigure: FunctionComponent<{
   figure: ShowcaseFigure;

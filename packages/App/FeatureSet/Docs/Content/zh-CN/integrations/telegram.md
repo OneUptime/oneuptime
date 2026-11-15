@@ -1,6 +1,6 @@
 # Telegram
 
-在警报触发或事件打开时，向 [Telegram](https://telegram.org) 聊天、群组或频道发送一条消息。OneUptime 的工作流步骤 **Send Message to Telegram** 以你创建的机器人身份发送消息，现成的模板会为警报构建工作流。此集成是 **出站** 的：机器人只发送消息，不读取聊天中的内容。
+在警报触发或事件打开时，向 [Telegram](https://telegram.org) 聊天、群组或频道发送一条消息。OneUptime 的工作流步骤 **发送消息到 Telegram** 以你创建的机器人身份发送消息，现成的模板会为警报构建工作流。此集成是 **出站** 的：机器人只发送消息，不读取聊天中的内容。
 
 :::cards
 - [工作方式](#工作方式): 警报触发时工作流会做什么。
@@ -19,7 +19,7 @@ flowchart TB
     step -->|"错误"| failed["运行失败，<br/>并说明原因"]
 ```
 
-该步骤以你的机器人身份，通过 Telegram 的 Bot API 把 **Message Text** 发送到聊天。Telegram 接受消息时，它走 **成功** 输出；Telegram 拒绝时，它带着 Telegram 给出的原因走 **错误** 输出。像模板中那样 **错误** 上没有连接任何东西时，未能发送的运行会失败，其 **步骤** 会说明原因。
+该步骤以你的机器人身份，通过 Telegram 的 Bot API 把 **消息文本** 发送到聊天。Telegram 接受消息时，它走 **成功** 输出；Telegram 拒绝时，它带着 Telegram 给出的原因走 **错误** 输出。像模板中那样 **错误** 上没有连接任何东西时，未能发送的运行会失败，其 **步骤** 会说明原因。
 
 ## 开始之前
 
@@ -51,15 +51,15 @@ flowchart TB
 1. 打开 **工作流**，然后点击 **创建工作流**。
 2. 在 **搜索模板…** 中输入 `Telegram`，点击 **Tell Telegram when an alert fires**，然后点击 **使用此模板**。
 3. 保留名称 **Notify Telegram on new alert** 或更改它，然后点击 **下一步**。
-4. 把令牌粘贴到 **Telegram Bot Token** 中，把 ID 粘贴到 **Telegram Chat ID** 中，然后点击 **创建工作流**。
+4. 把令牌粘贴到 **Telegram 机器人令牌** 中，把 ID 粘贴到 **Telegram Chat ID** 中，然后点击 **创建工作流**。
 
-工作流会在 **生成器** 中打开，包含两个步骤： **On Create Alert**，以及发送警报编号、标题、严重程度和状态的 **Send Message to Telegram**。令牌会保存为工作流的机密变量 `telegramBotToken`，ID 保存为 `telegramChatId`。
+工作流会在 **生成器** 中打开，包含两个步骤： **On Create Alert**，以及发送警报编号、标题、严重程度和状态的 **发送消息到 Telegram**。令牌会保存为工作流的机密变量 `telegramBotToken`，ID 保存为 `telegramChatId`。
 @tab 从零开始
 1. 把令牌保存为机密的全局变量：前往 **工作流 → 全局变量**，点击 **创建工作流变量**，将其命名为 `TELEGRAM_BOT_TOKEN`，然后点击 **下一步**。把令牌粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流变量**。
 2. 前往 **工作流**，点击 **创建工作流**，选择 **从零开始**，为工作流命名，然后点击 **创建工作流**。
-3. 在 **生成器** 中，点击 **选择启动此工作流的方式**，然后在 **热门** 下选择 **On Create Alert**。点击触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Alert Number With Prefix**。
-4. 点击 **添加组件**，搜索 `telegram`，然后点击 **Send Message to Telegram**。把触发器的 **成功** 输出连接到它。
-5. 点击新步骤。在 **Telegram Bot Token** 中点击 **{ }**，然后在 **Global variables** 下选择 `TELEGRAM_BOT_TOKEN`。在 **Chat ID** 中输入聊天的 ID，在 **Message Text** 中写下消息，并用 **{ }** 插入警报的字段。
+3. 在 **生成器** 中，点击 **选择启动此工作流的方式**，然后在 **热门** 下选择 **On Create Alert**。点击触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Alert Number With Prefix**。
+4. 点击 **添加组件**，搜索 `telegram`，然后点击 **发送消息到 Telegram**。把触发器的 **成功** 输出连接到它。
+5. 点击新步骤。在 **Telegram 机器人令牌** 中点击 **{ }**，然后在 **Global variables** 下选择 `TELEGRAM_BOT_TOKEN`。在 **聊天 ID** 中输入聊天的 ID，在 **消息文本** 中写下消息，并用 **{ }** 插入警报的字段。
 :::
 
 从零开始编写的消息通过如下引用读取警报的字段：
@@ -80,7 +80,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 
 - **纯文本。** 该步骤按输入的原样发送文本，不使用 Telegram 的格式，所以 `*` 和 `_` 会原样显示。
 - **注意 4,096 个字符的限制。** Telegram 接受最多 4,096 个字符的消息。更长的消息会被截断，并以 "… (truncated — see OneUptime for the full text)" 结尾，而不是被拒绝。
-- **事件也可以。** 基于 **On Create Incident** 构建同样的工作流，或者基于 **On Update Incident** 发送状态变更。要只发送部分警报，请在该步骤之前放一个 **If / Else** 块。
+- **事件也可以。** 基于 **On Create Incident** 构建同样的工作流，或者基于 **On Update Incident** 发送状态变更。要只发送部分警报，请在该步骤之前放一个 **如果 / 否则** 块。
 - **会检查令牌的格式。** 格式不像 `123456789:ABCdef…` 的令牌会在发送任何内容之前让运行停止，并且令牌永远不会写入日志。
 
 ## 故障排除
@@ -88,7 +88,7 @@ Title: {{local.components.alert-on-create-1.returnValues.model.title}}
 当该步骤走 **错误** 时，运行会失败，运行的 **步骤** 中该步骤的条目会给出 Telegram 的原因。机器人必须在聊天中，所以请先检查这一点。
 
 :::details Telegram 返回 "Bad Request: chat not found"
-**Chat ID** 错误，或者机器人看不到该聊天：请把机器人添加到群组，让它成为频道的管理员，或者请对方与机器人开始聊天。群组的 ID 以 `-` 开头。
+**聊天 ID** 错误，或者机器人看不到该聊天：请把机器人添加到群组，让它成为频道的管理员，或者请对方与机器人开始聊天。群组的 ID 以 `-` 开头。
 :::
 
 :::details Telegram 返回 "Forbidden: bot was blocked by the user" 或 "bot is not a member"

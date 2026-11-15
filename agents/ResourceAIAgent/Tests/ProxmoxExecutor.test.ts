@@ -361,7 +361,7 @@ describe("prepare: the shared checks run first", () => {
         h,
         request("pvesh get /version", {}, { resourceType: "DockerHost" }),
       ),
-      /this command is for a "DockerHost" resource, and this agent serves a Proxmox cluster/,
+      /this command is for another kind of resource \("DockerHost"\), and this agent serves only its own Proxmox cluster/,
     );
   });
 

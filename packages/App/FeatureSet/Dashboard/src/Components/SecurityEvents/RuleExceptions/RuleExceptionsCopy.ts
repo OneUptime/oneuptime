@@ -1,3 +1,4 @@
+import { DetectionRuleExceptionStatus } from "Common/Types/SecurityEvent/DetectionRuleException";
 import {
   PluralTemplate,
   translationKey,
@@ -45,6 +46,28 @@ export const SKIPS_COLUMN_TITLE: string = translationKey("Skips");
 export const RULE_COLUMN_TITLE: string = translationKey("Rule");
 export const REASON_COLUMN_TITLE: string = translationKey("Reason");
 export const STATUS_COLUMN_TITLE: string = translationKey("Status");
+
+/*
+ * The status pill: where the exception stands. Expired and Upcoming are an
+ * exception's own keys (MeaningKeys), read in English as the bare words: the
+ * shared ones are a token's and a list's, so Russian's Expired read
+ * "Истёк" (masculine) beside the exception's neuter "Активно" and
+ * "Закончено", and Spanish's Upcoming "Próximos" (plural) beside its
+ * "Activo" and "Finalizado" (#8659).
+ */
+export const RULE_EXCEPTION_STATUS_LABELS: Record<
+  DetectionRuleExceptionStatus,
+  string
+> = {
+  [DetectionRuleExceptionStatus.Active]: translationKey("Active"),
+  [DetectionRuleExceptionStatus.Expired]: translationKey(
+    "Expired (rule exception)",
+  ),
+  [DetectionRuleExceptionStatus.Upcoming]: translationKey(
+    "Upcoming (rule exception)",
+  ),
+  [DetectionRuleExceptionStatus.Ended]: translationKey("Ended"),
+};
 
 // What each row says under the thing it skips.
 export const ADDRESS_RANGE_LABEL: string = translationKey("IP address range");

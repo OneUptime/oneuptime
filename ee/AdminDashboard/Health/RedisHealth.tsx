@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -21,6 +22,8 @@ import HealthLicenseRequired, {
   HealthRequestError,
   toHealthRequestError,
 } from "./HealthLicenseRequired";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -43,7 +46,7 @@ const bytesToReadable: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value === 0) {
     return "0 B";
@@ -120,6 +123,7 @@ const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
 };
 
 const RedisHealth: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -267,8 +271,13 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
           <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Valkey is {connected ? "reachable" : "not reachable"} from this
-                instance.
+                {connected
+                  ? translator.translateText(
+                      "Valkey is reachable from this instance.",
+                    )
+                  : translator.translateText(
+                      "Valkey is not reachable from this instance.",
+                    )}
               </div>
               <MetricInfoWrap info={METRIC_INFO.overallStatus}>
                 <span className="inline-flex cursor-help">
@@ -333,27 +342,29 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
                   )}
                   {renderStat(
                     "Eviction policy",
-                    String(data?.["maxMemoryPolicy"] || "—"),
+                    String(data?.["maxMemoryPolicy"] || EMPTY_VALUE_MARK),
                     METRIC_INFO.evictionPolicy,
                   )}
                   {renderStat(
                     "Blocked clients",
                     data?.["blockedClients"] === null ||
                       data?.["blockedClients"] === undefined
-                      ? "—"
+                      ? EMPTY_VALUE_MARK
                       : String(data["blockedClients"]),
                     METRIC_INFO.blockedClients,
                   )}
                   {renderStat(
                     "Keys evicted",
-                    evictedKeys === null ? "—" : evictedKeys.toLocaleString(),
+                    evictedKeys === null
+                      ? EMPTY_VALUE_MARK
+                      : evictedKeys.toLocaleString(),
                     METRIC_INFO.evictedKeys,
                     evictedKeys !== null && evictedKeys > 0,
                   )}
                   {renderStat(
                     "Rejected connections",
                     rejectedConnections === null
-                      ? "—"
+                      ? EMPTY_VALUE_MARK
                       : rejectedConnections.toLocaleString(),
                     METRIC_INFO.rejectedConnections,
                     rejectedConnections !== null && rejectedConnections > 0,

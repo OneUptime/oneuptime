@@ -1,5 +1,6 @@
 import {
   formatReaderFigure,
+  formatUnitAmount,
   getNumberLocale,
   isEnglishDateLanguage,
   rememberEnglishOf,
@@ -250,85 +251,6 @@ export interface DurationInUnitOptions {
   english?: string | undefined;
 }
 
-const durationUnitFormats: Map<string, Intl.NumberFormat | null> = new Map<
-  string,
-  Intl.NumberFormat | null
->();
-
-const getDurationUnitFormat: (
-  language: string,
-  unit: DurationInUnit,
-  decimals: number,
-  dropTrailingZeros: boolean,
-) => Intl.NumberFormat | null = (
-  language: string,
-  unit: DurationInUnit,
-  decimals: number,
-  dropTrailingZeros: boolean,
-): Intl.NumberFormat | null => {
-  const key: string = [language, unit, decimals, dropTrailingZeros].join("|");
-
-  if (!durationUnitFormats.has(key)) {
-    let format: Intl.NumberFormat | null = null;
-
-    try {
-      format = new Intl.NumberFormat(getNumberLocale(language), {
-        style: "unit",
-        unit: unit,
-        unitDisplay: "short",
-        minimumFractionDigits: dropTrailingZeros ? 0 : decimals,
-        maximumFractionDigits: decimals,
-      } as Intl.NumberFormatOptions);
-
-      // An engine without the unit style writes the bare number.
-      const writesUnit: boolean = format
-        .formatToParts(2)
-        .some((part: Intl.NumberFormatPart): boolean => {
-          return (part.type as string) === "unit";
-        });
-
-      if (!writesUnit) {
-        format = null;
-      }
-    } catch {
-      format = null;
-    }
-
-    durationUnitFormats.set(key, format);
-  }
-
-  return durationUnitFormats.get(key) || null;
-};
-
-// A space a line breaks at, between a figure and its unit.
-const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]+/g;
-
-/*
- * What Intl writes, the space between the figure and its unit held, and
- * any space inside a unit of two words too (Hindi's "नैनो से॰", #8304).
- */
-const writeHeld: (format: Intl.NumberFormat, value: number) => string = (
-  format: Intl.NumberFormat,
-  value: number,
-): string => {
-  const parts: Array<Intl.NumberFormatPart> = format.formatToParts(value);
-
-  return parts
-    .map((part: Intl.NumberFormatPart, index: number): string => {
-      const before: string | undefined = parts[index - 1]?.type;
-      const after: string | undefined = parts[index + 1]?.type;
-      const isUnit: boolean = (part.type as string) === "unit";
-      const isBesideAUnit: boolean =
-        part.type === "literal" &&
-        ((before as string) === "unit" || (after as string) === "unit");
-
-      return isUnit || isBesideAUnit
-        ? part.value.replace(BREAKING_SPACES, NO_BREAK_SPACE)
-        : part.value;
-    })
-    .join("");
-};
-
 export const formatDurationInUnit: (
   translator: Translator,
   value: number,
@@ -360,14 +282,22 @@ export const formatDurationInUnit: (
     return english;
   }
 
-  const format: Intl.NumberFormat | null = getDurationUnitFormat(
-    translator.language,
-    unit,
-    decimals,
-    Boolean(options.dropTrailingZeros),
-  );
+  /*
+   * Rounded once, as toFixed rounds it, so every language says the same
+   * figure; the unit held to it, and a unit of two words held together
+   * (Hindi's "नैनो से॰", #8304), as DateLanguage holds every unit Intl
+   * writes (#8456).
+   */
+  const held: string | null = formatUnitAmount({
+    value: Number(fixed),
+    unit: unit,
+    locale: translator.language,
+    unitDisplay: "short",
+    minimumFractionDigits: options.dropTrailingZeros ? 0 : decimals,
+    maximumFractionDigits: decimals,
+  });
 
-  if (!format) {
+  if (held === null) {
     return `${formatReaderFigure(Number(fixed), {
       decimals: decimals,
       dropTrailingZeros: options.dropTrailingZeros,
@@ -375,8 +305,7 @@ export const formatDurationInUnit: (
     })}${NO_BREAK_SPACE}${DURATION_UNIT_SYMBOLS[unit]}`;
   }
 
-  // Rounded once, as toFixed rounds it, so every language says the same figure.
-  return writeHeld(format, Number(fixed));
+  return held;
 };
 
 /*

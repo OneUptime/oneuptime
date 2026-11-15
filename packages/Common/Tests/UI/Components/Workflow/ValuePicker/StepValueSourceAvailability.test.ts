@@ -19,6 +19,7 @@ import {
   stepGroupId,
 } from "../../../../../UI/Components/Workflow/ValuePicker/StepValueSource";
 import { UnavailableReason } from "../../../../../UI/Components/Workflow/ValuePicker/StepGraph";
+import { translatableTerm } from "../../../../../UI/Utils/TranslateTemplate";
 import {
   ValueAvailabilityState,
   ValueSuggestion,
@@ -125,7 +126,11 @@ describe("a step before this one on some runs only", () => {
       state: ValueAvailabilityState.Sometimes,
       reason: {
         template: StepValueCopy.sometimesWhen,
-        values: { step: "If / Else", output: "Yes" },
+        // In the sentence's language, as the canvas draws them (#8360).
+        values: {
+          step: translatableTerm("If / Else"),
+          output: translatableTerm("Yes"),
+        },
       },
     });
   });
@@ -178,7 +183,7 @@ describe("a step before this one on some runs only", () => {
           "api-post-1": { branchStep: untitled, portTitle: "No" },
         },
       })[0]?.availability?.reason.values,
-    ).toEqual({ step: "if-else-1", output: "No" });
+    ).toEqual({ step: "if-else-1", output: translatableTerm("No") });
   });
 });
 

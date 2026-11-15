@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 8572
+    "keys": 55438,
+    "untranslated": 8417
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -40,6 +40,7 @@
     "Brute force detected",
     "Bucket",
     "Buckets",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",

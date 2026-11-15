@@ -15,8 +15,9 @@ import path from "path";
  *   - the profile page's "Download pprof" link;
  *   - attachment links on a private status page.
  *
- * "Connect with GitHub App" used to be one of them, a full-page navigation
- * to the install route. It now asks the server for the installation URL
+ * "Connect GitHub" (once "Connect with GitHub App") used to be one of them,
+ * a full-page navigation to the install route. It now asks the server for
+ * the installation URL
  * through the API class - so an expired session is refreshed and the request
  * replayed, and a refusal is shown on the card - and only then navigates, to
  * GitHub, which needs no OneUptime session.
@@ -88,7 +89,7 @@ describe("dashboard links to authenticated routes", () => {
   });
 });
 
-describe("Connect with GitHub App", () => {
+describe("Connect GitHub", () => {
   const source: string = readSource(
     "Dashboard/src/Components/Code/GitHubConnect.tsx",
   );

@@ -1,6 +1,6 @@
 # Discord
 
-在事件打开时向 [Discord](https://discord.com) 频道发布一条消息，让关注该频道的人立刻知道。OneUptime 的工作流步骤 **Send Message to Discord** 通过频道的 webhook 发布消息，现成的模板会为你构建整个工作流。此集成是 **出站** 的：OneUptime 只向频道发布消息，不读取频道里的内容。
+在事件打开时向 [Discord](https://discord.com) 频道发布一条消息，让关注该频道的人立刻知道。OneUptime 的工作流步骤 **发送消息到 Discord** 通过频道的 webhook 发布消息，现成的模板会为你构建整个工作流。此集成是 **出站** 的：OneUptime 只向频道发布消息，不读取频道里的内容。
 
 :::cards
 - [工作方式](#工作方式): 事件打开时工作流会做什么。
@@ -19,7 +19,7 @@ flowchart TB
     step -->|"错误"| failed["运行失败，<br/>并说明原因"]
 ```
 
-该步骤把 **Message Text** 发布到频道的 webhook。Discord 接受消息时，它走 **成功** 输出；Discord 拒绝时，它带着 Discord 给出的原因走 **错误** 输出。像模板中那样 **错误** 上没有连接任何东西时，未能发布的运行会失败，其 **步骤** 会说明原因。
+该步骤把 **消息文本** 发布到频道的 webhook。Discord 接受消息时，它走 **成功** 输出；Discord 拒绝时，它带着 Discord 给出的原因走 **错误** 输出。像模板中那样 **错误** 上没有连接任何东西时，未能发布的运行会失败，其 **步骤** 会说明原因。
 
 ## 开始之前
 
@@ -48,13 +48,13 @@ flowchart TB
 3. 保留名称 **Notify Discord on new incident** 或更改它，然后点击 **下一步**。
 4. 把 URL 粘贴到 **Discord Webhook URL** 中，然后点击 **创建工作流**。
 
-工作流会在 **生成器** 中打开，包含两个步骤： **On Create Incident**，以及发布事件编号、标题、严重程度和状态的 **Send Message to Discord**。URL 会保存为工作流的机密变量 `discordWebhookUrl`。
+工作流会在 **生成器** 中打开，包含两个步骤： **On Create Incident**，以及发布事件编号、标题、严重程度和状态的 **发送消息到 Discord**。URL 会保存为工作流的机密变量 `discordWebhookUrl`。
 @tab 从零开始
 1. 把 URL 保存为机密的全局变量：前往 **工作流 → 全局变量**，点击 **创建工作流变量**，将其命名为 `DISCORD_WEBHOOK_URL`，然后点击 **下一步**。把 URL 粘贴到 **内容** 中，打开 **密钥**，然后点击 **创建工作流变量**。
 2. 前往 **工作流**，点击 **创建工作流**，选择 **从零开始**，为工作流命名，然后点击 **创建工作流**。
-3. 在 **生成器** 中，点击 **选择启动此工作流的方式**，然后在 **热门** 下选择 **On Create Incident**。点击触发器：它的 **Fields to pass on** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Incident Number With Prefix**。
-4. 点击 **添加组件**，搜索 `discord`，然后点击 **Send Message to Discord**。把触发器的 **成功** 输出连接到它。
-5. 点击新步骤。在 **Discord Incoming Webhook URL** 中点击 **{ }**，然后在 **Global variables** 下选择 `DISCORD_WEBHOOK_URL`。在 **Message Text** 中写下消息，并用 **{ }** 插入事件的字段。
+3. 在 **生成器** 中，点击 **选择启动此工作流的方式**，然后在 **热门** 下选择 **On Create Incident**。点击触发器：它的 **要传递的字段** 已经包含 **标题**，所以点击 **添加字段**，再选择消息要显示的其他字段，例如 **Incident Number With Prefix**。
+4. 点击 **添加组件**，搜索 `discord`，然后点击 **发送消息到 Discord**。把触发器的 **成功** 输出连接到它。
+5. 点击新步骤。在 **Discord 传入 Webhook URL** 中点击 **{ }**，然后在 **Global variables** 下选择 `DISCORD_WEBHOOK_URL`。在 **消息文本** 中写下消息，并用 **{ }** 插入事件的字段。
 :::
 
 从零开始编写的消息通过如下引用读取事件的字段：
@@ -75,7 +75,7 @@ flowchart TB
 
 - **用 Discord 的 Markdown 设置格式。** 文本按输入的原样发送，所以 Discord 的 Markdown 可以在其中使用：用星号包围一个词会让它变成粗体，URL 会显示为链接。
 - **注意 2,000 个字符的限制。** Discord 接受最多 2,000 个字符的消息。更长的消息会被截断，并以 "… (truncated — see OneUptime for the full text)" 结尾，而不是被拒绝。
-- **不只发布新事件。** 用同一个步骤，基于 **On Update Incident** 构建另一个工作流来发布状态变更，或基于 **On Create Alert** 构建工作流来发布警报。要只发布部分事件，请在该步骤之前放一个 **If / Else** 块。
+- **不只发布新事件。** 用同一个步骤，基于 **On Update Incident** 构建另一个工作流来发布状态变更，或基于 **On Create Alert** 构建工作流来发布警报。要只发布部分事件，请在该步骤之前放一个 **如果 / 否则** 块。
 - **只用 Discord 自己的地址。** 该步骤发布到 `discord.com` 或 `discordapp.com` 上的 `https` URL，并且不跟随重定向，所以指向其他任何地方的 URL 都会让运行停止。
 
 ## 故障排除
@@ -91,7 +91,7 @@ Discord 会限制一个 webhook 的发布频率。集中出现的事件可能会
 :::
 
 :::details 运行停止并显示 "Discord Webhook URL must be an https URL on discord.com or discordapp.com"
-**Discord Incoming Webhook URL** 中填的不是 Discord webhook，或者它读取的变量为空。请重新粘贴 **Copy Webhook URL** 中的 URL。
+**Discord 传入 Webhook URL** 中填的不是 Discord webhook，或者它读取的变量为空。请重新粘贴 **Copy Webhook URL** 中的 URL。
 :::
 
 ## 后续步骤
