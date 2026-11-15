@@ -58,6 +58,8 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import {
   SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES,
@@ -225,7 +227,11 @@ export const SECURITY_CASE_PRIORITY_CHOICE_TEMPLATES: Readonly<
   [SecurityCaseNotificationChoiceKind.Every]: translationKey("Every case"),
 };
 
-// A choice in the reader's language, the priority's name looked up too.
+/*
+ * A choice in the reader's language, the priority's name read by its list
+ * (Common/Utils/DefaultRecordNames): the five a project starts with in the
+ * reader's words, a priority the project named itself as written.
+ */
 export function describePriorityChoice(
   choice: Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind">,
   translator: Translator,
@@ -233,7 +239,12 @@ export function describePriorityChoice(
   return translator.translateTemplate(
     SECURITY_CASE_PRIORITY_CHOICE_TEMPLATES[choice.kind] ||
       SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES[choice.kind],
-    { priority: translatableTerm(choice.name) },
+    {
+      priority: recordNameInSentence(
+        StateListType.SecurityCasePriority,
+        choice.name,
+      ),
+    },
   );
 }
 

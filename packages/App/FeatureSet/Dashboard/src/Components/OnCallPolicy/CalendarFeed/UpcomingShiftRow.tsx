@@ -618,6 +618,8 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
                     key={policy.id}
                     icon={IconProp.Call}
                     text={policy.name}
+                    // A policy's name is its project's, drawn as written.
+                    isUserContent={true}
                     dataTestId="upcoming-shift-cover-policy"
                     onClick={() => {
                       Navigation.navigate(

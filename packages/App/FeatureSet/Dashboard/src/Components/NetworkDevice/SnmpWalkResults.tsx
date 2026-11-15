@@ -374,6 +374,8 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
           "Collect on every device using {{template}}",
           { template: actions.templateName },
         )}
+        // In the reader's words already, the template's name as written.
+        isUserContent={true}
         isDisabled={Boolean(actions.collectingOid)}
         onClick={() => {
           actions.onCollectOnTemplate(row);

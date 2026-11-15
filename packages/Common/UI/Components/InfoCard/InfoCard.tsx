@@ -4,6 +4,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   title: string;
+  /*
+   * The title is a name, drawn as given (FieldLabel.isTitleUserContent): a
+   * tile per postmortem status reads a status the project named "Open" as
+   * written. A state's or a status's name decides it by its list
+   * (Common/Utils/DefaultRecordNames.isRecordNameAsWritten), so the
+   * default "Draft" is still looked up. Left out, the title is the
+   * product's words, looked up.
+   */
+  isTitleUserContent?: boolean | undefined;
   value: string | ReactElement;
   className?: string;
   textClassName?: string;
@@ -107,6 +116,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
         <div className="mb-2">
           <FieldLabelElement
             title={props.title}
+            isTitleUserContent={props.isTitleUserContent}
             tooltip={props.tooltip}
             isCardStyle={true}
           />
@@ -166,6 +176,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
       <div className="mb-2">
         <FieldLabelElement
           title={props.title}
+          isTitleUserContent={props.isTitleUserContent}
           tooltip={props.tooltip}
           isCardStyle={true}
         />

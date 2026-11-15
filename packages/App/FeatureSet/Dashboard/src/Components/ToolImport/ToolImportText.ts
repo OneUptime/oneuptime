@@ -37,6 +37,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * EVERY WORD THE IMPORT PAGE SAYS ABOUT A TOOL, AN ITEM OR A RUN.
@@ -1062,6 +1064,15 @@ function toTemplateValue(
     return formatToolImportDate(value, translator.language);
   }
 
+  /*
+   * The project's incident state an imported state was matched to, read by
+   * its list (Common/Utils/DefaultRecordNames): one a project starts with
+   * ("Resolved") in the reader's words, a state it named itself as written.
+   */
+  if (key === "state" && typeof value === "string") {
+    return recordNameInSentence(StateListType.IncidentState, value);
+  }
+
   if (DURATION_VALUES.includes(key) && typeof value === "number") {
     return durationValue(value);
   }
@@ -1083,9 +1094,9 @@ function toTemplateValue(
 
 /*
  * A note in the reader's language. Values are put in as they are, except a
- * kind (translated with the sentence), a date and a number (written the
- * reader's way), and an error (errorInSentence). A note this build has no
- * sentence for says nothing.
+ * kind (translated with the sentence), an incident state's name (read by
+ * its list), a date and a number (written the reader's way), and an error
+ * (errorInSentence). A note this build has no sentence for says nothing.
  */
 export function describeToolImportNote(
   note: ToolImportNote,

@@ -14,7 +14,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import {
+  isRecordNameAsWritten,
+  recordNameInSentence,
+} from "Common/Utils/DefaultRecordNames";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -75,10 +78,7 @@ import {
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
@@ -507,7 +507,10 @@ const AlertEpisodeView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(timing.acknowledgedStateName),
+            stateName: recordNameInSentence(
+              StateListType.AlertState,
+              timing.acknowledgedStateName,
+            ),
           })}
           icon={IconProp.Check}
           value={timing.timeToAcknowledge}
@@ -515,7 +518,10 @@ const AlertEpisodeView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(timing.resolvedStateName),
+            stateName: recordNameInSentence(
+              StateListType.AlertState,
+              timing.resolvedStateName,
+            ),
           })}
           icon={IconProp.CheckCircle}
           value={timing.timeToResolve}

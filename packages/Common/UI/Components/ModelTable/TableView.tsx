@@ -263,6 +263,8 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           key={index}
           rightElement={getRightElementForTableViewMenuItem(item)}
           text={item.name || ""}
+          // A saved view's name is whoever saved it's, drawn as written.
+          isUserContent={true}
           className="text-gray-600 hover:text-gray-800"
           icon={IconProp.Window}
           onClick={() => {

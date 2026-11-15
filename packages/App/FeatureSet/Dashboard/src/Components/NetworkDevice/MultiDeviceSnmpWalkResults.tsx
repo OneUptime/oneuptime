@@ -297,6 +297,8 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
             "Collect on every device using {{template}}",
             { template: target.templateName },
           )}
+          // In the reader's words already, the template's name as written.
+          isUserContent={true}
           isDisabled={Boolean(props.collectingOid)}
           onClick={() => {
             props.onCollectOnTemplate(row, target);

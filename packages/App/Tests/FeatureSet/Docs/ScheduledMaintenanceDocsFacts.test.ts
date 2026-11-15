@@ -1706,8 +1706,12 @@ describe("the header's clock", () => {
     expect(CHANGE_STATE).toContain(
       '"Planned to end at {{time}}, but it has not been marked as {{state}} yet.",',
     );
-    expect(CHANGE_STATE).toContain(
-      "values={{ state: translatableTerm(props.nextStateName) }}",
+    /*
+     * The state named by its list (Common/Utils/DefaultRecordNames): the
+     * default "Ongoing" in the reader's words, a project's own as written.
+     */
+    expect(CHANGE_STATE.replace(/\s+/g, " ")).toContain(
+      "values={{ state: recordNameInSentence( StateListType.ScheduledMaintenanceState, props.nextStateName, ), }}",
     );
     expect(clock).toContain(
       "- **Start overdue**: the event is still waiting after its **Starts At**.",
