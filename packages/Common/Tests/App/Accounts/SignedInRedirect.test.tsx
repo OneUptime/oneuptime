@@ -34,6 +34,14 @@ import "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/first-account"]);
 
 /*
  * The sign-in pages send a visitor who is already signed in on to the

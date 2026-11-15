@@ -187,6 +187,14 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/detection-rule-exception/get-list"]);
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

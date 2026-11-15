@@ -199,6 +199,12 @@ import UiAnalytics from "../../../UI/Utils/Analytics";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-000000000001",
@@ -728,6 +734,8 @@ describe("the monitor create page opened from an AI insight", () => {
 
       cleanup();
       jest.restoreAllMocks();
+      // Restoring the mocks took the global config's answer away too.
+      standInForGlobalConfig();
       jest
         .spyOn(ProjectUtil, "getCurrentProjectId")
         .mockReturnValue(PROJECT_ID);
