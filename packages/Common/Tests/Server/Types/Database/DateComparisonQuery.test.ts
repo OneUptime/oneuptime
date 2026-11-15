@@ -2,6 +2,11 @@
 
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import {
+  DateComparison,
+  readDateComparison,
+  RowPredicate,
+} from "../../TestingUtils/DateComparisonPredicate";
 import SecurityEventConnectionRun from "../../../../Models/DatabaseModels/SecurityEventConnectionRun";
 import Query from "../../../../Server/Types/Database/Query";
 import QueryUtil from "../../../../Server/Types/Database/QueryUtil";
@@ -41,16 +46,6 @@ import Timezone from "../../../../Types/Timezone";
  * DateComparisonPostgres.test.ts runs the same statements on Postgres.
  */
 
-type RowPredicate = (row: Date | null) => boolean;
-
-interface Bound {
-  // The SQL for a column called "col", each parameter written in.
-  sql: string;
-  // The parameters, as the driver receives them.
-  values: Array<unknown>;
-  matches: RowPredicate;
-}
-
 type Key = "updatedAt" | "completedAt";
 
 function serialize(query: JSONObject): Record<string, unknown> {
@@ -60,114 +55,8 @@ function serialize(query: JSONObject): Record<string, unknown> {
   ) as unknown as Record<string, unknown>;
 }
 
-// How Postgres reads a bound value as a timestamptz, in a UTC session.
-function asInstant(value: unknown): number {
-  if (value instanceof Date) {
-    return value.getTime();
-  }
-
-  const instant: number = Date.parse(String(value));
-
-  if (isNaN(instant)) {
-    throw new Error(
-      `invalid input syntax for type timestamp with time zone: "${String(value)}"`,
-    );
-  }
-
-  return instant;
-}
-
-function written(value: unknown): string {
-  return `'${value instanceof Date ? value.toISOString() : String(value)}'`;
-}
-
-function bind(key: Key, value: unknown): Bound {
-  const where: Record<string, unknown> = serialize({
-    [key]: value,
-  } as JSONObject);
-  const operator: FindOperator<unknown> = where[key] as FindOperator<unknown>;
-
-  expect(operator).toBeInstanceOf(FindOperator);
-  expect(operator.type).toBe("raw");
-
-  const template: string = operator.getSql!("col");
-  const parameters: Record<string, unknown> =
-    operator.objectLiteralParameters || {};
-  const names: Array<string> = Array.from(template.matchAll(/:(\w+)/g)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1]!;
-    },
-  );
-
-  // "(a or b)", "(a and b)": the shapes QueryHelper writes.
-  const body: string = template.replace(/^\(+/, "").replace(/\)+$/, "");
-  const disjuncts: Array<Array<string>> = body
-    .split(/\s+or\s+/i)
-    .map((disjunct: string): Array<string> => {
-      return disjunct
-        .replace(/[()]/g, "")
-        .split(/\s+and\s+/i)
-        .map((term: string): string => {
-          return term.trim();
-        });
-    });
-
-  const holds: (row: Date | null, term: string) => boolean = (
-    row: Date | null,
-    term: string,
-  ): boolean => {
-    if (term === "col IS NULL") {
-      return row === null;
-    }
-
-    const comparison: RegExpMatchArray | null = term.match(
-      /^col\s*(>=|<=|!=|>|<|=)\s*:(\w+)$/,
-    );
-
-    if (!comparison) {
-      throw new Error(`Not a comparison this reads: ${term}`);
-    }
-
-    const bound: number = asInstant(parameters[comparison[2]!]);
-
-    // A comparison with NULL is never true.
-    if (row === null) {
-      return false;
-    }
-
-    const at: number = row.getTime();
-
-    switch (comparison[1]) {
-      case ">=":
-        return at >= bound;
-      case "<=":
-        return at <= bound;
-      case ">":
-        return at > bound;
-      case "<":
-        return at < bound;
-      case "!=":
-        return at !== bound;
-      default:
-        return at === bound;
-    }
-  };
-
-  return {
-    sql: template.replace(/:(\w+)/g, (_match: string, name: string) => {
-      return written(parameters[name]);
-    }),
-    values: names.map((name: string): unknown => {
-      return parameters[name];
-    }),
-    matches: (row: Date | null): boolean => {
-      return disjuncts.some((terms: Array<string>): boolean => {
-        return terms.every((term: string): boolean => {
-          return holds(row, term);
-        });
-      });
-    },
-  };
+function bind(key: Key, value: unknown): DateComparison {
+  return readDateComparison(serialize({ [key]: value } as JSONObject)[key]);
 }
 
 const AT: Date = new Date("2026-11-15T09:40:00.123Z");
@@ -251,7 +140,7 @@ afterEach(() => {
 
 describe("a Date in a comparison binds the instant, to the millisecond", () => {
   test.each(OPERATORS)("$name", (operator: OperatorCase) => {
-    const bound: Bound = bind("updatedAt", operator.create(AT));
+    const bound: DateComparison = bind("updatedAt", operator.create(AT));
 
     expect(bound.sql).toBe(operator.sql);
     // Text the driver passes as it is: no zone of the process's in it.
@@ -313,7 +202,10 @@ describe("rows minutes apart are told apart", () => {
   }
 
   test("updated over 20 minutes ago: 25 minutes ago is, 5 minutes ago is not", () => {
-    const stale: Bound = bind("updatedAt", new LessThan(twentyMinutesAgo));
+    const stale: DateComparison = bind(
+      "updatedAt",
+      new LessThan(twentyMinutesAgo),
+    );
 
     expect(stale.matches(minutesAgo(25))).toBe(true);
     expect(stale.matches(minutesAgo(21))).toBe(true);
@@ -348,11 +240,11 @@ describe("rows minutes apart are told apart", () => {
   });
 
   test("...OrNull keeps the rows with no value and tells the others apart", () => {
-    const lessOrNull: Bound = bind(
+    const lessOrNull: DateComparison = bind(
       "completedAt",
       new LessThanOrNull(twentyMinutesAgo),
     );
-    const greaterOrNull: Bound = bind(
+    const greaterOrNull: DateComparison = bind(
       "completedAt",
       new GreaterThanOrNull(twentyMinutesAgo),
     );
@@ -366,8 +258,14 @@ describe("rows minutes apart are told apart", () => {
   });
 
   test("a window built from two comparisons holds only its minutes", () => {
-    const after: Bound = bind("updatedAt", new GreaterThan(minutesAgo(30)));
-    const before: Bound = bind("updatedAt", new LessThan(minutesAgo(10)));
+    const after: DateComparison = bind(
+      "updatedAt",
+      new GreaterThan(minutesAgo(30)),
+    );
+    const before: DateComparison = bind(
+      "updatedAt",
+      new LessThan(minutesAgo(10)),
+    );
     const inWindow: RowPredicate = (row: Date | null): boolean => {
       return after.matches(row) && before.matches(row);
     };
@@ -379,7 +277,7 @@ describe("rows minutes apart are told apart", () => {
   });
 
   test("InBetween, which always bound its Dates as they are, still does", () => {
-    const between: Bound = bind(
+    const between: DateComparison = bind(
       "updatedAt",
       new InBetween(minutesAgo(30), minutesAgo(10)),
     );
