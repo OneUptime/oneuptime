@@ -18,6 +18,12 @@ export const EMPTY_TELEMETRY_SNAPSHOT: DerivedTelemetrySnapshot = {
   seriesSummary: "",
 };
 
+// What a snapshot is derived from: an event's stored blob and its series.
+export interface TelemetrySnapshotSource {
+  storedTelemetryQuery: unknown;
+  seriesLabels: JSONObject | undefined;
+}
+
 /**
  * Stored incident/alert `telemetryQuery` blob -> render-ready snapshot:
  * deserialize, rebuild the window's Date bounds (the JSON round trip
@@ -27,11 +33,14 @@ export const EMPTY_TELEMETRY_SNAPSHOT: DerivedTelemetrySnapshot = {
  * Pure — the same recipe Pages/Incidents/View and Pages/Alerts/View run
  * inline, packaged so the episode pages (which read the blob off their
  * first member event) can't drift from it.
+ *
+ * `unsetLabel` is the reader's word for a group whose attribute held
+ * nothing, for the summary the page draws ("service.name = (nicht
+ * gesetzt)", #8269); "(unset)" without one.
  */
-export function deriveTelemetrySnapshot(input: {
-  storedTelemetryQuery: unknown;
-  seriesLabels: JSONObject | undefined;
-}): DerivedTelemetrySnapshot {
+export function deriveTelemetrySnapshot(
+  input: TelemetrySnapshotSource & { unsetLabel?: string | undefined },
+): DerivedTelemetrySnapshot {
   if (!input.storedTelemetryQuery) {
     return EMPTY_TELEMETRY_SNAPSHOT;
   }
@@ -63,6 +72,7 @@ export function deriveTelemetrySnapshot(input: {
     seriesSummary = MetricSeriesScope.getAppliedSeriesLabelSummary({
       queryConfigs: telemetryQuery.metricViewData.queryConfigs,
       seriesLabels: input.seriesLabels,
+      unsetLabel: input.unsetLabel,
     });
 
     telemetryQuery = {

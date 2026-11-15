@@ -671,7 +671,13 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
            * what it is where there is room for them.
            */
           return (
-            <Tooltip key={gap.key} text={text} lazy={true} interactive={false}>
+            <Tooltip
+              key={gap.key}
+              text={text}
+              isTextTranslated={true}
+              lazy={true}
+              interactive={false}
+            >
               <div
                 data-testid="status-timeline-gap"
                 data-kind={gap.kind}

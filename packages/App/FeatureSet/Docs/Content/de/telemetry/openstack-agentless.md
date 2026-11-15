@@ -93,6 +93,8 @@ Wählen Sie die zu lesenden Regionen, benennen Sie die Cloud und klicken Sie auf
 
 Die **Übersicht** der Cloud zeigt eine Karte **Datenerfassung**. Sie zeigt **Wird geprüft** bis zur ersten Erfassung, die innerhalb einer Minute beginnt, dann **Wird erfasst**, und die Seiten füllen sich. Wurden einige Dienste gelesen und ein anderer nicht, nennt sie, welcher. Kommt 15 Minuten lang keine Sonde für die Cloud, weil sie offline oder zu alt ist, zeigt sie **Wird nicht erfasst** und sagt das, unabhängig davon, was die letzte Erfassung ergeben hat.
 
+Darf keine Sonde die Cloud erfassen, zeigt die Karte sofort **Wird nicht erfasst** und sagt, warum und was zu ändern ist: Es sind keine Zugangsdaten gespeichert, die Adresse von Keystone fehlt, keine Sonde ist für die Erfassung eingestellt, ihre Sonde darf sie nicht erfassen (eine gemeinsame Sonde auf OneUptime Cloud oder die eines anderen Projekts), oder ihre Sonde ist getrennt. **Nächste Erfassung** nennt die Zeit, zu der eine Sonde sie als Nächstes erfasst, **Jetzt fällig**, solange sie auf eine wartet, **Überfällig**, sobald 15 Minuten lang keine gekommen ist, und **Nicht geplant**, solange keine Sonde sie erfassen darf. Eine archivierte Cloud wird weiter erfasst.
+
 Die Karte **Datenerfassung** auf der Seite **Einstellungen** der Cloud enthält, womit Sie sie verbunden haben:
 
 ![Die Karte Datenerfassung auf der Seite Einstellungen einer Cloud: ihre Keystone-Adresse, ihre Sonde, die Application Credential, mit der sie sich anmeldet, ihre Regionen, das Zertifikat, dem sie vertraut, und wie oft sie erfasst](/docs/static/images/OpenStackDataCollection.png)

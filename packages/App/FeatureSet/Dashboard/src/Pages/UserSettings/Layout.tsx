@@ -20,6 +20,7 @@ const UserSettingsLayout: FunctionComponent<PageComponentProps> = (
         "User Settings for Project {{project}}",
         { project: props.currentProject?.name || "" },
       )}
+      isTitleTranslated={true}
       breadcrumbLinks={getUserSettingsBreadcrumbs(path)}
       sideMenu={<DashboardSideMenu />}
     >

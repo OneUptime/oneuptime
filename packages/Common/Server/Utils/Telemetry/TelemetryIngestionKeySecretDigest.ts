@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "crypto";
+import SecretDigest from "./SecretDigest";
 
 /*
  * A DIGEST OF AN INGESTION KEY'S SECRET, FOR WHAT HAS TO REMEMBER WHICH
@@ -16,27 +16,7 @@ import { createHash, timingSafeEqual } from "crypto";
  *
  * The secret is a UUID, so it is normalised first: Postgres compares uuid
  * values without regard to case, and a key presented in capitals at CONNECT
- * must not read as "the secret changed" on its first publish.
+ * must not read as "the secret changed" on its first publish. The digest is
+ * SecretDigest's, which an IoT device credential's secret uses too.
  */
-export default class TelemetryIngestionKeySecretDigest {
-  public static of(secretKey: string): string {
-    return createHash("sha256")
-      .update(secretKey.trim().toLowerCase())
-      .digest("hex");
-  }
-
-  // Whether two digests are the same, in constant time.
-  public static matches(digest: string, otherDigest: string): boolean {
-    const digestBuffer: Buffer = Buffer.from(digest, "utf8");
-    const otherDigestBuffer: Buffer = Buffer.from(otherDigest, "utf8");
-
-    if (digestBuffer.length !== otherDigestBuffer.length) {
-      return false;
-    }
-
-    return timingSafeEqual(
-      digestBuffer as unknown as NodeJS.ArrayBufferView,
-      otherDigestBuffer as unknown as NodeJS.ArrayBufferView,
-    );
-  }
-}
+export default class TelemetryIngestionKeySecretDigest extends SecretDigest {}

@@ -187,21 +187,67 @@ export function getOnCallPolicyRunOutOfTriesMessage(data: {
     data.failures.firstFailedAt,
     data.failures.lastFailedAt,
   );
-  const what: string = data.wasWaiting
-    ? `OneUptime tried ${tries} times in ${over} to start this run, and every try failed, so nobody was paged.`
-    : `OneUptime tried ${tries} times in ${over} to move this run on, and every try failed, so it stopped paging.`;
   const kind: string = (data.recordKind || "").trim();
-  const next: string = kind
-    ? ` If the ${kind} still needs somebody, page them again.`
-    : "";
-  const lead: string = `${what} The last try failed with: `;
-  // Room for the error, between the sentences OneUptime writes around it.
-  const room: number = ColumnLength.LongText - lead.length - next.length;
-  const error: string = asSentenceEnd(data.failures.lastError);
+
+  return outOfTriesMessage({
+    what: data.wasWaiting
+      ? `OneUptime tried ${tries} times in ${over} to start this run, and every try failed, so nobody was paged.`
+      : `OneUptime tried ${tries} times in ${over} to move this run on, and every try failed, so it stopped paging.`,
+    lastError: data.failures.lastError,
+    next: kind ? ` If the ${kind} still needs somebody, page them again.` : "",
+  });
+}
+
+/*
+ * WHAT A PERSON'S ON-CALL LOG THAT RAN OUT OF TRIES ENDS WITH (issue
+ * #8408): the person's-log worker (UserOnCallLog:ExecutePendingExecutions)
+ * tries a log that fails as the policy-run worker tries a run, and ends it
+ * so once its tries run out, rather than every minute, forever.
+ *
+ *   "OneUptime tried 10 times in 37 minutes to send this page's
+ *    notifications, and every try failed, so it stopped. The last try
+ *    failed with: ... If the incident still needs this person, page them
+ *    again."
+ *
+ * Never longer than a log's status message can be.
+ */
+export function getUserOnCallLogOutOfTriesMessage(data: {
+  failures: OnCallPolicyRunFailures;
+  // The kind of record the log pages about: "incident", "alert episode"...
+  recordKind?: string | null | undefined;
+}): string {
+  const tries: number = data.failures.failedTries;
+  const over: string = describeMinutes(
+    data.failures.firstFailedAt,
+    data.failures.lastFailedAt,
+  );
+  const kind: string = (data.recordKind || "").trim();
+
+  return outOfTriesMessage({
+    what: `OneUptime tried ${tries} times in ${over} to send this page's notifications, and every try failed, so it stopped.`,
+    lastError: data.failures.lastError,
+    next: kind
+      ? ` If the ${kind} still needs this person, page them again.`
+      : "",
+  });
+}
+
+/*
+ * "<what> The last try failed with: <error>.<next>", the error cut to leave
+ * room for the sentences OneUptime writes around it.
+ */
+function outOfTriesMessage(data: {
+  what: string;
+  lastError: string;
+  next: string;
+}): string {
+  const lead: string = `${data.what} The last try failed with: `;
+  const room: number = ColumnLength.LongText - lead.length - data.next.length;
+  const error: string = asSentenceEnd(data.lastError);
   const clipped: string =
     error.length <= room
       ? error
       : `${error.slice(0, Math.max(0, room - 3)).trimEnd()}...`;
 
-  return toOnCallPolicyRunStatusMessage(`${lead}${clipped}${next}`);
+  return toOnCallPolicyRunStatusMessage(`${lead}${clipped}${data.next}`);
 }

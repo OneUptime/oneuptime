@@ -93,6 +93,8 @@ Pick the regions to read, name the cloud, and click **Connect Cloud**. The cloud
 
 The cloud's **Overview** shows a **Data Collection** card. It reads **Checking** until the first collection, which starts within a minute, then **Collecting**, and the pages fill in. When some services were read and another was not, it says which. If no probe comes for the cloud for 15 minutes, because it is offline or too old, it reads **Not collecting** and says so, whatever the last collection found.
 
+When no probe may collect the cloud, the card reads **Not collecting** at once and says why and what to change: no credential is saved, Keystone's address is missing, no probe is set to collect it, its probe may not collect it (a shared probe on OneUptime Cloud, or another project's), or its probe is disconnected. Its **Next collection** is the time a probe collects it next, **Due now** while it waits for one, **Overdue** once none has come for 15 minutes, and **Not scheduled** while no probe may collect it. An archived cloud is still collected.
+
 The **Data Collection** card on the cloud's **Settings** page holds what you connected it with:
 
 ![The Data Collection card on a cloud's Settings page: its Keystone address, its probe, the application credential it logs in with, its regions, the certificate it trusts and how often it collects](/docs/static/images/OpenStackDataCollection.png)

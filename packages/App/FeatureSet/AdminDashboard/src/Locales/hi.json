@@ -1045,7 +1045,7 @@
   "Custom Price": "कस्टम मूल्य",
   "Compare plans": "योजनाओं की तुलना करें",
   "Free forever.": "हमेशा के लिए मुफ़्त।",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "सक्रिय मॉनिटर और टेलीमेट्री का भुगतान उपयोग के अनुसार होता है, और इनके लिए भुगतान विधि ज़रूरी है।",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "किसी वेबसाइट, API या सर्वर की जाँच और टेलीमेट्री भेजने का भुगतान उपयोग के अनुसार होता है, और इनके लिए भुगतान विधि ज़रूरी है।",
   "Active monitors and telemetry are pay as you go.": "सक्रिय मॉनिटर और टेलीमेट्री का भुगतान उपयोग के अनुसार होता है।",
   "Then {{price}} per user, billed yearly.": "इसके बाद प्रति उपयोगकर्ता {{price}}, वार्षिक बिलिंग।",
   "Then {{price}} per user, billed monthly.": "इसके बाद प्रति उपयोगकर्ता {{price}}, मासिक बिलिंग।",
@@ -2142,7 +2142,9 @@
   "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए उन्हें निमंत्रण ईमेल नहीं मिलेगा। निमंत्रण फिर भी बनता है, और आपको एक लिंक मिलता है जिसे आप खुद उन्हें भेज सकते हैं।",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "यह सर्वर ईमेल नहीं भेज सकता, इसलिए {{email}} को ईमेल नहीं भेजा गया। यह लिंक कॉपी करें और खुद उन्हें भेजें। यह केवल इसी पते के लिए, 7 दिनों तक, एक बार काम करता है।",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "यह सर्वर ईमेल नहीं भेज सकता, इसलिए {{email}} को ईमेल नहीं भेजा गया। उनका पहले से खाता है: साइन इन करने के लिए उन्हें यह लिंक भेजें, वहीं से वे निमंत्रण स्वीकार करेंगे।",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "यह सर्वर ईमेल नहीं भेज सकता, इसलिए {{email}} को ईमेल नहीं भेजा गया। उनका पहले से खाता है और अब वे सदस्य हैं: साइन इन करने के लिए उन्हें यह लिंक भेजें।",
   "Invited": "आमंत्रित",
+  "Not Signed Up Yet": "अभी साइन अप नहीं किया",
   "Get Invitation Link": "निमंत्रण लिंक प्राप्त करें",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM प्रोविजनिंग रुक जाती है, ऑडिट लॉगिंग रिकॉर्ड करना बंद कर देती है, एंटरप्राइज़ कॉन्फ़िगरेशन केवल-पढ़ने योग्य हो जाता है और एंटरप्राइज़ एडमिन डैशबोर्ड लॉक हो जाते हैं। लाइसेंस सक्रिय होते ही सब कुछ फिर से शुरू हो जाता है, और मुख्य मॉनिटरिंग पर कभी असर नहीं पड़ता।",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "मान्य लाइसेंस के बिना ({{days}} दिन के ट्रायल के बाद) SCIM प्रोविजनिंग रुक जाती है, ऑडिट लॉगिंग रिकॉर्ड करना बंद कर देती है, एंटरप्राइज़ कॉन्फ़िगरेशन केवल-पढ़ने योग्य हो जाता है और एंटरप्राइज़ एडमिन डैशबोर्ड लॉक हो जाते हैं। लाइसेंस सक्रिय होते ही सब कुछ फिर से शुरू हो जाता है, और मुख्य मॉनिटरिंग पर कभी असर नहीं पड़ता।",
@@ -3145,5 +3147,9 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "NTP सर्वर का नाम किसी पते में रिज़ॉल्व नहीं हुआ, इसलिए कोई अनुरोध नहीं भेजा गया।",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "होस्ट तक पहुँचा जा सकता है, लेकिन उसने जवाब दिया कि इस UDP पोर्ट पर कोई सेवा नहीं सुन रही है: NTP डेमन बंद है या किसी दूसरे पोर्ट पर सुन रहा है।",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "प्रोब अपनी ओर से अनुरोध नहीं भेज सका, इसलिए NTP सर्वर से कभी संपर्क नहीं हुआ। विफलता प्रोब में है, सर्वर में नहीं।",
-  "The NTP check failed because of a network error.": "नेटवर्क त्रुटि के कारण NTP जाँच विफल रही।"
+  "The NTP check failed because of a network error.": "नेटवर्क त्रुटि के कारण NTP जाँच विफल रही।",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "जो भेजा गया, वह सर्वर के स्वीकार करने के लिए बहुत बड़ा था, इसलिए यह पूरा नहीं हुआ। एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
+  "What was sent was too large for the server to accept.": "जो भेजा गया, वह सर्वर के स्वीकार करने के लिए बहुत बड़ा था।",
+  "Try again with less at once, such as a smaller file.": "एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "अगर OneUptime के आगे लगे किसी प्रॉक्सी ने इसे अस्वीकार किया, तो उस प्रॉक्सी की अनुरोध आकार सीमा बढ़ाकर 50 MB कर दें, जितना OneUptime ख़ुद स्वीकार करता है (nginx में, client_max_body_size 50M)।"
 }

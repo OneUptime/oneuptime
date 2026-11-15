@@ -183,7 +183,8 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
 
   const moreMenu: ReactElement = (
     <CardMoreMenu
-      ariaLabel={translator.translateText(BackupsCopy.statusTitle)}
+      // In English: the menu looks it up, once.
+      ariaLabel={BackupsCopy.statusTitle}
       dataTestId="backups-status-more"
     >
       {[

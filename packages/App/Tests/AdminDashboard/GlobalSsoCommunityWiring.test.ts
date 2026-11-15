@@ -356,7 +356,7 @@ describe("the pages are reachable, and the old list addresses forward", () => {
 
   test("the settings side menu links Single Sign-On, and no list of its own", () => {
     expect(sideMenuSource).toMatch(
-      /title: t\("sideMenu\.settingsSso"\),\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_SSO\] as Route,/,
+      /title: t\("sideMenu\.settingsSso"\),\s*(?:isTitleTranslated: true,\s*)?to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_SSO\] as Route,/,
     );
     expect(sideMenuSource).not.toContain("SETTINGS_GLOBAL_SSO");
     expect(sideMenuSource).not.toContain("SETTINGS_GLOBAL_OIDC");

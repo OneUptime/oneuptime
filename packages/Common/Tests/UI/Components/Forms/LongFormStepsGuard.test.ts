@@ -8,6 +8,7 @@ import {
 import {
   FormFacts,
   FormFieldFacts,
+  FormStepFacts,
   FormStepProblem,
   LONG_FORM_FIELD_LIMIT,
   MIN_SCANNED_FORMS,
@@ -402,6 +403,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
     form: "CardModelDetail: SLO Details",
     reason:
       "Picks the create form's name and description fields by column (pickSloFormFields), with the labels folded under an Advanced section of their own as on every form: three rows.",
+  },
+  {
+    file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,
+    form: "CardModelDetail: SLO What It Measures",
+    reason:
+      "Picks the create form's SLI type, services and latency threshold fields by column (pickSloFormFields): three fields, and the last two show only for a request SLO.",
   },
   {
     file: `${DASHBOARD}/Pages/Slo/View/Settings.tsx`,
@@ -1444,10 +1451,13 @@ describe("the project's forms", () => {
   );
 
   /*
-   * SLO create: the name and the target open, everything with a default
-   * folded under one Advanced section - three rows, no steps.
+   * SLO create: what the SLO measures first - the SLI type, and for a
+   * request SLO its services and for a latency one its threshold - then the
+   * name and the target open, everything with a default folded under one
+   * Advanced section. Two steps of three rows each: the services and the
+   * threshold show only for the answers that use them, but are counted.
    */
-  test("include SLO create: the name and the target, the rest folded under Advanced", () => {
+  test("include SLO create: what it measures, then the name and the target, the rest folded under Advanced", () => {
     const found: Array<FormFacts> = forms.filter((form: FormFacts): boolean => {
       return (
         form.file === `${DASHBOARD}/Pages/Slo/Slos.tsx` &&
@@ -1459,13 +1469,42 @@ describe("the project's forms", () => {
 
     const sloForm: FormFacts = found[0]!;
 
-    expect(sloForm.hasSteps).toBe(false);
+    expect(sloForm.hasSteps).toBe(true);
     expect(sloForm.uncountableReasons).toEqual([]);
-    expect(countFormRows(sloForm)).toBe(3);
+    expect(
+      (sloForm.steps || []).map((step: FormStepFacts): string | null => {
+        return step.id;
+      }),
+    ).toEqual(["measures", "objective"]);
+    expect(countFormRows(sloForm)).toBe(6);
+
+    for (const stepId of ["measures", "objective"]) {
+      expect({
+        step: stepId,
+        rows: countFieldRows(
+          sloForm.fields.filter((candidate: FormFieldFacts): boolean => {
+            return candidate.stepId === stepId;
+          }),
+        ),
+      }).toEqual({ step: stepId, rows: 3 });
+    }
+
     expect(
       sloForm.fields
         .filter((candidate: FormFieldFacts): boolean => {
-          return candidate.collapsibleSection === undefined;
+          return candidate.stepId === "measures";
+        })
+        .map((candidate: FormFieldFacts): string => {
+          return candidate.key;
+        }),
+    ).toEqual(["sliType", "services", "latencyThresholdInMilliseconds"]);
+    expect(
+      sloForm.fields
+        .filter((candidate: FormFieldFacts): boolean => {
+          return (
+            candidate.stepId === "objective" &&
+            candidate.collapsibleSection === undefined
+          );
         })
         .map((candidate: FormFieldFacts): string => {
           return candidate.key;

@@ -212,8 +212,8 @@ To write your own, use template variables in the title, the description and the 
 | `{{targetPercentage}}` | The SLO's target, as a percentage. | `99.9` |
 | `{{currentSliPercentage}}` | The SLI measured over the SLO's compliance window, as a percentage. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Share of the error budget still left, as a percentage. Negative once the budget is overspent. | `42.5` |
-| `{{errorBudgetRemaining}}` | Error budget still left, as a duration. Starts with a minus sign once the budget is overspent. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Error budget still left, in minutes. | `18.37` |
+| `{{errorBudgetRemaining}}` | Error budget still left, as a duration, or as the failed or slow requests it still allows for a request SLO. Starts with a minus sign once the budget is overspent. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Error budget still left, in minutes. Empty for a request SLO, whose budget is counted in requests. | `18.37` |
 | `{{windowDescription}}` | The SLO's compliance window, in words. | `rolling 30-day window` |
 | `{{policyTier}}` | Name of the error budget policy tier the SLO is in after this evaluation. "None" when it is in no tier. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Budget-left threshold of that tier, as a percentage. Empty when the SLO is in no tier. | `25` |

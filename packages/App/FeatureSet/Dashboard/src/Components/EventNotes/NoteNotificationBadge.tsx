@@ -135,7 +135,8 @@ const NoteNotificationBadge: FunctionComponent<ComponentProps> = (
           {content}
         </button>
       ) : (
-        <Tooltip text={tx(props.summary.label)}>
+        // In English: the tooltip looks it up, once (#8226).
+        <Tooltip text={props.summary.label}>
           <span data-testid={props.dataTestId} className={className}>
             {content}
           </span>

@@ -222,6 +222,7 @@ const Feed: FunctionComponent<ComponentProps> = (
                   text={translator.translateTemplate(FEED_TEXT.timesAreIn, {
                     zone: day.zoneName,
                   })}
+                  isTextTranslated={true}
                 >
                   <span
                     className="text-xs text-gray-500"

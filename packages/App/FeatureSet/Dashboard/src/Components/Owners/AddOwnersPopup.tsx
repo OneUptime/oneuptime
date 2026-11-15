@@ -127,7 +127,7 @@ export const AddOwnersPlaceButton: FunctionComponent<
 
   return (
     <div ref={props.popup.anchorRef} className="inline-flex">
-      <Tooltip text={text}>
+      <Tooltip text={text} isTextTranslated={true}>
         <button
           type="button"
           data-testid={props.dataTestId}

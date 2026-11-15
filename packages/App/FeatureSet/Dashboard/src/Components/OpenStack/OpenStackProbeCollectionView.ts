@@ -48,6 +48,7 @@ import {
   ClaimDueState,
   readClaimDue,
 } from "Common/Utils/Probe/ClaimDueTime";
+import { getProbeCollectionDescription } from "../Probe/ProbeCollectionDescription";
 
 /*
  * What the Dashboard says about a cloud a probe collects: which probes may collect it,
@@ -456,6 +457,39 @@ export function getOpenStackNextCollection(
 }
 
 /*
+ * The Overview card's description: how the cloud is collected, as a promise only while a probe
+ * comes for it - while its Next collection is a time or due now - and otherwise what it is set
+ * to, or nothing when no probe or no Keystone address is set (Components/Probe/
+ * ProbeCollectionDescription, OneUptime issue #8326).
+ */
+export function getOpenStackCollectionDescription(
+  cloud: OpenStackCollectionScheduleFacts &
+    Pick<OpenStackCloud, "collectionProbe" | "collectionIntervalInMinutes">,
+  translator: Translator,
+  now: Date,
+  isBillingEnabled: boolean,
+): string | undefined {
+  const state: ClaimDueState = getOpenStackNextCollection(
+    cloud,
+    now,
+    isBillingEnabled,
+  ).state;
+
+  return getProbeCollectionDescription(
+    {
+      isCollected:
+        state === ClaimDueState.Scheduled || state === ClaimDueState.DueNow,
+      hasProbe: Boolean(cloud.collectionProbeId),
+      // Translated along with the sentence it goes into, never on its own.
+      probeName: cloud.collectionProbe?.name || translatableTerm("its probe"),
+      address: cloud.authUrl,
+      intervalInMinutes: cloud.collectionIntervalInMinutes || 2,
+    },
+    translator,
+  );
+}
+
+/*
  * Whether the probe has stopped coming for this cloud. Claiming a cloud moves its
  * nextCollectionAt on, and saving new settings sets it to now, so one far in the past means
  * nothing claimed it. The last report would otherwise go on reading as the cloud's state: a
@@ -484,10 +518,6 @@ const STOP_WORDS: Record<
   >,
   { title: string; nextStep: string }
 > = {
-  [OpenStackCollectionStop.Archived]: {
-    title: translationKey("This cloud is archived, so no probe collects it."),
-    nextStep: translationKey("Unarchive it to collect it again."),
-  },
   [OpenStackCollectionStop.NoCredential]: {
     title: translationKey("No credential is saved for this cloud."),
     nextStep: translationKey(

@@ -136,6 +136,7 @@ const PortChip: FunctionComponent<PortChipProps> = (
           ? props.description
           : translator.translateText(props.description) || ""
       }
+      isTextTranslated={true}
     >
       {chip}
     </Tooltip>

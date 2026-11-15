@@ -4,6 +4,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AlertBanner, {
@@ -223,6 +224,11 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
               monitors: {
                 _id: true,
               },
+              // What a request SLO measures: its services and threshold.
+              services: {
+                _id: true,
+              },
+              latencyThresholdInMilliseconds: true,
             },
           });
 
@@ -255,6 +261,8 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
     sloStatus: slo.sloStatus,
     sliType: slo.sliType,
     monitorCount: ((slo.monitors as Array<Monitor> | undefined) || []).length,
+    serviceCount: ((slo.services as Array<Service> | undefined) || []).length,
+    latencyThresholdInMilliseconds: slo.latencyThresholdInMilliseconds,
     targetPercentage: slo.targetPercentage,
     lastEvaluatedAt: slo.lastEvaluatedAt,
   });

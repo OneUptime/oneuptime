@@ -157,6 +157,13 @@ import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
 import { Translator } from "../../Types/Translator";
 import { getServerTranslator } from "../Utils/ServerTranslation";
 import UserLanguage from "../Utils/Notification/UserLanguage";
+import OnCallRuleClaimsInFlight, {
+  OnCallRuleClaimInFlight,
+} from "../Utils/OnCall/OnCallRuleClaimsInFlight";
+import OnCallSendAttempt from "../Utils/OnCall/OnCallSendAttempt";
+import OnCallRunFailure, {
+  OnCallRunFailureKind,
+} from "../Utils/OnCall/OnCallRunFailure";
 import {
   OnCallPageAgainNotice,
   getOnCallAcknowledgementTimeoutInMinutes,
@@ -795,19 +802,125 @@ export class Service extends ProjectReferencesService<Model> {
      * notify — double-paging the responder for one escalation (audit F7). The
      * previous read-check-then-blind-save was a non-atomic TOCTOU. If the claim
      * was already taken (or the log is gone), skip.
+     *
+     * A send that fails before anything of it reached a sender
+     * (OnCallSendAttempt) - a database error reading the rule, the
+     * incident, the project's Twilio settings, or writing the
+     * notification's row - gives its claim back, so the next tick sends the
+     * rule once. It used to keep it, and the rule - "call me after 10
+     * minutes" - was never sent at all (issue #8407). One that reached a
+     * sender keeps it: sending it again would page twice.
+     *
+     * The claim is kept in flight (OnCallRuleClaimsInFlight) from just
+     * before it is taken until its page is handed over or the claim is
+     * given back, so one whose give-back fails, or whose process stops
+     * before the send, is settled by the person's-log worker at the log's
+     * next try.
      */
+    const claim: OnCallRuleClaimInFlight = {
+      claimKey: UserOnCallLogService.getNotificationRuleClaimKey({
+        userNotificationRuleId: userNotificationRuleId,
+        repeatNumber: options.repeatNumber,
+      }),
+      ruleId: userNotificationRuleId.toString(),
+      claimedAt: OneUptimeDate.getCurrentDate(),
+      owed: false,
+    };
+
+    await OnCallRuleClaimsInFlight.keep(options.userNotificationLogId, claim);
+
     const claimedRuleExecution: boolean =
       await UserOnCallLogService.claimNotificationRuleExecution({
         userOnCallLogId: options.userNotificationLogId,
         userNotificationRuleId: userNotificationRuleId,
         repeatNumber: options.repeatNumber,
+        claimedAt: claim.claimedAt,
       });
 
     if (!claimedRuleExecution) {
       // already executed by this or a concurrent run.
+      await OnCallRuleClaimsInFlight.forget(options.userNotificationLogId);
       return;
     }
 
+    const attempt: OnCallSendAttempt = OnCallSendAttempt.begin();
+
+    try {
+      await attempt.run((): Promise<void> => {
+        return this.sendClaimedNotificationRule(
+          userNotificationRuleId,
+          options,
+        );
+      });
+    } catch (err) {
+      /*
+       * A record found gone, or data a retry cannot fix, ends the person's
+       * log (UserOnCallLog:ExecutePendingExecutions): there is no next try
+       * to send the rule on, and its claim stays.
+       */
+      const isTriedAgain: boolean =
+        !(err instanceof OnCallPageRecordGoneException) &&
+        OnCallRunFailure.classify(err) !== OnCallRunFailureKind.Permanent;
+
+      if (attempt.handedToASender || !isTriedAgain) {
+        await OnCallRuleClaimsInFlight.forget(options.userNotificationLogId);
+      } else {
+        await this.giveBackNotificationRuleClaim({
+          claim: claim,
+          options: options,
+        });
+      }
+
+      throw err;
+    }
+
+    await OnCallRuleClaimsInFlight.forget(options.userNotificationLogId);
+  }
+
+  /*
+   * A claimed rule's send failed before anything of it reached a sender
+   * (executeNotificationRuleItem): its claim is given back, and the next
+   * tick sends it. Kept in flight as owed first, so a give-back that fails
+   * too - the database is often still failing - is made by the worker at
+   * the log's next try. Never throws.
+   */
+  private async giveBackNotificationRuleClaim(data: {
+    claim: OnCallRuleClaimInFlight;
+    options: ExecuteNotificationRuleOptions;
+  }): Promise<void> {
+    const logId: ObjectID = data.options.userNotificationLogId;
+
+    await OnCallRuleClaimsInFlight.keep(logId, { ...data.claim, owed: true });
+
+    try {
+      await UserOnCallLogService.releaseNotificationRuleClaim({
+        userOnCallLogId: logId,
+        claimKey: data.claim.claimKey,
+        claimedAt: data.claim.claimedAt,
+      });
+    } catch (err) {
+      logger.error(
+        `Notification rule ${data.claim.ruleId} sent nothing for on-call log ${logId.toString()}, and its claim could not be given back; the person's-log worker gives it back at the log's next try.`,
+      );
+      logger.error(err);
+      return;
+    }
+
+    await OnCallRuleClaimsInFlight.forget(logId);
+
+    logger.warn(
+      `Notification rule ${data.claim.ruleId} failed before it reached a sender for on-call log ${logId.toString()}; its claim is given back, and it is sent on the log's next try.`,
+    );
+  }
+
+  /*
+   * A rule this call claimed, sent: read with its methods, checked, and
+   * handed to the delivery half (executeNotificationRuleItem).
+   */
+  private async sendClaimedNotificationRule(
+    userNotificationRuleId: ObjectID,
+    options: ExecuteNotificationRuleOptions,
+  ): Promise<void> {
     // find notification rule item.
     const notificationRuleItem: Model | null = await this.findOneById({
       id: userNotificationRuleId!,

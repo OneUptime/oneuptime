@@ -14,6 +14,7 @@ Begge bruger den samme monitortype. Det, der skiller dem ad, er de kriterier, du
 - [Send et heartbeat](#send-et-heartbeat): Fra curl, cron, Node.js, Python eller Go.
 - [Advar, når kaldene stopper](#markér-som-offline-hvis-der-ikke-er-noget-heartbeat-i-10-minutter-en-dødmandsknap): Gør monitoren til en dødmandsknap.
 - [Modtag advarsler](#modtagelse-af-advarsler-fra-et-andet-system): Én hændelse pr. advarsel fra Alertmanager eller Grafana.
+- [Abonnér på SNS eller Event Grid](#abonnement-på-amazon-sns-eller-azure-event-grid): Bekræft abonnementet med ét klik.
 :::
 
 ## Sådan fungerer det
@@ -93,6 +94,7 @@ Hvis du vil bruge felter inde i brødteksten — `{{requestBody.status}}` i en h
 | --- | --- |
 | `application/json` | Den fortolkede JSON. |
 | `application/x-www-form-urlencoded` | Den fortolkede formular. Nøgler i firkantede parenteser indlejres (`alerts[0][status]=firing`), og alle værdier er strenge. |
+| `text/plain` | Den fortolkede JSON, når teksten er et JSON-objekt eller et JSON-array: sådan sender Amazon SNS sine beskeder. Al anden tekst bliver en tom brødtekst. |
 | Alt andet eller ingen | En tom brødtekst (`{}`), så enhver henvisning til `requestBody` ender som ingenting. |
 
 Brødtekster på op til 50 MB accepteres; en større afvises med en `413`. Komprimér ikke brødteksten med `Content-Encoding: gzip`: så gemmes den ikke som JSON, og stier ind i den bliver ikke løst op.
@@ -345,6 +347,40 @@ Hele payloaden er tilgængelig ved siden af, så både en hændelsestitel `{{ale
 
 En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Abonnement på Amazon SNS eller Azure Event Grid
+
+Amazon SNS og Azure Event Grid sender intet til et nyt endpoint, før nogen bekræfter abonnementet ved at åbne et link, som tjenesten sender til det. Når den anmodning kommer, viser kortet **Monitor-resumé** på monitorens **Oversigt**, hvad tjenesten venter på, emnet og én knap, der åbner linket i en ny fane.
+
+| Tjeneste | Anmodningen | Knap | Linket virker i |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, for et nyt HTTPS-abonnement | **Bekræft abonnement** | To dage |
+| Amazon SNS | `UnsubscribeConfirmation`, når abonnementet slettes | **Gendan abonnement** | To dage |
+| Azure Event Grid | `SubscriptionValidationEvent`, for et nyt hændelsesabonnement med en webhook | **Valider abonnement** | 10 minutter |
+
+Knappen bliver stående, indtil monitorens næste anmodning kommer, også efter at du har åbnet linket. Når linkets tid er udløbet, siger kortet i stedet, hvordan du får et nyt. Er der kommet nyere anmodninger, så åbn **Overvågningslogs**, og klik på **Vis oversigt** i anmodningens række.
+
+Linket og det token, det indeholder, gemmes umaskeret overalt, hvor anmodningen gemmes: i dens detaljer, i dens logge og i de hændelser og advarsler, den åbner. Det eneste, linket kan, er at starte leveringer til denne monitor. Kun et link til tjenestens egen adresse tæller: alle andre maskeres som sædvanligt og får ingen knap.
+
+### Amazon SNS
+
+:::steps
+1. Åbn emnet i Amazon SNS-konsollen, og vælg **Create subscription**. Vælg `HTTPS` som protokol, og indsæt monitorens **Heartbeat URL** som endpoint.
+2. Åbn monitorens **Oversigt**, og klik på **Bekræft abonnement** i kortet **Monitor-resumé**. I SNS-konsollen skifter abonnementets status fra **Pending confirmation** til bekræftet.
+:::
+
+SNS sender sine beskeder som JSON mærket `text/plain`, og monitoren læser dem som JSON, så kriterier, skabeloner og gruppering af hændelser kan bruge deres felter, for eksempel `{{requestBody.Subject}}` og `{{requestBody.Message}}`. En notifikations egen JSON, for eksempel en CloudWatch-alarms, kommer som tekst i `Message`.
+
+Hvis kortet siger, at linket ikke længere kan åbnes, så markér abonnementet i SNS-konsollen, og vælg **Request confirmation**. SNS sletter et abonnement, der ikke er bekræftet inden for 48 timer; sker det, så opret abonnementet igen.
+
+### Azure Event Grid
+
+:::steps
+1. Åbn i Azure-portalen den ressource, hvis hændelser du vil have, og tilføj et hændelsesabonnement. Vælg **Event Grid Schema** som hændelsesskema, **Web Hook** som endpointtype og monitorens **Heartbeat URL** som endpoint.
+2. Åbn inden for 10 minutter monitorens **Oversigt**, og klik på **Valider abonnement** i kortet **Monitor-resumé**.
+:::
+
+Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, eller hvis ejer åbner det link, Event Grid sender. OneUptime besvarer hver anmodning med en tom `200`, så linket er vejen. Linket peger på Event Grid på port 553, som en firewall foran din browser skal tillade. Går der 10 minutter først, mislykkes hændelsesabonnementet: opret det igen.
+
 ## Bedste praksis
 
 1. **Sæt tidsvinduet passende** — Hvis dit cronjob kører hvert 5. minut, så sæt tærsklen for "Ikke modtaget inden for minutter" til 10–15 minutter for at give plads til lejlighedsvise forsinkelser, og placér det kriterium først.
@@ -364,11 +400,15 @@ Kun et kriterium med **Indgående anmodning** (**Ikke modtaget inden for minutte
 :::
 
 :::details Et filter på Anmodningsbrødtekst matcher aldrig
-Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON eller formularer fortolkes brødteksten ikke.
+Send `Content-Type: application/json`, og skriv værdien som kompakt JSON — `"status":"firing"` uden mellemrum efter kolonet. Uden en indholdstype for JSON eller formularer fortolkes brødteksten ikke: kun JSON sendt som `text/plain` fortolkes alligevel.
 :::
 
 :::details Et filter på Anmodningsheader matcher aldrig
 Headernavne og -værdier sammenlignes i deres helhed. Angiv hele værdien, for eksempel `application/json; charset=utf-8`, i stedet for en del af den.
+:::
+
+:::details Amazon SNS siger, at abonnementet afventer bekræftelse
+Klik på **Bekræft abonnement** i kortet **Monitor-resumé** på monitorens **Oversigt**. Er der kommet nyere anmodninger, så åbn **Overvågningslogs**, og klik på **Vis oversigt** i bekræftelsens række. Med **Behold anmodningsindhold** slået fra gemmer monitoren ingen brødtekst og dermed heller intet link: slå det til i monitorens **Indstillinger**, så vises den seneste anmodning igen med sit link.
 :::
 
 :::details Afsenderen får en 500

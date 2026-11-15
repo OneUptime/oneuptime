@@ -98,6 +98,23 @@ describe("isSensitiveLogKey", () => {
   });
 
   /*
+   * An Amazon SNS message's SignatureVersion ("1" or "2") and an AWS query
+   * request's SignatureVersion and SignatureMethod name a signature scheme;
+   * the signature itself stays secret (#7723).
+   */
+  it("keeps which signature scheme is used, and masks the signature", () => {
+    expect(isSensitiveLogKey("SignatureVersion", "1")).toBe(false);
+    expect(isSensitiveLogKey("signature_version", "2")).toBe(false);
+    expect(isSensitiveLogKey("SignatureMethod", "HmacSHA256")).toBe(false);
+
+    expect(isSensitiveLogKey("Signature", "EXAMPLEpH+DcEw")).toBe(true);
+    expect(isSensitiveLogKey("X-Amz-Signature", "abc123")).toBe(true);
+    expect(
+      serialize({ SignatureVersion: "1", Signature: "EXAMPLEpH+DcEw" }),
+    ).toBe('{"SignatureVersion":"1","Signature":"[REDACTED]"}');
+  });
+
+  /*
    * `code` is the one key that has to be decided by its value: it is the OAuth
    * authorization code and the TOTP code, and it is also the `ECONNREFUSED` on
    * every failed socket.
