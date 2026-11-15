@@ -186,4 +186,69 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     dropped: /代理|執行器/,
     docsEnglish: /\bRunners?\b/,
   },
+  /*
+   * A node or a host that stopped reporting is Offline, and a cluster or an
+   * agent whose connection dropped is Disconnected: two states the Proxmox
+   * pages draw side by side. Norwegian said both Frakoblet; Offline is now
+   * offline, as Online is Online, and Frakoblet stays Disconnected's (#8767).
+   */
+  {
+    language: "no",
+    thing: "Offline",
+    english: /\boffline\b/i,
+    except: /disconnect|not connected/i,
+    word: /offline/i,
+    dropped: /frakobl/i,
+  },
+  // Arabic said غير متصل for all three: Offline keeps it (#8767).
+  {
+    language: "ar",
+    thing: "Disconnected",
+    english: /disconnect/i,
+    except: /\boffline\b|not connected/i,
+    word: /منقطع/,
+    dropped: /غير متصل/,
+  },
+  {
+    language: "ar",
+    thing: "Not connected",
+    english: /not connected/i,
+    except: /\boffline\b|disconnect/i,
+    word: /غير مرتبط/,
+    dropped: /غير متصل/,
+  },
+  /*
+   * Italian spelled the abbreviation two ways: IA, as its AI key and the
+   * AI agent's pages do, and AI (Agente AI di OneUptime). It says IA; the
+   * product's name, OneUptime AI, is a name and stays as written (#8768).
+   */
+  {
+    language: "it",
+    thing: "AI",
+    english: /\bAI\b/,
+    word: /\bIA\b/,
+    dropped: /(?<!OneUptime )\bAI\b/,
+  },
+  /*
+   * An alert, as the Dashboard says it in most strings (#8769): Simplified
+   * Chinese 警报, not 告警; Swedish larm, not avisering, the word Swedish
+   * says a notification with, so a text that names a notification too
+   * keeps it.
+   */
+  {
+    language: "zh-CN",
+    thing: "Alerts",
+    english: /\balert/i,
+    word: /警报/,
+    // 警告警报, a warning alert, holds 告警 across its two words.
+    dropped: /(?<!警)告警/,
+  },
+  {
+    language: "sv",
+    thing: "Alerts",
+    english: /\balert/i,
+    except: /notif|notify|notified|remind|notice|announce|\bpush|critical alert/i,
+    word: /\blarm/i,
+    dropped: /\bavisering/i,
+  },
 ];

@@ -54,15 +54,23 @@ function englishOf(key: string): string {
   return key.replace(PLURAL_FORM, "");
 }
 
-// The strings of `rule.language` whose English names the thing and still say the dropped word.
+/*
+ * The strings of `rule.language` whose English names the thing and still say
+ * the dropped word. A string still in English is the i18n ratchet's, not
+ * this rule's: Italian's untranslated "Generate with AI" is not an Italian
+ * word for AI (#8768).
+ */
 function stillDropped(rule: SentenceRule): Array<string> {
   const words: Record<string, string> = readDashboardLocale(rule.language);
+  const english: Record<string, string> = readDashboardLocale("en");
 
   return Object.keys(words).filter((key: string): boolean => {
     const value: unknown = words[key];
 
     return (
       typeof value === "string" &&
+      value !== key &&
+      value !== english[key] &&
       rule.english.test(englishOf(key)) &&
       !(rule.except && rule.except.test(englishOf(key))) &&
       rule.dropped.test(value.replace(NOT_WORDS, " "))
@@ -178,6 +186,13 @@ describe("a thing's sentences in each language", () => {
 const DOCS_CONTENT: string = path.resolve(
   __dirname,
   "../../FeatureSet/Docs/Content",
+);
+
+// The rules of the languages the docs are written in.
+const DOCS_RULES: ReadonlyArray<SentenceRule> = RULES.filter(
+  (rule: SentenceRule): boolean => {
+    return fs.existsSync(path.join(DOCS_CONTENT, rule.language));
+  },
 );
 
 // What a docs line quotes: code, a link, a bold label, a quote or an address.
@@ -344,6 +359,19 @@ describe("a thing's docs in each language", () => {
     );
   });
 
+  // The docs are read in fewer languages than the Dashboard: Arabic has none.
+  test("hold every rule of a language the docs are read in", () => {
+    expect(DOCS_RULES.length).toBeGreaterThan(10);
+    expect(
+      RULES.filter((rule: SentenceRule): boolean => {
+        return !DOCS_RULES.includes(rule);
+      }).map((rule: SentenceRule): string => {
+        return rule.language;
+      }),
+    ).not.toContain("it");
+    expect(fs.existsSync(path.join(DOCS_CONTENT, "ar"))).toBe(false);
+  });
+
   test("read the docs navigation's titles by their English", () => {
     expect(navTitles("it")["Audit Logs"]).toBe("Log di audit");
     expect(navTitles("no")["Website Monitor"]).toBe("Nettsted-monitor");
@@ -351,7 +379,7 @@ describe("a thing's docs in each language", () => {
   });
 
   test.each(
-    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+    DOCS_RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
       return [rule.language, rule.thing, rule];
     }),
   )(
@@ -362,7 +390,7 @@ describe("a thing's docs in each language", () => {
   );
 
   test.each(
-    RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
+    DOCS_RULES.map((rule: SentenceRule): [string, string, SentenceRule] => {
       return [rule.language, rule.thing, rule];
     }),
   )(
