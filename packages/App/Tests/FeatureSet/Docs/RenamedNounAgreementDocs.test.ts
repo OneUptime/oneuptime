@@ -117,9 +117,9 @@ describe("the checks", () => {
       }).toEqual({ old, found: true });
     }
 
-    expect(DANISH_WORKFLOW_PARTS.test("en kørsel, som dets trigger startede")).toBe(
-      true,
-    );
+    expect(
+      DANISH_WORKFLOW_PARTS.test("en kørsel, som dets trigger startede"),
+    ).toBe(true);
   });
 
   test("pass the words that agree with arbejdsgang, and det that names something else", () => {
@@ -138,9 +138,9 @@ describe("the checks", () => {
       }).toEqual({ agrees, found: false });
     }
 
-    expect(DANISH_WORKFLOW_PARTS.test("en kørsel, som dens trigger startede")).toBe(
-      false,
-    );
+    expect(
+      DANISH_WORKFLOW_PARTS.test("en kørsel, som dens trigger startede"),
+    ).toBe(false);
     // "Call it" names a token in a block that names no workflow, so it is not read.
     expect(
       ARBEJDSGANG.test("Kald det `OneUptime import`, og kopiér tokenet."),
@@ -148,21 +148,35 @@ describe("the checks", () => {
   });
 
   test("find a Russian word that agrees with the gender the noun no longer has", () => {
-    expect(RUSSIAN_MASCULINE_PANEL.test("Один панель для каждого сервиса.")).toBe(true);
-    expect(RUSSIAN_MASCULINE_PANEL.test("можно добавить на любой панель.")).toBe(true);
-    expect(RUSSIAN_MASCULINE_PANEL.test("| **Панель** | Сам панель. |")).toBe(true);
+    expect(
+      RUSSIAN_MASCULINE_PANEL.test("Один панель для каждого сервиса."),
+    ).toBe(true);
+    expect(
+      RUSSIAN_MASCULINE_PANEL.test("можно добавить на любой панель."),
+    ).toBe(true);
+    expect(RUSSIAN_MASCULINE_PANEL.test("| **Панель** | Сам панель. |")).toBe(
+      true,
+    );
     expect(
       RUSSIAN_FEMININE_PROBE.test(
         "и любая [собственный зонд](/docs/probe/custom-probe), которую вы запускаете сами.",
       ),
     ).toBe(true);
-    expect(RUSSIAN_FEMININE_PROBE.test("глобальный зонд, созданная в приложении")).toBe(true);
-    expect(RUSSIAN_FEMININE_PROBE.test("— монитор запустила глобальный зонд с")).toBe(true);
+    expect(
+      RUSSIAN_FEMININE_PROBE.test("глобальный зонд, созданная в приложении"),
+    ).toBe(true);
+    expect(
+      RUSSIAN_FEMININE_PROBE.test("— монитор запустила глобальный зонд с"),
+    ).toBe(true);
   });
 
   test("pass the words that agree with панель and зонд", () => {
-    expect(RUSSIAN_MASCULINE_PANEL.test("Одна панель для каждого сервиса.")).toBe(false);
-    expect(RUSSIAN_MASCULINE_PANEL.test("можно добавить на любую панель.")).toBe(false);
+    expect(
+      RUSSIAN_MASCULINE_PANEL.test("Одна панель для каждого сервиса."),
+    ).toBe(false);
+    expect(
+      RUSSIAN_MASCULINE_PANEL.test("можно добавить на любую панель."),
+    ).toBe(false);
     // A feminine genitive before панели is not the masculine nominative.
     expect(RUSSIAN_MASCULINE_PANEL.test("на публичной панели")).toBe(false);
     expect(
@@ -171,7 +185,9 @@ describe("the checks", () => {
       ),
     ).toBe(false);
     // "которую зонд ищет" is the record the probe looks up.
-    expect(RUSSIAN_FEMININE_PROBE.test("запись PTR, которую зонд ищет")).toBe(false);
+    expect(RUSSIAN_FEMININE_PROBE.test("запись PTR, которую зонд ищет")).toBe(
+      false,
+    );
   });
 });
 

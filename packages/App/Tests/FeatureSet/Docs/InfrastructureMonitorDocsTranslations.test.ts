@@ -725,7 +725,10 @@ describe("the lists this test keeps", () => {
         page,
         missing: missingDefaultCriteriaText(
           englishPage(page),
-          defaultCriteriaText(DEFAULT_CRITERIA_TYPES[page] as MonitorType, "en"),
+          defaultCriteriaText(
+            DEFAULT_CRITERIA_TYPES[page] as MonitorType,
+            "en",
+          ),
         ),
       }).toEqual({ page, missing: [] });
     }
@@ -1332,7 +1335,7 @@ describe("the helpers, on these pages' shapes", () => {
     // The English row the German page had before #8526 misses all three.
     expect(
       missingDefaultCriteriaText(
-        '| 1 | Check if _monitor name_ is offline | Keine Daten | Meldet den Vorfall „_monitor name_ is offline“. |\n| 2 | Check if _monitor name_ is online | Daten | — |',
+        "| 1 | Check if _monitor name_ is offline | Keine Daten | Meldet den Vorfall „_monitor name_ is offline“. |\n| 2 | Check if _monitor name_ is online | Daten | — |",
         defaultCriteriaText(MonitorType.Docker, "de"),
       ),
     ).toHaveLength(3);

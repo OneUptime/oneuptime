@@ -92,6 +92,10 @@ const DASHBOARD_LOCALES: string = path.resolve(
   "../../../FeatureSet/Dashboard/src/Locales",
 );
 
+// An English page quoting a default title, or naming a default criteria.
+const QUOTES_A_DEFAULT_TITLE: RegExp =
+  /"_monitor name_ |Check if _monitor name_ /;
+
 // The English placeholders the translations wrote before #8526.
 const ENGLISH_PLACEHOLDERS: RegExp = /_monitor name_|\(name\)/;
 
@@ -105,7 +109,10 @@ interface QuotedText {
  * language's: a new monitor's criteria are the same in every language, in
  * the same order, so the n-th title is the same title.
  */
-function textsOf(entry: DefaultTitlesPage, language: string): Array<QuotedText> {
+function textsOf(
+  entry: DefaultTitlesPage,
+  language: string,
+): Array<QuotedText> {
   const english: string = readPage("en", entry.page);
   const pairs: Array<QuotedText> = [];
 
@@ -163,16 +170,33 @@ describe("the helpers", () => {
   });
 
   it("find a text between any language's quotation marks, and only there", () => {
-    expect(isQuotedIn('ein Vorfall namens „_X_ ist offline“', "_X_ ist offline")).toBe(true);
-    expect(isQuotedIn("un incident « _X_ est hors ligne »", "_X_ est hors ligne")).toBe(true);
-    expect(isQuotedIn("un incidente «_X_ è offline»", "_X_ è offline")).toBe(true);
-    expect(isQuotedIn("インシデント「_X_ がオフラインです」", "_X_ がオフラインです")).toBe(true);
+    expect(
+      isQuotedIn("ein Vorfall namens „_X_ ist offline“", "_X_ ist offline"),
+    ).toBe(true);
+    expect(
+      isQuotedIn("un incident « _X_ est hors ligne »", "_X_ est hors ligne"),
+    ).toBe(true);
+    expect(isQuotedIn("un incidente «_X_ è offline»", "_X_ è offline")).toBe(
+      true,
+    );
+    expect(
+      isQuotedIn(
+        "インシデント「_X_ がオフラインです」",
+        "_X_ がオフラインです",
+      ),
+    ).toBe(true);
     expect(isQuotedIn("名为“_X_ 已离线”的事件", "_X_ 已离线")).toBe(true);
-    expect(isQuotedIn('an incident called "_X_ is offline"', "_X_ is offline")).toBe(true);
+    expect(
+      isQuotedIn('an incident called "_X_ is offline"', "_X_ is offline"),
+    ).toBe(true);
     // As code, bold or bare it is not quoted.
     expect(isQuotedIn("titled `_X_ is offline`", "_X_ is offline")).toBe(false);
-    expect(isQuotedIn("titled **_X_ is offline**", "_X_ is offline")).toBe(false);
-    expect(isQuotedIn("| Check if _X_ is offline |", "Check if _X_ is offline")).toBe(false);
+    expect(isQuotedIn("titled **_X_ is offline**", "_X_ is offline")).toBe(
+      false,
+    );
+    expect(
+      isQuotedIn("| Check if _X_ is offline |", "Check if _X_ is offline"),
+    ).toBe(false);
   });
 
   it("give a new monitor's titles and criteria names in the reader's words", () => {
@@ -199,7 +223,10 @@ describe("the helpers", () => {
     );
 
     for (const language of TRANSLATED_LANGUAGES) {
-      expect({ language, placeholder: monitorNamePlaceholder(language) }).not.toEqual({
+      expect({
+        language,
+        placeholder: monitorNamePlaceholder(language),
+      }).not.toEqual({
         language,
         placeholder: MONITOR_NAME_PLACEHOLDER["en"],
       });
@@ -221,12 +248,14 @@ describe("the helpers", () => {
 
 describe("the pages this test keeps", () => {
   it("are every English monitor page that quotes a default title or names a default criteria", () => {
-    const quoting: Array<string> = listPages("en").filter((page: string): boolean => {
-      return (
-        page !== PROBE_STATUS_PAGE &&
-        /"_monitor name_ |Check if _monitor name_ /.test(readPage("en", page))
-      );
-    });
+    const quoting: Array<string> = listPages("en").filter(
+      (page: string): boolean => {
+        return (
+          page !== PROBE_STATUS_PAGE &&
+          QUOTES_A_DEFAULT_TITLE.test(readPage("en", page))
+        );
+      },
+    );
 
     expect(quoting.sort()).toEqual(
       PAGES.map((entry: DefaultTitlesPage): string => {
@@ -356,7 +385,9 @@ describe("the old pages", () => {
     const old: string =
       "Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ is offline“ wird erstellt.";
 
-    expect(isQuotedIn(old, defaultTitlesAsQuoted(MonitorType.DNS, "de")[0]!)).toBe(false);
+    expect(
+      isQuotedIn(old, defaultTitlesAsQuoted(MonitorType.DNS, "de")[0]!),
+    ).toBe(false);
     expect(old).toMatch(ENGLISH_PLACEHOLDERS);
   });
 
@@ -373,7 +404,10 @@ describe("the old pages", () => {
       "In der Liste der Kriterien sind sie nach dem Monitor benannt: _Check if (name) is offline_ und _Check if (name) is online_.";
 
     expect(
-      isQuotedIn(old, defaultCriteriaNamesAsWritten(MonitorType.Website, "de")[0]!),
+      isQuotedIn(
+        old,
+        defaultCriteriaNamesAsWritten(MonitorType.Website, "de")[0]!,
+      ),
     ).toBe(false);
     expect(old).toMatch(ENGLISH_PLACEHOLDERS);
   });

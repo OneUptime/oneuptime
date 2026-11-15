@@ -55,11 +55,14 @@ export const MONITOR_NAME_PLACEHOLDER: Readonly<Record<string, string>> = {
  * language: straight, German „“, guillemets (French with a space inside),
  * Chinese “” and the corner brackets of Japanese and Traditional Chinese.
  */
-const OPENING_QUOTES: string = "\"„«“「";
-const CLOSING_QUOTES: string = "\"“»”」";
+const OPENING_QUOTES: string = '"„«“「';
+const CLOSING_QUOTES: string = '"“»”」';
 
 // A monitor name no title holds otherwise, filled in and then replaced.
 const SAMPLE_MONITOR_NAME: string = "Acme";
+
+// A letter of any script.
+const LETTER: RegExp = /\p{L}/u;
 
 export function monitorNamePlaceholder(language: string): string {
   const placeholder: string | undefined = MONITOR_NAME_PLACEHOLDER[language];
@@ -85,7 +88,7 @@ export function withMonitorNamePlaceholder(
   return text.replace(
     new RegExp(`${escapeRegExp(SAMPLE_MONITOR_NAME)}(?=(.?))`, "u"),
     (_match: string, next: string): string => {
-      const marker: string = /\p{L}/u.test(next) ? "*" : "_";
+      const marker: string = LETTER.test(next) ? "*" : "_";
 
       return `${marker}${placeholder}${marker}`;
     },
