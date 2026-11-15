@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - एक Falcon कस्टमर ID (CID), और एक Falcon कंसोल यूज़र जो API क्लाइंट प्रबंधित कर सके: Falcon Administrator रोल, या API clients and keys अनुमति वाला कोई कस्टम रोल।
 - OneUptime ऐप और वर्कर से आपके Falcon क्लाउड के API होस्ट तक आउटबाउंड HTTPS, जो नीचे **Falcon क्लाउड** में सूचीबद्ध है।
 

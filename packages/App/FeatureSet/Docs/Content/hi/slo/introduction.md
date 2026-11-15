@@ -40,7 +40,7 @@ OneUptime में इस्तेमाल होने वाले शब्
 
 ## SLO बनाएँ
 
-आपको ऐसी भूमिका चाहिए जो SLO बना सके: Project Owner, Project Admin, या Create Service Level Objective अनुमति वाली कस्टम भूमिका।
+आपको ऐसी भूमिका चाहिए जो SLO बना सके: प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन, या Create Service Level Objective अनुमति वाली कस्टम भूमिका।
 
 :::steps
 ### SLO खोलें

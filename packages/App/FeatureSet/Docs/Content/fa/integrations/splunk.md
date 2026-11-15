@@ -23,7 +23,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 ## پیش از شروع
 
-- در OneUptime، نقش Project Owner، Project Admin یا Security Admin. Security Member و Security Viewer می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
+- در OneUptime، نقش مالک پروژه، مدیر پروژه یا مدیر امنیت. عضو امنیت و بیننده امنیت می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
 - یک search head که Splunk Enterprise 9.0.1 یا جدیدتر، یا Splunk Cloud Platform را اجرا می‌کند. OneUptime با REST API آن روی پورت مدیریت، معمولاً `8089`، صحبت می‌کند. Splunk Web، روی پورت `8000`، REST API را ارائه نمی‌کند.
 - یک کاربر Splunk برای OneUptime، که نقشش قابلیت `search` را دارد و می‌تواند ایندکسی را که جستجو می‌خواند بخواند: `notable` برای رویدادهای قابل توجه. نقش‌های Enterprise Security یعنی `ess_analyst` و `ess_user` هر دو را می‌دهند. اتصال فقط می‌خواند، پس نقش به چیز دیگری نیاز ندارد.
 - یک search head که OneUptime بتواند از طریق HTTPS به آن برسد. OneUptime Cloud از اینترنت وصل می‌شود، پس search head به یک نشانی عمومی نیاز دارد: نشانی‌های خصوصی رد می‌شوند. یک OneUptime خودمیزبان از کانتینرهای برنامه و کارگرش وصل می‌شود، و می‌تواند به یک search head در شبکهٔ خصوصی شما برسد، مگر اینکه `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` برابر `true` باشد.
