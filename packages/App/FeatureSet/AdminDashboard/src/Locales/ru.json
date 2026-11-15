@@ -3314,7 +3314,7 @@
   "Expired today": "Истекла сегодня",
   "Daily expiry reminder emails are going out to the customer's master admins.": "Главным администраторам клиента ежедневно отправляются письма с напоминанием об истечении.",
   "Active": "Активно",
-  "Inactive": "Неактивен",
+  "Inactive": "Неактивно",
   "The instance ID of the customer's OneUptime installation. The token works only on that installation.": "Идентификатор экземпляра установки OneUptime клиента. Токен работает только на этой установке.",
   "Total licenses": "Всего лицензий",
   "Expiring soon": "Скоро истекает",
