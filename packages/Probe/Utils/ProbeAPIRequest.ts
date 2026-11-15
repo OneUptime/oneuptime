@@ -42,6 +42,12 @@ import ProbeCapability from "Common/Types/Probe/ProbeCapability";
  * variables. The server hands table-health work only to a probe that
  * declares this.
  *
+ * "retryWhenBusy": the monitor, monitor test and network device fetches
+ * read a 429 as "the server is too busy to hand out work now, ask again at
+ * the next tick" (Utils/ServerBusy). The server answers a busy fetch from a
+ * probe that declares this with a 429, and an older probe's with an empty
+ * batch.
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -51,6 +57,7 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.SnmpWalk,
   ProbeCapability.DataSecurityScan,
   ProbeCapability.DataObservabilityCollect,
+  ProbeCapability.RetryWhenBusy,
 ];
 
 export default class ProbeAPIRequest {

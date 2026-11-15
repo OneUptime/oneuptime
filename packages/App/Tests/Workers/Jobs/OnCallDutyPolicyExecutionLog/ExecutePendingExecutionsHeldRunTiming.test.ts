@@ -54,6 +54,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -168,7 +179,7 @@ beforeEach(() => {
 
   // The worker's read: the runs still waiting, each a fresh copy.
   jest
-    .spyOn(OnCallDutyPolicyExecutionLogService, "findAllBy")
+    .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
     .mockImplementation((async () => {
       return table
         .filter((run: OnCallDutyPolicyExecutionLog) => {

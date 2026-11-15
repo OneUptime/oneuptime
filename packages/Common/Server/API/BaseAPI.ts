@@ -235,6 +235,20 @@ export default class BaseAPI<
       throw new BadRequestException("Limit should be greater than 0");
     }
 
+    /*
+     * How far the list's count goes (countUpTo): a list that asks counts no
+     * further than this many records, or than the end of the page it reads
+     * if that is further, so the count costs that many records however many
+     * match. More than that answers the cap with isCountCapped - "10,000+" -
+     * and also says there are records after this page. A client that does
+     * not ask (the API, older dashboards) gets the exact count, as before.
+     */
+    const countUpTo: number | undefined = BaseAPI.getCountUpTo(req);
+    const countCap: number | undefined =
+      countUpTo === undefined
+        ? undefined
+        : Math.max(countUpTo, skip.toNumber() + limit.toNumber());
+
     let query: Query<BaseModel> = {};
     let select: Select<BaseModel> = {};
     let sort: Sort<BaseModel> = {};
@@ -297,6 +311,7 @@ export default class BaseAPI<
       const countPromise: Promise<PositiveNumber> = this.service.countBy({
         query: { ...query },
         props: { ...databaseProps },
+        ...(countCap !== undefined ? { upTo: countCap } : {}),
       });
 
       /*
@@ -334,7 +349,20 @@ export default class BaseAPI<
       count = await this.service.countBy({
         query,
         props: databaseProps,
+        ...(countCap !== undefined ? { upTo: countCap } : {}),
       });
+    }
+
+    // More matched than the cap: the count is the cap, and says so.
+    if (countCap !== undefined && count.toNumber() > countCap) {
+      return Response.sendEntityArrayResponse(
+        req,
+        res,
+        list,
+        new PositiveNumber(countCap),
+        this.entityType,
+        { isCountCapped: true },
+      );
     }
 
     return Response.sendEntityArrayResponse(
@@ -344,6 +372,36 @@ export default class BaseAPI<
       count,
       this.entityType,
     );
+  }
+
+  /*
+   * The countUpTo a list read asks for, from its body or its query string
+   * as skip and limit are read: a whole number of at least 1, or undefined
+   * when it asks for none (an exact count).
+   */
+  public static getCountUpTo(req: ExpressRequest): number | undefined {
+    let value: unknown = undefined;
+
+    if (req.query && req.query["countUpTo"] !== undefined) {
+      value = req.query["countUpTo"];
+    } else if (req.body && req.body["countUpTo"] !== undefined) {
+      value = req.body["countUpTo"];
+    }
+
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+
+    const countUpTo: number =
+      typeof value === "number" ? value : Number(String(value).trim());
+
+    if (!Number.isSafeInteger(countUpTo) || countUpTo < 1) {
+      throw new BadRequestException(
+        "The list's countUpTo must be a whole number of at least 1. Send one, such as 10000, or leave it out to count every record.",
+      );
+    }
+
+    return countUpTo;
   }
 
   @CaptureSpan()

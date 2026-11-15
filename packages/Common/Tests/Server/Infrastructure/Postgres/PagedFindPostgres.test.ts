@@ -10,6 +10,7 @@ import {
   FindManyOptions,
   In,
   ObjectLiteral,
+  Raw,
   Repository,
 } from "typeorm";
 
@@ -31,6 +32,15 @@ import {
  *
  * Every read selects the columns it is ordered by, as DatabaseService's do
  * (addSortColumnsToSelect): TypeORM's two queries cannot order by any other.
+ *
+ * A read whose to-many joins are only selected - an Incidents list's labels
+ * and monitors - takes its page's ids from its table alone: those pages are
+ * held to TypeORM's for every order (with ties, through a to-one relation),
+ * page size, filter (through a to-one relation, a raw condition) and with
+ * deleted rows and without, and the queries it sends are held to two: the
+ * ids, with no DISTINCT and no to-many join, then the rows of those ids.
+ * A read that filters or orders through a to-many relation keeps TypeORM's
+ * two queries, and its pages are held to TypeORM's too.
  *
  * Opt in with RUN_POSTGRES_PAGED_FIND_TESTS=true against a database the
  * registered migrations have run on: the table definitions are copied from
@@ -56,6 +66,25 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
   const monitorIds: Array<string> = [];
   const incidentIds: Array<string> = [];
   const labelIds: Array<string> = [];
+
+  // The SQL sent while recording (PagedFind's own reads, below).
+  const recordedQueries: Array<string> = [];
+  let isRecordingQueries: boolean = false;
+
+  async function recordQueries(
+    read: () => Promise<unknown>,
+  ): Promise<Array<string>> {
+    recordedQueries.length = 0;
+    isRecordingQueries = true;
+
+    try {
+      await read();
+    } finally {
+      isRecordingQueries = false;
+    }
+
+    return [...recordedQueries];
+  }
 
   // An id that sorts after every id made before it, for stable ties.
   function nextId(): string {
@@ -231,6 +260,18 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
       schema,
       synchronize: false,
       extra: { options: `-c search_path=${schema},public` },
+      logger: {
+        logQuery: (query: string): void => {
+          if (isRecordingQueries) {
+            recordedQueries.push(query);
+          }
+        },
+        logQueryError: (): void => {},
+        logQuerySlow: (): void => {},
+        logSchemaBuild: (): void => {},
+        logMigration: (): void => {},
+        log: (): void => {},
+      },
     });
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
@@ -675,5 +716,331 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
         total: 0,
       });
     }
+  });
+
+  // An Incidents list as the dashboard reads it: labels, monitors, a state.
+  function incidentsList(
+    overrides: Record<string, unknown>,
+  ): FindManyOptions<Incident> {
+    return {
+      where: { projectId: projectId },
+      select: {
+        _id: true,
+        createdAt: true,
+        declaredAt: true,
+        title: true,
+        deletedAt: true,
+        labels: { _id: true, name: true },
+        monitors: { _id: true, name: true },
+        currentIncidentState: { _id: true, name: true, order: true },
+        incidentSeverity: { _id: true, name: true },
+      },
+      relations: {
+        labels: true,
+        monitors: true,
+        currentIncidentState: true,
+        incidentSeverity: true,
+      },
+      order: { createdAt: "DESC", _id: "ASC" },
+      ...overrides,
+    } as never;
+  }
+
+  async function expectSameIncidentsListPages(
+    orders: Array<Record<string, unknown>>,
+  ): Promise<number> {
+    let compared: number = 0;
+
+    for (const order of orders) {
+      const select: Record<string, unknown> = {
+        ...(incidentsList({}).select as Record<string, unknown>),
+        incidentNumber: true,
+      };
+
+      compared += await expectSamePages({
+        target: Incident,
+        options: incidentsList({ order: order, select: select }),
+        pageSizes: [1, 2, 3, 5, 100],
+        total: 17,
+      });
+    }
+
+    return compared;
+  }
+
+  // Each page twice, with a dozen joins: slower than the suite's default.
+  const MANY_PAGES_TIMEOUT_MS: number = 300000;
+
+  test(
+    "an Incidents list with its labels and monitors: TypeORM's pages, for every order of its own columns",
+    async () => {
+      expect(
+        await expectSameIncidentsListPages([
+          { createdAt: "DESC", _id: "ASC" },
+          { createdAt: "ASC", _id: "DESC" },
+          { declaredAt: "DESC", _id: "ASC" },
+          { title: "ASC", _id: "ASC" },
+          { incidentNumber: "DESC", _id: "ASC" },
+        ]),
+      ).toBeGreaterThan(60);
+    },
+    MANY_PAGES_TIMEOUT_MS,
+  );
+
+  test(
+    "an Incidents list with its labels and monitors: TypeORM's pages, ordered through to-one relations and with no primary key",
+    async () => {
+      expect(
+        await expectSameIncidentsListPages([
+          // Through a to-one relation, with ties.
+          { currentIncidentState: { order: "DESC" }, _id: "ASC" },
+          { incidentSeverity: { name: "ASC" }, createdAt: "DESC", _id: "ASC" },
+          // No primary key: TypeORM breaks ties by it on its ids query, as the id page does.
+          { createdAt: "DESC" },
+        ]),
+      ).toBeGreaterThan(30);
+    },
+    MANY_PAGES_TIMEOUT_MS,
+  );
+
+  /*
+   * An Incidents list sorted from its Severity or State header (#8134): by
+   * the related record's place in the project's list, worst first or the
+   * other way with the incidents that have none last, that place selected
+   * as the dashboard's table selects it (ModelTable's ColumnSort).
+   */
+  test(
+    "an Incidents list sorted by its Severity and State headers: TypeORM's pages, both ways",
+    async () => {
+      let compared: number = 0;
+
+      const select: Record<string, unknown> = {
+        ...(incidentsList({}).select as Record<string, unknown>),
+        currentIncidentState: { _id: true, name: true, order: true },
+        incidentSeverity: { _id: true, name: true, order: true },
+      };
+
+      for (const order of [
+        { incidentSeverity: { order: "ASC" }, _id: "ASC" },
+        {
+          incidentSeverity: { order: { direction: "DESC", nulls: "LAST" } },
+          _id: "ASC",
+        },
+        { currentIncidentState: { order: "ASC" }, _id: "ASC" },
+        {
+          currentIncidentState: {
+            order: { direction: "DESC", nulls: "LAST" },
+          },
+          _id: "ASC",
+        },
+      ]) {
+        compared += await expectSamePages({
+          target: Incident,
+          options: incidentsList({ order: order, select: select }),
+          pageSizes: [1, 3, 5, 100],
+          total: 17,
+        });
+      }
+
+      expect(compared).toBeGreaterThan(40);
+    },
+    MANY_PAGES_TIMEOUT_MS,
+  );
+
+  test(
+    "an Incidents list with deleted incidents, filtered through its state, with a raw condition",
+    async () => {
+      let compared: number = 0;
+
+      compared += await expectSamePages({
+        target: Incident,
+        options: incidentsList({ withDeleted: true }),
+        pageSizes: [1, 4, 100],
+        total: 17,
+      });
+
+      compared += await expectSamePages({
+        target: Incident,
+        options: incidentsList({
+          where: {
+            projectId: projectId,
+            currentIncidentState: { name: In(["State 0", "State 2"]) },
+          },
+        }),
+        pageSizes: [1, 3, 100],
+        total: 17,
+      });
+
+      compared += await expectSamePages({
+        target: Incident,
+        options: incidentsList({
+          where: {
+            projectId: projectId,
+            title: Raw((alias: string): string => {
+              return `(${alias} IS NULL OR ${alias} <> 'Incident 1')`;
+            }),
+          },
+        }),
+        pageSizes: [2, 100],
+        total: 17,
+      });
+
+      // Alternatives, each through the table and a to-one relation only.
+      compared += await expectSamePages({
+        target: Incident,
+        options: incidentsList({
+          where: [
+            { projectId: projectId, title: "Incident 0" },
+            { projectId: projectId, currentIncidentState: { name: "State 1" } },
+          ],
+        }),
+        pageSizes: [1, 100],
+        total: 17,
+      });
+
+      expect(compared).toBeGreaterThan(30);
+    },
+    MANY_PAGES_TIMEOUT_MS,
+  );
+
+  test(
+    "monitors with their labels and the monitors they depend on: TypeORM's pages, deleted labels left out by both",
+    async () => {
+      let compared: number = 0;
+
+      for (const order of [
+        { name: "ASC", _id: "ASC" },
+        { createdAt: "DESC", _id: "ASC" },
+        { currentMonitorStatus: { name: "DESC" }, _id: "DESC" },
+      ]) {
+        compared += await expectSamePages({
+          target: Monitor,
+          options: {
+            where: { projectId: projectId } as never,
+            select: {
+              _id: true,
+              createdAt: true,
+              name: true,
+              labels: { _id: true, name: true },
+              dependsOnMonitors: { _id: true, name: true },
+              currentMonitorStatus: { _id: true, name: true },
+            } as never,
+            relations: {
+              labels: true,
+              dependsOnMonitors: true,
+              currentMonitorStatus: true,
+            } as never,
+            order: order as never,
+          },
+          pageSizes: [1, 2, 5, 50],
+          total: 23,
+        });
+      }
+
+      expect(compared).toBeGreaterThan(40);
+    },
+    MANY_PAGES_TIMEOUT_MS,
+  );
+
+  test("a list filtered through the labels it shows: TypeORM's two queries, and its pages", async () => {
+    const options: FindManyOptions<Incident> = incidentsList({
+      where: {
+        projectId: projectId,
+        labels: { _id: In(labelIds.slice(0, 3)) },
+      },
+    });
+
+    const compared: number = await expectSamePages({
+      target: Incident,
+      options: options,
+      pageSizes: [1, 2, 100],
+      total: 17,
+    });
+
+    expect(compared).toBeGreaterThan(5);
+    expect(
+      PagedFind.createIdPageQueryBuilder(database.getRepository(Incident), {
+        ...options,
+        skip: 0,
+        take: 10,
+      }),
+    ).toBeNull();
+  });
+
+  test("a list ordered through a to-many relation: TypeORM's two queries, and its pages", async () => {
+    const options: FindManyOptions<Incident> = incidentsList({
+      select: {
+        ...(incidentsList({}).select as Record<string, unknown>),
+        labels: { _id: true, name: true },
+      },
+      order: { labels: { name: "ASC" }, _id: "ASC" },
+    });
+
+    await expectSamePages({
+      target: Incident,
+      options: options,
+      pageSizes: [2, 100],
+      total: 17,
+    });
+
+    expect(
+      PagedFind.createIdPageQueryBuilder(database.getRepository(Incident), {
+        ...options,
+        skip: 0,
+        take: 10,
+      }),
+    ).toBeNull();
+  });
+
+  test("the queries a list of incidents with labels and monitors sends: its ids from the table, then their rows", async () => {
+    const repository: Repository<Incident> = database.getRepository(Incident);
+    const options: FindManyOptions<Incident> = {
+      ...incidentsList({}),
+      skip: 2,
+      take: 3,
+    };
+
+    let paged: Array<Incident> = [];
+    const pagedQueries: Array<string> = await recordQueries(async () => {
+      paged = await PagedFind.find(repository, options);
+    });
+
+    let typeOrm: Array<Incident> = [];
+    const typeOrmQueries: Array<string> = await recordQueries(async () => {
+      typeOrm = await repository.find(options);
+    });
+
+    expect(normalized(paged)).toBe(normalized(typeOrm));
+    expect(paged).toHaveLength(3);
+
+    // TypeORM: the DISTINCT over every join, then the rows.
+    expect(typeOrmQueries).toHaveLength(2);
+    expect(typeOrmQueries[0]).toContain("SELECT DISTINCT");
+    expect(typeOrmQueries[0]).toContain('"IncidentLabel"');
+
+    // PagedFind: the ids from the table, then the very same rows query.
+    expect(pagedQueries).toHaveLength(2);
+    expect(pagedQueries[0]).not.toContain("DISTINCT");
+    expect(pagedQueries[0]).not.toContain("JOIN");
+    expect(pagedQueries[0]).toContain("LIMIT 3 OFFSET 2");
+    expect(pagedQueries[1]).toBe(typeOrmQueries[1]);
+  });
+
+  test("a page past the last: one query, and nothing", async () => {
+    const repository: Repository<Incident> = database.getRepository(Incident);
+    const options: FindManyOptions<Incident> = {
+      ...incidentsList({}),
+      skip: 1000,
+      take: 10,
+    };
+
+    let paged: Array<Incident> = [new Incident()];
+    const queries: Array<string> = await recordQueries(async () => {
+      paged = await PagedFind.find(repository, options);
+    });
+
+    expect(paged).toEqual([]);
+    expect(await repository.find(options)).toEqual([]);
+    expect(queries).toHaveLength(1);
   });
 });

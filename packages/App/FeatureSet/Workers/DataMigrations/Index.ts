@@ -173,6 +173,7 @@ import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
 import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusTimelines";
 import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 import EncryptGlobalConfigCredentials from "./EncryptGlobalConfigCredentials";
+import BackfillNetworkEndpointCoarseLastSeenAt from "./BackfillNetworkEndpointCoarseLastSeenAt";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1079,6 +1080,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * asserts for itself.
    */
   new EncryptGlobalConfigCredentials(),
+  /*
+   * NetworkEndpoint.coarseLastSeenAt (#8092): lastSeenAt copied in for the
+   * live endpoints that were seen, so the age-out of discovered devices,
+   * which now finds its candidates by that column, finds the ones no walk
+   * sees any more. After the schema migration
+   * AddNetworkEndpointCoarseLastSeenAt; Postgres only, paged, and
+   * idempotent; no ordering requirement among these, so it sits above the
+   * runbook moves, which keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillNetworkEndpointCoarseLastSeenAt(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

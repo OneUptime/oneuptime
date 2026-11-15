@@ -13,6 +13,8 @@ import StatusTimelineViewSwitch, {
   useStatusTimelineView,
 } from "Common/UI/Components/StatusTimeline/StatusTimelineView";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   getStateTimelineDurationColumn,
   getStateTimelineEndsAtColumn,
@@ -243,6 +245,10 @@ const EpisodeViewStateTimeline: FunctionComponent<PageComponentProps> = (
                 <Pill
                   color={item["alertState"]["color"] as Color}
                   text={item["alertState"]["name"] as string}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.AlertState,
+                    item["alertState"]["name"] as string,
+                  )}
                 />
               );
             },

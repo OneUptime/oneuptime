@@ -83,6 +83,34 @@ RunCron(
   },
 );
 
+/*
+ * The measurements still to backfill: requested, and not finished since.
+ *
+ * Every request stamps backfillRequestedAt and clears backfillCompletedAt
+ * (the measurement services on create and on a definition edit, and
+ * FirstPagedAt's re-request), and a finished run stamps backfillCompletedAt,
+ * so "not finished" is backfillCompletedAt IS NULL. The read used to ask
+ * only for backfillRequestedAt IS NOT NULL - every measurement ever
+ * backfilled - and skip the finished ones after reading them: once 500 had
+ * finished, the 500 it read could all be finished ones, and a new request
+ * was never reached.
+ */
+const buildPendingMeasurementQuery: () => Record<string, unknown> = (): Record<
+  string,
+  unknown
+> => {
+  return {
+    backfillRequestedAt: QueryHelper.notNull(),
+    backfillCompletedAt: QueryHelper.isNull(),
+  };
+};
+
+// Oldest request first, so a request is never left behind newer ones.
+const PENDING_MEASUREMENT_SORT: Record<string, SortOrder> = {
+  backfillRequestedAt: SortOrder.Ascending,
+  _id: SortOrder.Ascending,
+};
+
 type BuildDomainsFunction = () => Array<DomainBackfill>;
 
 const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
@@ -91,7 +119,7 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
       domain: "Incident",
       findMeasurements: async (): Promise<Array<MeasurementBackfillState>> => {
         return (await IncidentMeasurementService.findBy({
-          query: { backfillRequestedAt: QueryHelper.notNull() },
+          query: buildPendingMeasurementQuery(),
           select: {
             _id: true,
             projectId: true,
@@ -99,6 +127,7 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
             backfillCompletedAt: true,
             backfillCursorCreatedAt: true,
           },
+          sort: PENDING_MEASUREMENT_SORT,
           limit: PAGE_SIZE,
           skip: 0,
           props: { isRoot: true },
@@ -138,7 +167,7 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
       domain: "Alert",
       findMeasurements: async (): Promise<Array<MeasurementBackfillState>> => {
         return (await AlertMeasurementService.findBy({
-          query: { backfillRequestedAt: QueryHelper.notNull() },
+          query: buildPendingMeasurementQuery(),
           select: {
             _id: true,
             projectId: true,
@@ -146,6 +175,7 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
             backfillCompletedAt: true,
             backfillCursorCreatedAt: true,
           },
+          sort: PENDING_MEASUREMENT_SORT,
           limit: PAGE_SIZE,
           skip: 0,
           props: { isRoot: true },
@@ -185,7 +215,7 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
       domain: "ScheduledMaintenance",
       findMeasurements: async (): Promise<Array<MeasurementBackfillState>> => {
         return (await ScheduledMaintenanceMeasurementService.findBy({
-          query: { backfillRequestedAt: QueryHelper.notNull() },
+          query: buildPendingMeasurementQuery(),
           select: {
             _id: true,
             projectId: true,
@@ -193,6 +223,7 @@ const buildDomains: BuildDomainsFunction = (): Array<DomainBackfill> => {
             backfillCompletedAt: true,
             backfillCursorCreatedAt: true,
           },
+          sort: PENDING_MEASUREMENT_SORT,
           limit: PAGE_SIZE,
           skip: 0,
           props: { isRoot: true },

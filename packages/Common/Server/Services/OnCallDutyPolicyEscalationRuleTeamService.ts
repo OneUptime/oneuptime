@@ -27,6 +27,7 @@ import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import OnCallChatText from "../Utils/OnCall/OnCallChatText";
+import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -42,6 +43,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     if (!createdItemId) {
       throw new BadDataException("Created item does not have an ID");
     }
+
+    // The team's people are paged by the rule now: the header says so at once.
+    await OnDutyPoliciesCache.forgetProjects([createdItem.projectId]);
 
     const createdModel: Model | null = await this.findOneById({
       id: createdItemId,
@@ -318,6 +322,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
+
+    // Nobody in the team is on duty for the rule any more.
+    await OnDutyPoliciesCache.forgetProjects(
+      deletedItems.map((deletedItem: Model) => {
+        return deletedItem.projectId;
+      }),
+    );
 
     for (const deletedItem of deletedItems) {
       const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeam(
