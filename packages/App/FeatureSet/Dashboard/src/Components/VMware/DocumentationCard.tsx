@@ -11,6 +11,7 @@ import {
   getVMwareSetupGuide,
   resolveVMwareInstallMethod,
 } from "../../Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../Pages/VMware/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -45,6 +46,7 @@ const VMwareDocumentationCard: FunctionComponent<ComponentProps> = (
           vcenterName: props.vcenterName,
         });
       }}
+      translations={VMWARE_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}
