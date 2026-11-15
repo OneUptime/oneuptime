@@ -490,23 +490,33 @@ describe("Session Replay docs: frustration signals, held to the code", (): void 
 
   it("matches a hash-routed page on its route, and an app on the route it passes to setRoute()", (): void => {
     expect(english).toContain(
-      "A page that routes after `#/` is matched on that route too, and a React Native app on the route it passes to `setRoute()`.",
+      "A page that routes after `#/` or `#!/` is matched on that route too, and a React Native app on the route it passes to `setRoute()`.",
     );
 
-    const paths: Array<string> = CustomSignalDetector.pagePathsOf({
-      pathname: "/",
-      hash: "#/checkout/error?step=2",
-    });
+    // Both forms the docs name, and an anchor, which is no route.
+    for (const hash of [
+      "#/checkout/error?step=2",
+      "#!/checkout/error?step=2",
+    ]) {
+      const paths: Array<string> = CustomSignalDetector.pagePathsOf({
+        pathname: "/",
+        hash: hash,
+      });
 
-    expect(paths).toEqual(["/", "/checkout/error"]);
+      expect([hash, paths]).toEqual([hash, ["/", "/checkout/error"]]);
+      expect(
+        browserHits(
+          [signal("page", "/checkout/error")],
+          (detector: CustomSignalDetector): void => {
+            detector.notifyPage(paths, 1000);
+          },
+        ),
+      ).toHaveLength(1);
+    }
+
     expect(
-      browserHits(
-        [signal("page", "/checkout/error")],
-        (detector: CustomSignalDetector): void => {
-          detector.notifyPage(paths, 1000);
-        },
-      ),
-    ).toHaveLength(1);
+      CustomSignalDetector.pagePathsOf({ pathname: "/", hash: "#checkout" }),
+    ).toEqual(["/"]);
 
     const hits: Array<MobileCustomSignalHit> =
       new CustomSignalMatcher().matchPage(

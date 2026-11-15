@@ -111,6 +111,10 @@ export interface ErrorSupportBundleApplicationDetails {
 
 export interface ErrorSupportBundlePageDetails {
   url: string;
+  /*
+   * The page, scrubbed, without origin or query: its path and, for a hash
+   * router, its route ("/#/orders/[redacted]"). UrlScrubber.getScrubbedPage.
+   */
   pathname: string;
   documentTitle: string;
   hadQueryString: boolean;
@@ -547,7 +551,7 @@ export const collectErrorSupportBundleRuntimeDetails: CollectErrorSupportBundleR
       page: {
         url: truncate(UrlScrubber.scrub(rawUrl), MAX_PAGE_URL_LENGTH),
         pathname: truncate(
-          UrlScrubber.getScrubbedPathname(rawUrl),
+          UrlScrubber.getScrubbedPage(rawUrl),
           MAX_PAGE_URL_LENGTH,
         ),
         documentTitle: hasDocument
