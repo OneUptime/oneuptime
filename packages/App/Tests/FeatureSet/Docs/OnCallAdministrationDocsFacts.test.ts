@@ -805,7 +805,7 @@ describe("what runs a policy", () => {
       readCommonSource("Server/Utils/Workspace/WorkspaceCommands.ts"),
     ).toContain('Page = "page"');
     expect(readCommonSource("Types/Workflow/Components/OnCall.ts")).toContain(
-      'title: "Page an On-Call Policy"',
+      'title: translationKey("Page an On-Call Policy"),',
     );
     expect(english(ON_CALL_POLICIES)).toContain(
       "| Chat and workflows | `/oneuptime page` in Slack or Microsoft Teams, and a workflow's **Page an On-Call Policy** step |",
