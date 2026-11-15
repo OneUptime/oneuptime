@@ -139,7 +139,7 @@ OneUptime 从 span 和指标数据点读取人员，从不从日志记录读取�
 
 `log_user_prompt` 和 `log_agent_responses` 默认为 `false`：请保持关闭。`codex.user_prompt` 事件仍会到达，但提示词被替换为 `[REDACTED]`，因此你保留了这一轮、它的 token 和成本，却没有提示词文本。无论这些开关如何设置，人员（`user.email`、`user.account_id`）都在日志记录上。
 
-如果为了调查而开启内容， **跟踪 → 设置** 下跟踪的 **清理规则** 和 **丢弃过滤器** 会在存储前将其屏蔽或丢弃。
+如果为了调查而开启内容， **追踪 → 设置** 下跟踪的 **清理规则** 和 **丢弃过滤器** 会在存储前将其屏蔽或丢弃。
 
 ## 使用 OpenAI API 代替 Codex
 

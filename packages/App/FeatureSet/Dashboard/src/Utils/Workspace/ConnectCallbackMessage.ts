@@ -102,6 +102,28 @@ const NOT_CONFIGURED: Record<ConnectProvider, string> = {
 };
 
 /*
+ * The button Code's GitHub card draws to install the app
+ * (Components/Code/GitHubConnect.tsx), which a sentence names when it sends
+ * the reader to it. The sentence takes the button's words as they are drawn
+ * in the reader's language ({{connectGitHub}}), so the two cannot name
+ * different buttons: it named Connect with GitHub App, a label Code no
+ * longer draws, in every language (#8336).
+ */
+export const CONNECT_GITHUB_BUTTON: string = translationKey("Connect GitHub");
+
+// The words a sentence's {{placeholders}} are filled with, in the reader's language.
+export const getConnectCallbackMessageValues: (
+  translator: Translator,
+) => Record<string, string> = (
+  translator: Translator,
+): Record<string, string> => {
+  return {
+    connectGitHub:
+      translator.translateText(CONNECT_GITHUB_BUTTON) || CONNECT_GITHUB_BUTTON,
+  };
+};
+
+/*
  * A plan refusal, where the page has no sentence of its own naming the plan
  * (Code has: GitHubConnectLock).
  */
@@ -226,8 +248,9 @@ export const getConnectCallbackMessageKey: (
         "OneUptime could not confirm that your GitHub account can manage this installation. Please install the app with a GitHub account that can.",
       );
     case ConnectCallbackError.GitHubNoInstallationToConnect:
+      // {{connectGitHub}}: the button Code draws (CONNECT_GITHUB_BUTTON).
       return translationKey(
-        "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.",
+        "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.",
       );
     case ConnectCallbackError.VideoCallPermissionNotGranted:
       return translationKey(
@@ -282,6 +305,7 @@ export const getConnectCallbackNotice: (data: {
       ? data.planRequiredMessage
       : data.translator.translateTemplate(
           getConnectCallbackMessageKey(data.provider, code),
+          getConnectCallbackMessageValues(data.translator),
         );
 
   return {

@@ -63,7 +63,7 @@ Fai clic su **Test connection** per controllare l'URL e l'header, poi su **Enabl
 
 ### Controlla che i dati arrivino
 
-Usa Cursor per un minuto o due, poi apri **Log** in OneUptime e filtra sul nome del servizio `cursor`: i record `cursor.api.request` con i conteggi dei token indicano che la chiave e l'URL sono corretti.
+Usa Cursor per un minuto o due, poi apri **Registri** in OneUptime e filtra sul nome del servizio `cursor`: i record `cursor.api.request` con i conteggi dei token indicano che la chiave e l'URL sono corretti.
 :::
 
 Cursor parla OTLP su HTTP solo con protobuf binario (niente gRPC, niente JSON), che OneUptime accetta così com'è. Salva l'header cifrato, e invia a una sola destinazione per team: per inviare a OneUptime e altrove, metti davanti un collector.
@@ -78,7 +78,7 @@ Cursor parla OTLP su HTTP solo con protobuf binario (niente gRPC, niente JSON), 
 | Tracce | No |
 | Qualsiasi cosa precedente all'attivazione della destinazione | No |
 
-Quindi in OneUptime Cursor compare nella scheda **Utilizzo** di **Prodotti → IA / LLM**, da `cursor.token.usage` e `cursor.cost.usage`, ma mai in **Chiamate** o **Conversazioni**, che sono costruite dalle tracce. Il dettaglio per richiesta è l'evento `cursor.api.request` nell'esploratore dei **Log**.
+Quindi in OneUptime Cursor compare nella scheda **Utilizzo** di **Prodotti → IA / LLM**, da `cursor.token.usage` e `cursor.cost.usage`, ma mai in **Chiamate** o **Conversazioni**, che sono costruite dalle tracce. Il dettaglio per richiesta è l'evento `cursor.api.request` nell'esploratore dei **Registri**.
 
 ### Famiglie
 
@@ -113,7 +113,7 @@ Ogni record porta questi attributi di risorsa:
 
 | Attributo | Cos'è |
 | --- | --- |
-| `service.name` | Sempre `cursor`: filtra su di esso gli esploratori dei **Log** e delle **Metriche** |
+| `service.name` | Sempre `cursor`: filtra su di esso gli esploratori dei **Registri** e delle **Metriche** |
 | `cursor.team.id` | Il tuo team, un intero; sempre presente |
 | `cursor.user.id` | La persona, un intero valido solo nel team; facoltativo |
 | `cursor.surface` | Da dove viene l'attività, come `desktop`, `cli`, `cloud_agent` o `bugbot` |
