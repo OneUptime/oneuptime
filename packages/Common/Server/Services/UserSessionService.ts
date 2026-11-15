@@ -1206,12 +1206,14 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Ends `sessionId` when it is a live session of `userId`, and answers
-   * whether there was one: the session a sign-out's own access token names
-   * (JSONWebToken.readSessionToSignOut), when the refresh token it sent
-   * matches no session (POST /identity/logout, issue #8592). The server
-   * rotates the refresh token at every renewal and keeps only the new one,
-   * so a client whose renewal's answer was lost signs out with the refresh
-   * token the renewal replaced; the session its access token names is
+   * whether there was one: the session a sign-out names when the refresh
+   * token it sent matches no session (POST /identity/logout) - by its own
+   * access token, expired or not (JSONWebToken.decode with acceptExpired,
+   * issue #8592), or by a browser's sign-out cookie once that token's
+   * cookie has gone (JSONWebToken.decodeSessionToSignOut, issue #8638).
+   * The server rotates the refresh token at every renewal and keeps only
+   * the new one, so a client whose renewal's answer was lost signs out with
+   * the refresh token the renewal replaced; the session both tokens name is
    * still the same one. A session of anybody else, or one already over, is
    * left as it is - a sign-out replayed later ends nothing a second time,
    * and records nothing.

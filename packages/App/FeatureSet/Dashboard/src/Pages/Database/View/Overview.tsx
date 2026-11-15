@@ -619,7 +619,7 @@ const DatabaseServerOverview: FunctionComponent<
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Queries",
-      value: hasQueries ? formatDatabaseCount(m.total, translator) : "—",
+      value: hasQueries ? formatDatabaseCount(m.total, translator) : undefined,
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: telemetryLoading,
@@ -660,7 +660,7 @@ const DatabaseServerOverview: FunctionComponent<
     {
       title: "Calling services",
       value: telemetryLoading
-        ? "—"
+        ? undefined
         : formatDatabaseCount(callingServices.total, translator),
       icon: IconProp.SquareStack,
       iconColor: "violet",

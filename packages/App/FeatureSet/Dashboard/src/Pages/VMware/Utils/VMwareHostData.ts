@@ -1,4 +1,5 @@
 import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -1094,7 +1095,7 @@ export const VMWARE_DISK_LATENCY_GAUGE_THRESHOLDS: {
  */
 export function formatVMwarePerSecond(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (value === 0) {
@@ -1124,7 +1125,7 @@ export function formatVMwarePerSecond(value: number | null): string {
 
 export function formatVMwareMilliseconds(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (value >= 100) {

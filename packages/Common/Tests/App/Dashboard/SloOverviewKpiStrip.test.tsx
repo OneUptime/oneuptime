@@ -227,13 +227,18 @@ describe("SloKpiStrip", () => {
     );
 
     const sli: HTMLElement = getTile("slo-kpi-sli");
-    expect(within(sli).getByText("—")).toHaveClass("text-gray-400");
+    // The figure's quiet dash, read out as "Not set" (#8264).
+    expect(within(sli).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(
       within(sli).getByText("Target 99.9% · not evaluated yet"),
     ).toBeInTheDocument();
 
     const budget: HTMLElement = getTile("slo-kpi-budget");
-    expect(within(budget).getByText("—")).toHaveClass("text-gray-400");
+    expect(within(budget).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(within(budget).getByText("Not evaluated yet")).toBeInTheDocument();
     expect(within(budget).queryByTestId("slo-budget-bar-fill")).toBeNull();
     expect(within(budget).queryByTestId("slo-budget-bar-marker")).toBeNull();
@@ -244,7 +249,9 @@ describe("SloKpiStrip", () => {
     expect(screen.queryByTestId("slo-kpi-burn-rate-badge")).toBeNull();
 
     const runway: HTMLElement = getTile("slo-kpi-runway");
-    expect(within(runway).getByText("—")).toHaveClass("text-gray-400");
+    expect(within(runway).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(within(runway).getByText("Not evaluated yet")).toBeInTheDocument();
   });
 
@@ -536,7 +543,9 @@ describe("SloKpiStrip", () => {
       );
 
       const budget: HTMLElement = getTile("slo-kpi-budget");
-      expect(within(budget).getByText("—")).toHaveClass("text-gray-400");
+      expect(within(budget).getByTestId("empty-figure")).toHaveClass(
+        "text-gray-400",
+      );
       expect(within(budget).getByText("Not evaluated yet")).toBeInTheDocument();
       expect(budget).not.toHaveTextContent(/NaN|Infinity|window .* full/);
       expect(within(budget).queryByText("Budget exceeded")).toBeNull();
@@ -761,7 +770,9 @@ describe("SloKpiStrip", () => {
     );
 
     const runway: HTMLElement = getTile("slo-kpi-runway");
-    expect(within(runway).getByText("—")).toHaveClass("text-gray-400");
+    expect(within(runway).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
     expect(
       within(runway).getByText(
         "Not projected when downtime is averaged across monitors",

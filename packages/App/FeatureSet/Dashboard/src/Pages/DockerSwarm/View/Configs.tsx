@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ResourceTable, {
@@ -74,7 +75,9 @@ const DockerSwarmClusterConfigs: FunctionComponent<
           title: "Created",
           key: "createdAt",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["createdAt"] || "-";
+            return (
+              resource.additionalAttributes["createdAt"] || EMPTY_VALUE_MARK
+            );
           },
         },
       ]}

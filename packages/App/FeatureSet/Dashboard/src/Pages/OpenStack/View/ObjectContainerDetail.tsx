@@ -44,7 +44,7 @@ const OpenStackCloudObjectContainerDetail: FunctionComponent<
           {
             key: "name",
             label: "Container",
-            value: row.name || "—",
+            value: row.name,
             mono: true,
             copyText: row.name || "",
           },

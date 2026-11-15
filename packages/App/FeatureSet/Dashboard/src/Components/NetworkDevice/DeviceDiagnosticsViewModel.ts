@@ -1,4 +1,5 @@
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import NetworkPathTrace, {
   TraceRouteHop,
 } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
@@ -104,7 +105,7 @@ export function formatRoundTrip(
   translator: Translator = getGlobalTranslator(),
 ): string {
   if (value === undefined || value === null || Number.isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return formatMilliseconds(translator, value, {

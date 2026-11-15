@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -54,7 +55,7 @@ const toNum: (value: unknown) => number = (value: unknown): number => {
 
 const formatNumber: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
-  return isNaN(parsed) ? "—" : parsed.toLocaleString();
+  return isNaN(parsed) ? EMPTY_VALUE_MARK : parsed.toLocaleString();
 };
 
 const toNumOrNull: (value: unknown) => number | null = (
@@ -72,7 +73,7 @@ const bytesToReadable: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value === 0) {
     return "0 B";
@@ -130,7 +131,7 @@ const readerCount: (value: unknown, translator: Translator) => string = (
   const parsed: number = Number(value);
 
   return value === null || value === undefined || value === "" || isNaN(parsed)
-    ? "—"
+    ? EMPTY_VALUE_MARK
     : translator.formatNumber(parsed);
 };
 
