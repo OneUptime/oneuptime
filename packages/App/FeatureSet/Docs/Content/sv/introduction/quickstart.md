@@ -44,7 +44,7 @@ Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **V�
 :::steps
 ### Öppna installationen för webbplatsen
 
-Klicka på **Skapa din första övervakare** i checklistan. Den öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, som kontrollerar din webbplats, väljer vem som får veta och skickar ett test, på en sida. Den som inte får skapa monitorer får i stället listan **Monitorer**.
+Klicka på **Skapa din första monitor** i checklistan. Den öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, som kontrollerar din webbplats, väljer vem som får veta och skickar ett test, på en sida. Den som inte får skapa monitorer får i stället listan **Monitorer**.
 
 ### Ange adressen
 
@@ -52,7 +52,7 @@ Klicka på **Skapa din första övervakare** i checklistan. Den öppnar den guid
 
 Under **Vad ska vi kontrollera?** skriver du in hela adressen till din webbplats i **Adress till webbplats eller API**, till exempel `https://example.com`, och klickar på **Börja kontrollera**. Sonderna kontrollerar den direkt och sedan var 5:e minut: när webbplatsen inte svarar, eller svarar med ett fel, går monitorn till **Offline** och deklarerar en incident. Klicka på **Fortsätt**.
 
-På Free-planen i OneUptime Cloud faktureras monitorer efter användning, så projektet behöver en betalningsmetod innan det kan kontrollera din webbplats: utan en ber steget dig att [lägga till en betalningsmetod](/docs/configuration/billing#betalningsmetoder).
+På Free-planen i OneUptime Cloud faktureras monitorer efter användning, så projektet behöver en betalningsmetod innan det kan kontrollera din webbplats: utan en säger steget det redan före **Börja kontrollera**, med **Lägg till betalningsmetod** för att [lägga till en](/docs/configuration/billing#betalningsmetoder).
 
 ### Välj vem som får veta
 

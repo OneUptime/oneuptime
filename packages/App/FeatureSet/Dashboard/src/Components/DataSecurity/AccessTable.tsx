@@ -35,6 +35,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * WHO AND WHAT CAN REACH A DATA STORE.
@@ -215,10 +216,12 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
           getElement: (access: DataStoreAccess): ReactElement => {
             return (
               <span className="whitespace-nowrap text-sm text-gray-700">
-                {access.principalType
-                  ? translator.translateText(access.principalType) ||
-                    access.principalType
-                  : "-"}
+                {access.principalType ? (
+                  translator.translateText(access.principalType) ||
+                  access.principalType
+                ) : (
+                  <TableEmptyValue />
+                )}
               </span>
             );
           },
@@ -230,7 +233,7 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
           disableSort: true,
           getElement: (access: DataStoreAccess): ReactElement => {
             if (!access.accessLevel) {
-              return <span className="text-sm text-gray-400">-</span>;
+              return <TableEmptyValue />;
             }
 
             return (
@@ -268,7 +271,7 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
             const storeId: string = access.dataStoreId?.toString() || "";
 
             if (!storeId) {
-              return <span className="text-sm text-gray-400">-</span>;
+              return <TableEmptyValue />;
             }
 
             return (

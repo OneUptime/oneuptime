@@ -8,6 +8,7 @@ En efteranalys är genomgången efter en incident: vad som hände, varför, vad 
 - [Publicera den på din statussida](#publicera-den-på-din-statussida): Visa den för kunderna och meddela prenumeranter en gång.
 - [Följ hur långt varje efteranalys har kommit](#följ-hur-långt-varje-efteranalys-har-kommit): Inte påbörjad, Utkast, Slutförd eller en egen status.
 - [Se alla efteranalyser](#se-alla-efteranalyser): Filtrera på ägare, allvarlighetsgrad och status för att hitta dem som fortfarande saknas.
+- [Följ upp åtgärdspunkter](#följ-upp-åtgärdspunkter): Vad teamet ska göra, vem som äger varje punkt och vad den blev till.
 - [Efteranalyser för episoder](#efteranalyser-för-episoder): En genomgång för en grupp incidenter.
 :::
 
@@ -169,6 +170,47 @@ Filtrera listan med chippen ovanför: **Ägare**, en person eller ett team; **Al
 
 För att ändra många samtidigt markerar du dem och öppnar **Massåtgärder**: **Ändra efteranalysstatus** flyttar alla till en status, till exempel **Behövs inte** för incidenter som inte behöver någon, och **Lägg till ägare** och **Ta bort ägare** ändrar vem som äger dem.
 
+## Följ upp åtgärdspunkter
+
+Åtgärdspunkterna i en efteranalys är det som ditt team ska göra för att incidenten inte ska hända igen. Var och en är en post på incidenten, med en ägare, ett förfallodatum och en status, så att ingen av dem blir kvar som en rad i anteckningen som ingen följer upp. Kortet **Åtgärdspunkter** finns under kortet **Efteranalys** på incidentens sida **Efteranalys**.
+
+- För att lägga till en skriver du den på raden under listan och klickar på **Lägg till åtgärdspunkt**.
+- För att ge en punkt en ägare väljer du **Tilldela mig** eller **Tilldela någon annan** i dess meny **⋯**.
+- För att ge en punkt ett förfallodatum väljer du **Redigera åtgärdspunkt** i dess meny **⋯** och anger dess **Förfallodatum**. En öppen åtgärdspunkt vars förfallodatum har passerat visar i rött att den är försenad.
+- För att stänga en kryssar du i dess ruta när den är klar. **Markera som ”Görs inte”** i dess meny **⋯** stänger den när teamet bestämmer sig för att inte göra den, och **Öppna igen** öppnar den på nytt. Varje stängd punkt visar vem som stängde den och när.
+
+Kortet visar hur många som är klara, utan att räkna med dem som är markerade som **Görs inte**. Att lägga till, stänga och lämna över en åtgärdspunkt registreras i incidentens flöde.
+
+### Följ upp åtgärdspunkterna som anteckningen listar
+
+OneUptime AI:s utkast och varje mall för efteranalys slutar med ett avsnitt med åtgärdspunkter: en checklista, eller en tabell med kolumnerna `Owner` och `Due Date`. När anteckningen har ett sådant avsnitt visar kortet de punkter som incidenten ännu inte följer upp, med en knapp som följer upp dem alla. Var och en blir en åtgärdspunkt:
+
+- en ikryssad ruta registreras som klar;
+- ett förfallodatum som anteckningen skriver som ett datum, till exempel 2026-11-20, blir dess förfallodatum, i din tidszon;
+- en punkt som redan följs upp, sett till titeln, hoppas över, så att en ny uppföljning inte lägger till något.
+
+Avsnittets rubrik kan vara `Action Items`, `Follow-ups`, `Next Steps` eller `How We Prevent It`, eller samma ord på något annat av instrumentpanelens språk.
+
+### Gör en åtgärdspunkt till en pull request, ett test eller en monitor
+
+Varje öppen åtgärdspunkt kan bli det som den efterfrågar, via dess meny **⋯**:
+
+| Åtgärd | Vad som händer |
+| --- | --- |
+| **Öppna pull request med AI** | OneUptime AI gör ändringen i ett repository som du väljer och öppnar en pull request för granskning. Incidenten och dess efteranalys följer med i uppdraget. |
+| **Skriv ett test med AI** | OneUptime AI skriver ett test som skulle ha fångat incidenten, i repositoryts eget testramverk, och öppnar en pull request med testet. |
+| **Skapa monitor** | **Skapa monitor** öppnas med åtgärdspunktens titel som namn. När monitorn har skapats nämner åtgärdspunkten den och är klar. |
+
+Åtgärdspunkten visar sedan vad den blev till: uppgiftens fas, till exempel **Uppgift pågår** eller **Pull request öppen**, med en länk till uppgiften i [Kod](/docs/ai/ai-agent), och dess pull request; eller monitorn. När pull requesten mergas blir åtgärdspunkten klar av sig själv, och incidentens flöde säger det.
+
+De två AI-åtgärderna kräver att AI är påslaget för projektet och ett repository som OneUptime AI kan arbeta i. Är inget anslutet erbjuder menyn **Anslut ett kodförråd** i stället. Att be om dem kräver samma sak som att be om något i Kod, och behörighet att redigera åtgärdspunkten.
+
+### Se alla åtgärdspunkter
+
+**Incidenter → Åtgärdspunkter** visar åtgärdspunkterna från alla efteranalyser i projektet, den som förfaller först överst, med varje punkts incident, ägare, förfallodatum och status. Filtrera listan på **Status**, **Ägare** och **Förfallodatum**, och **Visa** på en rad öppnar incidentens sida **Efteranalys**.
+
+Att läsa åtgärdspunkter kräver samma sak som att läsa incidenten. Att lägga till, ändra och ta bort dem kräver rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en anpassad roll med motsvarande behörighet för åtgärdspunkter. En privat incidents åtgärdspunkter är, precis som incidenten, bara synliga för användarna som äger den, medlemmarna i teamen som äger den, projektadministratörer och projektägare.
+
 ## Efteranalyser för episoder
 
 En incidentepisod har också en sida **Efteranalys**, under **Utredning**: en genomgång för varje incident i episoden. Klicka på **Redigera obduktion** för att skriva den. **Tillämpa mall** och **Generate with AI** fungerar som på en incident, och AI läser episoden och dess medlemsincidenter.
@@ -190,6 +232,8 @@ En efteranalys är en uppsättning fält på incidenten, som läses och skrivs v
 | `postmortemStatusId` | Efteranalysens status: en av projektets statusar, under `/api/incident-postmortem-status`. |
 
 Att skriva `showPostmortemOnStatusPage` som `true` över en skriven `postmortemNote` publicerar efteranalysen, precis som dialogen gör. Det flyttar också efteranalysen till **Slutförd**, om inte samma skrivning sätter `postmortemStatusId`.
+
+Åtgärdspunkterna i en efteranalys är egna poster, under `/api/incident-postmortem-action-item`: var och en med `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` och `status` (`Open`, `Done` eller `WontDo`). Arbetsflöden kan starta när en åtgärdspunkt skapas, ändras eller tas bort.
 
 ## Felsökning
 

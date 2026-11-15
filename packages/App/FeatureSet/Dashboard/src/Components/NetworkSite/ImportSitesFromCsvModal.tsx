@@ -44,6 +44,7 @@ import React, {
   useState,
 } from "react";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Bulk CSV import for Network Sites, reached from the ⋯ menu on the Sites
@@ -584,14 +585,14 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                           {row.parentName ? (
                             <IsolatedText text={row.parentName} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
                           {row.address ? (
                             <IsolatedText text={row.address} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
@@ -603,7 +604,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                               dataTestId="site-csv-coordinates"
                             />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                       </tr>
@@ -676,7 +677,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                           {result.message ? (
                             <IsolatedText text={result.message} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                       </tr>

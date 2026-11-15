@@ -256,7 +256,49 @@ const INPUTS_SCRIPT: string = String.raw`
     // 3.8 s for each line: titles in "()" that never close. The count: 17 s.
     "lines of titles in () left open": () =>
       repeatTo(repeatTo("[a](x (", QUADRATIC_SIZE - 1) + "\n", MIB - 16),
+    /*
+     * #7597: marked lists every definition of the text at each paragraph,
+     * cell or item it reads - definitions times reads. 20,000 and 20,000
+     * one-word paragraphs took 42 s; nothing is held back of any of these,
+     * and every reference resolves. Each is less than an email field holds.
+     */
+    "definitions and one-word paragraphs": () =>
+      definitionsAnd(12000, "x") + "\n\n" + "word\n\n".repeat(12000),
+    "definitions and paragraphs of a reference": () =>
+      definitionsAnd(8000, "x") + "\n\n" + "[l1]\n\n".repeat(8000),
+    "definitions and a table's cells": () =>
+      definitionsAnd(8000, "x") + "\n\n| a |\n| - |\n" + "| x |\n".repeat(8000),
+    "definitions and a list's items": () =>
+      definitionsAnd(8000, "x") + "\n\n" + "- a\n".repeat(8000),
+    "a block of definitions and a paragraph of references": () => {
+      const references = [];
+      for (let index = 0; index < 1000; index++) {
+        references.push("[l" + index + "]");
+      }
+      return references.join(" ") + "\n\n" + definitionsAnd(20000, "x", "\n");
+    },
+    /*
+     * #7598: marked reads a list item's text a line at a time, and looks
+     * through the rest of the item from each line: 6,000 lines took 4.4 s,
+     * four such items 16 s.
+     */
+    "a list item of 6,000 lines": () => "- start\n" + "  aaa bbb\n".repeat(6000),
+    "four list items of 6,000 lines": () =>
+      ("- start\n" + "  aaa bbb\n".repeat(6000) + "\n").repeat(4),
+    "a loose list item of four paragraphs of 6,000 lines": () =>
+      "- start\n" + ("\n" + "  aaa bbb\n".repeat(6000)).repeat(4),
+    "a list item in a quote, of 3,600 lines": () =>
+      "> - start\n" + ">   aaa bbb\n".repeat(3600),
   };
+
+  // count link reference definitions "[l<n>]: <address><n>", blank lines between unless said.
+  function definitionsAnd(count, address, joiner = "\n\n") {
+    const lines = [];
+    for (let index = 0; index < count; index++) {
+      lines.push("[l" + index + "]: " + address + index);
+    }
+    return lines.join(joiner);
+  }
 
   // A description template that places a monitor's response body.
   const templatedInputs = (MonitorTemplateUtil) => {
@@ -1019,7 +1061,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
     );
 
     expectUnoptimizedProcess(report);
-    expect(Object.keys(report.results)).toHaveLength(14);
+    expect(Object.keys(report.results)).toHaveLength(23);
     expectEveryCheckPassed(report);
   }, 600000);
 
@@ -1175,6 +1217,12 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
             100000,
             (html, n) => countOf(html, "*a") === n,
           ],
+          [
+            "a list item of many lines (#7598)",
+            (n) => "- start\n" + "  aaa bbb\n".repeat(n),
+            6000,
+            (html, n) => countOf(html, "<li") === 1 && countOf(html, "aaa bbb") === n,
+          ],
         ];
 
         await lib.Markdown.convertToHTML("warm *up* [a](https://a.b) ![b][c]\n\n[c]: /d", lib.MarkdownContentType.Email);
@@ -1228,6 +1276,7 @@ describe("Sixteen megabytes of text, where V8 compiles regular expressions unopt
       "pairs of angle brackets",
       "letters before an @",
       "emphasis that never closes",
+      "a list item of many lines (#7598)",
     ]);
     expectEveryCheckPassed(report);
   }, 600000);

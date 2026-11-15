@@ -52,7 +52,7 @@ Nell'elenco, fai clic su **Crea il tuo primo monitor**. Si apre la configurazion
 
 In **Cosa dobbiamo controllare?**, inserisci l'indirizzo completo del tuo sito in **Indirizzo del sito web o dell'API**, per esempio `https://example.com`, e fai clic su **Inizia il controllo**. Le sonde lo controllano subito, poi ogni 5 minuti: quando il sito non risponde, o risponde con un errore, il monitor passa a **Offline** e dichiara un incidente. Fai clic su **Continua**.
 
-Con il piano Free di OneUptime Cloud, i monitor vengono addebitati in base all'uso, quindi il progetto ha bisogno di un metodo di pagamento prima di poter controllare il tuo sito: senza, il passaggio ti chiede di [aggiungere un metodo di pagamento](/docs/configuration/billing#metodi-di-pagamento).
+Con il piano Free di OneUptime Cloud, i monitor vengono addebitati in base all'uso, quindi il progetto ha bisogno di un metodo di pagamento prima di poter controllare il tuo sito: senza, il passaggio lo dice prima di **Inizia il controllo**, con **Aggiungi metodo di pagamento** per [aggiungerne uno](/docs/configuration/billing#metodi-di-pagamento).
 
 ### Scegliere chi viene avvisato
 

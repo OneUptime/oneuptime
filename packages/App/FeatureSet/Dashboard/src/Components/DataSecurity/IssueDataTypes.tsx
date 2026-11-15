@@ -17,6 +17,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * WHAT A DATA TYPE IS CALLED, WHEREVER DATA SECURITY NAMES ONE.
@@ -211,9 +212,7 @@ export const IssueDataTypeChips: FunctionComponent<IssueDataTypeChipsProps> = (
   );
 
   if (names.length === 0) {
-    return (
-      props.emptyElement || <span className="text-sm text-gray-400">-</span>
-    );
+    return props.emptyElement || <TableEmptyValue />;
   }
 
   const shown: Array<string> =

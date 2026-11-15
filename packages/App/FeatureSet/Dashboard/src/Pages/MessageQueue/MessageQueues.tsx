@@ -80,6 +80,7 @@ import {
   validateMessageQueueNamespace,
   validateMessageQueueOtherSystem,
 } from "./Utils/MessageQueuePresentation";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Width caps for the two cells whose text can be long: a queue name is a
@@ -540,7 +541,7 @@ const MessageQueues: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 break-words hover:underline"
                   >
-                    {name || destination || "—"}
+                    {name || destination || <TableEmptyValue />}
                   </AppLink>
                   {/*
                    * A renamed queue still shows the destination its
@@ -591,7 +592,7 @@ const MessageQueues: FunctionComponent<
               const broker: MessageQueueBrokerLabel =
                 getMessageQueueBrokerLabel(item);
               if (!broker.text) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span

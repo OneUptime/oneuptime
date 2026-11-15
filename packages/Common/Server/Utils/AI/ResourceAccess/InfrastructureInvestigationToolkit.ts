@@ -42,6 +42,7 @@ import {
 } from "./ResourceAccessToolNames";
 import ResourceAccessContext, {
   describeResource,
+  describeResourceInSentence,
 } from "./ResourceAccessContext";
 import ToolOutputPager, {
   hasAgentTruncationMarker,
@@ -382,7 +383,9 @@ export default class InfrastructureInvestigationToolkit {
 
     const info: AiResourceTypeInfo =
       AI_RESOURCE_TYPE_INFO[resource.resourceType];
-    const label: string = describeResource(resource);
+    // 'host "db"': every line below names the resource mid-sentence.
+    const label: string = describeResourceInSentence(resource);
+    const noun: string = describeResourceNoun(resource.resourceType);
 
     const command: string = ToolArgs.getString(args, "command") || "";
 
@@ -398,10 +401,10 @@ export default class InfrastructureInvestigationToolkit {
 
     if (policy.tier === ResourceCommandTier.Denied) {
       return this.failure(
-        `Refused by the ${info.displayName} command policy: ${policy.reason}. Nothing was run. What ${label} accepts:\n${ResourceCommandPolicy.getReadCommandGuide(
+        `Refused by the ${noun} command policy: ${policy.reason}. Nothing was run. What ${label} accepts:\n${ResourceCommandPolicy.getReadCommandGuide(
           resource.resourceType,
         )}`,
-        `Refused by the ${info.displayName} command policy on ${label}. Nothing was run.`,
+        `Refused by the ${noun} command policy on ${label}. Nothing was run.`,
       );
     }
 
@@ -676,18 +679,19 @@ export default class InfrastructureInvestigationToolkit {
   }
 
   /*
-   * How a command that ran is cited: `docker ps -a` on Docker host "web-1".
-   * The report's evidence list and the panel show it as is.
+   * How a command that ran is cited: `docker ps -a` on Docker host "web-1",
+   * `uptime` on host "db". The report's evidence list and the panel show it
+   * as is, so the kind reads as the middle of a sentence names it, as the
+   * card's and the activity's lines do (#8133), never the label's "Host"
+   * beside "Docker host". The quoted name keeps a bare name from running
+   * into the command. Readers find a citation by its id, never by these
+   * words.
    */
   public static getCitationLabel(data: {
     displayCommand: string;
     resource: ResourceAiAccessStatus;
   }): string {
-    const displayName: string = isAiResourceType(data.resource.resourceType)
-      ? AI_RESOURCE_TYPE_INFO[data.resource.resourceType].displayName
-      : "resource";
-
-    return `\`${data.displayCommand}\` on ${displayName} "${data.resource.resourceName}"`;
+    return `\`${data.displayCommand}\` on ${describeResourceInSentence(data.resource)}`;
   }
 
   // A redacted reason that ends a sentence.

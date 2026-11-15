@@ -77,6 +77,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What the create form starts with for the project's first config: the
@@ -933,7 +934,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
                 // The pill draws it in the reader's language.
                 return <Pill text={pillText} color={Green} />;
               }
-              return <span className="text-gray-400">-</span>;
+              return <TableEmptyValue />;
             },
             // As the row says it.
             getExportValue: (item: ProjectCallSMSConfig): string => {

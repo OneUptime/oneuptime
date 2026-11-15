@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 레코더가 로드되기 전에는 같은 호출을 `["track", name, properties]`와 `["metric", name, value, attributes]` 형태로 `window.OneUptimeReplayQueue`에 넣으세요([JavaScript API](/docs/telemetry/session-replay#javascript-api) 참고).
 
 - **녹화 여부와 관계없이 모든 세션.** 리플레이 샘플과 업로드 정책은 어떤 세션을 녹화할지를 정할 뿐, 어떤 세션을 셀지는 정하지 않습니다. Do Not Track이나 Global Privacy Control에서는 아무것도 보내지 않으며, 애플리케이션이 허용하지 않는 출처에서 온 것은 아무것도 보관하지 않습니다. 정책이 동의를 요구하면 이벤트는 최대 500개까지 `grantConsent()`를 기다리고, `revokeConsent()`는 이를 버립니다.
-- **녹화와 같이 마스킹됩니다.** _Mask all text_ 모드에서는 이벤트 속성과 메트릭 속성의 값이 페이지를 떠나기 전에 마스킹됩니다. 페이지는 쿼리와 프래그먼트를 뺀 경로로 보냅니다.
+- **녹화와 같이 마스킹됩니다.** _Mask all text_ 모드에서는 이벤트 속성과 메트릭 속성의 값이 페이지를 떠나기 전에 마스킹되므로, 그중 하나로 나눈 세부 내역에는 실제 값 대신 자리 표시자가 나옵니다. 이벤트 이름, 속성 키, 메트릭 값은 쓴 그대로 보냅니다. 그 모드에서 읽어야 하는 값은 세션 태그(`setTags()`)에 넣으세요. 태그는 마스킹되지 않으므로 개인 데이터를 넣지 마세요. 태그는 세션과 세션 목록의 `tag:key=value` 검색에 나타나며, 이 페이지들의 세부 내역에는 나타나지 않습니다. 페이지는 쿼리와 프래그먼트를 뺀 경로로 보냅니다.
 - **작은 배치로**, 5초마다, 그리고 탭이 숨겨질 때 보냅니다. 발생한 지 3일이 지나 OneUptime에 도착한 이벤트는 버려지며, 한 프로젝트는 모든 애플리케이션을 합쳐 분당 60,000개의 이벤트와 메트릭 포인트를 보낼 수 있습니다. 그보다 많으면 레코더가 기다렸다가 다시 보냅니다.
 
 `metric()`은 이벤트가 꺼져 있는 동안 아무것도 보내지 않으며, `getDiagnostics().productAnalytics`가 이벤트가 켜져 있는지 알려 줍니다([`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics) 참고).
@@ -144,7 +144,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 ## 볼 수 있는 사람
 
-이 페이지들을 읽으려면 세션 목록을 읽을 때와 같은 권한이 필요합니다: `ReadRumSessionReplay` (_List Session Replays_) 또는 `ReadRumSessionReplayPayload` (_Watch Session Replays_)이며, 프로젝트 소유자와 관리자가 가지고 있습니다. 로그인한 사용자가 누구인지 보고 이름으로 사람을 검색하려면 [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에 설명된 신원 권한이 필요합니다.
+이 페이지들을 읽으려면 세션 목록을 읽을 때와 같은 권한이 필요합니다: `ReadRumSessionReplay` (_List Session Replays_) 또는 `ReadRumSessionReplayPayload` (_Watch Session Replays_)이며, 프로젝트 소유자와 관리자가 가지고 있습니다. 로그인한 사용자가 누구인지 보고 이름으로 사람을 검색하려면 [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에 설명된 대로 `ReadRumSessionReplayPayload` (_Watch Session Replays_) 권한이 필요합니다.
 
 저장된 퍼널과 리텐션 표를 저장하고, 이름을 바꾸고, 삭제하려면 이 페이지들을 읽을 때와 같은 권한이 필요하며, 대시보드 위젯은 그 권한이 있는 사람에게만 그것을 보여 줍니다.
 

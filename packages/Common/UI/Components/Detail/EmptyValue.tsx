@@ -88,11 +88,19 @@ export const EMPTY_VALUE_CLASS_NAME: string = "text-sm leading-6 text-gray-400";
 
 export const EMPTY_VALUE_TEST_ID: string = "detail-empty-value";
 
+/*
+ * In a line of small text (text-xs) - a card's footnote, a compact list's
+ * row: the dash at that size, on that line's own height.
+ */
+export const EMPTY_VALUE_SMALL_CLASS_NAME: string = "text-xs text-gray-400";
+
 export interface ComponentProps {
   // The field's own words, in English: looked up where they are drawn.
   placeholder?: string | undefined;
   // In the reader's words already: drawn as given (#7791).
   isPlaceholderTranslated?: boolean | undefined;
+  // In a line of small text (EMPTY_VALUE_SMALL_CLASS_NAME).
+  isSmall?: boolean | undefined;
 }
 
 const EmptyValue: FunctionComponent<ComponentProps> = (
@@ -114,7 +122,12 @@ const EmptyValue: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <span className={EMPTY_VALUE_CLASS_NAME} data-testid={EMPTY_VALUE_TEST_ID}>
+    <span
+      className={
+        props.isSmall ? EMPTY_VALUE_SMALL_CLASS_NAME : EMPTY_VALUE_CLASS_NAME
+      }
+      data-testid={EMPTY_VALUE_TEST_ID}
+    >
       <span aria-hidden="true">{EMPTY_VALUE_MARK}</span>
       <span className="sr-only">{translator.translateText("Not set")}</span>
     </span>

@@ -400,7 +400,7 @@ describe("Ask AI on a host's page runs commands through the Host AI agent (issue
     ] as unknown as Array<AIChatCitation>;
     expect(citations).toHaveLength(1);
     expect(citations[0]!.toolName).toBe(RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME);
-    expect(citations[0]!.label).toBe('`uptime` on Host "test01"');
+    expect(citations[0]!.label).toBe('`uptime` on host "test01"');
   });
 
   test("a read-only conversation is still offered the commands: they only read", async () => {

@@ -18,6 +18,7 @@ import Columns from "Common/UI/Components/ModelTable/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What every custom field settings table lists: each field's name and its
@@ -84,7 +85,11 @@ export const CustomFieldTypeText: FunctionComponent<
   );
 
   if (!label) {
-    return <span data-testid="custom-field-type">-</span>;
+    return (
+      <span data-testid="custom-field-type">
+        <TableEmptyValue />
+      </span>
+    );
   }
 
   return (

@@ -16,6 +16,7 @@ import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const PodmanArchivedPage: FunctionComponent<
   PageComponentProps
@@ -118,7 +119,7 @@ const PodmanArchivedPage: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -180,7 +181,7 @@ const PodmanArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: PodmanHost): ReactElement => {
               if (!item["archivedByUser"]) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
             },

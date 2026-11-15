@@ -3,6 +3,7 @@ import ExpandableText from "../ExpandableText/ExpandableText";
 import Table from "../Table/Table";
 import FieldType from "../Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 export interface Condition {
   type: string;
@@ -130,7 +131,9 @@ const ConditionsTable: FunctionComponent<ComponentProps> = (
             disableSort: true,
             getElement: (condition: Condition): ReactElement => {
               return (
-                <span className="text-gray-600">{condition.reason || "-"}</span>
+                <span className="text-gray-600">
+                  {condition.reason || <TableEmptyValue />}
+                </span>
               );
             },
           },

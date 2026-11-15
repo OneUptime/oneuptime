@@ -175,6 +175,13 @@ import {
   useServerEmail,
 } from "../../Utils/ServerEmail";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import IncidentPostmortemActionItem from "Common/Models/DatabaseModels/IncidentPostmortemActionItem";
+import PostmortemActionItemStatus from "Common/Types/Incident/PostmortemActionItemStatus";
+import {
+  ACTION_ITEM_MONITOR_QUERY_PARAM,
+  getActionItemMonitorName,
+} from "../../Components/Postmortem/ActionItems/PostmortemActionItemsModel";
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 
 /*
@@ -433,6 +440,14 @@ const MonitorCreate: FunctionComponent<
   const bindToNetworkDeviceId: MutableRefObject<ObjectID | null> =
     useRef<ObjectID | null>(null);
   const [isBinding, setIsBinding] = useState<boolean>(false);
+
+  /*
+   * The postmortem action item a monitor created from its link is for
+   * (#6801): once the monitor exists, the item names it and is done. A ref,
+   * as the device's: onSuccess is its only reader.
+   */
+  const linkToActionItemId: MutableRefObject<ObjectID | null> =
+    useRef<ObjectID | null>(null);
 
   /*
    * The template's custom field defaults, carried to onBeforeCreate.
@@ -1481,6 +1496,81 @@ const MonitorCreate: FunctionComponent<
     }
   };
 
+  /*
+   * "Create Monitor" on a postmortem's action item (#6801): the monitor is
+   * named after what the item asks for, and says where it comes from. What
+   * it watches is the person's to pick - an action item is words, not a
+   * check - so nothing else is filled in. Once it is created, the item names
+   * it and is done (linkCreatedMonitorToActionItem).
+   */
+  const preSeedFromActionItem: (actionItemId: string) => Promise<void> = async (
+    actionItemId: string,
+  ): Promise<void> => {
+    /*
+     * Messages go to ErrorMessage untranslated: it translates a string
+     * message itself, and translationKey() is what lets the extractor
+     * find them.
+     */
+    if (!ObjectID.isValidUUID(actionItemId)) {
+      setError(
+        translationKey(
+          "This link does not point to an action item. Open the incident's postmortem again and choose Create Monitor on the action item.",
+        ),
+      );
+      return;
+    }
+
+    let item: IncidentPostmortemActionItem | null = null;
+
+    try {
+      item = await ModelAPI.getItem<IncidentPostmortemActionItem>({
+        modelType: IncidentPostmortemActionItem,
+        id: new ObjectID(actionItemId),
+        select: {
+          title: true,
+          incident: {
+            incidentNumber: true,
+            incidentNumberWithPrefix: true,
+          },
+        },
+      });
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+      return;
+    }
+
+    if (!item) {
+      setError(
+        translationKey(
+          "The action item this monitor was to be created for no longer exists.",
+        ),
+      );
+      return;
+    }
+
+    linkToActionItemId.current = new ObjectID(actionItemId);
+
+    const incidentNumber: string =
+      item.incident?.incidentNumberWithPrefix ||
+      (item.incident?.incidentNumber !== undefined &&
+      item.incident?.incidentNumber !== null
+        ? `#${item.incident.incidentNumber.toString()}`
+        : "");
+
+    setInitialValues({
+      name: getActionItemMonitorName(item.title || ""),
+      description: incidentNumber
+        ? translator.translateTemplate(
+            "Created for the action item {{title}}, from the postmortem of incident {{incident}}.",
+            { title: item.title || "", incident: incidentNumber },
+          )
+        : translator.translateTemplate(
+            "Created for the action item {{title}}, from an incident's postmortem.",
+            { title: item.title || "" },
+          ),
+    });
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
@@ -1608,6 +1698,19 @@ const MonitorCreate: FunctionComponent<
       return;
     }
 
+    // "Create Monitor" on a postmortem's action item: its name, and where it comes from.
+    const actionItemId: string | null = Navigation.getQueryStringByName(
+      ACTION_ITEM_MONITOR_QUERY_PARAM,
+    );
+
+    if (actionItemId && actionItemId.trim()) {
+      setIsLoading(true);
+      preSeedFromActionItem(actionItemId.trim()).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
     /*
      * Weakest prefill, so it goes last: preselect the monitor type alone.
      * Synchronous — with no monitorSteps in the initial values the steps
@@ -1647,6 +1750,56 @@ const MonitorCreate: FunctionComponent<
       });
     }
   }, []);
+
+  /*
+   * The second half of "Create Monitor" on an action item: the item names
+   * the monitor and is done - its incident's feed says both - and the
+   * person lands on the new monitor, as any monitor created here does.
+   *
+   * ModelForm does not await onSuccess, so this must never reject. The
+   * monitor exists either way: a link that fails is said in place of the
+   * form, with where to finish it by hand.
+   */
+  const linkCreatedMonitorToActionItem: (data: {
+    actionItemId: ObjectID;
+    createdMonitor: Monitor;
+  }) => Promise<void> = async (data: {
+    actionItemId: ObjectID;
+    createdMonitor: Monitor;
+  }): Promise<void> => {
+    setIsBinding(true);
+
+    try {
+      if (!data.createdMonitor.id) {
+        throw new BadDataException(
+          "The server did not say which monitor it created. Find it under Monitors.",
+        );
+      }
+
+      await ModelAPI.updateById<IncidentPostmortemActionItem>({
+        modelType: IncidentPostmortemActionItem,
+        id: data.actionItemId,
+        data: {
+          monitorId: data.createdMonitor.id,
+          status: PostmortemActionItemStatus.Done,
+        },
+      });
+
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW] as Route, {
+          modelId: data.createdMonitor.id,
+        }),
+      );
+    } catch (err) {
+      setIsBinding(false);
+      setError(
+        translator.translateTemplate(
+          "The monitor was created, but its action item was not marked done. {{error}} Mark it done on the incident's postmortem.",
+          { error: errorInSentence(API.getFriendlyMessage(err)) },
+        ),
+      );
+    }
+  };
 
   /*
    * The second half of the monitor-backed deep link: point the device at the
@@ -2073,6 +2226,20 @@ const MonitorCreate: FunctionComponent<
                     monitor_type: createdItem.monitorType || "",
                   },
                 );
+
+                const actionItemToLink: ObjectID | null =
+                  linkToActionItemId.current;
+
+                if (actionItemToLink) {
+                  // Not awaited, as the device's bind; the helper reports its own failure.
+                  linkCreatedMonitorToActionItem({
+                    actionItemId: actionItemToLink,
+                    createdMonitor: createdItem,
+                  }).catch(() => {
+                    // Unreachable: the helper catches everything it does.
+                  });
+                  return;
+                }
 
                 const deviceToBind: ObjectID | null =
                   bindToNetworkDeviceId.current;

@@ -228,6 +228,7 @@ const EmailProviderSettingsCard: FunctionComponent<ComponentProps> = (
                 return (
                   <Pill
                     text={t("pages.settings.email.pillEnabled")}
+                    isUserContent={true}
                     color={Green}
                   />
                 );
@@ -236,6 +237,7 @@ const EmailProviderSettingsCard: FunctionComponent<ComponentProps> = (
               return (
                 <Pill
                   text={t(MISSING_SETTING_PILL_KEYS[missing])}
+                  isUserContent={true}
                   color={Red}
                 />
               );

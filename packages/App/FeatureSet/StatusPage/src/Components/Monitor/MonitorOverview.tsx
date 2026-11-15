@@ -323,6 +323,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
               >
                 <Pill
                   text={t("monitorOverview.underMaintenance")}
+                  isUserContent={true}
                   color={MAINTENANCE_MARK_COLOR}
                   icon={IconProp.Wrench}
                   style={{ fontSize: "12px" }}

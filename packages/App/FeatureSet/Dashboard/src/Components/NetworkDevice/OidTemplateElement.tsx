@@ -1,5 +1,6 @@
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   oidTemplate?: NetworkDeviceOidTemplate | undefined;
@@ -24,7 +25,7 @@ const OidTemplateElement: FunctionComponent<ComponentProps> = (
   const templateName: string = props.oidTemplate?.name || "";
 
   if (!templateName) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   return <span className="text-sm text-gray-900">{templateName}</span>;

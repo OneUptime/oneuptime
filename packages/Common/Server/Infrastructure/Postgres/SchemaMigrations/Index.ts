@@ -1000,6 +1000,9 @@ import { SwapNetworkEndpointLastSeenIndexes1809173100000 } from "./1809173100000
 import { SetNetworkEndpointFillfactor1809173200000 } from "./1809173200000-SetNetworkEndpointFillfactor";
 import { AddCreatedNotificationHeldAt1809174700000 } from "./1809174700000-AddCreatedNotificationHeldAt";
 import { AddCreatedNotificationHeldAtIndexes1809174710000 } from "./1809174710000-AddCreatedNotificationHeldAtIndexes";
+import { AddIncidentPostmortemActionItem1809174800000 } from "./1809174800000-AddIncidentPostmortemActionItem";
+import { AddSavedAsRunbookToAutoRemediationSuggestion1809174900000 } from "./1809174900000-AddSavedAsRunbookToAutoRemediationSuggestion";
+import { AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000 } from "./1809174910000-AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2004,4 +2007,7 @@ export default [
   SetNetworkEndpointFillfactor1809173200000,
   AddCreatedNotificationHeldAt1809174700000,
   AddCreatedNotificationHeldAtIndexes1809174710000,
+  AddIncidentPostmortemActionItem1809174800000,
+  AddSavedAsRunbookToAutoRemediationSuggestion1809174900000,
+  AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000,
 ];

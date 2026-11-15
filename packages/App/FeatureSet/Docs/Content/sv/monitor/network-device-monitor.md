@@ -109,7 +109,7 @@ En enhets uppgifter — namn, beskrivning, roll, plats, etiketter och adresser �
 | Beskrivning | Fritext. | Nej |
 | Device Role | Kärnswitch, accessswitch, brandvägg och så vidare. Bestämmer enhetens nivå på kartan och avgränsar larmpolicyer. | Nej |
 | MAC-adress | Enhetens egen MAC. Kartan använder den för att placera en enhet som varken talar LLDP eller CDP på den switchport som lärde sig den; se [Enheter med bara ping och deras switchport](#enheter-med-bara-ping-och-deras-switchport). Lärs oftast in åt dig från en routers ARP-tabell. | Nej |
-| Skapa även en Ping-övervakare för incidenter | Sonden pingar redan enheten och ger den en status; en Ping-monitor är det som gör misslyckade pingar till en incident. Markera rutan så skapas en på värdnamnet, bunden till enheten, när du sparar. Den räknas mot din plan, och dess incidenter är avstängda tills du slår på dem från monitorns sida. | Nej |
+| Skapa även en Ping-monitor för incidenter | Sonden pingar redan enheten och ger den en status; en Ping-monitor är det som gör misslyckade pingar till en incident. Markera rutan så skapas en på värdnamnet, bunden till enheten, när du sparar. Den räknas mot din plan, och dess incidenter är avstängda tills du slår på dem från monitorns sida. | Nej |
 
 När du markerar Ping-monitorn visas **Ping from probes**, monitorns egna sonder. De måste nå enhetens nätverk; lämna fältet tomt för att använda projektets standardsonder. Använd hellre [larmpolicyer](#larmpolicyer) för att varna om många enheter samtidigt.
 

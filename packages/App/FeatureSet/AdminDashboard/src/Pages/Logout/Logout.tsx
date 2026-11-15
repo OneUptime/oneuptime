@@ -34,10 +34,12 @@ const Logout: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.INIT] as Route),
         },
         {
           title: t("breadcrumbs.logout"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT] as Route),
         },
       ]}

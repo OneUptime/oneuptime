@@ -154,6 +154,8 @@ export enum SetupHealthFix {
   CreateMonitor = "CreateMonitor",
   IncidentOnCallRules = "IncidentOnCallRules",
   AlertOnCallRules = "AlertOnCallRules",
+  // No on-call policy yet: the on-call guided setup makes the first (#7369).
+  OnCallGuidedSetup = "OnCallGuidedSetup",
   OnCallPolicy = "OnCallPolicy",
   OnCallSchedule = "OnCallSchedule",
   OnCallReadiness = "OnCallReadiness",
@@ -687,18 +689,23 @@ function getBreakFinding(data: {
 
       /*
        * In a project with no on-call policy yet, email to the owners may be
-       * just what they want: a suggestion, not a problem.
+       * just what they want: a suggestion, not a problem - and its fix is
+       * the on-call guided setup, which makes the first policy with the
+       * rules that run it, not the rules builder, whose rules would have no
+       * policy to page (#7369).
        */
+      const hasPolicies: boolean = data.facts.policies.length > 0;
+
       return makeSetupHealthFinding({
         check: SetupHealthCheck.MonitorPagesNobody,
-        level:
-          data.facts.policies.length > 0
-            ? SetupHealthLevel.WorthFixing
-            : SetupHealthLevel.Suggestion,
+        level: hasPolicies
+          ? SetupHealthLevel.WorthFixing
+          : SetupHealthLevel.Suggestion,
         record: data.monitor,
         subject: kind,
-        fix:
-          kind === SetupHealthEventKind.Alert
+        fix: !hasPolicies
+          ? SetupHealthFix.OnCallGuidedSetup
+          : kind === SetupHealthEventKind.Alert
             ? SetupHealthFix.AlertOnCallRules
             : SetupHealthFix.IncidentOnCallRules,
         words: SETUP_HEALTH_WORDS.monitorPagesNobody[kind],

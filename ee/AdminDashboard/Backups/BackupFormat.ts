@@ -24,6 +24,7 @@ import {
 } from "Common/Types/Backup/BackupSchedule";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
+import { getHourOption } from "Common/Types/DateLanguage";
 import {
   FeedClock,
   formatFeedTimeAgo,
@@ -167,7 +168,11 @@ export function formatBackupDuration(ms: number, language: string): string {
   }
 }
 
-// "Oct 24, 2026, 2:00 AM" in the reader's zone and language.
+/*
+ * "Oct 24, 2026, 2:00 AM" in the reader's zone and language; "24. Okt.
+ * 2026, 02:00" on a 24-hour clock, its zero kept as every other date on
+ * the page keeps it (getHourOption, issue #7649).
+ */
 export function formatBackupDateTime(date: Date, clock: FeedClock): string {
   const value: Date = new Date(date);
 
@@ -180,7 +185,7 @@ export function formatBackupDateTime(date: Date, clock: FeedClock): string {
       year: "numeric",
       month: "short",
       day: "numeric",
-      hour: "numeric",
+      hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       hour12: clock.use12HourClock,
       timeZone: clock.timezone,
@@ -279,7 +284,7 @@ export function getLocalTimeOfUtcHour(data: {
 
   try {
     return new Intl.DateTimeFormat(getFeedLocale(data.clock.language), {
-      hour: "numeric",
+      hour: getHourOption(data.clock.use12HourClock),
       minute: "2-digit",
       hour12: data.clock.use12HourClock,
       timeZone: data.clock.timezone,

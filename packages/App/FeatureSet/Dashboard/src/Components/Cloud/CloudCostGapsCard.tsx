@@ -219,14 +219,20 @@ const CloudCostGapsCard: FunctionComponent<ComponentProps> = (
               row.reason === CloudCostState.NotSetUp
                 ? steps[provider]
                 : undefined;
+            /*
+             * In the reader's words, whichever it is, so the badge draws it
+             * as given (#8067): the currency's sentence is worded here.
+             */
             const label: string =
               row.reason === "waiting"
-                ? WAITING_FOR_FIRST_READ
+                ? translator.translateText(WAITING_FOR_FIRST_READ) ||
+                  WAITING_FOR_FIRST_READ
                 : row.reason === "currency"
                   ? translator.translateTemplate(BILLED_IN_ANOTHER_CURRENCY, {
                       currency: row.currency || "",
                     })
-                  : COST_STATE_LABELS[row.reason];
+                  : translator.translateText(COST_STATE_LABELS[row.reason]) ||
+                    COST_STATE_LABELS[row.reason];
 
             return (
               <li
@@ -250,7 +256,11 @@ const CloudCostGapsCard: FunctionComponent<ComponentProps> = (
                     >
                       {row.account.name || row.account.accountId}
                     </AppLink>
-                    <Pill text={label} color={GAP_COLORS[row.reason]} />
+                    <Pill
+                      text={label}
+                      isUserContent={true}
+                      color={GAP_COLORS[row.reason]}
+                    />
                   </div>
                   {row.message ? (
                     /*

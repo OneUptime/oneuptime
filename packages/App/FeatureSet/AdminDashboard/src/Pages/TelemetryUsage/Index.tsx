@@ -51,6 +51,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Admin Dashboard > Telemetry Usage: how much telemetry each project of the
@@ -229,7 +230,11 @@ const TelemetryUsagePage: FunctionComponent = (): ReactElement => {
   ): ReactElement => {
     return (
       <span className="tabular-nums text-gray-700">
-        {gigabytes > 0 ? formatTelemetryUsageSize(gigabytes, translator) : "—"}
+        {gigabytes > 0 ? (
+          formatTelemetryUsageSize(gigabytes, translator)
+        ) : (
+          <TableEmptyValue />
+        )}
       </span>
     );
   };
@@ -312,10 +317,12 @@ const TelemetryUsagePage: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.telemetryUsage"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.TELEMETRY_USAGE] as Route,
           ),
