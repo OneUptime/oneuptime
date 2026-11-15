@@ -213,6 +213,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -863,7 +864,10 @@ describe("Proxmox guests list", () => {
 
     expect(rowOf("web")).toHaveTextContent("In a backup job");
     expect(rowOf("db")).toHaveTextContent("In no backup job");
-    expect(within(rowOf("cache")).getAllByText("-").length).toBeGreaterThan(0);
+    // The quiet dash an empty cell is drawn as (58fc3f92383).
+    expect(
+      within(rowOf("cache")).getAllByText(EMPTY_VALUE_MARK).length,
+    ).toBeGreaterThan(0);
   });
 
   test("with the notifications, the Backup column shows how the last backup went and when", async () => {
@@ -958,7 +962,8 @@ describe("Proxmox storage list", () => {
     expect(
       screen.queryByRole("columnheader", { name: /^Age/ }),
     ).not.toBeInTheDocument();
-    expect(rowOf("local")).not.toHaveTextContent("-");
+    // Nor the quiet dash an empty cell is drawn as (58fc3f92383).
+    expect(rowOf("local")).not.toHaveTextContent(EMPTY_VALUE_MARK);
   });
 });
 
