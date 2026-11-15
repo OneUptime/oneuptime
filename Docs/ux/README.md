@@ -779,13 +779,16 @@ then `npm run i18n:validate` from the root.
   [ScopedChartsLineFollowsTheLanguage](../../packages/Common/Tests/App/Dashboard/ScopedChartsLineFollowsTheLanguage.test.tsx).
 - **A metric's description reads in the reader's language, its code and names as written.** Every
   monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
-  glued together at run time is no key, and read English in every language (#8014). Each place that
-  draws one looks it up once: a metric picker's line, a Database Health criteria's line, a Database
-  monitor's charts and summary, a metric a monitor stored. A translation keeps each piece of code
-  between backticks exactly and as often, since the picker draws it as code, and the metric,
-  attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
-  by
-  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
+  glued together at run time is no key, and read English in every language (#8014). So are the
+  descriptions the server stores with a monitor's series, the SLO Burn Rate's among them, written
+  out whole for the window they name (#8356). Each place that draws one looks it up once: a metric
+  picker's line, a Database Health criteria's line, a Database monitor's charts and summary, a
+  metric a monitor stored. A translation keeps each piece of code between backticks exactly and as
+  often, since the picker draws it as code, and the metric, attribute and product names, unit
+  symbols, printed values and numbers the English gives. Enforced by
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts)
+  and
+  [MonitorStoredMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorStoredMetricDescriptionsInLocales.test.ts).
 - **A product's Help > Documentation page reads in the reader's language, its code as written.** A
   page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
   Observability's does, #7531). A page that is a setup guide holds each language's words for every
