@@ -52340,5 +52340,11 @@
   "Show whole map": "Mostrar todo el mapa",
   "The map as OneUptime lays it out. Your custom layout is kept.": "El mapa tal como lo organiza OneUptime. Se conserva su diseño personalizado.",
   "{{count}} matches aren't shown": "{{count}} coincidencias no se muestran",
-  "{{count}} matches aren't shown_one": "{{count}} coincidencia no se muestra"
+  "{{count}} matches aren't shown_one": "{{count}} coincidencia no se muestra",
+  "If nobody has acknowledged yet": "Si nadie lo ha reconocido todavía",
+  "Used for every incident, alert and episode, of every severity.": "Se usa para cada incidente, alerta y episodio, de cualquier gravedad.",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Cuando se te avisa, OneUptime prueba cada paso, uno tras otro, hasta que alguien lo reconoce.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Cuando se avisa a {{name}}, OneUptime prueba cada paso, uno tras otro, hasta que alguien lo reconoce.",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Tienes cambios sin guardar en estos pasos. Si sales ahora, se perderán.",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Cambiar cuándo se envía este paso."
 }

@@ -52340,5 +52340,11 @@
   "Show whole map": "पूरा मैप दिखाएँ",
   "The map as OneUptime lays it out. Your custom layout is kept.": "OneUptime द्वारा व्यवस्थित मैप। आपका कस्टम लेआउट बना रहता है।",
   "{{count}} matches aren't shown": "{{count}} मिलान नहीं दिखाए गए",
-  "{{count}} matches aren't shown_one": "{{count}} मिलान नहीं दिखाया गया"
+  "{{count}} matches aren't shown_one": "{{count}} मिलान नहीं दिखाया गया",
+  "If nobody has acknowledged yet": "अगर अब तक किसी ने स्वीकार नहीं किया है",
+  "Used for every incident, alert and episode, of every severity.": "हर घटना, अलर्ट और एपिसोड के लिए, हर गंभीरता में इस्तेमाल होता है।",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "जब आपको पेज किया जाता है, तो OneUptime हर चरण को बारी-बारी से आज़माता है, जब तक कोई स्वीकार न कर ले।",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "जब {{name}} को पेज किया जाता है, तो OneUptime हर चरण को बारी-बारी से आज़माता है, जब तक कोई स्वीकार न कर ले।",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "इन चरणों में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
+  "{{wait}}. Change when this step is sent.": "{{wait}}। यह चरण कब भेजा जाए, इसे बदलें।"
 }

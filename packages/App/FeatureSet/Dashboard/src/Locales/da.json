@@ -52340,5 +52340,11 @@
   "Show whole map": "Vis hele kortet",
   "The map as OneUptime lays it out. Your custom layout is kept.": "Kortet, som OneUptime placerer det. Dit tilpassede layout bevares.",
   "{{count}} matches aren't shown": "{{count}} match vises ikke",
-  "{{count}} matches aren't shown_one": "{{count}} match vises ikke"
+  "{{count}} matches aren't shown_one": "{{count}} match vises ikke",
+  "If nobody has acknowledged yet": "Hvis ingen har bekræftet endnu",
+  "Used for every incident, alert and episode, of every severity.": "Bruges til hver hændelse, advarsel og episode, uanset alvorlighed.",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Når du kaldes, prøver OneUptime hvert trin efter tur, indtil nogen bekræfter.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Når {{name}} kaldes, prøver OneUptime hvert trin efter tur, indtil nogen bekræfter.",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Du har ikke-gemte ændringer i disse trin. Hvis du forlader siden nu, går de tabt.",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Skift, hvornår dette trin sendes."
 }

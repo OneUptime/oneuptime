@@ -52340,5 +52340,11 @@
   "Show whole map": "マップ全体を表示",
   "The map as OneUptime lays it out. Your custom layout is kept.": "OneUptime が配置したマップです。カスタムレイアウトは保持されます。",
   "{{count}} matches aren't shown": "{{count}} 件の一致は表示されていません",
-  "{{count}} matches aren't shown_one": "{{count}} 件の一致は表示されていません"
+  "{{count}} matches aren't shown_one": "{{count}} 件の一致は表示されていません",
+  "If nobody has acknowledged yet": "まだ誰も確認していない場合",
+  "Used for every incident, alert and episode, of every severity.": "すべてのインシデント、アラート、エピソードに、重大度を問わず使われます。",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "呼び出されると、OneUptime は誰かが確認するまで各ステップを順に試します。",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "{{name}} が呼び出されると、OneUptime は誰かが確認するまで各ステップを順に試します。",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "これらのステップに保存されていない変更があります。今ページを離れると、変更は失われます。",
+  "{{wait}}. Change when this step is sent.": "{{wait}}。このステップを送信するタイミングを変更します。"
 }

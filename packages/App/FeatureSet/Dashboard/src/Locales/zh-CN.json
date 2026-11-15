@@ -52340,5 +52340,11 @@
   "Show whole map": "显示整个地图",
   "The map as OneUptime lays it out. Your custom layout is kept.": "由 OneUptime 排列的地图。您的自定义布局会保留。",
   "{{count}} matches aren't shown": "有 {{count}} 个匹配项未显示",
-  "{{count}} matches aren't shown_one": "有 {{count}} 个匹配项未显示"
+  "{{count}} matches aren't shown_one": "有 {{count}} 个匹配项未显示",
+  "If nobody has acknowledged yet": "如果还没有人确认",
+  "Used for every incident, alert and episode, of every severity.": "用于每个事件、告警和事件组，不分严重程度。",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "当您被呼叫时，OneUptime 会依次尝试每一步，直到有人确认。",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "当 {{name}} 被呼叫时，OneUptime 会依次尝试每一步，直到有人确认。",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "您对这些步骤有未保存的更改。如果现在离开，这些更改将会丢失。",
+  "{{wait}}. Change when this step is sent.": "{{wait}}。更改此步骤的发送时间。"
 }

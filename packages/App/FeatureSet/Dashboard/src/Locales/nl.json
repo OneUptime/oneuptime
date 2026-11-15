@@ -52340,5 +52340,11 @@
   "Show whole map": "Hele kaart tonen",
   "The map as OneUptime lays it out. Your custom layout is kept.": "De kaart zoals OneUptime die indeelt. Uw aangepaste indeling blijft bewaard.",
   "{{count}} matches aren't shown": "{{count}} overeenkomsten worden niet getoond",
-  "{{count}} matches aren't shown_one": "{{count}} overeenkomst wordt niet getoond"
+  "{{count}} matches aren't shown_one": "{{count}} overeenkomst wordt niet getoond",
+  "If nobody has acknowledged yet": "Als nog niemand heeft bevestigd",
+  "Used for every incident, alert and episode, of every severity.": "Geldt voor elk incident, elke waarschuwing en elke episode, van elk ernstniveau.",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Wanneer u wordt opgeroepen, probeert OneUptime elke stap op volgorde, tot iemand bevestigt.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Wanneer {{name}} wordt opgeroepen, probeert OneUptime elke stap op volgorde, tot iemand bevestigt.",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in deze stappen. Als u nu weggaat, gaan ze verloren.",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Wijzig wanneer deze stap wordt verzonden."
 }

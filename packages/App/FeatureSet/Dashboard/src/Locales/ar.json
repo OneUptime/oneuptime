@@ -52340,5 +52340,11 @@
   "Show whole map": "إظهار الخريطة كاملة",
   "The map as OneUptime lays it out. Your custom layout is kept.": "الخريطة كما يرتبها OneUptime. يُحتفظ بتخطيطك المخصص.",
   "{{count}} matches aren't shown": "مطابقات غير معروضة: {{count}}",
-  "{{count}} matches aren't shown_one": "{{count}} مطابقة غير معروضة"
+  "{{count}} matches aren't shown_one": "{{count}} مطابقة غير معروضة",
+  "If nobody has acknowledged yet": "إذا لم يُقِرّ أحد بعد",
+  "Used for every incident, alert and episode, of every severity.": "يُستخدم لكل حادثة وتنبيه وحلقة، بكل درجات الخطورة.",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "عندما تُستدعى، يجرّب OneUptime كل خطوة بدورها حتى يُقِرّ أحد.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "عندما يُستدعى {{name}}، يجرّب OneUptime كل خطوة بدورها حتى يُقِرّ أحد.",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في هذه الخطوات. إذا غادرت الآن، فستُفقد.",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة."
 }

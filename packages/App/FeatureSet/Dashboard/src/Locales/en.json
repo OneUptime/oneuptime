@@ -52340,5 +52340,11 @@
   "Show whole map": "Show whole map",
   "The map as OneUptime lays it out. Your custom layout is kept.": "The map as OneUptime lays it out. Your custom layout is kept.",
   "{{count}} matches aren't shown": "{{count}} matches aren't shown",
-  "{{count}} matches aren't shown_one": "{{count}} match isn't shown"
+  "{{count}} matches aren't shown_one": "{{count}} match isn't shown",
+  "If nobody has acknowledged yet": "If nobody has acknowledged yet",
+  "Used for every incident, alert and episode, of every severity.": "Used for every incident, alert and episode, of every severity.",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "When you are paged, OneUptime tries each step in turn until somebody acknowledges.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "You have unsaved changes to these steps. If you leave now, they will be lost.",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent."
 }
