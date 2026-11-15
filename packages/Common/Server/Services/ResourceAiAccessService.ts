@@ -19,6 +19,7 @@ import AiResourceType, {
   isCloudAiResourceType,
   isReadOnlyAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
+import { getResourceSentenceName } from "../../Types/AI/ResourceAiAccessPermissions";
 import CloudAccount from "../../Models/DatabaseModels/CloudAccount";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import { getCloudCatalogProvider } from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
@@ -363,18 +364,17 @@ const REACH_HINTS: Readonly<Record<AiResourceType, string>> = {
     "the clouds.yaml mounted into the agent's container and its route to Keystone and the services' endpoints",
 };
 
-// "Docker host", but "host" and "database server" for the generic nouns.
+/*
+ * A kind of resource as the middle of an English sentence names it: "host",
+ * "database server", "Docker host", "AWS account" - its display name cased
+ * the way toSentenceTerm cases a label, never the label's "Host". These are
+ * the AI Investigation card's words for it (getResourceSentenceName), which
+ * the Dashboard translates, so the server's lines and the card's agree
+ * (#8133).
+ */
 export function describeResourceNoun(resourceType: AiResourceType): string {
-  if (resourceType === AiResourceType.Host) {
-    return "host";
-  }
-
-  if (resourceType === AiResourceType.DatabaseServer) {
-    return "database server";
-  }
-
   return isAiResourceType(resourceType)
-    ? AI_RESOURCE_TYPE_INFO[resourceType].displayName
+    ? getResourceSentenceName(resourceType)
     : "resource";
 }
 
