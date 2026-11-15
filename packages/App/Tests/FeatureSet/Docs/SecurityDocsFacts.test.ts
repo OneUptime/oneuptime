@@ -1,3 +1,4 @@
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import {
   SECURITY_EVENT_FACETS,
   SecurityEventFacetDefinition,
@@ -2463,9 +2464,19 @@ describe("the Threat Intelligence page", () => {
 
   it("shows an indicator's Status as Active, Expired or Revoked, as the table draws it", () => {
     const form: string = source("threatIntel");
+    /*
+     * The pills' texts as English draws them: Expired is the meaning key
+     * "Expired (threat indicator)" (Common/Types/MeaningKeys).
+     */
+    const drawn: Array<string> = Array.from(
+      form.matchAll(/text="([^"]+)"/g),
+      (match: RegExpMatchArray): string => {
+        return withMeaningKeyAsItsWord(match[1] as string);
+      },
+    );
 
     for (const status of ["Revoked", "Expired", "Active"]) {
-      expect(form).toContain(`text="${status}"`);
+      expect(drawn).toContain(status);
     }
 
     expect(page).toContain(

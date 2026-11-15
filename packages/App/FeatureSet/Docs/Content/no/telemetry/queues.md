@@ -263,8 +263,8 @@ Et topic navngis likt fra begge sider: spanene rapporterer ARN-et eller navnet, 
 | Måling | Vises som | Type |
 | --- | --- | --- |
 | `amazonaws.com/aws/sns/numberofmessagespublished` (JSON-strøm: `numberofmessagespublished`) | Publiserte meldinger | Antall per periode |
-| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-strøm: `numberofnotificationsdelivered`) | Leverte varsler | Antall per periode |
-| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-strøm: `numberofnotificationsfailed`) | Mislykkede varsler | Antall per periode |
+| `amazonaws.com/aws/sns/numberofnotificationsdelivered` (JSON-strøm: `numberofnotificationsdelivered`) | Leverte varslinger | Antall per periode |
+| `amazonaws.com/aws/sns/numberofnotificationsfailed` (JSON-strøm: `numberofnotificationsfailed`) | Mislykkede varslinger | Antall per periode |
 | `amazonaws.com/aws/sns/numberofnotificationsredriventodlq` (JSON-strøm: `numberofnotificationsredriventodlq`) | Omdirigert til dead-letter-kø | Antall per periode |
 
 ### Amazon SQS

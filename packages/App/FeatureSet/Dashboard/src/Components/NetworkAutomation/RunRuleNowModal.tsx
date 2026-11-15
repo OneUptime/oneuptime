@@ -81,6 +81,7 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
     return (
       <ConfirmModal
         title={title}
+        isTitleTranslated={true}
         description={summary}
         submitButtonText="Close"
         onSubmit={props.onClose}
@@ -100,6 +101,7 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title={title}
+      isTitleTranslated={true}
       description={description}
       error={error || undefined}
       isLoading={isRunning}

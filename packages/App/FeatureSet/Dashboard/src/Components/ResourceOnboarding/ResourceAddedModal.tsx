@@ -26,6 +26,8 @@ import ResourceConnectionWatch from "./ResourceConnectionWatch";
 export interface ComponentProps {
   // Already in the reader's language, or English the dialog translates.
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description: string;
   modelType: { new (): BaseModel };
   recordId: ObjectID;
@@ -73,6 +75,7 @@ const ResourceAddedModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}

@@ -2,7 +2,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
-import { isRequestSliType } from "./SloRequestSli";
+import { isEventSliType } from "./SloRequestSli";
 
 /*
  * THE RELEASE CHECK: "is it safe to keep rolling this release out?", asked
@@ -297,17 +297,19 @@ export const decideSloReleaseCheck: DecideSloReleaseCheckFunction = (data: {
     };
   }
 
-  if (isRequestSliType(data.sliType)) {
+  if (isEventSliType(data.sliType)) {
     const total: number = data.measurement.totalRequestCount || 0;
     const version: string = data.options.serviceVersion
       ? ` of version ${data.options.serviceVersion}`
       : "";
+    // A Metric SLO counts its metric's events, not requests (#8445).
+    const noun: string = data.sliType === SliType.Metric ? "event" : "request";
 
     if (total < data.options.minimumRequestCount) {
       return {
         verdict: SloReleaseCheckVerdict.NotEnoughData,
         isSafeToContinue: false,
-        reason: `Only ${plural(total, "request")}${version} in the last ${window}, and this check needs at least ${plural(data.options.minimumRequestCount, "request")} to judge.`,
+        reason: `Only ${plural(total, noun)}${version} in the last ${window}, and this check needs at least ${plural(data.options.minimumRequestCount, noun)} to judge.`,
       };
     }
 
@@ -316,7 +318,7 @@ export const decideSloReleaseCheck: DecideSloReleaseCheckFunction = (data: {
       return {
         verdict: SloReleaseCheckVerdict.Pass,
         isSafeToContinue: true,
-        reason: `No requests${version} in the last ${window}, so nothing burned the error budget.`,
+        reason: `No ${noun}s${version} in the last ${window}, so nothing burned the error budget.`,
       };
     }
   } else if (!data.measurement.measuredSeconds) {
@@ -402,7 +404,7 @@ export const buildSloReleaseCheckResponse: BuildSloReleaseCheckResponseFunction 
       checkedAt: data.checkedAt.toISOString(),
     };
 
-    if (isRequestSliType(data.sliType)) {
+    if (isEventSliType(data.sliType)) {
       response["goodRequestCount"] = data.measurement.goodRequestCount || 0;
       response["totalRequestCount"] = data.measurement.totalRequestCount || 0;
       response["minimumRequestCount"] = data.options.minimumRequestCount;

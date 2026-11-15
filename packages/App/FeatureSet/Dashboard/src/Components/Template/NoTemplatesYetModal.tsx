@@ -6,6 +6,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   // "No Incident Templates"
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   /*
    * Where the templates are made, by the menu path the reader can follow
    * ("Incidents → Settings → Incident Templates"): a template settings page
@@ -29,6 +31,7 @@ const NoTemplatesYetModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       submitButtonText="Create Template"
       onSubmit={() => {

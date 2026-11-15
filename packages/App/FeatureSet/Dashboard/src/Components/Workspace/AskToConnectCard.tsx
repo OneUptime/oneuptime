@@ -430,6 +430,7 @@ const AskToConnectCard: FunctionComponent<ComponentProps> = (
           title={translator.translateTemplate(ASK_TO_CONNECT_CONFIRM_TITLE, {
             workspace: workspace,
           })}
+          isTitleTranslated={true}
           description={
             <div className="space-y-2">
               <p>

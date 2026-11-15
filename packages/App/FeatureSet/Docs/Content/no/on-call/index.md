@@ -1,6 +1,6 @@
 # Vakt – Oversikt
 
-Vakt er hvordan OneUptime får en person til å ta tak i et problem, når som helst på døgnet. Når en hendelse, et varsel eller en episode trenger noen, tilkaller vaktpolicyene folk nivå for nivå til noen bekrefter, og hver person nås slik de selv har valgt: et push-varsel, en SMS, et anrop, en e-post eller en chatmelding. Denne siden viser hvordan delene henger sammen, og hvor hver del ligger. Hvert ord som brukes om vakt, er forklart med en setning eller to i [Ordliste](/docs/introduction/glossary#vaktpolicy).
+Vakt er hvordan OneUptime får en person til å ta tak i et problem, når som helst på døgnet. Når en hendelse, et varsel eller en episode trenger noen, tilkaller vaktpolicyene folk nivå for nivå til noen bekrefter, og hver person nås slik de selv har valgt: en push-varsling, en SMS, et anrop, en e-post eller en chatmelding. Denne siden viser hvordan delene henger sammen, og hvor hver del ligger. Hvert ord som brukes om vakt, er forklart med en setning eller to i [Ordliste](/docs/introduction/glossary#vaktpolicy).
 
 > [!TIP]
 > Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
@@ -51,7 +51,7 @@ Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av On
 | Slik når man meg | Hvordan én person nås: hvilken metode, og etter hvor lang tid | [Slik når man meg](/docs/notifications/on-call-rules) |
 | Policy for innkommende anrop | Et telefonnummer som ringer til den som har vakt | [Policy for innkommende anrop](/docs/on-call/incoming-call-policy) |
 
-Policyer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, under **Vakt**. Varselmetoder og personlige vaktregler hører til hver person, under **Brukerinnstillinger**: en administrator kan se oppsettet til noen, men bare personen selv kan verifisere telefonen eller e-posten sin. Se [Slik når OneUptime deg](/docs/notifications/index).
+Policyer, eskaleringsregler, vaktplaner og overstyringer hører til prosjektet, under **Vakt**. Varslingsmetoder og personlige vaktregler hører til hver person, under **Brukerinnstillinger**: en administrator kan se oppsettet til noen, men bare personen selv kan verifisere telefonen eller e-posten sin. Se [Slik når OneUptime deg](/docs/notifications/index).
 
 ## Sett opp vakt
 

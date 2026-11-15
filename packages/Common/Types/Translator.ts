@@ -1,5 +1,6 @@
 import escapeRegExp from "../Utils/RegExpEscape";
 import OldestKeyMap from "../Utils/OldestKeyMap";
+import { ComposedWords, composedWordsOf } from "./ComposedWords";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import { getWordOfMeaningKey, withMeaningKeyAsItsWord } from "./MeaningKeys";
 import { withNoBreakSpaces, withNumbersKeptWithUnits } from "./NoBreakSpaces";
@@ -1426,15 +1427,24 @@ export const createTranslator: (
        * already went back to the word (the front ends' translateString)
        * leaves the key as untranslated as one that did not.
        */
-      return typeof result === "string" &&
+      if (
+        typeof result === "string" &&
         result.length > 0 &&
         result !== key &&
         result !== getWordOfMeaningKey(key)
-        ? result
-        : undefined;
+      ) {
+        return result;
+      }
     } catch {
       return undefined;
     }
+
+    /*
+     * Words built in code from a name ("Find One Incident"), which no
+     * locale has a key for: the sentence they were built from, worded by
+     * the language, with the names as its terms (ComposedWords, #8642).
+     */
+    return composedWording(key);
   };
 
   const translateText: (text: string | undefined) => string | undefined = (
@@ -1593,6 +1603,37 @@ export const createTranslator: (
           translatedValues(values),
           activeLanguage,
         );
+  };
+
+  /*
+   * The language's wording of words composeWords built ("Find One
+   * Incident"), or nothing while it has not worded the sentence they were
+   * built from, so they stay English, word for word.
+   */
+  const composedWording: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
+    const composed: ComposedWords | undefined = composedWordsOf(key);
+
+    if (!composed) {
+      return undefined;
+    }
+
+    const wording: string | undefined = find(composed.template);
+
+    if (wording === undefined) {
+      return undefined;
+    }
+
+    const values: TemplateValues = {};
+
+    for (const name of Object.keys(composed.terms)) {
+      values[name] = translatableTerm(composed.terms[name] as string, {
+        inSentence: composed.inSentence,
+      });
+    }
+
+    return fill(wording, composed.template, values);
   };
 
   const translateTemplate: (

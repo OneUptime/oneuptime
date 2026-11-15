@@ -1710,7 +1710,7 @@ describe("where a member fixes themselves", () => {
 
 describe("rule warnings", () => {
   const CALL_WARNING: string =
-    "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
+    "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.";
 
   test("only enabled rules with warnings interrupt the page", () => {
     const groups: Array<RuleWarningGroup> = getRuleWarningGroups([

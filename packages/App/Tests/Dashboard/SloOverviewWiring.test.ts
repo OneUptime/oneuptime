@@ -208,7 +208,7 @@ describe("SLO overview page composition", () => {
      * monitors, so it never gets the card that asks for them.
      */
     expect(INDEX_CODE).toContain(
-      "const isRequestSlo: boolean = isRequestSliType(slo.sliType);",
+      "const isRequestSlo: boolean = isEventSliType(slo.sliType);",
     );
     expect(INDEX_CODE).toContain(
       "const isGettingStarted: boolean = !isRequestSlo && monitorIds.length === 0 && data.monitorRuleCount === 0;",

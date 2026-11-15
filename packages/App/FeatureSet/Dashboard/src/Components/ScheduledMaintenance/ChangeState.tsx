@@ -744,6 +744,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             "Mark Scheduled Maintenance as {{state}}",
             { state: selectedStateName },
           )}
+          isTitleTranslated={true}
           /*
            * One sentence; the optional public note is the folded "Add a
            * public note" line under the notify checkbox.

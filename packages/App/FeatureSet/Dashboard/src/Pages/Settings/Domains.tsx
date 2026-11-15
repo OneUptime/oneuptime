@@ -169,6 +169,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title={translator.translateTemplate("Verify {{domain}}", {
             domain: currentVerificationDomain["domain"]?.toString() || "",
           })}
+          isTitleTranslated={true}
           error={error}
           description={
             <div>

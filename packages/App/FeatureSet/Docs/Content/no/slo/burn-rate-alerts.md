@@ -132,7 +132,7 @@ Under **Regel** skriver du inn et **Navn**, som «Fast burn». En ny regel er sl
 
 ### Angi forbruksvinduet
 
-Under **Forbruksvindu** angir du **Terskel for forbruksrate** (for eksempel `14.4`), **Langt vindu (minutter)** og **Kort vindu (minutter)**, og eventuelt **Undertrykking av ny utløsning (minutter)**. Regelen til et forespørsels-SLO tar også **Minste antall forespørsler**, for eksempel `100`: regelen hopper over et langt vindu som har færre forespørsler enn det.
+Under **Forbruksvindu** angir du **Terskel for forbruksrate** (for eksempel `14.4`), **Langt vindu (minutter)** og **Kort vindu (minutter)**, og eventuelt **Undertrykking av ny utløsning (minutter)**. Regelen til et forespørsels-SLO tar også **Minste antall forespørsler**, for eksempel `100`: regelen hopper over et langt vindu som har færre forespørsler enn det. Regelen til et målings-SLO tar **Minste antall hendelser** på samme måte, i hendelsene til målingen.
 
 ### Velg hva den erklærer
 
@@ -152,6 +152,7 @@ OneUptime sjekker tallene til en regel når du lagrer den:
 | **Langt vindu (minutter)** | Lengre enn det korte vinduet. |
 | **Undertrykking av ny utløsning (minutter)** | 0 eller mer. Tom betyr lengden på det lange vinduet. |
 | **Minste antall forespørsler** | Et helt tall, 0 eller mer. Tom betyr ikke noe minimum. |
+| **Minste antall hendelser** | Et helt tall, 0 eller mer. Tom betyr ikke noe minimum. |
 
 Hvert svar på **Når den utløses** åpner noe. API-et avviser en regel som verken ville opprettet et varsel eller erklært en hendelse, fordi den ville blitt sjekket ved hver evaluering uten noen gang å erklære noe.
 

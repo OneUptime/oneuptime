@@ -59,6 +59,8 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
              */
             buttonStyle={props.closeButtonStyleType ?? ButtonStyleType.NORMAL}
             title={props.closeButtonText ? props.closeButtonText : "Cancel"}
+            // Modal hands its buttons over in the reader's words already.
+            isTitleTranslated={Boolean(props.closeButtonText)}
             data-dismiss="modal"
             onClick={() => {
               props.onClose?.();
@@ -100,6 +102,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
             title={
               props.submitButtonText ? props.submitButtonText : "Save Changes"
             }
+            isTitleTranslated={Boolean(props.submitButtonText)}
             onClick={() => {
               props.onSubmit?.();
             }}

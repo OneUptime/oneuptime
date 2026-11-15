@@ -2529,7 +2529,11 @@ describe("the Admin Dashboard's own build", () => {
     },
   );
 
-  // The forms #8068 found, and French's minutes and instances, which it reads at 0.
+  /*
+   * The forms #8068 found, French's minutes and instances, which it reads at
+   * 0, and the Enterprise health pages' one node, which Danish, Dutch and
+   * Norwegian write as English does (#8599, #8728).
+   */
   test("the one forms the Admin's languages word as English does ship with their marks", () => {
     const marks: Record<string, Record<string, unknown>> = {};
 
@@ -2548,6 +2552,7 @@ describe("the Admin Dashboard's own build", () => {
     expect(marks).toEqual({
       da: {
         [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} people")]: "{{count}} person",
       },
       es: { [markOf("{{count}} monitors")]: "{{count}} monitor" },
@@ -2556,11 +2561,13 @@ describe("the Admin Dashboard's own build", () => {
         [markOf("{{count}} minutes")]: "{{count}} minute",
       },
       nl: {
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} products")]: "{{count}} product",
         [markOf("{{count}} projects")]: "{{count}} project",
       },
       no: {
         [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} people")]: "{{count}} person",
       },
       pt: { [markOf("{{count}} monitors")]: "{{count}} monitor" },

@@ -93,7 +93,7 @@ libvirt 또는 Ceilometer에서 가져오는 인스턴스별 실제 사용량은
 - 모든 페이지와 목록의 모든 구성 요소에 대한 행. 최신 상태로 유지됩니다. 상태 변경은 평소처럼 반영됩니다.
 - 하이퍼바이저, 워커, 네트워크, 라우터, 플로팅 IP, 주소 풀, 스토리지 풀의 모든 시계열.
 - 각 리전의 `openstack_nova_instances_by_status`와 `openstack_nova_instances_by_project`.
-- 경고가 감시하는 상태에 있는 인스턴스나 볼륨의 시계열: `ERROR` 상태이거나 `BUILD`, `RESIZE`, `attaching` 등에서 멈춘 경우. 따라서 모든 [알림 템플릿](/docs/monitor/openstack-monitor#사전-구성-알림-템플릿)이 계속 작동하고 스스로 복구됩니다.
+- 경고가 감시하는 상태에 있는 인스턴스나 볼륨의 시계열: `ERROR` 상태이거나 `BUILD`, `RESIZE`, `attaching` 등에서 멈춘 경우. 따라서 모든 [경고 템플릿](/docs/monitor/openstack-monitor#사전-구성-경고-템플릿)이 계속 작동하고 스스로 복구됩니다.
 
 **포기하는 것:**
 

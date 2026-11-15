@@ -196,7 +196,7 @@ Hva som stopper når en lisens utløper:
 - **Overstyringer av oppbevaring slutter å gjelde.** Ny telemetri beholdes i prosjektets standardoppbevaring. Telemetri som allerede er lagret, beholder oppbevaringen den ble skrevet med. Du kan fortsatt fjerne en overstyring via API-et, men ikke angi en.
 - **Statussider viser Powered by OneUptime igjen.** En side som skjuler linjen, viser den til en lisens aktiveres. Innstillingen beholdes.
 - **Planlagte sikkerhetskopier stopper.** Ingen ny sikkerhetskopi lages. Sikkerhetskopier som allerede er laget, blir værende på målet sitt, og du kan fortsatt gjenopprette og slette dem.
-- **Egendefinerte kanaler stopper.** Ingen vaktvarsler eller andre varsler sendes til en egendefinert kanal, og ingen tilbys i vaktregler. Kanalene og reglene som bruker dem, beholdes, og du kan fortsatt slette en kanal.
+- **Egendefinerte kanaler stopper.** Ingen vaktvarslinger eller andre varslinger sendes til en egendefinert kanal, og ingen tilbys i vaktregler. Kanalene og reglene som bruker dem, beholdes, og du kan fortsatt slette en kanal.
 
 Hva som **ikke** stopper:
 

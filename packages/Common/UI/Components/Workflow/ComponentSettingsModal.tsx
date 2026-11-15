@@ -46,6 +46,8 @@ import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description: string;
   onClose: () => void;
   onSave: (component: NodeDataProp) => void;
@@ -587,6 +589,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       onClose={props.onClose}
       onSubmit={
@@ -701,6 +704,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               template: "Delete {{itemName}}",
               itemName: component.metadata.componentType,
             })}
+            isTitleTranslated={true}
             description={
               <DeleteConfirmationMessage
                 kind="question"

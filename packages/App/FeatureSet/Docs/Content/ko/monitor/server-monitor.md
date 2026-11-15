@@ -23,7 +23,7 @@ flowchart TB
     agent["인프라 에이전트"] -->|"30초마다 보고서"| oneuptime["OneUptime"]
     oneuptime --> criteria{"기준 충족?"}
     sweep["매분 확인"] -->|"3분간 보고서 없음"| criteria
-    criteria -->|"예"| outcome["상태 변경, 알림 또는<br/>인시던트"]
+    criteria -->|"예"| outcome["상태 변경, 경고 또는<br/>인시던트"]
 ```
 
 ## 시작하기 전에
@@ -240,12 +240,12 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 
 | 데이터가 없는 경우 | 동작 | 용도 |
 | --- | --- | --- |
-| **Ignore**(기본값) | 기준이 일치하지 않습니다. | 일반적인 임계값 알림. |
+| **Ignore**(기본값) | 기준이 일치하지 않습니다. | 일반적인 임계값 경고. |
 | **트리거** | 데이터가 없는 것 자체를 문제로 취급합니다. | 무응답 자체가 장애인 하트비트 방식의 확인. |
 | **Treat As Zero** | 기간을 하나의 0으로 비교합니다. | "이벤트 없음"이 정말로 0을 뜻하는 카운터. |
 
 > [!TIP]
-> CPU와 부하는 항상 짧게 치솟습니다. 보고서 하나로 알림을 보내지 말고, **평균** 이나 **모든 값** 으로 몇 분에 걸쳐 평가하세요.
+> CPU와 부하는 항상 짧게 치솟습니다. 보고서 하나로 경고를 보내지 말고, **평균** 이나 **모든 값** 으로 몇 분에 걸쳐 평가하세요.
 
 ### 기준 예시
 
@@ -294,5 +294,5 @@ curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install
 :::cards
 - [호스트 모니터](/docs/monitor/host-monitor): OpenTelemetry 호스트 메트릭을 기반으로 하는, 새 서버에 쓰는 모니터.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): Linux, macOS, Windows에서 호스트 메트릭과 로그를 보냅니다.
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): CPU, 메모리, 디스크, 프로세스 정보를 인시던트 제목에 넣습니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): CPU, 메모리, 디스크, 프로세스 정보를 인시던트 제목에 넣습니다.
 :::

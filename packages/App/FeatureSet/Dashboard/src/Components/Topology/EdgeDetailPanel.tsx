@@ -557,6 +557,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
           historyAvailable ? "Service dependency" : "Dependency",
         ) || ""
       }
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Medium}
     >

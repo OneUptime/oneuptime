@@ -265,6 +265,44 @@ describe("decideSloReleaseCheck - a request SLO", () => {
     });
   });
 
+  // A Metric SLO counts its metric's events, whatever they are (#8445).
+  test("a Metric SLO's verdict counts events, not requests", () => {
+    const tooFew: SloReleaseCheckDecision = decideSloReleaseCheck({
+      sliType: SliType.Metric,
+      targetPercentage: 99.9,
+      options: optionsOf({ minimumRequestCount: 100 }),
+      measurement: {
+        burnRate: 0,
+        sliPercentage: 100,
+        goodRequestCount: 1,
+        totalRequestCount: 1,
+      },
+      deploymentsAllowed: true,
+    });
+
+    expect(tooFew.reason).toBe(
+      "Only 1 event in the last 10 minutes, and this check needs at least 100 events to judge.",
+    );
+
+    const none: SloReleaseCheckDecision = decideSloReleaseCheck({
+      sliType: SliType.Metric,
+      targetPercentage: 99.9,
+      options: optionsOf({ minimumRequestCount: 0 }),
+      measurement: {
+        burnRate: 0,
+        sliPercentage: null,
+        goodRequestCount: 0,
+        totalRequestCount: 0,
+      },
+      deploymentsAllowed: true,
+    });
+
+    expect(none.verdict).toBe(SloReleaseCheckVerdict.Pass);
+    expect(none.reason).toBe(
+      "No events in the last 10 minutes, so nothing burned the error budget.",
+    );
+  });
+
   test("no requests at all, with the default minimum, is not enough either", () => {
     const decision: SloReleaseCheckDecision = decideSloReleaseCheck({
       sliType: SliType.RequestSuccess,

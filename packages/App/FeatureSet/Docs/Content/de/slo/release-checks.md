@@ -42,6 +42,7 @@ Bei einer Burn-Rate von 1 hat das Zeitfenster das Ziel des SLO genau erreicht, d
 Was die Prüfung liest, hängt davon ab, was das SLO misst:
 
 - Ein [Anfrage-SLO](/docs/slo/request-slos) wird nach den Anfragen seiner Dienste im Zeitfenster beurteilt, gelesen aus ihren Spans, sobald sie eintreffen. Fügen Sie `serviceVersion` hinzu, um nur die Anfragen der neuen Version zu beurteilen: OneUptime gleicht den Wert mit dem Ressourcenattribut `service.version` der Spans ab, das ein OpenTelemetry-SDK aus `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2` setzt. So wird der Canary nach seinen eigenen Anfragen beurteilt, nicht verwässert durch die der alten Version.
+- Ein [Metrik-SLO](/docs/slo/request-slos#slos-aus-einer-metrik) wird nach den Ereignissen seiner Metrik im Zeitfenster beurteilt, so gezählt, wie sein SLI sie zählt, sodass `minimumRequestCount`, `goodRequestCount` und `totalRequestCount` Ereignisse sind. Mit `serviceVersion` zählen nur die Punkte der Metrik, deren Ressourcenattribut `service.version` diesen Wert hat: Ein OpenTelemetry-SDK setzt es auf seine Metriken wie auf seine Spans.
 - Ein SLO der Monitor-Verfügbarkeit wird nach den Status-Zeitleisten seiner Monitore über das Zeitfenster beurteilt. `minimumRequestCount` gilt dafür nicht, und eine Prüfung mit `serviceVersion` wird abgelehnt: Monitore haben keine Versionen.
 
 ## Bevor Sie beginnen
@@ -126,7 +127,7 @@ Die Felder der Antwort:
 | `deploymentsAllowed` und `errorBudgetPolicyTier` | Ob die Fehlerbudget-Richtlinie des SLO Deployments erlaubt, und die Stufe, in der es ist. |
 | `checkedAt` | Wann die Prüfung gemessen wurde. |
 
-Ein SLO, das sich nicht messen lässt – ein Anfrage-SLO ohne Dienste, ein Latenz-SLO ohne Schwelle, ein SLO der Monitor-Verfügbarkeit ohne Monitore –, wird mit HTTP 400 und dem, was zu beheben ist, beantwortet, sodass ein Rollout an einem klaren Fehler anhält statt an einer Vermutung. Auf einer selbst gehosteten Installation verwenden Sie statt oneuptime.com deren eigene Adresse.
+Ein SLO, das sich nicht messen lässt – ein Anfrage-SLO ohne Dienste, ein Latenz-SLO ohne Schwelle, ein Metrik-SLO ohne zählbare Metrik, ein SLO der Monitor-Verfügbarkeit ohne Monitore –, wird mit HTTP 400 und dem, was zu beheben ist, beantwortet, sodass ein Rollout an einem klaren Fehler anhält statt an einer Vermutung. Auf einer selbst gehosteten Installation verwenden Sie statt oneuptime.com deren eigene Adresse.
 
 ## Argo Rollouts
 

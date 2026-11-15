@@ -28,7 +28,7 @@ Bare hovedadministratorer får beskjed. Det er de som kan oppgradere, og å fort
 - En nyere utgivelse legger til **Oppdatering tilgjengelig** i bunnteksten i Dashbordet og i Admin-dashbordet. Merket åpner oppgraderingsveiledningen.
 - En publisert sikkerhetsmelding som påvirker versjonen du kjører, viser i stedet **Sikkerhetsoppdatering** på samme sted, i rødt.
 - Den første siden i Admin-dashbordet viser da hver sikkerhetsmelding: alvorlighetsgraden, versjonene den påvirker, utgivelsen som retter den, og en lenke til den på GitHub. Den viser også når kontrollen sist leste sikkerhetsmeldingene, og hvorfor den siste kontrollen feilet, hvis den gjorde det.
-- Hovedadministratorene dine og adressen i Admin-varsel-e-post (**Innstillinger** > **E-poster** i Admin-dashbordet) får én e-post om hver sikkerhetsmelding som påvirker versjonen din, og aldri en til om den samme.
+- Hovedadministratorene dine og adressen i Admin-varsling-e-post (**Innstillinger** > **E-poster** i Admin-dashbordet) får én e-post om hver sikkerhetsmelding som påvirker versjonen din, og aldri en til om den samme.
 
 Alt dette forsvinner så snart du kjører en versjon som ingen sikkerhetsmelding påvirker. Se [Oppgradering](/docs/installation/upgrading) for å oppgradere.
 

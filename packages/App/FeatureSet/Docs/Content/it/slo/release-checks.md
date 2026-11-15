@@ -42,6 +42,7 @@ Con un tasso di consumo di 1 la finestra ha rispettato esattamente l'obiettivo d
 Cosa legge il controllo dipende da cosa misura lo SLO:
 
 - Uno [SLO di richieste](/docs/slo/request-slos) viene giudicato dalle richieste dei suoi servizi nella finestra, lette dai loro span man mano che arrivano. Aggiungi `serviceVersion` per giudicare solo le richieste della nuova versione: OneUptime lo confronta con l'attributo di risorsa `service.version` degli span, che un SDK di OpenTelemetry imposta a partire da `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Così il canary viene giudicato sulle proprie richieste, senza che quelle della vecchia versione lo diluiscano.
+- Uno [SLO di metrica](/docs/slo/request-slos#slo-basati-su-una-metrica) viene giudicato dagli eventi della sua metrica nella finestra, contati come li conta il suo SLI, quindi `minimumRequestCount`, `goodRequestCount` e `totalRequestCount` sono eventi. Con `serviceVersion` contano solo i punti della metrica il cui attributo di risorsa `service.version` ha quel valore: un SDK di OpenTelemetry lo imposta sulle sue metriche come sui suoi span.
 - Uno SLO di disponibilità dei monitor viene giudicato dalle cronologie di stato dei suoi monitor nella finestra. `minimumRequestCount` non vale per questi SLO, e un controllo con `serviceVersion` viene rifiutato: i monitor non hanno versioni.
 
 ## Prima di iniziare
@@ -126,7 +127,7 @@ I campi della risposta:
 | `deploymentsAllowed` e `errorBudgetPolicyTier` | Se la policy del budget di errore dello SLO consente le distribuzioni, e il livello in cui si trova lo SLO. |
 | `checkedAt` | Quando è stata fatta la misura del controllo. |
 
-A uno SLO che non si può misurare (uno SLO di richieste senza servizi, uno SLO di latenza senza soglia, uno SLO di disponibilità dei monitor senza monitor) si risponde con HTTP 400 e con ciò che va corretto, così un rollout si ferma su un errore chiaro invece che su un'ipotesi. Su un'installazione self-hosted, usa il suo indirizzo invece di oneuptime.com.
+A uno SLO che non si può misurare (uno SLO di richieste senza servizi, uno SLO di latenza senza soglia, uno SLO di metrica senza una metrica che possa contare, uno SLO di disponibilità dei monitor senza monitor) si risponde con HTTP 400 e con ciò che va corretto, così un rollout si ferma su un errore chiaro invece che su un'ipotesi. Su un'installazione self-hosted, usa il suo indirizzo invece di oneuptime.com.
 
 ## Argo Rollouts
 

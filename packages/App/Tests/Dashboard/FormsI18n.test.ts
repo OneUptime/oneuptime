@@ -480,8 +480,9 @@ describe("the composed strings", () => {
     expect(cardModelDetail).toContain(
       'const editTitle: string = translateNamedAction(translator, { template: "Edit {{itemName}}", itemName: singularName, });',
     );
+    // A page's own title in English is looked up here, once, and drawn as given (#8633).
     expect(cardModelDetail).toContain(
-      "title={props.editModalTitle || editTitle}",
+      "title={ props.editModalTitle ? translator.translateText(props.editModalTitle) || props.editModalTitle : editTitle } isTitleTranslated={true}",
     );
 
     /*

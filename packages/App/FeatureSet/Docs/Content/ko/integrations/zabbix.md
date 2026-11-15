@@ -171,7 +171,7 @@ https://oneuptime.com/heartbeat/<secret key>
 자체 호스팅 설치에서는 `oneuptime.com` 대신 자체 호스트가 들어갑니다.
 :::
 
-모니터는 요청의 JSON을 쓰인 그대로 읽습니다. `"status":"1"`처럼 공백이 없어야 합니다. 각 설정이 하는 일은 [다른 시스템에서 알림 받기](/docs/monitor/incoming-request-monitor#다른-시스템의-알림-수신)를 참고하세요. Zabbix에서 한 업데이트도 `"status":"1"`로 전송되며, 모니터는 이를 다시 문제로 읽고 새 인시던트를 열지 않습니다.
+모니터는 요청의 JSON을 쓰인 그대로 읽습니다. `"status":"1"`처럼 공백이 없어야 합니다. 각 설정이 하는 일은 [다른 시스템에서 경고 받기](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)를 참고하세요. Zabbix에서 한 업데이트도 `"status":"1"`로 전송되며, 모니터는 이를 다시 문제로 읽고 새 인시던트를 열지 않습니다.
 
 ## Zabbix 구성
 

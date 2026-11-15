@@ -63,7 +63,7 @@ flowchart TB
     check -->|"Sì"| post["Chiamata API POST (JSON)"]
     check -->|"No"| ends(["Niente collegato, quindi<br/>l'esecuzione finisce"])
     post -->|"Successo"| slack["Invia messaggio a Slack"]
-    post -->|"Errore"| log["Registro"]
+    post -->|"Errore"| log["Log"]
 ```
 
 Puoi collegare un'uscita a più blocchi. Vengono eseguiti tutti, ma uno dopo l'altro, in un'unica coda, non in parallelo. Non contare sull'ordine tra i rami, né sul fatto che si sovrappongano nel tempo.

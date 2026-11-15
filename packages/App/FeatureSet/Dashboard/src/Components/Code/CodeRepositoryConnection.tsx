@@ -356,6 +356,7 @@ const ReplaceTokenDialog: FunctionComponent<{
       title={translator.translateTemplate(
         CODE_REPOSITORY_CONNECTION_COPY.replaceTitle,
       )}
+      isTitleTranslated={true}
       description={
         props.checkedWith
           ? translator.translateTemplate(

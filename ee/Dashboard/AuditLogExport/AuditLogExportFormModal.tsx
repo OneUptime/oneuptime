@@ -460,8 +460,9 @@ const AuditLogExportFormModal: FunctionComponent<ComponentProps> = (
           ? translator.translateTemplate(AuditLogExportCopy.editTitle, {
               name: props.auditLogExport?.name || lockedDefinition?.title || "",
             })
-          : AuditLogExportCopy.createTitle
+          : (translator.translateText(AuditLogExportCopy.createTitle) as string)
       }
+      isTitleTranslated={true}
       description={
         isEditing
           ? AuditLogExportCopy.editDescription

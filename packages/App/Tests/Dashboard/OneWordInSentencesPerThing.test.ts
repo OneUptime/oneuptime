@@ -3,6 +3,10 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
+import {
+  ONE_WORD_RULES,
+  SentenceRule,
+} from "Common/Tests/Helpers/OneWordPerThingRules";
 
 /*
  * THE SENTENCES SAY THE WORD THE MENU AND THE PAGE SAY (#8628).
@@ -33,121 +37,12 @@ import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
  * has a meaning of its own (a notification, the act of monitoring), so the
  * check reads the strings whose English names the thing, and only those: a
  * string whose English names the thing says the language's word and not
- * the dropped one.
+ * the dropped one. The rules are Common/Tests/Helpers/OneWordPerThingRules,
+ * which every setup guide's words are held to as well
+ * (SetupGuideDocumentationInLocale).
  */
 
-interface SentenceRule {
-  language: string;
-  thing: string;
-  // The English keys that name the thing.
-  english: RegExp;
-  // English keys that name it beside something the other word is right for.
-  except?: RegExp;
-  // The language's one word for the thing.
-  word: RegExp;
-  // The word the language no longer says for it.
-  dropped: RegExp;
-  /*
-   * English docs lines that name the thing beside something the other word
-   * is right for (a Korean line about push notifications or reminders).
-   */
-  docsExcept?: RegExp;
-}
-
-const RULES: ReadonlyArray<SentenceRule> = [
-  {
-    language: "ko",
-    thing: "Alerts",
-    english: /\balerts?\b/i,
-    /*
-     * A notification's 알림 stays: a notification itself, iOS's critical
-     * alerts (중요 알림, a kind of notification) and a warning alert, which
-     * would read 경고 경고.
-     */
-    except:
-      /notif|\bnotice|\bnotify|\balert(?:ing)? (?:channel|rule|polic)|alertmanager|e-?mail alert|sms alert|critical(?: on-call)? alerts?|warning alerts?|warnings raise alerts/i,
-    word: /경고/,
-    dropped: /알림/,
-    docsExcept:
-      /notification|\bnotify|\bpush|reminder|critical(?: on-call)? alerts?|warning alerts?|alertmanager|e-?mail alert|sms alert/i,
-  },
-  {
-    language: "zh-CN",
-    thing: "Traces",
-    english: /\btraces?\b|^Trace$/i,
-    except: /track/i,
-    word: /追踪/,
-    dropped: /跟踪/,
-  },
-  {
-    language: "hi",
-    thing: "Queues",
-    english: /\bqueues?\b/i,
-    word: /क्यू/,
-    dropped: /कतार/,
-  },
-  {
-    language: "it",
-    thing: "Logs",
-    english: /\blogs?\b/i,
-    except: /log ?in\b|log ?out\b|login|logout|\bblog/i,
-    word: /\blog\b/i,
-    dropped: /\bregistr[oi]\b/i,
-  },
-  {
-    language: "da",
-    thing: "Monitors",
-    english: /\bmonitors?\b|^Monitor$/i,
-    except: /\bmonitoring\b|watchlist/i,
-    word: /monitor/i,
-    dropped: /overvågning/i,
-  },
-  {
-    language: "no",
-    thing: "Monitors",
-    english: /\bmonitors?\b|^Monitor$/i,
-    except: /\bmonitoring\b|watchlist/i,
-    word: /monitor/i,
-    // The noun's forms; "overvåker" alone is also the verb (it monitors).
-    dropped: /overvåking|overvåker(?=\p{L})/iu,
-  },
-  {
-    language: "da",
-    thing: "Metrics",
-    english: /\bmetrics?\b/i,
-    except: /measurement|reading/i,
-    word: /metrik/i,
-    dropped: /måling/i,
-  },
-  {
-    language: "sv",
-    thing: "Metrics",
-    english: /\bmetrics?\b/i,
-    word: /mätvärde/i,
-    dropped: /mått/i,
-  },
-  {
-    language: "sv",
-    thing: "Monitor Groups",
-    english: /\bmonitor groups?\b/i,
-    word: /monitorgrupp/i,
-    dropped: /övervakningsgrupp/i,
-  },
-  {
-    language: "ru",
-    thing: "Runbooks",
-    english: /\brunbooks?\b/i,
-    word: /сборник\p{L}* инструкций/iu,
-    dropped: /сценари/i,
-  },
-  {
-    language: "zh-TW",
-    thing: "Runbooks",
-    english: /\brunbooks?\b/i,
-    word: /運行手冊/,
-    dropped: /操作手冊|執行手冊/,
-  },
-];
+const RULES: ReadonlyArray<SentenceRule> = ONE_WORD_RULES;
 
 // What a text says in words: a placeholder's name and code are not words.
 const NOT_WORDS: RegExp = /\{\{[^{}]*\}\}|`[^`]*`/g;

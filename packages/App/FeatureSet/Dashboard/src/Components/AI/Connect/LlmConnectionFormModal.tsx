@@ -598,6 +598,7 @@ const LlmConnectionFormModal: FunctionComponent<ComponentProps> = (
                 translator.translateText(definition.title) || definition.title,
             })
       }
+      isTitleTranslated={true}
       // What arrives once it is connected, in the reader's words.
       description={definition.summary}
       name={

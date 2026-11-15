@@ -546,6 +546,7 @@ const McpAuthorize: () => JSX.Element = () => {
           <div className="flex items-center justify-end gap-3">
             <Button
               title={t("mcpAuthorize.denyButton")}
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.NORMAL}
               disabled={isSubmitting}
               dataTestId="mcp-authorize-deny"
@@ -557,6 +558,7 @@ const McpAuthorize: () => JSX.Element = () => {
             />
             <Button
               title={t("mcpAuthorize.authorizeButton")}
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.PRIMARY}
               disabled={!canAuthorize}
               isLoading={isSubmitting}

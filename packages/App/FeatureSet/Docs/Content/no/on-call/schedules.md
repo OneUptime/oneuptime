@@ -132,5 +132,5 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 - [Eskaleringsregler](/docs/on-call/escalation-rules): La et nivå i en vaktpolicy varsle denne vaktplanen.
 - [Tidslinje for vaktplaner](/docs/on-call/schedule-timeline): Se alle vaktplanene side om side, med hull i dekningen.
 - [Kalenderfeeder](/docs/on-call/calendar-feeds): Få vakter inn i Google Kalender, Outlook eller Apple Kalender.
-- [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvordan et varsel når deg mens du har vakt.
+- [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvordan en varsling når deg mens du har vakt.
 :::

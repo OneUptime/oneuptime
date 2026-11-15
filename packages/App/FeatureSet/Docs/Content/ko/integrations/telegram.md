@@ -11,9 +11,9 @@
 
 ## 작동 방식
 
-```mermaid title="알림에서 Telegram 메시지로"
+```mermaid title="경고에서 Telegram 메시지로"
 flowchart TB
-    fired["알림 발생"] --> trigger["On Create Alert"]
+    fired["경고 발생"] --> trigger["On Create Alert"]
     trigger --> step["Send Message<br/>to Telegram"]
     step -->|"성공"| chat["채팅의 메시지"]
     step -->|"오류"| failed["실행이 실패하고<br/>이유를 알림"]

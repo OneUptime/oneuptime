@@ -5,6 +5,7 @@ Uno SLO di richieste misura ciò che i tuoi utenti ottengono da un servizio: la 
 :::cards
 - [Creare uno SLO di richieste](#creare-uno-slo-di-richieste): I servizi, una soglia per la latenza e un obiettivo.
 - [Contare solo alcune richieste](#contare-solo-alcune-richieste): Un solo endpoint, o tutte le richieste tranne i controlli di salute.
+- [SLO basati su una metrica](#slo-basati-su-una-metrica): Un contatore o un istogramma, per i servizi che non inviano tracce.
 - [Come si contano le richieste](#come-si-contano-le-richieste): Quali span contano, e quando.
 - [Controlli dei rilasci](/docs/slo/release-checks): Fai il rollback di un rilascio che consuma il budget di errore.
 :::
@@ -76,6 +77,22 @@ Uno SLO di richieste conta tutte le richieste dei suoi servizi. Un **Filtro dell
 Ogni termine deve corrispondere, quindi `@http.route:/checkout* -@http.route:/checkout/health` conta le richieste di checkout tranne il loro controllo di salute. Un termine con `@` è un attributo dello span della richiesta, e `name:` è il nome dello span. Il testo libero e gli altri campi dell'esploratore, come `status:` e `duration:`, qui non sono filtri: lo SLO decide già quali richieste sono cattive o lente. Un filtro contiene fino a 10 termini in 500 caratteri.
 
 La **Panoramica** mostra il filtro sotto i servizi dello SLO, e le **Impostazioni** lo mostrano sotto **Cosa misura**. Cambiarlo fa ricontare le richieste dello SLO dall'inizio.
+
+## SLO basati su una metrica
+
+Quando i tuoi servizi contano già le loro richieste come metriche, o non inviano tracce, misura invece lo SLO da un contatore o da un istogramma. In **Cosa misura**, scegli **Metrica** e i **Servizi** che la inviano, poi nel passaggio **Metrica**:
+
+| Campo | Cosa inserire |
+| --- | --- |
+| **Metrica** | Il nome della metrica, scelto tra le metriche del tuo progetto o digitato, come `http_requests_total` o `http.server.request.duration`. |
+| **Eventi buoni** | **Un contatore, in base a una condizione** o **Un istogramma, in base a un valore**. |
+| **Buono quando** | Per un contatore: gli eventi buoni, come ricerca sui suoi attributi, per esempio `@http.response.status_code:<500`. |
+| **Buono fino a** | Per un istogramma: il valore che un'osservazione buona non supera, nell'unità propria della metrica, per esempio `0.3` per 300 ms in un istogramma in secondi. Usa uno dei limiti dei suoi bucket. |
+| **Filtro della metrica** | Facoltativo: le serie che contano, come `-@http.route:/health`. |
+
+Gli eventi di un contatore sono di quanto è cresciuto in ogni passo di 5 minuti, come lo legge `increase()` di Prometheus: un contatore che riparte conta di nuovo da zero, e contano sia i contatori cumulativi sia quelli delta. Gli eventi di un istogramma sono le sue osservazioni, e quelli buoni sono quelli nei bucket pari o inferiori al valore. Contano solo i punti propri della metrica, e solo quelli dei servizi dello SLO: un gauge con lo stesso nome non conta nulla.
+
+Per il resto uno SLO di metrica funziona come uno SLO di richieste, con il budget di errore, le regole del tasso di consumo e i controlli dei rilasci espressi in eventi. Cambiare la metrica fa ricontare i suoi eventi dall'inizio.
 
 ## Come si contano le richieste
 

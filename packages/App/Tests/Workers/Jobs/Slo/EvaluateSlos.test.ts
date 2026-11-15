@@ -1542,7 +1542,8 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(monitorService.findBy).not.toHaveBeenCalled();
     });
 
-    test("a Metric SLI is Misconfigured (Phase 2) rather than evaluated as uptime", async () => {
+    // Measured from its metric now (#8445): with none to read, never as uptime.
+    test("a Metric SLI with no services or metric is Misconfigured rather than evaluated as uptime", async () => {
       sloService.getDueSlos.mockResolvedValue([
         makeSlo({ sliType: SliType.Metric }),
       ]);
@@ -6202,12 +6203,21 @@ describe("Slo:EvaluateSlos worker", () => {
           reason: "No monitors are attached to this SLO",
         },
         {
+          label: "an SLI type OneUptime does not measure",
+          slo: (): ServiceLevelObjective => {
+            return makeSlo({ sliType: "Availability" as SliType });
+          },
+          arrange: (): void => {},
+          reason: "SLI type is not one OneUptime measures",
+        },
+        // Measured from its metric (#8445): this one has no services to read it from.
+        {
           label: "a Metric SLI",
           slo: (): ServiceLevelObjective => {
             return makeSlo({ sliType: SliType.Metric });
           },
           arrange: (): void => {},
-          reason: "SLI type is not one OneUptime measures",
+          reason: "so there is no metric to measure",
         },
         {
           label: "monitors whose rows no longer exist",

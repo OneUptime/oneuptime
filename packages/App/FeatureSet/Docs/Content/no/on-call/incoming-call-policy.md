@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Legg til Twilio-kontoen din
 
-Gå til **Prosjektinnstillinger** > **Varsler** > **Varslingskanaler**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
+Gå til **Prosjektinnstillinger** > **Varslinger** > **Varslingskanaler**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
 
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.
@@ -158,9 +158,9 @@ En regel ringer en person på nummeret personen har verifisert for innkommende a
 3. Skriv inn den 6-sifrede koden OneUptime sender til nummeret på SMS under **Verifiseringskode**, og klikk på **Verifiser**. **Send en ny kode** sender en ny.
 :::
 
-Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varselmetoder**, som vaktvarsler bruker. Se [Varselmetoder](/docs/notifications/notification-methods).
+Hver person kan ha ett verifisert nummer per prosjekt. For å endre det sletter du først det gamle nummeret. Disse numrene er atskilt fra telefonnumrene under **Varslingsmetoder**, som vaktvarslinger bruker. Se [Varslingsmetoder](/docs/notifications/notification-methods).
 
-Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler**.
+Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være slått på for prosjektet. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varslinger > Varslingskanaler**.
 
 ## Talemeldinger og innstillinger for policyen
 
@@ -200,9 +200,9 @@ Et anrop er tapt når det avsluttes uten å nå noen: statusen er **Ingen svar**
 
 Når et anrop er tapt, gir OneUptime beskjed til policyens eiere: brukerne og medlemmene av teamene som er lagt til på policyens side **Eiere**. Har policyen ingen eiere, får Prosjekteiere beskjed i stedet.
 
-Varselet sier hvem som ringte, hvilket nummer de ringte, hvorfor ingen svarte, og hvem som ble ringt og hvordan hvert forsøk endte. Det lenker til anropet i anropsloggen.
+Varslingen sier hvem som ringte, hvilket nummer de ringte, hvorfor ingen svarte, og hvem som ble ringt og hvordan hvert forsøk endte. Det lenker til anropet i anropsloggen.
 
-Eiere får e-post som standard. Hver person kan velge andre kanaler (SMS, anrop, push og mer) eller slå det av i **Brukerinnstillinger** > **Varselinnstillinger**, under **Vakt** > **Policyer for innkommende anrop** > **Tapt anrop**. Se [Varselinnstillinger](/docs/notifications/notification-settings).
+Eiere får e-post som standard. Hver person kan velge andre kanaler (SMS, anrop, push og mer) eller slå det av i **Brukerinnstillinger** > **Varslingsinnstillinger**, under **Vakt** > **Policyer for innkommende anrop** > **Tapt anrop**. Se [Varslingsinnstillinger](/docs/notifications/notification-settings).
 
 ### Reager på tapte anrop i en arbeidsflyt
 
@@ -275,7 +275,7 @@ Kontoen kan bare endres mens policyen ikke har telefonnumre: siden sier "Remove 
 :::
 
 :::details Koden til en ingeniørs nummer kommer ikke frem
-SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send en ny kode** for å sende en ny, og **Prosjektinnstillinger** > **Varsler** > **Varsellogger** viser hva som skjedde med den.
+SMS må være slått på for prosjektet. På OneUptime Cloud betaler et prosjekt uten sin egen standard-Twilio-konfigurasjon for SMS-ene fra saldoen sin, som må være over 1 USD. Koder kan bruke et minutt på å komme frem; klikk på **Send en ny kode** for å sende en ny, og **Prosjektinnstillinger** > **Varslinger** > **Varslingslogger** viser hva som skjedde med den.
 :::
 
 ## Neste steg

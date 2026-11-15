@@ -5,6 +5,7 @@ Ett SLO för begäranden mäter vad dina användare får av en tjänst: andelen 
 :::cards
 - [Skapa ett SLO för begäranden](#skapa-ett-slo-för-begäranden): Tjänsterna, en latensgräns och ett mål.
 - [Räkna bara vissa begäranden](#räkna-bara-vissa-begäranden): En slutpunkt, eller alla begäranden utom hälsokontroller.
+- [SLO:er från ett mätvärde](#sloer-från-ett-mätvärde): En räknare eller ett histogram, för tjänster som inte skickar några spår.
 - [Så räknas begäranden](#så-räknas-begäranden): Vilka spans som räknas, och när.
 - [Releasekontroller](/docs/slo/release-checks): Rulla tillbaka en release som förbrukar felbudgeten.
 :::
@@ -76,6 +77,22 @@ Ett SLO för begäranden räknar alla begäranden från sina tjänster. Ett **Be
 Alla villkor måste matcha, så `@http.route:/checkout* -@http.route:/checkout/health` räknar checkout-begärandena utom deras hälsokontroll. Ett villkor med `@` är ett attribut för begärandens span, och `name:` är spannets namn. Fritext och utforskarens andra fält, som `status:` och `duration:`, är inte filter här: SLO:et avgör redan vilka begäranden som är dåliga eller långsamma. Ett filter rymmer upp till 10 villkor på 500 tecken.
 
 **Översikt** visar filtret under SLO:ets tjänster, och **Inställningar** visar det under **Vad den mäter**. Att ändra det gör att SLO:ets begäranden räknas om från början.
+
+## SLO:er från ett mätvärde
+
+När dina tjänster redan räknar sina begäranden som mätvärden, eller inte skickar några spår, mäter du i stället SLO:et utifrån en räknare eller ett histogram. Under **Vad den mäter** väljer du **Mätvärde** och under **Tjänster** de tjänster som skickar det, och sedan fyller du i steget **Mätvärde**:
+
+| Fält | Vad du anger |
+| --- | --- |
+| **Mätvärde** | Mätvärdets namn, valt bland ditt projekts mätvärden eller inskrivet, till exempel `http_requests_total` eller `http.server.request.duration`. |
+| **Godkända händelser** | **En räknare, utifrån ett villkor** eller **Ett histogram, utifrån ett värde**. |
+| **Godkänd när** | För en räknare: de händelser som är bra, som en sökning på dess attribut, till exempel `@http.response.status_code:<500`. |
+| **Godkänd på eller under** | För ett histogram: det värde som en bra observation ligger på eller under, i mätvärdets egen enhet, till exempel `0.3` för 300 ms i ett histogram i sekunder. Använd en av histogrammets bucketgränser. |
+| **Mätvärdesfilter** | Valfritt: de serier som räknas, till exempel `-@http.route:/health`. |
+
+En räknares händelser är det som den har ökat med i varje steg om 5 minuter, så som Prometheus `increase()` läser en räknare: en räknare som startar om räknas från noll igen, och både kumulativa räknare och deltaräknare räknas. Ett histograms händelser är dess observationer, och de bra är observationerna i de buckets som ligger på eller under värdet. Bara mätvärdets egna punkter räknas, från SLO:ets tjänster: en gauge med samma namn räknas inte alls.
+
+Därifrån fungerar ett mätvärdesbaserat SLO som ett SLO för begäranden, med felbudget, regler för förbrukningstakt och releasekontroller räknade i händelser. Att ändra mätvärdet gör att dess händelser räknas om från början.
 
 ## Så räknas begäranden
 

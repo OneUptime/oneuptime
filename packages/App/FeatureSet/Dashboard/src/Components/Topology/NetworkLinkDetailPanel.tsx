@@ -284,11 +284,13 @@ const NetworkLinkDetailPanel: FunctionComponent<ComponentProps> = (
   return (
     <SideOver
       title={`${fromName} ↔ ${toName}`}
+      isTitleTranslated={true}
       description={
         (isLearned
           ? translateString("Learned link")
           : translateString("Network link")) || ""
       }
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Small}
     >

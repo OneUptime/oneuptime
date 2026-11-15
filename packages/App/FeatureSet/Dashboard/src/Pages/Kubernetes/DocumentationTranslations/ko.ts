@@ -18,14 +18,14 @@ const TRANSLATION: SetupGuideTranslation = {
   "Replace `my-cluster` with a name for this cluster, such as `prod-us-east-1`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
     "`my-cluster`를 이 클러스터의 이름(예: `prod-us-east-1`)으로 바꾸세요. OneUptime에서 클러스터가 이 이름으로 표시되므로 바꾸지 마세요. 새 이름은 새 클러스터로 등록됩니다.",
   "`--set aiAgent.enabled=true` turns **AI investigations** on, as the chart does by default: OneUptime AI investigates incidents and alerts on this cluster with read-only kubectl, through the Kubernetes AI agent.":
-    "`--set aiAgent.enabled=true`는 chart의 기본값대로 **AI 조사**를 켭니다. OneUptime AI는 Kubernetes AI 에이전트를 통해 읽기 전용 kubectl로 이 클러스터의 인시던트와 알림을 조사합니다.",
+    "`--set aiAgent.enabled=true`는 chart의 기본값대로 **AI 조사**를 켭니다. OneUptime AI는 Kubernetes AI 에이전트를 통해 읽기 전용 kubectl로 이 클러스터의 인시던트와 경고를 조사합니다.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "1단계에서 수집 키를 선택하면 `<YOUR_API_KEY>`가 채워집니다.",
   "You should see:": "다음과 같이 보여야 합니다:",
   "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node. Once they are `Running`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.":
     "컬렉터와 Kubernetes AI 에이전트, 그리고 노드마다 `-logs` Pod와 `-ebpf` Pod가 하나씩 있습니다. 모두 `Running` 상태가 되면 클러스터가 **Kubernetes** 섹션에 자동으로 나타나며, 보통 1~2분 걸립니다.",
   "**Kubernetes AI agent (on by default, read-only).** The `kubernetes-agent-ai-agent` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — `get`, `describe`, `logs`, `events`, `top` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Install with `--set aiAgent.enabled=false` instead of `--set aiAgent.enabled=true`.":
-    "**Kubernetes AI 에이전트(기본적으로 켜짐, 읽기 전용).** `kubernetes-agent-ai-agent` Pod는 같은 API 키를 사용해 읽기 전용 kubectl(`get`, `describe`, `logs`, `events`, `top`)로 OneUptime AI가 이 클러스터의 인시던트와 알림을 조사할 수 있게 하며, 나중에 쓰기 권한을 주지 않는 한 아무것도 바꿀 수 없습니다. 클러스터를 열고 **AI → 에이전트** 로 이동하면 볼 수 있습니다. 필요 없나요? `--set aiAgent.enabled=true` 대신 `--set aiAgent.enabled=false`로 설치하세요.",
+    "**Kubernetes AI 에이전트(기본적으로 켜짐, 읽기 전용).** `kubernetes-agent-ai-agent` Pod는 같은 API 키를 사용해 읽기 전용 kubectl(`get`, `describe`, `logs`, `events`, `top`)로 OneUptime AI가 이 클러스터의 인시던트와 경고를 조사할 수 있게 하며, 나중에 쓰기 권한을 주지 않는 한 아무것도 바꿀 수 없습니다. 클러스터를 열고 **AI → 에이전트** 로 이동하면 볼 수 있습니다. 필요 없나요? `--set aiAgent.enabled=true` 대신 `--set aiAgent.enabled=false`로 설치하세요.",
   "Namespace rules decide what the agent collects from each namespace. To collect pod logs and eBPF data only from `default`, `production` and `staging`:":
     "네임스페이스 규칙은 에이전트가 각 네임스페이스에서 무엇을 수집할지 정합니다. `default`, `production`, `staging`에서만 Pod 로그와 eBPF 데이터를 수집하려면:",
   "To keep everything but stop the logs of noisy namespaces, exclude them from `podLogs` only:":

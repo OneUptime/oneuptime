@@ -335,11 +335,14 @@ const UsedByDialog: FunctionComponent<ComponentProps> = (
 
   const title: string = relation
     ? getUsedByRelationTitle(relation, translator)
-    : USED_BY_CARD_WORDS[props.recordKind].title;
+    : (translator.translateText(
+        USED_BY_CARD_WORDS[props.recordKind].title,
+      ) as string);
 
   return (
     <Modal
       title={title}
+      isTitleTranslated={true}
       description={
         relation ? undefined : USED_BY_CARD_WORDS[props.recordKind].description
       }

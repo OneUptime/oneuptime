@@ -49,7 +49,7 @@ Ouvrez **SLO** depuis le menu **Produits** de la barre supérieure. Il se trouve
 
 ### Choisir ce qu'il mesure
 
-Sous **Ce qui est mesuré**, gardez **Disponibilité des moniteurs** pour mesurer la part du temps pendant laquelle des moniteurs sont disponibles. Pour mesurer plutôt les requêtes de services, choisissez **Réussite des requêtes** ou **Latence des requêtes**, puis leurs **Services** : voir [SLO de requêtes et de latence](/docs/slo/request-slos). Cliquez sur **Suivant**.
+Sous **Ce qui est mesuré**, gardez **Disponibilité des moniteurs** pour mesurer la part du temps pendant laquelle des moniteurs sont disponibles. Pour mesurer plutôt les requêtes de services, choisissez **Réussite des requêtes** ou **Latence des requêtes**, puis leurs **Services** : voir [SLO de requêtes et de latence](/docs/slo/request-slos). Choisissez **Métrique** pour compter les bons événements d'un compteur ou d'un histogramme qu'envoient vos services : voir [SLO à partir d'une métrique](/docs/slo/request-slos#slo-à-partir-dune-métrique). Cliquez sur **Suivant**.
 
 ### Le nommer et fixer un objectif
 
@@ -201,7 +201,7 @@ La page **Paramètres** regroupe la façon dont un SLO mesure, une carte chacun 
 
 | Carte | Ce que vous modifiez | Bon à savoir |
 | --- | --- | --- |
-| **Ce qui est mesuré** | **Ce qui est mesuré**, **Services**, **Seuil de latence (ms)** et **Filtre de requêtes**, avec **Modifier ce qui est mesuré**. | Après une modification, un SLO de requêtes recompte ses requêtes depuis le début. |
+| **Ce qui est mesuré** | **Ce qui est mesuré**, **Services**, **Seuil de latence (ms)**, **Filtre de requêtes** et **Métrique**, avec **Modifier ce qui est mesuré**. | Après une modification, un SLO de requêtes recompte ses requêtes depuis le début. |
 | **Objectif** | **Cible (%)** et **Seuil à risque (%)**, avec **Modifier l'objectif**. | Affiche l'indisponibilité que l'objectif autorise, par exemple « 43 min 12 s d'indisponibilité par fenêtre de 30 jours ». |
 | **Période de conformité** | **Type de fenêtre**, **Fenêtre (jours)** et **Fuseau horaire**, avec **Modifier la période**. | Les règles de taux de consommation gardent leurs seuils quand la fenêtre change, revoyez-les donc ensuite. |
 | **Calcul de l'indisponibilité** | **Mode multi-moniteurs** et **Statuts de moniteur d'indisponibilité**, avec **Modifier le calcul de l'indisponibilité**. | SLO de disponibilité des moniteurs uniquement. Des statuts vides comptent tous les statuts non opérationnels, y compris ceux ajoutés plus tard. |
@@ -265,6 +265,8 @@ Un bandeau en haut des pages du SLO dit ce qui l'empêche de mesurer :
 | **Aucun service choisi** | Un SLO de requêtes n'a aucun service, il n'a donc aucune requête à compter. | Choisissez ses services dans **Paramètres** → **Ce qui est mesuré**. |
 | **Aucun seuil de latence** | Un SLO de latence des requêtes n'a pas de seuil, aucune requête ne peut donc compter comme assez rapide. | Fixez le **Seuil de latence (ms)** dans **Paramètres** → **Ce qui est mesuré**. |
 | **En attente de requêtes** | Aucun des services d'un SLO de requêtes n'a encore servi de requête dans sa fenêtre. | Vérifiez que les services envoient des traces à OneUptime. Les chiffres apparaissent après la prochaine évaluation qui compte une requête. |
+| **Aucune métrique à compter** | Un SLO de métrique n'a aucune métrique qu'il puisse compter : aucune n'est choisie, ou il manque la façon de distinguer ses bons événements. | Choisissez la métrique, et sa condition ou sa valeur de bon événement, dans **Paramètres** → **Ce qui est mesuré**. |
+| **En attente de sa métrique** | Aucun des services d'un SLO de métrique n'a encore envoyé d'événement de sa métrique dans sa fenêtre. | Vérifiez que les services envoient la métrique à OneUptime, sous le nom que compte le SLO. Les chiffres apparaissent après la prochaine évaluation qui compte un événement. |
 
 ## Prochaines étapes
 

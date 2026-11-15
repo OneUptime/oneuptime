@@ -357,8 +357,9 @@ const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
             ? translator.translateTemplate("Send to {{name}}", {
                 name: lockedDefinition.title,
               })
-            : "Send to your SIEM"
+            : (translator.translateText("Send to your SIEM") as string)
       }
+      isTitleTranslated={true}
       description={
         isEditing
           ? "Change where and what is sent. The key stays unless you paste a new one."

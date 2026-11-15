@@ -685,6 +685,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
               template: "Edit {{itemName}}",
               itemName: new props.modelType().singularName || "",
             })}
+            isTitleTranslated={true}
             onClose={() => {
               return setShowModelForm(false);
             }}

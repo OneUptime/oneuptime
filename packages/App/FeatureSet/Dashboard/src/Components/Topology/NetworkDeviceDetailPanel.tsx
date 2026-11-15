@@ -287,6 +287,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
         name: node.name,
         ipAddress: node.ipAddress,
       })}
+      isDescriptionTranslated={true}
       onClose={props.onClose}
       size={SideOverSize.Small}
     >
@@ -411,6 +412,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
             <div className="[&>button]:ml-0 [&>button]:md:ml-0">
               <Button
                 title={translateString("Show only this branch")}
+                isTitleTranslated={true}
                 icon={IconProp.Funnel}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}
@@ -695,6 +697,7 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
                     ? translateString("Add to monitoring")
                     : translateString("Add to Monitoring")
                 }
+                isTitleTranslated={true}
                 icon={IconProp.Add}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.PRIMARY}

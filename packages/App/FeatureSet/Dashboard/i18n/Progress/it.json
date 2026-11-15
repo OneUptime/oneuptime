@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55650,
-    "untranslated": 8274
+    "keys": 55711,
+    "untranslated": 8157
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -195,6 +195,7 @@
     "Link-local",
     "Listener",
     "Load balancer",
+    "Log",
     "Log4Shell",
     "Logo",
     "Loopback",
