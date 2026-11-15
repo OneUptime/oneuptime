@@ -64,6 +64,8 @@ import CephDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Page
 import IoTDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Documentation";
 import OpenStackDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Documentation";
 import KubernetesDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Documentation";
+import DatabaseDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Documentation";
+import DatabaseDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -96,6 +98,16 @@ import { OpenStackDeploymentTool } from "../../../../App/FeatureSet/Dashboard/sr
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import { getKubernetesSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
+import {
+  getDatabaseAgentEngine,
+  getDatabaseAgentSetupGuide,
+  getDatabaseHealthMonitorCreateUrl,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -113,6 +125,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   IoT: {},
   OpenStack: {},
   Kubernetes: {},
+  Database: {},
 };
 
 /*
@@ -176,6 +189,26 @@ function openStackGuide(
     hasApiKey: false,
     method: method,
     tool: tool,
+  });
+}
+
+/*
+ * The Database guide the product page draws before a key is picked, for
+ * the engine picked (PostgreSQL until another is), its Database Health
+ * monitor link in the current project as the card builds it.
+ */
+function databaseGuide(system: string = "postgresql"): SetupGuideContent {
+  return getDatabaseAgentSetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    engine: getDatabaseAgentEngine(system)!,
+    system: system,
+    databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITOR_CREATE] as Route,
+      ).toString(),
+    ),
   });
 }
 
@@ -297,6 +330,9 @@ beforeAll(async () => {
     ).default;
     WORDS["OpenStack"]![language] = (
       await OPENSTACK_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["Database"]![language] = (
+      await DATABASE_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -827,6 +863,187 @@ describe("OpenStack > Help > Documentation", () => {
       );
     },
   );
+});
+
+describe("Databases > Help > Documentation", () => {
+  // The install step's tabs (install script, Docker Compose) draw one at a time.
+  async function openEveryVariant(): Promise<void> {
+    for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+      await act(async () => {
+        fireEvent.click(tab);
+      });
+    }
+    await settle();
+  }
+
+  // Every piece of `guide` is drawn in the reader's words, and none in English.
+  function expectGuideInReadersWords(
+    guide: SetupGuideContent,
+    language: string,
+  ): void {
+    const drawn: string = drawnTexts().join("\n");
+    const translated: Array<string> = getSetupGuideWordPieces(
+      inLanguage("Database", guide, language),
+    );
+
+    for (const piece of getSetupGuideWordPieces(guide)) {
+      // A file's name alone is in its translation: "Die Datei **docker-compose.yml**".
+      if (
+        translated.some((words: string): boolean => {
+          return words.includes(piece);
+        })
+      ) {
+        continue;
+      }
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: false,
+      });
+    }
+    for (const piece of translated) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: true,
+      });
+    }
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the PostgreSQL guide, its engine picker and its topics in the reader's words, its commands as written",
+    async (language: string) => {
+      await drawIn(language, <DatabaseDocumentationPage {...PAGE_PROPS} />);
+      await openEveryVariant();
+
+      expectGuideInReadersWords(databaseGuide(), language);
+
+      // The card's own words, the picker's and the steps' titles come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect Database Engine Metrics"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect Database Engine Metrics")).toBeNull();
+      expect(
+        screen.getByText(locale["Which database engine?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Create a monitoring user"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          locale[
+            "The agent sends the database's engine metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+          ]!,
+        ),
+      ).toBeInTheDocument();
+      // Each pill is the engine's name, its hint the reader's words.
+      expect(
+        screen.getByTestId("setup-guide-option-mariadb"),
+      ).toHaveTextContent("MariaDB");
+      expect(
+        screen
+          .getByTestId("setup-guide-option-postgresql")
+          .getAttribute("title"),
+      ).toBe(locale["Runs the collector's postgresql receiver."]);
+      expect(
+        screen.getByTestId("setup-guide-option-valkey").getAttribute("title"),
+      ).toBe(
+        locale["Runs the redis receiver and reports the server as Valkey."],
+      );
+
+      // The grants, the variables and the image are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`pg_monitor`");
+      expect(drawn).toContain("`DATABASE_SERVER_ADDRESS`");
+      expect(drawn).toContain("`otel/opentelemetry-collector-contrib:0.161.0`");
+      expect(drawn).toContain("GRANT pg_monitor TO oneuptime_monitor;");
+      // The Database Health monitor link opens the monitor form in this project.
+      expect(drawn).toContain(
+        "](/dashboard/10000000-0000-4000-8000-000000000001/monitors/create?monitorType=Database)",
+      );
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each(["de", "ar"])(
+    "in %s, picking SQL Server draws that engine's own steps in the reader's words",
+    async (language: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <DatabaseDocumentationPage {...PAGE_PROPS} />
+          </MemoryRouter>,
+        );
+      });
+      await settle();
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId("setup-guide-option-microsoft.sql_server"),
+        );
+      });
+      await settle();
+      await openEveryTopic();
+      await openEveryVariant();
+
+      expectGuideInReadersWords(
+        databaseGuide("microsoft.sql_server"),
+        language,
+      );
+
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`VIEW SERVER STATE`");
+      expect(drawn).toContain("`configs/sqlserver.yaml`");
+      expect(drawn).toContain("`Login failed for user`");
+    },
+  );
+
+  /*
+   * A database's own Documentation tab installs for its row - its identity,
+   * its server id - and has no words in another language yet (#8746): it reads in
+   * English whole, never half in the reader's words.
+   */
+  test("a database's own tab reads in English whole, in German too", async () => {
+    await drawIn(
+      "de",
+      <DatabaseDocumentationCard
+        title="Connect orders-db"
+        description="The agent for this database."
+        database={{
+          id: "4f7f2c9e-0000-4000-8000-000000000001",
+          name: "orders-db",
+          dbSystem: "postgresql",
+          serverAddress: "db.prod.internal",
+          serverPort: 5432,
+        }}
+      />,
+    );
+
+    const drawn: string = drawnTexts().join("\n");
+    const german: SetupGuideContent = inLanguage(
+      "Database",
+      databaseGuide(),
+      "de",
+    );
+
+    expect(drawn).toContain("`DATABASE_SERVER_ID`");
+    expect(drawn).toContain("db.prod.internal");
+    for (const piece of getSetupGuideWordPieces(german)) {
+      if (getSetupGuideWordPieces(databaseGuide()).includes(piece)) {
+        continue;
+      }
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: false,
+      });
+    }
+  });
 });
 
 describe("Podman > Help > Documentation", () => {

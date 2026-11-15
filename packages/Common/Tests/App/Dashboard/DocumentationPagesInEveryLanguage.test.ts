@@ -61,6 +61,8 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   Ceph: { way: "a setup guide's words" },
   DockerSwarm: { way: "a setup guide's words" },
   OpenStack: { way: "a setup guide's words" },
+  // The engine picker's guide; a database's own tab is #8746.
+  Database: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
@@ -97,7 +99,6 @@ const PAGES: Readonly<Record<string, PageReading>> = {
  * shorter.
  */
 const STILL_IN_ENGLISH: ReadonlyArray<string> = [
-  "Database",
   "Host",
   "MessageQueue",
   "Proxmox",
@@ -220,7 +221,9 @@ describe("every product's Help > Documentation page", () => {
       expect({
         product: product.name,
         drawsItsCard: page.includes(
-          `Components/${product.name}/DocumentationCard`,
+          path
+            .relative(DASHBOARD_SOURCE, product.cardFile)
+            .replace(/\.tsx$/, ""),
         ),
       }).toEqual({ product: product.name, drawsItsCard: true });
       expect(Object.keys(product.translations).length).toBe(
