@@ -52890,5 +52890,10 @@
   "This vCenter has no user name.": "ليس لـ vCenter هذا اسم مستخدم.",
   "This vCenter was due to be collected {{time}}, and no probe has come for it.": "كان موعد جمع vCenter هذا {{time}}، ولم يأتِ أي مسبار لجمعه.",
   "Unarchive it to collect it again.": "ألغِ أرشفتها لتُجمع مجددًا.",
-  "With the project's telemetry scan, from what its service sent in the last hour.": "ضمن فحص القياس عن بُعد للمشروع، مما أرسلته خدمته في الساعة الأخيرة."
+  "With the project's telemetry scan, from what its service sent in the last hour.": "ضمن فحص القياس عن بُعد للمشروع، مما أرسلته خدمته في الساعة الأخيرة.",
+  "ISO Date": "تاريخ ISO",
+  "Test (dbt test)": "اختبار",
+  "UUID": "UUID",
+  "Expected": "متوقّع",
+  "Useful": "مفيد"
 }

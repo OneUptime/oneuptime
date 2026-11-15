@@ -52890,5 +52890,10 @@
   "This vCenter has no user name.": "این vCenter نام کاربری ندارد.",
   "This vCenter was due to be collected {{time}}, and no probe has come for it.": "این vCenter باید {{time}} جمع‌آوری می‌شد، و هیچ پرابی برایش نیامده است.",
   "Unarchive it to collect it again.": "برای جمع‌آوری دوباره، آن را از بایگانی خارج کنید.",
-  "With the project's telemetry scan, from what its service sent in the last hour.": "با اسکن تله‌متری پروژه، از آنچه سرویس آن در ساعت گذشته فرستاده است."
+  "With the project's telemetry scan, from what its service sent in the last hour.": "با اسکن تله‌متری پروژه، از آنچه سرویس آن در ساعت گذشته فرستاده است.",
+  "ISO Date": "تاریخ ISO",
+  "Test (dbt test)": "تست",
+  "UUID": "UUID",
+  "Expected": "مورد انتظار",
+  "Useful": "مفید"
 }

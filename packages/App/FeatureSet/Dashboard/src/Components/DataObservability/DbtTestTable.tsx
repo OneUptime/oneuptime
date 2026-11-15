@@ -135,7 +135,8 @@ const DbtTestTable: FunctionComponent<ComponentProps> = (
       filters={[
         {
           field: { name: true },
-          title: "Test",
+          // A test of dbt's, the noun: "Test" alone is the Test buttons' verb (#7535).
+          title: "Test (dbt test)",
           type: FieldType.Text,
         },
         {
@@ -179,7 +180,7 @@ const DbtTestTable: FunctionComponent<ComponentProps> = (
       columns={[
         {
           field: { name: true },
-          title: "Test",
+          title: "Test (dbt test)",
           type: FieldType.Element,
           getExportValue: (check: DataCheck): string => {
             return check.name || "";
