@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 4600
+    "keys": 55650,
+    "untranslated": 4580
   },
   "sameAsEnglish": [
     " incidents",
@@ -216,6 +216,8 @@
     "Favicon",
     "First Contentful Paint",
     "Fivetran",
+    "FlashArray",
+    "FlashBlade",
     "Fluent Bit",
     "Format",
     "Frames",
@@ -305,6 +307,7 @@
     "Joules",
     "Kazakhstan",
     "Kenya",
+    "Key Manager",
     "Keystone",
     "Kilobits",
     "Kilohertz",

@@ -118,8 +118,8 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 | Mal                            | Kategori     | Alvorlighetsgrad | Overvåker                                                                                       | Utløser når                                                                                                                                      |
 | ------------------------------ | ------------ | ---------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Array Stopped Reporting        | Tilgjengelighet | Kritisk          | `purefa_info`, Count, siste 10 minutter                                                         | Ingen data i hele vinduet — Storage Array Agent har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt, eller arrayet sluttet å svare den; gjenoppretter når data kommer inn igjen |
-| Critical Array Alert           | Array Health | Kritisk          | `purefa_alerts_open` filtrert til `severity=critical`, Max per `summary`, siste 5 minutter      | > 0 — arrayet har et åpent kritisk varsel (en defekt komponent, en kapasitetskrise, en replikeringsfeil). Én hendelse per varsel; gjenoppretter når varselet lukkes |
-| Warning Array Alert            | Array Health | Advarsel          | `purefa_alerts_open` filtrert til `severity=warning`, Max per `summary`, siste 5 minutter       | > 0 — arrayet har et åpent varsel på nivå warning. Én hendelse per varsel; gjenoppretter når varselet lukkes                                    |
+| Critical Array Alert           | Arrayets helse | Kritisk          | `purefa_alerts_open` filtrert til `severity=critical`, Max per `summary`, siste 5 minutter      | > 0 — arrayet har et åpent kritisk varsel (en defekt komponent, en kapasitetskrise, en replikeringsfeil). Én hendelse per varsel; gjenoppretter når varselet lukkes |
+| Warning Array Alert            | Arrayets helse | Advarsel          | `purefa_alerts_open` filtrert til `severity=warning`, Max per `summary`, siste 5 minutter       | > 0 — arrayet har et åpent varsel på nivå warning. Én hendelse per varsel; gjenoppretter når varselet lukkes                                    |
 | Capacity Above 80%             | Kapasitet    | Advarsel          | `purefa_array_space_utilization`, Max, siste 15 minutter                                        | > 80 — Pures egen første kapasitetsterskel; gjenoppretter ved ≤ 72                                                                               |
 | Capacity Above 90%             | Kapasitet    | Kritisk          | `purefa_array_space_utilization`, Max, siste 5 minutter                                         | > 90 — arrayet er nær ved å avvise skrivinger; gjenoppretter ved ≤ 81                                                                            |
 | High Read Latency              | Ytelse       | Advarsel          | `purefa_array_performance_latency_usec` filtrert til `dimension=usec_per_read_op`, Avg, siste 10 minutter  | > 5000 µs (5 ms) — lesinger på et FlashArray tar normalt godt under 1 ms; gjenoppretter ved ≤ 4500                                   |
@@ -135,8 +135,8 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 | Mal                          | Kategori     | Alvorlighetsgrad | Overvåker                                                                                                      | Utløser når                                                                                                         |
 | ---------------------------- | ------------ | ---------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Array Stopped Reporting      | Tilgjengelighet | Kritisk          | `purefb_info`, Count, siste 10 minutter                                                                        | Ingen data i hele vinduet — agenten, exporteren dens eller FlashBladen sluttet å svare; gjenoppretter når data kommer inn igjen |
-| Critical Array Alert         | Array Health | Kritisk          | `purefb_alerts_open` filtrert til `severity=critical`, Max per `summary`, siste 5 minutter                     | > 0 — FlashBladen har et åpent kritisk varsel. Én hendelse per varsel; gjenoppretter når varselet lukkes           |
-| Warning Array Alert          | Array Health | Advarsel          | `purefb_alerts_open` filtrert til `severity=warning`, Max per `summary`, siste 5 minutter                      | > 0 — FlashBladen har et åpent varsel på nivå warning. Én hendelse per varsel; gjenoppretter når varselet lukkes   |
+| Critical Array Alert         | Arrayets helse | Kritisk          | `purefb_alerts_open` filtrert til `severity=critical`, Max per `summary`, siste 5 minutter                     | > 0 — FlashBladen har et åpent kritisk varsel. Én hendelse per varsel; gjenoppretter når varselet lukkes           |
+| Warning Array Alert          | Arrayets helse | Advarsel          | `purefb_alerts_open` filtrert til `severity=warning`, Max per `summary`, siste 5 minutter                      | > 0 — FlashBladen har et åpent varsel på nivå warning. Én hendelse per varsel; gjenoppretter når varselet lukkes   |
 | Capacity Above 80%           | Kapasitet    | Advarsel          | `purefb_array_space_utilization` filtrert til `type=array`, Max, siste 15 minutter                             | > 80; gjenoppretter ved ≤ 72                                                                                        |
 | Capacity Above 90%           | Kapasitet    | Kritisk          | `purefb_array_space_utilization` filtrert til `type=array`, Max, siste 5 minutter                              | > 90 — skrivinger feiler for hver klient når den blir full; gjenoppretter ved ≤ 81                                  |
 | Hardware Component Unhealthy | Maskinvare     | Kritisk          | `purefb_hardware_health`, Min per `name`, siste 5 minutter                                                     | < 1 — et blad, en fabric-modul, en strømforsyning eller en vifte er ikke sunn (en ubrukt plass melder 2). Én hendelse per komponent; gjenoppretter ved ≥ 1 |
@@ -157,14 +157,14 @@ Det finnes ingen mal for latensen til hvert volum, fordi den riktige terskelen a
 
 Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskjemaet tilbyr. Hver verdi er en gauge som arrayet selv beregner - latenser er mikrosekunder per operasjon, og gjennomstrømning er per sekund -, så det trengs ingen rateberegning. **Filter** er etikettfilteret som gir serien betydningen raden angir; skjemaet bruker det for deg.
 
-### Array Health
+### Arrayets helse
 
 | Måling              | Filter | Plattform  | Enhet   | Beskrivelse                                                                                                                                                       |
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Én serie per åpent varsel på arrayet (verdi 1), med etikettene `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` og `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Én serie per åpent varsel på FlashBladen (verdi 1), med etikettene `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` og `kburl` (Pures artikkel i kunnskapsbasen) |
 
-### Capacity
+### Kapasitet
 
 | Måling                                   | Filter                       | Plattform  | Enhet   | Beskrivelse                                                                                                                           |
 | ----------------------------------------- | ---------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -177,7 +177,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | FlashBladens ubrukte kapasitet                                                                                                        |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Datareduksjon på tvers av FlashBladen                                                                                                 |
 
-### Performance
+### Ytelse
 
 | Måling                                    | Filter                                         | Plattform  | Enhet     | Beskrivelse                                                                                                  |
 | ------------------------------------------ | ---------------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------ |
@@ -198,7 +198,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Leste byte per sekund på tvers av alle protokoller                                                           |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Skrevne byte per sekund på tvers av alle protokoller                                                        |
 
-### Volumes
+### Volumer
 
 | Måling                                     | Filter                           | Plattform  | Enhet     | Beskrivelse                                                   |
 | ------------------------------------------- | -------------------------------- | ---------- | --------- | ------------------------------------------------------------- |
@@ -212,7 +212,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefa_volume_space_bytes`                 | `space=total_physical`           | FlashArray | `bytes`   | Fysisk plass hvert volum bruker etter datareduksjon           |
 | `purefa_volume_space_data_reduction_ratio`  | —                                | FlashArray | `ratio`   | Hvert volums datareduksjonsforhold                            |
 
-### Hosts
+### Verter
 
 | Måling                                   | Filter                        | Plattform  | Enhet   | Beskrivelse                                                                                                                                    |
 | ----------------------------------------- | ----------------------------- | ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -222,7 +222,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec`     | FlashArray | `ops/s` | Leseoperasjoner per sekund for hver vert                                                                                                       |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec`    | FlashArray | `ops/s` | Skriveoperasjoner per sekund for hver vert                                                                                                     |
 
-### Replication
+### Replikering
 
 | Måling                                              | Filter                                 | Plattform  | Enhet     | Beskrivelse                                                                                                                                                  |
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -231,7 +231,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replikeringstrafikken til hver pod, med etikettene `direction` og `dimension`                                                                                |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Gjennomsnittlig latens for speilede skrivinger for hver ActiveCluster-pod                                                                                    |
 
-### Hardware
+### Maskinvare
 
 | Måling                                       | Filter                           | Plattform  | Enhet      | Beskrivelse                                                                                                                                                                                                  |
 | --------------------------------------------- | -------------------------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -241,7 +241,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Feil per sekund på hvert Ethernet- og Fibre Channel-grensesnitt — vedvarende feil betyr som regel en dårlig kabel, optikk eller switchport                                                                   |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Helsen til hver maskinvarekomponent (blader, fabric-moduler, strømforsyninger, vifter, ...): 1 = sunn, 2 = ubrukt, 0 = usunn. Ta minimum per `name`                                                           |
 
-### File Systems
+### Filsystemer
 
 | Måling                                        | Filter                        | Plattform  | Enhet   | Beskrivelse                                                                                  |
 | ---------------------------------------------- | ----------------------------- | ---------- | ------- | -------------------------------------------------------------------------------------------- |

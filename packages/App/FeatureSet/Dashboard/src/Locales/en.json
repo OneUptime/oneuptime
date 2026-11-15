@@ -55689,5 +55689,8 @@
   "Yes / No": "Yes / No",
   "which led to {{steps}}": "which led to {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} hasn't run yet. Its fields show up here after it does.",
-  "Insights (explorer analytics)": "Insights (explorer analytics)"
+  "HA": "HA",
+  "Insights (explorer analytics)": "Insights (explorer analytics)",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

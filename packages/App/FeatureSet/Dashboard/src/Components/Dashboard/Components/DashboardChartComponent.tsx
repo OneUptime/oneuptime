@@ -362,6 +362,8 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
             metricVariable: config.metricAliasData?.metricVariable || undefined,
             title: config.metricAliasData?.title || undefined,
             description: config.metricAliasData?.description || undefined,
+            isMetricTypeDescription:
+              config.metricAliasData?.isMetricTypeDescription,
             legend: config.metricAliasData?.legend || undefined,
             legendUnit: config.metricAliasData?.legendUnit || undefined,
           },

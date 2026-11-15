@@ -953,6 +953,29 @@ export function getAllStorageArrayMetricCategories(): Array<StorageArrayMetricCa
 }
 
 /*
+ * Each group's heading in the metric picker, a key: a category is the value
+ * the catalog's metrics name, so the picker looks its heading up here, once
+ * (#8653).
+ */
+const categoryLabels: Record<StorageArrayMetricCategory, string> = {
+  "Array Health": translationKey("Array Health"),
+  Capacity: translationKey("Capacity"),
+  Performance: translationKey("Performance"),
+  Volumes: translationKey("Volumes"),
+  Hosts: translationKey("Hosts"),
+  Replication: translationKey("Replication"),
+  Hardware: translationKey("Hardware"),
+  "File Systems": translationKey("File Systems"),
+  Buckets: translationKey("Buckets"),
+};
+
+export function getStorageArrayMetricCategoryLabel(
+  category: StorageArrayMetricCategory,
+): string {
+  return categoryLabels[category] || category;
+}
+
+/*
  * The datapoint label that names one object of a resource scope on a
  * platform — the label a resource filter equality-filters and a per-object
  * template groups by. Pass the query's metric name when there is one: a few

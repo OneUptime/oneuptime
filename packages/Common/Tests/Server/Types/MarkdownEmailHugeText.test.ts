@@ -803,6 +803,65 @@ describe("Markdown email renderer - a link's text in nested brackets, code or an
   });
 });
 
+/*
+ * ISSUE #8668: on a line over 64 KB, the brackets the middle held paired
+ * with brackets in view. A "]" in the middle that closed a label of the
+ * kept start was held back, and the email showed a link across the whole
+ * middle that marked alone does not read; a "[" the middle left open was
+ * held back, and the kept end's "](...)" lost its link. Now each renders as
+ * marked alone renders it.
+ */
+describe("Markdown email renderer - brackets the middle of an over-long line leaves unmatched (#8668)", () => {
+  const FILLER: string = "log line text ".repeat(5000);
+
+  test.each([
+    [
+      "the issue's row: a ']' in the middle closes the kept start's label, with no link",
+      `see [a ${"b".repeat(1100)}] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    ],
+    [
+      "two ']' in the middle close two labels of the kept start",
+      `see [a [b ${"c ".repeat(600)}] d ] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    ],
+    [
+      "a '[' the middle leaves open is closed by the kept end's ']', and the kept start's label by its ']('",
+      `see [a ${"x ".repeat(600)}${FILLER}[c ${"y ".repeat(600)}] then](/x) now`,
+    ],
+    [
+      "both at once",
+      `see [a [b ${"c ".repeat(600)}] ${FILLER}[d ${"y ".repeat(600)}] then](/x) now`,
+    ],
+    [
+      "in a list item",
+      `- see [a ${"b".repeat(1100)}] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    ],
+  ])(
+    "renders exactly as marked alone does: %s",
+    async (_label: string, markdown: string) => {
+      const html: string = await render(markdown);
+      const expected: string = await renderWithMarkedAlone(markdown);
+
+      expect(markdown.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+      // A boolean, so a failure does not print hundreds of kilobytes.
+      expect(html === expected).toBe(true);
+    },
+  );
+
+  test("the issue's row is no link, and the kept end's '](' is lost no more", async () => {
+    const noLink: string = await render(
+      `see [a ${"b".repeat(1100)}] ${FILLER} ${"x ".repeat(100)}](/x) now`,
+    );
+    const link: string = await render(
+      `see [a ${"x ".repeat(600)}${FILLER}[c ${"y ".repeat(600)}] then](/x) now`,
+    );
+
+    expect(noLink).not.toContain("<a ");
+    expect(noLink.endsWith(" x x ](/x) now</p>\n")).toBe(true);
+    expect(link.startsWith('<p>see <a href="/x">a x x')).toBe(true);
+    expect(link.endsWith(" y y ] then</a> now</p>\n")).toBe(true);
+  });
+});
+
 describe("Markdown email renderer - the last resort", () => {
   test("if marked still runs out of stack, the Markdown is sent as text, escaped, and logged", async () => {
     mockMarkedState.failWith = new RangeError(
