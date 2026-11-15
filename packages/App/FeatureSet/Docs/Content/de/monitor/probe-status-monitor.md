@@ -60,7 +60,7 @@ Beide sind ganze Zahlen und werden mit **Größer als**, **Kleiner als**, **Glei
 
 | Kriterium | Filter | Was es bewirkt |
 | --- | --- | --- |
-| Prüfen, ob eine Sonde getrennt ist | **Getrennte Sonden** größer als `0` | Setzt den Monitor auf offline und meldet einen Vorfall mit dem Titel `Probe disconnected: {{disconnectedProbeNames}}`, der sich von selbst löst. |
+| Prüfen, ob eine Sonde getrennt ist | **Getrennte Sonden** größer als `0` | Setzt den Monitor auf offline und meldet einen Vorfall mit dem Titel „Sonde getrennt: {{disconnectedProbeNames}}“, der sich von selbst löst. |
 | Prüfen, ob alle Sonden verbunden sind | **Getrennte Sonden** gleich `0` | Setzt den Monitor auf betriebsbereit. |
 
 Der Filter **Verbundene Sonden** eignet sich für einen Monitor, der mehrere Sonden überwacht und eine verlieren darf: **Verbundene Sonden** kleiner als `2` meldet erst dann einen Vorfall, wenn weniger als zwei übrig sind.

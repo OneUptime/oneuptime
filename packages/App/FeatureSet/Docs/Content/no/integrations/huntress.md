@@ -1,6 +1,6 @@
 # Huntress-integrasjon
 
-Varsle vaktlaget ditt for Huntress-hendelsesrapporter, med en arbeidsflyt. Når Huntress' SOC sender en hendelsesrapport om et endepunkt eller en identitet, åpner arbeidsflyten én hendelse for den, varsler vaktretningslinjen du velger, legger til kommentarer fra Huntress som private notater og løser hendelsen når rapporten lukkes i Huntress.
+Varsle vaktlaget ditt for Huntress-hendelsesrapporter, med en arbeidsflyt. Når Huntress' SOC sender en hendelsesrapport om et endepunkt eller en identitet, åpner arbeidsflyten én hendelse for den, varsler vaktpolicyen du velger, legger til kommentarer fra Huntress som private notater og løser hendelsen når rapporten lukkes i Huntress.
 
 Denne integrasjonen er **innkommende**: Huntress sender hver begivenhet om en hendelsesrapport til arbeidsflytens egen URL, signert med endepunktets signeringshemmelighet. OneUptime kaller aldri Huntress og trenger derfor ingen Huntress-API-nøkkel.
 
@@ -23,7 +23,7 @@ sequenceDiagram
     H->>W: incident_report.created
     W->>W: Kontroller signaturen,<br/>åpne én hendelse
     opt Rapporten er høy<br/>eller kritisk
-        W->>C: Varsle vaktretningslinjen
+        W->>C: Varsle vaktpolicyen
     end
     H->>W: incident_report.comment_added
     W->>W: Legg til kommentaren<br/>som et privat notat
@@ -33,7 +33,7 @@ sequenceDiagram
 
 1. **Kontroller.** En forespørsel må være signert med endepunktets signeringshemmelighet, høyst fem minutter før den kommer. Alt annet avvises, og triggerens innstillinger forteller hvorfor.
 2. **Start arbeidsflyten.** Hver begivenhet starter én kjøring, med rapportens felt som triggerens verdier. En begivenhet Huntress sender på nytt, starter ingenting mer.
-3. **Åpne én hendelse.** Ved `created` åpner arbeidsflyten en hendelse oppkalt etter rapporten, for eksempel `Huntress: Incident on DESKTOP-01 (Acme Corp)`. Beskrivelsen inneholder rapportens sammendrag, alvorlighetsgraden i Huntress, organisasjonen, den berørte verten eller identiteten, indikatorene Huntress fant og en lenke til rapporten i Huntress. Hendelsen får en etikett med rapportens organisasjon, og varsler vaktretningslinjen du velger når rapporten er høy eller kritisk.
+3. **Åpne én hendelse.** Ved `created` åpner arbeidsflyten en hendelse oppkalt etter rapporten, for eksempel `Huntress: Incident on DESKTOP-01 (Acme Corp)`. Beskrivelsen inneholder rapportens sammendrag, alvorlighetsgraden i Huntress, organisasjonen, den berørte verten eller identiteten, indikatorene Huntress fant og en lenke til rapporten i Huntress. Hendelsen får en etikett med rapportens organisasjon, og varsler vaktpolicyen du velger når rapporten er høy eller kritisk.
 4. **Følg rapporten.** Ved `comment-added` blir kommentaren et privat notat på hendelsen. Ved `closed` løses hendelsen, med årsaken på tidslinjen.
 
 Hendelsen lagrer rapportens nummer i de egendefinerte feltene sine, som `huntressReportId`: Slik finner arbeidsflyten den igjen når Huntress kommenterer eller lukker rapporten. Hendelser som åpnes slik, vises aldri på en statusside, og hendelsesreglene dine (vakt-, eier-, etikett- og personvernregler) gjelder for dem som for alle andre hendelser.
@@ -42,7 +42,7 @@ Hendelsen lagrer rapportens nummer i de egendefinerte feltene sine, som `huntres
 
 - I OneUptime en rolle som kan opprette og redigere arbeidsflyter, for eksempel **Prosjekteier**, **Prosjektadministrator** eller **Arbeidsflytadministrator**.
 - I Huntress rollen **Account Admin**: Bare kontoadministratorer kan legge til webhooks.
-- En vaktretningslinje å varsle.
+- En vaktpolicy å varsle.
 - På OneUptime Cloud et abonnement med arbeidsflyter: Growth eller høyere. Hver begivenhet Huntress sender, er én kjøring av arbeidsflyten.
 - På en selvdriftet installasjon en OneUptime som Huntress når fra internett over HTTPS: Huntress sender bare webhooks til `https://`-URL-er.
 
@@ -55,7 +55,7 @@ Hendelsen lagrer rapportens nummer i de egendefinerte feltene sine, som `huntres
 
 ### Velg hvem som varsles
 
-Dialogen spør deretter hvem som skal varsles: under **Who to page for high and critical reports** velger du vaktretningslinjene som skal varsles, eller ingen for ikke å varsle noen, og klikker **Opprett arbeidsflyt**. Arbeidsflyten åpnes i **Bygger**, slått av. For å endre senere hvem den varsler, klikker du trinnet **Page an On-Call Policy** og endrer **Vaktretningslinjer**.
+Dialogen spør deretter hvem som skal varsles: under **Who to page for high and critical reports** velger du vaktpolicyene som skal varsles, eller ingen for ikke å varsle noen, og klikker **Opprett arbeidsflyt**. Arbeidsflyten åpnes i **Bygger**, slått av. For å endre senere hvem den varsler, klikker du trinnet **Page an On-Call Policy** og endrer **Vaktpolicyer**.
 
 ### Legg til et webhook-endepunkt i Huntress
 
@@ -83,11 +83,11 @@ Etter triggeren gjør **Incident From Another Tool** det hver **Hendelse** ber o
 
 | Event | Hva arbeidsflyten gjør |
 | --- | --- |
-| `created` | Åpner en hendelse med triggerens **ID for hendelsesalvorlighet**, med etiketten fra dens **Organization Label ID**. For en høy eller kritisk rapport varsler **Page an On-Call Policy** retningslinjen din; en lav rapport varsler ingen. En rapport som allerede har en hendelse, åpner ingen ny. |
+| `created` | Åpner en hendelse med triggerens **ID for hendelsesalvorlighet**, med etiketten fra dens **Organization Label ID**. For en høy eller kritisk rapport varsler **Page an On-Call Policy** policyen din; en lav rapport varsler ingen. En rapport som allerede har en hendelse, åpner ingen ny. |
 | `comment-added` | Finner rapportens hendelse og legger til kommentaren som et privat notat på den. |
 | `closed` | Finner rapportens hendelse og løser den, med mindre den allerede er løst. Årsaken står på tidslinjen: Huntress lukket rapporten. |
 
-Det er en arbeidsflyt som alle andre, så du kan endre hva den gjør: varsle bare for kritiske rapporter ved å endre hva **If / Else** etter **Incident From Another Tool** sammenligner, poste hver rapport i en chattekanal med et Slack- eller Microsoft Teams-trinn, eller sende hver organisasjon til sin egen vaktretningslinje med en **Switch / Case** på **Organisasjon**. Hver kjøring står blant arbeidsflytens kjøringer, med hva hvert trinn gjorde.
+Det er en arbeidsflyt som alle andre, så du kan endre hva den gjør: varsle bare for kritiske rapporter ved å endre hva **If / Else** etter **Incident From Another Tool** sammenligner, poste hver rapport i en chattekanal med et Slack- eller Microsoft Teams-trinn, eller sende hver organisasjon til sin egen vaktpolicy med en **Switch / Case** på **Organisasjon**. Hver kjøring står blant arbeidsflytens kjøringer, med hva hvert trinn gjorde.
 
 ### Alvorlighetsgrader
 
@@ -106,7 +106,7 @@ Et prosjekt med færre alvorlighetsgrader bruker den laveste for resten. En rapp
 Triggerens **Organization Label ID** er en etikett oppkalt etter rapportens Huntress-organisasjon, for eksempel _Acme Corp_, som den oppretter første gang en rapport fra den organisasjonen kommer. Én arbeidsflyt mottar rapportene fra alle organisasjoner i Huntress-kontoen din, og triggerens **Bare disse organisasjonene** snevrer det inn: ett organisasjonsnavn eller én ID per linje, der navn ikke skiller mellom store og små bokstaver.
 
 > [!TIP]
-> For å varsle hver kundes eget team legger du til en vaktregel for hendelser per organisasjon, for eksempel «Hvis **Hendelsesetiketter** har en av _Acme Corp_», som utfører kundens retningslinje. Se [Vaktregler for hendelser](/docs/incidents/settings#vaktregler-for-hendelser).
+> For å varsle hver kundes eget team legger du til en vaktregel for hendelser per organisasjon, for eksempel «Hvis **Hendelsesetiketter** har en av _Acme Corp_», som utfører kundens policy. Se [Vaktregler for hendelser](/docs/incidents/settings#vaktregler-for-hendelser).
 
 ## Triggeren Huntress Incident Report
 
@@ -136,7 +136,7 @@ For å prøve arbeidsflyten uten Huntress klikker du **Kjør arbeidsflyt** i **B
 
 ## Huntress-tilkoblinger opprettet tidligere
 
-Huntress ble tidligere satt opp under **Hendelser → Integrasjoner → Huntress**. Hver Huntress-tilkobling ble en arbeidsflyt med samme navn, slått på, som gjør det tilkoblingen gjorde: Den varsler de samme vaktretningslinjene for de samme rapportene, legger til de samme etikettene og løser (eller bare noterer) på samme måte. URL-en er fortsatt tilkoblingens, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, og signeringshemmeligheten er den samme, så det er ingenting å endre i Huntress. Hendelsene tilkoblingen åpnet, beholder rapportnummeret sitt, så arbeidsflyten finner dem når Huntress kommenterer eller lukker de rapportene.
+Huntress ble tidligere satt opp under **Hendelser → Integrasjoner → Huntress**. Hver Huntress-tilkobling ble en arbeidsflyt med samme navn, slått på, som gjør det tilkoblingen gjorde: Den varsler de samme vaktpolicyene for de samme rapportene, legger til de samme etikettene og løser (eller bare noterer) på samme måte. URL-en er fortsatt tilkoblingens, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, og signeringshemmeligheten er den samme, så det er ingenting å endre i Huntress. Hendelsene tilkoblingen åpnet, beholder rapportnummeret sitt, så arbeidsflyten finner dem når Huntress kommenterer eller lukker de rapportene.
 
 ## Sikkerhet
 
@@ -178,7 +178,7 @@ Arbeidsflyten er slettet eller arkivert, triggeren er ikke lenger **Huntress Inc
 :::
 
 :::details Ingen ble varslet
-En lav rapport åpner en hendelse uten å varsle noen. Ellers forteller kjøringen for rapporten hva **Page an On-Call Policy** gjorde, og hendelsens side **Vaktutførelser** viser hva hver retningslinje gjorde.
+En lav rapport åpner en hendelse uten å varsle noen. Ellers forteller kjøringen for rapporten hva **Page an On-Call Policy** gjorde, og hendelsens side **Vaktutførelser** viser hva hver policy gjorde.
 :::
 
 ## Neste steg

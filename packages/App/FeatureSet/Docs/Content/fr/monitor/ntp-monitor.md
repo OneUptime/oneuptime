@@ -112,7 +112,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur NTP commence avec deux critères :
 
-- **Hors ligne** — le serveur ne répond pas, n'est pas synchronisé, ou son horloge est à `1000` ms ou plus de celle de la sonde. Le moniteur est marqué **Hors ligne** et un incident nommé « _nom du moniteur_ is not serving good time » est créé. Il se résout de lui-même quand le serveur fournit de nouveau une heure fiable.
+- **Hors ligne** — le serveur ne répond pas, n'est pas synchronisé, ou son horloge est à `1000` ms ou plus de celle de la sonde. Le moniteur est marqué **Hors ligne** et un incident nommé « _nom du moniteur_ ne fournit pas d'heure fiable » est créé. Il se résout de lui-même quand le serveur fournit de nouveau une heure fiable.
 - **En ligne** — le serveur répond, est synchronisé et son horloge est à moins de `1000` ms de celle de la sonde. Le moniteur est marqué **Opérationnel**.
 
 Les critères sont évalués de haut en bas, et le premier qui correspond décide de ce qui se passe. Un serveur qui répond avec une mauvaise heure est volontairement considéré comme en panne : chaque client qui le suit prendrait cette heure à son tour.

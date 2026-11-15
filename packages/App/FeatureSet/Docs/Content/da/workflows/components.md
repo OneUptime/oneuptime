@@ -227,7 +227,7 @@ flowchart TB
     check -->|"Ja"| page["Page Whoever Is On Call"]
 ```
 
-Når du opretter en arbejdsgang, har skabelonerne under **Vagt** dette klar, og et, der tilkalder efter alvorlighed med **Switch / Case**. Dialogen **Opret en arbejdsgang** spørger, hvem hver af en skabelons tilkaldeblokke tilkalder, så arbejdsgangen åbner med det valgt. En tilkaldeblok, du tilføjer i Byggeren, siger **Click to set up**, indtil du vælger, hvem den tilkalder.
+Når du opretter en arbejdsgang, har skabelonerne under **Vagt** denne klar, og en, der tilkalder efter alvorlighed med **Switch / Case**. Dialogen **Opret en arbejdsgang** spørger, hvem hver af en skabelons tilkaldeblokke tilkalder, så arbejdsgangen åbner med det valgt. En tilkaldeblok, du tilføjer i Byggeren, siger **Click to set up**, indtil du vælger, hvem den tilkalder.
 
 | Indstilling | Hvad den gør |
 | ----------- | ------------ |
@@ -382,7 +382,7 @@ Start en anden arbejdsgang i samme projekt. Din arbejdsgang fortsætter uden at 
 | **Arbejdsgang**  | Den arbejdsgang, der skal startes. Den skal være aktiveret og, for at modtage argumenter, have en **Manuel**-trigger.                        |
 | **Arguments** | JSON, der skal sendes med. Den anden arbejdsgangs Manual-trigger giver hver nøgle videre som en værdi for sig: med `{"customerId": "42"}` læser det `{{local.components.manual-1.returnValues.customerId}}`. |
 
-**Ud** udløses, så snart den anden arbejdsgang står i kø. **Fejl** udløses, når det ikke kan: det findes ikke, er slået fra eller arkiveret, eller at starte det ville give en løkke.
+**Ud** udløses, så snart den anden arbejdsgang står i kø. **Fejl** udløses, når den ikke kan: den findes ikke, er slået fra eller arkiveret, eller at starte den ville give en løkke.
 
 Brug det til at dele fælles logik: byg en «post i hændelseskanalen»-arbejdsgang én gang, og start den fra hver arbejdsgang, der har brug for det. En kæde af arbejdsgange, der starter hinanden, kan ikke gå i ring tilbage til sig selv og er højst 10 led dyb. Se [Konfiguration og sikkerhed](/docs/workflows/configuration#grænse-for-at-kalde-andre-arbejdsgange).
 

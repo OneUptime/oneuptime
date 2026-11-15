@@ -7,7 +7,11 @@ import {
   normalizeLinkLabel,
   normalizeReferenceLabel,
 } from "../../../Utils/Markdown/LinkReferenceDefinitions";
-import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
+import {
+  FastestRun,
+  fastestRun,
+  fastestRunAsync,
+} from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -309,16 +313,22 @@ describe("forEachLabelMarkedLooksUp", () => {
   test("reads each character once: a megabyte of brackets in good time", () => {
     for (const unit of ["[", "]", "[a]", "\\[", "[\\[", "\\\\[a\\]"]) {
       const text: string = unit.repeat(Math.ceil((1024 * 1024) / unit.length));
-      let total: number = 0;
-      const started: number = performance.now();
+      const read: FastestRun<number> = fastestRun({
+        run: (): number => {
+          let total: number = 0;
 
-      forEachLabelMarkedLooksUp(text, (label: string): void => {
-        total += label.length;
+          forEachLabelMarkedLooksUp(text, (label: string): void => {
+            total += label.length;
+          });
+
+          return total;
+        },
+        limitInMs: 2000,
       });
 
       // Each label of each way holds characters no other label of it does.
-      expect(total).toBeLessThanOrEqual(2 * text.length);
-      expect(performance.now() - started).toBeLessThan(2000);
+      expect(read.result).toBeLessThanOrEqual(2 * text.length);
+      expect(read.inMs).toBeLessThan(2000);
     }
   });
 });

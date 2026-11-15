@@ -55,7 +55,7 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 
 ### OneUptime Cloud
 
-[注册](https://oneuptime.com/accounts/register)并创建一个项目。免费计划无需信用卡。
+[注册](https://oneuptime.com/accounts/register)并创建一个项目。创建项目无需信用卡。在 Free 套餐中，检查网站需要添加支付方式。
 
 ### 用 Docker Compose 自托管
 

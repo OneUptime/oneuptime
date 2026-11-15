@@ -774,8 +774,8 @@ Un moniteur que vous ne construisez pas à partir d'un modèle démarre avec deu
 
 | Ordre | Critère | Correspond quand | Alors |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | La première requête n'a aucune donnée pendant toute la fenêtre | Passe le moniteur à **Hors ligne** et déclare l'incident « _monitor name_ is offline », qui se résout de lui-même quand le moniteur se rétablit. |
-| 2 | Check if _monitor name_ is online | La première requête a des données | Passe le moniteur à **Opérationnel**. |
+| 1 | Vérifier si _nom du moniteur_ est hors ligne | La première requête n'a aucune donnée pendant toute la fenêtre | Passe le moniteur à **Hors ligne** et déclare l'incident « _nom du moniteur_ est hors ligne », qui se résout de lui-même quand le moniteur se rétablit. |
+| 2 | Vérifier si _nom du moniteur_ est en ligne | La première requête a des données | Passe le moniteur à **Opérationnel**. |
 
 > [!IMPORTANT]
 > Une valeur de `0` est une donnée : une métrique souvent à zéro, comme les redémarrages ou les erreurs, ne met donc pas le moniteur hors ligne. Pour alerter sur une valeur, partez d'un modèle ou ajoutez un critère avec un seuil. Quand aucune donnée n'arrive du tout et qu'aucun critère ne correspond, le moniteur garde son statut et les incidents ouverts le restent : le silence n'est pas un rétablissement. Le temps pendant lequel OneUptime lui-même ne recevait rien n'est jamais une absence de données : une vérification dont la fenêtre le contient attend à la place, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).

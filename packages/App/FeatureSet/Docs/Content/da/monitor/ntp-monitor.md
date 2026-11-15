@@ -112,7 +112,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny NTP-monitor starter med to kriterier:
 
-- **Offline** — serveren svarer ikke, er ikke synkroniseret, eller dens ur er `1000` ms eller mere fra sondens. Monitoren markeres som **Offline**, og der oprettes en hændelse ved navn "_monitornavn_ is not serving good time". Den løser sig selv, når serveren igen leverer pålidelig tid.
+- **Offline** — serveren svarer ikke, er ikke synkroniseret, eller dens ur er `1000` ms eller mere fra sondens. Monitoren markeres som **Offline**, og der oprettes en hændelse ved navn "_monitornavn_ leverer ikke korrekt tid". Den løser sig selv, når serveren igen leverer pålidelig tid.
 - **Online** — serveren svarer, er synkroniseret, og dens ur er inden for `1000` ms af sondens. Monitoren markeres som **I drift**.
 
 Kriterierne kontrolleres oppefra og ned, og det første, der matcher, afgør, hvad der sker. En server, der svarer med forkert tid, behandles med vilje som nede: hver klient, der følger den, ville også tage den tid.

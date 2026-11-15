@@ -55,13 +55,13 @@ Utilisez-le quand la forme de la courbe raconte l'histoire : latence, erreurs, d
 
 ### Valeur
 
-Un grand nombre avec une sparkline : la valeur de la requête sur toute la plage temporelle, additionnée pour une somme ou un comptage, la plus haute pour un maximum, la plus basse pour un minimum, et la moyenne sinon. Une flèche compare la seconde moitié de la plage à la première, chaque moitié calculée de la même façon, colorée selon **Trend Direction** : si une valeur plus haute est meilleure ou pire, ou déduit du nom de la métrique. Pointez sur la flèche pour voir la valeur de chaque moitié, et sur la sparkline pour lire la valeur et l'heure de n'importe quel point. **Warning Threshold** colore le fond en jaune et **Seuil critique** en rouge dès que la valeur les atteint.
+Un grand nombre avec une sparkline : la valeur de la requête sur toute la plage temporelle, additionnée pour une somme ou un comptage, la plus haute pour un maximum, la plus basse pour un minimum, et la moyenne sinon. Une flèche compare la seconde moitié de la plage à la première, chaque moitié calculée de la même façon, colorée selon **Trend Direction** : si une valeur plus haute est meilleure ou pire, ou déduit du nom de la métrique. Pointez sur la flèche pour voir la valeur de chaque moitié, et sur la sparkline pour lire la valeur et l'heure de n'importe quel point. **Seuil d'avertissement** colore le fond en jaune et **Seuil critique** en rouge dès que la valeur les atteint.
 
 Utilisez-la quand un nombre répond à la question : le taux d'erreur, la latence P95 ou les requêtes servies aujourd'hui.
 
 ### Jauge
 
-Un cadran entre un minimum et un maximum, 0 et 100 sauf si vous les fixez, avec une zone jaune à partir de **Warning Threshold** et une zone rouge à partir de **Seuil critique**.
+Un cadran entre un minimum et un maximum, 0 et 100 sauf si vous les fixez, avec une zone jaune à partir de **Seuil d'avertissement** et une zone rouge à partir de **Seuil critique**.
 
 Utilisez-la quand la valeur se situe dans une plage connue : l'utilisation du CPU ou du disque en pourcentage, ou la capacité d'une file d'attente.
 

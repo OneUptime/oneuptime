@@ -167,7 +167,7 @@ Un monitor de sitio web nuevo empieza con dos criterios, así que funciona sin c
 - **Sin conexión** — el sitio web no responde, o responde con un código de estado de `400` o superior (o inferior a `200`). El monitor se marca como **Sin conexión** y se crea un incidente. El incidente se resuelve solo cuando el sitio web vuelve.
 - **En línea** — el sitio web responde con cualquier código de estado `2xx` o `3xx`, como `200`, `204` o `301`. El monitor se marca como **Operativo**.
 
-En la lista de criterios llevan el nombre del monitor: _Check if (name) is offline_ y _Check if (name) is online_.
+En la lista de criterios llevan el nombre del monitor: «Comprobar si _nombre del monitor_ está sin conexión» y «Comprobar si _nombre del monitor_ está en línea».
 
 Así que una página que responde `204 No Content`, o una redirección que vigila con **No seguir redirecciones** activado, cuenta como disponible. Si para usted solo un código de estado significa que está sano, cambie ambos criterios en la página **Configuración → Criterios** del monitor: por ejemplo **Código de estado de respuesta** / **Igual a** / `200` en el criterio en línea y **Distinto de** / `200` en el de sin conexión, en lugar de los dos filtros de código de estado que tiene cada uno.
 

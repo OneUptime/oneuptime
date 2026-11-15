@@ -1,3 +1,4 @@
+import { getOnCallPageAcknowledgedByMessage } from "../../Types/OnCallDutyPolicy/OnCallPageEnding";
 import ProjectMilestoneService from "./ProjectMilestoneService";
 import ActivationMilestone, {
   isNotificationDeliveredStatus,
@@ -705,7 +706,11 @@ export class Service extends DatabaseService<Model> {
           userName: user.name?.toString() || "",
           userEmail: user.email?.toString() || "",
         })
-      : `${entityLabel} acknowledged by ${user.name} (${user.email})`;
+      : getOnCallPageAcknowledgedByMessage({
+          recordLabel: entityLabel,
+          userName: `${user.name}`,
+          userEmail: `${user.email}`,
+        });
 
     await UserOnCallLogService.updateOneById({
       id: page.userOnCallLogId,

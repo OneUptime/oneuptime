@@ -41,7 +41,7 @@ import {
   resolveDatabaseCallTarget,
 } from "../../../Types/DatabaseServer/DatabaseTelemetryResolver";
 import { ExtractedEntity } from "./TelemetryEntity";
-import { readOwnValue } from "../../../Utils/LookupTable";
+import { readOwnValue, writeOwnValue } from "../../../Utils/LookupTable";
 
 export { isLoopbackHost, normalizeHost };
 
@@ -1051,12 +1051,13 @@ export function mergeDependencyEntityDescriptions(
   const after: Record<string, string> = later.descriptiveAttributes || {};
 
   const merged: Record<string, string> = {};
+  // A description key is the producer's (entity_refs), so each the merge's own.
   for (const [key, value] of Object.entries({ ...before, ...after })) {
     if (
       key !== DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE &&
       key !== DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE
     ) {
-      merged[key] = value;
+      writeOwnValue(merged, key, value);
     }
   }
 

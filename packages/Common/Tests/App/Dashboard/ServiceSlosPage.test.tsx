@@ -67,7 +67,7 @@ import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import SliType from "../../../Types/ServiceLevelObjective/SliType";
-import { Column } from "../../../UI/Components/ModelTable/Columns";
+import Column from "../../../UI/Components/ModelTable/Column";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";

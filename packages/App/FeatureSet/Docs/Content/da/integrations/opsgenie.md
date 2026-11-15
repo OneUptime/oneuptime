@@ -1,6 +1,6 @@
 # Opsgenie
 
-Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsgenie). én arbejdsgang opretter en Opsgenie-alarm, når en OneUptime-hændelse erklæres, og et andet lukker den, når OneUptime-hændelsen er løst. Brug det, så længe Opsgenie stadig kalder dit team op, og OneUptime overvåger dine systemer.
+Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsgenie). Én arbejdsgang opretter en Opsgenie-alarm, når en OneUptime-hændelse erklæres, og en anden lukker den, når OneUptime-hændelsen er løst. Brug det, så længe Opsgenie stadig kalder dit team op, og OneUptime overvåger dine systemer.
 
 :::cards
 - [Gem API-nøglen](#gem-api-nøglen): Hold Opsgenies nøgle ude af dine arbejdsgange.
@@ -22,7 +22,7 @@ flowchart TB
     update -->|"luk via alias"| og
 ```
 
-Begge arbejdsgange kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Det første giver alarmen et `alias` dannet ud fra OneUptime-hændelsens ID, og det andet lukker alarmen via det alias.
+Begge arbejdsgange kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Den første giver alarmen et `alias` dannet ud fra OneUptime-hændelsens ID, og den anden lukker alarmen via det alias.
 
 ## Før du går i gang
 
@@ -45,7 +45,7 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så nøglen vise
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to Opsgenie`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to Opsgenie`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 
@@ -85,7 +85,7 @@ En arbejdsgang har én trigger, så det kræver en anden arbejdsgang at lukke de
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret en arbejdsgang med navnet `Close Opsgenie alerts`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
+Opret en arbejdsgang med navnet `Close Opsgenie alerts`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så den kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -149,7 +149,7 @@ Opsgenie svarer `202`, før den behandler anmodningen, så en anmodning, den sen
 :::
 
 :::details Arbejdsgangen kører aldrig
-Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
+Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 ## Næste trin

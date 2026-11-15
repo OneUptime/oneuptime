@@ -4,20 +4,35 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { clearTokens, storeTokens } from "../storage/keychain";
 import { sessionAccessToken } from "../__tests__/sessionTokens";
 import {
+  ACTIVITY_REPORT_INTERVAL_MS,
   ACTIVITY_WRITE_INTERVAL_MS,
   countTypingAsActivity,
   flushUserActivityWrites,
   forgetInactivityReportedBy,
   getRenewalReport,
+  getReportedActivityAtMs,
+  INACTIVE_FOR_IN_SECONDS_FIELD,
+  isActivityReportDue,
+  LONGEST_INACTIVITY_FIELD,
   MAX_REPORTED_INACTIVITY_IN_SECONDS,
   MIN_KEPT_INACTIVITY_MS,
+  noteActivityReported,
   onUserActivity,
   recordUserActivity,
   type RenewalReport,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   resetUserActivityForTests,
   startUserActivityTracking,
   USER_ACTIVITY_STORAGE_KEY,
 } from "./userActivity";
+import {
+  ACTIVITY_REPORTED_WITHIN_IN_MINUTES,
+  INACTIVE_FOR_IN_SECONDS_FIELD as SERVER_INACTIVE_FOR_IN_SECONDS_FIELD,
+  LONGEST_INACTIVITY_FIELD as SERVER_LONGEST_INACTIVITY_FIELD,
+  MAX_REPORTED_INACTIVITY_IN_SECONDS as SERVER_MAX_REPORTED_INACTIVITY_IN_SECONDS,
+  MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD as SERVER_REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+} from "../../../Common/Types/UserSession/SessionLength";
 
 /*
  * WHAT THE APP TELLS THE SERVER OF ITS PERSON'S USE OF IT (issue #8187).
@@ -883,5 +898,150 @@ describe("starting", () => {
     expect(await reportAt(T0 + 5 * MINUTE)).toEqual({
       inactiveForInSeconds: 5 * 60,
     });
+  });
+});
+
+/*
+ * THE ACTIVITY THE SERVER HAS HEARD OF (issue #8458).
+ *
+ * Every renewal promises the server that, while the app is in use, a
+ * renewal tells it of its person at least every ACTIVITY_REPORT_INTERVAL_MS,
+ * which lets its sweep record an idle timeout within minutes. The client
+ * renews when a report is due (isActivityReportDue), counting from the
+ * activity the last renewal told the server of (noteActivityReported), or -
+ * none yet this launch - from what the access token says the server knew.
+ */
+describe("when a report of the person's activity is due", () => {
+  test("the server's own words: the field, the interval and the other fields and bounds", () => {
+    expect(REPORTS_ACTIVITY_WHILE_IN_USE_FIELD).toBe(
+      SERVER_REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+    );
+    expect(ACTIVITY_REPORT_INTERVAL_MS).toBe(
+      ACTIVITY_REPORTED_WITHIN_IN_MINUTES * MINUTE,
+    );
+    expect(INACTIVE_FOR_IN_SECONDS_FIELD).toBe(
+      SERVER_INACTIVE_FOR_IN_SECONDS_FIELD,
+    );
+    expect(LONGEST_INACTIVITY_FIELD).toBe(SERVER_LONGEST_INACTIVITY_FIELD);
+    expect(MIN_KEPT_INACTIVITY_MS).toBe(
+      MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES * MINUTE,
+    );
+    expect(MAX_REPORTED_INACTIVITY_IN_SECONDS).toBe(
+      SERVER_MAX_REPORTED_INACTIVITY_IN_SECONDS,
+    );
+  });
+
+  test("nobody signed in: never due, and nothing heard of", async () => {
+    expect(isActivityReportDue(T0 + HOUR)).toBe(false);
+    expect(getReportedActivityAtMs()).toBeNull();
+
+    noteActivityReported(T0);
+
+    expect(getReportedActivityAtMs()).toBeNull();
+  });
+
+  test("just signed in: counted from the activity the access token says the server knew", async () => {
+    await signIn(SESSION_A, { lastActiveAtMs: T0 });
+
+    expect(getReportedActivityAtMs()).toBe(T0);
+    expect(isActivityReportDue(T0 + ACTIVITY_REPORT_INTERVAL_MS - 1)).toBe(
+      false,
+    );
+    expect(isActivityReportDue(T0 + ACTIVITY_REPORT_INTERVAL_MS)).toBe(true);
+  });
+
+  test("a token without lastActiveAt counts from its sign-in", async () => {
+    await storeTokens({
+      accessToken: sessionAccessToken({
+        sessionId: SESSION_A,
+        signedInAtMs: T0 - MINUTE,
+        issuedAtMs: T0,
+        expiresAtMs: T0 + 15 * MINUTE,
+      }),
+      refreshToken: "refresh",
+      refreshTokenExpiresAt: new Date(T0 + 30 * DAY).toISOString(),
+    });
+
+    expect(getReportedActivityAtMs()).toBe(T0 - MINUTE);
+  });
+
+  test("a token that says nothing: due at once", async () => {
+    await storeTokens({
+      accessToken: "not-a-jwt",
+      refreshToken: "refresh",
+      refreshTokenExpiresAt: new Date(T0 + 30 * DAY).toISOString(),
+    });
+
+    expect(getReportedActivityAtMs()).toBeNull();
+    expect(isActivityReportDue(T0)).toBe(true);
+  });
+
+  test("after a renewal, counted from the activity it told the server of", async () => {
+    await signIn(SESSION_A, { lastActiveAtMs: T0 });
+
+    noteActivityReported(T0 + 3 * MINUTE);
+
+    expect(getReportedActivityAtMs()).toBe(T0 + 3 * MINUTE);
+    expect(
+      isActivityReportDue(T0 + 3 * MINUTE + ACTIVITY_REPORT_INTERVAL_MS - 1),
+    ).toBe(false);
+    expect(
+      isActivityReportDue(T0 + 3 * MINUTE + ACTIVITY_REPORT_INTERVAL_MS),
+    ).toBe(true);
+  });
+
+  test("what the phone noted wins over the token's claim, which is on the server's clock", async () => {
+    // The server's clock four minutes ahead: its claim is in the phone's future.
+    await signIn(SESSION_A, { lastActiveAtMs: T0 + 4 * MINUTE });
+
+    expect(isActivityReportDue(T0)).toBe(true);
+
+    noteActivityReported(T0);
+
+    expect(isActivityReportDue(T0 + MINUTE)).toBe(false);
+  });
+
+  test("a clock that moved back: due at once, and the next renewal's word replaces the one noted", async () => {
+    await signIn(SESSION_A, { lastActiveAtMs: T0 });
+    noteActivityReported(T0 + 10 * MINUTE);
+
+    expect(isActivityReportDue(T0 + 3 * MINUTE)).toBe(true);
+
+    noteActivityReported(T0 + 3 * MINUTE);
+
+    expect(getReportedActivityAtMs()).toBe(T0 + 3 * MINUTE);
+    expect(isActivityReportDue(T0 + 4 * MINUTE)).toBe(false);
+  });
+
+  test("what one session's renewals told the server is never another's", async () => {
+    await signIn(SESSION_A, { lastActiveAtMs: T0 });
+    noteActivityReported(T0 + 20 * MINUTE);
+
+    await clearTokens();
+    nowMs = T0 + 21 * MINUTE;
+    await signIn(SESSION_B, { lastActiveAtMs: T0 + 21 * MINUTE - HOUR });
+
+    // Session B's own claim, an hour old: due, whatever session A's renewals said.
+    expect(getReportedActivityAtMs()).toBe(T0 + 21 * MINUTE - HOUR);
+    expect(isActivityReportDue(T0 + 21 * MINUTE)).toBe(true);
+  });
+
+  test("forgotten when the process ends: the token's claim counts again", async () => {
+    await signIn(SESSION_A, { lastActiveAtMs: T0 });
+    noteActivityReported(T0 + 4 * MINUTE);
+
+    await kill();
+
+    expect(getReportedActivityAtMs()).toBe(T0);
+  });
+
+  test("an activity that is no time is not noted", async () => {
+    await signIn(SESSION_A, { lastActiveAtMs: T0 });
+
+    for (const value of [Number.NaN, 0, -1, Number.POSITIVE_INFINITY]) {
+      noteActivityReported(value);
+    }
+
+    expect(getReportedActivityAtMs()).toBe(T0);
   });
 });

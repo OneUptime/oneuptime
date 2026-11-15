@@ -55,7 +55,7 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 
 ### OneUptime Cloud
 
-[가입](https://oneuptime.com/accounts/register)하고 프로젝트를 만듭니다. 무료 요금제에는 신용카드가 필요하지 않습니다.
+[가입](https://oneuptime.com/accounts/register)하고 프로젝트를 만듭니다. 프로젝트에는 신용카드가 필요 없습니다. Free 요금제에서는 웹사이트를 확인하려면 결제 수단이 필요합니다.
 
 ### Docker Compose로 자체 호스팅
 

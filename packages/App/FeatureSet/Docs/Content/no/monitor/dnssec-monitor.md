@@ -103,7 +103,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny DNSSEC-monitor starter med to kriterier:
 
-- **Kjeden er brutt** — **DNSSEC-kjeden er gyldig** er **Usann**. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ DNSSEC chain is broken". Hendelsen løser seg selv når kjeden er gyldig igjen.
+- **Kjeden er brutt** — **DNSSEC-kjeden er gyldig** er **Usann**. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "DNSSEC-kjeden for _monitornavn_ er brutt". Hendelsen løser seg selv når kjeden er gyldig igjen.
 - **Kjeden er gyldig** — monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.

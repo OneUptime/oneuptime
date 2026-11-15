@@ -769,11 +769,11 @@ describe("who is told", () => {
 
   // The project's on-call rules, as a list of them answers.
   const serveRules: (rules: {
-    incident?: Array<Array<boolean | undefined>>;
-    alert?: Array<Array<boolean | undefined>>;
+    incident?: Array<Array<boolean | undefined>> | undefined;
+    alert?: Array<Array<boolean | undefined>> | undefined;
   }) => void = (rules: {
-    incident?: Array<Array<boolean | undefined>>;
-    alert?: Array<Array<boolean | undefined>>;
+    incident?: Array<Array<boolean | undefined>> | undefined;
+    alert?: Array<Array<boolean | undefined>> | undefined;
   }): void => {
     getListSpy.mockImplementation((async (args: {
       modelType: { new (): unknown };

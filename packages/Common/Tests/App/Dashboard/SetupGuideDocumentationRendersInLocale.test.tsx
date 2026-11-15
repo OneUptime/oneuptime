@@ -60,6 +60,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import DockerDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/Documentation";
 import PodmanDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/Documentation";
 import DockerSwarmDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Documentation";
+import CephDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Documentation";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -80,6 +81,8 @@ import { getPodmanSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pa
 import { PODMAN_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationTranslations";
 import { getDockerSwarmSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationTranslations";
+import { getCephSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -93,6 +96,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   Docker: {},
   Podman: {},
   DockerSwarm: {},
+  Ceph: {},
 };
 
 /*
@@ -112,6 +116,15 @@ function dockerSwarmGuide(): SetupGuideContent {
   return getDockerSwarmSetupGuide({
     oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    method: "install-script",
+  });
+}
+
+function cephGuide(): SetupGuideContent {
+  return getCephSetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
     method: "install-script",
   });
 }
@@ -222,6 +235,9 @@ beforeAll(async () => {
     ).default;
     WORDS["DockerSwarm"]![language] = (
       await DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["Ceph"]![language] = (
+      await CEPH_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -410,6 +426,52 @@ describe("Docker Swarm > Help > Documentation", () => {
       for (const markdown of mockDrawnMarkdown) {
         expect(markdown.readingDirection).toBe(
           language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+});
+
+describe("Ceph > Help > Documentation", () => {
+  test.each(["de", "fa"])(
+    "in %s, the Ceph guide and its title in the reader's words, the mgr endpoints as written",
+    async (language: string) => {
+      await drawIn(language, <CephDocumentationPage {...PAGE_PROPS} />);
+
+      const drawn: string = drawnTexts().join("\n");
+
+      for (const piece of getSetupGuideWordPieces(cephGuide())) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: false,
+        });
+      }
+      for (const piece of getSetupGuideWordPieces(
+        inLanguage("Ceph", cephGuide(), language),
+      )) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: true,
+        });
+      }
+
+      // The card's own words come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect a Ceph Cluster"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect a Ceph Cluster")).toBeNull();
+      expect(
+        screen.getByText(locale["Enable the mgr prometheus module"]!),
+      ).toBeInTheDocument();
+      // The mgr list and the module command are the English's in every language.
+      expect(drawn).toContain(
+        "ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283",
+      );
+      expect(drawn).toContain("ceph mgr module enable prometheus");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "fa" ? "rtl" : "ltr",
         );
       }
     },

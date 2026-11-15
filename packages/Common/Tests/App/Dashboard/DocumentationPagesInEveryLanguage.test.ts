@@ -56,6 +56,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DataObservability: { way: "a text per language" },
   Docker: { way: "a setup guide's words" },
   Podman: { way: "a setup guide's words" },
+  Ceph: { way: "a setup guide's words" },
   DockerSwarm: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
@@ -81,7 +82,6 @@ const PAGES: Readonly<Record<string, PageReading>> = {
  * are English in most locale files. #8341. Only ever shorter.
  */
 const STILL_IN_ENGLISH: ReadonlyArray<string> = [
-  "Ceph",
   "Database",
   "Host",
   "Inventory",

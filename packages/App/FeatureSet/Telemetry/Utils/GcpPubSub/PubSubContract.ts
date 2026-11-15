@@ -1,6 +1,7 @@
 import { CLOUD_STREAM_PUBSUB_MAX_MESSAGE_BYTES } from "Common/Types/CloudConnection/CloudStream";
 import { ExpressResponse } from "Common/Server/Utils/Express";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import { writeOwnValue } from "Common/Utils/LookupTable";
 
 /*
  * A PUB/SUB PUSH, AS PUB/SUB SENDS IT, AND THE ANSWER IT READS.
@@ -195,12 +196,13 @@ export function readPubSubPush(body: Buffer): PubSubPushReading {
     for (const key of Object.keys(rawAttributes).slice(0, MAX_ATTRIBUTES)) {
       const value: JSONValue | undefined = (rawAttributes as JSONObject)[key];
 
-      if (
-        typeof value === "string" &&
-        key.length <= 256 &&
-        key !== "__proto__"
-      ) {
-        attributes[key] = value.slice(0, 1024);
+      /*
+       * Each as the push's own key (writeOwnValue), so an attribute named
+       * "__proto__" is kept like any other (issue #8487): it was left out,
+       * since an assignment would have dropped it.
+       */
+      if (typeof value === "string" && key.length <= 256) {
+        writeOwnValue(attributes, key, value.slice(0, 1024));
       }
     }
   }

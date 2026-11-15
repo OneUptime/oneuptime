@@ -26,6 +26,10 @@ import { describe, expect, test } from "@jest/globals";
  *      (`props: { ...ctx.props, writeSource: ... }`, issue #6258: the write
  *      is still theirs, and only says Ask AI made it), or is in ALLOWED with
  *      the reason OneUptime makes it itself, after the person's own checks.
+ *      A method that takes its props in order, not in an options object
+ *      (`MonitorService.addOwners(..., ctx.props)`), is passed the person's
+ *      props as an argument of its own; an options object's props still
+ *      decide when it has some.
  *      ALLOWED only shrinks: an entry no call matches fails.
  *   B. Those modules are called through their default export only - never
  *      through a named import, an alias or a method passed around - so the
@@ -36,8 +40,8 @@ import { describe, expect, test } from "@jest/globals";
  *      person (AIToolbox.executeTool) and refused in runs that offer none
  *      (ObservabilityAssistant).
  *   D. Negative controls: the scan finds a root write after a read, a write
- *      with no props, a write in a tool not marked as one, and a call it
- *      could not see.
+ *      with no props, someone else's props passed in order, a write in a
+ *      tool not marked as one, and a call it could not see.
  */
 
 const TOOLBOX_DIRECTORY: string = path.resolve(
@@ -270,23 +274,28 @@ function isPersonProps(expression: ts.Expression): boolean {
  * object (`updateOneById({ ..., props: ctx.props })`), or as an argument of
  * their own, which is how a service method that takes its props last
  * receives them (`MonitorService.addOwners(projectId, monitorId, userIds,
- * teamIds, notify, ctx.props)`, #8513).
+ * teamIds, notify, ctx.props)`, #8513). An options object's props decide
+ * when it has some: the person's props passed after it do not make someone
+ * else's theirs.
  */
 function passesPersonProps(call: ts.CallExpression): boolean {
   const options: ts.Expression | undefined = call.arguments[0];
 
-  if (
-    options &&
-    ts.isObjectLiteralExpression(options) &&
-    options.properties.some((property: ts.ObjectLiteralElement) => {
-      return (
-        ts.isPropertyAssignment(property) &&
-        property.name.getText() === "props" &&
-        isPersonProps(property.initializer)
-      );
-    })
-  ) {
-    return true;
+  if (options && ts.isObjectLiteralExpression(options)) {
+    const props: ts.PropertyAssignment | undefined = options.properties.find(
+      (
+        property: ts.ObjectLiteralElement,
+      ): property is ts.PropertyAssignment => {
+        return (
+          ts.isPropertyAssignment(property) &&
+          property.name.getText() === "props"
+        );
+      },
+    );
+
+    if (props) {
+      return isPersonProps(props.initializer);
+    }
   }
 
   return call.arguments.some((argument: ts.Expression): boolean => {
@@ -847,6 +856,30 @@ describe("the scan's negative controls", () => {
     ).toEqual(["8", "9", "10", "11"]);
     // ctx.props.userId names the person; it is not their props.
     expect(result.notAsThePerson[3]).toContain("MonitorService.addOwners");
+  });
+
+  test("D: an options object's props decide, whatever props follow it", () => {
+    const result: GuardResult = checkSnippet(
+      SERVICE_IMPORT +
+        `export const RenameTool: ObservabilityTool = {
+  name: "rename_incident",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: ctx.props }, ctx.props);
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { isRoot: true } }, ctx.props);
+  },
+};
+`,
+    );
+
+    // Line 6's options carry the person's props; line 7's someone else's.
+    expect(
+      result.notAsThePerson.map((problem: string): string => {
+        return problem.split(":")[1] as string;
+      }),
+    ).toEqual(["7"]);
+    expect(result.notAMutationTool).toEqual([]);
+    expect(result.unseenCalls).toEqual([]);
   });
 
   test("D: finds a write that passes no props", () => {

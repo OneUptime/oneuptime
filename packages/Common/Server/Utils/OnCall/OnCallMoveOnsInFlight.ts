@@ -34,6 +34,11 @@ export interface OnCallMoveOnInFlight {
   // The rule the run was on, and its pass, when it was claimed.
   lastExecutedEscalationRuleId: string | null;
   onCallPolicyExecutionRepeatCount: number | null;
+  /*
+   * The claim passes a level that reached nobody, at once (issue #8515):
+   * giving it back also clears that level's wait.
+   */
+  passesEmptyLevel?: boolean | undefined;
 }
 
 // A move on kept in Redis: its moments in milliseconds since the epoch.
@@ -42,6 +47,7 @@ type KeptMoveOn = {
   previousLastEscalationRuleExecutedAt: number | null;
   lastExecutedEscalationRuleId: string | null;
   onCallPolicyExecutionRepeatCount: number | null;
+  passesEmptyLevel?: boolean;
 };
 
 export class OnCallMoveOns {
@@ -55,6 +61,13 @@ export class OnCallMoveOns {
    * rule and records it in seconds, and a tick runs every minute.
    */
   public readonly GIVE_BACK_AFTER_MS: number = 2 * 60 * 1000;
+
+  /*
+   * A tick comes at about the same second of each minute, not on it: a
+   * claim a moment after one tick is given back at the tick two minutes on,
+   * not a third (issue #8515). A move on takes seconds, far under this.
+   */
+  public readonly TICK_SLACK_MS: number = 30 * 1000;
 
   // The move on in flight of each of `runIds` that has one, by its id: one round trip.
   public async read(
@@ -140,7 +153,8 @@ export class OnCallMoveOns {
   // Whether a move on in flight never finished, and its claim is given back now.
   public isToGiveBack(moveOn: OnCallMoveOnInFlight, now: Date): boolean {
     return (
-      now.getTime() - moveOn.claimedAt.getTime() >= this.GIVE_BACK_AFTER_MS
+      now.getTime() - moveOn.claimedAt.getTime() >=
+      this.GIVE_BACK_AFTER_MS - this.TICK_SLACK_MS
     );
   }
 
@@ -153,6 +167,7 @@ export class OnCallMoveOns {
           : null,
       lastExecutedEscalationRuleId: moveOn.lastExecutedEscalationRuleId,
       onCallPolicyExecutionRepeatCount: moveOn.onCallPolicyExecutionRepeatCount,
+      ...(moveOn.passesEmptyLevel ? { passesEmptyLevel: true } : {}),
     };
 
     return JSON.stringify(kept);
@@ -194,6 +209,7 @@ export class OnCallMoveOns {
         lastExecutedEscalationRuleId: kept.lastExecutedEscalationRuleId || null,
         onCallPolicyExecutionRepeatCount:
           kept.onCallPolicyExecutionRepeatCount ?? null,
+        ...(kept.passesEmptyLevel === true ? { passesEmptyLevel: true } : {}),
       };
     } catch {
       return null;
