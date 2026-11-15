@@ -670,10 +670,18 @@ work out, starts from a default for everything else, and folds what most people 
   pieces. The same goes for JSX: `{t("Showing")} {n} {t("of")} {total}` read "Page 2 of 5" in
   English's order in Japanese, and a status page's "posted on" sat before its date in every
   language (#8290). A label whose colon the code wrote (`{t("Capabilities")}:`) takes it from a key
-  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). Enforced by
+  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). A sentence
+  around an element is one too: a pill, a name, a date, a bold count, or a link around a phrase
+  (`{t("Read the")} <Link>{t("docs")}</Link>`) goes in a `TranslatedSentence` slot, and so do words
+  only a screen reader reads ("Connect" before a product's name, "AWS Security Hub verbinden" in
+  German). The status page's "Incident state changed to" and its state's pill kept English's
+  order until #8290, and the schedule timeline's bold counts sat before "covered now" (#8483). An
+  icon, a badge after its word, a block, a link to act on after a sentence ("Read the guide") and
+  what is drawn for the eye only are no word of a sentence. Enforced by
   [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
-  which reads template literals, `+`, `join()` and an element's children, and follows a name that
-  holds a translation (`const label = t("Key")`).
+  which reads template literals, `+`, `join()` and an element's children, each child element as
+  what it draws, and follows a name that holds a translation (`const label = t("Key")`), a lookup
+  in a constant table and a nested key's English.
 
 ### In every language
 

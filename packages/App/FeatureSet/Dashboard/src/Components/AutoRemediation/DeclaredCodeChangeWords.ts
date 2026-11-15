@@ -160,6 +160,14 @@ export const DECLARED_CODE_VIEW_TASK: string = translationKey("View task");
 export const DECLARED_CODE_ANSWER: string = translationKey("Answer in Code");
 export const DECLARED_CODE_VIEW_PULL_REQUEST: string =
   translationKey("View pull request");
+/*
+ * With its number, one sentence: the number ("#482") where the reader's
+ * language puts it. It was "View pull request" and the number after it, in
+ * English's order (#8483).
+ */
+export const DECLARED_CODE_VIEW_PULL_REQUEST_NUMBER: string = translationKey(
+  "View pull request {{number}}",
+);
 export const DECLARED_CODE_TRY_AGAIN: string = translationKey("Try again");
 
 // What the line says of a pull request asked for, by where it stands.

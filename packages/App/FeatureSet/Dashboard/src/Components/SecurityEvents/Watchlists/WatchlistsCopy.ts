@@ -397,6 +397,15 @@ export const IMPORT_PREVIEW_PROBLEMS: PluralTemplate = {
   other: "{{count}} lines left out",
 };
 export const IMPORT_PROBLEM_LINE: string = translationKey("Line {{line}}");
+/*
+ * A line left out, as one sentence: the line, the value as written on it
+ * and what is wrong with it, with the reader's language's own colon. The
+ * colon and the dash were English's, written between translated pieces
+ * (#8483).
+ */
+export const IMPORT_PROBLEM_ITEM: string = translationKey(
+  "{{line}}: {{value}} - {{problem}}",
+);
 export const IMPORT_PROBLEMS_MORE: PluralTemplate = {
   one: "and {{count}} more line",
   other: "and {{count}} more lines",
