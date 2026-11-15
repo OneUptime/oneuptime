@@ -954,6 +954,10 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
       english: /\btimes without a zone\b/i,
       why: "a time's zone is its time zone: منطقه زمانی",
     },
+    {
+      english: /\bin this zone\b/i,
+      why: "the on-call layer's time zone picker said everything below it is in this zone, its time zone: منطقه زمانی",
+    },
   ];
 
   // The zones among `rows` worded otherwise: without زُن, as an area, or as a region the English does not name.

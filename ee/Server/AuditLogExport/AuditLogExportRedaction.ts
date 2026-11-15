@@ -9,6 +9,7 @@ import {
   AuditLogExportRecord,
 } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import { getColumnAccessControlForAllColumns } from "Common/Types/Database/AccessControl/ColumnAccessControl";
+import { getAuditLogResourceTypeSpellings } from "Common/Utils/AuditLog/AuditLogResourceTypes";
 
 /*
  * NOTHING SECRET LEAVES IN AN EXPORTED ENTRY, whenever it was recorded.
@@ -59,12 +60,22 @@ function getRedactedFieldsByResourceType(): Map<string, Set<string>> {
       }
     }
 
-    // The resource type an entry names: the model's singular name (AuditLogRecorder).
+    /*
+     * The resource type an entry names: the singular name the model keeps
+     * for the API and this log (AuditLogRecorder), which a renamed model's
+     * name on screen is not - an Ingestion Key's entries are stored as
+     * "Telemetry Ingestion Key", and keyed by "Ingestion Key" they were
+     * sent out unredacted (#7580). Its name on screen too, as the audit log
+     * reads a type by either.
+     */
     const resourceType: string =
+      model.apiSingularName ||
       model.singularName ||
       (model as unknown as { constructor: { name: string } }).constructor.name;
 
-    map.set(resourceType, fields);
+    for (const spelling of getAuditLogResourceTypeSpellings(resourceType)) {
+      map.set(spelling, fields);
+    }
   }
 
   redactedFieldsByResourceType = map;
