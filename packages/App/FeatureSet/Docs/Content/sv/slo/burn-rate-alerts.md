@@ -132,7 +132,7 @@ Under **Regel** anger du ett **Namn**, som ”Fast burn”. En ny regel är pås
 
 ### Ange förbrukningsfönstret
 
-Under **Förbrukningsfönster** anger du **Tröskel för förbrukningstakt** (till exempel `14.4`), **Långt fönster (minuter)** och **Kort fönster (minuter)**, och om du vill **Undertryckning av ny utlösning (minuter)**. En regel för ett SLO för begäranden tar också **Minsta antal begäranden**, till exempel `100`: regeln hoppar över ett långt fönster som innehåller färre begäranden än så.
+Under **Förbrukningsfönster** anger du **Tröskel för förbrukningstakt** (till exempel `14.4`), **Långt fönster (minuter)** och **Kort fönster (minuter)**, och om du vill **Undertryckning av ny utlösning (minuter)**. En regel för ett SLO för begäranden tar också **Minsta antal begäranden**, till exempel `100`: regeln hoppar över ett långt fönster som innehåller färre begäranden än så. En regel för ett mätvärdesbaserat SLO tar på samma sätt **Minsta antal händelser**, räknat i mätvärdets händelser.
 
 ### Välj vad den deklarerar
 
@@ -152,6 +152,7 @@ OneUptime kontrollerar en regels siffror när du sparar den:
 | **Långt fönster (minuter)** | Längre än det korta fönstret. |
 | **Undertryckning av ny utlösning (minuter)** | 0 eller mer. Tomt betyder det långa fönstrets längd. |
 | **Minsta antal begäranden** | Ett heltal, 0 eller mer. Tomt betyder inget minimum. |
+| **Minsta antal händelser** | Ett heltal, 0 eller mer. Tomt betyder inget minimum. |
 
 Varje svar på **När den utlöses** öppnar något. API:et avvisar en regel som varken skulle skapa ett larm eller deklarera en incident, eftersom den skulle kontrolleras vid varje utvärdering utan att någonsin deklarera något.
 

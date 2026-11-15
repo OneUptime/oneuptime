@@ -5,6 +5,7 @@ Een SLO voor aanvragen meet wat uw gebruikers van een service krijgen: het deel 
 :::cards
 - [Een SLO voor aanvragen aanmaken](#een-slo-voor-aanvragen-aanmaken): De services, een drempel voor latentie en een doel.
 - [Alleen sommige aanvragen tellen](#alleen-sommige-aanvragen-tellen): Eén endpoint, of elke aanvraag behalve gezondheidscontroles.
+- [SLO's op basis van een metriek](#slos-op-basis-van-een-metriek): Een teller of een histogram, voor services die geen traces sturen.
 - [Hoe aanvragen worden geteld](#hoe-aanvragen-worden-geteld): Welke spans meetellen, en wanneer.
 - [Releasecontroles](/docs/slo/release-checks): Draai een release terug die het foutbudget opbrandt.
 :::
@@ -76,6 +77,22 @@ Een SLO voor aanvragen telt elke aanvraag van zijn services. Een **Aanvraagfilte
 Elke term moet overeenkomen, dus `@http.route:/checkout* -@http.route:/checkout/health` telt de checkout-aanvragen behalve hun gezondheidscontrole. Een term met `@` is een attribuut van de span van de aanvraag, en `name:` is de naam van de span. Vrije tekst en de andere velden van de verkenner, zoals `status:` en `duration:`, zijn hier geen filters: de SLO bepaalt al welke aanvragen slecht of traag zijn. Een filter bevat maximaal 10 termen in 500 tekens.
 
 Het **Overzicht** toont het filter onder de services van de SLO, en **Instellingen** toont het onder **Wat het meet**. Als u het wijzigt, worden de aanvragen van de SLO opnieuw vanaf het begin geteld.
+
+## SLO's op basis van een metriek
+
+Als uw services hun aanvragen al als metrieken tellen, of geen traces sturen, meet de SLO dan in plaats daarvan op basis van een teller of een histogram. Kies onder **Wat het meet** de optie **Metriek** en de **Services** die de metriek sturen, en vul daarna in de stap **Metriek** het volgende in:
+
+| Veld | Wat u invult |
+| --- | --- |
+| **Metriek** | De naam van de metriek, gekozen uit de metrieken van uw project of getypt, zoals `http_requests_total` of `http.server.request.duration`. |
+| **Goede gebeurtenissen** | **Een teller, op basis van een voorwaarde** of **Een histogram, op basis van een waarde**. |
+| **Goed wanneer** | Voor een teller: de gebeurtenissen die goed zijn, als zoekopdracht op zijn attributen, zoals `@http.response.status_code:<500`. |
+| **Goed tot en met** | Voor een histogram: de waarde die een goede waarneming niet overschrijdt, in de eigen eenheid van de metriek, zoals `0.3` voor 300 ms bij een histogram in seconden. Gebruik een van de bucketgrenzen ervan. |
+| **Metriekfilter** | Optioneel: de reeksen die meetellen, zoals `-@http.route:/health`. |
+
+De gebeurtenissen van een teller zijn wat hij in elke stap van 5 minuten groeide, zoals `increase()` van Prometheus een teller leest: een teller die herstart, telt weer vanaf nul, en cumulatieve tellers en deltatellers tellen allebei mee. De gebeurtenissen van een histogram zijn de waarnemingen ervan, en de goede zijn die in de buckets tot en met die waarde. Alleen de eigen punten van de metriek tellen mee, van de services van de SLO: een gauge met dezelfde naam telt niet mee.
+
+Verder werkt een SLO voor een metriek zoals een SLO voor aanvragen, met zijn foutbudget, regels voor verbruikssnelheid en releasecontroles in gebeurtenissen. Als u de metriek wijzigt, worden de gebeurtenissen ervan opnieuw vanaf het begin geteld.
 
 ## Hoe aanvragen worden geteld
 

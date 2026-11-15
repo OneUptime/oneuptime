@@ -49,7 +49,7 @@ Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo grup
 
 ### Scegliere cosa misura
 
-In **Cosa misura**, lascia **Disponibilità dei monitor** per misurare la quota di tempo in cui i monitor sono disponibili. Scegli invece **Successo delle richieste** o **Latenza delle richieste** per misurare le richieste dei servizi, e scegli i loro **Servizi**: vedi [SLO di richieste e latenza](/docs/slo/request-slos). Fai clic su **Avanti**.
+In **Cosa misura**, lascia **Disponibilità dei monitor** per misurare la quota di tempo in cui i monitor sono disponibili. Scegli invece **Successo delle richieste** o **Latenza delle richieste** per misurare le richieste dei servizi, e scegli i loro **Servizi**: vedi [SLO di richieste e latenza](/docs/slo/request-slos). Scegli **Metrica** per contare gli eventi buoni di un contatore o di un istogramma inviato dai tuoi servizi: vedi [SLO basati su una metrica](/docs/slo/request-slos#slo-basati-su-una-metrica). Fai clic su **Avanti**.
 
 ### Dargli un nome e fissare un obiettivo
 
@@ -201,7 +201,7 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 
 | Scheda | Cosa cambi | Da sapere |
 | --- | --- | --- |
-| **Cosa misura** | **Cosa misura**, **Servizi**, **Soglia di latenza (ms)** e **Filtro delle richieste**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
+| **Cosa misura** | **Cosa misura**, **Servizi**, **Soglia di latenza (ms)**, **Filtro delle richieste** e **Metrica**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
 | **Obiettivo** | **Obiettivo (%)** e **Soglia a rischio (%)**, con **Modifica l'obiettivo**. | Mostra l'inattività che l'obiettivo consente, per esempio «43 min 12 s di downtime per finestra di 30 giorni». |
 | **Periodo di conformità** | **Tipo di finestra**, **Finestra (giorni)** e **Fuso orario**, con **Modifica il periodo**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
 | **Calcolo del downtime** | **Modalità multi-monitor** e **Stati del monitor per i tempi di inattività**, con **Modifica il calcolo del downtime**. | Solo per gli SLO di disponibilità dei monitor. Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |
@@ -265,6 +265,8 @@ Un banner in cima alle pagine dello SLO dice cosa gli impedisce di misurare:
 | **Nessun servizio scelto** | Uno SLO di richieste non ha servizi, quindi non ha richieste da contare. | Scegli i suoi servizi in **Impostazioni** → **Cosa misura**. |
 | **Nessuna soglia di latenza** | Uno SLO di latenza delle richieste non ha una soglia, quindi nessuna richiesta può contare come abbastanza veloce. | Imposta la **Soglia di latenza (ms)** in **Impostazioni** → **Cosa misura**. |
 | **In attesa di richieste** | Nessuno dei servizi di uno SLO di richieste ha ancora servito una richiesta nella sua finestra. | Controlla che i servizi inviino tracce a OneUptime. I numeri compaiono dopo la prossima valutazione che conta una richiesta. |
+| **Nessuna metrica da contare** | Uno SLO di metrica non ha una metrica che possa contare: non ne è stata scelta nessuna, oppure manca come distinguere i suoi eventi buoni. | Scegli la metrica, e la sua condizione o il suo valore per gli eventi buoni, in **Impostazioni** → **Cosa misura**. |
+| **In attesa della sua metrica** | Nessuno dei servizi di uno SLO di metrica ha ancora inviato un evento della sua metrica nella sua finestra. | Controlla che i servizi inviino la metrica a OneUptime, con il nome che lo SLO conta. I numeri compaiono dopo la prossima valutazione che conta un evento. |
 
 ## Passi successivi
 

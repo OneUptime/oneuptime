@@ -49,7 +49,7 @@ Du skal have en rolle, der må oprette SLO'er: Projektejer, Projektadministrator
 
 ### Vælg, hvad det måler
 
-Under **Hvad det måler** beholder du **Monitoroppetid** for at måle den andel af tiden, monitorerne er tilgængelige. Vælg i stedet **Vellykkede anmodninger** eller **Anmodningslatens** for at måle tjenesters anmodninger, og vælg tjenesterne under **Tjenester**: se [SLO'er for anmodninger og latens](/docs/slo/request-slos). Klik på **Næste**.
+Under **Hvad det måler** beholder du **Monitoroppetid** for at måle den andel af tiden, monitorerne er tilgængelige. Vælg i stedet **Vellykkede anmodninger** eller **Anmodningslatens** for at måle tjenesters anmodninger, og vælg tjenesterne under **Tjenester**: se [SLO'er for anmodninger og latens](/docs/slo/request-slos). Vælg **Metrik** for at tælle de gode begivenheder i en tæller eller et histogram, som dine tjenester sender: se [SLO'er ud fra en metrik](/docs/slo/request-slos#sloer-ud-fra-en-metrik). Klik på **Næste**.
 
 ### Giv det et navn og et mål
 
@@ -201,7 +201,7 @@ Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver tin
 
 | Kort | Det, du ændrer | Godt at vide |
 | --- | --- | --- |
-| **Hvad det måler** | **Hvad det måler**, **Tjenester**, **Latensgrænse (ms)** og **Anmodningsfilter**, med **Rediger, hvad det måler**. | Et anmodnings-SLO tæller sine anmodninger forfra efter en ændring. |
+| **Hvad det måler** | **Hvad det måler**, **Tjenester**, **Latensgrænse (ms)**, **Anmodningsfilter** og **Metrik**, med **Rediger, hvad det måler**. | Et anmodnings-SLO tæller sine anmodninger forfra efter en ændring. |
 | **Mål** | **Mål (%)** og **Risikotærskel (%)**, med **Rediger mål**. | Viser den nedetid, målet tillader, for eksempel "43 min. og 12 sek. nedetid pr. vindue på 30 dage". |
 | **Overholdelsesperiode** | **Vinduestype**, **Vindue (dage)** og **Tidszone**, med **Rediger periode**. | Forbrugsrateregler beholder deres tærskler, når vinduet ændres, så gennemgå dem bagefter. |
 | **Beregning af nedetid** | **Tilstand for flere monitorer** og **Nedetidsovervågningsstatusser**, med **Rediger beregning af nedetid**. | Kun SLO'er for monitoroppetid. Uden statusser tæller alle ikke-operationelle statusser, også dem, der tilføjes senere. |
@@ -265,6 +265,8 @@ Et banner øverst på SLO'ets sider fortæller, hvad der forhindrer det i at må
 | **Ingen tjenester valgt** | Et anmodnings-SLO har ingen tjenester, så det har ingen anmodninger at tælle. | Vælg dets tjenester under **Indstillinger** → **Hvad det måler**. |
 | **Ingen latensgrænse** | Et SLO for anmodningslatens har ingen grænse, så ingen anmodning kan tælle som hurtig nok. | Angiv **Latensgrænse (ms)** under **Indstillinger** → **Hvad det måler**. |
 | **Venter på anmodninger** | Ingen af et anmodnings-SLO's tjenester har besvaret en anmodning i dets vindue endnu. | Tjek, at tjenesterne sender spor til OneUptime. Tallene vises efter den næste evaluering, der tæller en anmodning. |
+| **Ingen metrik at tælle** | Et metrik-SLO har ingen metrik, det kan tælle: Der er ikke valgt nogen, eller der er ikke angivet, hvordan dets gode begivenheder skelnes fra de andre. | Vælg metrikken og betingelsen eller værdien for dens gode begivenheder under **Indstillinger** → **Hvad det måler**. |
+| **Venter på metrikken** | Ingen af et metrik-SLO's tjenester har sendt en begivenhed fra dets metrik i dets vindue endnu. | Tjek, at tjenesterne sender metrikken til OneUptime under det navn, SLO'et tæller. Tallene vises efter den næste evaluering, der tæller en begivenhed. |
 
 ## Næste trin
 
