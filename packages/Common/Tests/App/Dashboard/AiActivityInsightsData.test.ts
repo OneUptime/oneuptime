@@ -1027,10 +1027,10 @@ describe("naming incidents, alerts and parts of the scope", () => {
 describe("when something was last seen", () => {
   test("is relative to now", () => {
     expect(describeLastSeen("2026-09-30T07:00:00.000Z")).toBe(
-      "last seen 5 hours ago",
+      "last seen 5\u00A0hours ago",
     );
     expect(describeLastSeen("2026-09-26T10:00:00.000Z")).toBe(
-      "last seen 4 days ago",
+      "last seen 4\u00A0days ago",
     );
   });
 
@@ -1319,7 +1319,9 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
             firstSeenAt: "2026-09-27T12:00:00.000Z",
           }),
         ),
-      ).toBe("It happened 4 times in the last 30 days. It started 3 days ago.");
+      ).toBe(
+        "It happened 4 times in the last 30 days. It started 3\u00A0days ago.",
+      );
     });
 
     test("a problem that is calming down says so", () => {
@@ -1546,7 +1548,7 @@ describe("the facts under each insight: the numbers behind it, as whole sentence
 
   test("a risk spotted before anything paged: how often, how recently, and that nothing paged yet", () => {
     expect(facts(insightOfKind(AiActivityInsightKind.RiskSpotted))).toBe(
-      "Seen 3 times so far, last 6 hours ago. OneUptime AI's watch on the telemetry found it; nothing has paged anyone for it yet.",
+      "Seen 3 times so far, last 6\u00A0hours ago. OneUptime AI's watch on the telemetry found it; nothing has paged anyone for it yet.",
     );
     expect(
       facts(insight(AiActivityInsightKind.RiskSpotted, { count: 1 })),
@@ -1717,10 +1719,10 @@ describe("facts joined like a list", () => {
 describe("a problem's lines", () => {
   test("how often, how much of it this week, how often investigated, and when last", () => {
     expect(describeProblemCount(recurringProblem())).toBe(
-      "12 times · 5 in the last 7 days · investigated 5 times · last seen 10 hours ago",
+      "12 times · 5 in the last 7 days · investigated 5 times · last seen 10\u00A0hours ago",
     );
     expect(describeProblemCount(oneOffProblem())).toBe(
-      "1 time · investigated 1 time · last seen 4 days ago",
+      "1 time · investigated 1 time · last seen 4\u00A0days ago",
     );
   });
 
@@ -1780,7 +1782,7 @@ describe("a problem's lines", () => {
 describe("parts and preventive findings", () => {
   test("a part says how many times it came up, in how many problems, and when last", () => {
     expect(describeHotspot(makeInsights().hotspots[0]!)).toBe(
-      "14 times · 2 problems · last seen 14 hours ago",
+      "14 times · 2 problems · last seen 14\u00A0hours ago",
     );
     expect(
       describeHotspot({
@@ -1796,7 +1798,7 @@ describe("parts and preventive findings", () => {
   test("a preventive finding says how often it was seen, and when last", () => {
     expect(
       describePreventiveInsight(makeInsights().preventiveInsights[0]!),
-    ).toBe("seen 3 times · last seen 6 hours ago");
+    ).toBe("seen 3 times · last seen 6\u00A0hours ago");
     expect(
       describePreventiveInsight({
         id: INSIGHT_ID,

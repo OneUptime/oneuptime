@@ -295,17 +295,7 @@ describe("every language: a figure a caller draws stays with its unit", () => {
           formatPlaylistInterval(90, language),
           formatPlaylistInterval(3600 + 1800, language),
         ]),
-      ).toEqual(
-        // English writes its own words there, from code (#8457 holds them).
-        language === "en"
-          ? [
-              "10 days, 23 hours",
-              "1 minute",
-              "1 minute, 30 seconds",
-              "1 hour, 30 minutes",
-            ]
-          : [],
-      );
+      ).toEqual([]);
     },
   );
 });
@@ -472,7 +462,7 @@ describe("as German and English read them", () => {
     );
     // An exception's English is its own words, from code.
     expect(formatExceptionRelativeTime(minutesAgo(4), NOW, "en")).toBe(
-      "4 minutes ago",
+      "4\u00A0minutes ago",
     );
     expect(formatFormRetryAfter(300, "en")).toBe(
       `in 5${NO_BREAK_SPACE}minutes`,

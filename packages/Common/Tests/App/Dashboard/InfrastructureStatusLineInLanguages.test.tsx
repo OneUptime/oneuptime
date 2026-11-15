@@ -314,11 +314,11 @@ describe("a machine's status line, one sentence of the locale", () => {
       "Active · seen 5\u00A0h ago",
     );
     expect(machineLine(THREE_DAYS_AGO, english)).toBe(
-      "Inactive · seen 3 days ago",
+      "Inactive · seen 3\u00A0days ago",
     );
     expect(machineLine(JUST_NOW, english)).toBe("Active · seen just now");
     // And without a translator, as a test or another caller gets it.
-    expect(machineLine(THREE_DAYS_AGO)).toBe("Inactive · seen 3 days ago");
+    expect(machineLine(THREE_DAYS_AGO)).toBe("Inactive · seen 3\u00A0days ago");
   });
 
   test.each(LANGUAGES)(

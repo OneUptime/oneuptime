@@ -32,6 +32,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatRelativeTime, isJustNow } from "../../Home/HomeRelativeTime";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * What the Traffic pages say about a Meraki connection, in the dashboard's
@@ -184,7 +185,8 @@ export function getMerakiReadTime(
       unit: "second",
       isFuture: false,
       locale: options.language || "en",
-    }) || `${seconds} ${seconds === 1 ? "second" : "seconds"} ago`
+    }) ||
+    `${seconds}${NO_BREAK_SPACE}${seconds === 1 ? "second" : "seconds"} ago`
   );
 }
 

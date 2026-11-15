@@ -9,6 +9,7 @@ import {
   rememberEnglishOf,
   writeDigitsInLocale,
 } from "../../../Types/DateLanguage";
+import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import Timezone from "../../../Types/Timezone";
 
 /*
@@ -594,7 +595,7 @@ const writeFeedTimeAgo: (date: Date, clock: FeedClock) => string | undefined = (
 
   const names: [string, string] = ENGLISH_UNIT_NAMES[distance.unit];
 
-  return `${distance.count} ${distance.count === 1 ? names[0] : names[1]} ago`;
+  return `${distance.count}${NO_BREAK_SPACE}${distance.count === 1 ? names[0] : names[1]} ago`;
 };
 
 /*

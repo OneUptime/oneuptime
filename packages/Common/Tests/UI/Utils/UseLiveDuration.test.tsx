@@ -138,15 +138,15 @@ describe("parseLiveDurationDate", () => {
 
 describe("formatDurationInSeconds", () => {
   test.each([
-    [1, "1 sec"],
-    [2, "2 secs"],
-    [59, "59 secs"],
-    [60, "1 min"],
-    [61, "1 min 1 sec"],
-    [174, "2 mins 54 secs"],
-    [3600, "1 hour"],
-    [3661, "1 hour 1 min 1 sec"],
-    [2 * 86400 + 3 * 3600, "2 days 3 hours"],
+    [1, "1\u00A0sec"],
+    [2, "2\u00A0secs"],
+    [59, "59\u00A0secs"],
+    [60, "1\u00A0min"],
+    [61, "1\u00A0min 1\u00A0sec"],
+    [174, "2\u00A0mins 54\u00A0secs"],
+    [3600, "1\u00A0hour"],
+    [3661, "1\u00A0hour 1\u00A0min 1\u00A0sec"],
+    [2 * 86400 + 3 * 3600, "2\u00A0days 3\u00A0hours"],
   ])("words %i seconds as %s", (value: number, expected: string) => {
     expect(formatDurationInSeconds(value)).toBe(expected);
   });
@@ -163,7 +163,7 @@ describe("formatDurationInSeconds", () => {
     // The regression: a just-started row read as an empty cell.
     expect(OneUptimeDate.secondsToFormattedFriendlyTimeString(0)).toBe("");
     expect(formatDurationInSeconds(0)).toBe(ZERO_DURATION_TEXT);
-    expect(ZERO_DURATION_TEXT).toBe("0 secs");
+    expect(ZERO_DURATION_TEXT).toBe("0\u00A0secs");
   });
 
   test.each([
@@ -175,7 +175,7 @@ describe("formatDurationInSeconds", () => {
   });
 
   test("drops a part second rather than rounding it up", () => {
-    expect(formatDurationInSeconds(174.9)).toBe("2 mins 54 secs");
+    expect(formatDurationInSeconds(174.9)).toBe("2\u00A0mins 54\u00A0secs");
   });
 });
 
@@ -193,7 +193,7 @@ describe("getLiveDuration", () => {
     ).toEqual({
       isLive: false,
       durationInSeconds: 180,
-      formattedDuration: "3 mins",
+      formattedDuration: "3\u00A0mins",
     });
   });
 
@@ -216,7 +216,7 @@ describe("getLiveDuration", () => {
     expect(getLiveDuration({ startDate: secondsAgo(174), now: NOW })).toEqual({
       isLive: true,
       durationInSeconds: 174,
-      formattedDuration: "2 mins 54 secs",
+      formattedDuration: "2\u00A0mins 54\u00A0secs",
     });
   });
 
@@ -243,7 +243,7 @@ describe("getLiveDuration", () => {
         endDate: "2026-10-02T12:41:30.000Z",
         now: NOW,
       }).formattedDuration,
-    ).toBe("1 min 30 secs");
+    ).toBe("1\u00A0min 30\u00A0secs");
   });
 
   test("without a start there is no duration at all", () => {
@@ -267,7 +267,7 @@ describe("getLiveDuration", () => {
     });
 
     expect(duration.durationInSeconds).toBe(0);
-    expect(duration.formattedDuration).toBe("0 secs");
+    expect(duration.formattedDuration).toBe("0\u00A0secs");
     expect(duration.isLive).toBe(true);
   });
 
@@ -281,7 +281,7 @@ describe("getLiveDuration", () => {
     ).toEqual({
       isLive: false,
       durationInSeconds: 0,
-      formattedDuration: "0 secs",
+      formattedDuration: "0\u00A0secs",
     });
   });
 
@@ -292,7 +292,7 @@ describe("getLiveDuration", () => {
         endDate: secondsAgo(10),
         now: NOW,
       }).formattedDuration,
-    ).toBe("0 secs");
+    ).toBe("0\u00A0secs");
   });
 });
 
@@ -301,7 +301,7 @@ describe("useLiveDuration", () => {
     test("shows how long it has lasted on the very first render", () => {
       render(<DurationProbe startDate={secondsAgo(174)} />);
 
-      expect(text()).toBe("2 mins 54 secs");
+      expect(text()).toBe("2\u00A0mins 54\u00A0secs");
       expect(seconds()).toBe("174");
       expect(liveness()).toBe("live");
     });
@@ -311,13 +311,13 @@ describe("useLiveDuration", () => {
 
       // The first tick lands on the next whole second.
       advance(500);
-      expect(text()).toBe("2 mins 55 secs");
+      expect(text()).toBe("2\u00A0mins 55\u00A0secs");
 
       advance(1000);
-      expect(text()).toBe("2 mins 56 secs");
+      expect(text()).toBe("2\u00A0mins 56\u00A0secs");
 
       advance(1000);
-      expect(text()).toBe("2 mins 57 secs");
+      expect(text()).toBe("2\u00A0mins 57\u00A0secs");
     });
 
     test("does not change between ticks", () => {
@@ -325,31 +325,31 @@ describe("useLiveDuration", () => {
 
       advance(499);
 
-      expect(text()).toBe("2 mins 54 secs");
+      expect(text()).toBe("2\u00A0mins 54\u00A0secs");
     });
 
     test("rolls over from seconds into minutes, worded like a finished row", () => {
       render(<DurationProbe startDate={secondsAgo(58)} />);
 
-      expect(text()).toBe("58 secs");
+      expect(text()).toBe("58\u00A0secs");
 
       advance(500);
-      expect(text()).toBe("59 secs");
+      expect(text()).toBe("59\u00A0secs");
 
       advance(1000);
-      expect(text()).toBe("1 min");
+      expect(text()).toBe("1\u00A0min");
 
       advance(1000);
-      expect(text()).toBe("1 min 1 sec");
+      expect(text()).toBe("1\u00A0min 1\u00A0sec");
     });
 
     test("rolls over into hours", () => {
       render(<DurationProbe startDate={secondsAgo(3599)} />);
 
-      expect(text()).toBe("59 mins 59 secs");
+      expect(text()).toBe("59\u00A0mins 59\u00A0secs");
 
       advance(500);
-      expect(text()).toBe("1 hour");
+      expect(text()).toBe("1\u00A0hour");
     });
 
     test("keeps counting for a long time without drifting", () => {
@@ -361,7 +361,7 @@ describe("useLiveDuration", () => {
       }
 
       // 600.5 seconds after it started.
-      expect(text()).toBe("10 mins");
+      expect(text()).toBe("10\u00A0mins");
       expect(seconds()).toBe("600");
     });
 
@@ -386,23 +386,23 @@ describe("useLiveDuration", () => {
     test("starts at 0 secs, not a blank cell", () => {
       render(<DurationProbe startDate={NOW} />);
 
-      expect(text()).toBe("0 secs");
+      expect(text()).toBe("0\u00A0secs");
 
       // Half a second in: still under one whole second.
       advance(500);
-      expect(text()).toBe("0 secs");
+      expect(text()).toBe("0\u00A0secs");
 
       advance(1000);
-      expect(text()).toBe("1 sec");
+      expect(text()).toBe("1\u00A0sec");
     });
 
     test("counts from a start given as an ISO string", () => {
       render(<DurationProbe startDate={secondsAgo(61).toISOString()} />);
 
-      expect(text()).toBe("1 min 1 sec");
+      expect(text()).toBe("1\u00A0min 1\u00A0sec");
 
       advance(500);
-      expect(text()).toBe("1 min 2 secs");
+      expect(text()).toBe("1\u00A0min 2\u00A0secs");
     });
 
     test("arms exactly one timer", () => {
@@ -436,7 +436,7 @@ describe("useLiveDuration", () => {
         jest.setSystemTime(new Date(NOW.getTime() + 5 * 60 * 1000));
       });
 
-      expect(text()).toBe("10 secs");
+      expect(text()).toBe("10\u00A0secs");
 
       act(() => {
         Object.defineProperty(document, "visibilityState", {
@@ -446,7 +446,7 @@ describe("useLiveDuration", () => {
         document.dispatchEvent(new Event("visibilitychange"));
       });
 
-      expect(text()).toBe("5 mins 10 secs");
+      expect(text()).toBe("5\u00A0mins 10\u00A0secs");
     });
   });
 
@@ -456,7 +456,7 @@ describe("useLiveDuration", () => {
         <DurationProbe startDate={secondsAgo(400)} endDate={secondsAgo(226)} />,
       );
 
-      expect(text()).toBe("2 mins 54 secs");
+      expect(text()).toBe("2\u00A0mins 54\u00A0secs");
       expect(liveness()).toBe("still");
     });
 
@@ -475,7 +475,7 @@ describe("useLiveDuration", () => {
 
       advance(60 * 60 * 1000);
 
-      expect(text()).toBe("2 mins 54 secs");
+      expect(text()).toBe("2\u00A0mins 54\u00A0secs");
     });
 
     test("is not re-rendered by a clock", () => {
@@ -512,7 +512,7 @@ describe("useLiveDuration", () => {
 
       advance(500);
       advance(1000);
-      expect(text()).toBe("2 mins 56 secs");
+      expect(text()).toBe("2\u00A0mins 56\u00A0secs");
 
       // The next refresh of the table brings the row in with an end.
       view.rerender(
@@ -522,12 +522,12 @@ describe("useLiveDuration", () => {
         />,
       );
 
-      expect(text()).toBe("3 mins");
+      expect(text()).toBe("3\u00A0mins");
       expect(liveness()).toBe("still");
       expect(jest.getTimerCount()).toBe(0);
 
       advance(10 * 1000);
-      expect(text()).toBe("3 mins");
+      expect(text()).toBe("3\u00A0mins");
     });
 
     test("an end given as an ISO string stops it too", () => {
@@ -544,7 +544,7 @@ describe("useLiveDuration", () => {
         />,
       );
 
-      expect(text()).toBe("45 secs");
+      expect(text()).toBe("45\u00A0secs");
       expect(jest.getTimerCount()).toBe(0);
     });
   });
@@ -557,7 +557,7 @@ describe("useLiveDuration", () => {
         <DurationProbe startDate={startDate} endDate={secondsAgo(40)} />,
       );
 
-      expect(text()).toBe("1 min");
+      expect(text()).toBe("1\u00A0min");
 
       // Ten minutes later, the end is taken away (the next state was deleted).
       act(() => {
@@ -566,12 +566,12 @@ describe("useLiveDuration", () => {
 
       view.rerender(<DurationProbe startDate={startDate} />);
 
-      expect(text()).toBe("11 mins 40 secs");
+      expect(text()).toBe("11\u00A0mins 40\u00A0secs");
       expect(liveness()).toBe("live");
       expect(jest.getTimerCount()).toBe(1);
 
       advance(500);
-      expect(text()).toBe("11 mins 41 secs");
+      expect(text()).toBe("11\u00A0mins 41\u00A0secs");
     });
   });
 

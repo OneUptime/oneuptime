@@ -144,7 +144,7 @@ stateDiagram-v2
 :::
 
 :::details Шаг завершился сбоем, потому что его не забрал ни один агент runbook-ов
-Сообщение: «No runbook agent picked up this step before the wait window expired.» Runner шага не забрал задание в пределах своего claim timeout. Проверьте в **Сборники инструкций → Агенты runbook-ов**, что Runner в состоянии **Подключено** и что **Выполняет сборники инструкций** включено. См. [Агенты runbook-ов](/docs/runbooks/agents#устранение-неполадок). Шаг на глобальном Runner-е вместо этого сообщает «No global Runner picked up this step before the wait window expired.»: запустите runbook снова, увеличьте claim timeout шага или выберите один из собственных Runner-ов.
+Сообщение: «No runbook agent picked up this step before the wait window expired.» Runner шага не забрал задание в пределах своего claim timeout. Проверьте в **Сборники инструкций → Runner-ы**, что Runner в состоянии **Подключено** и что **Выполняет сборники инструкций** включено. См. [Агенты runbook-ов](/docs/runbooks/agents#устранение-неполадок). Шаг на глобальном Runner-е вместо этого сообщает «No global Runner picked up this step before the wait window expired.»: запустите runbook снова, увеличьте claim timeout шага или выберите один из собственных Runner-ов.
 :::
 
 :::details Выполнение ждёт уже несколько часов

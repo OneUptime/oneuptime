@@ -3600,7 +3600,7 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
         dashboardCount: 3,
         intervalInSeconds: DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS,
       }),
-    ).toBe("3 dashboards, 1 minute each");
+    ).toBe("3 dashboards, 1\u00A0minute each");
 
     expect(list).toContain('title: "Play",');
     expect(createSection).toContain(

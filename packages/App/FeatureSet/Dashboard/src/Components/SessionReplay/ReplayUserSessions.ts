@@ -8,6 +8,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import {
   readDtoBoolean,
   readDtoNumber,
@@ -534,7 +535,8 @@ function writeReplayUserSessionAgeInEnglish(age: ReplayUserSessionAge): string {
     return age.unit === "hour" ? "an hour ago" : `a ${age.unit} ago`;
   }
 
-  return `${age.count} ${age.unit}s ago`;
+  // The number held to its word: "5 minutes ago" (#8669).
+  return `${age.count}${NO_BREAK_SPACE}${age.unit}s ago`;
 }
 
 /*
