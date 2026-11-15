@@ -417,28 +417,41 @@ describe("a run OneUptime AI holds", () => {
     ).toBeUndefined();
   });
 
-  test("whose hold cannot be classified fails as any run that fails does, paging nobody", async () => {
+  /*
+   * A failure a retry can outlast is tried again, as any run's failed step
+   * is (issue #8167): the run used to end in Error at once, with the
+   * error's words.
+   */
+  test("whose hold cannot be classified is tried again as any run that fails is, paging nobody", async () => {
     const log: OnCallDutyPolicyExecutionLog = held({
       pagingStartsAt: new Date(Date.now() + 6 * MINUTE),
     });
     executionLogService.findBy.mockResolvedValue([log]);
     markHandled("incident");
-    firstResponder.classifyEndedHold.mockRejectedValue(
+    firstResponder.classifyEndedHold.mockRejectedValueOnce(
       new Error("Database is down"),
     );
 
     await tick();
 
-    // The tick says what went wrong on the run, as for any run that fails.
     expect(executionLogService.endWaitingRun).not.toHaveBeenCalled();
-    expect(executionLogService.updateOneById).toHaveBeenCalledWith({
-      id: log.id,
-      data: {
-        status: OnCallDutyPolicyStatus.Error,
-        statusMessage: "Database is down",
-      },
-      props: { isRoot: true },
-    });
+    expect(executionLogService.updateOneById).not.toHaveBeenCalled();
+    expect(ruleService.startRuleExecution).not.toHaveBeenCalled();
+
+    // The next try classifies the hold and ends the run, unpaged.
+    firstResponder.classifyEndedHold.mockResolvedValue(
+      OnCallPolicyAiHoldOutcome.HandedOff,
+    );
+
+    await tick();
+
+    expect(executionLogService.endWaitingRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executionLogId: log.id,
+        status: OnCallDutyPolicyStatus.Completed,
+        aiHoldOutcome: OnCallPolicyAiHoldOutcome.HandedOff,
+      }),
+    );
     expect(ruleService.startRuleExecution).not.toHaveBeenCalled();
   });
 });
