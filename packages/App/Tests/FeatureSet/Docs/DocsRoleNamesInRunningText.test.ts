@@ -427,10 +427,16 @@ describe("the English pages name the built-in roles they mean", () => {
     expect(generalRoleWords("Set `project owners and admins` here.")).toEqual(
       [],
     );
-    // Slack's own owners and admins, and the product's reply as it writes it.
+    // Slack's own owners and admins, and the incident owner rules.
     expect(
       generalRoleWords(
-        'a workspace can let only its owners and admins change them; "this incident is private, so only its owners and the project\'s owners and admins can see it."',
+        "a workspace can let only its owners and admins change them, for example through the project's owner rules",
+      ),
+    ).toEqual([]);
+    // The bot's reply names the roles now, and reads as a role named.
+    expect(
+      generalRoleWords(
+        '"this incident is private, so only its owners, Project Owners and Project Admins can see it."',
       ),
     ).toEqual([]);
   });

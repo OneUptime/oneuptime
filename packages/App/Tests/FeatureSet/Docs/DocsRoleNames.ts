@@ -112,6 +112,10 @@ export const KEPT_IN_ENGLISH: ReadonlyArray<KeptEnglish> = [
     text: "Ask a Project Admin for access to them.",
     why: "The Slack and Microsoft Teams reply when no incident state is in reach, quoted as the bot writes it, in English.",
   },
+  {
+    text: "so only its owners, Project Owners and Project Admins can see it.",
+    why: "The Slack and Microsoft Teams reply on a private incident the person does not own, quoted as the bot writes it, in English.",
+  },
 ];
 
 /*
@@ -296,7 +300,7 @@ const GENERAL_ROLE_WORDS: ReadonlyArray<RegExp> = [
   /\b(?:[Oo]wners?|[Aa]dmins?) (?:and|or) (?:owners?|admins?)\b/g,
 ];
 
-// General words that are not the built-in roles, and quotes of the product.
+// General words that are not the built-in roles.
 export const GENERAL_WORDS_NOT_THE_ROLES: ReadonlyArray<KeptEnglish> = [
   {
     text: "An organization admin or owner clicks **Connect with Slack**",
@@ -310,10 +314,6 @@ export const GENERAL_WORDS_NOT_THE_ROLES: ReadonlyArray<KeptEnglish> = [
     text: "for example through the project's owner rules",
     why: "the project's incident and alert owner rules, not its owners",
   },
-  {
-    text: "this incident is private, so only its owners and the project's owners and admins can see it.",
-    why: "the Slack and Microsoft Teams reply, quoted as the product writes it",
-  },
 ];
 
 /*
@@ -321,13 +321,18 @@ export const GENERAL_WORDS_NOT_THE_ROLES: ReadonlyArray<KeptEnglish> = [
  * order, past the ones listed as something else.
  */
 export function generalRoleWords(markdown: string): Array<string> {
-  const text: string = GENERAL_WORDS_NOT_THE_ROLES.reduce(
-    (prose: string, kept: KeptEnglish): string => {
-      return prose.split(kept.text).join(" ");
-    },
-    proseText(markdown),
+  return generalRoleWordsIn(
+    GENERAL_WORDS_NOT_THE_ROLES.reduce(
+      (prose: string, kept: KeptEnglish): string => {
+        return prose.split(kept.text).join(" ");
+      },
+      proseText(markdown),
+    ),
   );
+}
 
+// The general words for a built-in role in any English text, in order.
+export function generalRoleWordsIn(text: string): Array<string> {
   return GENERAL_ROLE_WORDS.flatMap(
     (words: RegExp): Array<RegExpMatchArray> => {
       return Array.from(text.matchAll(words));
