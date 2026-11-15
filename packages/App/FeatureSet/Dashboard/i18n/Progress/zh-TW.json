@@ -126,6 +126,7 @@
     "SNMP trap",
     "SSH",
     "ScheduledMaintenance",
+    "Shell",
     "Slug",
     "StatusPage",
     "Stripe Payments API",
