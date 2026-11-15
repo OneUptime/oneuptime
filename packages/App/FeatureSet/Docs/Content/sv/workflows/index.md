@@ -177,7 +177,7 @@ Från och med nu startar varje ny incident i projektet en körning. Du hittar de
 ## Hur arbetsflöden passar ihop med resten av OneUptime
 
 - **Monitorer** upptäcker problemet. **Incidenter** och **larm** registrerar det. **Arbetsflöden** reagerar på det.
-- **Runbooks** är insatsrutiner som ditt team går igenom vid en incident, ett larm eller ett underhåll: manuella steg, godkännanden och skript, med människor inblandade. Arbetsflöden körs utan tillsyn. Använd en [runbook](/docs/runbooks/index) när en person behöver fatta beslut längs vägen, och ett arbetsflöde när varje steg är automatiskt.
+- **Runbooks** är insatsrutiner som ditt team går igenom vid en incident, ett larm eller en underhållshändelse: manuella steg, godkännanden och skript, med människor inblandade. Arbetsflöden körs utan tillsyn. Använd en [runbook](/docs/runbooks/index) när en person behöver fatta beslut längs vägen, och ett arbetsflöde när varje steg är automatiskt.
 - **Arbetsytekopplingar** kopplar ett projekt till Slack och Microsoft Teams för incidentkanaler och aviseringar. Arbetsflödenas Slack- och Microsoft Teams-block använder dem inte: varje block postar via sin egen inkommande webhook-URL.
 
 ## Nästa steg

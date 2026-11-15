@@ -33,7 +33,7 @@ flowchart TB
 
 ## Eksterne kalendere
 
-Kalendersiden kan også vise begivenhederne fra kalendere uden for projektet: helligdage, et ændringsstop, som din virksomhed fører i en anden kalender, eller et andet teams vedligeholdelse. OneUptime læser hver af dem fra dens iCalendar-link (`.ics`) og tegner dens begivenheder ved siden af dine, lysere og i kalenderens egen farve. De er skrivebeskyttede: de bliver aldrig til vedligeholdelsesbegivenheder, ingen får besked om dem, og de vises aldrig i projektets egne kalenderlinks.
+Kalendersiden kan også vise begivenhederne fra kalendere uden for projektet: helligdage, et ændringsstop, som din virksomhed fører i en anden kalender, eller et andet teams vedligeholdelse. OneUptime læser hver af dem fra dens iCalendar-link (`.ics`) og tegner dens begivenheder ved siden af dine, lysere og i kalenderens egen farve. De er skrivebeskyttede: de bliver aldrig til vedligeholdelseshændelser, ingen får besked om dem, og de vises aldrig i projektets egne kalenderlinks.
 
 :::steps
 ### Tilføj kalenderen
@@ -157,7 +157,7 @@ Sidens kalender indeholder det, siden viser. Tjek, at begivenheden nævner siden
 ## Næste trin
 
 :::cards
-- [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt, og hvad der sker bagefter.
+- [Opret vedligeholdelseshændelser](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt, og hvad der sker bagefter.
 - [Abonnenter og meddelelser](/docs/status-pages/subscribers#vedligeholdelseshændelser): Hvad en statussides abonnenter får at vide om vedligeholdelse.
 - [Kalenderfeeds](/docs/on-call/calendar-feeds): Samme slags link til vagter.
 :::

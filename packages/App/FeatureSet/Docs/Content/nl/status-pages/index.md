@@ -125,7 +125,7 @@ De openbare pagina is een eigen applicatie, met een kleine set routes:
 - `/rss`: de feed.
 - `/login`, `/sso`, `/magic-link`, `/magic-link-login/:token` en `/master-password`: alleen relevant op een privépagina.
 
-De navigatiebalk bovenaan toont altijd **Overzicht**; de rest verschijnt alleen wanneer het aan staat. **Incidenten**, **Aankondigingen** en **Geplande onderhoud** hebben elk hun eigen schakelaar nodig; **Abonneren** heeft zowel **Abonneepagina weergeven** als minstens één ingeschakeld abonnementskanaal nodig. Een privépagina heeft ook een item **Uitloggen**.
+De navigatiebalk bovenaan toont altijd **Overzicht**; de rest verschijnt alleen wanneer het aan staat. **Incidenten**, **Aankondigingen** en **Gepland onderhoud** hebben elk hun eigen schakelaar nodig; **Abonneren** heeft zowel **Abonneepagina weergeven** als minstens één ingeschakeld abonnementskanaal nodig. Een privépagina heeft ook een item **Uitloggen**.
 
 Eén incident, episode, aankondiging of geplande gebeurtenis opent alleen als de pagina die zou tonen, ongeacht de geschiedenisperiode: een privé-incident of -episode, een die verborgen is op statuspagina's, een geplande gebeurtenis die verborgen is op statuspagina's of een aankondiging die voor later is gepland, wordt ook via de link niet gevonden.
 
@@ -138,7 +138,7 @@ Het overzicht is de pagina die de meeste bezoekers zien. Van boven naar beneden 
 3. **Een totaal uptimepercentage**, als u het hebt ingeschakeld: aan het einde van de banner met de algemene status, zolang alle resources operationeel zijn. Standaard uit.
 4. **Resourcegroepen**, elk met hun resources, hun huidige status en hun balken met uptimegeschiedenis.
 5. **Actieve incidenten**, met actieve episoden.
-6. **Geplande onderhoud**.
+6. **Gepland onderhoud**.
 
 Een nieuw aangemaakte pagina zonder inhoud toont een lege staat die u vraagt resources toe te voegen vanuit het dashboard, het teken om naar het scherm **Middelen** te gaan.
 
@@ -228,7 +228,7 @@ Drie manieren om de status ergens anders te tonen dan op de pagina zelf.
 
 **RSS-feed.** Elke statuspagina serveert `/rss`: een feed met de titel "{paginatitel} Updates", met de **Paginatitel** die onder **Huisstijl** is ingesteld, of de naam van de pagina als ze er geen heeft, en waarvan de items beginnen met `Incident: `, `Announcement: ` en `Scheduled Maintenance: `. Elk item is gedateerd zoals de pagina het dateert: een incident op het moment dat het werd gemeld, een aankondiging op het moment dat ze verscheen, en een onderhoudsgebeurtenis op het moment dat ze begint, met haar tijdvenster als begin van de omschrijving. Handig voor wie uw updates liever in een feedlezer of een chatbot binnenhaalt dan zich per e-mail te abonneren.
 
-**Onderhoudsagenda.** Elke statuspagina serveert ook `/maintenance.ics`: het geplande onderhoud dat ze toont, als een agenda waarop Google Agenda, Apple Agenda of Outlook zich kan abonneren. Bezoekers voegen hem toe met **Abonneren op agenda** op de pagina **Geplande onderhoud**, en één gebeurtenis met **Toevoegen aan agenda** op de pagina van die gebeurtenis. De agenda van een privépagina is leeg, omdat een agenda-app niet kan inloggen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
+**Onderhoudsagenda.** Elke statuspagina serveert ook `/maintenance.ics`: het geplande onderhoud dat ze toont, als een agenda waarop Google Agenda, Apple Agenda of Outlook zich kan abonneren. Bezoekers voegen hem toe met **Abonneren op agenda** op de pagina **Gepland onderhoud**, en één gebeurtenis met **Toevoegen aan agenda** op de pagina van die gebeurtenis. De agenda van een privépagina is leeg, omdat een agenda-app niet kan inloggen. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
 
 Als u de gegevens liever zelf ophaalt: de statuspagina steunt op openbare lees-endpoints voor het overzicht, de incidenten, de onderhoudsgebeurtenissen, de aankondigingen en de episoden; zie [Publieke API](/docs/status-pages/public-api).
 
