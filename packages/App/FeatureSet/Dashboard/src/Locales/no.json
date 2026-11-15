@@ -55689,10 +55689,11 @@
   "Yes / No": "Ja / Nei",
   "which led to {{steps}}": "som førte til {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} har ikke kjørt ennå. Feltene vises her når det har kjørt.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "Agenten sender klyngens data til OneUptime med denne nøkkelen. Velg en eksisterende nøkkel eller opprett en ny – installasjonskommandoen nedenfor oppdateres til å bruke den.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "Agenten sender vCenterens målinger til OneUptime med denne nøkkelen. Velg en eksisterende nøkkel eller opprett en ny – kommandoene nedenfor oppdateres til å bruke den.",
   "HA": "HA",
   "Insights (explorer analytics)": "Innsikt",
   "Key Manager": "Key Manager",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "Agenten sender lagringsarrayets målinger til OneUptime med denne nøkkelen. Velg en eksisterende nøkkel eller opprett en ny: kommandoene nedenfor bruker den da."
 }

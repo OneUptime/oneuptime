@@ -348,6 +348,42 @@ describe.each(
       expect(card).toContain(`translations={${product.translationsConstant}}`);
     });
 
+    /*
+     * The key step's description is the card's own sentence, drawn under the
+     * key picker of the guide's first step. Written as a plain string, the
+     * i18n extractor never saw it and it read in English in every language
+     * (VMware's, Kubernetes's, Storage Array's; #8341). A card that sets
+     * none draws the shared one, which is worded with SetupGuideCard.
+     */
+    test("the card's key step description is a locale key, worded in every language", () => {
+      const card: string = fs.readFileSync(product.cardFile, "utf8");
+      const prop: RegExpMatchArray | null = card.match(
+        /keyStepDescription=(\{\s*translationKey\(\s*)?"((?:[^"\\]|\\.)*)"/,
+      );
+
+      if (!prop) {
+        return;
+      }
+
+      const description: string = JSON.parse(`"${prop[2]}"`) as string;
+
+      expect({ description, isAKey: Boolean(prop[1]) }).toEqual({
+        description,
+        isAKey: true,
+      });
+      expect(readDashboardLocale("en")[description]).toBe(description);
+
+      for (const language of DASHBOARD_LANGUAGES) {
+        const worded: string | undefined =
+          readDashboardLocale(language)[description];
+
+        expect({
+          language,
+          worded: worded !== undefined && worded !== description,
+        }).toEqual({ language, worded: true });
+      }
+    });
+
     test("the guide has pieces to word, in every way through it", () => {
       expect(WAYS[product.name]!.length).toBeGreaterThan(3);
 

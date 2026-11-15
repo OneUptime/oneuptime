@@ -55689,10 +55689,11 @@
   "Yes / No": "Ja / Nein",
   "which led to {{steps}}": "was zu {{steps}} führte",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ist noch nicht gelaufen. Seine Felder erscheinen hier, sobald er gelaufen ist.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "Der Agent sendet die Daten Ihres Clusters mit diesem Schlüssel an OneUptime. Wählen Sie einen vorhandenen Schlüssel oder erstellen Sie einen neuen — der Installationsbefehl unten wird entsprechend aktualisiert.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "Der Agent sendet die Metriken Ihres vCenters mit diesem Schlüssel an OneUptime. Wählen Sie einen vorhandenen Schlüssel oder erstellen Sie einen neuen — die Befehle unten werden entsprechend aktualisiert.",
   "HA": "HA",
   "Insights (explorer analytics)": "Einblicke",
   "Key Manager": "Key Manager",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "Der Agent sendet die Metriken Ihres Speicher-Arrays mit diesem Schlüssel an OneUptime. Wählen Sie einen vorhandenen Schlüssel oder erstellen Sie einen neuen — die Befehle unten werden entsprechend aktualisiert."
 }

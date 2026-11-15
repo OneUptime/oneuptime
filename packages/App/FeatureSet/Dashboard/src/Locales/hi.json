@@ -55689,10 +55689,11 @@
   "Yes / No": "हाँ / नहीं",
   "which led to {{steps}}": "जिससे आगे {{steps}} चले",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} अभी तक नहीं चला है। चलने के बाद इसके फ़ील्ड यहाँ दिखते हैं।",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "एजेंट इस कुंजी से आपके क्लस्टर का डेटा OneUptime को भेजता है। कोई मौजूदा कुंजी चुनें या नई बनाएँ — नीचे का इंस्टॉल कमांड उसे इस्तेमाल करने के लिए अपडेट हो जाता है।",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "एजेंट इस कुंजी से आपके vCenter के मेट्रिक OneUptime को भेजता है। कोई मौजूदा कुंजी चुनें या नई बनाएँ — नीचे के कमांड उसे इस्तेमाल करने के लिए अपडेट हो जाते हैं।",
   "HA": "HA",
   "Insights (explorer analytics)": "इनसाइट्स",
   "Key Manager": "की मैनेजर",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "एजेंट इसी कुंजी से आपके स्टोरेज ऐरे के मेट्रिक्स OneUptime को भेजता है। कोई मौजूदा कुंजी चुनें या नई बनाएँ: नीचे दी गई कमांड फिर उसी का उपयोग करती हैं।"
 }

@@ -55689,10 +55689,11 @@
   "Yes / No": "はい / いいえ",
   "which led to {{steps}}": "その後 {{steps}} に進みました",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "エージェントはこのキーを使ってクラスターのデータを OneUptime に送信します。既存のキーを選ぶか新しいキーを作成すると、下のインストールコマンドがそのキーを使うように更新されます。",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "エージェントはこのキーを使って vCenter のメトリクスを OneUptime に送信します。既存のキーを選ぶか新しいキーを作成すると、下のコマンドがそのキーを使うように更新されます。",
   "HA": "HA",
   "Insights (explorer analytics)": "インサイト",
   "Key Manager": "Key Manager",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "エージェントはこのキーを使って、ストレージアレイのメトリクスを OneUptime に送信します。既存のキーを選択するか新しく作成してください — 下のコマンドがそのキーを使うように更新されます。"
 }

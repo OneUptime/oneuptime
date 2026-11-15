@@ -55689,10 +55689,11 @@
   "Yes / No": "بله / خیر",
   "which led to {{steps}}": "که به {{steps}} رسید",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} هنوز اجرا نشده است. پس از اجرا، فیلدهایش اینجا نمایش داده می‌شوند.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "عامل با این کلید داده‌های خوشه شما را به OneUptime می‌فرستد. یک کلید موجود را انتخاب کنید یا کلید تازه‌ای بسازید؛ فرمان نصب زیر به‌روز می‌شود تا از آن استفاده کند.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "عامل با این کلید معیارهای vCenter شما را به OneUptime می‌فرستد. یک کلید موجود را انتخاب کنید یا کلید تازه‌ای بسازید؛ فرمان‌های زیر به‌روز می‌شوند تا از آن استفاده کنند.",
   "HA": "HA",
   "Insights (explorer analytics)": "بینش‌ها",
   "Key Manager": "Key Manager",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "عامل با این کلید متریک‌های آرایه ذخیره‌سازی شما را به OneUptime می‌فرستد. یک کلید موجود را انتخاب کنید یا کلید جدیدی بسازید: فرمان‌های زیر از آن استفاده می‌کنند."
 }

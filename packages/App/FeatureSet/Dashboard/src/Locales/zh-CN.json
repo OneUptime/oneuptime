@@ -55689,10 +55689,11 @@
   "Yes / No": "是 / 否",
   "which led to {{steps}}": "随后进入 {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} 尚未运行。运行后，其字段会显示在这里。",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "代理使用此密钥将你的集群的数据发送到 OneUptime。选择一个现有密钥或新建一个，下面的安装命令会随之更新为使用它。",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "代理使用此密钥将你的 vCenter 的指标发送到 OneUptime。选择一个现有密钥或新建一个，下面的命令会随之更新为使用它。",
   "HA": "HA",
   "Insights (explorer analytics)": "洞察",
   "Key Manager": "密钥管理器",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "代理使用此密钥将存储阵列的指标发送到 OneUptime。选择现有密钥或创建新密钥：下面的命令会随之使用它。"
 }

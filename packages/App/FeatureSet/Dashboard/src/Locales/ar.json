@@ -55689,10 +55689,11 @@
   "Yes / No": "نعم / لا",
   "which led to {{steps}}": "ما أدى إلى {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "لم تعمل {{step}} بعد. تظهر حقولها هنا بعد أن تعمل.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "يرسل الوكيل بيانات العنقود الخاص بك إلى OneUptime بهذا المفتاح. اختر مفتاحًا موجودًا أو أنشئ مفتاحًا جديدًا، فيتحدّث أمر التثبيت أدناه ليستخدمه.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "يرسل الوكيل مقاييس vCenter الخاص بك إلى OneUptime بهذا المفتاح. اختر مفتاحًا موجودًا أو أنشئ مفتاحًا جديدًا، فتتحدّث الأوامر أدناه لتستخدمه.",
   "HA": "HA",
   "Insights (explorer analytics)": "الرؤى",
   "Key Manager": "Key Manager",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "يرسل الوكيل مقاييس مصفوفة التخزين الخاصة بك إلى OneUptime بهذا المفتاح. اختر مفتاحًا موجودًا أو أنشئ مفتاحًا جديدًا — تتحدّث الأوامر أدناه لاستخدامه."
 }

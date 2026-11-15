@@ -55689,10 +55689,11 @@
   "Yes / No": "Sì / No",
   "which led to {{steps}}": "che ha portato a {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} non è ancora stato eseguito. I suoi campi compaiono qui dopo che è stato eseguito.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "L'agente invia i dati del tuo cluster a OneUptime con questa chiave. Scegli una chiave esistente o creane una nuova: il comando di installazione qui sotto si aggiorna per usarla.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "L'agente invia le metriche del tuo vCenter a OneUptime con questa chiave. Scegli una chiave esistente o creane una nuova: i comandi qui sotto si aggiornano per usarla.",
   "HA": "HA",
   "Insights (explorer analytics)": "Analisi",
   "Key Manager": "Key Manager",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "L'agente invia le metriche del tuo array di storage a OneUptime con questa chiave. Scegli una chiave esistente o creane una nuova: i comandi qui sotto la useranno."
 }

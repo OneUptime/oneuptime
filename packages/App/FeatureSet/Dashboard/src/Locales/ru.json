@@ -55689,10 +55689,11 @@
   "Yes / No": "Да / Нет",
   "which led to {{steps}}": "что привело к {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} ещё не выполнялся. Его поля появятся здесь после выполнения.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "Агент отправляет данные вашего кластера в OneUptime с этим ключом. Выберите существующий ключ или создайте новый — команда установки ниже обновится и будет использовать его.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "Агент отправляет метрики вашего vCenter в OneUptime с этим ключом. Выберите существующий ключ или создайте новый — команды ниже обновятся и будут использовать его.",
   "HA": "HA",
   "Insights (explorer analytics)": "Аналитика",
   "Key Manager": "Менеджер ключей",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "С этим ключом агент отправляет метрики системы хранения в OneUptime. Выберите существующий ключ или создайте новый: команды ниже будут использовать его."
 }

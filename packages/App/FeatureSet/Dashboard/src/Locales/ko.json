@@ -55689,10 +55689,11 @@
   "Yes / No": "예 / 아니오",
   "which led to {{steps}}": "그 뒤 {{steps}}(으)로 이어짐",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}}은(는) 아직 실행되지 않았습니다. 실행되면 여기에 필드가 표시됩니다.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "에이전트는 이 키로 클러스터의 데이터를 OneUptime에 보냅니다. 기존 키를 선택하거나 새 키를 만들면 아래 설치 명령이 그 키를 쓰도록 바뀝니다.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "에이전트는 이 키로 vCenter의 메트릭을 OneUptime에 보냅니다. 기존 키를 선택하거나 새 키를 만들면 아래 명령이 그 키를 쓰도록 바뀝니다.",
   "HA": "HA",
   "Insights (explorer analytics)": "인사이트",
   "Key Manager": "키 매니저",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "에이전트는 이 키로 스토리지 어레이의 메트릭을 OneUptime에 보냅니다. 기존 키를 선택하거나 새로 만드세요. 아래 명령이 그 키를 사용합니다."
 }

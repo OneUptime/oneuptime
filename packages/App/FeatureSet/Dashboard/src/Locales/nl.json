@@ -55689,10 +55689,11 @@
   "Yes / No": "Ja / Nee",
   "which led to {{steps}}": "wat leidde naar {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} is nog niet uitgevoerd. De velden verschijnen hier zodra dat gebeurd is.",
-  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
-  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "De agent stuurt de gegevens van je cluster met deze sleutel naar OneUptime. Kies een bestaande sleutel of maak een nieuwe aan; de installatieopdracht hieronder gaat hem dan gebruiken.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "De agent stuurt de metrics van je vCenter met deze sleutel naar OneUptime. Kies een bestaande sleutel of maak een nieuwe aan; de opdrachten hieronder gaan hem dan gebruiken.",
   "HA": "HA",
   "Insights (explorer analytics)": "Inzichten",
   "Key Manager": "Key Manager",
-  "PG": "PG"
+  "PG": "PG",
+  "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "Met deze sleutel stuurt de agent de metrieken van je opslagarray naar OneUptime. Kies een bestaande sleutel of maak een nieuwe: de opdrachten hieronder gebruiken die dan."
 }
