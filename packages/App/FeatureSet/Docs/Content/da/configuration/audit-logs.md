@@ -120,7 +120,7 @@ Hver gang et medlem af projektet logger ind på OneUptime, registrerer auditlogg
 
 En posts **Ressource** er sessionen, navngivet efter den enhed, den loggede ind fra, for eksempel `Chrome 130 on macOS`. Postens **Aktør** er den person, sessionen tilhører, så filtrering efter **Bruger-e-mail** finder alle deres logins og sessioner. Detaljerne viser, hvordan personen loggede ind og med hvilken anden faktor, IP-adressen og stedet, og for en afsluttet session, hvornår den loggede ind, hvornår den sidst blev brugt, og hvornår den udløb. Et projekts egen SSO-udbyder nævnes kun i det projekts auditlog.
 
-Logins og sessioner registreres, uanset om projektet gemmer systemhændelser. En udløbet sessionslængde eller 30 dage uden brug registreres inden for få minutter. En udløbet inaktivitetsperiode i browseren registreres inden for 35 minutter, uanset om personen kommer tilbage. I mobilappen registreres den, næste gang appen kontakter OneUptime.
+Logins og sessioner registreres, uanset om projektet gemmer systemhændelser. En udløbet sessionslængde eller 30 dage uden brug registreres inden for få minutter. En udløbet inaktivitetsperiode i browseren, eller i en version af mobilappen nyere end 1.6.0, registreres inden for 35 minutter, uanset om personen kommer tilbage. I mobilappen version 1.6.0 og tidligere registreres den, næste gang appen kontakter OneUptime.
 
 ## Hvor længe poster gemmes
 

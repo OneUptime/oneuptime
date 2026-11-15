@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+क्लाउड को संग्रहीत करने से इनमें से कुछ भी बंद नहीं होता। संग्रहीत क्लाउड केवल सूचियों से छिपा होता है: वह इकट्ठा होता रहता है, और उसकी API जाँचें और लाइफ़साइकल जाँच चलती रहती हैं। किसी जाँच को रोकने के लिए उसे बंद करें।
+
 ## AI एजेंट
 
 एजेंट का `docker-compose.yml` **OpenStack एआई एजेंट**, `oneuptime-openstack-ai-agent` (इमेज `oneuptime/resource-ai-agent:release`) भी चलाता है। जब OneUptime AI इस क्लाउड पर किसी घटना या अलर्ट की जाँच करता है तो वह इसके ज़रिए केवल-पढ़ने वाले `openstack` कमांड चलाता है — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — और बताता है कि उसने क्या चलाया। एजेंट में कोई `openstack` बाइनरी नहीं है और कोई शेल नहीं: हर कमांड उस सेवा को एक `GET` बन जाता है जो उसका जवाब देती है, एजेंट के अपने क्रेडेंशियल से। एजेंट उसी `OPENSTACK_CLOUD_NAME` से पंजीकृत होता है जो कलेक्टर रिपोर्ट करता है, इसलिए वह इसी क्लाउड की सेवा करता है।

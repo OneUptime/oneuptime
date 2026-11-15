@@ -143,8 +143,10 @@ export interface DateTimeTextOptions {
 /*
  * An instant as a date and a time of day, on the clock `locale` reads:
  * "Nov 5, 2026, 5:14 AM", "2026년 11월 5일 오전 5:14", "5. Nov. 2026,
- * 05:14". The detail screens' dates and a monitor's last check are all
- * written here, so they cannot write one time two ways; a component that
+ * 05:14". The detail screens' dates, a monitor's last check and a shift
+ * more than a week out are all written here, and the shift cards' other
+ * times beside it (writeTimeOfDay, writeWeekdayTime), so they cannot write
+ * one time two ways; a component that
  * asks Intl for an hour on its own is refused by the web's guards
  * (Common/Tests/Types/*ClockLeadingZeroGuard), which read the app too.
  */
@@ -161,6 +163,78 @@ export function writeDateTime(
     hour: getHourOption(twelveHour),
     minute: "2-digit",
     hour12: twelveHour,
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+  });
+}
+
+// The locale a time is written in: the phone's own when undefined.
+export interface TimeTextOptions {
+  locale?: string | undefined;
+}
+
+/*
+ * The locale, and the IANA zone a time is read in: the phone's own when
+ * undefined, as every caller in the app leaves it. The on-call formatters
+ * name only a locale: they decide "Today" and "Tomorrow" on the phone's
+ * own calendar, so the time beside the word must be read in the same zone.
+ */
+export interface ZonedTimeTextOptions extends TimeTextOptions {
+  timeZone?: string | undefined;
+}
+
+/*
+ * A time of day alone, on the clock `locale` reads, in the phone's zone:
+ * "9:00 AM", "09:00", "오전 9:00". What the on-call cards write after
+ * "Today", "Tomorrow" and "Yesterday" (utils/duration formatShiftTime), so
+ * a shift's hour reads as the detail screens' does.
+ */
+export function writeTimeOfDay(
+  date: Date,
+  options: ZonedTimeTextOptions = {},
+): string {
+  const twelveHour: boolean = uses12HourClock(options.locale);
+
+  return date.toLocaleTimeString(options.locale, {
+    hour: getHourOption(twelveHour),
+    minute: "2-digit",
+    hour12: twelveHour,
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+  });
+}
+
+/*
+ * A weekday and a time of day, in the order and words of `locale`, on its
+ * clock, in the phone's zone: "Tue 9:00 AM", "Di., 09:00", "(화) 오전 9:00",
+ * "09:00 (火)". What the on-call cards write for a shift in the coming week.
+ */
+export function writeWeekdayTime(
+  date: Date,
+  options: ZonedTimeTextOptions = {},
+): string {
+  const twelveHour: boolean = uses12HourClock(options.locale);
+
+  return date.toLocaleString(options.locale, {
+    weekday: "short",
+    hour: getHourOption(twelveHour),
+    minute: "2-digit",
+    hour12: twelveHour,
+    ...(options.timeZone ? { timeZone: options.timeZone } : {}),
+  });
+}
+
+/*
+ * A day as a weekday and a date, in the order and words of `locale`, in
+ * the phone's zone: "Thu, Mar 5", "Thu 5 Mar", "Do., 5. März". What the
+ * list of a person's shifts is grouped under (oncall/shiftGroups dayLabel).
+ */
+export function writeDay(
+  date: Date,
+  options: ZonedTimeTextOptions = {},
+): string {
+  return date.toLocaleDateString(options.locale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
     ...(options.timeZone ? { timeZone: options.timeZone } : {}),
   });
 }

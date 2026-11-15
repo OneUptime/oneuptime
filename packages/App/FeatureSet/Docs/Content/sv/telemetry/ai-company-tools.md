@@ -97,7 +97,7 @@ Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)** och **Klienthemlighet**.
 
 | Inställning | Vad den gör |
 | --- | --- |
-| **Vem som kan läsa konversationer** | **Projektägare och administratörer**, standardvärdet: ingen annan i projektet ser de här konversationerna, eller AI-anropen de består av, någonstans i OneUptime. **Alla som får läsa AI-anrop**: alla som får läsa projektets traces. |
+| **Vem som kan läsa konversationer** | **Projektägare och Projektadministratörer**, standardvärdet: ingen annan i projektet ser de här konversationerna, eller AI-anropen de består av, någonstans i OneUptime. **Alla som får läsa AI-anrop**: alla som får läsa projektets traces. |
 | **Spara det som skrevs** | På, standardvärdet: frågorna och svaren sparas. Av: OneUptime sparar vem som frågade, när, med vilken modell och i vilken app, men inte orden. |
 
 En ändring av vem som får läsa gäller inom en minut. Att stänga av **Spara det som skrevs** gäller för de chattar som läses efteråt; det som sparades innan finns kvar tills lagringstiden tar slut.
@@ -139,7 +139,7 @@ För Copilot ger du administratörsmedgivande för appens Graph-behörigheter, o
 :::
 
 :::details Någon kan inte se konversationerna
-**Vem som kan läsa konversationer** är satt till **Projektägare och administratörer**. En ägare eller administratör kan ändra det med **Redigera** på anslutningens rad.
+**Vem som kan läsa konversationer** är satt till **Projektägare och Projektadministratörer**. En ägare eller administratör kan ändra det med **Redigera** på anslutningens rad.
 :::
 
 :::details Konversationerna visar vem som frågade, men inga ord

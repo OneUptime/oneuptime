@@ -459,7 +459,7 @@ describe.each(CHILDREN)(
       expect(reads).toHaveLength(2);
     });
 
-    test("does not narrow a scope-exempt project administrator grant", async () => {
+    test("does not narrow a scope-exempt Project Admin grant", async () => {
       const props: DatabaseCommonInteractionProps = callerProps([
         grant(Permission.ProjectAdmin, {
           scope: PermissionScope.Owned,

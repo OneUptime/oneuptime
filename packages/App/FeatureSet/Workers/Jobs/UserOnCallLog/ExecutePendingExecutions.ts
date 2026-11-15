@@ -3,6 +3,10 @@ import OneUptimeDate from "Common/Types/Date";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import {
+  getUserOnCallLogEndedMessage,
+  getUserOnCallLogRecordAcknowledgedMessage,
+} from "Common/Types/OnCallDutyPolicy/OnCallPageEnding";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserOnCallLogService, {
@@ -822,7 +826,7 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
         id: pendingNotificationLog.id!,
         data: {
           status: UserNotificationExecutionStatus.Completed,
-          statusMessage: `Execution completed because ${overReason}.`,
+          statusMessage: getUserOnCallLogEndedMessage(overReason),
         },
         props: {
           isRoot: true,
@@ -844,8 +848,7 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
         id: pendingNotificationLog.id!,
         data: {
           status: UserNotificationExecutionStatus.Completed,
-          statusMessage:
-            "Execution completed because incident is acknowledged.",
+          statusMessage: getUserOnCallLogRecordAcknowledgedMessage("incident"),
         },
         props: {
           isRoot: true,
@@ -868,7 +871,7 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
         id: pendingNotificationLog.id!,
         data: {
           status: UserNotificationExecutionStatus.Completed,
-          statusMessage: "Execution completed because alert is acknowledged.",
+          statusMessage: getUserOnCallLogRecordAcknowledgedMessage("alert"),
         },
         props: {
           isRoot: true,
@@ -892,7 +895,7 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
         data: {
           status: UserNotificationExecutionStatus.Completed,
           statusMessage:
-            "Execution completed because alert episode is acknowledged.",
+            getUserOnCallLogRecordAcknowledgedMessage("alert episode"),
         },
         props: {
           isRoot: true,
@@ -916,7 +919,7 @@ const runPendingNotificationLog: RunPendingNotificationLogFunction = async (
         data: {
           status: UserNotificationExecutionStatus.Completed,
           statusMessage:
-            "Execution completed because incident episode is acknowledged.",
+            getUserOnCallLogRecordAcknowledgedMessage("incident episode"),
         },
         props: {
           isRoot: true,

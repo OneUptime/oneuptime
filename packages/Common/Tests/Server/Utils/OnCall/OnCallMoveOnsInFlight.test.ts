@@ -149,11 +149,11 @@ describe("a move on in flight", () => {
 });
 
 describe("whether a move on's claim is given back", () => {
-  test("not while the move may still be under way", () => {
+  test("not while the move may still be under way: a tick after its claim", () => {
     expect(
       OnCallMoveOnsInFlight.isToGiveBack(
         moveOn(),
-        new Date(CLAIMED.getTime() + 2 * MINUTE - 1),
+        new Date(CLAIMED.getTime() + MINUTE + 30 * 1000 - 1),
       ),
     ).toBe(false);
   });
@@ -162,6 +162,20 @@ describe("whether a move on's claim is given back", () => {
     expect(
       OnCallMoveOnsInFlight.isToGiveBack(
         moveOn(),
+        new Date(CLAIMED.getTime() + 2 * MINUTE),
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * A tick comes at about the same second of each minute: a claim taken a
+   * moment into one tick is given back at the tick two minutes on, not a
+   * third (issue #8515).
+   */
+  test("a claim taken a moment after a tick is given back at the tick two minutes on", () => {
+    expect(
+      OnCallMoveOnsInFlight.isToGiveBack(
+        moveOn({ claimedAt: new Date(CLAIMED.getTime() + 1) }),
         new Date(CLAIMED.getTime() + 2 * MINUTE),
       ),
     ).toBe(true);

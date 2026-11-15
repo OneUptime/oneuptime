@@ -120,7 +120,7 @@ Cada vez que un miembro del proyecto inicia sesión en OneUptime, el registro de
 
 El **Recurso** de una entrada es la sesión, que recibe el nombre del dispositivo desde el que se inició, por ejemplo `Chrome 130 on macOS`. Su **Actor** es la persona a quien pertenece la sesión, así que filtrar por **Correo electrónico del usuario** encuentra todos sus inicios de sesión y sesiones. Sus detalles indican cómo inició sesión la persona y con qué segundo factor, la dirección IP y la ubicación, y, en una sesión que terminó, cuándo se inició, cuándo se usó por última vez y cuándo caducó. El proveedor de SSO propio de un proyecto solo se nombra en el registro de auditoría de ese proyecto.
 
-Los inicios de sesión y las sesiones se registran guarde o no el proyecto los eventos del sistema. Una duración de la sesión o 30 días sin uso se registran a los pocos minutos de cumplirse. Un tiempo de inactividad en el navegador se registra en los 35 minutos siguientes a cumplirse, vuelva o no la persona. En la aplicación móvil, se registra cuando la aplicación vuelve a comunicarse con OneUptime.
+Los inicios de sesión y las sesiones se registran guarde o no el proyecto los eventos del sistema. Una duración de la sesión o 30 días sin uso se registran a los pocos minutos de cumplirse. Un tiempo de inactividad en el navegador, o en una versión de la aplicación móvil posterior a la 1.6.0, se registra en los 35 minutos siguientes a cumplirse, vuelva o no la persona. En la versión 1.6.0 y anteriores de la aplicación móvil, se registra cuando la aplicación vuelve a comunicarse con OneUptime.
 
 ## Cuánto tiempo se conservan las entradas
 

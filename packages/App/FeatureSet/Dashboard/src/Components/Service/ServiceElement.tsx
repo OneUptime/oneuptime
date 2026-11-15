@@ -48,6 +48,7 @@ const ServiceElement: FunctionComponent<ComponentProps> = (
       tooltip={translator.translateTemplate("{{name}} Service Color", {
         name: serviceName,
       })}
+      isTooltipTranslated={true}
     />
   );
 

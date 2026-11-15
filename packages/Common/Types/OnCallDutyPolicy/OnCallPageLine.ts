@@ -53,6 +53,15 @@ export const NOT_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
   "Not sent because this user is not a member of the project.";
 
 /*
+ * Why an on-call notification log stopped part way: the person left the
+ * project (UserOnCallLog:ExecutePendingExecutions asks before every tick), so
+ * the rules still due for them - "call me after 10 minutes" - are not run.
+ * The on-call logs read it back (OnCallLogLine, #8551).
+ */
+export const NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
+  "Stopped because this user is no longer a member of the project. Their remaining notification rules were not run.";
+
+/*
  * The escalation timeline's line for a recipient the rule would have paged
  * who is not a member of the project (they left, or never accepted their
  * invitation): nothing is sent to them.

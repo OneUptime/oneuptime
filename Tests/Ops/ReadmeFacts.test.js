@@ -956,19 +956,83 @@ describe("the addresses the README gives", () => {
     },
   );
 
-  test("the free plan needs no credit card, as the first Create New Project screen says on OneUptime Cloud", () => {
-    const welcome = read(
-      "packages/App/FeatureSet/Dashboard/src/Pages/Onboarding/Welcome.tsx",
-    );
-    const billing = welcome.indexOf("{BILLING_ENABLED && (");
-    const noCard = welcome.indexOf(
-      'translator.translateText("No credit card required.")',
-    );
+  /*
+   * Where "no card" stops (#8246, #8422). A project needs no card on
+   * OneUptime Cloud, but every monitor except a Manual one is billed as it
+   * is used, so on the Free plan the first website check asks for a payment
+   * method. The README said "The free plan needs no credit card." It says
+   * what the Dashboard's Welcome page says on Cloud, in its language's
+   * Dashboard words.
+   */
+  const WELCOME = read(
+    "packages/App/FeatureSet/Dashboard/src/Pages/Onboarding/Welcome.tsx",
+  );
+  const WELCOME_CARD_LINE = (WELCOME.match(
+    /WELCOME_CARD_LINE: string = translationKey\(\s*"([^"]+)"/,
+  ) || [])[1];
 
+  function dashboardWords(language, key) {
+    const find = (node) => {
+      if (!node || typeof node !== "object") {
+        return undefined;
+      }
+
+      if (typeof node[key] === "string") {
+        return node[key];
+      }
+
+      for (const value of Object.values(node)) {
+        const found = find(value);
+
+        if (found) {
+          return found;
+        }
+      }
+
+      return undefined;
+    };
+
+    return find(
+      JSON.parse(
+        read(`packages/App/FeatureSet/Dashboard/src/Locales/${language}.json`),
+      ),
+    );
+  }
+
+  // The line that links sign-up: "Sign up and create a project. ..."
+  function signUpLineOf(text) {
+    return text.split("\n").find((line) => {
+      return line.includes(`(${WEBSITE_ORIGIN}/accounts/register)`);
+    });
+  }
+
+  test("Welcome says where no card stops, on OneUptime Cloud only", () => {
+    const billing = WELCOME.indexOf("{BILLING_ENABLED && (");
+    const drawn = WELCOME.indexOf("translator.translateText(WELCOME_CARD_LINE)");
+
+    expect(WELCOME_CARD_LINE).toBe(
+      "A project needs no card. On the Free plan, checking a website needs a payment method.",
+    );
     expect(billing).toBeGreaterThan(0);
-    expect(noCard).toBeGreaterThan(billing);
-    expect(noCard - billing).toBeLessThan(200);
-    expect(ENGLISH.text).toContain("The free plan needs no credit card.");
+    expect(drawn).toBeGreaterThan(billing);
+    expect(drawn - billing).toBeLessThan(200);
+  });
+
+  test.each(byLanguage)(
+    "%s says where no card stops, in the words Welcome says it in",
+    (language, readme) => {
+      const words = dashboardWords(language, WELCOME_CARD_LINE);
+
+      expect([language, typeof words]).toEqual([language, "string"]);
+      expect(signUpLineOf(readme.text)).toContain(words);
+    },
+  );
+
+  test("the English no longer says the free plan needs no card", () => {
+    expect(ENGLISH.text).not.toContain("The free plan needs no credit card.");
+    expect(signUpLineOf(ENGLISH.text)).toBe(
+      `[Sign up](${WEBSITE_ORIGIN}/accounts/register) and create a project. ${WELCOME_CARD_LINE}`,
+    );
   });
 
   test.each(byLanguage)(

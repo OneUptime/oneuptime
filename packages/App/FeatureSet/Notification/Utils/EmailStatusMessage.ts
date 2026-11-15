@@ -3,6 +3,7 @@ import {
   EMAIL_DELIVERY_NOT_TRACKED,
   EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT,
   EMAIL_SENT_STATUS_MESSAGE,
+  EMAIL_SENT_WITHOUT_IMAGES_PREFIX,
 } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 
 /*
@@ -39,8 +40,8 @@ export {
   EMAIL_SENT_STATUS_MESSAGE,
 };
 
-const SENT_WITHOUT_IMAGES_PREFIX: string =
-  "Email sent successfully without its images, which the mail service refused: ";
+// Kept with the lines a notification says (OnCallSentLine), read back there (#8551).
+const SENT_WITHOUT_IMAGES_PREFIX: string = EMAIL_SENT_WITHOUT_IMAGES_PREFIX;
 
 const SENTENCE_END_PATTERN: RegExp = /[.!?…]$/;
 

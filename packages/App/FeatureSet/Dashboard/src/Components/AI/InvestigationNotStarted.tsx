@@ -80,7 +80,7 @@ export interface SettingsAction {
 }
 
 const PROJECT_ADMIN_CAN_ACT: string = translationKey(
-  "A project administrator can review these settings.",
+  "A Project Admin can review these settings.",
 );
 
 /*

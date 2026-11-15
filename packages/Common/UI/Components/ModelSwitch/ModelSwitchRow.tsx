@@ -574,17 +574,34 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     Boolean(planNeededToFlip);
 
   /*
-   * Why it is locked: the missing permission first, then what the record
-   * says (lockedReason), then the plan.
+   * Why it is locked, in the reader's words: the missing permission first
+   * (the permission check words it), then what the record says
+   * (lockedReason, English, looked up here), then the plan. The switch is
+   * told so and draws it as given: it looked the permission's and the
+   * plan's sentences up a second time (#8423).
    */
   const lockedReason: string | undefined =
     updateGate.disabledReason ||
-    props.lockedReason ||
+    (props.lockedReason
+      ? translator.translateText(props.lockedReason) || props.lockedReason
+      : undefined) ||
     (planNeededToFlip
       ? translator.translateTemplate(SWITCH_PLAN_LOCKED_COPY, {
           planName: planNeededToFlip,
         })
       : undefined);
+
+  /*
+   * The switch's own line says why already (a page whose line gives the
+   * reason, so a phone shows it too): said once, not twice. Both in the
+   * reader's words.
+   */
+  const isLockedReasonInItsLine: boolean = Boolean(
+    lockedReason &&
+      descriptionText &&
+      lockedReason ===
+        (translator.translateText(descriptionText) || descriptionText),
+  );
 
   const getSaveStateElement: () => ReactNode = (): ReactNode => {
     if (saveState === ModelSwitchSaveState.Saving) {
@@ -646,10 +663,9 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
            * phone shows it too): said once, not twice.
            */
           tooltip={
-            lockedReason && lockedReason !== descriptionText
-              ? lockedReason
-              : undefined
+            lockedReason && !isLockedReasonInItsLine ? lockedReason : undefined
           }
+          isTooltipTranslated={true}
           error={error || undefined}
           dataTestId={props.dataTestId}
           onChange={(value: boolean) => {

@@ -14,6 +14,7 @@ import ExceptionInstanceService from "../../../Services/ExceptionInstanceService
 import SpanService from "../../../Services/SpanService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { writeOwnValue } from "../../../../Utils/LookupTable";
 
 /*
  * FOLLOWING A SECURITY EVENT INTO ITS REQUEST.
@@ -72,9 +73,14 @@ function readStringMap(value: JSONValue | undefined): Record<string, string> {
     return map;
   }
 
+  // The span's keys, each the map's own: "__proto__" too.
   for (const [key, entry] of Object.entries(value as JSONObject)) {
     if (entry !== null && entry !== undefined) {
-      map[key] = typeof entry === "string" ? entry : String(entry);
+      writeOwnValue(
+        map,
+        key,
+        typeof entry === "string" ? entry : String(entry),
+      );
     }
   }
 
