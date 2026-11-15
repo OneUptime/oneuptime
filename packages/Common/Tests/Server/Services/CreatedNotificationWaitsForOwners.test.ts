@@ -88,10 +88,14 @@ import logger from "../../../Server/Utils/Logger";
 import MonitorAlert from "../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorIncident from "../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorResourceContextUtil from "../../../Server/Utils/Monitor/MonitorResourceContext";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../../../Server/Utils/Notification/CreatedNotificationHold";
 import OpenStackScopedRules from "../../../Server/Utils/OpenStack/OpenStackScopedRules";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import VideoCallRuleExecutor from "../../../Server/Utils/VideoCall/VideoCallRuleExecutor";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -115,6 +119,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * AN INCIDENT'S "CREATED" EMAIL REACHES ITS REAL OWNERS, HOWEVER FAST ITS
@@ -139,6 +144,18 @@ import {
  * while the chain is still on its way to the owner rules, and once
  * everything is done: whenever it runs, the email goes to every owner, and
  * nobody else, once.
+ *
+ * AND WHEREVER THE PROCESS THAT HOLDS IT STOPS (#7571), AND WHOEVER ADDS AN
+ * OWNER A MOMENT LATER (#7573). The hold is written on the record with the
+ * flag (createdNotificationHeldAt), the release and the job's take are each
+ * one compare-and-set - held here in memory as the database would run them
+ * - and the job runs on a clock the tests move: a hold nobody lets go is
+ * taken once it is five minutes old, and a record let go is taken a minute
+ * after its create. The process stops before its chain starts, before the
+ * monitor says its owners are in, and after the hold is let go; the release
+ * fails; the release and the job race; an owner is added by a request of
+ * its own. Each time the email goes out once, to whoever owns the record
+ * then.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -200,14 +217,59 @@ const NOBODY: Owners = { criteriaUsers: [], deviceUsers: [], rule: null };
 
 let owners: Owners;
 
-// A stored record: the row the insert wrote, and the one column the job reads.
+// A stored record: the row the insert wrote, and the columns the job reads.
 interface StoredRecord {
   kind: Kind;
   model: BaseModel;
   isNotified: boolean;
+  // When its hold began, while it is held (createdNotificationHeldAt).
+  heldAt: Date | null;
+  createdAt: Date;
 }
 
 let records: Map<string, StoredRecord>;
+
+// The clock every hook and job reads (OneUptimeDate.getCurrentDate), moved by the tests.
+const STARTED_AT: Date = new Date("2026-11-12T08:00:00.000Z");
+let clock: Date;
+
+function advance(data: { minutes?: number; seconds?: number }): void {
+  clock = new Date(
+    clock.getTime() +
+      (data.minutes || 0) * 60 * 1000 +
+      (data.seconds || 0) * 1000,
+  );
+}
+
+/*
+ * Where the process that runs the create stops, when it does: right after
+ * the insert - nothing after it runs, not its chain, not its caller - or
+ * never.
+ */
+let processStopsAfterInsert: boolean;
+
+// Letting a hold go fails, of a record of this kind: the database is away a moment.
+let releaseFails: Record<Kind, boolean>;
+
+// What a job's read was: the records let go, or the records held too long.
+type JobRead = "letGo" | "heldTooLong";
+
+/*
+ * What happens between a job's read and its takes, when a test says: the
+ * read has read its records, and hands them back once this is done.
+ */
+let whenJobHasRead:
+  | ((data: { kind: Kind; read: JobRead }) => Promise<void>)
+  | null;
+
+// Every compare-and-set the release and the job wrote, in order, and whether it matched.
+let compareAndSets: Array<{
+  kind: Kind;
+  recordId: string;
+  data: JSONObject;
+  expectedData: JSONObject;
+  isWritten: boolean;
+}>;
 
 interface OwnerRow {
   recordId: string;
@@ -417,11 +479,25 @@ function stubDatabaseCreate(): void {
       record._id = ObjectID.generate().toString();
       record.setColumnValue("projectId", PROJECT_ID);
 
+      // The row as the insert wrote it: the hold with the flag, in one write.
+      const heldAt: unknown = record.getColumnValue(
+        "createdNotificationHeldAt",
+      );
+
       records.set(idOf(record._id), {
         kind: kind,
         model: record,
         isNotified: record.getColumnValue(NOTIFIED_COLUMN[kind]) === true,
+        heldAt: heldAt instanceof Date ? new Date(heldAt.getTime()) : null,
+        createdAt: OneUptimeDate.getCurrentDate(),
       });
+
+      // The process stops here: nothing after the insert ever runs in it.
+      if (processStopsAfterInsert) {
+        await new Promise<never>(() => {
+          // never settles
+        });
+      }
 
       // The job may run any moment after the insert: right here, first.
       if (runJobAfterInsert) {
@@ -988,8 +1064,21 @@ function stubCreateHooks(): void {
     .mockResolvedValue(undefined as never);
 }
 
-// The record as the job selects it: what its email says.
+// The record as the job selects it: what its email says, and what it takes the record by.
 function asTheJobReadsIt(kind: Kind, id: string): BaseModel {
+  const read: BaseModel = asTheEmailReadsIt(kind, id);
+  const stored: StoredRecord = records.get(id)!;
+
+  read.setColumnValue(NOTIFIED_COLUMN[kind], stored.isNotified);
+  read.setColumnValue(
+    "createdNotificationHeldAt",
+    stored.heldAt ? new Date(stored.heldAt.getTime()) : null,
+  );
+
+  return read;
+}
+
+function asTheEmailReadsIt(kind: Kind, id: string): BaseModel {
   const project: Project = new Project();
   project.name = "Payments";
 
@@ -1028,44 +1117,199 @@ function asTheJobReadsIt(kind: Kind, id: string): BaseModel {
   return alert;
 }
 
-// The records' one column the jobs read and mark, and the hold releases.
+// The upper bound of a `<=` condition the service read by (QueryHelper.lessThanEqualTo).
+function upTo(query: Record<string, unknown>, column: string): Date {
+  const condition: FindOperator<unknown> = query[
+    column
+  ] as FindOperator<unknown>;
+
+  expect(condition.getSql?.("x")).toMatch(/^\(x <= :\w+\)$/);
+
+  const bound: unknown = Object.values(
+    condition.objectLiteralParameters || {},
+  )[0];
+
+  expect(bound).toBeInstanceOf(Date);
+
+  return bound as Date;
+}
+
+// What the record holds in a column the release and the job write.
+function storedValue(
+  kind: Kind,
+  record: StoredRecord,
+  column: string,
+): boolean | Date | null {
+  if (column === NOTIFIED_COLUMN[kind]) {
+    return record.isNotified;
+  }
+
+  if (column === "createdNotificationHeldAt") {
+    return record.heldAt;
+  }
+
+  throw new Error(
+    `Nothing but the notification's own columns is written: ${column}.`,
+  );
+}
+
+// A guard's value as Postgres compares it: null-safe, a time as its instant.
+function isSameValue(
+  stored: boolean | Date | null,
+  expected: unknown,
+): boolean {
+  if (expected === undefined) {
+    throw new Error("A compare-and-set names every value it expects.");
+  }
+
+  if (stored === null || expected === null) {
+    return stored === null && expected === null;
+  }
+
+  if (stored instanceof Date || expected instanceof Date) {
+    return (
+      stored instanceof Date &&
+      expected instanceof Date &&
+      stored.getTime() === expected.getTime()
+    );
+  }
+
+  return stored === expected;
+}
+
+/*
+ * The records' columns the jobs read and take, and the hold lets go of, as
+ * the database holds them: the job's two reads, and every write to them one
+ * compare-and-set (DatabaseService.compareAndSetColumnsByIdWithoutHooks).
+ */
 function stubNotifiedColumn(kind: Kind): void {
   const service: Record<string, (...args: Array<unknown>) => unknown> =
     (kind === "incident" ? IncidentService : AlertService) as unknown as Record<
       string,
       (...args: Array<unknown>) => unknown
     >;
+  const notifiedColumn: string = NOTIFIED_COLUMN[kind];
 
-  // Exactly the records not marked as notified (the jobs' own query).
+  /*
+   * The job's two reads (findCreatedNotificationsDue): the records let go -
+   * marked not notified - created at or before one time, and the records
+   * still held whose hold began at or before another.
+   */
   jest.spyOn(service, "findAllBy").mockImplementation((async (args: {
     query: Record<string, unknown>;
+    select: Record<string, unknown>;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Array<BaseModel>> => {
-    expect(args.query).toEqual({ [NOTIFIED_COLUMN[kind]]: false });
+    expect(args.props).toEqual({ isRoot: true });
+    expect(args.select[notifiedColumn]).toBe(true);
+    expect(args.select["createdNotificationHeldAt"]).toBe(true);
 
-    return Array.from(records.entries())
+    let isRead: (record: StoredRecord) => boolean;
+    let read: JobRead = "letGo";
+
+    if (args.query[notifiedColumn] === false) {
+      expect(Object.keys(args.query).sort()).toEqual(
+        ["createdAt", notifiedColumn].sort(),
+      );
+
+      const createdBefore: Date = upTo(args.query, "createdAt");
+
+      isRead = (record: StoredRecord): boolean => {
+        return (
+          !record.isNotified &&
+          record.createdAt.getTime() <= createdBefore.getTime()
+        );
+      };
+    } else {
+      expect(Object.keys(args.query)).toEqual(["createdNotificationHeldAt"]);
+
+      const heldBefore: Date = upTo(args.query, "createdNotificationHeldAt");
+      read = "heldTooLong";
+
+      isRead = (record: StoredRecord): boolean => {
+        return (
+          record.heldAt !== null &&
+          record.heldAt.getTime() <= heldBefore.getTime()
+        );
+      };
+    }
+
+    const found: Array<BaseModel> = Array.from(records.entries())
       .filter(([, record]: [string, StoredRecord]): boolean => {
-        return record.kind === kind && !record.isNotified;
+        return record.kind === kind && isRead(record);
       })
       .map(([id]: [string, StoredRecord]): BaseModel => {
         return asTheJobReadsIt(kind, id);
       });
+
+    if (whenJobHasRead) {
+      await whenJobHasRead({ kind: kind, read: read });
+    }
+
+    return found;
   }) as never);
 
-  // The job's mark, and the hold's release, on the same column.
+  // The hold's release and the job's take: one write each, made only while the row holds what it expects.
+  jest
+    .spyOn(service, "compareAndSetColumnsByIdWithoutHooks")
+    .mockImplementation((async (input: {
+      id: ObjectID;
+      data: JSONObject;
+      expectedData: JSONObject;
+    }): Promise<boolean> => {
+      if (releaseFails[kind] && input.data[notifiedColumn] === false) {
+        throw new Error("The database is away");
+      }
+
+      const record: StoredRecord | undefined = records.get(idOf(input.id));
+
+      const isWritten: boolean =
+        Boolean(record) &&
+        Object.entries(input.expectedData).every(
+          ([column, expected]: [string, unknown]): boolean => {
+            return isSameValue(storedValue(kind, record!, column), expected);
+          },
+        );
+
+      if (record && isWritten) {
+        for (const [column, value] of Object.entries(input.data)) {
+          if (column === notifiedColumn) {
+            record.isNotified = value === true;
+          } else if (column === "createdNotificationHeldAt") {
+            record.heldAt =
+              value instanceof Date ? new Date(value.getTime()) : null;
+          } else {
+            throw new Error(`Nothing else is written with them: ${column}.`);
+          }
+        }
+      }
+
+      compareAndSets.push({
+        kind: kind,
+        recordId: idOf(input.id),
+        data: input.data,
+        expectedData: input.expectedData,
+        isWritten: isWritten,
+      });
+
+      return isWritten;
+    }) as never);
+
+  // No plain update writes them: neither the release nor the job.
   jest.spyOn(service, "updateOneById").mockImplementation((async (updateBy: {
-    id: ObjectID;
     data: JSONObject;
   }): Promise<void> => {
-    const value: unknown = updateBy.data[NOTIFIED_COLUMN[kind]];
-    const record: StoredRecord | undefined = records.get(idOf(updateBy.id));
-
-    if (record && typeof value === "boolean") {
-      record.isNotified = value;
+    for (const column of [notifiedColumn, "createdNotificationHeldAt"]) {
+      if (Object.prototype.hasOwnProperty.call(updateBy.data, column)) {
+        throw new Error(
+          `${column} is written by a compare-and-set, never by a plain update.`,
+        );
+      }
     }
   }) as never);
 }
 
-// What the jobs read and write besides the owners: the records' one column, and the send.
+// What the jobs read and write besides the owners: the records' columns, and the send.
 function stubJobs(): void {
   stubNotifiedColumn("incident");
   stubNotifiedColumn("alert");
@@ -1126,11 +1370,20 @@ beforeEach(() => {
   sent = [];
   ownerRulesRan = [];
   runJobAfterInsert = true;
+  processStopsAfterInsert = false;
+  releaseFails = { incident: false, alert: false };
+  whenJobHasRead = null;
+  compareAndSets = [];
   gates = {
     chain: new Gate(true),
     monitor: new Gate(true),
     creator: new Gate(true),
   };
+
+  clock = new Date(STARTED_AT.getTime());
+  jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+    return new Date(clock.getTime());
+  });
 
   errors = jest.spyOn(logger, "error").mockImplementation((() => {
     // read by the tests
@@ -1209,11 +1462,19 @@ describe.each(["incident", "alert"] as Array<Kind>)(
 
       gates.monitor.open();
       await opening;
+
+      // Let go, but not a minute old: an owner a request of its own adds is still to come.
+      await runJob(kind);
+      expect(notified(kind)).toEqual([]);
+
+      advance({ minutes: 1 });
       await runJob(kind);
 
       expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
 
-      // Once: a later run finds nothing to send.
+      // Once: a later run finds nothing to send, nor one once a hold would have run out.
+      await runJob(kind);
+      advance({ minutes: 10 });
       await runJob(kind);
 
       expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
@@ -1237,6 +1498,7 @@ describe.each(["incident", "alert"] as Array<Kind>)(
       await waitUntil((): boolean => {
         return !records.get(onlyRecord(kind))!.isNotified;
       });
+      advance({ minutes: 1 });
       await runJob(kind);
 
       expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
@@ -1253,8 +1515,13 @@ describe.each(["incident", "alert"] as Array<Kind>)(
         return gates.chain.reached && gates.monitor.reached;
       });
 
-      // The run right after the insert, and one now, took nothing.
+      // Written held - the flag and when the hold began, in the insert itself.
       expect(records.get(onlyRecord(kind))!.isNotified).toBe(true);
+      expect(records.get(onlyRecord(kind))!.heldAt).toEqual(STARTED_AT);
+
+      // The run right after the insert, and runs while it is held, took nothing.
+      await runJob(kind);
+      advance({ minutes: 4, seconds: 59 });
       await runJob(kind);
       expect(notified(kind)).toEqual([]);
 
@@ -1264,6 +1531,10 @@ describe.each(["incident", "alert"] as Array<Kind>)(
       await waitUntil((): boolean => {
         return !records.get(onlyRecord(kind))!.isNotified;
       });
+
+      // Let go: the hold is over.
+      expect(records.get(onlyRecord(kind))!.heldAt).toBeNull();
+
       await runJob(kind);
 
       expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
@@ -1288,6 +1559,7 @@ describe.each(["incident", "alert"] as Array<Kind>)(
         // Not before every owner is in: the run right after the insert sent nothing.
         expect(notified(kind)).toEqual([]);
 
+        advance({ minutes: 1 });
         await runJob(kind);
         await runJob(kind);
 
@@ -1368,6 +1640,7 @@ describe.each(["incident", "alert"] as Array<Kind>)(
 
       gates.creator.open();
       await creating;
+      advance({ minutes: 1 });
       await runJob(kind);
 
       expect(notified(kind)).toEqual([ADA]);
@@ -1397,6 +1670,7 @@ describe("the Created email of an incident its chain can't read back", () => {
     expect(ownerRulesRan).toEqual([]);
     expect(ownerRows).toEqual([]);
 
+    advance({ minutes: 1 });
     await runJob("incident");
     await runJob("incident");
 
@@ -1418,8 +1692,535 @@ describe("the Created email of an incident its chain can't read back", () => {
 
     expect(ownerRulesRan).toEqual([]);
 
+    advance({ minutes: 1 });
     await runJob("incident");
 
     expect(notified("incident")).toEqual([PROJECT_OWNER]);
+  });
+});
+
+// The clock at `minutes` and `seconds` after the first record was written.
+function at(minutes: number, seconds: number = 0): void {
+  clock = new Date(STARTED_AT.getTime() + minutes * 60 * 1000 + seconds * 1000);
+}
+
+function stored(kind: Kind): StoredRecord {
+  return records.get(onlyRecord(kind))!;
+}
+
+// What the release wrote of a record: each compare-and-set that lets it go.
+function releasesOf(kind: Kind): Array<{ isWritten: boolean }> {
+  return compareAndSets.filter(
+    (write: { kind: Kind; data: JSONObject }): boolean => {
+      return write.kind === kind && write.data[NOTIFIED_COLUMN[kind]] === false;
+    },
+  );
+}
+
+// What the job wrote of a record: each compare-and-set that takes it.
+function takesOf(kind: Kind): Array<{ isWritten: boolean }> {
+  return compareAndSets.filter(
+    (write: { kind: Kind; data: JSONObject }): boolean => {
+      return write.kind === kind && write.data[NOTIFIED_COLUMN[kind]] === true;
+    },
+  );
+}
+
+// The monitor's own code never gets past its first step: the process stopped there.
+function monitorNeverFinishes(kind: Kind): void {
+  jest
+    .spyOn(
+      OpenStackScopedRules,
+      kind === "incident" ? "finishIncident" : "finishAlert",
+    )
+    .mockImplementation((() => {
+      return new Promise<never>(() => {
+        // never settles
+      });
+    }) as never);
+}
+
+function serviceOf(kind: Kind): {
+  create: (createBy: CreateBy<BaseModel>) => Promise<BaseModel>;
+} {
+  return (kind === "incident" ? IncidentService : AlertService) as unknown as {
+    create: (createBy: CreateBy<BaseModel>) => Promise<BaseModel>;
+  };
+}
+
+function newRecordOf(kind: Kind): BaseModel {
+  if (kind === "incident") {
+    const incident: Incident = new Incident();
+    incident.projectId = PROJECT_ID;
+    incident.title = "Checkout is down";
+    incident.incidentSeverityId = new ObjectID(INCIDENT_SEVERITY);
+    return incident;
+  }
+
+  const alert: Alert = new Alert();
+  alert.projectId = PROJECT_ID;
+  alert.title = "Checkout is down";
+  alert.alertSeverityId = new ObjectID(ALERT_SEVERITY);
+  return alert;
+}
+
+// The release's own words for a failure, by kind.
+const RELEASE_FAILED: Record<Kind, string> = {
+  incident:
+    "Releasing the Incident Created notification held for the owners failed in IncidentService.onCreateSuccess: Error: The database is away. The owners are told once the hold has lasted 5 minutes.",
+  alert:
+    "Releasing the Alert Created notification held for the owners failed in AlertService.onCreateSuccess: Error: The database is away. The owners are told once the hold has lasted 5 minutes.",
+};
+
+/*
+ * WHEREVER THE PROCESS THAT HOLDS IT STOPS (#7571). The hold is written on
+ * the record in its insert, so a hold nobody lets go - the process that
+ * made the record stopped, or letting it go failed - is taken by the job
+ * once it is five minutes old, and its owners are told: whoever owns it by
+ * then, or the project's owners. The release and the job's take are each
+ * one compare-and-set, so whichever comes first is the one that acts, and
+ * the email goes out once.
+ */
+describe.each(["incident", "alert"] as Array<Kind>)(
+  "the Created email of an %s whose process stops",
+  (kind: Kind) => {
+    test("before the monitor says its owners are in: held until the hold runs out, then sent once, to the owners it has by then", async () => {
+      monitorNeverFinishes(kind);
+
+      void openFromMonitor(kind);
+
+      // The chain has run its owner rules; the monitor never adds its owners.
+      await waitUntil((): boolean => {
+        return ownerRulesRan.includes(kind);
+      });
+      await settle();
+
+      expect(stored(kind).isNotified).toBe(true);
+      expect(stored(kind).heldAt).toEqual(STARTED_AT);
+      expect(releasesOf(kind)).toEqual([]);
+
+      for (const [minutes, seconds] of [
+        [0, 0],
+        [1, 0],
+        [2, 30],
+        [4, 59],
+      ] as Array<[number, number]>) {
+        at(minutes, seconds);
+        await runJob(kind);
+      }
+
+      // Within the hold, nobody is told - least of all the project's owners.
+      expect(notified(kind)).toEqual([]);
+
+      at(5);
+      await runJob(kind);
+
+      // The owner rule's owners, whom the chain added: the monitor's never were.
+      expect(notified(kind)).toEqual([CARA, DAN]);
+      expect(stored(kind).isNotified).toBe(true);
+      expect(stored(kind).heldAt).toBeNull();
+
+      for (const minutes of [5, 6, 60]) {
+        at(minutes);
+        await runJob(kind);
+      }
+
+      expect(notified(kind)).toEqual([CARA, DAN]);
+      expect(takesOf(kind)).toEqual([
+        expect.objectContaining({ isWritten: true }),
+      ]);
+      expect(errorsLogged()).toEqual([]);
+    });
+
+    test("right after the insert: nobody adds an owner, and the project's owners are told once the hold runs out", async () => {
+      processStopsAfterInsert = true;
+
+      void openFromMonitor(kind);
+
+      await waitUntil((): boolean => {
+        return records.size === 1;
+      });
+      await settle();
+
+      // Written held, and nothing after the insert ran: not the chain, not the monitor.
+      expect(stored(kind).isNotified).toBe(true);
+      expect(stored(kind).heldAt).toEqual(STARTED_AT);
+      expect(ownerRulesRan).toEqual([]);
+      expect(ownerRows).toEqual([]);
+
+      at(4, 59);
+      await runJob(kind);
+      expect(notified(kind)).toEqual([]);
+
+      at(5);
+      await runJob(kind);
+      at(30);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([PROJECT_OWNER]);
+    });
+
+    test("after the hold is let go: the next run tells its owners once, and none after - not once a hold would have run out", async () => {
+      await openFromMonitor(kind);
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
+      // Let go: nothing of the create is needed in memory any more.
+      expect(stored(kind).heldAt).toBeNull();
+      expect(releasesOf(kind)).toEqual([
+        expect.objectContaining({ isWritten: true }),
+      ]);
+
+      for (const minutes of [1, 5, 6, 60]) {
+        at(minutes);
+        await runJob(kind);
+      }
+
+      expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
+      expect(takesOf(kind)).toEqual([
+        expect.objectContaining({ isWritten: true }),
+      ]);
+    });
+
+    test("when letting go fails: the owners are told once the hold runs out, once", async () => {
+      releaseFails[kind] = true;
+
+      await openFromMonitor(kind);
+      await waitUntil((): boolean => {
+        return errorsLogged().includes(RELEASE_FAILED[kind]);
+      });
+
+      // Still held: the release never wrote.
+      expect(stored(kind).isNotified).toBe(true);
+      expect(stored(kind).heldAt).toEqual(STARTED_AT);
+
+      at(1);
+      await runJob(kind);
+      at(4, 59);
+      await runJob(kind);
+      expect(notified(kind)).toEqual([]);
+
+      at(5);
+      await runJob(kind);
+      at(6);
+      await runJob(kind);
+
+      // Every owner was in by then: the monitor's and the chain's.
+      expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
+      expect(errorsLogged()).toEqual([RELEASE_FAILED[kind]]);
+    });
+
+    test("when the hold runs out while the chain is still adding owners: told once, to whoever owns it then, and the chain's late release lets nothing go", async () => {
+      gates.chain = new Gate(false);
+
+      await openFromMonitor(kind);
+
+      // The monitor has added its owners; the chain is still on its way to the owner rules.
+      at(5);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([ANA, BEN]);
+
+      gates.chain.open();
+      await waitUntil((): boolean => {
+        return ownerRulesRan.includes(kind) && releasesOf(kind).length === 1;
+      });
+      await settle();
+
+      // The release found the hold taken, and wrote nothing.
+      expect(releasesOf(kind)).toEqual([
+        expect.objectContaining({ isWritten: false }),
+      ]);
+      expect(stored(kind).isNotified).toBe(true);
+      expect(stored(kind).heldAt).toBeNull();
+
+      at(6);
+      await runJob(kind);
+      at(60);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([ANA, BEN]);
+      expect(errorsLogged()).toEqual([]);
+    });
+
+    test("when it is let go between the job's read of it as held and its take: that run sends nothing, and the next tells every owner once", async () => {
+      gates.chain = new Gate(false);
+
+      await openFromMonitor(kind);
+
+      // The job reads it as held too long; the chain lets it go before the job takes it.
+      whenJobHasRead = async (data: {
+        kind: Kind;
+        read: JobRead;
+      }): Promise<void> => {
+        if (data.kind !== kind || data.read !== "heldTooLong") {
+          return;
+        }
+
+        whenJobHasRead = null;
+        gates.chain.open();
+        await waitUntil((): boolean => {
+          return !stored(kind).isNotified;
+        });
+      };
+
+      at(5);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([]);
+      expect(takesOf(kind)).toEqual([
+        expect.objectContaining({ isWritten: false }),
+      ]);
+      expect(stored(kind).isNotified).toBe(false);
+
+      at(6);
+      await runJob(kind);
+      at(60);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
+      expect(errorsLogged()).toEqual([]);
+    });
+
+    test("when two runs read it at once: one tells its owners, once", async () => {
+      await openFromMonitor(kind);
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
+      // Both runs have read it as let go before either takes it.
+      let reads: number = 0;
+      let bothRead: () => void = (): void => {};
+      const bothHaveRead: Promise<void> = new Promise<void>(
+        (resolve: () => void) => {
+          bothRead = resolve;
+        },
+      );
+
+      whenJobHasRead = async (data: {
+        kind: Kind;
+        read: JobRead;
+      }): Promise<void> => {
+        if (data.kind !== kind || data.read !== "letGo") {
+          return;
+        }
+
+        reads++;
+
+        if (reads === 2) {
+          bothRead();
+        }
+
+        await bothHaveRead;
+      };
+
+      at(1);
+      await Promise.all([runJob(kind), runJob(kind)]);
+
+      expect(reads).toBe(2);
+      expect(notified(kind)).toEqual(EVERY_KIND_OF_OWNER_REACHED);
+      expect(
+        takesOf(kind).map((take: { isWritten: boolean }): boolean => {
+          return take.isWritten;
+        }),
+      ).toEqual([true, false]);
+    });
+  },
+);
+
+/*
+ * A create that says it was notified already is written as it says: never
+ * held, so the job never takes it - not even once a hold would have run
+ * out, whatever hold its caller sent with it (only the create's hook writes
+ * one).
+ */
+describe.each(["incident", "alert"] as Array<Kind>)(
+  "the Created email of an %s written as notified already",
+  (kind: Kind) => {
+    test("is never sent, and its create neither holds it nor lets it go", async () => {
+      const record: BaseModel = newRecordOf(kind);
+      record.setColumnValue(NOTIFIED_COLUMN[kind], true);
+      // A hold of its caller's own: never written.
+      record.setColumnValue(
+        "createdNotificationHeldAt",
+        new Date(STARTED_AT.getTime() - 60 * 60 * 1000),
+      );
+
+      await serviceOf(kind).create({
+        data: record,
+        props: { isRoot: true },
+      });
+      await waitUntil((): boolean => {
+        return ownerRulesRan.includes(kind);
+      });
+      await settle();
+
+      expect(stored(kind).isNotified).toBe(true);
+      expect(stored(kind).heldAt).toBeNull();
+
+      for (const minutes of [0, 1, 5, 6, 60]) {
+        at(minutes);
+        await runJob(kind);
+      }
+
+      expect(notified(kind)).toEqual([]);
+      expect(compareAndSets).toEqual([]);
+    });
+  },
+);
+
+/*
+ * AN OWNER ADDED BY A REQUEST OF ITS OWN (#7573): an API script that creates
+ * the record, then adds its owner in a second call; a workflow's next step;
+ * the MCP server. The job takes a record let go only a minute after its
+ * create, so an owner added in that minute is told, and the project's
+ * owners - who would have been told in its place - are not.
+ */
+describe.each(["incident", "alert"] as Array<Kind>)(
+  "the Created email of an %s whose owner is added by a request of its own",
+  (kind: Kind) => {
+    // The second call: an owner row of the record, as the API writes it.
+    async function addOwnerInASecondRequest(
+      record: BaseModel,
+      userId: string,
+    ): Promise<void> {
+      if (kind === "incident") {
+        const owner: IncidentOwnerUser = new IncidentOwnerUser();
+        owner.projectId = PROJECT_ID;
+        owner.incidentId = record.id!;
+        owner.userId = new ObjectID(userId);
+
+        await IncidentOwnerUserService.create({
+          data: owner,
+          props: { isRoot: true },
+        });
+        return;
+      }
+
+      const owner: AlertOwnerUser = new AlertOwnerUser();
+      owner.projectId = PROJECT_ID;
+      owner.alertId = record.id!;
+      owner.userId = new ObjectID(userId);
+
+      await AlertOwnerUserService.create({
+        data: owner,
+        props: { isRoot: true },
+      });
+    }
+
+    beforeEach(() => {
+      // Nobody owns it as it is created: no rule, no criteria, and an API key is made nobody's owner.
+      owners = NOBODY;
+    });
+
+    test("reaches the owner added within a minute of the create, and not the project's owners", async () => {
+      const created: BaseModel = await serviceOf(kind).create({
+        data: newRecordOf(kind),
+        props: { isRoot: true },
+      });
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
+      // Let go - its create added nobody - but not a minute old.
+      at(0, 20);
+      await runJob(kind);
+      expect(notified(kind)).toEqual([]);
+
+      at(0, 30);
+      await addOwnerInASecondRequest(created, ANA);
+
+      at(0, 59);
+      await runJob(kind);
+      expect(notified(kind)).toEqual([]);
+
+      at(1);
+      await runJob(kind);
+      at(2);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([ANA]);
+      expect(errorsLogged()).toEqual([]);
+    });
+
+    test("reaches the project's owners a minute after the create when nobody adds one", async () => {
+      await serviceOf(kind).create({
+        data: newRecordOf(kind),
+        props: { isRoot: true },
+      });
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
+      at(0, 59);
+      await runJob(kind);
+      expect(notified(kind)).toEqual([]);
+
+      at(1);
+      await runJob(kind);
+      at(6);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([PROJECT_OWNER]);
+    });
+
+    test("does not reach an owner added once it went out: they hear they were added, not that it was created", async () => {
+      const created: BaseModel = await serviceOf(kind).create({
+        data: newRecordOf(kind),
+        props: { isRoot: true },
+      });
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
+      at(1);
+      await runJob(kind);
+      expect(notified(kind)).toEqual([PROJECT_OWNER]);
+
+      at(1, 30);
+      await addOwnerInASecondRequest(created, ANA);
+      at(2);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([PROJECT_OWNER]);
+    });
+  },
+);
+
+/*
+ * #7571 as it was reported: a create made the way MonitorIncident makes
+ * one - its caller says it adds owners before the create starts - whose
+ * caller never says they are in, as when its process stops. Before, the
+ * incident was never picked and nobody was emailed.
+ */
+describe("an incident whose create's caller never says its owners are in", () => {
+  test("is held no longer than a hold lasts, and its owners are then told once", async () => {
+    const createBy: CreateBy<Incident> = {
+      data: newRecordOf("incident") as Incident,
+      props: { isRoot: true },
+    };
+    CreatedNotificationHold.willAddOwners(
+      createBy as CreateBy<BaseModel>,
+      OwnersAddedBy.Caller,
+    );
+
+    await IncidentService.create(createBy);
+    await waitUntil((): boolean => {
+      return ownerRulesRan.includes("incident");
+    });
+    await settle();
+
+    at(4, 59);
+    await runJob("incident");
+    expect(notified("incident")).toEqual([]);
+
+    at(5);
+    await runJob("incident");
+    at(6);
+    await runJob("incident");
+
+    // The owner rule's owners, whom its chain added.
+    expect(notified("incident")).toEqual([CARA, DAN]);
   });
 });

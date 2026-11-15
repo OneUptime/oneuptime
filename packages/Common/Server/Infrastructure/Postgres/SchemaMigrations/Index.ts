@@ -998,6 +998,8 @@ import { SetMonitorFillfactor1809172000000 } from "./1809172000000-SetMonitorFil
 import { AddNetworkEndpointCoarseLastSeenAt1809173000000 } from "./1809173000000-AddNetworkEndpointCoarseLastSeenAt";
 import { SwapNetworkEndpointLastSeenIndexes1809173100000 } from "./1809173100000-SwapNetworkEndpointLastSeenIndexes";
 import { SetNetworkEndpointFillfactor1809173200000 } from "./1809173200000-SetNetworkEndpointFillfactor";
+import { AddCreatedNotificationHeldAt1809174700000 } from "./1809174700000-AddCreatedNotificationHeldAt";
+import { AddCreatedNotificationHeldAtIndexes1809174710000 } from "./1809174710000-AddCreatedNotificationHeldAtIndexes";
 
 export default [
   InitialMigration,
@@ -2000,4 +2002,6 @@ export default [
   AddNetworkEndpointCoarseLastSeenAt1809173000000,
   SwapNetworkEndpointLastSeenIndexes1809173100000,
   SetNetworkEndpointFillfactor1809173200000,
+  AddCreatedNotificationHeldAt1809174700000,
+  AddCreatedNotificationHeldAtIndexes1809174710000,
 ];

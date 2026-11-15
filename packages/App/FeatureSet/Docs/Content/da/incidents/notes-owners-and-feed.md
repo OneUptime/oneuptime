@@ -363,7 +363,7 @@ Fem jobs giver ejerne besked, og hvert kører én gang i minuttet:
 
 | Notifikation               | Hvornår                                                      | Emne på e-mailen                                               |
 | -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| **Hændelse oprettet**      | Hændelsen erklæres.                                          | `[New Incident {number}] - {title}`                            |
+| **Hændelse oprettet**      | Cirka et minut efter, at hændelsen er erklæret.              | `[New Incident {number}] - {title}`                            |
 | **En note blev slået op**  | En offentlig *eller* privat note slås op.                    | `[Update Incident {number}] - {title}`                         |
 | **Tilstanden ændrede sig** | Hændelsen går til en anden tilstand.                         | `[{State} Incident {number}] - {title}`                        |
 | **Du blev tilføjet**       | Du tilføjes som ejer.                                        | `You have been added as the owner of Incident {number} - {title}` |
@@ -371,7 +371,7 @@ Fem jobs giver ejerne besked, og hvert kører én gang i minuttet:
 
 Hver notifikation går ud på de kanaler, personen har slået til under **Brugerindstillinger → Notifikationsindstillinger** — e-mail, SMS, taleopkald, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook — som afgør, hvad der faktisk sendes. Hver modtager kan slå hver af dem fra enkeltvis — indstillingerne pr. bruger handler om at sende dig notifikationerne om oprettet hændelse, opslået note, ændret tilstand, tilføjet ejer, tildelt medlem og påmindelse om, at den stadig er åben. En, der kun vil have et opkald ved tilstandsændringer, kan få præcis det. Se [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) for, hvad en tilstandsændring betyder.
 
-**Hændelser uden ejer er ikke tavse.** Har en hændelse slet ingen ejere, falder notifikationsjobbene tilbage på projektets ejere, så intet går tabt. Notifikationen **Hændelse oprettet** for en hændelse, der er meldt via en formular, hvis skabelon har ejere, venter i stedet på de ejere. Hver person, der får besked, føjes også til den tilsvarende feedpost, så du bagefter kan se præcis, hvem der fik besked, og på hvilken adresse.
+**Hændelser uden ejer er ikke tavse.** Har en hændelse slet ingen ejere, falder notifikationsjobbene tilbage på projektets ejere, så intet går tabt. Notifikationen **Hændelse oprettet** venter først på hændelsens ejere: den sendes cirka et minut efter, at hændelsen er erklæret, til alle de ejere, den har på det tidspunkt, også ejere, som et script, et workflow eller API'et tilføjer lige efter oprettelsen, og kun til projektets ejere, hvis den stadig ikke har nogen. Genstarter OneUptime, mens hændelsen erklæres, sendes notifikationen alligevel, højst et par minutter forsinket. Hver person, der får besked, føjes også til den tilsvarende feedpost, så du bagefter kan se præcis, hvem der fik besked, og på hvilken adresse.
 
 ## Næste skridt
 

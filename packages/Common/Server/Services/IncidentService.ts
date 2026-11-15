@@ -191,6 +191,7 @@ import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigation
 import InvestigationRuleWait from "../Utils/AI/SRE/InvestigationRuleWait";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import CreatedNotificationHold, {
+  CreatedNotificationsDue,
   OwnersAddedBy,
 } from "../Utils/Notification/CreatedNotificationHold";
 import IncidentAIContextBuilder, {
@@ -2869,13 +2870,19 @@ export class Service extends ProjectReferencesService<Model> {
      * by default). So every incident is written as notified already, and is
      * marked not notified once all of its owners are in
      * (CreatedNotificationHold, releaseCreatedNotificationHeldForOwners):
-     * the job then tells them on its next run - or, should it have no owner
-     * at all, the project's owners, as before. A create that says it was
-     * notified already is written as it says.
+     * the job then tells them - or, should it have no owner at all, the
+     * project's owners, as before. When the hold began is written with it,
+     * so that a hold nobody lets go - this process stopped - ends by itself
+     * (findCreatedNotificationsDue). A create that says it was notified
+     * already is written as it says, with no hold: only this hook writes
+     * one.
      */
     if (createBy.data.isOwnerNotifiedOfResourceCreation !== true) {
       createBy.data.isOwnerNotifiedOfResourceCreation = true;
+      createBy.data.createdNotificationHeldAt = OneUptimeDate.getCurrentDate();
       CreatedNotificationHold.hold(createBy);
+    } else {
+      delete createBy.data.createdNotificationHeldAt;
     }
 
     const projectId: ObjectID =
@@ -3573,9 +3580,16 @@ export class Service extends ProjectReferencesService<Model> {
      * (CreatedNotificationHold): the chain says they are in right after the
      * owner rules have run, or as soon as it stops short of them. Should the
      * incident not be read back, the chain never starts, and adds nobody.
+     * It lets go of the hold that began when onBeforeCreate wrote it.
      */
+    const createdNotificationHeldAt: Date | undefined =
+      createdItem.createdNotificationHeldAt;
+
     CreatedNotificationHold.chainAddsOwners(onCreate.createBy, async () => {
-      await this.releaseCreatedNotificationHeldForOwners(createdItem);
+      await this.releaseCreatedNotificationHeldForOwners({
+        incident: createdItem,
+        heldAt: createdNotificationHeldAt,
+      });
     });
 
     let readBack: Model | null = null;
@@ -4466,36 +4480,122 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Marks an incident whose create held its "Incident Created" notification
-   * as not notified, so the owners' job sends it on its next run - to every
-   * owner it has by then (CreatedNotificationHold says when that is).
-   * Without the update hooks, as the other notification markers on an
-   * incident are written: nothing they react to changed. It never throws;
-   * a failure is logged, and leaves the notification unsent.
+   * Lets go of the owners' "Incident Created" notification an incident's
+   * create held (CreatedNotificationHold says when): marks the incident not
+   * notified and ends its hold, so the job tells its owners - every owner
+   * it has by then. One write that matches only while the incident still
+   * holds the hold that began at `heldAt`: one the job took once its hold
+   * ran out has had its owners told already, and is never let go again.
+   * Without hooks, as every notification marker of an incident is written:
+   * nothing they react to changed. It never throws: a failure is logged,
+   * and the job takes the incident once its hold has run out.
    */
-  private async releaseCreatedNotificationHeldForOwners(
-    incident: Model,
-  ): Promise<void> {
+  private async releaseCreatedNotificationHeldForOwners(data: {
+    incident: Model;
+    heldAt: Date | undefined;
+  }): Promise<void> {
+    // Without the hold's time the write could match an incident the job took.
+    if (!data.heldAt) {
+      return;
+    }
+
     try {
-      await this.updateOneById({
-        id: incident.id!,
+      await this.compareAndSetColumnsByIdWithoutHooks({
+        id: data.incident.id!,
         data: {
           isOwnerNotifiedOfResourceCreation: false,
+          createdNotificationHeldAt: null as unknown as Date,
         },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
+        expectedData: {
+          isOwnerNotifiedOfResourceCreation: true,
+          createdNotificationHeldAt: data.heldAt,
         },
       });
     } catch (error) {
       logger.error(
-        `Releasing the Incident Created notification held for the owners failed in IncidentService.onCreateSuccess: ${error}`,
+        `Releasing the Incident Created notification held for the owners failed in IncidentService.onCreateSuccess: ${error}. The owners are told once the hold has lasted ${CreatedNotificationHold.HELD_FOR_AT_MOST_MINUTES} minutes.`,
         {
-          projectId: incident.projectId?.toString(),
-          incidentId: incident.id?.toString(),
+          projectId: data.incident.projectId?.toString(),
+          incidentId: data.incident.id?.toString(),
         } as LogAttributes,
       );
     }
+  }
+
+  /*
+   * The incidents whose owners' "Incident Created" notification is due, for
+   * the job that sends it (IncidentOwner:SendCreatedResourceEmail): read as
+   * `select` says, with what takeCreatedNotification needs, each once.
+   * Every incident let go - marked not notified - that was created long
+   * enough ago for the owners a separate request adds right after the
+   * create to be in too, and every incident whose hold nobody let go and
+   * nobody will (CreatedNotificationHold.getDue).
+   */
+  @CaptureSpan()
+  public async findCreatedNotificationsDue(data: {
+    select: Select<Model>;
+    now: Date;
+  }): Promise<Array<Model>> {
+    const due: CreatedNotificationsDue = CreatedNotificationHold.getDue(
+      data.now,
+    );
+
+    const select: Select<Model> = {
+      ...data.select,
+      isOwnerNotifiedOfResourceCreation: true,
+      createdNotificationHeldAt: true,
+    };
+
+    const letGo: Array<Model> = await this.findAllBy({
+      query: {
+        isOwnerNotifiedOfResourceCreation: false,
+        createdAt: QueryHelper.lessThanEqualTo(due.createdBefore),
+      },
+      select: select,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const heldTooLong: Array<Model> = await this.findAllBy({
+      query: {
+        createdNotificationHeldAt: QueryHelper.lessThanEqualTo(due.heldBefore),
+      },
+      select: select,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return CreatedNotificationHold.oncePerRecord([...letGo, ...heldTooLong]);
+  }
+
+  /*
+   * Takes an incident findCreatedNotificationsDue read, for the job to tell
+   * its owners that it was created: marks it notified and ends its hold, in
+   * one write that matches only while the incident is still as it was
+   * read. True when this call took it; false when it is no longer as read -
+   * another run took it, or it was let go meanwhile, and the next run reads
+   * it again. So an incident is taken once, and one the job took is never
+   * let go after it: its owners are told once.
+   */
+  @CaptureSpan()
+  public async takeCreatedNotification(incident: Model): Promise<boolean> {
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: incident.id!,
+      data: {
+        isOwnerNotifiedOfResourceCreation: true,
+        createdNotificationHeldAt: null as unknown as Date,
+      },
+      expectedData: {
+        isOwnerNotifiedOfResourceCreation:
+          incident.isOwnerNotifiedOfResourceCreation === true,
+        createdNotificationHeldAt: (incident.createdNotificationHeldAt ||
+          null) as unknown as Date,
+      },
+    });
   }
 
   /*
