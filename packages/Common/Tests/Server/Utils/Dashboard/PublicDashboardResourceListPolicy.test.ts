@@ -1300,7 +1300,7 @@ describe("PublicDashboardResourceListPolicy", () => {
       serviceLevelObjectiveId: SLO_ID.toString(),
     };
 
-    it("publishes only the seven numbers the widget renders", () => {
+    it("publishes only the nine fields the widget renders", () => {
       const select: JSONObject = build({
         componentType: DashboardComponentType.Slo,
         argumentsObject: sloArguments,
@@ -1315,12 +1315,19 @@ describe("PublicDashboardResourceListPolicy", () => {
         errorBudgetRemainingSeconds: true,
         currentBurnRate: true,
         sloStatus: true,
+        /*
+         * A request SLO's budget line, "120 failed requests remaining"
+         * (#8441): its type says only "failed" or "slow", as the line does.
+         */
+        sliType: true,
+        errorBudgetRemainingEvents: true,
       });
 
       /*
        * The definition of an SLO is not publishable even though its headline
-       * numbers are: which monitors it watches, how it is evaluated, and who
-       * created it all stay behind the session.
+       * numbers are: which monitors or services it watches, which of their
+       * requests it counts and how many, how it is evaluated, and who created
+       * it all stay behind the session.
        */
       for (const privateColumn of [
         "description",
@@ -1331,7 +1338,12 @@ describe("PublicDashboardResourceListPolicy", () => {
         "downtimeMonitorStatuses",
         "labels",
         "metricQueryConfig",
-        "sliType",
+        "services",
+        "latencyThresholdInMilliseconds",
+        "requestFilter",
+        "goodEventCount",
+        "totalEventCount",
+        "errorBudgetTotalEvents",
         "windowType",
         "windowDays",
         "timezone",
