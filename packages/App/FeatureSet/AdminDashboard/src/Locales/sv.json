@@ -2417,6 +2417,7 @@
   "Sign people out after inactivity": "Logga ut personer efter inaktivitet i",
   "People who have not used OneUptime for 30 days sign in again.": "Personer som inte har använt OneUptime på 30 dagar loggar in igen.",
   "Counted from the last time each person clicked, typed or scrolled in OneUptime.": "Räknas från senaste gången varje person klickade, skrev eller skrollade i OneUptime.",
+  "Counted from the last time each person clicked, typed or scrolled in OneUptime. The mobile app needs a version newer than 1.6.0: earlier versions are signed out every 15 minutes.": "Räknas från senaste gången varje person klickade, skrev eller skrollade i OneUptime. Mobilappen behöver en version nyare än 1.6.0: äldre versioner loggas ut var 15:e minut.",
   "SSO Sign-ins": "SSO-inloggningar",
   "Sign-ins through a project's SAML or OpenID Connect provider, or the server's own.": "Inloggningar via ett projekts SAML- eller OpenID Connect-leverantör eller serverns egen.",
   "Separate lengths for SSO sign-ins": "Separata längder för SSO-inloggningar",

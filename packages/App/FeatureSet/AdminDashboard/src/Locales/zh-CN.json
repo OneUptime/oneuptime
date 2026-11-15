@@ -2417,6 +2417,7 @@
   "Sign people out after inactivity": "无操作自动退出登录时间",
   "People who have not used OneUptime for 30 days sign in again.": "30 天未使用 OneUptime 的人需要重新登录。",
   "Counted from the last time each person clicked, typed or scrolled in OneUptime.": "从每个人最后一次在 OneUptime 中点击、输入或滚动时开始计算。",
+  "Counted from the last time each person clicked, typed or scrolled in OneUptime. The mobile app needs a version newer than 1.6.0: earlier versions are signed out every 15 minutes.": "从每个人最后一次在 OneUptime 中点击、输入或滚动时开始计算。移动应用需要 1.6.0 之后的版本：更早的版本每 15 分钟就会被登出。",
   "SSO Sign-ins": "SSO 登录",
   "Sign-ins through a project's SAML or OpenID Connect provider, or the server's own.": "通过项目的 SAML 或 OpenID Connect 提供商，或服务器自身提供商的登录。",
   "Separate lengths for SSO sign-ins": "为 SSO 登录单独设置时长",

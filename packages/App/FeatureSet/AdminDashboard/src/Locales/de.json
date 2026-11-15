@@ -2417,6 +2417,7 @@
   "Sign people out after inactivity": "Personen nach Inaktivität abmelden",
   "People who have not used OneUptime for 30 days sign in again.": "Wer OneUptime 30 Tage lang nicht genutzt hat, meldet sich erneut an.",
   "Counted from the last time each person clicked, typed or scrolled in OneUptime.": "Gezählt ab dem letzten Klicken, Tippen oder Scrollen der jeweiligen Person in OneUptime.",
+  "Counted from the last time each person clicked, typed or scrolled in OneUptime. The mobile app needs a version newer than 1.6.0: earlier versions are signed out every 15 minutes.": "Gezählt ab dem letzten Klicken, Tippen oder Scrollen der jeweiligen Person in OneUptime. Die mobile App braucht eine Version neuer als 1.6.0: Ältere Versionen werden alle 15 Minuten abgemeldet.",
   "SSO Sign-ins": "SSO-Anmeldungen",
   "Sign-ins through a project's SAML or OpenID Connect provider, or the server's own.": "Anmeldungen über den SAML- oder OpenID-Connect-Anbieter eines Projekts oder über den des Servers.",
   "Separate lengths for SSO sign-ins": "Eigene Dauern für SSO-Anmeldungen",
