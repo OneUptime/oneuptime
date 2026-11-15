@@ -756,7 +756,7 @@ describe("the listener, over HTTP", () => {
   /*
    * Amazon SNS posts its subscription confirmations and notifications as
    * JSON labelled text/plain, and OneUptime reads that as the JSON it is
-   * (IncomingRequestBody, #7723): so does the listener, so a topic pointed
+   * (PlainTextJsonBody, #7723): so does the listener, so a topic pointed
    * at the probe reaches the monitor as it would have directly.
    */
   test("forwards JSON sent as text/plain, as Amazon SNS sends it, parsed", async () => {

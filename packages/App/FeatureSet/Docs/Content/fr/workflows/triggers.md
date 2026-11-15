@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | **Request Headers**      | Chaque en-tête de la requête, par son nom en minuscules, comme `content-type`.                                          |
 | **Request Query Params** | Les paramètres de la chaîne de requête de l'URL, par leur nom.                                                          |
-| **Request Body**         | Le corps envoyé par l'appelant. Un corps JSON, envoyé avec `Content-Type: application/json`, se lit champ par champ.   |
+| **Request Body**         | Le corps envoyé par l'appelant. Un corps JSON, envoyé avec `Content-Type: application/json`, se lit champ par champ, tout comme du JSON envoyé en texte brut, comme le fait Amazon SNS. |
 
 Lisez un champ en ajoutant son nom à la référence, comme dans `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

@@ -1,4 +1,4 @@
-import GzipRequestBodyMiddleware from "../../../../Server/Middleware/GzipRequestBody";
+import GzipRequestBodyMiddleware from "../../../Server/Middleware/GzipRequestBody";
 import {
   createExpressApp,
   ExpressApplication,
@@ -7,15 +7,15 @@ import {
   ExpressResponse,
   ExpressUrlEncoded,
   NextFunction,
-} from "../../../../Server/Utils/Express";
-import IncomingRequestBody, {
+} from "../../../Server/Utils/Express";
+import PlainTextJsonBody, {
   TEXT_BODY_CONTENT_TYPE,
-} from "../../../../Server/Utils/Monitor/IncomingRequestBody";
-import { JSONObject } from "../../../../Types/JSON";
+} from "../../../Server/Middleware/PlainTextJsonBody";
+import { JSONObject } from "../../../Types/JSON";
 import {
   SNS_CONFIRMATION_HEADERS,
   snsSubscriptionConfirmation,
-} from "../../../Utils/Monitor/SubscriptionConfirmationFixtures";
+} from "../../Utils/Monitor/SubscriptionConfirmationFixtures";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import http from "http";
 import { AddressInfo } from "net";
@@ -37,27 +37,25 @@ import zlib from "zlib";
 describe("the body a text/plain request is kept as", () => {
   test("a JSON object is kept as the object", () => {
     expect(
-      IncomingRequestBody.fromText(
-        JSON.stringify(snsSubscriptionConfirmation()),
-      ),
+      PlainTextJsonBody.fromText(JSON.stringify(snsSubscriptionConfirmation())),
     ).toEqual(snsSubscriptionConfirmation());
   });
 
   test("a JSON array is kept as the array", () => {
-    expect(IncomingRequestBody.fromText('[{"a":1},{"b":2}]')).toEqual([
+    expect(PlainTextJsonBody.fromText('[{"a":1},{"b":2}]')).toEqual([
       { a: 1 },
       { b: 2 },
     ]);
   });
 
   test("JSON after a byte order mark is still JSON", () => {
-    expect(IncomingRequestBody.fromText('﻿{"status":"up"}')).toEqual({
+    expect(PlainTextJsonBody.fromText('﻿{"status":"up"}')).toEqual({
       status: "up",
     });
   });
 
   test("JSON with whitespace around it is still JSON", () => {
-    expect(IncomingRequestBody.fromText('\n  {"status":"up"}\n')).toEqual({
+    expect(PlainTextJsonBody.fromText('\n  {"status":"up"}\n')).toEqual({
       status: "up",
     });
   });
@@ -71,7 +69,7 @@ describe("the body a text/plain request is kept as", () => {
     ["JSON null", "null"],
     ["nothing", ""],
   ])("%s is kept empty, as before", (_label: string, text: string) => {
-    expect(IncomingRequestBody.fromText(text)).toEqual({});
+    expect(PlainTextJsonBody.fromText(text)).toEqual({});
   });
 
   test.each([
@@ -81,7 +79,7 @@ describe("the body a text/plain request is kept as", () => {
   ])(
     "%s, which is not text, is kept empty",
     (_label: string, value: unknown) => {
-      expect(IncomingRequestBody.fromText(value)).toEqual({});
+      expect(PlainTextJsonBody.fromText(value)).toEqual({});
     },
   );
 
@@ -157,7 +155,7 @@ describe("the reader, behind the parsers OneUptime runs, over HTTP", () => {
 
     app.post(
       "/incoming-request/:secretkey",
-      IncomingRequestBody.getTextBodyReader("4kb"),
+      PlainTextJsonBody.getReader("4kb"),
       (req: ExpressRequest, res: ExpressResponse) => {
         res.json({
           body: Buffer.isBuffer(req.body) ? "a Buffer" : req.body,

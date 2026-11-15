@@ -1,37 +1,39 @@
-import { JSONArray, JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import {
   ExpressRequest,
   ExpressResponse,
   ExpressText,
   NextFunction,
   RequestHandler,
-} from "../Express";
+} from "../Utils/Express";
 
 /*
  * JSON SENT AS TEXT/PLAIN, READ AS JSON.
  *
  * https://github.com/OneUptime/oneuptime/issues/7723
  *
- * An Incoming Request monitor reads JSON and form bodies: StartServer's
- * parsers read application/json and application/x-www-form-urlencoded, and
- * any other body used to reach the monitor empty ({}). Amazon SNS posts
- * every message to an HTTPS subscription - the subscription confirmation
- * the owner must open, then every notification - as JSON with
- * "Content-Type: text/plain; charset=UTF-8". So an SNS topic pointed at a
- * monitor delivered empty bodies: no confirmation link to open, and nothing
- * for a Request Body criteria, a template or incident grouping to read.
+ * StartServer's parsers read application/json and
+ * application/x-www-form-urlencoded bodies, and any other body reaches a
+ * route empty ({}). Amazon SNS posts every message to an HTTPS subscription
+ * - the subscription confirmation its owner must open, then every
+ * notification - as JSON labelled "Content-Type: text/plain; charset=UTF-8".
+ * So an SNS topic pointed at OneUptime delivered empty bodies: no
+ * confirmation link to open, and nothing for a criteria, a template, incident
+ * grouping or a workflow's next block to read.
  *
- * A text/plain body is now read too, and kept as the JSON it holds when it
- * is one JSON object or array - what application/json would have made of
- * it. Any other text still reaches the monitor empty, as before, and so
- * does a text that cannot be read (an unknown charset, a body over the
- * limit): a sender that never sent JSON sees no change, and nothing is
- * refused that was accepted.
+ * The endpoints that take requests from whatever a team points at them read
+ * a text/plain body too, and keep it as the JSON object or array it holds -
+ * what application/json would have made of it:
  *
- * Used where the endpoint is served - the App's Incoming Request router -
- * and by a probe's incoming request ingress, which reads bodies as the App
- * does so a request it relays reaches the monitor as it would have
- * directly.
+ *   - an Incoming Request monitor's endpoint (the App's IncomingRequest
+ *     router), and a probe's incoming request ingress, which reads bodies as
+ *     the App does so a request it relays reaches the monitor as it would
+ *     have directly;
+ *   - a workflow's Webhook trigger.
+ *
+ * Any other text still arrives empty, as before, and so does a text that
+ * cannot be read (an unknown charset, a body over the limit): a sender that
+ * never sent JSON sees no change, and nothing is refused that was accepted.
  */
 
 export const TEXT_BODY_CONTENT_TYPE: string = "text/plain";
@@ -42,7 +44,7 @@ const BYTE_ORDER_MARK: string = "﻿";
 // What a body that holds no JSON object or array is kept as: empty.
 export type EmptyBody = Record<string, never>;
 
-export default class IncomingRequestBody {
+export default class PlainTextJsonBody {
   /*
    * The body a text/plain request is kept as: the JSON object or array the
    * text holds, else an empty body.
@@ -79,7 +81,7 @@ export default class IncomingRequestBody {
    * inflates a gzip body into a Buffer (GzipRequestBody) without marking it
    * read, and reading its spent stream again would fail the request.
    */
-  public static getTextBodyReader(limit: string): RequestHandler {
+  public static getReader(limit: string): RequestHandler {
     const readText: RequestHandler = ExpressText({
       type: TEXT_BODY_CONTENT_TYPE,
       limit: limit,
@@ -96,7 +98,7 @@ export default class IncomingRequestBody {
       }
 
       readText(req, res, (err?: unknown): void => {
-        req.body = err ? {} : IncomingRequestBody.keepJsonOf(req.body);
+        req.body = err ? {} : PlainTextJsonBody.keepJsonOf(req.body);
         next();
       });
     };
@@ -104,6 +106,6 @@ export default class IncomingRequestBody {
 
   // What a body is kept as once express.text has had its turn.
   private static keepJsonOf(body: unknown): unknown {
-    return typeof body === "string" ? IncomingRequestBody.fromText(body) : body;
+    return typeof body === "string" ? PlainTextJsonBody.fromText(body) : body;
   }
 }

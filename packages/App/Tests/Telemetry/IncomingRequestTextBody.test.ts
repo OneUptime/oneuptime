@@ -36,7 +36,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
  * as JSON labelled "Content-Type: text/plain; charset=UTF-8". The endpoint
  * read only JSON and form bodies, so each reached the monitor as {}. The
  * route now reads JSON sent as text/plain as the JSON it is
- * (IncomingRequestBody); any other text still reaches the monitor empty.
+ * (PlainTextJsonBody); any other text still reaches the monitor empty.
  *
  * The real Incoming Request router, over HTTP, behind the JSON and form
  * parsers StartServer runs for every route: only the queue and the arrival

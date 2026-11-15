@@ -17,7 +17,7 @@ import Express, {
   createExpressApp,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import IncomingRequestBody from "Common/Server/Utils/Monitor/IncomingRequestBody";
+import PlainTextJsonBody from "Common/Server/Middleware/PlainTextJsonBody";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -224,7 +224,7 @@ export function createIngressApp(): ExpressApplication {
   const app: ExpressApplication = createExpressApp();
   app.use(ExpressJson({ limit: INGRESS_BODY_LIMIT }));
   app.use(ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT }));
-  app.use(IncomingRequestBody.getTextBodyReader(INGRESS_BODY_LIMIT));
+  app.use(PlainTextJsonBody.getReader(INGRESS_BODY_LIMIT));
   app.use(router);
   return app;
 }

@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | **Request Headers**      | Jeden Header der Anfrage, nach Namen in Kleinbuchstaben, etwa `content-type`.                                        |
 | **Request Query Params** | Die Abfrageparameter in der URL, nach Namen.                                                                         |
-| **Request Body**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json`, lässt sich Feld für Feld lesen. |
+| **Request Body**         | Den Body, den der Aufrufer gesendet hat. Ein JSON-Body, gesendet mit `Content-Type: application/json`, lässt sich Feld für Feld lesen, ebenso JSON, das als reiner Text gesendet wird, wie Amazon SNS es sendet. |
 
 Lesen Sie ein Feld, indem Sie seinen Namen an den Verweis anhängen, wie in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

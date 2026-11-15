@@ -12,7 +12,7 @@ import Response from "Common/Server/Utils/Response";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
-import IncomingRequestBody from "Common/Server/Utils/Monitor/IncomingRequestBody";
+import PlainTextJsonBody from "Common/Server/Middleware/PlainTextJsonBody";
 import OneUptimeDate from "Common/Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
@@ -26,11 +26,11 @@ export const TEXT_BODY_LIMIT: string = "50mb";
 /*
  * JSON sent as text/plain - how Amazon SNS posts its subscription
  * confirmations and notifications - is read as the JSON it is; any other
- * text stays empty (IncomingRequestBody). The JSON and form parsers
+ * text stays empty (PlainTextJsonBody). The JSON and form parsers
  * StartServer runs for every route have read every other body by now.
  */
 const readTextBody: RequestHandler =
-  IncomingRequestBody.getTextBodyReader(TEXT_BODY_LIMIT);
+  PlainTextJsonBody.getReader(TEXT_BODY_LIMIT);
 
 const processIncomingRequest: RequestHandler = async (
   req: ExpressRequest,
