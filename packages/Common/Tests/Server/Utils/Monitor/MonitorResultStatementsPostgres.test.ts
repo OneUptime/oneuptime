@@ -125,7 +125,7 @@ import {
 import { DataSource, Logger, QueryRunner } from "typeorm";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_MONITOR_RESULT_PATH_TESTS"] === "true"
     ? describe
     : describe.skip;

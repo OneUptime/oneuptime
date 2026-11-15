@@ -12,6 +12,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * A project's states, kept per process (ProjectStateListCache): read once
@@ -92,7 +93,7 @@ describe("ProjectStateListCache", () => {
       state("Created", 1),
       state("Resolved", 2),
     ];
-    const read: jest.Mock<() => Promise<Array<IncidentState>>> = jest.fn(
+    const read: Mock<() => Promise<Array<IncidentState>>> = jest.fn(
       async () => {
         return states;
       },
@@ -114,7 +115,7 @@ describe("ProjectStateListCache", () => {
 
   test("callers that ask together share one read", async () => {
     const cache: ProjectStateListCache<IncidentState> = process();
-    const read: jest.Mock<() => Promise<Array<IncidentState>>> = jest.fn(
+    const read: Mock<() => Promise<Array<IncidentState>>> = jest.fn(
       async () => {
         return [state("Created", 1)];
       },
@@ -198,7 +199,7 @@ describe("ProjectStateListCache", () => {
 
   test("a change to another project keeps this one", async () => {
     const cache: ProjectStateListCache<IncidentState> = process();
-    const read: jest.Mock<() => Promise<Array<IncidentState>>> = jest.fn(
+    const read: Mock<() => Promise<Array<IncidentState>>> = jest.fn(
       async () => {
         return [state("Created", 1)];
       },
@@ -213,7 +214,7 @@ describe("ProjectStateListCache", () => {
 
   test("an entry runs out after ENTRY_TTL_MS, whatever its generation says", async () => {
     const cache: ProjectStateListCache<IncidentState> = process();
-    const read: jest.Mock<() => Promise<Array<IncidentState>>> = jest.fn(
+    const read: Mock<() => Promise<Array<IncidentState>>> = jest.fn(
       async () => {
         return [state("Created", 1)];
       },
@@ -248,7 +249,7 @@ describe("ProjectStateListCache", () => {
     jest.spyOn(Redis, "isConnected").mockReturnValue(false);
 
     const cache: ProjectStateListCache<IncidentState> = process();
-    const read: jest.Mock<() => Promise<Array<IncidentState>>> = jest.fn(
+    const read: Mock<() => Promise<Array<IncidentState>>> = jest.fn(
       async () => {
         return [state("Created", 1)];
       },
