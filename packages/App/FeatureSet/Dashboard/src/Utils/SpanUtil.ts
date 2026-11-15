@@ -2,7 +2,11 @@ import OneUptimeDate from "Common/Types/Date";
 import { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 export enum IntervalUnit {
   Nanoseconds = "ns",
@@ -53,18 +57,20 @@ export default class SpanUtil {
     return spanKindDropdownOptions;
   }
 
+  /*
+   * "1.72 s", "2h 5m": in the reader's units and digits ("1,72 Sek.", "۲
+   * ساعت ۵ دقیقه"; #8617), English exactly as it was. The page's
+   * translator unless one is handed in.
+   */
   public static getSpanDurationAsString(data: {
     divisibilityFactor: DivisibilityFactor;
     spanDurationInUnixNano: number;
+    translator?: Translator | undefined;
   }): string {
-    const { spanDurationInUnixNano } = data;
-
-    if (!spanDurationInUnixNano) {
-      return "0 ms";
-    }
-
     return OneUptimeDate.getHumanizedDurationFromNanoseconds({
-      nanoseconds: spanDurationInUnixNano,
+      // No duration recorded reads as none: "0 ms".
+      nanoseconds: data.spanDurationInUnixNano || 0,
+      translator: data.translator || getGlobalTranslator(),
     });
   }
 

@@ -1631,6 +1631,423 @@ export const getDocsSearchQuestionPhrases: (
 };
 
 /*
+ * THE WORDS THAT MAKE WHAT WAS TYPED A QUESTION, not keywords (#8334): a
+ * language's "how", "what", "where", "when", "why", "who" and "which", the
+ * asker's "me" and "my", and the endings a question closes with where they
+ * are words of their own (Korean "하나요", Japanese "ですか", Chinese "吗").
+ * Each is also one of the language's question words (English's are in
+ * AIDocsReader's QUESTION_WORDS), so it is never looked for: it only tells
+ * the docs search box (DocsSearch.isQuestion) that a page may answer what
+ * was asked without saying every one of its words. A question's verb is
+ * often one the answer's page never says: Website Monitor's Russian page
+ * says "мониторинг" and "сайт", not "отслеживать" (track) or "настроить"
+ * (set up).
+ *
+ * A keyword search has none of these: "kubernetes helm", "website ssl",
+ * "API-Schlüssel erstellen". Articles and prepositions ("the", "for",
+ * "der", "pour") are question words but not asking ones: "create a
+ * monitor" is keywords, as strict as before. English "I" is not one
+ * either: "disk i/o latency" is keywords.
+ *
+ * Chinese and Japanese entries are found wherever they stand in what was
+ * typed, as their question words are cut (getDocsSearchQuestionPhrases).
+ */
+export const DOCS_SEARCH_ASKING_WORDS: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  en: ["how", "what", "where", "when", "why", "which", "who", "me", "my"],
+  de: [
+    "wie",
+    "was",
+    "wo",
+    "wann",
+    "warum",
+    "wieso",
+    "weshalb",
+    "wer",
+    "wen",
+    "wem",
+    "welche",
+    "welcher",
+    "welches",
+    "welchen",
+    "welchem",
+    "ich",
+    "mich",
+    "mir",
+    "mein",
+    "meine",
+    "meinen",
+    "meinem",
+    "meiner",
+    "meines",
+  ],
+  fr: [
+    "comment",
+    "quoi",
+    "quel",
+    "quelle",
+    "quels",
+    "quelles",
+    "où",
+    "quand",
+    "pourquoi",
+    "qui",
+    "lequel",
+    "laquelle",
+    "est-ce",
+    "je",
+    "moi",
+    "mon",
+    "ma",
+    "mes",
+    "puis-je",
+    "dois-je",
+  ],
+  // Not "qué": typed without its accent, as many do, it is "que", mostly "that".
+  es: [
+    "cómo",
+    "cuál",
+    "cuáles",
+    "dónde",
+    "cuándo",
+    "porqué",
+    "quién",
+    "quiénes",
+    "yo",
+    "mi",
+    "mis",
+  ],
+  // Not "che": mostly "that", not "what".
+  it: [
+    "come",
+    "cosa",
+    "quale",
+    "quali",
+    "dove",
+    "quando",
+    "perché",
+    "chi",
+    "io",
+    "mio",
+    "mia",
+    "miei",
+    "mie",
+  ],
+  // Not "que" (mostly "that", not "what"), nor "quê", which is "que" without its accent.
+  pt: [
+    "como",
+    "qual",
+    "quais",
+    "onde",
+    "quando",
+    "porque",
+    "quem",
+    "eu",
+    "mim",
+    "meu",
+    "minha",
+    "meus",
+    "minhas",
+  ],
+  nl: [
+    "hoe",
+    "wat",
+    "waar",
+    "wanneer",
+    "waarom",
+    "wie",
+    "welk",
+    "welke",
+    "ik",
+    "mij",
+    "mijn",
+  ],
+  da: [
+    "hvordan",
+    "hvad",
+    "hvor",
+    "hvornår",
+    "hvorfor",
+    "hvem",
+    "hvilken",
+    "hvilket",
+    "hvilke",
+    "jeg",
+    "mig",
+    "min",
+    "mit",
+    "mine",
+  ],
+  no: [
+    "hvordan",
+    "hva",
+    "hvor",
+    "når",
+    "hvorfor",
+    "hvem",
+    "hvilken",
+    "hvilket",
+    "hvilke",
+    "jeg",
+    "meg",
+    "min",
+    "mitt",
+    "mine",
+  ],
+  sv: [
+    "hur",
+    "vad",
+    "var",
+    "när",
+    "varför",
+    "vem",
+    "vilken",
+    "vilket",
+    "vilka",
+    "jag",
+    "mig",
+    "mej",
+    "min",
+    "mitt",
+    "mina",
+  ],
+  // Not "что" (mostly "that") or "который" ("which" that joins a clause, not one that asks).
+  ru: [
+    "как",
+    "где",
+    "куда",
+    "когда",
+    "почему",
+    "зачем",
+    "кто",
+    "какой",
+    "какая",
+    "какое",
+    "какие",
+    "каким",
+    "какую",
+    "каком",
+    "я",
+    "меня",
+    "мне",
+    "мой",
+    "моя",
+    "моё",
+    "мои",
+    "моего",
+    "моей",
+    "моему",
+    "моим",
+    "моих",
+    "моём",
+    "свой",
+    "свою",
+    "своего",
+    "своей",
+    "своим",
+    "своих",
+  ],
+  ja: [
+    "どうすればいいですか",
+    "どうすればよいですか",
+    "どうすればいいでしょうか",
+    "どうすればよいでしょうか",
+    "どうすればいい",
+    "どうすればよい",
+    "どうすれば",
+    "どうしたらいいですか",
+    "どうしたらいい",
+    "どうしたら",
+    "どうやったら",
+    "どうやって",
+    "どのようにして",
+    "どのように",
+    "したいです",
+    "したい",
+    "教えてください",
+    "教えて",
+    "でしょうか",
+    "ですか",
+    "ますか",
+    "私の",
+    "私は",
+    "私",
+    "何",
+    "誰",
+  ],
+  ko: [
+    "어떻게",
+    "어떡하나요",
+    "무엇",
+    "무엇을",
+    "무엇이",
+    "뭐",
+    "뭘",
+    "어디",
+    "어디서",
+    "어디에",
+    "어디에서",
+    "언제",
+    "왜",
+    "누가",
+    "누구",
+    "어떤",
+    "어느",
+    "무슨",
+    "나",
+    "나는",
+    "내",
+    "내가",
+    "나의",
+    "저는",
+    "제",
+    "제가",
+    "저의",
+    "하나요",
+    "있나요",
+    "있습니까",
+    "있을까요",
+    "합니까",
+    "되나요",
+    "됩니까",
+    "좋을까요",
+    "좋나요",
+    "알려주세요",
+  ],
+  "zh-CN": [
+    "如何",
+    "怎么",
+    "怎么样",
+    "怎样",
+    "怎么做",
+    "什么",
+    "哪里",
+    "哪儿",
+    "哪个",
+    "为什么",
+    "为何",
+    "我的",
+    "我们的",
+    "请问",
+    "吗",
+    "呢",
+  ],
+  "zh-TW": [
+    "如何",
+    "怎麼",
+    "怎麼樣",
+    "怎樣",
+    "怎麼做",
+    "什麼",
+    "哪裡",
+    "哪兒",
+    "哪個",
+    "為什麼",
+    "為何",
+    "我的",
+    "我們的",
+    "請問",
+    "嗎",
+    "呢",
+  ],
+  hi: [
+    "कैसे",
+    "क्या",
+    "कहाँ",
+    "कहां",
+    "कब",
+    "क्यों",
+    "कौन",
+    "कौनसा",
+    "कौन-सा",
+    "किस",
+    "किसे",
+    "मैं",
+    "मुझे",
+    "मेरा",
+    "मेरी",
+    "मेरे",
+  ],
+  fa: [
+    "چطور",
+    "چطوری",
+    "چگونه",
+    "چه",
+    "چی",
+    "چیست",
+    "کجا",
+    "کجاست",
+    "کی",
+    "چرا",
+    "کدام",
+    "کدوم",
+    "من",
+    "مرا",
+    "خودم",
+  ],
+};
+
+const askingWordCache: Map<string, ReadonlySet<string>> = new Map();
+
+/*
+ * A language's asking words (DOCS_SEARCH_ASKING_WORDS), folded as a typed
+ * word is compared: none for a language the docs do not have.
+ */
+export const getDocsSearchAskingWords: (
+  language: string,
+) => ReadonlySet<string> = (language: string): ReadonlySet<string> => {
+  const cached: ReadonlySet<string> | undefined = askingWordCache.get(language);
+
+  if (cached) {
+    return cached;
+  }
+
+  const listed: ReadonlyArray<string> = Object.prototype.hasOwnProperty.call(
+    DOCS_SEARCH_ASKING_WORDS,
+    language,
+  )
+    ? DOCS_SEARCH_ASKING_WORDS[language] || []
+    : [];
+  const folded: ReadonlySet<string> = new Set<string>(
+    listed.map(foldDocsSearchWord),
+  );
+
+  askingWordCache.set(language, folded);
+
+  return folded;
+};
+
+/*
+ * Whether `word`, as typed, asks: it is one of `language`'s asking words,
+ * or, written without spaces, holds one wherever it stands
+ * ("如何监控我的网站" holds "如何").
+ */
+export const isDocsSearchAskingWord: (
+  word: string,
+  language: string,
+) => boolean = (word: string, language: string): boolean => {
+  const asking: ReadonlySet<string> = getDocsSearchAskingWords(language);
+  const folded: string = foldDocsSearchWord(word);
+
+  if (asking.has(folded)) {
+    return true;
+  }
+
+  if (!UNSPACED_QUESTION_WORD.test(folded)) {
+    return false;
+  }
+
+  for (const phrase of asking) {
+    if (UNSPACED_QUESTION_WORD.test(phrase) && folded.includes(phrase)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/*
  * THE ENDINGS A WORD IS COMPARED WITHOUT, per language (#7875).
  *
  * A page's words and a question's are both read without one ending, so

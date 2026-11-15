@@ -86,7 +86,7 @@ Exportera en befintlig regel för att få ett exempel för din resurstyp, och re
 
 Använd JSON-booleans för `isEnabled`, text för mönster och matriser med namn för länkade resurser.
 
-Följande stoppar hela batchen före importsteget: ogiltiga mönster, okända fält, saknade namn och tvetydiga hänvisningar. Det gör även en regel som inte lägger till något (en tom `labelsToAdd` och, i en regel för incidenter, larm eller planerat underhåll, ingen brytare `inheritLabelsFrom…` satt till `true`), eftersom OneUptime vägrar att skapa en sådan (se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules#oavsett-hur-regeln-skapas)). En export kan innehålla en sådan regel om den sparades före den kontrollen; ge den en etikett eller ta bort den från filen innan du importerar.
+Följande stoppar hela batchen före importsteget: ogiltiga mönster, okända fält, saknade namn och tvetydiga hänvisningar. Det gör även en regel som inte lägger till något (en tom `labelsToAdd` och, i en regel för incidenter, larm eller schemalagt underhåll, ingen brytare `inheritLabelsFrom…` satt till `true`), eftersom OneUptime vägrar att skapa en sådan (se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules#oavsett-hur-regeln-skapas)). En export kan innehålla en sådan regel om den sparades före den kontrollen; ge den en etikett eller ta bort den från filen innan du importerar.
 
 > [!NOTE]
 > Filer och inklistrad JSON är begränsade till 10 MB.
