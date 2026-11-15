@@ -10,6 +10,8 @@ import {
   TelemetrySignalRow,
 } from "./TelemetryIngestionUtils";
 import URL from "Common/Types/API/URL";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Gray500 } from "Common/Types/BrandColors";
@@ -73,7 +75,7 @@ const SignalTile: FunctionComponent<{
         </div>
       </div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-gray-900">
-        {formatCompactCount(props.lastDay)}
+        {getFigure(formatCompactCount(props.lastDay))}
       </div>
       <div className="text-xs text-gray-500">
         {formatInline(
@@ -196,19 +198,21 @@ const TelemetryIngestionBySignal: FunctionComponent = (): ReactElement => {
           </span>
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatBytes(data.counts.uncompressedBytes)}
+          {getValueOrQuietDash(formatBytes(data.counts.uncompressedBytes))}
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatCount(data.counts.lastMinute)}
+          {getValueOrQuietDash(formatCount(data.counts.lastMinute))}
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatCount(data.counts.lastHour)}
+          {getValueOrQuietDash(formatCount(data.counts.lastHour))}
         </td>
         <td className="px-4 py-2 text-right text-sm tabular-nums">
-          {formatCount(data.counts.lastDay)}
+          {getValueOrQuietDash(formatCount(data.counts.lastDay))}
         </td>
         <td className="py-2 pl-4 text-right text-sm tabular-nums">
-          {formatCount(averagePerHour(data.counts.lastDay))}
+          {getValueOrQuietDash(
+            formatCount(averagePerHour(data.counts.lastDay)),
+          )}
         </td>
       </tr>
     );

@@ -22,7 +22,9 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { formatMillisecondsIn } from "./HealthUnits";
 import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 type LogTab = "application" | "clickhouse" | "postgres" | "redis";
 
@@ -384,9 +386,11 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                       {String(rowObject["at"] || "")}
                     </span>{" "}
                     <span className="font-semibold text-amber-400">
-                      {formatMillisecondsIn(
-                        rowObject["durationMs"] || 0,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatMillisecondsIn(
+                          rowObject["durationMs"] || 0,
+                          translator,
+                        ),
                       )}
                     </span>{" "}
                     <span>{String(rowObject["command"] || "")}</span>

@@ -393,8 +393,13 @@ work out, starts from a default for everything else, and folds what most people 
   labels attached."). A stat tile's figure (`text-lg` and up) draws `EmptyFigure`: the same light
   grey dash at the figure's size, read out as "Not set", where tiles drew bare dashes of their own
   in several greys that a screen reader heard as "dash" (#8264). Every tile draws it for a value
-  that is missing, blank or a dash, so a tile is handed no value. A dash between two values, a
-  minus sign and code are not empty values. Enforced by
+  that is missing, blank or a dash, so a tile is handed no value. A formatter never writes a dash
+  of its own for nothing (`return "—"`, `host || "-"`): pages drew some five hundred of those
+  straight into their cells (#8262). A component that draws a value is handed nothing, and plain
+  text (a chart's label, an export, a sentence) gets the shared mark `EMPTY_VALUE_MARK`. A page
+  that draws a formatter's text in an element of its own draws it through `getValueOrQuietDash`
+  (or `getFigure` in a figure), which turns that mark into the quiet dash. A dash between two
+  values, a minus sign and code are not empty values. Enforced by
   [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
   and
   [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
@@ -773,9 +778,27 @@ then `npm run i18n:validate` from the root.
   for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
   the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
   [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts),
+  for every word of a built-in workflow step (its card, its settings form, its Outputs and
+  Returns lists), which read English in most languages because the step catalogue was never
+  extracted (#8359),
+  [WorkflowStepWordsInEveryLanguage](../../packages/App/Tests/Dashboard/WorkflowStepWordsInEveryLanguage.test.ts),
+  for a monitor's type and a security event's severity wherever they are drawn as text (#8294,
+  #8295),
+  [MonitorTypeAndEventSeverityInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MonitorTypeAndEventSeverityInReadersLanguage.test.tsx),
+  for a picker's label with an English word glued on, an archived SLO's "(archived)" and an
+  unnamed ingestion key's "Unnamed Key" (#8297),
+  [PickerLabelsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/PickerLabelsInReadersLanguage.test.tsx),
+  for the topology screens' "Unnamed resource", a browser service's "Browser" and the entity
+  drawer's screen-reader line (#8260),
+  [TopologyUnnamedBrowserAndDrawerInLanguages](../../packages/Common/Tests/App/Dashboard/TopologyUnnamedBrowserAndDrawerInLanguages.test.tsx),
   and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
   whose 186 texts had no entry in its locales and read English in every language (#8227),
-  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts).
+  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts),
+  with the texts those pages drew as written, which no lookup read (#8555),
+  [AdminOwnPagesDrawnAsWrittenGuard](../../packages/App/Tests/AdminDashboard/AdminOwnPagesDrawnAsWrittenGuard.test.ts),
+  and the sentences the extractor could not see there, kept in a variable or handed to a prop it
+  does not know (#8636),
+  [AdminUnseenTextsGuard](../../packages/App/Tests/AdminDashboard/AdminUnseenTextsGuard.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a

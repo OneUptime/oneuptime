@@ -3914,5 +3914,21 @@
   "The logo for light backgrounds is used.": "हल्की पृष्ठभूमि वाला लोगो इस्तेमाल होता है।",
   "Dark mode will use the logo for light backgrounds.": "डार्क मोड हल्की पृष्ठभूमि वाला लोगो इस्तेमाल करेगा।",
   "OneUptime's icon is shown.": "OneUptime का आइकन दिखता है।",
-  "Browser tabs will show OneUptime's icon again.": "ब्राउज़र टैब फिर से OneUptime का आइकन दिखाएँगे।"
+  "Browser tabs will show OneUptime's icon again.": "ब्राउज़र टैब फिर से OneUptime का आइकन दिखाएँगे।",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} साल",
+  "{{count}}mo": "{{count}} माह",
+  "{{count}}d": "{{count}} दिन",
+  "{{count}}h": "{{count}} घंटे",
+  "{{count}}m": "{{count}} मिनट",
+  "{{count}}s": "{{count}} सेकंड",
+  "{{count}}y ago": "{{count}} साल पहले",
+  "{{count}}mo ago": "{{count}} महीने पहले",
+  "{{count}}d ago": "{{count}} दिन पहले",
+  "{{count}}h ago": "{{count}} घंटे पहले",
+  "{{count}}m ago": "{{count}} मिनट पहले",
+  "{{count}}s ago": "{{count}} सेकंड पहले",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} मिनट {{seconds}} सेकंड",
+  "{{hours}}h {{minutes}}m": "{{hours}} घंटे {{minutes}} मिनट",
+  "{{days}}d {{hours}}h": "{{days}} दिन {{hours}} घं."
 }

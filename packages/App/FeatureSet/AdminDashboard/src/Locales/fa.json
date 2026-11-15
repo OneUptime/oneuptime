@@ -3914,5 +3914,21 @@
   "The logo for light backgrounds is used.": "لوگوی پس‌زمینه‌های روشن به کار می‌رود.",
   "Dark mode will use the logo for light backgrounds.": "حالت تیره از لوگوی پس‌زمینه‌های روشن استفاده می‌کند.",
   "OneUptime's icon is shown.": "آیکون OneUptime نشان داده می‌شود.",
-  "Browser tabs will show OneUptime's icon again.": "زبانه‌های مرورگر دوباره آیکون OneUptime را نشان می‌دهند."
+  "Browser tabs will show OneUptime's icon again.": "زبانه‌های مرورگر دوباره آیکون OneUptime را نشان می‌دهند.",
+  "{{value}} ms": "{{value}} میلی‌ثانیه",
+  "{{count}}y": "{{count}} سال",
+  "{{count}}mo": "{{count}} ماه",
+  "{{count}}d": "{{count}} روز",
+  "{{count}}h": "{{count}} ساعت",
+  "{{count}}m": "{{count}} دقیقه",
+  "{{count}}s": "{{count}} ثانیه",
+  "{{count}}y ago": "{{count}} سال پیش",
+  "{{count}}mo ago": "{{count}} ماه پیش",
+  "{{count}}d ago": "{{count}} روز پیش",
+  "{{count}}h ago": "{{count}} ساعت پیش",
+  "{{count}}m ago": "{{count}} دقیقه پیش",
+  "{{count}}s ago": "{{count}} ثانیه پیش",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} دقیقه {{seconds}} ثانیه",
+  "{{hours}}h {{minutes}}m": "{{hours}} ساعت {{minutes}} دقیقه",
+  "{{days}}d {{hours}}h": "{{days}} روز {{hours}} ساعت"
 }

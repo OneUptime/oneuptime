@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import DashboardDataSourceTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceTableComponent";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DataSourceTableResult, {
   DataSourceTableColumn,
@@ -269,7 +270,7 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   ) => string = useCallback(
     (value: JSONValue, column: DataSourceTableColumn): string => {
       if (value === null || value === undefined) {
-        return "-";
+        return EMPTY_VALUE_MARK;
       }
       if (
         column.type === DataSourceTableColumnType.Number &&

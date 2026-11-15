@@ -1,4 +1,5 @@
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import React, { FunctionComponent, ReactElement } from "react";
 import useResizableColumns, {
   ResizableColumns,
@@ -7,7 +8,9 @@ import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/Resizab
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   interfaces: Array<SnmpInterface>;
@@ -18,7 +21,7 @@ const formatBitsPerSecond: (bps: number | undefined) => string = (
   bps: number | undefined,
 ): string => {
   if (bps === undefined) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   if (bps >= 1000000000) {
@@ -202,13 +205,19 @@ const SnmpInterfacesView: FunctionComponent<ComponentProps> = (
                     )}
                   </td>
                   <td className="pr-4 py-1">
-                    {formatBitsPerSecond(snmpInterface.speedInBitsPerSecond)}
+                    {getValueOrQuietDash(
+                      formatBitsPerSecond(snmpInterface.speedInBitsPerSecond),
+                    )}
                   </td>
                   <td className="pr-4 py-1">
-                    {formatBitsPerSecond(snmpInterface.inBitsPerSecond)}
+                    {getValueOrQuietDash(
+                      formatBitsPerSecond(snmpInterface.inBitsPerSecond),
+                    )}
                   </td>
                   <td className="pr-4 py-1">
-                    {formatBitsPerSecond(snmpInterface.outBitsPerSecond)}
+                    {getValueOrQuietDash(
+                      formatBitsPerSecond(snmpInterface.outBitsPerSecond),
+                    )}
                   </td>
                   <td className="pr-4 py-1">
                     {snmpInterface.utilizationPercent !== undefined ? (

@@ -53,6 +53,7 @@ import {
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { QUIET_DASH_TEXT, quietDashTextIn } from "../../Helpers/QuietDash";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * What one check of an external status page found, as the monitor's
@@ -1755,7 +1756,7 @@ describe("the page's active incidents (getActiveIncidentsText)", () => {
           activeIncidentCount: count,
           isPageRead: false,
         }),
-      ).toBe("-");
+      ).toBe(EMPTY_VALUE_MARK);
     }
   });
 

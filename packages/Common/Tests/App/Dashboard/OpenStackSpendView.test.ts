@@ -23,6 +23,7 @@ import {
 } from "../../../Types/OpenStack/OpenStackProjectUsage";
 import { OpenStackSpendSnapshot } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const translator: Translator = {
   translateText: (text: string): string => {
@@ -93,8 +94,8 @@ describe("what a page says about money", () => {
         currency: "USD",
         translator,
       }),
-    ).toBe("–");
-    expect(formatOpenStackUsageNumber(null, translator)).toBe("–");
+    ).toBe(EMPTY_VALUE_MARK);
+    expect(formatOpenStackUsageNumber(null, translator)).toBe(EMPTY_VALUE_MARK);
   });
 
   test("a currency that's set is said, and none that isn't", () => {
@@ -199,7 +200,7 @@ describe("the tiles", () => {
         translator,
       });
 
-    expect(tiles[2]!.value).toBe("–");
+    expect(tiles[2]!.value).toBe(EMPTY_VALUE_MARK);
     expect(tiles[2]!.sublabel).toBe("Not enough history yet");
     expect(tiles[0]!.sublabel).toBeUndefined();
   });

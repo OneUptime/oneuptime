@@ -22,6 +22,7 @@ import {
   YAxis,
 } from "recharts";
 import API from "Common/UI/Utils/API/API";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import URL from "Common/Types/API/URL";
@@ -296,9 +297,12 @@ const AnalyticsTooltip: FunctionComponent<AnalyticsTooltipProps> = (
                   </span>
                 </div>
                 <span className="font-mono text-xs font-semibold tabular-nums text-gray-800">
-                  {props.isDuration
-                    ? formatDurationMsInLanguage(entry.value, translator)
-                    : entry.value.toLocaleString(getReaderNumberLocale())}
+                  {getValueOrQuietDash(
+                    props.isDuration
+                      ? formatDurationMsInLanguage(entry.value, translator)
+                      : entry.value.toLocaleString(getReaderNumberLocale()),
+                    { isSmall: true },
+                  )}
                 </span>
               </div>
             );
@@ -1261,9 +1265,14 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-3">
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
-                    {isDuration
-                      ? formatDurationMsInLanguage(item.metricValue, translator)
-                      : translator.formatNumber(item.metricValue)}
+                    {getValueOrQuietDash(
+                      isDuration
+                        ? formatDurationMsInLanguage(
+                            item.metricValue,
+                            translator,
+                          )
+                        : translator.formatNumber(item.metricValue),
+                    )}
                   </span>
                   {isDuration && (
                     <span className="w-20 text-right font-mono text-[11px] tabular-nums text-gray-400">
@@ -1386,45 +1395,61 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       {row.errorCount.toLocaleString(getReaderNumberLocale())}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMsInLanguage(
-                        row.avgDurationMs,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.avgDurationMs,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMsInLanguage(
-                        row.p50DurationMs,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p50DurationMs,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMsInLanguage(
-                        row.p90DurationMs,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p90DurationMs,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMsInLanguage(
-                        row.p95DurationMs,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p95DurationMs,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-sm tabular-nums text-gray-700">
-                      {formatDurationMsInLanguage(
-                        row.p99DurationMs,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.p99DurationMs,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums text-gray-500">
-                      {formatDurationMsInLanguage(
-                        row.minDurationMs,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.minDurationMs,
+                          translator,
+                        ),
+                        { isSmall: true },
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono text-xs tabular-nums text-gray-500">
-                      {formatDurationMsInLanguage(
-                        row.maxDurationMs,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatDurationMsInLanguage(
+                          row.maxDurationMs,
+                          translator,
+                        ),
+                        { isSmall: true },
                       )}
                     </td>
                   </tr>

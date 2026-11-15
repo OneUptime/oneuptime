@@ -250,7 +250,7 @@ describe("the Overview's strip", () => {
 
     expect(loading.loading).toBe(true);
     expect(failed.loading).toBe(false);
-    expect(failed.value).toBe("—");
+    expect(failed.value).toBeUndefined();
   });
 
   test("before any account's costs are read, the spend tile leads to how to read them", () => {
@@ -268,7 +268,7 @@ describe("the Overview's strip", () => {
         "spend",
       ),
     ).toMatchObject({
-      value: "—",
+      value: undefined,
       sublabel: COSTS_NOT_READ_YET,
       to: ROUTES.costs,
     });
@@ -352,7 +352,7 @@ describe("the Costs and Savings strips", () => {
     );
 
     expect(notRead).toMatchObject({
-      value: "—",
+      value: undefined,
       sublabel: RECOMMENDATIONS_NOT_READ_YET,
       tone: "neutral",
     });

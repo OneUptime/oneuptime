@@ -148,7 +148,7 @@ const AppPlatformsArchivedPage: FunctionComponent<
                    * (IsolatedLine); the link inside it.
                    */}
                   <IsolatedLine
-                    text={name || "—"}
+                    text={name}
                     className="truncate text-sm font-medium text-gray-900"
                   >
                     <AppLink to={route} className="hover:underline">

@@ -1,4 +1,5 @@
 import EntitySource from "Common/Types/Telemetry/EntitySource";
+import { translationKey } from "Common/Types/Translator";
 
 /*
  * How the Inventory product presents the three ways a row can come to exist.
@@ -50,8 +51,9 @@ const DESCRIPTORS: Record<EntitySource, InventorySourceDescriptor> = {
     pillClassName: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
     hasLivenessSignal: true,
     isDeletePermanent: false,
-    deleteCaveat:
+    deleteCaveat: translationKey(
       "This item was discovered from telemetry. Deleting it clears it from the list, but it will be re-created the next time it sends data.",
+    ),
   },
   [EntitySource.Inventory]: {
     source: EntitySource.Inventory,
@@ -61,8 +63,9 @@ const DESCRIPTORS: Record<EntitySource, InventorySourceDescriptor> = {
     pillClassName: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
     hasLivenessSignal: false,
     isDeletePermanent: false,
-    deleteCaveat:
+    deleteCaveat: translationKey(
       "This item mirrors a record elsewhere in OneUptime. Delete the original record to remove it for good — deleting it here only clears the copy.",
+    ),
   },
   [EntitySource.Manual]: {
     source: EntitySource.Manual,
@@ -137,6 +140,17 @@ export const isDeletePermanentForSource: InventorySourcePredicate = (
   return getInventorySourceDescriptor(source)?.isDeletePermanent === true;
 };
 
+/*
+ * The caveats are keys of the locale files, marked so the i18n extractor
+ * adds them: a descriptor's deleteCaveat is not a field it reads, so both
+ * caveats and this one read English in every language, on an item's Delete
+ * tab and on Help > Documentation (#8341). Their readers look them up:
+ * the Delete tab's Alert translates its title, the page calls translateText.
+ */
+const UNKNOWN_SOURCE_DELETE_CAVEAT: string = translationKey(
+  "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent.",
+);
+
 export type InventoryDeleteCaveatFunction = (
   source: string | undefined,
 ) => string | null;
@@ -148,7 +162,7 @@ export const getInventoryDeleteCaveat: InventoryDeleteCaveatFunction = (
     getInventorySourceDescriptor(source);
 
   if (!descriptor) {
-    return "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent.";
+    return UNKNOWN_SOURCE_DELETE_CAVEAT;
   }
 
   return descriptor.deleteCaveat || null;

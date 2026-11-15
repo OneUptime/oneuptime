@@ -70,7 +70,7 @@ Under standarden, sammenfoldet under **Flere innstillinger**, setter kortet **Op
 | --- | --- |
 | Logger | **Standard for logger (dager)**, og ett felt for hver loggalvorlighetsgrad |
 | Spor | **Standard for traces (dager)**, og ett felt for hver span-status: Feil, OK og Ikke angitt |
-| Målinger | **Standard for metrikker (dager)** |
+| Målinger | **Standard for målinger (dager)** |
 | Profiler | **Standard for profiler (dager)** |
 
 Et felt som står tomt, faller tilbake på neste innstilling i rekkefølgen over, så en alvorlighetsgrad uten egne dager oppbevarer loggene sine etter standarden for logger.
