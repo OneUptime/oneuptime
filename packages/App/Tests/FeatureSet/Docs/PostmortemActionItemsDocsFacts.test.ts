@@ -269,8 +269,16 @@ describe("the postmortem page's action items", () => {
     expect(INCIDENT_PRIVACY_FILTER).toContain(
       'FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm',
     );
+    /*
+     * Project owners and admins, and root and master-admin contexts, see
+     * every private incident: the incident's rule is the shared private
+     * record rule (086658b4624).
+     */
     expect(INCIDENT_PRIVACY_FILTER).toContain(
-      " * Project Owners and Project Admins, plus root/master-admin contexts, see all\n * private incidents.",
+      "return shouldBypassRecordPrivacy(props);",
+    );
+    expect(flat(readSource("Common/Server/Utils/PrivacyFilterUtil.ts"))).toContain(
+      "export const PRIVATE_RECORD_BYPASS_PERMISSIONS: ReadonlyArray<Permission> = [ Permission.ProjectOwner, Permission.ProjectAdmin, ];",
     );
 
     expect(flat(section(POSTMORTEMS, "### See every action item"))).toContain(
