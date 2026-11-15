@@ -35,7 +35,7 @@ Listen viser hver type post med kommandoen, navnene, typen og API-stien sin. Det
 | Type | Hva den inneholder |
 | --- | --- |
 | `database` | Poster du administrerer: monitorer, hendelser, varsler, statussider, team og mer |
-| `analytics` | Telemetri: logger, spenn, metrikker, unntak og andre hendelser |
+| `analytics` | Telemetri: logger, spenn, målinger, unntak og andre hendelser |
 
 Vis én type med `oneuptime resources --type database` eller `--type analytics`. [Kommandoreferanse](/docs/cli/command-reference#ressurser) lister hver kommando.
 

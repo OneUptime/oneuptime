@@ -49,7 +49,7 @@ Så lägger du till en projektkonfiguration:
 5. Spara. Ett projekt har en standard för SMS och en för samtal, så en konfiguration inställd på **Endast SMS** och en inställd på **Endast samtal** kan båda vara standard: se [Ett konto endast för SMS, eller endast för samtal](#ett-konto-endast-för-sms-eller-endast-för-samtal). Statussidor använder den konfiguration som uttryckligen har tilldelats varje statussida.
 
 > [!IMPORTANT]
-> **SMS** och **Telefonsamtal** är avstängda från början i varje projekt, och så länge de är avstängda kan ingen i projektet lägga till ett telefonnummer för dem. En projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem i kortet **Aviseringskanaler** på samma sida.
+> **SMS** och **Telefonsamtal** är avstängda från början i varje projekt, och så länge de är avstängda kan ingen i projektet lägga till ett telefonnummer för dem. En Projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem i kortet **Aviseringskanaler** på samma sida.
 :::
 
 För en standard som gäller hela installationen kan en administratör i stället öppna **Admin Dashboard > Inställningar > Samtal och SMS**, välja vad kontot skickar, redigera Twilio-uppgifterna och telefonnumren och spara. Medlemmarnas aviseringar använder den här globala konfigurationen när deras projekt saknar standard. Håll Auth Token hemlig.

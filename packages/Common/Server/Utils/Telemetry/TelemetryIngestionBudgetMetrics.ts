@@ -380,7 +380,7 @@ export default class TelemetryIngestionBudgetMetrics {
       return summary;
     }
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       await this.getRetentionDays(),
     );

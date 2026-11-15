@@ -273,5 +273,5 @@ Slack-appen mangler scopet `files:write`. Se [Billeder i beskeder](#billeder-i-b
 :::cards
 - [Slack](/docs/workspace-connections/slack): Opret notifikationsregler og opsummeringer for projektet.
 - [Microsoft Teams-integration](/docs/self-hosted/microsoft-teams-integration): Opsæt også Teams-botten på din server.
-- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
+- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad arbejdsgange og webhooks nå interne værktøjer.
 :::

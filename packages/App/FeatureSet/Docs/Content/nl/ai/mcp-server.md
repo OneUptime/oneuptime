@@ -113,7 +113,7 @@ Wat een gekoppelde client kan:
 
 ### Gekoppelde clients beheren
 
-Elke client die door aanmelden is gekoppeld, staat op **Projectinstellingen → AI → MCP-server**, onder **Verbonden MCP-clients**, met wie hem heeft gekoppeld, wat hij mag en wanneer hij voor het laatst is gebruikt. Je ziet de clients die je zelf hebt gekoppeld; eigenaren en beheerders van het project zien die van iedereen.
+Elke client die door aanmelden is gekoppeld, staat op **Projectinstellingen → AI → MCP-server**, onder **Verbonden MCP-clients**, met wie hem heeft gekoppeld, wat hij mag en wanneer hij voor het laatst is gebruikt. Je ziet de clients die je zelf hebt gekoppeld; Projecteigenaren en Projectbeheerders zien die van iedereen.
 
 Klik op **Verbinding verbreken** om een client af te melden. Hij werkt meteen niet meer.
 
@@ -497,7 +497,7 @@ De MCP-server is stateless: hij geeft geen sessie-id's uit en houdt ze niet bij,
 | Beveiliging | Security Event, Threat Intel Indicator |
 | Wijzigingen en kosten | Change Event, Kubernetes Cost Allocation |
 
-De tools heten in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` en `count_incidents`, of `list_logs` en `count_spans` voor telemetrie.
+De tools heten in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` en `count_incidents`, of `list_logs` en `count_spans` voor telemetrie. `create_incident` en `create_alert` nemen ook `ownerUsers` en `ownerTeams`: de id's van de gebruikers en teams die het record vanaf het begin bezitten en die horen dat het is gemaakt.
 
 ## Volgende stappen
 

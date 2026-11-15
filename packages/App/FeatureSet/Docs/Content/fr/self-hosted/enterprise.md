@@ -34,7 +34,7 @@ Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterpri
 
 | Fonction | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| Supervision, alertes, incidents, astreinte, pages de statut, journaux, métriques, traces, exceptions, tableaux de bord, workflows, fonctions d'IA, API et Terraform | Oui | Oui | Tous les plans |
+| Supervision, alertes, incidents, astreinte, pages de statut, journaux, métriques, traces, exceptions, tableaux de bord, flux de travail, fonctions d'IA, API et Terraform | Oui | Oui | Tous les plans |
 | Connexion par mot de passe, authentification à deux facteurs, équipes, rôles intégrés et clés API | Oui | Oui | Tous les plans |
 | [SSO SAML et OpenID Connect](/docs/identity/sso) pour la connexion aux projets | Oui | Oui | Plan Scale et supérieurs |
 | SSO SAML et OpenID Connect pour la connexion aux pages de statut privées | Oui | Oui | Plan Scale et supérieurs |

@@ -159,7 +159,7 @@ Fordi vinduene overlapper, holder én bølge av feil antallet høyt i opptil fem
 
 ## Varsler per gruppe (Group By)
 
-**Grupper etter attributter** deler en loggmonitors telling opp i én telling per særskilt kombinasjon av attributtverdier (én per IPsec-tunnel, per VPN-bruker, per brannmurgrensesnitt) og evaluerer kriteriene for hver gruppe for seg. Det er loggmotstykket til en metrikkmonitors [Group By](/docs/monitor/metrics-monitor#varsler-per-serie-group-by).
+**Grupper etter attributter** deler en loggmonitors telling opp i én telling per særskilt kombinasjon av attributtverdier (én per IPsec-tunnel, per VPN-bruker, per brannmurgrensesnitt) og evaluerer kriteriene for hver gruppe for seg. Det er loggmotstykket til en målingsmonitors [Group By](/docs/monitor/metrics-monitor#varsler-per-serie-group-by).
 
 ### Ett varsel per gruppe
 
@@ -223,7 +223,7 @@ Hver tunnel som logger en avslutning, får nå sitt eget varsel (`IPsec tunnel H
 
 ### Gruppeverdier i titler og beskrivelser
 
-Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-alert-templating) i tittelen, beskrivelsen og utbedringsnotatene for varselet eller hendelsen, akkurat som etikettene på en metrikkserie: gruppering etter `con_name` gir deg `{{con_name}}`. En nøkkel med punktum leses som en sti, så `sophos.con_name` blir `{{sophos.con_name}}`. Når tittelen ikke allerede nevner gruppen, legges gruppen til i den (`IPsec tunnel terminated - Con Name: HQ-Branch1`), og `{{seriesResourceSuffix}}` og `{{seriesResourceSummary}}` virker som på metrikkmonitorer.
+Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-alert-templating) i tittelen, beskrivelsen og utbedringsnotatene for varselet eller hendelsen, akkurat som etikettene på en målingsserie: gruppering etter `con_name` gir deg `{{con_name}}`. En nøkkel med punktum leses som en sti, så `sophos.con_name` blir `{{sophos.con_name}}`. Når tittelen ikke allerede nevner gruppen, legges gruppen til i den (`IPsec tunnel terminated - Con Name: HQ-Branch1`), og `{{seriesResourceSuffix}}` og `{{seriesResourceSummary}}` virker som på målingsmonitorer.
 
 ### Slik telles grupper
 
@@ -234,7 +234,7 @@ Verdien til hvert Group By-attributt er en [malvariabel](/docs/monitor/incident-
 
 ### Evalueringen av kriterier er annerledes
 
-- **Alle kriterier evalueres**, som på en gruppert metrikkmonitor, så ulike grupper kan oppfylle ulike kriterier samtidig. En gruppe som oppfyller to kriterier, får fortsatt bare ett varsel, fra det første; sorter derfor kriteriene fra mest til minst alvorlige.
+- **Alle kriterier evalueres**, som på en gruppert målingsmonitor, så ulike grupper kan oppfylle ulike kriterier samtidig. En gruppe som oppfyller to kriterier, får fortsatt bare ett varsel, fra det første; sorter derfor kriteriene fra mest til minst alvorlige.
 - **En gruppe finnes bare hvis den har logget noe i tidsvinduet.** Kriterier som **Lik 0** og **Mindre enn** utløses derfor bare for grupper som har logget minst én gang; for å bli varslet når logger slutter å komme helt, bruker du en monitor uten Group By.
 - **Avviksdeteksjon** (**Unormalt høy**, **Unormalt lav**, **Avvikende**) evalueres ikke per gruppe (grunnlinjen dekker hele monitoren), så de filtrene samsvarer aldri på en gruppert monitor.
 - Monitorens status følger det første kriteriet en gruppe oppfyller. Når ingen gruppe oppfyller noe kriterium, går monitoren tilbake til standardstatusen sin.
@@ -262,6 +262,6 @@ Logger som mangler Group By-attributtet, telles med en tom verdi. Sjekk det nøy
 :::cards
 - [Loggpipelines](/docs/telemetry/log-pipelines): Del logglinjer opp i attributter du kan filtrere og gruppere på.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett gruppeverdier og antall inn i titler og beskrivelser.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Bli varslet om en metrikk, per vert eller per container.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om en måling, per vert eller per container.
 - [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet på samme måte om mislykkede spans.
 :::

@@ -487,6 +487,12 @@ O incidente registra o modelo a partir do qual foi declarado em `createdIncident
 
 Uma entrada que não corresponde a nada não interrompe o passo: o registro é criado mesmo assim, e o log da execução diz o que cada entrada vinculou e quais não corresponderam a nada. Recursos arquivados não são vinculados. Monitores não são procurados: nomeie-os em **JSON Object** (`monitors` em um incidente, `monitorId` em um alerta), porque vincular um monitor a um incidente pausa o monitoramento dele.
 
+### Quem é dono desde o início
+
+**Create One Incident** e **Create One Alert** têm as configurações **Usuários proprietários** e **Equipes proprietárias**: as pessoas e equipes que são donas do registro desde a criação. Escolha-as, ou pegue-as de um passo anterior: o ID ou endereço de e-mail de um usuário, o ID de uma equipe, vários separados por vírgulas, ou uma lista. Os proprietários do registro ficam sabendo da criação cerca de um minuto depois, todos os que ele tiver até lá: os escolhidos aqui estão sempre entre eles, enquanto os proprietários que um passo posterior adiciona perdem o aviso quando esse passo roda mais de um minuto depois, e os proprietários do projeto são avisados no lugar deles.
+
+O passo pergunta se pode adicioná-los, como Administrador do projeto no projeto do workflow, antes de o registro ser salvo: proprietários que ele não pode adicionar fazem a criação ser recusada. Quem não é membro do projeto, ou uma equipe que não é do projeto, fica de fora, e o log da execução diz isso: o registro é criado mesmo assim. Os proprietários adicionados assim não são avisados de que foram adicionados: o aviso de que o registro foi criado é o que recebem.
+
 ## Trabalhar com registros
 
 Cada campo de um componente de dados usa os nomes de **coluna** do próprio registro — os mesmos nomes que a API usa, não os rótulos do formulário do dashboard. A coluna de ID é `_id`. A grafia `id` é aceita como alias em qualquer lugar onde você possa digitar um nome de coluna, mas `_id` é o que um registro devolve, então é isso que você deve ler na saída:

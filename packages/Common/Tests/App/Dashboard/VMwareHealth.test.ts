@@ -401,10 +401,10 @@ describe("reading a row", () => {
   test("a reason writes a share as a whole percent and an amount in binary units", () => {
     expect(formatVMwareReasonPercent(93.6)).toBe("94%");
     expect(formatVMwareReasonPercent(90.4)).toBe("90%");
-    expect(formatVMwareReasonBytes(512)).toBe("512 B");
-    expect(formatVMwareReasonBytes(768 * 1024 * 1024)).toBe("768 MiB");
-    expect(formatVMwareReasonBytes(1.5 * GIB)).toBe("1.5 GiB");
-    expect(formatVMwareReasonBytes(2048 * GIB)).toBe("2.0 TiB");
+    expect(formatVMwareReasonBytes(512)).toBe("512\u00A0B");
+    expect(formatVMwareReasonBytes(768 * 1024 * 1024)).toBe("768\u00A0MiB");
+    expect(formatVMwareReasonBytes(1.5 * GIB)).toBe("1.5\u00A0GiB");
+    expect(formatVMwareReasonBytes(2048 * GIB)).toBe("2.0\u00A0TiB");
   });
 
   test("the datacenter of a part is found by its name, without regard to case", () => {
@@ -733,7 +733,7 @@ describe("a virtual machine", () => {
     expect(assessment.reasons).toEqual([
       {
         text: "{{amount}} of memory swapped by the host",
-        values: { amount: "1.5 GiB" },
+        values: { amount: "1.5\u00A0GiB" },
       },
     ]);
   });
@@ -749,7 +749,7 @@ describe("a virtual machine", () => {
       reasons: [
         {
           text: "{{amount}} of memory ballooned",
-          values: { amount: "768 MiB" },
+          values: { amount: "768\u00A0MiB" },
         },
       ],
     });
@@ -928,7 +928,7 @@ describe("a resource pool", () => {
       reasons: [
         {
           text: "{{amount}} of memory swapped by the host",
-          values: { amount: "8.0 MiB" },
+          values: { amount: "8.0\u00A0MiB" },
         },
       ],
     });

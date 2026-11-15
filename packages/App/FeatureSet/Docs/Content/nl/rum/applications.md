@@ -145,7 +145,7 @@ Om de gegevens van één persoon te verwijderen in plaats van een hele applicati
 
 ## Machtigingen
 
-Iedereen met de Kijker-rol van het project kan RUM-applicaties en hun telemetrie zien. Sessieherhaling valt bewust buiten die rol: opnamen opvragen, er een bekijken en lezen wie er een bekeek zijn aparte machtigingen. Projecteigenaren en -beheerders hebben ze allemaal. Machtigingskiezers tonen elke machtiging met haar titel, hier cursief weergegeven.
+Iedereen met de Kijker-rol van het project kan RUM-applicaties en hun telemetrie zien. Sessieherhaling valt bewust buiten die rol: opnamen opvragen, er een bekijken en lezen wie er een bekeek zijn aparte machtigingen. Projecteigenaren en Projectbeheerders hebben ze allemaal. Machtigingskiezers tonen elke machtiging met haar titel, hier cursief weergegeven.
 
 | Machtiging | Laat een lid |
 | --- | --- |

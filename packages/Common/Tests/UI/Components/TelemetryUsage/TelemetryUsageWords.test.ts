@@ -135,37 +135,37 @@ describe("the signals", () => {
 
 describe("a size", () => {
   test.each([
-    [0, "0 GB"],
-    [1, "1 GB"],
-    [12.345, "12.35 GB"],
-    [1024, "1,024 GB"],
-    [0.5, "512 MB"],
-    [0.0005, "524.3 KB"],
+    [0, "0\u00A0GB"],
+    [1, "1\u00A0GB"],
+    [12.345, "12.35\u00A0GB"],
+    [1024, "1,024\u00A0GB"],
+    [0.5, "512\u00A0MB"],
+    [0.0005, "524.3\u00A0KB"],
     // A row smaller than a tenth of a kilobyte still shows there was one.
-    [0.0000000001, "0.1 KB"],
+    [0.0000000001, "0.1\u00A0KB"],
   ])("of %f GB reads %s", (gigabytes: number, expected: string) => {
     expect(formatTelemetryUsageSize(gigabytes, english)).toBe(expected);
   });
 
   test("never reads as a negative or broken number", () => {
-    expect(formatTelemetryUsageSize(-3, english)).toBe("0 GB");
-    expect(formatTelemetryUsageSize(Number.NaN, english)).toBe("0 GB");
+    expect(formatTelemetryUsageSize(-3, english)).toBe("0\u00A0GB");
+    expect(formatTelemetryUsageSize(Number.NaN, english)).toBe("0\u00A0GB");
   });
 
   test("is written the reader's way", () => {
     const german: Translator = createTranslator(undefined, "de");
 
-    expect(formatTelemetryUsageSize(1234.5, german)).toBe("1.234,5 GB");
+    expect(formatTelemetryUsageSize(1234.5, german)).toBe("1.234,5\u00A0GB");
   });
 });
 
 describe("a Traces row's exceptions", () => {
   test("read as a size, under the GB the row is billed for", () => {
     expect(formatTelemetryUsageExceptionsPart(0.5, english)).toBe(
-      "Exceptions: 512 MB",
+      "Exceptions: 512\u00A0MB",
     );
     expect(formatTelemetryUsageExceptionsPart(12.345, english)).toBe(
-      "Exceptions: 12.35 GB",
+      "Exceptions: 12.35\u00A0GB",
     );
   });
 
@@ -181,7 +181,7 @@ describe("a Traces row's exceptions", () => {
     );
 
     expect(formatTelemetryUsageExceptionsPart(1234.5, german)).toBe(
-      "Ausnahmen: 1.234,5 GB",
+      "Ausnahmen: 1.234,5\u00A0GB",
     );
   });
 });
@@ -194,14 +194,14 @@ describe("a cost", () => {
 
   test("sits beside the size only where it is known", () => {
     expect(formatTelemetryUsageAmount({ dataIngestedInGB: 2 }, english)).toBe(
-      "2 GB",
+      "2\u00A0GB",
     );
     expect(
       formatTelemetryUsageAmount(
         { dataIngestedInGB: 2, totalCostInUSD: 0.5 },
         english,
       ),
-    ).toBe("2 GB · 0.5 USD");
+    ).toBe("2\u00A0GB · 0.5 USD");
   });
 });
 

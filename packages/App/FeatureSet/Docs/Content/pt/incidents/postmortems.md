@@ -209,7 +209,7 @@ As duas opções com IA exigem a IA ligada para o projeto e um repositório em q
 
 **Incidentes → Ações de acompanhamento** lista as ações de todos os post-mortems do projeto, com os prazos mais próximos primeiro, mostrando o incidente, o proprietário, o prazo e o status de cada uma. Filtre por **Status**, **Proprietário** e **Prazo**, e **Ver** em uma linha abre a página **Post-mortem** do incidente.
 
-Ler as ações exige o mesmo que ler o incidente. Adicioná-las, alterá-las e excluí-las exige o papel Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de incidentes ou Membro de incidentes, ou um papel personalizado com a permissão correspondente sobre ações de post-mortem. Assim como o incidente, as ações de um incidente privado só são visíveis para seus usuários proprietários, os membros das suas equipes proprietárias, os administradores e os proprietários do projeto.
+Ler as ações exige o mesmo que ler o incidente. Adicioná-las, alterá-las e excluí-las exige o papel Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de incidentes ou Membro de incidentes, ou um papel personalizado com a permissão correspondente sobre ações de post-mortem. Assim como o incidente, as ações de um incidente privado só são visíveis para seus usuários proprietários, os membros das suas equipes proprietárias, os Administradores do projeto e os Proprietários do projeto.
 
 ## Post-mortems de episódios
 

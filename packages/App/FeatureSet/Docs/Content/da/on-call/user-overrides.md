@@ -70,7 +70,7 @@ En tilsidesættelse, der er slut, kan ikke længere ændres: dens **Rediger** er
 
 To tilsidesættelser for den samme person må ikke overlappe i den samme politik, heller ikke når begge er globale. Formularen siger det, så snart tidspunkterne er valgt, med **Rediger den tilsidesættelse** for i stedet at ændre den anden. Den ene kan slutte, når den næste starter.
 
-En politiks egen tilsidesættelse må overlappe en global for den samme person: i den politik bruges dens egen, mens begge gælder, og formularen siger det. Et tilkald uden en politik, fra et workflow eller fra chat, følger kun de globale tilsidesættelser.
+En politiks egen tilsidesættelse må overlappe en global for den samme person: i den politik bruges dens egen, mens begge gælder, og formularen siger det. Et tilkald uden en politik, fra en arbejdsgang eller fra chat, følger kun de globale tilsidesættelser.
 
 Tilsidesættelser, der allerede overlappede før denne regel, forbliver som de er. Begge er markeret med **Overlapper**, som siger, hvilken der bruges: en, der nævner, hvem der dækker, før et overspring, derefter den, der starter først, derefter den, der blev tilføjet først.
 

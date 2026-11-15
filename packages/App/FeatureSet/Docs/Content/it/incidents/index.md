@@ -61,13 +61,13 @@ Cinque strade portano allo stesso oggetto:
 - **Tramite l'API** — `POST /api/incident` con una chiave API. Il server compila per voi `declaredAt`, lo stato di creazione e il numero dell'incidente.
 - **Con un modulo** — qualcuno esterno al vostro team compila un modulo che avete condiviso come link, senza un account OneUptime. L'incidente viene dichiarato nascosto dalle pagine di stato, a partire dal modello di incidente del modulo, se ne ha uno. Vedete [Moduli](/docs/forms/index).
 
-Anche i workflow aprono incidenti: il workflow di [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa la policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
+Anche i flussi di lavoro aprono incidenti: il flusso di lavoro di [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa la policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
 
 ### 2. Le persone giuste vengono informate
 
 Alla creazione, OneUptime esegue l'automazione che avete configurato: regole di privacy, regole del proprietario, regole delle etichette, regole di reperibilità e regole di runbook. Tutte le policy di reperibilità collegate all'incidente — a mano, da un modello o aggiunte da una regola di reperibilità che corrisponde — vengono eseguite in parallelo.
 
-I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui proprietari del progetto invece di andare persa.
+I proprietari vengono avvisati sui canali che ciascuno ha attivato in **Impostazioni utente → Impostazioni notifiche**: e-mail, SMS, chiamata vocale, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost o webhook. Se un incidente non ha alcun proprietario, la notifica ripiega sui Proprietari del progetto invece di andare persa.
 
 Se l'incidente è visibile su una pagina di stato e le notifiche agli iscritti sono attive, vengono informati anche gli iscritti: quelli di ogni pagina di stato che elenca uno dei suoi monitor, oppure solo quelli delle pagine a cui lo avete limitato. Vedete [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience) per dare a ogni pubblico la propria pagina di stato.
 
@@ -203,7 +203,7 @@ Che cosa contiene ciascuna:
 - **Le policy di reperibilità si occupano degli avvisi.** Collegate le policy nel passaggio **Reperibilità e ruoli** della procedura guidata di dichiarazione, su un modello, oppure tramite **Incidenti → Regole → Regole di reperibilità**. Scatta ogni regola che corrisponde: l'insieme eseguito è l'unione di tutte le corrispondenze più tutto ciò che è collegato direttamente, senza duplicati.
 - **I runbook dicono alle persone che cosa fare.** Le regole di runbook collegano automaticamente una procedura quando viene creato un incidente che corrisponde, e i responder possono avviarne uno a mano dall'incidente. Vedete [Panoramica dei Runbook](/docs/runbooks/index).
 - **Le pagine di stato informano i clienti.** Un incidente compare nell'elenco attivo di una pagina di stato quando la pagina elenca uno dei suoi monitor, la pagina ha gli incidenti attivi, l'incidente è contrassegnato come visibile sulla pagina di stato e il suo stato attuale si trova sopra lo stato risolto. Un incidente limitato ad alcune pagine di stato compare solo su quelle. Gli incidenti privati sono nascosti da ogni pagina di stato, sempre. Vedete [Panoramica delle pagine di stato](/docs/status-pages/index) e [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience).
-- **I workflow automatizzano tutto intorno.** I trigger **On Create Incident**, **On Update Incident**, **On Create or Update Incident** e **On Delete Incident** vi permettono di costruire automazioni senza codice sul ciclo di vita dell'incidente. Vedete [Panoramica dei workflow](/docs/workflows/index).
+- **I flussi di lavoro automatizzano tutto intorno.** I trigger **On Create Incident**, **On Update Incident**, **On Create or Update Incident** e **On Delete Incident** vi permettono di costruire automazioni senza codice sul ciclo di vita dell'incidente. Vedete [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ## Passaggi successivi
 

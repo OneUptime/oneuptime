@@ -133,7 +133,7 @@ Een status zegt hoeveel budget er over is, niet wat uw team eraan doet. Om dat v
 
 Als een SLO naar **Risico** of **Budget uitgeput** gaat, informeert OneUptime zijn eigenaren:
 
-- De eigenaren zijn de gebruikers en teamleden op de pagina **Eigenaren** van de SLO die nog lid van het project zijn. Een SLO zonder eigenaren informeert in plaats daarvan de projecteigenaren.
+- De eigenaren zijn de gebruikers en teamleden op de pagina **Eigenaren** van de SLO die nog lid van het project zijn. Een SLO zonder eigenaren informeert in plaats daarvan de Projecteigenaren.
 - Elke eigenaar krijgt standaard een e-mail, en de melding via elk ander kanaal dat hij aanzet voor **SLO-status gewijzigd** onder **Gebruikersinstellingen** → **Meldingsinstellingen** → **Bewaking**.
 - Het onderwerp van de e-mail noemt de status en de SLO, bijvoorbeeld `[SLO At Risk] API Availability`.
 

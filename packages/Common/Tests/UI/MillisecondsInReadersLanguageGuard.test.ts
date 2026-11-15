@@ -33,24 +33,34 @@ import {
  * and the Latin unit on the wrong side of the figure in Persian and Arabic,
  * "1.5 ms" in German. Every Dashboard file is held to the rule now.
  *
+ * The same formatters wrote their other units by hand (issue #8348): a
+ * second `${(ms / 1000).toFixed(2)} s`, a microsecond `${ms * 1000} µs`, a
+ * nanosecond `${n}ns`, a minute `${(ms / 60000).toFixed(1)} min` - so a
+ * Persian row read "1.25 s" in Latin digits under "۴۲ میلی‌ثانیه". Each is
+ * formatMilliseconds with its unit now ({ unit: "s" }), and held to the
+ * same rule as "ms".
+ *
  * This reads every frontend's source through the TypeScript AST (comments
  * are no code), and fails on:
  *
  *   - anywhere: a figure joined to "ms" with + ("x + ' ms'"), the way the
  *     summaries wrote it;
  *   - in every Dashboard file (DASHBOARD_SCOPES), and the shared monitor
- *     helpers that write the monitor overview's hero: "ms" written after a
- *     template's figure (`${x} ms`), "ms" written after a JSX figure
- *     (`{x} ms`), or a lone duration's key ("{{value}} ms") looked up by
- *     hand instead of through formatMilliseconds. A whole sentence that
- *     holds a duration ("{{host}} resolved to {{addresses}} in {{time}}
- *     ms") words its own unit in each language, and is left to it.
+ *     helpers that write the monitor overview's hero: a duration's unit
+ *     written after a template's figure (`${x} ms`, `${x}µs`, `${x}ns`,
+ *     `${x} s`, `${x} min`), or after a JSX figure (`{x} ms`), or a lone
+ *     duration's key ("{{value}} ms") looked up by hand instead of through
+ *     formatMilliseconds. A whole sentence that holds a duration ("{{host}}
+ *     resolved to {{addresses}} in {{time}} ms") words its own unit in each
+ *     language, and is left to it. Seconds and minutes are caught with
+ *     the space before them only: `${name}s` is English's plural, and
+ *     `${className} min-w-0` a CSS class.
  *
  * What is no duration a reader reads is left alone: a CSS time
  * (`opacity ${EMPHASIS_TRANSITION_MS}ms ease`, an animationDuration, a CSS
  * custom property's value). A file another issue owns is listed in
  * OWNED_ELSEWHERE with that issue, and the list only shrinks: a listed
- * file that no longer writes "ms" by hand fails until it is taken off.
+ * file that no longer writes a unit by hand fails until it is taken off.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -71,7 +81,8 @@ const DASHBOARD_SCOPES: ReadonlyArray<string> = [
 
 /*
  * The Dashboard files another issue owns, each with the issue: they write
- * "ms" by hand inside a sentence or a reading that issue rewords whole.
+ * a duration's unit by hand inside a sentence or a reading that issue
+ * rewords whole.
  */
 const OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
   // The health reasons' units, read in the reader's digits.
@@ -89,6 +100,9 @@ const OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
     "#6516",
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayClockAlignment.ts":
     "#6516",
+  // The infrastructure graph's "seen 12 min ago", English for every reader.
+  "packages/App/FeatureSet/Dashboard/src/Components/Topology/TopologyActivity.ts":
+    "#8418",
 };
 
 /*
@@ -138,8 +152,18 @@ const MILLISECONDS_HELPER: string = "packages/Common/Utils/Milliseconds.ts";
 // "ms" right after a figure: " ms", "ms", never "msg" or "msec".
 const MILLISECONDS_AFTER_FIGURE: RegExp = /^\s?ms(?![A-Za-z])/;
 
+/*
+ * A duration's unit right after a template's figure: "ms", "µs" and "ns"
+ * joined or after a space ("12µs", "850 ns"), seconds and minutes after a
+ * space only (" s", " min") - never "msg", a plural's "s" (`${name}s`) or a
+ * CSS class (`${base} min-w-0`).
+ */
+const DURATION_UNIT_AFTER_FIGURE: RegExp =
+  /^\s?ms(?![A-Za-z])|^\s?(?:µs|μs|ns)(?![A-Za-z])|^\s(?:s|min)(?![A-Za-z-])/;
+
 // JSX text right after a figure: "{x} ms", the line it ends breaking after it.
-const JSX_MILLISECONDS_AFTER_FIGURE: RegExp = /^[^\S\n]?ms(?![A-Za-z])/;
+const JSX_DURATION_UNIT_AFTER_FIGURE: RegExp =
+  /^[^\S\n]?ms(?![A-Za-z])|^[^\S\n]?(?:µs|μs|ns)(?![A-Za-z])|^[^\S\n](?:s|min)(?![A-Za-z-])/;
 
 // A lone duration's key: "{{value}} ms", "{{latency}} ms".
 const LONE_DURATION_KEY: RegExp = /^\{\{\s*[\w.]+\s*\}\}\s?ms$/;
@@ -189,6 +213,25 @@ const isMonitorSummaryFile: (relativeFile: string) => boolean = (
  * Whether a template is a CSS property's value: an animationDuration, a
  * transition, or a CSS custom property ("--replay-cursor-ms").
  */
+/*
+ * Whether a template is the English a duration helper writes for an English
+ * reader: the `english` of formatDurationInUnit's options (`{ english:
+ * `${x} µs` }`). Every other reader reads the helper's own words, and the
+ * helper holds the English figure to its unit.
+ */
+const isEnglishOfADurationHelper: (node: ts.TemplateExpression) => boolean = (
+  node: ts.TemplateExpression,
+): boolean => {
+  const parent: ts.Node = node.parent;
+
+  return (
+    ts.isPropertyAssignment(parent) &&
+    parent.initializer === node &&
+    (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name)) &&
+    parent.name.text === "english"
+  );
+};
+
 const isCssPropertyValue: (node: ts.TemplateExpression) => boolean = (
   node: ts.TemplateExpression,
 ): boolean => {
@@ -206,6 +249,29 @@ const isCssPropertyValue: (node: ts.TemplateExpression) => boolean = (
   return (
     name !== undefined &&
     (CSS_TIME_PROPERTIES.includes(name) || name.startsWith("--"))
+  );
+};
+
+/*
+ * Whether a template's value is a no-break space (`${NO_BREAK_SPACE}`,
+ * `${"\u00A0"}`): the unit after it is a unit after a figure all the same,
+ * held to its line but still English.
+ */
+const NO_BREAK_SPACE_NAME: RegExp = /^(?:NARROW_)?NO_BREAK_SPACE$/;
+
+const A_NO_BREAK_SPACE: RegExp = /^[\u00A0\u202F]$/;
+
+const isNoBreakSpace: (expression: ts.Expression) => boolean = (
+  expression: ts.Expression,
+): boolean => {
+  if (ts.isIdentifier(expression)) {
+    return NO_BREAK_SPACE_NAME.test(expression.text);
+  }
+
+  return (
+    (ts.isStringLiteral(expression) ||
+      ts.isNoSubstitutionTemplateLiteral(expression)) &&
+    A_NO_BREAK_SPACE.test(expression.text)
   );
 };
 
@@ -271,14 +337,23 @@ const findHandWrittenMilliseconds: (data: {
       report(node, "joined with +");
     }
 
-    if (data.isHeldToEveryRule && ts.isTemplateExpression(node)) {
+    if (
+      data.isHeldToEveryRule &&
+      ts.isTemplateExpression(node) &&
+      !isEnglishOfADurationHelper(node)
+    ) {
       const isCssValue: boolean = isCssPropertyValue(node);
       const writesMilliseconds: boolean = node.templateSpans.some(
         (span: ts.TemplateSpan): boolean => {
+          // A no-break space put in as a value is the space before the unit.
+          const text: string = isNoBreakSpace(span.expression)
+            ? ` ${span.literal.text}`
+            : span.literal.text;
+
           return (
-            MILLISECONDS_AFTER_FIGURE.test(span.literal.text) &&
+            DURATION_UNIT_AFTER_FIGURE.test(text) &&
             !isCssValue &&
-            !CSS_TIME_IN_TEXT.test(span.literal.text)
+            !CSS_TIME_IN_TEXT.test(text)
           );
         },
       );
@@ -291,7 +366,7 @@ const findHandWrittenMilliseconds: (data: {
     if (
       data.isHeldToEveryRule &&
       ts.isJsxText(node) &&
-      JSX_MILLISECONDS_AFTER_FIGURE.test(node.text) &&
+      JSX_DURATION_UNIT_AFTER_FIGURE.test(node.text) &&
       followsJsxFigure(node)
     ) {
       report(node, "written after a JSX figure");
@@ -398,7 +473,7 @@ const rulesOf: (findings: Array<MillisecondsFinding>) => Array<string> = (
 };
 
 describe("durations in milliseconds, in the reader's language", () => {
-  test("no frontend joins a figure to 'ms', and no Dashboard file writes 'ms' by hand", () => {
+  test("no frontend joins a figure to 'ms', and no Dashboard file writes a duration's unit by hand", () => {
     const { findings } = readAllFindings();
 
     expect(
@@ -410,7 +485,7 @@ describe("durations in milliseconds, in the reader's language", () => {
     ).toEqual([]);
   });
 
-  test("a file another issue owns still writes 'ms' by hand: the list only shrinks", () => {
+  test("a file another issue owns still writes a unit by hand: the list only shrinks", () => {
     const { findings } = readAllFindings();
 
     for (const file of Object.keys(OWNED_ELSEWHERE)) {
@@ -612,6 +687,112 @@ describe("negative controls: the scan catches what it is for", () => {
       "4 written after a template's figure",
       "5 written after a template's figure",
       "6 written after a template's figure",
+    ]);
+  });
+
+  /*
+   * How the same formatters wrote their other units (#8348): a trace's
+   * seconds and microseconds, a span's nanoseconds, a cloud metric's
+   * minutes, each caught in a file that is no summary.
+   */
+  test("the other units after a template's figure: seconds, microseconds, nanoseconds, minutes", () => {
+    const source: string = [
+      "const a: string = `${(ms / 1000).toFixed(2)} s`;",
+      "const b: string = `${Math.round(ms * 1000)} µs`;",
+      "const c: string = `${minutes}${NO_BREAK_SPACE}min`;",
+      "const d: string = `${durationNano}ns`;",
+      "const e: string = `${Math.round(durationMicro)}µs`;",
+      "const f: string = `${(ms / 60000).toFixed(1)} min`;",
+      "const g: string = `${minutes} min ${seconds} s`;",
+      "const h: string = `${translator.formatNumber(seconds)}\\u00a0s`;",
+      "const i: string = `${value} μs`;",
+    ].join("\n");
+    const file: string =
+      "packages/App/FeatureSet/Dashboard/src/Components/Traces/Made.tsx";
+
+    expect(
+      rulesOf(
+        findHandWrittenMilliseconds({
+          file: file,
+          source: source,
+          isHeldToEveryRule: isHeldToEveryRule(file),
+        }),
+      ),
+    ).toEqual([
+      "1 written after a template's figure",
+      "2 written after a template's figure",
+      "3 written after a template's figure",
+      "4 written after a template's figure",
+      "5 written after a template's figure",
+      "6 written after a template's figure",
+      "7 written after a template's figure",
+      "8 written after a template's figure",
+      "9 written after a template's figure",
+    ]);
+  });
+
+  test("the English a duration helper is handed is its own: formatDurationInUnit holds its figure to its unit", () => {
+    const source: string = [
+      'const a: string = formatDurationInUnit(t, value, "microsecond", { decimals: 0, english: `${Math.round(value)} µs` });',
+      'const b: string = write(value, "second", { english: `${value.toFixed(1)} s` });',
+      // The same template anywhere else is still caught.
+      "const c = { title: `${value.toFixed(1)} s` };",
+    ].join("\n");
+
+    expect(
+      rulesOf(
+        findHandWrittenMilliseconds({
+          file: "packages/App/FeatureSet/Dashboard/src/Pages/Made.ts",
+          source: source,
+          isHeldToEveryRule: true,
+        }),
+      ),
+    ).toEqual(["3 written after a template's figure"]);
+  });
+
+  test("a plural's s, a CSS class's min and a word that starts with the unit are no duration", () => {
+    const source: string = [
+      "const a: string = `Check the open ${subjectType}s.`;",
+      "const b: string = `${CELL_ROWS} min-w-0`;",
+      "const c: string = `${count} sessions`;",
+      "const d: string = `${count} minutes`;",
+      "const e: string = `${count} seconds ago`;",
+      "const f: string = `${noun}s.tf`;",
+      "const g: string = `${prefix}nsx`;",
+      "const h = { transition: `opacity ${seconds}s ease` };",
+      "const i = () => <span>{count} sessions</span>;",
+    ].join("\n");
+
+    expect(
+      findHandWrittenMilliseconds({
+        file: "packages/App/FeatureSet/Dashboard/src/Components/Made.tsx",
+        source: source,
+        isHeldToEveryRule: true,
+      }),
+    ).toEqual([]);
+  });
+
+  test("the other units after a JSX figure", () => {
+    const source: string = [
+      "const A = () => <span>{seconds} s</span>;",
+      "const B = () => <span>{micro}µs</span>;",
+      "const C = () => <span>{minutes} min</span>;",
+      "const D = () => <span>{nanos} ns</span>;",
+    ].join("\n");
+
+    expect(
+      rulesOf(
+        findHandWrittenMilliseconds({
+          file: "packages/App/FeatureSet/Dashboard/src/Pages/Made.tsx",
+          source: source,
+          isHeldToEveryRule: true,
+        }),
+      ),
+    ).toEqual([
+      "1 written after a JSX figure",
+      "2 written after a JSX figure",
+      "3 written after a JSX figure",
+      "4 written after a JSX figure",
     ]);
   });
 

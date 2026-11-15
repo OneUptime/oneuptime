@@ -178,11 +178,11 @@ describe("the numbers", () => {
     const english: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
     expect(formatMessageQueueDurationMsInLanguage(0.85, english)).toBe(
-      "850 µs",
+      "850\u00A0µs",
     );
-    expect(formatMessageQueueDurationMsInLanguage(12.3, english)).toBe("12 ms");
+    expect(formatMessageQueueDurationMsInLanguage(12.3, english)).toBe("12\u00A0ms");
     expect(formatMessageQueueDurationMsInLanguage(1250, english)).toBe(
-      "1.25 s",
+      "1.25\u00A0s",
     );
     expect(formatMessageQueueDurationMsInLanguage(null, english)).toBe("—");
   });
@@ -199,7 +199,7 @@ describe("the numbers", () => {
     ).toBe("2.5 messages/s");
     expect(
       formatMessageQueueMetricValue(90, { unit: "s", kind: "gauge" }),
-    ).toBe("1.5 min");
+    ).toBe("1.5\u00A0min");
     expect(
       formatMessageQueueMetricValue(null, { unit: "messages", kind: "gauge" }),
     ).toBe("—");

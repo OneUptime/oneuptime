@@ -103,7 +103,7 @@ För att i stället avsluta TLS i en egen ingress controller låter du `ssl.prov
 
 ## Gör klart servern
 
-Sidan **Serverkonfiguration** i Admin Dashboard, på `/admin/setup`, listar vad en ny server behöver, det viktigaste först. E-post, HTTPS och vem som kan registrera sig krävs. Sms och samtal, en global probe, säkerhetskopior och uppdateringskontroller rekommenderas. Varje punkt har en knapp som öppnar platsen där den ställs in, och `npm start` slutar med att skriva ut sidans adress.
+Sidan **Serverkonfiguration** i Admin Dashboard, på `/admin/setup`, listar vad en ny server behöver, det viktigaste först. E-post, HTTPS och vem som kan registrera sig krävs. Sms och samtal, en global sond, säkerhetskopior och uppdateringskontroller rekommenderas. Varje punkt har en knapp som öppnar platsen där den ställs in, och `npm start` slutar med att skriva ut sidans adress.
 
 :::steps
 ### Ställ in e-post
@@ -137,7 +137,7 @@ Kör doctor i mappen `oneuptime`:
 npm run doctor
 ```
 
-Den kontrollerar varje container, `config.env`, att `HOST` når den här servern, certifikatet och ledigt diskutrymme, och frågar OneUptime vad det ser av sig självt, som e-post och prober. Varje problem kommer med sin lösning: se [Kontrollera din installation](/docs/installation/docker-compose#kontrollera-din-installation).
+Den kontrollerar varje container, `config.env`, att `HOST` når den här servern, certifikatet och ledigt diskutrymme, och frågar OneUptime vad det ser av sig självt, som e-post och sonder. Varje problem kommer med sin lösning: se [Kontrollera din installation](/docs/installation/docker-compose#kontrollera-din-installation).
 @tab Kubernetes
 Kör diagrammets diagnosskript mot ditt kluster, som [diagrammets felsökningsguide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) visar. Det läser bara, och slutar med en sammanfattning av vad det hittade, det värsta först.
 :::

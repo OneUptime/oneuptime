@@ -53,7 +53,7 @@ Open **Gebruikersinstellingen**, rechts in de balk onder de bovenste balk. Het z
 
 **Aan de slag** en **Waarschuwingen & meldingen** zijn open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. **Werkruimte** verschijnt alleen als het project Slack, Microsoft Teams of Mattermost heeft gekoppeld.
 
-Projecteigenaren en -beheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Hoe ik bereikbaar ben**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
+Projecteigenaren en Projectbeheerders kunnen je instellingen ook bekijken: onder **Gebruikers** openen ze jouw rij en de sectie **Bereikbaarheid** daarvan, met **Gereedheid**, **Meldingsmethoden** en **Hoe ik bereikbaar ben**. Ze kunnen daar een methode voor je toevoegen, maar de code gaat naar de methode zelf, dus alleen jij kunt hem verifiëren.
 
 ## Waarmee je begint
 
@@ -116,7 +116,7 @@ Open **Gebruikersinstellingen → Bereikbaarheidslogboeken**. Geen rij voor het 
 :::
 
 :::details Ik krijg e-mails over items waar ik nooit om heb gevraagd
-Je bent eigenaar van het item, direct of via een team, of het item heeft geen eigenaren en jij bent projecteigenaar. Zet de gebeurtenis uit onder **Gebruikersinstellingen → Meldingsinstellingen**, of beperk de hoeveelheid onder **Gebruikersinstellingen → E-mailvoorkeuren**.
+Je bent eigenaar van het item, direct of via een team, of het item heeft geen eigenaren en jij bent Projecteigenaar. Zet de gebeurtenis uit onder **Gebruikersinstellingen → Meldingsinstellingen**, of beperk de hoeveelheid onder **Gebruikersinstellingen → E-mailvoorkeuren**.
 :::
 
 :::details Mijn oproepen zijn in het Engels, maar het dashboard niet

@@ -321,7 +321,7 @@ Los prompts y las respuestas enviados como eventos de log se guardan como logs, 
 
 En ambos casos, una regla lee cada texto dentro de una lista o de un valor estructurado, como los mensajes que una instrumentación envía como lista en lugar de como texto JSON, y conserva la forma del valor: una dirección de correo en un prompt se enmascara esté donde esté. Consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles).
 
-Las conversaciones se leen con el mismo permiso que las trazas: quien puede leer las trazas del proyecto puede leer sus conversaciones, y nadie más. Las conversaciones de una herramienta de IA de la empresa son la excepción: solo los propietarios y administradores del proyecto pueden leerlas, salvo que su conexión diga otra cosa ([Herramientas de IA de la empresa](/docs/telemetry/ai-company-tools#privacidad)).
+Las conversaciones se leen con el mismo permiso que las trazas: quien puede leer las trazas del proyecto puede leer sus conversaciones, y nadie más. Las conversaciones de una herramienta de IA de la empresa son la excepción: solo los Propietarios del proyecto y Administradores del proyecto pueden leerlas, salvo que su conexión diga otra cosa ([Herramientas de IA de la empresa](/docs/telemetry/ai-company-tools#privacidad)).
 
 ## Atributos que lee OneUptime
 

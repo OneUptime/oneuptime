@@ -20,7 +20,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * day on the reader's calendar (AIChatChartCalendar). Where a day starts,
  * and which day an instant is on, are the platform's own (Intl) here, not
  * the code under test's. The process runs in a zone of its own (the
- * @timezone docblock of each file that calls this): the browser's zone,
+ * zone docblock of each file that calls this): the browser's zone,
  * which is neither the asker's nor the reader's, must move nothing.
  */
 

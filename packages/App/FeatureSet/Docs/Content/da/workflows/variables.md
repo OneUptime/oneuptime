@@ -1,11 +1,11 @@
-# Workflow-variabler
+# Arbejdsgangsvariabler
 
-Variabler er måden, data bevæger sig gennem et workflow på: fra triggeren til den første blok, fra én blok til den næste, og fra værdier, du gemmer én gang, til hver blok, der har brug for dem. En bloks indstilling læser en værdi med en reference i dobbelte krøllede parenteser, og afvikleren udfylder den lige før blokken kører.
+Variabler er måden, data bevæger sig gennem en arbejdsgang på: fra triggeren til den første blok, fra én blok til den næste, og fra værdier, du gemmer én gang, til hver blok, der har brug for dem. En bloks indstilling læser en værdi med en reference i dobbelte krøllede parenteser, og afvikleren udfylder den lige før blokken kører.
 
 | Værdi                          | Hvor den kommer fra                                                  | Sådan læser en blok den                               |
 | ------------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------- |
 | **Global variabel**            | Gemt under **Arbejdsgange → Globale variabler**                      | `{{global.variables.NAME}}`                          |
-| **Workflowvariabel**           | Gemt på ét workflows side **Arbejdsgangsvariabler**                  | `{{local.variables.NAME}}`                           |
+| **Arbejdsgangsvariabel**           | Gemt på én arbejdsgangs side **Arbejdsgangsvariabler**                  | `{{local.variables.NAME}}`                           |
 | **En tidligere bloks værdi**   | Det, triggeren eller en tidligere blok returnerede i denne kørsel    | `{{local.components.BLOCK_ID.returnValues.VALUE_ID}}` |
 
 ```mermaid title="Hvor en bloks værdier kommer fra"
@@ -13,7 +13,7 @@ flowchart TB
     subgraph saved["Gemt én gang"]
         direction LR
         global["Globale variabler"]
-        local["Workflowvariabler"]
+        local["Arbejdsgangsvariabler"]
     end
     trigger["Trigger"] -->|"returnerer"| earlier["Tidligere blokke"]
     saved --> settings["Blokkens indstillinger"]
@@ -25,7 +25,7 @@ Du skriver sjældent en reference. Klik på **{ }** for enden af en indstilling,
 
 ## Globale variabler
 
-Værdier for hele projektet, som du gemmer én gang og genbruger i hvert workflow: API-nøgler, URL'er, kanalnavne — alt, hvad du ikke vil kopiere ind i ti forskellige workflows.
+Værdier for hele projektet, som du gemmer én gang og genbruger i hver arbejdsgang: API-nøgler, URL'er, kanalnavne — alt, hvad du ikke vil kopiere ind i ti forskellige arbejdsgange.
 
 :::steps
 ### Åbn de globale variabler
@@ -51,13 +51,13 @@ Udfyld i trinnet **Værdi**:
 Klik på **Opret Arbejdsgangsvariabel**. For at ændre navnet eller beskrivelsen før det klikker du på **Variabel** i listen over trin ved siden af formularen (vises på brede skærme); det, du skrev i begge trin, bevares.
 :::
 
-Brug en global variabel i et hvilket som helst workflow med:
+Brug en global variabel i et hvilket som helst arbejdsgang med:
 
 ```text
 {{global.variables.NAME}}
 ```
 
-Har du for eksempel gemt din PagerDuty-nøgle som `PAGERDUTY_KEY`, kan enhver blok bruge den som `{{global.variables.PAGERDUTY_KEY}}` — editoren gemmer referencen, og workflowets logning fjerner den opløste hemmelige værdi.
+Har du for eksempel gemt din PagerDuty-nøgle som `PAGERDUTY_KEY`, kan enhver blok bruge den som `{{global.variables.PAGERDUTY_KEY}}` — editoren gemmer referencen, og arbejdsgangens logning fjerner den opløste hemmelige værdi.
 
 Listen viser hver variabels navn og beskrivelse. Klik på **Vis** i en række for at åbne variablens side. Den viser, om variablen er statisk eller OAuth 2.0, og det er her, du gør alt det andet:
 
@@ -70,17 +70,17 @@ Listen viser hver variabels navn og beskrivelse. Klik på **Vis** i en række fo
 
 For i stedet at oprette en variabel til et **OAuth 2.0-adgangstoken** åbner du menuen **Mere** (**⋯**) ved siden af **Opret Arbejdsgangsvariabel** og vælger **Opret OAuth 2.0-variabel**. OAuth 2.0-variabler har [deres egen sektion](#oauth-20-variabler-tokens-der-fornyer-sig-selv) nedenfor. En variabels type kan ikke ændres, efter at den er gemt.
 
-Du kan også opdatere en variabel via API'et, hvilket er beskrevet [sidst på denne side](#opdatér-en-variabel-fra-et-workflow). Globale variabler og workflowvariabler er en funktion i abonnementet Growth.
+Du kan også opdatere en variabel via API'et, hvilket er beskrevet [sidst på denne side](#opdatér-en-variabel-fra-en-arbejdsgang). Globale variabler og arbejdsgangsvariabler er en funktion i abonnementet Growth.
 
-## Lokale workflowvariabler
+## Lokale arbejdsgangsvariabler
 
-Variabler, der hører til ét workflow, administreret under **Arbejdsgangsvariabler** i det workflows menu. De virker på samme måde som globale variabler: **Opret Arbejdsgangsvariabel** opretter en statisk variabel, menuen **Mere** (**⋯**) opretter en OAuth 2.0-variabel, og **Vis** åbner en variabels side. Henvis til dem med:
+Variabler, der hører til én arbejdsgang, administreret under **Arbejdsgangsvariabler** i den arbejdsgangs menu. De virker på samme måde som globale variabler: **Opret Arbejdsgangsvariabel** opretter en statisk variabel, menuen **Mere** (**⋯**) opretter en OAuth 2.0-variabel, og **Vis** åbner en variabels side. Henvis til dem med:
 
 ```text
 {{local.variables.NAME}}
 ```
 
-Brug en til en værdi, som kun det workflow har brug for, som en skabelons Slack-webhook-URL. Skabeloner, der beder om indstillinger, gemmer dem som workflowvariabler, så du kan ændre dem senere uden at redigere blokkene.
+Brug en til en værdi, som kun den arbejdsgang har brug for, som en skabelons Slack-webhook-URL. Skabeloner, der beder om indstillinger, gemmer dem som arbejdsgangsvariabler, så du kan ændre dem senere uden at redigere blokkene.
 
 ## OAuth 2.0-variabler (tokens, der fornyer sig selv)
 
@@ -96,7 +96,7 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 ```mermaid title="Før et trin, der bruger variablen"
 sequenceDiagram
-    participant Runner as Workflow-afvikler
+    participant Runner as Arbejdsgangsafvikler
     participant Variable as OAuth 2.0-variabel
     participant IdP as Identitetsudbyder
     Runner->>Variable: Læser det cachede token
@@ -108,7 +108,7 @@ sequenceDiagram
     Runner->>Runner: Kører trinnet med et<br/>token, der ikke er udløbet
 ```
 
-- Første gang et workflow bruger variablen, beder OneUptime din identitetsudbyders tokenendpoint om et adgangstoken og gemmer det.
+- Første gang en arbejdsgang bruger variablen, beder OneUptime din identitetsudbyders tokenendpoint om et adgangstoken og gemmer det.
 - Før hvert trin, der henviser til variablen, tjekker afvikleren tokenet. Er det udløbet, eller udløber det inden for det næste minut, hentes et nyt, før trinnet kører. Komponenten får altid et token, der ikke er udløbet, uanset hvor længe variablen har ligget ubrugt, og hvor længe kørslen har været i gang.
 - Kun trin, der faktisk henviser til variablen, udløser en fornyelse. En kørsel, der aldrig bruger en variabel, henter aldrig dens token og mislykkes ikke, fordi den udbyder er nede.
 - Når mange kørsler skal bruge et nyt token på samme tid, henter én af dem det, og de andre bruger det.
@@ -125,7 +125,7 @@ sequenceDiagram
 
 **Opret OAuth 2.0-variabel** spørger om én ting pr. trin:
 
-1. **Variabel**: det navn, workflows henviser til den med, og en beskrivelse.
+1. **Variabel**: det navn, arbejdsgange henviser til den med, og en beskrivelse.
 2. **Udbyder**: vælg din **Identitetsudbyder**, så udfylder OneUptime dens **Token-URL**:
 
    | Identitetsudbyder | Token-URL, der udfyldes |
@@ -144,7 +144,7 @@ sequenceDiagram
 
 Under nogle felter tilføjer formularen en hjælpelinje til den udbyder, du valgte, for eksempel hvor Microsoft Entra ID viser dit tenant-ID, og at dens klienthemmelighed er hemmelighedens **Værdi**, ikke dens **Secret ID**.
 
-Når du gemmer en ny OAuth 2.0-variabel, henter OneUptime dens første token med det samme og fortæller dig, hvad udbyderen svarede. En slåfejl i hemmeligheden eller URL'en viser sig da, ikke timer senere i en mislykket kørsel. At hente et token skriver til variablen, så det kræver tilladelse til at redigere workflowvariabler; kan du oprette variabler, men ikke redigere dem, er det den første workflowkørsel, der bruger variablen, der henter dens token.
+Når du gemmer en ny OAuth 2.0-variabel, henter OneUptime dens første token med det samme og fortæller dig, hvad udbyderen svarede. En slåfejl i hemmeligheden eller URL'en viser sig da, ikke timer senere i en mislykket kørsel. At hente et token skriver til variablen, så det kræver tilladelse til at redigere arbejdsgangsvariabler; kan du oprette variabler, men ikke redigere dem, er det den første arbejdsgangskørsel, der bruger variablen, der henter dens token.
 
 Variablens side (klik på **Vis** i dens række) har et kort **OAuth 2.0-indstillinger**. **Rediger indstillinger** går gennem de samme trin **Udbyder** (token-URL), **Loginoplysninger** (klient-ID) og **Avanceret** (omfang, yderligere parametre, klientgodkendelse). **Næste** går videre, og **Gem ændringer** er på det sidste trin. Hvert trin er allerede udfyldt, så trinlisten ved siden af formularen åbner ethvert af dem: ændr én indstilling på dens trin, åbn så det sidste trin, og gem. Tildelingstypen er fast, når den er gemt.
 
@@ -155,12 +155,12 @@ Kortet **Adgangstoken** på en OAuth 2.0-variabels side viser en af disse status
 | Status                     | Hvad den betyder                                                                                                                     |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Gyldig**                 | Det cachede token er endnu ikke udløbet.                                                                                             |
-| **Udløbet**                | Normalt for en variabel, som intet workflow har brugt på det seneste. Den næste kørsel, der bruger den, henter et nyt token.          |
+| **Udløbet**                | Normalt for en variabel, som ingen arbejdsgang har brugt på det seneste. Den næste kørsel, der bruger den, henter et nyt token.          |
 | **Ikke hentet endnu**      | Der er ikke hentet noget token, siden variablen blev oprettet, eller dens indstillinger blev ændret.                                 |
 | **Intet udløb oplyst**     | Udbyderen sagde ikke, hvornår tokenet udløber, så hver kørsel henter et nyt.                                                         |
 | **Opdatering mislykkedes** | Det seneste forsøg på at hente et token mislykkedes. Udbyderens årsag vises i sin helhed, med hvornår det skete. Den næste vellykkede fornyelse rydder den. |
 
-**Opdater nu**, under statussen, henter et nyt token med det samme. Brug den til at tjekke nye indstillinger uden at køre et workflow. **Opdater legitimationsoplysninger**, på kortet **OAuth 2.0-indstillinger**, erstatter klienthemmeligheden eller refresh tokenet og henter derefter et token med dem. Ændrer du en indstilling (token-URL, klient-ID, omfang og så videre), kasseres det cachede token, så den næste kørsel henter et med de nye indstillinger.
+**Opdater nu**, under statussen, henter et nyt token med det samme. Brug den til at tjekke nye indstillinger uden at køre en arbejdsgang. **Opdater legitimationsoplysninger**, på kortet **OAuth 2.0-indstillinger**, erstatter klienthemmeligheden eller refresh tokenet og henter derefter et token med dem. Ændrer du en indstilling (token-URL, klient-ID, omfang og så videre), kasseres det cachede token, så den næste kørsel henter et med de nye indstillinger.
 
 ### Når udbyderen siger nej
 
@@ -176,7 +176,7 @@ Mislykkes fornyelsen, mens det cachede token faktisk endnu ikke er udløbet (det
 
 ### Skift et eksisterende statisk token til OAuth 2.0
 
-En variabels type er fast, når den er gemt. Slet den statiske variabel, og opret en OAuth 2.0-variabel med **samme navn**. Workflows henviser til variabler ved navn, så de tager den nye i brug uden nogen ændring.
+En variabels type er fast, når den er gemt. Slet den statiske variabel, og opret en OAuth 2.0-variabel med **samme navn**. Arbejdsgange henviser til variabler ved navn, så de tager den nye i brug uden nogen ændring.
 
 ## Komponent-output (data fra tidligere blokke)
 
@@ -245,12 +245,12 @@ En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }
 
 ### Brug en hemmelighed i et API-kald
 
-Et workflow, der kalder PagerDuty:
+En arbejdsgang, der kalder PagerDuty:
 
 1. Gem `PAGERDUTY_KEY` som en hemmelig global variabel.
 2. Sæt på **API**-blokken headeren `Authorization` til `Token token={{global.variables.PAGERDUTY_KEY}}`.
 
-Nøglen holdes ude af workflowet og loggene.
+Nøglen holdes ude af arbejdsgangen og loggene.
 
 ### Kæd to API-kald sammen
 
@@ -261,7 +261,7 @@ Det første kald giver dig et ID, som det andet har brug for:
 
 Mislykkes `lookup-order`, udløses dens udgang **Fejl** i stedet for **Succes**. Forbind den til en Email- eller Slack-blok, så fejl ikke går ubemærket hen.
 
-## Opdatér en variabel fra et workflow
+## Opdatér en variabel fra en arbejdsgang
 
 Et almindeligt mønster er at udskifte en loginoplysning efter en tidsplan: hente et nyt token fra en tredjepart og så gemme det tilbage i variablen, så den næste kørsel bruger det. Gør det med en **API**-blok, der kalder OneUptime-API'et.
 

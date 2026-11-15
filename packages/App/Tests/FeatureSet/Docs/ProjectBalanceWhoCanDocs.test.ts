@@ -82,25 +82,26 @@ function readDashboardLocale(lang: string): Record<string, string> {
 
 /*
  * How each language names the people who may add balance - the same words
- * its docs use for who may turn a messaging channel on. The permission
+ * its docs use for who may turn a messaging channel on, the Project Owner
+ * as its Dashboard draws the role (#8493). The permission
  * keeps its English name, as the dashboard shows it.
  */
 const WHO_MAY_ADD: Record<string, string> = {
   en: "project owner or someone with",
-  da: "projektejer eller nogen med",
-  de: "Projekteigentümer oder jemand mit",
-  es: "propietario del proyecto o alguien con",
+  da: "Projektejer eller nogen med",
+  de: "Projektinhaber oder jemand mit",
+  es: "Propietario del proyecto o alguien con",
   fa: "مالک پروژه یا کسی که",
-  fr: "propriétaire du projet ou une personne disposant de",
-  hi: "प्रोजेक्ट का मालिक या",
-  it: "proprietario del progetto o qualcuno con",
-  ja: "プロジェクトのオーナーまたは",
+  fr: "Propriétaire du projet ou une personne disposant de",
+  hi: "प्रोजेक्ट स्वामी या",
+  it: "Proprietario del progetto o qualcuno con",
+  ja: "プロジェクト所有者または",
   ko: "프로젝트 소유자 또는",
-  nl: "projecteigenaar of iemand met",
-  no: "prosjekteier eller noen med",
-  pt: "proprietário do projeto ou alguém com",
-  ru: "владелец проекта или пользователь с разрешением",
-  sv: "projektägare eller någon med",
+  nl: "Projecteigenaar of iemand met",
+  no: "Prosjekteier eller noen med",
+  pt: "Proprietário do projeto ou alguém com",
+  ru: "Владелец проекта или пользователь с разрешением",
+  sv: "Projektägare eller någon med",
   "zh-CN": "项目所有者或拥有",
   "zh-TW": "專案擁有者或擁有",
 };
@@ -212,7 +213,7 @@ describe("Users, Teams & Permissions (English)", () => {
 
   test("says recharging either balance is billing: an owner or Manage Billing, not a project admin", () => {
     expect(balances).toBe(
-      "Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a project admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.",
+      "Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a Project Admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.",
     );
   });
 
@@ -273,7 +274,7 @@ describe("AI SRE (English)", () => {
 
   test("the global provider needs AI credits, which an owner or Manage Billing adds", () => {
     expect(page).toContain(
-      "so the project needs AI credits: a project owner or someone with **Manage Billing** adds them on **Project Settings → AI → AI Credits**, where **Auto Recharge** keeps them from running out.",
+      "so the project needs AI credits: a Project Owner or someone with **Manage Billing** adds them on **Project Settings → AI → AI Credits**, where **Auto Recharge** keeps them from running out.",
     );
   });
 

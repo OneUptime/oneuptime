@@ -130,12 +130,12 @@ The API can store an opt-out rule, with `isOptOut` set and no method: you are th
 :::
 
 :::details Turning the fallback off for a whole project
-A project owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API. A page that finds no rule is then not delivered, and its log says the user should add rules under **User Settings → How to Reach Me**.
+A Project Owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API. A page that finds no rule is then not delivered, and its log says the user should add rules under **User Settings → How to Reach Me**.
 :::
 
 ## Rules for a teammate
 
-Project owners and admins can see and change the same page for anyone in the project: under **Users**, open the person, then **How to Reach Me** in the **On-Call** section. **Readiness**, beside it, shows whether every severity reaches them. When someone else adds, changes or deletes your rules, you get an email about it, and each change is in the project's audit log.
+Project Owners and Project Admins can see and change the same page for anyone in the project: under **Users**, open the person, then **How to Reach Me** in the **On-Call** section. **Readiness**, beside it, shows whether every severity reaches them. When someone else adds, changes or deletes your rules, you get an email about it, and each change is in the project's audit log.
 
 ## Troubleshooting
 

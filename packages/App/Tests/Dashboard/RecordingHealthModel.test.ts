@@ -575,7 +575,7 @@ describe("buildUsageMeter", () => {
     for (const limit of [null, 0, -1]) {
       expect(buildUsageMeter(3 * MB, limit)).toEqual({
         kind: "unlimited",
-        usedCopy: "3 MB",
+        usedCopy: "3\u00A0MB",
       });
     }
   });
@@ -585,8 +585,8 @@ describe("buildUsageMeter", () => {
 
     expect(meter).toEqual({
       kind: "limited",
-      usedCopy: "512 MB",
-      limitCopy: "2 GB",
+      usedCopy: "512\u00A0MB",
+      limitCopy: "2\u00A0GB",
       percent: 25,
       tone: "ok",
     });
@@ -607,7 +607,7 @@ describe("buildUsageMeter", () => {
 
     expect(at.kind === "limited" && at.tone).toBe("error");
     expect(over.kind === "limited" && over.percent).toBe(100);
-    expect(over.kind === "limited" && over.usedCopy).toBe("3 GB");
+    expect(over.kind === "limited" && over.usedCopy).toBe("3\u00A0GB");
   });
 
   test("a tiny amount rounds to 0% rather than claiming a share it does not have", () => {

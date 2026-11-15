@@ -267,8 +267,8 @@ describe("describePageLoadTimeTile", () => {
 
   test("the value is the p95 and the sublabel the median", () => {
     expect(describePageLoadTimeTile({ stats: STATS, failed: false })).toEqual({
-      value: "2.34 s",
-      sublabel: "median 850 ms",
+      value: "2.34\u00A0s",
+      sublabel: "median 850\u00A0ms",
     });
   });
 
@@ -278,17 +278,17 @@ describe("describePageLoadTimeTile", () => {
       failed: false,
     });
 
-    expect(text.value).toBe("900 ms");
-    expect(text.sublabel).toBe("median 100 ms");
+    expect(text.value).toBe("900\u00A0ms");
+    expect(text.sublabel).toBe("median 100\u00A0ms");
   });
 
   test.each([
-    [0.5, "500 µs"],
-    [9.5, "9.5 ms"],
-    [120, "120 ms"],
-    [999, "999 ms"],
-    [1000, "1.00 s"],
-    [12_345, "12.35 s"],
+    [0.5, "500\u00A0µs"],
+    [9.5, "9.5\u00A0ms"],
+    [120, "120\u00A0ms"],
+    [999, "999\u00A0ms"],
+    [1000, "1.00\u00A0s"],
+    [12_345, "12.35\u00A0s"],
   ])("a p95 of %d ms reads %s", (p95: number, value: string) => {
     expect(
       describePageLoadTimeTile({
@@ -309,7 +309,7 @@ describe("describePageLoadTimeTile", () => {
         },
         failed: false,
       }),
-    ).toEqual({ value: "700 ms", sublabel: "median 700 ms" });
+    ).toEqual({ value: "700\u00A0ms", sublabel: "median 700\u00A0ms" });
   });
 });
 
@@ -653,7 +653,8 @@ describe("Overview.tsx wiring: tiles", () => {
     );
 
     expect(events).toContain('"spans, selected range"');
-    expect(events).toContain("formatCompact(m.total)");
+    // In the reader's digits (#8481).
+    expect(events).toContain("formatCompact(m.total, translator)");
   });
 
   /*
@@ -1018,7 +1019,7 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
     );
 
     expect(errorRateTile).toContain(
-      'translator.translateTemplate("{{errors}} errored", { errors: formatCompact(m.errors), })',
+      'translator.translateTemplate("{{errors}} errored", { errors: formatCompact(m.errors, translator), })',
     );
     expect(D.errorRate).toContain("the line below is how many errored");
   });

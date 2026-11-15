@@ -181,5 +181,5 @@ sequenceDiagram
 - [Мониторинг Ping](/docs/monitor/ping-monitor): Проверить, что доступен сам хост.
 - [Мониторинг SSL-сертификатов](/docs/monitor/ssl-certificate-monitor): Проверить сертификат на TLS-порту.
 - [Мониторинг состояния баз данных](/docs/monitor/database-health-monitor): Выйти за рамки открытого порта и следить за состоянием базы данных.
-- [Пользовательские probes](/docs/probe/custom-probe): Проверять порты в вашей собственной сети.
+- [Пользовательские зонды](/docs/probe/custom-probe): Проверять порты в вашей собственной сети.
 :::

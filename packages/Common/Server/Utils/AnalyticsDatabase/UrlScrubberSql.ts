@@ -7,7 +7,8 @@
  * WHICH SEGMENT IS AN IDENTIFIER (isIdentifierSegmentSql) is
  * UrlScrubber.scrubPath's rule, segment by segment: a uuid, a 24-hex object
  * id, an email, nine digits or more, a token of 32 or more letters, digits,
- * "_" and "-", or a JSON Web Token (#8385) - read decoded, and decoded once
+ * "_" and "-" (or standard base64's "+" and "/", padded, #8489), or a JSON
+ * Web Token (#8385) - read decoded, and decoded once
  * more, for an address an application escaped twice (#8385). It is written
  * so it never takes for an identifier a segment the scrubber keeps: that
  * segment is one a recorder sent, and a migration deletes or rewrites what
@@ -79,10 +80,11 @@ const EMAIL_CHARACTER: string = `[^@/${ASCII_SPACES}]`;
 
 /*
  * The scrubber's identifier shapes but the email, decoded: a uuid, an
- * object id, nine digits or more, a token, a JSON Web Token. All ASCII.
+ * object id, nine digits or more, a token in base64url or standard base64
+ * with up to two "=" of padding (#8489), a JSON Web Token. All ASCII.
  */
 export const IDENTIFIER_SEGMENT_PATTERN: string =
-  "^(?:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}|[0-9A-Fa-f]{24}|[0-9]{9,}|[A-Za-z0-9_-]{32,}|eyJ[A-Za-z0-9_-]{8,}(?:[.][A-Za-z0-9_-]*){1,4})$";
+  "^(?:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}|[0-9A-Fa-f]{24}|[0-9]{9,}|[A-Za-z0-9_+/-]{32,}={0,2}|eyJ[A-Za-z0-9_-]{8,}(?:[.][A-Za-z0-9_-]*){1,4})$";
 
 // The scrubber's email shape, decoded (EMAIL_SEGMENT).
 export const EMAIL_SEGMENT_PATTERN: string = `^${EMAIL_CHARACTER}{1,64}@${EMAIL_CHARACTER}{1,253}[.]${EMAIL_CHARACTER}{1,63}$`;
@@ -145,22 +147,33 @@ export function redactedPathSql(path: string): string {
  * hash router's route (its path, without a query) with the mark it was
  * written after ("#" or "#!"; "" when the fragment is no route).
  */
+interface AddressParts {
+  origin: string;
+  path: string;
+  // What follows the path up to the fragment: its query, "?" and all, or "".
+  query: string;
+  // Whether the address has a fragment, and the fragment after its "#".
+  hasFragment: string;
+  fragment: string;
+  routeMark: string;
+  route: string;
+}
+
 function addressPartsSql(
   address: string,
-  use: (parts: {
-    origin: string;
-    path: string;
-    routeMark: string;
-    route: string;
-  }) => string,
+  use: (parts: AddressParts) => string,
 ): string {
   /*
    * Each part is read once and bound to a lambda argument (a one-element
    * array, mapped): the address's origin, what follows it, and its fragment.
    */
+  const path: string = "splitByRegexp('[?#]', paRest)[1]";
   const parts: string = use({
     origin: "paOrigin",
-    path: "splitByRegexp('[?#]', paRest)[1]",
+    path: path,
+    query: `splitByChar('#', substring(paRest, length(${path}) + 1))[1]`,
+    hasFragment: "(position(paRest, '#') > 0)",
+    fragment: "paFragment",
     routeMark:
       "multiIf(startsWith(paFragment, '/'), '#', startsWith(paFragment, '!/'), '#!', '')",
     route:
@@ -175,12 +188,22 @@ function addressPartsSql(
  * hash route, as the scrubber reads both.
  */
 export function addressHasIdentifierSql(address: string): string {
-  return addressPartsSql(
-    address,
-    (parts: { path: string; route: string }): string => {
-      return `(${hasIdentifierSegmentSql(parts.path)} OR ${hasIdentifierSegmentSql(parts.route)})`;
-    },
-  );
+  return addressPartsSql(address, (parts: AddressParts): string => {
+    return `(${hasIdentifierSegmentSql(parts.path)} OR ${hasIdentifierSegmentSql(parts.route)})`;
+  });
+}
+
+/*
+ * A stored address with the identifiers in its path and its hash route
+ * "[redacted]", and nothing else changed (#8490): its scheme and host, the
+ * query the scrubber kept (an allowlisted name, its value already
+ * "[redacted]") and any other part of the fragment stay as written, so an
+ * address that names no one comes back exactly as it was.
+ */
+export function redactedAddressSql(address: string): string {
+  return addressPartsSql(address, (parts: AddressParts): string => {
+    return `concat(${parts.origin}, ${redactedPathSql(parts.path)}, ${parts.query}, if(${parts.hasFragment}, if(${parts.routeMark} = '', concat('#', ${parts.fragment}), concat(${parts.routeMark}, ${redactedPathSql(parts.route)}, substring(${parts.fragment}, length(${parts.routeMark}) + length(${parts.route})))), ''))`;
+  });
 }
 
 /*
@@ -191,17 +214,9 @@ export function addressHasIdentifierSql(address: string): string {
  * scrubbed alike. The query and any other fragment are dropped.
  */
 export function scrubbedAddressSql(address: string): string {
-  return addressPartsSql(
-    address,
-    (parts: {
-      origin: string;
-      path: string;
-      routeMark: string;
-      route: string;
-    }): string => {
-      return `concat(replaceRegexpOne(${parts.origin}, '//.*@', '//'), ${redactedPathSql(parts.path)}, if(${parts.routeMark} = '', '', concat(${parts.routeMark}, ${redactedPathSql(parts.route)})))`;
-    },
-  );
+  return addressPartsSql(address, (parts: AddressParts): string => {
+    return `concat(replaceRegexpOne(${parts.origin}, '//.*@', '//'), ${redactedPathSql(parts.path)}, if(${parts.routeMark} = '', '', concat(${parts.routeMark}, ${redactedPathSql(parts.route)})))`;
+  });
 }
 
 /*

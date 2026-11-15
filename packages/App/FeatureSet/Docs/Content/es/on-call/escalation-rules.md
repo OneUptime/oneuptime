@@ -92,7 +92,7 @@ El resumen de la parte superior de la página **Reglas de escalado** muestra tod
 
 ### Cómo se localiza a cada persona
 
-A cada persona que avisa un nivel se la localiza como indiquen sus propias reglas de guardia: **Ajustes de usuario** > **Cómo contactarme**, con una pestaña para incidentes, episodios de incidentes, alertas y episodios de alertas, y una tarjeta por severidad que indica qué método de notificación se prueba y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Cómo contactarme**. Consulta [Cómo contactarme](/docs/notifications/on-call-rules).
+A cada persona que avisa un nivel se la localiza como indiquen sus propias reglas de guardia: **Ajustes de usuario** > **Cómo contactarme**, con una pestaña para incidentes, episodios de incidentes, alertas y episodios de alertas, y una tarjeta por severidad que indica qué método de notificación se prueba y tras cuánto tiempo. Un Administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Cómo contactarme**. Consulta [Cómo contactarme](/docs/notifications/on-call-rules).
 
 ```mermaid title="A quién avisa un nivel y cómo se localiza a cada persona"
 flowchart TB
@@ -176,7 +176,7 @@ En OneUptime Cloud, cada SMS, llamada, mensaje de WhatsApp y de Telegram se paga
 - Los avisos siguen saliendo con el saldo que queda mientras la recarga automática no puede cargar la tarjeta.
 
 > [!IMPORTANT]
-> SMS, llamadas telefónicas, WhatsApp y Telegram empiezan apagados en un proyecto nuevo: en OneUptime Cloud cada mensaje se paga con el saldo del proyecto, y una instalación autoalojada necesita antes una cuenta de Twilio, una pasarela de SMS y llamadas o un bot de Telegram configurado. Mientras un canal esté apagado, nadie en el proyecto puede añadir un método en él. Solo un propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** puede encender uno, en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Canales de notificación**; un administrador del proyecto no puede. A todos los demás se les dice exactamente quién puede, allí donde un canal esté apagado: encima de su propia lista de métodos en ese canal, en su lista de configuración y en el mensaje que reciben cuando algo lo necesita.
+> SMS, llamadas telefónicas, WhatsApp y Telegram empiezan apagados en un proyecto nuevo: en OneUptime Cloud cada mensaje se paga con el saldo del proyecto, y una instalación autoalojada necesita antes una cuenta de Twilio, una pasarela de SMS y llamadas o un bot de Telegram configurado. Mientras un canal esté apagado, nadie en el proyecto puede añadir un método en él. Solo un Propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** puede encender uno, en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Canales de notificación**; un Administrador del proyecto no puede. A todos los demás se les dice exactamente quién puede, allí donde un canal esté apagado: encima de su propia lista de métodos en ese canal, en su lista de configuración y en el mensaje que reciben cuando algo lo necesita.
 
 ## Escalar a la siguiente persona de la rotación
 

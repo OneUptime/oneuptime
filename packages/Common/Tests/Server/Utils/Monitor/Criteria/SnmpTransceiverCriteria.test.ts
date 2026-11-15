@@ -398,7 +398,7 @@ describe("Transceiver Past Alarm / Warning Threshold", () => {
         filter(CheckOn.SnmpTransceiverPastAlarmThreshold, FilterType.True),
       ),
     ).toBe(
-      "Te1/1/3 transceiver past an alarm threshold: RX Power -19.00 dBm is below the low alarm threshold of -18.40 dBm; Temperature 71.5 °C is above the high warning threshold of 70.0 °C.",
+      "Te1/1/3 transceiver past an alarm threshold: RX Power -19.00\u00A0dBm is below the low alarm threshold of -18.40\u00A0dBm; Temperature 71.5\u00A0°C is above the high warning threshold of 70.0\u00A0°C.",
     );
   });
 
@@ -418,7 +418,7 @@ describe("Transceiver Past Alarm / Warning Threshold", () => {
         filter(CheckOn.SnmpTransceiverPastWarningThreshold, FilterType.True),
       ),
     ).toBe(
-      "Te1/1/2 transceiver past a warning threshold: RX Power -15.10 dBm is below the low warning threshold of -14.40 dBm.",
+      "Te1/1/2 transceiver past a warning threshold: RX Power -15.10\u00A0dBm is below the low warning threshold of -14.40\u00A0dBm.",
     );
     expect(
       evaluate(
@@ -540,7 +540,7 @@ describe("Transceiver Reading", () => {
         }),
       ),
     ).toBe(
-      "Et49/1 transceiver RX Power is -15.20 dBm on lane 3, which is less than -14 (2 readings in scope match).",
+      "Et49/1 transceiver RX Power is -15.20\u00A0dBm on lane 3, which is less than -14 (2 readings in scope match).",
     );
   });
 
@@ -563,7 +563,7 @@ describe("Transceiver Reading", () => {
         }),
       ),
     ).toBe(
-      "Te1/1/3 transceiver Temperature is 66.0 °C, which is greater than 60 (2 readings in scope match).",
+      "Te1/1/3 transceiver Temperature is 66.0\u00A0°C, which is greater than 60 (2 readings in scope match).",
     );
   });
 
@@ -685,7 +685,7 @@ describe("Transceiver Reading", () => {
         }),
       ),
     ).toBe(
-      "Te1/1/1 transceiver RX Power is -40.00 dBm (no light), which is less than -30.",
+      "Te1/1/1 transceiver RX Power is -40.00\u00A0dBm (no light), which is less than -30.",
     );
   });
 });
@@ -718,7 +718,7 @@ describe("Transceiver RX Power Drop", () => {
         ),
       ),
     ).toBe(
-      "Te1/1/1 RX power -6.30 dBm is 2.50 dB below its best daily average of the last 30 days (-3.80 dBm on 2026-09-20).",
+      "Te1/1/1 RX power -6.30\u00A0dBm is 2.50 dB below its best daily average of the last 30 days (-3.80\u00A0dBm on 2026-09-20).",
     );
   });
 
@@ -750,7 +750,7 @@ describe("Transceiver RX Power Drop", () => {
         ),
       ),
     ).toBe(
-      "Te1/1/2 RX power -7.00 dBm is 5.00 dB below its best daily average of the last 30 days (-2.00 dBm on 2026-09-20). 2 transceivers in scope match.",
+      "Te1/1/2 RX power -7.00\u00A0dBm is 5.00 dB below its best daily average of the last 30 days (-2.00\u00A0dBm on 2026-09-20). 2 transceivers in scope match.",
     );
   });
 
@@ -786,7 +786,7 @@ describe("Transceiver RX Power Drop", () => {
         }),
       ),
     ).toBe(
-      "Te1/1/1 RX power -4.50 dBm is 0.50 dB above its best daily average of the last 30 days (-5.00 dBm on 2026-09-20).",
+      "Te1/1/1 RX power -4.50\u00A0dBm is 0.50 dB above its best daily average of the last 30 days (-5.00\u00A0dBm on 2026-09-20).",
     );
   });
 
@@ -857,7 +857,7 @@ describe("SnmpTransceiverCriteria.describeObservation", () => {
         }),
       ),
     ).toBe(
-      "RX Power in scope - Te1/1/1: -4.00 dBm, Te1/1/2: -15.00 dBm, Te1/1/3: -19.00 dBm.",
+      "RX Power in scope - Te1/1/1: -4.00\u00A0dBm, Te1/1/2: -15.00\u00A0dBm, Te1/1/3: -19.00\u00A0dBm.",
     );
     expect(
       observe(

@@ -296,7 +296,7 @@ describe("Network Traffic: Add devices, held to the code", () => {
     );
 
     expect(englishParagraph(NOTHING_TWICE_PARAGRAPH)).toContain(
-      "Like reading a connection, adding its devices is for project owners and admins.",
+      "Like reading a connection, adding its devices is for Project Owners and Project Admins.",
     );
   });
 });

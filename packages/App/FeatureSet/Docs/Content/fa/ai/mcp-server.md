@@ -113,7 +113,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### مدیریت کلاینت‌های متصل
 
-هر کلاینتی که با ورود وصل شده باشد در **تنظیمات پروژه** > **هوش مصنوعی** > **سرور MCP**، زیر **کلاینت‌های MCP متصل** فهرست می‌شود، همراه با اینکه چه کسی آن را وصل کرده، چه کاری می‌تواند بکند و آخرین بار کی استفاده شده است. شما کلاینت‌هایی را که خودتان وصل کرده‌اید می‌بینید؛ مالکان و مدیران پروژه کلاینت‌های همه را می‌بینند.
+هر کلاینتی که با ورود وصل شده باشد در **تنظیمات پروژه** > **هوش مصنوعی** > **سرور MCP**، زیر **کلاینت‌های MCP متصل** فهرست می‌شود، همراه با اینکه چه کسی آن را وصل کرده، چه کاری می‌تواند بکند و آخرین بار کی استفاده شده است. شما کلاینت‌هایی را که خودتان وصل کرده‌اید می‌بینید؛ مالکان پروژه و مدیران پروژه کلاینت‌های همه را می‌بینند.
 
 برای خارج کردن یک کلاینت از حساب، روی **قطع اتصال** کلیک کنید. کلاینت بی‌درنگ از کار می‌افتد.
 
@@ -497,7 +497,7 @@ curl https://oneuptime.com/mcp/tools
 | امنیت | Security Event, Threat Intel Indicator |
 | تغییرات و هزینه | Change Event, Kubernetes Cost Allocation |
 
-نام ابزارها به سبک snake case است: `create_incident`، `get_incident`، `list_incidents`، `update_incident`، `delete_incident` و `count_incidents`، یا برای تله‌متری `list_logs` و `count_spans`.
+نام ابزارها به سبک snake case است: `create_incident`، `get_incident`، `list_incidents`، `update_incident`، `delete_incident` و `count_incidents`، یا برای تله‌متری `list_logs` و `count_spans`. `create_incident` و `create_alert` همچنین `ownerUsers` و `ownerTeams` را می‌گیرند: شناسه‌های کاربران و تیم‌هایی که از آغاز مالک رکوردند و از ایجاد آن باخبر می‌شوند.
 
 ## گام‌های بعدی
 

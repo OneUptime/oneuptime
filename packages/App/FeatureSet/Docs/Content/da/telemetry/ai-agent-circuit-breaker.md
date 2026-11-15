@@ -1,11 +1,11 @@
 # Circuit breakers til AI-agenter
 
-En AI-agent fejler sjældent ved at gå ned. Den fejler ved at fortsætte: den prøver et ødelagt værktøj igen, planlægger det samme trin en gang til eller starter flere underagenter, mens hver runde koster flere tokens. Denne side bygger en circuit breaker til det af dele, OneUptime allerede har: en advarsel, der opdager den løbske agent, og et workflow, der kalder et endpoint, du ejer, for at stoppe den.
+En AI-agent fejler sjældent ved at gå ned. Den fejler ved at fortsætte: den prøver et ødelagt værktøj igen, planlægger det samme trin en gang til eller starter flere underagenter, mens hver runde koster flere tokens. Denne side bygger en circuit breaker til det af dele, OneUptime allerede har: en advarsel, der opdager den løbske agent, og en arbejdsgang, der kalder et endpoint, du ejer, for at stoppe den.
 
 :::cards
 - [Vælg en snubletråd](#vælg-en-snubletråd): Advar ved forbrug, eller ved ét værktøj, der kaldes igen og igen.
 - [Byg stop-endpointet](#byg-stop-endpointet): Den lille tjeneste, der sætter din agent på pause.
-- [Byg workflowet](#byg-workflowet): Fra en ny advarsel til et kald til dit endpoint.
+- [Byg arbejdsgangen](#byg-arbejdsgangen): Fra en ny advarsel til et kald til dit endpoint.
 - [Test circuit breakeren](#test-circuit-breakeren): Udløs den manuelt og derefter for alvor.
 :::
 
@@ -15,7 +15,7 @@ En AI-agent fejler sjældent ved at gå ned. Den fejler ved at fortsætte: den p
 flowchart TB
     agent["Din agent sender<br/>gen_ai.*-spans"] --> ingest["OneUptime"]
     ingest --> wire{"Snubletråd: budget-<br/>eller løkkeadvarsel"}
-    wire -->|"Advarsel oprettet"| workflow["Workflow:<br/>On Create Alert"]
+    wire -->|"Advarsel oprettet"| workflow["Arbejdsgang:<br/>On Create Alert"]
     workflow -->|"API Post (JSON)"| endpoint["Dit stop-endpoint"]
     endpoint --> runner["Runneren pauser<br/>eller stopper agenten"]
 ```
@@ -33,11 +33,11 @@ Prisen er hastighed: den stopper en løbsk agent på minutter, ikke millisekunde
 
 - Din agent sender GenAI-spans til OneUptime. Se [AI- / LLM-observability](/docs/telemetry/ai-llm-observability).
 - Et HTTPS-endpoint, der kan pause eller stoppe din agents runner, og som kan nås fra OneUptime. Du bygger det i [Byg stop-endpointet](#byg-stop-endpointet).
-- Tilladelse til at oprette monitorer og workflows i projektet.
+- Tilladelse til at oprette monitorer og arbejdsgange i projektet.
 
 ## Vælg en snubletråd
 
-Begge snubletråde ender på samme måde: en monitor opretter en advarsel, og den nye advarsel starter workflowet. Du kan sætte begge op: workflowet er ligeglad med, hvilken af dem der udløste.
+Begge snubletråde ender på samme måde: en monitor opretter en advarsel, og den nye advarsel starter arbejdsgangen. Du kan sætte begge op: arbejdsgangen er ligeglad med, hvilken af dem der udløste.
 
 ### En budgetadvarsel
 
@@ -47,7 +47,7 @@ Forbrug er det sikreste tegn på en løbsk agent. Et budget lægger dagens AI-fo
 1. Åbn **Produkter → AI / LLM → Budgetter**, og klik på **Opret LLM Cost Budget**. Angiv et **Dagligt budget (USD)**, og vælg agentens tjeneste i **Tjeneste (valgfrit)**, så budgettet kun overvåger den agent.
 2. Vælg **Vis ID** i rækkemenuen for det nye budget, og kopiér ID'et.
 3. Opret en [Metrik-monitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtreret på attributten `oneuptime.llm.budget.id` med det ID, du kopierede, og sæt dens **Tidsvindue** til **Seneste 30 minutter**.
-4. I **Hvornår der advares** sætter du **Betingelse** til **På eller over** og **Værdi** til `100`, beholder **Opret en advarsel** og giver den en **Advarselstitel**, der nævner agenten, f.eks. `LLM budget exceeded: support-bot`. Både workflowet og dit endpoint læser den titel.
+4. I **Hvornår der advares** sætter du **Betingelse** til **På eller over** og **Værdi** til `100`, beholder **Opret en advarsel** og giver den en **Advarselstitel**, der nævner agenten, f.eks. `LLM budget exceeded: support-bot`. Både arbejdsgangen og dit endpoint læser den titel.
 :::
 
 Filtrér på ID'et, ikke på navnet: omdøber du et budget, omdøbes dets serie, og en monitor, der filtrerer på det gamle navn, ville i al stilhed holde op med at matche. Hold tidsintervallet på 30 minutter: et budget udgiver ét punkt hvert 15. minut, så et kortere interval finder intet mellem to punkter, og advarslen åbner og lukker igen og igen.
@@ -69,7 +69,7 @@ En ekstra trace-monitor med **Span-status** sat til **Fejl** og en lavere optæl
 
 ## Byg stop-endpointet
 
-Workflowet sender en `POST` med en JSON-brødtekst til et endpoint, du kører. Hvad "stop" betyder, bestemmer du. Fra den mindste virkning til den største:
+Arbejdsgangen sender en `POST` med en JSON-brødtekst til et endpoint, du kører. Hvad "stop" betyder, bestemmer du. Fra den mindste virkning til den største:
 
 | Handling | Virkning |
 | --- | --- |
@@ -108,20 +108,20 @@ app.post("/circuit-breaker", (req, res) => {
 Byg det efter disse regler:
 
 - Gør udløsningen idempotent. En advarsel og en overskridelse, eller en budgetadvarsel og en løkkeadvarsel på samme tid, kan udløse den mere end én gang, og en anden udløsning må ikke ændre noget.
-- Svar inden for et sekund eller to, og ryd op i baggrunden. Workflowet regner ethvert 2xx-svar som en succes.
-- Kræv en hemmelighed. Alle, der kan kalde endpointet, kan stoppe dine agenter, så tjek et bearer-token, som workflowet sender fra en hemmelig global variabel.
+- Svar inden for et sekund eller to, og ryd op i baggrunden. Arbejdsgangen regner ethvert 2xx-svar som en succes.
+- Kræv en hemmelighed. Alle, der kan kalde endpointet, kan stoppe dine agenter, så tjek et bearer-token, som arbejdsgangen sender fra en hemmelig global variabel.
 - Nulstil den manuelt. En udløst circuit breaker forbliver udløst, indtil nogen har set på kørslen: åbn agentens samtale under **Produkter → AI / LLM → Samtaler** for at læse eller afspille, hvad den gjorde.
 
 Anmodningen sendes fra OneUptime. På OneUptime Cloud skal dit endpoint kunne nås fra internettet. En selvhostet installation afviser private netværksadresser, medmindre en administrator tillader dem: se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 
-## Byg workflowet
+## Byg arbejdsgangen
 
-Gem først endpointets token et sted, hvor workflowet kan bruge det uden at vise det: åbn **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, kald den `AGENT_KILL_TOKEN`, læg tokenet i **Indhold**, og slå **Hemmelighed** til. En hemmelig værdi fjernes fra kørslernes logge og trinnenes spor.
+Gem først endpointets token et sted, hvor arbejdsgangen kan bruge det uden at vise det: åbn **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, kald den `AGENT_KILL_TOKEN`, læg tokenet i **Indhold**, og slå **Hemmelighed** til. En hemmelig værdi fjernes fra kørslernes logge og trinnenes spor.
 
 :::steps
-### Opret workflowet
+### Opret arbejdsgangen
 
-Åbn **Produkter → Arbejdsgange**, og klik på **Opret arbejdsgang**. Klik på **Start fra bunden**, kald det `AI agent circuit breaker`, og klik på **Opret arbejdsgang**. Det åbner i **Bygger**, slået fra.
+Åbn **Produkter → Arbejdsgange**, og klik på **Opret arbejdsgang**. Klik på **Start fra bunden**, kald det `AI agent circuit breaker`, og klik på **Opret arbejdsgang**. Den åbner i **Bygger**, slået fra.
 
 ### Tilføj udløseren
 
@@ -164,31 +164,31 @@ Dens **Anmodningsbrødtekst**:
 }
 ```
 
-For at reagere på flere snubletråde lader du alle deres titler begynde på samme måde, eller du kæder flere **If / Else**-blokke fra punktet **Nej**. Se [Byg et workflow](/docs/workflows/authoring) for lærredet og [Variabler](/docs/workflows/variables) for `{{…}}`-referencerne.
+For at reagere på flere snubletråde lader du alle deres titler begynde på samme måde, eller du kæder flere **If / Else**-blokke fra punktet **Nej**. Se [Byg en arbejdsgang](/docs/workflows/authoring) for lærredet og [Variabler](/docs/workflows/variables) for `{{…}}`-referencerne.
 
 ## Test circuit breakeren
 
 :::steps
 1. Udløs den manuelt. Åbn **Advarsler**, klik på **Opret advarsel**, og opret en med titlen `LLM budget exceeded: test`. Kørslen vises under **Arbejdsgange → Protokoller → Kørsler**, og dit endpoint modtager kaldet.
-2. Udløs den for alvor. Opret et budget med en meget lille grænse, f.eks. `0.01` USD, på en testagents tjeneste, peg en budgetmonitor på det, og lad agenten køre: procenten passerer 100, advarslen åbner, workflowet kører, og circuit breakeren udløses. Til løkkeadvarslen giver du en testagent et værktøj, der altid fejler.
+2. Udløs den for alvor. Opret et budget med en meget lille grænse, f.eks. `0.01` USD, på en testagents tjeneste, peg en budgetmonitor på det, og lad agenten køre: procenten passerer 100, advarslen åbner, arbejdsgangen kører, og circuit breakeren udløses. Til løkkeadvarslen giver du en testagent et værktøj, der altid fejler.
 3. Udløs den to gange. Opret den samme advarsel igen: dit endpoint skal tage den anden udløsning uden at ændre noget.
 :::
 
 ## Sådan opfører circuit breakeren sig over tid
 
-- Workflowet kører, når en advarsel oprettes, så en snubletråd udløser circuit breakeren én gang pr. advarsel, ikke én gang pr. evaluering.
+- Arbejdsgangen kører, når en advarsel oprettes, så en snubletråd udløser circuit breakeren én gang pr. advarsel, ikke én gang pr. evaluering.
 - Et budget tæller UTC-døgnet, så procenten starter forfra fra 0 ved midnat UTC. En budgetadvarsel kan så blive løst, og den næste dårlige dag åbner en ny advarsel, der udløser circuit breakeren igen.
 - En monitor holder sin advarsel åben, så længe dens kriterier er opfyldt. Med **Løs advarsel automatisk** slået til løses advarslen, når de ikke længere er det, og den næste overskridelse åbner en ny advarsel.
 - Nulstilling er et menneskes beslutning på begge sider: løs advarslen i OneUptime, og nulstil circuit breakeren i din runner.
-- Hver ny advarsel i projektet starter workflowet. Det er **If / Else**, der holder andre advarsler væk fra circuit breakeren: udelad den ikke.
+- Hver ny advarsel i projektet starter arbejdsgangen. Det er **If / Else**, der holder andre advarsler væk fra circuit breakeren: udelad den ikke.
 
 ## Fejlfinding
 
-:::details Workflowet kører ikke
-Tjek, at **Aktiveret** er slået til øverst i **Bygger**: workflows oprettes slået fra. Tjek derefter, at advarslen blev oprettet, efter du slog workflowet til: udløseren starter kun en kørsel for en ny advarsel.
+:::details Arbejdsgangen kører ikke
+Tjek, at **Aktiveret** er slået til øverst i **Bygger**: arbejdsgange oprettes slået fra. Tjek derefter, at advarslen blev oprettet, efter du slog arbejdsgangen til: udløseren starter kun en kørsel for en ny advarsel.
 :::
 
-:::details Workflowet kører, men tager altid grenen No
+:::details Arbejdsgangen kører, men tager altid grenen No
 Titlen er tom eller matcher ikke. Et felt, der ikke står i udløserens **Fields to pass on**, kommer tomt frem, så tilføj titlen dér. Sammenlign derefter advarslens titel med **Sammenlign med**: **indeholder** skal finde præcis den tekst i den.
 :::
 
@@ -209,6 +209,6 @@ Monitorens **Tidsinterval** er kortere end budgettets 15 minutter mellem to punk
 :::cards
 - [AI- / LLM-observability](/docs/telemetry/ai-llm-observability): Budgetter, omkostninger og de spans, circuit breakeren overvåger.
 - [Trace-monitor](/docs/monitor/traces-monitor): Span-filtre og kriterier i detaljer.
-- [Workflows](/docs/workflows/index): Udløsere, komponenter, variabler og kørsler.
+- [Arbejdsgange](/docs/workflows/index): Udløsere, komponenter, variabler og kørsler.
 - [AI-gateways](/docs/telemetry/ai-gateways): Alle agenters modelkald gennem én eksport.
 :::

@@ -262,6 +262,73 @@ describe("UrlScrubber segment primitives", () => {
     });
 
     /*
+     * #8489: the token rule read base64url alone. A token in standard
+     * base64 keeps its "+" and its "=" padding in a path, and was kept
+     * whole; its "/" is escaped ("%2F"), or it would end the segment.
+     */
+    describe("tokens in standard base64", () => {
+      const BODY: string = "k3J+vT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8";
+
+      it("redacts a token with a plus, with or without its padding", () => {
+        for (const token of [BODY, `${BODY}=`, `${BODY}==`]) {
+          expect([token, UrlScrubber.scrubPath(`/reset/${token}`)]).toEqual([
+            token,
+            `/reset/${REDACTED}`,
+          ]);
+        }
+      });
+
+      it("redacts a padded token in base64url too", () => {
+        expect(
+          UrlScrubber.scrubPath(
+            "/verify/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw==",
+          ),
+        ).toBe(`/verify/${REDACTED}`);
+      });
+
+      it("redacts a token escaped as a link escapes it, its slash too", () => {
+        expect(
+          UrlScrubber.scrubPath(
+            "/confirm/k3J%2BvT9mL4pR7sW1yB6nC3dF5gH0jK%2Fq2Zx8%3D%3D/done",
+          ),
+        ).toBe(`/confirm/${REDACTED}/done`);
+        // Escaped twice, as a link built from an escaped one is.
+        expect(
+          UrlScrubber.scrubPath(
+            "/confirm/k3J%252BvT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8%253D",
+          ),
+        ).toBe(`/confirm/${REDACTED}`);
+      });
+
+      it("counts the padding apart from the 32 characters a token needs", () => {
+        const short: string = "a+".repeat(15) + "a";
+
+        expect(short.length).toBe(31);
+        expect(UrlScrubber.scrubPath(`/x/${short}==`)).toBe(`/x/${short}==`);
+        expect(UrlScrubber.scrubPath(`/x/${short}a`)).toBe(`/x/${REDACTED}`);
+        // Three "=" are no padding.
+        expect(UrlScrubber.scrubPath(`/x/${BODY}===`)).toBe(`/x/${BODY}===`);
+      });
+
+      it("keeps a short word with a plus, and an equals sign inside a segment", () => {
+        for (const segment of [
+          "c++",
+          "size=large",
+          "a=b=c",
+          "notes+ideas",
+          "==",
+          "+",
+          `${BODY.slice(0, 20)}=${BODY.slice(20)}`,
+        ]) {
+          expect([segment, UrlScrubber.scrubPath(`/p/${segment}`)]).toEqual([
+            segment,
+            `/p/${segment}`,
+          ]);
+        }
+      });
+    });
+
+    /*
      * #8385: an application that escapes an escaped address
      * ("someone%2540example.com") left one that, decoded once, has no "@".
      * A segment is matched decoded, and decoded once more.

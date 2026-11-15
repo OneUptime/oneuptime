@@ -39,6 +39,14 @@ import {
   getReadingDirection,
   ReadingDirection,
 } from "Common/Types/ReadingDirection";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import {
+  SetupGuideTranslations,
+  translateSetupGuideContent,
+} from "./SetupGuideTranslation";
+import useSetupGuideTranslation, {
+  SetupGuideTranslationState,
+} from "./UseSetupGuideTranslation";
 
 /*
  * Every in-app "connect this resource" guide: Kubernetes, Docker, Podman,
@@ -119,6 +127,14 @@ export interface ComponentProps {
   getContent: (context: SetupGuideRenderContext) => SetupGuideContent;
 
   /*
+   * The guide's markdown in each language but English, as a chunk per
+   * language (SetupGuideTranslation): the reader's is fetched, and every
+   * piece of the guide it has words for is drawn in them. Left out, the
+   * markdown reads as the guide writes it. A module's constant.
+   */
+  translations?: SetupGuideTranslations | undefined;
+
+  /*
    * What the reader types that the commands are written with, under the
    * option picker and above the steps (an Add guide's name field,
    * Components/ResourceOnboarding). Not a step of its own: the guides'
@@ -176,10 +192,14 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const guideTranslation: SetupGuideTranslationState = useSetupGuideTranslation(
+    props.translations,
+  );
   /*
    * Everything a guide says is English, as written in its data; what the
-   * card draws is looked up in the reader's language. Commands and the
-   * markdown of steps and topics stay as written.
+   * card draws is looked up in the reader's language. Commands stay as
+   * written, and so does the markdown of steps and topics, unless the
+   * guide has the reader's words for it (props.translations).
    */
   const translate: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -241,12 +261,20 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
   const secret: string = selectedKey?.secretKey?.toString() || "";
   const apiKey: string = secret || SETUP_GUIDE_API_KEY_PLACEHOLDER;
 
-  const content: SetupGuideContent = props.getContent({
+  const englishContent: SetupGuideContent = props.getContent({
     oneuptimeUrl: oneuptimeUrl,
     apiKey: apiKey,
     option: option,
     hasApiKey: Boolean(secret),
   });
+
+  /*
+   * The guide as the reader reads it: built in English, with every piece
+   * of its markdown their language has words for in them (#8341).
+   */
+  const content: SetupGuideContent = guideTranslation.words
+    ? translateSetupGuideContent(englishContent, guideTranslation.words)
+    : englishContent;
 
   const keyTypeFilter: TelemetryIngestionKeyType =
     props.getKeyTypeFilter?.(option) || TelemetryIngestionKeyType.Server;
@@ -389,7 +417,10 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const body: ReactElement = (
+  // The reader's words are on their way: a moment, not a flash of English.
+  const body: ReactElement = guideTranslation.isLoading ? (
+    <ComponentLoader />
+  ) : (
     <>
       {options.length > 1 && (
         <SetupGuideOptionPicker
