@@ -46,6 +46,7 @@ import { JSONObject, ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 /*
  * Threshold colors on a dashboard's metric table (issue #5231), through the
@@ -478,7 +479,13 @@ describe("a metric table colored by its columns' thresholds", () => {
   test("a host with no reading shows a dash and is never colored", async () => {
     await renderTable();
 
-    expect(described("cache-1", "CPU")).toEqual(["—", null, null, null]);
+    // The quiet dash, read out as "Not set" (58fc3f92383).
+    expect(described("cache-1", "CPU")).toEqual([
+      QUIET_DASH_TEXT,
+      null,
+      null,
+      null,
+    ]);
     expect(cell("cache-1", "CPU")).toHaveClass("text-gray-900");
   });
 
