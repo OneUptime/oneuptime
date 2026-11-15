@@ -54,6 +54,7 @@ import TelemetryIngest, {
   getEffectiveRequestsPerMinuteLimit,
 } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import CacheGenerations from "Common/Server/Infrastructure/CacheGenerations";
 import Response from "Common/Server/Utils/Response";
 import TelemetryIngestionKeyRateLimiter, {
   TelemetryIngestionKeyLimitOutcome,
@@ -943,14 +944,39 @@ describe("Ingestion Keys (telemetry/ingestion-keys)", () => {
     );
   });
 
-  it("reaches every server within a minute, and records Last Used At every few minutes", () => {
+  /*
+   * Issue #8370: the lookup by secret - the HTTP and gRPC ingest paths - is
+   * kept under each key's generation, which an update or a delete renews
+   * through Redis, so a change reaches every server within
+   * CacheGenerations.SHARED_READ_TTL_MS (a second). While a server cannot
+   * reach Redis, its entries are kept for POSITIVE_TTL_MS, a minute.
+   */
+  it("reaches every server within seconds, a minute while a server cannot reach the cache, and records Last Used At every few minutes", () => {
+    expect(CacheGenerations.SHARED_READ_TTL_MS).toBe(1000);
     expect(numberConstant(keyService, "POSITIVE_TTL_MS")).toBe(60 * 1000);
+    expect(
+      between(
+        keyService,
+        "public async getPolicyFromSecretKey(",
+        "private async readPolicyBySecret(",
+      ),
+    ).toContain("=== cached.generation");
+    expect(
+      between(keyService, "protected override async onUpdateSuccess(", "\n  }"),
+    ).toContain("await this.forgetKeys(updatedItemIds);");
+    expect(
+      between(keyService, "protected override async onDeleteSuccess(", "\n  }"),
+    ).toContain("await this.forgetKeys(itemIdsBeforeDelete);");
     expect(numberConstant(keyService, "LAST_USED_THROTTLE_MS")).toBe(
       5 * 60 * 1000,
     );
     expect(page).toContain(
-      "**Changes reach every server within a minute.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect within about a minute.",
+      "**Changes reach every server within seconds.** Turning a key off, resetting its secret, or changing its origins, expiry or limit takes effect on every server within a few seconds.",
     );
+    expect(page).toContain(
+      ":::details Data still arrives after I turned the key off\nEach OneUptime server checks for a change to a key at least once a second, so a change reaches all of them within a few seconds, and requests after that are refused. While a server cannot reach OneUptime's cache, it may go by what it knew of the key for up to a minute.",
+    );
+    expect(page).not.toContain("within about a minute");
     expect(page).toContain(
       "**Last Used At** is updated every few minutes, not on every request.",
     );

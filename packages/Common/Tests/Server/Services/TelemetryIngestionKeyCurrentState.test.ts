@@ -1020,3 +1020,504 @@ describe("the service everyone imports", () => {
     );
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * THE LOOKUP BY SECRET, ON EVERY SERVER (issue #8370).
+ *
+ * HTTP and OTLP/gRPC ingest - and MQTT at CONNECT - resolve a key by its
+ * secret (getPolicyFromSecretKey), kept per process for POSITIVE_TTL_MS, a
+ * minute. An update or delete cleared it only in the process that made it,
+ * so every other server kept accepting a key switched off, reset or deleted
+ * for up to a minute. Now each entry is kept under the key's generation,
+ * which the change renews through Redis: every server stops the key within
+ * CacheGenerations.SHARED_READ_TTL_MS, a second, while Redis is up; while it
+ * is down, the minute stays the bound. Still no Postgres read per request.
+ * ---------------------------------------------------------------------------
+ */
+
+const POSITIVE_TTL_MS: number = 60 * 1000;
+const NEGATIVE_TTL_MS: number = 10 * 1000;
+
+const lookUp: (
+  server: TelemetryIngestionKeyServiceClass,
+  secret: string,
+) => Promise<TelemetryIngestionKeyPolicy | null> = (
+  server: TelemetryIngestionKeyServiceClass,
+  secret: string,
+): Promise<TelemetryIngestionKeyPolicy | null> => {
+  return server.getPolicyFromSecretKey(secret);
+};
+
+// How often Redis was asked for a generation, by every server together.
+const redisReads: () => number = (): number => {
+  return (
+    jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+      default: { getString: MockFn };
+    }
+  ).default.getString.mock.calls.length;
+};
+
+/*
+ * A server that has the key from before: read once, and again once its
+ * first read ran out (FIRST_READ_TTL_MS), so what it keeps now is the read
+ * that is kept for a minute.
+ */
+const warmUp: (
+  server: TelemetryIngestionKeyServiceClass,
+  key: KeyFixture,
+) => Promise<number> = async (
+  server: TelemetryIngestionKeyServiceClass,
+  key: KeyFixture,
+): Promise<number> => {
+  expect((await lookUp(server, key.secret))?.isEnabled).toBe(true);
+  clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+  expect((await lookUp(server, key.secret))?.isEnabled).toBe(true);
+  const keptAt: number = clock;
+
+  // Kept now: no more reads, for as long as nothing changes.
+  const reads: number = readsOf(server);
+  clock += 10 * 1000;
+  expect((await lookUp(server, key.secret))?.isEnabled).toBe(true);
+  expect(readsOf(server)).toBe(reads);
+
+  return keptAt;
+};
+
+describe("the lookup by secret, on every server (issue #8370)", () => {
+  test.each([
+    {
+      label: "switched off",
+      change: async (
+        server: TelemetryIngestionKeyServiceClass,
+        key: KeyFixture,
+      ): Promise<void> => {
+        await updateThrough(server, key, { isEnabled: false });
+      },
+      stopped: (policy: TelemetryIngestionKeyPolicy | null): boolean => {
+        return policy !== null && policy.isEnabled === false;
+      },
+    },
+    {
+      label: "given a new secret",
+      change: async (
+        server: TelemetryIngestionKeyServiceClass,
+        key: KeyFixture,
+      ): Promise<void> => {
+        await updateThrough(server, key, { secretKey: ObjectID.generate() });
+      },
+      stopped: (policy: TelemetryIngestionKeyPolicy | null): boolean => {
+        return policy === null;
+      },
+    },
+    {
+      label: "given an expiry in the past (as a hand-written row would be)",
+      change: async (
+        server: TelemetryIngestionKeyServiceClass,
+        key: KeyFixture,
+      ): Promise<void> => {
+        const updateBy: Record<string, unknown> = {
+          query: { _id: key.id },
+          data: {},
+          props: { isRoot: true },
+        };
+        rowOf(key)["expiresAt"] = new Date(clock - 1000);
+        await internalsOf(server).onUpdateSuccess(
+          { updateBy, carryForward: null },
+          [key.id],
+        );
+      },
+      stopped: (policy: TelemetryIngestionKeyPolicy | null): boolean => {
+        return (
+          policy !== null &&
+          policy.expiresAt !== null &&
+          policy.expiresAt.getTime() < Date.now()
+        );
+      },
+    },
+    {
+      label: "deleted",
+      change: async (
+        server: TelemetryIngestionKeyServiceClass,
+        key: KeyFixture,
+      ): Promise<void> => {
+        await deleteThrough(server, key);
+      },
+      stopped: (policy: TelemetryIngestionKeyPolicy | null): boolean => {
+        return policy === null;
+      },
+    },
+  ])(
+    "a key $label through one server is stopped on another within CacheGenerations.SHARED_READ_TTL_MS, not POSITIVE_TTL_MS",
+    async (scenario: {
+      label: string;
+      change: (
+        server: TelemetryIngestionKeyServiceClass,
+        key: KeyFixture,
+      ) => Promise<void>;
+      stopped: (policy: TelemetryIngestionKeyPolicy | null) => boolean;
+    }) => {
+      const here: TelemetryIngestionKeyServiceClass = newServer();
+      const there: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+
+      const keptThereAt: number = await warmUp(there, key);
+
+      clock += 100;
+      await scenario.change(here, key);
+      const changedAt: number = clock;
+
+      // Where the change was made: at once.
+      expect(scenario.stopped(await lookUp(here, key.secret))).toBe(true);
+
+      // Everywhere else: within a second.
+      clock = changedAt + CacheGenerations.SHARED_READ_TTL_MS + 1;
+      expect(scenario.stopped(await lookUp(there, key.secret))).toBe(true);
+
+      // The generation did it, not the minute running out.
+      expect(clock).toBeLessThan(keptThereAt + POSITIVE_TTL_MS);
+    },
+  );
+
+  test("a key turned back on is accepted again on every other server within a second", async () => {
+    const here: TelemetryIngestionKeyServiceClass = newServer();
+    const there: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey({ isEnabled: false });
+
+    expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+    clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+    expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+
+    clock += 100;
+    await updateThrough(here, key, { isEnabled: true });
+
+    clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+    expect((await lookUp(there, key.secret))?.isEnabled).toBe(true);
+  });
+
+  test("a key given a new secret is opened by the new secret on every server, and never by the old one again", async () => {
+    const here: TelemetryIngestionKeyServiceClass = newServer();
+    const there: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey();
+    await warmUp(there, key);
+
+    const newSecret: string = ObjectID.generate().toString();
+    await updateThrough(here, key, { secretKey: new ObjectID(newSecret) });
+
+    clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+    expect(await lookUp(there, key.secret)).toBeNull();
+    expect((await lookUp(there, newSecret))?.ingestionKeyId.toString()).toBe(
+      key.id.toString(),
+    );
+
+    // The old secret stays refused: it is no key's now.
+    for (let index: number = 0; index < 5; index++) {
+      clock += NEGATIVE_TTL_MS;
+      expect(await lookUp(there, key.secret)).toBeNull();
+    }
+  });
+
+  test("an update to another key leaves this key's entry alone on every server", async () => {
+    const here: TelemetryIngestionKeyServiceClass = newServer();
+    const there: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey();
+    const other: KeyFixture = insertKey();
+    await warmUp(there, key);
+    const reads: number = readsOf(there);
+
+    await updateThrough(here, other, { isEnabled: false });
+
+    clock += 5 * CacheGenerations.SHARED_READ_TTL_MS;
+    expect((await lookUp(there, key.secret))?.isEnabled).toBe(true);
+    expect(readsOf(there)).toBe(reads);
+  });
+
+  test("while Redis is down, a change counts at once where it was made and within POSITIVE_TTL_MS everywhere else", async () => {
+    const here: TelemetryIngestionKeyServiceClass = newServer();
+    const there: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey();
+
+    redis.state.isDown = true;
+    const keptThereAt: number = await warmUp(there, key);
+    await warmUp(here, key);
+
+    clock += 100;
+    await updateThrough(here, key, { isEnabled: false });
+
+    expect((await lookUp(here, key.secret))?.isEnabled).toBe(false);
+
+    // Elsewhere, what was read before may still be served inside the minute...
+    clock = keptThereAt + POSITIVE_TTL_MS;
+    expect((await lookUp(there, key.secret))?.isEnabled).toBe(true);
+
+    // ...and never after it.
+    clock = keptThereAt + POSITIVE_TTL_MS + 1;
+    expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+  });
+
+  test("a change made while Redis was down reaches the other servers once Redis is back", async () => {
+    const here: TelemetryIngestionKeyServiceClass = newServer();
+    const there: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey();
+    const keptThereAt: number = await warmUp(there, key);
+
+    redis.state.isDown = true;
+    clock += 100;
+    await updateThrough(here, key, { isEnabled: false });
+    expect((await lookUp(here, key.secret))?.isEnabled).toBe(false);
+
+    redis.state.isDown = false;
+
+    // Here writes the change to Redis the first time Redis answers it about the key.
+    clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+    expect((await lookUp(here, key.secret))?.isEnabled).toBe(false);
+
+    clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+    expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+    expect(clock).toBeLessThan(keptThereAt + POSITIVE_TTL_MS);
+  });
+
+  test("a key deleted with its project, which the service never hears of, is refused within POSITIVE_TTL_MS", async () => {
+    const there: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey();
+    const keptAt: number = await warmUp(there, key);
+
+    table.delete(key.id.toString());
+
+    clock = keptAt + POSITIVE_TTL_MS;
+    expect(await lookUp(there, key.secret)).not.toBeNull();
+
+    clock = keptAt + POSITIVE_TTL_MS + 1;
+    expect(await lookUp(there, key.secret)).toBeNull();
+  });
+
+  describe("reads Postgres for a key, not for a request", () => {
+    test("a thousand requests over a minute read the key twice - its first read, and once that ran out - and ask Redis about once a second", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const startedAt: number = clock;
+      const redisReadsBefore: number = redisReads();
+
+      for (let index: number = 0; index < 1000; index++) {
+        expect((await lookUp(server, key.secret))?.isEnabled).toBe(true);
+        clock += 50;
+      }
+
+      // 50 seconds of traffic, inside the minute the second read is kept for.
+      expect(clock - startedAt).toBeLessThan(
+        POSITIVE_TTL_MS + CacheGenerations.SHARED_READ_TTL_MS,
+      );
+      expect(readsOf(server)).toBe(2);
+
+      // At most one generation read a second, whatever the request rate.
+      const seconds: number = Math.ceil(
+        (clock - startedAt) / CacheGenerations.SHARED_READ_TTL_MS,
+      );
+      expect(redisReads() - redisReadsBefore).toBeLessThanOrEqual(seconds + 2);
+    });
+
+    test("requests in the same moment are served from one read", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+
+      expect(await lookUp(server, key.secret)).not.toBeNull();
+      const answers: Array<TelemetryIngestionKeyPolicy | null> =
+        await Promise.all(
+          Array.from({ length: 50 }, () => {
+            return lookUp(server, key.secret);
+          }),
+        );
+
+      for (const policy of answers) {
+        expect(policy?.ingestionKeyId.toString()).toBe(key.id.toString());
+      }
+      expect(readsOf(server)).toBe(1);
+    });
+
+    test("while Redis is down, requests still do not read Postgres each", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      redis.state.isDown = true;
+
+      for (let index: number = 0; index < 200; index++) {
+        expect(await lookUp(server, key.secret)).not.toBeNull();
+        clock += 100;
+      }
+
+      // 20 seconds: the first read, and the one after it ran out.
+      expect(readsOf(server)).toBe(2);
+    });
+
+    test("Redis going down costs one more read of each key, not one per request", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      await warmUp(server, key);
+      const reads: number = readsOf(server);
+
+      redis.state.isDown = true;
+      for (let index: number = 0; index < 100; index++) {
+        expect(await lookUp(server, key.secret)).not.toBeNull();
+        clock += 100;
+      }
+
+      expect(readsOf(server) - reads).toBeLessThanOrEqual(2);
+    });
+
+    test("a token no key has is not read again for NEGATIVE_TTL_MS, and asks Redis nothing", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const unknown: string = ObjectID.generate().toString();
+      const redisReadsBefore: number = redisReads();
+
+      for (let index: number = 0; index < 20; index++) {
+        expect(await lookUp(server, unknown)).toBeNull();
+        clock += (NEGATIVE_TTL_MS - 1) / 20;
+      }
+
+      expect(readsOf(server)).toBe(1);
+      expect(redisReads()).toBe(redisReadsBefore);
+
+      clock += 1000;
+      expect(await lookUp(server, unknown)).toBeNull();
+      expect(readsOf(server)).toBe(2);
+    });
+
+    test("a token that is not a uuid reads nothing and asks Redis nothing", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const redisReadsBefore: number = redisReads();
+
+      expect(await lookUp(server, "not-a-key")).toBeNull();
+      expect(await lookUp(server, "not-a-key")).toBeNull();
+
+      expect(readsOf(server)).toBe(0);
+      expect(redisReads()).toBe(redisReadsBefore);
+    });
+  });
+
+  describe("a change that lands while the key is being read", () => {
+    /*
+     * Lets the test change the key in the middle of the next read: after
+     * the row was read as it was, before the read returns.
+     */
+    const changeDuringNextRead: (
+      server: TelemetryIngestionKeyServiceClass,
+      change: () => Promise<void>,
+    ) => void = (
+      server: TelemetryIngestionKeyServiceClass,
+      change: () => Promise<void>,
+    ): void => {
+      const findOneBy: MockFn = internalsOf(server).findOneBy;
+      const read: (findOneBy: unknown) => Promise<unknown> =
+        findOneBy.getMockImplementation() as (
+          findOneBy: unknown,
+        ) => Promise<unknown>;
+
+      findOneBy.mockImplementationOnce(
+        async (query: unknown): Promise<unknown> => {
+          // The row as it was, copied before the change writes over it.
+          const row: unknown = await read(query);
+          const asItWas: unknown = row ? { ...(row as FakeRow) } : row;
+
+          await change();
+
+          return asItWas;
+        },
+      );
+    };
+
+    test("on the first read of a secret, is served for at most FIRST_READ_TTL_MS", async () => {
+      const here: TelemetryIngestionKeyServiceClass = newServer();
+      const there: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+
+      changeDuringNextRead(there, async (): Promise<void> => {
+        await updateThrough(here, key, { isEnabled: false });
+      });
+
+      // The read saw the key before the change.
+      expect((await lookUp(there, key.secret))?.isEnabled).toBe(true);
+      const readAt: number = clock;
+
+      clock = readAt + CacheGenerations.SHARED_READ_TTL_MS + 1;
+      expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+    });
+
+    test("on a later read, is not kept at all: the generation from before the read no longer holds", async () => {
+      const here: TelemetryIngestionKeyServiceClass = newServer();
+      const there: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const keptAt: number = await warmUp(there, key);
+
+      // The minute runs out, and the read that follows races a change.
+      clock = keptAt + POSITIVE_TTL_MS + 1;
+      changeDuringNextRead(there, async (): Promise<void> => {
+        await updateThrough(here, key, { isEnabled: false });
+      });
+      expect((await lookUp(there, key.secret))?.isEnabled).toBe(true);
+      const readAt: number = clock;
+
+      clock = readAt + CacheGenerations.SHARED_READ_TTL_MS + 1;
+      expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+    });
+
+    test("in the server that made it, is not served after the write", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const keptAt: number = await warmUp(server, key);
+
+      clock = keptAt + POSITIVE_TTL_MS + 1;
+      changeDuringNextRead(server, async (): Promise<void> => {
+        await updateThrough(server, key, { isEnabled: false });
+      });
+      expect((await lookUp(server, key.secret))?.isEnabled).toBe(true);
+
+      // No time passes: the change counts here at once.
+      expect((await lookUp(server, key.secret))?.isEnabled).toBe(false);
+    });
+  });
+
+  test("keeps digests and key ids, never a secret", async () => {
+    const server: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey();
+    const unknown: string = ObjectID.generate().toString();
+
+    await warmUp(server, key);
+    await lookUp(server, unknown);
+
+    const kept: string = JSON.stringify([
+      Array.from(
+        (
+          internalsOf(server).policyCache as unknown as {
+            store: Map<string, unknown>;
+          }
+        ).store.entries(),
+      ),
+      Array.from(
+        (
+          server as unknown as {
+            keyIdBySecret: { store: Map<string, unknown> };
+          }
+        ).keyIdBySecret.store.entries(),
+      ),
+    ]).toLowerCase();
+
+    expect(kept).not.toContain(key.secret.toLowerCase());
+    expect(kept).not.toContain(unknown.toLowerCase());
+    expect(kept).toContain(key.id.toString().toLowerCase());
+  });
+
+  test("the cached policy still carries billing and a blocked project on every hit", async () => {
+    const server: TelemetryIngestionKeyServiceClass = newServer();
+    const key: KeyFixture = insertKey();
+    await warmUp(server, key);
+
+    const projectService: { isProjectBlocked: MockFn } = (
+      jest.requireMock("../../../Server/Services/ProjectService") as {
+        default: { isProjectBlocked: MockFn };
+      }
+    ).default;
+    projectService.isProjectBlocked.mockResolvedValueOnce(true);
+
+    await expect(lookUp(server, key.secret)).rejects.toThrow();
+    expect(await lookUp(server, key.secret)).not.toBeNull();
+  });
+});
