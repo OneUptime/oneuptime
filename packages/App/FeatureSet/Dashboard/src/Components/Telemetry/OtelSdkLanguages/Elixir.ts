@@ -55,7 +55,8 @@ const install: (signals: OtelSignals) => CodeSnippet = (
   signals: OtelSignals,
 ): CodeSnippet => {
   const names: Array<string> = [
-    "opentelemetry_api",
+    // OpenTelemetry.Tracer; the SDK brings it along for the other signals.
+    ...(signals.traces ? ["opentelemetry_api"] : []),
     "opentelemetry",
     // The OTLP exporters, the experimental SDK's included (otel_exporter_otlp).
     "opentelemetry_exporter",
