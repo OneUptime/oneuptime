@@ -48,6 +48,7 @@ import {
   fetchSpanMetrics,
   formatCompact,
   formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   SpanMetrics,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
@@ -311,7 +312,7 @@ const ServerlessFunctionOverview: FunctionComponent<
     },
     {
       title: "p95 duration",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: metricsLoading,

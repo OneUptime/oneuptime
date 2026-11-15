@@ -7,6 +7,10 @@ import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import AnalyticsModelAPI, {
+  ListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
@@ -35,6 +39,7 @@ import {
   getAuditLogsQuery,
   getResourceLink,
   getResourceMeta,
+  getResourceTypeFilterOptions,
   getResourceTypeLabel,
 } from "@oneuptime/dashboard/Components/AuditLogs/AuditLogsTableUtils";
 import { AuditLogsTableProps } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
@@ -159,6 +164,50 @@ export const AUDIT_LOG_ACTION_FILTER_OPTIONS: Array<DropdownOption> =
       return { label: AUDIT_LOG_ACTION_LABELS[action], value: action };
     },
   );
+
+/*
+ * The Resource Type filter's choices (#7580): the types the table's own
+ * entries are about - one row per stored type, read when the filter opens
+ * or a filtered link is restored - each by the name the product shows
+ * today, valued by the name its entries are stored under, in the order the
+ * reader reads their names (getResourceTypeFilterOptions). Asked of the
+ * table's own query, so a resource's page offers its own types and those
+ * of what belongs to it.
+ */
+export const fetchResourceTypeFilterOptions: (data: {
+  query: Query<AuditLog>;
+  translator: Translator;
+}) => Promise<Array<DropdownOption>> = async (data: {
+  query: Query<AuditLog>;
+  translator: Translator;
+}): Promise<Array<DropdownOption>> => {
+  const result: ListResult<AuditLog> =
+    await AnalyticsModelAPI.getList<AuditLog>({
+      modelType: AuditLog,
+      query: data.query,
+      groupBy: { resourceType: true },
+      select: { resourceType: true },
+      sort: { resourceType: SortOrder.Ascending },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+  const shownLabelOf: (label: string) => string = (label: string): string => {
+    return data.translator.translateText(label) || label;
+  };
+
+  return getResourceTypeFilterOptions(
+    result.data.map((entry: AuditLog): string | undefined => {
+      return entry.resourceType;
+    }),
+    (first: string, second: string): number => {
+      return shownLabelOf(first).localeCompare(
+        shownLabelOf(second),
+        data.translator.language,
+      );
+    },
+  );
+};
 
 const AuditLogsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -398,9 +447,26 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
         showViewIdButton={false}
         filters={[
           {
+            /*
+             * The types the entries are about, by the names the rows show
+             * them by: a free-text filter on the stored value found nothing
+             * for "On-Call Schedule", which is stored as the name it kept
+             * (#7580).
+             */
             field: { resourceType: true },
-            type: FieldType.Text,
+            type: FieldType.Dropdown,
             title: "Resource Type",
+            filterEntityType: AuditLog,
+            filterDropdownField: {
+              label: "resourceType",
+              value: "resourceType",
+            },
+            fetchFilterDropdownOptions: (): Promise<Array<DropdownOption>> => {
+              return fetchResourceTypeFilterOptions({
+                query: computedQuery,
+                translator: translator,
+              });
+            },
           },
           {
             field: { resourceName: true },
@@ -488,6 +554,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
               const type: string | undefined = item.resourceType;
               const name: string | undefined = item.resourceName;
               const meta: ResourceMeta = getResourceMeta(type);
+              // In the words the Resource Type filter offers it in.
+              const typeLabel: string = getResourceTypeLabel(type);
 
               const nameEl: ReactElement = (
                 <span className="text-sm font-medium text-gray-900 truncate">
@@ -540,7 +608,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                   <div className="flex flex-col min-w-0">
                     {linkedNameEl}
                     <span className="text-[11px] text-gray-500">
-                      {getResourceTypeLabel(type)}
+                      {translator.translateText(typeLabel) || typeLabel}
                     </span>
                   </div>
                 </div>

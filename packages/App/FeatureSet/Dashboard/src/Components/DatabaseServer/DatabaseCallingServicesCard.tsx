@@ -16,6 +16,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 
 /*
  * "Who queries this database": the application services whose CLIENT spans
@@ -56,7 +57,8 @@ export function getCallingServicesFooter(
   );
 }
 
-function formatMs(value: number | null): string {
+// A service's p95: "850 µs", "12 ms" in the reader's words (#7418), "1.25 s".
+function formatMs(value: number | null, translator: Translator): string {
   if (value === null || !Number.isFinite(value)) {
     return "—";
   }
@@ -64,7 +66,12 @@ function formatMs(value: number | null): string {
     return `${(value * 1000).toFixed(0)} µs`;
   }
   if (value < 1000) {
-    return `${value.toFixed(value < 10 ? 1 : 0)} ms`;
+    const decimals: number = value < 10 ? 1 : 0;
+
+    return formatMilliseconds(translator, value, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
   return `${(value / 1000).toFixed(2)} s`;
 }
@@ -128,7 +135,7 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
                 ),
                 calls: formatDatabaseCount(service.calls),
                 errorRate: formatErrorRate(service.errorRatePercent),
-                duration: formatMs(service.p95DurationMs),
+                duration: formatMs(service.p95DurationMs, translator),
               };
             },
           )}

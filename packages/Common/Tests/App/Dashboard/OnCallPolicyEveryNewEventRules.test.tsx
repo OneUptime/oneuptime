@@ -156,7 +156,12 @@ import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRul
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import {
+  EVERY_NEW_EVENT_RULES_LANGUAGE_KEY,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+} from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { createTranslator } from "../../../Types/Translator";
+import * as TranslateTemplate from "../../../UI/Utils/TranslateTemplate";
 import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -398,6 +403,8 @@ describe("a new project's first on-call policy", () => {
 
     expect(miscDataProps).toEqual({
       [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+      // The language the form is read in: the server words the rules in it (#7995).
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "en",
     });
 
     // The switch is not a column of the policy.
@@ -406,6 +413,19 @@ describe("a new project's first on-call policy", () => {
         PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY
       ],
     ).toBeUndefined();
+  });
+
+  test("sends the language the form is read in, for the server to word the two rules in (#7995)", async () => {
+    jest
+      .spyOn(TranslateTemplate, "getGlobalTranslator")
+      .mockReturnValue(createTranslator(undefined, "de"));
+
+    const modal: HTMLElement = await openCreateForm();
+
+    expect(await createNamed(modal, "Bereitschaft Zahlungen")).toEqual({
+      [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
+      [EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]: "de",
+    });
   });
 
   test("switched off, asks for nothing", async () => {

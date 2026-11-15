@@ -52,6 +52,7 @@ import {
   GUIDED_SETUP_POLICY_NAME,
   WhoIsToldMode,
   buildFirstOnCallPolicy,
+  getFirstOnCallPolicyName,
   getWhoIsToldMode,
 } from "../../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import {
@@ -1632,6 +1633,17 @@ export const SetUpPagingTool: ObservabilityTool = {
           return team.name;
         }),
       },
+      /*
+       * The card names the policy as it will be made: in the person's
+       * language (#7995), as execute names it.
+       */
+      title: aiActionSentence(AI_ACTION_TITLES.createOnCallPolicy, {
+        policy: JSON.stringify(
+          getFirstOnCallPolicyName(
+            getRecordWordsTranslator(await readSetupRecordsLanguage(ctx)),
+          ),
+        ),
+      }),
       description: description,
       describedArguments: PAGING_PREPARED_ARGUMENTS,
     };
@@ -1682,12 +1694,20 @@ export const SetUpPagingTool: ObservabilityTool = {
       throw new BadDataException(NOBODY_TO_PAGE);
     }
 
-    // The guided setup's policy, for the same answers (Common/Utils/GuidedSetup).
+    /*
+     * The guided setup's policy, for the same answers (Common/Utils/GuidedSetup),
+     * named in the person's language - and its two rules too: the language
+     * goes with the create (#7995).
+     */
+    const language: string = await readSetupRecordsLanguage(ctx);
     const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
       userIds: responders.userIds,
       teamIds: responders.teamIds,
+      translator: getRecordWordsTranslator(language),
+      language: language,
     });
     create.policy.projectId = ctx.projectId;
+    const policyName: string = create.policy.name || GUIDED_SETUP_POLICY_NAME;
 
     /*
      * As the person: OnCallDutyPolicyService.create checks that they may
@@ -1735,7 +1755,7 @@ export const SetUpPagingTool: ObservabilityTool = {
     const serialized: SerializedResult = ToolResultSerializer.serializeRows([
       {
         id: policyId,
-        name: GUIDED_SETUP_POLICY_NAME,
+        name: policyName,
         pagesThePersonAsking: includesMe,
         otherPeoplePaged: responders.otherPeople.join(", "),
         teamsPaged: responders.pagedTeams.join(", "),
@@ -1744,9 +1764,9 @@ export const SetUpPagingTool: ObservabilityTool = {
     ]);
 
     return {
-      dataForLlm: `Created the on-call policy "${GUIDED_SETUP_POLICY_NAME}". Its first escalation rule pages ${pagedNames.join(", ")}, and two on-call rules run it for every new incident and alert, so every monitor that opens one pages them. How a page reaches each person is their own notification rules and verified methods (Notification Methods). If the approval card said a phone number or the app is missing, tell the person to add and verify it in Notification Methods, and end with that page's citation (find_dashboard_page "Notification Methods"). Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
+      dataForLlm: `Created the on-call policy "${policyName}". Its first escalation rule pages ${pagedNames.join(", ")}, and two on-call rules run it for every new incident and alert, so every monitor that opens one pages them. How a page reaches each person is their own notification rules and verified methods (Notification Methods). If the approval card said a phone number or the app is missing, tell the person to add and verify it in Notification Methods, and end with that page's citation (find_dashboard_page "Notification Methods"). Under your answer the person can test the policy with a test page; offer it in one sentence and never say one was sent.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Created on-call policy "${GUIDED_SETUP_POLICY_NAME}"`,
+      citationLabel: `Created on-call policy "${policyName}"`,
       citationTarget: {
         type: AIChatCitationTargetType.OnCallPolicyView,
         params: { onCallDutyPolicyId: policyId },
@@ -1755,7 +1775,7 @@ export const SetUpPagingTool: ObservabilityTool = {
       isTruncated: false,
       widget: WidgetBuilder.actionCard({
         title: "On-call policy created",
-        heading: GUIDED_SETUP_POLICY_NAME,
+        heading: policyName,
         words: {
           kind: aiActionTerm(AI_ACTION_CARD_KINDS.onCallPolicy),
           line: [pagedLine],
@@ -1767,7 +1787,7 @@ export const SetUpPagingTool: ObservabilityTool = {
         testPage: {
           kind: "policy",
           policyId: policyId,
-          policyName: GUIDED_SETUP_POLICY_NAME,
+          policyName: policyName,
         },
       }),
     };

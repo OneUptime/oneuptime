@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9139
+    "keys": 52780,
+    "untranslated": 9008
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -26,6 +26,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canonical Sunbeam",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "Client ID",
     "Client Secret",
@@ -37,6 +38,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "DeploymentConfigs",
     "Docker Compose",
     "Down + In",

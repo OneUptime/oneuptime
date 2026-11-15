@@ -1,6 +1,13 @@
 import ColumnLength from "../Database/ColumnLength";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
+import { readRequestedReaderLanguage } from "../ReaderLanguage";
+import {
+  composedValue,
+  createTranslator,
+  translationKey,
+  Translator,
+} from "../Translator";
 
 /*
  * A NEW PROJECT'S FIRST ON-CALL POLICY PAGES FOR EVERY INCIDENT AND ALERT.
@@ -75,28 +82,122 @@ export const readPageForEveryNewIncidentAndAlert: (
   );
 };
 
+/*
+ * THE TWO RULES ARE NAMED IN THE LANGUAGE OF THE PERSON WHO MADE THEM
+ * (#7995).
+ *
+ * Their names and descriptions are records the project's people then see
+ * and edit in their lists, so they start in the language of whoever made
+ * the policy, as a new monitor's criteria do (#7247): the Dashboard's
+ * translator in the guided setups, and on the server the language the
+ * create says it was made in (EVERY_NEW_EVENT_RULES_LANGUAGE_KEY), else the
+ * person's saved one, else English (OnCallDutyPolicyService.create, with
+ * ServerTranslation's getRecordWordsTranslator). Once saved they are the
+ * project's own text: nothing renames a rule made before.
+ *
+ * No translator is English, byte for byte as the names always were. The
+ * Dashboard's extractor reads this file as a "keys" root, and the server's
+ * locale set copies the Dashboard's wording of its sentences
+ * (Scripts/I18n/ServerLocales' DASHBOARD_SHARED_TEXT_SOURCES): after
+ * changing one, translate it in the Dashboard's files and run
+ * `npm run i18n:server-sync` from the repository's root.
+ */
+
+/*
+ * The language a policy's create says its two rules are worded in: one of
+ * the codes OneUptime writes in, sent beside
+ * PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY by whoever asks for the rules.
+ */
+export const EVERY_NEW_EVENT_RULES_LANGUAGE_KEY: string =
+  "everyNewEventRulesLanguage";
+
+/*
+ * The language a create's misc data names for its rules, when it names one
+ * OneUptime writes in exactly; undefined for nothing, or for anything else
+ * (readRequestedReaderLanguage) - the caller then decides.
+ */
+export const readEveryNewEventRulesLanguage: (
+  miscDataProps: JSONObject | null | undefined,
+) => string | undefined = (
+  miscDataProps: JSONObject | null | undefined,
+): string | undefined => {
+  if (
+    !miscDataProps ||
+    typeof miscDataProps !== "object" ||
+    Array.isArray(miscDataProps)
+  ) {
+    return undefined;
+  }
+
+  return readRequestedReaderLanguage(
+    miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY],
+  );
+};
+
 // What the two rules are called, and the longest name a rule column holds.
 export const RULE_NAME_MAX_LENGTH: number = ColumnLength.ShortText;
+
+// Each rule's name, a whole sentence with the policy's name in it.
+export const EVERY_NEW_INCIDENT_RULE_NAME: string = translationKey(
+  "Page {{policy}} for every incident",
+);
+
+export const EVERY_NEW_ALERT_RULE_NAME: string = translationKey(
+  "Page {{policy}} for every alert",
+);
+
+// What a rule calls a policy with no name.
+export const UNNAMED_POLICY_IN_RULE_NAME: string = translationKey(
+  "the new on-call policy",
+);
 
 const ELLIPSIS: string = "…";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
+// What stands for the policy's name while the words around it are counted.
+const NAME_MARKER: string = "x";
+
 /*
- * "Page <policy> for every <what>", cut to fit a rule's name column: the
- * policy's name gives way, ending in "…", so the words around it stay
- * whole. A policy with no name is "the new on-call policy".
+ * "Page <policy> for every <what>", in the translator's language, cut to
+ * fit a rule's name column: the policy's name gives way, ending in "…", so
+ * the words around it stay whole in every language. A policy with no name
+ * is "the new on-call policy", in the sentence's language.
  */
-const getRuleName: (
-  policyName: string | undefined | null,
-  what: string,
-) => string = (policyName: string | undefined | null, what: string): string => {
-  const prefix: string = "Page ";
-  const suffix: string = ` for every ${what}`;
-  const name: string =
-    (policyName || "").replace(WHITESPACE_RUN, " ").trim() ||
-    "the new on-call policy";
-  const room: number = RULE_NAME_MAX_LENGTH - prefix.length - suffix.length;
+const getRuleName: (data: {
+  policyName: string | undefined | null;
+  template: string;
+  translator?: Translator | undefined;
+}) => string = (data: {
+  policyName: string | undefined | null;
+  template: string;
+  translator?: Translator | undefined;
+}): string => {
+  const translator: Translator = data.translator || createTranslator(undefined);
+  const name: string = (data.policyName || "")
+    .replace(WHITESPACE_RUN, " ")
+    .trim();
+
+  if (!name) {
+    return translator.translateTemplate(data.template, {
+      policy: composedValue((sentence: Translator): string => {
+        return (
+          sentence.translateText(UNNAMED_POLICY_IN_RULE_NAME) ||
+          UNNAMED_POLICY_IN_RULE_NAME
+        );
+      }),
+    });
+  }
+
+  // The words around the name, as the sentence's language writes them.
+  const around: number =
+    Array.from(
+      translator.translateTemplate(data.template, { policy: NAME_MARKER }),
+    ).length - NAME_MARKER.length;
+  const room: number = Math.max(
+    ELLIPSIS.length + 1,
+    RULE_NAME_MAX_LENGTH - around,
+  );
 
   const shown: string =
     Array.from(name).length <= room
@@ -106,27 +207,68 @@ const getRuleName: (
           .join("")
           .trimEnd()}${ELLIPSIS}`;
 
-  return `${prefix}${shown}${suffix}`;
+  return translator.translateTemplate(data.template, { policy: shown });
 };
 
 export const getEveryNewIncidentRuleName: (
   policyName: string | undefined | null,
-) => string = (policyName: string | undefined | null): string => {
-  return getRuleName(policyName, "incident");
+  translator?: Translator | undefined,
+) => string = (
+  policyName: string | undefined | null,
+  translator?: Translator | undefined,
+): string => {
+  return getRuleName({
+    policyName: policyName,
+    template: EVERY_NEW_INCIDENT_RULE_NAME,
+    translator: translator,
+  });
 };
 
 export const getEveryNewAlertRuleName: (
   policyName: string | undefined | null,
-) => string = (policyName: string | undefined | null): string => {
-  return getRuleName(policyName, "alert");
+  translator?: Translator | undefined,
+) => string = (
+  policyName: string | undefined | null,
+  translator?: Translator | undefined,
+): string => {
+  return getRuleName({
+    policyName: policyName,
+    template: EVERY_NEW_ALERT_RULE_NAME,
+    translator: translator,
+  });
 };
 
 // Each rule's description: what it does, and where it came from.
-export const EVERY_NEW_INCIDENT_RULE_DESCRIPTION: string =
-  "Pages this on-call policy for every new incident. Added when the policy was created.";
+export const EVERY_NEW_INCIDENT_RULE_DESCRIPTION: string = translationKey(
+  "Pages this on-call policy for every new incident. Added when the policy was created.",
+);
 
-export const EVERY_NEW_ALERT_RULE_DESCRIPTION: string =
-  "Pages this on-call policy for every new alert. Added when the policy was created.";
+export const EVERY_NEW_ALERT_RULE_DESCRIPTION: string = translationKey(
+  "Pages this on-call policy for every new alert. Added when the policy was created.",
+);
+
+// A description in the translator's language; English without one.
+const getRuleDescription: (
+  description: string,
+  translator?: Translator | undefined,
+) => string = (
+  description: string,
+  translator?: Translator | undefined,
+): string => {
+  return (translator?.translateText(description) || description) as string;
+};
+
+export const getEveryNewIncidentRuleDescription: (
+  translator?: Translator | undefined,
+) => string = (translator?: Translator | undefined): string => {
+  return getRuleDescription(EVERY_NEW_INCIDENT_RULE_DESCRIPTION, translator);
+};
+
+export const getEveryNewAlertRuleDescription: (
+  translator?: Translator | undefined,
+) => string = (translator?: Translator | undefined): string => {
+  return getRuleDescription(EVERY_NEW_ALERT_RULE_DESCRIPTION, translator);
+};
 
 /*
  * Whether Create On-Call Policy offers the choice: to someone who may add
