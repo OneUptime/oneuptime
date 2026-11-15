@@ -52405,5 +52405,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} problem would stop people from being told",
   "{{count}} things in your setup are worth fixing": "{{count}} things in your setup are worth fixing",
   "{{count}} things in your setup are worth fixing_one": "{{count}} thing in your setup is worth fixing",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Fix each one from here, or dismiss it if your team leaves it that way on purpose."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Fix each one from here, or dismiss it if your team leaves it that way on purpose.",
+  "ISO Date": "ISO Date",
+  "Test (dbt test)": "Test (dbt test)",
+  "UUID": "UUID"
 }

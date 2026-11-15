@@ -52405,5 +52405,8 @@
   "{{count}} problems would stop people from being told_one": "{{count}} مشكلة ستمنع إبلاغ الأشخاص",
   "{{count}} things in your setup are worth fixing": "عناصر في إعدادك تستحق الإصلاح: {{count}}",
   "{{count}} things in your setup are worth fixing_one": "{{count}} عنصر في إعدادك يستحق الإصلاح",
-  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "أصلح كل واحد منها من هنا، أو أخفِه إذا كان فريقك يتركه هكذا عن قصد."
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "أصلح كل واحد منها من هنا، أو أخفِه إذا كان فريقك يتركه هكذا عن قصد.",
+  "ISO Date": "تاريخ ISO",
+  "Test (dbt test)": "اختبار",
+  "UUID": "UUID"
 }

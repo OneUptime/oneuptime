@@ -145,7 +145,7 @@ const DataAssetTable: FunctionComponent<ComponentProps> = (
       columns={[
         {
           field: { assetKey: true },
-          title: "Table",
+          title: "Table (database object)",
           type: FieldType.Element,
           wrapContent: true,
           getExportValue: (asset: DataAsset): string => {

@@ -124,7 +124,7 @@ const DataObservabilityUnusedTablesPage: FunctionComponent<
       columns={[
         {
           field: { assetKey: true },
-          title: "Table",
+          title: "Table (database object)",
           type: FieldType.Element,
           wrapContent: true,
           getExportValue: (asset: DataAsset): string => {

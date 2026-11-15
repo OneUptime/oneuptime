@@ -235,7 +235,7 @@ const DataProductOverviewPage: FunctionComponent<
           columns={[
             {
               field: { assetKey: true },
-              title: "Table",
+              title: "Table (database object)",
               type: FieldType.Element,
               getElement: (asset: DataAsset): ReactElement => {
                 return (

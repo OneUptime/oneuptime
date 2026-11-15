@@ -236,7 +236,7 @@ const TableLineagePage: FunctionComponent<
         columns={[
           {
             field: { downstreamDataAsset: { assetKey: true } },
-            title: "Table",
+            title: "Table (database object)",
             type: FieldType.Element,
             disableSort: true,
             getElement: (edge: DataAssetLineage): ReactElement => {
