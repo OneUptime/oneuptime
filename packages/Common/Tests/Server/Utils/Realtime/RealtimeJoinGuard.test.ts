@@ -107,6 +107,35 @@ describe("the realtime join runs the API's own checks", () => {
     expect(join).toContain("RealtimeJoinAccess.decide(");
   });
 
+  // #8626: a project's usage room is joined the same way, and admitted alike.
+  test("a project's usage room is decided by RealtimeJoinAccess too, and both joins are admitted by one path", () => {
+    for (const name of ["listenToModelEvent", "listenToProjectUsage"]) {
+      const join: string = code(methodBody(REALTIME, name));
+
+      expect([name, join.includes("RealtimeJoinAccess.decide(")]).toEqual([
+        name,
+        true,
+      ]);
+      expect([name, join.includes("this.admitToRoom(")]).toEqual([
+        name,
+        true,
+      ]);
+    }
+
+    const admit: string = code(methodBody(REALTIME, "admitToRoom"));
+
+    // Refused as the decision says, the session checked, then joined.
+    expect(admit).toContain("RealtimeJoinRefusal.AuthenticationRequired");
+    expect(admit).toContain("RealtimeJoinRefusal.SsoRequired");
+    expect(admit.indexOf("RealtimeSessions.wasEnded(")).toBeGreaterThan(0);
+    expect(admit.indexOf("RealtimeSessions.begin(")).toBeGreaterThan(
+      admit.indexOf("RealtimeSessions.wasEnded("),
+    );
+    expect(admit.indexOf("socket.join(")).toBeGreaterThan(
+      admit.indexOf("RealtimeSessions.begin("),
+    );
+  });
+
   test("RealtimeJoinAccess reads the session and the project through UserMiddleware", () => {
     const decide: string = code(methodBody(JOIN_ACCESS, "decide"));
 

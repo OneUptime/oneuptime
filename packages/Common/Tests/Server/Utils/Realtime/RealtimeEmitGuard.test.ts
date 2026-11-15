@@ -195,16 +195,35 @@ describe("every live update goes through the one check", () => {
     }
 
     expect(callers.length).toBeGreaterThan(0);
-    expect(Array.from(new Set(callers))).toEqual(["deliver"]);
+    /*
+     * deliver, for a record's events; deliverProjectUsageChanged, for a
+     * project's usage changing (#8626) - each after the same check.
+     */
+    expect(Array.from(new Set(callers)).sort()).toEqual([
+      "deliver",
+      "deliverProjectUsageChanged",
+    ]);
 
-    const deliver: string = methodBody(realtime, "deliver");
-    const audience: number = deliver.indexOf(
-      "RealtimeAudience.getReadableIds(",
-    );
-    const firstSend: number = deliver.indexOf("this.sendToSockets(");
+    for (const sender of ["deliver", "deliverProjectUsageChanged"]) {
+      const body: string = methodBody(realtime, sender);
+      const audience: number = body.indexOf("RealtimeAudience.getReadableIds(");
+      const firstSend: number = body.indexOf("this.sendToSockets(");
 
-    expect(audience).toBeGreaterThan(0);
-    expect(firstSend).toBeGreaterThan(audience);
+      expect([sender, audience]).toEqual([sender, expect.any(Number)]);
+      expect(audience).toBeGreaterThan(0);
+      expect(firstSend).toBeGreaterThan(audience);
+    }
+  });
+
+  test("a project's usage change says only \"ask again\", to those who read in the project", () => {
+    const usage: string = methodBody(realtime, "deliverProjectUsageChanged");
+
+    // The project's usage room, and nothing in the event.
+    expect(usage).toMatch(/RealtimeUtil\.getProjectUsageRoomId\(/);
+    expect(usage).toMatch(/this\.sendToSockets\(socketIds, roomId, \{\}\)/);
+    // Who still reads in the project, as their reader is built then.
+    expect(usage).toMatch(/access: PROJECT_USAGE_LISTENERS,/);
+    expect(usage).toMatch(/this\.getReaderOfSocket\(socket\)/);
   });
 
   test("a model event cannot be queued without the record's read access", () => {
