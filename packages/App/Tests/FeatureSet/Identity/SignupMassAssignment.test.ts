@@ -454,13 +454,24 @@ describe("Identity /signup -- the body cannot pick the row or the privileged col
       expect(createdUser()["_id"]).toBe(NEW_USER_ID);
     });
 
+    /*
+     * Only the hosted service's welcome asks for the address to be verified;
+     * a self-hosted account is ready at sign-up, so no token is made for it
+     * at all (#7988).
+     */
     it("writes the welcome verification token against the new account, not the named one", async () => {
       await signup(signupBody({ _id: VICTIM_ID }));
 
-      const tokenCall: Record<string, any> = createEmailVerificationToken.mock
-        .calls[0]![0] as Record<string, any>;
+      const tokenUserIds: Array<string | undefined> =
+        createEmailVerificationToken.mock.calls.map(
+          (call: Array<unknown>): string | undefined => {
+            return (call[0] as Record<string, any>)["data"][
+              "userId"
+            ]?.toString();
+          },
+        );
 
-      expect(tokenCall["data"]["userId"]?.toString()).toBe(NEW_USER_ID);
+      expect(tokenUserIds).toEqual(billingEnabled ? [NEW_USER_ID] : []);
     });
 
     it("never updates an existing user", async () => {
