@@ -11,7 +11,7 @@ Det skal du vide, før du retter en arbejdsgang mod rigtig trafik: hvordan du sl
 
 ## Sådan tænder og slukker du en arbejdsgang
 
-Hver arbejdsgang har en kontakt, **Aktiveret**, øverst i sin **Bygger** og på sin side **Oversigt**. Når den er slået fra, er dens trigger sat på pause — webhook-kald, indgående e-mail, planlagte tidspunkter, OneUptime-begivenheder og andre arbejdsganges **Execute Workflow**-trin starter den ikke. **Kør arbejdsgang** og **Run just this step** gør: en kørsel, du selv starter, mens arbejdsgangen er slået fra, er en **Testkørsel**. Nye arbejdsgange starter deaktiveret.
+Hver arbejdsgang har en kontakt, **Aktiveret**, øverst i sin **Bygger** og på sin side **Oversigt**. Når den er slået fra, er dens trigger sat på pause — webhook-kald, indgående e-mail, planlagte tidspunkter, OneUptime-begivenheder og andre arbejdsganges **Kør en anden arbejdsgang**-trin starter den ikke. **Kør arbejdsgang** og **Run just this step** gør: en kørsel, du selv starter, mens arbejdsgangen er slået fra, er en **Testkørsel**. Nye arbejdsgange starter deaktiveret.
 
 Brug kontakten som din «klar til brug»-port:
 
@@ -22,14 +22,14 @@ Brug kontakten som din «klar til brug»-port:
 4. Slå **Aktiveret** til, når den er klar: fra da af udløses dens trigger ved rigtige begivenheder.
 :::
 
-At slå en arbejdsgang fra forhindrer dens trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dens trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter. For at slå flere til eller fra på én gang markerer du dem i listen **Arbejdsgange** og vælger **Aktivér** eller **Deaktivér** under **Massehandlinger**.
+At slå en arbejdsgang fra forhindrer dens trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dens trigger startede, og som venter ved en **Pause**-blok, annulleres, når den vågner. Testkørsler fortsætter. For at slå flere til eller fra på én gang markerer du dem i listen **Arbejdsgange** og vælger **Aktivér** eller **Deaktivér** under **Massehandlinger**.
 
 ## Arkiver en arbejdsgang
 
 Arkiver en arbejdsgang, du ikke længere har brug for, men vil beholde. En arkiveret arbejdsgang:
 
-- **Kører aldrig**, fra nogen trigger. Manuelle kørsler og **Run just this step**, webhook-kald, tidsplaner, OneUptime-begivenheder, indgående e-mail og andre arbejdsgange' **Execute Workflow**-trin afvises alle. Et webhook-kald til en arkiveret arbejdsgang får en fejl, der siger, at arbejdsgangen er arkiveret.
-- **Stopper kørsler, der venter.** En kørsel, der sover i et **Sleep**-trin, annulleres, når den vågner, og en kørsel, der stod i kø, men endnu ikke var startet, slutter med "Workflow was archived before this run started, so it did not run."
+- **Kører aldrig**, fra nogen trigger. Manuelle kørsler og **Run just this step**, webhook-kald, tidsplaner, OneUptime-begivenheder, indgående e-mail og andre arbejdsgange' **Kør en anden arbejdsgang**-trin afvises alle. Et webhook-kald til en arkiveret arbejdsgang får en fejl, der siger, at arbejdsgangen er arkiveret.
+- **Stopper kørsler, der venter.** En kørsel, der sover i et **Pause**-trin, annulleres, når den vågner, og en kørsel, der stod i kø, men endnu ikke var startet, slutter med "Workflow was archived before this run started, so it did not run."
 - **Forsvinder fra listen over arbejdsgange.** Find den under **Arbejdsgange → Avanceret → Arkiveret**.
 - **Beholder alt.** Dens trin, variabler, ejere, etiketter og kørselshistorik forbliver, som de var.
 
@@ -96,7 +96,7 @@ Webhook-triggere giver dig en unik URL. Alle, der kender URL'en, kan kalde den. 
 - Behandl URL'en som en adgangskode. Del den ikke offentligt, og commit den ikke til et offentligt repo. Webhook-triggeren skjuler URL'ens hemmelige nøgle, indtil du klikker på **Vis**, og **Kopiér URL** kopierer URL'en uden at vise den.
 - Lækker URL'en, så klik på Webhook-triggeren i **Bygger**, og klik på **Nulstil URL**. Arbejdsgangen får en ny URL, og den gamle holder op med at virke med det samme.
 - Siger triggeren, at dens URL ender på arbejdsgangens ID, så nulstil den. Arbejdsgange, der blev oprettet, før webhook-URL'er fik deres egen hemmelige nøgle, bruger i stedet arbejdsgangens ID, og det kan alle, der kan åbne arbejdsgangen, se.
-- For følsomme arbejdsgange: bed det kaldende system sende et delt token som header (som `X-Webhook-Token`), og tjek det med en **If / Else**-blok, før der sker noget vigtigt. Gem det forventede token som en hemmelig variabel.
+- For følsomme arbejdsgange: bed det kaldende system sende et delt token som header (som `X-Webhook-Token`), og tjek det med en **Hvis / Ellers**-blok, før der sker noget vigtigt. Gem det forventede token som en hemmelig variabel.
 - For meget følsomme arbejdsgange: foretræk en OneUptime-begivenhedstrigger og et manuelt importtrin frem for en offentlig webhook.
 
 Kun folk, der kan redigere arbejdsgangen — **Projektejer**, **Projektadministrator**, **Arbejdsgangsadministrator** eller **Edit Workflow** — kan se eller nulstille dens webhook-URL. Alle med URL'en kan starte arbejdsgangen hvorfra som helst uden at logge ind, så alle andre ser en note om, hvem de kan spørge i stedet. Det gælder også en **Arbejdsgangsmedlem**, der kører arbejdsgangen manuelt fra **Bygger**.
@@ -107,7 +107,7 @@ Incoming Email-triggeren giver arbejdsgangen sin egen adresse, og alle, der kend
 
 - Offentliggør den ikke, og læg den ikke i et offentligt repo. Triggeren skjuler nøglen, indtil du klikker på **Vis**, og **Kopiér adresse** kopierer adressen uden at vise den.
 - Lækker adressen, så klik på Incoming Email-triggeren i **Bygger**, og klik på **Nulstil adresse**. Arbejdsgangen får en ny adresse, og e-mail til den gamle ignoreres fra da af.
-- Alle kan sætte en hvilken som helst afsender på en e-mail, så **Fra** beviser ikke, hvem der sendte den. Før en arbejdsgang gør noget vigtigt, så tjek noget, kun den rigtige afsender kender — et token i emnet eller i en header — med en **If / Else**-blok. Gem det forventede token som en hemmelig variabel.
+- Alle kan sætte en hvilken som helst afsender på en e-mail, så **Fra** beviser ikke, hvem der sendte den. Før en arbejdsgang gør noget vigtigt, så tjek noget, kun den rigtige afsender kender — et token i emnet eller i en header — med en **Hvis / Ellers**-blok. Gem det forventede token som en hemmelig variabel.
 - Nøglen skjules i alt, hvad kørslen modtager — **Til**, **CC**, headerne og brødteksterne — fordi kørslens log er synlig for alle, der kan læse arbejdsgangens kørsler.
 
 Kun folk, der kan redigere arbejdsgangen — **Projektejer**, **Projektadministrator**, **Arbejdsgangsadministrator** eller **Edit Workflow** — kan se eller nulstille dens adresse. Alle andre ser en note om, hvem de kan spørge.
@@ -120,27 +120,27 @@ Hvilke adresser en blok må nå, afhænger af blokken:
 
 | Blokke                                                        | Loopback, link-local, cloud-metadata                                         | Private netværksadresser                                                                                                                          |
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**- og **Mattermost**-blokke samt forespørgsler fra **Run Custom JavaScript** | Afvises, medmindre den præcise vært står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Afvises, medmindre en administrator af en selvhostet installation tillader dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** og OAuth 2.0-token-URL'er             | Afvises                                                                      | Afvises i OneUptime Cloud. Tilladt på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                       |
+| **API**- og **Mattermost**-blokke samt forespørgsler fra **Kør egen JavaScript** | Afvises, medmindre den præcise vært står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Afvises, medmindre en administrator af en selvhostet installation tillader dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **Send e-mail**, **IRC** og OAuth 2.0-token-URL'er             | Afvises                                                                      | Afvises i OneUptime Cloud. Tilladt på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                       |
 | Slack, Microsoft Teams, Discord og Telegram                   | Afvises                                                                      | Afvises: hver sender kun til sin egen tjenestes adresser                                                                                          |
 
 Se [Adgang til private netværk](/docs/self-hosted/private-network-access) for, hvordan en administrator af en selvhostet installation åbner for dem.
 
 ## AI-komponenter
 
-**Generate Text with AI** sender én forespørgsel til en LLM: projektets standard-LLM-udbyder, eller installationens globale udbyder, når projektet ikke har nogen. Opsæt udbydere under **Projektindstillinger → AI → LLM-udbydere**, og læg aldrig en udbyders API-nøgle eller et endpoint af dit eget i en arbejdsgang.
+**Generér tekst med AI** sender én forespørgsel til en LLM: projektets standard-LLM-udbyder, eller installationens globale udbyder, når projektet ikke har nogen. Opsæt udbydere under **Projektindstillinger → AI → LLM-udbydere**, og læg aldrig en udbyders API-nøgle eller et endpoint af dit eget i en arbejdsgang.
 
 Hvad udbyderen modtager, og hvad modellen kan gøre med det:
 
-- **Kun det, du lægger i blokken.** OneUptime sender en fast sikkerhedsinstruktion og derefter blokkens **System Instructions**, **Prompt** og **Kontekst** med deres referencer udfyldt. **Kontekst** kommer sidst, efter en markør, og sikkerhedsinstruktionen fortæller modellen, at alt efter markøren er data, der ikke er til at stole på, også tekst, der ligner instruktioner.
+- **Kun det, du lægger i blokken.** OneUptime sender en fast sikkerhedsinstruktion og derefter blokkens **Systeminstruktioner**, **Prompt** og **Kontekst** med deres referencer udfyldt. **Kontekst** kommer sidst, efter en markør, og sikkerhedsinstruktionen fortæller modellen, at alt efter markøren er data, der ikke er til at stole på, også tekst, der ligner instruktioner.
 - **Intet andet.** Triggerens data, arbejdsgangens historik, andre blokkes output, projektposter, telemetri og hemmeligheder vedhæftes aldrig. De forlader kun OneUptime, når du henviser til dem i en af de tre indstillinger.
 - **Tekst og ingen værktøjer.** Modellen kan ikke forespørge OneUptime, foretage HTTP-forespørgsler eller ændre data. En udbyders ekstra parametre lader kun en tilladelsesliste af felter igennem, der alene justerer genereringen: de kan ikke erstatte beskederne, tilføje værktøjer, websøgning eller andre datakilder, bede om andet end tekst eller om flere svar, streame, lade udbyderen gemme forespørgslen eller hæve blokkens grænse for output. Felter, OneUptime ikke kender, droppes.
 - **Modellen er din administrators valg.** Skal genereringen forblive offline, så vælg en model, der ikke selv henter noget på udbyderens side.
 
 Hvad der logges:
 
-- Kørslens log skjuler blokkens **System Instructions**, **Prompt**, **Kontekst** og **Svar**. Senere blokke kan stadig bruge dem under kørslen, og en blok, du indsætter en af dem i, logger den efter sine egne regler, så at indsætte en er et valg om at vise den.
-- Udbyderen, modellen, antallet af tokens, **LLM Log ID** og en sikker fejlbesked forbliver synlige, til drift og fakturering. En udbyders rå fejl holdes ude af alle logge, fordi en udbyder kan gentage forespørgslen i den.
+- Kørslens log skjuler blokkens **Systeminstruktioner**, **Prompt**, **Kontekst** og **Svar**. Senere blokke kan stadig bruge dem under kørslen, og en blok, du indsætter en af dem i, logger den efter sine egne regler, så at indsætte en er et valg om at vise den.
+- Udbyderen, modellen, antallet af tokens, **LLM-log-ID** og en sikker fejlbesked forbliver synlige, til drift og fakturering. En udbyders rå fejl holdes ude af alle logge, fordi en udbyder kan gentage forespørgslen i den.
 - Hvert kald står under **Projektindstillinger → AI → AI-logs** med udbyder, model, status, tokens, omkostning og fakturering, uden prompten, svaret eller den rå fejl.
 
 Hvad blokken kræver, og hvad den koster:
@@ -151,9 +151,9 @@ Hvad blokken kræver, og hvad den koster:
 
 | Grænse                                                        | Værdi                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** og **Kontekst** tilsammen  | 50.000 tegn                                                              |
+| **Systeminstruktioner**, **Prompt** og **Kontekst** tilsammen  | 50.000 tegn                                                              |
 | **Temperatur**                                               | Fra `0` til `1`                                                          |
-| **Maximum Output Tokens**                                     | Fra `1` til `4096`, `1024` som standard                                  |
+| **Maksimalt antal output-tokens**                                     | Fra `1` til `4096`, `1024` som standard                                  |
 | Én forespørgsel                                               | Forsøges én gang, i højst 60 sekunder                                    |
 | Kald på samme tid                                             | 3 pr. projekt. Flere tager **Fejl**, og en senere kørsel kan prøve igen. |
 
@@ -220,24 +220,24 @@ Vinduet glider: hver kørsel, projektet registrerer, manuelt eller fra en trigge
 
 | Grænse                                                           | Standard      | Indstilling ved selvhosting     |
 | ---------------------------------------------------------------- | ------------- | ------------------------------- |
-| En kørsel, fra dens start eller fra den vågner efter en **Sleep** | 2 minutter    | `WORKFLOW_TIMEOUT_IN_MS`        |
-| En **Run Custom JavaScript**-blok                                | 5 sekunder    | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| En **Sleep**-blok                                                | Højst 30 dage | —                               |
+| En kørsel, fra dens start eller fra den vågner efter en **Pause** | 2 minutter    | `WORKFLOW_TIMEOUT_IN_MS`        |
+| En **Kør egen JavaScript**-blok                                | 5 sekunder    | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| En **Pause**-blok                                                | Højst 30 dage | —                               |
 
-Afvikleren tjekker deadlinen før og efter hver blok og markerer en kørsel, der er over tiden, som **Tidsgrænse overskredet**, så snart kontrollen vender tilbage. Den kan ikke afbryde en blok midtvejs, så blokke, der venter på netværket, har deres egne tidsgrænser: en forespørgsel fra Generate Text with AI giver op efter højst 60 sekunder og en OAuth 2.0-tokenforespørgsel efter 20. Ventetid ved en **Sleep**-blok tæller ikke med i en kørsels tid: kørslen lægges til side og får friske 2 minutter, når den vågner.
+Afvikleren tjekker deadlinen før og efter hver blok og markerer en kørsel, der er over tiden, som **Tidsgrænse overskredet**, så snart kontrollen vender tilbage. Den kan ikke afbryde en blok midtvejs, så blokke, der venter på netværket, har deres egne tidsgrænser: en forespørgsel fra Generate Text with AI giver op efter højst 60 sekunder og en OAuth 2.0-tokenforespørgsel efter 20. Ventetid ved en **Pause**-blok tæller ikke med i en kørsels tid: kørslen lægges til side og får friske 2 minutter, når den vågner.
 
 ## Grænse for at kalde andre arbejdsgange
 
-Komponenten **Execute Workflow** lader én arbejdsgang starte et andet. For at forhindre løkker, hvor arbejdsgang A starter B, som starter A igen, afvises en kæde af arbejdsgange, der starter hinanden, når den ville løbe tilbage til en arbejdsgang, der allerede er i den, eller gå dybere end 10 arbejdsgange. Blokken **Execute Workflow** tager så sit **Fejl**-output, og fejlen viser kæden.
+Komponenten **Kør en anden arbejdsgang** lader én arbejdsgang starte et andet. For at forhindre løkker, hvor arbejdsgang A starter B, som starter A igen, afvises en kæde af arbejdsgange, der starter hinanden, når den ville løbe tilbage til en arbejdsgang, der allerede er i den, eller gå dybere end 10 arbejdsgange. Blokken **Kør en anden arbejdsgang** tager så sit **Fejl**-output, og fejlen viser kæden.
 
-Har du et reelt behov for en lang kæde (som et job, der behandler ét element pr. kørsel), er det som regel enklere at løkke inde i én enkelt arbejdsgang med **Run Custom JavaScript**.
+Har du et reelt behov for en lang kæde (som et job, der behandler ét element pr. kørsel), er det som regel enklere at løkke inde i én enkelt arbejdsgang med **Kør egen JavaScript**.
 
 ## Når arbejdsgange ikke er det rigtige værktøj
 
 Et par tilfælde, hvor du bør gribe efter noget andet:
 
 - **Tunge beregninger eller store datasæt** — arbejdsgange er lavet til let limarbejde, ikke til talknuseri. Kør det tunge arbejde i din egen infrastruktur, og lad en arbejdsgang sætte det i gang.
-- **Langvarig aktiv beregning** — en kørsel har 2 minutter som standard. Til en passiv pause som «gør A, vent to timer, gør B» bruger du komponenten **Sleep**; den lægger kørslen til side og genoptager den senere uden at optage en worker.
+- **Langvarig aktiv beregning** — en kørsel har 2 minutter som standard. Til en passiv pause som «gør A, vent to timer, gør B» bruger du komponenten **Pause**; den lægger kørslen til side og genoptager den senere uden at optage en worker.
 - **Trin-for-trin-hændelseshåndtering med mennesker involveret** — det er dét, [Runbooks](/docs/runbooks/index) er til. Arbejdsgange er til automatisering uden opsyn.
 
 ## Næste trin

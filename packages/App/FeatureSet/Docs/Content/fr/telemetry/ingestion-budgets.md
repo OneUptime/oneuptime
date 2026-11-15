@@ -33,7 +33,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Pour les budgets de l'instance et d'un projet, l'Admin Dashboard.** Sur une installation auto-hébergée, seul l'administrateur de l'instance les définit. Les propriétaires et les administrateurs d'un projet voient ses budgets, mais ne peuvent pas les modifier.
+- **Pour les budgets de l'instance et d'un projet, l'Admin Dashboard.** Sur une installation auto-hébergée, seul l'administrateur de l'instance les définit. Les Propriétaires du projet et les Administrateurs du projet voient les budgets d'un projet, mais ne peuvent pas les modifier.
 - **Pour le budget propre d'une clé, un rôle qui modifie les clés d'ingestion.** Propriétaire du projet ou Administrateur du projet, ou un rôle personnalisé avec la permission Edit Ingestion Key.
 - **Pour voir les budgets, un rôle qui voit l'utilisation du projet.** Les rôles qui voient la page [Utilisation de la télémétrie](/docs/telemetry/usage) y voient les budgets du projet.
 
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## L'avertissement et la réinitialisation
 
-- **L'avertissement.** Quand un budget quotidien dépasse le seuil d'avertissement, 80 % sauf si l'administrateur de l'instance le change, les propriétaires du projet reçoivent un e-mail, et les explorateurs affichent une bannière au-dessus des données de ce signal. Ils reçoivent un e-mail de plus quand le budget est épuisé. Chaque budget envoie chaque e-mail au plus une fois par jour.
+- **L'avertissement.** Quand un budget quotidien dépasse le seuil d'avertissement, 80 % sauf si l'administrateur de l'instance le change, les Propriétaires du projet reçoivent un e-mail, et les explorateurs affichent une bannière au-dessus des données de ce signal. Ils reçoivent un e-mail de plus quand le budget est épuisé. Chaque budget envoie chaque e-mail au plus une fois par jour.
 - **La réinitialisation.** Chaque journée de budget recommence à 00:00 UTC, sauf si l'administrateur de l'instance le change. La carte **Avertissement et réinitialisation** définit **Seuil d'avertissement (%)**, de 1 à 99, **Heure de réinitialisation**, au format HH:MM, et **Fuseau horaire de réinitialisation** : cliquez sur **Modifier l'avertissement et la réinitialisation**.
 - **Heure d'été.** La réinitialisation suit l'horloge du fuseau horaire, donc la journée de budget où l'on change d'heure dure une heure de moins ou de plus. Une heure de réinitialisation que le changement d'heure saute a lieu d'autant après le saut.
 - **Une réinitialisation modifiée commence une nouvelle journée.** Changer l'heure de réinitialisation ou le fuseau horaire commence aussitôt une nouvelle journée de budget, où rien n'est encore compté.

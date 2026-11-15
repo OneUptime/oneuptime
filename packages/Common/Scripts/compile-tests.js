@@ -40,6 +40,15 @@
  *   - ../tsconfig.tests.server-utils.json (Tests/Server/Utils, 8,804 files):
  *     4.71 GB;
  *   - ../tsconfig.tests.rest.json (what was left, 9,613 files): 4.26 GB.
+ * On 2026-11-15 the server part used 6.94 GiB of its 8 GiB heap (87%), and
+ * its services' tests left it (#8631). As one part they used 6.09 GiB
+ * (76%), so they are two by name, as the Dashboard tests are, and
+ * ../tsconfig.tests.server-services.json is the whole folder, for editors
+ * and ESLint. Measured as above (tsc --extendedDiagnostics, "Memory used"):
+ *   - ../tsconfig.tests.server.json (Tests/Server but its Utils and
+ *     Services, 11,044 files): 5.09 GiB;
+ *   - ../tsconfig.tests.server-services-a-m.json (9,720 files): 4.59 GiB;
+ *   - ../tsconfig.tests.server-services-n-z.json (9,984 files): 4.71 GiB.
  * Tests/App, at 8.84 GB the same way (13,990 files), was split the same day,
  * by name, because nearly all of it is one directory (Tests/App/Dashboard,
  * some 1,650 tests): tsconfig.tests.app-dashboard-a-m.json (Dashboard
@@ -118,6 +127,8 @@ const PARTS = [
   "tsconfig.tests.app-rest.json",
   "tsconfig.tests.ui.json",
   "tsconfig.tests.server.json",
+  "tsconfig.tests.server-services-a-m.json",
+  "tsconfig.tests.server-services-n-z.json",
   "tsconfig.tests.server-utils.json",
   "tsconfig.tests.rest.json",
 ];

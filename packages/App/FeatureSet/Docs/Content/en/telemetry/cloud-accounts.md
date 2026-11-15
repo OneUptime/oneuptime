@@ -35,7 +35,7 @@ flowchart TB
 
 ## Before you begin
 
-- **A project owner or admin.** Only they can connect, test and edit cloud accounts.
+- **A Project Owner or Project Admin.** Only they can connect, test and edit cloud accounts.
 - **Your cloud's terminal** (AWS CloudShell, Azure Cloud Shell or Google Cloud Shell), signed in as someone who can create an IAM role or user, an app registration or a service account.
 
 ## Amazon Web Services

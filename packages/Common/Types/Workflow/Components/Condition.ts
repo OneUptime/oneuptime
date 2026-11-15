@@ -4,6 +4,7 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 /*
  * How a value is compared. Stored per value ("input-1-type", "input-2-type"),
@@ -74,35 +75,40 @@ export const ONE_VALUE_CONDITION_OPERATORS: Array<ConditionOperator> = [
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.IfElse,
-    title: "If / Else",
-    category: "Conditions",
-    description: "Checks a condition, then continues on Yes or No.",
+    title: translationKey("If / Else"),
+    category: translationKey("Conditions"),
+    description: translationKey(
+      "Checks a condition, then continues on Yes or No.",
+    ),
     iconProp: IconProp.Condition,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.Text,
-        name: "Value to check",
-        description:
+        name: translationKey("Value to check"),
+        description: translationKey(
           "What the condition looks at, usually a value from an earlier step.",
+        ),
         placeholder: "Pick a value with { } or type one",
         required: true,
         id: CONDITION_ARGUMENT_IDS.valueToCheck,
       },
       {
         type: ComponentInputType.Operator,
-        name: "Comparison",
-        description:
+        name: translationKey("Comparison"),
+        description: translationKey(
           "How to compare it: is equal to, contains, is greater than, is empty and so on.",
+        ),
         placeholder: "is equal to",
         required: true,
         id: CONDITION_ARGUMENT_IDS.comparison,
       },
       {
         type: ComponentInputType.Text,
-        name: "Compare with",
-        description:
+        name: translationKey("Compare with"),
+        description: translationKey(
           "What to compare the value with. Not needed for is empty and is not empty.",
+        ),
         placeholder: "e.g. production",
         required: true,
         notRequiredWhen: {
@@ -113,18 +119,20 @@ const components: Array<ComponentMetadata> = [
       },
       {
         type: ComponentInputType.ValueType,
-        name: "Value to check type",
-        description:
+        name: translationKey("Value to check type"),
+        description: translationKey(
           "Compare as text, as a number, or as true or false. Text unless set.",
+        ),
         placeholder: "Text",
         required: false,
         id: CONDITION_ARGUMENT_IDS.valueToCheckType,
       },
       {
         type: ComponentInputType.ValueType,
-        name: "Compare with type",
-        description:
+        name: translationKey("Compare with type"),
+        description: translationKey(
           "Set together with Value to check type, under Compare as. Text unless set.",
+        ),
         placeholder: "Text",
         required: false,
         id: CONDITION_ARGUMENT_IDS.compareWithType,
@@ -133,20 +141,22 @@ const components: Array<ComponentMetadata> = [
     returnValues: [],
     inPorts: [
       {
-        title: "In",
-        description: "Connect the step that runs before this check.",
+        title: translationKey("In"),
+        description: translationKey(
+          "Connect the step that runs before this check.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Yes",
-        description: "Runs next when the condition is met.",
+        title: translationKey("Yes"),
+        description: translationKey("Runs next when the condition is met."),
         id: "yes",
       },
       {
-        title: "No",
-        description: "Runs next when the condition is not met.",
+        title: translationKey("No"),
+        description: translationKey("Runs next when the condition is not met."),
         id: "no",
       },
     ],

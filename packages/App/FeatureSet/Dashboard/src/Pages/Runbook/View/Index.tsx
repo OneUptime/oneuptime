@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import IncidentElement from "../../../Components/Incident/Incident";
@@ -687,7 +688,7 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 </Link>
               </div>
               <div className="text-3xl font-semibold text-gray-900">
-                {stats.isLoaded ? stats.totalRuns : "—"}
+                {stats.isLoaded ? stats.totalRuns : <EmptyFigure />}
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {translator.translateText("All executions on record")}

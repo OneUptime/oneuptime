@@ -193,11 +193,11 @@ Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y 
 
 ### Comprobar que la notificación se dispara
 
-Haz clic en **Añadir componente**, añade un bloque **If / Else** y conecta a él el punto **Salida** del disparador. Configura **Valor que comprobar** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparación** como **es igual a** y **Comparar con** como `firing`.
+Haz clic en **Añadir componente**, añade un bloque **Si / Si no** y conecta a él el punto **Salida** del disparador. Configura **Valor que comprobar** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparación** como **es igual a** y **Comparar con** como `firing`.
 
 ### Declarar el incidente
 
-Añade un bloque **Create One Incident** y conecta a él el lado **Sí** del bloque **If / Else**. En **Plantilla de incidente**, elige una plantilla que fije la gravedad y las políticas de guardia a las que avisar (consulta [Plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente)). En **JSON Object**, indica lo que viene de Alertmanager:
+Añade un bloque **Create One Incident** y conecta a él el lado **Sí** del bloque **Si / Si no**. En **Plantilla de incidente**, elige una plantilla que fije la gravedad y las políticas de guardia a las que avisar (consulta [Plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente)). En **Objeto JSON**, indica lo que viene de Alertmanager:
 
 ```json
 {
@@ -206,14 +206,14 @@ Añade un bloque **Create One Incident** y conecta a él el lado **Sí** del blo
 }
 ```
 
-Sin plantilla, **JSON Object** también debe contener `incidentSeverityId`, el ID de una de las gravedades de incidente del proyecto.
+Sin plantilla, **Objeto JSON** también debe contener `incidentSeverityId`, el ID de una de las gravedades de incidente del proyecto.
 
 ### Activar el flujo de trabajo
 
 Activa **Habilitado** en la parte superior del **Constructor**. Un flujo de trabajo desactivado responde a Alertmanager con `400`.
 :::
 
-Una ejecución gestiona una notificación, así que declara un solo incidente, sea cual sea el número de alertas de la notificación. Una notificación `resolved` toma el lado **No** del bloque **If / Else**, donde no hay nada conectado, así que la ejecución termina ahí. Para un incidente por alerta, resuelto con la recuperación, usa el monitor.
+Una ejecución gestiona una notificación, así que declara un solo incidente, sea cual sea el número de alertas de la notificación. Una notificación `resolved` toma el lado **No** del bloque **Si / Si no**, donde no hay nada conectado, así que la ejecución termina ahí. Para un incidente por alerta, resuelto con la recuperación, usa el monitor.
 
 ## Vigilar el propio Alertmanager
 

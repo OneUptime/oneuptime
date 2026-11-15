@@ -20,6 +20,7 @@ import {
   PluralTemplate,
   TemplateValues,
   Translator,
+  createTranslator,
   formatList,
 } from "Common/Types/Translator";
 import { getNumberLocale } from "Common/Types/DateLanguage";
@@ -45,11 +46,7 @@ import {
   StatusPageGroupImportSummary,
   runStatusPageGroupImport,
 } from "../../FeatureSet/Dashboard/src/Utils/StatusPageGroupImportRunner";
-import {
-  CREATED_IMPORT_RESULT,
-  CREATED_IMPORT_RESULT_IN_ENGLISH,
-  getCreatedImportResultLabel,
-} from "../../FeatureSet/Dashboard/src/Utils/ImportResultWords";
+import { CREATED_IMPORT_RESULT } from "../../FeatureSet/Dashboard/src/Utils/ImportResultWords";
 import { getToolImportOutcomeLabel } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportText";
 
 /*
@@ -254,22 +251,32 @@ describe("the CSV imports' words", () => {
  * as the results of both CSV imports and an import from another tool draw
  * it. Arabic says تم الإنشاء ("was created"), not the date column's
  * تاريخ الإنشاء; Japanese 作成済み, not the column's 作成.
+ *
+ * The key is looked up as any key is: the translator reads it "Created" on
+ * an English page and in a language with no wording of its own
+ * (Common/Types/MeaningKeys), so nothing writes that English by hand
+ * (#8180).
  */
 describe("the import outcome's Created", () => {
   test("Arabic and Japanese word it as what happened to the row, not as the date column", () => {
-    expect(getCreatedImportResultLabel(dashboardTranslator("ar"))).toBe(
+    expect(dashboardTranslator("ar").translateText(CREATED_IMPORT_RESULT)).toBe(
       "تم الإنشاء",
     );
     expect(readDashboardLocale("ar")["Created"]).toBe("تاريخ الإنشاء");
-    expect(getCreatedImportResultLabel(dashboardTranslator("ja"))).toBe(
+    expect(dashboardTranslator("ja").translateText(CREATED_IMPORT_RESULT)).toBe(
       "作成済み",
     );
     expect(readDashboardLocale("ja")["Created"]).toBe("作成");
     // An English page still says Created, as the docs quote it.
-    expect(getCreatedImportResultLabel(dashboardTranslator("en"))).toBe(
-      CREATED_IMPORT_RESULT_IN_ENGLISH,
+    expect(dashboardTranslator("en").translateText(CREATED_IMPORT_RESULT)).toBe(
+      "Created",
     );
-    expect(CREATED_IMPORT_RESULT_IN_ENGLISH).toBe("Created");
+    expect(
+      getToolImportOutcomeLabel(
+        dashboardTranslator("en"),
+        ToolImportOutcome.Created,
+      ),
+    ).toBe("Created");
   });
 
   test.each(LANGUAGES)(
@@ -283,7 +290,7 @@ describe("the import outcome's Created", () => {
       expect(isWordedInDashboardLocale(CREATED_IMPORT_RESULT, language)).toBe(
         true,
       );
-      expect(getCreatedImportResultLabel(translator)).toBe(outcome);
+      expect(translator.translateText(CREATED_IMPORT_RESULT)).toBe(outcome);
       expect(
         getToolImportOutcomeLabel(translator, ToolImportOutcome.Created),
       ).toBe(outcome);
@@ -293,20 +300,27 @@ describe("the import outcome's Created", () => {
   );
 
   test("a language without a wording of its own reads Created, never the key", () => {
-    const silent: Translator = {
-      ...dashboardTranslator("de"),
-      hasTranslation: (): boolean => {
-        return false;
+    // A locale with no entry for it, and one still holding the English key.
+    const lookups: Array<(key: string) => string | undefined> = [
+      (): string | undefined => {
+        return undefined;
       },
-      translateText: (text: string | undefined): string | undefined => {
-        return text;
+      (key: string): string | undefined => {
+        return key;
       },
-    };
+    ];
 
-    expect(getCreatedImportResultLabel(silent)).toBe("Created");
+    for (const lookup of lookups) {
+      const silent: Translator = createTranslator(lookup, "de");
+
+      expect(silent.translateText(CREATED_IMPORT_RESULT)).toBe("Created");
+      expect(getToolImportOutcomeLabel(silent, ToolImportOutcome.Created)).toBe(
+        "Created",
+      );
+    }
   });
 
-  test("the dialogs draw it with getCreatedImportResultLabel, never the date column's key", () => {
+  test("the dialogs look the outcome's own key up, never the date column's key", () => {
     const lookupOfCreated: RegExp =
       /\b(?:t|translateText|translateString)\(\s*["']Created["']\s*\)/;
 
@@ -324,7 +338,7 @@ describe("the import outcome's Created", () => {
       expect({
         file: path.basename(file),
         draws: readSource(file).includes(
-          "{getCreatedImportResultLabel(translator)}",
+          "{translator.translateText(CREATED_IMPORT_RESULT)}",
         ),
       }).toEqual({ file: path.basename(file), draws: true });
     }

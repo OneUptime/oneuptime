@@ -782,7 +782,8 @@ describe("the IRC page names the step's settings as the step does", () => {
         });
       }
 
-      expect(bold.has(IRC_METADATA.title)).toBe(true);
+      // The canvas card titles the step in the reader's words too (#8359).
+      expect(bold.has(dashboardWord(language, IRC_METADATA.title))).toBe(true);
     },
   );
 
@@ -1211,10 +1212,11 @@ describe("the IRC page and the template it points to", () => {
       expect(bold.has(template!.workflowName)).toBe(true);
 
       for (const variable of template!.variables) {
+        // The create dialog's field label looks a title up (FieldLabel): IRC Server is worded since #8359.
         expect({
           language,
           title: variable.title,
-          named: bold.has(variable.title),
+          named: bold.has(dashboardWord(language, variable.title)),
         }).toEqual({
           language,
           title: variable.title,
@@ -1331,8 +1333,9 @@ describe("the IRC page and the Builder panels it walks through", () => {
     (language: string) => {
       const bold: Set<string> = boldTermsOf(readIrcPage(language));
 
+      // A record step's title is built from its model's name, and has no key yet.
       expect(bold.has("On Create Incident")).toBe(true);
-      expect(bold.has("Fields to pass on")).toBe(true);
+      expect(bold.has(dashboardWord(language, "Fields to pass on"))).toBe(true);
       expect(bold.has("Select Fields")).toBe(false);
     },
   );
@@ -1466,7 +1469,10 @@ describe("the IRC page's diagram", () => {
         return line.trim().startsWith("loop ");
       });
 
-      expect(lines[optAt]).toContain("Send Without Joining");
+      // As the settings form names it in this language (#8359).
+      expect(lines[optAt]).toContain(
+        dashboardWord(language, "Send Without Joining"),
+      );
       expect(lines[optAt + 1]).toContain("JOIN");
       // The setting, as the language's settings form names it.
       expect(lines[loopAt]).toContain(dashboardWord(language, "Message Text"));

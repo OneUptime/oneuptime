@@ -44,20 +44,20 @@ Inicia sesión como administrador maestro y abre el Admin Dashboard con **Ajuste
 
 :::tabs
 @tab SAML
-En la página del proveedor, la tarjeta **Identity Provider URLs** muestra la **ACS URL (Assertion Consumer Service / Reply URL)** y el **Issuer (Entity ID)**. Pega ambos en tu proveedor de identidad (Okta, Microsoft Entra ID, OneLogin, JumpCloud y otros).
+En la página del proveedor, la tarjeta **URL del proveedor de identidad (SAML)** muestra la **ACS URL (Assertion Consumer Service / Reply URL)** y el **Issuer (Entity ID)**. Pega ambos en tu proveedor de identidad (Okta, Microsoft Entra ID, OneLogin, JumpCloud y otros).
 @tab OpenID Connect
-En la página del proveedor, la tarjeta **Identity Provider URL** muestra la **Redirect URI (Callback URL)**. Añádela a las URI de redirección permitidas de tu proveedor de identidad.
+En la página del proveedor, la tarjeta **URL del proveedor de identidad** muestra la **Redirect URI (Callback URL)**. Añádela a las URI de redirección permitidas de tu proveedor de identidad.
 :::
 
 ### Activar el proveedor
 
-Un proveedor nuevo empieza desactivado. Haz clic en **Edit Configuration** en la página del proveedor y activa **Habilitado**.
+Un proveedor nuevo empieza desactivado. Haz clic en **Editar configuración** en la página del proveedor y activa **Habilitado**.
 
 Activar un proveedor global solo lo añade a las opciones de inicio de sesión único de la página de inicio de sesión: nunca impone el SSO ni deja fuera a nadie, así que puedes activarlo, probarlo y volver a desactivarlo sin riesgo si hace falta. Eso sí, mientras toda la instancia exige SSO, la página de inicio de sesión solo ofrece los proveedores activados: prueba un proveedor antes de exigir SSO.
 
 ### Probar el proveedor
 
-Usa el enlace de la tarjeta **Test this SSO provider** (**Test this OIDC provider** en OpenID Connect) para hacer un inicio de sesión completo a través de tu proveedor de identidad. **Probar inicio de sesión** en la fila del proveedor en **Inicio de sesión único** abre el mismo inicio de sesión en una pestaña nueva. No necesitas adjuntar ningún proyecto antes: la prueba inicia tu sesión en los proyectos a los que ya perteneces. El proveedor debe estar activado para que el enlace funcione.
+Usa el enlace de la tarjeta **Probar este proveedor de SSO** (**Probar este proveedor OIDC** en OpenID Connect) para hacer un inicio de sesión completo a través de tu proveedor de identidad. **Probar inicio de sesión** en la fila del proveedor en **Inicio de sesión único** abre el mismo inicio de sesión en una pestaña nueva. No necesitas adjuntar ningún proyecto antes: la prueba inicia tu sesión en los proyectos a los que ya perteneces. El proveedor debe estar activado para que el enlace funcione.
 :::
 
 ## Cómo inician sesión los usuarios
@@ -78,7 +78,7 @@ flowchart TB
 
 - **Sin proyectos adjuntos (todos los proyectos / invitar primero):** los usuarios pueden iniciar sesión con el proveedor y llegar a **cualquier proyecto del que ya sean miembros**. Los usuarios nuevos **no** se crean automáticamente: primero hay que invitar al usuario a un proyecto. Úsalo para un SSO de toda la empresa cuando las membresías se gestionan en otro sitio.
 
-- **Proyectos adjuntos (aprovisionamiento automático):** Abre el proveedor y usa la tabla **Attached Projects** para adjuntar uno o más proyectos, cada uno con un conjunto de equipos predeterminados. Los usuarios que inician sesión se **aprovisionan automáticamente** en esos proyectos y se agregan a los equipos predeterminados en el primer inicio de sesión. Un proyecto que adjuntas empieza con su equipo de miembros; elige otros equipos si los recién llegados deben empezar con otro acceso. Agrega un proyecto + equipos a la vez para construir la lista; para cambiar un adjunto, elimínalo y vuelve a agregarlo.
+- **Proyectos adjuntos (aprovisionamiento automático):** Abre el proveedor y usa la tabla **Proyectos vinculados** para adjuntar uno o más proyectos, cada uno con un conjunto de equipos predeterminados. Los usuarios que inician sesión se **aprovisionan automáticamente** en esos proyectos y se agregan a los equipos predeterminados en el primer inicio de sesión. Un proyecto que adjuntas empieza con su equipo de miembros; elige otros equipos si los recién llegados deben empezar con otro acceso. Agrega un proyecto + equipos a la vez para construir la lista; para cambiar un adjunto, elimínalo y vuelve a agregarlo.
 
 Quien ya es miembro de un proyecto adjunto conserva los equipos que tiene allí.
 

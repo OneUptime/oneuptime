@@ -37,6 +37,14 @@ import ObjectID from "../../../Types/ObjectID";
  * makes a server read again: nothing in a message can give anyone more
  * than their reads already give them.
  *
+ * One message is no change to access at all, only a reason to read again:
+ * what a project uses changed (ProjectUsageChanged, from ProjectUsageCache
+ * when a product's first record is created, its records are deleted or a
+ * telemetry product's first data is kept, #8626). Each server tells the
+ * Dashboard pages it holds in that project, which ask for the project's
+ * products again - through the API, as every other read. The message
+ * carries the project alone, and nothing is sent but "ask again".
+ *
  * When the channel cannot be reached, a change still applies on the server
  * that made it, and the others catch up as their entries run out: 30
  * seconds for permissions, a minute for a block (of a person or of a
@@ -66,6 +74,11 @@ export enum RealtimeAccessChangeKind {
    * the next request it checks.
    */
   SessionLengthsChanged = "SessionLengthsChanged",
+  /*
+   * What a project uses changed (ProjectUsageCache): every server tells the
+   * pages it holds in the project to ask for its products again.
+   */
+  ProjectUsageChanged = "ProjectUsageChanged",
 }
 
 export type RealtimeAccessChange =
@@ -97,6 +110,10 @@ export type RealtimeAccessChange =
     }
   | {
       kind: RealtimeAccessChangeKind.SessionLengthsChanged;
+    }
+  | {
+      kind: RealtimeAccessChangeKind.ProjectUsageChanged;
+      projectId: string;
     };
 
 /*
@@ -117,6 +134,12 @@ export type ProjectBlockChangedListener = (projectId: string) => void;
  * change. Realtime registers it (onSessionLengthsChanged).
  */
 export type SessionLengthsChangedListener = () => void;
+
+/*
+ * What a server does with the pages it holds in a project whose usage
+ * changed. Realtime registers it (onProjectUsageChanged).
+ */
+export type ProjectUsageChangedListener = (projectId: string) => void;
 
 interface RealtimeAccessChangeMessage {
   // The server that announced it, which has applied it already.
@@ -164,6 +187,9 @@ export default class RealtimeAccessChanges {
   private static sessionLengthsChangedListener: SessionLengthsChangedListener | null =
     null;
 
+  private static projectUsageChangedListener: ProjectUsageChangedListener | null =
+    null;
+
   /*
    * Who asks this server's sockets again when sign-in rules change. One
    * listener: Realtime, which holds the sockets.
@@ -192,6 +218,16 @@ export default class RealtimeAccessChanges {
     listener: SessionLengthsChangedListener | null,
   ): void {
     RealtimeAccessChanges.sessionLengthsChangedListener = listener;
+  }
+
+  /*
+   * Who tells this server's pages in a project that its usage changed. One
+   * listener: Realtime, which holds the sockets.
+   */
+  public static onProjectUsageChanged(
+    listener: ProjectUsageChangedListener | null,
+  ): void {
+    RealtimeAccessChanges.projectUsageChangedListener = listener;
   }
 
   /*
@@ -511,6 +547,12 @@ export default class RealtimeAccessChanges {
 
           return;
         }
+
+        case RealtimeAccessChangeKind.ProjectUsageChanged: {
+          RealtimeAccessChanges.projectUsageChangedListener?.(change.projectId);
+
+          return;
+        }
       }
     } catch (err) {
       logger.error("Realtime: an access change could not be applied here.");
@@ -661,6 +703,16 @@ export default class RealtimeAccessChanges {
 
       case RealtimeAccessChangeKind.SessionLengthsChanged:
         return { kind: RealtimeAccessChangeKind.SessionLengthsChanged };
+
+      case RealtimeAccessChangeKind.ProjectUsageChanged:
+        if (!isId(projectId)) {
+          return null;
+        }
+
+        return {
+          kind: RealtimeAccessChangeKind.ProjectUsageChanged,
+          projectId,
+        };
 
       default:
         return null;

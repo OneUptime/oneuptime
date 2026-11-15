@@ -4,6 +4,13 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import EnterpriseLicenseUsageUtil, {
   EnterpriseLicenseInstanceUsage,
 } from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import {
+  formatInline,
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   EnterpriseLicenseInstanceActivityState,
@@ -73,24 +80,34 @@ export const isOverUserLimit: IsOverUserLimitFunction = (
  */
 export const getLicenseStatusText: (
   lifecycle: LicenseLifecycle | null,
-) => string = (lifecycle: LicenseLifecycle | null): string => {
+  translator?: Translator,
+) => string = (
+  lifecycle: LicenseLifecycle | null,
+  translator: Translator = getGlobalTranslator(),
+): string => {
   if (!lifecycle) {
     return "";
   }
 
   if (lifecycle.state === "expired") {
-    return "Expired";
+    return translator.translateText("Expired") as string;
   }
 
   if (lifecycle.state === "expiring-soon") {
     const daysLeft: number = lifecycle.daysUntilExpiry;
 
     return daysLeft === 0
-      ? "Expires today"
-      : `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
+      ? (translator.translateText("Expires today") as string)
+      : translator.translatePlural(
+          {
+            one: "Expires in {{count}} day",
+            other: "Expires in {{count}} days",
+          },
+          daysLeft,
+        );
   }
 
-  return "Active";
+  return translator.translateText("Active") as string;
 };
 
 export interface LicenseStatusPillProps {
@@ -101,6 +118,7 @@ export interface LicenseStatusPillProps {
 export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
   props: LicenseStatusPillProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const lifecycle: LicenseLifecycle | null = getLicenseLifecycle(
     props.expiresAt,
     props.reminderDays ?? EnterpriseLicenseUsageUtil.defaultExpiryReminderDays,
@@ -114,13 +132,19 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
     const daysAgo: number = Math.abs(lifecycle.daysUntilExpiry);
     return (
       <Pill
-        text={getLicenseStatusText(lifecycle)}
+        text={getLicenseStatusText(lifecycle, translator)}
         color={Red}
         size={PillSize.Small}
         tooltip={
           daysAgo === 0
-            ? "Expired today"
-            : `Expired ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`
+            ? (translator.translateText("Expired today") as string)
+            : translator.translatePlural(
+                {
+                  one: "Expired {{count}} day ago",
+                  other: "Expired {{count}} days ago",
+                },
+                daysAgo,
+              )
         }
       />
     );
@@ -129,7 +153,7 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
   if (lifecycle.state === "expiring-soon") {
     return (
       <Pill
-        text={getLicenseStatusText(lifecycle)}
+        text={getLicenseStatusText(lifecycle, translator)}
         color={Yellow}
         size={PillSize.Small}
         tooltip="Daily expiry reminder emails are going out to the customer's master admins."
@@ -139,7 +163,7 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
 
   return (
     <Pill
-      text={getLicenseStatusText(lifecycle)}
+      text={getLicenseStatusText(lifecycle, translator)}
       color={Green}
       size={PillSize.Small}
     />
@@ -160,6 +184,7 @@ export interface EnterpriseLicenseInstanceStatusPillProps {
 export const EnterpriseLicenseInstanceStatusPill: FunctionComponent<
   EnterpriseLicenseInstanceStatusPillProps
 > = (props: EnterpriseLicenseInstanceStatusPillProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const activityState: EnterpriseLicenseInstanceActivityState =
     getEnterpriseLicenseInstanceActivityState({
       instance: props.instance,
@@ -173,7 +198,14 @@ export const EnterpriseLicenseInstanceStatusPill: FunctionComponent<
         text="Active"
         color={Green}
         size={PillSize.Small}
-        tooltip={`Registered or sent a usage report within the past ${EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays} days and is included in seat usage.`}
+        tooltip={translator.translatePlural(
+          {
+            one: "Registered or sent a usage report within the past {{count}} day and is included in seat usage.",
+            other:
+              "Registered or sent a usage report within the past {{count}} days and is included in seat usage.",
+          },
+          EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays,
+        )}
       />
     );
   }
@@ -183,7 +215,14 @@ export const EnterpriseLicenseInstanceStatusPill: FunctionComponent<
       text="Inactive"
       color={Gray500}
       size={PillSize.Small}
-      tooltip={`Has not registered or sent a usage report for ${EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays} days and is not included in seat usage.`}
+      tooltip={translator.translatePlural(
+        {
+          one: "Has not registered or sent a usage report for {{count}} day and is not included in seat usage.",
+          other:
+            "Has not registered or sent a usage report for {{count}} days and is not included in seat usage.",
+        },
+        EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays,
+      )}
     />
   );
 };
@@ -198,8 +237,12 @@ export interface SeatUsageMeterProps {
  * users", "4 users, no limit"): what the list's Export CSV writes in its
  * Seats column. Empty before any installation has reported.
  */
-export const getSeatUsageText: (props: SeatUsageMeterProps) => string = (
+export const getSeatUsageText: (
   props: SeatUsageMeterProps,
+  translator?: Translator,
+) => string = (
+  props: SeatUsageMeterProps,
+  translator: Translator = getGlobalTranslator(),
 ): string => {
   if (props.currentUserCount === undefined && props.userLimit === undefined) {
     return "";
@@ -208,10 +251,20 @@ export const getSeatUsageText: (props: SeatUsageMeterProps) => string = (
   const currentCount: number = props.currentUserCount || 0;
 
   if (!props.userLimit || props.userLimit <= 0) {
-    return `${currentCount} users, no limit`;
+    return translator.translatePlural(
+      { one: "{{count}} user, no limit", other: "{{count}} users, no limit" },
+      currentCount,
+    );
   }
 
-  return `${currentCount} / ${props.userLimit} users`;
+  return translator.translatePlural(
+    {
+      one: "{{current}} / {{count}} user",
+      other: "{{current}} / {{count}} users",
+    },
+    props.userLimit,
+    { current: translator.formatNumber(currentCount) },
+  );
 };
 
 /*
@@ -222,11 +275,16 @@ export const getSeatUsageText: (props: SeatUsageMeterProps) => string = (
 export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
   props: SeatUsageMeterProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const current: number | undefined = props.currentUserCount;
   const limit: number | undefined = props.userLimit;
 
   if (current === undefined && limit === undefined) {
-    return <span className="text-gray-400">No reports yet</span>;
+    return (
+      <span className="text-gray-400">
+        {translator.translateText("No reports yet")}
+      </span>
+    );
   }
 
   const currentCount: number = current || 0;
@@ -234,8 +292,13 @@ export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
   if (!limit || limit <= 0) {
     return (
       <div className="text-sm text-gray-900">
-        {currentCount.toLocaleString()}{" "}
-        <span className="text-gray-500">users · no limit</span>
+        {translator.translatePlural(
+          {
+            one: "{{count}} user · no limit",
+            other: "{{count}} users · no limit",
+          },
+          currentCount,
+        )}
       </div>
     );
   }
@@ -258,11 +321,24 @@ export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
   return (
     <div className="w-full max-w-[12rem]">
       <div className="text-sm text-gray-900 tabular-nums">
-        {currentCount.toLocaleString()}{" "}
-        <span className="text-gray-500">/ {limit.toLocaleString()} users</span>
+        {translator.formatNumber(currentCount)}{" "}
+        <span className="text-gray-500">
+          {translator.translatePlural(
+            { one: "/ {{count}} user", other: "/ {{count}} users" },
+            limit,
+          )}
+        </span>
         {isOver ? (
           <span className="ml-1 font-medium text-red-600">
-            · {(currentCount - limit).toLocaleString()} over
+            {formatInline(
+              [
+                "",
+                translator.translateTemplate("{{count}} over", {
+                  count: translator.formatNumber(currentCount - limit),
+                }),
+              ],
+              translator,
+            )}
           </span>
         ) : (
           <></>
@@ -282,19 +358,23 @@ export const SeatUsageMeter: FunctionComponent<SeatUsageMeterProps> = (
  * The license's white-labelling switch (EnterpriseLicense.canBeWhiteLabelled),
  * in the words the create form, the edit form and the details share.
  */
-export const CAN_BE_WHITE_LABELLED_TITLE: string = "Can be white-labelled";
+export const CAN_BE_WHITE_LABELLED_TITLE: string = translationKey(
+  "Can be white-labelled",
+);
 
-export const CAN_BE_WHITE_LABELLED_DESCRIPTION: string =
-  "Lets the customer replace the OneUptime name and logo in Admin Dashboard > Settings > White Label once their next signed license token arrives.";
+export const CAN_BE_WHITE_LABELLED_DESCRIPTION: string = translationKey(
+  "Lets the customer replace the OneUptime name and logo in Admin Dashboard > Settings > White Label once their next signed license token arrives.",
+);
 
 // Beside the license type in the list, for a license with the switch on.
 export const WhiteLabelBadge: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   return (
     <span
       className="inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 ring-1 ring-inset ring-sky-200"
       data-testid="license-white-label-badge"
     >
-      White-label
+      {translator.translateText("White-label")}
     </span>
   );
 };

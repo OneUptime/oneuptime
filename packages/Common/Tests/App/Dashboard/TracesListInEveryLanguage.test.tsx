@@ -762,9 +762,14 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     ).toBeVisible();
     expect(within(failed).getByText("card declined")).toBeVisible();
     expect(within(failed).getByText("api-gateway")).toBeVisible();
+    // Its count in the reader's digits: "۵ دقیقه پیش" in Persian (#8455).
     expect(
       within(failed).getByText(
-        asQuery(sentence(language, "{{count}}m ago", { count: 5 })),
+        asQuery(
+          sentence(language, "{{count}}m ago", {
+            count: translatorFor(language).formatNumber(5),
+          }),
+        ),
       ),
     ).toBeVisible();
     expect(
@@ -779,7 +784,11 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
 
     expect(
       within(old).getByText(
-        asQuery(sentence(language, "{{count}}y ago", { count: 1 })),
+        asQuery(
+          sentence(language, "{{count}}y ago", {
+            count: translatorFor(language).formatNumber(1),
+          }),
+        ),
       ),
     ).toBeVisible();
     expect(

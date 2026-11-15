@@ -59,7 +59,7 @@ Et ekstra kriterium på `80` med lavere alvorlighetsgrad, lagt til med **Rediger
 En agent som har satt seg fast, etterlater et spor du kan kjenne igjen: det samme verktøy-spanet, om og om igjen. En sunn kjøring kaller ikke ett verktøy flere titalls ganger i løpet av noen få minutter, så en telling fanger løkken lenge før budsjettet gjør det.
 
 :::steps
-1. Åpne **Overvåkere**, klikk på **Opprett monitor**, og velg **Spor** under **Flere monitortyper**. Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Noe annet** og tømmer **Span-status**.
+1. Åpne **Monitorer**, klikk på **Opprett monitor**, og velg **Spor** under **Flere monitortyper**. Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Noe annet** og tømmer **Span-status**.
 2. Under **Flere felt** setter du **Filtrer etter tjeneste** til agentens tjeneste og **Filtrer etter attributter** til `gen_ai.tool.name` lik verktøyet du venter at den går i løkke på, for eksempel `search_web`. Hvis instrumenteringen din gir hvert verktøys span et navn, setter du heller det navnet i **Span-navnet inneholder**.
 3. Sett **Tidsvindu** til **Siste 5 minutter**.
 4. I **Når det skal varsles** setter du **Mer enn** til et tall som ingen sunn kjøring når på fem minutter, for eksempel `50`, og gir varselet en tittel som `Agent loop: support-bot`.
@@ -125,19 +125,19 @@ Lagre først endepunktets token et sted der arbeidsflyten kan bruke det uten å 
 
 ### Legg til utløseren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Alert** i panelet **Legg til utløser**. Klikk på utløseren: **Fields to pass on** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Alert** i panelet **Legg til utløser**. Klikk på utløseren: **Felt som sendes videre** starter med tittelen, så klikk på **Legg til felt**, kryss av for beskrivelsen, og klikk på **Lagre**. ID-en på blokken, `alert-on-create-1`, er det senere blokker bruker for å vise til den.
 
 ### Sjekk tittelen
 
-Klikk på **Legg til komponent**, velg **If / Else**, og koble utløserens punkt **Suksess** til den. Sett **Verdi som skal sjekkes** til varselets tittel (klikk på **{ }**, og velg den), **Sammenligning** til **inneholder** og **Sammenlign med** til begynnelsen titlene på snubletrådene dine har felles, for eksempel `LLM budget exceeded`.
+Klikk på **Legg til komponent**, velg **Hvis / Ellers**, og koble utløserens punkt **Suksess** til den. Sett **Verdi som skal sjekkes** til varselets tittel (klikk på **{ }**, og velg den), **Sammenligning** til **inneholder** og **Sammenlign med** til begynnelsen titlene på snubletrådene dine har felles, for eksempel `LLM budget exceeded`.
 
 ### Kall endepunktet ditt
 
-Legg til **API Post (JSON)**, og koble punktet **Ja** på **If / Else** til den. Sett **URL** til endepunktet ditt, for eksempel `https://agents.example.com/circuit-breaker`, og fyll inn hodene og body nedenfor.
+Legg til **API-kall POST (JSON)**, og koble punktet **Ja** på **Hvis / Ellers** til den. Sett **URL** til endepunktet ditt, for eksempel `https://agents.example.com/circuit-breaker`, og fyll inn hodene og body nedenfor.
 
 ### Rapporter en feil
 
-Legg til **Send Message to Slack** eller **Send Email**, og koble API-blokkens punkt **Feil** til den. En circuit breaker som ikke klarer å slå ut, er det ene varselet et menneske må se.
+Legg til **Send melding til Slack** eller **Send e-post**, og koble API-blokkens punkt **Feil** til den. En circuit breaker som ikke klarer å slå ut, er det ene varselet et menneske må se.
 
 ### Slå den på
 
@@ -164,7 +164,7 @@ Dens **Forespørselstekst**:
 }
 ```
 
-For å reagere på flere snubletråder lar du alle titlene deres begynne på samme måte, eller du kjeder flere **If / Else**-blokker fra punktet **Nei**. Se [Bygge en arbeidsflyt](/docs/workflows/authoring) for lerretet og [Variabler](/docs/workflows/variables) for `{{…}}`-referansene.
+For å reagere på flere snubletråder lar du alle titlene deres begynne på samme måte, eller du kjeder flere **Hvis / Ellers**-blokker fra punktet **Nei**. Se [Bygge en arbeidsflyt](/docs/workflows/authoring) for lerretet og [Variabler](/docs/workflows/variables) for `{{…}}`-referansene.
 
 ## Test circuit breakeren
 
@@ -180,7 +180,7 @@ For å reagere på flere snubletråder lar du alle titlene deres begynne på sam
 - Et budsjett teller UTC-døgnet, så prosenten starter på 0 igjen ved midnatt UTC. Et budsjettvarsel kan da bli løst, og den neste dårlige dagen åpner et nytt varsel som utløser circuit breakeren igjen.
 - En monitor holder varselet sitt åpent så lenge kriteriene er oppfylt. Med **Løs varsel automatisk** slått på løses varselet når de ikke lenger er det, og det neste bruddet åpner et nytt varsel.
 - Tilbakestilling er et menneskes avgjørelse på begge sider: løs varselet i OneUptime, og tilbakestill circuit breakeren i runneren din.
-- Hvert nytt varsel i prosjektet starter arbeidsflyten. Det er **If / Else** som holder andre varsler unna circuit breakeren: ikke utelat den.
+- Hvert nytt varsel i prosjektet starter arbeidsflyten. Det er **Hvis / Ellers** som holder andre varsler unna circuit breakeren: ikke utelat den.
 
 ## Feilsøking
 
@@ -189,7 +189,7 @@ Sjekk at **Aktivert** er slått på øverst i **Bygger**: arbeidsflyter opprette
 :::
 
 :::details Arbeidsflyten kjører, men tar alltid grenen No
-Tittelen er tom eller samsvarer ikke. Et felt som ikke står i utløserens **Fields to pass on**, kommer tomt frem, så legg til tittelen der. Sammenlign deretter varselets tittel med **Sammenlign med**: **inneholder** må finne akkurat den teksten i den.
+Tittelen er tom eller samsvarer ikke. Et felt som ikke står i utløserens **Felt som sendes videre**, kommer tomt frem, så legg til tittelen der. Sammenlign deretter varselets tittel med **Sammenlign med**: **inneholder** må finne akkurat den teksten i den.
 :::
 
 :::details Endepunktet ditt svarer 401
@@ -201,7 +201,7 @@ Monitorens **Tidsintervall** er kortere enn budsjettets 15 minutter mellom to pu
 :::
 
 :::details Forespørselen når aldri frem til endepunktet ditt
-Åpne kjøringen under **Arbeidsflyter → Logger → Kjøringer** og steget **API Post (JSON)**: det forteller hvorfor forespørselen mislyktes. På OneUptime Cloud må endepunktet kunne nås fra internett; en selvhostet installasjon avviser private nettverksadresser med mindre en administrator tillater dem.
+Åpne kjøringen under **Arbeidsflyter → Logger → Kjøringer** og steget **API-kall POST (JSON)**: det forteller hvorfor forespørselen mislyktes. På OneUptime Cloud må endepunktet kunne nås fra internett; en selvhostet installasjon avviser private nettverksadresser med mindre en administrator tillater dem.
 :::
 
 ## Neste steg

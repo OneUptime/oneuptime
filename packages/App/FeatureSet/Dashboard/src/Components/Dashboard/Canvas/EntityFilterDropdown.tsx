@@ -40,7 +40,7 @@ import { ProductAnalyticsSavedViewType } from "Common/Types/Rum/ProductAnalytics
 import { describeProductAnalyticsSavedViewOptions } from "../../ProductAnalytics/ProductAnalyticsSavedViews";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
@@ -55,18 +55,23 @@ interface EntityModelDef<T extends BaseModel> {
    * Narrows what can be PICKED for a new selection, on top of the project
    * scope - e.g. archived SLOs are retired and must not be offered for a new
    * widget or variable. An item that is already selected is still shown (see
-   * the load below), labelled with `unpickableLabelSuffix`.
+   * the load below), labelled with `unpickableLabelTemplate`.
    */
   pickableQuery?: Query<T> | undefined;
   /*
    * A selected item the list is missing is not necessarily unpickable - it may
    * just sit past the list's row cap. `isUnpickable` tells the two apart for an
    * item looked up by id, reading the fields named in `unpickableSelect`, and
-   * only an item it flags gets `unpickableLabelSuffix`.
+   * only an item it flags gets `unpickableLabelTemplate`.
    */
   unpickableSelect?: Record<string, true> | undefined;
   isUnpickable?: ((item: T) => boolean) | undefined;
-  unpickableLabelSuffix?: string | undefined;
+  /*
+   * The label of such an item, as a whole sentence with its name in it
+   * ("{{name}} (archived)"), so the word beside the name reads in the
+   * reader's language (#8297).
+   */
+  unpickableLabelTemplate?: string | undefined;
   /*
    * Columns an option is worded from beside its name, and a step that
    * words the options once they are read - a saved funnel's application
@@ -81,6 +86,38 @@ interface EntityModelDef<T extends BaseModel> {
       }) => Promise<void>)
     | undefined;
 }
+
+// An archived SLO a widget or a variable still points at.
+export const ARCHIVED_SLO_LABEL: string = translationKey("{{name}} (archived)");
+
+/*
+ * A selected item that can no longer be picked, labelled with the sentence
+ * that says why: its name as it reads in the picker (a name as written,
+ * "Unnamed" in the reader's words already), inside a sentence in the
+ * reader's language - "Checkout latency (archivado)". The sentence is
+ * translated here, so the option is drawn as given (isUserContent), never
+ * looked up again. It was the name and an English " (archived)" glued on,
+ * drawn as written in every language (#8297).
+ */
+export const getUnpickableOption: (
+  option: DropdownOption,
+  template: string,
+  translator: Translator,
+) => DropdownOption = (
+  option: DropdownOption,
+  template: string,
+  translator: Translator,
+): DropdownOption => {
+  return {
+    ...option,
+    label: translator.translateTemplate(
+      template,
+      { name: option.label },
+      { setsValuesApart: true },
+    ),
+    isUserContent: true,
+  };
+};
 
 type ToDropdownOptionFunction = (
   item: BaseModel,
@@ -227,7 +264,7 @@ function getEntityModelDef(
         isUnpickable: (item: BaseModel): boolean => {
           return (item as ServiceLevelObjective).isArchived === true;
         },
-        unpickableLabelSuffix: " (archived)",
+        unpickableLabelTemplate: ARCHIVED_SLO_LABEL,
       };
     case EntityFilterModelType.Label:
       return {
@@ -441,14 +478,18 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
               });
 
             for (const item of selectedResult.data) {
-              const option: DropdownOption = toDropdownOption(
+              const listed: DropdownOption = toDropdownOption(
                 item,
                 colorColumnName,
               );
-
-              if (def.isUnpickable?.(item)) {
-                option.label = `${option.label}${def.unpickableLabelSuffix || ""}`;
-              }
+              const option: DropdownOption =
+                def.isUnpickable?.(item) && def.unpickableLabelTemplate
+                  ? getUnpickableOption(
+                      listed,
+                      def.unpickableLabelTemplate,
+                      translator,
+                    )
+                  : listed;
 
               newOptions.push(option);
               optionItems.push(item);

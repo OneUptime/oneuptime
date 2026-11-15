@@ -1,4 +1,5 @@
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -65,7 +66,7 @@ const InsightStatusSummary: FunctionComponent<ComponentProps> = (
               <span className="mt-1.5 h-6 w-10 animate-pulse rounded bg-gray-100" />
             ) : (
               <span className="mt-1.5 text-2xl font-semibold leading-none tracking-tight text-gray-900 tabular-nums">
-                {bucket.count === null ? "—" : bucket.count}
+                {bucket.count === null ? <EmptyFigure /> : bucket.count}
               </span>
             )}
           </button>

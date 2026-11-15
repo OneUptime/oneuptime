@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Nee"| saved["Uitvoering opgeslagen met stappen en logboek"]
 ```
 
-Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaal geen code nodig; als er toch code nodig is, draait een **Run Custom JavaScript**-blok een paar regels JavaScript.
+Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaal geen code nodig; als er toch code nodig is, draait een **Eigen JavaScript uitvoeren**-blok een paar regels JavaScript.
 
 ## Wat je met workflows kunt doen
 
@@ -44,7 +44,7 @@ Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaa
 - **Reageren op wat er in OneUptime gebeurt** — als er een incident wordt aangemaakt, het juiste kanaal informeren en automatisch een ticket openen.
 - **Taken volgens een schema uitvoeren** — elke vijf minuten, elke nacht, elke maandagochtend.
 - **Gegevens van buitenaf ontvangen** — andere systemen een workflow laten starten door de URL ervan aan te roepen of naar het adres ervan te mailen.
-- **Veelgebruikte automatisering hergebruiken** — één keer bouwen en vanuit elke andere workflow starten met een **Execute Workflow**-blok.
+- **Veelgebruikte automatisering hergebruiken** — één keer bouwen en vanuit elke andere workflow starten met een **Andere workflow uitvoeren**-blok.
 
 ## Belangrijke begrippen
 
@@ -107,7 +107,7 @@ Deze workflow stuurt een JSON-samenvatting van elk nieuw incident naar een URL v
 
 ```mermaid title="Het voltooide voorbeeld"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| post["API Post (JSON)"]
+    trigger["On Create Incident"] -->|"Succes"| post["API-aanroep POST (JSON)"]
     post -->|"Fout"| log["Logboek"]
     post -->|"Succes"| done["De uitvoering eindigt"]
 ```
@@ -130,13 +130,13 @@ De trigger neemt de plaats van het gestippelde blok in. De ID erop, `incident-on
 
 ### De velden van het incident kiezen
 
-Klik op de trigger. **Fields to pass on** begint met de titel: klik op **Veld toevoegen**, vink de beschrijving aan en elk ander veld dat het verzoek moet meesturen, en klik op **Opslaan**.
+Klik op de trigger. **Velden om door te geven** begint met de titel: klik op **Veld toevoegen**, vink de beschrijving aan en elk ander veld dat het verzoek moet meesturen, en klik op **Opslaan**.
 
 De trigger geeft het nieuwe incident met deze velden door. Een veld dat je niet selecteert, komt leeg aan.
 
 ### Het API-blok toevoegen
 
-Klik op **Component toevoegen** en daarna op **API Post (JSON)** onder **Populair**. Sleep van het punt **Succes** van de trigger naar beneden naar het bovenste punt van het nieuwe blok.
+Klik op **Component toevoegen** en daarna op **API-aanroep POST (JSON)** onder **Populair**. Sleep van het punt **Succes** van de trigger naar beneden naar het bovenste punt van het nieuwe blok.
 
 ### Het verzoek invullen
 
@@ -162,7 +162,7 @@ Een verzoek dat mislukt — een onbereikbare URL of een antwoord dat geen 2xx is
 
 Klik op **Workflow uitvoeren** en kies onder **Incident** een incident in dit project: de meest recente staan in de lijst, en door het nummer of een deel van de titel te typen vind je een ander. Klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. De workflow staat nog uit, dus dit is een **Testrun**, en het verzoek wordt echt verstuurd.
 
-Er opent een paneel **Workflow-uitvoering** dat de uitvoering volgt. Open de stap **API Post (JSON)** om de body te zien die is verstuurd en het antwoord dat terugkwam.
+Er opent een paneel **Workflow-uitvoering** dat de uitvoering volgt. Open de stap **API-aanroep POST (JSON)** om de body te zien die is verstuurd en het antwoord dat terugkwam.
 
 ### Inschakelen
 

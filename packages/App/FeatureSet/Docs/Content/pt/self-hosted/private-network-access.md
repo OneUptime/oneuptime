@@ -59,7 +59,7 @@ Estes destinos estão cobertos, porque o destino é uma URL escrita por um membr
 - Os componentes **API** dos workflows (GET / POST / PUT / PATCH / DELETE)
 - O componente **Mattermost** dos workflows
 - As requisições HTTP feitas pelo componente de workflow **Custom JavaScript**
-- As notificações de webhook do projeto (incidentes, alertas, monitores, plantão, manutenção agendada, eventos de páginas de status)
+- As notificações de webhook do projeto (incidentes, alertas, monitores, plantão, manutenção programada, eventos de páginas de status)
 - Os **webhooks de usuário** do plantão
 - Os assinantes de webhook de páginas de status que sua equipe adiciona, pelo painel, com uma chave de API ou por um workflow
 

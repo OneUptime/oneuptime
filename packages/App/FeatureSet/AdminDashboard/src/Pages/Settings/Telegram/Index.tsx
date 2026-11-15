@@ -9,6 +9,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
@@ -33,10 +34,12 @@ const validateBotToken: (values: FormValues<GlobalConfig>) => string | null = (
 ): string | null => {
   const value: string = String(values.telegramBotToken || "").trim();
   if (!value) {
-    return "Bot token is required.";
+    return translateText("Bot token is required.") as string;
   }
   if (!TELEGRAM_BOT_TOKEN_PATTERN.test(value)) {
-    return "That doesn't look like a Telegram bot token. It should be the value @BotFather gave you — digits, a colon, then ~35 letters/digits (e.g. 123456789:ABCdef...). Don't paste the curl command here.";
+    return translateText(
+      "That doesn't look like a Telegram bot token. It should be the value @BotFather gave you — digits, a colon, then ~35 letters/digits (e.g. 123456789:ABCdef...). Don't paste the curl command here.",
+    ) as string;
   }
   return null;
 };
@@ -46,11 +49,13 @@ const validateBotUsername: (
 ) => string | null = (values: FormValues<GlobalConfig>): string | null => {
   const raw: string = String(values.telegramBotUsername || "").trim();
   if (!raw) {
-    return "Bot username is required.";
+    return translateText("Bot username is required.") as string;
   }
   const value: string = raw.replace(/^@/, "");
   if (!TELEGRAM_BOT_USERNAME_PATTERN.test(value)) {
-    return "Enter the bot's Telegram username without the leading @. It must be 5-32 characters, start with a letter, and contain only letters, digits, and underscores.";
+    return translateText(
+      "Enter the bot's Telegram username without the leading @. It must be 5-32 characters, start with a letter, and contain only letters, digits, and underscores.",
+    ) as string;
   }
   return null;
 };

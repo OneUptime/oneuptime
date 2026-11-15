@@ -82,6 +82,11 @@ export interface UnavailableStep {
 export interface SometimesBefore {
   branchStep: NodeDataProp;
   portTitle?: string | undefined;
+  /*
+   * That output's id, which tells a Switch / Case's case, named by the
+   * person, from an output the step defines (isOutPortFromSettings).
+   */
+  portId?: string | undefined;
 }
 
 export interface StepValueSources {
@@ -403,6 +408,7 @@ export const getStepValueSources: GetStepValueSourcesFunction = (graph: {
 
       if (port?.title) {
         before.portTitle = port.title;
+        before.portId = port.id;
       }
 
       if (step.data.id) {

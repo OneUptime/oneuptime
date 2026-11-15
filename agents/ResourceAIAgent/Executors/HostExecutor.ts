@@ -1463,7 +1463,7 @@ export default class HostExecutor implements ResourceExecutor {
     if (this.notedHostnameMismatch !== hostname) {
       this.notedHostnameMismatch = hostname;
       this.options.logger.info(
-        `This agent serves the Host "${identifier.trim()}" (${
+        `This agent serves the host "${identifier.trim()}" (${
           this.options.config.identitySource || HOST_NAME_ENV
         }), and this host's hostname is "${hostname}". That is right only if the OpenTelemetry collector reports host.name "${identifier.trim()}" too; otherwise set ${HOST_NAME_ENV} to the host.name the collector reports.`,
       );

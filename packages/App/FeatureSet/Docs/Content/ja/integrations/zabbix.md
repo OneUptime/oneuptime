@@ -76,7 +76,7 @@ Zabbix は、ユーザーのメディアを通じてそのユーザーに問題�
 
 ### ワークフローの動作
 
-**Webhook** トリガーの後、 **Check With JavaScript** ステップ `read-event-1` がメディアタイプの送る `event` を読み取り、 **Incident From Another Tool**（アラートのテンプレートでは **Alert From Another Tool** ）が、問題のイベント ID をもとにその意味どおりに処理します:
+**Webhook** トリガーの後、 **JavaScript でチェック** ステップ `read-event-1` がメディアタイプの送る `event` を読み取り、 **ほかのツールからのインシデント**（アラートのテンプレートでは **ほかのツールからのアラート** ）が、問題のイベント ID をもとにその意味どおりに処理します:
 
 | イベント | ワークフローの動作 |
 | --- | --- |
@@ -102,7 +102,7 @@ Zabbix は、ユーザーのメディアを通じてそのユーザーに問題�
 独自の重大度がある場合、Disaster と High は最も重いものに、Average と Warning は中間のものに、Information と Not classified は最も軽いものに対応します。Zabbix は重大度に 0 (Not classified) から 5 (Disaster) までの番号を付けており、テンプレートは番号を読むため、Zabbix で重大度の名前を変えても何も変わりません。
 
 - 重大度を名前で自分の重大度に対応付けるには、`read-event-1` ステップの `SEVERITY_BY_NAME` を編集します。たとえば Warning なら `{ 2: 'Minor Incident' }` です。
-- Average の問題でも呼び出すには、`if-page-1` の **If / Else** ステップの **比較対象** を `3` にします。
+- Average の問題でも呼び出すには、`if-page-1` の **条件分岐** ステップの **比較対象** を `3` にします。
 
 ### 確認とメモを Zabbix に送り返す
 
@@ -126,7 +126,7 @@ Zabbix は、ユーザーのメディアを通じてそのユーザーに問題�
 
 ### Zabbix 6.0 の場合
 
-Zabbix 6.0 は API トークンを `Authorization` ヘッダーではなく、リクエストの本文から読み取ります。Zabbix を呼び出す各テンプレートの **Update Zabbix Problem** ステップで、 **その他の項目** の下にある **Zabbix 6.0** をオンにします。Zabbix 7.2 以降は本文のトークンを拒否するため、アップグレード時には再びオフにします。
+Zabbix 6.0 は API トークンを `Authorization` ヘッダーではなく、リクエストの本文から読み取ります。Zabbix を呼び出す各テンプレートの **Zabbix の問題を更新** ステップで、 **その他の項目** の下にある **Zabbix 6.0** をオンにします。Zabbix 7.2 以降は本文のトークンを拒否するため、アップグレード時には再びオフにします。
 
 ## モニターで問題を受け取る
 

@@ -118,7 +118,7 @@ Til et alarmeringsværktøj starter du med en [monitor for indgående anmodninge
 1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv arbejdsgangen et navn, og klik på **Opret arbejdsgang**.
 2. Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **Webhook**. Klik på triggeren og derefter på **Kopiér URL**.
 3. Send det andet værktøjs webhook til den URL som en `POST` med `Content-Type: application/json`.
-4. Tilføj de blokke, der handler på den. De læser anmodningen med referencer som `{{local.components.webhook-1.returnValues.request-body.status}}`: en **If / Else**-blok til at kontrollere et felt og derefter **Create One Incident** til at erklære en hændelse.
+4. Tilføj de blokke, der handler på den. De læser anmodningen med referencer som `{{local.components.webhook-1.returnValues.request-body.status}}`: en **Hvis / Ellers**-blok til at kontrollere et felt og derefter **Create One Incident** til at erklære en hændelse.
 5. Slå **Aktiveret** til øverst i **Bygger**, send en test fra det andet værktøj, og åbn **Protokoller → Kørsler** for at se, hvad der kom ind.
 :::
 
@@ -128,8 +128,8 @@ URL'en er den eneste loginoplysning, så behandl den som en adgangskode. Se [Web
 
 :::steps
 1. Gem værktøjets API-nøgle som en hemmelig global variabel, som vist [nedenfor](#hold-loginoplysninger-sikre).
-2. Opret en arbejdsgang, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, der skal sendes, f.eks. **Beskrivelse**.
-3. Klik på **Tilføj komponent**, og tilføj en **API Post (JSON)**-blok. Forbind triggerens **Succes**-punkt med den.
+2. Opret en arbejdsgang, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, der skal sendes, f.eks. **Beskrivelse**.
+3. Klik på **Tilføj komponent**, og tilføj en **API-kald POST (JSON)**-blok. Forbind triggerens **Succes**-punkt med den.
 4. Udfyld dens **URL**, dens **Anmodningsheadere** med `Authorization`-headeren og dens **Anmodningsbrødtekst** med hændelsens felter, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klik på **Kør arbejdsgang**, vælg en hændelse under **Hændelse**, og kør den. En testkørsel sender anmodningen for alvor. Slå derefter **Aktiveret** til.
 :::

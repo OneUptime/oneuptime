@@ -49,11 +49,11 @@ flowchart TB
 
 ### 트리거 추가하기
 
-점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
+점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
 
 ### 알림 만들기
 
-**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://api.opsgenie.com/v2/alerts`(유럽에서는 `https://api.eu.opsgenie.com/v2/alerts`)로 설정합니다. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
+**구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://api.opsgenie.com/v2/alerts`(유럽에서는 `https://api.eu.opsgenie.com/v2/alerts`)로 설정합니다. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ flowchart TB
 
 ### 테스트한 다음 켜기
 
-**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API Post (JSON)** 단계에 `202` 응답이 표시되고, 잠시 후 Opsgenie에 알림이 나타납니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
+**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API 호출 POST (JSON)** 단계에 `202` 응답이 표시되고, 잠시 후 Opsgenie에 알림이 나타납니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
 :::
 
 Opsgenie의 방식은 `GenieKey`라는 단어, 공백, 키의 순서입니다. Opsgenie는 `message`를 130자로 제한하며, 우선순위는 `P1`부터 `P5`까지입니다. 인시던트마다 그 우선순위를 보내려면 [우선순위 매핑](#우선순위-매핑)을 참고하세요.
@@ -85,7 +85,7 @@ Opsgenie의 방식은 `GenieKey`라는 단어, 공백, 키의 순서입니다. O
 :::steps
 ### On Update Incident 트리거 추가하기
 
-`Close Opsgenie alerts`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **Fields to pass on**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
+`Close Opsgenie alerts`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **넘겨줄 필드**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Opsgenie의 방식은 `GenieKey`라는 단어, 공백, 키의 순서입니다. O
 
 ### 인시던트가 해결되었는지 확인하기
 
-트리거 뒤에 **If / Else** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
+트리거 뒤에 **조건 분기** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
 
 ### 알림 닫기
 
-**예** 쪽 뒤에 같은 **요청 헤더**와 다음 **URL**을 가진 **API Post (JSON)** 블록을 추가합니다:
+**예** 쪽 뒤에 같은 **요청 헤더**와 다음 **URL**을 가진 **API 호출 POST (JSON)** 블록을 추가합니다:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 
 ## 우선순위 매핑
 
-인시던트마다 그 심각도를 Opsgenie 우선순위로 보내려면 트리거와 **API Post (JSON)** 블록 사이에 **Run Custom JavaScript** 블록을 추가합니다.
+인시던트마다 그 심각도를 Opsgenie 우선순위로 보내려면 트리거와 **API 호출 POST (JSON)** 블록 사이에 **사용자 지정 JavaScript 실행** 블록을 추가합니다.
 
-1. 트리거의 **Fields to pass on**에서 **필드 추가**를 클릭하고 **인시던트 심각도**를 연 다음 **이름**을 고릅니다.
-2. 블록의 **Arguments**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript 코드**를 다음으로 설정합니다:
+1. 트리거의 **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **인시던트 심각도**를 연 다음 **이름**을 고릅니다.
+2. 블록의 **인수**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript 코드**를 다음으로 설정합니다:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie는 요청을 처리하기 전에 `202`로 응답하므로, 나중에 �
 :::
 
 :::details 워크플로가 실행되지 않음
-켜져 있는지 확인하세요. **빌더** 상단의 **활성화됨**입니다. 그런 다음 **로그 → 실행 기록**을 여세요. **If / Else** 블록의 **아니오** 쪽으로 간 실행은 해결이 아닌 업데이트입니다.
+켜져 있는지 확인하세요. **빌더** 상단의 **활성화됨**입니다. 그런 다음 **로그 → 실행 기록**을 여세요. **조건 분기** 블록의 **아니오** 쪽으로 간 실행은 해결이 아닌 업데이트입니다.
 :::
 
 ## 다음 단계

@@ -2936,47 +2936,40 @@ describe("the four pages together", () => {
   );
 
   it("keep in English only the labels no Dashboard locale has, where the Dashboard draws them so", () => {
-    const drawnIn: Record<string, string> = {
-      "Entry point": "Components/Topology/ServiceMapViewModel.ts",
-      "No calls observed": "Components/Topology/ServiceMapViewModel.ts",
-    };
-    const keptOnTopology: Array<string> = [
-      ...(KEPT_AS_WRITTEN[TOPOLOGY] || []),
-    ];
-
-    expect([...keptOnTopology].sort()).toEqual(Object.keys(drawnIn).sort());
-
-    for (const word of [
-      ...keptOnTopology,
-      ...(KEPT_AS_WRITTEN[DATA_RETENTION] || []),
-    ]) {
+    for (const word of Object.values(KEPT_AS_WRITTEN).flat()) {
       expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
         word,
         isKey: false,
       });
     }
 
-    for (const word of keptOnTopology) {
-      expect({
-        word,
-        drawn: readDashboardSource(drawnIn[word] as string).includes(
-          `"${word}"`,
-        ),
-      }).toEqual({ word, drawn: true });
-    }
-
     /*
-     * The service map's legend looks its statuses up in the locale, so the
-     * two that are keys - the queues' topology map draws them too - read
-     * as each language's Dashboard draws them, as other labels do.
+     * The service map's legend looks every status up in the locale. Entry
+     * point and No calls observed were English in every language, and the
+     * pages kept them so, until #8260 made them keys too: each language now
+     * names all five as its Dashboard draws them.
      */
     expect(
       readDashboardSource("Components/Topology/ServiceMapGraph.tsx"),
     ).toContain("{t(SERVICE_STATUS_LABELS[status])}");
+    expect(KEPT_AS_WRITTEN[TOPOLOGY]).toBeUndefined();
+
+    for (const word of Object.values(SERVICE_STATUS_LABELS)) {
+      expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
+        word,
+        isKey: true,
+      });
+    }
+
+    // The retention-by-type form's fields, keys since #8461.
+    expect(KEPT_AS_WRITTEN[DATA_RETENTION]).toBeUndefined();
 
     for (const word of [
-      SERVICE_STATUS_LABELS.degraded,
-      SERVICE_STATUS_LABELS.critical,
+      "Edit Overrides",
+      "Logs default (days)",
+      "Traces default (days)",
+      "Metrics default (days)",
+      "Profiles default (days)",
     ]) {
       expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
         word,

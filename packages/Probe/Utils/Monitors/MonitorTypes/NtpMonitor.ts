@@ -23,6 +23,10 @@ import RequestFailedDetails, {
 import Sleep from "Common/Types/Sleep";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
+import {
   RequestFailureDescription,
   writeRequestFailureDescription,
 } from "Common/Utils/Monitor/RequestFailureDescriptions";
@@ -125,12 +129,6 @@ const elapsedMs: (startedAtNs: bigint) => number = (
 
 const roundMs: (value: number) => number = (value: number): number => {
   return Math.round(value * 1000) / 1000;
-};
-
-const formatSeconds: (ms: number) => string = (ms: number): string => {
-  const seconds: number = Math.round((ms / 1000) * 10) / 10;
-
-  return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
 };
 
 const getErrorCode: (error: unknown) => string | undefined = (
@@ -654,7 +652,10 @@ export default class NtpMonitor {
 
     if (data.duringLookup) {
       return new NtpAttemptError({
-        failureCause: `Looking up ${data.host} did not finish within ${formatSeconds(data.timeoutInMs)}.`,
+        failureCause: writeProbeFailureCause(
+          ProbeFailureCause.NtpLookupTimedOut,
+          { host: data.host, timeoutInMs: data.timeoutInMs },
+        ),
         isTimeout: true,
         requestFailedDetails: {
           failedPhase: RequestFailedPhase.DNSResolution,
@@ -666,11 +667,19 @@ export default class NtpMonitor {
       });
     }
 
-    let failureCause: string = `No NTP reply from ${target} within ${formatSeconds(data.timeoutInMs)}.`;
-
-    if (data.ignoredReplies.length > 0) {
-      failureCause += ` The probe ignored ${data.ignoredReplies.length === 1 ? "a packet" : `${data.ignoredReplies.length} packets`} that did not answer its request: ${data.ignoredReplies[0]}.`;
-    }
+    // Packets that did not answer the request: the first of them, and how many.
+    const failureCause: string =
+      data.ignoredReplies.length > 0
+        ? writeProbeFailureCause(ProbeFailureCause.NtpNoReplyIgnoredPackets, {
+            target: target,
+            timeoutInMs: data.timeoutInMs,
+            count: data.ignoredReplies.length,
+            reply: data.ignoredReplies[0],
+          })
+        : writeProbeFailureCause(ProbeFailureCause.NtpNoReply, {
+            target: target,
+            timeoutInMs: data.timeoutInMs,
+          });
 
     return new NtpAttemptError({
       failureCause: failureCause,
@@ -706,7 +715,10 @@ export default class NtpMonitor {
 
     if (code && DNS_ERROR_CODES.includes(code)) {
       return new NtpAttemptError({
-        failureCause: `Could not resolve ${data.host} (${code}).`,
+        failureCause: writeProbeFailureCause(
+          ProbeFailureCause.NtpNameDidNotResolve,
+          { host: data.host, code: code },
+        ),
         code: code,
         requestFailedDetails: {
           failedPhase: RequestFailedPhase.DNSResolution,
@@ -721,7 +733,10 @@ export default class NtpMonitor {
 
     if (code === "ECONNREFUSED") {
       return new NtpAttemptError({
-        failureCause: `${target} refused the request: nothing is listening for NTP on UDP port ${data.port} there (ICMP port unreachable).`,
+        failureCause: writeProbeFailureCause(
+          ProbeFailureCause.NtpPortUnreachable,
+          { target: target, port: data.port },
+        ),
         code: code,
         requestFailedDetails: {
           failedPhase: RequestFailedPhase.NetworkError,
@@ -763,7 +778,18 @@ export default class NtpMonitor {
     }
 
     return new NtpAttemptError({
-      failureCause: `The NTP request to ${target} failed: ${rawErrorMessage}${code && !rawErrorMessage.includes(code) ? ` (${code})` : ""}.`,
+      // The code, where the runtime's message does not already hold it.
+      failureCause:
+        code && !rawErrorMessage.includes(code)
+          ? writeProbeFailureCause(ProbeFailureCause.NtpRequestFailedWithCode, {
+              target: target,
+              message: rawErrorMessage,
+              code: code,
+            })
+          : writeProbeFailureCause(ProbeFailureCause.NtpRequestFailed, {
+              target: target,
+              message: rawErrorMessage,
+            }),
       code: code,
       requestFailedDetails: {
         failedPhase: RequestFailedPhase.NetworkError,
@@ -837,6 +863,9 @@ export default class NtpMonitor {
       return failureCause;
     }
 
-    return `${failureCause} Tried ${attemptCount} times.`;
+    return writeProbeFailureCause(ProbeFailureCause.TriedTimes, {
+      cause: failureCause,
+      count: attemptCount,
+    });
   }
 }

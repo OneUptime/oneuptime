@@ -164,7 +164,7 @@ const DataProductOverviewPage: FunctionComponent<
               ? OneUptimeDate.fromNow(
                   OneUptimeDate.fromString(product.dataAsOf),
                 )
-              : "-"
+              : undefined
           }
           note={
             product?.dataAsOf
@@ -176,7 +176,9 @@ const DataProductOverviewPage: FunctionComponent<
         <EventStatTile
           variant="segment"
           label="SLA"
-          value={product ? describeDataProductSla(translator, product) : "-"}
+          value={
+            product ? describeDataProductSla(translator, product) : undefined
+          }
           note={
             product?.slaTargetPercentage !== undefined &&
             product?.slaTargetPercentage !== null

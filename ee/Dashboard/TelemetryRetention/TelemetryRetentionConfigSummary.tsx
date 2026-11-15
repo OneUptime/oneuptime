@@ -3,15 +3,22 @@ import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionC
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   config?: TelemetryRetentionConfig | null | undefined;
 }
 
 const SPAN_STATUS_LABEL: Record<SpanStatus, string> = {
-  [SpanStatus.Unset]: "Unset",
-  [SpanStatus.Ok]: "Ok",
-  [SpanStatus.Error]: "Error",
+  [SpanStatus.Unset]: translationKey("Unset"),
+  [SpanStatus.Ok]: translationKey("Ok"),
+  [SpanStatus.Error]: translationKey("Error"),
 };
 
 const LOG_SEVERITY_ORDER: Array<LogSeverity> = [
@@ -30,8 +37,16 @@ const SPAN_STATUS_ORDER: Array<SpanStatus> = [
   SpanStatus.Unset,
 ];
 
-const formatDays: (days: number) => string = (days: number): string => {
-  return days === 1 ? "1 day" : `${days} days`;
+// A number of days, in the form the reader's language gives the count.
+const DAYS: PluralTemplate = {
+  one: "{{count}} day",
+  other: "{{count}} days",
+};
+
+// The same, with the count drawn apart from its unit (a slot).
+const DAYS_WITH_COUNT: PluralTemplate = {
+  one: "{{days}} day",
+  other: "{{days}} days",
 };
 
 const pickPositive: (value: number | null | undefined) => number | null = (
@@ -55,6 +70,7 @@ interface PillarRender {
 const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
   pillar: PillarRender;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const { title, hint, defaultDays, overrides } = props.pillar;
   const hasDefault: boolean = defaultDays !== null;
   const hasOverrides: boolean = overrides.length > 0;
@@ -66,7 +82,7 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
-              {title}
+              {translator.translateText(title)}
             </h4>
             <span
               className={
@@ -75,31 +91,43 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
                   : "inline-flex items-center rounded-full bg-gray-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-700"
               }
             >
-              {isCustomized ? "Custom" : "Default"}
+              {translator.translateText(isCustomized ? "Custom" : "Default")}
             </span>
           </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
-            {hint}
+            {translator.translateText(hint)}
           </p>
         </div>
         <div className="text-right whitespace-nowrap shrink-0">
           {hasDefault ? (
             <>
+              {/*
+               * The count large and its unit small, in the order and the
+               * form the reader's language says them: "5 Tage", "۵ روز".
+               */}
               <div className="text-lg font-semibold text-gray-900 dark:text-slate-100 leading-tight">
-                {defaultDays}{" "}
-                <span className="text-sm font-normal text-gray-500 dark:text-slate-400">
-                  {(defaultDays as number) === 1 ? "day" : "days"}
-                </span>
+                <TranslatedSentence
+                  template={DAYS_WITH_COUNT}
+                  count={defaultDays as number}
+                  slots={{
+                    days: <>{translator.formatNumber(defaultDays as number)}</>,
+                  }}
+                  renderText={(text: string): ReactElement => {
+                    return (
+                      <span className="text-sm font-normal text-gray-500 dark:text-slate-400">
+                        {text}
+                      </span>
+                    );
+                  }}
+                />
               </div>
               <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-slate-500">
-                Default
+                {translator.translateText("Default")}
               </div>
             </>
           ) : (
-            <div className="text-xs italic text-gray-400 dark:text-slate-500">
-              Uses default
-              <br />
-              retention
+            <div className="max-w-[7rem] whitespace-normal text-xs italic text-gray-400 dark:text-slate-500">
+              {translator.translateText("Uses default retention")}
             </div>
           )}
         </div>
@@ -107,7 +135,7 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
       {hasOverrides ? (
         <div className="mt-3 border-t border-gray-100 dark:border-slate-800 pt-3">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2">
-            Specific overrides
+            {translator.translateText("Specific overrides")}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {overrides.map((o: PillarOverride) => {
@@ -116,14 +144,16 @@ const PillarCard: FunctionComponent<{ pillar: PillarRender }> = (props: {
                   key={o.label}
                   className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 dark:border-indigo-900 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300"
                 >
-                  <span>{o.label}</span>
+                  <span>{translator.translateText(o.label)}</span>
                   <span
                     aria-hidden="true"
                     className="text-indigo-300 dark:text-indigo-700"
                   >
                     <InlineSeparator markOnly />
                   </span>
-                  <span className="font-normal">{formatDays(o.days)}</span>
+                  <span className="font-normal">
+                    {translator.translatePlural(DAYS, o.days)}
+                  </span>
                 </span>
               );
             })}
@@ -147,6 +177,7 @@ const sortOverridesByDaysDesc: (
 const TelemetryRetentionConfigSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const config: TelemetryRetentionConfig | null | undefined = props.config;
 
   const logsOverrides: Array<PillarOverride> = LOG_SEVERITY_ORDER.flatMap(
@@ -171,26 +202,30 @@ const TelemetryRetentionConfigSummary: FunctionComponent<ComponentProps> = (
 
   const pillars: Array<PillarRender> = [
     {
-      title: "Logs",
-      hint: "Log records, with optional per-severity overrides.",
+      title: translationKey("Logs"),
+      hint: translationKey(
+        "Log records, with optional per-severity overrides.",
+      ),
       defaultDays: pickPositive(config?.logs?.default),
       overrides: sortOverridesByDaysDesc(logsOverrides),
     },
     {
-      title: "Traces",
-      hint: "Spans and exceptions, with optional per-status overrides.",
+      title: translationKey("Traces"),
+      hint: translationKey(
+        "Spans and exceptions, with optional per-status overrides.",
+      ),
       defaultDays: pickPositive(config?.traces?.default),
       overrides: sortOverridesByDaysDesc(tracesOverrides),
     },
     {
-      title: "Metrics",
-      hint: "Metric data points and aggregates.",
+      title: translationKey("Metrics"),
+      hint: translationKey("Metric data points and aggregates."),
       defaultDays: pickPositive(config?.metrics?.default),
       overrides: [],
     },
     {
-      title: "Profiles",
-      hint: "Profile samples and stack traces.",
+      title: translationKey("Profiles"),
+      hint: translationKey("Profile samples and stack traces."),
       defaultDays: pickPositive(config?.profiles?.default),
       overrides: [],
     },
@@ -205,10 +240,12 @@ const TelemetryRetentionConfigSummary: FunctionComponent<ComponentProps> = (
       {!anyConfigured ? (
         <div className="rounded-md border border-dashed border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40 px-4 py-3">
           <p className="text-sm font-medium text-gray-700 dark:text-slate-200">
-            No overrides set.
+            {translator.translateText("No overrides set.")}
           </p>
           <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-            Every telemetry type uses the default retention shown above.
+            {translator.translateText(
+              "Every telemetry type uses the default retention shown above.",
+            )}
           </p>
         </div>
       ) : null}

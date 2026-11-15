@@ -138,7 +138,7 @@ Sur la carte **Solde actuel** de la page, cliquez sur **Recharger le solde**. Sa
 Sur la carte **Rechargement automatique**, cliquez sur **Modifier la recharge automatique** et activez **Activer la recharge automatique**. Elle est désactivée au départ. Une fois activée, OneUptime ajoute $20 chaque fois que le solde descend à $10, ou les montants que vous choisissez.
 :::
 
-Quand un solde ne peut pas payer, le message n'est pas envoyé ou OneUptime AI s'arrête, et les propriétaires du projet reçoivent un e-mail. Voir [Quand une alerte n'est pas envoyée](/docs/on-call/escalation-rules#quand-une-alerte-nest-pas-envoyée) et [Quand les crédits IA sont épuisés](/docs/ai/ai-sre#quand-les-crédits-ia-sont-épuisés).
+Quand un solde ne peut pas payer, le message n'est pas envoyé ou OneUptime AI s'arrête, et les Propriétaires du projet reçoivent un e-mail. Voir [Quand une alerte n'est pas envoyée](/docs/on-call/escalation-rules#quand-une-alerte-nest-pas-envoyée) et [Quand les crédits IA sont épuisés](/docs/ai/ai-sre#quand-les-crédits-ia-sont-épuisés).
 
 ## Qui peut faire quoi
 

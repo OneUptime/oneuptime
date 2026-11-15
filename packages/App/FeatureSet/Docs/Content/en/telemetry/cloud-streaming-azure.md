@@ -28,7 +28,7 @@ flowchart TB
 ## Before you begin
 
 - **A connected Azure subscription.** Connect it under **Cloud → Connect** first: see [Connect a Cloud Account](/docs/telemetry/cloud-accounts).
-- **A project owner or admin.** Only they can turn reading on and stop streaming.
+- **A Project Owner or Project Admin.** Only they can turn reading on and stop streaming.
 - **Azure Cloud Shell**, signed in as an **Owner** of the subscriptions, or a **Contributor** who is also a **User Access Administrator**: the command makes a resource group and a role assignment, and changes diagnostic settings.
 - **A way out to Azure, on a self-hosted OneUptime.** OneUptime reads each namespace at `<namespace>.servicebus.windows.net` on port 9093, and the namespaces take connections from the internet.
 

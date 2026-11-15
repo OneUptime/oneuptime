@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -20,7 +21,12 @@ export interface ComponentProps {
    * words ("{{stateName}} in") has no entry of its own and reads as given.
    */
   label: string;
-  value: string | ReactElement;
+  /*
+   * The figure. A reading the tile does not have - an event not yet
+   * started, a count still loading - is no value at all: the tile draws the
+   * figure's quiet dash, read out as "Not set" (EmptyFigure, #8264).
+   */
+  value?: string | ReactElement | null | undefined;
   /*
    * A second reading of the value, under it: "4 minutes after paging" under
    * the time to acknowledge. Quieter than the value and above the
@@ -58,7 +64,7 @@ const EventStatTile: FunctionComponent<ComponentProps> = (
           <span>{label}</span>
         </div>
         <div className="mt-1 break-words text-lg font-semibold text-gray-900">
-          {props.value}
+          {getFigure(props.value)}
         </div>
         {props.note && (
           <div className="mt-0.5 text-balance break-words text-sm text-gray-600">
@@ -88,7 +94,7 @@ const EventStatTile: FunctionComponent<ComponentProps> = (
         <span>{label}</span>
       </div>
       <div className="mt-1.5 truncate text-lg font-semibold text-gray-900">
-        {props.value}
+        {getFigure(props.value)}
       </div>
       {props.note && (
         <div className="mt-0.5 truncate text-sm text-gray-600">
