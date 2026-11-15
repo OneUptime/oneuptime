@@ -2401,11 +2401,10 @@ describe("a forward input other hosts can reach asks for a shared key and TLS", 
     ).map((match: RegExpMatchArray): string => {
       return match[1]!;
     });
+    const forwardSource: RegExp = /@type forward\n\s+port/;
     const forwards: Array<FluentdSection> = blocks
       .filter((block: string): boolean => {
-        return (
-          /@type forward\n\s+port/.test(block) && block.includes("<source>")
-        );
+        return forwardSource.test(block) && block.includes("<source>");
       })
       .map(forwardIn);
 
