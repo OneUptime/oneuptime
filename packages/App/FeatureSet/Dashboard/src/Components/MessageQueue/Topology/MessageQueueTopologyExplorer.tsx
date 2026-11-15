@@ -533,7 +533,10 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
       return "…";
     }
     if (entry?.status === "ready" && entry.headline.waiting) {
-      return formatMessageQueueHeadlineShort(entry.headline.waiting);
+      return formatMessageQueueHeadlineShort(
+        entry.headline.waiting,
+        translator,
+      );
     }
     return "—";
   };
@@ -677,18 +680,21 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                         {formatMessageQueueTopologyRate(
                           queue.published,
                           windowSeconds,
+                          translator,
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                         {formatMessageQueueTopologyRate(
                           queue.consumed,
                           windowSeconds,
+                          translator,
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                         {formatMessageQueueTopologyErrorRate(
                           queue.spans,
                           queue.errors,
+                          translator,
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-gray-700">
@@ -942,7 +948,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
   }> = [
     {
       label: t("Queues"),
-      value: formatMessageQueueCount(baseModel.activeQueueCount),
+      value: formatMessageQueueCount(baseModel.activeQueueCount, translator),
       detail: translator.translatePlural(
         {
           one: "with traced messages, of {{count}} live queue",
@@ -956,7 +962,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
     },
     {
       label: t("Services"),
-      value: formatMessageQueueCount(baseModel.serviceCount),
+      value: formatMessageQueueCount(baseModel.serviceCount, translator),
       detail: t("Publishing or consuming in this range"),
       icon: IconProp.SquareStack,
       warn: false,
@@ -964,9 +970,9 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
     },
     {
       label: t("Messages published"),
-      value: formatMessageQueueCount(baseModel.published),
+      value: formatMessageQueueCount(baseModel.published, translator),
       detail: translator.translateTemplate("{{count}} consumed", {
-        count: formatMessageQueueCount(baseModel.consumed),
+        count: formatMessageQueueCount(baseModel.consumed, translator),
       }),
       icon: IconProp.PaperAirplane,
       warn: false,
@@ -974,7 +980,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
     },
     {
       label: t("Need attention"),
-      value: formatMessageQueueCount(baseModel.attentionCount),
+      value: formatMessageQueueCount(baseModel.attentionCount, translator),
       detail: t("Queues and services with errors"),
       icon: IconProp.Alert,
       warn: baseModel.attentionCount > 0,

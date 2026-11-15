@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Ein Super-Administrator von Google Workspace, um die domainweite Delegierung zu erlauben, und ein Administrator, als der das Dienstkonto handelt, mit der Berechtigung Reports. Ein Super-Administrator hat sie.
 - Ein Google Cloud-Projekt, in dem Sie ein Dienstkonto anlegen und die Admin SDK API einschalten können.
 - Für die Drive-Aktivität eine Edition mit dem Audit-Protokoll von Drive, etwa Business Standard, Business Plus, Enterprise oder Education.

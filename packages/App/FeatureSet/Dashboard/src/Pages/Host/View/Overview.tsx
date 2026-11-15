@@ -148,7 +148,10 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
-import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 
 // Every alert OneUptime recommends for a host, as its Recommendations lists.
 const HOST_ALERT_TEMPLATE_IDS: Array<string> = getAllHostAlertTemplates().map(
@@ -1895,7 +1898,10 @@ const HostOverview: FunctionComponent<
         min: 0,
         max: 100,
         formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
         precision: YAxisPrecision.NoDecimals,
       },
@@ -1954,7 +1960,9 @@ const HostOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1980,7 +1988,10 @@ const HostOverview: FunctionComponent<
           if (value <= 0) {
             return tx("Down");
           }
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
       },
     };

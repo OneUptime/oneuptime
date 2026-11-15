@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% अपटाइम",
-    "uptimePercent": "{{percent}}% अपटाइम",
+    "uptimePercent": "{{percent}} अपटाइम",
     "operational": "कार्यरत",
     "notMonitored": "निगरानी नहीं",
     "noResourcesInGroup": "इस समूह में कोई संसाधन नहीं जोड़ा गया है।",

@@ -11,9 +11,12 @@ import {
   formatReaderFigure,
   isEnglishDateLanguage,
 } from "Common/Types/DateLanguage";
-import { formatMilliseconds } from "../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 
-// English: a chart's value axis, and a caller with no translator.
+// English: a caller with no translator.
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 /*
@@ -342,8 +345,11 @@ export function edgeWidthForCalls(callCount: number | undefined): number {
 
 /*
  * A call's average duration: "1.25s" from a second up, and under it the
- * reader's milliseconds ("42 ms", "۴۲ میلی‌ثانیه"; issue #7418). Without a
- * translator it writes English, as a chart's value axis does.
+ * reader's milliseconds ("42 ms", "۴۲ میلی‌ثانیه"; issue #7418) - from a
+ * second up their seconds too ("1,25 Sek.", "۱٫۲۵ ثانیه"). On a card, in a
+ * drawer and on the edge's latency chart alike, whose value axis writes a
+ * figure as the drawer beside it does (#8349). Without a translator it
+ * writes English.
  */
 export function formatDurationMs(
   avgDurationMs: number | undefined,
@@ -353,7 +359,10 @@ export function formatDurationMs(
     return "—";
   }
   if (avgDurationMs >= 1000) {
-    return `${(avgDurationMs / 1000).toFixed(2)}s`;
+    return formatDurationInUnit(translator, avgDurationMs / 1000, "second", {
+      decimals: 2,
+      english: `${(avgDurationMs / 1000).toFixed(2)}s`,
+    });
   }
   return formatMilliseconds(translator, avgDurationMs, {
     maximumFractionDigits: 0,

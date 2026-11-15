@@ -30,7 +30,7 @@ flowchart TB
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **能够访问该主机和端口的探测器。** 每个新监视器都会选中您项目的默认探测器。私有网络中的服务需要该网络内的 [自定义探测器](/docs/probe/custom-probe)。
 
 ## 创建 SSL 证书监视器

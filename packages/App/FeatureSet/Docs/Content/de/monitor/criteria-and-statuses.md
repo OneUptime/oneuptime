@@ -176,7 +176,7 @@ Ziehen Sie den Status an seinem Griff. Ein Status weiter unten in der Liste gilt
 Ein Status bewirkt nichts, bis ein Kriterium Monitore in ihn setzt. Wählen Sie ihn unter **Überwachungsstatus ändern in** bei dem Kriterium, das ihn setzen soll.
 :::
 
-Der betriebsbereite und der Offline-Status sind als **Vordefiniert** markiert: Sie können sie umbenennen und ihre Farbe ändern, aber nicht löschen. In OneUptime Cloud erfordert das Erstellen oder Ändern eines Status den Growth-Plan. Status verwalten können die Rollen Project Owner, Project Admin oder Monitor Admin oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Monitorstatus.
+Der betriebsbereite und der Offline-Status sind als **Vordefiniert** markiert: Sie können sie umbenennen und ihre Farbe ändern, aber nicht löschen. In OneUptime Cloud erfordert das Erstellen oder Ändern eines Status den Growth-Plan. Status verwalten können die Rollen Projektinhaber, Projektadministrator oder Monitor-Administrator oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Monitorstatus.
 
 ### Die Status-Zeitachse
 

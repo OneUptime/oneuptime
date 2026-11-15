@@ -1,5 +1,7 @@
 import LinearRegExp, {
   LinearRegExpMatch,
+  MAX_PATTERN_LENGTH,
+  refusePatternTooLong,
 } from "../../../Utils/LinearRegExp/LinearRegExp";
 import {
   describePatternProblemReason,
@@ -29,6 +31,14 @@ function linear(
 ): LinearRegExp {
   return new LinearRegExp(source, flags, { captures: captures });
 }
+
+/*
+ * What exec returns with JavaScript's d flag (ES2022): where each group's
+ * capture is, which this code's ES2017 typings do not declare.
+ */
+type IndexedMatch = RegExpExecArray & {
+  indices?: Array<[number, number] | undefined>;
+};
 
 function asArray(match: LinearRegExpMatch | null): Array<unknown> | null {
   return match === null ? null : [match.index, match.value, ...match.captures];
@@ -157,6 +167,46 @@ describe("what it answers", () => {
     expect(match?.groups).toEqual({
       ...new RegExp(pattern).exec("right")?.groups,
     });
+  });
+
+  test("says where each group's capture starts and ends, as JavaScript's d flag does", () => {
+    for (const [source, flags, text] of [
+      ["(a)(b)?(c)", "", "xxac"],
+      ["(\\d+)-(\\d+)", "", "id 12-345!"],
+      ["((a)|b)+", "", "aab"],
+      ["(a*)(b*)", "", ""],
+      ["(?:(x)|(y))+", "", "xy"],
+      ["(?<word>\\w+)\\s(\\w+)?", "", "a b"],
+      ["(K)", "i", "xk"],
+      ["(.)(.)", "s", "\n\u{1F600}"],
+    ] as Array<[string, string, string]>) {
+      const match: LinearRegExpMatch | null = linear(source, flags).exec(text);
+      const expected: IndexedMatch | null = new RegExp(
+        source,
+        `${flags}d`,
+      ).exec(text);
+
+      expect({ source, indices: match?.captureIndices }).toEqual({
+        source,
+        indices: (expected?.indices ?? []).slice(1),
+      });
+
+      // Each capture is the text between its indices.
+      match?.captureIndices.forEach(
+        (indices: [number, number] | undefined, group: number): void => {
+          expect(
+            indices === undefined
+              ? undefined
+              : text.slice(indices[0], indices[1]),
+          ).toBe(match.captures[group]);
+        },
+      );
+    }
+  });
+
+  test("reports no capture indices without captures", () => {
+    expect(linear("(a)(b)", "", false).exec("ab")?.captureIndices).toEqual([]);
+    expect(linear("(a)(b)", "", false).exec("ab")?.captures).toEqual([]);
   });
 
   test("replaces every match as String.prototype.replace does", () => {
@@ -332,6 +382,50 @@ describe("what it refuses", () => {
 
   test("a count of no steps is not a reason to refuse", () => {
     expect(linear("(?:){1000000000}x").test("x")).toBe(true);
+  });
+
+  /*
+   * A source longer than MAX_PATTERN_LENGTH is refused before it is read; a
+   * caller that writes the source out from a pattern a person wrote, and
+   * held that pattern to the limit (a PromQL pattern, issue #8218), may let
+   * the written source be longer. The steps limit still bounds it.
+   */
+  test("a source longer than MAX_PATTERN_LENGTH, unless it is given a longer maxLength", () => {
+    // One class of one character, written long: one step.
+    const source: string = `[${"b".repeat(MAX_PATTERN_LENGTH - 1)}]`;
+
+    expect(source.length).toBe(MAX_PATTERN_LENGTH + 1);
+
+    const error: unknown = refusalOf(source);
+
+    expect(error).toBeInstanceOf(PatternProblemError);
+    expect((error as PatternProblemError).reason).toBe(
+      PatternProblemReason.TooLarge,
+    );
+    expect((error as Error).message).toBe(
+      `The pattern is longer than ${MAX_PATTERN_LENGTH} characters.`,
+    );
+
+    const longer: LinearRegExp = new LinearRegExp(source, "", {
+      maxLength: MAX_PATTERN_LENGTH + 1,
+    });
+
+    expect(longer.test("b")).toBe(true);
+    expect(longer.test("c")).toBe(false);
+    expect(() => {
+      return new LinearRegExp(`${source}c`, "", {
+        maxLength: MAX_PATTERN_LENGTH + 1,
+      });
+    }).toThrow(
+      `The pattern is longer than ${MAX_PATTERN_LENGTH + 1} characters.`,
+    );
+    // And a shorter maxLength holds a source to less.
+    expect(() => {
+      return new LinearRegExp("abc", "", { maxLength: 2 });
+    }).toThrow("The pattern is longer than 2 characters.");
+    expect(() => {
+      refusePatternTooLong("abc", 3);
+    }).not.toThrow();
   });
 
   test("a capture inside a look-ahead or look-behind, when captures are read", () => {

@@ -23,6 +23,11 @@ import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "../../Charts/Utils/useHistogramRangeSelection";
 import TelemetryLoadErrorMessage from "./TelemetryLoadErrorMessage";
+import { formatChartCount } from "../../Charts/Utils/ChartCount";
+import {
+  getChartRowValues,
+  getYAxisWidthForValuesInPx,
+} from "../../Charts/Utils/YAxisWidth";
 import { TelemetryLoadError } from "../../../Utils/Telemetry/TelemetryLoadError";
 
 export interface TelemetryHistogramProps {
@@ -94,17 +99,15 @@ function formatTickTime(time: string): string {
   });
 }
 
-function formatYAxisTick(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
-  }
-
-  return value.toString();
-}
+/*
+ * A count on the value axis: "42", "1.5K", "12K", "1.2M", in the reader's
+ * digits and decimal sign with the scale letter kept ("1,5K", "۱٫۵K"), as
+ * the tooltip beside it writes its counts in their digits (#8349).
+ */
+export const formatYAxisTick: (
+  value: number,
+  language?: string | undefined,
+) => string = formatChartCount;
 
 const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
   props: TelemetryHistogramProps,
@@ -155,6 +158,37 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
       return present.has(option.key);
     });
   }, [props.buckets, props.series]);
+
+  /*
+   * The value axis writes a count as the tooltip beside it does, in the
+   * reader's digits ("1,5K", "۱٫۵K"), or as the page's formatter writes a
+   * duration ("۴۲ میلی‌ثانیه"), and is as wide as its widest tick - the
+   * stacked bars' tallest total among them - never narrower than its 48 px
+   * (#8349).
+   */
+  // One function while the formatter and the language stay: the axis keeps its bars.
+  const yAxisTickFormatter: (value: number) => string = useMemo(() => {
+    return (
+      props.valueFormatter ||
+      ((value: number): string => {
+        return formatYAxisTick(value, translator.language);
+      })
+    );
+  }, [props.valueFormatter, translator.language]);
+
+  const yAxisWidth: number = useMemo(() => {
+    return getYAxisWidthForValuesInPx({
+      values: getChartRowValues(
+        pivotedData,
+        activeSeries.map((option: HistogramSeriesOption): string => {
+          return option.key;
+        }),
+        { isStacked: true },
+      ),
+      formatter: yAxisTickFormatter,
+      minWidthInPx: 48,
+    });
+  }, [pivotedData, activeSeries, props.valueFormatter, translator.language]);
 
   /*
    * The loader and the empty box below stand where the bars were, and take
@@ -331,9 +365,9 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
                 }}
                 axisLine={false}
                 tickLine={false}
-                width={48}
+                width={yAxisWidth}
                 allowDecimals={Boolean(props.valueFormatter)}
-                tickFormatter={props.valueFormatter || formatYAxisTick}
+                tickFormatter={yAxisTickFormatter}
               />
               {/*
                * The tooltip is pinned shut for the length of a drag: it would

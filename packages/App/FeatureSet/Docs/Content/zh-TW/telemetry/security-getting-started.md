@@ -11,7 +11,7 @@ OneUptime 會從您已有的資料中找出威脅——您的日誌、您使用�
 
 ## 開始之前
 
-設定安全性需要 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 角色可以查看找到的內容；請參閱 [角色](/docs/permissions/reference#角色)。
+設定安全性需要專案擁有者、專案管理員或安全性管理員角色。安全性成員和安全性檢視者角色可以查看找到的內容；請參閱 [角色](/docs/permissions/reference#角色)。
 
 ## 完成設定
 
@@ -84,7 +84,7 @@ flowchart LR
 ## 疑難排解
 
 :::details Turn on recommended 呈現灰色
-您的角色無法新增偵測規則、劇本或日誌來源。請聯絡 Project Owner、Project Admin 或 Security Admin，或請他們為您指派 Security Admin 角色。
+您的角色無法新增偵測規則、劇本或日誌來源。請聯絡專案擁有者、專案管理員或安全性管理員，或請他們為您指派安全性管理員角色。
 :::
 
 :::details Turn on recommended 未能全部開啟

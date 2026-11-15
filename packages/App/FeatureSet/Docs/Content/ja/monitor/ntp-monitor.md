@@ -33,7 +33,7 @@ sequenceDiagram
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **サーバーの UDP ポート 123 に到達できるプローブ。** 公開タイムサーバーはどのプローブからでもチェックできます。プライベートネットワーク上のサーバーには、そのネットワーク内の [カスタムプローブ](/docs/probe/custom-probe) を使用します。サーバーの前にあるファイアウォールは、[OneUptime Cloud のプローブの IP アドレス](/docs/configuration/ip-addresses) またはカスタムプローブからの TCP だけでなく UDP も通す必要があります。
 
 ## NTP モニターを作成する

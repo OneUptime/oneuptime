@@ -11,7 +11,7 @@ OneUptime 从您已有的数据中发现威胁——您的日志、您使用的�
 
 ## 开始之前
 
-设置安全功能需要 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 角色可以查看发现的内容；请参阅 [角色](/docs/permissions/reference#角色)。
+设置安全功能需要项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者角色可以查看发现的内容；请参阅 [角色](/docs/permissions/reference#角色)。
 
 ## 完成设置
 
@@ -84,7 +84,7 @@ flowchart LR
 ## 故障排除
 
 :::details Turn on recommended 显示为灰色
-您的角色无法添加检测规则、剧本或日志来源。请联系 Project Owner、Project Admin 或 Security Admin，或请他们为您分配 Security Admin 角色。
+您的角色无法添加检测规则、剧本或日志来源。请联系项目所有者、项目管理员或安全管理员，或请他们为您分配安全管理员角色。
 :::
 
 :::details Turn on recommended 未能全部开启

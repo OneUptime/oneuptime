@@ -19,7 +19,7 @@ OneUptime 可以授予的所有角色和權限，依照儀表板中權限選擇�
 
 ## 角色
 
-共 {{PERMISSION_ROLE_COUNT}} 個角色。其中 Project Owner、Project Admin、Project Member 和 Viewer 這四個角色作用於整個專案。其餘每個角色都在 Admin、Member 或 Viewer 層級涵蓋一個產品領域，例如事件或監測器。團隊的 **權限** 頁面和 API 金鑰頁面上的 **新增角色** 提供的就是這些角色。
+共 {{PERMISSION_ROLE_COUNT}} 個角色。其中專案擁有者、專案管理員、專案成員和檢視者這四個角色作用於整個專案。其餘每個角色都在管理員、成員或檢視者層級涵蓋一個產品領域，例如事件或監測器。團隊的 **權限** 頁面和 API 金鑰頁面上的 **新增角色** 提供的就是這些角色。
 
 {{PERMISSION_ROLE_TABLES}}
 

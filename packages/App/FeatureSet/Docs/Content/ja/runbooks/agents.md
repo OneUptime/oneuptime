@@ -88,7 +88,7 @@ OneUptime Cloud では OneUptime がグローバル Runner を動かします。
 ## 始める前に
 
 - 自社インフラ内の **Docker が動くホスト** 。HTTPS で OneUptime の URL に到達でき、ステップが操作するシステムにも到達できる必要があります。
-- **Runner を作成できるロール。** Project Owner、Project Admin、Project Member、Runbook Admin が作成できます。セットアップコマンドに含まれる Runner のキーを見られるのは、Project Owner、Project Admin、Runbook Admin だけです。
+- **Runner を作成できるロール。** プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、Runbook 管理者が作成できます。セットアップコマンドに含まれる Runner のキーを見られるのは、プロジェクト所有者、プロジェクト管理者、Runbook 管理者だけです。
 
 ## Runner をインストールする
 
@@ -109,7 +109,7 @@ Runner は機能の変更を次のハートビートで取り込むため、再�
 
 Runner の行で **セットアップ手順を表示** をクリックします。 **Runner のセットアップ** ダイアログに、この Runner の ID とキーがすでに含まれた `docker run` コマンドが表示されます。同じコマンドは、Runner 自身のページの **セットアップ手順** にもあります。
 
-キーを読めるのは Project Owner、Project Admin、Runbook Admin だけです。それ以外の人には、コマンドの代わりに「この Runner のキーを表示する権限がありません」と表示されます。
+キーを読めるのはプロジェクト所有者、プロジェクト管理者、Runbook 管理者だけです。それ以外の人には、コマンドの代わりに「この Runner のキーを表示する権限がありません」と表示されます。
 
 ### 3. 自社インフラのホストで実行する
 
@@ -293,7 +293,7 @@ docker rm -f oneuptime-runner
 
 Runbook をトリガーする（つまりステップを Runner に送る）には、Runbook を実行するロール（`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin`、`RunbookMember`）か `CreateRunbookExecution` が必要です。実行の完了、スキップ、キャンセルには `EditRunbookExecution` も使えます。ロールが実行できるのは、その範囲が届く Runbook だけです。
 
-Runner のキーを読めるのは、Project Owner、Project Admin、Runbook Admin だけです。
+Runner のキーを読めるのは、プロジェクト所有者、プロジェクト管理者、Runbook 管理者だけです。
 
 ## エージェント向け API
 

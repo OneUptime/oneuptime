@@ -559,12 +559,35 @@ work out, starts from a default for everything else, and folds what most people 
   decimals, English exactly as toFixed writes it) or `translator.formatNumber`; a figure inside a
   sentence takes the sentence's language (`figureInSentence`, `withSentenceDigits`), and a count in
   a list column is a count column (`isCount`). Arabic is written in Latin digits. A name, an id, a
-  port or a Kubernetes quantity ("500m") is drawn as written. Checked on the Host and Kubernetes
-  pages, and on a database's Runtime charts. Enforced by
+  port or a Kubernetes quantity ("500m") is drawn as written. A figure a helper wrote in English
+  ("2.5k", "3.5 TiB") is put in the reader's language with `writeFigureInLanguage`, its scale letter
+  and unit kept. Checked on the Host and Kubernetes pages, on a database's Runtime charts, on the
+  Storage Arrays pages (a volume read "۳٫۵ TiB" on a dashboard and "3.5 TiB" on its page, #8272) and
+  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). Enforced by
   [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
-  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx)
+  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx),
+  [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx),
+  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts)
   and
-  [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx).
+  [StatusPageUptimeFiguresInLanguage](../../packages/Common/Tests/App/StatusPage/StatusPageUptimeFiguresInLanguage.test.ts).
+- **A chart's value axis, its legend and its tooltip write a figure as the tiles beside it do:** in
+  the reader's digits, decimal sign and percent sign, as its time axis always has. A duration in
+  milliseconds is `formatMilliseconds` with the reader's translator and a longer or shorter one
+  `formatDurationInUnit` ("۴۲ میلی‌ثانیه", "1,50 Sek."); a metric's unit goes through `ValueFormatter`
+  with the reader's language, which writes a unit by its symbol ("23,5 °C", "50 Hz", "1,5 MB/s"),
+  never its English name; a count keeps its scale letter ("1,5K", `formatChartCount`); a metric
+  query's own `yAxisValueFormatter` writes English, and the metric chart words it
+  (`writeFigureInLanguage`), as it does the resource pages' byte and rate charts (#8428). The value
+  axis is as wide as its widest tick: the shared charts measure it, and a chart drawn with recharts
+  asks `getYAxisWidthForValuesInPx`, which counts no mark that is never drawn. A Persian chart's
+  time axis was in Persian digits and the tile above it said "۴۲ میلی‌ثانیه", while its value axis
+  and tooltip said "42 ms" in English on purpose, and a German metric chart read "23,5 Celsius"
+  (#8349, #8284). Only the AI chat's PDF export writes English (`formatMillisecondsInEnglish`): its
+  Latin-1 font holds no Persian digit. The words stay where there is room for them: the unit chip
+  and the metric's details. Enforced by
+  [ChartValueAxesInReadersLanguageGuard](../../packages/Common/Tests/UI/ChartValueAxesInReadersLanguageGuard.test.ts),
+  whose list of charts still to write only shrinks, and
+  [ChartFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/ChartFiguresInReadersLanguage.test.ts).
 - **A rate on a chart keeps its slash:** "100 req/s", as "1.5 MB/s" always read, on the value axis,
   in the legend and in the tooltip, and the value axis is as wide as its widest tick. Written out,
   "100 req per Second" broke over two lines on a 64px axis and was cut at the card's edge, with
@@ -612,8 +635,8 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms" or written before "ms" in a template or JSX:
   every monitor's Response Time read "ms 411" on an Arabic or Persian page (#7224), and a trace's
   p95 "۱۲٫۴ ms" (#7418). `minimumFractionDigits` keeps the decimals toFixed wrote, `showsSign` an
-  offset's sign. A chart's value axis and the PDF export write it in English on purpose
-  (`formatMillisecondsInEnglish`). Enforced by
+  offset's sign. A chart's value axis and its tooltip write it so too; only the AI chat's PDF
+  export writes it in English (`formatMillisecondsInEnglish`). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as

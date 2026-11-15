@@ -58,7 +58,7 @@ Runbook 執行有五種建立方式：
 3. 執行頁面會開啟。
 :::
 
-啟動執行需要 Project Owner、Project Admin、Project Member、Runbook Admin 或 Runbook Member，或 **Create Runbook Execution** 權限。Runbook Viewer 和 Viewer 看到的 **立即執行** 處於鎖定狀態，並附有原因。請參閱 [權限](/docs/runbooks/configuration#權限)。
+啟動執行需要專案擁有者、專案管理員、專案成員、操作手冊管理員或操作手冊成員，或 **Create Runbook Execution** 權限。操作手冊檢視者和檢視者看到的 **立即執行** 處於鎖定狀態，並附有原因。請參閱 [權限](/docs/runbooks/configuration#權限)。
 
 ## 執行檢視
 
@@ -128,7 +128,7 @@ Runbook 的 **稽核日誌** 頁面會記錄每次執行由誰啟動、每個步
 ## 疑難排解
 
 :::details Run Now 被鎖定
-您的角色可以讀取 Runbook，但無法執行它們：按鈕顯示「您沒有在此專案中啟動操作手冊執行的權限。」請申請 Runbook Member 角色或 **Create Runbook Execution** 權限。
+您的角色可以讀取 Runbook，但無法執行它們：按鈕顯示「您沒有在此專案中啟動操作手冊執行的權限。」請申請操作手冊成員角色或 **Create Runbook Execution** 權限。
 :::
 
 :::details 啟動執行時失敗，顯示「Runbook is disabled」或「Runbook has no steps to run」

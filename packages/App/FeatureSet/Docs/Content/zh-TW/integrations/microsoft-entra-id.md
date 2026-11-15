@@ -23,7 +23,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ## 開始之前
 
-- 在 OneUptime 中擁有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以檢視連線及其執行歷史，但不能更改它們。
+- 在 OneUptime 中擁有專案擁有者、專案管理員或安全性管理員角色。安全性成員和安全性檢視者可以檢視連線及其執行歷史，但不能更改它們。
 - 對於登入和風險偵測：Microsoft Entra ID P1 或 P2，Microsoft 365 E3、E5 和 Business Premium 都包含它們：Microsoft Graph 只向這類租用戶提供這些資料，P2 還會提供每個風險偵測的詳細資訊。目錄變更在任何租用戶中都能讀取。
 - 一個可以註冊應用程式的 Entra 角色，例如 Application Administrator，以及一位能授予管理員同意的 Global Administrator 或 Privileged Role Administrator。
 - 對於 Microsoft 365 稽核日誌：租用戶已開啟稽核，預設即為開啟：在 [Microsoft Purview 入口網站](https://purview.microsoft.com) 中，**Audit** 不應顯示 **Start recording user and admin activity**。

@@ -37,7 +37,7 @@ Von da an funktioniert ein Anfrage-SLO wie jedes andere. Status, Burn-Rate-Regel
 ## Bevor Sie beginnen
 
 - Die Dienste senden Traces an OneUptime: siehe [OpenTelemetry](/docs/telemetry/open-telemetry). Jeder von ihnen steht im [Dienstkatalog](/docs/telemetry/services) unter seinem `service.name`.
-- Eine Rolle, die SLOs erstellen darf: Project Owner, Project Admin oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
+- Eine Rolle, die SLOs erstellen darf: Projektinhaber, Projektadministrator oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
 
 ## Ein Anfrage-SLO erstellen
 

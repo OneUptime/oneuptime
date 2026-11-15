@@ -43,7 +43,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **도착하는 텔레메트리**에 `service.name`이 있어야 합니다. [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요. `OTEL_SERVICE_NAME`으로 설정합니다.
-- **서비스를 읽을 수 있는 역할.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer 중 하나이거나 Read Service 권한이 있는 사용자 지정 역할입니다. 서비스를 만들고, 변경하고, 삭제하려면 Project Owner, Project Admin, Project Member, Settings Admin, Settings Member 중 하나이거나 그에 맞는 서비스 권한이 필요합니다.
+- **서비스를 읽을 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어, 설정 관리자, 설정 구성원, 설정 뷰어 중 하나이거나 Read Service 권한이 있는 사용자 지정 역할입니다. 서비스를 만들고, 변경하고, 삭제하려면 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 설정 관리자, 설정 구성원 중 하나이거나 그에 맞는 서비스 권한이 필요합니다.
 
 ## 서비스 찾기
 

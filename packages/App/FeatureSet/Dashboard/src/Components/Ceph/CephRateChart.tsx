@@ -21,6 +21,10 @@ import {
   useChartTimeRangeZoom,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -326,9 +330,11 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
       precision: YAxisPrecision.NoDecimals,
       formatter: (value: number): string => {
         if (props.yAxisUnit) {
-          return ValueFormatter.formatValue(value, props.yAxisUnit);
+          return ValueFormatter.formatValue(value, props.yAxisUnit, {
+            language: getDateDisplayLanguage(),
+          });
         }
-        return `${Math.round(value)} ops/s`;
+        return `${formatReaderFigure(Math.round(value), { decimals: 0 })} ops/s`;
       },
     },
   };
