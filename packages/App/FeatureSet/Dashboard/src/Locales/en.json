@@ -52398,5 +52398,6 @@
   "Change (schema change)": "Change (schema change)",
   "Table (database object)": "Table (database object)",
   "View (database object)": "View (database object)",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent.",
+  "CPU per pod (cores)": "CPU per pod (cores)"
 }

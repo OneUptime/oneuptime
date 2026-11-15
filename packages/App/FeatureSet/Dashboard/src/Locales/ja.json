@@ -52398,5 +52398,6 @@
   "Change (schema change)": "変更内容",
   "Table (database object)": "テーブル",
   "View (database object)": "ビュー",
-  "{{wait}}. Change when this step is sent.": "{{wait}}。このステップを送信するタイミングを変更します。"
+  "{{wait}}. Change when this step is sent.": "{{wait}}。このステップを送信するタイミングを変更します。",
+  "CPU per pod (cores)": "Pod ごとの CPU（コア）"
 }

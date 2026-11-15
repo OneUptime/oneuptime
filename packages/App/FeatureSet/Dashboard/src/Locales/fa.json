@@ -52398,5 +52398,6 @@
   "Change (schema change)": "تغییر",
   "Table (database object)": "جدول",
   "View (database object)": "نما",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. تعیین کنید این گام کی فرستاده شود."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. تعیین کنید این گام کی فرستاده شود.",
+  "CPU per pod (cores)": "CPU برای هر پاد (هسته)"
 }

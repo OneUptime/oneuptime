@@ -52398,5 +52398,6 @@
   "Change (schema change)": "التغيير",
   "Table (database object)": "جدول",
   "View (database object)": "طريقة عرض",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. غيّر موعد إرسال هذه الخطوة.",
+  "CPU per pod (cores)": "CPU لكل pod (أنوية)"
 }
