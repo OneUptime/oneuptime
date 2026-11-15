@@ -5,8 +5,11 @@ import { DOCKER_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pa
 import { DOCKER_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationTranslations";
 import { PODMAN_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
 import { PODMAN_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationTranslations";
+import { DOCKER_SWARM_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
   getPodmanSetupGuideWays,
 } from "./SetupGuideWays";
@@ -109,6 +112,20 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Podman",
         ...CONTAINER_HOST_WORDS,
         "Collect logs from every container (k8s-file log driver)",
+      ],
+    }),
+    product({
+      name: "DockerSwarm",
+      translations: DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS",
+      ways: getDockerSwarmSetupGuideWays,
+      options: DOCKER_SWARM_INSTALL_METHODS,
+      dashboardWords: [
+        "Docker Swarm",
+        "AI",
+        "AI agent",
+        "The OneUptime AI agent",
+        "Node Name",
       ],
     }),
   ];
