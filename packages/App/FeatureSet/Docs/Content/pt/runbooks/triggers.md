@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["O Worker do OneUptime<br/>executa as etapas"]
 ```
 
-Um gatilho inicia uma execução como **Executar agora** faz: a execução percorre as etapas atuais do runbook e não fica vinculada a nenhum incidente, alerta ou evento de manutenção programada. Cada execução registra o que a iniciou. As **Execuções** do runbook e **Runbooks → Execuções** mostram isso em **Acionado por**, com o horário previsto de uma execução agendada ou o endereço que chamou o webhook, e as duas listas podem ser filtradas por isso.
+Um gatilho inicia uma execução como **Executar agora** faz: a execução percorre as etapas atuais do runbook e não fica vinculada a nenhum incidente, alerta ou evento de manutenção. Cada execução registra o que a iniciou. As **Execuções** do runbook e **Runbooks → Execuções** mostram isso em **Acionado por**, com o horário previsto de uma execução agendada ou o endereço que chamou o webhook, e as duas listas podem ser filtradas por isso.
 
 ## Antes de começar
 

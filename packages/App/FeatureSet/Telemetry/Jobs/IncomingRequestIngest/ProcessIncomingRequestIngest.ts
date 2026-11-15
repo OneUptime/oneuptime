@@ -12,6 +12,10 @@ import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
+import MonitorSecretKeyCache, {
+  MonitorOfSecretKey,
+  MonitorSecretKeyKind,
+} from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
 import { redactMonitorSecret } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
@@ -110,45 +114,73 @@ export async function processIncomingRequestFromQueue(
     httpMethod = HTTPMethod.POST;
   }
 
-  const monitor: Monitor | null = await MonitorService.findOneBy({
-    query: {
-      incomingRequestSecretKey: new ObjectID(monitorSecretKeyAsString),
-      monitorType: MonitorType.IncomingRequest,
-    },
-    select: {
-      _id: true,
-      projectId: true,
-      ...MONITOR_PAUSE_FLAGS_SELECT,
-    },
-    props: {
-      isRoot: true,
-    },
-  });
-
-  if (!monitor || !monitor._id) {
-    throw new BadDataException(ExceptionMessages.MonitorNotFound);
-  }
-
-  if (!monitor.projectId) {
-    throw new BadDataException("Project not found");
-  }
-
   /*
-   * Skip disabled monitors here, before doing any further work. Incoming Request
-   * monitors are driven by an external sender that keeps calling the ingest
-   * endpoint regardless of the monitor being disabled in OneUptime, so these
-   * requests arrive continuously. Without this short-circuit, every one would
-   * still invoke monitorResource() — a second monitor fetch, a per-monitor Redis
-   * lock, and a thrown MonitorDisabled — only for the result to be discarded.
-   * This mirrors monitorResource()'s own disabled handling (it throws before
-   * persisting anything), so skipping here is behaviour-preserving while avoiding
-   * the wasted queue/DB/lock work.
+   * The monitor this URL's key belongs to: a sender can call it every few
+   * seconds, so it is kept for a minute (MonitorSecretKeyCache) rather than
+   * looked up in Postgres every request. monitorResource reads the monitor
+   * anyway, and checks the key is still its own (options.secretKey).
    */
-  if (MonitorPauseState.isPaused(monitor)) {
-    logger.debug(
-      `Incoming request received for archived or disabled monitor ${monitor._id.toString()}. Skipping.`,
-    );
-    return;
+  let monitorOfKey: MonitorOfSecretKey | null =
+    await MonitorSecretKeyCache.getMonitor({
+      kind: MonitorSecretKeyKind.IncomingRequest,
+      secretKey: monitorSecretKeyAsString,
+    });
+
+  if (!monitorOfKey) {
+    const monitor: Monitor | null = await MonitorService.findOneBy({
+      query: {
+        incomingRequestSecretKey: new ObjectID(monitorSecretKeyAsString),
+        monitorType: MonitorType.IncomingRequest,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        ...MONITOR_PAUSE_FLAGS_SELECT,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor || !monitor._id) {
+      throw new BadDataException(ExceptionMessages.MonitorNotFound);
+    }
+
+    if (!monitor.projectId) {
+      throw new BadDataException("Project not found");
+    }
+
+    /*
+     * Skip disabled monitors here, before doing any further work. Incoming
+     * Request monitors are driven by an external sender that keeps calling
+     * the ingest endpoint regardless of the monitor being disabled in
+     * OneUptime, so these requests arrive continuously. Without this
+     * short-circuit, every one would still invoke monitorResource() — a
+     * monitor fetch, a per-monitor Redis lock, and a thrown MonitorDisabled
+     * — only for the result to be discarded. This mirrors monitorResource()'s
+     * own disabled handling (it throws before persisting anything), so
+     * skipping here is behaviour-preserving while avoiding the wasted
+     * queue/DB/lock work. A paused monitor is never kept, so it is looked
+     * up - and skipped - every time; one paused within the minute it is kept
+     * ends in monitorResource's MonitorDisabled, which completes the job.
+     */
+    if (MonitorPauseState.isPaused(monitor)) {
+      logger.debug(
+        `Incoming request received for archived or disabled monitor ${monitor._id.toString()}. Skipping.`,
+      );
+      return;
+    }
+
+    monitorOfKey = {
+      monitorId: new ObjectID(monitor._id.toString()),
+      projectId: monitor.projectId,
+    };
+
+    await MonitorSecretKeyCache.setMonitor({
+      kind: MonitorSecretKeyKind.IncomingRequest,
+      secretKey: monitorSecretKeyAsString,
+      monitor: monitorOfKey,
+    });
   }
 
   /*
@@ -205,8 +237,8 @@ export async function processIncomingRequestFromQueue(
   );
 
   const incomingRequest: IncomingMonitorRequest = {
-    projectId: monitor.projectId,
-    monitorId: new ObjectID(monitor._id.toString()),
+    projectId: monitorOfKey.projectId,
+    monitorId: monitorOfKey.monitorId,
     requestHeaders: redactedRequestHeaders,
     requestBody: redactedRequestBody,
     incomingRequestReceivedAt: receivedAt,
@@ -221,7 +253,31 @@ export async function processIncomingRequestFromQueue(
   };
 
   // process probe response here.
-  await MonitorResourceUtil.monitorResource(incomingRequest);
+  try {
+    await MonitorResourceUtil.monitorResource(incomingRequest, {
+      secretKey: {
+        column: "incomingRequestSecretKey",
+        value: monitorSecretKeyAsString,
+      },
+    });
+  } catch (err) {
+    /*
+     * A key that no longer finds its monitor - rotated, or the monitor
+     * deleted, since it was kept or looked up: forgotten, so the next request
+     * looks it up.
+     */
+    if (
+      err instanceof BadDataException &&
+      err.message === ExceptionMessages.MonitorNotFound
+    ) {
+      await MonitorSecretKeyCache.forget({
+        kind: MonitorSecretKeyKind.IncomingRequest,
+        secretKey: monitorSecretKeyAsString,
+      });
+    }
+
+    throw err;
+  }
 }
 
 /*

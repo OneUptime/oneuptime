@@ -27,7 +27,7 @@ sequenceDiagram
 
 Sonden öppnar bara TCP-anslutningar: en tjänst som bara lyssnar på UDP, som en SNMP-agent, kan inte kontrolleras med en portmonitor.
 
-När en kontroll misslyckas spårar sonden också vägen till värden och slår upp dess namn, och bifogar det den hittade till resultatet som **Network Path at Time of Failure**, så att du ser var vägen bröts. En sond som har förlorat sin egen nätverksanslutning rapporterar inget resultat, så den kan inte markera din tjänst som offline.
+När en kontroll misslyckas spårar sonden också vägen till värden och slår upp dess namn, och bifogar det den hittade till resultatet som **Nätverksväg vid felet**, så att du ser var vägen bröts. En sond som har förlorat sin egen nätverksanslutning rapporterar inget resultat, så den kan inte markera din tjänst som offline.
 
 ## Innan du börjar
 
@@ -164,7 +164,7 @@ Gör fönstret längre än övervakningsintervallet så att det rymmer flera kon
 ## Felsökning
 
 :::details Tjänsten körs, men monitorn säger offline
-Sonden kunde inte öppna en anslutning: en brandvägg släpper den, tjänsten lyssnar bara på ett privat gränssnitt, eller porten är fel. Incidentens rotorsak och **Övervakningsloggar** på monitorn visar felet, och **Network Path at Time of Failure** visar hur långt vägen nådde. Släpp igenom sonderna i brandväggen, eller använd en [anpassad sond](/docs/probe/custom-probe) inuti nätverket.
+Sonden kunde inte öppna en anslutning: en brandvägg släpper den, tjänsten lyssnar bara på ett privat gränssnitt, eller porten är fel. Incidentens rotorsak och **Övervakningsloggar** på monitorn visar felet, och **Nätverksväg vid felet** visar hur långt vägen nådde. Släpp igenom sonderna i brandväggen, eller använd en [anpassad sond](/docs/probe/custom-probe) inuti nätverket.
 :::
 
 :::details DNS-uppslagstiden är alltid tom

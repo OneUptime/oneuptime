@@ -163,7 +163,7 @@ För att ansluta Huntress klickar du på utlösaren **Huntress Incident Report**
 
 ## Utlösare för OneUptime-händelser
 
-Nästan allt i OneUptime — monitorer, incidenter, larm, schemalagda underhåll, statussidor, jourpolicyer, team — kan starta ett arbetsflöde. Var och en erbjuder upp till fyra utlösare:
+Nästan allt i OneUptime — monitorer, incidenter, larm, underhållshändelser, statussidor, jourpolicyer, team — kan starta ett arbetsflöde. Var och en erbjuder upp till fyra utlösare:
 
 - **On Create** — aktiveras när en ny läggs till.
 - **On Update** — aktiveras när en ändras. Att spara en post med de värden den redan har, som ett formulär sparat utan ändringar eller en brytare skickad som den redan står, är ingen ändring och aktiverar den inte.

@@ -1071,7 +1071,7 @@ describe("the components page", () => {
       MonitorStatusTimeline: "a monitor's status events",
       IncidentStateTimeline: "incidents",
       AlertStateTimeline: "alerts",
-      ScheduledMaintenanceStateTimeline: "scheduled maintenance events",
+      ScheduledMaintenanceStateTimeline: "maintenance events",
       IncidentEpisodeStateTimeline: "episodes",
       AlertEpisodeStateTimeline: "episodes",
     };

@@ -34,6 +34,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -50,7 +61,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
       endDirectPageIfItsPagesAreOver: jest.fn(),
@@ -146,7 +157,7 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 interface ExecutionLogServiceMock {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
   endDirectPageIfItsPagesAreOver: jest.Mock;
@@ -230,7 +241,7 @@ describe("a person's page about a record somebody else acknowledged", () => {
         about: about,
         startedBy: "person",
       });
-      executionLogService.findAllBy.mockResolvedValue([log]);
+      executionLogService.findBy.mockResolvedValue([log]);
 
       await tick();
 
@@ -251,7 +262,7 @@ describe("a person's page about a record somebody else acknowledged", () => {
       about: "incident",
       startedBy: "person",
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -270,7 +281,7 @@ describe("a person's page whose record is resolved", () => {
         about: about,
         startedBy: "person",
       });
-      executionLogService.findAllBy.mockResolvedValue([log]);
+      executionLogService.findBy.mockResolvedValue([log]);
       timeout.readRecordState.mockResolvedValue({
         isAcknowledged: true,
         isResolved: true,
@@ -297,7 +308,7 @@ describe("a person's page whose record is resolved", () => {
       about: "incident",
       startedBy: "person",
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
     timeout.readRecordState.mockResolvedValue(null);
 
     await tick();
@@ -321,7 +332,7 @@ describe("a workflow's direct page is no person's page", () => {
         about: "incident",
         startedBy: startedBy,
       });
-      executionLogService.findAllBy.mockResolvedValue([log]);
+      executionLogService.findBy.mockResolvedValue([log]);
 
       await tick();
 
@@ -340,12 +351,12 @@ describe("a workflow's direct page is no person's page", () => {
 
 describe("the worker's tick", () => {
   test("reads each run with who started it, which tells a person's page apart", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
     const select: Record<string, unknown> = (
-      executionLogService.findAllBy.mock.calls[0]![0] as {
+      executionLogService.findBy.mock.calls[0]![0] as {
         select: Record<string, unknown>;
       }
     ).select;

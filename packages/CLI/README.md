@@ -123,7 +123,7 @@ A resource takes the subcommands the API takes for it: `list`, `get` and `count`
 | `<resource> fields`                          | List its fields: what each is for, and the flag that sets it |
 | `<resource> acknowledge <id>`                | Acknowledge an incident, an alert, or an episode of either   |
 | `<resource> resolve <id>`                    | Resolve one                                                  |
-| `<resource> start <id>`                      | Start a scheduled maintenance event                          |
+| `<resource> start <id>`                      | Start a maintenance event (`scheduled-maintenance-event`)    |
 | `<resource> end <id>`                        | End one                                                      |
 | `<resource> add-note <id> --note <markdown>` | Add a note to any of those, `--public` for its status pages  |
 

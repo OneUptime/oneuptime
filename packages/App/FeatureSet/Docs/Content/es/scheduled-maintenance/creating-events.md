@@ -24,7 +24,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Tu rol.** Crear un evento requiere **Propietario del proyecto**, **Administrador del proyecto**, **Miembro del proyecto**, **Administrador de mantenimiento programado** o **Miembro de mantenimiento programado**, o un rol personalizado con **Create Scheduled Maintenance**.
-- **Tus páginas de estado.** Para avisar a los clientes, necesitas una página de estado que muestre eventos de mantenimiento programado. Consulta [Visión general de las páginas de estado](/docs/status-pages/index).
+- **Tus páginas de estado.** Para avisar a los clientes, necesitas una página de estado que muestre eventos de mantenimiento. Consulta [Visión general de las páginas de estado](/docs/status-pages/index).
 
 ## Crear un evento
 
@@ -71,7 +71,7 @@ No se envía nada hasta que eliges una página de estado: un evento que no apare
 Hay dos cosas que rellenan el formulario por ti sobre la marcha:
 
 - **Recursos vinculados.** Cuando eliges un monitor, los hosts, clústeres, servicios y otros recursos a los que está vinculado se añaden en **Otros recursos afectados**, y una línea bajo el campo los nombra. Quita los que no quieras. Los recursos en la nube también se añaden: mientras el evento está en curso, sus monitores no abren incidentes ni alertas.
-- **Páginas de estado sugeridas.** En **Mostrar evento en estas páginas de estado** se sugieren las páginas que muestran tus monitores: haz clic en el nombre de una página para añadirla, o en **Añadir todas**. No se elige nada por ti. Consulta [Eventos de mantenimiento programado](/docs/status-pages/subscribers#eventos-de-mantenimiento-programado).
+- **Páginas de estado sugeridas.** En **Mostrar evento en estas páginas de estado** se sugieren las páginas que muestran tus monitores: haz clic en el nombre de una página para añadirla, o en **Añadir todas**. No se elige nada por ti. Consulta [Eventos de mantenimiento](/docs/status-pages/subscribers#eventos-de-mantenimiento).
 
 ## Empezar desde un recurso o una plantilla
 
@@ -180,6 +180,6 @@ Un evento se publica para que tus clientes se enteren del trabajo antes de que e
 :::cards
 - [Estados del mantenimiento](/docs/scheduled-maintenance/states): Qué inicia y termina un evento, y cómo moverlo a mano.
 - [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates): Guarda las respuestas del formulario para la próxima vez.
-- [Suscriptores y anuncios](/docs/status-pages/subscribers#eventos-de-mantenimiento-programado): Exactamente a quién se avisa y cuándo.
+- [Suscriptores y anuncios](/docs/status-pages/subscribers#eventos-de-mantenimiento): Exactamente a quién se avisa y cuándo.
 - [Reglas y ajustes del mantenimiento](/docs/scheduled-maintenance/settings): Añade propietarios, etiquetas y recordatorios automáticamente.
 :::

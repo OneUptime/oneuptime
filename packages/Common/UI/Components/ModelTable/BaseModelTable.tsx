@@ -38,7 +38,7 @@ import {
   withPrivateRecordGateOptions,
 } from "../../Utils/PrivateRecordScope";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
-import { isDefaultStatusName } from "../../../Types/StatusPage/DefaultStatusNames";
+import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import ActionButtonSchema, {
@@ -136,7 +136,14 @@ import {
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
-import { isDrawnFromRecordId } from "./ColumnSort";
+import {
+  RelationColumnSort,
+  getColumnSortForRead,
+  getColumnSortKey as getModelTableColumnSortKey,
+  getRelationColumnSorts,
+  isDrawnFromRecordId,
+  withRelationColumnSortSelect,
+} from "./ColumnSort";
 import Columns from "./Columns";
 import ColumnCustomizationModal, {
   AddableColumnsConfig,
@@ -179,6 +186,13 @@ import {
   isLiveRowsHeld,
 } from "./LiveRows";
 import useLiveRows from "./UseLiveRows";
+import {
+  EMPTY_LIST_COUNT,
+  ListCountState,
+  getListCountUpTo,
+  getListHasMore,
+  getNextListCount,
+} from "./ListCount";
 import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
@@ -333,6 +347,8 @@ export interface BaseTableCallbacks<
     sort: Sort<TBaseModel>;
     select: Select<TBaseModel>;
     requestOptions?: RequestOptions | undefined;
+    // How far the count goes (ListCount.ts); unset, it is exact.
+    countUpTo?: number | undefined;
   }) => Promise<ListResult<TBaseModel>>;
   toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
   updateById: (data: { id: ObjectID; data: JSONObject }) => Promise<void>;
@@ -934,41 +950,18 @@ export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
 // No row just brought in by a live read: one set, so a list at rest never redraws for it.
 const NO_ARRIVED_ROWS: ReadonlySet<string> = new Set<string>();
 
-/*
- * The records a new project starts with that OneUptime names itself
- * (ProjectService): the states, severities and statuses of incidents,
- * alerts, monitors and scheduled maintenance. Their default names -
- * "Resolved", "Operational", an alert's "High" and "Low" - are its words.
- */
-const TABLES_NAMED_BY_ONEUPTIME: ReadonlyArray<string> = [
-  "IncidentState",
-  "IncidentSeverity",
-  "AlertState",
-  "AlertSeverity",
-  "MonitorStatus",
-  "ScheduledMaintenanceState",
-];
-
-const DEFAULT_ALERT_SEVERITY_NAMES: ReadonlyArray<string> = [
-  translationKey("High"),
-  translationKey("Low"),
-];
-
-// Whether a filter lists records whose default names are OneUptime's words.
-const isNamedByOneUptime: (entityType: unknown) => boolean = (
+// The table whose records a filter lists, for the names they start with.
+const getFilterTableName: (entityType: unknown) => string | null = (
   entityType: unknown,
-): boolean => {
+): string | null => {
   if (
     typeof entityType !== "function" ||
     !(entityType.prototype instanceof BaseModel)
   ) {
-    return false;
+    return null;
   }
 
-  const tableName: string | null = new (entityType as DatabaseBaseModelType)()
-    .tableName;
-
-  return Boolean(tableName && TABLES_NAMED_BY_ONEUPTIME.includes(tableName));
+  return new (entityType as DatabaseBaseModelType)().tableName;
 };
 
 /*
@@ -976,27 +969,23 @@ const isNamedByOneUptime: (entityType: unknown) => boolean = (
  * a team, a label - so its name is drawn as written in the filter's menu and
  * its chip, as the record's row draws it (DropdownOption.isUserContent). It
  * was looked up: a monitor named "Network" read "Red" in a Spanish menu
- * (#7690). A default name of a state, a severity or a status
- * (TABLES_NAMED_BY_ONEUPTIME) is OneUptime's word, read in the reader's
- * language as its badge reads it; a name the project gave one is its own.
- * An option the filter's own fetchFilterDropdownOptions marked keeps its
- * mark.
+ * (#7690). A default name of a state, a severity or a status of the
+ * filter's own table is OneUptime's word, read in the reader's language as
+ * its badge reads it; a name the project gave one is its own - the one rule
+ * for them (Utils/DefaultRecordNames). An option the filter's own
+ * fetchFilterDropdownOptions marked keeps its mark.
  */
 const toRecordFilterOption: (
   option: DropdownOption,
-  isOfRecordsNamedByOneUptime: boolean,
+  tableName: string | null,
 ) => DropdownOption = (
   option: DropdownOption,
-  isOfRecordsNamedByOneUptime: boolean,
+  tableName: string | null,
 ): DropdownOption => {
-  const isDefaultName: boolean =
-    isOfRecordsNamedByOneUptime &&
-    (isDefaultStatusName(option.label) ||
-      DEFAULT_ALERT_SEVERITY_NAMES.includes(option.label));
-
   return {
     ...option,
-    isUserContent: option.isUserContent ?? !isDefaultName,
+    isUserContent:
+      option.isUserContent ?? isRecordNameAsWritten(tableName, option.label),
   };
 };
 
@@ -1373,6 +1362,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return getColumnIds<TBaseModel>(allColumns);
   }, [allColumns]);
 
+  /*
+   * How the list is sorted by each column that shows a related record - a
+   * severity by its place in the project's list, a monitor by its name -
+   * by the key its header sorts on (ColumnSort's getRelationColumnSort).
+   * Over every declared column, as the select is: a sort restored from the
+   * URL or a saved view may name a column the viewer has switched off.
+   */
+  const relationColumnSorts: Map<string, RelationColumnSort> = useMemo(() => {
+    return getRelationColumnSorts<TBaseModel>(model, allColumns);
+  }, [allColumns]);
+
   const effectiveColumnPreference: ColumnPreference | null = useMemo(() => {
     if (!isColumnCustomizationEnabled) {
       return null;
@@ -1646,6 +1646,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * pagination falls back to the count-based UI.
    */
   const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
+  /*
+   * The count stopped at its cap: totalItemsCount is the cap, read
+   * "10,000+", and the list pages by previous and next (ListCount.ts). The
+   * ref is what a read asks with, including a live read's closure.
+   */
+  const [isCountCapped, setIsCountCapped] = useState<boolean>(false);
+  const listCountRef: MutableRefObject<ListCountState> =
+    React.useRef<ListCountState>(EMPTY_LIST_COUNT);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /*
@@ -2283,6 +2291,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               column.selectedProperty) as keyof TBaseModel)
           : key;
 
+        const disableSort: boolean = Boolean(
+          column.disableSort ||
+            shouldDisableSort(column, key) ||
+            isDrawnFromRecordId<TBaseModel>(column, key),
+        );
+
+        const relationSort: RelationColumnSort | undefined = columnKey
+          ? relationColumnSorts.get(String(columnKey))
+          : undefined;
+
         columns.push({
           ...column,
           id: columnIdByColumn.get(column),
@@ -2290,10 +2308,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * Nor does a column that draws its own thing from the record's id
            * (Owners): it would sort by the id (isDrawnFromRecordId).
            */
-          disableSort:
-            column.disableSort ||
-            shouldDisableSort(key) ||
-            isDrawnFromRecordId<TBaseModel>(column, key),
+          disableSort: disableSort,
+          /*
+           * A severity, a state or a status goes worst first on its first
+           * click (ColumnSort's RelationColumnSort).
+           */
+          firstSortOrder: disableSort
+            ? undefined
+            : relationSort?.firstSortOrder,
           key: columnKey,
           /*
            * `key` is only the first declared field, so a cell composed from
@@ -2392,7 +2414,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             continue;
           }
 
-          const isOfRecordsNamedByOneUptime: boolean = isNamedByOneUptime(
+          const filterTableName: string | null = getFilterTableName(
             filter.filterEntityType,
           );
 
@@ -2401,7 +2423,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             filter.filterDropdownOptions = (
               await filter.fetchFilterDropdownOptions()
             )?.map((option: DropdownOption): DropdownOption => {
-              return toRecordFilterOption(option, isOfRecordsNamedByOneUptime);
+              return toRecordFilterOption(option, filterTableName);
             });
             continue;
           }
@@ -2474,7 +2496,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   filter.filterDropdownField.label,
                 ) as string,
               },
-              isOfRecordsNamedByOneUptime,
+              filterTableName,
             );
 
             // The filter's dropdown draws the Archived tag beside it.
@@ -2708,9 +2730,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const defaultSortColumn: string =
           (model as AnalyticsBaseModel).defaultSortColumn || "createdAt";
 
+        /*
+         * A relation column's order is its related field's, as on screen;
+         * a sort the list cannot be read in is the list's own order there
+         * too (getColumnSortForRead).
+         */
+        const columnSort: Sort<TBaseModel> = getColumnSortForRead<TBaseModel>({
+          model: model,
+          sortBy: sortBy as string | null,
+          sortOrder: sortOrder,
+          relationSorts: relationColumnSorts,
+        });
+
         const bulkSort: Sort<TBaseModel> = (
-          sortBy
-            ? { [sortBy as string]: sortOrder }
+          Object.keys(columnSort).length > 0
+            ? columnSort
             : { [defaultSortColumn]: SortOrder.Descending }
         ) as Sort<TBaseModel>;
 
@@ -2736,10 +2770,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
          * the try: otherwise the button would be left spinning forever with an
          * unhandled rejection instead of a message.
          */
-        const bulkSelect: Select<TBaseModel> = {
-          ...getSelect(),
-          ...getRelationSelect(),
-        };
+        const bulkSelect: Select<TBaseModel> =
+          withRelationColumnSortSelect<TBaseModel>({
+            select: {
+              ...getSelect(),
+              ...getRelationSelect(),
+            },
+            sortBy: sortBy as string | null,
+            relationSorts: relationColumnSorts,
+          });
 
         /*
          * Every ordered column has to be selected for the database to order by
@@ -2944,13 +2983,32 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       } as Sort<TBaseModel>;
     }
 
-    return (
-      sortBy
-        ? {
-            [sortBy as any]: sortOrder,
-          }
-        : {}
-    ) as Sort<TBaseModel>;
+    /*
+     * A column that shows a related record is read by the related record's
+     * field ({ incidentSeverity: { order: "ASC" } }), any other by itself.
+     */
+    return getColumnSortForRead<TBaseModel>({
+      model: model,
+      sortBy: sortBy as string | null,
+      sortOrder: sortOrder,
+      relationSorts: relationColumnSorts,
+    });
+  };
+
+  /*
+   * The read's select: every column's fields, and the related field the
+   * list is ordered by when it is sorted by a relation column
+   * (withRelationColumnSortSelect).
+   */
+  const getFetchSelect: () => Select<TBaseModel> = (): Select<TBaseModel> => {
+    return withRelationColumnSortSelect<TBaseModel>({
+      select: {
+        ...getSelect(),
+        ...getRelationSelect(),
+      },
+      sortBy: isManuallyOrdered ? null : (sortBy as string | null),
+      relationSorts: relationColumnSorts,
+    });
   };
 
   const fetchItems: FetchItemsFunction = async (options?: {
@@ -2993,12 +3051,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
         limit: itemsOnPage,
         skip: (currentPageNumber - 1) * itemsOnPage,
-        select: {
-          ...getSelect(),
-          ...getRelationSelect(),
-        },
+        select: getFetchSelect(),
         sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
+        // Counted no further than "10,000+" (ListCount.ts).
+        countUpTo: getListCountUpTo({
+          isManuallyOrdered: isManuallyOrdered,
+          isLiveRead: isBackground,
+          previous: listCountRef.current,
+        }),
       });
 
       if (
@@ -3041,8 +3102,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setError("");
       }
 
-      setTotalItemsCount(listResult.count);
-      setHasMore(listResult.hasMore);
+      const listCount: ListCountState = getNextListCount({
+        previous: listCountRef.current,
+        result: listResult,
+        isLiveRead: isBackground,
+      });
+
+      listCountRef.current = listCount;
+      setTotalItemsCount(listCount.total);
+      setIsCountCapped(listCount.isCapped);
+      setHasMore(
+        getListHasMore({ count: listCount, hasMore: listResult.hasMore }),
+      );
       setData(listResult.data);
 
       /*
@@ -3084,7 +3155,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
        * but never invoked, which broke per-row owner enrichment.
        */
       if (props.onFetchSuccess) {
-        props.onFetchSuccess(listResult.data, listResult.count);
+        /*
+         * The count the list shows: a live read of a capped list counts
+         * only to its page's end, and keeps the cap it showed (ListCount).
+         */
+        props.onFetchSuccess(listResult.data, listCount.total);
       }
     } catch (err) {
       if (isBackground) {
@@ -3546,10 +3621,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   });
 
   type ShouldDisableSortFunction = (
+    column: ModelTableColumn<TBaseModel>,
     columnName: keyof TBaseModel | null,
   ) => boolean;
 
   const shouldDisableSort: ShouldDisableSortFunction = (
+    column: ModelTableColumn<TBaseModel>,
     columnName: keyof TBaseModel | null,
   ): boolean => {
     if (!columnName) {
@@ -3561,7 +3638,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return true;
     }
 
-    return model.isEntityColumn(columnName as string);
+    if (!model.isEntityColumn(columnName as string)) {
+      return false;
+    }
+
+    /*
+     * A relation sorts where the list can be ordered by it: one related
+     * record, by its place in its project's list or by the name the column
+     * shows. Labels, monitors and other lists of records do not
+     * (ColumnSort's getRelationColumnSort).
+     */
+    const sortKey: string | null =
+      getModelTableColumnSortKey<TBaseModel>(column);
+
+    return !sortKey || !relationColumnSorts.has(sortKey);
   };
 
   type GetColumnKeyFunction = (
@@ -4991,6 +5081,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         dragDisabledReason={dragDisabledReason}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
+        isCountCapped={isCountCapped}
         data={data}
         id={props.id}
         columns={tableColumns}
@@ -5070,6 +5161,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         isLoading={getTableLoadingState()}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
+        isCountCapped={isCountCapped}
         data={data}
         id={props.id}
         fields={fields}
@@ -5164,6 +5256,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               text={translator.translateTemplate("{{planName}} Plan", {
                 planName: planName,
               })}
+              // Already in the reader's words: not looked up a second time.
+              isUserContent={true}
               color={Yellow}
             />
           </span>
@@ -5526,26 +5620,49 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 )}
               </span>
             )}
-            {showMatchPill && hasMore !== undefined && data.length > 0 && (
+            {showMatchPill && isCountCapped && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                 title={translator.translatePlural(
-                  SEARCH_RESULT_COUNT_ON_PAGE,
-                  data.length,
+                  SEARCH_RESULT_COUNT,
+                  totalItemsCount,
                   {
-                    count: `${translator.formatNumber(data.length)}${
-                      hasMore ? "+" : ""
-                    }`,
+                    count: `${translator.formatNumber(totalItemsCount)}+`,
                   },
                 )}
               >
-                {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
-                  count: `${translator.formatNumber(data.length)}${
-                    hasMore ? "+" : ""
-                  }`,
-                })}
+                {translator.translatePlural(
+                  SEARCH_MATCH_COUNT,
+                  totalItemsCount,
+                  {
+                    count: `${translator.formatNumber(totalItemsCount)}+`,
+                  },
+                )}
               </span>
             )}
+            {showMatchPill &&
+              hasMore !== undefined &&
+              !isCountCapped &&
+              data.length > 0 && (
+                <span
+                  className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                  title={translator.translatePlural(
+                    SEARCH_RESULT_COUNT_ON_PAGE,
+                    data.length,
+                    {
+                      count: `${translator.formatNumber(data.length)}${
+                        hasMore ? "+" : ""
+                      }`,
+                    },
+                  )}
+                >
+                  {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
+                    count: `${translator.formatNumber(data.length)}${
+                      hasMore ? "+" : ""
+                    }`,
+                  })}
+                </span>
+              )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (
               <button
                 type="button"
@@ -5839,19 +5956,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     column: ModelTableColumn<TBaseModel>,
   ) => string | null;
 
-  // Mirrors how serializeToTableColumns derives the key the header sorts on.
+  // The key serializeToTableColumns gives the header to sort on.
   const getColumnSortKey: GetColumnSortKeyFunction = (
     column: ModelTableColumn<TBaseModel>,
   ): string | null => {
-    const key: keyof TBaseModel | null = getColumnKey(column);
-
-    if (!key) {
-      return null;
-    }
-
-    return column.selectedProperty
-      ? `${String(key)}.${column.selectedProperty}`
-      : String(key);
+    return getModelTableColumnSortKey<TBaseModel>(column);
   };
 
   /*

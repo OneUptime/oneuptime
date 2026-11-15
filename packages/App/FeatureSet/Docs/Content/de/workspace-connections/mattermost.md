@@ -112,7 +112,7 @@ Um in einem bestehenden Kanal zu posten, geben Sie seinen Namen so ein, wie er i
 
 Personen treten dem Kanal einer Regel über das Mattermost-Konto bei, das sie verbunden haben, oder sonst über das Mattermost-Konto mit ihrer E-Mail-Adresse, wenn Ihr Server dem Bot E-Mail-Adressen zeigt (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). Wen OneUptime nicht hinzufügen konnte, nennt es in einer einzigen Nachricht im Kanal, mit einem Link, um das eigene Konto zu verbinden.
 
-Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Mattermost öffnen**. Das öffnet diesen Kanal in einem neuen Tab, auf Ihrem Mattermost-Server. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz, der auch Kanäle in Slack oder Microsoft Teams hat, hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
+Ein Vorfall, eine Warnung, eine Episode oder ein Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Mattermost öffnen**. Das öffnet diesen Kanal in einem neuen Tab, auf Ihrem Mattermost-Server. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz, der auch Kanäle in Slack oder Microsoft Teams hat, hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
 
 **Regel testen** in der Zeile einer Regel postet eine Testnachricht für diese Regel in die Kanäle, die sie nennt, wie bei Slack.
 
@@ -120,7 +120,7 @@ Die Nachrichten von OneUptime benachrichtigen niemanden durch das, was sie zitie
 
 ## Wer im Kanal eines Datensatzes ist
 
-Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Mattermost-Kanal hat auf seiner Seite in OneUptime eine Karte **Mattermost-Kanal**. Die Karte zeigt den Kanal als Link, der ihn auf Ihrem Mattermost-Server öffnet, ob er privat ist und wer darin ist, Sie zuerst. Auf der Karte, ohne einen Mattermost-Admin:
+Ein Vorfall, eine Warnung, eine Episode oder ein Wartungsereignis mit einem eigenen Mattermost-Kanal hat auf seiner Seite in OneUptime eine Karte **Mattermost-Kanal**. Die Karte zeigt den Kanal als Link, der ihn auf Ihrem Mattermost-Server öffnet, ob er privat ist und wer darin ist, Sie zuerst. Auf der Karte, ohne einen Mattermost-Admin:
 
 - **Kanal beitreten** fügt Sie hinzu, wenn Sie nicht im Kanal sind.
 - **Personen hinzufügen** öffnet eine Liste der Personen und Teams des Projekts: Wählen Sie eine Person, um sie hinzuzufügen, oder ein Team, um alle darin hinzuzufügen.
@@ -145,7 +145,7 @@ Die Nachrichten von OneUptime tragen Schaltflächen und ein Menü **More actions
 | **Vorfallsepisode, Warnungsepisode** | **Acknowledge**, **Resolve**, **Add Note**, **Change State**, **Execute On-Call Policy** |
 | **Geplante Wartung** | **Mark as Ongoing**, **Mark as Complete**, **Add Note**, **Change State** |
 
-**Add Note**, **Change State**, **Change Severity** und **Execute On-Call Policy** öffnen ein Formular in Mattermost. Eine Notiz zu einem Vorfall oder einem geplanten Wartungsereignis kann öffentlich sein, also auf der Statusseite erscheinen, oder privat; eine Notiz zu einem privaten Vorfall ist immer privat, und eine zu einer Warnung ebenfalls immer. Jede Nachricht hat außerdem einen Link, der ihren Datensatz in OneUptime öffnet, für alles andere. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, wartet eine öffentliche Notiz aus dem Formular darauf, und eine Nachricht, die nur Sie sehen, sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
+**Add Note**, **Change State**, **Change Severity** und **Execute On-Call Policy** öffnen ein Formular in Mattermost. Eine Notiz zu einem Vorfall oder einem Wartungsereignis kann öffentlich sein, also auf der Statusseite erscheinen, oder privat; eine Notiz zu einem privaten Vorfall ist immer privat, und eine zu einer Warnung ebenfalls immer. Jede Nachricht hat außerdem einen Link, der ihren Datensatz in OneUptime öffnet, für alles andere. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, wartet eine öffentliche Notiz aus dem Formular darauf, und eine Nachricht, die nur Sie sehen, sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen).
 
 Ist Ihr Mattermost-Konto noch nicht verbunden, sagt Ihnen eine Schaltfläche das, mit einem Link zu **Benutzereinstellungen** > **Arbeitsbereich** > **Mattermost**. Verbinden Sie Ihr Konto und drücken Sie die Schaltfläche dann erneut.
 

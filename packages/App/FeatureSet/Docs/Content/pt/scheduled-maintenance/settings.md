@@ -96,7 +96,7 @@ Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas 
 
 ### Aprovação de notas públicas
 
-**Manutenção programada → Configurações → Aprovação de notas públicas** faz com que as notas públicas de eventos de manutenção programada sejam aprovadas antes de serem publicadas. Ela funciona como a página dos incidentes, com interruptor e etapas próprios: ative **Exigir aprovação antes de publicar notas públicas** e escolha quem aprova em **Quem aprova**. Assim, as notas de manutenção podem precisar de aprovação enquanto as de incidentes não, ou ser aprovadas por outras pessoas. Só **Proprietário do projeto** e **Administrador do projeto** podem mudá-la. Veja [Aprovação de notas públicas](/docs/incidents/settings#aprovação-de-notas-públicas) para as etapas, e [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas) para o que uma nota faz enquanto aguarda.
+**Manutenção programada → Configurações → Aprovação de notas públicas** faz com que as notas públicas de eventos de manutenção sejam aprovadas antes de serem publicadas. Ela funciona como a página dos incidentes, com interruptor e etapas próprios: ative **Exigir aprovação antes de publicar notas públicas** e escolha quem aprova em **Quem aprova**. Assim, as notas de manutenção podem precisar de aprovação enquanto as de incidentes não, ou ser aprovadas por outras pessoas. Só **Proprietário do projeto** e **Administrador do projeto** podem mudá-la. Veja [Aprovação de notas públicas](/docs/incidents/settings#aprovação-de-notas-públicas) para as etapas, e [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas) para o que uma nota faz enquanto aguarda.
 
 ### Campos personalizados
 

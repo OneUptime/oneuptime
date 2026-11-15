@@ -29,9 +29,9 @@ import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
 import LinkedInfrastructureContext, {
   LinkedInfrastructureResource,
+  describeActivityResource,
   describeAlertNumber,
   describeLinkedResource,
-  describeLinkedResourceNoun,
   describeOpenedAfterDeclared,
   getLinkedResourceActivityKind,
   describeRelativeTime,
@@ -597,11 +597,12 @@ export default class IncidentFollowUpCheck {
    * goes in through mdText. It starts with FOLLOW_UP_REPORT_LEAD_PREFIX, by
    * which the report's readers (Utils/AI/InvestigationReport) find it.
    *
-   * What opened, where and when comes first; the alert's title closes the
-   * sentence, the way the product names a record's title (": title"). The
-   * alert templates' titles carry brackets and parentheses of their own
-   * ("[Docker] High CPU Usage (>80% of one core) - web-1"), which read as
-   * noise inside the sentence.
+   * What opened, where and when comes first - "opened on host web-1", the
+   * resource named as a sentence names it (describeResourceForPeople); the
+   * alert's title closes the sentence, the way the product names a record's
+   * title (": title"). The alert templates' titles carry brackets and
+   * parentheses of their own ("[Docker] High CPU Usage (>80% of one core) -
+   * web-1"), which read as noise inside the sentence.
    */
   public static buildReportLead(context: FollowUpCheckContext): MarkdownText {
     const alert: string = describeAlertNumber(context, { midSentence: true });
@@ -615,7 +616,7 @@ export default class IncidentFollowUpCheck {
       context.alertTitle,
     );
     const where: MarkdownText = resource
-      ? mdText`${describeLinkedResourceNoun(resource)} ${resource.name}`
+      ? mdText`${IncidentFollowUpCheck.describeResourceForPeople(resource)}`
       : mdText`infrastructure linked to this incident`;
 
     return title
@@ -665,16 +666,37 @@ export default class IncidentFollowUpCheck {
     };
 
     return {
+      /*
+       * The English of the line the AI Investigation card draws from
+       * `activity` (ChatActivityFeed.describeFollowUpCheck), for an API
+       * reader of the run's events.
+       */
       message: `Checking again: ${describeAlertNumber(context, { midSentence: true })} opened on ${
         resource
-          ? describeLinkedResource(resource)
-          : "the incident's linked infrastructure"
+          ? IncidentFollowUpCheck.describeResourceForPeople(resource)
+          : "this incident's infrastructure"
       } after the first analysis`,
       severity: "Info",
       followUpCheck: activity,
     };
   }
 
+  /*
+   * The resource the alert opened on, as the lines people read name it -
+   * the report's lead and the run's activity: "host web-1", by the kind the
+   * activity records (describeActivityResource). The context the model
+   * reads names it as a label instead (describeResources).
+   */
+  private static describeResourceForPeople(
+    resource: LinkedInfrastructureResource,
+  ): string {
+    return describeActivityResource({
+      kind: getLinkedResourceActivityKind(resource),
+      name: resource.name,
+    });
+  }
+
+  // The resources the alert is on, for the model: 'Host "web-1"'.
   private static describeResources(context: FollowUpCheckContext): string {
     return context.resources
       .map((resource: LinkedInfrastructureResource): string => {

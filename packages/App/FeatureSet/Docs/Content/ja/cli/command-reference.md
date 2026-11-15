@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-定期メンテナンスのイベントをプロジェクトの進行中の状態に移します。
+メンテナンスイベントをプロジェクトの進行中の状態に移します。
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-定期メンテナンスのイベントをプロジェクトの終了状態に移します。
+メンテナンスイベントをプロジェクトの終了状態に移します。
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-インシデント、アラート、それらのエピソード、または定期メンテナンスのイベントにメモを追加します。
+インシデント、アラート、それらのエピソード、またはメンテナンスイベントにメモを追加します。
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

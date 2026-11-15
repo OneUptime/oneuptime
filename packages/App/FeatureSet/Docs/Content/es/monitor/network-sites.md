@@ -186,7 +186,7 @@ Una media sobre los hijos pesa igual una tienda con dos dispositivos que un cent
 
 ## Mantenimiento programado para sitios de red
 
-Asocia sitios a un evento de mantenimiento programado en **Otros recursos afectados**, en el paso **Recursos afectados** del evento, como harías con un host. La página **Mantenimiento programado** de un sitio lista los eventos asociados a él, y su **Crear evento de mantenimiento** abre el formulario con el sitio ya elegido.
+Asocia sitios a un evento de mantenimiento en **Otros recursos afectados**, en el paso **Recursos afectados** del evento, como harías con un host. La página **Mantenimiento programado** de un sitio lista los eventos asociados a él, y su **Crear evento de mantenimiento** abre el formulario con el sitio ya elegido.
 
 Una ventana en un padre cubre todo lo que tiene debajo: una ventana en una región cubre cada mercado y cada unidad que contiene, incluidos los sitios creados después de programar la ventana, así que un cambio de operador regional no tiene que listar cuatrocientas tiendas.
 

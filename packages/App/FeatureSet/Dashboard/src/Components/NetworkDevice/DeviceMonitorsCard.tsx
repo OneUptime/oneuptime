@@ -10,6 +10,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -184,6 +186,10 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
               {monitor.currentMonitorStatus?.name && (
                 <Pill
                   text={monitor.currentMonitorStatus.name}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.MonitorStatus,
+                    monitor.currentMonitorStatus.name,
+                  )}
                   color={monitor.currentMonitorStatus.color || Gray500}
                   isMinimal={true}
                 />

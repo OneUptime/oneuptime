@@ -131,9 +131,6 @@ interface IdentityMatch {
   matchedBy: SyslogDeviceMatchKind;
 }
 
-const sourceCache: InMemoryTTLCache<Array<SourceDevice>> = new InMemoryTTLCache(
-  50_000,
-);
 const indexCache: InMemoryTTLCache<ProjectDeviceIndex> = new InMemoryTTLCache(
   2_000,
 );
@@ -462,22 +459,19 @@ export default class SyslogDeviceMatcher {
     return null;
   }
 
+  /*
+   * The devices of the probe the address belongs to. Cached for
+   * CACHE_TTL_MS by findDevicesByProbeAndSource, in the one cache SNMP traps
+   * read too: a device that sends both costs one lookup a minute.
+   */
   private static async getSourceDevices(
     probeId: ObjectID,
     sourceIpAddress: string,
   ): Promise<Array<SourceDevice>> {
-    const address: string = sourceIpAddress.trim();
-    const key: string = `${probeId.toString()}|${address}`;
-    const cached: Array<SourceDevice> | undefined = sourceCache.get(key);
-
-    if (cached) {
-      return cached;
-    }
-
     const found: Array<NetworkDevice> =
       await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
         probeId: probeId,
-        sourceIpAddress: address,
+        sourceIpAddress: sourceIpAddress.trim(),
         select: {
           name: true,
         },
@@ -494,8 +488,6 @@ export default class SyslogDeviceMatcher {
         });
       }
     }
-
-    sourceCache.set(key, devices, CACHE_TTL_MS);
 
     return devices;
   }
@@ -638,7 +630,7 @@ export default class SyslogDeviceMatcher {
 
   // Forget cached answers (tests, and a device edited in this process).
   public static clearCaches(): void {
-    sourceCache.clear();
+    NetworkDeviceHydrationUtil.clearSourceMatchCache();
     indexCache.clear();
   }
 }

@@ -40,6 +40,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -56,7 +67,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       endDirectPageIfItsPagesAreOver: jest.fn(),
     },
@@ -145,7 +156,7 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 interface ExecutionLogServiceMock {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   endDirectPageIfItsPagesAreOver: jest.Mock;
 }
@@ -296,7 +307,7 @@ describe("a policy a person started by hand on a record somebody acknowledged al
         about: about,
         startedBy: "a person, by hand",
       });
-      executionLogService.findAllBy.mockResolvedValue([run]);
+      executionLogService.findBy.mockResolvedValue([run]);
 
       await tick();
 
@@ -308,7 +319,7 @@ describe("a policy a person started by hand on a record somebody acknowledged al
   );
 
   test("before its level's wait is over it waits: nothing moves, nothing ends", async () => {
-    executionLogService.findAllBy.mockResolvedValue([
+    executionLogService.findBy.mockResolvedValue([
       policyRun({
         about: "incident",
         startedBy: "a person, by hand",
@@ -327,7 +338,7 @@ describe("a policy a person started by hand on a record somebody acknowledged al
       about: "alert episode",
       startedBy: "a person, by hand",
     });
-    executionLogService.findAllBy.mockResolvedValue([run]);
+    executionLogService.findBy.mockResolvedValue([run]);
 
     await tick();
 
@@ -342,7 +353,7 @@ describe("a policy a person started by hand on a record somebody acknowledged al
       isAcknowledged: false,
       isResolved: false,
     });
-    executionLogService.findAllBy.mockResolvedValue([
+    executionLogService.findBy.mockResolvedValue([
       policyRun({ about: "incident", startedBy: "a person, by hand" }),
     ]);
 
@@ -361,7 +372,7 @@ describe("a policy a person started by hand whose record is resolved", () => {
         isAcknowledged: true,
         isResolved: true,
       });
-      executionLogService.findAllBy.mockResolvedValue([
+      executionLogService.findBy.mockResolvedValue([
         policyRun({ about: about, startedBy: "a person, by hand" }),
       ]);
 
@@ -379,7 +390,7 @@ describe("a policy a person started by hand whose record is resolved", () => {
 
   test("a record that is gone ends it with why", async () => {
     timeout.readRecordState.mockResolvedValue(null);
-    executionLogService.findAllBy.mockResolvedValue([
+    executionLogService.findBy.mockResolvedValue([
       policyRun({ about: "incident", startedBy: "a person, by hand" }),
     ]);
 
@@ -407,7 +418,7 @@ describe("every other policy's run ends once anybody acknowledges its record, as
     test.each(RECORD_KINDS)(
       `started by ${startedBy}, about an %s: ended, saying the record was handled`,
       async (about: RecordKind) => {
-        executionLogService.findAllBy.mockResolvedValue([
+        executionLogService.findBy.mockResolvedValue([
           policyRun({ about: about, startedBy: startedBy }),
         ]);
 
@@ -436,7 +447,7 @@ describe("every other policy's run ends once anybody acknowledges its record, as
     });
     second.triggeredByIncidentId = first.triggeredByIncidentId!;
     second.onCallDutyPolicyId = ObjectID.generate();
-    executionLogService.findAllBy.mockResolvedValue([first, second]);
+    executionLogService.findBy.mockResolvedValue([first, second]);
 
     await tick();
 
@@ -460,7 +471,7 @@ describe("every other policy's run ends once anybody acknowledges its record, as
       startedBy: "a person, by hand",
     });
     byHand.triggeredByIncidentId = automatic.triggeredByIncidentId!;
-    executionLogService.findAllBy.mockResolvedValue([automatic, byHand]);
+    executionLogService.findBy.mockResolvedValue([automatic, byHand]);
 
     await tick();
 
@@ -478,7 +489,7 @@ describe("paging is not stopped where nobody has acknowledged", () => {
     "a policy OneUptime started about an %s nobody acknowledged moves on to its next level",
     async (about: RecordKind) => {
       isAcknowledged[about].mockResolvedValue(false);
-      executionLogService.findAllBy.mockResolvedValue([
+      executionLogService.findBy.mockResolvedValue([
         policyRun({ about: about, startedBy: "OneUptime, for a new record" }),
       ]);
 
@@ -492,12 +503,12 @@ describe("paging is not stopped where nobody has acknowledged", () => {
 
 describe("the worker's tick", () => {
   test("reads each run with what tells a policy started by hand apart - who started it, the policy, and the event type a test page has", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
     const select: Record<string, unknown> = (
-      executionLogService.findAllBy.mock.calls[0]![0] as {
+      executionLogService.findBy.mock.calls[0]![0] as {
         select: Record<string, unknown>;
       }
     ).select;

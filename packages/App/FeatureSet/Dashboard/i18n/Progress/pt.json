@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52232,
-    "untranslated": 9316
+    "keys": 52236,
+    "untranslated": 9290
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -230,6 +230,7 @@
     "Pull requests",
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
     "Push",
+    "RTT",
     "RabbitMQ",
     "Re-encrypt",
     "Recordsets",

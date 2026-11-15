@@ -175,7 +175,7 @@ An incident episode has a **Postmortem** page too, under **Investigation**: one 
 
 An episode's postmortem is the note alone: it has no attachments, and no status page shows it. OneUptime AI does not draft one on its own when an episode resolves. Generating one takes the Project Owner or Project Admin role, or a custom role with the Edit Incident Episode permission. It has no status either, and the postmortems list leaves it out.
 
-Alerts and scheduled maintenance events have no postmortem.
+Alerts and maintenance events have no postmortem.
 
 ## Through the API
 

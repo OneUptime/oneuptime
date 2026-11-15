@@ -540,6 +540,14 @@ beforeEach(() => {
   jest
     .spyOn(ProjectService, "getRequireSsoWithSsoProviderId")
     .mockResolvedValue(null as never);
+  /*
+   * The stubs above answer whether a project is blocked and its sign-in
+   * rule, so the read that fills those answers for a request across the
+   * caller's projects (loadAccessRules) reads nothing here either.
+   */
+  jest
+    .spyOn(ProjectService, "loadAccessRules")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(GlobalConfigService, "getRequireSsoForLogin")
     .mockResolvedValue(false as never);
@@ -548,10 +556,23 @@ beforeEach(() => {
     isSubscriptionUnpaid: false,
   } as never);
 
-  // Every permission set is rebuilt from the memberships below.
+  /*
+   * Every permission set is rebuilt from the memberships below: one
+   * project's at a time, or all of a request across projects together.
+   */
   jest
     .spyOn(UserPermissionUtil, "getUserTenantAccessPermissionFromCache")
     .mockResolvedValue(null as never);
+  jest
+    .spyOn(UserPermissionUtil, "getUserTenantAccessPermissionsFromCache")
+    .mockImplementation((async (
+      _userId: ObjectID,
+      projectIds: Array<ObjectID>,
+    ): Promise<Array<null>> => {
+      return projectIds.map((): null => {
+        return null;
+      });
+    }) as never);
   jest
     .spyOn(UserPermissionUtil, "getUserGlobalAccessPermissionFromCache")
     .mockResolvedValue(null as never);

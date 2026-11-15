@@ -113,6 +113,8 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -1572,6 +1574,10 @@ const NetworkDevices: FunctionComponent<
                 return (
                   <Pill
                     text={item.currentMonitorStatus.name}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.MonitorStatus,
+                      item.currentMonitorStatus.name,
+                    )}
                     color={item.currentMonitorStatus.color || Gray500}
                     size={PillSize.Small}
                     tooltip="Reported by the monitor bound to this device."

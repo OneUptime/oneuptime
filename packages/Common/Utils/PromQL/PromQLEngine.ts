@@ -37,6 +37,7 @@ import {
   dropMetricName,
   formatPromQLLabels,
   formatPromQLValue,
+  promQLLabelValue,
   promQLLabelsKey,
   promQLMatchSignature,
 } from "./PromQLLabels";
@@ -705,8 +706,10 @@ const resultLabels: (
       const kept: PromQLLabels = {};
 
       for (const name of matching.matchingLabels) {
-        if (labels[name] !== undefined) {
-          kept[name] = labels[name]!;
+        const value: string = promQLLabelValue(labels, name);
+
+        if (value) {
+          kept[name] = value;
         }
       }
 
@@ -719,7 +722,7 @@ const resultLabels: (
   }
 
   for (const name of matching.include) {
-    const value: string | undefined = oneSide[name];
+    const value: string = promQLLabelValue(oneSide, name);
 
     if (value) {
       labels[name] = value;
@@ -949,8 +952,10 @@ const groupingLabels: (
   const kept: PromQLLabels = {};
 
   for (const name of grouping) {
-    if (labels[name] !== undefined) {
-      kept[name] = labels[name]!;
+    const value: string = promQLLabelValue(labels, name);
+
+    if (value) {
+      kept[name] = value;
     }
   }
 

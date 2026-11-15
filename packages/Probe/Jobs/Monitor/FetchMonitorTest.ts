@@ -1,6 +1,7 @@
 import { PROBE_INGEST_URL } from "../../Config";
 import MonitorUtil from "../../Utils/Monitors/Monitor";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ServerBusy from "../../Utils/ServerBusy";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -96,6 +97,12 @@ class FetchMonitorTestAndProbe {
 
       logger.debug("MONITOR TEST: Fetched monitor test list");
       logger.debug(result);
+
+      // Too busy to hand out tests now: they stay due for the next tick.
+      if (ServerBusy.isBusyAnswer(result)) {
+        ServerBusy.note("monitor tests");
+        return [];
+      }
 
       return BaseModel.fromJSONArray(result.data as JSONArray, MonitorTest);
     } catch (err) {

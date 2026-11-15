@@ -2200,7 +2200,9 @@ describe("where a monitor's status counts", () => {
       "Not Operational",
     );
     expect(attention).toContain("badgeType: BadgeType.DANGER,");
-    expect(attention).toContain("...NotOperationalMonitorQuery.getQuery(),");
+    expect(attention).toContain(
+      "...NotOperationalMonitorQuery.getQuery(props.project?._id),",
+    );
     expect(NotOperationalMonitorQuery.getQuery().currentMonitorStatus).toEqual({
       isOperationalState: false,
     });
@@ -4158,7 +4160,7 @@ describe("postmortems of episodes", () => {
     );
   });
 
-  it("leave alerts and scheduled maintenance events with no postmortem", () => {
+  it("leave alerts and maintenance events with no postmortem", () => {
     expect(new Alert().getTableColumns().columns).not.toContain(
       "postmortemNote",
     );
@@ -4166,7 +4168,7 @@ describe("postmortems of episodes", () => {
       "postmortemNote",
     );
     expect(episodes).toContain(
-      "Alerts and scheduled maintenance events have no postmortem.",
+      "Alerts and maintenance events have no postmortem.",
     );
   });
 });

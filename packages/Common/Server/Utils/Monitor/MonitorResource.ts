@@ -1,4 +1,3 @@
-import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
 import ProjectService from "../../Services/ProjectService";
 import MonitorStatusTimelineService, {
@@ -19,6 +18,7 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
@@ -98,8 +98,23 @@ import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
-import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../../Models/DatabaseModels/Probe";
+import MonitorProbeLastResults, {
+  MonitorProbeOfResult,
+  MonitorProbesOfResult,
+} from "./MonitorProbeLastResults";
+import MonitorProbeResultOrder from "./MonitorProbeResultOrder";
+import MonitorHeartbeatState, {
+  HeartbeatKind,
+  HeartbeatWrite,
+} from "./MonitorHeartbeatState";
+import MonitorOpenRecords, {
+  MonitorOpenRecordsReading,
+  MonitorRecordKind,
+  NOTHING_KNOWN,
+} from "./MonitorOpenRecords";
 import { toStorableJson } from "../Database/PostgresStorableValue";
 import ProbeReportIdentity from "../Probe/ProbeReportIdentity";
 
@@ -114,6 +129,13 @@ interface ProbeAgreementResult {
   agreedProbeNames: Array<string>;
 }
 
+/*
+ * How long a result must have waited for the monitor's lock before it asks
+ * whether a newer one from the same probe was seen meanwhile: a lock taken at
+ * the first attempt (retryInterval is 100 ms) had nothing waiting behind it.
+ */
+const LOCK_WAIT_WORTH_ORDERING_MS: number = 100;
+
 export interface MonitorResourceOptions {
   /*
    * The probe that reported this check result, as it authenticated to probe
@@ -125,6 +147,20 @@ export interface MonitorResourceOptions {
    * a heartbeat, a telemetry evaluation - pass none.
    */
   reportingProbeId?: ObjectID | undefined;
+  /*
+   * The secret key the result came in with, and the monitor column that
+   * holds it, from a caller that may have found the monitor by a key it
+   * kept (MonitorSecretKeyCache): the read of the monitor this makes anyway
+   * checks the key is still the monitor's, and a key that is not - rotated,
+   * or its monitor deleted - finds no monitor, as the caller's own lookup
+   * would have.
+   */
+  secretKey?:
+    | {
+        column: "serverMonitorSecretKey" | "incomingRequestSecretKey";
+        value: string;
+      }
+    | undefined;
 }
 
 export default class MonitorResourceUtil {
@@ -276,194 +312,46 @@ export default class MonitorResourceUtil {
 
     logger.debug("Processing probe response");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
-    logger.debug("Fetching Monitor...");
-
-    // fetch monitor
-    const monitor: Monitor | null = await MonitorService.findOneById({
-      id: dataToProcess.monitorId,
-      select: {
-        monitorSteps: true,
-        monitorType: true,
-        projectId: true,
-        ...MONITOR_PAUSE_FLAGS_SELECT,
-        currentMonitorStatusId: true,
-        _id: true,
-        name: true,
-        minimumProbeAgreement: true,
-        /*
-         * Whether the incidents and alerts this check opens keep its
-         * response content (MonitorRecordEvidence).
-         */
-        keepResponseContent: true,
-        /*
-         * How often this monitor is checked. Over-time criteria filters need
-         * it to work out how many samples a fully covered evaluation window
-         * should hold - without it a monitor that has only just started
-         * looks the same as one whose whole window is breaching.
-         */
-        monitoringInterval: true,
-        /*
-         * Recorded as oneuptime.label.* / oneuptime.customField.* attributes on
-         * every monitor metric this result produces, so response time and
-         * uptime are groupable by a project's own taxonomy. Selected here
-         * rather than re-read inside MonitorMetricUtil: this is the hottest
-         * Postgres path in the product and it already loads the monitor.
-         */
-        labels: {
-          _id: true,
-          name: true,
-        },
-        customFields: true,
-        /*
-         * Alert-dependency suppression inputs. Selected here for the same
-         * reason as labels: this query already loads the monitor on the
-         * hottest path, and both lists are empty for the overwhelming
-         * majority of monitors, in which case suppression costs nothing.
-         * Ids only — names are fetched by the suppression util's own
-         * parents query, so selecting them here would just duplicate the
-         * joined row payload on every evaluation.
-         */
-        dependsOnMonitors: {
-          _id: true,
-        },
-        suppressAlertsWhenParentMonitorStatuses: {
-          _id: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    logger.debug("Monitor found");
-    logger.debug("Monitor ID: " + dataToProcess.monitorId);
-
-    if (!monitor) {
-      logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
-      throw new BadDataException(ExceptionMessages.MonitorNotFound);
-    }
-
-    if (!monitor.projectId) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor does not have a projectId`,
-      );
-      throw new BadDataException("Monitor does not have a projectId");
-    }
-
-    dataToProcess.projectId = monitor.projectId;
 
     /*
-     * Probes check only the monitor types probes run (isProbableMonitor),
-     * and only the monitors they are assigned to - the assignment is held
-     * below, once the monitor's probe rows are read. A probe's result for any
-     * other monitor - a heartbeat, an incoming request, a telemetry or
-     * network device monitor - is no check that probe ran, and would
-     * otherwise be judged against that monitor's criteria and stored as its
-     * last request.
+     * A probe's result is recorded as seen before it waits for the lock, so
+     * that one which waited behind a newer result from the same probe can
+     * tell (MonitorProbeResultOrder).
      */
-    if (
-      reportingProbeId &&
-      !(
-        monitor.monitorType &&
-        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
-      )
-    ) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} - Probe ${reportingProbeId.toString()} reported a check result for a monitor probes do not check. Refused.`,
-      );
+    const probeResultOrder: {
+      monitorId: ObjectID;
+      probeId: ObjectID;
+      checkedAt: Date | undefined;
+    } | null = reportingProbeId
+      ? {
+          monitorId: dataToProcess.monitorId,
+          probeId: reportingProbeId,
+          checkedAt: (dataToProcess as ProbeMonitorResponse).monitoredAt,
+        }
+      : null;
 
-      throw new BadDataException(ExceptionMessages.ProbeNotAssignedToMonitor);
+    if (probeResultOrder) {
+      await MonitorProbeResultOrder.record(probeResultOrder);
     }
 
     /*
-     * Archived first: an archived monitor is out of service whatever its
-     * other flags say, and a result that still reaches it (a probe that
-     * claimed it just before it was archived, an incoming request, an email)
-     * must open nothing and change nothing.
+     * The per-monitor lock comes first, and the monitor is read once, under
+     * it, so concurrent results for the same monitor are processed serially
+     * and every decision below is made against the monitor as whichever
+     * evaluation held the lock last left it. Read before the lock, the
+     * monitor's status could be one that evaluation had just changed: the
+     * heartbeat cron flips a monitor Offline, the heartbeat that was already
+     * waiting on the lock matches "Online", the status timeline sees "already
+     * Online" and writes nothing - and the monitor stays Offline until the
+     * next evaluation. The status used to be read a second time once the
+     * lock was held for that; now the one read is.
      *
-     * Each of the four refusals below is an ExceptionMessages entry, never
-     * words written here: the telemetry worker completes a job refused for a
-     * monitor that is not being monitored instead of failing and retrying it,
-     * and it knows these refusals by those entries
-     * (isNonActionableIngestError).
-     */
-    if (monitor.isArchived) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
-      );
-
-      throw new BadDataException(ExceptionMessages.MonitorArchived);
-    }
-
-    if (monitor.disableActiveMonitoring) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
-      );
-
-      throw new BadDataException(ExceptionMessages.MonitorDisabled);
-    }
-    if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
-      );
-
-      throw new BadDataException(
-        ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
-      );
-    }
-
-    if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
-      );
-
-      throw new BadDataException(
-        ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
-      );
-    }
-
-    /*
-     * A project a master admin blocked is not monitored: its monitors are no
-     * longer handed to probes or swept (getActiveProjectStatusQuery), and a
-     * result that still reaches one - a probe that claimed it just before
-     * the block, a heartbeat or an email its sender keeps sending, a trap -
-     * opens nothing and changes nothing. Returned rather than thrown: an
-     * outside sender keeps sending whatever OneUptime answers, and each of
-     * those would otherwise be a failed job. Cached per server
-     * (ProjectService.isProjectBlocked).
-     */
-    if (await ProjectService.isProjectBlocked(monitor.projectId)) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor's project is blocked. Skipping.`,
-      );
-
-      return response;
-    }
-
-    /*
-     * Nor is a sample project's (issue #6808): its monitors show a made-up
-     * history, are handed to no probe and swept by no job, and a result
-     * that reaches one anyway - a heartbeat someone sends to its address -
-     * opens nothing and changes nothing.
-     */
-    if (await ProjectService.isSampleProject(monitor.projectId)) {
-      logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
-      );
-
-      return response;
-    }
-
-    /*
-     * Acquire a per-monitor lock so concurrent results for the same monitor are
-     * processed serially. This MUST come after the validation above: acquiring
-     * before the not-found/disabled checks meant those throw paths held — and
-     * leaked — the lock. redis-semaphore keeps a refresh timer alive until
-     * release() is called, so a leaked lock pinned the Redis key until pod
-     * restart and forced every other worker to spin on acquire. The try/finally
-     * below guarantees the lock is released on every exit path (return or
-     * throw); acquireTimeout/retryInterval cap the acquire spin so a contended
-     * lock fails fast instead of polling Redis for 10s.
+     * Every exit below - a refusal, a skipped project, a thrown error - gives
+     * the lock back (the finally at the end): redis-semaphore keeps a refresh
+     * timer alive until release() is called, so a lock leaked on a throw path
+     * pinned the Redis key until pod restart and forced every other worker to
+     * spin on acquire. acquireTimeout/retryInterval cap the acquire spin so a
+     * contended lock fails fast instead of polling Redis for 10s.
      *
      * On acquire timeout we DO NOT continue unlocked. Falling through without
      * the lock silently abandons the per-monitor serialization this lock exists
@@ -473,14 +361,17 @@ export default class MonitorResourceUtil {
      * lock is meant to handle. Instead we surface the contention so the work is
      * retried once the lock frees: the Telemetry queue re-runs each ingest job
      * up to 3x with exponential backoff, and the per-monitor crons catch-and-
-     * skip to re-evaluate on their next tick. The dominant source of
-     * same-monitor contention (an external sender hammering one Incoming
-     * Request URL) is collapsed upstream by BullMQ job coalescing at enqueue
-     * time (see TelemetryQueueService.addIncomingRequestIngestJob), so this
-     * throw is a correctness backstop for the rare residual collision (e.g.
-     * cron vs ingest), not the steady-state path.
+     * skip to re-evaluate on their next tick - unless the result is a probe's
+     * and a newer one from the same probe is waiting too: then it is dropped,
+     * and only the newest is judged (MonitorProbeResultOrder). The dominant
+     * source of same-monitor contention (an external sender hammering one
+     * Incoming Request URL) is collapsed upstream by BullMQ job coalescing at
+     * enqueue time (see TelemetryQueueService.addIncomingRequestIngestJob), so
+     * this throw is a correctness backstop for the rare residual collision
+     * (e.g. cron vs ingest), not the steady-state path.
      */
     let mutex: SemaphoreMutex | null = null;
+    const lockRequestedAt: number = Date.now();
 
     try {
       mutex = await Semaphore.lock({
@@ -491,6 +382,16 @@ export default class MonitorResourceUtil {
         acquireAttemptsLimit: 20,
       });
     } catch (err) {
+      if (
+        probeResultOrder &&
+        (await MonitorProbeResultOrder.isSuperseded(probeResultOrder))
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - A newer result from probe ${probeResultOrder.probeId.toString()} is waiting for this monitor's lock; this one is dropped.`,
+        );
+        return response;
+      }
+
       logger.debug(
         `${dataToProcess.monitorId.toString()} - Could not acquire per-monitor processing lock within the acquire window; another worker is processing this monitor. Deferring to retry to preserve serialization.`,
       );
@@ -510,28 +411,249 @@ export default class MonitorResourceUtil {
 
     try {
       /*
-       * The monitor above was loaded BEFORE this evaluation held the lock,
-       * and whichever evaluation held it until now may have just changed
-       * the monitor's status. Deciding against the pre-lock status skips the
-       * very transition that answers it: the heartbeat cron flips a monitor
-       * Offline, the heartbeat that was already waiting on the lock then
-       * matches "Online", the status timeline sees "already Online" and
-       * writes nothing - and the monitor stays Offline until the next
-       * evaluation. Re-read the one column every status decision below
-       * keys on, now that nothing else can change it.
+       * A result that waited for the lock behind a newer one from the same
+       * probe: judged after it, it would put the monitor back where the probe
+       * saw it before. Dropped - only the newest is judged. A result that got
+       * the lock at once has nothing newer behind it worth asking about.
        */
-      await MonitorResourceUtil.refreshCurrentMonitorStatus(monitor);
+      if (
+        probeResultOrder &&
+        Date.now() - lockRequestedAt >= LOCK_WAIT_WORTH_ORDERING_MS &&
+        (await MonitorProbeResultOrder.isSuperseded(probeResultOrder))
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - A newer result from probe ${probeResultOrder.probeId.toString()} was seen while this one waited for the monitor's lock; this one is dropped.`,
+        );
+        return response;
+      }
+
+      logger.debug("Fetching Monitor...");
+
+      // fetch monitor
+      const monitor: Monitor | null = await MonitorService.findOneById({
+        id: dataToProcess.monitorId,
+        select: {
+          monitorSteps: true,
+          monitorType: true,
+          projectId: true,
+          ...MONITOR_PAUSE_FLAGS_SELECT,
+          currentMonitorStatusId: true,
+          _id: true,
+          name: true,
+          minimumProbeAgreement: true,
+          /*
+           * Whether the incidents and alerts this check opens keep its
+           * response content (MonitorRecordEvidence).
+           */
+          keepResponseContent: true,
+          /*
+           * How often this monitor is checked. Over-time criteria filters need
+           * it to work out how many samples a fully covered evaluation window
+           * should hold - without it a monitor that has only just started
+           * looks the same as one whose whole window is breaching.
+           */
+          monitoringInterval: true,
+          /*
+           * Recorded as oneuptime.label.* / oneuptime.customField.* attributes on
+           * every monitor metric this result produces, so response time and
+           * uptime are groupable by a project's own taxonomy. Selected here
+           * rather than re-read inside MonitorMetricUtil: this is the hottest
+           * Postgres path in the product and it already loads the monitor.
+           */
+          labels: {
+            _id: true,
+            name: true,
+          },
+          customFields: true,
+          /*
+           * Alert-dependency suppression inputs. Selected here for the same
+           * reason as labels: this query already loads the monitor on the
+           * hottest path, and both lists are empty for the overwhelming
+           * majority of monitors, in which case suppression costs nothing.
+           * Ids only — names are fetched by the suppression util's own
+           * parents query, so selecting them here would just duplicate the
+           * joined row payload on every evaluation.
+           */
+          dependsOnMonitors: {
+            _id: true,
+          },
+          suppressAlertsWhenParentMonitorStatuses: {
+            _id: true,
+          },
+          // A key resolved from a cache is checked against the monitor's own.
+          ...(options?.secretKey ? { [options.secretKey.column]: true } : {}),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.debug("Monitor found");
+      logger.debug("Monitor ID: " + dataToProcess.monitorId);
+
+      if (!monitor) {
+        logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
+        throw new BadDataException(ExceptionMessages.MonitorNotFound);
+      }
+
+      if (!monitor.projectId) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor does not have a projectId`,
+        );
+        throw new BadDataException("Monitor does not have a projectId");
+      }
+
+      /*
+       * A key the caller resolved from its cache that is no longer this
+       * monitor's - rotated, or the monitor gone and the id reused by nothing -
+       * finds no monitor, exactly as the caller's own lookup would have
+       * (MonitorSecretKeyCache).
+       */
+      if (
+        options?.secretKey &&
+        (
+          (monitor as unknown as Record<string, unknown>)[
+            options.secretKey.column
+          ]?.toString() || ""
+        ).toLowerCase() !== options.secretKey.value.trim().toLowerCase()
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - The secret key this result came in with is no longer the monitor's.`,
+        );
+        throw new BadDataException(ExceptionMessages.MonitorNotFound);
+      }
+
+      dataToProcess.projectId = monitor.projectId;
+
+      /*
+       * Probes check only the monitor types probes run (isProbableMonitor),
+       * and only the monitors they are assigned to - the assignment is held
+       * below, once the monitor's probe rows are read. A probe's result for any
+       * other monitor - a heartbeat, an incoming request, a telemetry or
+       * network device monitor - is no check that probe ran, and would
+       * otherwise be judged against that monitor's criteria and stored as its
+       * last request.
+       */
+      if (
+        reportingProbeId &&
+        !(
+          monitor.monitorType &&
+          MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+        )
+      ) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} - Probe ${reportingProbeId.toString()} reported a check result for a monitor probes do not check. Refused.`,
+        );
+
+        throw new BadDataException(ExceptionMessages.ProbeNotAssignedToMonitor);
+      }
+
+      /*
+       * Archived first: an archived monitor is out of service whatever its
+       * other flags say, and a result that still reaches it (a probe that
+       * claimed it just before it was archived, an incoming request, an email)
+       * must open nothing and change nothing.
+       *
+       * Each of the four refusals below is an ExceptionMessages entry, never
+       * words written here: the telemetry worker completes a job refused for a
+       * monitor that is not being monitored instead of failing and retrying
+       * it, and it knows these refusals by those entries
+       * (isNonActionableIngestError).
+       */
+      if (monitor.isArchived) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
+        );
+
+        throw new BadDataException(ExceptionMessages.MonitorArchived);
+      }
+
+      if (monitor.disableActiveMonitoring) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
+        );
+
+        throw new BadDataException(ExceptionMessages.MonitorDisabled);
+      }
+      if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
+        );
+
+        throw new BadDataException(
+          ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+        );
+      }
+
+      if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
+        );
+
+        throw new BadDataException(
+          ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+        );
+      }
+
+      /*
+       * A project a master admin blocked is not monitored: its monitors are no
+       * longer handed to probes or swept (getActiveProjectStatusQuery), and a
+       * result that still reaches one - a probe that claimed it just before
+       * the block, a heartbeat or an email its sender keeps sending, a trap -
+       * opens nothing and changes nothing. Returned rather than thrown: an
+       * outside sender keeps sending whatever OneUptime answers, and each of
+       * those would otherwise be a failed job. Cached per server
+       * (ProjectService.isProjectBlocked).
+       */
+      if (await ProjectService.isProjectBlocked(monitor.projectId)) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor's project is blocked. Skipping.`,
+        );
+
+        return response;
+      }
+
+      /*
+       * Nor is a sample project's (issue #6808): its monitors show a made-up
+       * history, are handed to no probe and swept by no job, and a result
+       * that reaches one anyway - a heartbeat someone sends to its address -
+       * opens nothing and changes nothing.
+       */
+      if (await ProjectService.isSampleProject(monitor.projectId)) {
+        logger.debug(
+          `${dataToProcess.monitorId.toString()} Monitor's project is a sample project. Skipping.`,
+        );
+
+        return response;
+      }
+
+      // What a heartbeat sweep compares with (MonitorHeartbeatState).
+      const monitorStatusIdFound: ObjectID | undefined =
+        monitor.currentMonitorStatusId;
+
+      /*
+       * A server agent's report is written to the monitor at most every few
+       * minutes; its arrival is kept on every report, and a check of the
+       * monitor judges the latest kept (MonitorResourceUtil.keepServerReport).
+       */
+      if (monitor.monitorType === MonitorType.Server) {
+        await MonitorResourceUtil.keepServerReport({
+          monitorId: monitor.id!,
+          dataToProcess: dataToProcess as ServerMonitorResponse,
+        });
+      }
 
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
 
       /*
-       * All MonitorProbe rows for this monitor, fetched once per result and
-       * reused by checkProbeAgreement below. The rows carry the heavy
-       * lastMonitoringLog jsonb, so re-fetching them per result was the
-       * second-largest read on the hottest Postgres path. Safe to reuse: the
-       * per-monitor semaphore above serializes every writer of these rows
-       * for the duration of this function.
+       * This monitor's probes, read once per result with the statement that
+       * stores the result (MonitorProbeLastResults) and reused by
+       * checkProbeAgreement below. Of each probe's lastMonitoringLog only
+       * what agreement judges is read: the step judged, from the other
+       * enabled, connected probes. Safe to reuse: the per-monitor semaphore
+       * above serializes every writer of these rows for the duration of this
+       * function.
        */
       let monitorProbesForMonitor: Array<MonitorProbe> | null = null;
 
@@ -560,54 +682,17 @@ export default class MonitorResourceUtil {
       ) {
         dataToProcess = dataToProcess as ProbeMonitorResponse;
         if ((dataToProcess as ProbeMonitorResponse).probeId) {
-          /*
-           * One query for every probe assigned to this monitor (instead of
-           * one for the current probe here plus another for all of them in
-           * checkProbeAgreement). The select is the union both consumers
-           * need.
-           */
-          monitorProbesForMonitor = await MonitorProbeService.findBy({
-            query: {
-              monitorId: monitor.id!,
-            },
-            select: {
-              _id: true,
-              probeId: true,
-              isEnabled: true,
-              lastMonitoringLog: true,
-              probe: {
-                name: true,
-                connectionStatus: true,
-              },
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          const probeResult: ProbeMonitorResponse =
+            dataToProcess as ProbeMonitorResponse;
 
           /*
            * The probe the result is from must be one of this monitor's own:
            * its result is stored under that probe's row and nowhere else.
            * Ids compared as Postgres compares uuids, whatever their case.
            */
-          const resultProbeId: string = (dataToProcess as ProbeMonitorResponse)
+          const resultProbeId: string = probeResult
             .probeId!.toString()
             .toLowerCase();
-
-          const monitorProbe: MonitorProbe | undefined =
-            monitorProbesForMonitor.find((mp: MonitorProbe) => {
-              return mp.probeId?.toString().toLowerCase() === resultProbeId;
-            });
-
-          if (!monitorProbe) {
-            throw new BadDataException(
-              ExceptionMessages.ProbeNotAssignedToMonitor,
-            );
-          }
-
-          probeName = monitorProbe.probe?.name || undefined;
 
           /*
            * Network Device monitors no longer flow through here: they are
@@ -616,78 +701,131 @@ export default class MonitorResourceUtil {
            * inventory, and evaluates watching monitors on each device walk.
            */
 
-          if (!isSnmpTrapEvent) {
-            /*
-             * Runs once per probe check result — the hottest recurring write
-             * in the product. The full updateOneBy pipeline would re-SELECT
-             * this row (including the large lastMonitoringLog jsonb we just
-             * fetched above) and then save() it (another SELECT + UPDATE in a
-             * transaction). MonitorProbe has no workflow/audit/realtime
-             * decorators, so those hooks were inert anyway — a single
-             * UPDATE by the id we already hold is equivalent and 3x cheaper.
-             * See the Monitor heartbeat writes below for the same pattern.
-             *
-             * The copy written is a storable one: a single NUL in the
-             * response body or headers made Postgres refuse the whole jsonb
-             * value, failing this job before the result was evaluated, on
-             * every retry. dataToProcess itself stays as the probe sent it,
-             * for the criteria below. The other steps' entries were read back
-             * from this column, so they are storable already.
-             *
-             * Kept as the probe sent it, unlike the monitor's logs:
-             * checkProbeAgreement judges it again against the criteria, and
-             * a filter on the body needs the body. People read it redacted
-             * as the logs are (MonitorProbeService.onFindSuccess).
-             */
-            const updatedLastMonitoringLog: MonitorStepProbeResponse = {
-              ...(monitorProbe.lastMonitoringLog || {}),
-              [(
-                dataToProcess as ProbeMonitorResponse
-              ).monitorStepId.toString()]: {
-                ...toStorableJson(dataToProcess as ProbeMonitorResponse),
-                monitoredAt: OneUptimeDate.getCurrentDate(),
-              },
-            };
+          /*
+           * The result as the probe's last for its step, stored once per
+           * probe check result — the hottest recurring write in the
+           * product. A single statement merges it into the probe's
+           * lastMonitoringLog in Postgres and reads the monitor's probes
+           * (MonitorProbeLastResults); the column is never read out to be
+           * written back. MonitorProbe has no workflow/audit/realtime
+           * decorators, so the hook pipeline would have been inert anyway.
+           *
+           * The copy written is a storable one: a single NUL in the
+           * response body or headers made Postgres refuse the whole jsonb
+           * value, failing this job before the result was evaluated, on
+           * every retry. dataToProcess itself stays as the probe sent it,
+           * for the criteria below. The other steps' entries stay in the
+           * column as they were, so they are storable already.
+           *
+           * Kept as the probe sent it, unlike the monitor's logs:
+           * checkProbeAgreement judges it again against the criteria, and
+           * a filter on the body needs the body. People read it redacted
+           * as the logs are (MonitorProbeService.onFindSuccess).
+           *
+           * A trap is not a check of its own, and a result that names no
+           * step has no entry to be: nothing is stored for either, and the
+           * probes are only read.
+           */
+          const reportedStepId: string =
+            probeResult.monitorStepId?.toString() || "";
 
+          const storedResult: ProbeMonitorResponse | undefined =
+            isSnmpTrapEvent || !reportedStepId
+              ? undefined
+              : ({
+                  ...toStorableJson(probeResult),
+                  monitoredAt: OneUptimeDate.getCurrentDate(),
+                } as ProbeMonitorResponse);
+
+          /*
+           * What probe agreement will read of the other probes: the step
+           * this result is judged against. A trap is not judged by
+           * agreement.
+           */
+          const judgedStepId: string | undefined = isSnmpTrapEvent
+            ? undefined
+            : MonitorResourceUtil.findStepToJudge({
+                monitorSteps: monitor.monitorSteps,
+                dataToProcess: dataToProcess,
+              })?.id.toString();
+
+          let probesOfResult: MonitorProbesOfResult;
+
+          try {
+            probesOfResult =
+              await MonitorProbeLastResults.storeResultAndReadProbes({
+                monitorId: monitor.id!,
+                reportingProbeId: probeResult.probeId!,
+                reportedStepId: reportedStepId,
+                judgedStepId: judgedStepId,
+                result: storedResult as unknown as JSONObject | undefined,
+              });
+          } catch (err) {
             /*
              * A row lock another writer held past lock_timeout costs the
              * stored copy of this one result, not the result (OneUptime
-             * issue #7194): the evaluation below runs on it all the same,
-             * and the probe's next result is stored over it. Thrown, it
-             * failed the whole job, and the queue ran it again from the
-             * start - twice - on the database that was already too busy.
-             * Any other failure is still thrown.
+             * issue #7194): the probes are read without the write, the
+             * evaluation below runs on the result all the same, and the
+             * probe's next result is stored over it. Thrown, it failed the
+             * whole job, and the queue ran it again from the start - twice
+             * - on the database that was already too busy. Any other
+             * failure is still thrown.
              */
-            try {
-              await MonitorProbeService.updateColumnsByIdWithoutHooks({
-                id: monitorProbe.id!,
-                data: {
-                  lastMonitoringLog: updatedLastMonitoringLog as any,
-                },
-              });
-            } catch (err) {
-              if (!isPostgresLockContentionError(err)) {
-                throw err;
-              }
-
-              logger.warn(
-                `${dataToProcess.monitorId.toString()} - the result of probe ${resultProbeId} is evaluated but not stored as its last result: another writer held the monitor probe's row (${
-                  err instanceof Error ? err.message : String(err)
-                }). Its next result is stored as usual.`,
-                {
-                  projectId: monitor.projectId?.toString(),
-                  monitorId: monitor.id?.toString(),
-                } as LogAttributes,
-              );
+            if (!storedResult || !isPostgresLockContentionError(err)) {
+              throw err;
             }
 
-            /*
-             * Mirror the write onto the in-memory row so checkProbeAgreement
-             * (which reuses monitorProbesForMonitor instead of re-querying)
-             * sees exactly what a fresh read would return.
-             */
-            monitorProbe.lastMonitoringLog = updatedLastMonitoringLog;
+            logger.warn(
+              `${dataToProcess.monitorId.toString()} - the result of probe ${resultProbeId} is evaluated but not stored as its last result: another writer held the monitor probe's row (${
+                err instanceof Error ? err.message : String(err)
+              }). Its next result is stored as usual.`,
+              {
+                projectId: monitor.projectId?.toString(),
+                monitorId: monitor.id?.toString(),
+              } as LogAttributes,
+            );
+
+            probesOfResult =
+              await MonitorProbeLastResults.storeResultAndReadProbes({
+                monitorId: monitor.id!,
+                reportingProbeId: probeResult.probeId!,
+                reportedStepId: reportedStepId,
+                judgedStepId: judgedStepId,
+                result: undefined,
+              });
           }
+
+          const reportingProbe: MonitorProbeOfResult | undefined =
+            probesOfResult.probes.find((probe: MonitorProbeOfResult) => {
+              return probe.probeId.toString().toLowerCase() === resultProbeId;
+            });
+
+          if (!reportingProbe) {
+            throw new BadDataException(
+              ExceptionMessages.ProbeNotAssignedToMonitor,
+            );
+          }
+
+          probeName = reportingProbe.probeName || undefined;
+
+          /*
+           * The probes as checkProbeAgreement reads them: the reporting
+           * probe with this result as its last for the step it reported
+           * (stored or, under another writer's lock, not), the others with
+           * their last result for the step judged.
+           */
+          monitorProbesForMonitor = probesOfResult.probes.map(
+            (probe: MonitorProbeOfResult): MonitorProbe => {
+              return MonitorResourceUtil.toMonitorProbeForAgreement({
+                probe: probe,
+                judgedStepId: judgedStepId,
+                reportedResult:
+                  probe === reportingProbe && storedResult
+                    ? { stepId: reportedStepId, result: storedResult }
+                    : undefined,
+              });
+            },
+          );
         }
       }
 
@@ -727,7 +865,23 @@ export default class MonitorResourceUtil {
            * (and overwrite) the ingest path's fresh heartbeat update, causing
            * the monitor to flap between Online and Offline every minute.
            */
-          if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
+          if (
+            !serverMonitorResponse.onlyCheckRequestReceivedAt &&
+            !(await MonitorHeartbeatState.isWriteDue({
+              monitorId: monitor.id!,
+              write: HeartbeatWrite.ServerReport,
+            }))
+          ) {
+            /*
+             * Written less than SERVER_REPORT_WRITE_EVERY_SECONDS ago. Its
+             * arrival is kept (keepServerReport), and the CheckOnlineStatus
+             * sweep only looks at a server whose written report is older
+             * than its window.
+             */
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Server report not written: the last one was written less than ${MonitorHeartbeatState.SERVER_REPORT_WRITE_EVERY_SECONDS} seconds ago.`,
+            );
+          } else if (!serverMonitorResponse.onlyCheckRequestReceivedAt) {
             /*
              * Heartbeat write: single-statement UPDATE, no hooks and no
              * `version` bump. This DELIBERATELY drops the per-update workflow
@@ -760,6 +914,13 @@ export default class MonitorResourceUtil {
                     MonitorRecordEvidence.keepsResponseContent(monitor),
                 }) as unknown as ServerMonitorResponse,
               },
+            });
+
+            await MonitorHeartbeatState.markWritten({
+              monitorId: monitor.id!,
+              write: HeartbeatWrite.ServerReport,
+              everySeconds:
+                MonitorHeartbeatState.SERVER_REPORT_WRITE_EVERY_SECONDS,
             });
 
             logger.debug(
@@ -799,6 +960,35 @@ export default class MonitorResourceUtil {
                 MonitorRecordEvidence.keepsResponseContent(monitor),
             });
 
+          /*
+           * Written when the request differs from the last one written in
+           * anything the heartbeat sweep judges again, and otherwise at most
+           * every so often (MonitorHeartbeatState): a sender repeating the
+           * same ping rewrote the row on every call. Its arrival is in
+           * IncomingRequestReceivedAtStore, which the sweep judges; the row's
+           * is only the floor, so it is never left older than half the
+           * monitor's shortest window.
+           */
+          const requestFingerprint: string =
+            MonitorHeartbeatState.getIncomingRequestFingerprint({
+              request: incomingMonitorRequest,
+              monitorSteps: monitor.monitorSteps,
+            });
+
+          if (
+            !(await MonitorHeartbeatState.isWriteDue({
+              monitorId: monitor.id!,
+              write: HeartbeatWrite.IncomingRequest,
+              fingerprint: requestFingerprint,
+            }))
+          ) {
+            logger.debug(
+              `${dataToProcess.monitorId.toString()} - Incoming request not written: the same request was written moments ago.`,
+            );
+            hasPersistedMonitorData = true;
+            return;
+          }
+
           await MonitorService.updateColumnsByIdWithoutHooks({
             id: monitor.id!,
             data: {
@@ -808,6 +998,16 @@ export default class MonitorResourceUtil {
               incomingMonitorRequestAsReceived:
                 latestRequest.incomingMonitorRequestAsReceived,
             } as any,
+          });
+
+          await MonitorHeartbeatState.markWritten({
+            monitorId: monitor.id!,
+            write: HeartbeatWrite.IncomingRequest,
+            fingerprint: requestFingerprint,
+            everySeconds:
+              MonitorHeartbeatState.getIncomingRequestWriteEverySeconds(
+                monitor.monitorSteps,
+              ),
           });
 
           logger.debug(
@@ -927,37 +1127,15 @@ export default class MonitorResourceUtil {
        * step 0's id into checkProbeAgreement (so agreement compared this
        * result against other probes' logs for the wrong step).
        */
-      let monitorStep: MonitorStep | undefined =
-        monitorSteps.data.monitorStepsInstanceArray[0];
+      const monitorStep: MonitorStep | undefined =
+        MonitorResourceUtil.findStepToJudge({
+          monitorSteps: monitorSteps,
+          dataToProcess: dataToProcess,
+        });
 
       logger.debug(
-        `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"}`,
+        `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"} (reported: ${(dataToProcess as ProbeMonitorResponse).monitorStepId})`,
       );
-
-      if ((dataToProcess as ProbeMonitorResponse).monitorStepId) {
-        const ingestedMonitorStep: MonitorStep | undefined =
-          monitorSteps.data.monitorStepsInstanceArray.find(
-            (step: MonitorStep) => {
-              return (
-                step.id.toString() ===
-                (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
-              );
-            },
-          );
-
-        /*
-         * An id that matches no step is stale - the step was deleted after the
-         * probe was scheduled. Keep the existing behaviour there and fall back
-         * to the first step rather than dropping the result.
-         */
-        if (ingestedMonitorStep) {
-          monitorStep = ingestedMonitorStep;
-        }
-
-        logger.debug(
-          `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
-        );
-      }
 
       if (!monitorStep) {
         logger.debug("No steps found, ignoring everything.");
@@ -1514,14 +1692,36 @@ export default class MonitorResourceUtil {
          * same capture, so the incident page can show what the monitor
          * saw long after MonitorLog's TTL (one day by default) has
          * dropped the underlying log.
+         *
+         * Built only when a record is really created, once for every one
+         * (getMonitorSummary): almost every matched result creates nothing,
+         * and a Network Device monitor's capture reads its probe's name.
+         * What it captures is still the evaluation as it stands here - its
+         * events up to this point are copied now - so a record opened below
+         * shows what it showed when the capture was made up front.
          */
-        const monitorSummary: MonitorSummarySnapshot | null =
-          await MonitorSummaryCapture.capture({
-            monitor: monitor,
-            dataToProcess: dataToProcess,
-            evaluationSummary: evaluationSummary,
-            probeName: probeName,
-          });
+        const evaluationSummaryAtCapture: MonitorEvaluationSummary = {
+          ...evaluationSummary,
+          criteriaResults: [...evaluationSummary.criteriaResults],
+          events: [...evaluationSummary.events],
+        };
+
+        let monitorSummary: Promise<MonitorSummarySnapshot | null> | null =
+          null;
+
+        const getMonitorSummary: () => Promise<MonitorSummarySnapshot | null> =
+          (): Promise<MonitorSummarySnapshot | null> => {
+            if (!monitorSummary) {
+              monitorSummary = MonitorSummaryCapture.capture({
+                monitor: monitor,
+                dataToProcess: dataToProcess,
+                evaluationSummary: evaluationSummaryAtCapture,
+                probeName: probeName,
+              });
+            }
+
+            return monitorSummary;
+          };
 
         /*
          * Incoming-request grouping is event-driven: a webhook describes
@@ -1550,45 +1750,93 @@ export default class MonitorResourceUtil {
          * each criteria absence-resolve the records the others just
          * justified. The creators are handed the survivors so they never
          * dedupe a new alert against one this pass has already closed.
+         *
+         * A kind of record no criteria met opens is read only to
+         * auto-resolve it, and is not read at all when the monitor is known
+         * to have none open that a criteria raised (MonitorOpenRecords): a
+         * healthy check, almost every result, reads neither.
          */
+        const opensIncidents: boolean = criteriaFanOut.some(
+          (matched: MatchedCriteriaResult): boolean => {
+            return (
+              criteriaInstanceMap[matched.criteriaId]?.data?.createIncidents ===
+              true
+            );
+          },
+        );
+
+        const opensAlerts: boolean = criteriaFanOut.some(
+          (matched: MatchedCriteriaResult): boolean => {
+            return (
+              criteriaInstanceAlertMap[matched.criteriaId]?.data
+                ?.createAlerts === true
+            );
+          },
+        );
+
+        const openRecordsReading: MonitorOpenRecordsReading =
+          await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+            monitor: monitor,
+            opensIncidents: opensIncidents,
+            opensAlerts: opensAlerts,
+          });
+
         const openIncidents: Array<Incident> =
-          await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-            rootCause: response.rootCause,
-            criteriaInstance: matchedCriteriaInstance,
-            dataToProcess: dataToProcess,
-            evaluationSummary: evaluationSummary,
-            breachingSeriesFingerprints,
-            breachingSeriesFingerprintsByCriteriaId: response.matchedCriteria
-              ? breachingSeriesFingerprintsByCriteriaId
-              : undefined,
-            disableSeriesAbsenceResolution,
-            criteriaInstancesById: criteriaInstanceMap,
-            keepResponseContent:
-              MonitorRecordEvidence.keepsResponseContent(monitor),
-            monitorStep: monitorStep,
+          await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+            monitor: monitor,
+            kind: MonitorRecordKind.Incident,
+            reading: openRecordsReading,
+            opensRecords: opensIncidents,
+            read: (): Promise<Array<Incident>> => {
+              return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+                monitorId: monitor.id!,
+                projectId: monitor.projectId!,
+                autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+                rootCause: response.rootCause!,
+                criteriaInstance: matchedCriteriaInstance,
+                dataToProcess: dataToProcess,
+                evaluationSummary: evaluationSummary,
+                breachingSeriesFingerprints,
+                breachingSeriesFingerprintsByCriteriaId:
+                  response.matchedCriteria
+                    ? breachingSeriesFingerprintsByCriteriaId
+                    : undefined,
+                disableSeriesAbsenceResolution,
+                criteriaInstancesById: criteriaInstanceMap,
+                keepResponseContent:
+                  MonitorRecordEvidence.keepsResponseContent(monitor),
+                monitorStep: monitorStep,
+              });
+            },
           });
 
         const openAlerts: Array<Alert> =
-          await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-            autoResolveCriteriaInstanceIdAlertIdsDictionary,
-            rootCause: response.rootCause,
-            criteriaInstance: matchedCriteriaInstance,
-            dataToProcess: dataToProcess,
-            evaluationSummary: evaluationSummary,
-            breachingSeriesFingerprints,
-            breachingSeriesFingerprintsByCriteriaId: response.matchedCriteria
-              ? breachingSeriesFingerprintsByCriteriaId
-              : undefined,
-            disableSeriesAbsenceResolution,
-            criteriaInstancesById: criteriaInstanceAlertMap,
-            keepResponseContent:
-              MonitorRecordEvidence.keepsResponseContent(monitor),
-            monitorStep: monitorStep,
+          await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+            monitor: monitor,
+            kind: MonitorRecordKind.Alert,
+            reading: openRecordsReading,
+            opensRecords: opensAlerts,
+            read: (): Promise<Array<Alert>> => {
+              return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+                monitorId: monitor.id!,
+                projectId: monitor.projectId!,
+                autoResolveCriteriaInstanceIdAlertIdsDictionary,
+                rootCause: response.rootCause!,
+                criteriaInstance: matchedCriteriaInstance,
+                dataToProcess: dataToProcess,
+                evaluationSummary: evaluationSummary,
+                breachingSeriesFingerprints,
+                breachingSeriesFingerprintsByCriteriaId:
+                  response.matchedCriteria
+                    ? breachingSeriesFingerprintsByCriteriaId
+                    : undefined,
+                disableSeriesAbsenceResolution,
+                criteriaInstancesById: criteriaInstanceAlertMap,
+                keepResponseContent:
+                  MonitorRecordEvidence.keepsResponseContent(monitor),
+                monitorStep: monitorStep,
+              });
+            },
           });
 
         /*
@@ -1670,7 +1918,7 @@ export default class MonitorResourceUtil {
               autoResolveCriteriaInstanceIdIncidentIdsDictionary,
               criteriaInstance: criteriaInstance,
               evaluationSummary: evaluationSummary,
-              monitorSummary: monitorSummary,
+              getMonitorSummary: getMonitorSummary,
               getEvaluationDetails: getEvaluationDetails,
               props: {
                 telemetryQuery: telemetryQuery,
@@ -1696,7 +1944,7 @@ export default class MonitorResourceUtil {
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             criteriaInstance: criteriaInstanceAlertMap[matched.criteriaId]!,
             evaluationSummary: evaluationSummary,
-            monitorSummary: monitorSummary,
+            getMonitorSummary: getMonitorSummary,
             getEvaluationDetails: getEvaluationDetails,
             props: {
               telemetryQuery: telemetryQuery,
@@ -1739,53 +1987,84 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
         );
 
-        await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
-          monitorId: monitor.id!,
-          projectId: monitor.projectId!,
-          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
-          rootCause: "No monitoring criteria met. Change to default status.",
-          criteriaInstance: null, // no criteria met!
-          dataToProcess: dataToProcess,
-          evaluationSummary: evaluationSummary,
-          keepResponseContent:
-            MonitorRecordEvidence.keepsResponseContent(monitor),
-          monitorStep: monitorStep,
-          /*
-           * Event-driven grouping: for incoming-request monitors, never
-           * absence-resolve per-key (seriesFingerprint) incidents on the
-           * no-criteria-met path — a heartbeat tick or a rejected webhook
-           * must not bulk-close grouped incidents. They resolve only via
-           * the explicit resolution block above. Non-grouped incoming
-           * incidents have no seriesFingerprint, so they still resolve
-           * normally; non-incoming-request types are unaffected (flag false).
-           *
-           * A Logs monitor whose groups are resolved by a log is the same
-           * case: with no log in the window no criteria is met, and that
-           * is silence, not recovery.
-           */
-          disableSeriesAbsenceResolution:
-            MonitorResourceUtil.isSeriesResolvedExplicitly({
-              monitor: monitor,
+        /*
+         * No criteria met opens anything: each kind is read only to
+         * auto-resolve it, and not read when none a criteria raised is open
+         * (MonitorOpenRecords).
+         */
+        const noCriteriaOpenRecords: MonitorOpenRecordsReading =
+          await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+            monitor: monitor,
+            opensIncidents: false,
+            opensAlerts: false,
+          });
+
+        await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+          monitor: monitor,
+          kind: MonitorRecordKind.Incident,
+          reading: noCriteriaOpenRecords,
+          opensRecords: false,
+          read: (): Promise<Array<Incident>> => {
+            return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+              monitorId: monitor.id!,
+              projectId: monitor.projectId!,
+              autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+              rootCause:
+                "No monitoring criteria met. Change to default status.",
+              criteriaInstance: null, // no criteria met!
               dataToProcess: dataToProcess,
-            }),
+              evaluationSummary: evaluationSummary,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+              monitorStep: monitorStep,
+              /*
+               * Event-driven grouping: for incoming-request monitors, never
+               * absence-resolve per-key (seriesFingerprint) incidents on the
+               * no-criteria-met path — a heartbeat tick or a rejected webhook
+               * must not bulk-close grouped incidents. They resolve only via
+               * the explicit resolution block above. Non-grouped incoming
+               * incidents have no seriesFingerprint, so they still resolve
+               * normally; non-incoming-request types are unaffected (flag
+               * false).
+               *
+               * A Logs monitor whose groups are resolved by a log is the same
+               * case: with no log in the window no criteria is met, and that
+               * is silence, not recovery.
+               */
+              disableSeriesAbsenceResolution:
+                MonitorResourceUtil.isSeriesResolvedExplicitly({
+                  monitor: monitor,
+                  dataToProcess: dataToProcess,
+                }),
+            });
+          },
         });
 
-        await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
-          monitorId: monitor.id!,
-          projectId: monitor.projectId!,
-          autoResolveCriteriaInstanceIdAlertIdsDictionary,
-          rootCause: "No monitoring criteria met. Change to default status.",
-          criteriaInstance: null, // no criteria met!
-          dataToProcess: dataToProcess,
-          evaluationSummary: evaluationSummary,
-          keepResponseContent:
-            MonitorRecordEvidence.keepsResponseContent(monitor),
-          monitorStep: monitorStep,
-          disableSeriesAbsenceResolution:
-            MonitorResourceUtil.isSeriesResolvedExplicitly({
-              monitor: monitor,
+        await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+          monitor: monitor,
+          kind: MonitorRecordKind.Alert,
+          reading: noCriteriaOpenRecords,
+          opensRecords: false,
+          read: (): Promise<Array<Alert>> => {
+            return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+              monitorId: monitor.id!,
+              projectId: monitor.projectId!,
+              autoResolveCriteriaInstanceIdAlertIdsDictionary,
+              rootCause:
+                "No monitoring criteria met. Change to default status.",
+              criteriaInstance: null, // no criteria met!
               dataToProcess: dataToProcess,
-            }),
+              evaluationSummary: evaluationSummary,
+              keepResponseContent:
+                MonitorRecordEvidence.keepsResponseContent(monitor),
+              monitorStep: monitorStep,
+              disableSeriesAbsenceResolution:
+                MonitorResourceUtil.isSeriesResolvedExplicitly({
+                  monitor: monitor,
+                  dataToProcess: dataToProcess,
+                }),
+            });
+          },
         });
 
         // get last monitor status timeline.
@@ -1945,6 +2224,17 @@ export default class MonitorResourceUtil {
 
       await persistLatestMonitorPayload();
 
+      /*
+       * An incoming request or email evaluated: what it judged is recorded,
+       * so a heartbeat sweep that would judge the same again can skip it
+       * (MonitorHeartbeatState.canSkipEvaluation).
+       */
+      await MonitorResourceUtil.markHeartbeatEvaluated({
+        monitor: monitor,
+        dataToProcess: dataToProcess,
+        monitorStatusIdFound: monitorStatusIdFound,
+      });
+
       MonitorLogUtil.saveMonitorLog({
         monitorId: monitor.id!,
         projectId: monitor.projectId!,
@@ -1961,30 +2251,216 @@ export default class MonitorResourceUtil {
   }
 
   /*
-   * A primary-key read of a single column; kept separate from the monitor
-   * load above so that load can stay outside the lock (see the comment on
-   * the lock for why validation must come first).
+   * A server agent's report: its arrival is kept on every report, before
+   * the report is judged (the row is written at most every few minutes). A
+   * check of the monitor - the CheckOnlineStatus sweep, which passes the
+   * arrival it read from the row - judges the latest arrival kept, so a
+   * report that was not written is never taken for silence.
    */
-  public static async refreshCurrentMonitorStatus(
-    monitor: Monitor,
-  ): Promise<void> {
-    if (!monitor.id) {
+  public static async keepServerReport(input: {
+    monitorId: ObjectID;
+    dataToProcess: ServerMonitorResponse;
+  }): Promise<void> {
+    if (!input.dataToProcess.onlyCheckRequestReceivedAt) {
+      await MonitorHeartbeatState.recordServerReport({
+        monitorId: input.monitorId,
+        receivedAt: input.dataToProcess.requestReceivedAt,
+      });
       return;
     }
 
-    const latest: Monitor | null = await MonitorService.findOneById({
-      id: monitor.id,
-      select: {
-        currentMonitorStatusId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const kept: Date | null =
+      await MonitorHeartbeatState.getServerReportReceivedAt(input.monitorId);
 
-    if (latest?.currentMonitorStatusId) {
-      monitor.currentMonitorStatusId = latest.currentMonitorStatusId;
+    if (!kept) {
+      return;
     }
+
+    const written: Date | null = input.dataToProcess.requestReceivedAt
+      ? OneUptimeDate.fromString(input.dataToProcess.requestReceivedAt)
+      : null;
+
+    if (!written || kept.getTime() > written.getTime()) {
+      input.dataToProcess.requestReceivedAt = kept;
+    }
+  }
+
+  // An incoming request or email evaluated, recorded for the heartbeat sweeps.
+  public static async markHeartbeatEvaluated(input: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    monitorStatusIdFound: ObjectID | undefined;
+  }): Promise<void> {
+    const kind: HeartbeatKind | null =
+      input.monitor.monitorType === MonitorType.IncomingRequest
+        ? HeartbeatKind.IncomingRequest
+        : input.monitor.monitorType === MonitorType.IncomingEmail
+          ? HeartbeatKind.IncomingEmail
+          : null;
+
+    if (!kind || !input.monitor.id) {
+      return;
+    }
+
+    await MonitorHeartbeatState.markEvaluated({
+      kind: kind,
+      monitorId: input.monitor.id,
+      receivedAt:
+        kind === HeartbeatKind.IncomingRequest
+          ? (input.dataToProcess as IncomingMonitorRequest)
+              .incomingRequestReceivedAt
+          : (input.dataToProcess as IncomingEmailMonitorRequest)
+              .emailReceivedAt,
+      monitorSteps: input.monitor.monitorSteps,
+      monitorStatusId: input.monitorStatusIdFound,
+    });
+  }
+
+  /*
+   * What is known of the monitor's open incidents and alerts its criteria
+   * raised (MonitorOpenRecords), read under the monitor's lock before the
+   * result reads or leaves out its records. A result whose criteria opens
+   * both kinds reads both whatever is known, so it asks nothing of Redis.
+   */
+  public static async readWhatIsKnownOfOpenRecords(input: {
+    monitor: Monitor;
+    opensIncidents: boolean;
+    opensAlerts: boolean;
+  }): Promise<MonitorOpenRecordsReading> {
+    if (
+      (input.opensIncidents && input.opensAlerts) ||
+      !input.monitor.id ||
+      !input.monitor.projectId
+    ) {
+      return NOTHING_KNOWN;
+    }
+
+    return await MonitorOpenRecords.read({
+      monitorId: input.monitor.id,
+      projectId: input.monitor.projectId,
+    });
+  }
+
+  /*
+   * The monitor's open records of one kind, as the resolve pass left them -
+   * or none, unread, when nothing the criteria met opens that kind and the
+   * monitor is known to have none open that a criteria raised: the read
+   * would only look for something to auto-resolve, and only a record a
+   * criteria raised is ever auto-resolved (createdCriteriaId).
+   *
+   * A read of a kind nothing met opens that leaves no such record open is
+   * recorded, stamped as of the reading taken before it, so the next result
+   * can leave it out. A kind something met opens is read always - it opens
+   * none beside one already open - and recorded never: the result that
+   * opens one would make the record unusable at once.
+   */
+  public static async readOpenRecordsUnlessNoneOpen<
+    TRecord extends Incident | Alert,
+  >(input: {
+    monitor: Monitor;
+    kind: MonitorRecordKind;
+    reading: MonitorOpenRecordsReading;
+    opensRecords: boolean;
+    read: () => Promise<Array<TRecord>>;
+  }): Promise<Array<TRecord>> {
+    if (!input.opensRecords && input.reading.noneOpen[input.kind]) {
+      return [];
+    }
+
+    const records: Array<TRecord> = await input.read();
+
+    if (
+      !input.opensRecords &&
+      input.monitor.id &&
+      !records.some((record: TRecord): boolean => {
+        return Boolean(record.createdCriteriaId);
+      })
+    ) {
+      await MonitorOpenRecords.markNoneOpen({
+        monitorId: input.monitor.id,
+        kind: input.kind,
+        reading: input.reading,
+      });
+    }
+
+    return records;
+  }
+
+  /*
+   * The step a result is judged against. A probe result carries the
+   * monitorStepId it ran, and a monitor can have several steps whose
+   * criteria differ - so the step must be looked up, not assumed to be the
+   * first one. An id that matches no step is stale - the step was deleted
+   * after the probe was scheduled - and the first step is judged instead
+   * rather than dropping the result. Undefined for a monitor with no steps.
+   */
+  public static findStepToJudge(input: {
+    monitorSteps: MonitorSteps | undefined;
+    dataToProcess: DataToProcess;
+  }): MonitorStep | undefined {
+    const steps: Array<MonitorStep> =
+      input.monitorSteps?.data?.monitorStepsInstanceArray || [];
+
+    const reportedStepId: string | undefined = (
+      input.dataToProcess as ProbeMonitorResponse
+    ).monitorStepId?.toString();
+
+    if (reportedStepId) {
+      const reportedStep: MonitorStep | undefined = steps.find(
+        (step: MonitorStep) => {
+          return step.id.toString() === reportedStepId;
+        },
+      );
+
+      if (reportedStep) {
+        return reportedStep;
+      }
+    }
+
+    return steps[0];
+  }
+
+  /*
+   * A probe of the monitor as checkProbeAgreement reads it: its last result
+   * of the step judged, and - for the probe that reported the result being
+   * handled - that result as its last of the step it reported.
+   */
+  public static toMonitorProbeForAgreement(input: {
+    probe: MonitorProbeOfResult;
+    judgedStepId: string | undefined;
+    reportedResult?:
+      | { stepId: string; result: ProbeMonitorResponse }
+      | undefined;
+  }): MonitorProbe {
+    const probe: Probe = new Probe();
+
+    if (input.probe.probeName !== undefined) {
+      probe.name = input.probe.probeName;
+    }
+
+    if (input.probe.probeConnectionStatus !== undefined) {
+      probe.connectionStatus = input.probe.probeConnectionStatus;
+    }
+
+    const lastMonitoringLog: MonitorStepProbeResponse = {};
+
+    if (input.judgedStepId && input.probe.resultForJudgedStep) {
+      lastMonitoringLog[input.judgedStepId] = input.probe.resultForJudgedStep;
+    }
+
+    if (input.reportedResult) {
+      lastMonitoringLog[input.reportedResult.stepId] =
+        input.reportedResult.result;
+    }
+
+    const monitorProbe: MonitorProbe = new MonitorProbe();
+    monitorProbe.id = input.probe.monitorProbeId;
+    monitorProbe.probeId = input.probe.probeId;
+    monitorProbe.isEnabled = input.probe.isEnabled;
+    monitorProbe.probe = probe;
+    monitorProbe.lastMonitoringLog = lastMonitoringLog;
+
+    return monitorProbe;
   }
 
   /**
@@ -2129,11 +2605,11 @@ export default class MonitorResourceUtil {
     currentProbeId?: ObjectID | undefined;
     /*
      * Pre-fetched MonitorProbe rows for this monitor (probeId, isEnabled,
-     * lastMonitoringLog, probe.name/connectionStatus). The probe-result hot
-     * path passes these to avoid re-reading every row's lastMonitoringLog
-     * jsonb per result; safe because the caller holds the per-monitor lock,
-     * so the rows cannot change underneath us. When absent, fall back to
-     * querying.
+     * probe.name/connectionStatus, and the step judged of lastMonitoringLog).
+     * The probe-result hot path passes the ones it read with the statement
+     * that stored its result; safe because the caller holds the per-monitor
+     * lock, so the rows cannot change underneath us. When absent, they are
+     * read - with no more of lastMonitoringLog than the step judged.
      */
     monitorProbes?: Array<MonitorProbe> | undefined;
     /*
@@ -2152,25 +2628,17 @@ export default class MonitorResourceUtil {
      */
     const monitorProbes: Array<MonitorProbe> =
       input.monitorProbes ||
-      (await MonitorProbeService.findBy({
-        query: {
+      (
+        await MonitorProbeLastResults.readProbes({
           monitorId: monitor.id!,
-        },
-        select: {
-          probeId: true,
-          isEnabled: true,
-          lastMonitoringLog: true,
-          probe: {
-            connectionStatus: true,
-            name: true,
-          },
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      }));
+          judgedStepId: monitorStep.id.toString(),
+        })
+      ).map((probe: MonitorProbeOfResult): MonitorProbe => {
+        return MonitorResourceUtil.toMonitorProbeForAgreement({
+          probe: probe,
+          judgedStepId: monitorStep.id.toString(),
+        });
+      });
 
     // Filter to only active probes (enabled AND connected)
     const activeProbes: Array<MonitorProbe> = monitorProbes.filter(

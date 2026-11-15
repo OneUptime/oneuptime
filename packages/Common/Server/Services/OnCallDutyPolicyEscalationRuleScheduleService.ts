@@ -31,6 +31,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
+import OnDutyPoliciesCache from "../Utils/OnCall/OnDutyPoliciesCache";
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   public constructor() {
@@ -156,6 +157,15 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       createdModel.onCallDutyPolicyScheduleId,
       createdModel.projectId,
     );
+
+    /*
+     * Whoever is on call in the schedule is paged by the rule now - told once
+     * the roster the attachment changes is written, so nothing built before
+     * that is kept after it.
+     */
+    await OnDutyPoliciesCache.forgetProjects([
+      createdModel.projectId || createdItem.projectId,
+    ]);
 
     // send notification to the new current user.
 
@@ -476,6 +486,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         deletedItem.projectId,
       );
     }
+
+    // Nobody on call in the schedule is on duty for the rule any more.
+    await OnDutyPoliciesCache.forgetProjects(
+      deletedItems.map((deletedItem: Model) => {
+        return deletedItem.projectId;
+      }),
+    );
 
     for (const deletedItem of deletedItems) {
       /*

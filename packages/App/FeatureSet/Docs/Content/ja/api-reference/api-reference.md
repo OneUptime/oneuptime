@@ -206,7 +206,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 書き込みが並べるレコードと指定するレコード
 
-作成や変更が並べるレコード (インシデントのモニターとオンコールポリシー、アラートのサービス、定期メンテナンスイベントのステータスページ、ルールの Runbook) は、その種類のレコードを読む権限があればそれに従い、いずれの場合もその読み取りに対するラベル付きのブロックに従います。その外にあるレコードは同じ `400` で拒否されます。変更では一覧に追加されるレコードだけが確認されるため、一覧にすでにあるレコードはそのまま残ります。
+作成や変更が並べるレコード (インシデントのモニターとオンコールポリシー、アラートのサービス、メンテナンスイベントのステータスページ、ルールの Runbook) は、その種類のレコードを読む権限があればそれに従い、いずれの場合もその読み取りに対するラベル付きのブロックに従います。その外にあるレコードは同じ `400` で拒否されます。変更では一覧に追加されるレコードだけが確認されるため、一覧にすでにあるレコードはそのまま残ります。
 
 作成や変更が専用のフィールドで指定する 1 つのレコード (アラートのモニター、ステータスページのリソースが表示するモニター、コスト予算のサービス、Runbook の実行が結び付くインシデント) も、どちらの名前で送っても同じルールに従います。その種類のレコードを読む権限の外にあるレコードや、その読み取りのブロックが外すラベルが付いたレコードは、同じ `400` で拒否されます。変更では、フィールドがすでに持っているものとは別のレコードを指定したときだけ確認されます。どのプロジェクトでも使える OneUptime のグローバルプローブと AI エージェントは、引き続きすべてのプロジェクトに開かれています。テンプレートが代わりに入力するレコードも、入力された時点で、何かが保存される前に同じように確認されます。インシデントテンプレートが、そのテンプレートから宣言されたインシデントに追加するモニター、ステータスページ、オンコールポリシーは、自分で選んだ場合と同じく、読み取りを許可されたものでなければなりません。
 
@@ -246,7 +246,7 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 ### スイッチ
 
-オンかオフのフィールド (`isEnabled`、`isVisibleOnStatusPage`、`isArchived`、そのほかすべての `true` または `false` のフィールド) は `true` か `false` を受け取ります。データベースがそのどちらかとして読むテキストと数値は、API、Terraform、ワークフローのどれでも同じように、その値として受け取られます。`"true"`、`"yes"`、`"on"`、`"1"`、`1` は `true`、`"false"`、`"no"`、`"off"`、`"0"`、`0` は `false` で、大文字と小文字は区別されません。OneUptime がそのレコードで行うことも、すべてその値として扱います。`"isVisibleOnStatusPage": "true"` で送られた定期メンテナンスイベントはステータスページに画像を表示し、`"isEnabled": "false"` はプラン未満のリソースを `false` と同じように無効にします。`"maybe"`、`""`、`2` のようなほかの値は、フィールドを示す `400` で拒否されます。
+オンかオフのフィールド (`isEnabled`、`isVisibleOnStatusPage`、`isArchived`、そのほかすべての `true` または `false` のフィールド) は `true` か `false` を受け取ります。データベースがそのどちらかとして読むテキストと数値は、API、Terraform、ワークフローのどれでも同じように、その値として受け取られます。`"true"`、`"yes"`、`"on"`、`"1"`、`1` は `true`、`"false"`、`"no"`、`"off"`、`"0"`、`0` は `false` で、大文字と小文字は区別されません。OneUptime がそのレコードで行うことも、すべてその値として扱います。`"isVisibleOnStatusPage": "true"` で送られたメンテナンスイベントはステータスページに画像を表示し、`"isEnabled": "false"` はプラン未満のリソースを `false` と同じように無効にします。`"maybe"`、`""`、`2` のようなほかの値は、フィールドを示す `400` で拒否されます。
 
 ```text
 isVisibleOnStatusPage must be true or false.
@@ -276,7 +276,7 @@ API リファレンスでは、これらのフィールドは読み取り専用�
 
 ### レコードの状態を変える
 
-レコードの状態は、状態タイムラインの行 (`POST /api/incident-state-timeline`、`/api/alert-state-timeline`、`/api/incident-episode-state-timeline`、`/api/alert-episode-state-timeline`、`/api/scheduled-maintenance-state-timeline`)、または現在の状態 (`currentIncidentStateId`、`currentAlertStateId`、`currentScheduledMaintenanceStateId`、またはリレーション) を書き込む更新で変わり、後者も同じ行を記録します。どちらの場合も、エピソードにもインシデント、アラート、定期メンテナンスイベントにも、1 つのルールが遷移に適用されます。プロジェクトの順序でレコードの現在の状態より前にある状態は、何かが保存される前に拒否されます。すでにその状態にある場合も同じです。
+レコードの状態は、状態タイムラインの行 (`POST /api/incident-state-timeline`、`/api/alert-state-timeline`、`/api/incident-episode-state-timeline`、`/api/alert-episode-state-timeline`、`/api/scheduled-maintenance-state-timeline`)、または現在の状態 (`currentIncidentStateId`、`currentAlertStateId`、`currentScheduledMaintenanceStateId`、またはリレーション) を書き込む更新で変わり、後者も同じ行を記録します。どちらの場合も、エピソードにもインシデント、アラート、メンテナンスイベントにも、1 つのルールが遷移に適用されます。プロジェクトの順序でレコードの現在の状態より前にある状態は、何かが保存される前に拒否されます。すでにその状態にある場合も同じです。
 
 ```text
 Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.
