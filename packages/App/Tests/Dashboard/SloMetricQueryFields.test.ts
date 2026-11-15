@@ -1,4 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -297,7 +298,8 @@ describe("the Metric SLO form's fields", () => {
   });
 
   test("a part's change is written into the column, the rest kept", () => {
-    const setNewFormValues: jest.Mock<(values: SloValues) => void> = jest.fn();
+    const setNewFormValues: Mock<(values: SloValues) => void> =
+      jest.fn<(values: SloValues) => void>();
 
     partFieldOf(fields, SloMetricQueryPart.Filter).onChange!(
       "@http.route:/checkout*",
