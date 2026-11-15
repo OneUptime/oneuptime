@@ -414,7 +414,7 @@ describe("TelemetryIngestionBudget.admit refusals", () => {
           retryAfterSeconds: 2,
         });
 
-        expect(message).not.toContain(" ");
+        expect(message).not.toContain("\u00A0");
         expect(message).toMatch(/\d (GB|MB per second)/);
       }
     }

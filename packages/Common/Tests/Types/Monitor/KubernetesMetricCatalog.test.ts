@@ -505,7 +505,9 @@ describe("KubernetesMetricCatalog", () => {
     });
 
     test("allocatable CPU reads in cores", () => {
-      expect(formatFor("k8s.node.allocatable_cpu", 31.85)).toBe("31.85\u00A0cores");
+      expect(formatFor("k8s.node.allocatable_cpu", 31.85)).toBe(
+        "31.85\u00A0cores",
+      );
       expect(formatFor("k8s.node.allocatable_cpu", 4)).toBe("4\u00A0cores");
     });
 

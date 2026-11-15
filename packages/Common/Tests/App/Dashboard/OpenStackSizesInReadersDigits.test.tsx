@@ -233,10 +233,18 @@ describe("formatOpenStackBytes", () => {
   });
 
   test("German with its decimal comma; Arabic in the Latin digits it writes by choice", () => {
-    expect(formatOpenStackBytes(6 * TIB, { language: "de" })).toBe("6,0\u00A0TiB");
-    expect(formatOpenStackBytes(480 * GIB, { language: "de" })).toBe("480\u00A0GiB");
-    expect(formatOpenStackBytes(6 * TIB, { language: "ar" })).toBe("6.0\u00A0TiB");
-    expect(formatOpenStackBytes(480 * GIB, { language: "ar" })).toBe("480\u00A0GiB");
+    expect(formatOpenStackBytes(6 * TIB, { language: "de" })).toBe(
+      "6,0\u00A0TiB",
+    );
+    expect(formatOpenStackBytes(480 * GIB, { language: "de" })).toBe(
+      "480\u00A0GiB",
+    );
+    expect(formatOpenStackBytes(6 * TIB, { language: "ar" })).toBe(
+      "6.0\u00A0TiB",
+    );
+    expect(formatOpenStackBytes(480 * GIB, { language: "ar" })).toBe(
+      "480\u00A0GiB",
+    );
   });
 
   test("without a language, the page's", () => {

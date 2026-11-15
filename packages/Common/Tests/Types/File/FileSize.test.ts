@@ -142,7 +142,9 @@ describe("formatFileSize in the reader's language", () => {
     expect(formatFileSize(2516582, { language: "de" })).toBe("2,4\u00A0MB");
     expect(formatFileSize(1023, { language: "de" })).toBe("1.023\u00A0B");
     expect(formatFileSize(48213, { language: "de" })).toBe("47\u00A0KB");
-    expect(formatFileSize(10 * 1024 * 1024, { language: "de" })).toBe("10\u00A0MB");
+    expect(formatFileSize(10 * 1024 * 1024, { language: "de" })).toBe(
+      "10\u00A0MB",
+    );
   });
 
   test("Arabic keeps the Latin digits it writes by choice", () => {

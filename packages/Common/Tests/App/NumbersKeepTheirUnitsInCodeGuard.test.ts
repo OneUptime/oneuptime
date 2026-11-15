@@ -202,7 +202,7 @@ const CONTINUES_A_WORD: RegExp = /^[\p{L}\p{N}_-]/u;
 
 // A figure written in the text, then a space a line breaks at: "more than 0 ".
 const ENDS_WITH_A_WRITTEN_FIGURE: RegExp =
-  /(?:^|[^\p{L}\p{N}_.,])\p{Nd}+(?:[.,]\p{Nd}+)*[  -  -  ]+$/u;
+  /(?:^|[^\p{L}\p{N}_.,])\p{Nd}+(?:[.,]\p{Nd}+)*[ \u2000-\u2006\u2008-\u200A\u205F]+$/u;
 
 // `expression` without the cast, the `!` or the brackets around it.
 const unwrapExpression: (expression: ts.Expression) => ts.Expression = (
@@ -270,7 +270,9 @@ const joinsAFigureToAHeldUnit: (
 ) => boolean = (template: ts.TemplateExpression, index: number): boolean => {
   const spans: ts.NodeArray<ts.TemplateSpan> = template.templateSpans;
   const before: string =
-    index < 0 ? template.head.text : (spans[index] as ts.TemplateSpan).literal.text;
+    index < 0
+      ? template.head.text
+      : (spans[index] as ts.TemplateSpan).literal.text;
   const next: ts.TemplateSpan | undefined = spans[index + 1];
 
   if (

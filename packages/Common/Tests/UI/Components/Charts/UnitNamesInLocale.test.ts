@@ -273,9 +273,13 @@ describe("getValueFormatterOptionsForReader", () => {
 
     // A symbol reads alike in every language, never an English word (#8284).
     expect(ValueFormatter.formatValue(21.5, "Hz", german)).toBe("21,5\u00A0Hz");
-    expect(ValueFormatter.formatValue(21.5, "Hz", persian)).toBe("۲۱٫۵\u00A0Hz");
+    expect(ValueFormatter.formatValue(21.5, "Hz", persian)).toBe(
+      "۲۱٫۵\u00A0Hz",
+    );
     expect(ValueFormatter.formatValue(230, "V", persian)).toBe("۲۳۰\u00A0V");
-    expect(ValueFormatter.formatValue(23.5, "Cel", german)).toBe("23,5\u00A0°C");
+    expect(ValueFormatter.formatValue(23.5, "Cel", german)).toBe(
+      "23,5\u00A0°C",
+    );
     // A unit with no symbol is named in the reader's words.
     expect(ValueFormatter.formatValue(300, "K", german)).toBe(
       `300 ${String(locale("de")["Kelvin"])}`,

@@ -25,7 +25,9 @@ import { describe, expect, test } from "@jest/globals";
 describe("MetricValueFormatter", () => {
   describe("format — units with a scale ladder", () => {
     test("scales bytes the way the dashboard does", () => {
-      expect(MetricValueFormatter.format({ value: 0, unit: "By" })).toBe("0\u00A0B");
+      expect(MetricValueFormatter.format({ value: 0, unit: "By" })).toBe(
+        "0\u00A0B",
+      );
       expect(MetricValueFormatter.format({ value: 512, unit: "By" })).toBe(
         "512\u00A0B",
       );
@@ -190,7 +192,9 @@ describe("MetricValueFormatter", () => {
         "0\u00A0B",
       );
       // The decimal prefixes have always done the same.
-      expect(MetricValueFormatter.format({ value: 0, unit: "GB" })).toBe("0\u00A0B");
+      expect(MetricValueFormatter.format({ value: 0, unit: "GB" })).toBe(
+        "0\u00A0B",
+      );
     });
 
     test("scale as the numerator of a rate", () => {
@@ -558,7 +562,9 @@ describe("MetricValueFormatter", () => {
      * the exact count is the thing the reader came for.
      */
     test("does NOT abbreviate large numbers the way a chart axis would", () => {
-      expect(ValueFormatter.formatValue(1234567, "cores")).toBe("1.23M\u00A0cores");
+      expect(ValueFormatter.formatValue(1234567, "cores")).toBe(
+        "1.23M\u00A0cores",
+      );
       expect(
         MetricValueFormatter.format({ value: 1234567, unit: "cores" }),
       ).toBe("1234567\u00A0cores");
@@ -720,7 +726,9 @@ describe("MetricValueFormatter", () => {
      * broken metric as "InfinityP PB" in an on-call email.
      */
     test("are reported verbatim, never through the scaling ladder", () => {
-      expect(ValueFormatter.formatValue(Infinity, "By")).toBe("InfinityP\u00A0PB");
+      expect(ValueFormatter.formatValue(Infinity, "By")).toBe(
+        "InfinityP\u00A0PB",
+      );
 
       expect(MetricValueFormatter.format({ value: NaN, unit: "By" })).toBe(
         "NaN",

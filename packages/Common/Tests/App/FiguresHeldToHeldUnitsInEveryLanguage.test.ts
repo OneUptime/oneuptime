@@ -10,6 +10,7 @@ import { toGsm7Text } from "../../Utils/Sms/Gsm7Text";
 import { describeDetectionOverflow } from "../../Utils/SecurityEvent/DetectionOverflow";
 import TableColumnsToCsv from "../../UI/Utils/TableColumnsToCsv";
 import { setDateDisplayLanguage } from "../../Types/DateLanguage";
+import { escapeRegExp } from "../../Utils/RegExpEscape";
 import { formatFileSize } from "../../Types/File/FileSize";
 import {
   describeWebVitalThresholds,
@@ -38,7 +39,7 @@ import ProfileUtil from "../../../App/FeatureSet/Dashboard/src/Utils/ProfileUtil
  * A FIGURE AND A UNIT HELD IN A VARIABLE STAY ON ONE LINE (#8457).
  *
  * #8303 held every figure code joins to a unit written in the template
- * (`${size} MB`). The formatters that hold the unit in a variable or
+ * (`${size}\u00A0MB`). The formatters that hold the unit in a variable or
  * a property - the charts' and tables' ValueFormatter, a table's cells, an
  * alert's metric values, the Kubernetes, OpenStack and telemetry sizes, a
  * profile's samples - and the figures Common/Types writes for pages (a
@@ -60,9 +61,9 @@ const LANGUAGES: ReadonlyArray<string> = ["en", "de", "fr", "ar", "fa"];
 const BREAKING_SPACE: string = "[ \\u2000-\\u2006\\u2008-\\u200A\\u205F]";
 
 // A space no line breaks at: the no-break space, and French's narrow one.
-const HOLDING_SPACE: RegExp = /[  ]/;
+const HOLDING_SPACE: RegExp = /[\u00A0\u202F]/;
 
-const MARKS: RegExp = /[‎‏؜⁦-⁩]/g;
+const MARKS: RegExp = /[\u200E\u200F\u061C\u2066-\u2069]/g;
 
 // A figure in any of the five languages' digits.
 const FIGURE: string = "[\\p{Nd}][\\p{Nd}.,\\u066B\\u066C\\u060C]*";
@@ -76,14 +77,14 @@ const breaksBefore: (text: string, unit: string) => boolean = (
   unit: string,
 ): boolean => {
   return new RegExp(
-    `${FIGURE}${BREAKING_SPACE}+${unit.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}`,
+    `${FIGURE}${BREAKING_SPACE}+${escapeRegExp(unit)}`,
     "u",
   ).test(text.replace(MARKS, ""));
 };
 
 // `text` with its no-break spaces as the plain ones they stand for.
 const plain: (text: string) => string = (text: string): string => {
-  return text.replace(/[  ]/g, " ");
+  return text.replace(/[\u00A0\u202F]/g, " ");
 };
 
 afterEach(() => {
@@ -112,35 +113,37 @@ describe("ValueFormatter, which writes every chart's and table's figures", () =>
           language,
         });
 
-        expect({ unit, written, breaks: breaksBefore(written, symbol) }).toEqual(
-          { unit, written, breaks: false },
-        );
+        expect({
+          unit,
+          written,
+          breaks: breaksBefore(written, symbol),
+        }).toEqual({ unit, written, breaks: false });
         expect(written).toMatch(HOLDING_SPACE);
       }
     },
   );
 
   test("English writes exactly what it wrote, with the no-break space", () => {
-    expect(ValueFormatter.formatValue(1536, "By")).toBe("1.54 KB");
-    expect(ValueFormatter.formatValue(1500, "ms")).toBe("1.5 sec");
-    expect(ValueFormatter.formatValue(90, "s")).toBe("1.5 min");
-    expect(ValueFormatter.formatValue(1500000, "By/s")).toBe("1.5 MB/s");
-    expect(ValueFormatter.formatValue(23.5, "Cel")).toBe("23.5 °C");
-    expect(ValueFormatter.formatValue(5000, "widgets")).toBe("5K widgets");
+    expect(ValueFormatter.formatValue(1536, "By")).toBe("1.54\u00A0KB");
+    expect(ValueFormatter.formatValue(1500, "ms")).toBe("1.5\u00A0sec");
+    expect(ValueFormatter.formatValue(90, "s")).toBe("1.5\u00A0min");
+    expect(ValueFormatter.formatValue(1500000, "By/s")).toBe("1.5\u00A0MB/s");
+    expect(ValueFormatter.formatValue(23.5, "Cel")).toBe("23.5\u00A0°C");
+    expect(ValueFormatter.formatValue(5000, "widgets")).toBe("5K\u00A0widgets");
   });
 
   test("German, French, Arabic and Persian write their own figures, held the same way", () => {
     expect(ValueFormatter.formatValue(1536, "By", { language: "de" })).toBe(
-      "1,54 KB",
+      "1,54\u00A0KB",
     );
     expect(ValueFormatter.formatValue(1536, "By", { language: "fr" })).toBe(
-      "1,54 KB",
+      "1,54\u00A0KB",
     );
     expect(ValueFormatter.formatValue(1536, "By", { language: "ar" })).toBe(
-      "1.54 KB",
+      "1.54\u00A0KB",
     );
     expect(ValueFormatter.formatValue(1536, "By", { language: "fa" })).toBe(
-      "۱٫۵۴ KB",
+      "۱٫۵۴\u00A0KB",
     );
   });
 
@@ -158,7 +161,10 @@ describe("ValueFormatter, which writes every chart's and table's figures", () =>
           { language },
         );
 
-        expect({ written: parts.formatted, breaks: breaksBefore(parts.formatted, parts.unit) }).toEqual({
+        expect({
+          written: parts.formatted,
+          breaks: breaksBefore(parts.formatted, parts.unit),
+        }).toEqual({
           written: parts.formatted,
           breaks: false,
         });
@@ -211,7 +217,9 @@ describe("ValueFormatter, which writes every chart's and table's figures", () =>
 
   test("a widget that draws the figure and the unit apart still sees the unit set apart", () => {
     expect(
-      ValueFormatter.isUnitSetApart(ValueFormatter.formatValueInParts(1536, "By")),
+      ValueFormatter.isUnitSetApart(
+        ValueFormatter.formatValueInParts(1536, "By"),
+      ),
     ).toBe(true);
     expect(
       ValueFormatter.isUnitSetApart(
@@ -232,8 +240,15 @@ describe("a dashboard table's cells and thresholds", () => {
       setDateDisplayLanguage(language);
 
       for (const unit of ["ms", "req/s", "GB", "connections"]) {
-        const cell: string = formatTableValue({ value: 1234.5, decimals: 1, unit });
-        const threshold: string = formatTableThreshold({ threshold: 0.5, unit });
+        const cell: string = formatTableValue({
+          value: 1234.5,
+          decimals: 1,
+          unit,
+        });
+        const threshold: string = formatTableThreshold({
+          threshold: 0.5,
+          unit,
+        });
 
         expect(breaksBefore(cell, unit)).toBe(false);
         expect(cell).toMatch(new RegExp(`\\u00A0${unit.replace("/", "\\/")}$`));
@@ -253,16 +268,16 @@ describe("a dashboard table's cells and thresholds", () => {
 describe("an alert's and an incident's metric values (MetricValueFormatter)", () => {
   test("a scaled value and a labelled one are held to their unit", () => {
     expect(MetricValueFormatter.format({ value: 1073741824, unit: "By" })).toBe(
-      "1.07 GB",
+      "1.07\u00A0GB",
     );
     expect(MetricValueFormatter.format({ value: 1500, unit: "ms" })).toBe(
-      "1.5 sec",
+      "1.5\u00A0sec",
     );
     expect(MetricValueFormatter.format({ value: 95, unit: "Cel" })).toBe(
-      "95 °C",
+      "95\u00A0°C",
     );
     expect(MetricValueFormatter.format({ value: 1234567, unit: "cores" })).toBe(
-      "1234567 cores",
+      "1234567\u00A0cores",
     );
   });
 
@@ -298,42 +313,42 @@ describe("the figures Common/Types writes for a page", () => {
           size,
           breaks: false,
         });
-        expect(size).toContain(` ${unit}`);
+        expect(size).toContain(`\u00A0${unit}`);
       }
     },
   );
 
   test("a web vital's limits, in its tooltip", () => {
-    expect(formatWebVitalThreshold(800, "ms")).toBe("800 ms");
-    expect(formatWebVitalThreshold(2500, "ms")).toBe("2.5 s");
+    expect(formatWebVitalThreshold(800, "ms")).toBe("800\u00A0ms");
+    expect(formatWebVitalThreshold(2500, "ms")).toBe("2.5\u00A0s");
     expect(
       describeWebVitalThresholds({
         unit: "ms",
         thresholds: { warn: 2500, danger: 4000 },
       }),
-    ).toBe("Good below 2.5 s; poor at 4 s or more.");
+    ).toBe("Good below 2.5\u00A0s; poor at 4\u00A0s or more.");
     // Negative control: a score has no unit.
     expect(formatWebVitalThreshold(0.1, "score")).toBe("0.1");
   });
 
   test("an installation's disks and a database's sizes, put into a translated sentence as values", () => {
     expect(InstallationHealthUtil.formatBytes(512 * 1000 * 1000)).toBe(
-      "512 MB",
+      "512\u00A0MB",
     );
     expect(InstallationHealthUtil.formatBytes(8.4 * 1000 * 1000 * 1000)).toBe(
-      "8.4 GB",
+      "8.4\u00A0GB",
     );
-    expect(InstallationHealthUtil.formatBytes(-1)).toBe("0 MB");
-    expect(formatDatabaseHealthBytes(1_250_000_000)).toBe("1.2 GB");
-    expect(formatDatabaseHealthBytes(512)).toBe("512 B");
+    expect(InstallationHealthUtil.formatBytes(-1)).toBe("0\u00A0MB");
+    expect(formatDatabaseHealthBytes(1_250_000_000)).toBe("1.2\u00A0GB");
+    expect(formatDatabaseHealthBytes(512)).toBe("512\u00A0B");
   });
 
   test("an ingestion budget, in the form's refusal and the owners' email", () => {
     expect(formatTelemetryIngestionBudgetGB(1.5 * 1024 ** 3)).toBe(
-      "1.5 GB",
+      "1.5\u00A0GB",
     );
     expect(formatTelemetryIngestionBudgetMBPerSecond(5 * 1024 * 1024)).toBe(
-      "5 MB per second",
+      "5\u00A0MB per second",
     );
     expect(
       getTelemetryIngestionBudgetValueProblem({
@@ -341,7 +356,7 @@ describe("the figures Common/Types writes for a page", () => {
         kind: TelemetryIngestionBudgetValueKind.DailyBudget,
         allowZero: false,
       }),
-    ).toContain("more than 0 GB per day");
+    ).toContain("more than 0\u00A0GB per day");
     // Negative control: no figure before the unit, nothing to hold.
     expect(
       getTelemetryIngestionBudgetValueProblem({
@@ -353,12 +368,14 @@ describe("the figures Common/Types writes for a page", () => {
   });
 
   test("an NTP reading on the incident's page", () => {
-    expect(NtpMonitorUtil.formatMilliseconds(12.34)).toBe("12.3 ms");
+    expect(NtpMonitorUtil.formatMilliseconds(12.34)).toBe("12.3\u00A0ms");
     expect(NtpMonitorUtil.describeClockOffset(-1532.4)).toBe(
-      "1,532 ms behind the probe",
+      "1,532\u00A0ms behind the probe",
     );
     // Negative control: no figure, no unit.
-    expect(NtpMonitorUtil.describeClockOffset(0)).toBe("in step with the probe");
+    expect(NtpMonitorUtil.describeClockOffset(0)).toBe(
+      "in step with the probe",
+    );
   });
 
   test("a capture's limits, in the form's refusal", () => {
@@ -366,12 +383,12 @@ describe("the figures Common/Types writes for a page", () => {
       PacketCaptureLimitsUtil.check({
         requested: { maxFileSizeInMB: 500 },
       }).error,
-    ).toBe("A capture file is at most 25 MB.");
+    ).toBe("A capture file is at most 25\u00A0MB.");
     expect(
       PacketCaptureLimitsUtil.check({
         requested: { maxFileSizeInMB: 0 },
       }).error,
-    ).toBe("A capture file is at least 1 MB.");
+    ).toBe("A capture file is at least 1\u00A0MB.");
   });
 });
 
@@ -393,7 +410,7 @@ describe("the Dashboard's sizes, in the reader's language", () => {
 
       expect(written.startsWith("1536Mi (")).toBe(true);
       expect(breaksBefore(written, "GB")).toBe(false);
-      expect(written).toContain(" GB");
+      expect(written).toContain("\u00A0GB");
     },
   );
 
@@ -415,7 +432,7 @@ describe("the Dashboard's sizes, in the reader's language", () => {
           size,
           breaks: false,
         });
-        expect(size).toContain(" TiB");
+        expect(size).toContain("\u00A0TiB");
       }
     },
   );
@@ -426,16 +443,16 @@ describe("the Dashboard's sizes, in the reader's language", () => {
       const size: string = formatBytes(1536, translators[language]!);
 
       expect(breaksBefore(size, "KiB")).toBe(false);
-      expect(size).toContain(" KiB");
+      expect(size).toContain("\u00A0KiB");
     },
   );
 
   test("a profile's sample in a unit of its own", () => {
     expect(ProfileUtil.formatProfileValue(12, "goroutines")).toBe(
-      "12 goroutines",
+      "12\u00A0goroutines",
     );
     expect(ProfileUtil.formatProfileValue(3, "microseconds")).toBe(
-      "3 microseconds",
+      "3\u00A0microseconds",
     );
   });
 });
@@ -451,7 +468,7 @@ describe("negative controls: what is words, or read by a machine, keeps its plai
     });
 
     expect(sentence).toContain("matched 2,340 groups.");
-    expect(sentence).not.toContain(" ");
+    expect(sentence).not.toContain("\u00A0");
   });
 
   test("a CSV writes the plain space a spreadsheet splits a figure from its unit at", () => {
@@ -459,15 +476,15 @@ describe("negative controls: what is words, or read by a machine, keeps its plai
       const size: string = formatOpenStackBytes(480 * 1024 ** 3, { language });
 
       expect(TableColumnsToCsv.withPlainSpaces(size)).toBe(plain(size));
-      expect(TableColumnsToCsv.withPlainSpaces(size)).not.toContain(" ");
+      expect(TableColumnsToCsv.withPlainSpaces(size)).not.toContain("\u00A0");
     }
   });
 
   test("the helper of this file catches the break it is for", () => {
     expect(breaksBefore("12.5 MB", "MB")).toBe(true);
     expect(breaksBefore("۱٫۵ KB", "KB")).toBe(true);
-    expect(breaksBefore("12.5 MB", "MB")).toBe(false);
-    expect(breaksBefore("12,5 MB", "MB")).toBe(false);
+    expect(breaksBefore("12.5\u00A0MB", "MB")).toBe(false);
+    expect(breaksBefore("12,5\u202FMB", "MB")).toBe(false);
     expect(breaksBefore("2 hours", "MB")).toBe(false);
   });
 });

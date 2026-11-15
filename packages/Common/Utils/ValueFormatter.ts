@@ -3,7 +3,7 @@
  * Converts raw values like 1048576 bytes → "1 MB", 3661 seconds → "1.02 hr", etc.
  *
  * A unit's symbol is held to its figure with a no-break space ("1 MB" is
- * "1 MB"), so a chart's tooltip, a table's cell or a Gauge's caption
+ * "1\u00A0MB"), so a chart's tooltip, a table's cell or a Gauge's caption
  * never ends a line with the figure and starts the next with its unit
  * (#8457). A unit the formatter spells in words - "2 hours", "3 days", a
  * unit's name ("300 Kelvin") - keeps its plain space, as a word does.
@@ -15,7 +15,7 @@ import { NO_BREAK_SPACE } from "../Types/NoBreakSpaces";
 export interface FormattedValue {
   value: string; // e.g. "1.5"
   unit: string; // e.g. "MB"
-  formatted: string; // e.g. "1.5 MB"
+  formatted: string; // e.g. "1.5\u00A0MB"
 }
 
 export interface ValueFormatterOptions {
@@ -864,7 +864,7 @@ type UnitStyle = "readable" | "compact";
 type UnitWriting = "symbol" | "word";
 
 // A run of the spaces a line may break at (Types/NoBreakSpaces).
-const BREAKING_SPACES: RegExp = /[  -  -  ]+/g;
+const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]+/g;
 
 /*
  * The separator rules formatValue has always used: percent joins with no
@@ -948,7 +948,7 @@ function compactThresholdUnit(unit: string): string {
  * annotations, the Gauge, the metric list) and a table test pins every branch.
  * One branch changed on purpose: a rate it cannot scale reads "100 req/s",
  * not "100 req per Second", which no chart axis had room for (#8049). And
- * the space before a symbol is a no-break one (#8457): "1.5 MB".
+ * the space before a symbol is a no-break one (#8457): "1.5\u00A0MB".
  */
 function formatValueParts(
   value: number,
@@ -1141,7 +1141,10 @@ function formatValueParts(
    * Kelvin", "2 hours") keeps its plain space.
    */
   if (unitStyle === "compact") {
-    return build(formatNumber(value), ValueFormatter.getCompactUnit(unit, options));
+    return build(
+      formatNumber(value),
+      ValueFormatter.getCompactUnit(unit, options),
+    );
   }
 
   const symbol: string | undefined = getValueSymbol(trimmedUnit);

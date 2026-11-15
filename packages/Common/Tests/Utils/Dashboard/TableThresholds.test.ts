@@ -784,7 +784,9 @@ describe("joinTableValueAndUnit, formatTableValue and formatTableThreshold", () 
     expect(formatTableThreshold({ threshold: 99.95, unit: "%" })).toBe(
       "99.95%",
     );
-    expect(formatTableThreshold({ threshold: 0.5, unit: "s" })).toBe("0.5\u00A0s");
+    expect(formatTableThreshold({ threshold: 0.5, unit: "s" })).toBe(
+      "0.5\u00A0s",
+    );
     expect(formatTableThreshold({ threshold: -20, unit: "°" })).toBe("-20°");
     expect(formatTableThreshold({ threshold: 1 / 3, unit: undefined })).toBe(
       "0.333333",

@@ -598,7 +598,7 @@ describe("when a name is generated, and when it is the user's", () => {
     });
 
     expect(name).toBe("latency is above 500 ms");
-    expect(name).not.toContain(" ");
+    expect(name).not.toContain("\u00A0");
     expect(
       CriteriaNameUtil.isNameFromFilters({
         name: "latency is above 500 ms",

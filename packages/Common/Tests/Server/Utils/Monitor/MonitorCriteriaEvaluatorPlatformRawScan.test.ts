@@ -606,7 +606,9 @@ describe("Kubernetes raw scan: the criteria's own query is the one listed", () =
     // "258 GB", never the 257760964608 it used to print.
     expect(text).not.toMatch(RAW_NUMBER);
 
-    expect(text).toContain(`Most affected node: \`${NODE_1}\` (**258\u00A0GB**)`);
+    expect(text).toContain(
+      `Most affected node: \`${NODE_1}\` (**258\u00A0GB**)`,
+    );
   });
 
   test("a criteria on `used_mem` lists the used_mem scan instead", async () => {
@@ -638,7 +640,9 @@ describe("Kubernetes raw scan: the criteria's own query is the one listed", () =
     expect(text).toContain(
       `- Metric: ${kubernetesName("k8s.node.memory.usage")} (\`k8s.node.memory.usage\`)`,
     );
-    expect(text).toContain(`Node \`${NODE_1}\` memory usage is at **229\u00A0GB**.`);
+    expect(text).toContain(
+      `Node \`${NODE_1}\` memory usage is at **229\u00A0GB**.`,
+    );
     expect(text).not.toContain("258\u00A0GB");
     expect(text).not.toMatch(RAW_NUMBER);
   });

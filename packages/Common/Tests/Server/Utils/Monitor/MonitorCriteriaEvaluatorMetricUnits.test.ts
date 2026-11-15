@@ -190,7 +190,9 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
   test("renders bytes at human scale instead of raw digits", () => {
     const context: string = rootCause(makeContext({ unit: "By" }));
 
-    expect(sampleItem(context)).toBe(`1. \`${BREACH_TIME_ISO}\` — **1.07\u00A0GB**`);
+    expect(sampleItem(context)).toBe(
+      `1. \`${BREACH_TIME_ISO}\` — **1.07\u00A0GB**`,
+    );
     expect(sampleDetails(context)).toEqual([]);
     expect(context).not.toContain("1073741824");
   });
@@ -248,7 +250,9 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
      * rides each value instead of a heading — no single unit could
      * describe both samples.
      */
-    expect(context).toContain("1. `2026-08-14T10:29:00.000Z` — **922\u00A0KB**");
+    expect(context).toContain(
+      "1. `2026-08-14T10:29:00.000Z` — **922\u00A0KB**",
+    );
     expect(context).toContain(`2. \`${BREACH_TIME_ISO}\` — **1.26\u00A0MB**`);
   });
 
@@ -351,7 +355,9 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
       }),
     );
 
-    expect(sampleItem(context)).toBe(`1. \`${BREACH_TIME_ISO}\` — **1.07\u00A0GB**`);
+    expect(sampleItem(context)).toBe(
+      `1. \`${BREACH_TIME_ISO}\` — **1.07\u00A0GB**`,
+    );
     expect(sampleDetails(context)).toEqual(["   - `k8s.pod.name`: `web-1`"]);
   });
 });
@@ -538,7 +544,9 @@ describe("MonitorCriteriaEvaluator - the Unit line", () => {
       rows[0]!,
     ).toString();
 
-    expect(valueCell.replace(/\\|\u2060/g, "")).toBe("**1073741824\u00A0<!here>**");
+    expect(valueCell.replace(/\\|\u2060/g, "")).toBe(
+      "**1073741824\u00A0<!here>**",
+    );
     expect(valueCell).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/);
     expect(SlackUtil.convertMarkdownToSlackRichText(valueCell)).not.toMatch(
       /<[!@#][A-Za-z]/,

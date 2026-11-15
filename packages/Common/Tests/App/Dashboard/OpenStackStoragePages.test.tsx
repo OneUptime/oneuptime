@@ -334,7 +334,10 @@ describe("the Volumes list", () => {
       return type.textContent || "";
     });
     expect(types).toEqual(
-      expect.arrayContaining(["ceph2 volumes30\u00A0GiB", "ssd1 volume10\u00A0GiB"]),
+      expect.arrayContaining([
+        "ceph2 volumes30\u00A0GiB",
+        "ssd1 volume10\u00A0GiB",
+      ]),
     );
   });
 

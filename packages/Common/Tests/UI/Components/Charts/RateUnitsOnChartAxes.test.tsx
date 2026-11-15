@@ -180,7 +180,9 @@ describe("a rate, written on a chart's axis, legend and tooltip", () => {
   });
 
   test("an exporter's annotation reads as its word, a count per second as /s", () => {
-    expect(ValueFormatter.formatValue(5, "{request}/s")).toBe("5\u00A0request/s");
+    expect(ValueFormatter.formatValue(5, "{request}/s")).toBe(
+      "5\u00A0request/s",
+    );
     expect(ValueFormatter.formatValue(5, "1/s")).toBe("5/s");
     expect(ValueFormatter.formatValue(12, "ug/m3")).toBe("12\u00A0ug/m3");
     expect(ValueFormatter.formatValue(4, "KiBy/s")).toBe("4\u00A0KiB/s");

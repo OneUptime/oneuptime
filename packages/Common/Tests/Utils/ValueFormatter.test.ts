@@ -161,7 +161,9 @@ describe("ValueFormatter", () => {
     });
 
     test("keeps the slash for a numerator it cannot scale, never the words (#8049)", () => {
-      expect(ValueFormatter.formatValue(5, "requests/s")).toBe("5\u00A0requests/s");
+      expect(ValueFormatter.formatValue(5, "requests/s")).toBe(
+        "5\u00A0requests/s",
+      );
       expect(ValueFormatter.formatValue(100, "req/s")).toBe("100\u00A0req/s");
     });
   });
@@ -179,7 +181,9 @@ describe("ValueFormatter", () => {
 
   describe("formatValue - large number abbreviation", () => {
     test("abbreviates thousands, millions, billions", () => {
-      expect(ValueFormatter.formatValue(5000, "widgets")).toBe("5K\u00A0widgets");
+      expect(ValueFormatter.formatValue(5000, "widgets")).toBe(
+        "5K\u00A0widgets",
+      );
       expect(ValueFormatter.formatValue(1500000, "widgets")).toBe(
         "1.5M\u00A0widgets",
       );

@@ -228,7 +228,9 @@ describe("MonitorCriteriaExpectationBuilder", () => {
           }),
           { unit: "ms" },
         ),
-      ).toBe("to be greater than 5\u00A0ms over the last 15 minutes using average");
+      ).toBe(
+        "to be greater than 5\u00A0ms over the last 15 minutes using average",
+      );
     });
   });
 

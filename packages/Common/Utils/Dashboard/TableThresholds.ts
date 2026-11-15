@@ -372,9 +372,7 @@ export const joinTableValueAndUnit: (
 
   const noSpace: boolean = unit === "%" || unit === "°" || unit === "‰";
 
-  return noSpace
-    ? `${formatted}${unit}`
-    : `${formatted}\u00A0${unit}`;
+  return noSpace ? `${formatted}${unit}` : `${formatted}\u00A0${unit}`;
 };
 
 // A column's decimals as the table can write them: 0 to 20, whole.

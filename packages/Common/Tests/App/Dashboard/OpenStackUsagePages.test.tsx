@@ -410,12 +410,8 @@ describe("a hypervisor's page", () => {
       expect(throughput).toHaveTextContent(
         `${readBytes((12 * 1024 * 1024) / 60)}/s written`,
       );
-      expect(throughput).toHaveTextContent(
-        `${readBytes(1024 * 1024)}/s in`,
-      );
-      expect(throughput).toHaveTextContent(
-        `${readBytes(512 * 1024)}/s out`,
-      );
+      expect(throughput).toHaveTextContent(`${readBytes(1024 * 1024)}/s in`);
+      expect(throughput).toHaveTextContent(`${readBytes(512 * 1024)}/s out`);
       // Still what is promised, on its own tiles, which none of this has changed.
       expect(
         screen.getByTestId("openstack-hypervisor-tiles"),
@@ -684,12 +680,8 @@ describe("an instance's page", () => {
       );
       expect(flavor).toHaveTextContent("m1.small");
       expect(flavor).toHaveTextContent("2 vCPUs");
-      expect(flavor).toHaveTextContent(
-        readBytes(2048 * 1024 * 1024),
-      );
-      expect(flavor).toHaveTextContent(
-        readBytes(20 * 1024 * 1024 * 1024),
-      );
+      expect(flavor).toHaveTextContent(readBytes(2048 * 1024 * 1024));
+      expect(flavor).toHaveTextContent(readBytes(20 * 1024 * 1024 * 1024));
       const queries: Array<HTMLElement> = screen.getAllByTestId("metric-query");
       expect(
         queries.map((query: HTMLElement): string | null => {

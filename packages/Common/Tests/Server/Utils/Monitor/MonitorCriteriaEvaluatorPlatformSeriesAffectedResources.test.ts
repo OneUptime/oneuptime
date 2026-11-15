@@ -1228,7 +1228,9 @@ describe("Grouped Docker Swarm templates list the affected tasks", () => {
     expect(lines[first + 1]).toBe("   - Service: `web`");
     expect(lines[first + 2]).toBe("   - Node: `swarm-worker-3`");
 
-    expect(lines).toContain("2. **Task** `web.1.k3j2h1g0f9e8` — **35\u00A0sec**");
+    expect(lines).toContain(
+      "2. **Task** `web.1.k3j2h1g0f9e8` — **35\u00A0sec**",
+    );
 
     // The long-running task never breached.
     expect(rootCause).not.toContain("api.1.a1b2c3d4e5f6");

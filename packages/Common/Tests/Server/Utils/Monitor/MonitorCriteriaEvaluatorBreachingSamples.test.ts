@@ -431,7 +431,9 @@ describe("Breaching Samples - markdown", () => {
       }),
     );
 
-    expect(markdown).toContain("1. `2026-08-14T10:30:00.000Z` — **1.07\u00A0GB**");
+    expect(markdown).toContain(
+      "1. `2026-08-14T10:30:00.000Z` — **1.07\u00A0GB**",
+    );
   });
 
   test("the value is bold at the end of the item's line", () => {
