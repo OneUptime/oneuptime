@@ -31,10 +31,12 @@ import {
  * record's own. Compared with that, a run of records created within one
  * millisecond would be read again, page after page, as the run of equal
  * timestamps was. So the page after a cursor compares with the cursor
- * record's own createdAt, read in the same statement by its _id. When that
- * record is gone (deleted since), the stored createdAt stands in: it is never
- * after the record's own, so the page can read again a few records of that
- * one millisecond, and never passes over one.
+ * record's own createdAt, read in the same statement by its _id (deleted
+ * with a deletedAt or not). When that record is gone for good, deleted
+ * since, the stored createdAt stands in: it is never after the record's
+ * own, so the page reads again the records created in that millisecond
+ * before it - for a run one statement inserted, the run up to it - once, and
+ * never passes over one. The cursor it saves is a record that is there.
  *
  * Read in the order Incident's and Alert's (projectId, createdAt) index
  * keeps, so a page of them is a short read of the index from the cursor on

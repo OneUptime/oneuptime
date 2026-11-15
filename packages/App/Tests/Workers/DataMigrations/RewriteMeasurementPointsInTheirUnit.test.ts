@@ -172,11 +172,14 @@ describe("RewriteMeasurementPointsInTheirUnit", () => {
 
     for (const update of updates) {
       expect(update.data["backfillRequestedAt"]).toBeInstanceOf(Date);
+      // The cursor cleared, both its columns: the walk starts from the beginning.
       expect(update.data["backfillCursorCreatedAt"]).toBeNull();
+      expect(update.data["backfillCursorId"]).toBeNull();
       expect(update.data["backfillCompletedAt"]).toBeNull();
       expect(Object.keys(update.data).sort()).toEqual([
         "backfillCompletedAt",
         "backfillCursorCreatedAt",
+        "backfillCursorId",
         "backfillRequestedAt",
       ]);
     }
