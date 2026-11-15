@@ -1,11 +1,12 @@
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
-import Permission from "Common/Types/Permission";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { isBuiltInRoleName, namesRoleAsDrawn } from "./DocsRoleNames";
 
 /*
  * What the template pages say about a template's Change Monitor Status to
@@ -56,25 +57,23 @@ function updateListOf(
   return [...(access?.update || [])].sort();
 }
 
-// How the incident settings page names each permission that edits a template.
-const NAMED_AS: Record<string, Record<string, string>> = {
-  en: {
-    [Permission.ProjectOwner]: "Project Owners",
-    [Permission.ProjectAdmin]: "Project Admins",
-    [Permission.ProjectMember]: "Project Members",
-    [Permission.IncidentAdmin]: "Incident Admins",
-    [Permission.IncidentMember]: "Incident Members",
-    [Permission.EditIncidentTemplate]: "**Edit Incident Template**",
-  },
-  fa: {
-    [Permission.ProjectOwner]: "Project Ownerها",
-    [Permission.ProjectAdmin]: "Project Adminها",
-    [Permission.ProjectMember]: "Project Memberها",
-    [Permission.IncidentAdmin]: "Incident Adminها",
-    [Permission.IncidentMember]: "Incident Memberها",
-    [Permission.EditIncidentTemplate]: "**Edit Incident Template**",
-  },
-};
+/*
+ * Whether a line names a permission that edits a template: a built-in
+ * role as this language's Dashboard draws it, inflected for the sentence
+ * ("Project Owners", "مالک پروژه", #7514), a permission's own title in
+ * bold, in English, as a custom role lists it.
+ */
+function namesPermission(
+  language: string,
+  line: string,
+  permission: Permission,
+): boolean {
+  const title: string = PermissionHelper.getTitle(permission);
+
+  return isBuiltInRoleName(title)
+    ? namesRoleAsDrawn(language, line, title)
+    : line.includes(`**${title}**`);
+}
 
 describe("the template pages, on a template's Change Monitor Status to", () => {
   test("the card's words for a template with no status are the ones the docs quote", () => {
@@ -128,18 +127,11 @@ describe("the template pages, on a template's Change Monitor Status to", () => {
       expect([language, rule.length]).toEqual([language, 1]);
 
       for (const permission of editors) {
-        const name: string | undefined = NAMED_AS[language]![permission];
-
-        expect([language, permission, Boolean(name)]).toEqual([
+        expect([
           language,
           permission,
-          true,
-        ]);
-        expect([language, permission, rule[0]!.includes(name!)]).toEqual([
-          language,
-          permission,
-          true,
-        ]);
+          namesPermission(language, rule[0]!, permission),
+        ]).toEqual([language, permission, true]);
       }
     }
   });

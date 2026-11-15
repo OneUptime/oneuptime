@@ -182,6 +182,8 @@ const LlmMonitorStepForm: FunctionComponent<ComponentProps> = (
                 return {
                   label: service.name || "",
                   value: service.id?.toString() || "",
+                  // An app's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               },
             ),

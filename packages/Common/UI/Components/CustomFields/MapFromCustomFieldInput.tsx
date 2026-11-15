@@ -188,7 +188,12 @@ const MapFromCustomFieldInput: FunctionComponent<ComponentProps> = (
       return field.customFieldType === props.targetFieldType;
     })
     .map((field: SourceField): DropdownOption => {
-      const option: DropdownOption = { label: field.name, value: field.name };
+      // A custom field's name is its project's, drawn as written.
+      const option: DropdownOption = {
+        label: field.name,
+        value: field.name,
+        isUserContent: true,
+      };
 
       const typeLabel: string | undefined = props.offerEveryType
         ? props.describeFieldType?.(field.customFieldType)

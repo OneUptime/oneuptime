@@ -26,6 +26,14 @@ export interface ComponentProps {
    */
   tooltip?: string | undefined;
   /*
+   * The tooltip reads by the same rule as the text (isUserContent): set,
+   * it is drawn as given, never looked up (Tooltip's isTextUserContent) -
+   * words the caller already put in the reader's language, as a
+   * permission gate's reason is. Looked up again, a translation that is
+   * itself a key reads as another word (#8067).
+   */
+  isTooltipUserContent?: boolean | undefined;
+  /*
    * Red text and a red hover, for the items that delete or remove something.
    * The menu is where a table puts those, so they need to read as dangerous
    * without a button border to say so.
@@ -231,6 +239,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       <>
         <Tooltip
           text={props.tooltip}
+          isTextUserContent={props.isTooltipUserContent}
           isTriggerAlreadyDescribed={true}
           isShownOnKeyboardFocusOnly={true}
           isShownOnPress={true}
@@ -240,7 +249,9 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           {menuItem}
         </Tooltip>
         <span id={reasonId} className="sr-only">
-          {translateString(props.tooltip) ?? props.tooltip}
+          {props.isTooltipUserContent
+            ? props.tooltip
+            : translateString(props.tooltip) ?? props.tooltip}
         </span>
       </>
     );
@@ -249,6 +260,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
   return (
     <Tooltip
       text={props.tooltip}
+      isTextUserContent={props.isTooltipUserContent}
       isShownOnKeyboardFocusOnly={true}
       placement={MENU_ITEM_TOOLTIP_PLACEMENT}
       fallbackPlacements={MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS}

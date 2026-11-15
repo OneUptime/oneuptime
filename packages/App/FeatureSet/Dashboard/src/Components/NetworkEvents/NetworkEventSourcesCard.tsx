@@ -126,6 +126,7 @@ export const LinkSyslogSourceModal: FunctionComponent<{
           name && hostname && name !== hostname
             ? `${name} (${hostname})`
             : name || hostname,
+        isUserContent: true,
       };
     },
   );

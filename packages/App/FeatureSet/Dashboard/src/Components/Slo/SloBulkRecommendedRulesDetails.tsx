@@ -30,12 +30,12 @@ import React, {
   useState,
 } from "react";
 import {
-  BURN_RATE_RULE_NOTHING_PICKED,
   BurnRateRuleWindowsText,
   formatBurnRateRuleFiresWhen,
   formatBurnRateRuleWindows,
-  getNamesOrNothingPicked,
+  getSeverityOrNothingPicked,
 } from "../../Pages/Slo/Utils/BurnRateRuleLines";
+import { StateListType } from "Common/Utils/StateOrder";
 import RecommendedBurnRateRulesApi from "../../Pages/Slo/Utils/RecommendedBurnRateRulesApi";
 import { formatNameList } from "../AiAccess/AiAccessModes";
 import {
@@ -260,9 +260,9 @@ const SloBulkRecommendedRulesDetails: FunctionComponent<ComponentProps> = (
       windows.windows,
       windows.suppression,
       translator.translateTemplate("Alert: {{severity}}", {
-        severity: getNamesOrNothingPicked(
-          [variant.rule.alertSeverityName || undefined],
-          BURN_RATE_RULE_NOTHING_PICKED.severity,
+        severity: getSeverityOrNothingPicked(
+          StateListType.AlertSeverity,
+          variant.rule.alertSeverityName,
           translator,
         ),
       }),

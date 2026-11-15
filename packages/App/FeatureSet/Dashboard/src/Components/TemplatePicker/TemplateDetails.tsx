@@ -83,10 +83,13 @@ export interface TemplateDetailsChipProps {
    */
   isAccent?: boolean | undefined;
   /*
-   * Read before the label by a screen reader only, such as "Trigger: ".
+   * Read before and after the label by a screen reader only: the halves of
+   * one sentence cut around the label ("Trigger: {{name}}" is "Trigger: "
+   * and nothing), so a language can put its words on either side.
    * Translated by the caller.
    */
   screenReaderPrefix?: string | undefined;
+  screenReaderSuffix?: string | undefined;
 }
 
 /** A thing a template is made of, named as the product names it elsewhere. */
@@ -111,6 +114,11 @@ export const TemplateDetailsChip: (
           <></>
         )}
         {props.label}
+        {props.screenReaderSuffix ? (
+          <span className="sr-only">{props.screenReaderSuffix}</span>
+        ) : (
+          <></>
+        )}
       </span>
     </div>
   );

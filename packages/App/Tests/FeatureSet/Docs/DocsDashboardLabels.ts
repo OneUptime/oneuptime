@@ -11,6 +11,7 @@ import {
   withDateDisplayLanguage,
   writeInDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
   SloBudgetRunwayKind,
@@ -158,6 +159,43 @@ export const drawnDashboardLabel: DashboardLabelFunction = (
 };
 
 /*
+ * THE PLANS' NAMES (#7512).
+ *
+ * The Dashboard writes a plan's name as it is in every language, as the
+ * invoice does: the plan picker names a plan plan.getName()
+ * (PlanPickerCopy), and the plan pills fill "{{planName}} Plan" with the
+ * plan itself (ChoiceRows' getChoiceRowPlanPillText, the navbar menus). A
+ * locale may still have a word for the same English from another use of
+ * it - Persian words "Growth" رشد and "Free" رایگان - so drawnDashboardLabel
+ * would name a plan by a word the screen never shows. A page that names a
+ * plan writes it as written instead, in every language.
+ */
+export const PLAN_NAMES: ReadonlyArray<string> = Object.values(PlanType);
+
+// Whether a name is a plan's: Free, Growth, Scale or Enterprise.
+export const isPlanName: (name: string) => boolean = (
+  name: string,
+): boolean => {
+  return PLAN_NAMES.includes(name);
+};
+
+/*
+ * A plan's name as a page in this language writes it: as it is, the way
+ * this language's Dashboard writes it. It throws for a name that is no
+ * plan's, which a page looks up as a label (drawnDashboardLabel).
+ */
+export const writtenPlanName: DashboardLabelFunction = (
+  _language: string,
+  plan: string,
+): string => {
+  if (!isPlanName(plan)) {
+    throw new Error(`Not a plan's name: ${plan}`);
+  }
+
+  return plan;
+};
+
+/*
  * The other buttons a page draws from a template with a model's name:
  * "Duplicate Workflow", "Export Workflow", "Edit Workflow" and "Delete
  * Workflow Variable" (translateNamedAction, Common/UI/Utils/TranslateTemplate).
@@ -229,20 +267,104 @@ export const drawnActionLabel: DashboardLabelFunction = (
   return english;
 };
 
+// The no-break spaces a sentence is drawn with, U+00A0 and U+202F.
+const NO_BREAK_SPACES: RegExp = /[\u00A0\u202F]/g;
+
 /*
- * The Dashboard's translator in this language, reading its locale file: a
- * value that is still the English is no wording at all, as on the screen.
+ * What a page in this language writes for a bold name of the Dashboard: a
+ * plan's name as it is (writtenPlanName), any other label as this
+ * language's Dashboard draws it (drawnDashboardLabel), or with the named
+ * actions too (drawnActionLabel). A suite that checks a page's bold names
+ * one by one reads them here, so no suite asks for the Growth plan by a
+ * locale's word for growth (#7512).
  */
-export const dashboardTranslator: (language: string) => Translator = (
+export const writtenDashboardLabel: DashboardLabelFunction = (
+  language: string,
+  english: string,
+): string => {
+  return isPlanName(english)
+    ? writtenPlanName(language, english)
+    : drawnDashboardLabel(language, english);
+};
+
+export const writtenActionLabel: DashboardLabelFunction = (
+  language: string,
+  english: string,
+): string => {
+  return isPlanName(english)
+    ? writtenPlanName(language, english)
+    : drawnActionLabel(language, english);
+};
+
+/*
+ * A label as a docs page writes it: the Dashboard's words with each
+ * no-break space read as the plain space the page, like the locale file,
+ * is typed with. The Dashboard draws French's marks and a number's unit
+ * with a no-break space, so a line never starts with "»" or parts "24"
+ * from "Std." (Common/Types/NoBreakSpaces); a docs page is prose to read
+ * and copy, and quotes the label with the space the locale writes.
+ */
+export const asTheDocsWriteIt: (label: string) => string = (
+  label: string,
+): string => {
+  return label.replace(NO_BREAK_SPACES, " ");
+};
+
+// What `translator` draws, as a docs page writes it (asTheDocsWriteIt).
+export const readAsTheDocsWriteIt: (translator: Translator) => Translator = (
+  translator: Translator,
+): Translator => {
+  const docs: Translator = {
+    ...translator,
+    translateText: (text: string | undefined): string | undefined => {
+      const drawn: string | undefined = translator.translateText(text);
+
+      return drawn === undefined ? drawn : asTheDocsWriteIt(drawn);
+    },
+    translateTemplate: (
+      ...args: Parameters<Translator["translateTemplate"]>
+    ): string => {
+      return asTheDocsWriteIt(translator.translateTemplate(...args));
+    },
+    translatePlural: (
+      ...args: Parameters<Translator["translatePlural"]>
+    ): string => {
+      return asTheDocsWriteIt(translator.translatePlural(...args));
+    },
+    translateTerm: (
+      ...args: Parameters<Translator["translateTerm"]>
+    ): string => {
+      return asTheDocsWriteIt(translator.translateTerm(...args));
+    },
+  };
+
+  return docs;
+};
+
+// The Dashboard's translator reading `language`'s locale file, as its pages write it.
+const docsTranslatorOf: (language: string) => Translator = (
   language: string,
 ): Translator => {
   const locale: Record<string, unknown> = dashboardLocale(language);
 
-  return createTranslator((text: string): string | undefined => {
-    const value: unknown = locale[text];
+  return readAsTheDocsWriteIt(
+    createTranslator((text: string): string | undefined => {
+      const value: unknown = locale[text];
 
-    return typeof value === "string" ? value : undefined;
-  }, language);
+      return typeof value === "string" ? value : undefined;
+    }, language),
+  );
+};
+
+/*
+ * The Dashboard's translator in this language, reading its locale file: a
+ * value that is still the English is no wording at all, as on the screen.
+ * What it draws is read as a docs page writes it (asTheDocsWriteIt).
+ */
+export const dashboardTranslator: (language: string) => Translator = (
+  language: string,
+): Translator => {
+  return docsTranslatorOf(language);
 };
 
 /*
@@ -569,14 +691,9 @@ export const drawnTableButton: DashboardLabelFunction = (
     throw new Error(`Not a table's create button: ${english}`);
   }
 
-  const locale: Record<string, unknown> = dashboardLocale(language);
-
   return translateNamedAction(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = locale[text];
-
-      return typeof value === "string" ? value : undefined;
-    }, language),
+    // As the page writes the label it draws (asTheDocsWriteIt).
+    docsTranslatorOf(language),
     {
       template: `${verb} {{itemName}}`,
       itemName: english.slice(verb.length + 1),
@@ -604,14 +721,9 @@ export const drawnCreateButton: DashboardLabelFunction = (
     throw new Error(`Not a create button: ${english}`);
   }
 
-  const locale: Record<string, unknown> = dashboardLocale(language);
-
   return translateNamedAction(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = locale[text];
-
-      return typeof value === "string" ? value : undefined;
-    }, language),
+    // As the page writes the label it draws (asTheDocsWriteIt).
+    docsTranslatorOf(language),
     {
       template: "Create {{itemName}}",
       itemName: english.slice(CREATE_PREFIX.length),

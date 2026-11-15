@@ -1,3 +1,5 @@
+import { NARROW_NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
+
 /*
  * What goes between two names listed one after another, by the script they
  * are written in:
@@ -17,8 +19,9 @@
  *   - "مرحله 1: هدف مانیتور؛ مرحله 2: تعداد تلاش مجدد" in Persian - the
  *     Arabic semicolon and a space;
  *   - "Étape 1 : Cible du moniteur ; Étape 2 : Nombre de tentatives" in
- *     French - a space before the semicolon too, when the caller says the
- *     clauses are French (the language hint of getClauseSeparator).
+ *     French - a narrow no-break space before the semicolon too, when the
+ *     caller says the clauses are French (the language hint of
+ *     getClauseSeparator).
  *
  * Read from the text rather than from the reader's language, so a list a
  * locale has not translated yet keeps its English commas instead of
@@ -50,13 +53,14 @@ export const ARABIC_CLAUSE_SEPARATOR: string = "؛ ";
 /*
  * French sets its semicolon apart with a space before it, as it does its
  * colon and its question mark: "Étape 1 : Cible du moniteur ; Étape 2 :
- * Nombre de tentatives". The Dashboard's French locale writes every one of
- * them after a plain space - "{{first}} ; {{second}} ; et {{third}}",
- * "Étape {{number}} : {{fields}}" - and never after a no-break space, so
- * this does too: Unicode's line breaking (UAX #14) never starts a line with
- * the semicolon after that space.
+ * Nombre de tentatives". French typography writes the narrow no-break
+ * space there (U+202F), and so does every French sentence OneUptime draws:
+ * the Dashboard's French locale writes "{{first}} ; {{second}} ; et
+ * {{third}}" after a plain space, which the Translator sets as that narrow
+ * one (Types/NoBreakSpaces). The clauses joined here take the same, or one
+ * line would show two widths of space before its semicolons.
  */
-export const FRENCH_CLAUSE_SEPARATOR: string = " ; ";
+export const FRENCH_CLAUSE_SEPARATOR: string = `${NARROW_NO_BREAK_SPACE}; `;
 
 export type GetListSeparatorFunction = (texts: ReadonlyArray<string>) => string;
 

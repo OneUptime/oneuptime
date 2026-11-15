@@ -190,13 +190,13 @@ describe("a probe's Retry Attempts", () => {
     expect(partsOf(lines[2]!)).toEqual([
       "تلاش ۳/۳",
       "موفق",
-      "۱٬۲۳۴ میلی‌ثانیه",
+      "۱٬۲۳۴\u00A0میلی‌ثانیه",
       "HTTP 200",
     ]);
     expect(partsOf(lines[0]!)).toEqual([
       "تلاش ۱/۳",
       "ناموفق",
-      "۱٬۲۳۴ میلی‌ثانیه",
+      "۱٬۲۳۴\u00A0میلی‌ثانیه",
     ]);
 
     const card: string = withoutIsolateMarks(
@@ -216,7 +216,7 @@ describe("a probe's Retry Attempts", () => {
     expect(partsOf(result.getAllByTestId("probe-attempt-line")[2]!)).toEqual([
       "المحاولة 3/3",
       "نجح",
-      "1,234 ملي ث",
+      "1,234\u00A0ملي ث",
       "HTTP 200",
     ]);
   });
@@ -288,8 +288,8 @@ describe("a custom code monitor's Retry Attempts", () => {
     );
 
     expect(lines.map(partsOf)).toEqual([
-      ["تلاش ۱/۲", "ناموفق", "۳۰٬۰۰۰ میلی‌ثانیه"],
-      ["تلاش ۲/۲", "موفق", "۱٬۲۳۴ میلی‌ثانیه"],
+      ["تلاش ۱/۲", "ناموفق", "۳۰٬۰۰۰\u00A0میلی‌ثانیه"],
+      ["تلاش ۲/۲", "موفق", "۱٬۲۳۴\u00A0میلی‌ثانیه"],
     ]);
   });
 

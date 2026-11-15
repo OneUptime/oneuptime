@@ -13,7 +13,11 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   NAMING_LOOKUP_KEY_EXAMPLES,
@@ -343,7 +347,16 @@ const NamingLookupTableEditor: FunctionComponent<
                           value={entry.key}
                           maxLength={MAX_NAMING_LOOKUP_KEY_LENGTH}
                           placeholder={NAMING_LOOKUP_KEY_EXAMPLES[kind]}
-                          aria-label={`${keyTitle} ${index + 1}`}
+                          // "IP-Oktett 2": the row's number in the reader's digits.
+                          aria-label={translator.translateTemplate(
+                            "{{title}} {{number}}",
+                            {
+                              title: translatableTerm(
+                                NAMING_LOOKUP_KEY_TITLES[kind],
+                              ),
+                              number: translator.formatNumber(index + 1),
+                            },
+                          )}
                           className="block w-full rounded-md border border-gray-200 px-2 py-1 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           onChange={(
                             event: React.ChangeEvent<HTMLInputElement>,
@@ -362,7 +375,10 @@ const NamingLookupTableEditor: FunctionComponent<
                           value={entry.value}
                           maxLength={MAX_NAMING_LOOKUP_VALUE_LENGTH}
                           placeholder={NAMING_LOOKUP_VALUE_EXAMPLE}
-                          aria-label={`${translator.translateText("Value")} ${index + 1}`}
+                          aria-label={translator.translateTemplate(
+                            "Value {{number}}",
+                            { number: translator.formatNumber(index + 1) },
+                          )}
                           className="block w-full rounded-md border border-gray-200 px-2 py-1 font-mono text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           onChange={(
                             event: React.ChangeEvent<HTMLInputElement>,

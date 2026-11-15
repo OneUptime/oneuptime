@@ -273,6 +273,8 @@ function useBulkSwitchToProbePolling(): BulkSwitchToProbePollingResult {
         label: probe.isGlobalProbe
           ? translator.translateTemplate("{{name}} (global)", { name: name })
           : name,
+        // The probe's name, its tag already in the reader's words.
+        isUserContent: true,
         value: probe._id?.toString() || "",
       };
     });

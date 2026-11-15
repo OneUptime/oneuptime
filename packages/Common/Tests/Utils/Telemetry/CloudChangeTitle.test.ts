@@ -586,7 +586,7 @@ describe("in every language", () => {
         { operation: "CreateUser", resource: "", failed: true },
         dashboardTranslator("fr"),
       ),
-    ).toBe("Échec : CreateUser");
+    ).toBe("Échec\u00A0: CreateUser");
     expect(
       getCloudChangeTitle(
         { operation: "CreateUser", resource: "", failed: false },
@@ -918,7 +918,7 @@ describe("a health event's title", () => {
           ),
           dashboardTranslator("fr"),
         ),
-      ).toBe("AWS Health : Maintenance planifiée RDS (à venir)");
+      ).toBe("AWS Health\u00A0: Maintenance planifiée RDS (à venir)");
       expect(
         getCloudHealthTitle(
           factsOf(
@@ -1000,7 +1000,7 @@ describe("a health event's title", () => {
         factsOf("Google Cloud Service Health: an incident", "INCIDENT"),
         dashboardTranslator("fr"),
       ),
-    ).toBe("Google Cloud Service Health : un incident");
+    ).toBe("Google Cloud Service Health\u00A0: un incident");
     // A provider's own words that happen to be OneUptime's for another source stay as written.
     expect(
       getCloudHealthTitle(

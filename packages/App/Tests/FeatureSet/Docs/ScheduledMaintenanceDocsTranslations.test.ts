@@ -30,7 +30,11 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
+import {
+  drawnActionLabel,
+  isActionLabel,
+  writtenActionLabel,
+} from "./DocsDashboardLabels";
 import {
   PATH_SEPARATOR,
   boldLabels,
@@ -220,7 +224,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${writtenActionLabel(language, label)}**`];
     }),
     ...boldLabels(englishPage(page))
       .filter((label: string): boolean => {

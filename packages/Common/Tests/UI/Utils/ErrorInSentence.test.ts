@@ -47,6 +47,7 @@ import {
 import {
   dashboardTranslator,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 import {
   afterEach,
@@ -621,8 +622,9 @@ describe("why a data check could not be written is said in the reader's language
         translator: dashboardTranslator(language),
       });
 
+      // As drawn: French's colon kept with its word (NoBreakSpaces).
       expect(said).toBe(
-        readDashboardLocale(language)[
+        readDashboardLocaleAsDrawn(language)[
           RULE_NOT_A_CHECK_REFUSAL.template
         ]!.replace("{{reason}}", MODEL_REASON),
       );

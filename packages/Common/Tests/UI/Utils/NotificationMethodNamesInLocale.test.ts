@@ -269,7 +269,7 @@ describe("NotificationMethodUtil.getMethodLabel", () => {
         OnCallPageChannel.Email,
         "jane@example.com",
       ),
-    ).toBe(`${readLocale("fr")["Email"]} : jane@example.com`);
+    ).toBe(`${readLocale("fr")["Email"]}\u00A0: jane@example.com`);
     expect(
       withoutIsolateMarks(
         NotificationMethodUtil.getMethodLabel(
@@ -376,7 +376,7 @@ describe("NotificationMethodUtil.getTranslatedLabel and getDropdownOptions", () 
      */
     expect(worded).toEqual([
       {
-        label: `${readLocale("fr")["Phone call"]} : +15555550100`,
+        label: `${readLocale("fr")["Phone call"]}\u00A0: +15555550100`,
         value: ID,
         isUserContent: true,
         isInPageDirection: true,

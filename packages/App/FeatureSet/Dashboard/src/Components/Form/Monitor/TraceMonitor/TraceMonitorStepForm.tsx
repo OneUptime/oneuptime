@@ -110,6 +110,8 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
                 return {
                   label: telemetryService.name!,
                   value: telemetryService.id?.toString() || "",
+                  // A service's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               },
             ),
@@ -133,6 +135,8 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
                     ""
                   } (${telemetryEntity.entityType || ""})`,
                   value: telemetryEntity.entityKey || "",
+                  // What the resource is called in its telemetry: as written.
+                  isUserContent: true,
                 };
               },
             ),

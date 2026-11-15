@@ -590,6 +590,7 @@ describe("ProjectScopedTeamsPicker", () => {
     expect(capturedDropdownProps!.isMultiSelect).toBe(false);
     expect(capturedDropdownProps!.value).toEqual({
       label: "Members",
+      isUserContent: true,
       value: MEMBERS_ID,
     });
 

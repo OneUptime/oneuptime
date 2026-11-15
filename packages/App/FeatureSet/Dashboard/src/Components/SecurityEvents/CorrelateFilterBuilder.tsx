@@ -349,7 +349,10 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
               </div>
               <Button
                 dataTestId={`correlate-condition-delete-${index}`}
-                ariaLabel={`${t("Remove condition")} ${index + 1}`}
+                ariaLabel={translator.translateTemplate(
+                  "Remove condition {{number}}",
+                  { number: translator.formatNumber(index + 1) },
+                )}
                 isAriaLabelTranslated={true}
                 icon={IconProp.Trash}
                 buttonStyle={ButtonStyleType.ICON}

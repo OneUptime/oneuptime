@@ -1708,6 +1708,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/AI/Toolbox",
       // What an AI action's approval card says, and the kinds of resource it names.
       "keys packages/Common/Types/AI/AIActionWords.ts",
+      // What Ask AI's tables and Sources chips say beside their data.
+      "keys packages/Common/Types/AI/AIReadTableWords.ts",
       "keys packages/Common/Types/AI/AiAffectedResources.ts",
       // Why OneUptime AI did not start a run someone asked for, by its code.
       "keys packages/Common/Types/AI/AiRunRefusal.ts",

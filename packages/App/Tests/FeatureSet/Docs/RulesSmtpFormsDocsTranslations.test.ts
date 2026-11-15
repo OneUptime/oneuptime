@@ -8,7 +8,11 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { dashboardLocale, isDashboardLabel } from "./DocsDashboardLabels";
+import {
+  dashboardLocale,
+  isDashboardLabel,
+  readAsTheDocsWriteIt,
+} from "./DocsDashboardLabels";
 import {
   CARD_LINE,
   anchorProblems,
@@ -613,15 +617,20 @@ function adminLabel(language: string, english: string): string {
   return typeof value === "string" && value.trim() ? value : english;
 }
 
-// The Dashboard's own translator, as it runs in this language.
+/*
+ * The Dashboard's own translator, as it runs in this language, what it
+ * draws read as the page writes it (asTheDocsWriteIt).
+ */
 function dashboardTranslator(language: string): Translator {
   const locale: Record<string, unknown> = dashboardLocale(language);
 
-  return createTranslator((text: string): string | undefined => {
-    const value: unknown = locale[text];
+  return readAsTheDocsWriteIt(
+    createTranslator((text: string): string | undefined => {
+      const value: unknown = locale[text];
 
-    return typeof value === "string" ? value : undefined;
-  }, language);
+      return typeof value === "string" ? value : undefined;
+    }, language),
+  );
 }
 
 /*

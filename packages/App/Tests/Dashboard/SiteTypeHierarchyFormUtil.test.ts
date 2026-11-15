@@ -313,11 +313,23 @@ describe("SiteTypeHierarchyFormUtil", () => {
       ).toEqual([
         {
           label: "Suggested — Region",
-          options: [{ value: REGION_SITE_ID, label: "East Region (Region)" }],
+          options: [
+            {
+              value: REGION_SITE_ID,
+              label: "East Region (Region)",
+              isUserContent: true,
+            },
+          ],
         },
         {
           label: "Other sites",
-          options: [{ value: BRANCH_SITE_ID, label: "Warehouse 7 (Branch)" }],
+          options: [
+            {
+              value: BRANCH_SITE_ID,
+              label: "Warehouse 7 (Branch)",
+              isUserContent: true,
+            },
+          ],
         },
       ]);
     });
@@ -372,7 +384,13 @@ describe("SiteTypeHierarchyFormUtil", () => {
           childNetworkSiteTypeValue: MARKET_ID,
           networkSiteTypes: flatTypes,
         }),
-      ).toEqual([{ value: REGION_SITE_ID, label: "Aramark (Other)" }]);
+      ).toEqual([
+        {
+          value: REGION_SITE_ID,
+          label: "Aramark (Other)",
+          isUserContent: true,
+        },
+      ]);
     });
   });
 });

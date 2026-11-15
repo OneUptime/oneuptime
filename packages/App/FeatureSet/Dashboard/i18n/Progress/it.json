@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9240
+    "keys": 52416,
+    "untranslated": 9123
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -204,6 +204,7 @@
     "Namespace",
     "Nav",
     "No",
+    "OID Collection Template",
     "OK",
     "OR",
     "OSD",
@@ -281,6 +282,7 @@
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SQL injection",
     "SSH",
@@ -315,6 +317,7 @@
     "Task · 52% CPU · 512 MB",
     "Team",
     "Team {{name}}",
+    "Team: {{name}}",
     "Tenancy",
     "Test",
     "Threat Intel",
@@ -325,10 +328,12 @@
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
     "Trigger",
+    "Trigger: {{name}}",
     "Tunnel",
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Up · In",

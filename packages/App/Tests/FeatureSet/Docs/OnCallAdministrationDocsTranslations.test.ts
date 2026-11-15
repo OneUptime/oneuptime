@@ -31,6 +31,7 @@ import {
   drawnActionLabel,
   drawnDashboardLabel,
   isActionLabel,
+  writtenActionLabel,
 } from "./DocsDashboardLabels";
 import {
   PATH_SEPARATOR,
@@ -205,7 +206,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${writtenActionLabel(language, label)}**`];
     }),
     ...dashboardPaths(page).map((segments: Array<string>): [string, string] => {
       return [drawnPath("en", segments), drawnPath(language, segments)];

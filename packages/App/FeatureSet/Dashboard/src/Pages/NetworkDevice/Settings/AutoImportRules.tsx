@@ -141,6 +141,8 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
       return {
         value: template.id?.toString() || "",
         label: template.templateName || "Unnamed Network Device template",
+        // Its own name as written; the word for none in the reader's words.
+        isUserContent: Boolean(template.templateName),
       };
     });
   };
@@ -174,6 +176,8 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
         return {
           value: template.id?.toString() || "",
           label: template.name || "Unnamed OID Collection Template",
+          // Its own name as written; the word for none in the reader's words.
+          isUserContent: Boolean(template.name),
         };
       },
     );

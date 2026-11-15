@@ -32,6 +32,10 @@ import ActionButtonSchema, {
 import { ButtonStyleType } from "../Button/Button";
 import { ActionMenuGroup } from "../ActionButton/ActionMenuGroup";
 import { DropdownOption } from "../Dropdown/Dropdown";
+import {
+  isRecordNameAsWritten,
+  recordNameInSentence,
+} from "../../../Utils/DefaultRecordNames";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -196,15 +200,24 @@ export const getValueChoiceOptions: (data: {
   values: Array<ValueChoice>;
   currentValueId?: string | undefined;
   translator: Translator;
+  /*
+   * The table the values are records of: a severity's, a status's. Their
+   * names read by its list (Common/Utils/DefaultRecordNames) - the default
+   * "Critical Incident" in the reader's words, a project's own as written.
+   * Left out, every name is drawn as written.
+   */
+  valueTableName?: string | undefined;
 }) => Array<DropdownOption> = (data: {
   values: Array<ValueChoice>;
   currentValueId?: string | undefined;
   translator: Translator;
+  valueTableName?: string | undefined;
 }): Array<DropdownOption> => {
   return data.values.map((value: ValueChoice): DropdownOption => {
     const option: DropdownOption = {
       value: value.id,
       label: value.name,
+      isUserContent: isRecordNameAsWritten(data.valueTableName, value.name),
     };
 
     if (value.color) {
@@ -478,7 +491,8 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
         ) {
           return bulkItemUnchanged(
             translator.translateTemplate(VALUE_CHANGE_ALREADY, {
-              value: translatableTerm(valueName),
+              // Named by its list: a project's own as written, never looked up.
+              value: recordNameInSentence(valueModel.tableName, valueName),
             }),
           );
         }
@@ -608,6 +622,7 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
                     )
                   : undefined,
               translator: translator,
+              valueTableName: valueModel.tableName || undefined,
             }),
           },
         ],
