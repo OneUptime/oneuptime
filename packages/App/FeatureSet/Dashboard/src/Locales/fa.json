@@ -52820,5 +52820,6 @@
   "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime وضعیت آن را {{status}} می‌کند و یک هشدار ({{severity}}) باز می‌کند.",
   "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime وضعیت آن را {{status}} می‌کند و یک حادثه ({{severity}}) باز می‌کند.",
   "OneUptime opens an alert ({{severity}}).": "OneUptime یک هشدار ({{severity}}) باز می‌کند.",
-  "OneUptime opens an incident ({{severity}}).": "OneUptime یک حادثه ({{severity}}) باز می‌کند."
+  "OneUptime opens an incident ({{severity}}).": "OneUptime یک حادثه ({{severity}}) باز می‌کند.",
+  "Backfill Cursor ID": "شناسهٔ مکان‌نمای پرکردن داده‌های گذشته"
 }

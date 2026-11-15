@@ -52820,5 +52820,6 @@
   "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime はステータスを {{status}} にし、アラート（{{severity}}）を開きます。",
   "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime はステータスを {{status}} にし、インシデント（{{severity}}）を開きます。",
   "OneUptime opens an alert ({{severity}}).": "OneUptime はアラート（{{severity}}）を開きます。",
-  "OneUptime opens an incident ({{severity}}).": "OneUptime はインシデント（{{severity}}）を開きます。"
+  "OneUptime opens an incident ({{severity}}).": "OneUptime はインシデント（{{severity}}）を開きます。",
+  "Backfill Cursor ID": "バックフィルカーソルのID"
 }

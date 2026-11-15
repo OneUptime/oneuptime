@@ -52820,5 +52820,6 @@
   "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "يضع OneUptime حالتها {{status}} ويفتح تنبيهًا ({{severity}}).",
   "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "يضع OneUptime حالتها {{status}} ويفتح حادثة ({{severity}}).",
   "OneUptime opens an alert ({{severity}}).": "يفتح OneUptime تنبيهًا ({{severity}}).",
-  "OneUptime opens an incident ({{severity}}).": "يفتح OneUptime حادثة ({{severity}})."
+  "OneUptime opens an incident ({{severity}}).": "يفتح OneUptime حادثة ({{severity}}).",
+  "Backfill Cursor ID": "معرّف مؤشر التعبئة الرجعية"
 }

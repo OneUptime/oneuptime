@@ -52820,5 +52820,6 @@
   "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime이 상태를 {{status}}(으)로 표시하고 경고({{severity}})를 엽니다.",
   "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime이 상태를 {{status}}(으)로 표시하고 인시던트({{severity}})를 엽니다.",
   "OneUptime opens an alert ({{severity}}).": "OneUptime이 경고({{severity}})를 엽니다.",
-  "OneUptime opens an incident ({{severity}}).": "OneUptime이 인시던트({{severity}})를 엽니다."
+  "OneUptime opens an incident ({{severity}}).": "OneUptime이 인시던트({{severity}})를 엽니다.",
+  "Backfill Cursor ID": "Backfill Cursor ID"
 }

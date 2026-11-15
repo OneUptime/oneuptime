@@ -52820,5 +52820,6 @@
   "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime 将其标记为 {{status}}，并打开一个警报（{{severity}}）。",
   "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime 将其标记为 {{status}}，并打开一个事件（{{severity}}）。",
   "OneUptime opens an alert ({{severity}}).": "OneUptime 打开一个警报（{{severity}}）。",
-  "OneUptime opens an incident ({{severity}}).": "OneUptime 打开一个事件（{{severity}}）。"
+  "OneUptime opens an incident ({{severity}}).": "OneUptime 打开一个事件（{{severity}}）。",
+  "Backfill Cursor ID": "Backfill Cursor ID"
 }

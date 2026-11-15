@@ -52820,5 +52820,6 @@
   "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime इसे {{status}} चिह्नित करता है और एक अलर्ट ({{severity}}) खोलता है।",
   "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime इसे {{status}} चिह्नित करता है और एक घटना ({{severity}}) खोलता है।",
   "OneUptime opens an alert ({{severity}}).": "OneUptime एक अलर्ट ({{severity}}) खोलता है।",
-  "OneUptime opens an incident ({{severity}}).": "OneUptime एक घटना ({{severity}}) खोलता है।"
+  "OneUptime opens an incident ({{severity}}).": "OneUptime एक घटना ({{severity}}) खोलता है।",
+  "Backfill Cursor ID": "Backfill Cursor ID"
 }

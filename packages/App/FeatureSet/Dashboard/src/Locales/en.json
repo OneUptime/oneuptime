@@ -52820,5 +52820,6 @@
   "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime marks it {{status}} and opens an alert ({{severity}}).",
   "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime marks it {{status}} and opens an incident ({{severity}}).",
   "OneUptime opens an alert ({{severity}}).": "OneUptime opens an alert ({{severity}}).",
-  "OneUptime opens an incident ({{severity}}).": "OneUptime opens an incident ({{severity}})."
+  "OneUptime opens an incident ({{severity}}).": "OneUptime opens an incident ({{severity}}).",
+  "Backfill Cursor ID": "Backfill Cursor ID"
 }
