@@ -25,6 +25,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * Where a project's incoming request secret requirement is enforced (issue
@@ -80,14 +81,12 @@ let isTracked: boolean;
 let lookedUpMonitor: Monitor | null;
 let policy: IncomingRequestSecretPolicyValue;
 
-let getMonitor: jest.SpiedFunction<typeof MonitorSecretKeyCache.getMonitor>;
-let setMonitor: jest.SpiedFunction<typeof MonitorSecretKeyCache.setMonitor>;
-let isTrackedSpy: jest.SpiedFunction<
-  typeof IncomingRequestReceivedAtStore.isTracked
->;
-let findOneBy: jest.SpiedFunction<typeof MonitorService.findOneBy>;
-let getPolicy: jest.SpiedFunction<typeof IncomingRequestSecretPolicy.getPolicy>;
-let recordUse: jest.SpiedFunction<typeof IncomingRequestSecretPolicy.recordUse>;
+let getMonitor: SpyInstance<typeof MonitorSecretKeyCache.getMonitor>;
+let setMonitor: SpyInstance<typeof MonitorSecretKeyCache.setMonitor>;
+let isTrackedSpy: SpyInstance<typeof IncomingRequestReceivedAtStore.isTracked>;
+let findOneBy: SpyInstance<typeof MonitorService.findOneBy>;
+let getPolicy: SpyInstance<typeof IncomingRequestSecretPolicy.getPolicy>;
+let recordUse: SpyInstance<typeof IncomingRequestSecretPolicy.recordUse>;
 
 const makeMonitor: (flags?: Partial<Monitor>) => Monitor = (
   flags?: Partial<Monitor>,

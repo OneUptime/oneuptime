@@ -380,7 +380,7 @@ describe("SLO List widget — what it asks for", () => {
           errorBudgetRemainingPercentage: 42.5,
           errorBudgetRemainingSeconds: undefined,
           errorBudgetRemainingEvents: "425" as unknown as number,
-        }),
+        } as Partial<ServiceLevelObjective>),
         buildSlo({
           name: "Search latency",
           sliType: SliType.RequestLatency,
@@ -388,7 +388,7 @@ describe("SLO List widget — what it asks for", () => {
           errorBudgetRemainingSeconds: undefined,
           errorBudgetRemainingEvents: -50,
           sloStatus: SloStatus.BudgetExhausted,
-        }),
+        } as Partial<ServiceLevelObjective>),
       ],
       count: 2,
       skip: 0,

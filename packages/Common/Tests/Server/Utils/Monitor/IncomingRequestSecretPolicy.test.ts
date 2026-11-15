@@ -21,6 +21,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A project's incoming request secret policy (issue #7526): whether its
@@ -67,11 +68,9 @@ let expiries: Array<number | undefined>;
 let requireSecret: boolean;
 let storedSecrets: Array<{ id: string; secretValue: string }>;
 
-let projectFindOneById: jest.SpiedFunction<typeof ProjectService.findOneById>;
-let secretFindBy: jest.SpiedFunction<
-  typeof IncomingRequestSecretService.findBy
->;
-let secretUpdateOneById: jest.SpiedFunction<
+let projectFindOneById: SpyInstance<typeof ProjectService.findOneById>;
+let secretFindBy: SpyInstance<typeof IncomingRequestSecretService.findBy>;
+let secretUpdateOneById: SpyInstance<
   typeof IncomingRequestSecretService.updateColumnsByIdWithoutHooks
 >;
 

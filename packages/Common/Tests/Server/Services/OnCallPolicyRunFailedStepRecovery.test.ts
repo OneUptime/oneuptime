@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock, SpyInstance } from "jest-mock";
 
 /*
  * A RUN'S STEP THAT FAILED AFTER ITS CLAIM, PUT RIGHT FOR ITS NEXT TRY
@@ -56,7 +57,7 @@ const NOW: Date = new Date("2026-11-15T09:02:00.000Z");
 const CLAIMED_AT: Date = new Date("2026-11-15T09:30:00.000Z");
 const READ_AT: Date = new Date("2026-11-15T09:20:00.000Z");
 
-type RepositoryUpdate = jest.Mock<
+type RepositoryUpdate = Mock<
   (
     where: Record<string, unknown>,
     values: Record<string, unknown>,
@@ -139,7 +140,7 @@ describe("a run that waited, whose start fails after its claim", () => {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "findOneBy")
       .mockRejectedValue(failure as never);
-    const handOver: jest.SpiedFunction<
+    const handOver: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation
     > = jest.spyOn(
       OnCallDutyPolicyExecutionLogService,
@@ -197,7 +198,7 @@ describe("a run that waited, whose start fails after its claim", () => {
 
   test("a claim it lost hands nothing over: another tick has it", async () => {
     repositoryUpdate.mockResolvedValue({ affected: 0 });
-    const handOver: jest.SpiedFunction<
+    const handOver: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation
     > = jest.spyOn(
       OnCallDutyPolicyExecutionLogService,
@@ -218,7 +219,7 @@ describe("a run that waited, whose start fails after its claim", () => {
     repositoryUpdate.mockRejectedValue(
       new Error("Connection terminated unexpectedly") as never,
     );
-    const handOver: jest.SpiedFunction<
+    const handOver: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation
     > = jest.spyOn(
       OnCallDutyPolicyExecutionLogService,
@@ -250,7 +251,7 @@ describe("a run that waited, whose start fails after its claim", () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneById")
       .mockResolvedValue(undefined as never);
-    const handOver: jest.SpiedFunction<
+    const handOver: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation
     > = jest.spyOn(
       OnCallDutyPolicyExecutionLogService,
@@ -367,7 +368,9 @@ describe("giving back a claim to move a run on that paged nobody", () => {
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
       .mockResolvedValue(
-        storedRun({ lastExecutedEscalationRuleId: undefined }),
+        storedRun({
+          lastExecutedEscalationRuleId: undefined,
+        } as Partial<OnCallDutyPolicyExecutionLog>),
       );
 
     await expect(

@@ -635,7 +635,7 @@ beforeEach(() => {
   jest
     .spyOn(
       BillingInvoiceService as unknown as Record<string, () => unknown>,
-      "onBeforeFind" as never,
+      "onBeforeFind",
     )
     .mockImplementation((async (findBy: unknown): Promise<unknown> => {
       return { findBy, carryForward: null };
@@ -806,10 +806,7 @@ beforeEach(() => {
     for (const hook of ["onBeforeCreate", "onBeforeUpdate", "onBeforeDelete"]) {
       pastHooks.push(
         jest
-          .spyOn(
-            service as unknown as Record<string, () => unknown>,
-            hook as never,
-          )
+          .spyOn(service as unknown as Record<string, () => unknown>, hook)
           .mockRejectedValue(new BadDataException(PAST) as never),
       );
     }

@@ -932,7 +932,7 @@ describe("SloKpiStrip - a request SLO", () => {
           lastEvaluatedAt: undefined,
           firstAccumulatedBucketStartAt: undefined,
           lastAccumulatedBucketEndAt: undefined,
-        })}
+        } as Partial<ServiceLevelObjective>)}
         lowestEnabledBurnRateThreshold={2}
         now={NOW}
       />,

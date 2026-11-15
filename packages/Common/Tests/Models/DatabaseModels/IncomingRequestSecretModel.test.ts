@@ -1,6 +1,6 @@
 import IncomingRequestSecret from "../../../Models/DatabaseModels/IncomingRequestSecret";
 import Project from "../../../Models/DatabaseModels/Project";
-import ColumnAccessControl from "../../../Types/BaseDatabase/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import Permission from "../../../Types/Permission";
 import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
