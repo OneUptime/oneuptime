@@ -43,7 +43,7 @@ Gå til **Projektindstillinger → Auditlogs → Indstillinger**. **Auditlogs** 
 
 ### Rediger indstillingerne
 
-Klik på **Edit Audit Log Settings**.
+Klik på **Rediger indstillinger for auditlogs**.
 
 ### Slå den til
 

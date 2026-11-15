@@ -108,7 +108,7 @@ En origin er et skjema, en vert og en valgfri port: `https://app.example.com` de
 
 ## Bytt ut, slå av eller slett en nøkkel
 
-En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise**, og **Last Used At**: siste gang OneUptime godtok data som ble sendt med den.
+En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise**, og **Sist brukt den**: siste gang OneUptime godtok data som ble sendt med den.
 
 | For å | Gjør dette | Hva avsendere ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nøkkels side viser **Status**, **Hemmelig nøkkel** bak **Klikk for å vise*
 | Erstatte en lekket hemmelighet | Klikk på **Tilbakestill hemmelig nøkkel**, og bekreft. Nøkkelen beholder innstillingene sine og får en ny hemmelighet. | `401` til de sender den nye hemmeligheten |
 | Stoppe en nøkkel for godt | Klikk på **Slett Inntaksnøkkel** nederst på siden dens. | `401` |
 
-For å bytte en hemmelighet uten å miste data oppretter du en ny nøkkel, flytter avsenderne dine over til den og sletter den gamle nøkkelen når **Last Used At** for den slutter å endre seg. **Last Used At** oppdateres hvert par minutter, ikke ved hver forespørsel.
+For å bytte en hemmelighet uten å miste data oppretter du en ny nøkkel, flytter avsenderne dine over til den og sletter den gamle nøkkelen når **Sist brukt den** for den slutter å endre seg. **Sist brukt den** oppdateres hvert par minutter, ikke ved hver forespørsel.
 
 ## Feilsøking
 

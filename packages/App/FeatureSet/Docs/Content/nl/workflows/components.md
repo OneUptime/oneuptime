@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - **Instellingen** zijn wat je invult. Instellingen met **(Optioneel)** mogen leeg blijven. Minder gebruikte instellingen zijn ingeklapt onder **Meer velden**.
-- **Outputs** zijn de punten aan de onderrand. De meeste blokken hebben **Succes** en **Fout**; [Conditions](#conditions) heeft **Ja** en **Nee**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Standaard**.
+- **Uitvoer** zijn de punten aan de onderrand. De meeste blokken hebben **Succes** en **Fout**; [Conditions](#conditions) heeft **Ja** en **Nee**, en [Switch / Case](#switch-case) heeft er een voor elk van zijn gevallen, plus **Standaard**.
 - **Returns** zijn de waarden die een blok aan latere blokken doorgeeft, zoals de **Antwoordlichaam** van een API. Een later blok leest er een met `{{local.components.<block ID>.returnValues.<value ID>}}`; de knop **{ }** in een instelling voegt hem voor je in. Zie [Variabelen](/docs/workflows/variables#componentuitvoer-data-uit-eerdere-blokken).
 
 Een blok dat **Fout** neemt, geeft de fout door aan de blokken die op **Fout** zijn aangesloten, en de uitvoering gaat daar verder. Is er niets op **Fout** aangesloten, dan mislukt de uitvoering: wat ze verder nog deed, loopt door, daarna eindigt ze met de status **Fout**, en de vermelding van het blok in **Stappen** van de uitvoering zegt waarom. Een verplichte instelling die leeg is gelaten, of een instelling die nooit kan werken, stopt de uitvoering daarentegen met een fout.
@@ -463,9 +463,9 @@ Voor elk soort record in OneUptime (monitoren, incidenten, waarschuwingen, statu
 | **Create One Monitor**   | Voegt één record toe vanuit een JSON-object.                                   |
 | **Create Many Monitors** | Voegt meerdere records toe vanuit een JSON-array.                              |
 | **Update One Monitor**   | Past de schrijfgegevens toe op één overeenkomend record.                       |
-| **Update Many Monitors** | Past de schrijfgegevens toe op overeenkomende records, tot **Limit**.          |
+| **Update Many Monitors** | Past de schrijfgegevens toe op overeenkomende records, tot **Limiet**.          |
 | **Delete One Monitor**   | Verwijdert één overeenkomend record.                                           |
-| **Delete Many Monitors** | Verwijdert overeenkomende records, tot **Limit**.                              |
+| **Delete Many Monitors** | Verwijdert overeenkomende records, tot **Limiet**.                              |
 
 Dezelfde set geeft je vier triggers — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** en **On Delete Monitor**. Zie [Triggers](/docs/workflows/triggers#oneuptime-gebeurtenistriggers).
 
@@ -533,7 +533,7 @@ Een veld dat naar een ander record verwijst, zoals de ernst van een incident, to
 
 Velden die OneUptime zelf invult, worden niet aangeboden als je een record schrijft: de `_id` van het record, **Aangemaakt op**, **Bijgewerkt op**, **Aangemaakt door gebruiker**, slugs, recordnummers en meldingsstatussen. Wie een record aanmaakte, archiveerde of oploste, en wanneer, is nooit aan een workflow om in te stellen: een record dat een workflow aanmaakt, heeft geen maker, een waarde die een workflow voor een van die velden naast andere velden meestuurt, wordt genegeerd, en een Update die verder niets meestuurt, mislukt met een melding die ze noemt. Een update biedt alleen velden die na het aanmaken van een record kunnen veranderen. Een query biedt wel de ID, de tijdstempels en **Aangemaakt door gebruiker** aan, omdat die nuttig zijn om op te filteren. **Deleted At** wordt nergens aangeboden: records worden echt verwijderd, dus het is altijd leeg.
 
-**Overslaan** en **Limit** zijn twee getalvelden bij Find Many, Update Many en Delete Many, onder **Meer velden** — `Skip: 0` met `Limit: 100` neemt de eerste honderd overeenkomsten. **Limit** is standaard `10`, en bij Update Many en Delete Many beperkt het hoeveel records er echt worden geschreven, niet alleen hoeveel er terugkomen. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien overeenkwamen. Verhoog **Limit** als je er meer dan tien wilt wijzigen.
+**Overslaan** en **Limiet** zijn twee getalvelden bij Find Many, Update Many en Delete Many, onder **Meer velden** — `Skip: 0` met `Limit: 100` neemt de eerste honderd overeenkomsten. **Limiet** is standaard `10`, en bij Update Many en Delete Many beperkt het hoeveel records er echt worden geschreven, niet alleen hoeveel er terugkomen. Dus `Items Deleted: 10` betekent dat er tien records zijn verwijderd, niet dat er tien overeenkwamen. Verhoog **Limiet** als je er meer dan tien wilt wijzigen.
 
 Delete One en Delete Many op een query maken een geschiedenis nooit leeg. Bij de statusgebeurtenissen van een monitor, en bij de statusgeschiedenis van incidenten, waarschuwingen, onderhoudsgebeurtenissen en episodes, verwijderen ze nooit de huidige status van een record, en ze houden elke statusgebeurtenis van een monitor die een deel van de laatste 90 dagen beslaat, zodat een statuspagina een monitor nooit grijs toont. Het logboek van de uitvoering zegt hoeveel er zijn gehouden. Om één bepaalde gebeurtenis te verwijderen, vraag je die op via haar `_id`.
 

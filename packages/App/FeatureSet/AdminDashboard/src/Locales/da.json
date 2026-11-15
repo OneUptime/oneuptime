@@ -2738,7 +2738,7 @@
   "Type": "Type",
   "Value": "Værdi",
   "Number": "Tal",
-  "Loading values...": "Loading values...",
+  "Loading values...": "Indlæser værdier...",
   "equals": "er lig med",
   "does not equal": "er ikke lig med",
   "is any of": "er en af",

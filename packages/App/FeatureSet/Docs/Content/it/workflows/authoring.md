@@ -47,7 +47,7 @@ Trascina i blocchi dove vuoi; la tela li allinea a una griglia mentre li sposti.
 | **Identifier** (sotto **ID**)        | L'ID breve mostrato sul blocco, come `log-1`. È il modo in cui gli altri blocchi fanno riferimento a questo, quindi rinominarlo rompe ogni riferimento `{{local.components.…}}` che punta a esso. L'intestazione del blocco è il nome proprio del componente e non si può cambiare.                                 |
 | **Impostazioni**                     | Ciò di cui il blocco ha bisogno per fare il suo lavoro: un URL, un canale Slack, il corpo di un messaggio. I campi facoltativi sono contrassegnati con **(Facoltativo)**; tutto il resto è obbligatorio. Un interruttore acceso/spento non ha né l'uno né l'altro, perché ha sempre un valore. Le impostazioni meno usate sono raccolte sotto **Altri campi**, la cui intestazione le nomina e mostra quelle impostate. |
 | **Input**                            | Il punto sul bordo superiore, dove arrivano le linee dai blocchi precedenti. I trigger non ne hanno: prima di loro non viene eseguito nulla.                                                                                                                                                                  |
-| **Outputs**                          | I punti lungo il bordo inferiore, etichettati appena sopra, da cui partono le linee verso i blocchi successivi. Molti blocchi hanno uscite **Successo** ed **Errore** separate, così puoi gestire entrambi i casi.                                                                                               |
+| **Output**                          | I punti lungo il bordo inferiore, etichettati appena sopra, da cui partono le linee verso i blocchi successivi. Molti blocchi hanno uscite **Successo** ed **Errore** separate, così puoi gestire entrambi i casi.                                                                                               |
 
 ## Collegare i blocchi
 
@@ -88,7 +88,7 @@ La finestra si apre su ciò per cui con ogni probabilità sei venuto. Per un tri
 
 Più in basso, dall'alto verso il basso:
 
-- **ID**, **Input** e **Outputs**, uno accanto all'altro: l'identificatore del blocco, da dove lo si raggiunge e cosa viene eseguito dopo di lui.
+- **ID**, **Input** e **Output**, uno accanto all'altro: l'identificatore del blocco, da dove lo si raggiunge e cosa viene eseguito dopo di lui.
 - **Returns** — i dati che questo blocco passa ai passaggi successivi. Ogni valore mostra il riferimento esatto che lo legge, con un pulsante per copiarlo.
 - **How to use** — cosa fa il blocco in una frase, i passaggi per configurarlo, un esempio da copiare e gli errori più comuni. L'esempio è costruito dal tuo flusso di lavoro: usa l'ID di questo blocco, e i valori del trigger dove inserisce dati in un messaggio. **Scopri di più** apre la spiegazione più lunga, e i link portano alla guida completa. Ogni blocco ne ha una, e il pulsante **How to use** in cima alla finestra ci salta direttamente.
 

@@ -49,13 +49,13 @@ Diese vier Widgets lesen eine Metrikabfrage, aufgebaut wie im Metrik-Explorer: W
 
 ### Diagramm
 
-Eine Zeitreihe aus einer oder mehreren Metrikabfragen über den Zeitbereich des Dashboards. **Chart Type** zeichnet sie als Linien-, Balken-, Flächen-, gestapeltes Flächen- oder Kreisdiagramm. **Additional Queries** legen weitere Metriken auf dieselben Achsen, und **Formeln** kombinieren sie mit `+`, `-`, `*`, `/`, `%`, `^` und Klammern, etwa `(1 - a) * 100`. Die Anzeigeeinstellungen jeder Abfrage fügen eine Legende und eine Einheit, eine Farbe, Warn- und kritische Linien sowie eine Rate pro Sekunde für Zähler hinzu, die nur wachsen.
+Eine Zeitreihe aus einer oder mehreren Metrikabfragen über den Zeitbereich des Dashboards. **Diagrammtyp** zeichnet sie als Linien-, Balken-, Flächen-, gestapeltes Flächen- oder Kreisdiagramm. **Weitere Abfragen** legen weitere Metriken auf dieselben Achsen, und **Formeln** kombinieren sie mit `+`, `-`, `*`, `/`, `%`, `^` und Klammern, etwa `(1 - a) * 100`. Die Anzeigeeinstellungen jeder Abfrage fügen eine Legende und eine Einheit, eine Farbe, Warn- und kritische Linien sowie eine Rate pro Sekunde für Zähler hinzu, die nur wachsen.
 
 Nutzen Sie es, wenn die Form der Linie die Geschichte erzählt: Latenz, Fehler, Durchsatz oder Warteschlangentiefe.
 
 ### Wert
 
-Eine große Zahl mit einer Sparkline: der Wert der Abfrage über den ganzen Zeitbereich, summiert bei einer Summe oder Anzahl, der höchste bei einem Maximum, der niedrigste bei einem Minimum und sonst der Mittelwert. Ein Pfeil vergleicht die zweite Hälfte des Bereichs mit der ersten, jede Hälfte auf dieselbe Weise berechnet, gefärbt nach **Trend Direction**: ob ein höherer Wert besser oder schlechter ist, oder abgeleitet aus dem Namen der Metrik. Zeigen Sie auf den Pfeil, um die Werte beider Hälften zu sehen, und auf die Sparkline, um Wert und Zeit eines beliebigen Punkts abzulesen. **Warnschwelle** färbt den Hintergrund gelb und **Kritischer Schwellenwert** rot, sobald der Wert sie erreicht.
+Eine große Zahl mit einer Sparkline: der Wert der Abfrage über den ganzen Zeitbereich, summiert bei einer Summe oder Anzahl, der höchste bei einem Maximum, der niedrigste bei einem Minimum und sonst der Mittelwert. Ein Pfeil vergleicht die zweite Hälfte des Bereichs mit der ersten, jede Hälfte auf dieselbe Weise berechnet, gefärbt nach **Trendrichtung**: ob ein höherer Wert besser oder schlechter ist, oder abgeleitet aus dem Namen der Metrik. Zeigen Sie auf den Pfeil, um die Werte beider Hälften zu sehen, und auf die Sparkline, um Wert und Zeit eines beliebigen Punkts abzulesen. **Warnschwelle** färbt den Hintergrund gelb und **Kritischer Schwellenwert** rot, sobald der Wert sie erreicht.
 
 Nutzen Sie es, wenn eine Zahl die Frage beantwortet: die Fehlerquote, die P95-Latenz oder die heute bedienten Anfragen.
 
@@ -67,7 +67,7 @@ Nutzen Sie es, wenn der Wert in einem bekannten Bereich liegt: CPU- oder Festpla
 
 ### Tabelle
 
-Metrikwerte als Zeilen. **Nach Attributen gruppieren** ergibt eine Zeile pro Wert, etwa eine pro `host.name`; ohne Gruppierung ist jede Zeile ein Zeitintervall. **Metrics & Columns** legt die Spalten fest: Metriken und Formeln darüber, etwa die Verfügbarkeit in Prozent. Wenn Sie gruppieren, macht **Reduce across time** aus der Reihe jeder Zeile einen Wert: den letzten Wert, den Durchschnitt, die Summe, das Minimum oder das Maximum.
+Metrikwerte als Zeilen. **Nach Attributen gruppieren** ergibt eine Zeile pro Wert, etwa eine pro `host.name`; ohne Gruppierung ist jede Zeile ein Zeitintervall. **Metriken & Spalten** legt die Spalten fest: Metriken und Formeln darüber, etwa die Verfügbarkeit in Prozent. Wenn Sie gruppieren, macht **Über die Zeit zusammenfassen** aus der Reihe jeder Zeile einen Wert: den letzten Wert, den Durchschnitt, die Summe, das Minimum oder das Maximum.
 
 Schalten Sie in einer Spalte **Nach Schwellenwerten einfärben** ein, um ihre Werte einzufärben: Ein Wert, der die **Warnschwelle** erreicht, wird bernsteinfarben, mit einem Dreieck, und einer, der den Wert unter **Kritischer Schwellenwert** erreicht, rot und fett, mit einem Kreis. Eine Prozentspalte beginnt bei 80 und 90. Für eine Spalte, bei der niedrige Werte das Problem sind, etwa freier Speicherplatz, wählen Sie unter **Richtung** die Option **Niedriger ist schlechter**.
 
@@ -120,11 +120,11 @@ Das Widget lädt neu, wann immer das Dashboard aktualisiert, sodass ein Widget, 
 
 #### Berechtigungen
 
-**Run JavaScript** (standardmäßig an) führt Ihr Skript aus. Schalten Sie es aus, um nur Markup und Stile zu rendern — das Skript wird dann ganz aus dem Widget weggelassen, nicht bloß blockiert.
+**JavaScript ausführen** (standardmäßig an) führt Ihr Skript aus. Schalten Sie es aus, um nur Markup und Stile zu rendern — das Skript wird dann ganz aus dem Widget weggelassen, nicht bloß blockiert.
 
-**Open links in a new tab** (standardmäßig an) erlaubt Links und `window.open`, einen Browser-Tab zu öffnen. Links öffnen sich immer in einem neuen Tab; das Widget kann nie das Dashboard selbst wegnavigieren.
+**Links in neuem Tab öffnen** (standardmäßig an) erlaubt Links und `window.open`, einen Browser-Tab zu öffnen. Links öffnen sich immer in einem neuen Tab; das Widget kann nie das Dashboard selbst wegnavigieren.
 
-**Allow forms to submit** (standardmäßig aus) erlaubt einem `<form>` im Widget, abzuschicken.
+**Absenden von Formularen erlauben** (standardmäßig aus) erlaubt einem `<form>` im Widget, abzuschicken.
 
 Wer das Dashboard bearbeiten darf, entscheidet, was dieses Widget ausführt, und alle, die das Dashboard ansehen, führen es aus — auf einem öffentlichen Dashboard auch anonyme Besucher. Behandeln Sie Bearbeitungsrechte an einem Dashboard mit einem HTML-Widget so wie den Zugriff auf jeden anderen Code, den Sie ausliefern.
 
@@ -160,7 +160,7 @@ Ein Service Level Objective, gezeichnet entweder als einzelne Zahl oder als Lini
 
 **Einstellungen**: welches SLO, oder das in einer Dashboard-Variablen gewählte SLO; welche seiner drei Zahlen (SLI, Error Budget Remaining oder Burn Rate); die Darstellung als Tile oder Diagramm; und ein optionaler Titel.
 
-- **Tile** gibt die aktuelle Zahl aus, dazu eine zweite Zeile, wo es eine gibt — das Ziel unter dem SLI, die verbleibenden Minuten unter dem Fehlerbudget. Eine Statuspille färbt das Ganze.
+- **Kachel** gibt die aktuelle Zahl aus, dazu eine zweite Zeile, wo es eine gibt — das Ziel unter dem SLI, die verbleibenden Minuten unter dem Fehlerbudget. Eine Statuspille färbt das Ganze.
 - **Diagramm** zeichnet dieselbe Zahl über den Zeitbereich des Dashboards, mit dem Ziel als gestrichelter Linie auf der SLI-Reihe. Der Verlauf wird alle paar Minuten vom Auswertungs-Worker geschrieben, daher ist ein brandneues SLO im Diagramm leer, bis es zum ersten Mal ausgewertet wurde.
 
 Nutzen Sie es, wenn das Dashboard die Frage „Halten wir, was wir versprochen haben?“ beantwortet, statt „Was passiert gerade?“.

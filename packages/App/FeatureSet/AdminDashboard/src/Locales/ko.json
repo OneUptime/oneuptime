@@ -2738,7 +2738,7 @@
   "Type": "유형",
   "Value": "값",
   "Number": "숫자",
-  "Loading values...": "Loading values...",
+  "Loading values...": "값을 불러오는 중...",
   "equals": "같음",
   "does not equal": "같지 않음",
   "is any of": "다음 중 하나임",

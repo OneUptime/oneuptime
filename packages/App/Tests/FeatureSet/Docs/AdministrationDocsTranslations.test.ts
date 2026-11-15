@@ -1227,8 +1227,9 @@ describe("the helpers, on these pages' shapes", () => {
     // A card's edit button is drawn from "Edit {{itemName}}".
     expect(dashboardLabels(PROJECT_SETTINGS)).toContain("Edit Project");
     expect(drawnActionLabel("de", "Edit Project")).not.toBe("Edit Project");
-    // The Enterprise Edition's settings button no locale words is kept.
-    expect(dashboardLabels(AUDIT_LOGS)).not.toContain(
+    // The Enterprise Edition's settings button, which every locale words (1f243552949), is drawn.
+    expect(dashboardLabels(AUDIT_LOGS)).toContain("Edit Audit Log Settings");
+    expect(drawnActionLabel("de", "Edit Audit Log Settings")).not.toBe(
       "Edit Audit Log Settings",
     );
   });
