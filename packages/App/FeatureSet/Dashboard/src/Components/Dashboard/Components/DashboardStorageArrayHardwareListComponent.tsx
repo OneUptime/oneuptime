@@ -35,8 +35,8 @@ import {
   StorageArrayWidgetState,
   getHardwareDetail,
   getHardwareStatusState,
+  getHardwareStatusText,
   getHardwareTypeText,
-  humanizeArrayValue,
 } from "./StorageArrayWidgetData";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 import {
@@ -62,12 +62,18 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardStorageArrayHardwareListComponent;
 }
 
+/*
+ * The last column names the storage array a component is in: "Array
+ * (storage array)", a key of its own (Common/Types/MeaningKeys), which
+ * English reads as "Array". The bare "Array" read as a programming array
+ * in six languages - 配列, Matriz, Tableau, 배열, 数组, Matrise (#7522).
+ */
 const COLUMNS: Array<ResourceListColumn> = [
   { label: "Component", widthPct: "24%", sortKey: "name" },
   { label: "Type", widthPct: "20%", sortKey: "type" },
   { label: "Status", widthPct: "18%", sortKey: "status" },
   { label: "Detail", widthPct: "20%" },
-  { label: "Array", widthPct: "18%", sortKey: "array" },
+  { label: "Array (storage array)", widthPct: "18%", sortKey: "array" },
 ];
 
 /*
@@ -128,7 +134,7 @@ function getComponentDisplayName(r: StorageArrayResource): string {
 }
 
 function renderComponentRow(r: StorageArrayResource): ReactElement {
-  // Its type and detail in the reader's words (#7091).
+  // Its type, status and detail in the reader's words (#7091, #7521).
   const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getComponentDisplayName(r);
@@ -173,7 +179,7 @@ function renderComponentRow(r: StorageArrayResource): ReactElement {
             style={{ backgroundColor: state.color }}
           ></span>
           <span style={{ color: state.textColor }}>
-            {humanizeArrayValue(r.status)}
+            {getHardwareStatusText(r.status, translator)}
           </span>
         </span>
       </td>
@@ -203,9 +209,15 @@ function buildComponentTile(r: StorageArrayResource): HoneycombTile {
     tooltip: {
       title: name,
       details: [
-        { label: "Array", value: (r.storageArray?.name as string) || "—" },
+        {
+          label: "Array (storage array)",
+          value: (r.storageArray?.name as string) || "—",
+        },
         { label: "Type", value: getHardwareTypeText(r, translator) },
-        { label: "Reported Status", value: humanizeArrayValue(r.status) },
+        {
+          label: "Reported Status",
+          value: getHardwareStatusText(r.status, translator),
+        },
         { label: "Detail", value: getHardwareDetail(r, translator) },
       ],
     },
