@@ -60,7 +60,7 @@ Begge er heltal, der sammenlignes med **Større end**, **Mindre end**, **Lig med
 
 | Kriterium | Filter | Hvad det gør |
 | --- | --- | --- |
-| Tjek, om en sonde er afbrudt | **Afbrudte sonder** større end `0` | Sætter monitoren offline og erklærer en hændelse med titlen `Probe disconnected: {{disconnectedProbeNames}}`, som løser sig selv. |
+| Tjek, om en sonde er afbrudt | **Afbrudte sonder** større end `0` | Sætter monitoren offline og erklærer en hændelse med titlen "Sonde afbrudt: {{disconnectedProbeNames}}", som løser sig selv. |
 | Tjek, om alle sonder er forbundet | **Afbrudte sonder** lig med `0` | Sætter monitoren til operationel. |
 
 Filteret **Forbundne sonder** passer til en monitor, der overvåger flere sonder og kan undvære én: **Forbundne sonder** mindre end `2` erklærer først en hændelse, når der er færre end to tilbage.

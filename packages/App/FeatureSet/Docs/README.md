@@ -339,6 +339,11 @@ they are kept current are in
 - **Write steps as steps.** One action per step, in the order the reader
   does them, each naming the screen and the button exactly as the dashboard
   shows them, in bold: **Monitors → Create Monitor**.
+- **Quote what the product writes.** A title or name the product writes
+  for the reader, such as the incident a new monitor opens, goes between
+  quotation marks, with the value it fills in as an italic placeholder:
+  an incident called "_monitor name_ is offline". Bold is for what the
+  reader clicks or picks, code for what they type.
 - **Short paragraphs.** Two to four sentences. Break long explanations with
   headings, lists, tables or a diagram.
 - **Tables for reference.** Fields, defaults, limits and permissions go in a
@@ -368,6 +373,19 @@ page with no translation is served in English.
 - Name dashboard screens and buttons exactly as the dashboard shows them in
   that language — the strings are in
   `../Dashboard/src/Locales/<language>.json`. Several tests check this.
+- Quote a title or name the product writes for the reader — the incidents,
+  alerts and criteria a new monitor starts with — as that language's
+  dashboard writes it (the locale's value of the English text), between the
+  language's own quotation marks: „_Monitorname_ ist offline“,
+  « _nom du moniteur_ est hors ligne », 「_モニター名_ がオフラインです」. Not
+  in bold, which is for what the reader clicks or picks, and not as code,
+  which a translation keeps in English. The monitor's name, which the
+  dashboard fills in, is the English page's italic placeholder in the
+  reader's words (`MONITOR_NAME_PLACEHOLDER` in
+  `Tests/FeatureSet/Docs/DocsDefaultTitles.ts`); a variable the title keeps
+  until the incident is created stays as the Incident Title field shows it:
+  "Sonde afbrudt: {{disconnectedProbeNames}}".
+  `MonitorDefaultTitlesInReadersWordsDocs` checks every monitor page.
 - In-page links (`#anchor`) point at the translated heading: anchors are made
   from the heading text, so a translated heading has a translated anchor.
   Copy the English links as they are, then let

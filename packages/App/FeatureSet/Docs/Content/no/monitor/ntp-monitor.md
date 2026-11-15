@@ -112,7 +112,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny NTP-monitor starter med to kriterier:
 
-- **Frakoblet** — serveren svarer ikke, er ikke synkronisert, eller klokken dens er `1000` ms eller mer fra sondens. Monitoren markeres som **Frakoblet**, og det opprettes en hendelse som heter "_monitornavn_ is not serving good time". Den løser seg selv når serveren igjen leverer pålitelig tid.
+- **Frakoblet** — serveren svarer ikke, er ikke synkronisert, eller klokken dens er `1000` ms eller mer fra sondens. Monitoren markeres som **Frakoblet**, og det opprettes en hendelse som heter "_monitornavn_ leverer ikke riktig tid". Den løser seg selv når serveren igjen leverer pålitelig tid.
 - **Online** — serveren svarer, er synkronisert, og klokken dens er innenfor `1000` ms fra sondens. Monitoren markeres som **I drift**.
 
 Kriteriene kontrolleres ovenfra og ned, og det første som samsvarer, avgjør hva som skjer. En server som svarer med feil tid, behandles med vilje som nede: hver klient som følger den, ville også ta den tiden.

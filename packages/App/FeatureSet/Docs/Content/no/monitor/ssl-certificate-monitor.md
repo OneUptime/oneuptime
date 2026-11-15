@@ -93,8 +93,8 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny SSL-sertifikatmonitor starter med tre kriterier, så den varsler deg før et sertifikat utløper, helt uten oppsett:
 
-1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ certificate is not valid". Rotårsaken forteller hvilket av disse tilfellene det var, og for et tilbakekalt sertifikat, når og hvorfor utstederen tilbakekalte det. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
-2. **Sertifikatet utløper snart** — sertifikatet er gyldig, men utløper om 14 dager eller mindre. Det opprettes et **varsel** med navnet "_monitor name_ certificate expires soon".
+1. **Sertifikatet er ikke gyldig** — sertifikatet er utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller av en utsteder det ikke er tillit til, eller kunne ikke sjekkes fordi endepunktet ikke svarte. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "Sertifikatet for _monitornavn_ er ugyldig". Rotårsaken forteller hvilket av disse tilfellene det var, og for et tilbakekalt sertifikat, når og hvorfor utstederen tilbakekalte det. Hendelsen løser seg selv når sertifikatet er gyldig igjen.
+2. **Sertifikatet utløper snart** — sertifikatet er gyldig, men utløper om 14 dager eller mindre. Det opprettes et **varsel** med navnet "Sertifikatet for _monitornavn_ utløper snart".
 3. **Sertifikatet er gyldig** — monitoren merkes som **I drift**.
 
 Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktpolicy på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Når det fornyede sertifikatet blir plukket opp, er monitoren tilbake på "Sertifikatet er gyldig", og varselet løser seg selv.
