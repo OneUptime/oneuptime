@@ -6,6 +6,7 @@ import {
 } from "../../../Utils/Monitor/ProbeFailureReading";
 import {
   matchProbeFailureTemplate,
+  NTP_KISS_CODE_MEANINGS,
   NTP_NO_REPLY_IGNORED_PACKETS,
   PROBE_FAILURE_CAUSES,
   ProbeFailureCause,
@@ -18,6 +19,7 @@ import {
 import ProbeNetworkFailureUtil, {
   ProbeNetworkFailureKind,
 } from "../../../Utils/ProbeNetworkFailureUtil";
+import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -138,6 +140,10 @@ const AS_WRITTEN_BY_HAND: ReadonlyArray<{
 
 const DETAIL: string = "connect EADDRNOTAVAIL 2001:db8::1:443 - Local (:::0)";
 
+// describe()'s certain IPv6 sentence, as the Ping check holds it in its message.
+const DESCRIBED_BY_HAND_IPV6: string =
+  "This probe cannot send IPv6 traffic (ping6: connect: Network is unreachable), so 2001:db8::1 was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether 2001:db8::1 is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.";
+
 // Every describe() sentence, as ProbeNetworkFailureUtil writes it.
 const DESCRIBED: Record<string, string> = {
   [ProbeFailureCause.ProbeCouldNotOpenIPv6Connection]:
@@ -209,11 +215,144 @@ const DESCRIBED_BY_HAND: Record<string, string> = {
     "This probe could not send traffic to 192.0.2.10 (ping: connect: Cannot assign requested address), so 192.0.2.10 was never contacted. The failure is on the probe, not on 192.0.2.10.",
 };
 
+/*
+ * #8656: the NTP server that answered but is not synchronized, a Website
+ * attempt the server answered with an error, the Ping check's messages and
+ * a traceroute that could not run - word for word as the checks wrote them
+ * by hand, and as they write them now.
+ */
+const NOT_SYNCHRONIZED: ReadonlyArray<{ written: string; english: string }> = [
+  {
+    written: NtpMonitorUtil.describeWhyNotSynchronized(
+      { isSynchronized: false, stratum: 0, kissCode: "RATE" },
+      true,
+    ),
+    english:
+      "The server answered with a kiss-o'-death (RATE): the server is rate-limiting this probe and asks it to poll less often.",
+  },
+  {
+    written: NtpMonitorUtil.describeWhyNotSynchronized(
+      { isSynchronized: false, stratum: 0, kissCode: "ZZZZ" },
+      true,
+    ),
+    english:
+      "The server answered with a kiss-o'-death (ZZZZ): the server answered with the kiss code ZZZZ instead of the time.",
+  },
+  {
+    written: NtpMonitorUtil.describeWhyNotSynchronized(
+      { isSynchronized: false, stratum: 0 },
+      true,
+    ),
+    english:
+      "The server answered with stratum 0: it does not know its stratum, so it is not synchronized.",
+  },
+  {
+    written: NtpMonitorUtil.describeWhyNotSynchronized(
+      { isSynchronized: false, stratum: 2 },
+      false,
+    ),
+    english: "The server answered, but its reply carried no usable time.",
+  },
+  {
+    written: NtpMonitorUtil.describeWhyNotSynchronized(
+      { isSynchronized: false, stratum: 2, leapIndicator: 3 },
+      true,
+    ),
+    english:
+      "The server reports its clock as not synchronized (leap indicator 3, alarm).",
+  },
+  {
+    written: NtpMonitorUtil.describeWhyNotSynchronized(
+      { isSynchronized: false, stratum: 16 },
+      true,
+    ),
+    english:
+      "The server reports stratum 16: it is not synchronized to a time source.",
+  },
+  {
+    written: NtpMonitorUtil.describeWhyNotSynchronized(
+      { isSynchronized: false, stratum: 3 },
+      true,
+    ),
+    english: "The server is not synchronized.",
+  },
+];
+
+const MONITOR_ID: string = "22222222-2222-4222-8222-222222222222";
+
+const NO_ECHO: string = writeProbeFailureCause(
+  ProbeFailureCause.PingNoEchoReply,
+  { host: "192.0.2.10", count: 5 },
+);
+
+// The Ping monitor stores its thrown error's text: "Error: " and the message.
+const PING_STORED: ReadonlyArray<{ written: string; english: string }> = [
+  {
+    written: `Error: ${writeProbeFailureCause(ProbeFailureCause.PingUnableToReachHost, { host: "192.0.2.10", cause: NO_ECHO, monitorId: MONITOR_ID })}`,
+    english: `Error: Unable to reach host 192.0.2.10. No ICMP echo reply from 192.0.2.10 (5 sent) Monitor ID: ${MONITOR_ID}`,
+  },
+  {
+    written: `Error: ${writeProbeFailureCause(ProbeFailureCause.PingUnableToReachHost, { host: "db.example.com", cause: writeProbeFailureCause(ProbeFailureCause.PingCouldNotResolve, { host: "db.example.com", output: "ping: db.example.com: Name or service not known" }), monitorId: MONITOR_ID })}`,
+    english: `Error: Unable to reach host db.example.com. This probe could not resolve db.example.com: ping: db.example.com: Name or service not known Monitor ID: ${MONITOR_ID}`,
+  },
+  {
+    written: `Error: ${writeProbeFailureCause(ProbeFailureCause.PingProbeSide, { cause: writeProbeFailureCause(ProbeFailureCause.PingIcmpNotUsable, { output: "ping: socket: Operation not permitted" }), monitorId: MONITOR_ID })}`,
+    english: `Error: ICMP ping is not usable on this probe: ping: socket: Operation not permitted Monitor ID: ${MONITOR_ID}`,
+  },
+  {
+    // A check with no monitor (Test Monitor) writes the id as undefined.
+    written: `Error: ${writeProbeFailureCause(ProbeFailureCause.PingProbeSide, { cause: DESCRIBED_BY_HAND_IPV6, monitorId: String(undefined) })}`,
+    english: `Error: ${DESCRIBED_BY_HAND_IPV6} Monitor ID: undefined`,
+  },
+];
+
+const TRACEROUTE_STORED: ReadonlyArray<{ written: string; english: string }> = [
+  {
+    written: writeProbeFailureCause(ProbeFailureCause.TracerouteCouldNotRun, {
+      clause: ProbeNetworkFailureUtil.describeClause({
+        host: "2001:db8::7",
+        failure: {
+          kind: ProbeNetworkFailureKind.NoSourceAddress,
+          isCertain: true,
+          detail: "connect: Cannot assign requested address",
+        },
+      }),
+    }),
+    english:
+      "Traceroute could not run: this probe cannot send IPv6 traffic (connect: Cannot assign requested address).",
+  },
+  {
+    written: writeProbeFailureCause(ProbeFailureCause.TracerouteCouldNotRun, {
+      clause: ProbeNetworkFailureUtil.describeClause({
+        host: "192.0.2.1",
+        failure: {
+          kind: ProbeNetworkFailureKind.NoRouteToHost,
+          isCertain: false,
+          detail: "connect: No route to host",
+        },
+      }),
+    }),
+    english:
+      "Traceroute could not run: this probe may have no route to 192.0.2.1 (connect: No route to host); 192.0.2.1 itself may also be down.",
+  },
+];
+
+const SERVER_RETURNED: string = writeProbeFailureCause(
+  ProbeFailureCause.ServerReturned,
+  { status: 503 },
+);
+
 const EVERY_STORED: ReadonlyArray<string> = [
   ...AS_WRITTEN_BY_HAND.map((entry: { english: string }): string => {
     return entry.english;
   }),
   ...Object.values(DESCRIBED),
+  ...[...NOT_SYNCHRONIZED, ...PING_STORED, ...TRACEROUTE_STORED].map(
+    (entry: { english: string }): string => {
+      return entry.english;
+    },
+  ),
+  SERVER_RETURNED,
 ];
 
 describe("the probe writes every cause from the table, byte for byte as it did by hand", () => {
@@ -260,7 +399,7 @@ describe("the probe writes every cause from the table, byte for byte as it did b
     );
   });
 
-  test("the count of one writes the one sentence, never \"1 packets\"", () => {
+  test('the count of one writes the one sentence, never "1 packets"', () => {
     expect(
       writeProbeFailureCause(ProbeFailureCause.NtpNoReplyIgnoredPackets, {
         target: "t:123",
@@ -482,7 +621,9 @@ describe("a stored cause is read back only when it is exactly one of the table's
     const started: number = Date.now();
 
     expect(readProbeFailureCause(stored)?.values["detail"]).toBe(longDetail);
-    expect(readProbeFailureCause(`${"( ".repeat(50000)} Tried 3 times.`)).toBeNull();
+    expect(
+      readProbeFailureCause(`${"( ".repeat(50000)} Tried 3 times.`),
+    ).toBeNull();
     expect(Date.now() - started).toBeLessThan(2000);
   });
 
@@ -507,7 +648,11 @@ describe("a stored cause is read back only when it is exactly one of the table's
 });
 
 describe("a stored cause in the reader's language", () => {
-  const word: (language: string, text: string, apart?: boolean) => string | null = (
+  const word: (
+    language: string,
+    text: string,
+    apart?: boolean,
+  ) => string | null = (
     language: string,
     text: string,
     apart: boolean = false,
@@ -547,11 +692,14 @@ describe("a stored cause in the reader's language", () => {
     ).toBe(
       `Innerhalb von 2,5${NO_BREAK_SPACE}Sek. kam keine NTP-Antwort von 192.0.2.10:123.`,
     );
-    expect(word("de", "Could not resolve time.example.invalid (ENOTFOUND).")).toBe(
-      "time.example.invalid konnte nicht aufgelöst werden (ENOTFOUND).",
-    );
     expect(
-      word("de", "No NTP reply from 192.0.2.10:123 within 5 seconds. Tried 4 times."),
+      word("de", "Could not resolve time.example.invalid (ENOTFOUND)."),
+    ).toBe("time.example.invalid konnte nicht aufgelöst werden (ENOTFOUND).");
+    expect(
+      word(
+        "de",
+        "No NTP reply from 192.0.2.10:123 within 5 seconds. Tried 4 times.",
+      ),
     ).toBe(
       `Innerhalb von 5${NO_BREAK_SPACE}Sek. kam keine NTP-Antwort von 192.0.2.10:123. 4-mal versucht.`,
     );
@@ -592,7 +740,9 @@ describe("a stored cause in the reader's language", () => {
     );
     expect(withoutIsolateMarks(worded)).toBe(
       (
-        words[PROBE_FAILURE_CAUSES[ProbeFailureCause.ProbeCannotSendIPv6]] as string
+        words[
+          PROBE_FAILURE_CAUSES[ProbeFailureCause.ProbeCannotSendIPv6]
+        ] as string
       )
         .split("{{detail}}")
         .join("ping6: socket: Address family not supported by protocol")
@@ -620,7 +770,8 @@ describe("a stored cause in the reader's language", () => {
   });
 
   test("Arabic: the AggregateError sentence, with the sentence it holds in Arabic too", () => {
-    const inner: string = DESCRIBED[ProbeFailureCause.ProbeCouldNotSendTraffic]!;
+    const inner: string =
+      DESCRIBED[ProbeFailureCause.ProbeCouldNotSendTraffic]!;
     const worded: string = withoutIsolateMarks(
       word(
         "ar",
@@ -632,7 +783,11 @@ describe("a stored cause in the reader's language", () => {
 
     expect(worded.startsWith("فشل الطلب بالخطأ AggregateError")).toBe(true);
     expect(worded).toContain(
-      (words[PROBE_FAILURE_CAUSES[ProbeFailureCause.ProbeCouldNotSendTraffic]] as string)
+      (
+        words[
+          PROBE_FAILURE_CAUSES[ProbeFailureCause.ProbeCouldNotSendTraffic]
+        ] as string
+      )
         .split("{{host}}")
         .join("192.0.2.10")
         .split("{{detail}}")
@@ -686,7 +841,19 @@ describe("a stored cause in the reader's language", () => {
           text,
         ) as ProbeFailureCauseReading;
 
-        for (const name of ["host", "target", "code", "detail", "message", "reply", "attempts"]) {
+        for (const name of [
+          "host",
+          "target",
+          "code",
+          "detail",
+          "message",
+          "reply",
+          "attempts",
+          "kissCode",
+          "output",
+          "monitorId",
+          "status",
+        ]) {
           const value: string | undefined = reading.values[name];
 
           if (value !== undefined) {
@@ -698,9 +865,11 @@ describe("a stored cause in the reader's language", () => {
           }
         }
 
-        expect({ language, text, english: plain.includes("This probe ") }).toEqual(
-          { language, text, english: false },
-        );
+        expect({
+          language,
+          text,
+          english: plain.includes("This probe "),
+        }).toEqual({ language, text, english: false });
 
         // A unit's own stop ("Sek.", "sek.") never doubles the sentence's.
         expect({ language, text, doubled: plain.includes("..") }).toEqual({
@@ -735,12 +904,14 @@ describe("a stored cause in the reader's language", () => {
         translator: dashboardTranslator("fa"),
         failureCause: text,
       }),
-    ).toBe(withoutIsolateMarks(
-      getProbeFailureCauseText({
-        translator: dashboardTranslator("fa"),
-        failureCause: text,
-      }),
-    ));
+    ).toBe(
+      withoutIsolateMarks(
+        getProbeFailureCauseText({
+          translator: dashboardTranslator("fa"),
+          failureCause: text,
+        }),
+      ),
+    );
   });
 });
 
@@ -771,12 +942,20 @@ describe("the table's words in the Dashboard's locales", () => {
       for (const key of KEYS) {
         const wording: string | undefined = words[key];
 
-        expect({ language, key, worded: Boolean(wording) && wording !== english[key] }).toEqual({
+        expect({
+          language,
+          key,
+          worded: Boolean(wording) && wording !== english[key],
+        }).toEqual({
           language,
           key,
           worded: true,
         });
-        expect({ language, key, placeholders: placeholdersOf(wording || "") }).toEqual({
+        expect({
+          language,
+          key,
+          placeholders: placeholdersOf(wording || ""),
+        }).toEqual({
           language,
           key,
           placeholders: placeholdersOf(english[key] || ""),
@@ -784,7 +963,12 @@ describe("the table's words in the Dashboard's locales", () => {
 
         for (const name of ["AggregateError", "NTP", "IPv6", "UDP", "ICMP"]) {
           if ((english[key] || "").includes(name)) {
-            expect({ language, key, name, kept: (wording || "").includes(name) }).toEqual({
+            expect({
+              language,
+              key,
+              name,
+              kept: (wording || "").includes(name),
+            }).toEqual({
               language,
               key,
               name,
@@ -795,4 +979,162 @@ describe("the table's words in the Dashboard's locales", () => {
       }
     },
   );
+});
+
+/*
+ * #8656: the NTP server that answered but is not synchronized, a Website
+ * or API attempt the server answered with an error, the Ping check's
+ * messages and a traceroute that could not run.
+ */
+describe("the other causes the checks write (#8656)", () => {
+  test.each([...NOT_SYNCHRONIZED, ...PING_STORED, ...TRACEROUTE_STORED])(
+    "written from the table as by hand: $english",
+    (entry: { written: string; english: string }) => {
+      expect(entry.written).toBe(entry.english);
+      expect(readProbeFailureCause(entry.english)).not.toBeNull();
+    },
+  );
+
+  test("an attempt the server answered with an error", () => {
+    expect(SERVER_RETURNED).toBe("Server returned 503");
+    expect(readProbeFailureCause(SERVER_RETURNED)?.values).toEqual({
+      status: "503",
+    });
+    expect(readProbeFailureCause("Server returned five hundred")).toBeNull();
+  });
+
+  test("every kiss code the table names has a meaning, and the NTP check writes it", () => {
+    for (const code of Object.keys(NTP_KISS_CODE_MEANINGS)) {
+      const written: string = NtpMonitorUtil.describeWhyNotSynchronized(
+        { isSynchronized: false, stratum: 0, kissCode: code },
+        true,
+      );
+
+      expect(written).toBe(
+        `The server answered with a kiss-o'-death (${code}): ${NTP_KISS_CODE_MEANINGS[code]}.`,
+      );
+      expect(readProbeFailureCause(written)?.cause).toBe(
+        ProbeFailureCause.NtpKissOfDeath,
+      );
+      expect(NtpMonitorUtil.describeKissCode(code)).toBe(
+        NTP_KISS_CODE_MEANINGS[code],
+      );
+    }
+
+    // A meaning the table does not hold is not one of the table's.
+    expect(
+      readProbeFailureCause(
+        "The server answered with a kiss-o'-death (RATE): the server is tired.",
+      ),
+    ).toBeNull();
+  });
+
+  test("the Ping check's message is read through every sentence it holds", () => {
+    const reading: ProbeFailureCauseReading | null = readProbeFailureCause(
+      PING_STORED[0]!.english,
+    );
+
+    expect(reading?.cause).toBe(ProbeFailureCause.ThrownError);
+    expect(
+      readProbeFailureCause(reading?.values["cause"], {
+        among: [ProbeFailureCause.PingUnableToReachHost],
+      }),
+    ).toMatchObject({
+      cause: ProbeFailureCause.PingUnableToReachHost,
+      values: { host: "192.0.2.10", monitorId: MONITOR_ID },
+    });
+  });
+
+  test("a runtime's error that holds none of the table's sentences stays as written", () => {
+    for (const text of [
+      "Error: connect ECONNREFUSED 192.0.2.10:443",
+      "Error: Unable to reach host 192.0.2.10. Something else Monitor ID: x",
+      "TypeError: No ICMP echo reply from 192.0.2.10 (5 sent) Monitor ID: x",
+      "Error: The server is not synchronized.",
+    ]) {
+      expect({ text, read: readProbeFailureCause(text) }).toEqual({
+        text,
+        read: null,
+      });
+    }
+  });
+
+  test("a clause is only ever read inside the traceroute's sentence", () => {
+    expect(
+      readProbeFailureCause(
+        "this probe cannot send IPv6 traffic (connect: Cannot assign requested address)",
+      ),
+    ).toBeNull();
+    expect(
+      readProbeFailureCause("Traceroute could not run: something broke."),
+    ).toBeNull();
+  });
+
+  test("German, Spanish, Arabic and Persian word them, values as found", () => {
+    const de: string = withoutIsolateMarks(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("de"),
+        failureCause: PING_STORED[0]!.english,
+        options: { setsValuesApart: true },
+      }) as string,
+    );
+
+    expect(de).toBe(
+      `Fehler: Host 192.0.2.10 ist nicht erreichbar. Keine ICMP-Echo-Antwort von 192.0.2.10 (5 gesendet) Überwachungs-ID: ${MONITOR_ID}`,
+    );
+
+    const es: string = wordProbeFailureCause({
+      translator: dashboardTranslator("es"),
+      failureCause: NOT_SYNCHRONIZED[0]!.english,
+    }) as string;
+
+    expect(es).toBe(
+      "El servidor respondió con un kiss-o'-death (RATE): el servidor está limitando la frecuencia de esta sonda y le pide que consulte con menos frecuencia.",
+    );
+
+    const ar: string = withoutIsolateMarks(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("ar"),
+        failureCause: TRACEROUTE_STORED[0]!.english,
+        options: { setsValuesApart: true },
+      }) as string,
+    );
+
+    expect(ar).toBe(
+      "تعذّر تشغيل Traceroute: لا يستطيع هذا المسبار إرسال حركة IPv6 (connect: Cannot assign requested address).",
+    );
+
+    const fa: string = withoutIsolateMarks(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("fa"),
+        failureCause: NOT_SYNCHRONIZED[5]!.english,
+        options: { setsValuesApart: true },
+      }) as string,
+    );
+
+    // The stratum in Persian digits.
+    expect(fa).toBe(
+      "سرور لایهٔ ۱۶ را گزارش می‌دهد: با هیچ منبع زمانی همگام نیست.",
+    );
+    expect(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("fa"),
+        failureCause: SERVER_RETURNED,
+      }),
+    ).toBe("سرور 503 برگرداند");
+  });
+
+  test("the kiss codes' meanings are worded in every language", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const meaning of Object.values(NTP_KISS_CODE_MEANINGS)) {
+        expect({
+          language,
+          meaning,
+          worded: Boolean(words[meaning]) && words[meaning] !== meaning,
+        }).toEqual({ language, meaning, worded: true });
+      }
+    }
+  });
 });

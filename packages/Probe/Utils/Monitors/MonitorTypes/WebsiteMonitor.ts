@@ -289,7 +289,9 @@ export default class WebsiteMonitor {
         isOnline: true,
         failureCause:
           result.responseStatusCode >= 400 && result.responseStatusCode < 600
-            ? `Server returned ${result.responseStatusCode}`
+            ? writeProbeFailureCause(ProbeFailureCause.ServerReturned, {
+                status: result.responseStatusCode,
+              })
             : undefined,
       });
 
@@ -512,11 +514,10 @@ export default class WebsiteMonitor {
       if (
         API.getFriendlyErrorMessage(err as Error).includes("AggregateError")
       ) {
-        probeWebsiteResponse.failureCause =
-          writeProbeFailureCause(
+        probeWebsiteResponse.failureCause = writeProbeFailureCause(
           ProbeFailureCause.AllConnectionAttemptsFailed,
           { error: probeWebsiteResponse.failureCause },
-          );
+        );
         probeWebsiteResponse.isOnline = false;
         return probeWebsiteResponse;
       }

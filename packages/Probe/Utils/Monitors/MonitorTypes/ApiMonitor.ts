@@ -301,7 +301,9 @@ export default class ApiMonitor {
         isOnline: true,
         failureCause:
           result.statusCode >= 400 && result.statusCode < 600
-            ? `Server returned ${result.statusCode}`
+            ? writeProbeFailureCause(ProbeFailureCause.ServerReturned, {
+                status: result.statusCode,
+              })
             : undefined,
       });
 
@@ -514,11 +516,10 @@ export default class ApiMonitor {
       if (
         API.getFriendlyErrorMessage(err as Error).includes("AggregateError")
       ) {
-        apiResponse.failureCause =
-          writeProbeFailureCause(
+        apiResponse.failureCause = writeProbeFailureCause(
           ProbeFailureCause.AllConnectionAttemptsFailed,
           { error: apiResponse.failureCause },
-          );
+        );
         apiResponse.isOnline = false;
         return apiResponse;
       }

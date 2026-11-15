@@ -58,7 +58,7 @@ import MonitorCriteriaMessageBuilder, {
 } from "./MonitorCriteriaMessageBuilder";
 import EvaluationSentenceMemo from "./EvaluationSentenceMemo";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
-import { writeRootCauseResponseTime } from "../../../Utils/Monitor/RootCauseFacts";
+import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import AffectedResourceList, {
   AffectedResourceListDetail,
   AffectedResourceListEntry,
@@ -2043,10 +2043,10 @@ ${incomingRequestGrouping.rootCauseNote}
       );
     }
 
-    // Written as the root cause's wording reads it back (RootCauseFacts).
-    const responseTime: string | null = writeRootCauseResponseTime(
-      probeResponse?.responseTimeInMs,
-    );
+    const responseTime: string | null =
+      MonitorCriteriaEvaluator.formatMilliseconds(
+        probeResponse?.responseTimeInMs,
+      );
 
     if (responseTime) {
       responseDetails.push(mdText`- Response Time: ${responseTime}`);
@@ -6945,6 +6945,19 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     return null;
+  }
+
+  private static formatMilliseconds(value?: number): string | null {
+    if (value === undefined || value === null || isNaN(value)) {
+      return null;
+    }
+
+    const formatted: string | null =
+      MonitorCriteriaMessageFormatter.formatNumber(value, {
+        maximumFractionDigits: value < 100 ? 2 : value < 1000 ? 1 : 0,
+      });
+
+    return `${formatted ?? value} ms`;
   }
 
   private static stringifyValue(value: unknown): string | null {

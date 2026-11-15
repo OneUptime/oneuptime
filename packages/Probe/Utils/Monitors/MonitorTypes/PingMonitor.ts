@@ -575,7 +575,9 @@ export default class PingMonitor {
 
     if (hasMarker(PING_INFRA_FAILURE_MARKERS)) {
       return {
-        cause: `ICMP ping is not usable on this probe: ${output.substring(0, 200)}`,
+        cause: writeProbeFailureCause(ProbeFailureCause.PingIcmpNotUsable, {
+          output: output.substring(0, 200),
+        }),
         isProbeSide: true,
       };
     }
@@ -602,13 +604,19 @@ export default class PingMonitor {
 
     if (hasMarker(PING_NAME_RESOLUTION_MARKERS)) {
       return {
-        cause: `This probe could not resolve ${hostAddress}: ${output.substring(0, 200)}`,
+        cause: writeProbeFailureCause(ProbeFailureCause.PingCouldNotResolve, {
+          host: hostAddress,
+          output: output.substring(0, 200),
+        }),
         isProbeSide: false,
       };
     }
 
     return {
-      cause: `No ICMP echo reply from ${hostAddress} (${packetCount} sent)`,
+      cause: writeProbeFailureCause(ProbeFailureCause.PingNoEchoReply, {
+        host: hostAddress,
+        count: packetCount,
+      }),
       isProbeSide: false,
     };
   }
@@ -820,12 +828,20 @@ export default class PingMonitor {
           PING_PACKET_COUNT,
           res,
         );
-        const monitorIdSuffix: string = `Monitor ID: ${pingOptions?.monitorId?.toString()}`;
+        const monitorId: string = `${pingOptions?.monitorId?.toString()}`;
 
+        // Stored as the thrown error's text: "Error: " and this message.
         throw new UnableToReachServer(
           deadHost.isProbeSide
-            ? `${deadHost.cause} ${monitorIdSuffix}`
-            : `Unable to reach host ${hostAddress}. ${deadHost.cause} ${monitorIdSuffix}`,
+            ? writeProbeFailureCause(ProbeFailureCause.PingProbeSide, {
+                cause: deadHost.cause,
+                monitorId: monitorId,
+              })
+            : writeProbeFailureCause(ProbeFailureCause.PingUnableToReachHost, {
+                host: hostAddress,
+                cause: deadHost.cause,
+                monitorId: monitorId,
+              }),
         ).asUserError();
       }
 
@@ -958,7 +974,7 @@ export default class PingMonitor {
           failureCause: writeProbeFailureCause(
             ProbeFailureCause.AllConnectionAttemptsFailed,
             { error: (err as any).toString() },
-            ),
+          ),
           probeAttempts: pingOptions.attempts,
           totalAttempts: pingOptions.attempts.length,
         };

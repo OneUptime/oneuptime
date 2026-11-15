@@ -688,9 +688,16 @@ work out, starts from a default for everything else, and folds what most people 
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
   (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
-  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
-  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
-  any other message whole in a right-to-left line. A Database Health check's collection issues read
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001),
+  and so is every cause with values in it (`Common/Utils/Monitor/ProbeFailureCauses`): an NTP
+  server that did not answer, or answered but is not synchronized; a probe with no IPv6 or no
+  route; a connect that failed on every address; the Ping and Traceroute checks' own sentences; an
+  attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
+  timeout or a count is written in the reader's digits. A summary draws a probe's message with
+  `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
+  right-to-left line. An incident's root cause words its figures the same way: a response time,
+  the attempts and an NTP server's facts in the reader's digits and units (#8268). A Database
+  Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
   error kept as written after a sentence that says what kind of failure it is. Enforced by

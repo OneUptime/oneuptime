@@ -399,20 +399,34 @@ export default class ProbeNetworkFailureUtil {
     isIPv6Destination?: boolean | undefined;
   }): string {
     const detail: string = data.failure.detail;
+    const values: { host: string; detail: string } = {
+      host: data.host,
+      detail: detail,
+    };
 
+    // From the failure causes' table, as describe()'s sentences are (#8656).
     if (ProbeNetworkFailureUtil.isIPv6Failure(data)) {
-      return data.failure.isCertain
-        ? `this probe cannot send IPv6 traffic (${detail})`
-        : `this probe most likely has no IPv6 route (${detail})`;
+      return writeProbeFailureCause(
+        data.failure.isCertain
+          ? ProbeFailureCause.ClauseCannotSendIPv6
+          : ProbeFailureCause.ClauseNoIPv6Route,
+        values,
+      );
     }
 
     if (ProbeNetworkFailureUtil.isRouteFailure(data.failure.kind)) {
-      return data.failure.isCertain
-        ? `this probe has no route to ${data.host} (${detail})`
-        : `this probe may have no route to ${data.host} (${detail}); ${data.host} itself may also be down`;
+      return writeProbeFailureCause(
+        data.failure.isCertain
+          ? ProbeFailureCause.ClauseHasNoRoute
+          : ProbeFailureCause.ClauseMayHaveNoRoute,
+        values,
+      );
     }
 
-    return `this probe could not send traffic to ${data.host} (${detail})`;
+    return writeProbeFailureCause(
+      ProbeFailureCause.ClauseCouldNotSendTraffic,
+      values,
+    );
   }
 
   /*

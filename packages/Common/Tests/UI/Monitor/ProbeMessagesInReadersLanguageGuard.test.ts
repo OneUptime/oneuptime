@@ -6,6 +6,7 @@ import ts from "typescript";
 import {
   NTP_NO_REPLY_IGNORED_PACKETS,
   PROBE_FAILURE_CAUSES,
+  ProbeFailureCause,
 } from "../../../Utils/Monitor/ProbeFailureCauses";
 import { REQUEST_FAILURE_DESCRIPTIONS } from "../../../Utils/Monitor/RequestFailureDescriptions";
 import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
@@ -838,9 +839,11 @@ describe("what a failed request means", () => {
 const CAUSES_FILE: string =
   "packages/Common/Utils/Monitor/ProbeFailureCauses.ts";
 
-// The checks, and the one utility, that write a cause with values.
+// The checks, and the utilities, that write a cause with values.
 const CAUSE_WRITERS: ReadonlyArray<string> = [
   "packages/Common/Utils/ProbeNetworkFailureUtil.ts",
+  "packages/Common/Types/Monitor/NtpMonitor/NtpMonitorUtil.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/NetworkPathMonitor.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/NtpMonitor.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/WebsiteMonitor.ts",
   "packages/Probe/Utils/Monitors/MonitorTypes/ApiMonitor.ts",
@@ -859,22 +862,31 @@ const PIECE_OF_A_PIECE_LENGTH: number = 12;
 // A piece of words, not of punctuation: "Could not resolve ", " Tried ".
 const WORDS_PIECE_LENGTH: number = 5;
 
-// A cause of one piece is found by that piece whole, so it is its own.
-const OWN_PIECE_LENGTH: number = 30;
+/*
+ * A cause of one piece is found by that piece whole, so it is its own:
+ * "Server returned ", " Monitor ID: ".
+ */
+const OWN_PIECE_LENGTH: number = 12;
 
 /*
- * Code that writes the same causes in other words, not yet in the table:
- * ProbeNetworkFailureUtil's lower-case clause for a caller's own sentence
- * ("Traceroute could not run: " + clause + "."), still English (#8656).
+ * Causes the scan does not look for, as their one piece is anybody's words:
+ * the runtime writes a thrown error's name before its message ("Error: "),
+ * and " Monitor ID: " is in the server's own log lines. The Ping check is
+ * held to writing its message from the table below instead.
  */
-const NOT_YET_IN_THE_TABLE: Readonly<Record<string, string>> = {
-  describeClause: "Traceroute's lower-case clause, worded with its sentence",
-};
+const NOT_SCANNED: ReadonlySet<string> = new Set<string>([
+  PROBE_FAILURE_CAUSES[ProbeFailureCause.ThrownError],
+  PROBE_FAILURE_CAUSES[ProbeFailureCause.PingProbeSide],
+]);
 
 // Each cause's fixed pieces, in order: what its sentence is besides its values.
 const CAUSE_PIECES: ReadonlyArray<{ english: string; pieces: Array<string> }> =
   [
-    ...Object.values(PROBE_FAILURE_CAUSES),
+    ...Object.values(PROBE_FAILURE_CAUSES).filter(
+      (english: string): boolean => {
+        return !NOT_SCANNED.has(english);
+      },
+    ),
     NTP_NO_REPLY_IGNORED_PACKETS.one,
   ].map((english: string): { english: string; pieces: Array<string> } => {
     return {
@@ -921,8 +933,8 @@ const writesPieces: (
       // A piece cut short is most of it: "AggregateError" alone is a name.
       if (
         from === 0 &&
-        text.trim().length >=
-          Math.max(PIECE_OF_A_PIECE_LENGTH, piece.length / 2) &&
+        text.trim().length > 0 &&
+        text.length >= Math.max(PIECE_OF_A_PIECE_LENGTH, piece.length / 2) &&
         piece.includes(text)
       ) {
         next += 1;
@@ -945,16 +957,6 @@ const findHandWrittenCauses: (
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     let texts: Array<string> | null = null;
-
-    if (
-      ts.isMethodDeclaration(node) &&
-      Object.prototype.hasOwnProperty.call(
-        NOT_YET_IN_THE_TABLE,
-        node.name.getText(sourceFile),
-      )
-    ) {
-      return;
-    }
 
     if (ts.isTemplateExpression(node)) {
       texts = [
@@ -1035,9 +1037,9 @@ describe("why a check failed, with the values it found", () => {
       "utf-8",
     );
 
-    expect(findHandWrittenCauses(CAUSES_FILE, source).length).toBeGreaterThanOrEqual(
-      CAUSE_PIECES.length,
-    );
+    expect(
+      findHandWrittenCauses(CAUSES_FILE, source).length,
+    ).toBeGreaterThanOrEqual(CAUSE_PIECES.length);
   });
 
   test("negative control: the causes as the checks wrote them by hand are found, a comment and a lone piece are not", () => {
@@ -1072,6 +1074,45 @@ describe("why a check failed, with the values it found", () => {
     );
   });
 
+  // #8656: the NTP, Ping, Traceroute and attempt causes as written by hand.
+  test("negative control: the other causes as the checks wrote them by hand are found, the runtime's prefix is not", () => {
+    const source: string = `
+      const a = \`The server answered with a kiss-o'-death (\${code}): \${meaning}.\`;
+      const b = "The server answered, but its reply carried no usable time.";
+      const c = \`The server reports stratum \${stratum}: it is not synchronized to a time source.\`;
+      const d = \`Server returned \${result.responseStatusCode}\`;
+      const e = \`ICMP ping is not usable on this probe: \${output.substring(0, 200)}\`;
+      const f = \`No ICMP echo reply from \${hostAddress} (\${packetCount} sent)\`;
+      const h = \`Traceroute could not run: \${clause}.\`;
+      const i = \`this probe may have no route to \${host} (\${detail}); \${host} itself may also be down\`;
+      const j = \`Error: \${message}\`;
+      const k = "The server answered.";
+    `;
+
+    expect(
+      findHandWrittenCauses("Old.ts", source).map(
+        (finding: Finding): number => {
+          return finding.line;
+        },
+      ),
+    ).toEqual([2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  // The causes the scan leaves out, held to the table where they are written.
+  test("the Ping check writes the message it throws from the table", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        "packages/Probe/Utils/Monitors/MonitorTypes/PingMonitor.ts",
+      ),
+      "utf-8",
+    );
+
+    expect(source).toContain("ProbeFailureCause.PingProbeSide");
+    expect(source).toContain("ProbeFailureCause.PingUnableToReachHost");
+    expect(source).not.toMatch(/Monitor ID: \$\{/);
+  });
+
   test.each(CAUSE_WRITERS)(
     "%s writes its causes from the table",
     (file: string) => {
@@ -1081,7 +1122,7 @@ describe("why a check failed, with the values it found", () => {
       );
 
       expect(source).toMatch(
-        /import \{[^}]*\bProbeFailureCause\b[^}]*\bwriteProbeFailureCause\b[^}]*\} from "(?:Common\/Utils\/Monitor|\.\/Monitor)\/ProbeFailureCauses";/,
+        /import \{[^}]*\bProbeFailureCause\b[^}]*\bwriteProbeFailureCause\b[^}]*\} from "(?:Common\/Utils\/Monitor|\.\/Monitor|(?:\.\.\/){3}Utils\/Monitor)\/ProbeFailureCauses";/,
       );
       expect(source.split(`${CAUSE_WRITER}(`).length - 1).toBeGreaterThan(0);
       expect(findHandWrittenCauses(file, source)).toEqual([]);
