@@ -446,9 +446,13 @@ describe("Korean says an alert 경고", () => {
 const NORWEGIAN_ALERT_NOUN: RegExp =
   /[Vv]arslene(?![a-zæøå])|[Vv]arsel(?:et)?(?![a-zæøå])|[Vv]arsel(?!(?:et|ene|er|e)(?![a-zæøå]))[a-zæøå]{2,}/;
 
+const NAMES_A_NOTIFICATION_NOUN: RegExp = /notification/i;
+
 // English that names a notification and no alert.
 function namesOnlyANotification(english: string): boolean {
-  return /notification/i.test(english) && !NAMES_AN_ALERT.test(english);
+  return (
+    NAMES_A_NOTIFICATION_NOUN.test(english) && !NAMES_AN_ALERT.test(english)
+  );
 }
 
 // The translated strings that name only a notification and say it with varsel.
@@ -515,7 +519,9 @@ describe("Norwegian says an alert varsel and a notification varsling", () => {
   );
 
   test("the rule reads real strings: hundreds of Norwegian strings name a notification varsling", () => {
-    const english: Map<string, string> = flatten(readStrings("Dashboard", "en"));
+    const english: Map<string, string> = flatten(
+      readStrings("Dashboard", "en"),
+    );
     const norwegian: Map<string, string> = flatten(
       readStrings("Dashboard", "no"),
     );
@@ -577,7 +583,10 @@ describe("Norwegian says an alert varsel and a notification varsling", () => {
       ["Send this notification again?", "Send this notification again?"],
       ["Active Alerts", "Active Alerts"],
       ["Notification Methods", "Notification Methods"],
-      ["Its notification goes to {{name}}.", "Its notification goes to {{name}}."],
+      [
+        "Its notification goes to {{name}}.",
+        "Its notification goes to {{name}}.",
+      ],
       ["Alert notification rules", "Alert notification rules"],
     ]);
     const norwegian: Map<string, string> = new Map<string, string>([
