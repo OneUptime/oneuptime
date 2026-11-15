@@ -211,22 +211,22 @@ describe("what the parsers still take", () => {
   });
 });
 
-describe("a body over the 50 MB limit is answered 413, too large", () => {
+describe("a body over the 50 MB limit is answered 413, with OneUptime's own limit", () => {
   test("a JSON body over 50 MB (before: 500, could not explain)", async () => {
     const result: HttpResult = await postJson(jsonOfSize(FIFTY_MB + 1));
 
     expect(result.status).toBe(413);
     expect(result.body).toEqual({
-      error: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+      error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
     });
     expectNoServerFault(result);
   }, 60000);
 
-  test("the front ends read the answer as too large, not a failure with a reference", async () => {
+  test("the front ends read the answer as OneUptime's own limit, not a proxy's or a failure with a reference", async () => {
     const result: HttpResult = await postJson(jsonOfSize(FIFTY_MB + 1));
 
     expect(readUnexplainedError(result.body["error"] as string)).toEqual({
-      kind: UnexplainedErrorKind.TooLarge,
+      kind: UnexplainedErrorKind.TooLargeForOneUptime,
       reference: null,
     });
   }, 60000);
@@ -245,7 +245,7 @@ describe("a body over the 50 MB limit is answered 413, too large", () => {
 
     expect(result.status).toBe(413);
     expect(result.body).toEqual({
-      error: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+      error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
     });
     expectNoServerFault(result);
   }, 60000);
@@ -255,7 +255,7 @@ describe("a body over the 50 MB limit is answered 413, too large", () => {
 
     expect(result.status).toBe(413);
     expect(result.body).toEqual({
-      error: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+      error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
     });
   }, 60000);
 
@@ -270,7 +270,7 @@ describe("a body over the 50 MB limit is answered 413, too large", () => {
 
     expect(result.status).toBe(413);
     expect(result.body).toEqual({
-      error: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+      error: REQUEST_BODY_REFUSAL_MESSAGES.tooManyFields,
     });
     expectNoServerFault(result);
   });

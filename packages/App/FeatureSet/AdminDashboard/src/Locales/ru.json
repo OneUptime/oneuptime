@@ -3151,7 +3151,9 @@
   "From (range start)": "От",
   "To (range end)": "До",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные оказались слишком большими, и сервер их не принял, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Отправленные данные больше 50 МБ, которые OneUptime принимает за один запрос, поэтому действие не выполнено. Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
   "What was sent was too large for the server to accept.": "Отправленные данные оказались слишком большими, и сервер их не принял.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Отправленные данные больше 50 МБ, которые OneUptime принимает за один запрос.",
   "Try again with less at once, such as a smaller file.": "Повторите попытку, отправив меньше за раз, например файл меньшего размера.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Если их отклонил прокси перед OneUptime, увеличьте ограничение этого прокси на размер запроса до 50 МБ — столько, сколько принимает сам OneUptime (в nginx это client_max_body_size 50M)."
 }

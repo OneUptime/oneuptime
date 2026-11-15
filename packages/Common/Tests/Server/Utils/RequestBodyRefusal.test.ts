@@ -1,4 +1,5 @@
 import readRequestBodyRefusal, {
+  APP_BODY_LIMIT_IN_BYTES,
   REQUEST_BODY_REFUSAL_MESSAGES,
   REQUEST_BODY_REFUSALS,
   RequestBodyRefusal,
@@ -56,15 +57,91 @@ describe("readRequestBodyRefusal", () => {
     },
   );
 
-  test("a body too large and a form with too many fields are both too large: 413", () => {
+  test("a body too large and a form with too many fields are both 413", () => {
     expect(REQUEST_BODY_REFUSALS["entity.too.large"]).toEqual({
       status: 413,
       message: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
     });
     expect(REQUEST_BODY_REFUSALS["parameters.too.many"]).toEqual({
       status: 413,
-      message: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+      message: REQUEST_BODY_REFUSAL_MESSAGES.tooManyFields,
     });
+  });
+
+  /*
+   * #8567: past the App's own 50 MB, OneUptime refused it, and says so in a
+   * sentence of its own, which the front ends read apart from a proxy's 413.
+   */
+  test("a body past the App's own 50 MB says OneUptime's limit", () => {
+    const refusal: RequestBodyRefusal | null = readRequestBodyRefusal(
+      Object.assign(parserError(413, "entity.too.large"), {
+        limit: APP_BODY_LIMIT_IN_BYTES,
+        length: APP_BODY_LIMIT_IN_BYTES + 1,
+      }),
+    );
+
+    expect(refusal).toEqual({
+      type: "entity.too.large",
+      status: 413,
+      message: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
+    });
+    expect(readUnexplainedError(refusal!.message)?.kind).toBe(
+      UnexplainedErrorKind.TooLargeForOneUptime,
+    );
+  });
+
+  test("the App's limit is StartServer's 50mb, in the bytes raw-body names", () => {
+    expect(APP_BODY_LIMIT_IN_BYTES).toBe(52428800);
+
+    const startServer: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Server",
+        "Utils",
+        "StartServer.ts",
+      ),
+      "utf8",
+    );
+    const limits: Array<string> = Array.from(
+      startServer.matchAll(/limit:\s*"([^"]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    // The JSON, form and protobuf parsers.
+    expect(limits).toEqual(["50mb", "50mb", "50mb"]);
+    expect(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime).toContain(
+      "the 50 MB OneUptime takes in one request",
+    );
+  });
+
+  test.each([
+    ["a route's own 64 KB", 64 * 1024],
+    ["one byte short of the App's", APP_BODY_LIMIT_IN_BYTES - 1],
+    ["no limit named", undefined],
+    ["a limit that is not a number", "50mb"],
+  ])(
+    "a body past another limit (%s) keeps the sentence that names none",
+    (_what: string, limit: unknown) => {
+      expect(
+        readRequestBodyRefusal(
+          Object.assign(parserError(413, "entity.too.large"), { limit }),
+        )?.message,
+      ).toBe(UNEXPLAINED_ERROR_MESSAGES.tooLarge);
+    },
+  );
+
+  test("too many fields is not said as a size, whatever limit the error names", () => {
+    expect(
+      readRequestBodyRefusal(
+        Object.assign(parserError(413, "parameters.too.many"), {
+          limit: APP_BODY_LIMIT_IN_BYTES,
+        }),
+      )?.message,
+    ).toBe(REQUEST_BODY_REFUSAL_MESSAGES.tooManyFields);
   });
 
   test("JSON that does not parse is 400", () => {
@@ -187,26 +264,35 @@ describe("the sentences", () => {
     }
   });
 
-  test("too large is the front ends' own sentence, read back as too large", () => {
+  test("the two too-large sentences are the front ends' own, each read back as its kind", () => {
     expect(REQUEST_BODY_REFUSAL_MESSAGES.tooLarge).toBe(
       UNEXPLAINED_ERROR_MESSAGES.tooLarge,
     );
     expect(
       readUnexplainedError(REQUEST_BODY_REFUSAL_MESSAGES.tooLarge),
     ).toEqual({ kind: UnexplainedErrorKind.TooLarge, reference: null });
+    expect(REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime).toBe(
+      UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
+    );
+    expect(
+      readUnexplainedError(REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime),
+    ).toEqual({
+      kind: UnexplainedErrorKind.TooLargeForOneUptime,
+      reference: null,
+    });
   });
 
   test("the others are the API's own words, shown as they are", () => {
     for (const [name, message] of Object.entries(
       REQUEST_BODY_REFUSAL_MESSAGES,
     )) {
-      if (name !== "tooLarge") {
+      if (name !== "tooLarge" && name !== "tooLargeForOneUptime") {
         expect([name, readUnexplainedError(message)]).toEqual([name, null]);
       }
     }
   });
 
-  test("every sentence is used by a type, and every type's sentence is one of them", () => {
+  test("every sentence is used by a type, or by the App's own limit, and every type's sentence is one of them", () => {
     const used: Set<string> = new Set<string>(
       Object.values(REQUEST_BODY_REFUSALS).map(
         (rule: { message: string }): string => {
@@ -214,6 +300,8 @@ describe("the sentences", () => {
         },
       ),
     );
+
+    used.add(REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime);
 
     expect(Array.from(used).sort()).toEqual(
       Object.values(REQUEST_BODY_REFUSAL_MESSAGES).sort(),
@@ -361,11 +449,21 @@ describe("the errors the real parsers raise are read", () => {
       body: `{"a":"${"x".repeat(2048)}"}`,
     });
 
+    // A limit of the route's own, not the App's 50 MB: no number is said.
     expect(readRequestBodyRefusal(error)).toEqual({
       type: "entity.too.large",
       status: 413,
       message: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
     });
+  });
+
+  test("raw-body names the limit, in bytes, that the App's own is told by", async () => {
+    const error: unknown = await errorOf(json, {
+      headers: { "content-type": "application/json" },
+      body: `{"a":"${"x".repeat(2048)}"}`,
+    });
+
+    expect((error as { limit?: unknown }).limit).toBe(1024);
   });
 
   test("JSON that does not parse", async () => {

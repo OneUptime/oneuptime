@@ -3151,7 +3151,9 @@
   "From (range start)": "开始",
   "To (range end)": "结束",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容太大，服务器无法接受，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容超过了 OneUptime 单次请求可接受的 50 MB，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
   "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "发送的内容超过了 OneUptime 单次请求可接受的 50 MB。",
   "Try again with less at once, such as a smaller file.": "请一次发送更少的内容（例如更小的文件）后重试。",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "如果是 OneUptime 前面的代理拒绝了它，请将该代理的请求大小上限提高到 50 MB，与 OneUptime 本身接受的大小相同（在 nginx 中为 client_max_body_size 50M）。"
 }

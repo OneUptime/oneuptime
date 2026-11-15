@@ -356,6 +356,30 @@ describe("the express error handler answers a refused request body as the client
     });
   });
 
+  it("says OneUptime's own 50 MB when the parser names that limit, as raw-body does (#8567)", () => {
+    handle(
+      Object.assign(new Error("request entity too large"), {
+        status: 413,
+        statusCode: 413,
+        expose: true,
+        type: "entity.too.large",
+        limit: 52428800,
+        length: 60000000,
+      }),
+    );
+
+    expect(statuses).toEqual([413]);
+    expect(bodies).toEqual([
+      { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime },
+    ]);
+    expect(
+      readUnexplainedError(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime),
+    ).toEqual({
+      kind: UnexplainedErrorKind.TooLargeForOneUptime,
+      reference: null,
+    });
+  });
+
   it("gives no reference for it: there is nothing for support to look up", () => {
     handle(
       bodyParserError({
@@ -388,7 +412,7 @@ describe("the express error handler answers a refused request body as the client
 
   it.each([
     ["entity.too.large", 413, REQUEST_BODY_REFUSAL_MESSAGES.tooLarge],
-    ["parameters.too.many", 413, REQUEST_BODY_REFUSAL_MESSAGES.tooLarge],
+    ["parameters.too.many", 413, REQUEST_BODY_REFUSAL_MESSAGES.tooManyFields],
     ["entity.parse.failed", 400, REQUEST_BODY_REFUSAL_MESSAGES.invalidJson],
     ["request.aborted", 400, REQUEST_BODY_REFUSAL_MESSAGES.cutOff],
     ["request.size.invalid", 400, REQUEST_BODY_REFUSAL_MESSAGES.sizeMismatch],

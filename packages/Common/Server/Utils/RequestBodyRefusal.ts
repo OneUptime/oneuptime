@@ -16,10 +16,11 @@ import { UNEXPLAINED_ERROR_MESSAGES } from "../../Types/Exception/UnexplainedErr
  * Terraform read a 500 for their own mistake.
  *
  * Now each is answered with its own status and a sentence that says what
- * was wrong and what to do. A body that was too large is answered with
- * UNEXPLAINED_ERROR_MESSAGES.tooLarge, the sentence the front ends already
- * say for a proxy's 413 (#8278), so they read it back and draw it in the
- * reader's language. The others are for whoever wrote the request - a
+ * was wrong and what to do. A body over the App's own 50 MB is answered with
+ * UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime, which the front ends read
+ * back and draw in the reader's language - apart from a proxy's 413
+ * (#8278), so a self-hosted admin is not sent to raise a proxy's limit that
+ * refused nothing (#8567). The others are for whoever wrote the request - a
  * script, the CLI, an integration - since the front ends send none of them.
  *
  * Only these types: a parser's 500s ("stream.not.readable",
@@ -28,8 +29,16 @@ import { UNEXPLAINED_ERROR_MESSAGES } from "../../Types/Exception/UnexplainedErr
  * Those still answer 500 with a reference.
  */
 
+/*
+ * The limit StartServer gives its JSON, form and protobuf parsers ("50mb"),
+ * in the bytes raw-body names on the error it raises past it.
+ */
+export const APP_BODY_LIMIT_IN_BYTES: number = 50 * 1024 * 1024;
+
 export const REQUEST_BODY_REFUSAL_MESSAGES: {
+  tooLargeForOneUptime: string;
   tooLarge: string;
+  tooManyFields: string;
   invalidJson: string;
   cutOff: string;
   sizeMismatch: string;
@@ -37,8 +46,15 @@ export const REQUEST_BODY_REFUSAL_MESSAGES: {
   charsetUnsupported: string;
   tooDeep: string;
 } = {
-  // The front ends' own sentence for a 413 (Types/Exception/UnexplainedError).
+  // Over the App's own 50 MB: the front ends read it back (UnexplainedError).
+  tooLargeForOneUptime: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime,
+  /*
+   * Over another limit a route set for itself: the front ends' sentence for
+   * any 413, which names no number.
+   */
   tooLarge: UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+  tooManyFields:
+    "The form sent has more fields than OneUptime reads in one request, so this did not finish. Send fewer fields at once, or send the body as JSON.",
   invalidJson:
     "The request body is not valid JSON, so this did not finish. Check the JSON, and that the Content-Type header names what the body is, then send the request again.",
   cutOff:
@@ -58,20 +74,35 @@ interface RequestBodyRefusalRule {
   message: string;
 }
 
+// The `limit` raw-body names on an entity.too.large error, in bytes.
+const limitOf: (error: unknown) => number | null = (
+  error: unknown,
+): number | null => {
+  const limit: unknown = (error as { limit?: unknown } | null)?.limit;
+
+  return typeof limit === "number" && Number.isFinite(limit) ? limit : null;
+};
+
 /*
  * The body parsers' error types (body-parser and raw-body, as express 4
  * ships them), each with the status it answers and its sentence.
  */
 export const REQUEST_BODY_REFUSALS: Record<string, RequestBodyRefusalRule> = {
-  // Over the parser's `limit` (50 MB), counted after a deflate body inflates.
+  /*
+   * Over the parser's `limit`, counted after a deflate body inflates. The
+   * App's 50 MB says so (readRequestBodyRefusal); this is any other limit.
+   */
   "entity.too.large": {
     status: 413,
     message: REQUEST_BODY_REFUSAL_MESSAGES.tooLarge,
   },
-  // A form with more fields than the urlencoded parser's parameterLimit.
+  /*
+   * A form with more fields than the urlencoded parser's parameterLimit.
+   * Not a size, so neither too-large sentence, which say a size, is true.
+   */
   "parameters.too.many": {
     status: 413,
-    message: REQUEST_BODY_REFUSAL_MESSAGES.tooLarge,
+    message: REQUEST_BODY_REFUSAL_MESSAGES.tooManyFields,
   },
   // JSON that does not parse, or whose top level is not an object or array.
   "entity.parse.failed": {
@@ -163,10 +194,20 @@ export const readRequestBodyRefusal: (
 
   const rule: RequestBodyRefusalRule = REQUEST_BODY_REFUSALS[type]!;
 
+  /*
+   * Past the App's own 50 MB: OneUptime refused it, and says its limit
+   * (#8567). A limit of another size is a route's own, and keeps the
+   * sentence that names none.
+   */
+  const isOverAppLimit: boolean =
+    type === "entity.too.large" && limitOf(error) === APP_BODY_LIMIT_IN_BYTES;
+
   return {
     type: type,
     status: rule.status,
-    message: rule.message,
+    message: isOverAppLimit
+      ? REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime
+      : rule.message,
   };
 };
 
