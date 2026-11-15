@@ -150,10 +150,10 @@ const ESCAPED_BYTE: RegExp = /^%[0-9A-Fa-f]{2}$/;
  * Text with no ASCII in it: an escaped character is decoded only when it
  * stays beyond ASCII composed (NFC writes three in ASCII).
  */
-const BEYOND_ASCII: RegExp = /^[\u0080-￿]+$/;
+const BEYOND_ASCII: RegExp = /^[\u0080-\uffff]+$/;
 
 // An escape, or a character beyond ASCII: a path with a spelling to settle.
-const SPELLED_CHARACTER: RegExp = /[%\u0080-￿]/;
+const SPELLED_CHARACTER: RegExp = /[%\u0080-\uffff]/;
 
 function composed(text: string): string {
   return typeof text.normalize === "function" ? text.normalize("NFC") : text;
