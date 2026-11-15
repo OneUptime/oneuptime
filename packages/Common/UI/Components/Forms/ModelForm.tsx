@@ -1121,13 +1121,24 @@ const ModelForm: <TBaseModel extends BaseModel>(
                   throw new BadDataException("Dropdown Modal value mot found");
                 }
 
+                const label: string = (item as any)[
+                  field.dropdownModal?.labelField
+                ].toString();
+
                 const option: DropdownOption = {
-                  label: (item as any)[
-                    field.dropdownModal?.labelField
-                  ].toString(),
+                  label: label,
                   value: (item as any)[
                     field.dropdownModal?.valueField
                   ].toString(),
+                  /*
+                   * A record's name, drawn as written - a label named
+                   * "Network" is "Network" on a Spanish page, never "Red" -
+                   * unless it is one of OneUptime's default names of the
+                   * record's table, looked up as its badge is: the default
+                   * state "Resolved" reads "Resuelto"
+                   * (Utils/DefaultRecordNames).
+                   */
+                  isUserContent: isRecordNameAsWritten(item.tableName, label),
                 };
 
                 if (colorColumnName && shouldSelectColorColumn) {

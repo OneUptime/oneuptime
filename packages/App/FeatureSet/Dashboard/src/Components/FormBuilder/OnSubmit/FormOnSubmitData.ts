@@ -15,6 +15,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Color from "Common/Types/Color";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 
 /*
  * The records a form's On Submit settings can name - severities, templates,
@@ -342,6 +343,7 @@ export const nameRecord: NameRecordFunction = (data: {
 
 export type ToDropdownOptionsFunction = (
   records: Array<FormRecordOption> | undefined,
+  model?: FormTargetSettingReferenceModel,
 ) => Array<DropdownOption>;
 
 /*
@@ -350,9 +352,21 @@ export type ToDropdownOptionsFunction = (
  */
 export const toDropdownOptions: ToDropdownOptionsFunction = (
   records: Array<FormRecordOption> | undefined,
+  model?: FormTargetSettingReferenceModel,
 ): Array<DropdownOption> => {
   return (records || []).map((record: FormRecordOption): DropdownOption => {
-    const option: DropdownOption = { value: record.id, label: record.name };
+    const option: DropdownOption = {
+      value: record.id,
+      label: record.name,
+      /*
+       * A record's name reads by its list - the model, named as its table
+       * (Utils/DefaultRecordNames): a severity a new project starts with
+       * is OneUptime's word, looked up ("Critical Incident" reads
+       * "Incidente crítico"); a template's, a monitor's, a team's name -
+       * and a severity the project named itself - is drawn as written.
+       */
+      isUserContent: isRecordNameAsWritten(model, record.name),
+    };
     const color: Color | undefined = DropdownUtil.toOptionColor(record.color);
 
     if (color) {

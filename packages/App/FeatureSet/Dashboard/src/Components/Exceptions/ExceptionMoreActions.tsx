@@ -111,6 +111,8 @@ const ExceptionMoreActions: FunctionComponent<ComponentProps> = (
               )
             : updateGate.disabledReason
         }
+        // Either way in the reader's words already.
+        isTooltipUserContent={true}
         isDisabled={isLocked}
         dataTestId={EXCEPTION_MORE_ACTIONS_TEST_IDS.resolveInNextRelease}
         onClick={() => {

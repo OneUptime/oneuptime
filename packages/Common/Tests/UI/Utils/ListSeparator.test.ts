@@ -193,24 +193,30 @@ describe("getClauseSeparator and joinClauses", () => {
  * French sets its semicolon apart with a space before it, as the
  * Dashboard's French locale writes every one: "{{first}} ; {{second}} ; et
  * {{third}}", "Étape {{number}} : {{fields}}". French and English share
- * their letters, so the clauses' language says it (#7629).
+ * their letters, so the clauses' language says it (#7629). The space is the
+ * narrow no-break one French typography writes there, as every French
+ * sentence the Translator fills draws it (#8032).
  */
+const FRENCH_SEMICOLON: string = "\u202F; ";
+
 describe("getClauseSeparator and joinClauses, told the clauses' language", () => {
-  test("a space before the semicolon between French clauses", () => {
-    expect(FRENCH_CLAUSE_SEPARATOR).toBe(" ; ");
+  test("a narrow no-break space before the semicolon between French clauses", () => {
+    expect(FRENCH_CLAUSE_SEPARATOR).toBe(FRENCH_SEMICOLON);
     expect(
       joinClauses(
         ["Étape 1 : Cible du moniteur", "Étape 2 : Nombre de tentatives"],
         "fr",
       ),
-    ).toBe("Étape 1 : Cible du moniteur ; Étape 2 : Nombre de tentatives");
+    ).toBe(
+      `Étape 1 : Cible du moniteur${FRENCH_SEMICOLON}Étape 2 : Nombre de tentatives`,
+    );
     expect(
       getClauseSeparator(["lun.–jeu. 08:30–18:00", "ven. 08:30–15:00"], "fr"),
-    ).toBe(" ; ");
+    ).toBe(FRENCH_SEMICOLON);
     // A regional code, or one written in capitals, is French too.
-    expect(getClauseSeparator(["a", "b"], "fr-CA")).toBe(" ; ");
-    expect(getClauseSeparator(["a", "b"], "fr_FR")).toBe(" ; ");
-    expect(getClauseSeparator(["a", "b"], "FR")).toBe(" ; ");
+    expect(getClauseSeparator(["a", "b"], "fr-CA")).toBe(FRENCH_SEMICOLON);
+    expect(getClauseSeparator(["a", "b"], "fr_FR")).toBe(FRENCH_SEMICOLON);
+    expect(getClauseSeparator(["a", "b"], "FR")).toBe(FRENCH_SEMICOLON);
     expect(joinClauses(["Étape 1 : Cible du moniteur"], "fr")).toBe(
       "Étape 1 : Cible du moniteur",
     );

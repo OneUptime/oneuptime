@@ -1039,6 +1039,8 @@ const IncidentViewSla: FunctionComponent<
       const option: DropdownOption = {
         value: rule._id?.toString() || "",
         label: rule.name || "Unnamed Rule",
+        // Its own name as written; "Unnamed Rule" in the reader's words.
+        isUserContent: Boolean(rule.name),
       };
       if (rule.description) {
         option.description = rule.description;

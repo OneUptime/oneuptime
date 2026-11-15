@@ -46,6 +46,8 @@ export const USER_LANGUAGE_OPTIONS: Array<DropdownOption> =
       return {
         value: language.code,
         label: getUserLanguageLabel(language),
+        // Each language in its own words, drawn as written.
+        isUserContent: true,
       };
     },
   );

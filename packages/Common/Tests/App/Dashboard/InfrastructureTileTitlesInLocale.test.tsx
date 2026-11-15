@@ -13,6 +13,7 @@ import { createInstance, i18n } from "i18next";
 import path from "path";
 import React from "react";
 import { I18nextProvider } from "react-i18next";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * THE INFRASTRUCTURE PAGES' TILES, AND EVERY CHART CARD'S LINES, IN THE
@@ -127,10 +128,17 @@ function readJson(file: string): unknown {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
+// The locale's words as the page draws them: each number with its unit (NoBreakSpaces).
 function drawn(language: string, english: string): string {
   const value: unknown = locales[language]?.[english];
 
-  return typeof value === "string" && value.length > 0 ? value : english;
+  if (typeof value !== "string" || value.length === 0) {
+    return english;
+  }
+
+  return value === english
+    ? value
+    : withNoBreakSpaces(value, english, language);
 }
 
 function isKeptAsWritten(language: string, english: string): boolean {

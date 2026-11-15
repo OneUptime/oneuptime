@@ -1365,7 +1365,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
 
   const policyChoiceOptions: Array<DropdownOption> = policies.map(
     (entry: { id: string; name: string }): DropdownOption => {
-      return { value: entry.id, label: entry.name };
+      return { value: entry.id, label: entry.name, isUserContent: true };
     },
   );
 

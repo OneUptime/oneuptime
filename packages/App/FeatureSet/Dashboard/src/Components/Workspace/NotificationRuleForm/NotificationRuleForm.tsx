@@ -627,6 +627,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
                       chat: chat.name,
                     })
                   : chat.name,
+              // The chat's name, its tag already in the reader's words.
+              isUserContent: true,
               value: chat.id,
             };
           },

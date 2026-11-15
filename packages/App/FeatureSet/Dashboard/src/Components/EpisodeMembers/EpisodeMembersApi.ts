@@ -27,6 +27,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { RecordForNewEpisode } from "Common/Utils/Episode/EpisodeFromRecords";
 import { SeverityForMapping } from "Common/Utils/Incident/IncidentFromAlerts";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   EpisodeMemberKind,
   EpisodeMemberKindConfig,
@@ -57,6 +58,12 @@ const SEARCH_KEY: string = "_multiFieldSearch";
 export interface EpisodePickerPill {
   name: string;
   color: Color;
+  /*
+   * The list its record is of - incident states, alert severities - which
+   * says how its name reads (Common/Utils/DefaultRecordNames): the default
+   * "Resolved" in the reader's words, a project's own as written.
+   */
+  list?: StateListType | undefined;
 }
 
 // An incident or alert the add dialog offers.
@@ -169,8 +176,12 @@ export const getNumberLabel: (
  * one that lost its name or colour shows "Unknown" / black, as the members
  * card does.
  */
-export const getPill: (value: unknown) => EpisodePickerPill | undefined = (
+export const getPill: (
   value: unknown,
+  list?: StateListType,
+) => EpisodePickerPill | undefined = (
+  value: unknown,
+  list?: StateListType,
 ): EpisodePickerPill | undefined => {
   if (!value || typeof value !== "object") {
     return undefined;
@@ -187,7 +198,25 @@ export const getPill: (value: unknown) => EpisodePickerPill | undefined = (
         ? relation.name
         : "Unknown",
     color: relation.color instanceof Color ? relation.color : Black,
+    ...(list ? { list: list } : {}),
   };
+};
+
+// The lists a kind's states and severities are of: an episode's are its members'.
+const getStateList: (config: EpisodeMemberKindConfig) => StateListType = (
+  config: EpisodeMemberKindConfig,
+): StateListType => {
+  return config.kind === EpisodeMemberKind.Alert
+    ? StateListType.AlertState
+    : StateListType.IncidentState;
+};
+
+const getSeverityList: (config: EpisodeMemberKindConfig) => StateListType = (
+  config: EpisodeMemberKindConfig,
+): StateListType => {
+  return config.kind === EpisodeMemberKind.Alert
+    ? StateListType.AlertSeverity
+    : StateListType.IncidentSeverity;
 };
 
 /*
@@ -235,8 +264,11 @@ export const getRecordRow: (
     ),
     title: typeof title === "string" ? title : "",
     isPrivate: read(record, "isPrivate") === true,
-    state: getPill(read(record, config.recordStateField)),
-    severity: getPill(read(record, config.recordSeverityField)),
+    state: getPill(read(record, config.recordStateField), getStateList(config)),
+    severity: getPill(
+      read(record, config.recordSeverityField),
+      getSeverityList(config),
+    ),
     date:
       readDate(read(record, config.recordDateField)) ||
       readDate(read(record, "createdAt")),
@@ -263,8 +295,14 @@ export const getEpisodeRow: (
     ),
     title: typeof title === "string" ? title : "",
     isPrivate: read(episode, "isPrivate") === true,
-    state: getPill(read(episode, config.episodeStateField)),
-    severity: getPill(read(episode, config.episodeSeverityField)),
+    state: getPill(
+      read(episode, config.episodeStateField),
+      getStateList(config),
+    ),
+    severity: getPill(
+      read(episode, config.episodeSeverityField),
+      getSeverityList(config),
+    ),
     memberCount: typeof count === "number" ? count : undefined,
     date: resolvedAt || readDate(read(episode, "createdAt")),
     isResolved: Boolean(read(episode, "resolvedAt")),

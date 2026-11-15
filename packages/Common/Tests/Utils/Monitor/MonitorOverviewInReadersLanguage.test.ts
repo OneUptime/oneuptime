@@ -1448,7 +1448,7 @@ describe("the latest result and the probes in the reader's digits", () => {
     const latest: string = latestOf("fa");
 
     expect(latest).toBe(
-      "از کار افتاده \u2022 ۲٬۴۱۰ میلی\u200cثانیه \u2022 HTTP 503",
+      "از کار افتاده \u2022 ۲٬۴۱۰\u00A0میلی\u200cثانیه \u2022 HTTP 503",
     );
     // Never the Latin figure, unit or middle dot, which reads as a zero.
     expect(latest).not.toMatch(/2,?410|\bms\b|\u00b7/);
@@ -1457,13 +1457,13 @@ describe("the latest result and the probes in the reader's digits", () => {
   test("Arabic: Latin digits, the unit as Arabic writes it", () => {
     const latest: string = latestOf("ar");
 
-    expect(latest).toBe("متوقف · 2,410 ملي ث · HTTP 503");
+    expect(latest).toBe("متوقف · 2,410\u00A0ملي ث · HTTP 503");
     expect(latest).not.toMatch(/\bms\b/);
   });
 
   test("Russian and Chinese: each its own unit and grouping", () => {
-    expect(latestOf("ru")).toBe("Недоступен · 2\u00a0410 мс · HTTP 503");
-    expect(latestOf("zh-CN")).toBe("宕机 · 2,410 毫秒 · HTTP 503");
+    expect(latestOf("ru")).toBe("Недоступен · 2\u00a0410\u00A0мс · HTTP 503");
+    expect(latestOf("zh-CN")).toBe("宕机 · 2,410\u00A0毫秒 · HTTP 503");
   });
 
   test("probes that disagree: the counts in the reader's digits", () => {

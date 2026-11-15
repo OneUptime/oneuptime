@@ -74,6 +74,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import { SHARED_VISITOR_ADDRESS_WINDOW_DAYS } from "../../../Server/Utils/InstanceHealth/SharedVisitorAddresses";
+import { withNoBreakSpacesInLocale } from "../../../Types/NoBreakSpaces";
 import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
@@ -446,7 +447,12 @@ describe("the card in every language", () => {
     async (locale: string) => {
       mockGet.mockResolvedValue(answer(SHARED));
 
-      const entries: Locale = readLocale(locale);
+      // As the card draws them: French's marks kept with their words.
+      const entries: Locale = withNoBreakSpacesInLocale({
+        locale: readLocale(locale),
+        language: locale,
+        english: readLocale("en"),
+      }) as Locale;
       const card: HTMLElement = (await renderIn(locale)) as HTMLElement;
       const drawn: string = card.textContent || "";
       /*
@@ -462,7 +468,9 @@ describe("the card in every language", () => {
       }).toEqual({ locale, isSetApart: isRightToLeftLanguage(locale) });
 
       expect(
-        screen.getByText(String(entries[VISITOR_ADDRESSES_COPY.title])),
+        screen.getByText(
+          String(entries[VISITOR_ADDRESSES_COPY.title]).replace(/\s+/g, " "),
+        ),
       ).toBeInTheDocument();
       expect(text).toContain(String(entries[VISITOR_ADDRESSES_COPY.cause]));
       expect(text).toContain(

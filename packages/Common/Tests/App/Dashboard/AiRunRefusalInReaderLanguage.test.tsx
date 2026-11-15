@@ -77,6 +77,7 @@ import {
   dashboardTranslator,
   isWordedInDashboardLocale,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 
 /*
@@ -149,7 +150,8 @@ describe("describeAiRunRefusal by the refusal's code (#7359)", () => {
     "%s: every refusal code is worded, and the card says its words",
     (language: string) => {
       const translator: Translator = dashboardTranslator(language);
-      const words: Record<string, string> = readDashboardLocale(language);
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
 
       for (const code of REFUSAL_CODES) {
         const sentence: string = AI_RUN_REFUSALS[code];
@@ -195,7 +197,7 @@ describe("describeAiRunRefusal by the refusal's code (#7359)", () => {
     for (const language of OTHER_LANGUAGES) {
       expect(
         describeAiRunRefusal(sentence, dashboardTranslator(language)),
-      ).toBe(readDashboardLocale(language)[sentence]);
+      ).toBe(readDashboardLocaleAsDrawn(language)[sentence]);
     }
   });
 });
@@ -214,7 +216,8 @@ describe("describeAiRunRefusal", () => {
     "%s: each refusal of a record's limit reads in the reader's language",
     (language: string) => {
       const translator: Translator = dashboardTranslator(language);
-      const words: Record<string, string> = readDashboardLocale(language);
+      const words: Record<string, string> =
+        readDashboardLocaleAsDrawn(language);
 
       for (const refusal of RECORD_LIMIT_REFUSALS) {
         expect({

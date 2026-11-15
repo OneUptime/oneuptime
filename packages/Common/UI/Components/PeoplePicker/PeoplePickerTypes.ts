@@ -470,6 +470,8 @@ export const toPeoplePickerDropdownChange: (
     return {
       value: getPeoplePickerOptionKey(option.kind, option.id),
       label: option.name,
+      // A person's or a team's name, as they are called.
+      isUserContent: true,
     };
   };
 

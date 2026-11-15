@@ -274,7 +274,7 @@ describe("an Azure Service Health event", () => {
     ).toBe("Azure hat einen Vorfall veröffentlicht. Tracking-ID: ABC-123.");
     expect(
       described("azure", "ServiceHealth Incident", STORED, "fr").worded,
-    ).toBe("Azure a publié un incident. ID de suivi : ABC-123.");
+    ).toBe("Azure a publié un incident. ID de suivi\u00A0: ABC-123.");
     expect(
       described("azure", "ServiceHealth Incident", STORED, "ja").worded,
     ).toBe("Azure がインシデントを公開しました。追跡 ID: ABC-123。");

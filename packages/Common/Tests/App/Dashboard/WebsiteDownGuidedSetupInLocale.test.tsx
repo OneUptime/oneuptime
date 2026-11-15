@@ -192,8 +192,14 @@ const RUN_KEY: string = getGuidedSetupRunKey({
 const SEVERITY_SENTENCE: string =
   "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).";
 
-// A default severity's name: a project's severities keep the names they were given.
+/*
+ * A new project's default severity: OneUptime's name for it, read in the
+ * reader's language by its list (Common/Utils/DefaultRecordNames, #7894).
+ */
 const SEVERITY_NAME: string = "Critical Incident";
+
+// A severity the project named itself: drawn as written in every language.
+const OWN_SEVERITY_NAME: string = "Sev 1 Outage";
 
 const MONITOR: {
   id: string;
@@ -376,13 +382,42 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
       screen.getByTestId("guided-setup-summary-when_down").textContent || "",
     );
 
-    expect(row).toContain(
-      fill(language, SEVERITY_SENTENCE, { severity: SEVERITY_NAME }),
-    );
+    const severity: string = readDashboardLocale(language)[SEVERITY_NAME]!;
+
+    expect(severity).not.toBe(SEVERITY_NAME);
+    expect(row).toContain(fill(language, SEVERITY_SENTENCE, { severity }));
     // Neither the English sentence nor the name read as a kind of incident.
     expect(row).not.toContain("OneUptime opens an incident");
-    expect(row).not.toContain(`${SEVERITY_NAME} incident`);
-    expect(row.split(SEVERITY_NAME)).toHaveLength(2);
+    expect(row).not.toContain(SEVERITY_NAME);
+    expect(row.split(severity)).toHaveLength(2);
+  });
+
+  test("a severity the project named itself is named as written, in brackets (#7894)", async () => {
+    api["loadIncidentSeverityName"]!.mockResolvedValue(OWN_SEVERITY_NAME);
+    window.localStorage.setItem(
+      RUN_KEY,
+      JSON.stringify({
+        monitorId: MONITOR_ID,
+        policyId: POLICY_ID,
+        testExecutionLogId: "log-1",
+      }),
+    );
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-summary-when_down"),
+      ).toBeInTheDocument();
+    });
+
+    const row: string = withoutIsolateMarks(
+      screen.getByTestId("guided-setup-summary-when_down").textContent || "",
+    );
+
+    expect(row).toContain(
+      fill(language, SEVERITY_SENTENCE, { severity: OWN_SEVERITY_NAME }),
+    );
+    expect(row.split(OWN_SEVERITY_NAME)).toHaveLength(2);
   });
 
   test("an address the reader's monitor already checks: the note is in their words (#7059)", async () => {

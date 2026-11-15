@@ -61,6 +61,7 @@ const ApplyPostmortemTemplateModal: FunctionComponent<ComponentProps> = (
               (template: PostmortemTemplateOption): DropdownOption => {
                 return {
                   label: template.name || template.id,
+                  isUserContent: true,
                   value: template.id,
                 };
               },

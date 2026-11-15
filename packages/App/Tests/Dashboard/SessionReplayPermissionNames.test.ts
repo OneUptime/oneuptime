@@ -117,7 +117,7 @@ describe("the permission a sentence names", () => {
 
   test.each([
     ["German", "de", "„List Session Replays“"],
-    ["French", "fr", "« List Session Replays »"],
+    ["French", "fr", "«\u00A0List Session Replays\u00A0»"],
     ["Japanese", "ja", "「List Session Replays」"],
     ["Chinese", "zh-CN", "“List Session Replays”"],
     ["Arabic", "ar", "«List Session Replays»"],
@@ -370,7 +370,7 @@ describe("the grant that shows who a session's end user is", () => {
 
   test.each([
     ["German", "de", "„Watch Session Replays“"],
-    ["French", "fr", "« Watch Session Replays »"],
+    ["French", "fr", "«\u00A0Watch Session Replays\u00A0»"],
     ["Japanese", "ja", "「Watch Session Replays」"],
     ["Chinese", "zh-CN", "“Watch Session Replays”"],
     ["Arabic", "ar", "«Watch Session Replays»"],
