@@ -2,7 +2,7 @@
 
 OneUptime 的 **Incoming Email Monitor** 让你可以根据发送到唯一、按监视器区分的电子邮件地址的邮件来创建和解决告警。这对于集成旧系统、告警工具或任何能够发送邮件的服务都很有用。
 
-同样的设置也让工作流可以接收邮件：带有 **Incoming Email** 触发器的工作流会在同一个域名上获得自己的地址，发往该地址的每封邮件都会启动该工作流。参见[触发器](/docs/workflows/triggers#incoming-email)。
+同样的设置也让工作流可以接收邮件：带有 **传入邮件** 触发器的工作流会在同一个域名上获得自己的地址，发往该地址的每封邮件都会启动该工作流。参见[触发器](/docs/workflows/triggers#incoming-email)。
 
 本指南说明如何设置 SendGrid Inbound Parse，把入站邮件转发到你的自托管 OneUptime 实例。OneUptime Cloud 不需要这些设置：它的地址开箱即用。
 
@@ -122,7 +122,7 @@ inboundEmail:
 
 [创建 Incoming Email 监视器](/docs/monitor/incoming-email-monitor#创建入站邮件监视器)。它的 **概览** 页面会显示它的地址，例如 `monitor-abc123def456@inbound.yourdomain.com`，它的条件决定哪些邮件创建告警、哪些邮件解决告警。
 
-工作流使用同一个域名。把 **Incoming Email** 触发器添加到工作流并点击它：它的地址（`workflow-…@inbound.yourdomain.com`）显示在其设置的顶部。在设置上面的入站邮件变量之前，触发器会提示服务器尚未设置为接收邮件。
+工作流使用同一个域名。把 **传入邮件** 触发器添加到工作流并点击它：它的地址（`workflow-…@inbound.yourdomain.com`）显示在其设置的顶部。在设置上面的入站邮件变量之前，触发器会提示服务器尚未设置为接收邮件。
 
 ### 发送测试邮件
 

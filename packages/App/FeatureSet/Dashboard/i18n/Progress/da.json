@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 9135
+    "keys": 52780,
+    "untranslated": 9003
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -81,6 +81,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Daemon",
     "Dashboard",
     "Dashboards",
@@ -307,6 +308,7 @@
     "Send test",
     "Send {{command}}",
     "Server",
+    "Server / VM",
     "Service Mesh",
     "Session",
     "Session {{id}}",

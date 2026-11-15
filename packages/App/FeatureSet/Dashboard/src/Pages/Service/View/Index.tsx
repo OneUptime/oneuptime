@@ -1,6 +1,8 @@
 import UsedByCard from "../../../Components/UsedBy/UsedByCard";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageComponentProps from "../../PageComponentProps";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -48,6 +50,7 @@ import {
   fetchSpanMetrics,
   formatCompact,
   formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   LogAndExceptionSignals,
   SpanMetrics,
@@ -85,6 +88,7 @@ const meanOf: (series: Array<TimePoint>) => number | null = (
 };
 
 const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   const [service, setService] = useState<Service | null>(null);
@@ -377,7 +381,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
     {
       title: "Latency (p95)",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
       icon: IconProp.Clock,
       iconColor: "amber",
       loading: metricsLoading,

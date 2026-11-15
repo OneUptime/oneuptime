@@ -3617,9 +3617,13 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
 
     const field: string = readSource(PLAYLIST_DASHBOARDS_FIELD);
 
-    expect(field).toContain(
-      'ariaLabel={translator.translateText("Add a dashboard")}',
-    );
+    /*
+     * The picker's name, handed to Dropdown in English: Dropdown looks it
+     * up in the reader's language, once (#7790), so the page neither looks
+     * it up first nor says it is translated already.
+     */
+    expect(field).toContain('ariaLabel="Add a dashboard"');
+    expect(field).not.toContain("isAriaLabelTranslated");
     expect(createSection).toContain(
       `pick each one from ${bold("Add a dashboard")}`,
     );

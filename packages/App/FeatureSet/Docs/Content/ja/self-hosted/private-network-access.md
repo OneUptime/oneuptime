@@ -144,7 +144,7 @@ Docker Compose では、`config.env` に `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=fa
 
 ## プローブとモニター
 
-影響を受けるモニタータイプは **API**、**ウェブサイト**、**外部ステータスページ**、**Custom JavaScript Code** の四つです。標準のプローブでは、これらは公開されている HTTP(S) の宛先には到達できますが、プライベートなアドレス空間は拒否します。API、Website、External Status Page のモニターは、接続ごとに DNS の結果を検証して固定し、リダイレクトのたびに再検証します。Custom JavaScript Code は、サンドボックスのブリッジで同じアドレスポリシーを適用します。
+影響を受けるモニタータイプは **API**、**ウェブサイト**、**外部ステータスページ**、**カスタム JavaScript コード** の四つです。標準のプローブでは、これらは公開されている HTTP(S) の宛先には到達できますが、プライベートなアドレス空間は拒否します。API、Website、External Status Page のモニターは、接続ごとに DNS の結果を検証して固定し、リダイレクトのたびに再検証します。Custom JavaScript Code は、サンドボックスのブリッジで同じアドレスポリシーを適用します。
 
 スイッチは API サーバーの環境ではなく、**プローブのプロセスが自身の環境から**読み取ります。そして、すべてのプローブがそれを読み取ります。Docker Compose に同梱のもの、Helm チャートがデプロイするもの、自分で実行する[カスタムプローブ](/docs/probe/custom-probe)のすべてです。プローブをデプロイする人がその環境を管理し、そのプローブからどのネットワークが見えるかを知っています。カスタムプローブは通常は別のマシンで、多くの場合は別の人が運用しており、API サーバーの設定を読むことはありません。
 
@@ -188,7 +188,7 @@ probes:
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 同梱の (グローバル) プローブがモニターを実行し、そのスイッチがオフです。インスタンス上のすべてのプロジェクトがそのネットワークに到達してよい場合は、上記の説明に従ってそのプローブでオンにします。そうでない場合は、モニターでプライベートプローブを選択します。
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 環境に `BILLING_ENABLED=true` を持つグローバルプローブがモニターを実行しました。そこでは、自動登録されたグローバルプローブはスイッチの設定にかかわらず公開専用のままです。宛先のネットワーク内にプライベートプローブをデプロイし、モニターでそれを選択してください。
 - _"Monitor target host ... could not be reached."_ — 宛先が**ホスト名**である API、Website、External Status Page のモニターは、名前が拒否されたアドレスに解決された場合にも、DNS が失敗した場合にもこれを報告します。そのため、モニターを使ってどの内部名が存在するかを調べることはできません。一緒に表示されるエラーの詳細は、どちらの場合も `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` に言及しますが、どちらのケースに当たるかは示しません。名前がプライベートアドレスを指している場合は、プローブの起動ログでプライベートネットワークポリシーを確認してください。オフの場合、対処法は上記のメッセージと同じです。`LOG_LEVEL=DEBUG` では、プローブは拒否された各名前の正確な理由もログに記録します。
-- _"Request URL could not be reached."_ — **Custom JavaScript Code** モニターにも同じルールが適用されます。**ホスト名**をリクエストするスクリプトは、名前が拒否されたアドレスに解決された場合にも、DNS が失敗した場合にもこれを受け取ります。`LOG_LEVEL=DEBUG` では、プローブが正確な理由をログに記録します。
+- _"Request URL could not be reached."_ — **カスタム JavaScript コード** モニターにも同じルールが適用されます。**ホスト名**をリクエストするスクリプトは、名前が拒否されたアドレスに解決された場合にも、DNS が失敗した場合にもこれを受け取ります。`LOG_LEVEL=DEBUG` では、プローブが正確な理由をログに記録します。
 - _"Webhook URL could not be reached."_ または、ワークフローからは _"Request URL could not be reached."_ — インスタンスが `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (または `BILLING_ENABLED=true`) で実行されているため、拒否された**ホスト名**は説明されません。拒否されたアドレスに解決されたか、まったく解決されなかったかのどちらかです。`LOG_LEVEL=DEBUG` では、app または worker がそのどちらであったかと、アドレスをログに記録します。
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — 宛先が禁止階層にあります。Webhook の場合、本当に必要なら `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` に正確なホストまたは CIDR を記載してください。モニターの場合、例外はありません。
 - _"...hostname could not be resolved via DNS."_ — コンテナーが名前を解決できません。宛先とネットワークを共有しているか確認してください。

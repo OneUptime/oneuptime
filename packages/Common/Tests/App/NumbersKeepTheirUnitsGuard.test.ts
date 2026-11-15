@@ -11,6 +11,7 @@ import {
   withNoBreakSpacesInLocale,
 } from "../../Types/NoBreakSpaces";
 import { getPluralCategory, Translator } from "../../Types/Translator";
+import { escapeRegExp } from "../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -76,7 +77,7 @@ const UNIT: string = [...UNITS]
     return b.length - a.length;
   })
   .map((unit: string): string => {
-    return unit.replace(/[%]/g, "\\$&");
+    return escapeRegExp(unit);
   })
   .join("|");
 

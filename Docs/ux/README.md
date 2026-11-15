@@ -592,8 +592,11 @@ work out, starts from a default for everything else, and folds what most people 
   [MinutePickersGuard](../../packages/Common/Tests/UI/MinutePickersGuard.test.ts).
 - **A duration in milliseconds is written in the reader's language,** with the Dashboard's
   `formatMilliseconds` ("{{value}} ms", each language's own unit and order, the figure in the
-  reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
-  an Arabic or Persian page (#7224). Enforced by
+  reader's digits), never a figure joined to " ms" or written before "ms" in a template or JSX:
+  every monitor's Response Time read "ms 411" on an Arabic or Persian page (#7224), and a trace's
+  p95 "۱۲٫۴ ms" (#7418). `minimumFractionDigits` keeps the decimals toFixed wrote, `showsSign` an
+  offset's sign. A chart's value axis and the PDF export write it in English on purpose
+  (`formatMillisecondsInEnglish`). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
