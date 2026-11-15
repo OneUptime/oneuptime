@@ -76,7 +76,7 @@ flowchart TB
 
 ## 探测器与间隔
 
-由探测器检查的监视器以这一步结束：网站、API、Ping、IP、端口、SSL 证书、DNS、DNSSEC、NTP、域名、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探测器** 是运行检查的机器，您项目的默认探测器已预先选中。**监控间隔** 从 **每 5 分钟** 开始。
+由探测器检查的监视器以这一步结束：网站、API、Ping、IP、端口、SSL 证书、DNS、DNSSEC、NTP、域名、SQL 查询、数据库健康状况、合成监视器、自定义 JavaScript 代码 和 外部状态页。**探测器** 是运行检查的机器，您项目的默认探测器已预先选中。**监控间隔** 从 **每 5 分钟** 开始。
 
 :::steps
 ### 选择探测器
@@ -85,7 +85,7 @@ flowchart TB
 
 ### 选择检查频率
 
-选择 **监控间隔**，从 **每分钟** 到 **每周**。Synthetic Monitor、Custom JavaScript Code 和 SSL 证书 监视器只提供 5 分钟或更长的间隔。
+选择 **监控间隔**，从 **每分钟** 到 **每周**。合成监视器、自定义 JavaScript 代码 和 SSL 证书 监视器只提供 5 分钟或更长的间隔。
 
 ### 完成创建
 

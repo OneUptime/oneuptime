@@ -701,7 +701,7 @@ describe("in German", () => {
       });
 
       expect(quiet?.title).not.toBe("No logs in this time range");
-      expect(quiet?.detail).toContain("vor 3 Stunden");
+      expect(quiet?.detail).toContain("vor 3\u00A0Stunden");
       expect(quiet?.detail).not.toContain("The last log arrived");
       expect(quiet?.action?.label).not.toBe("Show the past week");
     });

@@ -11,6 +11,7 @@ import {
 import { getDefaultContext } from "../../FeatureSet/Dashboard/scripts/i18n/I18n";
 import { REPLAY_TAB_COUNT } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTabs";
 import { MEANING_KEYS } from "Common/Types/MeaningKeys";
+import { LABELS_DRAWN_BY_OWN_KEY } from "../FeatureSet/Docs/DocsDashboardLabels";
 
 /*
  * A KEY THE DASHBOARD LOOKS UP HAS ONE MEANING (#6689, #6768, #6635).
@@ -664,6 +665,97 @@ describe("one meaning per key", () => {
     // A message's recipient keeps the bare word.
     expect(filesLookingUp("To")).toContain(
       "Components/NotificationLogs/EmailLogsTable.tsx",
+    );
+  });
+
+  /*
+   * #8659: a state shared by pages whose other states take two genders.
+   * Russian's Expired was a token's "Истёк" (masculine) beside a threat
+   * indicator's and a rule exception's neuter "Активно"; Not fetched yet a
+   * feminine "Ещё не запрашивалась" beside a token's "Действителен" and a
+   * calendar link's "Отключено"; Arabic's Valid a certificate's feminine
+   * صالحة beside a token's masculine states, and Spanish's Upcoming a
+   * list's plural "Próximos" beside an exception's "Activo". Each page
+   * words its state with a key of its own and no longer looks up the bare
+   * word, which stays the other pages'.
+   */
+  test("a threat indicator's, a rule exception's, a token's and a calendar link's states are their own keys, and their pages never look up the bare words", () => {
+    const OWN_KEYS: Record<string, { file: string; bare: string }> = {
+      "Expired (threat indicator)": {
+        file: "Pages/SecurityEvents/ThreatIntel.tsx",
+        bare: "Expired",
+      },
+      "Expired (rule exception)": {
+        file: "Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy.ts",
+        bare: "Expired",
+      },
+      "Upcoming (rule exception)": {
+        file: "Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy.ts",
+        bare: "Upcoming",
+      },
+      "Not fetched yet (OAuth token)": {
+        file: "Components/Workflow/WorkflowVariableTokenStatus.tsx",
+        bare: "Not fetched yet",
+      },
+      "Valid (OAuth token)": {
+        file: "Components/Workflow/WorkflowVariableTokenStatus.tsx",
+        bare: "Valid",
+      },
+      "Not fetched yet (calendar feed)": {
+        file: "Components/OnCallPolicy/CalendarFeed/CalendarFeedUtil.ts",
+        bare: "Not fetched yet",
+      },
+    };
+
+    for (const [key, { file, bare }] of Object.entries(OWN_KEYS)) {
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: [file],
+      });
+      expect(MEANING_KEYS).toContain(key);
+      expect({
+        key,
+        bare,
+        pageLooksUpTheBareWord: filesLookingUp(bare).includes(file),
+      }).toEqual({ key, bare, pageLooksUpTheBareWord: false });
+    }
+
+    /*
+     * The docs name each in bold as its screen draws it: every label the
+     * docs map to a key of its own is one of these, read in English as the
+     * label itself, on a page that exists.
+     */
+    for (const [page, labels] of Object.entries(LABELS_DRAWN_BY_OWN_KEY)) {
+      expect(
+        fs.existsSync(
+          path.join(
+            REPOSITORY_ROOT,
+            "packages/App/FeatureSet/Docs/Content/en",
+            `${page}.md`,
+          ),
+        ),
+      ).toBe(true);
+
+      for (const [label, key] of Object.entries(labels)) {
+        expect({ page, label, key, own: key in OWN_KEYS }).toEqual({
+          page,
+          label,
+          key,
+          own: true,
+        });
+        expect(OWN_KEYS[key]!.bare).toBe(label);
+      }
+    }
+
+    // The bare words stay the pages' that share them.
+    expect(filesLookingUp("Expired")).toContain(
+      "Components/Workflow/WorkflowVariableTokenStatus.tsx",
+    );
+    expect(filesLookingUp("Not fetched yet")).toContain(
+      "Components/SessionReplay/ReplayCorrelationPanel.tsx",
+    );
+    expect(filesLookingUp("Valid")).toContain(
+      "Components/Monitor/SummaryView/SSLCertificateMonitorView.tsx",
     );
   });
 

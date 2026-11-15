@@ -416,8 +416,8 @@ describe("the parts of a summary are one language", () => {
   test("a forecast's horizon is written in the sentence's language", () => {
     const summary: string = summaryIn(CASES[7]!, translatorIn("fa"));
 
-    expect(summary).toContain("۳ روز");
-    expect(summaryIn(CASES[7]!, translatorIn("de"))).toContain("3 Tage");
+    expect(summary).toContain("۳\u00A0روز");
+    expect(summaryIn(CASES[7]!, translatorIn("de"))).toContain("3\u00A0Tage");
   });
 });
 

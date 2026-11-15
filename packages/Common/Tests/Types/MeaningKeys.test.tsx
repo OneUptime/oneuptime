@@ -111,15 +111,19 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends and an explorer's Insights tab, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends, the states that agree with their page's others and an explorer's Insights tab, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
         "Change (schema change)",
         "Created (import result)",
         "Deleted (invoice status)",
+        "Expired (rule exception)",
+        "Expired (threat indicator)",
         "From (range start)",
         "Insights (explorer analytics)",
+        "Not fetched yet (OAuth token)",
+        "Not fetched yet (calendar feed)",
         "Open (invoice status)",
         "Open (status)",
         "Table (database object)",
@@ -127,6 +131,8 @@ describe("the keys that name their meaning", () => {
         "Test (environment)",
         "To (range end)",
         "Undefined (invoice status)",
+        "Upcoming (rule exception)",
+        "Valid (OAuth token)",
         "View (database object)",
       ].sort(),
     );
@@ -155,6 +161,21 @@ describe("the keys that name their meaning", () => {
     expect(getWordOfMeaningKey("From (range start)")).toBe("From");
     expect(getWordOfMeaningKey("To (range end)")).toBe("To");
     expect(getWordOfMeaningKey("To")).toBeUndefined();
+    /*
+     * #8659: a state a page words to agree with its other states, where the
+     * shared word takes another gender: English reads the bare word.
+     */
+    expect(getWordOfMeaningKey("Expired (threat indicator)")).toBe("Expired");
+    expect(getWordOfMeaningKey("Expired (rule exception)")).toBe("Expired");
+    expect(getWordOfMeaningKey("Upcoming (rule exception)")).toBe("Upcoming");
+    expect(getWordOfMeaningKey("Not fetched yet (OAuth token)")).toBe(
+      "Not fetched yet",
+    );
+    expect(getWordOfMeaningKey("Valid (OAuth token)")).toBe("Valid");
+    expect(getWordOfMeaningKey("Not fetched yet (calendar feed)")).toBe(
+      "Not fetched yet",
+    );
+    expect(getWordOfMeaningKey("Expired")).toBeUndefined();
   });
 
   test("are no other text, not even one shaped like them: it reads as it is written", () => {

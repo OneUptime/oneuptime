@@ -354,6 +354,11 @@ Translation guidelines:
   masculine (نشط, مُفرَّغ). A state of another gender beside them reads as a
   word about something else: Russian's list said "Активно" over "Неактивен"
   (#8588). `Common/Tests/App/StatesDrawnTogetherAgree` holds the sets.
+  Where a shared word cannot agree with every page that draws it, a page
+  words its state with a key of its own (`Common/Types/MeaningKeys`), which
+  English reads as the bare word: a threat indicator's "Expired (threat
+  indicator)" is Russian "Истекло" while a token's Expired stays "Истёк"
+  (#8659). Word such a key as your bare word unless that disagrees there.
 - Give each of OneUptime's things a word no other thing has in your language:
   Arabic had called both the collector and a Ceph pool المجمّع (#8581).
 

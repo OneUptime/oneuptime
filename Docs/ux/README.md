@@ -683,19 +683,32 @@ work out, starts from a default for everything else, and folds what most people 
   symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
   itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
   as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
-  plain space, listed with its reason. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts)
+  plain space, listed with its reason. Intl writes a plain space there too ("5 Min.", "vor 5
+  Minuten", "2 Tage, 3 Stunden", #8456), so ask Intl for a unit or a relative time only through
+  `Common/Types/DateLanguage` (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`,
+  `getUnitAmountParts`, `formatRelativeAmount`), which holds the number to its unit in every
+  language, English included, and keeps French's own no-break spaces; never with `style: "unit"`
+  or `Intl.RelativeTimeFormat` yourself. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and
-  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts).
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
   (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
-  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
-  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
-  any other message whole in a right-to-left line. A Database Health check's collection issues read
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001),
+  and so is every cause with values in it (`Common/Utils/Monitor/ProbeFailureCauses`): an NTP
+  server that did not answer, or answered but is not synchronized; a probe with no IPv6 or no
+  route; a connect that failed on every address; the Ping and Traceroute checks' own sentences; an
+  attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
+  timeout or a count is written in the reader's digits. A summary draws a probe's message with
+  `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
+  right-to-left line. An incident's root cause words its figures the same way: a response time,
+  the attempts and an NTP server's facts in the reader's digits and units (#8268). A Database
+  Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
   error kept as written after a sentence that says what kind of failure it is. Enforced by
@@ -917,7 +930,11 @@ then `npm run i18n:validate` from the root.
   thing can disagree: Russian's infrastructure list said "Активно" on one row and "Неактивен" on
   the next (#8588). Word a state as the locale words the others it is drawn with (Russian words a
   state on its own in the neuter: "Неактивно", "Выведено из работы"), and list a new set of states
-  a page draws together, with the files that draw it. Enforced by
+  a page draws together, with the files that draw it. Where a shared word cannot agree with every
+  page, the page takes a key of its own in
+  [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), read in English as
+  the bare word: a threat indicator's Expired is Russian "Истекло" while a token's stays "Истёк"
+  (#8659). Enforced by
   [StatesDrawnTogetherAgree](../../packages/Common/Tests/App/StatesDrawnTogetherAgree.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same

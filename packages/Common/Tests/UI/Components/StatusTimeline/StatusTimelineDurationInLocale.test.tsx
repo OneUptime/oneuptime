@@ -82,11 +82,22 @@ const legendDurationIn: (seconds: number, language: string) => string = (
 };
 
 /*
+ * The cut reads the text as Intl wrote it then, with a plain space between
+ * each number and its unit, where a no-break space holds them now (#8456).
+ */
+const NO_BREAK_SPACES: RegExp = /\u00A0/g;
+
+/*
  * What the legend drew before: the whole duration, cut to its first four
  * words. Kept here only as the negative control.
  */
 const cutByWords: (text: string) => string = (text: string): string => {
-  return text.trim().split(" ").slice(0, 4).join(" ");
+  return text
+    .trim()
+    .replace(NO_BREAK_SPACES, " ")
+    .split(" ")
+    .slice(0, 4)
+    .join(" ");
 };
 
 afterEach(() => {
@@ -173,10 +184,10 @@ describe("30 days 23 hours 42 minutes 40 seconds in the reader's language", () =
     },
   );
 
-  test("Japanese reads 30 日23 時間, the hours with their unit", () => {
+  test("Japanese reads 30 日23 時間, the hours with their unit, each held to its number", () => {
     const japanese: string = legendDurationIn(LONG, "ja");
 
-    expect(japanese).toBe("30 日23 時間");
+    expect(japanese).toBe("30\u00A0日23\u00A0時間");
     expect(japanese).not.toContain("分");
     expect(japanese).not.toContain("秒");
   });
@@ -189,21 +200,21 @@ describe("30 days 23 hours 42 minutes 40 seconds in the reader's language", () =
   test("German keeps its list comma between the two units, and none after", () => {
     const german: string = legendDurationIn(LONG, "de");
 
-    expect(german).toBe("30 Tg., 23 Std.");
+    expect(german).toBe("30\u00A0Tg., 23\u00A0Std.");
     expect(german.endsWith(",")).toBe(false);
   });
 
   test("Persian writes Persian digits, and no Latin digit", () => {
     const persian: string = legendDurationIn(LONG, "fa");
 
-    expect(persian).toBe("۳۰ روز ۲۳ ساعت");
+    expect(persian).toBe("۳۰\u00A0روز ۲۳\u00A0ساعت");
     expect(persian).not.toMatch(/[0-9]/);
   });
 
   test("Arabic keeps Latin digits, its two units joined as Arabic joins them", () => {
     const arabic: string = legendDurationIn(LONG, "ar");
 
-    expect(arabic.startsWith("30 ")).toBe(true);
+    expect(arabic.startsWith("30\u00A0")).toBe(true);
     expect(arabic).toContain("23");
     expect(arabic).not.toContain("42");
     expect(arabic).not.toContain("40");
@@ -391,7 +402,7 @@ describe("the legend, drawn in Japanese", () => {
       "status-timeline-legend-item",
     );
 
-    expect(partsOf(items[0]!)[2]).toBe("30 日23 時間");
+    expect(partsOf(items[0]!)[2]).toBe("30\u00A0日23\u00A0時間");
     expect(partsOf(items[1]!)[2]).toBe(
       intlDuration(
         [
