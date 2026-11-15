@@ -52362,5 +52362,7 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}}개 부분이 더 그려지지 않았습니다. 검색해서 찾으세요.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "브라우저 키입니다. 클라이언트에 배포하도록 만들어졌습니다. 웹 출처는 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트를 보낼 수 있고, app:// ID는 React Native 세션 리플레이만 허용합니다. 허용되는 ID: {{identities}}. 네이티브 앱 ID는 앱이 스스로 밝히는 것이며 플랫폼의 증명이 아닙니다.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "페이지에 게시해도 안전합니다. 아래의 허용된 출처에서 보낸 요청만 받으며 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트에만 쓸 수 있습니다."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "페이지에 게시해도 안전합니다. 아래의 허용된 출처에서 보낸 요청만 받으며 트레이스, 로그, 메트릭, 세션 리플레이, Sentry 이벤트에만 쓸 수 있습니다.",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Telemetry key": "Telemetry key"
 }

@@ -52362,5 +52362,7 @@
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} من الأجزاء الأخرى غير مرسومة. ابحث للعثور على أحدها.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} جزء آخر غير مرسوم. ابحث للعثور عليه.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "مفتاح متصفح — مخصص للتوزيع على العملاء. يمكن لأصول الويب إرسال التتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry؛ ولا تأذن هويات app:// إلا بإعادة التشغيل في React Native. الهويات المقبولة: {{identities}}. هويات التطبيقات الأصلية يعلنها التطبيق بنفسه، وليست شهادة من المنصة.",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، وللتتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry فقط."
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "آمن للنشر في صفحة. لا يُقبل إلا من المصادر المسموح بها أدناه، وللتتبعات والسجلات والمقاييس وإعادة تشغيل الجلسات وأحداث Sentry فقط.",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Telemetry key": "Telemetry key"
 }

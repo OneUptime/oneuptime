@@ -52362,5 +52362,7 @@
   "{{count}} more parts are not drawn. Search to find one.": "另有 {{count}} 个部分未绘制。可通过搜索找到。",
   "{{count}} more parts are not drawn. Search to find one._one": "另有 {{count}} 个部分未绘制。可通过搜索找到。",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "浏览器密钥——用于分发到客户端。Web 来源可以发送追踪、日志、指标、会话回放和 Sentry 事件；app:// 标识仅授权 React Native 的会话回放。接受的标识：{{identities}}。原生应用标识由应用自行声明，并非平台证明。",
-  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "可以安全发布在页面中。只接受来自下方允许的来源的请求，并且只能用于追踪、日志、指标、会话回放和 Sentry 事件。"
+  "Safe to publish in a page. Accepted only from the allowed origins below, and only for traces, logs, metrics, session replays and Sentry events.": "可以安全发布在页面中。只接受来自下方允许的来源的请求，并且只能用于追踪、日志、指标、会话回放和 Sentry 事件。",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Telemetry key": "Telemetry key"
 }
