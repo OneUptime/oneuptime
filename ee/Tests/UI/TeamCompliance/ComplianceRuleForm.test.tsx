@@ -1578,6 +1578,16 @@ describe("Slack, Microsoft Teams and Mattermost follow the project's workspaces"
     });
 
     describe("the custom channel follows the server's custom channels", () => {
+      /*
+       * The project's workspaces answered by a stand-in, as the tests above
+       * do: the modal asks for them, and a real request is refused
+       * (Tests/jest.setup.ts, #8731). None are connected - these cases are
+       * about the custom channel alone.
+       */
+      beforeEach(() => {
+        ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+      });
+
       const corpoApp: () => CustomNotificationChannel =
         (): CustomNotificationChannel => {
           const channel: CustomNotificationChannel =
