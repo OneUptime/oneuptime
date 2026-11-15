@@ -121,7 +121,7 @@ Kanaler og chatter holder seg lesbare: hver begivenhet publiseres én gang, og p
 
 **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams** viser kanalene OneUptime ser i teamene dine, og chattene den er lagt til i, med **Send test** ved siden av hver. En chat vises så snart OneUptime-appen er lagt til i den i Microsoft Teams; **Refresh Chats** henter nye chatter og de nåværende navnene deres.
 
-En varslingsregel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og prosjektadministratorer kan redigere eller slette den, og alle andre som ser reglene, ser den skrivebeskyttet. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
+En varslingsregel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder den teamene du velger: bare medlemmene deres og Prosjektadministratorer kan redigere eller slette den, og alle andre som ser reglene, ser den skrivebeskyttet. Se [Regler som tilhører team](/docs/permissions/index#regler-som-tilhører-team).
 
 ### Vaktmeldinger
 

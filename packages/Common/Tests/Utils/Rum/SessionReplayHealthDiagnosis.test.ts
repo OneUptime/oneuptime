@@ -140,7 +140,7 @@ describe("diagnoseRecordingHealth - one case per state, in priority order", () =
     expect(result.state).toBe("budget-paused");
     expect(result.severity).toBe("error");
     expect(result.title).toBe("Uploads paused 3h ago");
-    expect(result.detail).toContain("its 2 GB monthly budget");
+    expect(result.detail).toContain("its 2\u00A0GB monthly budget");
     expect(result.action).toEqual({
       label: "Raise the budget",
       target: "budget",
@@ -182,8 +182,8 @@ describe("diagnoseRecordingHealth - one case per state, in priority order", () =
 
     expect(result.state).toBe("budget-paused");
     expect(result.title).toBe("Uploads paused for today");
-    expect(result.detail).toContain("1 GB daily budget");
-    expect(result.detail).toContain("(1 GB used)");
+    expect(result.detail).toContain("1\u00A0GB daily budget");
+    expect(result.detail).toContain("(1\u00A0GB used)");
   });
 
   it("refusing: counts the top reason, replaces the code with words, and offers the matching action", () => {
@@ -936,9 +936,9 @@ describe("copy helpers", () => {
   });
 
   it("formatBytesForCopy", () => {
-    expect(formatBytesForCopy(1024 * 1024 * 1024)).toBe("1 GB");
-    expect(formatBytesForCopy(2.5 * 1024 * 1024 * 1024)).toBe("2.5 GB");
-    expect(formatBytesForCopy(512 * 1024 * 1024)).toBe("512 MB");
+    expect(formatBytesForCopy(1024 * 1024 * 1024)).toBe("1\u00A0GB");
+    expect(formatBytesForCopy(2.5 * 1024 * 1024 * 1024)).toBe("2.5\u00A0GB");
+    expect(formatBytesForCopy(512 * 1024 * 1024)).toBe("512\u00A0MB");
     expect(formatBytesForCopy(-1)).toBe("unknown");
   });
 

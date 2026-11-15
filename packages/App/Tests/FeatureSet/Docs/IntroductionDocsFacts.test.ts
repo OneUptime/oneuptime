@@ -1217,7 +1217,7 @@ describe("Quickstart", () => {
         .items,
     ).toContain("Notification Channels");
     expect(QUICKSTART).toContain(
-      "SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.",
+      "SMS and phone calls are off in a new project. A Project Owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.",
     );
   });
 

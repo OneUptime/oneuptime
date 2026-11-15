@@ -24,7 +24,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Une offre qui l'inclut.** Sur OneUptime Cloud, créer et modifier des sources de données nécessite l'offre **Growth**. La suppression fonctionne avec toutes les offres.
-- **Une autorisation pour les ajouter.** Les propriétaires et administrateurs du projet peuvent ajouter des sources de données ; les autres ont besoin de `CreateDataSource`, avec `EditDataSource` et `DeleteDataSource` pour les modifier et les supprimer. Toutes les personnes qui peuvent lire les sources de données du projet, membres et observateurs compris, voient les données de leurs widgets.
+- **Une autorisation pour les ajouter.** Les Propriétaires du projet et Administrateurs du projet peuvent ajouter des sources de données ; les autres ont besoin de `CreateDataSource`, avec `EditDataSource` et `DeleteDataSource` pour les modifier et les supprimer. Toutes les personnes qui peuvent lire les sources de données du projet, membres et observateurs compris, voient les données de leurs widgets.
 - **Un compte en lecture seule.** Les tableaux de bord ne font que lire. Connectez les bases de données avec un compte qui ne peut que lire, et les sources HTTP avec un jeton qui ne peut qu'interroger.
 - **Un accès réseau.** Le serveur d'API de OneUptime se connecte à votre système, il doit donc pouvoir l'atteindre : voir [Sécurité](#sécurité) pour les adresses refusées.
 

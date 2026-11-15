@@ -155,12 +155,12 @@ Une règle fait sonner une personne sur le numéro qu'elle a vérifié pour les 
 :::steps
 1. Ouvrez **Paramètres utilisateur** > **Politique d'appels entrants** > **Numéros de téléphone entrants**. **Politique d'appels entrants** est une section du menu latéral qui commence repliée.
 2. Dans la carte **Numéros de téléphone pour le routage des appels entrants**, cliquez sur **Ajouter : Numéro de téléphone pour le routage des appels entrants** et saisissez le numéro avec son indicatif de pays, par exemple `+15551234567`.
-3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Send a new code** en envoie un autre.
+3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Envoyer un nouveau code** en envoie un autre.
 :::
 
 Chaque personne peut avoir un numéro vérifié par projet. Pour le changer, supprimez d'abord l'ancien numéro. Ces numéros sont distincts des numéros de téléphone sous **Méthodes de notification**, qu'utilisent les alertes d'astreinte. Voir [Méthodes de notification](/docs/notifications/notification-methods).
 
-Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Canaux de notification**.
+Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un Propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Canaux de notification**.
 
 ## Messages vocaux et paramètres de la politique
 
@@ -198,7 +198,7 @@ Un appel est manqué lorsqu'il se termine sans joindre personne : son statut est
 
 ### Qui est prévenu
 
-Quand un appel est manqué, OneUptime prévient les propriétaires de la politique : les utilisateurs et les membres des équipes ajoutés sur la page **Propriétaires** de la politique. Si la politique n'a pas de propriétaires, ce sont les propriétaires du projet qui sont prévenus.
+Quand un appel est manqué, OneUptime prévient les propriétaires de la politique : les utilisateurs et les membres des équipes ajoutés sur la page **Propriétaires** de la politique. Si la politique n'a pas de propriétaires, ce sont les Propriétaires du projet qui sont prévenus.
 
 La notification indique qui a appelé, quel numéro a été composé, pourquoi personne n'a répondu, qui a sonné et comment chaque tentative s'est terminée. Elle renvoie vers l'appel dans le journal d'appels.
 
@@ -275,7 +275,7 @@ Le compte ne peut changer que tant que la politique n'a aucun numéro de télép
 :::
 
 :::details Le code pour le numéro d'une personne n'arrive pas
-Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Send a new code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu.
+Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Envoyer un nouveau code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu.
 :::
 
 ## Étapes suivantes

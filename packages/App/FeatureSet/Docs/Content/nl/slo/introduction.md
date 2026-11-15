@@ -146,7 +146,7 @@ Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status
 
 ## De SLO-lijst
 
-De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren.
+De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren. De kolom **Wat het meet** toont bij een aanvraag-SLO de services waar hij bij een uptime-SLO de monitoren toont, en het filter **Services** vindt de SLO's die een service meten.
 
 - De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Verkeerd geconfigureerd**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
 - Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze de [aanbevolen regels voor verbruikssnelheid](/docs/slo/burn-rate-alerts#ze-aan-veel-slos-tegelijk-toevoegen) te geven die ze missen, ze te archiveren of ze te verwijderen.
@@ -256,15 +256,15 @@ Een banner bovenaan de pagina's van de SLO zegt wat hem verhindert te meten:
 | Banner | Wat het betekent | Wat te doen |
 | --- | --- | --- |
 | **Geen monitoren gekoppeld** | De SLO heeft geen monitoren, dus er valt niets te meten. | Koppel monitoren of maak een monitorregel. |
-| **Waiting for SLO evaluation** | Er zijn monitoren gekoppeld, maar de laatste evaluatie had geen statusgegevens van ze. | Controleer of de monitoren worden gecontroleerd. De cijfers verschijnen na de volgende evaluatie met gegevens. |
-| **Measurement is paused** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld. | Zet de bewaking van minstens één monitor weer aan, of wacht tot het onderhoud voorbij is. |
-| **The target is out of range** | Het doel is niet groter dan 0 en kleiner dan 100. | Stel een doel zoals 99,9 in onder **Instellingen** → **Doelstelling**. |
-| **This SLO is disabled** | De evaluatie staat uit. | Klik op **Evaluatie aanzetten**. |
-| **This SLO is archived** | De SLO is gearchiveerd. | Haal hem uit het archief onder **Instellingen**. |
+| **Wachten op de SLO-evaluatie** | Er zijn monitoren gekoppeld, maar de laatste evaluatie had geen statusgegevens van ze. | Controleer of de monitoren worden gecontroleerd. De cijfers verschijnen na de volgende evaluatie met gegevens. |
+| **De meting is gepauzeerd** | Alle monitoren die hij meet, zijn gearchiveerd of hebben actieve bewaking uitgeschakeld. | Zet de bewaking van minstens één monitor weer aan, of wacht tot het onderhoud voorbij is. |
+| **Het doel valt buiten het bereik** | Het doel is niet groter dan 0 en kleiner dan 100. | Stel een doel zoals 99,9 in onder **Instellingen** → **Doelstelling**. |
+| **Deze SLO is uitgeschakeld** | De evaluatie staat uit. | Klik op **Evaluatie aanzetten**. |
+| **Deze SLO is gearchiveerd** | De SLO is gearchiveerd. | Haal hem uit het archief onder **Instellingen**. |
 | **Nog niet geëvalueerd** | De SLO is net aangemaakt. | Wacht op de eerste evaluatie, hooguit een paar minuten. |
 | **Geen services gekozen** | Een SLO voor aanvragen heeft geen services, dus er zijn geen aanvragen om te tellen. | Kies zijn services onder **Instellingen** → **Wat het meet**. |
-| **No latency threshold** | Een SLO voor latentie van aanvragen heeft geen drempel, dus geen enkele aanvraag kan als snel genoeg tellen. | Stel de **Latentiedrempel (ms)** in onder **Instellingen** → **Wat het meet**. |
-| **Waiting for requests** | Geen van de services van een SLO voor aanvragen heeft in zijn venster al een aanvraag afgehandeld. | Controleer of de services traces naar OneUptime sturen. De cijfers verschijnen na de volgende evaluatie die een aanvraag telt. |
+| **Geen latentiedrempel** | Een SLO voor latentie van aanvragen heeft geen drempel, dus geen enkele aanvraag kan als snel genoeg tellen. | Stel de **Latentiedrempel (ms)** in onder **Instellingen** → **Wat het meet**. |
+| **Wachten op aanvragen** | Geen van de services van een SLO voor aanvragen heeft in zijn venster al een aanvraag afgehandeld. | Controleer of de services traces naar OneUptime sturen. De cijfers verschijnen na de volgende evaluatie die een aanvraag telt. |
 
 ## Volgende stappen
 

@@ -2,7 +2,9 @@ import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval
 import { SloWidgetMetric } from "../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import {
+  formatErrorBudgetRemainingRequests,
   formatErrorBudgetRemainingSeconds,
+  formatSloErrorBudgetSubline,
   formatSloBurnRate,
   formatSloChartValue,
   formatSloPercent,
@@ -19,6 +21,7 @@ import {
   SloWidgetTitleSentence,
 } from "../../../Utils/Slo/SloWidgetFormat";
 import { fillTemplate } from "../../../Types/Translator";
+import SliType from "../../../Types/ServiceLevelObjective/SliType";
 
 /** A fully evaluated SLO — the happy path every test narrows from. */
 function makeSlo(
@@ -116,16 +119,22 @@ describe("SloWidgetFormat", () => {
 
   describe("formatErrorBudgetRemainingSeconds", () => {
     it("converts remaining seconds to whole minutes", () => {
-      expect(formatErrorBudgetRemainingSeconds(2580)).toBe("43 min remaining");
+      expect(formatErrorBudgetRemainingSeconds(2580)).toBe(
+        "43\u00A0min remaining",
+      );
     });
 
     it("rounds to the nearest minute", () => {
-      expect(formatErrorBudgetRemainingSeconds(2609)).toBe("43 min remaining");
-      expect(formatErrorBudgetRemainingSeconds(2611)).toBe("44 min remaining");
+      expect(formatErrorBudgetRemainingSeconds(2609)).toBe(
+        "43\u00A0min remaining",
+      );
+      expect(formatErrorBudgetRemainingSeconds(2611)).toBe(
+        "44\u00A0min remaining",
+      );
     });
 
     it("states an exactly exhausted budget as 0 min remaining", () => {
-      expect(formatErrorBudgetRemainingSeconds(0)).toBe("0 min remaining");
+      expect(formatErrorBudgetRemainingSeconds(0)).toBe("0\u00A0min remaining");
     });
 
     it("does not round a sub-minute remainder down to a misleading 0 min", () => {
@@ -136,7 +145,7 @@ describe("SloWidgetFormat", () => {
 
     it("renders an overspent budget plainly with a minus sign", () => {
       expect(formatErrorBudgetRemainingSeconds(-2520)).toBe(
-        `${MINUS_SIGN}42 min over budget`,
+        `${MINUS_SIGN}42\u00A0min over budget`,
       );
     });
 
@@ -495,7 +504,7 @@ describe("SloWidgetFormat", () => {
           sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
           slo: makeSlo({ errorBudgetRemainingSeconds: 2580 }),
         }).subline,
-      ).toBe("43 min remaining");
+      ).toBe("43\u00A0min remaining");
     });
 
     it("states an overspent budget as an over-budget subline", () => {
@@ -508,7 +517,7 @@ describe("SloWidgetFormat", () => {
       });
 
       expect(display.value).toBe("-12.5%");
-      expect(display.subline).toBe(`${MINUS_SIGN}42 min over budget`);
+      expect(display.subline).toBe(`${MINUS_SIGN}42\u00A0min over budget`);
     });
 
     it("renders a fully exhausted budget as 0% rather than not evaluated", () => {
@@ -522,7 +531,7 @@ describe("SloWidgetFormat", () => {
 
       expect(display.isEvaluated).toBe(true);
       expect(display.value).toBe("0%");
-      expect(display.subline).toBe("0 min remaining");
+      expect(display.subline).toBe("0\u00A0min remaining");
     });
 
     it("keeps the percentage when only the seconds column is missing", () => {
@@ -744,5 +753,116 @@ describe("SloWidgetFormat", () => {
       expect(formatSloChartValue(SloWidgetMetric.Sli, NaN)).toBe("");
       expect(formatSloChartValue(SloWidgetMetric.BurnRate, Infinity)).toBe("");
     });
+  });
+});
+
+/*
+ * A request SLO's error budget is a count of requests (#8441): the widgets
+ * say "120 failed requests remaining" under its budget, where a monitor
+ * uptime SLO says "43 min remaining". The worker leaves a request SLO's
+ * budget in seconds empty, so the widgets used to say nothing there.
+ */
+describe("a request SLO's budget line", () => {
+  test.each([
+    [SliType.RequestSuccess, 120, "120 failed requests remaining"],
+    [SliType.RequestSuccess, 1, "1 failed request remaining"],
+    [SliType.RequestSuccess, 0, "0 failed requests remaining"],
+    [SliType.RequestLatency, 1234.4, "1,234 slow requests remaining"],
+    [SliType.RequestLatency, 1, "1 slow request remaining"],
+    [SliType.RequestSuccess, -50, "50 failed requests over budget"],
+    [SliType.RequestSuccess, -1, "1 failed request over budget"],
+    [SliType.RequestLatency, -2500.6, "2,501 slow requests over budget"],
+  ])(
+    "%s with %s left reads %s",
+    (sliType: SliType, remaining: number, expected: string) => {
+      expect(
+        formatErrorBudgetRemainingRequests({
+          sliType: sliType,
+          remainingEvents: remaining,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test("reads a decimal column that arrives as text", () => {
+    expect(
+      formatErrorBudgetRemainingRequests({
+        sliType: SliType.RequestSuccess,
+        remainingEvents: "600.25",
+      }),
+    ).toBe("600 failed requests remaining");
+  });
+
+  test("a fraction of a request below zero is 0 remaining, never -0", () => {
+    expect(
+      formatErrorBudgetRemainingRequests({
+        sliType: SliType.RequestSuccess,
+        remainingEvents: -0.4,
+      }),
+    ).toBe("0 failed requests remaining");
+  });
+
+  test.each([undefined, null, "", "many", NaN, Infinity])(
+    "says nothing before the first evaluation (%s)",
+    (remaining: unknown) => {
+      expect(
+        formatErrorBudgetRemainingRequests({
+          sliType: SliType.RequestSuccess,
+          remainingEvents: remaining as number,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("the subline picks minutes for monitor uptime and requests for a request SLO", () => {
+    expect(formatSloErrorBudgetSubline(makeSlo())).toBe(
+      formatErrorBudgetRemainingSeconds(1764),
+    );
+    expect(
+      formatSloErrorBudgetSubline(
+        makeSlo({
+          sliType: SliType.MonitorUptime,
+          errorBudgetRemainingEvents: 99,
+        }),
+      ),
+    ).toBe(formatErrorBudgetRemainingSeconds(1764));
+    expect(
+      formatSloErrorBudgetSubline(
+        makeSlo({
+          sliType: SliType.RequestSuccess,
+          errorBudgetRemainingSeconds: null,
+          errorBudgetRemainingEvents: 99,
+        }),
+      ),
+    ).toBe("99 failed requests remaining");
+  });
+
+  test("a request SLO's error budget tile says requests under its percentage", () => {
+    const tile: SloWidgetTileDisplay = getSloWidgetTileDisplay({
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: makeSlo({
+        sliType: SliType.RequestLatency,
+        errorBudgetRemainingSeconds: null,
+        errorBudgetRemainingEvents: -12,
+      }),
+    });
+
+    expect(tile.isEvaluated).toBe(true);
+    expect(tile.value).toBe("68%");
+    expect(tile.subline).toBe("12 slow requests over budget");
+  });
+
+  test("a request SLO counted nothing yet has its percentage and no line under it", () => {
+    const tile: SloWidgetTileDisplay = getSloWidgetTileDisplay({
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: makeSlo({
+        sliType: SliType.RequestSuccess,
+        errorBudgetRemainingSeconds: null,
+        errorBudgetRemainingEvents: null,
+      }),
+    });
+
+    expect(tile.value).toBe("68%");
+    expect(tile.subline).toBeNull();
   });
 });

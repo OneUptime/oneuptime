@@ -146,7 +146,7 @@ Fråga AI säger varför innan du skriver: projektets plan omfattar inte AI, **A
 :::
 
 :::details En åtgärd avvisades
-Fråga AI säger vilken behörighet åtgärden kräver, eller vilket team som blockerar den. Be någon som får göra ändringen, eller be en projektägare ge din roll behörigheten. Inget ändrades.
+Fråga AI säger vilken behörighet åtgärden kräver, eller vilket team som blockerar den. Be någon som får göra ändringen, eller be en Projektägare ge din roll behörigheten. Inget ändrades.
 :::
 
 :::details Svaren är vaga eller använder aldrig data

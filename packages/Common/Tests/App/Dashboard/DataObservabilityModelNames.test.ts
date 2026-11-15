@@ -1,6 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
+import DataAlert from "../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
+import DataAssetFeed from "../../../Models/DatabaseModels/DataAssetFeed";
+import DataAssetLineage from "../../../Models/DatabaseModels/DataAssetLineage";
+import DataAssetUsage from "../../../Models/DatabaseModels/DataAssetUsage";
 import DataPipeline from "../../../Models/DatabaseModels/DataPipeline";
+import DataPipelineRun from "../../../Models/DatabaseModels/DataPipelineRun";
 import DataReconciliation from "../../../Models/DatabaseModels/DataReconciliation";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { translateNamedAction, Translator } from "../../../Types/Translator";
@@ -268,5 +273,207 @@ describe("in a sentence", () => {
     expect(createButton("en", "Data Asset")).toBe("Create Data Asset");
     expect(createButton("en", "Data Pipeline")).toBe("Create Data Pipeline");
     expect(deleteAction("en", "Data Asset")).toBe("Delete Data Asset");
+  });
+});
+
+/*
+ * THE RELATED MODELS' NAMES, AND THEIR ID COLUMNS (#8344).
+ *
+ * #7533 worded the six names a Create button or a dialog draws. The less
+ * visible names of the same models - a table's feed, its usage and lineage,
+ * a pipeline's runs, a data alert - and the ID columns that relate a record
+ * to a table, a pipeline or a reconciliation kept their English in 15
+ * languages (Arabic and Persian worded them): an audit log's resource
+ * types, the workflow builder's model steps, exports and generic forms
+ * named them in English on a German page. Each is worded now as the
+ * language's side menu names the thing it belongs to: German "Pipeline-
+ * Ausführung" beside the pipeline page's "Ausführungen", "Tabellen-ID".
+ */
+describe("the related models' names and their ID columns (#8344)", () => {
+  interface RelatedName {
+    key: string;
+    // The model's own name for the thing the name belongs to.
+    parentKey: string;
+  }
+
+  const RELATED: ReadonlyArray<RelatedName> = [
+    { key: "Data Alert", parentKey: "Alert" },
+    { key: "Data Alerts", parentKey: "Alert" },
+    { key: "Data Asset Feed", parentKey: "Data Asset" },
+    { key: "Data Asset Feeds", parentKey: "Data Asset" },
+    { key: "Data Asset Feed Event", parentKey: "Data Asset" },
+    { key: "Data Asset Usage", parentKey: "Data Asset" },
+    { key: "Data Asset Usages", parentKey: "Data Asset" },
+    { key: "Data Asset Lineage", parentKey: "Data Asset" },
+    { key: "Data Pipeline Run", parentKey: "Data Pipeline" },
+    { key: "Data Pipeline Runs", parentKey: "Data Pipeline" },
+    { key: "Data Asset ID", parentKey: "Data Asset" },
+    { key: "Data Pipeline ID", parentKey: "Data Pipeline" },
+    { key: "Data Reconciliation ID", parentKey: "Data Reconciliation" },
+    { key: "Table ID", parentKey: "Table (database object)" },
+  ];
+
+  // The first letters of a word, which its forms in a name share: "tabe" in "Tabellen-ID".
+  function stemOf(word: string, language: string): string {
+    return Array.from(word.toLocaleLowerCase(language)).slice(0, 4).join("");
+  }
+
+  test.each([
+    [DataAlert, "Data Alert", "Data Alerts"],
+    [DataAssetFeed, "Data Asset Feed", "Data Asset Feeds"],
+    [DataAssetUsage, "Data Asset Usage", "Data Asset Usages"],
+    [DataAssetLineage, "Data Asset Lineage", "Data Asset Lineage"],
+    [DataPipelineRun, "Data Pipeline Run", "Data Pipeline Runs"],
+  ])(
+    "%p names itself %j and %j",
+    (modelType: { new (): BaseModel }, singular: string, plural: string) => {
+      const record: BaseModel = new modelType();
+
+      expect(record.singularName).toBe(singular);
+      expect(record.pluralName).toBe(plural);
+    },
+  );
+
+  test("each is a key of the Dashboard's English file, which reads it as written", () => {
+    const english: Record<string, string> = readDashboardLocale("en");
+
+    for (const name of RELATED) {
+      expect({ key: name.key, english: english[name.key] }).toEqual({
+        key: name.key,
+        english: name.key,
+      });
+    }
+  });
+
+  test("none is left English in any of the 17 languages", () => {
+    for (const name of RELATED) {
+      expect({
+        key: name.key,
+        unworded: languagesLeavingUnworded(name.key),
+      }).toEqual({ key: name.key, unworded: [] });
+    }
+  });
+
+  test("each names the thing it belongs to as the language names it, in every language that left it English", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      if (WORDED_BEFORE.includes(language)) {
+        continue;
+      }
+
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const name of RELATED) {
+        const parent: string = words[name.parentKey]!;
+
+        expect({
+          language,
+          key: name.key,
+          namesItsParent: (words[name.key] || "")
+            .toLocaleLowerCase(language)
+            .includes(stemOf(parent, language)),
+        }).toEqual({ language, key: name.key, namesItsParent: true });
+      }
+    }
+  });
+
+  test.each([
+    [
+      "de",
+      {
+        "Data Pipeline Run": "Pipeline-Ausführung",
+        "Data Pipeline Runs": "Pipeline-Ausführungen",
+        "Data Asset Feed": "Tabellen-Feed",
+        "Data Asset ID": "Tabellen-ID",
+        "Data Pipeline ID": "Pipeline-ID",
+        "Data Reconciliation ID": "Abgleichs-ID",
+        "Data Alert": "Datenwarnung",
+      },
+    ],
+    [
+      "fr",
+      {
+        "Data Pipeline Run": "Exécution de pipeline",
+        "Data Asset Feed": "Fil d'activité de la table",
+        "Data Asset ID": "ID de table",
+        "Table ID": "ID de table",
+      },
+    ],
+    [
+      "es",
+      {
+        "Data Pipeline Run": "Ejecución de la canalización",
+        "Data Asset Lineage": "Linaje de la tabla",
+        "Data Asset ID": "ID de la tabla",
+      },
+    ],
+    [
+      "ja",
+      {
+        "Data Pipeline Run": "パイプラインの実行",
+        "Data Asset ID": "テーブル ID",
+        "Data Reconciliation ID": "照合 ID",
+      },
+    ],
+    [
+      "zh-CN",
+      {
+        "Data Pipeline Runs": "管道运行",
+        "Data Asset Lineage": "表血缘",
+        "Table ID": "表 ID",
+      },
+    ],
+  ])("in %s: %j", (language: string, expected: Record<string, string>) => {
+    const words: Record<string, string> = readDashboardLocale(language);
+
+    for (const [key, word] of Object.entries(expected)) {
+      expect({ key, drawn: words[key] }).toEqual({ key, drawn: word });
+    }
+  });
+
+  test("a table's ID reads alike wherever a column names it: Table ID and Data Asset ID", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      if (WORDED_BEFORE.includes(language)) {
+        continue;
+      }
+
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      expect({ language, same: words["Data Asset ID"] }).toEqual({
+        language,
+        same: words["Table ID"],
+      });
+    }
+  });
+
+  test("Arabic and Persian keep the names they gave before", () => {
+    expect(readDashboardLocale("ar")["Data Pipeline Run"]).toBe(
+      "تشغيل مسار البيانات",
+    );
+    expect(readDashboardLocale("fa")["Data Asset ID"]).toBe(
+      "شناسه دارایی داده",
+    );
+  });
+
+  test("the check above catches a related name a language leaves English (negative control)", () => {
+    const french: Record<string, string> = readDashboardLocale("fr");
+    const worded: string = french["Data Pipeline Run"]!;
+
+    try {
+      french["Data Pipeline Run"] = "Data Pipeline Run";
+      expect(languagesLeavingUnworded("Data Pipeline Run")).toEqual(["fr"]);
+    } finally {
+      french["Data Pipeline Run"] = worded;
+    }
+
+    expect(languagesLeavingUnworded("Data Pipeline Run")).toEqual([]);
+  });
+
+  test("German: a pipeline run's Delete reads in German, its name as the pipeline page says it", () => {
+    expect(
+      translateNamedAction(dashboardTranslator("de"), {
+        template: "Delete {{itemName}}",
+        itemName: "Data Pipeline Run",
+      }),
+    ).toBe("Pipeline-Ausführung löschen");
   });
 });

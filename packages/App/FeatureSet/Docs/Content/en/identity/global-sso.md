@@ -1,6 +1,6 @@
 # Global SSO
 
-Global SSO lets a OneUptime **instance administrator** (master admin) configure a SAML 2.0 or OpenID Connect (OIDC) identity provider **once**, at the instance level, and connect it to any project on the server. Instead of every project owner configuring their own identity provider, a master admin sets up one that serves the whole instance.
+Global SSO lets a OneUptime **instance administrator** (master admin) configure a SAML 2.0 or OpenID Connect (OIDC) identity provider **once**, at the instance level, and connect it to any project on the server. Instead of every Project Owner configuring their own identity provider, a master admin sets up one that serves the whole instance.
 
 > [!NOTE]
 > Global SSO, including the instance-wide "Require SSO for Login" toggle, is part of every OneUptime edition: every self-hosted instance has it, the Community Edition included, and it needs no license. It is instance administration, so it does not apply to OneUptime Cloud. See [Enterprise Edition](/docs/self-hosted/enterprise) for what each edition includes.
@@ -16,7 +16,7 @@ Global SSO lets a OneUptime **instance administrator** (master admin) configure 
 
 |                | Project SSO                            | Global SSO                                      |
 | -------------- | -------------------------------------- | ----------------------------------------------- |
-| Configured by  | Project owner/admin (Project Settings) | Instance master admin (Admin Dashboard)         |
+| Configured by  | Project Owner or Project Admin (Project Settings) | Instance master admin (Admin Dashboard)         |
 | Scope          | A single project                       | The whole instance — connectable to any project |
 | Sign-in result | Access to that one project             | Access to every project the user can reach      |
 

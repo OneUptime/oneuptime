@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **En av prosjektets egne sonder.** Globale sonder bærer andre prosjekters trafikk, så de tar aldri opp. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å installere en egen sonde.
 - **En sonde fra denne utgivelsen eller nyere.** Eldre sonder rapporterer ikke hva de kan ta opp på.
-- **De riktige tillatelsene.** Å starte og stoppe et opptak krever **Start Packet Capture**, og å laste ned en fil krever **Download Packet Capture**. Prosjekteiere og -administratorer har begge. Se [Tillatelser](#tillatelser).
+- **De riktige tillatelsene.** Å starte og stoppe et opptak krever **Start Packet Capture**, og å laste ned en fil krever **Download Packet Capture**. Prosjekteiere og Prosjektadministratorer har begge. Se [Tillatelser](#tillatelser).
 - **En speilet port, for trafikk som ikke når sonden.** En sonde ser bare trafikken på sin egen verts grensesnitt. For å ta opp trafikk mellom andre enheter speiler du switchporten deres (SPAN) til et ledig grensesnitt på sondens vert.
 
 ## Slå på pakkeopptak

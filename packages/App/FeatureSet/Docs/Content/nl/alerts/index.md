@@ -175,7 +175,7 @@ Een criterium houdt één open waarschuwing tegelijk aan. Tot die waarschuwing i
 :::
 
 :::details Een collega kan een waarschuwing openen die ik niet kan vinden
-De waarschuwing is waarschijnlijk privé. Vraag een projectbeheerder om je als eigenaar toe te voegen, of om **Privéwaarschuwing** uit te zetten op de pagina **Instellingen** van de waarschuwing.
+De waarschuwing is waarschijnlijk privé. Vraag een Projectbeheerder om je als eigenaar toe te voegen, of om **Privéwaarschuwing** uit te zetten op de pagina **Instellingen** van de waarschuwing.
 :::
 
 ## Volgende stappen

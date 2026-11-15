@@ -67,7 +67,7 @@ Arbejdsgange åbner også hændelser: [Huntress](/docs/integrations/huntress)-ar
 
 Ved oprettelsen kører OneUptime den automatisering, du har sat op: privatlivsregler, ejerregler, etiketregler, vagtregler og runbook-regler. Alle vagtpolitikker, der er knyttet til hændelsen — i hånden, fra en skabelon eller lagt til af en vagtregel, der matcher — udføres parallelt.
 
-Ejerne får besked via de kanaler, hver af dem har slået til under **Brugerindstillinger → Notifikationsindstillinger**: e-mail, SMS, taleopkald, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en hændelse slet ingen ejere, går beskeden til projektets ejere i stedet for at gå tabt.
+Ejerne får besked via de kanaler, hver af dem har slået til under **Brugerindstillinger → Notifikationsindstillinger**: e-mail, SMS, taleopkald, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en hændelse slet ingen ejere, går beskeden til Projektejere i stedet for at gå tabt.
 
 Er hændelsen synlig på en statusside, og er notifikationer til abonnenter slået til, får abonnenterne også besked: abonnenterne på hver statusside, der viser en af dens monitorer, eller kun dem på de sider, du har begrænset den til. Se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience) for at give hver målgruppe sin egen statusside.
 
@@ -157,7 +157,7 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 
 | Afsnit        | Hvad du gør der                                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Oversigt**  | **Alle hændelser**, **Aktive hændelser** og **Postmortem-analyser** — den anden har et rødt mærke med antallet af hændelser i en tilstand over den løste tilstand, og den tredje viser postmortem for hver hændelse, så du kan filtrere efter ejer, alvorlighed eller status. |
+| **Oversigt**  | **Alle hændelser**, **Aktive hændelser**, **Postmortem-analyser** og **Handlingspunkter** — den anden har et rødt mærke med antallet af hændelser i en tilstand over den løste tilstand, den tredje viser postmortem for hver hændelse, så du kan filtrere efter ejer, alvorlighed eller status, og den fjerde viser handlingspunkterne fra alle postmortem-analyser, med den tidligste frist først. Se [Postmortem-analyser](/docs/incidents/postmortems#se-alle-handlingspunkter). |
 | **Episoder**  | Hændelsesepisoder, en separat grupperingsfunktion med sine egne sider.                                                                                                    |
 | **AI**        | **Indsigter**, **Protokoller**, **Indstillinger**: hvad OneUptime AI har lært af dine hændelser, og alt, hvad den har gjort for dem, og hvad den må gøre på egen hånd — med reglerne for, hvilke hændelser den undersøger og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbejdsområde** | De chatarbejdsområder, projektet har forbundet: **Slack**, **Microsoft Teams** og **Mattermost**, hver med sine notifikationsregler for hændelser. Er ingen af dem forbundet, indeholder det **Forbind et arbejdsområde**, en side, der viser alle tre, og hvordan de forbindes. |

@@ -16,7 +16,10 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IncomingRequestSecretNote from "../../IncomingRequestSecret/IncomingRequestSecretNote";
-import useIncomingRequestSecretRequirement from "../../IncomingRequestSecret/UseIncomingRequestSecretRequirement";
+import useIncomingRequestSecretStatus, {
+  IncomingRequestSecretStatus,
+  NOTHING_TO_SAY,
+} from "../../IncomingRequestSecret/UseIncomingRequestSecretStatus";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -46,8 +49,13 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const monitor: Monitor = props.monitor;
-  // Whether the project refuses requests without one of its secrets.
-  const isSecretRequired: boolean = useIncomingRequestSecretRequirement();
+  // Whether requests without one of the project's secrets are, or would be, refused.
+  const secretStatus: IncomingRequestSecretStatus =
+    useIncomingRequestSecretStatus(
+      props.kind === MonitorOverviewSetupKind.HeartbeatUrl
+        ? props.monitorId
+        : undefined,
+    );
 
   type GetValueRowFunction = (value: string) => ReactElement;
 
@@ -202,9 +210,10 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
         {getValue()}
         {getMeta()}
         <IncomingRequestSecretNote
-          isRequired={
-            isSecretRequired &&
+          status={
             props.kind === MonitorOverviewSetupKind.HeartbeatUrl
+              ? secretStatus
+              : NOTHING_TO_SAY
           }
           className="mt-3"
         />

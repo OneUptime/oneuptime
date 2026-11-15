@@ -49,7 +49,7 @@ Zo voegt u een projectconfiguratie toe:
 5. Sla op. Een project heeft een standaard voor sms en een voor oproepen, dus een configuratie op **Alleen sms** en een op **Alleen oproepen** kunnen allebei de standaard zijn: zie [Een account alleen voor sms, of alleen voor oproepen](#een-account-alleen-voor-sms-of-alleen-voor-oproepen). Statuspagina's gebruiken de configuratie die expliciet aan elke statuspagina is toegewezen.
 
 > [!IMPORTANT]
-> **SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan kan niemand in het project er een telefoonnummer voor toevoegen. Een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
+> **SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan kan niemand in het project er een telefoonnummer voor toevoegen. Een Projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
 :::
 
 Voor een standaard voor de hele installatie kan een beheerder in plaats daarvan **Admin Dashboard > Instellingen > Oproep en sms** openen, kiezen wat het account verstuurt, de Twilio-inloggegevens en telefoonnummers bewerken en opslaan. Meldingen aan leden gebruiken deze globale configuratie wanneer hun project geen standaard heeft. Houd het Auth Token geheim.

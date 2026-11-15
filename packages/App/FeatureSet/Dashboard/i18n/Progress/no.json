@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 8867
+    "keys": 53972,
+    "untranslated": 8800
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -249,6 +249,7 @@
     "Stack",
     "Stack trace",
     "Stacks",
+    "Staging",
     "Start",
     "Start import",
     "Status",
@@ -435,6 +436,8 @@
     "{{count}} s",
     "{{count}} sample",
     "{{count}} samples",
+    "{{count}} shard",
+    "{{count}} shards",
     "{{count}} signal",
     "{{count}} stack",
     "{{count}} team",
@@ -442,12 +445,15 @@
     "{{count}} tokens",
     "{{count}} vCPU",
     "{{count}} worker",
+    "{{count}} writeset",
+    "{{count}} writesets",
     "{{count}}d",
     "{{count}}m",
     "{{count}}s",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{percent}} full",
     "{{rate}}/min",
     "{{rate}}/s",

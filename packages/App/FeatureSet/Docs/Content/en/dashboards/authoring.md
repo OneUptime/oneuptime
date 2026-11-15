@@ -11,7 +11,7 @@ To create a dashboard, open **Products → Dashboards** and click **Create Dashb
 
 ## Before you begin
 
-Project owners and admins can create and edit every dashboard. Anyone else needs a team permission: `CreateDashboard` to create dashboards, and `EditDashboard` to change them. Project members and viewers can read dashboards without either. Someone who may not edit a dashboard still opens its **⋯** menu, where **Edit Dashboard** is locked and says which permission it needs.
+Project Owners and Project Admins can create and edit every dashboard. Anyone else needs a team permission: `CreateDashboard` to create dashboards, and `EditDashboard` to change them. Project Members and Viewers can read dashboards without either. Someone who may not edit a dashboard still opens its **⋯** menu, where **Edit Dashboard** is locked and says which permission it needs.
 
 ## Create a dashboard
 

@@ -146,7 +146,7 @@ Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar
 
 ## SLO-listan
 
-Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återstående budget, förbrukningstakt, mål, fönster, monitorer, etiketter och ägare.
+Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återstående budget, förbrukningstakt, mål, fönster, monitorer, etiketter och ägare. Kolumnen **Vad den mäter** visar tjänsterna för ett SLO för begäranden där den visar monitorerna för ett drifttids-SLO, och filtret **Tjänster** hittar de SLO:er som mäter en tjänst.
 
 - Rutorna ovanför listan räknar SLO:er per status: **Felfri**, **I riskzonen**, **Budget förbrukad**, **Felkonfigurerad**, **Pausad** och **Inaktiverad**. De visas så snart det finns ett SLO som inte är arkiverat. Klicka på en ruta för att bara se de SLO:erna, och igen för att se alla.
 - Markera SLO:er för att lägga till eller ta bort etiketter och ägare, aktivera eller inaktivera dem, ge dem de [rekommenderade reglerna för förbrukningstakt](/docs/slo/burn-rate-alerts#lägg-till-dem-i-många-sloer-på-en-gång) som de saknar, arkivera dem eller radera dem, alla på en gång.
@@ -256,15 +256,15 @@ En banner högst upp på SLO:ets sidor talar om vad som hindrar det från att m�
 | Banner | Vad den betyder | Vad du gör |
 | --- | --- | --- |
 | **Inga monitorer kopplade** | SLO:et har inga monitorer, så det finns inget att mäta. | Koppla monitorer eller skapa en monitorregel. |
-| **Waiting for SLO evaluation** | Monitorer är kopplade, men den senaste utvärderingen hade inga statusdata från dem. | Kontrollera att monitorerna kontrolleras. Siffrorna visas efter nästa utvärdering med data. |
-| **Measurement is paused** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd. | Slå på övervakningen igen för minst en monitor, eller vänta tills underhållet är klart. |
-| **The target is out of range** | Målet är inte större än 0 och mindre än 100. | Ange ett mål som 99,9 under **Inställningar** → **Mål**. |
-| **This SLO is disabled** | Utvärderingen är avstängd. | Klicka på **Slå på utvärdering**. |
-| **This SLO is archived** | SLO:et är arkiverat. | Avarkivera det under **Inställningar**. |
+| **Väntar på SLO-utvärdering** | Monitorer är kopplade, men den senaste utvärderingen hade inga statusdata från dem. | Kontrollera att monitorerna kontrolleras. Siffrorna visas efter nästa utvärdering med data. |
+| **Mätningen är pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd. | Slå på övervakningen igen för minst en monitor, eller vänta tills underhållet är klart. |
+| **Målet ligger utanför det tillåtna intervallet** | Målet är inte större än 0 och mindre än 100. | Ange ett mål som 99,9 under **Inställningar** → **Mål**. |
+| **Denna SLO är inaktiverad** | Utvärderingen är avstängd. | Klicka på **Slå på utvärdering**. |
+| **Denna SLO är arkiverad** | SLO:et är arkiverat. | Avarkivera det under **Inställningar**. |
 | **Inte utvärderad ännu** | SLO:et har precis skapats. | Vänta på den första utvärderingen, högst några minuter. |
 | **Inga tjänster valda** | Ett SLO för begäranden har inga tjänster, så det har inga begäranden att räkna. | Välj dess tjänster under **Inställningar** → **Vad den mäter**. |
-| **No latency threshold** | Ett latens-SLO har ingen gräns, så ingen begäran kan räknas som tillräckligt snabb. | Ange **Latensgräns (ms)** under **Inställningar** → **Vad den mäter**. |
-| **Waiting for requests** | Ingen av tjänsterna för ett SLO för begäranden har besvarat en begäran i fönstret ännu. | Kontrollera att tjänsterna skickar spår till OneUptime. Siffrorna visas efter nästa utvärdering som räknar en begäran. |
+| **Ingen latensgräns** | Ett latens-SLO har ingen gräns, så ingen begäran kan räknas som tillräckligt snabb. | Ange **Latensgräns (ms)** under **Inställningar** → **Vad den mäter**. |
+| **Väntar på begäranden** | Ingen av tjänsterna för ett SLO för begäranden har besvarat en begäran i fönstret ännu. | Kontrollera att tjänsterna skickar spår till OneUptime. Siffrorna visas efter nästa utvärdering som räknar en begäran. |
 
 ## Nästa steg
 

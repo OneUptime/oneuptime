@@ -78,6 +78,9 @@ export const SLO_LIST_WIDGET_SELECT: Select<ServiceLevelObjective> = {
   currentBurnRate: true,
   sloStatus: true,
   isEnabled: true,
+  // A request SLO's budget line is in requests (#8441).
+  sliType: true,
+  errorBudgetRemainingEvents: true,
 };
 
 const COLUMNS: Array<ResourceListColumn> = [

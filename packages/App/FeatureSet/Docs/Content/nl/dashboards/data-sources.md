@@ -24,7 +24,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Een abonnement waarin het zit.** In OneUptime Cloud vereist het maken en wijzigen van gegevensbronnen het abonnement **Growth**. Er een verwijderen werkt in elk abonnement.
-- **Een machtiging om ze toe te voegen.** Projecteigenaren en -beheerders kunnen gegevensbronnen toevoegen; alle anderen hebben `CreateDataSource` nodig, met `EditDataSource` en `DeleteDataSource` om ze te wijzigen en te verwijderen. Iedereen die de gegevensbronnen van het project mag lezen, leden en kijkers inbegrepen, ziet de gegevens van hun widgets.
+- **Een machtiging om ze toe te voegen.** Projecteigenaren en Projectbeheerders kunnen gegevensbronnen toevoegen; alle anderen hebben `CreateDataSource` nodig, met `EditDataSource` en `DeleteDataSource` om ze te wijzigen en te verwijderen. Iedereen die de gegevensbronnen van het project mag lezen, leden en kijkers inbegrepen, ziet de gegevens van hun widgets.
 - **Een alleen-lezen account.** Dashboards lezen alleen. Koppel databases met een account dat alleen kan lezen, en HTTP-bronnen met een token dat alleen kan bevragen.
 - **Een weg naar binnen.** De API-server van OneUptime maakt verbinding met je systeem, dus die moet het kunnen bereiken: zie [Veiligheid](#veiligheid) voor de adressen die worden geweigerd.
 

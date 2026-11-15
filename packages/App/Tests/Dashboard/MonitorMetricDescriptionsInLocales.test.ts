@@ -56,10 +56,10 @@ import path from "path";
  * Each catalog is a keys root now, and every description a literal it marks
  * (translationKey), as the Database catalog's words under each of its groups
  * and the OpenStack catalog's Octavia names are. This holds every one of
- * them to being a key of the English locale, worded in each language that
- * words them all (WORDED_LANGUAGES: a language joins the list in the change
- * that words its last one, and can never leave it), and, in every language,
- * to keeping what a reader types or reads as written: the code between its
+ * them to being a key of the English locale, worded in every Dashboard
+ * language (WORDED_LANGUAGES: each language joined it in the change that
+ * worded its last one, and none can leave it), and, in every language, to
+ * keeping what a reader types or reads as written: the code between its
  * backticks, which the pickers draw as code (MetricPickerDescription), each
  * piece exactly and as often; the metric, attribute and setting names, the
  * products, protocols and unit symbols it gives; the values the monitored
@@ -76,29 +76,14 @@ const DASHBOARD: string = path.join(
 );
 const MONITOR_TYPES: string = "packages/Common/Types/Monitor";
 
-/*
- * The languages that word every text below. A change that words the last
- * one of a language's adds it here; one that leaves any of them English
- * again fails.
- */
-const WORDED_LANGUAGES: ReadonlyArray<string> = [
-  "fa",
-  "ar",
-  "de",
-  "fr",
-  "es",
-  "it",
-  "pt",
-  "nl",
-  "da",
-  "no",
-  "sv",
-  "ru",
-  "ja",
-  "ko",
-];
-
 const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
+
+/*
+ * The languages that word every text below: all of the Dashboard's, since
+ * Hindi worded its last one. A change that leaves any text English again,
+ * or adds a language without wording them, fails.
+ */
+const WORDED_LANGUAGES: ReadonlyArray<string> = LANGUAGES;
 
 interface CatalogMetric {
   id: string;

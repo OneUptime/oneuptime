@@ -93,7 +93,10 @@ const MonitorDocumentation: FunctionComponent<
       {/* Heartbeat URL */}
       {monitorType === MonitorType.IncomingRequest &&
       monitor?.incomingRequestSecretKey ? (
-        <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
+        <IncomingMonitorLink
+          secretKey={monitor?.incomingRequestSecretKey}
+          monitorId={modelId}
+        />
       ) : (
         <></>
       )}

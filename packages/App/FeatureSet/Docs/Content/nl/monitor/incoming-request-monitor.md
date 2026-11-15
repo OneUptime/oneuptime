@@ -202,6 +202,10 @@ Ga naar **Monitoren → Instellingen → Geheimen voor inkomende aanvragen** en 
 
 Stuur het geheim mee in de header `X-OneUptime-Secret`, of als Bearer-token in de header `Authorization`, afhankelijk van wat je afzender kan instellen.
 
+### De vergeten afzenders vinden
+
+Zodra het project een geheim heeft, controleert OneUptime elk verzoek erop, zonder er al een te weigeren. **Aanvragen zonder geheim**, op dezelfde pagina, toont elke monitor voor inkomende aanvragen die in de afgelopen 24 uur een verzoek zonder geldig geheim kreeg, en waarom: er werd geen geheim meegestuurd, of een verkeerd. Pas die afzenders aan. Een monitor waarvan de afzenders zijn aangepast, toont bij **Laatst met geheim** een later tijdstip dan bij **Laatst zonder geheim**, en verdwijnt binnen 24 uur van de lijst.
+
 ### De vereiste aanzetten
 
 Zet **Bij elke aanvraag een geheim vereisen** aan. Zolang het project geen geheim heeft, kan de vereiste niet worden aangezet, zodat geen afzender per ongeluk wordt geweigerd.
@@ -429,6 +433,10 @@ De `200` wordt verstuurd voordat het verzoek wordt gecontroleerd, dus hij bewijs
 
 :::details Mijn afzender krijgt een 401
 Het project vereist bij elke aanvraag een geheim, en het verzoek stuurde er geen mee, of een dat niet van het project is: het antwoord zegt welke van de twee. Stuur een van de geheimen van het project mee in de header `X-OneUptime-Secret` of als Bearer-token, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien. Een geweigerd verzoek bereikt de monitor nooit.
+:::
+
+:::details De monitor krijgt geen verzoeken meer sinds er een geheim vereist is
+Zijn afzenders sturen geen geheim mee, of een verkeerd, dus elk verzoek dat ze sturen wordt geweigerd. Een regel onder de **Heartbeat URL** van de monitor zegt wanneer het laatste geweigerde verzoek kwam, en **Aanvragen zonder geheim** toont elke monitor die er in de afgelopen 24 uur een kreeg, en waarom. Stuur vanaf die afzenders een van de geheimen van het project mee, zoals [Bij elke aanvraag een geheim vereisen](#bij-elke-aanvraag-een-geheim-vereisen) laat zien.
 :::
 
 :::details De monitor gaat nooit offline als de heartbeats uitblijven

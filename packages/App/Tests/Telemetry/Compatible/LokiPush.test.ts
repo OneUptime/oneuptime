@@ -328,7 +328,17 @@ describe("LokiPush - levels", () => {
     ["a severity label", { severity: "debug" }, "x", 5],
     ["a logfmt level in the line", {}, 'ts=1 level=error msg="boom"', 17],
     ["a quoted logfmt level", {}, 'level="warning" msg=x', 13],
-    ["a logfmt lvl", {}, "lvl=dbug msg=x", 0],
+    // log15's dbug: a level word every log ingest reads (issue #8536).
+    ["a logfmt lvl", {}, "lvl=dbug msg=x", 5],
+    ["a logfmt lvl that names no level", {}, "lvl=chatty msg=x", 0],
+    // The shared level words, as every other path reads them.
+    ["a critical level label", { level: "critical" }, "x", 21],
+    ["a crit level label", { level: "crit" }, "x", 18],
+    ["a verbose level label", { level: "verbose" }, "x", 5],
+    ["a panic level label", { level: "panic" }, "x", 19],
+    ["a Serilog short level label", { level: "WRN" }, "x", 13],
+    ["a numbered step", { level: "ERROR3" }, "x", 19],
+    ["a level named like an Object member", { level: "constructor" }, "x", 0],
     ["a logfmt lvl it knows", {}, "lvl=info msg=x", 9],
     ["a JSON line's level", {}, '{"level":"fatal","msg":"down"}', 21],
     ["a JSON line's severity", {}, '{"severity":"INFO","msg":"up"}', 9],

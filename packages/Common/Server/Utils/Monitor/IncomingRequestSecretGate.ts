@@ -2,6 +2,7 @@ import MonitorService from "../../Services/MonitorService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import IncomingRequestReceivedAtStore from "./IncomingRequestReceivedAtStore";
+import IncomingRequestSecretActivity from "./IncomingRequestSecretActivity";
 import IncomingRequestSecretPolicy, {
   IncomingRequestSecretDecision,
   IncomingRequestSecretOfPolicy,
@@ -53,6 +54,11 @@ import MonitorPauseState, {
  * request there, and the job carries the SHA-256 of what was presented
  * (IncomingRequestSecretRequest). A bearer token that is one of the project's
  * secrets is masked by the worker before the request is kept.
+ *
+ * Both record, on the monitor, whether its requests send a valid secret
+ * (IncomingRequestSecretActivity, issue #8498) while the project has one -
+ * required yet or not: the edge for a request it refuses, which never reaches
+ * the worker, and the worker for every request it processes.
  */
 
 export interface IncomingRequestSecretEdgeDecision {
@@ -82,16 +88,15 @@ export default class IncomingRequestSecretGate {
     presentedSecretHashes: Array<string>;
   }): Promise<IncomingRequestSecretEdgeDecision> {
     try {
-      const projectId: ObjectID | null = await this.findProjectAtEdge(
-        data.secretKey,
-      );
+      const monitorOfKey: MonitorOfSecretKey | null =
+        await this.findMonitorAtEdge(data.secretKey);
 
-      if (!projectId) {
+      if (!monitorOfKey) {
         return { mayRecordArrival: false };
       }
 
       const policy: IncomingRequestSecretPolicyValue =
-        await IncomingRequestSecretPolicy.getPolicy(projectId);
+        await IncomingRequestSecretPolicy.getPolicy(monitorOfKey.projectId);
 
       const decision: IncomingRequestSecretDecision =
         IncomingRequestSecretPolicy.decide({
@@ -100,6 +105,15 @@ export default class IncomingRequestSecretGate {
         });
 
       if (IncomingRequestSecretPolicy.isRefused(decision.verdict)) {
+        // It never reaches the worker: the monitor learns of it here.
+        if (decision.sentValidSecret === false) {
+          await IncomingRequestSecretActivity.record({
+            monitorId: monitorOfKey.monitorId,
+            sentValidSecret: false,
+            problem: decision.problem,
+          });
+        }
+
         return {
           mayRecordArrival: false,
           refusalMessage: IncomingRequestSecretPolicy.getRefusalMessage(
@@ -126,6 +140,8 @@ export default class IncomingRequestSecretGate {
   @CaptureSpan()
   public static async decideInWorker(data: {
     projectId: ObjectID;
+    // The monitor the request is for, whose record of secrets it adds to.
+    monitorId?: ObjectID | undefined;
     presentedSecretHashes: Array<string> | undefined;
     requestHeaders: Dictionary<string> | undefined;
   }): Promise<IncomingRequestSecretWorkerDecision> {
@@ -155,6 +171,18 @@ export default class IncomingRequestSecretGate {
         presentedSecretHashes,
       });
 
+    /*
+     * Whatever the project requires, the monitor learns whether this request
+     * sent a valid secret - while the project has one to send.
+     */
+    if (decision.sentValidSecret !== undefined) {
+      await IncomingRequestSecretActivity.record({
+        monitorId: data.monitorId,
+        sentValidSecret: decision.sentValidSecret,
+        problem: decision.problem,
+      });
+    }
+
     if (IncomingRequestSecretPolicy.isRefused(decision.verdict)) {
       return {
         verdict: decision.verdict,
@@ -163,7 +191,7 @@ export default class IncomingRequestSecretGate {
       };
     }
 
-    if (decision.verdict !== IncomingRequestSecretVerdict.Accepted) {
+    if (!decision.matchedSecretId) {
       return {
         verdict: decision.verdict,
         isRefused: false,
@@ -171,6 +199,10 @@ export default class IncomingRequestSecretGate {
       };
     }
 
+    /*
+     * One of the project's secrets: its Last Used moves, and a bearer token
+     * that carried it is masked - required yet or not, it is a secret.
+     */
     await IncomingRequestSecretPolicy.recordUse(decision.matchedSecretId);
 
     return {
@@ -189,14 +221,15 @@ export default class IncomingRequestSecretGate {
   }
 
   /*
-   * The project of an incoming request monitor's key, as the edge may learn
-   * it: kept, or looked up for a key a trusted caller registered. Null when
-   * the edge cannot place it. A paused monitor is placed but never kept, as
-   * the worker never keeps one (ProcessIncomingRequestIngest).
+   * The monitor (and project) of an incoming request monitor's key, as the
+   * edge may learn it: kept, or looked up for a key a trusted caller
+   * registered. Null when the edge cannot place it. A paused monitor is
+   * placed but never kept, as the worker never keeps one
+   * (ProcessIncomingRequestIngest).
    */
-  private static async findProjectAtEdge(
+  private static async findMonitorAtEdge(
     secretKey: string,
-  ): Promise<ObjectID | null> {
+  ): Promise<MonitorOfSecretKey | null> {
     if (!secretKey || !ObjectID.isValidUUID(secretKey)) {
       return null;
     }
@@ -208,7 +241,7 @@ export default class IncomingRequestSecretGate {
       });
 
     if (kept) {
-      return kept.projectId;
+      return kept;
     }
 
     if (!(await IncomingRequestReceivedAtStore.isTracked(secretKey))) {
@@ -234,17 +267,19 @@ export default class IncomingRequestSecretGate {
       return null;
     }
 
+    const monitorOfKey: MonitorOfSecretKey = {
+      monitorId: new ObjectID(monitor._id.toString()),
+      projectId: monitor.projectId,
+    };
+
     if (!MonitorPauseState.isPaused(monitor)) {
       await MonitorSecretKeyCache.setMonitor({
         kind: MonitorSecretKeyKind.IncomingRequest,
         secretKey,
-        monitor: {
-          monitorId: new ObjectID(monitor._id.toString()),
-          projectId: monitor.projectId,
-        },
+        monitor: monitorOfKey,
       });
     }
 
-    return monitor.projectId;
+    return monitorOfKey;
   }
 }

@@ -517,7 +517,7 @@ describe("once the subscription is connected", () => {
     expect(tileOf(tiles, "Requests").value).toBe("1.2k");
     expect(tileOf(tiles, "Server errors").value).toBe("2.0%");
     expect(tileOf(tiles, "Server errors").sublabel).toBe("24 errored");
-    expect(tileOf(tiles, "Response time").value).toBe("250 ms");
+    expect(tileOf(tiles, "Response time").value).toBe("250\u00A0ms");
     // 90 s of CPU reads as a duration, not "90.00 s".
     expect(tileOf(tiles, "CPU time").value).toBe("1m 30s");
     expect(tileOf(tiles, "Memory").value).toBe("512 MiB");

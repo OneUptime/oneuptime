@@ -56,7 +56,7 @@ Formulieren beginnen met deze twee; meer soorten records volgen.
 ## Voordat u begint
 
 - **Een abonnement met formulieren.** Op OneUptime Cloud hebben formulieren het abonnement **Growth** of hoger nodig. Zie [Abonnement](#abonnement).
-- **De machtiging om formulieren te maken.** **Create Form** hebben projecteigenaren en -beheerders, en de rollen waaraan u het geeft. Zie [Machtigingen](#machtigingen).
+- **De machtiging om formulieren te maken.** **Create Form** hebben Projecteigenaren en Projectbeheerders, en de rollen waaraan u het geeft. Zie [Machtigingen](#machtigingen).
 - **Voor een incidentformulier een ernst.** Elk incident heeft er een nodig: uit een vraag, uit de instellingen van het formulier of uit het incidentsjabloon. Zonder ernst wordt elke inzending geweigerd. Zie [Wat een inzending aanmaakt](/docs/forms/on-submit#hoe-een-inzending-een-incident-wordt).
 
 ## Uw eerste formulier maken
@@ -127,7 +127,7 @@ Inzendingen worden door het formulier geschreven, nooit met de hand, en kunnen n
 
 ## Machtigingen
 
-Met formulieren kunnen mensen buiten uw team incidenten en onderhoudsgebeurtenissen in uw project aanmaken, dus worden ze beheerd door projecteigenaren en -beheerders, en door de rollen waaraan u de machtigingen **Form** geeft. Ze staan in de groep **Form** van de [Machtigingsreferentie](/docs/permissions/reference):
+Met formulieren kunnen mensen buiten uw team incidenten en onderhoudsgebeurtenissen in uw project aanmaken, dus worden ze beheerd door Projecteigenaren en Projectbeheerders, en door de rollen waaraan u de machtigingen **Form** geeft. Ze staan in de groep **Form** van de [Machtigingsreferentie](/docs/permissions/reference):
 
 | Machtiging | Wat ze toestaat | Wie ze standaard heeft |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ Met formulieren kunnen mensen buiten uw team incidenten en onderhoudsgebeurtenis
 | **Delete Form Domain** | De aangepaste domeinen van een formulier verwijderen. | Projecteigenaar, Projectbeheerder en **Edit Form** |
 | **Read Form Domain** | De aangepaste domeinen van een formulier zien, hun DNS-records en hoe ver elk is op weg naar HTTPS. | Iedereen met **Read Form** |
 
-Inzendingen bevatten wat onbekenden hebben ingetypt (namen, e-mailadressen en antwoorden die misschien nooit in het record terechtkomen), dus alleen projecteigenaren en -beheerders zien ze, tenzij u **Read Form Submission** verleent. Wie een formulier kan lezen, kan de link zien en delen. Een formulier verzenden vraagt helemaal geen machtiging. Hoe rollen en gedetailleerde machtigingen samenwerken, leest u in [Gebruikers, teams en machtigingen](/docs/permissions/index).
+Inzendingen bevatten wat onbekenden hebben ingetypt (namen, e-mailadressen en antwoorden die misschien nooit in het record terechtkomen), dus alleen Projecteigenaren en Projectbeheerders zien ze, tenzij u **Read Form Submission** verleent. Wie een formulier kan lezen, kan de link zien en delen. Een formulier verzenden vraagt helemaal geen machtiging. Hoe rollen en gedetailleerde machtigingen samenwerken, leest u in [Gebruikers, teams en machtigingen](/docs/permissions/index).
 
 ## Abonnement
 

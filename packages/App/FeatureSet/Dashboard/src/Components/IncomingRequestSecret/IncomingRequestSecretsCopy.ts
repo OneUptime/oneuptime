@@ -40,6 +40,19 @@ export const IncomingRequestSecretsCopy: {
   lastUsedNever: string;
   monitorRequirementNote: string;
   manageSecretsLink: string;
+  withoutSecretTableTitle: string;
+  withoutSecretTableDescription: string;
+  withoutSecretAllClearTitle: string;
+  withoutSecretAllClearDescription: string;
+  withoutSecretSoFarTitle: string;
+  withoutSecretSoFarDescription: string;
+  reasonTitle: string;
+  reasonNoSecret: string;
+  reasonWrongSecret: string;
+  lastWithoutSecretTitle: string;
+  lastWithSecretTitle: string;
+  monitorRefusedNote: string;
+  monitorWouldBeRefusedNote: string;
 } = {
   pageTitle: translationKey("Incoming Request Secrets"),
   requirementCardTitle: translationKey("Require a Secret"),
@@ -84,6 +97,35 @@ export const IncomingRequestSecretsCopy: {
     "This project requires a secret on every request: send one of its incoming request secrets in the X-OneUptime-Secret header.",
   ),
   manageSecretsLink: translationKey("Incoming Request Secrets"),
+  /*
+   * The monitors whose senders do not send a valid secret (issue #8498):
+   * what to fix before the requirement is turned on, and what it refuses
+   * after.
+   */
+  withoutSecretTableTitle: translationKey("Requests Without a Secret"),
+  withoutSecretTableDescription: translationKey(
+    "Incoming Request monitors that got a request without a valid secret in the last 24 hours. Fix their senders before you require a secret: after, such requests are refused.",
+  ),
+  withoutSecretAllClearTitle: translationKey("No requests without a secret"),
+  withoutSecretAllClearDescription: translationKey(
+    "No Incoming Request monitor got a request without a valid secret in the last 24 hours.",
+  ),
+  withoutSecretSoFarTitle: translationKey("No requests without a secret yet"),
+  withoutSecretSoFarDescription: translationKey(
+    "Requests are checked for a secret only since the project got its first one, less than 24 hours ago. A sender that calls less often than that shows up here the next time it calls.",
+  ),
+  reasonTitle: translationKey("Reason"),
+  reasonNoSecret: translationKey("No secret sent"),
+  reasonWrongSecret: translationKey("Wrong secret sent"),
+  lastWithoutSecretTitle: translationKey("Last Without Secret"),
+  lastWithSecretTitle: translationKey("Last With Secret"),
+  // Under a monitor's heartbeat URL, with the time a request without one came.
+  monitorRefusedNote: translationKey(
+    "Requests to this monitor are being refused. The latest without a valid secret came {{time}}.",
+  ),
+  monitorWouldBeRefusedNote: translationKey(
+    "This monitor got a request without a valid secret {{time}}. Once the project requires one, requests like it are refused.",
+  ),
 };
 
 // The project column the switch writes.
@@ -99,6 +141,10 @@ export const REQUIRE_INCOMING_REQUEST_SECRET_SWITCH_TEST_ID: string =
 // The data-testid of the note on a monitor's heartbeat URL.
 export const INCOMING_REQUEST_SECRET_NOTE_TEST_ID: string =
   "incoming-request-secret-required-note";
+
+// The data-testid of the line saying a monitor's requests are, or would be, refused.
+export const INCOMING_REQUEST_WITHOUT_SECRET_NOTE_TEST_ID: string =
+  "incoming-request-without-secret-note";
 
 /*
  * What the example command sends for the secret: a placeholder, since

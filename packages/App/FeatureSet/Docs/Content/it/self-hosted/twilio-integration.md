@@ -49,7 +49,7 @@ Per aggiungere una configurazione di progetto:
 5. Salva. Un progetto ha una configurazione predefinita per gli SMS e una per le chiamate, quindi una configurazione impostata su **Solo SMS** e una impostata su **Solo chiamate** possono essere entrambe predefinite: vedi [Un account solo per gli SMS, o solo per le chiamate](#un-account-solo-per-gli-sms-o-solo-per-le-chiamate). Le pagine di stato usano la configurazione assegnata esplicitamente a ciascuna di esse.
 
 > [!IMPORTANT]
-> **SMS** e **Chiamate telefoniche** partono disattivati in ogni progetto, e finché non sono attivi nessuno nel progetto può aggiungere un numero di telefono per loro. Un proprietario del progetto, un **Amministratore della fatturazione** o chi ha **Manage Billing** li attiva nella scheda **Canali di notifica** della stessa pagina.
+> **SMS** e **Chiamate telefoniche** partono disattivati in ogni progetto, e finché non sono attivi nessuno nel progetto può aggiungere un numero di telefono per loro. Un Proprietario del progetto, un **Amministratore della fatturazione** o chi ha **Manage Billing** li attiva nella scheda **Canali di notifica** della stessa pagina.
 :::
 
 Per una configurazione predefinita valida per l'intera installazione, un amministratore può invece aprire **Admin Dashboard > Impostazioni > Chiamate e SMS**, scegliere che cosa invia l'account, modificare le credenziali e i numeri di telefono Twilio e salvare. Le notifiche dei membri usano questa configurazione globale quando il loro progetto non ne ha una predefinita. Mantieni riservato l'Auth Token.

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 2038
+    "keys": 53972,
+    "untranslated": 2034
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -638,6 +638,7 @@
     "{{count}} collector",
     "{{count}} commit",
     "{{count}} commits",
+    "{{count}} cursor",
     "{{count}} deployment",
     "{{count}} deployments",
     "{{count}} error",
@@ -657,6 +658,8 @@
     "{{count}} routers",
     "{{count}} s",
     "{{count}} series",
+    "{{count}} shard",
+    "{{count}} shards",
     "{{count}} share",
     "{{count}} shares",
     "{{count}} span",
@@ -668,10 +671,13 @@
     "{{count}} vCPU",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}} writeset",
+    "{{count}} writesets",
     "{{count}}+ spans",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
     "{{rate}}/s",

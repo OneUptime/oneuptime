@@ -321,7 +321,7 @@ Promptar och svar som skickas som logghändelser lagras som loggar, så det är 
 
 Oavsett vilket läser en regel varje text i en lista eller ett strukturerat värde, till exempel meddelanden som en instrumentering skickar som en lista i stället för som JSON-text, och behåller värdets form: en e-postadress i en prompt maskeras var den än står. Se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data).
 
-Konversationer läses med samma behörighet som traces: den som kan läsa projektets traces kan läsa dess konversationer, och ingen annan. Konversationerna från ett av företagets AI-verktyg är undantaget: bara projektets ägare och administratörer kan läsa dem, om inte anslutningen säger något annat ([Företagets AI-verktyg](/docs/telemetry/ai-company-tools#integritet)).
+Konversationer läses med samma behörighet som traces: den som kan läsa projektets traces kan läsa dess konversationer, och ingen annan. Konversationerna från ett av företagets AI-verktyg är undantaget: bara Projektägare och Projektadministratörer kan läsa dem, om inte anslutningen säger något annat ([Företagets AI-verktyg](/docs/telemetry/ai-company-tools#integritet)).
 
 ## Attribut som OneUptime läser
 

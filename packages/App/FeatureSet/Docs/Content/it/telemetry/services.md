@@ -61,7 +61,7 @@ Il menu laterale di un servizio ha cinque sezioni:
 
 | Sezione | Pagine |
 | --- | --- |
-| **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Raccomandazioni**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
+| **Base** | **Panoramica**: richieste, tasso di errore e latenza p95 dai suoi span, grafici e dettagli. **Raccomandazioni**: monitor pronti all'uso per il servizio, scelti in base al suo linguaggio. **SLOs**: gli SLO che misurano le sue richieste, dove puoi crearne uno che misura già il servizio. **Proprietari**: le persone e i team che ne sono responsabili. **Feed**: tutto ciò che gli è successo, da come è stato creato a ogni modifica successiva. |
 | **Telemetria** | I suoi **Registri**, **Tracce**, **Metriche**, **Profili**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
 | **Attività** | Gli **Incidenti**, gli **Avvisi** e gli eventi di **Manutenzione programmata** che lo riguardano. |
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |

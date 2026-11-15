@@ -67,7 +67,7 @@ Auch Workflows öffnen Vorfälle: Der [Huntress](/docs/integrations/huntress)-Wo
 
 Beim Anlegen führt OneUptime die Automatisierung aus, die Sie konfiguriert haben: Datenschutzregeln, Eigentümerregeln, Beschriftungsregeln, Bereitschaftsregeln und Runbook-Regeln. Alle Bereitschaftsrichtlinien am Vorfall – von Hand angehängt, aus einer Vorlage übernommen oder von einer zutreffenden Bereitschaftsregel hinzugefügt – werden parallel ausgeführt.
 
-Eigentümer werden über die Kanäle benachrichtigt, die jeder von ihnen unter **Benutzereinstellungen → Benachrichtigungseinstellungen** eingeschaltet hat: E-Mail, SMS, Sprachanruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost oder Webhook. Hat ein Vorfall überhaupt keine Eigentümer, geht die Benachrichtigung an die Projekteigentümer, statt verloren zu gehen.
+Eigentümer werden über die Kanäle benachrichtigt, die jeder von ihnen unter **Benutzereinstellungen → Benachrichtigungseinstellungen** eingeschaltet hat: E-Mail, SMS, Sprachanruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost oder Webhook. Hat ein Vorfall überhaupt keine Eigentümer, geht die Benachrichtigung an die Projektinhaber, statt verloren zu gehen.
 
 Ist der Vorfall auf einer Statusseite sichtbar und sind Abonnentenbenachrichtigungen eingeschaltet, erfahren es auch die Abonnenten: die Abonnenten jeder Statusseite, die einen seiner Monitore führt, oder nur die der Seiten, auf die Sie ihn beschränkt haben. Unter [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience) erfahren Sie, wie Sie jeder Zielgruppe ihre eigene Statusseite geben.
 
@@ -157,7 +157,7 @@ Schweregrade bearbeiten oder ergänzen Sie unter **Vorfälle → Einstellungen �
 
 | Abschnitt | Was Sie dort tun |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Übersicht** | **Alle Vorfälle**, **Aktive Vorfälle** und **Postmortem-Analysen** – die zweite trägt ein rotes Badge mit der Anzahl der Vorfälle in einem Status über dem behobenen Status, die dritte listet das Postmortem jedes Vorfalls auf, zum Filtern nach Eigentümer, Schweregrad oder Status. |
+| **Übersicht** | **Alle Vorfälle**, **Aktive Vorfälle**, **Postmortem-Analysen** und **Maßnahmen** – die zweite trägt ein rotes Badge mit der Anzahl der Vorfälle in einem Status über dem behobenen Status, die dritte listet das Postmortem jedes Vorfalls auf, zum Filtern nach Eigentümer, Schweregrad oder Status, und die vierte listet die Maßnahmen aller Postmortems auf, die am frühesten fälligen zuerst. Siehe [Postmortem-Analysen](/docs/incidents/postmortems#alle-maßnahmen-sehen). |
 | **Episoden** | Vorfallsepisoden, eine eigene Funktion zur Gruppierung mit eigenen Seiten. |
 | **KI** | **Einblicke**, **Protokolle**, **Einstellungen**: was die OneUptime-KI aus Ihren Vorfällen gelernt und alles, was sie für sie getan hat, und was sie selbstständig tun darf – mit den Regeln, welche Vorfälle sie untersucht und behebt. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Arbeitsbereich** | Die Chat-Arbeitsbereiche, die dieses Projekt verbunden hat: **Slack**, **Microsoft Teams** und **Mattermost**, jeweils mit ihren Benachrichtigungsregeln für Vorfälle. Ist keiner verbunden, enthält er **Arbeitsbereich verbinden**, eine Seite, die alle drei zeigt und erklärt, wie man sie verbindet. |

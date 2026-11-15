@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **Una sonda propia de tu proyecto.** Las sondas globales transportan el tráfico de otros proyectos, así que nunca capturan. Para instalar una sonda propia, consulta [Sondas personalizadas](/docs/probe/custom-probe).
 - **Una sonda de esta versión o posterior.** Las sondas anteriores no informan de en qué pueden capturar.
-- **Los permisos adecuados.** Iniciar y detener una captura requiere **Start Packet Capture**, y descargar un archivo, **Download Packet Capture**. Los propietarios y administradores del proyecto tienen ambos. Consulta [Permisos](#permisos).
+- **Los permisos adecuados.** Iniciar y detener una captura requiere **Start Packet Capture**, y descargar un archivo, **Download Packet Capture**. Los Propietarios del proyecto y Administradores del proyecto tienen ambos. Consulta [Permisos](#permisos).
 - **Un puerto replicado, para el tráfico que no llega a la sonda.** Una sonda solo ve el tráfico de las interfaces de su propio host. Para capturar el tráfico entre otros dispositivos, replica su puerto del switch (SPAN) en una interfaz libre del host de la sonda.
 
 ## Activar la captura de paquetes

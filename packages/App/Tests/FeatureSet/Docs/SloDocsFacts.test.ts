@@ -1492,7 +1492,7 @@ describe("Error Budgets, against the math the worker does", () => {
     expect(settings).toContain('name: "Monitoring"');
 
     expect(notifications).toContain(
-      "An SLO with no owners notifies the project owners instead.",
+      "An SLO with no owners notifies the Project Owners instead.",
     );
     expect(notifications).toContain(
       "Each owner gets an email by default, and the notification on every other channel they turn on for **SLO status changed** in **User Settings** → **Notification Settings** → **Monitoring**.",
@@ -3888,7 +3888,8 @@ describe("Request and Latency SLOs, against the product", () => {
       "No latency threshold",
       "Waiting for requests",
     ]) {
-      expect(health).toContain(`title: "${title}",`);
+      // A translation key since the banner words its titles (#8446).
+      expect(health).toContain(`title: translationKey("${title}"),`);
       expect(firstCells(section(intro, "Troubleshooting"))).toContain(
         `**${title}**`,
       );

@@ -1421,11 +1421,14 @@ describe.each(RUNTIME_CASES)(
         "Running",
         "api:latest",
         "250.0%",
-        "37.5%1.5 GB",
+        "37.5%1.5\u00A0GB",
         "—",
         "—",
       ]);
-      expect(cellsOf("worker").slice(3, 5)).toEqual(["12.3%", "2.3%50.0 MB"]);
+      expect(cellsOf("worker").slice(3, 5)).toEqual([
+        "12.3%",
+        "2.3%50.0\u00A0MB",
+      ]);
     });
 
     test("the network totals are a container's page's, not the list's", async () => {
