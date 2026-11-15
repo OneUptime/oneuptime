@@ -237,7 +237,12 @@ const PlatformGroupRows: FunctionComponent<{
           className={PLATFORM_STATE_CLASS_NAME}
           data-testid="app-platforms-platform-status"
         >
-          <Pill text={toneText} color={TONE_COLORS[tone]} />
+          <Pill
+            text={toneText}
+            // Worded above, in the reader's language: drawn as given (#8067).
+            isUserContent={true}
+            color={TONE_COLORS[tone]}
+          />
         </div>
       </div>
       <ul className="mt-3 space-y-2 ps-9">

@@ -60,6 +60,7 @@ import MetricBaselineService, {
 import MetricHourBaseline, {
   METRIC_BASELINE_MAX_SERIES,
 } from "../MetricHourBaseline";
+import { readOwnValue, writeOwnValue } from "../../../../Utils/LookupTable";
 
 const HOUR_IN_MS: number = 60 * 60 * 1000;
 
@@ -1575,7 +1576,7 @@ export default class MetricMonitorCriteria {
       if (v === undefined || v === null) {
         continue;
       }
-      labels[key] = v as JSONObject[string];
+      writeOwnValue(labels, key, v as JSONObject[string]);
     }
 
     /*
@@ -1607,18 +1608,25 @@ export default class MetricMonitorCriteria {
     const keys: Array<string> =
       labelKeys.length > 0 ? labelKeys : Object.keys(nestedAttributes);
 
+    /*
+     * Own keys only, read and written: a series may be grouped by an
+     * attribute named constructor or toString. `key in labels` is true for
+     * every name an object inherits, so such a label was never lifted out,
+     * and a plain read of a sample without it found the inherited method.
+     */
     for (const key of keys) {
-      if (key in labels) {
+      if (Object.prototype.hasOwnProperty.call(labels, key)) {
         continue;
       }
 
-      const v: unknown = nestedAttributes[key] ?? seriesLabels?.[key];
+      const v: unknown =
+        readOwnValue(nestedAttributes, key) ?? readOwnValue(seriesLabels, key);
 
       if (v === undefined || v === null || v === "" || typeof v === "object") {
         continue;
       }
 
-      labels[key] = v as JSONObject[string];
+      writeOwnValue(labels, key, v as JSONObject[string]);
     }
 
     return labels;

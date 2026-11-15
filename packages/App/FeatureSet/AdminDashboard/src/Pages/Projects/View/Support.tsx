@@ -3,6 +3,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SideMenuComponent from "./SideMenu";
 import Route from "Common/Types/API/Route";
+import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -46,17 +47,20 @@ const ProjectSupport: FunctionComponent = (): ReactElement => {
     return new ObjectID(modelIdString);
   }, [modelIdString]);
 
-  const breadcrumbLinks: Array<{ title: string; to: Route }> = [
+  const breadcrumbLinks: Array<Link> = [
     {
       title: t("breadcrumbs.adminDashboard"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
     },
     {
       title: t("breadcrumbs.projects"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECTS] as Route),
     },
     {
       title: t("breadcrumbs.project"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROJECT_VIEW] as Route,
         { modelId: modelId },
@@ -64,6 +68,7 @@ const ProjectSupport: FunctionComponent = (): ReactElement => {
     },
     {
       title: t("breadcrumbs.projectSupport"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROJECT_SUPPORT] as Route,
         { modelId: modelId },

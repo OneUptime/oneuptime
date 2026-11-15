@@ -77,6 +77,11 @@ import FluentAPI from "../../../FeatureSet/Telemetry/API/Fluent";
 import OTelIngestAPI from "../../../FeatureSet/Telemetry/API/OTelIngest";
 import SyslogAPI from "../../../FeatureSet/Telemetry/API/Syslog";
 import FluentLogsIngestService from "../../../FeatureSet/Telemetry/Services/FluentLogsIngestService";
+import FluentRecordTimeUtil, {
+  FLUENT_RECORD_TIME_FIELDS,
+  FLUENTD_EVENT_TIME_FIELD,
+  MAX_RECORD_TIME_AHEAD_MS,
+} from "../../../FeatureSet/Telemetry/Utils/FluentRecordTime";
 import SyslogQueueService from "../../../FeatureSet/Telemetry/Services/Queue/SyslogQueueService";
 import SyslogIngestService from "../../../FeatureSet/Telemetry/Services/SyslogIngestService";
 import {
@@ -1206,6 +1211,7 @@ interface FluentInternals {
   ): string | undefined;
   buildFluentAttributes(
     entry: JSONObject,
+    timeField?: string | null,
   ): Dictionary<AttributeType | Array<AttributeType>>;
   getServiceNameFromHeaders(req: ExpressRequest, defaultName?: string): string;
 }
@@ -1430,28 +1436,135 @@ describe("the Fluentd page", () => {
     );
   });
 
-  it("times each log when OneUptime takes it in, not by a field of the record", () => {
+  /*
+   * Fluentd's HTTP output sends only the record, so a log's time is a
+   * field of it (issue #8010). Before, every Fluentd log was stored at the
+   * time OneUptime took it in, and the table said so.
+   */
+  it("times each log by the record's first time field the table names, else when OneUptime takes it in", () => {
+    expect(fieldsRead("Time")).toEqual([...FLUENT_RECORD_TIME_FIELDS]);
     expect(FLUENT_SERVICE_SOURCE).toContain(
-      "const ingestionDate: Date = OneUptimeDate.getCurrentDate();",
+      "const recordTime: FluentRecordTime = FluentRecordTimeUtil.read( entry, ingestionDate, );",
     );
     expect(FLUENT_SERVICE_SOURCE).toContain(
-      "time: OneUptimeDate.toClickhouseDateTime64(ingestionDate),",
+      "time: OneUptimeDate.toClickhouseDateTime64( recordTime.timeDate, recordTime.timeUnixNano, ),",
     );
 
-    for (const fields of [
-      FLUENT.BODY_FIELDS,
-      FLUENT.SEVERITY_FIELDS,
-      FLUENT.TRACE_ID_FIELDS,
-      FLUENT.SPAN_ID_FIELDS,
-    ]) {
-      expect(fields).not.toContain("time");
+    const arrivedAt: Date = new Date("2026-11-15T10:00:00Z");
+    const row: Array<string> | undefined = tableAfter(
+      FLUENTD,
+      RECORDS_HEADER,
+    ).find((cells: Array<string>): boolean => {
+      return cells[0] === "Time";
+    });
+    const notes: string = (row as Array<string>)[2] as string;
+
+    // The example the notes give is read, to its millisecond.
+    const example: string = codeSpans(notes)[0] as string;
+
+    expect(example).toBe("2026-11-14T08:00:00.123Z");
+    expect(FluentRecordTimeUtil.readTime(example, arrivedAt)?.date).toEqual(
+      new Date(example),
+    );
+    // The units the notes name.
+    for (const [value, unit, milliseconds] of [
+      [1763107202, "seconds", 1763107202000],
+      [1763107202123, "milliseconds", 1763107202123],
+      [1763107202123456, "microseconds", 1763107202123],
+    ] as Array<[number, string, number]>) {
+      expect({
+        unit,
+        date: FluentRecordTimeUtil.readTime(value, arrivedAt)?.date,
+      }).toEqual({ unit, date: new Date(milliseconds) });
+      expect(notes).toContain(unit);
+    }
+    expect(
+      FluentRecordTimeUtil.readTime("1763107202123456789", arrivedAt)?.unixNano,
+    ).toBe("1763107202123456789");
+    expect(notes).toContain("nanoseconds since the epoch");
+    // "A time without a zone is UTC."
+    expect(notes).toContain("a time without a zone is UTC");
+    expect(
+      FluentRecordTimeUtil.readTime("2026-11-14T08:00:00", arrivedAt)?.date,
+    ).toEqual(new Date("2026-11-14T08:00:00Z"));
+    // "A time before 2000, or more than a day ahead, is not read."
+    expect(notes).toContain(
+      "A time before 2000, or more than a day ahead, is not read.",
+    );
+    expect(
+      FluentRecordTimeUtil.readTime("1999-12-31T23:59:59Z", arrivedAt),
+    ).toBeNull();
+    expect(MAX_RECORD_TIME_AHEAD_MS).toBe(24 * 60 * 60 * 1000);
+    expect(
+      FluentRecordTimeUtil.readTime("2026-11-16T10:00:01Z", arrivedAt),
+    ).toBeNull();
+    // "A record with no time is stored at the time OneUptime receives it."
+    expect(notes).toContain(
+      "A record with no time is stored at the time OneUptime receives it.",
+    );
+    expect(FluentRecordTimeUtil.read({ message: "x" }, arrivedAt)).toEqual({
+      timeUnixNano: `${arrivedAt.getTime()}000000`,
+      timeDate: arrivedAt,
+      field: null,
+    });
+  });
+
+  it("keeps every field but the one the time is read from as an attribute", () => {
+    expect(
+      FLUENT.buildFluentAttributes(
+        { message: "x", time: "2026-11-14T08:00:00Z", ts: 1763107202 },
+        "time",
+      ),
+    ).toEqual({ "fluentd.ts": 1763107202 });
+    // A time field that held no time is read from nowhere, and stays.
+    expect(
+      FLUENT.buildFluentAttributes({ message: "x", time: 125 }, null),
+    ).toEqual({ "fluentd.time": 125 });
+    expect(tableAfter(FLUENTD, RECORDS_HEADER)).toContainEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          "The field the time is read from is not kept as an attribute.",
+        ),
+      ]),
+    );
+  });
+
+  it("gives files that send each record's Fluentd time, and keep a parser's time field, as the ingest reads them", () => {
+    for (const output of codeBlockTitled(FLUENTD, "fluentd.conf")) {
+      expect(output.code).toContain(
+        `    ${FLUENTD_EVENT_TIME_FIELD} \${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}`,
+      );
+      expect(output.code).toContain(
+        "  @type record_transformer\n  enable_ruby true",
+      );
     }
 
-    expect(tableAfter(FLUENTD, RECORDS_HEADER)).toContainEqual([
-      "Time",
-      "—",
-      "The time OneUptime receives the record.",
-    ]);
+    expect(englishPage(FLUENTD)).toContain(
+      "The `record_transformer` filter adds the time Fluentd gave each record, as `fluentd_time`",
+    );
+    expect(
+      detailsAnswer(
+        FLUENTD,
+        "Logs show the time OneUptime received them, not their own",
+      ),
+    ).toContain("add `keep_time_key true` to it");
+  });
+
+  it("gives files that send a batch again when OneUptime is busy or restarting", () => {
+    for (const output of codeBlockTitled(FLUENTD, "fluentd.conf")) {
+      expect(output.code).toContain(
+        "  retryable_response_codes 429,502,503,504\n",
+      );
+      expect(output.code).toContain("    retry_max_interval 30s\n");
+      expect(output.code).toContain("    retry_timeout 72h\n");
+    }
+
+    expect(englishPage(FLUENTD)).toContain(
+      "`retry_max_interval 30s` waits at most 30 seconds between tries, and `retry_timeout 72h` drops a batch it still cannot send after 72 hours.",
+    );
+    expect(
+      detailsAnswer(FLUENTD, "Fluentd logs `429`, `502`, `503` or `504`"),
+    ).toContain("Fluentd keeps the batch and sends it again");
   });
 
   it("reads a JSON array of records, which json_array true sends", () => {

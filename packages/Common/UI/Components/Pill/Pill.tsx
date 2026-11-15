@@ -41,7 +41,16 @@ export interface ComponentProps {
   size?: PillSize | undefined;
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
+  // Its hover tip, in English: looked up where it is drawn.
   tooltip?: string | undefined;
+  /*
+   * The hover tip reads by the same rule as the text (isUserContent): set,
+   * it is drawn as given, never looked up (Tooltip's isTextUserContent) -
+   * words someone wrote, as a label's description is its owner's, or words
+   * the caller already put in the reader's language. A label described
+   * "Status" read "Estado" on a Spanish page (#8067).
+   */
+  isTooltipUserContent?: boolean | undefined;
   icon?: IconProp | undefined;
   /*
    * A ring ripples out of the dot, over and over: "this is happening right
@@ -234,7 +243,14 @@ const Pill: FunctionComponent<ComponentProps> = (
   };
 
   if (props.tooltip) {
-    return <Tooltip text={props.tooltip}>{getPillElement()}</Tooltip>;
+    return (
+      <Tooltip
+        text={props.tooltip}
+        isTextUserContent={props.isTooltipUserContent}
+      >
+        {getPillElement()}
+      </Tooltip>
+    );
   }
 
   return getPillElement();

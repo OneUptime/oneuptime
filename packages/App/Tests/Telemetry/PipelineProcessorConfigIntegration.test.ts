@@ -494,14 +494,93 @@ describe.each(adapters)(
     });
 
     /*
+     * Issue #8025: each processor starts from a copy of the record's
+     * attributes. A spread dropped a key named __proto__, so one a
+     * processor wrote was gone after the next processor's copy.
+     */
+    test("a __proto__ attribute one processor writes is kept by every processor after it", () => {
+      const output: JSONObject = adapter.process(
+        row(),
+        pipelinesWith([
+          {
+            name: "remap to __proto__",
+            processorType: adapter.remapperType,
+            configuration: {
+              sourceKey: "level",
+              targetKey: "__proto__",
+              preserveSource: true,
+            },
+          },
+          {
+            name: "remap service",
+            processorType: adapter.remapperType,
+            configuration: {
+              sourceKey: "service",
+              targetKey: "owner",
+              preserveSource: false,
+            },
+          },
+          categoryProcessor(adapter, categoryConfiguration()),
+          {
+            name: "remap the __proto__ attribute itself",
+            processorType: adapter.remapperType,
+            configuration: {
+              sourceKey: "__proto__",
+              targetKey: "copied",
+              preserveSource: true,
+            },
+          },
+        ]),
+      );
+      const attributes: JSONObject = output["attributes"] as JSONObject;
+
+      expect(JSON.stringify(attributes)).toBe(
+        '{"level":"error","__proto__":"error","owner":"api","category":"errors","copied":"error"}',
+      );
+      expect(output["attributeKeys"]).toEqual([
+        "level",
+        "__proto__",
+        "owner",
+        "category",
+        "copied",
+      ]);
+      expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+    });
+
+    test("a record's own __proto__ attribute, as JSON carries it, is kept by a processor that writes another key", () => {
+      const input: JSONObject = {
+        ...row(),
+        attributes: JSON.parse(
+          '{"level":"error","__proto__":"sent","service":"api"}',
+        ) as JSONObject,
+        attributeKeys: ["level", "__proto__", "service"],
+      };
+
+      const output: JSONObject = adapter.process(
+        input,
+        pipelinesWith([categoryProcessor(adapter, categoryConfiguration())]),
+      );
+
+      expect(
+        readOwnValue(output["attributes"] as JSONObject, "__proto__"),
+      ).toBe("sent");
+      expect(output["attributeKeys"]).toEqual([
+        "level",
+        "__proto__",
+        "service",
+        "category",
+      ]);
+    });
+
+    /*
      * Every name an object inherits - Object.prototype's own: constructor,
      * toString, valueOf, __proto__ and the rest - as the attribute
      * remapper's source and target and the category processor's target. A
      * record without that attribute has nothing to copy, and its target is
      * free. A record with it copies its own value, and keeps it when
-     * overrideOnConflict is off. (Not for __proto__: each processor copies
-     * the attributes with a spread first, which drops a key so named, issue
-     * #8025.)
+     * overrideOnConflict is off. __proto__ too: each processor copied the
+     * attributes with a spread first, which dropped a key so named (issue
+     * #8025), and copies them with copyOwnValues now.
      */
     describe.each(INHERITED_PROPERTY_NAMES)(
       "an attribute named %s",
@@ -536,10 +615,6 @@ describe.each(adapters)(
                 remap({ sourceKey: name, targetKey: "copied", preserveSource }),
               ),
             ).toEqual(row());
-          }
-
-          if (name === "__proto__") {
-            return;
           }
 
           const moved: JSONObject = adapter.process(
@@ -581,10 +656,6 @@ describe.each(adapters)(
           );
           expect(written["attributeKeys"]).toEqual(["level", "service", name]);
           expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
-
-          if (name === "__proto__") {
-            return;
-          }
 
           for (const [overrideOnConflict, value] of [
             [false, "kept"],

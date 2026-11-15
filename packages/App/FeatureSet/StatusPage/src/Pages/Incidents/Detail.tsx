@@ -1010,6 +1010,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
         breadcrumbLinks={[
           {
             title: t("nav.overview"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -1018,6 +1019,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("incidents.title"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
@@ -1026,6 +1028,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           },
           {
             title: pageTitle,
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)

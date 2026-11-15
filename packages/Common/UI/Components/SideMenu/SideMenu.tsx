@@ -9,7 +9,7 @@ import React, {
   useEffect,
 } from "react";
 import PageTrailEndContext from "../Page/PageTrailEnd";
-import { getRecordCrumbName } from "../Page/RecordNameInTrail";
+import { getCrumbTitle, getRecordCrumbName } from "../Page/RecordNameInTrail";
 import {
   fitSideMenuCard,
   getSideMenuFadeClassName,
@@ -501,9 +501,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
    */
   const pageTrailEndTitle: string | undefined = pageTrailEnd
     ? getRecordCrumbName(pageTrailEnd) ||
-      (pageTrailEnd.isRecordName
-        ? pageTrailEnd.title
-        : translateString(pageTrailEnd.title))
+      getCrumbTitle(pageTrailEnd, translateString)
     : undefined;
   // The section named before the page, when the summary names one.
   const summarySection: string | undefined =
@@ -515,11 +513,16 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     pageTrailEndTitle ||
     translateString("Navigation") ||
     "Navigation";
-  // The English the page's name was drawn from, to tell its language by.
+  /*
+   * The English the page's name was drawn from, to tell its language by. A
+   * crumb's title in the reader's words already (Link.isTitleTranslated)
+   * was drawn from none: it is in their language.
+   */
   const summaryPageEnglish: string | undefined = translatedItemTitle
     ? activeItem.itemTitle
     : pageTrailEnd
-      ? getRecordCrumbName(pageTrailEnd) || pageTrailEnd.title
+      ? getRecordCrumbName(pageTrailEnd) ||
+        (pageTrailEnd.isTitleTranslated ? undefined : pageTrailEnd.title)
       : "Navigation";
   const summarySectionLanguage: string | undefined = getDrawnLanguage({
     english: activeItem.sectionTitle,

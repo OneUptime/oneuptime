@@ -17,6 +17,14 @@ import { listScanRoots, listSourceFiles } from "./ForeignHiddenRuleGuard";
  * the variable is set to in the same file, and a badge drawn from a spread
  * object (`<Pill {...pillProps} />`) through that object.
  *
+ * It reads, too, whether a badge's text and its hover tip come from the
+ * translator (#8067) - t(), translator.translateText(), a template, a
+ * plural, a helper handed the translator - and whether the badge says,
+ * plainly, it draws them as written (isUserContent, isTooltipUserContent):
+ * a badge given words in the reader's language already must, or it looks
+ * them up a second time; and whether a part of the text is an English word
+ * left as it is, which a badge drawn as written would draw untranslated.
+ *
  * It is a reader of the code, not a run of it: it may hold to the rule a
  * badge whose name never reaches the screen, never pass one that draws a
  * name it can see.
@@ -56,7 +64,45 @@ export interface BadgeTextSite {
   isMarked: boolean;
   // Its text reads a name.
   readsName: boolean;
+  /*
+   * Its text comes from the translator (#8067): a lookup - t(),
+   * translator.translateText(), a template, a plural, a helper handed the
+   * translator - in a part the text can come from.
+   */
+  isTranslated: boolean;
+  // The badge says, plainly, its text is drawn as written (isUserContent).
+  isMarkedAsWritten: boolean;
+  // A part of its text is English drawn as it is: a word written there.
+  readsEnglish: boolean;
+  // Its hover tip, as written ("(none)" for none).
+  tooltip: string;
+  // The hover tip comes from the translator.
+  isTooltipTranslated: boolean;
+  // The badge says, plainly, its hover tip is drawn as written.
+  isTooltipMarkedAsWritten: boolean;
 }
+
+// The property a badge is told its hover tip is drawn as written by.
+export const TOOLTIP_AS_WRITTEN_PROPERTY: string = "isTooltipUserContent";
+
+// The calls that look a text up in the reader's language.
+const LOOKUPS: ReadonlyArray<string> = [
+  "t",
+  "tx",
+  "translateString",
+  "translateText",
+  "translateTerm",
+  "translateValue",
+  "translateTemplate",
+  "translatePlural",
+  "translateLine",
+];
+
+/*
+ * What a helper that looks a text up is handed: translateStateName(
+ * translator, state) is a lookup too.
+ */
+const TRANSLATOR_ARGUMENTS: ReadonlyArray<string> = ["translator", ...LOOKUPS];
 
 // A word that names a name: `name`, `severityName`, `readName`.
 function isNameWord(word: string): boolean {
@@ -245,28 +291,241 @@ export function readsAName(expression: ts.Node, depth: number = 3): boolean {
   return found;
 }
 
-// A badge's attributes, with those of an object it is spread from.
-function attributesOf(element: ts.JsxOpeningLikeElement): {
+function calleeNameOf(call: ts.CallExpression): string {
+  const callee: ts.Expression = call.expression;
+
+  if (ts.isIdentifier(callee)) {
+    return callee.text;
+  }
+
+  return ts.isPropertyAccessExpression(callee) ? callee.name.text : "";
+}
+
+// A call that looks a text up: a lookup, or a helper handed the translator.
+function isLookupCall(node: ts.Node): boolean {
+  if (!ts.isCallExpression(node)) {
+    return false;
+  }
+
+  if (LOOKUPS.includes(calleeNameOf(node))) {
+    return true;
+  }
+
+  return node.arguments.some((argument: ts.Expression): boolean => {
+    return (
+      ts.isIdentifier(argument) && TRANSLATOR_ARGUMENTS.includes(argument.text)
+    );
+  });
+}
+
+/*
+ * Whether an expression's text comes from the translator (#8067), in a part
+ * it can come from - either branch of a ?:, not what it asks - following
+ * variables `depth` deep. A function written there is not its text.
+ */
+export function readsATranslation(
+  expression: ts.Node,
+  depth: number = 3,
+): boolean {
+  let found: boolean = false;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isConditionalExpression(node)) {
+      visit(node.whenTrue);
+      visit(node.whenFalse);
+      return;
+    }
+
+    if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+      return;
+    }
+
+    if (isLookupCall(node)) {
+      found = true;
+      return;
+    }
+
+    if (ts.isIdentifier(node) && isReadAsValue(node)) {
+      const initializer: ts.Expression | undefined =
+        depth > 0 ? initializerOf(node.text, node) : undefined;
+
+      if (initializer && readsATranslation(initializer, depth - 1)) {
+        found = true;
+        return;
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(expression);
+
+  return found;
+}
+
+const LETTER: RegExp = /\p{L}/u;
+
+function skipParentheses(node: ts.Expression): ts.Expression {
+  let current: ts.Expression = node;
+
+  while (ts.isParenthesizedExpression(current)) {
+    current = current.expression;
+  }
+
+  return current;
+}
+
+/*
+ * Whether an expression can be English drawn as it is: a word written in
+ * a part the text can come from, outside any lookup - "failed" beside
+ * translateTemplate("failed (exit {{exitCode}})", ...). A badge drawn as
+ * written would draw that word untranslated.
+ */
+export function readsEnglish(expression: ts.Node, depth: number = 3): boolean {
+  let found: boolean = false;
+
+  const hasLetters: (text: string) => boolean = (text: string): boolean => {
+    return LETTER.test(text);
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isConditionalExpression(node)) {
+      visit(node.whenTrue);
+      visit(node.whenFalse);
+      return;
+    }
+
+    if (
+      isLookupCall(node) ||
+      ts.isArrowFunction(node) ||
+      ts.isFunctionExpression(node)
+    ) {
+      return;
+    }
+
+    /*
+     * translateText(word) || word: the word after || is the lookup's own
+     * fallback, drawn only when the lookup returns nothing.
+     */
+    if (
+      ts.isBinaryExpression(node) &&
+      (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+        node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) &&
+      isLookupCall(skipParentheses(node.left))
+    ) {
+      return;
+    }
+
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      found = hasLetters(node.text);
+      return;
+    }
+
+    if (ts.isTemplateExpression(node)) {
+      if (
+        hasLetters(node.head.text) ||
+        node.templateSpans.some((span: ts.TemplateSpan): boolean => {
+          return hasLetters(span.literal.text);
+        })
+      ) {
+        found = true;
+        return;
+      }
+    }
+
+    // A key read, a call's own arguments: not the words drawn.
+    if (ts.isElementAccessExpression(node) || ts.isCallExpression(node)) {
+      return;
+    }
+
+    if (ts.isIdentifier(node) && isReadAsValue(node)) {
+      const initializer: ts.Expression | undefined =
+        depth > 0 ? initializerOf(node.text, node) : undefined;
+
+      if (initializer && readsEnglish(initializer, depth - 1)) {
+        found = true;
+        return;
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(expression);
+
+  return found;
+}
+
+// A mark said plainly true: a bare attribute, or true itself.
+function isPlainlyTrue(value: ts.Node | undefined): boolean {
+  if (!value) {
+    return true;
+  }
+
+  if (ts.isJsxExpression(value)) {
+    return Boolean(value.expression) && isPlainlyTrue(value.expression);
+  }
+
+  return value.kind === ts.SyntaxKind.TrueKeyword;
+}
+
+interface BadgeAttributes {
   text: ts.Expression | undefined;
   isMarked: boolean;
-} {
-  let text: ts.Expression | undefined;
-  let isMarked: boolean = false;
+  isMarkedAsWritten: boolean;
+  tooltip: ts.Expression | undefined;
+  isTooltipMarkedAsWritten: boolean;
+}
+
+// A badge's attributes, with those of an object it is spread from.
+function attributesOf(element: ts.JsxOpeningLikeElement): BadgeAttributes {
+  const found: BadgeAttributes = {
+    text: undefined,
+    isMarked: false,
+    isMarkedAsWritten: false,
+    tooltip: undefined,
+    isTooltipMarkedAsWritten: false,
+  };
+
+  // A property of the badge or of the object it is spread from.
+  const take: (name: string, value: ts.Node | undefined) => void = (
+    name: string,
+    value: ts.Node | undefined,
+  ): void => {
+    if (name === AS_WRITTEN_PROPERTY) {
+      found.isMarked = true;
+      found.isMarkedAsWritten = isPlainlyTrue(value);
+    }
+
+    if (name === TOOLTIP_AS_WRITTEN_PROPERTY) {
+      found.isTooltipMarkedAsWritten = isPlainlyTrue(value);
+    }
+
+    const expression: ts.Expression | undefined =
+      value && ts.isJsxExpression(value)
+        ? value.expression
+        : (value as ts.Expression | undefined);
+
+    if (name === "text" && expression) {
+      found.text = expression;
+    }
+
+    if (name === "tooltip" && expression) {
+      found.tooltip = expression;
+    }
+  };
 
   for (const attribute of element.attributes.properties) {
     if (ts.isJsxAttribute(attribute)) {
-      const name: string = attribute.name.getText();
-
-      if (name === AS_WRITTEN_PROPERTY) {
-        isMarked = true;
-      }
-
-      if (name === "text" && attribute.initializer) {
-        text = ts.isJsxExpression(attribute.initializer)
-          ? attribute.initializer.expression
-          : attribute.initializer;
-      }
-
+      take(attribute.name.getText(), attribute.initializer);
       continue;
     }
 
@@ -283,21 +542,19 @@ function attributesOf(element: ts.JsxOpeningLikeElement): {
     for (const property of object.properties) {
       const name: string | undefined = property.name?.getText();
 
-      if (name === AS_WRITTEN_PROPERTY) {
-        isMarked = true;
+      if (!name) {
+        continue;
       }
 
-      if (name === "text" && ts.isPropertyAssignment(property)) {
-        text = property.initializer;
-      }
-
-      if (name === "text" && ts.isShorthandPropertyAssignment(property)) {
-        text = property.name;
+      if (ts.isPropertyAssignment(property)) {
+        take(name, property.initializer);
+      } else if (ts.isShorthandPropertyAssignment(property)) {
+        take(name, property.name);
       }
     }
   }
 
-  return { text, isMarked };
+  return found;
 }
 
 // Every badge a source file draws, with what its text reads.
@@ -325,7 +582,9 @@ export function readBadgeTextSites(
       ts.isIdentifier(node.tagName) &&
       badges.has(node.tagName.text)
     ) {
-      const { text, isMarked } = attributesOf(node);
+      const found: BadgeAttributes = attributesOf(node);
+      const text: ts.Expression | undefined = found.text;
+      const tooltip: ts.Expression | undefined = found.tooltip;
 
       sites.push({
         file: file,
@@ -333,8 +592,16 @@ export function readBadgeTextSites(
           source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
         badge: badges.get(node.tagName.text)!,
         text: text ? text.getText(source).replace(/\s+/g, " ") : "(none)",
-        isMarked: isMarked,
+        isMarked: found.isMarked,
         readsName: text ? readsAName(text) : false,
+        isTranslated: text ? readsATranslation(text) : false,
+        isMarkedAsWritten: found.isMarkedAsWritten,
+        readsEnglish: text ? readsEnglish(text) : false,
+        tooltip: tooltip
+          ? tooltip.getText(source).replace(/\s+/g, " ")
+          : "(none)",
+        isTooltipTranslated: tooltip ? readsATranslation(tooltip) : false,
+        isTooltipMarkedAsWritten: found.isTooltipMarkedAsWritten,
       });
     }
 

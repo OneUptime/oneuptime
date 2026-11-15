@@ -74,7 +74,6 @@ export const SensitivityPill: FunctionComponent<{
 }> = (props: {
   sensitivity: DataSensitivity | string | undefined;
 }): ReactElement => {
-  const translator: Translator = useTranslator();
   const sensitivity: DataSensitivity =
     (props.sensitivity as DataSensitivity | undefined) ||
     DataSensitivity.Public;
@@ -83,9 +82,8 @@ export const SensitivityPill: FunctionComponent<{
     <Pill
       text={sensitivity}
       color={SENSITIVITY_COLOR[sensitivity] || Gray500}
-      tooltip={translator.translateText(
-        DATA_SENSITIVITY_DESCRIPTION[sensitivity] || "",
-      )}
+      // In English: the badge looks its hover tip up, once (#8067).
+      tooltip={DATA_SENSITIVITY_DESCRIPTION[sensitivity] || undefined}
     />
   );
 };
@@ -106,7 +104,6 @@ export const ExposurePill: FunctionComponent<{
 }> = (props: {
   exposure: DataStoreExposure | string | undefined;
 }): ReactElement => {
-  const translator: Translator = useTranslator();
   const exposure: DataStoreExposure =
     (props.exposure as DataStoreExposure | undefined) ||
     DataStoreExposure.Unknown;
@@ -115,9 +112,8 @@ export const ExposurePill: FunctionComponent<{
     <Pill
       text={exposure}
       color={EXPOSURE_COLOR[exposure] || Gray500}
-      tooltip={translator.translateText(
-        DATA_STORE_EXPOSURE_DESCRIPTION[exposure] || "",
-      )}
+      // In English: the badge looks its hover tip up, once (#8067).
+      tooltip={DATA_STORE_EXPOSURE_DESCRIPTION[exposure] || undefined}
     />
   );
 };
@@ -189,6 +185,7 @@ export const IssueStatusPill: FunctionComponent<{
   return (
     <Pill
       text={getIssueStatusLabel(translator, status)}
+      isUserContent={true}
       color={ISSUE_STATUS_COLOR[status] || Gray500}
     />
   );

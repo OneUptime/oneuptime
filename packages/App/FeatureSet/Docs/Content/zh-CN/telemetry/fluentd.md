@@ -54,6 +54,15 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
 添加一个把记录发送到 OneUptime 的 `<match>` 段。把 `YOUR_SERVICE_TOKEN` 换成你的摄取密钥，把 `YOUR_SERVICE_NAME` 换成日志要显示的名称（任意名称都可以）：
 
 ```text title="fluentd.conf"
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 # Match all patterns
 <match **>
   @type http
@@ -66,12 +75,18 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -84,6 +99,8 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
 ```
 
 `json_array true` 让缓冲区的每个块都以一个 JSON 数组发送，`flush_interval 10s` 则每 10 秒发送一次缓冲区。`chunk_limit_size 900k` 让每个请求都小于 1 MB，这是 OneUptime 在这个端点上接受的上限。
+
+`retryable_response_codes 429,502,503,504` 会在 OneUptime 繁忙（`429`）或正在重启（`502`、`503`、`504`）时重新发送一批数据；没有这一项，Fluentd 遇到 `503` 以外的任何响应都会丢弃这批数据。`retry_max_interval 30s` 让两次重试之间最多等待 30 秒，`retry_timeout 72h` 则会丢弃 72 小时后仍无法发送的一批数据。`record_transformer` 过滤器把 Fluentd 给每条记录的时间作为 `fluentd_time` 加入记录：HTTP 输出只发送记录本身，而 OneUptime 从记录中读取日志的时间。
 
 ### 重启 Fluentd
 
@@ -111,6 +128,15 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
   bind 0.0.0.0
 </source>
 
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 <match **>
   @type http
 
@@ -122,12 +148,18 @@ Fluentd 的配置文件通常是 `/etc/fluent/fluentd.conf`，旧的 td-agent �
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -152,7 +184,7 @@ OneUptime 从每条记录中读取以下字段：
 | 追踪 ID | `trace_id`、`traceId`、`traceid` | 把日志关联到它的追踪。 |
 | Span ID | `span_id`、`spanId`、`spanid` | 把日志关联到它的 span。 |
 | 服务 | `x-oneuptime-service-name` 请求头 | 未设置该请求头时为 `Fluentd`。 |
-| 时间 | — | OneUptime 收到记录的时间。 |
+| 时间 | `time`、`timestamp`、`@timestamp`、`ts`、`fluentd_time` | ISO 8601 时间，例如 `2026-11-14T08:00:00.123Z`，或自纪元起的秒、毫秒、微秒或纳秒；没有时区的时间按 UTC 处理。早于 2000 年或超前一天以上的时间不会被读取。读取时间的字段不会保存为属性。没有时间的记录按 OneUptime 收到它的时间保存。 |
 
 其他每个字段都会成为一个名为 `fluentd.` 加字段名的属性，可以用来搜索和筛选：例如 `container_name` 字段在日志浏览器中就是 `@fluentd.container_name`。嵌套对象会用点号展开，例如 `fluentd.kubernetes.pod_name`，列表则以 JSON 保存。
 
@@ -174,6 +206,14 @@ Fluentd 日志会像其他日志一样经过你的[日志管道](/docs/telemetry
 
 :::details Fluentd 记录了 `413`
 请求超过了 1 MB，这是 OneUptime 在这个端点上接受的上限。请像上面的配置那样，在 `<buffer>` 部分设置 `chunk_limit_size 900k`。
+:::
+
+:::details Fluentd 记录了 `429`、`502`、`503` 或 `504`
+OneUptime 繁忙或正在重启。像上面的配置那样在 `<match>` 部分加上 `retryable_response_codes 429,502,503,504`，Fluentd 就会保留这批数据并重新发送；没有这一项，Fluentd 会丢弃这批数据。
+:::
+
+:::details 日志显示的是 OneUptime 收到它们的时间，而不是它们自己的时间
+OneUptime 从日志的记录中读取它的时间，而 Fluentd 的 HTTP 输出只发送记录本身。`<parse>` 部分会把 `time` 字段从记录中取出：请在其中加上 `keep_time_key true`。再加上上面配置中的 `record_transformer` 过滤器：它把 Fluentd 给每条记录的时间作为 `fluentd_time` 加入记录。
 :::
 
 :::details 日志归到了 `Fluentd` 服务下

@@ -386,6 +386,36 @@ describe("KeyValueParser - attributes the log already has", () => {
     });
     expect(Object.getPrototypeOf(out["attributes"])).toBe(Object.prototype);
   });
+
+  /*
+   * Issue #8025: the parser copied the log's attributes with a spread
+   * before writing the line's keys, which dropped an attribute named
+   * __proto__ the log already had - one an OTLP exporter sent, say.
+   */
+  it("keeps a __proto__ attribute the log already has, beside the keys it writes", () => {
+    const out: JSONObject = LogPipelineService.processLog(
+      {
+        body: "user=jane action=login",
+        attributes: JSON.parse(
+          '{"__proto__":"from-ingest","service.name":"api"}',
+        ) as JSONObject,
+        attributeKeys: ["__proto__", "service.name"],
+      },
+      keyValuePipeline({ source: "body" }),
+    );
+    const attributes: JSONObject = out["attributes"] as JSONObject;
+
+    expect(JSON.stringify(attributes)).toBe(
+      '{"__proto__":"from-ingest","service.name":"api","user":"jane","action":"login"}',
+    );
+    expect(out["attributeKeys"]).toEqual([
+      "__proto__",
+      "service.name",
+      "user",
+      "action",
+    ]);
+    expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+  });
 });
 
 describe("KeyValueParser - source field and delimiters", () => {

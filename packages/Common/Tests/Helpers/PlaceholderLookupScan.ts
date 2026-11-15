@@ -4,17 +4,19 @@ import ts from "typescript";
 
 /*
  * THE DETECTOR BEHIND THE LOOKED-UP-ONCE GUARDS: WHERE A TEXT IS LOOKED UP
- * BY THE PAGE AND AGAIN BY THE CONTROL THAT DRAWS IT (#7682, #7790, #7791).
+ * BY THE PAGE AND AGAIN BY THE CONTROL THAT DRAWS IT (#7682, #7790, #7791,
+ * #8075).
  *
  * The controls look up the texts they are given in the reader's language:
  * a placeholder (Input, TextArea, the dropdowns, the pickers, the code and
  * Markdown editors), an aria label (Button, Dropdown, MoreMenu, the
  * checkboxes and switches), a nav bar's titles and its products menu's
- * words, a detail card's words for an empty value - and so does every
- * component that hands such a text on to one of them. A page that hands one
- * a text it has looked up already has it looked up twice, and where a
- * translation is itself an English key the reader sees the translation of
- * the translation: Spanish says "Red" for "Network", and "Rojo" for "Red".
+ * words, a page's breadcrumbs, a detail card's words for an empty value -
+ * and so does every component that hands such a text on to one of them.
+ * A page that hands one a text it has looked up already has it looked up
+ * twice, and where a translation is itself an English key the reader sees
+ * the translation of the translation: Spanish says "Red" for "Network",
+ * and "Rojo" for "Red".
  *
  * So a text is handed over in English, and the control looks it up, once.
  * A sentence the page builds around a value ("Filter by {{field}}") or a
@@ -43,8 +45,12 @@ import ts from "typescript";
  *   hand it to a control that looks it up), unless the field says
  *   isPlaceholderTranslated;
  * - a prop of an object written as a type that offers is<Prop>Translated
- *   for it (a nav bar's NavItem or MoreMenuItem and its title), unless the
- *   object says it;
+ *   for it (a nav bar's NavItem or MoreMenuItem and its title, its
+ *   description and its category), unless the object says it;
+ * - the title of a crumb written for a page's trail (breadcrumbLinks,
+ *   usePageBreadcrumbLinks): Breadcrumbs, the browser tab and the phone's
+ *   menu look it up, unless the crumb says isTitleTranslated, or is a
+ *   record's name (isRecordName) (#8075);
  * - is<Prop>Translated beside English - a word written as it is, or a
  *   translationKey - which the control would draw untranslated;
  * - is<Prop>Translated worked out as the page runs beside a text looked up
@@ -686,6 +692,153 @@ function isWrittenAsField(
   return false;
 }
 
+// What a page is handed its trail by (Page, ModelPage), and what a page inside hands one up by.
+const TRAIL_PROP: string = "breadcrumbLinks";
+const TRAIL_HOOK: string = "usePageBreadcrumbLinks";
+
+// Where a breadcrumb's title goes: Breadcrumbs, the browser tab, the phone's menu.
+export const BREADCRUMB_TITLE: string = "a breadcrumb's title";
+
+/*
+ * The names a file hands a page as its trail - breadcrumbLinks={trail},
+ * breadcrumbLinks: trail, usePageBreadcrumbLinks(trail) - so the arrays of
+ * the constants by those names are trails too. The value itself, either
+ * branch of a ?:, either side of || and ??, the right of &&.
+ */
+function trailNamesOf(source: ts.SourceFile): Set<string> {
+  const names: Set<string> = new Set();
+
+  const collect: (value: ts.Node | undefined) => void = (
+    value: ts.Node | undefined,
+  ): void => {
+    if (!value) {
+      return;
+    }
+
+    if (ts.isIdentifier(value)) {
+      names.add(value.text);
+      return;
+    }
+
+    if (
+      ts.isJsxExpression(value) ||
+      ts.isParenthesizedExpression(value) ||
+      ts.isAsExpression(value) ||
+      ts.isNonNullExpression(value) ||
+      ts.isSatisfiesExpression(value)
+    ) {
+      collect(value.expression);
+      return;
+    }
+
+    if (ts.isConditionalExpression(value)) {
+      collect(value.whenTrue);
+      collect(value.whenFalse);
+      return;
+    }
+
+    if (ts.isBinaryExpression(value)) {
+      const operator: ts.SyntaxKind = value.operatorToken.kind;
+
+      if (
+        operator === ts.SyntaxKind.BarBarToken ||
+        operator === ts.SyntaxKind.QuestionQuestionToken
+      ) {
+        collect(value.left);
+      }
+
+      if (
+        operator === ts.SyntaxKind.BarBarToken ||
+        operator === ts.SyntaxKind.QuestionQuestionToken ||
+        operator === ts.SyntaxKind.AmpersandAmpersandToken
+      ) {
+        collect(value.right);
+      }
+    }
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isJsxAttribute(node) && node.name.getText(source) === TRAIL_PROP) {
+      collect(node.initializer);
+    } else if (
+      ts.isPropertyAssignment(node) &&
+      node.name.getText(source) === TRAIL_PROP
+    ) {
+      collect(node.initializer);
+    } else if (
+      ts.isShorthandPropertyAssignment(node) &&
+      node.name.text === TRAIL_PROP
+    ) {
+      names.add(TRAIL_PROP);
+    } else if (ts.isCallExpression(node) && calleeName(node) === TRAIL_HOOK) {
+      collect(node.arguments[0]);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return names;
+}
+
+/*
+ * Whether an object is a crumb of a page's trail: an element of an array
+ * written as breadcrumbLinks - a JSX attribute or a property - handed to
+ * usePageBreadcrumbLinks, or the value of a constant the file hands as
+ * one (trailNamesOf).
+ */
+function isWrittenAsCrumb(
+  node: ts.ObjectLiteralExpression,
+  source: ts.SourceFile,
+  trailNames: Set<string>,
+): boolean {
+  let current: ts.Node = node;
+  let isInArray: boolean = false;
+
+  for (let depth: number = 0; depth < 10; depth++) {
+    const parent: ts.Node | undefined = current.parent;
+
+    if (!parent) {
+      return false;
+    }
+
+    if (passesOn(parent, current)) {
+      isInArray = isInArray || ts.isArrayLiteralExpression(parent);
+      current = parent;
+      continue;
+    }
+
+    if (ts.isPropertyAssignment(parent) && parent.initializer === current) {
+      return isInArray && parent.name.getText(source) === TRAIL_PROP;
+    }
+
+    if (
+      ts.isJsxExpression(parent) &&
+      parent.parent &&
+      ts.isJsxAttribute(parent.parent)
+    ) {
+      return isInArray && parent.parent.name.getText(source) === TRAIL_PROP;
+    }
+
+    if (
+      ts.isVariableDeclaration(parent) &&
+      parent.initializer === current &&
+      ts.isIdentifier(parent.name)
+    ) {
+      return isInArray && trailNames.has(parent.name.text);
+    }
+
+    if (ts.isCallExpression(parent) && calleeName(parent) === TRAIL_HOOK) {
+      return isInArray;
+    }
+
+    return false;
+  }
+
+  return false;
+}
+
 // The name of the type a type node says its values, or its elements, are.
 function elementTypeName(type: ts.TypeNode | undefined): string | null {
   if (!type) {
@@ -825,6 +978,7 @@ class PlaceholderScan {
       this.readJsxTexts(file, source, problems, sites);
       this.readFieldTexts(file, source, problems, sites, seen);
       this.readTypedObjectTexts(file, source, problems, sites, seen);
+      this.readCrumbTexts(file, source, problems, sites, seen);
     }
 
     problems.sort(byPlace);
@@ -1927,6 +2081,66 @@ class PlaceholderScan {
               );
             }
           }
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+  }
+
+  /*
+   * A crumb's title (#8075): Breadcrumbs, the browser tab's title and the
+   * phone's menu look it up unless the crumb says it is in the reader's
+   * words already (Link.isTitleTranslated). A record's name
+   * (isRecordName: true) is drawn as typed, never looked up.
+   */
+  private readCrumbTexts(
+    file: string,
+    source: ts.SourceFile,
+    problems: Array<PlaceholderProblem>,
+    sites: Array<PlaceholderSite>,
+    seen: Set<ts.Node>,
+  ): void {
+    if (
+      !source.text.includes(TRAIL_PROP) &&
+      !source.text.includes(TRAIL_HOOK)
+    ) {
+      return;
+    }
+
+    const trailNames: Set<string> = trailNamesOf(source);
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isObjectLiteralExpression(node) &&
+        isWrittenAsCrumb(node, source, trailNames)
+      ) {
+        const properties: Map<string, ts.ObjectLiteralElementLike> =
+          propertiesOf(node, source);
+        const title: ts.ObjectLiteralElementLike | undefined =
+          properties.get("title");
+        const recordName: ts.ObjectLiteralElementLike | undefined =
+          properties.get("isRecordName");
+        const isRecordName: boolean = Boolean(
+          recordName &&
+            ts.isPropertyAssignment(recordName) &&
+            recordName.initializer.kind === ts.SyntaxKind.TrueKeyword,
+        );
+
+        if (title && !isRecordName && !seen.has(title)) {
+          seen.add(title);
+          this.readObjectText(
+            file,
+            source,
+            "title",
+            title,
+            properties.get(translatedFlagOf("title")),
+            BREADCRUMB_TITLE,
+            problems,
+            sites,
+          );
         }
       }
 

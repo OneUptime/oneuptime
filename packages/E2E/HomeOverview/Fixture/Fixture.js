@@ -1360,6 +1360,11 @@ function setupMonitorPagesNobody(index, name) {
   });
 }
 
+// A monitor a finding reaches (SetupHealthFinding.related).
+function setupMonitorRecord(index, name) {
+  return { kind: SetupHealthRecordKind.Monitor, id: ID.monitor(index), name };
+}
+
 function setupHealthFindings() {
   if (setupMode !== "busy") {
     return [];
@@ -1388,6 +1393,13 @@ function setupHealthFindings() {
         id: SETUP_POLICY_ID,
         name: "Weekend escalation",
       },
+      // The monitors that run it: three named, the fourth "+1 more".
+      related: [
+        setupMonitorRecord(19, "Payments API"),
+        setupMonitorRecord(20, "Checkout API"),
+        setupMonitorRecord(21, "Search API"),
+        setupMonitorRecord(23, "Image CDN"),
+      ],
       fix: SetupHealthFix.OnCallPolicy,
       fixRecordId: SETUP_POLICY_ID,
       words: SETUP_HEALTH_WORDS.policyReachesNobody,
@@ -1398,6 +1410,7 @@ function setupHealthFindings() {
       level: SetupHealthLevel.PagesWillNotArrive,
       subject: "SMS",
       record: project,
+      related: [setupMonitorRecord(19, "Payments API")],
       fix: SetupHealthFix.ProjectNotificationSettings,
       words: SETUP_HEALTH_WORDS.channelOff,
       values: { channel: "SMS" },
