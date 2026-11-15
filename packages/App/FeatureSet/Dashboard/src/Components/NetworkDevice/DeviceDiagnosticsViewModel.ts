@@ -78,6 +78,13 @@ export interface DiagnosticRow {
    * only name something — Host, Reason.
    */
   description?: string | undefined;
+  /*
+   * The value is the probe's message - why a ping failed, as the probe
+   * stored it - which the drawer words in the reader's language where it is
+   * one of OneUptime's own sentences, and keeps whole in a line of its own
+   * direction otherwise (ProbeMessageLine, #8675).
+   */
+  isProbeMessage?: boolean | undefined;
 }
 
 export interface PingResultSummary {
@@ -139,7 +146,11 @@ export function describePingResult(
    */
   if (!result.pingResponse) {
     if (result.failureCause) {
-      rows.push({ label: "Reason", value: result.failureCause });
+      rows.push({
+        label: "Reason",
+        value: result.failureCause,
+        isProbeMessage: true,
+      });
     }
 
     // An English key: the drawer looks the headline up.
@@ -169,7 +180,11 @@ export function describePingResult(
   }
 
   if (isDown && result.failureCause) {
-    rows.push({ label: "Reason", value: result.failureCause });
+    rows.push({
+      label: "Reason",
+      value: result.failureCause,
+      isProbeMessage: true,
+    });
   }
 
   rows.push({
