@@ -373,7 +373,7 @@ describe("the criteria's read-only view", () => {
     renderView(instance);
 
     expect(heading()).toBe(
-      "Filters (All) All of these can match for this criteria to be met:",
+      "Filters (All) All of these must match for this criteria to be met:",
     );
   });
 });

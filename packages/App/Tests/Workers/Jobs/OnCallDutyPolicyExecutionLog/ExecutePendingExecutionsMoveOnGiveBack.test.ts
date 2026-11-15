@@ -245,6 +245,91 @@ describe("a move on that finished", () => {
   });
 });
 
+/*
+ * A MOVE ON PAST A LEVEL THAT REACHED NOBODY (issue #8515).
+ *
+ * Level 2's people are both away: it pages nobody, and the run moves on
+ * from it at once - claimed again (claimAgain) - to Level 3. A process
+ * that stopped after that second claim, before Level 3 was recorded, left
+ * the run on Level 2, waiting out its whole wait, though it paged nobody.
+ * Now that claim is kept in flight too, and giving it back clears Level
+ * 2's wait: Level 3 is paged two minutes on.
+ */
+describe("a move on past a level that reached nobody", () => {
+  beforeEach(() => {
+    const away: Date = new Date(START.getTime() + 24 * 60 * 60 * 1000);
+    world.away[BOB.toString()] = away;
+    world.away[CARL.toString()] = away;
+  });
+
+  test("passes it at once, as it always did, when nothing stops it", async () => {
+    await world.startRun();
+    await minutesPass(11);
+
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0", "Dana Kim L3 @ 10"]);
+  });
+
+  test("REGRESSION: stopped after its second claim, before the next level: given back with the empty level's wait cleared, and the next level is paged two minutes on - not after the empty level's wait", async () => {
+    await world.startRun();
+    world.crashAt(FailurePoint.ReadNextRule, { when: readsOrder(3) });
+
+    await minutesPass(11);
+
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0"]);
+
+    await minutesPass(1);
+
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0", "Dana Kim L3 @ 12"]);
+
+    await minutesPass(10);
+
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0", "Dana Kim L3 @ 12"]);
+    expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+  });
+
+  test("stopped as its second claim was written: the run is as before it, and the empty level's wait is cleared all the same", async () => {
+    await world.startRun();
+    let claims: number = 0;
+    // The move to Level 2 is the first claim; the move past it, the second.
+    world.crashAt(FailurePoint.ClaimMoveOn, {
+      when: (): boolean => {
+        claims++;
+        return claims === 2;
+      },
+    });
+
+    await minutesPass(12);
+
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0", "Dana Kim L3 @ 12"]);
+    expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+  });
+
+  test("failing after its second claim: the claim is given back at once, and the next level is paged at the next try", async () => {
+    await world.startRun();
+    world.failAt(FailurePoint.ReadNextRule, { when: readsOrder(3) });
+
+    await minutesPass(11);
+
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0", "Dana Kim L3 @ 11"]);
+  });
+
+  test("a Redis that is down keeps no claim: the run waits the empty level's wait, as before, and pages nobody twice", async () => {
+    await world.startRun();
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+    jest
+      .spyOn(GlobalCache, "getStrings")
+      .mockRejectedValue(new Error("Cache is not connected") as never);
+    world.crashAt(FailurePoint.ReadNextRule, { when: readsOrder(3) });
+
+    await minutesPass(21);
+
+    // Its wait runs from the second claim, a moment after the tick at 10.
+    expect(pagesSoFar()).toEqual(["Ana Lopez L1 @ 0", "Dana Kim L3 @ 21"]);
+  });
+});
+
 describe("a Redis that is down", () => {
   test("keeps no move on in flight: the run waits its rule's wait again, as before, and pages nobody twice", async () => {
     await world.startRun();
