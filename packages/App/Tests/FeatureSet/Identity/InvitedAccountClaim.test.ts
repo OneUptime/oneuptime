@@ -858,7 +858,21 @@ describe("Identity /signup - the paths that must not have changed", () => {
       }),
     );
 
-    expect(createEmailVerificationToken).toHaveBeenCalledTimes(1);
+    /*
+     * The hosted service's welcome asks to verify the address, with a token;
+     * a self-hosted server's says the account is ready, and has nothing to
+     * verify (#7988).
+     */
+    expect(createEmailVerificationToken).toHaveBeenCalledTimes(
+      IsBillingEnabled ? 1 : 0,
+    );
     expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(
+      (sendMail.mock.calls[0]![0] as Record<string, unknown>)["templateType"],
+    ).toBe(
+      IsBillingEnabled
+        ? "SignupWelcomeEmail.hbs"
+        : "SignupAccountReadyEmail.hbs",
+    );
   });
 });

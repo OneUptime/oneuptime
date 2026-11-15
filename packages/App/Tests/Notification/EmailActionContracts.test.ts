@@ -36,6 +36,7 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "preferencesLink",
   "projectHomeLink",
   "dashboardLink",
+  "adminDashboardLink",
   "invoicePdfUrl",
   "incidentViewLink",
   "alertViewLink",
@@ -481,6 +482,13 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "Verify Email Address",
     "tokenVerifyUrl",
   ],
+  // A self-hosted account is ready at sign-up: it opens the Dashboard (#7988).
+  [
+    "SignupAccountReadyEmail",
+    "dashboardLink",
+    "Open OneUptime",
+    "dashboardLink",
+  ],
   ["SloOwnerStatusChanged", "sloViewLink", "View on Dashboard", "sloViewLink"],
   [
     "StatusPageForgotPassword",
@@ -757,6 +765,38 @@ describe("invitation actions respect membership and account state", () => {
         render("InviteMember", { isInvitationAccepted, isNewUser }),
         [action(key, label)],
         [copyable(key)],
+      );
+    },
+  );
+});
+
+/*
+ * The first account on a self-hosted server is its master admin: its
+ * welcome opens the Dashboard, then - the quieter button - the Admin
+ * Dashboard, where the server's settings are (#7988).
+ */
+describe("the welcome of a server's first account", () => {
+  test("opens the Dashboard first, then the Admin Dashboard", () => {
+    expectNavigation(
+      render("SignupAccountReadyEmail", { isMasterAdmin: "true" }),
+      [
+        action("dashboardLink", "Open OneUptime"),
+        action("adminDashboardLink", "Open Admin Dashboard"),
+      ],
+      [copyable("dashboardLink")],
+    );
+  });
+
+  test.each([undefined, "", null])(
+    "keeps the Dashboard alone when the Admin Dashboard's link is %s",
+    (adminDashboardLink: unknown) => {
+      expectNavigation(
+        render("SignupAccountReadyEmail", {
+          isMasterAdmin: "true",
+          adminDashboardLink,
+        }),
+        [action("dashboardLink", "Open OneUptime")],
+        [copyable("dashboardLink")],
       );
     },
   );

@@ -137,7 +137,7 @@ An eine Adresse können 10 Einladungen pro Stunde gesendet werden, zu Projekten 
 :::details Die Einladungs-E-Mail kam nicht an, oder ihr Link ist abgelaufen
 Die Einladung hängt nicht an der E-Mail. Bitten Sie die Person, sich mit der eingeladenen Adresse zu registrieren: OneUptime sendet an diese Adresse einen neuen Link, um das Konto fertig anzulegen. Wer schon ein Konto hat, meldet sich an und findet die Einladung vor.
 
-Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, kann auch die Registrierung keinen neuen Link per E-Mail senden: Sie bittet die Person stattdessen, nach ihrem Einladungslink zu fragen. Sobald der Admin des Servers [E-Mail eingerichtet](/docs/emails/smtp#das-formular-öffnen) hat, funktioniert die Registrierung wie oben. Bis dahin kann ein Master-Admin die Person aus dem Projekt entfernen, sie erneut einladen und ihr den neuen Einladungslink senden, der einmal funktioniert, nur für diese Adresse, 7 Tage lang.
+Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, kann auch die Registrierung keinen neuen Link per E-Mail senden: Sie bittet die Person stattdessen, nach ihrem Einladungslink zu fragen. Sobald der Admin des Servers [E-Mail eingerichtet](/docs/emails/smtp#das-formular-öffnen) hat, funktioniert die Registrierung wie oben. Bis dahin kann ein Master-Admin der Person einen neuen Link senden, der einmal funktioniert, nur für diese Adresse, 7 Tage lang: Öffnen Sie unter **Benutzer** das Zeilenmenü der Person, **⋯**, und klicken Sie auf **Einladungslink abrufen**.
 :::
 
 :::details Benutzer einladen meldet, dass Benutzer über SCIM Push Groups verwaltet werden

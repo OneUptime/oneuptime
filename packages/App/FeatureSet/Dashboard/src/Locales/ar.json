@@ -52328,6 +52328,7 @@
   "Expand all branches": "توسيع كل الفروع",
   "Expand {{name}}: {{count}} devices below it": "توسيع {{name}} (الأجهزة تحته: {{count}})",
   "Expand {{name}}: {{count}} devices below it_one": "توسيع {{name}} ({{count}} جهاز تحته)",
+  "Get Invitation Link": "الحصول على رابط الدعوة",
   "Narrows the map to this device and the {{count}} devices below it.": "يقصر الخريطة على هذا الجهاز والأجهزة التي تحته (العدد: {{count}}).",
   "Narrows the map to this device and the {{count}} devices below it._one": "يقصر الخريطة على هذا الجهاز وعلى {{count}} جهاز تحته.",
   "Opens the branches they are in.": "يفتح الفروع التي توجد فيها.",
