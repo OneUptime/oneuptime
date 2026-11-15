@@ -335,16 +335,23 @@ interface ParsedPageUrl {
  */
 const LOST_ORIGIN_PREFIX: string = "null/";
 
+/*
+ * A stored address read as the page it was: "null/Checkout" is
+ * "/Checkout", so a screen is one page before and after #8384 here, and the
+ * session list names it by its route. Any other address comes back as it
+ * is.
+ */
+export function readStoredAddress(rawUrl: string): string {
+  return rawUrl.startsWith(LOST_ORIGIN_PREFIX)
+    ? rawUrl.slice(LOST_ORIGIN_PREFIX.length - 1)
+    : rawUrl;
+}
+
 function parsePageUrl(rawUrl: string): ParsedPageUrl {
-  let trimmed: string = (rawUrl || "").trim();
+  const trimmed: string = readStoredAddress((rawUrl || "").trim());
 
   if (!trimmed) {
     return { host: "", path: "/" };
-  }
-
-  // Read as the path it was, so the screen is one page before and after.
-  if (trimmed.startsWith(LOST_ORIGIN_PREFIX)) {
-    trimmed = trimmed.slice(LOST_ORIGIN_PREFIX.length - 1);
   }
 
   try {
