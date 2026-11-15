@@ -945,10 +945,21 @@ const HTML_TEXT_ATTRIBUTES: ReadonlySet<string> = new Set<string>([
  * Object properties that are copy only inside a particular list: a tab's
  * "name" is its label (Tab translates it), while "name" elsewhere is usually
  * an identifier.
+ *
+ * A tab is known where it is written, by its list's name or its type: an
+ * item of `tabs={[...]}` or `tabs: [...]`, of an array declared as the
+ * item's type (`const tabs: Array<Tab> = [...]`), an object pushed onto one
+ * (`tabs.push({...})`), declared as one (`const tab: Tab = {...}`) or
+ * returned by a function that returns one (`(...): Tab => ({...})`). Only
+ * the list's name was read, so a page that built its tabs in a variable -
+ * most do - had them looked up but never extracted: "Diff vs. baseline"
+ * and "Env Vars" read English in every language (#8367).
  */
-const PROPS_IN_LISTS: ReadonlyArray<{ list: string; prop: string }> = [
-  { list: "tabs", prop: "name" },
-];
+export const PROPS_IN_LISTS: ReadonlyArray<{
+  list: string;
+  itemType: string;
+  prop: string;
+}> = [{ list: "tabs", itemType: "Tab", prop: "name" }];
 
 // Element text inside these is code or a key name, not copy.
 const CODE_ELEMENTS: ReadonlySet<string> = new Set<string>([
@@ -1547,39 +1558,204 @@ const getMeaningfulChildren: (
   });
 };
 
-// A property assignment inside an object that is an item of `tabs: [...]`.
-const isPropInList: (node: ts.PropertyAssignment, prop: string) => boolean = (
-  node: ts.PropertyAssignment,
-  prop: string,
-): boolean => {
-  const object: ts.Node = node.parent;
-  const list: ts.Node | undefined = object?.parent;
-
-  if (!list || !ts.isArrayLiteralExpression(list)) {
-    return false;
+// The type a declaration names: "Tab" for `Tab`, `Array<Tab>`, `Tab[]`, `ReadonlyArray<Tab>`.
+const getNamedItemType: (
+  type: ts.TypeNode | undefined,
+) => { name: string; isList: boolean } | undefined = (
+  type: ts.TypeNode | undefined,
+): { name: string; isList: boolean } | undefined => {
+  if (!type) {
+    return undefined;
   }
 
-  let holder: ts.Node | undefined = list.parent;
+  if (ts.isArrayTypeNode(type)) {
+    const item: { name: string; isList: boolean } | undefined =
+      getNamedItemType(type.elementType);
+
+    return item && !item.isList ? { name: item.name, isList: true } : undefined;
+  }
+
+  if (ts.isTypeReferenceNode(type) && ts.isIdentifier(type.typeName)) {
+    const name: string = type.typeName.text;
+    const argument: ts.TypeNode | undefined = type.typeArguments?.[0];
+
+    if ((name === "Array" || name === "ReadonlyArray") && argument) {
+      const item: { name: string; isList: boolean } | undefined =
+        getNamedItemType(argument);
+
+      return item && !item.isList
+        ? { name: item.name, isList: true }
+        : undefined;
+    }
+
+    return { name, isList: false };
+  }
+
+  return undefined;
+};
+
+// The declared type of the variable a name reads, from the nearest declaration in its file.
+const getDeclaredTypeOf: (
+  identifier: ts.Identifier,
+) => { name: string; isList: boolean } | undefined = (
+  identifier: ts.Identifier,
+): { name: string; isList: boolean } | undefined => {
+  let found: { name: string; isList: boolean } | undefined = undefined;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === identifier.text
+    ) {
+      found = getNamedItemType(node.type);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(identifier.getSourceFile());
+
+  return found;
+};
+
+/*
+ * What an object literal is written as, where its code says so: an item of
+ * a list (by the list's name or its declared item type), or one item (by
+ * its declared type, or a function's return type).
+ */
+const getObjectHolder: (object: ts.Node) => {
+  listName?: string | undefined;
+  itemType?: string | undefined;
+} = (
+  object: ts.Node,
+): { listName?: string | undefined; itemType?: string | undefined } => {
+  let parent: ts.Node | undefined = object.parent;
+
+  while (
+    parent &&
+    (ts.isParenthesizedExpression(parent) ||
+      ts.isAsExpression(parent) ||
+      ts.isSatisfiesExpression(parent))
+  ) {
+    parent = parent.parent;
+  }
+
+  if (!parent) {
+    return {};
+  }
+
+  // One item: `const tab: Tab = {...}`, `return {...}` or `=> ({...})` of a function typed `: Tab`.
+  if (ts.isVariableDeclaration(parent)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(parent.type);
+
+    return type && !type.isList ? { itemType: type.name } : {};
+  }
+
+  const returnedBy: ts.Node | undefined = ts.isReturnStatement(parent)
+    ? ts.findAncestor(parent, ts.isFunctionLike)
+    : ts.isArrowFunction(parent)
+      ? parent
+      : undefined;
+
+  if (returnedBy && ts.isFunctionLike(returnedBy)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(returnedBy.type);
+
+    return type && !type.isList ? { itemType: type.name } : {};
+  }
+
+  // Pushed onto a list: `tabs.push({...})`.
+  if (
+    ts.isCallExpression(parent) &&
+    ts.isPropertyAccessExpression(parent.expression) &&
+    parent.expression.name.text === "push" &&
+    ts.isIdentifier(parent.expression.expression)
+  ) {
+    const receiver: ts.Identifier = parent.expression.expression;
+    const type: { name: string; isList: boolean } | undefined =
+      getDeclaredTypeOf(receiver);
+
+    return {
+      listName: receiver.text,
+      itemType: type && type.isList ? type.name : undefined,
+    };
+  }
+
+  if (!ts.isArrayLiteralExpression(parent)) {
+    return {};
+  }
+
+  let holder: ts.Node | undefined = parent.parent;
+
+  while (
+    holder &&
+    (ts.isParenthesizedExpression(holder) ||
+      ts.isAsExpression(holder) ||
+      ts.isSatisfiesExpression(holder))
+  ) {
+    holder = holder.parent;
+  }
 
   if (holder && ts.isJsxExpression(holder)) {
     holder = holder.parent;
   }
 
   if (!holder) {
+    return {};
+  }
+
+  if (ts.isPropertyAssignment(holder)) {
+    return { listName: getPropertyName(holder.name) };
+  }
+
+  if (ts.isJsxAttribute(holder)) {
+    return { listName: getJsxAttributeName(holder) };
+  }
+
+  if (ts.isVariableDeclaration(holder) && ts.isIdentifier(holder.name)) {
+    const type: { name: string; isList: boolean } | undefined =
+      getNamedItemType(holder.type);
+
+    return {
+      listName: holder.name.text,
+      itemType: type && type.isList ? type.name : undefined,
+    };
+  }
+
+  return {};
+};
+
+/*
+ * A property assignment inside an object that is an item of `tabs: [...]`,
+ * or written as one of the list's items wherever it is (PROPS_IN_LISTS).
+ */
+export const isPropInList: (
+  node: ts.PropertyAssignment,
+  prop: string,
+) => boolean = (node: ts.PropertyAssignment, prop: string): boolean => {
+  const object: ts.Node = node.parent;
+
+  if (!object || !ts.isObjectLiteralExpression(object)) {
     return false;
   }
 
-  let holderName: string | undefined = undefined;
-
-  if (ts.isPropertyAssignment(holder)) {
-    holderName = getPropertyName(holder.name);
-  } else if (ts.isJsxAttribute(holder)) {
-    holderName = getJsxAttributeName(holder);
-  }
+  const holder: {
+    listName?: string | undefined;
+    itemType?: string | undefined;
+  } = getObjectHolder(object);
 
   return PROPS_IN_LISTS.some(
-    (rule: { list: string; prop: string }): boolean => {
-      return rule.prop === prop && rule.list === holderName;
+    (rule: { list: string; itemType: string; prop: string }): boolean => {
+      return (
+        rule.prop === prop &&
+        (rule.list === holder.listName || rule.itemType === holder.itemType)
+      );
     },
   );
 };
