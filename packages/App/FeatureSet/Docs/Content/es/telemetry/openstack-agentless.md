@@ -93,6 +93,8 @@ Elige las regiones que leer, ponle nombre a la nube y haz clic en **Conectar nub
 
 La **Vista general** de la nube muestra una tarjeta **Recopilación de datos**. Dice **Comprobando** hasta la primera recopilación, que empieza en menos de un minuto, luego **Recopilando**, y las páginas se llenan. Cuando se leyeron algunos servicios y otro no, indica cuál. Si ninguna sonda se ocupa de la nube durante 15 minutos, porque está sin conexión o es demasiado antigua, dice **Sin recopilar** y lo indica, sea cual sea lo que encontró la última recopilación.
 
+Cuando ninguna sonda puede recopilar la nube, la tarjeta dice **Sin recopilar** al momento, con el motivo y lo que hay que cambiar: no hay ninguna credencial guardada, falta la dirección de Keystone, no hay ninguna sonda configurada para recopilarla, su sonda no puede recopilarla (una sonda compartida en OneUptime Cloud, o la de otro proyecto), o su sonda está desconectada. **Próxima recopilación** es la hora a la que una sonda la recopila la próxima vez, **Previsto ahora** mientras espera a una, **Atrasado** cuando ninguna se ha ocupado de ella en 15 minutos, y **Sin programar** mientras ninguna sonda puede recopilarla. Una nube archivada se sigue recopilando.
+
 La tarjeta **Recopilación de datos** de la página de **Ajustes** de la nube contiene lo que usaste para conectarla:
 
 ![La tarjeta Recopilación de datos en la página de Ajustes de una nube: su dirección de Keystone, su sonda, la credencial de aplicación con la que inicia sesión, sus regiones, el certificado en el que confía y con qué frecuencia recopila](/docs/static/images/OpenStackDataCollection.png)

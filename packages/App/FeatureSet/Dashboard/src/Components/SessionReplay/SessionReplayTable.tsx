@@ -1321,7 +1321,7 @@ function getSessionReplayCells(
       {userName}
     </button>
   ) : (
-    <Tooltip text={user.title}>
+    <Tooltip text={user.title} isTextTranslated={true}>
       <span
         className="block min-w-0 max-w-full truncate"
         tabIndex={0}

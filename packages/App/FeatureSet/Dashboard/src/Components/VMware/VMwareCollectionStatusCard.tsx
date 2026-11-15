@@ -15,11 +15,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import {
-  TemplateValue,
-  Translator,
-  translatableTerm,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -35,6 +31,7 @@ import {
   VMWARE_STATUS_POLL_INTERVAL_IN_MS,
   VMwareCollectionStatusView,
   VMwareCollectionTone,
+  getVMwareCollectionDescription,
   getVMwareCollectionStatusView,
   getVMwareNextCollection,
   getVMwareProductLine,
@@ -167,10 +164,6 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
     { modelId: props.modelId },
   );
 
-  // Translated along with the sentence it goes into, never on its own.
-  const probeName: TemplateValue =
-    vcenter.collectionProbe?.name || translatableTerm("its probe");
-
   const trustCertificate: (fingerprint: string) => Promise<void> = async (
     fingerprint: string,
   ): Promise<void> => {
@@ -201,22 +194,11 @@ const VMwareCollectionStatusCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Data Collection"
-      description={translator.translatePlural(
-        {
-          /*
-           * The one form names the count too: Russian's "one" is 1, 21, 31,
-           * 41 and 51 as well, and a vCenter may be collected every 21
-           * minutes.
-           */
-          one: "Collected by {{probe}} from {{address}}, every {{count}} minute. No agent runs for it.",
-          other:
-            "Collected by {{probe}} from {{address}}, every {{count}} minutes. No agent runs for it.",
-        },
-        vcenter.collectionIntervalInMinutes || 2,
-        {
-          probe: probeName,
-          address: vcenter.vcenterUrl || "",
-        },
+      description={getVMwareCollectionDescription(
+        vcenter,
+        translator,
+        new Date(),
+        BILLING_ENABLED,
       )}
       rightElement={
         <StatusBadge text={view.label} type={badgeTypeOf(view.tone)} />

@@ -320,6 +320,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
       <Page
         title={t("scheduledEvents.title")}
+        isTitleTranslated={true}
         /*
          * The page's maintenance in a calendar app: beside the title, where
          * a reader looking at what is coming up looks for it.

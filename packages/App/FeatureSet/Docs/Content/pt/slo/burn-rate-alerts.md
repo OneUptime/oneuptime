@@ -212,8 +212,8 @@ Para escrever os seus, use variáveis de modelo no título, na descrição e nas
 | `{{targetPercentage}}` | A meta do SLO, em porcentagem. | `99.9` |
 | `{{currentSliPercentage}}` | O SLI medido na janela de conformidade do SLO, em porcentagem. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Parcela do orçamento de erros ainda disponível, em porcentagem. Negativa quando o orçamento foi ultrapassado. | `42.5` |
-| `{{errorBudgetRemaining}}` | Orçamento de erros ainda disponível, como duração. Começa com um sinal de menos quando o orçamento foi ultrapassado. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Orçamento de erros ainda disponível, em minutos. | `18.37` |
+| `{{errorBudgetRemaining}}` | Orçamento de erros ainda disponível, como duração ou, em um SLO de requisições, como as requisições com falha ou lentas que ele ainda permite. Começa com um sinal de menos quando o orçamento foi ultrapassado. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Orçamento de erros ainda disponível, em minutos. Vazio em um SLO de requisições, cujo orçamento é contado em requisições. | `18.37` |
 | `{{windowDescription}}` | A janela de conformidade do SLO, por extenso. | `rolling 30-day window` |
 | `{{policyTier}}` | Nome do nível da política de orçamento de erros em que o SLO está após esta avaliação. "None" quando não está em nenhum nível. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Limite de orçamento restante desse nível, como porcentagem. Vazio quando o SLO não está em nenhum nível. | `25` |

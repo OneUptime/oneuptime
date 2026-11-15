@@ -7,11 +7,11 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
 } from "Common/Utils/Monitor/MonitorPauseState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
@@ -65,8 +65,6 @@ import OwnerRuleAssignment, {
   OwnersToAssign,
 } from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 import MonitorService from "Common/Server/Services/MonitorService";
-import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
-import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
@@ -84,6 +82,24 @@ import IncidentStateService from "Common/Server/Services/IncidentStateService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import SloMetricUtil from "Common/Server/Utils/Slo/SloMetricUtil";
+import {
+  fetchPerMonitorTimelines,
+  getDowntimeStatuses,
+} from "Common/Server/Utils/Slo/SloMonitorTimelines";
+import SloRequestCounting, {
+  SloRequestMeasurement,
+} from "Common/Server/Utils/Slo/SloRequestCounting";
+import {
+  SloEventErrorBudget,
+  SloEventSliResult,
+  SloRequestCounts,
+  computeEventBurnRate,
+  computeEventSli,
+  formatRequestBudget,
+  getEventErrorBudget,
+  getSettledRequestStepEnd,
+  isRequestSliType,
+} from "Common/Utils/Slo/SloRequestSli";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import SloMetricTypeUtil from "Common/Utils/Slo/SloMetricType";
 import SloUtil, {
@@ -102,6 +118,7 @@ import {
 } from "Common/Utils/Slo/SloBurnRateRuleState";
 import {
   DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+  DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_BURN_RATE_TITLE_TEMPLATE,
   DEFAULT_SLO_POLICY_TIER_DESCRIPTION_TEMPLATE,
   DEFAULT_SLO_POLICY_TIER_TITLE_TEMPLATE,
@@ -110,6 +127,7 @@ import {
   SloPolicyTierTemplateValues,
   buildSloBurnRateTemplateVariables,
   buildSloPolicyTierTemplateVariables,
+  getSloBurnRateDescriptionTemplate,
   renderSloBurnRateTemplate,
 } from "Common/Utils/Slo/SloBurnRateTemplate";
 import {
@@ -127,6 +145,7 @@ import {
   SloFeedDeploymentGate,
   SloFeedMarkdown,
   SloFeedMarkdownParts,
+  SloFeedRequestBudget,
   SloFeedStatusMeasurement,
   getSloDeploymentGateChangedFeedParts,
   getSloFeedChatMarkdown,
@@ -284,11 +303,16 @@ interface SloEvaluationContext {
   slo: ServiceLevelObjective;
   sloId: ObjectID;
   projectId: ObjectID;
-  perMonitorTimelines: Array<MonitorTimelineSet>;
-  downtimeStatuses: Array<MonitorStatus>;
-  multiMonitorMode: SloMultiMonitorMode;
+  /*
+   * How the burn rate rules read their two windows: from the monitors'
+   * status timelines, or from the counted requests (SloBurnWindows).
+   */
+  burnWindows: SloBurnWindows;
   targetPercentage: number;
+  // In the SLI's own unit: seconds, or bad requests when requestBudget is set.
   budget: ErrorBudgetResult;
+  // A request SLI's budget, so its records say requests, never a duration.
+  requestBudget: SloFeedRequestBudget | null;
   /*
    * The SLI and status this evaluation just persisted. Carried here (rather
    * than read back off `slo`, which still holds the previous tick's values)
@@ -305,17 +329,10 @@ interface SloEvaluationContext {
   policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
   now: Date;
   /*
-   * Earliest event start across this SLO's monitors over the WHOLE fetched
-   * window — i.e. how far back the burn-rate math can actually see data.
-   * Computed once per evaluation (not per rule) and null when there is no data
-   * at all. Burn rate rules use it to refuse to judge a long window they do not
-   * have the history for.
-   */
-  earliestEventStart: Date | null;
-  /*
    * Lazily resolved (and memoized) "is any of this SLO's monitors inside an
    * ongoing scheduled maintenance window?" — queried at most once per SLO,
-   * and only when a burn rate rule actually fires.
+   * and only when a burn rate rule actually fires. Always false for a
+   * request SLI, which measures no monitors.
    */
   isAnyMonitorUnderOngoingMaintenance: () => Promise<boolean>;
   /*
@@ -385,6 +402,118 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       return stillEvaluatedCheckPromise;
     };
 
+  /*
+   * Measure, from whatever the SLO measures: its monitors' status timelines,
+   * or the requests its services served. Null when a guard (Misconfigured,
+   * Paused, no data) has already set the status and said why. Everything
+   * after the measurement - status, error budget policy, history, metrics,
+   * owners, burn rate rules - is the same for both.
+   */
+  const evaluation: SloMeasuredEvaluation | null = isRequestSliType(slo.sliType)
+    ? await measureRequestSlo({
+        slo: slo,
+        sloId: sloId,
+        projectId: projectId,
+        now: now,
+        isSloStillEvaluated: checkSloStillEvaluated,
+      })
+    : await measureMonitorSlo({
+        slo: slo,
+        sloId: sloId,
+        projectId: projectId,
+        now: now,
+        isSloStillEvaluated: checkSloStillEvaluated,
+      });
+
+  if (!evaluation) {
+    return;
+  }
+
+  await commitSloEvaluation(evaluation);
+}
+
+/*
+ * What one evaluation measured, whichever SLI it measured it from, and what
+ * the rest of the evaluation needs to act on it.
+ */
+interface SloMeasuredEvaluation {
+  slo: ServiceLevelObjective;
+  sloId: ObjectID;
+  projectId: ObjectID;
+  now: Date;
+  targetPercentage: number;
+  rules: SloRulesAndTiers;
+  sliPercentage: number;
+  /*
+   * The error budget in the SLI's own unit: seconds for Monitor Uptime
+   * (monitor-seconds in Monitor Seconds Average mode), bad requests for a
+   * request SLI - which `requestBudget` then says, so that nothing words
+   * requests as a duration.
+   */
+  budget: ErrorBudgetResult;
+  requestBudget: SloFeedRequestBudget | null;
+  currentBurnRate: number;
+  // How the burn rate rules read their windows.
+  burnWindows: SloBurnWindows;
+  // The state columns only this SLI writes (its budget in seconds or requests).
+  measuredColumns: SloMeasuredColumns;
+  isAnyMonitorUnderOngoingMaintenance: () => Promise<boolean>;
+  isSloStillEvaluated: SloStillEvaluatedCheckFunction;
+}
+
+interface SloMeasuredColumns {
+  errorBudgetRemainingSeconds?: number | null;
+  errorBudgetTotalSeconds?: number | null;
+  goodEventCount?: number | null;
+  totalEventCount?: number | null;
+  errorBudgetTotalEvents?: number | null;
+  errorBudgetRemainingEvents?: number | null;
+}
+
+/*
+ * How a burn rate rule reads its two windows, whichever SLI the SLO measures:
+ * from its monitors' status timelines, or from its counted requests.
+ */
+interface SloBurnWindows {
+  /*
+   * Whether the SLO has data reaching `lookbackInMinutes` back. A rule may
+   * only FIRE on a full long window (see evaluateBurnRateRule).
+   */
+  hasFullWindow: (lookbackInMinutes: number) => boolean;
+  burnRate: (lookbackInMinutes: number) => number;
+  /*
+   * The requests in the window, for a rule's Minimum Sample Count; null for
+   * a time-based SLI, where every second is a sample.
+   */
+  sampleCount: (lookbackInMinutes: number) => number | null;
+  // How far back the data reaches, for the logs; null with no data at all.
+  earliestData: Date | null;
+}
+
+// An SLO's enabled burn rate rules and the tiers of its error budget policy.
+interface SloRulesAndTiers {
+  burnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
+  allPolicyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+  policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier>;
+  // The longest window a rule looks back over, or the current burn rate's.
+  longestLookbackInMinutes: number;
+}
+
+/*
+ * A Monitor Uptime SLO: the share of time its monitors were up, read from
+ * their status timelines.
+ */
+async function measureMonitorSlo(data: {
+  slo: ServiceLevelObjective;
+  sloId: ObjectID;
+  projectId: ObjectID;
+  now: Date;
+  isSloStillEvaluated: SloStillEvaluatedCheckFunction;
+}): Promise<SloMeasuredEvaluation | null> {
+  const { slo, sloId, projectId, now } = data;
+  const checkSloStillEvaluated: SloStillEvaluatedCheckFunction =
+    data.isSloStillEvaluated;
+
   const monitorIds: Array<ObjectID> = (slo.monitors || [])
     .map((monitor: Monitor) => {
       return monitor.id!;
@@ -394,10 +523,12 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     });
 
   /*
-   * Misconfigured guard: Metric SLIs are Phase 2, and an SLO with no monitors
-   * (e.g. all monitors deleted — M2M rows cascade) must never read as 100%
-   * SLI. A target outside (0, 100) would NaN every budget formula, so it is
-   * treated the same way (create/update hooks validate it, this is defense).
+   * Misconfigured guard: the Metric SLI type is not measured yet (request
+   * SLIs never reach here - evaluateSlo sends them to measureRequestSlo), and
+   * an SLO with no monitors (e.g. all monitors deleted — M2M rows cascade)
+   * must never read as 100% SLI. A target outside (0, 100) would NaN every
+   * budget formula, so it is treated the same way (create/update hooks
+   * validate it, this is defense).
    */
   const targetPercentage: number = slo.targetPercentage || 0;
 
@@ -419,7 +550,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         monitorCount: monitorIds.length,
       }),
     });
-    return;
+    return null;
   }
 
   /*
@@ -455,7 +586,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       isSloStillEvaluated: checkSloStillEvaluated,
       reason: "None of the monitors attached to this SLO exist any more.",
     });
-    return;
+    return null;
   }
 
   const areAllMonitorsDisabled: boolean = monitors.every((monitor: Monitor) => {
@@ -473,170 +604,27 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       reason:
         "Every monitor attached to this SLO is archived or disabled - by hand, by a manual incident or by a maintenance event - so there is no live signal to measure.",
     });
-    return;
+    return null;
   }
 
-  /*
-   * Compliance window.
-   *
-   * Rolling: SLI and budget denominator both come from the (data-age clamped)
-   * elapsed window, so the budget denominator is sli.totalSeconds.
-   *
-   * CalendarMonth: the SLI is measured over the elapsed part of the month
-   * (computeTimeSli clips the window end to "now" internally), but the budget
-   * denominator is the FULL period — fixed at period start — otherwise a
-   * 1-minute blip at 00:10 on the 1st reads as instant budget exhaustion.
-   */
-  let window: UptimeWindow;
-  let budgetTotalSecondsOverride: number | null = null;
-
-  if (slo.windowType === SloWindowType.CalendarMonth) {
-    const calendarWindow: ReturnType<typeof SloUtil.getCalendarMonthWindow> =
-      SloUtil.getCalendarMonthWindow({
-        timezone: slo.timezone || "UTC",
-        at: now,
-      });
-
-    window = {
-      startDate: calendarWindow.startDate,
-      endDate: calendarWindow.endDate,
-    };
-    budgetTotalSecondsOverride = calendarWindow.totalSecondsInFullPeriod;
-  } else {
-    const windowDays: number = slo.windowDays || DEFAULT_ROLLING_WINDOW_DAYS;
-
-    window = {
-      startDate: OneUptimeDate.getSomeDaysAgo(windowDays),
-      endDate: now,
-    };
-  }
+  const { window, budgetTotalSecondsOverride } = getComplianceWindow({
+    slo: slo,
+    now: now,
+  });
 
   /*
    * Enabled burn rate rules — loaded before the timeline fetch so the fetch
    * window can be extended to cover the longest rule lookback (a burn window
    * can start before a calendar month does on the 1st of the month).
    */
-  const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> =
-    await ServiceLevelObjectiveBurnRateRuleService.findBy({
-      query: {
-        serviceLevelObjectiveId: sloId,
-        projectId: projectId,
-        isEnabled: true,
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        serviceLevelObjectiveId: true,
-        name: true,
-        isEnabled: true,
-        burnRateThreshold: true,
-        longWindowInMinutes: true,
-        shortWindowInMinutes: true,
-        /*
-         * minimumSampleCount is deliberately NOT selected: it only has
-         * meaning for event-based (Metric) SLIs, which this worker does not
-         * evaluate yet — every SLO it can reach is time-based, where every
-         * second is a sample. The column and its server-side validation
-         * stay for that later phase; selecting it here would imply a guard
-         * that does not run.
-         */
-        refireSuppressionMinutes: true,
-        shouldCreateAlert: true,
-        shouldCreateIncident: true,
-        alertSeverityId: true,
-        onCallDutyPolicies: {
-          _id: true,
-        },
-        /*
-         * The alert and incident options. Every one of these is read with its
-         * column default in mind (`!== false` for the auto-resolve pair,
-         * `=== true` for the private flags and addSloOwnersAsOwners), so a
-         * column missing here would not throw - it would silently configure
-         * every alert with the default instead of what the user chose. The
-         * many-to-many lists only need ids: they become id-stubs and owner
-         * ids, never loaded entities.
-         */
-        alertTitleTemplate: true,
-        alertDescriptionTemplate: true,
-        alertRemediationNotes: true,
-        isAlertPrivate: true,
-        autoResolveAlert: true,
-        alertLabels: {
-          _id: true,
-        },
-        alertOwnerTeams: {
-          _id: true,
-        },
-        alertOwnerUsers: {
-          _id: true,
-        },
-        incidentSeverityId: true,
-        incidentOnCallDutyPolicies: {
-          _id: true,
-        },
-        incidentTitleTemplate: true,
-        incidentDescriptionTemplate: true,
-        incidentRemediationNotes: true,
-        isIncidentPrivate: true,
-        autoResolveIncident: true,
-        incidentLabels: {
-          _id: true,
-        },
-        incidentOwnerTeams: {
-          _id: true,
-        },
-        incidentOwnerUsers: {
-          _id: true,
-        },
-        addSloOwnersAsOwners: true,
-        lastAlertCreatedAt: true,
-        lastAlertResolvedAt: true,
-        lastIncidentCreatedAt: true,
-        lastIncidentResolvedAt: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: {
-        isRoot: true,
-      },
-    });
-
-  /*
-   * The tiers of the SLO's error budget policy - all of them, disabled ones
-   * included, so a tier change can say how severe the tier it left was even
-   * when that tier has just been switched off. Only enabled tiers apply.
-   */
-  const allPolicyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
-    await ServiceLevelObjectiveErrorBudgetPolicyTierService.findBy({
-      query: {
-        serviceLevelObjectiveId: sloId,
-        projectId: projectId,
-      },
-      select: POLICY_TIER_SELECT,
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: {
-        isRoot: true,
-      },
-    });
-
-  const policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
-    allPolicyTiers.filter(
-      (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
-        return tier.isEnabled === true;
-      },
-    );
-
-  const longestLookbackInMinutes: number = burnRateRules.reduce(
-    (longestSoFar: number, rule: ServiceLevelObjectiveBurnRateRule): number => {
-      return Math.max(longestSoFar, rule.longWindowInMinutes || 0);
-    },
-    CURRENT_BURN_RATE_WINDOW_MINUTES,
-  );
+  const rules: SloRulesAndTiers = await loadSloRulesAndTiers({
+    sloId: sloId,
+    projectId: projectId,
+  });
 
   const fetchWindowStart: Date = OneUptimeDate.getLesserDate(
     window.startDate,
-    OneUptimeDate.addRemoveMinutes(now, -1 * longestLookbackInMinutes),
+    OneUptimeDate.addRemoveMinutes(now, -1 * rules.longestLookbackInMinutes),
   );
   const fetchWindowEnd: Date = OneUptimeDate.getGreaterDate(
     window.endDate,
@@ -712,7 +700,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       reason:
         "The monitors attached to this SLO have not recorded any status in its window yet. It is measured automatically once they do.",
     });
-    return;
+    return null;
   }
 
   const budget: ErrorBudgetResult = SloUtil.getErrorBudget({
@@ -724,14 +712,605 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     targetPercentage: targetPercentage,
   });
 
-  const currentBurnRate: number = computeBurnRateForLookback({
-    perMonitorTimelines: perMonitorTimelines,
-    downtimeStatuses: downtimeStatuses,
-    mode: multiMonitorMode,
-    targetPercentage: targetPercentage,
-    lookbackInMinutes: CURRENT_BURN_RATE_WINDOW_MINUTES,
+  /*
+   * Data age of this SLO, computed ONCE for all rules over the full fetched
+   * window (which already covers the longest rule lookback). Each rule then
+   * compares it against its own long window.
+   */
+  const earliestEventStart: Date | null = SloUtil.getEarliestEventStartDate(
+    perMonitorTimelines,
+    {
+      startDate: fetchWindowStart,
+      endDate: fetchWindowEnd,
+    },
+  );
+
+  const burnWindows: SloBurnWindows = {
+    hasFullWindow: (lookbackInMinutes: number): boolean => {
+      return Boolean(
+        earliestEventStart &&
+          earliestEventStart.getTime() <=
+            OneUptimeDate.addRemoveMinutes(
+              now,
+              -1 * lookbackInMinutes,
+            ).getTime(),
+      );
+    },
+    burnRate: (lookbackInMinutes: number): number => {
+      return computeBurnRateForLookback({
+        perMonitorTimelines: perMonitorTimelines,
+        downtimeStatuses: downtimeStatuses,
+        mode: multiMonitorMode,
+        targetPercentage: targetPercentage,
+        lookbackInMinutes: lookbackInMinutes,
+        now: now,
+      });
+    },
+    sampleCount: (): number | null => {
+      return null;
+    },
+    earliestData: earliestEventStart,
+  };
+
+  let maintenanceCheckPromise: Promise<boolean> | null = null;
+
+  /*
+   * INTEGER COLUMNS. errorBudgetRemainingSeconds / errorBudgetTotalSeconds are
+   * ColumnType.Number === Postgres `integer`, and the budget seconds are almost
+   * never integral: `1 - 99.9/100` is 0.0009999999999998899 in IEEE-754, so a
+   * 30-day 99.9% SLO computes a total budget of 2591.9999999997144 seconds and
+   * Postgres rejects the whole UPDATE with
+   * `invalid input syntax for type integer`. That throw is swallowed by the
+   * per-SLO try/catch in the sweep, so it silently took out EVERYTHING
+   * downstream of this write — state columns, history rows (empty charts
+   * forever), owner notifications and every burn-rate rule — leaving the
+   * feature inert with one error log per SLO per minute.
+   *
+   * Whole seconds is the right resolution for these two display columns, and
+   * Math.round keeps the sign of a negative (over-budget) remainder. Only the
+   * values persisted here are rounded: the status/threshold decisions, the
+   * history rows and the notification/alert bodies all keep the full
+   * precision of the budget result.
+   */
+  const measuredColumns: SloMeasuredColumns = {
+    errorBudgetRemainingSeconds: Math.round(budget.budgetRemainingSeconds), // signed.
+    errorBudgetTotalSeconds: Math.round(budget.budgetTotalSeconds),
+    /*
+     * An SLO that measured requests before keeps no request counts beside
+     * its seconds: they describe what it no longer measures.
+     */
+    ...getClearedRequestColumns(slo),
+  };
+
+  return {
+    slo: slo,
+    sloId: sloId,
+    projectId: projectId,
     now: now,
+    targetPercentage: targetPercentage,
+    rules: rules,
+    sliPercentage: sli.sliPercentage,
+    budget: budget,
+    requestBudget: null,
+    currentBurnRate: burnWindows.burnRate(CURRENT_BURN_RATE_WINDOW_MINUTES),
+    burnWindows: burnWindows,
+    measuredColumns: measuredColumns,
+    isAnyMonitorUnderOngoingMaintenance: (): Promise<boolean> => {
+      if (!maintenanceCheckPromise) {
+        maintenanceCheckPromise = isAnySloMonitorUnderOngoingMaintenance({
+          projectId: projectId,
+          monitorIds: monitorIds,
+        });
+      }
+      return maintenanceCheckPromise;
+    },
+    isSloStillEvaluated: checkSloStillEvaluated,
+  };
+}
+
+/*
+ * The request columns an SLO that now measures its monitors clears, when it
+ * has any: nothing, for an SLO that never measured requests, so its state
+ * write stays exactly what it always was.
+ */
+function getClearedRequestColumns(
+  slo: ServiceLevelObjective,
+): SloMeasuredColumns {
+  const hasRequestColumns: boolean = [
+    slo.goodEventCount,
+    slo.totalEventCount,
+    slo.errorBudgetTotalEvents,
+    slo.errorBudgetRemainingEvents,
+  ].some((value: number | undefined | null): boolean => {
+    return value !== undefined && value !== null;
   });
+
+  if (!hasRequestColumns) {
+    return {};
+  }
+
+  return {
+    goodEventCount: null,
+    totalEventCount: null,
+    errorBudgetTotalEvents: null,
+    errorBudgetRemainingEvents: null,
+  };
+}
+
+/*
+ * A Request Success or Request Latency SLO: the share of its services'
+ * requests that were good, counted from their traces in 5-minute steps
+ * (Common/Server/Utils/Slo/SloRequestCounting, which says how).
+ *
+ * Its budget is the bad requests the target allows over the window. A
+ * calendar month counts the requests so far, as every request-based SLO
+ * does: the requests the rest of the month will bring are not known yet.
+ * Nothing pauses it - it has no monitors to turn off - so its burn rate rules
+ * are never held back by a maintenance event either.
+ */
+async function measureRequestSlo(data: {
+  slo: ServiceLevelObjective;
+  sloId: ObjectID;
+  projectId: ObjectID;
+  now: Date;
+  isSloStillEvaluated: SloStillEvaluatedCheckFunction;
+}): Promise<SloMeasuredEvaluation | null> {
+  const { slo, sloId, projectId, now } = data;
+  const sliType: SliType = slo.sliType as SliType;
+  const targetPercentage: number = slo.targetPercentage || 0;
+
+  const serviceIds: Array<ObjectID> = (slo.services || [])
+    .map((service: Service): ObjectID | null => {
+      return service.id || null;
+    })
+    .filter((serviceId: ObjectID | null): serviceId is ObjectID => {
+      return Boolean(serviceId);
+    });
+
+  const latencyThresholdInMilliseconds: number | null =
+    readLatencyThresholdInMilliseconds(slo.latencyThresholdInMilliseconds);
+
+  const misconfiguredReason: string | null = getRequestSloMisconfiguredReason({
+    sliType: sliType,
+    serviceCount: serviceIds.length,
+    latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
+    targetPercentage: targetPercentage,
+  });
+
+  if (misconfiguredReason) {
+    await setGuardStatusAndResolveOpenAlerts({
+      slo: slo,
+      sloId: sloId,
+      projectId: projectId,
+      status: SloStatus.Misconfigured,
+      now: now,
+      isSloStillEvaluated: data.isSloStillEvaluated,
+      reason: misconfiguredReason,
+    });
+    return null;
+  }
+
+  const rules: SloRulesAndTiers = await loadSloRulesAndTiers({
+    sloId: sloId,
+    projectId: projectId,
+  });
+
+  /*
+   * Every window ends at the newest counted step, a few minutes behind now
+   * (SLO_REQUEST_SETTLE_MINUTES), so a step is summed only once the requests
+   * in it have arrived.
+   */
+  const countedUntil: Date = getSettledRequestStepEnd(now);
+
+  const windowStart: Date =
+    slo.windowType === SloWindowType.CalendarMonth
+      ? getComplianceWindow({ slo: slo, now: now }).window.startDate
+      : OneUptimeDate.addRemoveDays(
+          countedUntil,
+          -1 * (slo.windowDays || DEFAULT_ROLLING_WINDOW_DAYS),
+        );
+
+  // The current burn rate's hour and each rule's two windows, once each.
+  const lookbacksInMinutes: Array<number> = Array.from(
+    new Set<number>([
+      CURRENT_BURN_RATE_WINDOW_MINUTES,
+      ...rules.burnRateRules.flatMap(
+        (rule: ServiceLevelObjectiveBurnRateRule): Array<number> => {
+          return [
+            Number(rule.longWindowInMinutes) || 0,
+            Number(rule.shortWindowInMinutes) || 0,
+          ];
+        },
+      ),
+    ]),
+  ).filter((minutes: number): boolean => {
+    return minutes > 0;
+  });
+
+  const measurement: SloRequestMeasurement = await SloRequestCounting.measure({
+    projectId: projectId,
+    sloId: sloId,
+    config: {
+      sliType: sliType,
+      serviceIds: serviceIds,
+      latencyThresholdInMilliseconds: latencyThresholdInMilliseconds,
+    },
+    now: now,
+    neededFrom: OneUptimeDate.getLesserDate(
+      windowStart,
+      OneUptimeDate.addRemoveMinutes(
+        countedUntil,
+        -1 * rules.longestLookbackInMinutes,
+      ),
+    ),
+    firstAccumulatedBucketStartAt: slo.firstAccumulatedBucketStartAt,
+    lastAccumulatedBucketEndAt: slo.lastAccumulatedBucketEndAt,
+    fingerprint: slo.eventAccumulationFingerprint,
+    windowStarts: [
+      windowStart,
+      ...lookbacksInMinutes.map((minutes: number): Date => {
+        return OneUptimeDate.addRemoveMinutes(countedUntil, -1 * minutes);
+      }),
+    ],
+  });
+
+  /*
+   * What the counts now cover, at once and hookless: the counts are already
+   * kept, so the next evaluation carries on from here whatever happens to
+   * this one. Bookkeeping, like the cadence stamp - nothing a workflow or an
+   * open page follows.
+   */
+  await ServiceLevelObjectiveService.updateColumnsByIdWithoutHooks({
+    id: sloId,
+    data: {
+      firstAccumulatedBucketStartAt: measurement.firstAccumulatedBucketStartAt,
+      lastAccumulatedBucketEndAt: measurement.lastAccumulatedBucketEndAt,
+      eventAccumulationFingerprint: measurement.fingerprint,
+    },
+  });
+
+  const countsByLookback: Map<number, SloRequestCounts> = new Map<
+    number,
+    SloRequestCounts
+  >();
+
+  lookbacksInMinutes.forEach((minutes: number, index: number): void => {
+    countsByLookback.set(
+      minutes,
+      measurement.windowCounts[index + 1] || { goodCount: 0, totalCount: 0 },
+    );
+  });
+
+  const sli: SloEventSliResult = computeEventSli(
+    measurement.windowCounts[0] || { goodCount: 0, totalCount: 0 },
+  );
+
+  /*
+   * Zero-data guard, as for monitors: no requests in the window is no
+   * measurement, never a healthy 100%. A quiet service, or one whose spans do
+   * not reach OneUptime, reads Misconfigured with the reason, and is measured
+   * on the first evaluation that counts a request.
+   */
+  if (sli.totalEventCount === 0) {
+    await setGuardStatusAndResolveOpenAlerts({
+      slo: slo,
+      sloId: sloId,
+      projectId: projectId,
+      status: SloStatus.Misconfigured,
+      now: now,
+      isSloStillEvaluated: data.isSloStillEvaluated,
+      reason:
+        "The services this SLO measures have not served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
+    });
+    return null;
+  }
+
+  const eventBudget: SloEventErrorBudget = getEventErrorBudget({
+    sli: sli,
+    targetPercentage: targetPercentage,
+  });
+
+  const countedSince: Date = measurement.firstAccumulatedBucketStartAt;
+
+  const burnWindows: SloBurnWindows = {
+    hasFullWindow: (lookbackInMinutes: number): boolean => {
+      return (
+        countedSince.getTime() <=
+        OneUptimeDate.addRemoveMinutes(
+          countedUntil,
+          -1 * lookbackInMinutes,
+        ).getTime()
+      );
+    },
+    burnRate: (lookbackInMinutes: number): number => {
+      return computeEventBurnRate({
+        counts: countsByLookback.get(lookbackInMinutes) || {
+          goodCount: 0,
+          totalCount: 0,
+        },
+        targetPercentage: targetPercentage,
+      });
+    },
+    sampleCount: (lookbackInMinutes: number): number | null => {
+      return countsByLookback.get(lookbackInMinutes)?.totalCount || 0;
+    },
+    earliestData: countedSince,
+  };
+
+  return {
+    slo: slo,
+    sloId: sloId,
+    projectId: projectId,
+    now: now,
+    targetPercentage: targetPercentage,
+    rules: rules,
+    sliPercentage: sli.sliPercentage,
+    // SloUtil's budget maths is unit-free: here its "seconds" are requests.
+    budget: {
+      budgetTotalSeconds: eventBudget.budgetTotalEvents,
+      budgetConsumedSeconds: eventBudget.budgetConsumedEvents,
+      budgetRemainingSeconds: eventBudget.budgetRemainingEvents,
+      budgetRemainingPercentage: eventBudget.budgetRemainingPercentage,
+    },
+    requestBudget: {
+      sliType: sliType,
+      remainingEvents: eventBudget.budgetRemainingEvents,
+    },
+    currentBurnRate: burnWindows.burnRate(CURRENT_BURN_RATE_WINDOW_MINUTES),
+    burnWindows: burnWindows,
+    measuredColumns: {
+      // Its budget is in requests: no seconds, even ones left from before.
+      errorBudgetRemainingSeconds: null,
+      errorBudgetTotalSeconds: null,
+      goodEventCount: sli.goodEventCount,
+      totalEventCount: sli.totalEventCount,
+      errorBudgetTotalEvents: eventBudget.budgetTotalEvents,
+      errorBudgetRemainingEvents: eventBudget.budgetRemainingEvents,
+    },
+    isAnyMonitorUnderOngoingMaintenance: (): Promise<boolean> => {
+      return Promise.resolve(false);
+    },
+    isSloStillEvaluated: data.isSloStillEvaluated,
+  };
+}
+
+/*
+ * A latency threshold as the worker reads it: a whole number of milliseconds
+ * from 1 up, or null when there is none to read. The column arrives as a
+ * number, but a row written around the validators can hold anything.
+ */
+function readLatencyThresholdInMilliseconds(value: unknown): number | null {
+  const threshold: number =
+    typeof value === "number" ? value : parseFloat(String(value ?? ""));
+
+  if (!isFinite(threshold) || threshold < 1) {
+    return null;
+  }
+
+  return Math.round(threshold);
+}
+
+/*
+ * Why a request SLO cannot be measured, or null when it can. One reason at a
+ * time, in the order a person would fix them.
+ */
+function getRequestSloMisconfiguredReason(data: {
+  sliType: SliType;
+  serviceCount: number;
+  latencyThresholdInMilliseconds: number | null;
+  targetPercentage: number;
+}): string | null {
+  if (data.serviceCount === 0) {
+    return "No services are chosen for this SLO, so there are no requests to measure. Choose the services whose requests it measures.";
+  }
+
+  if (
+    data.sliType === SliType.RequestLatency &&
+    data.latencyThresholdInMilliseconds === null
+  ) {
+    return "This SLO has no latency threshold, so no request can be measured as fast enough. Set the latency threshold in its settings.";
+  }
+
+  if (data.targetPercentage <= 0 || data.targetPercentage >= 100) {
+    return "This SLO's target is outside the valid range - it must be greater than 0 and below 100.";
+  }
+
+  return null;
+}
+
+/*
+ * The compliance window the SLI is measured over, and for a calendar month
+ * the budget denominator of a time-based SLI.
+ *
+ * Rolling: SLI and budget denominator both come from the (data-age clamped)
+ * elapsed window, so the budget denominator is sli.totalSeconds.
+ *
+ * CalendarMonth: the SLI is measured over the elapsed part of the month
+ * (computeTimeSli clips the window end to "now" internally), but the budget
+ * denominator is the FULL period — fixed at period start — otherwise a
+ * 1-minute blip at 00:10 on the 1st reads as instant budget exhaustion.
+ */
+function getComplianceWindow(data: { slo: ServiceLevelObjective; now: Date }): {
+  window: UptimeWindow;
+  budgetTotalSecondsOverride: number | null;
+} {
+  if (data.slo.windowType === SloWindowType.CalendarMonth) {
+    const calendarWindow: ReturnType<typeof SloUtil.getCalendarMonthWindow> =
+      SloUtil.getCalendarMonthWindow({
+        timezone: data.slo.timezone || "UTC",
+        at: data.now,
+      });
+
+    return {
+      window: {
+        startDate: calendarWindow.startDate,
+        endDate: calendarWindow.endDate,
+      },
+      budgetTotalSecondsOverride: calendarWindow.totalSecondsInFullPeriod,
+    };
+  }
+
+  const windowDays: number = data.slo.windowDays || DEFAULT_ROLLING_WINDOW_DAYS;
+
+  return {
+    window: {
+      startDate: OneUptimeDate.getSomeDaysAgo(windowDays),
+      endDate: data.now,
+    },
+    budgetTotalSecondsOverride: null,
+  };
+}
+
+/*
+ * The SLO's enabled burn rate rules, and the tiers of its error budget
+ * policy - all of them, disabled ones included, so a tier change can say how
+ * severe the tier it left was even when that tier has just been switched
+ * off. Only enabled tiers apply.
+ */
+async function loadSloRulesAndTiers(data: {
+  sloId: ObjectID;
+  projectId: ObjectID;
+}): Promise<SloRulesAndTiers> {
+  const burnRateRules: Array<ServiceLevelObjectiveBurnRateRule> =
+    await ServiceLevelObjectiveBurnRateRuleService.findBy({
+      query: {
+        serviceLevelObjectiveId: data.sloId,
+        projectId: data.projectId,
+        isEnabled: true,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        serviceLevelObjectiveId: true,
+        name: true,
+        isEnabled: true,
+        burnRateThreshold: true,
+        longWindowInMinutes: true,
+        shortWindowInMinutes: true,
+        /*
+         * Read for request SLIs only, where a window's requests are its
+         * samples: a rule does not fire on fewer than this many in its long
+         * window. A time-based SLI has a sample every second, so the guard
+         * never applies there (SloBurnWindows.sampleCount answers null).
+         */
+        minimumSampleCount: true,
+        refireSuppressionMinutes: true,
+        shouldCreateAlert: true,
+        shouldCreateIncident: true,
+        alertSeverityId: true,
+        onCallDutyPolicies: {
+          _id: true,
+        },
+        /*
+         * The alert and incident options. Every one of these is read with its
+         * column default in mind (`!== false` for the auto-resolve pair,
+         * `=== true` for the private flags and addSloOwnersAsOwners), so a
+         * column missing here would not throw - it would silently configure
+         * every alert with the default instead of what the user chose. The
+         * many-to-many lists only need ids: they become id-stubs and owner
+         * ids, never loaded entities.
+         */
+        alertTitleTemplate: true,
+        alertDescriptionTemplate: true,
+        alertRemediationNotes: true,
+        isAlertPrivate: true,
+        autoResolveAlert: true,
+        alertLabels: {
+          _id: true,
+        },
+        alertOwnerTeams: {
+          _id: true,
+        },
+        alertOwnerUsers: {
+          _id: true,
+        },
+        incidentSeverityId: true,
+        incidentOnCallDutyPolicies: {
+          _id: true,
+        },
+        incidentTitleTemplate: true,
+        incidentDescriptionTemplate: true,
+        incidentRemediationNotes: true,
+        isIncidentPrivate: true,
+        autoResolveIncident: true,
+        incidentLabels: {
+          _id: true,
+        },
+        incidentOwnerTeams: {
+          _id: true,
+        },
+        incidentOwnerUsers: {
+          _id: true,
+        },
+        addSloOwnersAsOwners: true,
+        lastAlertCreatedAt: true,
+        lastAlertResolvedAt: true,
+        lastIncidentCreatedAt: true,
+        lastIncidentResolvedAt: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  const allPolicyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+    await ServiceLevelObjectiveErrorBudgetPolicyTierService.findBy({
+      query: {
+        serviceLevelObjectiveId: data.sloId,
+        projectId: data.projectId,
+      },
+      select: POLICY_TIER_SELECT,
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  const policyTiers: Array<ServiceLevelObjectiveErrorBudgetPolicyTier> =
+    allPolicyTiers.filter(
+      (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+        return tier.isEnabled === true;
+      },
+    );
+
+  const longestLookbackInMinutes: number = burnRateRules.reduce(
+    (longestSoFar: number, rule: ServiceLevelObjectiveBurnRateRule): number => {
+      return Math.max(longestSoFar, rule.longWindowInMinutes || 0);
+    },
+    CURRENT_BURN_RATE_WINDOW_MINUTES,
+  );
+
+  return {
+    burnRateRules: burnRateRules,
+    allPolicyTiers: allPolicyTiers,
+    policyTiers: policyTiers,
+    longestLookbackInMinutes: longestLookbackInMinutes,
+  };
+}
+
+/*
+ * Everything an evaluation does with what it measured, whichever SLI it
+ * measured it from: the status, the error budget policy's tier and deploy
+ * gate, the one hooked state write, the feed, history, metrics, owners, and
+ * the burn rate rules and policy tiers' alerts and incidents.
+ */
+async function commitSloEvaluation(
+  evaluation: SloMeasuredEvaluation,
+): Promise<void> {
+  const {
+    slo,
+    sloId,
+    projectId,
+    now,
+    targetPercentage,
+    budget,
+    currentBurnRate,
+  } = evaluation;
+  const checkSloStillEvaluated: SloStillEvaluatedCheckFunction =
+    evaluation.isSloStillEvaluated;
 
   /*
    * Status with hysteresis. Misconfigured / Paused are set by the guards
@@ -789,23 +1368,6 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
    * records that owners WERE notified, so it is stamped only after the send
    * actually dispatched something (see below). Stamping it up-front means a
    * failed send silences the next 60 minutes of notifications.
-   *
-   * INTEGER COLUMNS. errorBudgetRemainingSeconds / errorBudgetTotalSeconds are
-   * ColumnType.Number === Postgres `integer`, and the budget seconds are almost
-   * never integral: `1 - 99.9/100` is 0.0009999999999998899 in IEEE-754, so a
-   * 30-day 99.9% SLO computes a total budget of 2591.9999999997144 seconds and
-   * Postgres rejects the whole UPDATE with
-   * `invalid input syntax for type integer`. That throw is swallowed by the
-   * per-SLO try/catch in the sweep, so it silently took out EVERYTHING
-   * downstream of this write — state columns, history rows (empty charts
-   * forever), owner notifications and every burn-rate rule — leaving the
-   * feature inert with one error log per SLO per minute.
-   *
-   * Whole seconds is the right resolution for these two display columns, and
-   * Math.round keeps the sign of a negative (over-budget) remainder. Only the
-   * values persisted here are rounded: the status/threshold decisions above,
-   * the history rows and the notification/alert bodies below all keep the full
-   * precision of the budget result.
    */
   /*
    * The error budget policy tier, with the same hysteresis as the status
@@ -817,7 +1379,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   const policyTier: ServiceLevelObjectiveErrorBudgetPolicyTier | null =
     computeSloPolicyTier({
       budgetRemainingPercentage: budget.budgetRemainingPercentage,
-      tiers: policyTiers,
+      tiers: evaluation.rules.policyTiers,
       currentTierId: slo.currentErrorBudgetPolicyTierId,
     });
 
@@ -843,11 +1405,9 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       now: now,
     });
 
-  const stateUpdate: {
+  const stateUpdate: SloMeasuredColumns & {
     currentSliPercentage: number;
     errorBudgetRemainingPercentage: number;
-    errorBudgetRemainingSeconds: number;
-    errorBudgetTotalSeconds: number;
     currentBurnRate: number;
     sloStatus: SloStatus;
     currentErrorBudgetPolicyTierId?: ObjectID | null;
@@ -857,12 +1417,11 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     deploymentsFrozenAt?: Date | null;
   } = {
     // Decimal columns — persisted unrounded.
-    currentSliPercentage: sli.sliPercentage,
+    currentSliPercentage: evaluation.sliPercentage,
     errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
     currentBurnRate: currentBurnRate,
-    // Integer columns — must be whole numbers.
-    errorBudgetRemainingSeconds: Math.round(budget.budgetRemainingSeconds), // signed.
-    errorBudgetTotalSeconds: Math.round(budget.budgetTotalSeconds),
+    // The budget in the SLI's own unit: whole seconds, or requests.
+    ...evaluation.measuredColumns,
     sloStatus: newStatus,
     /*
      * The tier columns only when they change, in this same write: a tier
@@ -930,10 +1489,11 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       newStatus: newStatus,
       now: now,
       measurement: {
-        sliPercentage: sli.sliPercentage,
+        sliPercentage: evaluation.sliPercentage,
         targetPercentage: targetPercentage,
         errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
         errorBudgetRemainingSeconds: budget.budgetRemainingSeconds,
+        requestBudget: evaluation.requestBudget,
         currentBurnRate: currentBurnRate,
         currentBurnRateWindowInMinutes: CURRENT_BURN_RATE_WINDOW_MINUTES,
         atRiskThresholdPercentage:
@@ -951,11 +1511,12 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
    */
   await postPolicyChange({
     slo: slo,
-    allPolicyTiers: allPolicyTiers,
+    allPolicyTiers: evaluation.rules.allPolicyTiers,
     policyTier: policyTier,
     policyTierChange: policyTierChange,
     deploymentGateChange: deploymentGateChange,
     budget: budget,
+    requestBudget: evaluation.requestBudget,
     now: now,
   });
 
@@ -971,7 +1532,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         sloId: sloId,
         metricName: "sli.percent",
         bucketStart: bucketStart,
-        value: sli.sliPercentage,
+        value: evaluation.sliPercentage,
       },
       {
         projectId: projectId,
@@ -1007,6 +1568,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
    * status as an ordinal. The Paused / Misconfigured / zero-data guards
    * returned before this point and post only their target, through
    * setGuardStatusAndResolveOpenAlerts: no SLI, budget, burn rate or status.
+   * A request SLI posts no budget in seconds: its budget is in requests.
    *
    * Its own try/catch, and after the history write rather than instead of
    * it: SloHistory keeps 400 days for the long-range charts while metric rows
@@ -1020,12 +1582,13 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       sloName: slo.name,
       labels: slo.labels,
       values: {
-        [SloMetricType.SliPercent]: sli.sliPercentage,
+        [SloMetricType.SliPercent]: evaluation.sliPercentage,
         [SloMetricType.TargetPercent]: targetPercentage,
         [SloMetricType.ErrorBudgetRemainingPercent]:
           budget.budgetRemainingPercentage,
-        [SloMetricType.ErrorBudgetRemainingSeconds]:
-          budget.budgetRemainingSeconds,
+        [SloMetricType.ErrorBudgetRemainingSeconds]: evaluation.requestBudget
+          ? null
+          : budget.budgetRemainingSeconds,
         [SloMetricType.BurnRate]: currentBurnRate,
         [SloMetricType.Status]:
           SloMetricTypeUtil.getStatusMetricValue(newStatus),
@@ -1045,8 +1608,9 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     const wasNotificationSent: boolean = await sendStatusChangeNotification({
       slo: slo,
       newStatus: newStatus,
-      sli: sli,
+      sliPercentage: evaluation.sliPercentage,
       budget: budget,
+      requestBudget: evaluation.requestBudget,
       targetPercentage: targetPercentage,
     });
 
@@ -1073,49 +1637,25 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   }
 
   // Burn rate rules.
-  let maintenanceCheckPromise: Promise<boolean> | null = null;
-
-  /*
-   * Data age of this SLO, computed ONCE for all rules over the full fetched
-   * window (which already covers the longest rule lookback). Each rule then
-   * compares it against its own long window.
-   */
-  const earliestEventStart: Date | null = SloUtil.getEarliestEventStartDate(
-    perMonitorTimelines,
-    {
-      startDate: fetchWindowStart,
-      endDate: fetchWindowEnd,
-    },
-  );
-
   const context: SloEvaluationContext = {
     slo: slo,
     sloId: sloId,
     projectId: projectId,
-    perMonitorTimelines: perMonitorTimelines,
-    downtimeStatuses: downtimeStatuses,
-    multiMonitorMode: multiMonitorMode,
+    burnWindows: evaluation.burnWindows,
     targetPercentage: targetPercentage,
     budget: budget,
-    currentSliPercentage: sli.sliPercentage,
+    requestBudget: evaluation.requestBudget,
+    currentSliPercentage: evaluation.sliPercentage,
     sloStatus: newStatus,
     policyTier: policyTier,
     now: now,
-    earliestEventStart: earliestEventStart,
-    isAnyMonitorUnderOngoingMaintenance: (): Promise<boolean> => {
-      if (!maintenanceCheckPromise) {
-        maintenanceCheckPromise = isAnySloMonitorUnderOngoingMaintenance({
-          projectId: projectId,
-          monitorIds: monitorIds,
-        });
-      }
-      return maintenanceCheckPromise;
-    },
+    isAnyMonitorUnderOngoingMaintenance:
+      evaluation.isAnyMonitorUnderOngoingMaintenance,
     // The same memoized read the state write already made: never a second one.
     isSloStillEvaluated: checkSloStillEvaluated,
   };
 
-  for (const rule of burnRateRules) {
+  for (const rule of evaluation.rules.burnRateRules) {
     try {
       await evaluateBurnRateRule({
         context: context,
@@ -1134,7 +1674,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 
   await evaluatePolicyTierOutputs({
     context: context,
-    policyTiers: policyTiers,
+    policyTiers: evaluation.rules.policyTiers,
   });
 }
 
@@ -1313,6 +1853,8 @@ async function postPolicyChange(data: {
   policyTierChange: PolicyTierChange;
   deploymentGateChange: SloDeploymentGateChange;
   budget: ErrorBudgetResult;
+  // A request SLI's budget, said in requests.
+  requestBudget: SloFeedRequestBudget | null;
   now: Date;
 }): Promise<void> {
   const { slo, deploymentGateChange } = data;
@@ -1352,6 +1894,7 @@ async function postPolicyChange(data: {
           hasChanged: deploymentGateChange.transition !== null,
         },
         budget: data.budget,
+        requestBudget: data.requestBudget,
         now: data.now,
       });
 
@@ -1375,6 +1918,7 @@ async function postPolicyChange(data: {
         tier: data.policyTier,
         transition: deploymentGateChange.transition,
         budget: data.budget,
+        requestBudget: data.requestBudget,
         now: data.now,
       });
 
@@ -1413,6 +1957,7 @@ async function postPolicyTierChangedFeedItem(data: {
   // The deploy gate after the change.
   deployments: SloFeedDeploymentGate;
   budget: ErrorBudgetResult;
+  requestBudget: SloFeedRequestBudget | null;
   now: Date;
 }): Promise<SloFeedMarkdownParts | null> {
   if (!data.slo.id || !data.slo.projectId) {
@@ -1442,6 +1987,7 @@ async function postPolicyTierChangedFeedItem(data: {
       isEscalation: data.isEscalation,
       errorBudgetRemainingPercentage: data.budget.budgetRemainingPercentage,
       errorBudgetRemainingSeconds: data.budget.budgetRemainingSeconds,
+      requestBudget: data.requestBudget,
       deployments: data.deployments,
     });
 
@@ -1487,6 +2033,7 @@ async function postDeploymentGateChangedFeedItem(data: {
   tier: ServiceLevelObjectiveErrorBudgetPolicyTier | null;
   transition: SloDeploymentGateTransition;
   budget: ErrorBudgetResult;
+  requestBudget: SloFeedRequestBudget | null;
   now: Date;
 }): Promise<SloFeedMarkdownParts | null> {
   if (!data.slo.id || !data.slo.projectId) {
@@ -1514,6 +2061,7 @@ async function postDeploymentGateChangedFeedItem(data: {
       isAllowed: isAllowed,
       errorBudgetRemainingPercentage: data.budget.budgetRemainingPercentage,
       errorBudgetRemainingSeconds: data.budget.budgetRemainingSeconds,
+      requestBudget: data.requestBudget,
     });
 
     const markdown: SloFeedMarkdown = toSloFeedMarkdown(parts);
@@ -1740,7 +2288,7 @@ function getMisconfiguredGuardReason(data: {
   monitorCount: number;
 }): string {
   if (data.sliType !== SliType.MonitorUptime) {
-    return "This SLO's SLI type is not Monitor Uptime, which is the only SLI type OneUptime measures today.";
+    return "This SLO's SLI type is not one OneUptime measures. Choose Monitor Uptime, Request Success or Request Latency.";
   }
 
   if (data.monitorCount === 0) {
@@ -1932,121 +2480,6 @@ async function saveGuardTargetMetric(data: {
 }
 
 /*
- * Timeline overlap fetch, one query per monitor (SloUtil combines monitors
- * with explicit semantics — never feed it a merged multi-monitor array).
- * The overlap predicate is the StatusPageService contract: a row overlaps
- * [start, end] when it started on or before the window end AND it either
- * ended on or after the window start or is still open (endsAt IS NULL).
- * findAllBy pages internally past the 10k LIMIT_MAX for long windows.
- */
-async function fetchPerMonitorTimelines(data: {
-  projectId: ObjectID;
-  monitorIds: Array<ObjectID>;
-  windowStart: Date;
-  windowEnd: Date;
-}): Promise<Array<MonitorTimelineSet>> {
-  const perMonitorTimelines: Array<MonitorTimelineSet> = [];
-
-  for (const monitorId of data.monitorIds) {
-    const timelines: Array<MonitorStatusTimeline> =
-      await MonitorStatusTimelineService.findAllBy({
-        query: {
-          monitorId: monitorId,
-          projectId: data.projectId,
-          startsAt: QueryHelper.lessThanEqualTo(data.windowEnd),
-          endsAt: QueryHelper.greaterThanEqualToOrNull(data.windowStart),
-        },
-        select: {
-          _id: true,
-          startsAt: true,
-          endsAt: true,
-          monitorId: true,
-          monitorStatusId: true,
-          /*
-           * The time with the monitor's monitoring off, which SloUtil leaves
-           * out of the SLI: it neither spends the budget nor counts as good
-           * (issue #6480).
-           */
-          isMonitoringOff: true,
-          monitorStatus: {
-            _id: true,
-            priority: true,
-            name: true,
-            color: true,
-            isOperationalState: true,
-          },
-        },
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    perMonitorTimelines.push({
-      monitorId: monitorId,
-      timelines: timelines,
-    });
-  }
-
-  return perMonitorTimelines;
-}
-
-/*
- * Full MonitorStatus rows for the SLO's configured downtime statuses.
- * When the SLO has none configured, fall back to every non-operational
- * status of the project (the StatusPage default).
- */
-async function getDowntimeStatuses(data: {
-  projectId: ObjectID;
-  configuredStatusIds: Array<ObjectID>;
-}): Promise<Array<MonitorStatus>> {
-  if (data.configuredStatusIds.length > 0) {
-    return await MonitorStatusService.findBy({
-      query: {
-        _id: QueryHelper.any(data.configuredStatusIds),
-        projectId: data.projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-        color: true,
-        priority: true,
-        isOperationalState: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: {
-        isRoot: true,
-      },
-    });
-  }
-
-  const allStatuses: Array<MonitorStatus> = await MonitorStatusService.findBy({
-    query: {
-      projectId: data.projectId,
-    },
-    select: {
-      _id: true,
-      name: true,
-      color: true,
-      priority: true,
-      isOperationalState: true,
-    },
-    skip: 0,
-    limit: LIMIT_PER_PROJECT,
-    props: {
-      isRoot: true,
-    },
-  });
-
-  return allStatuses.filter((status: MonitorStatus) => {
-    return !status.isOperationalState;
-  });
-}
-
-/*
  * Burn rate over the trailing lookback window, computed from the already
  * fetched timelines. No data in the lookback => burn 0 (computeBurnRate's
  * contract) — no evidence of burn.
@@ -2212,6 +2645,27 @@ async function isSloStillEvaluated(data: {
   return current.isEnabled === true && current.isArchived === false;
 }
 
+/*
+ * Whether a rule's long window counted enough requests to fire on: always,
+ * for a time-based SLI (no sample count) or a rule with no minimum.
+ */
+function hasEnoughSamplesForRule(data: {
+  rule: ServiceLevelObjectiveBurnRateRule;
+  sampleCount: number | null;
+}): boolean {
+  const minimumSampleCount: number = Number(data.rule.minimumSampleCount);
+
+  if (
+    data.sampleCount === null ||
+    !isFinite(minimumSampleCount) ||
+    minimumSampleCount <= 0
+  ) {
+    return true;
+  }
+
+  return data.sampleCount >= minimumSampleCount;
+}
+
 async function evaluateBurnRateRule(data: {
   context: SloEvaluationContext;
   rule: ServiceLevelObjectiveBurnRateRule;
@@ -2284,38 +2738,36 @@ async function evaluateBurnRateRule(data: {
    * long-window hold state, which is equally unmeasurable) and fall through to
    * the resolution branch below.
    */
-  const longWindowStart: Date = OneUptimeDate.addRemoveMinutes(
-    context.now,
-    -1 * rule.longWindowInMinutes,
-  );
-
-  const hasFullLongWindow: boolean = Boolean(
-    context.earliestEventStart &&
-      context.earliestEventStart.getTime() <= longWindowStart.getTime(),
+  const hasFullLongWindow: boolean = context.burnWindows.hasFullWindow(
+    rule.longWindowInMinutes,
   );
 
   if (hasFullLongWindow) {
-    const burnRateLong: number = computeBurnRateForLookback({
-      perMonitorTimelines: context.perMonitorTimelines,
-      downtimeStatuses: context.downtimeStatuses,
-      mode: context.multiMonitorMode,
-      targetPercentage: context.targetPercentage,
-      lookbackInMinutes: rule.longWindowInMinutes,
-      now: context.now,
-    });
+    const burnRateLong: number = context.burnWindows.burnRate(
+      rule.longWindowInMinutes,
+    );
 
-    const burnRateShort: number = computeBurnRateForLookback({
-      perMonitorTimelines: context.perMonitorTimelines,
-      downtimeStatuses: context.downtimeStatuses,
-      mode: context.multiMonitorMode,
-      targetPercentage: context.targetPercentage,
-      lookbackInMinutes: rule.shortWindowInMinutes,
-      now: context.now,
+    const burnRateShort: number = context.burnWindows.burnRate(
+      rule.shortWindowInMinutes,
+    );
+
+    /*
+     * Minimum Sample Count, for a request SLI: on a quiet service one failed
+     * request in an hour is a 100% error rate, so a rule whose long window
+     * counted fewer requests than its minimum does not fire. It is no
+     * recovery either - the burn is just not trustworthy - so a breached long
+     * window holds, as below, and a recovered one resolves.
+     */
+    const hasEnoughSamples: boolean = hasEnoughSamplesForRule({
+      rule: rule,
+      sampleCount: context.burnWindows.sampleCount(rule.longWindowInMinutes),
     });
 
     // Multi-window firing: both windows must breach (Google SRE Workbook).
     const isFiring: boolean =
-      burnRateLong >= threshold && burnRateShort >= threshold;
+      burnRateLong >= threshold &&
+      burnRateShort >= threshold &&
+      hasEnoughSamples;
 
     if (isFiring) {
       /*
@@ -2362,7 +2814,7 @@ async function evaluateBurnRateRule(data: {
     }
   } else {
     logger.debug(
-      `Slo:EvaluateSlos - Not firing burn rate rule ${ruleId.toString()} for SLO ${context.sloId.toString()}: not enough history to evaluate a ${rule.longWindowInMinutes}-minute burn window (earliest observed data: ${context.earliestEventStart?.toISOString() || "none"}). An already-open alert or incident for this rule is still resolved.`,
+      `Slo:EvaluateSlos - Not firing burn rate rule ${ruleId.toString()} for SLO ${context.sloId.toString()}: not enough history to evaluate a ${rule.longWindowInMinutes}-minute burn window (earliest observed data: ${context.burnWindows.earliestData?.toISOString() || "none"}). An already-open alert or incident for this rule is still resolved.`,
       {
         projectId: context.projectId.toString(),
         sloId: context.sloId.toString(),
@@ -2386,7 +2838,9 @@ async function evaluateBurnRateRule(data: {
     }),
     rootCause: hasFullLongWindow
       ? "Burn rate dropped below threshold."
-      : mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`.toString(),
+      : context.requestBudget
+        ? mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of counted requests, so this burn rate rule can no longer justify an open alert or incident.`.toString()
+        : mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`.toString(),
     /*
      * Only a measured recovery is what the rule's auto-resolve switches
      * describe. Losing the history to measure at all is not a recovery - the
@@ -3116,11 +3570,15 @@ async function buildBurnRateDeclaration(data: {
       currentSliPercentage: context.currentSliPercentage,
       errorBudgetRemainingPercentage: context.budget.budgetRemainingPercentage,
       errorBudgetRemainingSeconds: context.budget.budgetRemainingSeconds,
+      requestBudget: context.requestBudget,
       windowType: context.slo.windowType,
       windowDays: context.slo.windowDays,
       timezone: context.slo.timezone,
       policyTier: toPolicyTierTemplateValues(context.policyTier),
     });
+
+  // A request SLO's budget is in requests: its built-in text says so.
+  const isRequestSli: boolean = context.requestBudget !== null;
 
   const defaultCopy: { title: string; description: string } = {
     title:
@@ -3130,7 +3588,9 @@ async function buildBurnRateDeclaration(data: {
       ) || "",
     description:
       renderSloBurnRateTemplate(
-        DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
+        isRequestSli
+          ? DEFAULT_SLO_REQUEST_BURN_RATE_DESCRIPTION_TEMPLATE
+          : DEFAULT_SLO_BURN_RATE_DESCRIPTION_TEMPLATE,
         variables,
       ) || "",
   };
@@ -3142,14 +3602,20 @@ async function buildBurnRateDeclaration(data: {
     variables: variables,
     alert: renderSloRecordOutputCopy({
       titleTemplate: rule.alertTitleTemplate,
-      descriptionTemplate: rule.alertDescriptionTemplate,
+      descriptionTemplate: getSloBurnRateDescriptionTemplate({
+        template: rule.alertDescriptionTemplate,
+        isRequestSli: isRequestSli,
+      }),
       remediationNotesTemplate: rule.alertRemediationNotes,
       variables: variables,
       defaultCopy: defaultCopy,
     }),
     incident: renderSloRecordOutputCopy({
       titleTemplate: rule.incidentTitleTemplate,
-      descriptionTemplate: rule.incidentDescriptionTemplate,
+      descriptionTemplate: getSloBurnRateDescriptionTemplate({
+        template: rule.incidentDescriptionTemplate,
+        isRequestSli: isRequestSli,
+      }),
       remediationNotesTemplate: rule.incidentRemediationNotes,
       variables: variables,
       defaultCopy: defaultCopy,
@@ -3227,6 +3693,7 @@ async function buildPolicyTierDeclaration(data: {
       currentSliPercentage: context.currentSliPercentage,
       errorBudgetRemainingPercentage: context.budget.budgetRemainingPercentage,
       errorBudgetRemainingSeconds: context.budget.budgetRemainingSeconds,
+      requestBudget: context.requestBudget,
       windowType: context.slo.windowType,
       windowDays: context.slo.windowDays,
       timezone: context.slo.timezone,
@@ -4339,11 +4806,13 @@ async function postSloRecordResolvedFeedItem(data: {
 async function sendStatusChangeNotification(data: {
   slo: ServiceLevelObjective;
   newStatus: SloStatus;
-  sli: TimeSliResult;
+  sliPercentage: number;
   budget: ErrorBudgetResult;
+  // A request SLI's budget: its owners hear of requests, not minutes.
+  requestBudget: SloFeedRequestBudget | null;
   targetPercentage: number;
 }): Promise<boolean> {
-  const { slo, newStatus, sli, budget } = data;
+  const { slo, newStatus, budget } = data;
 
   if (!slo.id || !slo.projectId) {
     return false;
@@ -4386,13 +4855,32 @@ async function sendStatusChangeNotification(data: {
 
     const subject: string = `[SLO ${newStatus}] ${sloName}`;
 
-    const currentSliPercentage: number = roundToTwoDecimals(sli.sliPercentage);
+    const currentSliPercentage: number = roundToTwoDecimals(data.sliPercentage);
     const errorBudgetRemainingPercentage: number = roundToTwoDecimals(
       budget.budgetRemainingPercentage,
     );
+
+    /*
+     * The budget left in the SLI's own words: "12.5 minutes", or for a
+     * request SLI "1,234 failed requests" ("-12 slow requests" once spent).
+     */
+    const requestBudgetText: string | null = data.requestBudget
+      ? `${Math.round(data.requestBudget.remainingEvents) < 0 ? "-" : ""}${formatRequestBudget(
+          {
+            sliType: data.requestBudget.sliType,
+            remainingEvents: data.requestBudget.remainingEvents,
+          },
+        )}`
+      : null;
+
     const errorBudgetRemainingMinutes: number = roundToTwoDecimals(
       budget.budgetRemainingSeconds / 60,
     );
+
+    const budgetLeftText: string =
+      requestBudgetText !== null
+        ? requestBudgetText
+        : `${errorBudgetRemainingMinutes} minutes`;
 
     // Bare numbers — the email template appends the % sign itself.
     const vars: Dictionary<string> = {
@@ -4402,7 +4890,13 @@ async function sendStatusChangeNotification(data: {
       targetPercentage: String(roundToTwoDecimals(data.targetPercentage)),
       currentSliPercentage: String(currentSliPercentage),
       errorBudgetRemainingPercentage: String(errorBudgetRemainingPercentage),
-      errorBudgetRemainingMinutes: String(errorBudgetRemainingMinutes),
+      /*
+       * One of the two, for the template's one budget row: minutes for a
+       * time-based SLI, requests for a request SLI.
+       */
+      ...(requestBudgetText !== null
+        ? { errorBudgetRemainingRequests: requestBudgetText }
+        : { errorBudgetRemainingMinutes: String(errorBudgetRemainingMinutes) }),
       sloViewLink: sloViewLink,
     };
 
@@ -4424,7 +4918,7 @@ async function sendStatusChangeNotification(data: {
         isSubjectLiteral: true,
       };
 
-      const news: string = `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${errorBudgetRemainingMinutes} minutes). View: ${sloViewLink}`;
+      const news: string = `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${budgetLeftText}). View: ${sloViewLink}`;
 
       const sms: SMSMessage = {
         message: buildNotificationSms(news),

@@ -212,8 +212,8 @@ For å skrive din egen tekst bruker du malvariabler i tittelen, beskrivelsen og 
 | `{{targetPercentage}}` | Målet til SLO-et, i prosent. | `99.9` |
 | `{{currentSliPercentage}}` | SLI-en målt over samsvarsvinduet til SLO-et, i prosent. | `99.87` |
 | `{{errorBudgetRemainingPercentage}}` | Andelen av feilbudsjettet som fortsatt er tilgjengelig, i prosent. Negativ når budsjettet er overskredet. | `42.5` |
-| `{{errorBudgetRemaining}}` | Feilbudsjett som fortsatt er tilgjengelig, som varighet. Starter med et minustegn når budsjettet er overskredet. | `18m 22s` |
-| `{{errorBudgetRemainingMinutes}}` | Feilbudsjett som fortsatt er tilgjengelig, i minutter. | `18.37` |
+| `{{errorBudgetRemaining}}` | Feilbudsjett som fortsatt er tilgjengelig, som varighet, eller, for et forespørsels-SLO, som de mislykkede eller trege forespørslene det fortsatt tillater. Starter med et minustegn når budsjettet er overskredet. | `18m 22s` |
+| `{{errorBudgetRemainingMinutes}}` | Feilbudsjett som fortsatt er tilgjengelig, i minutter. Tom for et forespørsels-SLO, der budsjettet telles i forespørsler. | `18.37` |
 | `{{windowDescription}}` | Samsvarsvinduet til SLO-et, med ord. | `rolling 30-day window` |
 | `{{policyTier}}` | Navnet på nivået i feilbudsjettpolicyen som SLO-et er i etter denne evalueringen. "None" når det ikke er i noe nivå. | `Reliability first` |
 | `{{policyTierThresholdPercentage}}` | Terskelen for gjenværende budsjett for det nivået, i prosent. Tom når SLO-et ikke er i noe nivå. | `25` |

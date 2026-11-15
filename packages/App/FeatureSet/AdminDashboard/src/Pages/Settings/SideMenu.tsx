@@ -27,10 +27,11 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
 
   return (
     <SideMenu>
-      <SideMenuSection title={t("sideMenu.basic")}>
+      <SideMenuSection title={t("sideMenu.basic")} isTitleTranslated={true}>
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsAuthentication"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route,
             ),
@@ -46,6 +47,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsSso"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SSO] as Route,
             ),
@@ -59,6 +61,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsProducts"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_PRODUCTS] as Route,
             ),
@@ -78,11 +81,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
        */}
       <SideMenuSection
         title={t("sideMenu.settingsNotifications")}
+        isTitleTranslated={true}
         defaultCollapsed={true}
       >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsEmails"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SMTP] as Route,
             ),
@@ -92,6 +97,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsCallSms"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_CALL_AND_SMS] as Route,
             ),
@@ -101,6 +107,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsWhatsapp"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_WHATSAPP] as Route,
             ),
@@ -110,6 +117,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsTelegram"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_TELEGRAM] as Route,
             ),
@@ -134,11 +142,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
 
       <SideMenuSection
         title={t("sideMenu.settingsMonitoring")}
+        isTitleTranslated={true}
         defaultCollapsed={true}
       >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalProbes"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_PROBES] as Route,
             ),
@@ -148,11 +158,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       </SideMenuSection>
       <SideMenuSection
         title={t("sideMenu.settingsRunbooks")}
+        isTitleTranslated={true}
         defaultCollapsed={true}
       >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalRunners"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_GLOBAL_RUNNERS] as Route,
             ),
@@ -162,11 +174,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       </SideMenuSection>
       <SideMenuSection
         title={t("sideMenu.settingsDataRetention")}
+        isTitleTranslated={true}
         defaultCollapsed={true}
       >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsDataRetention"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DATA_RETENTION] as Route,
             ),
@@ -181,11 +195,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
        */}
       <SideMenuSection
         title={t("sideMenu.settingsTelemetry")}
+        isTitleTranslated={true}
         defaultCollapsed={true}
       >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsIngestionBudgets"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_INGESTION_BUDGETS] as Route,
             ),
@@ -193,10 +209,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Gauge}
         />
       </SideMenuSection>
-      <SideMenuSection title={t("sideMenu.settingsAi")} defaultCollapsed={true}>
+      <SideMenuSection
+        title={t("sideMenu.settingsAi")}
+        isTitleTranslated={true}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsGlobalLlmProviders"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_LLM_PROVIDERS] as Route,
             ),
@@ -206,11 +227,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       </SideMenuSection>
       <SideMenuSection
         title={t("sideMenu.settingsApiIntegrations")}
+        isTitleTranslated={true}
         defaultCollapsed={true}
       >
         <SideMenuItem
           link={{
             title: t("sideMenu.settingsApiKey"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_API_KEY] as Route,
             ),

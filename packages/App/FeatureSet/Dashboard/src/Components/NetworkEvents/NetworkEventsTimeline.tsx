@@ -412,6 +412,7 @@ const NetworkEventsTimeline: FunctionComponent<ComponentProps> = (
                   text={translator.translateTemplate(TIMES_ARE_IN, {
                     zone: day.zoneName,
                   })}
+                  isTextTranslated={true}
                 >
                   <span
                     className="text-xs text-gray-500"
