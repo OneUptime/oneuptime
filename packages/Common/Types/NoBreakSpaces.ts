@@ -407,22 +407,29 @@ const UNITS_OF_TWO_WORDS: ReadonlyArray<[string, string]> = [
  * a {{placeholder}} or written digits, then a no-break space. The unit
  * ends where its second word does, not inside a longer word.
  */
-const SPACES_INSIDE_A_HELD_UNIT: RegExp = new RegExp(
-  `(${UNITS_OF_TWO_WORDS.map(([first, second]: [string, string]): string => {
+const SPACES_INSIDE_A_UNIT_PATTERN: string = UNITS_OF_TWO_WORDS.map(
+  ([first, second]: [string, string]): string => {
     return `(?<=(?:\\}\\}|\\p{Nd})\\u00A0${escapeRegExp(first)})${BREAKING_SPACES}(?=${escapeRegExp(second)}(?![\\p{L}\\p{M}\\p{N}]))`;
-  }).join("|")})`,
+  },
+).join("|");
+
+const SPACES_INSIDE_A_HELD_UNIT: RegExp = new RegExp(
+  `(${SPACES_INSIDE_A_UNIT_PATTERN})`,
   "gu",
 );
 
+// The first words of the units of two words, each once.
+const FIRST_WORD_PATTERN: string = Array.from(
+  new Set(
+    UNITS_OF_TWO_WORDS.map(([first]: [string, string]): string => {
+      return escapeRegExp(first);
+    }),
+  ),
+).join("|");
+
 // Whether a text may hold a unit of two words after a held number.
 const HAS_A_UNIT_OF_TWO_WORDS: RegExp = new RegExp(
-  `\\u00A0(?:${Array.from(
-    new Set(
-      UNITS_OF_TWO_WORDS.map(([first]: [string, string]): string => {
-        return escapeRegExp(first);
-      }),
-    ),
-  ).join("|")})${BREAKING_SPACES}`,
+  `\\u00A0(?:${FIRST_WORD_PATTERN})${BREAKING_SPACES}`,
   "u",
 );
 

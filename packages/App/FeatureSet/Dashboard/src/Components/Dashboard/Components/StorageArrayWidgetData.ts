@@ -326,7 +326,7 @@ export function formatStorageBytes(
         language: translator.language,
       })
     : scaled.toFixed(decimals);
-  return `${figure} ${units[unitIndex]}`;
+  return `${figure}\u00A0${units[unitIndex]}`;
 }
 
 /*

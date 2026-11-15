@@ -41296,7 +41296,7 @@
   "Upstream Table ID": "Upstream Table ID",
   "{{count}}s": "{{count}}s",
   "{{hours}}h {{minutes}}m": "{{hours}}u {{minutes}}m",
-  "{{minutes}}m {{seconds}}s": "{{minutes}}m {{seconds}}s",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min {{seconds}} s",
   "Before the error: {{signals}}": "Vóór de fout: {{signals}}",
   "Could not check for a recording: {{error}}": "Kon niet controleren of er een opname is: {{error}}",
   "Every run of this pipeline, newest first: how it went, how long it took, and what it wrote.": "Elke uitvoering van deze pipeline, nieuwste eerst: hoe het ging, hoe lang het duurde en wat er is geschreven.",

@@ -186,7 +186,7 @@ export function formatVMwareHostBytes(
   return `${formatReaderFigure(scaled, {
     decimals: unitIndex === 0 ? 0 : 1,
     language: translator.language,
-  })} ${units[unitIndex]}`;
+  })}\u00A0${units[unitIndex]}`;
 }
 
 /*

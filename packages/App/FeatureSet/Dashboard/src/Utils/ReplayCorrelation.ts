@@ -18,7 +18,6 @@ import {
 import {
   createTranslator,
   DEFAULT_LANGUAGE,
-  translationKey,
   Translator,
 } from "Common/Types/Translator";
 import { formatMilliseconds } from "./Milliseconds";
@@ -426,18 +425,11 @@ export function buildReplayExceptionGroupLinks(
   return links;
 }
 
-// "2m 05s": the details panel's minutes and seconds, short.
-export const REPLAY_MINUTES_AND_SECONDS_TEMPLATE: string = translationKey(
-  "{{minutes}}m {{seconds}}s",
-);
-
 /*
  * A millisecond quantity for the details panel: "420 ms" below a second,
- * "1.5 s" below a minute, "2m 05s" beyond - each in the reader's units and
- * digits where a sentence of theirs holds it ("۱٫۵ ثانیه"; #7418, #8348).
- * The previous form rounded to whole seconds, which printed "0s
- * (server-clamped)" for a 300 ms skew and listed a "0s missing" gap - copy
- * that contradicted itself.
+ * "1.5s" below a minute, "2m 05s" beyond. The previous form rounded to
+ * whole seconds, which printed "0s (server-clamped)" for a 300 ms skew and
+ * listed a "0s missing" gap - copy that contradicted itself.
  */
 export function formatReplayMilliseconds(
   ms: number,
@@ -448,36 +440,31 @@ export function formatReplayMilliseconds(
   }
 
   const absolute: number = Math.abs(ms);
-  const direction: number = ms < 0 ? -1 : 1;
+  const sign: string = ms < 0 ? "-" : "";
 
   if (absolute < 1000) {
-    return formatMilliseconds(translator, direction * Math.round(absolute), {
-      maximumFractionDigits: 0,
-    });
+    // The reader's figure and unit where a sentence of theirs holds it (#7418).
+    return formatMilliseconds(
+      translator,
+      (ms < 0 ? -1 : 1) * Math.round(absolute),
+      { maximumFractionDigits: 0 },
+    );
   }
 
   if (absolute < 60 * 1000) {
     const seconds: number = absolute / 1000;
-    const decimals: number = Number.isInteger(seconds) || seconds >= 10 ? 0 : 1;
+    const rendered: string =
+      Number.isInteger(seconds) || seconds >= 10
+        ? String(Math.round(seconds))
+        : seconds.toFixed(1);
 
-    return formatMilliseconds(translator, ms, {
-      unit: "s",
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
+    return `${sign}${rendered}s`;
   }
 
-  const wholeSeconds: number = Math.round(absolute / 1000);
-  const minutes: number = Math.floor(wholeSeconds / 60);
-  const seconds: number = wholeSeconds % 60;
+  const minutes: number = Math.floor(absolute / (60 * 1000));
+  const seconds: number = Math.round((absolute % (60 * 1000)) / 1000);
 
-  return translator.translateTemplate(REPLAY_MINUTES_AND_SECONDS_TEMPLATE, {
-    minutes: translator.formatNumber(direction * minutes),
-    seconds:
-      seconds < 10
-        ? `${translator.formatNumber(0)}${translator.formatNumber(seconds)}`
-        : translator.formatNumber(seconds),
-  });
+  return `${sign}${minutes}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 /*

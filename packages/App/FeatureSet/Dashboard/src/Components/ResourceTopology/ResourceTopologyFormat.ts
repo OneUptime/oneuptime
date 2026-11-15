@@ -45,7 +45,7 @@ export function formatTopologyBytes(bytes: number | null | undefined): string {
     unit++;
   }
 
-  return `${value.toFixed(Math.abs(value) >= 100 ? 0 : 1)} ${BYTE_UNITS[unit]}`;
+  return `${value.toFixed(Math.abs(value) >= 100 ? 0 : 1)}\u00A0${BYTE_UNITS[unit]}`;
 }
 
 export const MIDDLE_ELLIPSIS: string = "\u2026";

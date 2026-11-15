@@ -166,7 +166,7 @@ export function formatBytes(bytes: number | null | undefined): string {
     value /= 1024;
     idx++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[idx]}`;
+  return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[idx]}`;
 }
 
 export function formatBytesPerSec(value: number | null | undefined): string {

@@ -635,7 +635,7 @@ export function formatDatabaseBytes(value: number | null | undefined): string {
     index++;
   }
   // Plain bytes are whole: "0 B", "512 B" - never "0.0 B" (issue #7417).
-  return `${scaled.toFixed(index > 0 && Math.abs(scaled) < 10 ? 1 : 0)} ${units[index]}`;
+  return `${scaled.toFixed(index > 0 && Math.abs(scaled) < 10 ? 1 : 0)}\u00A0${units[index]}`;
 }
 
 /*

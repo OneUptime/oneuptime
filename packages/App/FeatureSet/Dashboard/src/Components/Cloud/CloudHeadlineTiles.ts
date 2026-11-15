@@ -210,7 +210,7 @@ export function formatCloudBytes(
   const rounded: number =
     value < 10 ? Math.round(value * 10) / 10 : Math.round(value);
 
-  return `${translator.formatNumber(rounded)} ${BYTE_UNITS[index]}`;
+  return `${translator.formatNumber(rounded)}\u00A0${BYTE_UNITS[index]}`;
 }
 
 /*

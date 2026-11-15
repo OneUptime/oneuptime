@@ -330,7 +330,7 @@ export function formatVMwareReasonBytes(bytes: number): string {
     value /= 1024;
     index++;
   }
-  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[index]}`;
+  return `${value.toFixed(value >= 100 ? 0 : 1)}\u00A0${units[index]}`;
 }
 
 function sameName(

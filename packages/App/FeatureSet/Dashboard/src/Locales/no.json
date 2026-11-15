@@ -41296,7 +41296,7 @@
   "Upstream Table ID": "Upstream Table ID",
   "{{count}}s": "{{count}}s",
   "{{hours}}h {{minutes}}m": "{{hours}}t {{minutes}}m",
-  "{{minutes}}m {{seconds}}s": "{{minutes}}m {{seconds}}s",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min {{seconds}} s",
   "Before the error: {{signals}}": "Før feilen: {{signals}}",
   "Could not check for a recording: {{error}}": "Kunne ikke sjekke om det finnes et opptak: {{error}}",
   "Every run of this pipeline, newest first: how it went, how long it took, and what it wrote.": "Hver kjøring av denne pipelinen, nyeste først: hvordan det gikk, hvor lang tid det tok og hva den skrev.",

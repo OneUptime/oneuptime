@@ -868,7 +868,7 @@ export function formatTracePercent(percent: number): string {
 // A duration, as the findings say it: "840 ms", "2.4 s", "12 s".
 export function formatTraceDuration(ms: number): string {
   if (!isFiniteNumber(ms) || ms < 0) {
-    return "0 ms";
+    return "0\u00A0ms";
   }
 
   if (ms < 1000) {
