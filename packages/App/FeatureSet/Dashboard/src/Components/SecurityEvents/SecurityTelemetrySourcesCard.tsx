@@ -329,13 +329,19 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                         !gate.isAllowed ||
                         !isAvailable
                       }
+                      /*
+                       * In the reader's words, both of them: the permission
+                       * check words its reason, and the note is looked up
+                       * here, as the line under the switch looks it up.
+                       */
                       tooltip={
                         !gate.isAllowed
                           ? gate.disabledReason
                           : !isAvailable
-                            ? NEEDS_ENTERPRISE_NOTE
+                            ? translator.translateText(NEEDS_ENTERPRISE_NOTE)
                             : undefined
                       }
+                      isTooltipTranslated={true}
                       dataTestId={`security-telemetry-source-toggle-${row.kind}`}
                       onChange={(value: boolean) => {
                         void flip(row.kind, value);

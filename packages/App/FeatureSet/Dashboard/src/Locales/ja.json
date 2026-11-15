@@ -54324,5 +54324,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} がアラートエピソードを確認しました。",
   "{{name}} acknowledged the alert.": "{{name}} がアラートを確認しました。",
   "{{name}} acknowledged the incident episode.": "{{name}} がインシデントエピソードを確認しました。",
-  "{{name}} acknowledged the incident.": "{{name}} がインシデントを確認しました。"
+  "{{name}} acknowledged the incident.": "{{name}} がインシデントを確認しました。",
+  "Active · seen {{time}}": "アクティブ · 最終確認 {{time}}",
+  "Inactive · seen {{time}}": "非アクティブ · 最終確認 {{time}}",
+  "Runs on {{count}} of these": "このうち {{count}} 件で実行",
+  "Runs on {{count}} of these_one": "このうち {{count}} 件で実行"
 }

@@ -54324,5 +54324,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} acknowledged the alert episode.",
   "{{name}} acknowledged the alert.": "{{name}} acknowledged the alert.",
   "{{name}} acknowledged the incident episode.": "{{name}} acknowledged the incident episode.",
-  "{{name}} acknowledged the incident.": "{{name}} acknowledged the incident."
+  "{{name}} acknowledged the incident.": "{{name}} acknowledged the incident.",
+  "Active · seen {{time}}": "Active · seen {{time}}",
+  "Inactive · seen {{time}}": "Inactive · seen {{time}}",
+  "Runs on {{count}} of these": "Runs on {{count}} of these",
+  "Runs on {{count}} of these_one": "Runs on {{count}} of these"
 }

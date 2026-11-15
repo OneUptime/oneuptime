@@ -54324,5 +54324,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} اپیزود هشدار را تأیید کرد.",
   "{{name}} acknowledged the alert.": "{{name}} هشدار را تأیید کرد.",
   "{{name}} acknowledged the incident episode.": "{{name}} اپیزود حادثه را تأیید کرد.",
-  "{{name}} acknowledged the incident.": "{{name}} حادثه را تأیید کرد."
+  "{{name}} acknowledged the incident.": "{{name}} حادثه را تأیید کرد.",
+  "Active · seen {{time}}": "فعال · {{time}} دیده شد",
+  "Inactive · seen {{time}}": "غیرفعال · {{time}} دیده شد",
+  "Runs on {{count}} of these": "روی {{count}} مورد از این‌ها اجرا می‌شود",
+  "Runs on {{count}} of these_one": "روی {{count}} مورد از این‌ها اجرا می‌شود"
 }

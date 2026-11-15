@@ -54324,5 +54324,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} 님이 경고 에피소드를 인지했습니다.",
   "{{name}} acknowledged the alert.": "{{name}} 님이 경고를 인지했습니다.",
   "{{name}} acknowledged the incident episode.": "{{name}} 님이 인시던트 에피소드를 인지했습니다.",
-  "{{name}} acknowledged the incident.": "{{name}} 님이 인시던트를 인지했습니다."
+  "{{name}} acknowledged the incident.": "{{name}} 님이 인시던트를 인지했습니다.",
+  "Active · seen {{time}}": "활성 · 마지막 확인 {{time}}",
+  "Inactive · seen {{time}}": "비활성 · 마지막 확인 {{time}}",
+  "Runs on {{count}} of these": "이 중 {{count}}개에서 실행",
+  "Runs on {{count}} of these_one": "이 중 {{count}}개에서 실행"
 }

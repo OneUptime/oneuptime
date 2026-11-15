@@ -54324,5 +54324,9 @@
   "{{name}} acknowledged the alert episode.": "{{name}} ने अलर्ट एपिसोड को स्वीकार किया।",
   "{{name}} acknowledged the alert.": "{{name}} ने अलर्ट को स्वीकार किया।",
   "{{name}} acknowledged the incident episode.": "{{name}} ने घटना एपिसोड को स्वीकार किया।",
-  "{{name}} acknowledged the incident.": "{{name}} ने घटना को स्वीकार किया।"
+  "{{name}} acknowledged the incident.": "{{name}} ने घटना को स्वीकार किया।",
+  "Active · seen {{time}}": "सक्रिय · {{time}} देखा गया",
+  "Inactive · seen {{time}}": "निष्क्रिय · {{time}} देखा गया",
+  "Runs on {{count}} of these": "इनमें से {{count}} पर चलता है",
+  "Runs on {{count}} of these_one": "इनमें से {{count}} पर चलता है"
 }
