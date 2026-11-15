@@ -36,8 +36,6 @@ import {
   SetAsideCounts,
   getClaimSetAsideParameters,
   getClaimSetAsideStatement,
-  getMakeDueNowParameters,
-  getMakeDueNowStatement,
   readSetAsideCounts,
   setAsideAfterClaim,
 } from "../Probe/ClaimSetAside";
@@ -54,7 +52,7 @@ import {
  * not stacked. After each claim, the due clouds it stepped over because nothing may collect
  * them are set aside for a quarter of an hour (Utils/Probe/ClaimSetAside), so no claim steps
  * over them again and again; a write that makes one collectable makes it due at once
- * (OpenStackCloudConnection.afterWrite, and OpenStackCloudService for one unarchived).
+ * (OpenStackCloudConnection.afterWrite).
  *
  * Only a probe that may collect a cloud is ever handed one: the cloud names it, and it
  * is the project's own probe - or, on a self-hosted install, one of the instance's own
@@ -342,8 +340,8 @@ export default class OpenStackProbeCollectionStore {
   /*
    * Sets aside the probe's due clouds that nothing may collect now (Utils/Probe/ClaimSetAside):
    * collected by the OpenStack agent - switching to it clears nextCollectionAt and keeps the
-   * probe - archived, without a credential or Keystone's address, on a probe that may not collect
-   * it, or of a suspended, blocked, sample or deleted project. Each is judged again by the claim's
+   * probe - without a credential or Keystone's address, on a probe that may not collect it, or of
+   * a suspended, blocked, sample or deleted project. Each is judged again by the claim's
    * own rule (getCollectableSql, IS NOT TRUE), so a cloud the claim would hand out is never moved.
    * Makes due the probe's clouds with no nextCollectionAt at all.
    *
@@ -391,37 +389,6 @@ export default class OpenStackProbeCollectionStore {
   }
 
   /*
-   * Makes probe-collected clouds due now, unless they are due already (Utils/Probe/ClaimSetAside,
-   * getMakeDueNowStatement): for a write that makes a cloud the claim set aside collectable again
-   * that is not a collection settings write - those make the cloud due themselves
-   * (OpenStackCloudConnection.afterWrite) - such as unarchiving it. A cloud the agent sends is
-   * left as it is.
-   */
-  public static async makeDueNow(
-    service: Pick<OpenStackCollectionCloudService, "getRepository">,
-    openStackCloudIds: Array<ObjectID>,
-  ): Promise<void> {
-    const parameters: Array<unknown> | null = getMakeDueNowParameters({
-      ids: openStackCloudIds,
-      currentDate: OneUptimeDate.getCurrentDate(),
-    });
-
-    if (!parameters) {
-      return;
-    }
-
-    await service.getRepository().manager.query(
-      getMakeDueNowStatement({
-        table: "OpenStackCloud",
-        dueColumns: ["nextCollectionAt"],
-        idColumn: "_id",
-        where: `"collectionMethod" = '${OpenStackCollectionMethod.Probe}'`,
-      }),
-      parameters,
-    );
-  }
-
-  /*
    * Whether a cloud may be handed to its probe to collect now, as SQL over the aliases the claim's
    * statements use - `c` (the OpenStackCloud), `p` (its Project) and `pr` (its collection Probe) -
    * with the Probe collection method, the served subscription statuses and whether billing is on
@@ -430,8 +397,12 @@ export default class OpenStackProbeCollectionStore {
    * one the set-aside moves. Read through LEFT JOINs, a missing project or probe is NULL here,
    * never true.
    *
-   * - Collected by a probe, not deleted or archived, with the credential and Keystone's address a
-   *   collection needs.
+   * - Collected by a probe, not deleted, with the credential and Keystone's address a collection
+   *   needs. Archived or not: an archived cloud is hidden from the lists and keeps being collected,
+   *   as an archived vCenter, Proxmox cluster or network device is, and as the Archived page says
+   *   (OneUptime issue #8324). The claim set an archived cloud aside, so its metrics stopped while
+   *   the page said they went on. Every write that makes a cloud collectable again is a
+   *   collection settings write, which makes it due itself (OpenStackCloudConnection.afterWrite).
    * - The tenancy backstop: the project's own probe, or a global probe on an instance where those
    *   are the operator's own (billing off).
    * - The project is served (ProjectService.getActiveProjectStatusQuery): not deleted, not blocked
@@ -446,7 +417,6 @@ export default class OpenStackProbeCollectionStore {
     return [
       `c."collectionMethod" = ${parameters.collectionMethodParameter}`,
       `c."deletedAt" IS NULL`,
-      `c."isArchived" = false`,
       `c."isCredentialSet" = true`,
       `c."authUrl" IS NOT NULL`,
       `((pr."isGlobalProbe" = false AND pr."projectId" = c."projectId") OR (pr."isGlobalProbe" = true AND ${parameters.isBillingEnabledParameter}::boolean = false))`,

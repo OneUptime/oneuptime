@@ -53527,6 +53527,8 @@
   "WhatsApp message not sent because this phone number is not verified.": "لم تُرسل رسالة WhatsApp لأن رقم الهاتف هذا غير متحقق منه.",
   "{{name}} was away until {{time}}, with nobody covering.": "كان {{name}} غائبًا حتى {{time}}، ولم يكن أحد ينوب عنه.",
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "إذا رفضه وكيل (proxy) أمام OneUptime، فارفع حد حجم الطلب في ذلك الوكيل إلى 50 MB، أي ما يقبله OneUptime نفسه (في nginx، client_max_body_size 50M).",
+  "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes.": "مُعدّ ليجمعه {{probe}} من {{address}}، كل {{count}} د.",
+  "Set to be collected by {{probe}} from {{address}}, every {{count}} minutes._one": "مُعدّ ليجمعه {{probe}} من {{address}}، كل {{count}} دقيقة.",
   "Try again with less at once, such as a smaller file.": "حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "ما أُرسل كان أكبر من أن يقبله الخادم، لذا لم تكتمل العملية. حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
   "What was sent was too large for the server to accept.": "ما أُرسل كان أكبر من أن يقبله الخادم.",
