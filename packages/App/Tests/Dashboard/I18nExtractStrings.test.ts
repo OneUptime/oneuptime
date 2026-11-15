@@ -1657,6 +1657,10 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/CloudConnection",
       // The monitor pages' shared helpers: hero, uptime, metric groups.
       "ui packages/Common/Utils/Monitor",
+      // The Incident, Alert and SLO Metrics charts' titles, legends and words.
+      "keys packages/Common/Utils/Incident/IncidentMetricType.ts",
+      "keys packages/Common/Utils/Alerts/AlertMetricType.ts",
+      "keys packages/Common/Utils/Slo/SloMetricType.ts",
       // A duration in milliseconds: the views' and the overview hero's "{{value}} ms".
       "ui packages/Common/Utils/Milliseconds.ts",
       // Create Monitor's type cards: each type's title and what it alerts on.

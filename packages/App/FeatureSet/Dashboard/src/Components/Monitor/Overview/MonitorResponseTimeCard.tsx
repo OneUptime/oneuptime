@@ -141,7 +141,8 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
 
   /*
    * EmbeddedMetricCard refetches when handed new query configs, so they are
-   * rebuilt only when what they query changes, not on every poll.
+   * rebuilt only when what they query changes, or the language they are
+   * read in (the translator is built afresh each render), not on every poll.
    */
   const queryConfigs: Array<MetricQueryConfigData> = useMemo(() => {
     const config: MetricQueryConfigData = buildMonitorMetricQueryConfig({
@@ -150,6 +151,11 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
       monitorType: props.monitorType,
       metric: props.metric,
       probes: props.probes,
+      /*
+       * The chart's title and legend, and a series named by its metric, in
+       * the reader's language (#8282).
+       */
+      translator: translator,
     });
 
     /*
@@ -166,7 +172,13 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
           : config.metricAliasData,
       },
     ];
-  }, [monitorIdString, props.monitorType, props.metric, probeKey]);
+  }, [
+    monitorIdString,
+    props.monitorType,
+    props.metric,
+    probeKey,
+    translator.language,
+  ]);
 
   const gate: PermissionGateResult = PermissionGate.check(
     new Metric(),

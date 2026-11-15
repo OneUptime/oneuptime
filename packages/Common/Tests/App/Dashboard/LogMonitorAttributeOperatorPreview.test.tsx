@@ -39,6 +39,7 @@ import ActiveFilterChips from "../../../UI/Components/LogsViewer/components/Acti
 import { ActiveFilter } from "../../../UI/Components/LogsViewer/types";
 import { DictionaryEntryValue } from "../../../UI/Components/Dictionary/DictionaryFilterOperator";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import Search from "../../../Types/BaseDatabase/Search";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -298,10 +299,15 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     expect(chips).toHaveLength(1);
     expect(chips[0]!.displayKey).toBe("logtype");
     expect(chips[0]!.displayValue).toBe("contains web");
+    // The stored filter rides along, for the chip to say as a sentence.
+    expect(chips[0]!.filterValue).toBeInstanceOf(Search);
 
     renderChips(chips);
 
-    expect(screen.getByText("contains web")).toBeInTheDocument();
+    // One sentence in the reader's language (#8309), English without one.
+    expect(screen.getByTestId("locked-filter-chip").textContent).toBe(
+      "logtype contains web",
+    );
   });
 
   /*
@@ -405,7 +411,9 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
 
     renderChips(chips);
 
-    expect(screen.getByText("is any of web, api")).toBeInTheDocument();
+    expect(screen.getByTestId("locked-filter-chip").textContent).toBe(
+      "logtype is any of: web, api",
+    );
   });
 
   test("a numeric operator carries the typed threshold, not a coerced zero", () => {
