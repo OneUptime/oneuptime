@@ -71,6 +71,7 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import { anchorInLanguage } from "./NetworkDocsLabels";
+import { isStepNameOnPage } from "./DocsWorkflowStepNames";
 import { leadOf } from "./InventoryAndApiDocsSupport";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { describe, expect, it } from "@jest/globals";
@@ -104,10 +105,13 @@ import { describe, expect, it } from "@jest/globals";
  * by segment, one bold span joined by " → " (in Persian a bold span per
  * segment joined by " > ", with no "→" left in the prose). A path that
  * opens a product from the Products menu draws it as the menu does
- * (drawnPath), as the Security Events pages do. What every
- * language keeps as written stays so: what a workflow step defines (its
- * title, settings, outputs and comparisons, as the workflow pages keep
- * them), the templates' names and settings, which the Dashboard shows in
+ * (drawnPath), as the Security Events pages do. A workflow step's own
+ * names - its outputs, settings, comparisons and values - are Dashboard
+ * labels too where the builder looks them up (#7511): it draws them in
+ * the reader's language, and the pages name them so (isStepNameOnPage,
+ * WorkflowStepNamesAsDrawnDocs). What every language keeps as written
+ * stays so: a step's names no locale has a word for (most of the steps'
+ * titles), the templates' names and settings, which the Dashboard shows in
  * English, other products' screens and buttons, plans, and the few words
  * the product writes in English. A bold word that is emphasis is translated
  * freely (PROSE). A new bold word on these English pages fails "know every
@@ -236,10 +240,21 @@ function isCodeSpan(span: string): boolean {
   return ONLY_CODE.test(span);
 }
 
+/*
+ * A step's names the page keeps as written: those the builder draws in
+ * English in every language, as no locale has a word for them. The others
+ * are drawn in the reader's language, and checked as labels (#7511).
+ */
+function keptStepNames(page: string): Array<string> {
+  return listed(STEP_NAMES, page).filter((name: string): boolean => {
+    return !isStepNameOnPage(page, name);
+  });
+}
+
 // The bold words a page keeps as written in every language.
 function keptBold(page: string): Array<string> {
   return [
-    ...listed(STEP_NAMES, page),
+    ...keptStepNames(page),
     ...listed(TEMPLATE_NAMES, page),
     ...listed(OTHER_NAMES, page),
     ...listed(KEPT_AS_WRITTEN, page),
