@@ -143,6 +143,75 @@ export function readCustomSignals(
   return signals;
 }
 
+// One escaped byte: "%c3", "%2F".
+const ESCAPED_BYTE: RegExp = /^%[0-9A-Fa-f]{2}$/;
+
+/*
+ * Text with no ASCII in it: an escaped character is decoded only when it
+ * stays beyond ASCII composed (NFC writes three in ASCII).
+ */
+const BEYOND_ASCII: RegExp = /^[\u0080-\uffff]+$/;
+
+// An escape, or a character beyond ASCII: a path with a spelling to settle.
+const SPELLED_CHARACTER: RegExp = /[%\u0080-\uffff]/;
+
+function composed(text: string): string {
+  return typeof text.normalize === "function" ? text.normalize("NFC") : text;
+}
+
+/*
+ * A path in the spelling a person reads it, a copy of Common's
+ * UrlScrubber.normalizePathSpelling(path, true) (#8195): each escape of a
+ * character beyond ASCII decoded ("/caf%c3%a9" and "/cafe%CC%81" are
+ * "/café"), the words composed, and every other escape kept, in upper-case
+ * hex, so "/a%2Fb" stays apart from "/a/b".
+ */
+export function readPathAsWritten(path: string): string {
+  if (!SPELLED_CHARACTER.test(path)) {
+    return path;
+  }
+
+  let spelled: string = "";
+  let words: string = "";
+  let index: number = 0;
+
+  while (index < path.length) {
+    const escape: string = path.slice(index, index + 3);
+
+    if (!ESCAPED_BYTE.test(escape)) {
+      words += path.charAt(index);
+      index += 1;
+      continue;
+    }
+
+    // A character's escapes: 2 to 4 bytes, as many as its first says.
+    const lead: number = parseInt(escape.slice(1), 16);
+    const length: number =
+      lead < 0xc2 ? 0 : lead < 0xe0 ? 6 : lead < 0xf0 ? 9 : 12;
+    let character: string = "";
+
+    try {
+      character = length
+        ? decodeURIComponent(path.slice(index, index + length))
+        : "";
+    } catch {
+      // Not UTF-8: cut short, written too long, a surrogate.
+    }
+
+    if (BEYOND_ASCII.test(composed(character))) {
+      words += character;
+      index += length;
+      continue;
+    }
+
+    spelled += composed(words) + escape.toUpperCase();
+    words = "";
+    index += 3;
+  }
+
+  return spelled + composed(words);
+}
+
 function canonicalPath(path: string): string {
   let end: number = path.length;
 
@@ -150,14 +219,15 @@ function canonicalPath(path: string): string {
     end--;
   }
 
-  return path.slice(0, end).toLowerCase();
+  return readPathAsWritten(path.slice(0, end)).toLowerCase();
 }
 
 /*
  * Does a route match a page pattern? A star stands for any run of
  * characters; everything else is compared as written, ignoring case and the
- * slashes at the end. The pattern is split on its stars and the pieces are
- * found in order - no regular expression is built from it.
+ * slashes at the end, in the spelling a person reads (readPathAsWritten).
+ * The pattern is split on its stars and the pieces are found in order - no
+ * regular expression is built from it.
  */
 export function matchesPagePattern(pattern: string, path: string): boolean {
   const target: string = canonicalPath(path);

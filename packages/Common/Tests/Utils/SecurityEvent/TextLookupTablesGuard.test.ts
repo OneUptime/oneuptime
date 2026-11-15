@@ -66,6 +66,16 @@ const SCANNED: ReadonlyArray<string> = [
   "Common/Utils/Grok",
   // The keys a log line's key=value pairs name.
   "Common/Utils/Log",
+  /*
+   * Telemetry ingest (issue #8221): a level, a severity, a trap's OID, a
+   * resource type, a service name and a libvirt domain, as a sender wrote
+   * them. Fluent's severity table, Vercel's levels, the SNMP trap names,
+   * the syslog service cache, GCP's resource types and the OpenStack
+   * domains were read plainly here.
+   */
+  "App/FeatureSet/Telemetry/Services",
+  "App/FeatureSet/Telemetry/Utils",
+  "Common/Server/Utils/Telemetry",
 ];
 
 interface ReadByKnownKeys {
@@ -198,6 +208,51 @@ const BY_KIND: Record<Kind, number> = { [Kind.A]: 1 };
 export const typed = (kind: Kind): number => BY_KIND[kind];
 export const cast = (text: string): number => BY_KIND[text as Kind];`),
     ).toEqual(["4: BY_KIND[text as Kind]"]);
+  });
+
+  test("a class's static table, read through this or through its class, is found, and so is `in` on it", () => {
+    expect(
+      reads(`class Ingest {
+  private static readonly LEVELS: Dictionary<number> = { info: 9 };
+  public static level(word: string): number | undefined {
+    return this.LEVELS[word] ?? Ingest.LEVELS[word.toLowerCase()];
+  }
+  public static isLevel(word: string): boolean {
+    return word in this.LEVELS;
+  }
+}`),
+    ).toEqual([
+      "4: this.LEVELS[word]",
+      "4: Ingest.LEVELS[word.toLowerCase()]",
+      "7: word in this.LEVELS",
+    ]);
+  });
+
+  test("a module's constant as the key, a delete, a static Map and a static read checked first are not found", () => {
+    expect(
+      reads(`const SERVER_PORT_ATTRIBUTE: string = "server.port";
+const ATTRIBUTES: Record<string, string> = { "server.port": "443" };
+class Ingest {
+  private static readonly LEVELS: ReadonlyMap<string, number> = new Map([["info", 9]]);
+  private static readonly NAMES: Dictionary<string> = { a: "A" };
+  public static read(key: string): Array<unknown> {
+    delete ATTRIBUTES[key];
+    return [
+      ATTRIBUTES[SERVER_PORT_ATTRIBUTE],
+      this.LEVELS.get(key),
+      Object.hasOwn(this.NAMES, key) ? this.NAMES[key] : undefined,
+      this.NAMES["a"],
+    ];
+  }
+}`),
+    ).toEqual([]);
+  });
+
+  test("a lower-case or single-word identifier is still a key the code does not write", () => {
+    expect(
+      reads(`const NAMES: Record<string, string> = { a: "A" };
+export const read = (KEY: string, someKey: string): Array<string | undefined> => [NAMES[KEY], NAMES[someKey]];`),
+    ).toEqual(["2: NAMES[KEY]", "2: NAMES[someKey]"]);
   });
 
   test("keys the code writes, writes, Maps, and reads that check the table's own keys first are not found", () => {
