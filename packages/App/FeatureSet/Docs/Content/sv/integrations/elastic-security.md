@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - Elastic Security 8.x eller senare, på Elastic Cloud eller din egen Elastic-stack, med detektionsregler som körs i ett Kibana-space.
 - Kibana-åtkomst som kan se detektionslarmen i det spacet: indexbehörigheterna `read` och `view_index_metadata` på `.alerts-security.alerts-<space-id>`, och en Kibana-funktionsbehörighet för Security som låter den läsa larm där.
 - En Kibana som OneUptime kan nå över HTTPS. OneUptime Cloud ansluter från internet, så Kibana behöver en offentlig adress, som Elastic Cloud-distributioner har: privata adresser avvisas. En egenvärdad OneUptime ansluter från sina app- och workercontainrar och kan nå en Kibana i ditt privata nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`.

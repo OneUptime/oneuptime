@@ -25,7 +25,7 @@ Forbruket til en konto er det den ble fakturert for, én dag om gangen. Det inne
 
 ## Før du begynner
 
-- Rollen Project Owner eller Project Admin. Bare de kan koble til, endre eller fjerne en konto; alle som leser prosjektets telemetri, ser tilkoblingene og forbruket.
+- Rollen Prosjekteier eller Prosjektadministrator. Bare de kan koble til, endre eller fjerne en konto; alle som leser prosjektets telemetri, ser tilkoblingene og forbruket.
 - Påloggingsinformasjon for kontoen fra noen som administrerer den. Hver leverandørs avsnitt nedenfor sier hvilken og hvor den lages.
 - Ingenting å installere: OneUptime kaller leverandørens API fra sine egne servere.
 

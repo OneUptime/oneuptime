@@ -25,7 +25,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
+- **Ett OneUptime-projekt och rätten att skapa det du för över.** Projektägare och Projektadministratörer kan föra över allt. Andra roller kan också köra en import och föra över de typer av poster de får skapa. Resten visas som inte överfört, med orsaken.
 - **En Opsgenie-API-nyckel med behörigheterna Read och Configuration access.** Configuration access är det som låter en nyckel läsa användare, team, scheman och eskaleringar. Importen skriver aldrig till Opsgenie.
 - **Din Opsgenie-region.** Om du loggar in på `app.eu.opsgenie.com` finns ditt konto i Europa. Annars finns det i USA.
 
@@ -76,7 +76,7 @@ En import skapar högst 2 000 poster: högst 500 personer, 200 team, 200 joursch
 
 I OneUptime Cloud visas poster som ditt abonnemang inte omfattar som inte överförda, med det abonnemang de kräver.
 
-En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och projektadministratörer ser förloppet och rapporten för varje import.
+En förhandsgranskning sparas i en dag. Bara den som läste kontot kan markera objekt och starta importen. Projektägare och Projektadministratörer ser förloppet och rapporten för varje import.
 
 ## Slutför bytet
 

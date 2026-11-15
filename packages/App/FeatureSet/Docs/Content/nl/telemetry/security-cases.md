@@ -33,13 +33,13 @@ Open **Producten → Beveiligingsgebeurtenissen → Beveiligingszaken → Open z
 
 ## Voordat je begint
 
-Zaken en playbooks volgen de drie Security-rollen. Project Owner en Project Admin kunnen alles.
+Zaken en playbooks volgen de drie Security-rollen. Projecteigenaar en Projectbeheerder kunnen alles.
 
 | Rol | Wat hij kan doen |
 | --- | --- |
-| Security Admin | Alles, inclusief zaken verwijderen, bewijs verwijderen en playbooks instellen |
-| Security Member | Zaken openen, toewijzen, wijzigen en sluiten, notities schrijven, taken uitvoeren, bewijs toevoegen, playbooks uitvoeren en hun stappen goedkeuren of afwijzen |
-| Security Viewer | Zaken, detecties, notities, taken, bewijs, playbooks en hun uitvoeringen lezen |
+| Beveiligingsbeheerder | Alles, inclusief zaken verwijderen, bewijs verwijderen en playbooks instellen |
+| Beveiligingslid | Zaken openen, toewijzen, wijzigen en sluiten, notities schrijven, taken uitvoeren, bewijs toevoegen, playbooks uitvoeren en hun stappen goedkeuren of afwijzen |
+| Beveiligingskijker | Zaken, detecties, notities, taken, bewijs, playbooks en hun uitvoeringen lezen |
 
 Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van een zaak tot het goedkeuren van de stappen van een playbook; zie [Machtigingsreferentie](/docs/permissions/reference).
 
@@ -105,7 +105,7 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 - **Detecties**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
-- **Bewijs**: de bestanden, koppelingen en beveiligingsgebeurtenissen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Security Admin kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd. Een beveiligingsgebeurtenis wordt hier bewaard zoals ze was, met **Aan zaak toevoegen** op **Gebeurtenissen** of op de pagina van een [hunt](/docs/telemetry/security-events#hunts), en **Gebeurtenis bekijken** opent haar. Ook de stap **Preserve the evidence** van een playbook bewaart hier de gebeurtenissen achter de detecties van de zaak.
+- **Bewijs**: de bestanden, koppelingen en beveiligingsgebeurtenissen die bij de zaak worden bewaard, elk met wie het toevoegde en wanneer. Met **Bestand toevoegen** upload je een bestand van maximaal 10 MB en wordt de SHA-256 vastgelegd van wat is geüpload, zodat wie het later downloadt kan controleren dat het is wat werd bewaard; met **Koppeling toevoegen** verwijs je naar bewijs dat ergens anders staat. Alleen een Beveiligingsbeheerder kan bewijs verwijderen, en de **Tijdlijn** van de zaak toont wat er is toegevoegd en verwijderd. Een beveiligingsgebeurtenis wordt hier bewaard zoals ze was, met **Aan zaak toevoegen** op **Gebeurtenissen** of op de pagina van een [hunt](/docs/telemetry/security-events#hunts), en **Gebeurtenis bekijken** opent haar. Ook de stap **Preserve the evidence** van een playbook bewaart hier de gebeurtenissen achter de detecties van de zaak.
 - **Taken**: wat er in de zaak moet gebeuren, wie het doet en of het af is. Voeg een taak toe als één regel, geef hem aan iemand en vink hem af als hij af is. Wie de taak krijgt, krijgt bericht, tenzij die hem zelf nam, en het menu toont naast **Taken** hoeveel taken open staan. Ook de stap **Taken toevoegen** van een playbook voegt taken toe en laat weg wat de zaak al heeft.
 - **Playbooks**: wat elk playbook met de zaak deed, stap voor stap, en de stappen die op goedkeuring wachten. Zolang er uitvoeringen wachten, toont het menu hoeveel naast **Playbooks**.
 - **Privénotities**: wat het team over de zaak schreef. Het menu **Sjablonen** van de editor zet een van de notitiesjablonen van het project in een notitie.
@@ -195,7 +195,7 @@ Nog drie instellingen maken zaken eigen aan je project, onder **Producten → Be
 - **Notitie-sjablonen**: kant-en-klare tekst voor de notities die je team zaak na zaak schrijft, zoals een checklist voor indamming of een overdracht aan de volgende dienst. Bij de **Privénotities** van een zaak zet het menu **Sjablonen** van de editor er een in de notitie, om aan te passen voordat je plaatst, en **Sjablonen beheren** opent de lijst.
 - **Nummering**: de tekst voor de zaaknummers, `CASE-` in `CASE-42` tenzij je je eigen kiest, en het nummer dat de volgende zaak krijgt. Overgestapt van een andere tool? Begin na het laatste zaaknummer daarvan, zodat een nummer nooit voor twee zaken staat. Een nieuw voorvoegsel of begin geldt alleen voor nieuwe zaken, en een begin moet hoger zijn dan het hoogste nummer tot nu toe.
 
-Een Security Admin beheert de aangepaste velden en notitiesjablonen, en een Security Member vult de velden van een zaak in; op OneUptime Cloud vragen ze het Growth-abonnement of hoger. De nummering stelt een Project Owner of Project Admin in, net als bij incidenten en waarschuwingen.
+Een Beveiligingsbeheerder beheert de aangepaste velden en notitiesjablonen, en een Beveiligingslid vult de velden van een zaak in; op OneUptime Cloud vragen ze het Growth-abonnement of hoger. De nummering stelt een Projecteigenaar of Projectbeheerder in, net als bij incidenten en waarschuwingen.
 
 ## Meldingen
 
@@ -209,7 +209,7 @@ OneUptime brengt mensen op de hoogte van vijf dingen op een zaak. Niemand hoeft 
 | Reactiedoel van een beveiligingszaak | De mensen die aan de zaak werken: de persoon aan wie ze is toegewezen en de leden van haar team. Werkt niemand eraan, dan de mensen die over nieuwe zaken met haar prioriteit horen | E-mail en push |
 | Aan mij toegewezen taak van een beveiligingszaak | De persoon die een taak van de zaak krijgt, tenzij die hem zelf nam | E-mail en push |
 
-- Alleen mensen die de zaak kunnen zien, horen erover: Project Owners, Project Admins en de rollen Security Admin, Security Member en Security Viewer. Een rol die tot bepaalde labels is beperkt, hoort alleen over de zaken met die labels.
+- Alleen mensen die de zaak kunnen zien, horen erover: Projecteigenaren, Projectbeheerders en de rollen Beveiligingsbeheerder, Beveiligingslid en Beveiligingskijker. Een rol die tot bepaalde labels is beperkt, hoort alleen over de zaken met die labels.
 - Niemand hoort over wat hij zelf deed: wie een zaak met de hand opent, haar toewijst of een uitvoering start, krijgt daar geen melding van.
 - Ieder hoort één keer over een zaak. Een zaak die op Medium wordt geopend en later naar Kritiek stijgt, bereikt bij die stijging de mensen die High of Kritiek kozen, en niet opnieuw de mensen die Medium kozen, want die hoorden erover toen ze werd geopend.
 - De testaanval van **Testaanval sturen** opent een zaak die niemand een melding geeft.
@@ -310,7 +310,7 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
-- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De acht stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
+- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De acht stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Beveiligingsbeheerder dit uitzet. **Run a runbook**, **Post a status page announcement** en de twee stappen voor gegevensopslagen beginnen met goedkeuring aan, omdat ze opdrachten op uw systemen uitvoeren, uw klanten toespreken of de instellingen van een cloud wijzigen; wie de stap toevoegt, kan het uitzetten.
 - **Deze stap uitvoeren**: **Altijd**, of alleen na resultaten van stappen ervoor, zoals **Entiteiten controleren in dreigingsinformatie** die een bekende kwaadaardige entiteit vindt; zie [Vertakken op het resultaat van een stap](#vertakken-op-het-resultaat-van-een-stap).
 - **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering. Dit staat onder **Meer velden**, samen met **Deze stap uitvoeren**.
 
@@ -365,11 +365,11 @@ De twee stappen voor gegevensopslagen werken op de gegevensopslagen waar de zaak
 
 #### Beschermde entiteiten
 
-**Beschermde entiteiten**, onder **Playbooks** in het menu, toont de gebruikers en hosts die geen enkel playbook inperkt, zoals noodaccounts, domeincontrollers en VPN-gateways. Een waarde matcht ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` beschermt elk serviceaccount. Een stap meldt een beschermde gebruiker of host als beschermd en laat hem ongemoeid. Security Admins houden de lijst bij.
+**Beschermde entiteiten**, onder **Playbooks** in het menu, toont de gebruikers en hosts die geen enkel playbook inperkt, zoals noodaccounts, domeincontrollers en VPN-gateways. Een waarde matcht ongeacht hoofdletters, en `*` staat voor elke reeks tekens: `svc-*` beschermt elk serviceaccount. Een stap meldt een beschermde gebruiker of host als beschermd en laat hem ongemoeid. Beveiligingsbeheerders houden de lijst bij.
 
 #### Goedkeuring
 
-De acht stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Security Admin kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
+De acht stappen die iemand de toegang ontnemen, wachten op goedkeuring. Alleen een Beveiligingsbeheerder kan **Goedkeuring nodig** voor een ervan uitzetten, en OneUptime legt vast wie dat deed. De goedkeuring toont onder **Toepassen op** de gebruikers of hosts waarop de stap zou werken, allemaal aangevinkt: vink uit wat hij ongemoeid moet laten. Beschermde gebruikers en hosts staan er niet tussen. Wie een uitvoering heeft gestart, kan haar stappen niet goedkeuren: dat doet iemand anders, maar afwijzen kan die persoon nog wel.
 
 #### Ongedaan maken
 
@@ -440,7 +440,7 @@ Controleer **Zaak openen bij overeenkomst** in de stap **Bij overeenkomst** van 
 :::
 
 :::details Niemand hoorde over een zaak
-Kijk op de **Tijdlijn** van de zaak, die laat zien wie een melding kreeg. Een melding **Nieuwe beveiligingszaak** gaat naar de mensen van wie de zaak de gekozen prioriteit haalt, dus een zaak met Medium geeft geen melding aan wie de standaard, **Hoog en hoger**, heeft gehouden. Controleer of de mensen die het zouden moeten horen beveiligingszaken kunnen zien (een Security-rol, of Project Owner of Project Admin), en of de melding voor hen aanstaat onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**.
+Kijk op de **Tijdlijn** van de zaak, die laat zien wie een melding kreeg. Een melding **Nieuwe beveiligingszaak** gaat naar de mensen van wie de zaak de gekozen prioriteit haalt, dus een zaak met Medium geeft geen melding aan wie de standaard, **Hoog en hoger**, heeft gehouden. Controleer of de mensen die het zouden moeten horen beveiligingszaken kunnen zien (een Security-rol, of Projecteigenaar of Projectbeheerder), en of de melding voor hen aanstaat onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**.
 :::
 
 :::details Een zaak toont geen termijn

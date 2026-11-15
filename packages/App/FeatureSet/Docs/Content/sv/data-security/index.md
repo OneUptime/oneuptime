@@ -43,7 +43,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **En roll som kan sätta upp den.** Rollerna Project Owner, Project Admin och Security Admin ändrar inställningarna för Datasäkerhet. Security Member arbetar med problem och skannar datalager, och Security Viewer läser vad den har hittat. Andra roller ser ingenting av det om inte deras team får dess behörigheter: vilka buckets som innehåller kortnummer är precis vad en angripare vill veta. Se [Roller](/docs/permissions/reference#roller).
+- **En roll som kan sätta upp den.** Rollerna Projektägare, Projektadministratör och Säkerhetsadministratör ändrar inställningarna för Datasäkerhet. Säkerhetsmedlem arbetar med problem och skannar datalager, och Säkerhetstittare läser vad den har hittat. Andra roller ser ingenting av det om inte deras team får dess behörigheter: vilka buckets som innehåller kortnummer är precis vad en angripare vill veta. Se [Roller](/docs/permissions/reference#roller).
 - **Ett molnkonto att läsa, eller en databas.** Datasäkerhet läser ett molnkonto via en [molnanslutning](/docs/telemetry/cloud-accounts), och en databas som du driver via en anslutningssträng med enbart läsbehörighet. Telemetri behöver ingenting: den skannas varje timme.
 
 ## Snabbstart

@@ -28,7 +28,7 @@ flowchart LR
 ## Voordat u begint
 
 - **Telemetrie die binnenkomt.** De servicekaart heeft traces nodig: zie [OpenTelemetry](/docs/telemetry/open-telemetry). De infrastructuurweergave heeft een host of een cluster nodig die gegevens stuurt: zie de [Kubernetes-agent](/docs/telemetry/kubernetes-agent). De netwerkweergave heeft netwerkapparaten nodig: zie [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor).
-- **Een rol die telemetrie leest.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member of Telemetry Viewer, of een aangepaste rol met de machtiging Read Inventory Item.
+- **Een rol die telemetrie leest.** Projecteigenaar, Projectbeheerder, Projectlid, Kijker, Telemetriebeheerder, Telemetrielid of Telemetriekijker, of een aangepaste rol met de machtiging Read Inventory Item.
 
 ## Topologie openen
 

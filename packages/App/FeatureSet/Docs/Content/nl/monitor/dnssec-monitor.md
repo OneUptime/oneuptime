@@ -41,7 +41,7 @@ Een handtekening met minder dan een dag te gaan telt al als gebroken, zodat u he
 
 ## Voordat u begint
 
-- **Een rol die monitoren mag maken**: Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de machtiging Create Monitor.
+- **Een rol die monitoren mag maken**: Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de machtiging Create Monitor.
 - **Een ondertekende zone.** De zone moet ondertekend zijn, en haar DS-record via uw registrar bij de bovenliggende zone gepubliceerd.
 - **Uitgaand DNS vanaf de sonde** naar de resolvers die u opgeeft en, voor de consistentiecontrole van de naamservers, naar de gezaghebbende naamservers van de zone. De standaardsondes van uw project worden voor elke nieuwe monitor gekozen.
 

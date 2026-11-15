@@ -15,15 +15,15 @@ Dashboards volgen de [machtigingen](/docs/permissions/index) van je project. Elk
 
 | Om | Is nodig |
 | --- | --- |
-| Dashboards te lezen | `ReadDashboard`, of een projectrol: Project Owner, Project Admin, Project Member, Viewer of een Settings-rol |
-| Dashboards te maken | `CreateDashboard`, Project Owner of Project Admin |
-| Een dashboard te wijzigen: de widgets, variabelen, het delen en de huisstijl ervan, en het te archiveren | `EditDashboard`, Project Owner of Project Admin |
-| Een dashboard te verwijderen | `DeleteDashboard`, Project Owner of Project Admin |
-| Eigenaren toe te voegen en te verwijderen | De machtigingen voor dashboardeigenaren, Project Owner, Project Admin of Project Member |
-| Aangepaste domeinen toe te voegen en te wijzigen | De machtigingen voor dashboarddomeinen, Project Owner, Project Admin, Project Member, Settings Admin of Settings Member |
-| Eigenaarsregels en labelregels te maken | De machtigingen voor regels, Project Owner of Project Admin |
+| Dashboards te lezen | `ReadDashboard`, of een projectrol: Projecteigenaar, Projectbeheerder, Projectlid, Kijker of een Settings-rol |
+| Dashboards te maken | `CreateDashboard`, Projecteigenaar of Projectbeheerder |
+| Een dashboard te wijzigen: de widgets, variabelen, het delen en de huisstijl ervan, en het te archiveren | `EditDashboard`, Projecteigenaar of Projectbeheerder |
+| Een dashboard te verwijderen | `DeleteDashboard`, Projecteigenaar of Projectbeheerder |
+| Eigenaren toe te voegen en te verwijderen | De machtigingen voor dashboardeigenaren, Projecteigenaar, Projectbeheerder of Projectlid |
+| Aangepaste domeinen toe te voegen en te wijzigen | De machtigingen voor dashboarddomeinen, Projecteigenaar, Projectbeheerder, Projectlid, Instellingenbeheerder of Instellingenlid |
+| Eigenaarsregels en labelregels te maken | De machtigingen voor regels, Projecteigenaar of Projectbeheerder |
 
-Een Project Member leest dus elk dashboard, maar heeft `CreateDashboard` en `EditDashboard` nodig om ze te bouwen. Lezen, bewerken en verwijderen kunnen elk worden beperkt tot de dashboards die een team bezit, of tot dashboards met bepaalde labels: zie [Bereik: hoe ver een toegestane machtiging reikt](/docs/permissions/index#bereik-hoe-ver-een-toegestane-machtiging-reikt).
+Een Projectlid leest dus elk dashboard, maar heeft `CreateDashboard` en `EditDashboard` nodig om ze te bouwen. Lezen, bewerken en verwijderen kunnen elk worden beperkt tot de dashboards die een team bezit, of tot dashboards met bepaalde labels: zie [Bereik: hoe ver een toegestane machtiging reikt](/docs/permissions/index#bereik-hoe-ver-een-toegestane-machtiging-reikt).
 
 Ken ze toe op de pagina **Machtigingen** van een team: open **Producten → Teams** en kies het team.
 

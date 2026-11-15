@@ -43,7 +43,7 @@ Hver gang der ankommer telemetri, rykker tjenestens **Sidst set** frem, og dens 
 ## Før du begynder
 
 - **Telemetri, der ankommer** med et `service.name`. Se [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` sætter det.
-- **En rolle, der må læse tjenester.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member eller Settings Viewer, eller en brugerdefineret rolle med tilladelsen Read Service. At oprette, ændre og slette tjenester kræver Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member, eller de tilsvarende tjenestetilladelser.
+- **En rolle, der må læse tjenester.** Projektejer, Projektadministrator, Projektmedlem, Seer, Indstillingsadministrator, Indstillingsmedlem eller Indstillingsseer, eller en brugerdefineret rolle med tilladelsen Read Service. At oprette, ændre og slette tjenester kræver Projektejer, Projektadministrator, Projektmedlem, Indstillingsadministrator eller Indstillingsmedlem, eller de tilsvarende tjenestetilladelser.
 
 ## Find en tjeneste
 

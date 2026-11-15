@@ -27,7 +27,7 @@ flowchart TB
 
 ## Før du starter
 
-- **En rolle som kan opprette maler**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor Template. Å endre en mal krever de samme rollene, eller tillatelsen Edit Monitor Template.
+- **En rolle som kan opprette maler**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor Template. Å endre en mal krever de samme rollene, eller tillatelsen Edit Monitor Template.
 - **Tillatelse til å oppdatere de tilkoblede monitorene.** En synkronisering skriver til hver tilkoblede monitor som deg, og hopper over monitorene som tillatelsene dine ikke dekker.
 
 ## Opprett en mal

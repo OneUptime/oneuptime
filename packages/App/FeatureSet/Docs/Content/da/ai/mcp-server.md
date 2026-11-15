@@ -430,7 +430,7 @@ Disse virker uden legitimationsoplysninger, alene med værktøjerne til offentli
 | Hvad agenten gør | Vælg under **Adgang** |
 | --- | --- |
 | Læser kun | **Seer**, eller tilføj læsetilladelser på nøglens side |
-| Opretter, opdaterer og sletter også | **Projektadministrator**, eller tilføj rollen Project Admin på nøglens side |
+| Opretter, opdaterer og sletter også | **Projektadministrator**, eller tilføj rollen Projektadministrator på nøglens side |
 
 Giv hver nøgle det mindste, den har brug for, roter nøgler jævnligt, hav en separat nøgle til hvert miljø, og hold øje med, hvad hver nøgle gør i OneUptime.
 

@@ -41,7 +41,7 @@ I sin helhet läser OneUptime de här inställningarna i den här ordningen, och
 
 ## Innan du börjar
 
-- **En roll som ändrar projektet.** Project Owner eller Project Admin ändrar projektets lagring. En tjänsts eller resurs lagring kräver den roll som ändrar dess andra inställningar.
+- **En roll som ändrar projektet.** Projektägare eller Projektadministratör ändrar projektets lagring. En tjänsts eller resurs lagring kräver den roll som ändrar dess andra inställningar.
 - **För åsidosättningar, Enterprise Edition eller Scale-planen.** En installation i egen drift behöver en Enterprise-licens, och ett OneUptime Cloud-projekt Scale-planen eller högre. Projektets standardlagring finns i alla utgåvor och planer.
 
 ## Ändra projektets lagring
