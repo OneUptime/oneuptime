@@ -82,7 +82,7 @@ Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj 
 
 ### Vælg, hvad den berører, og hvem der tilkaldes
 
-Klik på **Næste** for at komme til **Ressourcer og vagt**. Vælg den **Overvågning**, den handler om, og eventuelle **Andre berørte ressourcer**, som hosts, netværksenheder, Kubernetes-klynger eller tjenester. Under **Vagtpolitik** vælger du de politikker, der skal køre, når advarslen oprettes.
+Klik på **Næste** for at komme til **Ressourcer og vagt**. Vælg den **Monitor**, den handler om, og eventuelle **Andre berørte ressourcer**, som hosts, netværksenheder, Kubernetes-klynger eller tjenester. Under **Vagtpolitik** vælger du de politikker, der skal køre, når advarslen oprettes.
 
 ### Opret den
 

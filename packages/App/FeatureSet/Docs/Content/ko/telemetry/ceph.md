@@ -1,17 +1,17 @@
 # Ceph 에이전트
 
-OneUptime Ceph 에이전트는 Ceph 클러스터의 상태, 모니터 쿼럼, OSD, 풀, 배치 그룹을 모니터링합니다. 모든 mgr 데몬에서 Ceph mgr의 `prometheus` 모듈을 스크레이프하고, 모든 메트릭에 클러스터 이름을 붙여 OneUptime으로 보냅니다. OneUptime에서는 클러스터가 OSD, 풀, 데몬과 함께 표시됩니다. 들어오는 데이터에 대해서는 [Ceph 모니터](/docs/monitor/ceph-monitor)가 알림을 보냅니다.
+OneUptime Ceph 에이전트는 Ceph 클러스터의 상태, 모니터 쿼럼, OSD, 풀, 배치 그룹을 모니터링합니다. 모든 mgr 데몬에서 Ceph mgr의 `prometheus` 모듈을 스크레이프하고, 모든 메트릭에 클러스터 이름을 붙여 OneUptime으로 보냅니다. OneUptime에서는 클러스터가 OSD, 풀, 데몬과 함께 표시됩니다. 들어오는 데이터에 대해서는 [Ceph 모니터](/docs/monitor/ceph-monitor)가 경고를 보냅니다.
 
 :::cards
 - [에이전트 설치](#에이전트-설치): mgr 모듈을 켠 다음 설치 스크립트나 Docker Compose를 사용합니다.
-- [에이전트가 수집하는 항목](#에이전트가-수집하는-것): Ceph 페이지, 메트릭, 알림 템플릿의 바탕이 되는 시리즈.
+- [에이전트가 수집하는 항목](#에이전트가-수집하는-것): Ceph 페이지, 메트릭, 경고 템플릿의 바탕이 되는 시리즈.
 - [AI 에이전트](#ai-에이전트): OneUptime AI가 조사하는 동안 클러스터를 읽게 합니다.
 - [문제 해결](#문제-해결): 진단 스크립트와 일반적인 문제.
 :::
 
 ## 작동 방식
 
-에이전트는 한 머신에서 Docker Compose로 실행하는 컨테이너 두 개입니다. OpenTelemetry Collector가 모든 mgr 데몬에서 mgr의 `prometheus` 모듈을 30초마다 스크레이프합니다. 메트릭으로 응답하는 것은 활성 mgr뿐이므로, 대기 mgr로 페일오버되어도 아무것도 바꾸지 않고 메트릭이 계속 들어옵니다. 옆에서 실행되는 Ceph AI 에이전트 덕분에 OneUptime AI는 인시던트나 알림을 조사하는 동안 읽기 전용 `ceph` 명령을 실행할 수 있습니다.
+에이전트는 한 머신에서 Docker Compose로 실행하는 컨테이너 두 개입니다. OpenTelemetry Collector가 모든 mgr 데몬에서 mgr의 `prometheus` 모듈을 30초마다 스크레이프합니다. 메트릭으로 응답하는 것은 활성 mgr뿐이므로, 대기 mgr로 페일오버되어도 아무것도 바꾸지 않고 메트릭이 계속 들어옵니다. 옆에서 실행되는 Ceph AI 에이전트 덕분에 OneUptime AI는 인시던트나 경고를 조사하는 동안 읽기 전용 `ceph` 명령을 실행할 수 있습니다.
 
 ```mermaid title="Ceph 클러스터에서 OneUptime까지"
 flowchart TB
@@ -129,11 +129,11 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 
 ## 에이전트가 수집하는 것
 
-에이전트는 mgr `prometheus` 모듈이 내보내는 모든 것을 보냅니다. OneUptime의 Ceph 페이지, 메트릭 카탈로그, 알림 템플릿은 다음 시리즈를 바탕으로 합니다:
+에이전트는 mgr `prometheus` 모듈이 내보내는 모든 것을 보냅니다. OneUptime의 Ceph 페이지, 메트릭 카탈로그, 경고 템플릿은 다음 시리즈를 바탕으로 합니다:
 
 | 범주 | 메트릭 |
 | --- | --- |
-| 클러스터 상태 | `ceph_health_status`(0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail`(상태 확인마다 하나의 시리즈(활성인 동안 1, 해제된 뒤 0), `name`과 `severity` 레이블 포함, Quincy부터; 상태 확인 알림 템플릿과 개요의 **확인 필요**에 표시되는 점검의 바탕), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics`(데몬별, `type`으로 구분), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
+| 클러스터 상태 | `ceph_health_status`(0 = OK, 1 = WARN, 2 = ERR), `ceph_health_detail`(상태 확인마다 하나의 시리즈(활성인 동안 1, 해제된 뒤 0), `name`과 `severity` 레이블 포함, Quincy부터; 상태 확인 경고 템플릿과 개요의 **확인 필요**에 표시되는 점검의 바탕), `ceph_healthcheck_slow_ops`, `ceph_daemon_health_metrics`(데몬별, `type`으로 구분), `ceph_mon_quorum_status`, `ceph_mon_metadata`, `ceph_cluster_total_bytes`, `ceph_cluster_total_used_bytes` |
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, OSD별로 `ceph_daemon` 레이블(예: `osd.3`)로 구분 |
 | 풀 | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. 데이터 시리즈에는 `pool_id` 레이블만 있고, 풀 이름은 `ceph_pool_metadata`에 있습니다. |
 | 배치 그룹 | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized`(모두 풀별, `pool_id`로 구분), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
@@ -152,12 +152,12 @@ mgr 모듈은 클러스터의 상태와 용량을 다룹니다. 더 자세히 �
 
 클러스터의 **개요**는 주의가 필요한 항목에 따라 상태를 **정상**, **저하됨** 또는 **비정상**으로 나타내고, 그 항목을 **확인 필요**에 가장 급한 것부터 나열합니다:
 
-- **클러스터 자체.** Ceph 자체의 `HEALTH_WARN` 또는 `HEALTH_ERR`와, Ceph가 올린 점검을 Ceph가 부르는 이름 그대로(`OSD_DOWN`, `PG_DEGRADED` 등), 그리고 85%를 넘은 원시 용량(95%를 넘으면 심각)입니다. 여기서 Cluster Near Full과 Cluster Full 알림이 발생합니다.
+- **클러스터 자체.** Ceph 자체의 `HEALTH_WARN` 또는 `HEALTH_ERR`와, Ceph가 올린 점검을 Ceph가 부르는 이름 그대로(`OSD_DOWN`, `PG_DEGRADED` 등), 그리고 85%를 넘은 원시 용량(95%를 넘으면 심각)입니다. 여기서 Cluster Near Full과 Cluster Full 경고가 발생합니다.
 - **OSD.** 다운되었지만 아직 클러스터에 포함된 OSD는 심각합니다. 그 Placement Group에 복사본이 하나 부족합니다. 다운되고 제외되었거나, 업이지만 제외된 OSD는 확인이 필요하며, Ceph의 nearfull 비율(85%)이나 backfillfull 비율(90%)을 넘었거나 적용 지연 시간이 100 ms를 넘은 OSD도 마찬가지입니다. full 비율(95%)을 넘으면 쓰기를 거부하므로 심각합니다.
 - **모니터.** 쿼럼을 이탈한 모니터는 심각합니다.
 - **풀.** 쓰기 가능한 공간의 85%를 넘은 풀(stored ÷ (stored + max avail))은 확인이 필요하고, 95%를 넘으면 심각합니다. 저하되었거나 복사본이 부족한 Placement Group은 확인이 필요하고, I/O가 멈추는 비활성 Placement Group은 심각합니다.
 
-**OSD**, **풀**, **데몬** 목록은 같은 규칙으로 각 부분의 상태를 보여 주며 그 아래에 이유가 표시됩니다. OSD와 풀의 개별 페이지는 주의가 필요한 항목, 열린 항목, 그리고 그것을 감시하는 클러스터 알림을 보여 주며, 나머지를 켜는 것도 한 단계면 됩니다. Ceph가 더 이상 나열하지 않는 매니저, 메타데이터 서버 또는 오브젝트 게이트웨이는 회색의 **보고 중단됨**으로 표시됩니다. 고장 난 것에 대해서는 Ceph가 `RECENT_CRASH`나 `MDS_ALL_DOWN` 같은 점검을 올리며, 클러스터 행에 표시됩니다. 에이전트 연결이 끊긴 동안 상태는 **상태: 알 수 없음**으로 표시됩니다. 클러스터의 마지막 보고가 더 이상 사실이 아니기 때문입니다.
+**OSD**, **풀**, **데몬** 목록은 같은 규칙으로 각 부분의 상태를 보여 주며 그 아래에 이유가 표시됩니다. OSD와 풀의 개별 페이지는 주의가 필요한 항목, 열린 항목, 그리고 그것을 감시하는 클러스터 경고를 보여 주며, 나머지를 켜는 것도 한 단계면 됩니다. Ceph가 더 이상 나열하지 않는 매니저, 메타데이터 서버 또는 오브젝트 게이트웨이는 회색의 **보고 중단됨**으로 표시됩니다. 고장 난 것에 대해서는 Ceph가 `RECENT_CRASH`나 `MDS_ALL_DOWN` 같은 점검을 올리며, 클러스터 행에 표시됩니다. 에이전트 연결이 끊긴 동안 상태는 **상태: 알 수 없음**으로 표시됩니다. 클러스터의 마지막 보고가 더 이상 사실이 아니기 때문입니다.
 
 OSD 비율은 Ceph의 기본값입니다. 다른 값으로 설정된 클러스터는 자체 기준에서 `OSD_NEARFULL`, `OSD_BACKFILLFULL`, `OSD_FULL` 점검을 올리며, 클러스터 행에 표시됩니다.
 
@@ -247,9 +247,9 @@ AI 에이전트의 Ceph 클라이언트를 만들었다면 관리 노드에서 `
 
 ## AI 에이전트
 
-에이전트의 `docker-compose.yml`은 **Ceph AI 에이전트**(`oneuptime-ceph-ai-agent`, 이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 이를 통해 읽기 전용 `ceph` 명령(`ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`)을 실행하고, 허용한 경우에만 OSD를 다시 in으로 표시하거나 `noout`을 해제하는 등의 수정을 적용합니다. Collector와 마찬가지로 `CEPH_CLUSTER_NAME`이라는 이름의 클러스터로 등록되며, OneUptime에서 클러스터의 **AI → AI 에이전트** 페이지에 표시됩니다.
+에이전트의 `docker-compose.yml`은 **Ceph AI 에이전트**(`oneuptime-ceph-ai-agent`, 이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 이를 통해 읽기 전용 `ceph` 명령(`ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`)을 실행하고, 허용한 경우에만 OSD를 다시 in으로 표시하거나 `noout`을 해제하는 등의 수정을 적용합니다. Collector와 마찬가지로 `CEPH_CLUSTER_NAME`이라는 이름의 클러스터로 등록되며, OneUptime에서 클러스터의 **AI → AI 에이전트** 페이지에 표시됩니다.
 
-- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 알림을 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 경고를 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - **전용 Ceph 클라이언트가 넘을 수 없는 한계입니다.** `client.oneuptime-ai`로 연결하며, 클러스터의 최소 `ceph.conf`와 그 클라이언트의 키링을 `docker-compose.yml` 옆의 `ceph/` 폴더에 둡니다(`/etc/ceph`에 읽기 전용으로 마운트). 읽기 caps만 있으면 실행하는 어떤 것도 클러스터를 바꿀 수 없습니다. 새로 설치할 때 `install.sh`가 클라이언트를 만들어 주겠다고 제안하며, 다시 실행할 때는 절대 만들지 않습니다. admin 키링은 절대 그 폴더에 두지 마세요.
 - `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하고 클라이언트에 수정에 필요한 caps를 주지 않는 한 **읽기 전용**입니다(필요한 caps는 에이전트의 README에 있습니다). `ONEUPTIME_AI_WRITE_TARGETS`(예: `osd.*,cluster`)는 수정이 건드릴 수 있는 범위를 제한합니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
 - 모니터(TCP 3300과 6789), mgr 및 OSD 데몬(TCP 6800–7300)으로 나가는 연결을 맺고, UID 1000으로 capabilities 없이 실행되며, `auth`, `config-key`, `tell`이나 데이터를 삭제하는 어떤 것도 실행하지 않습니다. OneUptime AI를 사용하지 않는다면 `docker-compose.yml`에서 `oneuptime-ceph-ai-agent` 서비스를 삭제하세요.
@@ -305,7 +305,7 @@ OneUptime은 Ceph 클러스터를 `ceph.cluster.name`으로 등록하며, 에이
 ## 다음 단계
 
 :::cards
-- [Ceph 모니터](/docs/monitor/ceph-monitor): 상태, OSD, 배치 그룹, 용량, 크래시, 느린 작업에 대해 알림을 보냅니다.
+- [Ceph 모니터](/docs/monitor/ceph-monitor): 상태, OSD, 배치 그룹, 용량, 크래시, 느린 작업에 대해 경고를 보냅니다.
 - [Proxmox 에이전트](/docs/telemetry/proxmox): Proxmox VE 아래에서 Ceph를 실행하나요? 클러스터도 모니터링하세요.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Ceph AI 에이전트가 실행할 수 있는 명령과 수정이 동작하는 방식.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): 각 Ceph 호스트를 운영체제 관점에서 봅니다.

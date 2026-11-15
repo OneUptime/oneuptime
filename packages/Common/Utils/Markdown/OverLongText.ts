@@ -34,7 +34,8 @@ import { isWhiteSpaceCode } from "../RegExpCharacterClasses";
  *     (#7600). The cut moves a little where it would stand inside a link's
  *     text as the parser reads it - in brackets nested in it, a code span,
  *     an escape - or inside a reference's label, so the link stays a link
- *     (#8238).
+ *     (#8238). The brackets the middle leaves unmatched that pair with
+ *     brackets in view stay in view too (#8668).
  *   - in every run of lines with no blank line between them that is longer
  *     than OVER_LONG_RUN_LENGTH characters, each group of consecutive lines
  *     that only continue the block they are in (isContinuationLine: plain
@@ -1624,6 +1625,84 @@ const readDefinitionStart: (
 };
 
 /*
+ * BRACKETS THE MIDDLE LEAVES UNMATCHED (#8668).
+ *
+ * The middle's brackets pair with brackets in view: a "]" in it closes a
+ * label the kept start left open, and a "[" in it that nothing in it
+ * closes is closed by a "]" in the kept end. Held back, they are gone: the
+ * kept start's label read on, past the token, to a "](" in the kept end - a
+ * link across the whole middle that no parser reads in the whole line - and
+ * a "]" in the kept end closed a label of the kept start instead, so a link
+ * there was lost, or read from the wrong "[".
+ *
+ * Reduced to what pairs with brackets outside it, the middle's brackets
+ * are some "]" and then some "[": the "]"s that close labels opened before
+ * it, then the "["s it leaves open. So the first of those "]"s - as many as
+ * the kept start leaves labels open - stay in view, each between two
+ * pieces of the middle, and so do the last of those "["s, as many as the
+ * kept end has "]"s that close nothing of its own: each parser pairs them
+ * with what is in view as it pairs them in the whole line. A "]" kept so is
+ * followed by a token, so it closes no link; a "[" is kept for marked only
+ * where marked reads its label in the whole line, so it opens none that
+ * marked does not read there. At most MAX_KEPT_BRACKETS of each are kept,
+ * found as the middle is read (each character once) and counted in the
+ * kept end.
+ */
+
+// The most unmatched brackets of a line's middle kept in view, at each end.
+const MAX_KEPT_BRACKETS: number = 8;
+
+/*
+ * How many "]" text[from, end) has that close no "[" of its own - outside
+ * code spans, and not escaped.
+ */
+const countUnmatchedClosers: (data: {
+  text: string;
+  from: number;
+  end: number;
+  lineEnd: number;
+}) => number = (data: {
+  text: string;
+  from: number;
+  end: number;
+  lineEnd: number;
+}): number => {
+  const text: string = data.text;
+  const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, data.lineEnd);
+  let open: number = 0;
+  let unmatched: number = 0;
+  let index: number = data.from;
+
+  while (index < data.end) {
+    const code: number = text.charCodeAt(index);
+
+    if (code === BACKSLASH) {
+      index = getEscapeEnd(text, index);
+      continue;
+    }
+
+    if (code === BACKTICK) {
+      index = getPastBackticks(codeSpans, index);
+      continue;
+    }
+
+    if (code === OPEN_BRACKET) {
+      open++;
+    } else if (code === CLOSE_BRACKET) {
+      if (open > 0) {
+        open--;
+      } else {
+        unmatched++;
+      }
+    }
+
+    index++;
+  }
+
+  return unmatched;
+};
+
+/*
  * Holds back the middle text[middleStart, middleEnd) of the over-long line
  * that starts at `lineStart` - in pieces where a link, or a word, goes on
  * into it from the line's kept start, or a link goes on from it into the
@@ -1737,10 +1816,19 @@ const holdBackMiddle: (data: {
   };
 
   /*
+   * How many labels the kept start leaves open in view: the "]"s of the
+   * middle that close them stay in view (see "Brackets the middle leaves
+   * unmatched"). Set once the kept start is read.
+   */
+  let labelsOpenInView: number = 0;
+
+  /*
    * Reads the rest of the middle, on from `from` - where `reading` is - and
    * holds it back, keeping in view what a link or an autolink that goes on
    * into the kept end needs there (see "A link across the end of a line's
-   * middle" above). Returns where the middle ends.
+   * middle" above), and the brackets it leaves unmatched that pair with
+   * brackets in view (see "Brackets the middle leaves unmatched"). Returns
+   * where the middle ends.
    */
   const holdBackToEnd: (from: number) => number = (from: number): number => {
     if (from >= middleEnd) {
@@ -1782,6 +1870,18 @@ const holdBackMiddle: (data: {
      * one starts no link: a code span is read past (see "Code spans").
      */
     const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, data.lineEnd);
+    // Where the first "]"s that close no label of the middle's own are.
+    const unmatchedClosers: Array<number> = [];
+
+    const noteUnmatchedCloser: (at: number) => void = (at: number): void => {
+      if (
+        labelsLeftOut === 0 &&
+        labelStarts.length === 0 &&
+        unmatchedClosers.length < MAX_KEPT_BRACKETS
+      ) {
+        unmatchedClosers.push(at);
+      }
+    };
 
     // The start of the label a "]" closes, or -1 when it is not known.
     const closeLabel: () => number = (): number => {
@@ -1818,12 +1918,13 @@ const holdBackMiddle: (data: {
           } else {
             labelsLeftOut++;
           }
-        } else if (
-          code === CLOSE_BRACKET &&
-          text.charCodeAt(at + 1) !== OPEN_PARENTHESIS
-        ) {
-          lastClosedStart = closeLabel();
-          lastClosedEnd = at;
+        } else if (code === CLOSE_BRACKET) {
+          noteUnmatchedCloser(at);
+
+          if (text.charCodeAt(at + 1) !== OPEN_PARENTHESIS) {
+            lastClosedStart = closeLabel();
+            lastClosedEnd = at;
+          }
         } else if (code === EXCLAMATION_MARK) {
           exclamationMark = at;
         } else if (code === BACKSLASH && getEscapeEnd(text, at) > middleEnd) {
@@ -1846,6 +1947,82 @@ const holdBackMiddle: (data: {
 
       at = next;
     }
+
+    // The "]"s that close labels the kept start left open stay in view.
+    for (const closer of unmatchedClosers.slice(0, labelsOpenInView)) {
+      if (closer >= position) {
+        holdTo(closer);
+        keepTo(closer + 1);
+      }
+    }
+
+    /*
+     * The "["s the middle leaves open that the kept end's "]"s close stay
+     * in view - the innermost last - before `limit`, where the kept end
+     * starts at `keptEnd`.
+     */
+    const keepOpenLabels: (keptEnd: number, limit: number) => void = (
+      keptEnd: number,
+      limit: number,
+    ): void => {
+      if (labelsLeftOut > 0) {
+        return;
+      }
+
+      const count: number = Math.min(
+        labelStarts.length,
+        MAX_KEPT_BRACKETS,
+        countUnmatchedClosers({
+          text: text,
+          from: keptEnd,
+          end: data.lineEnd,
+          lineEnd: data.lineEnd,
+        }),
+      );
+
+      if (count === 0) {
+        return;
+      }
+
+      const labelOpens: Array<number> = labelStarts
+        .slice(-count)
+        .map((start: number): number => {
+          return getLabelOpen(text, start);
+        });
+
+      if (
+        labelOpens[0]! < position ||
+        labelOpens[labelOpens.length - 1]! >= limit
+      ) {
+        return;
+      }
+
+      // marked reads a label from each "[": only one it reads in the whole line.
+      if (
+        data.parser === "marked" &&
+        !labelOpens.every((labelOpen: number): boolean => {
+          return (
+            readLinkTextAsMarked({
+              text: text,
+              from: labelOpen + 1,
+              cut: middleEnd,
+              end: data.lineEnd,
+              lineEnd: data.lineEnd,
+              isRead: (): boolean => {
+                return true;
+              },
+            }) !== null
+          );
+        })
+      ) {
+        return;
+      }
+
+      for (const labelOpen of labelOpens) {
+        holdTo(labelOpen);
+        keepTo(labelOpen + 1);
+      }
+    };
 
     if (reading.part === "autolink" && autolinkStart >= position) {
       // Its "<", its scheme and the ":" after it stay in view.
@@ -1957,6 +2134,7 @@ const holdBackMiddle: (data: {
        * view with what it escapes.
        */
       if (codeEndPastCut !== -1) {
+        keepOpenLabels(codeEndPastCut, codeEndPastCut);
         holdTo(codeEndPastCut);
 
         return codeEndPastCut;
@@ -1971,6 +2149,8 @@ const holdBackMiddle: (data: {
        */
       const address: { start: number; keepEnd: number } | null =
         findAddressAcrossEnd(text, position, cut);
+
+      keepOpenLabels(cut, address !== null ? address.start : cut);
 
       if (address !== null) {
         holdTo(address.start);
@@ -2009,6 +2189,8 @@ const holdBackMiddle: (data: {
 
   // The "[" the kept start opens as text - in no code span - the first first.
   const opens: Array<number> = [];
+  // Where each label the kept start leaves open starts: each "]" closes the last.
+  const openLabels: Array<number> = [];
   const codeSpans: CodeSpanSearch = newCodeSpanSearch(text, data.lineEnd);
   // Where the last character read - or the backslash before it - starts.
   let lastRead: number = index;
@@ -2027,8 +2209,14 @@ const holdBackMiddle: (data: {
         continue;
       }
 
-      if (code === OPEN_BRACKET && opens.length < MAX_OPEN_LABELS) {
-        opens.push(index);
+      if (code === OPEN_BRACKET) {
+        if (opens.length < MAX_OPEN_LABELS) {
+          opens.push(index);
+        }
+
+        openLabels.push(index);
+      } else if (code === CLOSE_BRACKET) {
+        openLabels.pop();
       }
     }
 
@@ -2056,6 +2244,12 @@ const holdBackMiddle: (data: {
       });
 
   if (across !== null) {
+    // The labels opened before the link's: its own and those in it close in it.
+    const linkOpen: number = getLabelOpen(text, across.start);
+
+    labelsOpenInView = openLabels.filter((labelOpen: number): boolean => {
+      return labelOpen < linkOpen;
+    }).length;
     keepTo(across.plainBefore);
     holdTo(across.close);
 
@@ -2104,17 +2298,29 @@ const holdBackMiddle: (data: {
          * closing backticks would be held back.
          */
         const advanced: LinkReading = { ...reading };
+        const advancedLabels: Array<number> = [...openLabels];
         let at: number = index;
 
         while (at < referenceEnd) {
-          at =
-            advanced.part === "text" && text.charCodeAt(at) === BACKTICK
-              ? getPastBackticks(codeSpans, at)
-              : readLinkUnit(text, at, advanced);
+          const code: number = text.charCodeAt(at);
+
+          if (advanced.part === "text" && code === BACKTICK) {
+            at = getPastBackticks(codeSpans, at);
+            continue;
+          }
+
+          if (advanced.part === "text" && code === OPEN_BRACKET) {
+            advancedLabels.push(at);
+          } else if (advanced.part === "text" && code === CLOSE_BRACKET) {
+            advancedLabels.pop();
+          }
+
+          at = readLinkUnit(text, at, advanced);
         }
 
         if (at === referenceEnd && advanced.part === "text") {
           Object.assign(reading, advanced);
+          openLabels.splice(0, openLabels.length, ...advancedLabels);
           index = referenceEnd;
           keptStartEnd = referenceEnd;
         }
@@ -2135,6 +2341,7 @@ const holdBackMiddle: (data: {
     }
 
     keepTo(keptStartEnd);
+    labelsOpenInView = openLabels.length;
   }
 
   if (!isInLink(reading)) {
@@ -2167,8 +2374,34 @@ const holdBackMiddle: (data: {
           heldEnd--;
         }
 
-        holdTo(heldEnd);
-        keepTo(wordEnd + 1);
+        /*
+         * A "]" in the word that closes a label the kept start leaves open
+         * ends the word's piece: it stays in view (see "Brackets the middle
+         * leaves unmatched"), and the rest is held back with the middle.
+         */
+        let closer: number = -1;
+
+        for (
+          let at: number = position;
+          labelsOpenInView > 0 && at < heldEnd;
+          at++
+        ) {
+          const code: number = text.charCodeAt(at);
+
+          if (code === BACKSLASH) {
+            at++;
+          } else if (code === CLOSE_BRACKET) {
+            closer = at;
+            break;
+          }
+        }
+
+        if (closer !== -1) {
+          holdTo(closer);
+        } else {
+          holdTo(heldEnd);
+          keepTo(wordEnd + 1);
+        }
       }
     }
 

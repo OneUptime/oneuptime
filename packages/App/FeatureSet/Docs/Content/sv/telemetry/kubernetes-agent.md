@@ -990,7 +990,7 @@ Dessa är avstängda som standard eftersom de ökar belastningen. Slå bara på 
 | `kubeStateMetrics.enabled` | Mätvärden för CrashLoop, ImagePull och schemaläggningsorsaker (lägger till en kube-state-metrics-Deployment och en skrapning) |
 | `ebpf.features.networkInterZoneMetrics` | Fördubblar nätverksflödesserierna |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Fler Prometheus-skrapjobb |
-| `cost.enabled` | Kostnader för arbetsbelastningar (levereras med OpenCost och en liten Prometheus; kostnadsrader per timme och en skrapning av mätvärden med en snäv tillåtelselista; måttligt intag, två poddar till) |
+| `cost.enabled` | Kostnader för arbetsbelastningar (levereras med OpenCost och en liten Prometheus; kostnadsrader per timme och en skrapning av mätvärden med en snäv tillåtelselista; mätvärdesligt intag, två poddar till) |
 
 ### Sampla spår i stället för att släppa dem
 

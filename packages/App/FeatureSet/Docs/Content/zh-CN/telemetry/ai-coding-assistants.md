@@ -42,13 +42,13 @@ flowchart TB
 
 | 工具 | 发送什么 | 如何到达 OneUptime | 指明谁 | 指南 |
 | --- | --- | --- | --- | --- |
-| Claude Code | 指标和日志；跟踪为测试版 | 从每台机器；环境变量或托管设置文件 | 使用 Claude 账号登录时为 `user.email` | [Claude Code](/docs/telemetry/claude-code) |
+| Claude Code | 指标和日志；追踪为测试版 | 从每台机器；环境变量或托管设置文件 | 使用 Claude 账号登录时为 `user.email` | [Claude Code](/docs/telemetry/claude-code) |
 | Cursor | 指标和日志 | 从 Cursor 的服务器，在 Cursor 仪表盘中设置一次；仅限 Enterprise 套餐 | 整数 `cursor.user.id` | [Cursor](/docs/telemetry/cursor) |
-| OpenAI Codex | 跟踪、指标和日志，各自在 `~/.codex/config.toml` 中开启 | 从每台机器，每种信号一个完整 URL | span 和指标上不指明任何人：你需要在 `[otel.span_attributes]` 中自行设置 `user.id` 和 `user.email` | [OpenAI Codex](/docs/telemetry/openai-codex) |
-| Gemini CLI | 跟踪、指标和日志 | 从每台机器，通常经由本地 Collector | 登录时为 `user.email` | [Gemini CLI 与 GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot) |
-| GitHub Copilot | 跟踪、指标和日志，仅来自其代理功能 | 从编辑器或代理宿主 | 不指明任何人：你需要在每台机器上自行设置 `enduser.id` 和 `user.email` | [Gemini CLI 与 GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot) |
+| OpenAI Codex | 追踪、指标和日志，各自在 `~/.codex/config.toml` 中开启 | 从每台机器，每种信号一个完整 URL | span 和指标上不指明任何人：你需要在 `[otel.span_attributes]` 中自行设置 `user.id` 和 `user.email` | [OpenAI Codex](/docs/telemetry/openai-codex) |
+| Gemini CLI | 追踪、指标和日志 | 从每台机器，通常经由本地 Collector | 登录时为 `user.email` | [Gemini CLI 与 GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot) |
+| GitHub Copilot | 追踪、指标和日志，仅来自其代理功能 | 从编辑器或代理宿主 | 不指明任何人：你需要在每台机器上自行设置 `enduser.id` 和 `user.email` | [Gemini CLI 与 GitHub Copilot](/docs/telemetry/gemini-cli-and-copilot) |
 | Cline | 指标和日志 | 在 Cline 的组织仪表盘中集中配置 | 匿名化的 `user_id` | — |
-| LiteLLM 和 Portkey | 经过网关的每次调用的跟踪 | 从网关进程 | 使用 LiteLLM 时为虚拟密钥的所有者 | [AI 网关](/docs/telemetry/ai-gateways) |
+| LiteLLM 和 Portkey | 经过网关的每次调用的追踪 | 从网关进程 | 使用 LiteLLM 时为虚拟密钥的所有者 | [AI 网关](/docs/telemetry/ai-gateways) |
 | 你自己的应用 | 你的 GenAI 插桩发送的内容 | 从你的应用 | 你设置为 `user.id` 的人 | [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability) |
 | Windsurf、JetBrains AI、Amazon Bedrock、Azure OpenAI | 没有自己的 OpenTelemetry | 只能经由你放在前面的网关；Bedrock 和 Azure 的用量和成本也可以作为 [提供商账户](/docs/telemetry/ai-provider-accounts) 读取 | 网关指明的人 | [AI 网关](/docs/telemetry/ai-gateways) |
 
@@ -114,11 +114,11 @@ export OTEL_RESOURCE_ATTRIBUTES="team.id=platform,team=Platform_Engineering,cost
 - `gen_ai.user` 和 `llm.user`：插桩对 OpenAI 请求参数 `user` 的回显，OpenAI 将其描述为你的最终用户的标识符。
 - `litellm.metadata.user_api_key_end_user_id`、`metadata.user_api_key_end_user_id` 和 `litellm.end_user.id`：LiteLLM 的最终用户，与作为员工的密钥所有者不同。
 
-如果把客户 ID 当作员工读取，一个服务 40,000 名客户的支持机器人就会变成 40,000 名虚构的员工，而真正负责这笔支出的工程师看起来却什么都没花。这些键会保留在 span 的属性中，跟踪查看器的 **LLM** 标签页会把它们显示为最终用户。
+如果把客户 ID 当作员工读取，一个服务 40,000 名客户的支持机器人就会变成 40,000 名虚构的员工，而真正负责这笔支出的工程师看起来却什么都没花。这些键会保留在 span 的属性中，追踪查看器的 **LLM** 标签页会把它们显示为最终用户。
 
 ### 隐私
 
-员工邮箱列包含个人数据。跟踪的 **清理规则** 对这一列的作用与对其来源属性完全相同，因此屏蔽邮箱的规则也会屏蔽这一列。你可以在 **追踪 → 设置** 下找到它们。
+员工邮箱列包含个人数据。追踪的 **清理规则** 对这一列的作用与对其来源属性完全相同，因此屏蔽邮箱的规则也会屏蔽这一列。你可以在 **追踪 → 设置** 下找到它们。
 
 ## OneUptime 读取的编程助手指标
 
@@ -137,7 +137,7 @@ OneUptime 还会从 `gen_ai.client.token.usage`、`gen_ai.client.token.count`、
 
 阅读数字之前需要了解两点：
 
-- **有意不读取 `gemini_cli.token.usage`。** Gemini CLI 会把 token 发送两次，一次作为自己的指标，一次作为 `gen_ai.client.token.usage`，同时读取会使其翻倍。它的 token 只通过 `gen_ai.client.token.usage` 计算一次。Gemini CLI 不发送成本指标：请开启它的跟踪，让每次调用都能计价。
+- **有意不读取 `gemini_cli.token.usage`。** Gemini CLI 会把 token 发送两次，一次作为自己的指标，一次作为 `gen_ai.client.token.usage`，同时读取会使其翻倍。它的 token 只通过 `gen_ai.client.token.usage` 计算一次。Gemini CLI 不发送成本指标：请开启它的追踪，让每次调用都能计价。
 - **只计算输入和输出 token。** token 类型从 `gen_ai.token.type`、`llm.token.type`、`type`、`cursor.token.type` 或 `token_type` 读取，只计算 `input` 和 `output`（或旧的 `prompt` 和 `completion`），而 Claude Code 的 `cacheRead` 和 `cacheCreation` 计为输入，因为它的 `input` 不包含它们。其他缓存读写、Codex 的 `total`（重复了其他值）和 `reasoning_output`（`output` 的一部分）都不计入，因此来自指标的总数会小于工具发送的所有值之和。
 
 ## 用量标签页
@@ -184,7 +184,7 @@ OneUptime 还会从 `gen_ai.client.token.usage`、`gen_ai.client.token.count`、
 | GitHub Copilot | 关闭：`captureContent`，托管设置可以用 `lockCaptureContent` 锁定 |
 | LiteLLM | 使用默认的 `otel` 回调时开启（用 `turn_off_message_logging` 关闭）；在 OpenTelemetry v2 模式下关闭 |
 
-Codex 默认还会把它的指标发送给 OpenAI：请参阅 [OpenAI Codex](/docs/telemetry/openai-codex)。在你有意采集内容的地方，跟踪的 **清理规则** 和 **丢弃过滤器** 会像对其他遥测一样对其生效。
+Codex 默认还会把它的指标发送给 OpenAI：请参阅 [OpenAI Codex](/docs/telemetry/openai-codex)。在你有意采集内容的地方，追踪的 **清理规则** 和 **丢弃过滤器** 会像对其他遥测一样对其生效。
 
 ## OneUptime 尚未做到的事
 
@@ -199,7 +199,7 @@ Codex 默认还会把它的指标发送给 OpenAI：请参阅 [OpenAI Codex](/do
 
 按以下顺序推广；每一步本身都有用。编程助手可以与你自己的应用共用一个项目： [每个助手都会与它们一起计数](#编程助手指标与你的应用的调用一起计数)。
 
-1. **Gemini CLI** ，如果有人在用的话。它无需设置即可发送 `user.email`，因此能展示端到端的归属效果。也请开启它的跟踪：它不发送成本指标。
+1. **Gemini CLI** ，如果有人在用的话。它无需设置即可发送 `user.email`，因此能展示端到端的归属效果。也请开启它的追踪：它不发送成本指标。
 2. **Claude Code** ：为整个团队的机器准备一个托管设置文件，免费获得 `user.email`、真实的成本指标，以及按开发者划分的接受率、提交、拉取请求和代码行数。
 3. **Cursor** ，使用 Enterprise 套餐：在 Cursor 仪表盘中设置一个页面，无需改动任何开发者机器，不过人员会以整数形式到达。在 Teams 套餐上，或者需要 Cursor 按人员收取的费用时，把它的管理员 API 密钥作为 [提供商账户](/docs/telemetry/ai-provider-accounts#cursor) 连接，可以搭配导出，也可以不用。
 4. **Copilot 和 Codex** ，两者都需要在每台机器上设置身份。请在配置机器时完成：没有身份就到达的调用，事后无法归属。

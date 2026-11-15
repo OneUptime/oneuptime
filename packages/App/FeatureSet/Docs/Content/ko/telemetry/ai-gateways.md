@@ -291,9 +291,9 @@ LiteLLM 1.81부터 한 요청 안의 모델 호출은 스팬 하나를 공유합
 ## 다음 단계
 
 :::cards
-- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 이 호출들의 대화, 알림, 사용량, 일일 비용 예산.
+- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 이 호출들의 대화, 경고, 사용량, 일일 비용 예산.
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): 텔레메트리를 직접 보내지 않는 도구 앞에 게이트웨이를 둡니다.
-- [AI 에이전트 서킷 브레이커](/docs/telemetry/ai-agent-circuit-breaker): 알림이 발생하면 폭주하는 에이전트를 멈춥니다.
-- [트레이스 모니터](/docs/monitor/traces-monitor): 루프 안에서 호출되는 도구처럼 스팬 패턴에 대해 알림을 받습니다.
+- [AI 에이전트 서킷 브레이커](/docs/telemetry/ai-agent-circuit-breaker): 경고가 발생하면 폭주하는 에이전트를 멈춥니다.
+- [트레이스 모니터](/docs/monitor/traces-monitor): 루프 안에서 호출되는 도구처럼 스팬 패턴에 대해 경고를 받습니다.
 - [AI 공급자 계정](/docs/telemetry/ai-provider-accounts): 게이트웨이 뒤에 있는 계정의 청구 금액을 코드 없이.
 :::

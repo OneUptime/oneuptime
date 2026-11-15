@@ -328,8 +328,27 @@ export default class TelemetryIngestionBudget {
     }
   }
 
-  // The sentence a refused sender is answered with.
+  /*
+   * The sentence a refused sender is answered with. It lands in the
+   * sender's logs, where people search for the words the docs quote for it
+   * ("... ingestion budget of 10 GB is used up ..."), so its figures keep
+   * the plain space the page's no-break one (#8457) stands for.
+   */
   public static getRefusalMessage(data: {
+    kind: TelemetryIngestionBudgetRefusalKind;
+    scope: TelemetryIngestionBudgetScope;
+    signal: TelemetryIngestionBudgetSignal;
+    limitBytes: number;
+    resetsAt: Date;
+    retryAfterSeconds: number | null;
+  }): string {
+    return TelemetryIngestionBudget.writeRefusalMessage(data).replace(
+      /\u00A0/g,
+      " ",
+    );
+  }
+
+  private static writeRefusalMessage(data: {
     kind: TelemetryIngestionBudgetRefusalKind;
     scope: TelemetryIngestionBudgetScope;
     signal: TelemetryIngestionBudgetSignal;

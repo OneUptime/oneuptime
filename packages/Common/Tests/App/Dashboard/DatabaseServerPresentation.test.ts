@@ -404,8 +404,8 @@ describe("formatting", () => {
     expect(formatDatabaseMetricUnitValue(null, "s")).toBe("—");
     expect(formatDatabaseMetricUnitValue(Number.NaN, "s")).toBe("—");
     // A 4 ms latency reported in seconds must not read "0" (the audit's bug).
-    expect(formatDatabaseMetricUnitValue(0.004, "s")).toBe("4 ms");
-    expect(formatDatabaseMetricUnitValue(1_500_000, "By")).toBe("1.5 MB");
+    expect(formatDatabaseMetricUnitValue(0.004, "s")).toBe("4\u00A0ms");
+    expect(formatDatabaseMetricUnitValue(1_500_000, "By")).toBe("1.5\u00A0MB");
     expect(formatDatabaseMetricUnitValue(12, "{connections}")).toBe(
       "12 connections",
     );
@@ -419,7 +419,7 @@ describe("formatting", () => {
     ).toBe("2.5 deadlocks/s");
     expect(formatDatabaseMetricUnitValue(2, "1", { isRate: true })).toBe("2/s");
     expect(formatDatabaseMetricUnitValue(2_000, "By", { isRate: true })).toBe(
-      "2 KB/s",
+      "2\u00A0KB/s",
     );
   });
 

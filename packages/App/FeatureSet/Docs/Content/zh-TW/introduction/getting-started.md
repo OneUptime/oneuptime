@@ -21,7 +21,7 @@ OneUptime 是一個開源的可觀測性平台。它檢查你的網站、API 和
 - [快速開始](/docs/introduction/quickstart): 監控一個網站，在它故障時收到呼叫，並發布一個狀態頁面。
 - [核心概念](/docs/introduction/core-concepts): 其他一切所依據的幾個概念，以及它們之間的關聯。
 - [詞彙表](/docs/introduction/glossary): OneUptime 使用的每個詞彙，用一兩句話說明，並附上它的其他名稱。
-- [該用哪一個？](/docs/introduction/which-one): 事件還是警示、工作流程還是操作手冊，以及其他相似項目的並排比較。
+- [該用哪一個？](/docs/introduction/which-one): 事件還是警示、工作流程還是運行手冊，以及其他相似項目的並排比較。
 :::
 
 在自己的伺服器上執行 OneUptime?請先依照 [自架部署指南](/docs/installation/self-hosting-guide) 操作：它帶你從一台空的伺服器，到一台能傳送電子郵件並呼叫人員的伺服器。

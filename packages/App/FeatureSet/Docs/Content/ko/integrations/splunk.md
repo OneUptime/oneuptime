@@ -213,16 +213,16 @@ Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열�
 
 - **검색.** 보안 이벤트 탐색기에서 다른 모든 소스와 나란히, 긴급도, 상태, 규칙, 사용자, 호스트 또는 어떤 observable로든 notable event를 필터링합니다.
 - **상관 분석.** 모든 행의 사용자, 호스트, IP, 도메인은 observable로 색인되므로, 한 번의 검색으로 그것들을 언급하는 모든 것을 찾을 수 있습니다.
-- **탐지 규칙.** 보안 이벤트에 대해 일정에 따라 실행되며, 온콜을 호출하는 알림을 여는 Sigma 규칙.
-- **모니터.** 보안 이벤트 모니터는 새로운 심각한 notable event 같은 일치하는 이벤트를 세고, 임곗값을 넘으면 인시던트나 알림을 엽니다.
+- **탐지 규칙.** 보안 이벤트에 대해 일정에 따라 실행되며, 온콜을 호출하는 경고를 여는 Sigma 규칙.
+- **모니터.** 보안 이벤트 모니터는 새로운 심각한 notable event 같은 일치하는 이벤트를 세고, 임곗값을 넘으면 인시던트나 경고를 엽니다.
 
 보안 이벤트는 나머지 텔레메트리처럼 수집된 GB 단위로 청구됩니다. [요금](https://oneuptime.com/pricing)을 참고하세요.
 
 ## 다음 단계
 
 :::cards
-- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 알림을 받습니다.
-- [Elastic Security](/docs/integrations/elastic-security): Elastic 스택의 탐지 알림도 가져옵니다.
+- [보안 이벤트](/docs/telemetry/security-events): 가져온 내용을 검색하고, 상관 분석하고, 경고를 받습니다.
+- [Elastic Security](/docs/integrations/elastic-security): Elastic 스택의 탐지 경고도 가져옵니다.
 - [역할](/docs/permissions/reference#역할): Security 역할이 보고 바꿀 수 있는 것.
 - [통합 개요](/docs/integrations/index): 연결할 수 있는 다른 도구.
 :::

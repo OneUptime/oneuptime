@@ -710,23 +710,28 @@ describe("the Products menu and the page it opens", () => {
     ["ru", "Dashboards", "Панели"],
     ["no", "Metrics", "Målinger"],
     ["fr", "Workflows", "Flux de travail"],
-    // #8229: the menu took its page's word.
+    /*
+     * #8229: the menu took its page's word. #8628 then moved Italian logs,
+     * Korean alerts, Spanish insights and French and Persian SLOs, menu
+     * and page together, to the word their sentences say most
+     * (OneWordInSentencesPerThing).
+     */
     ["da", "Monitors", "Monitorer"],
     ["da", "Metrics", "Metrikker"],
     ["no", "Monitors", "Monitorer"],
     ["sv", "Metrics", "Mätvärden"],
-    ["it", "Logs", "Registri"],
+    ["it", "Logs", "Log"],
     ["ru", "Logs", "Журналы"],
-    ["ko", "Alerts", "알림"],
+    ["ko", "Alerts", "경고"],
     ["zh-CN", "Traces", "追踪"],
     ["hi", "Queues", "क्यू"],
-    ["es", "Insights", "Análisis"],
+    ["es", "Insights", "Hallazgos"],
     ["de", "Status Pages", "Statusseiten"],
     ["hi", "Logs", "लॉग"],
     ["hi", "Hosts", "होस्ट"],
     ["ru", "Traces", "Трассировки"],
-    ["fr", "SLOs", "SLOs"],
-    ["fa", "SLOs", "SLOs"],
+    ["fr", "SLOs", "SLO"],
+    ["fa", "SLOs", "SLOها"],
     /*
      * #8229: the page took the menu's word. "Informazioni" is information;
      * 清单 and 清單 on their own are any list (the Users 清單), where the

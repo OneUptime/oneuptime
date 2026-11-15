@@ -56,7 +56,7 @@ En ny monitor starter med **Host Stopped Reporting** under **Hvad der skal advar
 
 - **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikken, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) – vælg én metrik i **Podman Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. **Containernavn** og **Container-image** indsnævrer den til bestemte containere.
-- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver container for sig.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg metrikker**. Brug **Gruppér efter** `resource.container.name` for at bedømme hver container for sig.
 
 ### Kontrollér kriterierne
 
@@ -78,9 +78,9 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Podman Metric** | Custom Metric | Én metrik fra agentens katalog, grupperet som CPU, hukommelse, netværk, blok-I/O og container. |
 | **Containernavn** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.name`, f.eks. `my-container`. |
 | **Container-image** | Custom Metric, Avanceret | Valgfri. Præcis match på `resource.container.image.name`, f.eks. `nginx:latest`. |
-| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
+| **Aggregering** | Custom Metric | Hvordan metrikker kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner angiver deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 ## Færdige advarselsskabeloner
 

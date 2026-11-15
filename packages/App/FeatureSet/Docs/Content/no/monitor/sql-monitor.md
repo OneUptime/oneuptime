@@ -49,7 +49,7 @@ Hele resultatsettet sendes aldri til OneUptime, så kundedata kopieres ikke over
 
 MySQL-kompatible og PostgreSQL-kompatible motorer som snakker samme wire-protokoll og SQL-dialekt, fungerer som regel også, men bare de tre motorene ovenfor er offisielt testet.
 
-Når verten og porten monitoren kobler seg til, er ett av endepunktene til en database på siden [Databaser](/docs/telemetry/databases), vises varslene og hendelsene den gir, også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#varsler-for-en-database)). En vert som er oppgitt som en henvisning til en overvåkingshemmelighet, blir ikke koblet.
+Når verten og porten monitoren kobler seg til, er ett av endepunktene til en database på siden [Databaser](/docs/telemetry/databases), vises varslene og hendelsene den gir, også på siden til den databasen (se [Varsler på en database](/docs/telemetry/databases#varsler-for-en-database)). En vert som er oppgitt som en henvisning til en monitorhemmelighet, blir ikke koblet.
 
 ## Sikkerhetsmodell
 
@@ -211,7 +211,7 @@ WHERE status = 'CANCELLED'
 For at databasepassordet aldri skal lagres som ren tekst på monitoren, oppretter du en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) og henviser til den fra feltet Passord:
 
 :::steps
-1. Gå til **Monitorer → Innstillinger → Hemmeligheter**, og opprett en overvåkingshemmelighet.
+1. Gå til **Monitorer → Innstillinger → Hemmeligheter**, og opprett en monitorhemmelighet.
 2. Gi den et navn (for eksempel `dbPassword`), og gi denne monitoren tilgang til den.
 3. Skriv `{{monitorSecrets.dbPassword}}` i monitorens felt **Passord**.
 :::
@@ -252,7 +252,7 @@ Knytt en vaktpolicy til kriteriet slik at de riktige personene blir tilkalt. En 
 - Bare antall rader, den første cellen (skalar) og den første raden rapporteres — utform spørringen slik at verdien du vil varsle på, er den første kolonnen.
 - Hvis resultatet avkortes fordi det overskred Max Rows, viser kontrollsammendraget **Rader avkortet**: "Ja (resultatet er begrenset)". Øk Max Rows bare hvis du trenger det; større resultatsett koster mer minne på sonden.
 - Skriving og DDL avvises alltid. Hvis du må teste en skrivevei, er det ikke det denne monitoren er til.
-- Foretrekk en overvåkingshemmelighet fremfor et passord i ren tekst, slik at påloggingsinformasjonen forblir kryptert når den er lagret.
+- Foretrekk en monitorhemmelighet fremfor et passord i ren tekst, slik at påloggingsinformasjonen forblir kryptert når den er lagret.
 - En kontroll der spørringen mislykkes, prøves igjen et sekund senere, opptil tre ganger til, før den rapporterer feilen, slik at et kort tilkoblingsbrudd ikke gjør monitoren frakoblet. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT` hvor mange ganger.
 
 ## Feilsøking

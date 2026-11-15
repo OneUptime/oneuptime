@@ -48,9 +48,15 @@ import ts from "typescript";
  *     that can write it (`<td>{formatBytes(n)}</td>`), the module's own or
  *     one it imports (indexDashFormatters follows `import { formatBytes }`,
  *     `import Utils from`, `import * as`), or a value of the module that
- *     falls back to it (`<span>{hostName}</span>`). An element draws it
- *     through getValueOrQuietDash (Table/TableEmptyValue), or getFigure in
- *     a figure, which draw the quiet dash for it. The mark written into an
+ *     falls back to it (`<span>{hostName}</span>`), or a prop of an object
+ *     that can hold it (#8679): one the module builds (`{ value:
+ *     formatBytes(n) }` drawn as `{row.value}`), or one a function it
+ *     imports and calls builds (`getRunwayText()`'s `{ value:
+ *     EMPTY_VALUE_MARK }` drawn as `{runway.value}`), read by the prop's
+ *     name. An element draws it through getValueOrQuietDash
+ *     (Table/TableEmptyValue), or getFigure in a figure, which draw the
+ *     quiet dash for it; a branch drawn only once `isNoValue(x)` says the
+ *     value has words is not read. The mark written into an
  *     element by hand is a dash like any other (dash-element, -fallback,
  *     -value, -figure).
  *
@@ -876,6 +882,7 @@ export function indexDashFormatters(
   modules: ReadonlyArray<{ file: string; sourceText: string }>,
 ): DashFormatterIndex {
   const index: DashFormatterIndex = new Map<string, Set<string>>();
+  const parsed: Map<string, ts.SourceFile> = new Map<string, ts.SourceFile>();
 
   for (const module of modules) {
     if (
@@ -885,14 +892,293 @@ export function indexDashFormatters(
       continue;
     }
 
-    const names: DashNames = dashNamesOf(parse(module.sourceText, module.file));
+    const sourceFile: ts.SourceFile = parse(module.sourceText, module.file);
+    const names: DashNames = dashNamesOf(sourceFile);
+
+    parsed.set(module.file, sourceFile);
 
     if (names.exported.size > 0) {
       index.set(module.file, names.exported);
     }
   }
 
+  /*
+   * Then the objects an exported function builds whose props can hold the
+   * mark - a tile's `{ value: formatBytes(n) }`, a runway's `{ value:
+   * EMPTY_VALUE_MARK }` - as "returns:<name>:<prop>", read with the dash
+   * writers the module itself has and imports.
+   */
+  const objectProps: Map<string, Set<string>> = new Map<string, Set<string>>();
+
+  for (const [file, sourceFile] of parsed) {
+    const writers: Set<string> = new Set<string>([
+      ...dashNamesOf(sourceFile).local,
+      ...importedDashNames(sourceFile, file, index),
+    ]);
+    const returns: Set<string> = exportedObjectPropsOf(sourceFile, writers);
+
+    if (returns.size > 0) {
+      objectProps.set(file, returns);
+    }
+  }
+
+  for (const [file, returns] of objectProps) {
+    const names: Set<string> = index.get(file) || new Set<string>();
+
+    for (const name of returns) {
+      names.add(name);
+    }
+
+    index.set(file, names);
+  }
+
   return index;
+}
+
+// The prefix an index entry for an object-building function carries.
+const RETURNS_PREFIX: string = "returns:";
+
+/*
+ * Whether a value can be the plain-text mark: as canBeDash, or through a
+ * call of a dash writer or a value of the module that falls back to it
+ * (`formatBytes(n)`, `fmt(a) || fmt(b)`).
+ */
+function canHoldDash(expression: ts.Expression, writers: Set<string>): boolean {
+  const value: ts.Expression = unwrap(expression);
+
+  if (canBeDash(value)) {
+    return true;
+  }
+
+  if (ts.isConditionalExpression(value)) {
+    return (
+      canHoldDash(value.whenTrue, writers) ||
+      canHoldDash(value.whenFalse, writers)
+    );
+  }
+
+  if (
+    ts.isBinaryExpression(value) &&
+    (value.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+      value.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
+  ) {
+    return (
+      canHoldDash(value.left, writers) || canHoldDash(value.right, writers)
+    );
+  }
+
+  if (ts.isCallExpression(value) || ts.isIdentifier(value)) {
+    const name: string | null = drawnNameOf(value);
+
+    return name !== null && writers.has(name);
+  }
+
+  return false;
+}
+
+/*
+ * The props of the objects a piece of code builds that can hold the mark:
+ * `{ label: "Cluster", value: clusterName || EMPTY_VALUE_MARK }`, a
+ * shorthand `{ value }` of a value that falls back to it.
+ */
+function dashPropsIn(node: ts.Node, writers: Set<string>): Set<string> {
+  const props: Set<string> = new Set<string>();
+
+  const visit: (child: ts.Node) => void = (child: ts.Node): void => {
+    if (
+      ts.isPropertyAssignment(child) &&
+      (ts.isIdentifier(child.name) || ts.isStringLiteral(child.name)) &&
+      canHoldDash(child.initializer, writers)
+    ) {
+      props.add(child.name.text);
+    }
+
+    if (
+      ts.isShorthandPropertyAssignment(child) &&
+      writers.has(child.name.text)
+    ) {
+      props.add(child.name.text);
+    }
+
+    ts.forEachChild(child, visit);
+  };
+
+  visit(node);
+
+  return props;
+}
+
+/*
+ * What a module exports that builds objects whose props can hold the mark:
+ * "returns:<name>:<prop>", "returns:default.<method>:<prop>" for a
+ * default-exported class's static method.
+ */
+function exportedObjectPropsOf(
+  sourceFile: ts.SourceFile,
+  writers: Set<string>,
+): Set<string> {
+  const entries: Set<string> = new Set<string>();
+
+  const record: (name: string, body: ts.Node | undefined) => void = (
+    name: string,
+    body: ts.Node | undefined,
+  ): void => {
+    if (!body) {
+      return;
+    }
+
+    for (const prop of dashPropsIn(body, writers)) {
+      entries.add(`${RETURNS_PREFIX}${name}:${prop}`);
+    }
+  };
+
+  for (const statement of sourceFile.statements) {
+    if (!hasExportModifier(statement)) {
+      continue;
+    }
+
+    if (ts.isFunctionDeclaration(statement) && statement.name) {
+      record(statement.name.text, statement.body);
+    }
+
+    if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (ts.isIdentifier(declaration.name)) {
+          record(
+            declaration.name.text,
+            functionBodyOf(declaration.initializer) || undefined,
+          );
+        }
+      }
+    }
+
+    if (ts.isClassDeclaration(statement)) {
+      const isDefault: boolean = Boolean(
+        ts.getModifiers(statement)?.some((modifier: ts.Modifier): boolean => {
+          return modifier.kind === ts.SyntaxKind.DefaultKeyword;
+        }),
+      );
+
+      for (const member of statement.members) {
+        if (
+          isDefault &&
+          ts.isMethodDeclaration(member) &&
+          ts.isIdentifier(member.name)
+        ) {
+          record(`default.${member.name.text}`, member.body);
+        }
+      }
+    }
+  }
+
+  return entries;
+}
+
+/*
+ * The props of objects a module draws that can hold the mark: the ones it
+ * builds itself (dashPropsIn), and the ones the functions it imports and
+ * calls build (index "returns:" entries), by the name it calls them by.
+ */
+function drawnDashPropsOf(
+  sourceFile: ts.SourceFile,
+  file: string,
+  writers: Set<string>,
+  index: DashFormatterIndex | undefined,
+): Set<string> {
+  const props: Set<string> = dashPropsIn(sourceFile, writers);
+
+  if (!index) {
+    return props;
+  }
+
+  // What the module calls each object-building function it imports.
+  const builders: Map<string, Set<string>> = new Map<string, Set<string>>();
+
+  const addBuilder: (localName: string, entry: string) => void = (
+    localName: string,
+    entry: string,
+  ): void => {
+    const prop: string = entry.slice(entry.lastIndexOf(":") + 1);
+    const known: Set<string> = builders.get(localName) || new Set<string>();
+
+    known.add(prop);
+    builders.set(localName, known);
+  };
+
+  for (const statement of sourceFile.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !statement.importClause ||
+      !ts.isStringLiteral(statement.moduleSpecifier)
+    ) {
+      continue;
+    }
+
+    const resolved: string | null = resolveModule(
+      file,
+      statement.moduleSpecifier.text,
+      index,
+    );
+
+    if (!resolved) {
+      continue;
+    }
+
+    const clause: ts.ImportClause = statement.importClause;
+
+    for (const entry of index.get(resolved)!) {
+      if (!entry.startsWith(RETURNS_PREFIX)) {
+        continue;
+      }
+
+      const name: string = entry.slice(
+        RETURNS_PREFIX.length,
+        entry.lastIndexOf(":"),
+      );
+
+      if (name.startsWith("default.")) {
+        if (clause.name) {
+          addBuilder(
+            `${clause.name.text}.${name.slice("default.".length)}`,
+            entry,
+          );
+        }
+        continue;
+      }
+
+      if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+        addBuilder(`${clause.namedBindings.name.text}.${name}`, entry);
+      }
+
+      if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+        for (const element of clause.namedBindings.elements) {
+          if ((element.propertyName || element.name).text === name) {
+            addBuilder(element.name.text, entry);
+          }
+        }
+      }
+    }
+  }
+
+  if (builders.size === 0) {
+    return props;
+  }
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const name: string | null = drawnNameOf(node);
+
+      for (const prop of (name && builders.get(name)) || []) {
+        props.add(prop);
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return props;
 }
 
 const MODULE_EXTENSIONS: ReadonlyArray<string> = [
@@ -973,6 +1259,10 @@ function importedDashNames(
 
     if (clause.name) {
       for (const name of exported) {
+        if (name.startsWith(RETURNS_PREFIX)) {
+          continue;
+        }
+
         if (name.startsWith("default.")) {
           names.add(`${clause.name.text}.${name.slice("default.".length)}`);
         }
@@ -982,7 +1272,10 @@ function importedDashNames(
     if (clause.namedBindings) {
       if (ts.isNamespaceImport(clause.namedBindings)) {
         for (const name of exported) {
-          if (!name.startsWith("default.")) {
+          if (
+            !name.startsWith("default.") &&
+            !name.startsWith(RETURNS_PREFIX)
+          ) {
             names.add(`${clause.namedBindings.name.text}.${name}`);
           }
         }
@@ -1031,6 +1324,13 @@ function drawnValuesOf(expression: ts.Expression): Array<ts.Expression> {
   const value: ts.Expression = unwrap(expression);
 
   if (ts.isConditionalExpression(value)) {
+    // A branch drawn only for a value with words is not read (noValueCheckOf).
+    const guard: boolean | null = noValueCheckOf(value.condition);
+
+    if (guard !== null) {
+      return drawnValuesOf(guard ? value.whenTrue : value.whenFalse);
+    }
+
     return [
       ...drawnValuesOf(value.whenTrue),
       ...drawnValuesOf(value.whenFalse),
@@ -1046,6 +1346,41 @@ function drawnValuesOf(expression: ts.Expression): Array<ts.Expression> {
   }
 
   return [value];
+}
+
+// The checks that a value is none: the shared ones (Common/Types/EmptyValueMark).
+const NO_VALUE_CHECKS: ReadonlyArray<string> = [
+  "isNoValue",
+  "isEmptyFigure",
+  "isDashText",
+];
+
+/*
+ * Whether a condition checks that a value is none: true for `isNoValue(x)`
+ * (its true branch draws the quiet dash, its false one a value with
+ * words), false for `!isNoValue(x)`, null for any other condition.
+ */
+function noValueCheckOf(condition: ts.Expression): boolean | null {
+  const value: ts.Expression = unwrap(condition);
+
+  if (
+    ts.isPrefixUnaryExpression(value) &&
+    value.operator === ts.SyntaxKind.ExclamationToken
+  ) {
+    const inner: boolean | null = noValueCheckOf(value.operand);
+
+    return inner === null ? null : !inner;
+  }
+
+  if (
+    ts.isCallExpression(value) &&
+    ts.isIdentifier(value.expression) &&
+    NO_VALUE_CHECKS.includes(value.expression.text)
+  ) {
+    return true;
+  }
+
+  return null;
 }
 
 function oneLine(node: ts.Node, sourceFile: ts.SourceFile): string {
@@ -1197,8 +1532,22 @@ export function findHandWrittenDashes(
     ...local,
     ...(formatters ? importedDashNames(sourceFile, file, formatters) : []),
   ]);
+  /*
+   * And a prop of an object that can hold it, drawn bare (#8679): a tile's
+   * `{tile.value}` for `{ value: formatBytes(n) }`, a runway's
+   * `{runway.value}` for an imported `getRunwayText()` that builds `{ value:
+   * EMPTY_VALUE_MARK }`. Read by the prop's name in the module, so a prop
+   * another object of the module shares is held to it too: drawing it
+   * through getValueOrQuietDash costs nothing for a value that has words.
+   */
+  const drawnDashProps: Set<string> = drawnDashPropsOf(
+    sourceFile,
+    file,
+    drawnDashNames,
+    formatters,
+  );
 
-  if (drawnDashNames.size > 0) {
+  if (drawnDashNames.size > 0 || drawnDashProps.size > 0) {
     const visitFlow: (node: ts.Node) => void = (node: ts.Node): void => {
       if (
         ts.isJsxExpression(node) &&
@@ -1213,12 +1562,34 @@ export function findHandWrittenDashes(
           (value: ts.Expression): boolean => {
             const name: string | null = drawnNameOf(value);
 
-            return name !== null && drawnDashNames.has(name);
+            if (name !== null && drawnDashNames.has(name)) {
+              return true;
+            }
+
+            return (
+              ts.isPropertyAccessExpression(value) &&
+              drawnDashProps.has(value.name.text)
+            );
           },
         );
 
         if (drawsDash) {
           add(node, "dash-flow", node);
+        }
+      }
+
+      /*
+       * A branch drawn only for a value that has words - the other side of
+       * `isNoValue(cell.text) ? <TableEmptyValue /> : ...` - never draws
+       * the mark: it is not read.
+       */
+      if (ts.isConditionalExpression(node)) {
+        const guard: boolean | null = noValueCheckOf(node.condition);
+
+        if (guard !== null) {
+          visitFlow(node.condition);
+          visitFlow(guard ? node.whenTrue : node.whenFalse);
+          return;
         }
       }
 

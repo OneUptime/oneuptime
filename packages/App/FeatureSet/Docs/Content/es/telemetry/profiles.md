@@ -350,7 +350,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 ### Ver lo que hizo
 
-- **Productos → Perfiles → IA → Análisis** muestra el código lento encontrado, cada hallazgo con sus pruebas y **Abrir en Perfiles**.
+- **Productos → Perfiles → IA → Hallazgos** muestra el código lento encontrado, cada hallazgo con sus pruebas y **Abrir en Perfiles**.
 - **Productos → Perfiles → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una y lo que encontró cada investigación.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 

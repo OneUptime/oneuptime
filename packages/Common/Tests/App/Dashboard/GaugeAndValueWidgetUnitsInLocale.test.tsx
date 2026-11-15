@@ -178,7 +178,7 @@ describe("a Gauge on a span of time", () => {
       unit: "hours",
       gap: "0.15em",
     });
-    expect(gaugeBounds()).toEqual(["0 sec", "1 days"]);
+    expect(gaugeBounds()).toEqual(["0\u00A0sec", "1\u00A0days"]);
   });
 
   test("on a German board: German's words, in the form the number takes", async () => {
@@ -190,7 +190,7 @@ describe("a Gauge on a span of time", () => {
       unit: "Stunden",
       gap: "0.15em",
     });
-    expect(gaugeBounds()).toEqual(["0 Sek.", "1 Tag"]);
+    expect(gaugeBounds()).toEqual(["0\u00A0Sek.", "1\u00A0Tag"]);
   });
 
   test("on a Persian board: Persian words and digits, nothing Latin", async () => {

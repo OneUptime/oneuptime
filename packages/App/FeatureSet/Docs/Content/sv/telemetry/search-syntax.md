@@ -49,7 +49,7 @@ flowchart TB
 | --- | --- | --- |
 | `field:value` | Ett inbyggt fält i signalen | `severity:error` |
 | `@attribute:value` | Ett OpenTelemetry-attribut på raden | `@http.status_code:500` |
-| lösa ord | Meddelandet (loggar), span-namnet (spår), måttnamnet (mätvärden) eller undantagsmeddelandet (undantag) | `connection refused` |
+| lösa ord | Meddelandet (loggar), span-namnet (spår), mätvärdesnamnet (mätvärden) eller undantagsmeddelandet (undantag) | `connection refused` |
 
 Ett löst `key:value` vars nyckel inte är ett känt fält behandlas som ett attribut, så `k8s.pod:api-0` och `@k8s.pod:api-0` betyder samma sak. Prefixet `@` betyder alltid "sök i attributen", med ett undantag: i utforskaren för undantag filtrerar `@type:`, `@service:`, `@env:` och `@class:` fortfarande de fälten.
 
@@ -146,7 +146,7 @@ Spårfält tar ett vanligt värde eller en lista som `status:(ok OR unset)`, och
 
 | Fält | Anteckningar |
 | --- | --- |
-| `name` | Måttnamn. Ett vanligt värde matchar vilken del av det som helst, så `name:http.server` hittar `http.server.request.duration`. Lösa ord söker också i det |
+| `name` | Mätvärdesnamn. Ett vanligt värde matchar vilken del av det som helst, så `name:http.server` hittar `http.server.request.duration`. Lösa ord söker också i det |
 | `service` | Tjänstnamn. Ett vanligt värde matchar vilken del av det som helst |
 
 ### Undantag

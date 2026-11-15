@@ -95,7 +95,7 @@ flowchart TB
 | टेम्पलेट | श्रेणी | गंभीरता | किस पर नज़र | कब ट्रिगर होता है | कब रिकवर होता है |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | उपलब्धता | गंभीर | `iot_device_up`, `device.id` के अनुसार Min, पिछले 30 मिनट | कोई भी रीडिंग 1 से नीचे है, या कोई पंजीकृत डिवाइस पूरी विंडो में कुछ नहीं भेजता | फिर से 1 पर |
-| Low Battery | Power | चेतावनी | `iot_battery_percent`, `device.id` के अनुसार Avg, पिछले 5 मिनट | 20% से नीचे | 22% या ऊपर |
+| Low Battery | पावर | चेतावनी | `iot_battery_percent`, `device.id` के अनुसार Avg, पिछले 5 मिनट | 20% से नीचे | 22% या ऊपर |
 | Weak Signal | कनेक्टिविटी | चेतावनी | `iot_signal_strength_dbm`, `device.id` के अनुसार Avg, पिछले 5 मिनट | -100 dBm से नीचे | -90 dBm या ऊपर |
 | High Temperature | एनवायरनमेंट | गंभीर | `iot_temperature_celsius`, `device.id` के अनुसार Max, पिछले 5 मिनट | 70 °C से ऊपर | 63 °C या नीचे |
 | High CPU Usage | सिस्टम | चेतावनी | `iot_cpu_usage_ratio`, `device.id` के अनुसार Avg, पिछले 5 मिनट | 0.9 से ऊपर (उसके CPU का 90%) | 0.81 या नीचे |

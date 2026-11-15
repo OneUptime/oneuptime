@@ -237,10 +237,10 @@ describe("PacketCaptureLimitsUtil.check", () => {
       "A capture stops after at least 1 packet.",
     );
     expect(errorOf({ maxFileSizeInMB: 0 })).toBe(
-      "A capture file is at least 1 MB.",
+      "A capture file is at least 1\u00A0MB.",
     );
     expect(errorOf({ maxFileSizeInMB: -5 })).toBe(
-      "A capture file is at least 1 MB.",
+      "A capture file is at least 1\u00A0MB.",
     );
   });
 
@@ -252,7 +252,7 @@ describe("PacketCaptureLimitsUtil.check", () => {
       "A capture stops after at most 1,000,000 packets.",
     );
     expect(errorOf({ maxFileSizeInMB: 26 })).toBe(
-      "A capture file is at most 25 MB.",
+      "A capture file is at most 25\u00A0MB.",
     );
   });
 
@@ -278,7 +278,7 @@ describe("PacketCaptureLimitsUtil.check", () => {
       "This probe allows captures of at most 10 minutes.",
     );
     expect(errorOf({ maxFileSizeInMB: 6 }, probeMaximums)).toBe(
-      "This probe allows capture files of at most 5 MB.",
+      "This probe allows capture files of at most 5\u00A0MB.",
     );
     expect(
       errorOf({ maxDurationInSeconds: 90 }, { maxDurationInSeconds: 75 }),
@@ -299,7 +299,7 @@ describe("PacketCaptureLimitsUtil.check", () => {
       errorOf({ maxDurationInSeconds: 1801 }, { maxDurationInSeconds: 99999 }),
     ).toBe("A capture runs for at most 30 minutes.");
     expect(errorOf({ maxFileSizeInMB: 26 }, { maxFileSizeInMB: 1000 })).toBe(
-      "A capture file is at most 25 MB.",
+      "A capture file is at most 25\u00A0MB.",
     );
 
     for (const broken of [

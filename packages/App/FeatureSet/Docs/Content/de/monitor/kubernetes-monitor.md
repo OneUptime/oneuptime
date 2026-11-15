@@ -85,15 +85,15 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 
 | Kategorie | Metriken |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Knoten | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Steuerungsebene | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Pod | Pod-CPU-Nutzung, Pod-Speichernutzung, Pod-Phase (Code), Pod-Dateisystemnutzung, Pod-Auslastung des Speicherlimits, Pod-Auslastung des CPU-Limits, Pod-Netzwerk-I/O (kumuliert, beide Richtungen) |
+| Knoten | Knoten-CPU-Nutzung, Zuweisbare CPU des Knotens, Knoten-Speichernutzung, Arbeitsspeicher-Working-Set des Knotens, Knoten-Dateisystemnutzung, Zuweisbarer Arbeitsspeicher des Knotens, Ready-Bedingung des Knotens, MemoryPressure-Bedingung des Knotens, DiskPressure-Bedingung des Knotens, PIDPressure-Bedingung des Knotens, Verfügbares Dateisystem des Knotens |
+| Container | Container-Neustarts, Container-Neustarts (Zuwachs), CPU-Limit des Containers, CPU-Anforderung des Containers, Speicherlimit des Containers, Speicheranforderung des Containers, Container bereit |
+| Workload | Verfügbare Replikate des Deployments, Gewünschte Replikate des Deployments, Gewünschte Knoten des DaemonSets, Falsch geplante Knoten des DaemonSets, Bereite Knoten des DaemonSets, Gewünschte Replikate des StatefulSets, Bereite Replikate des StatefulSets, Fehlgeschlagene Pods des Jobs, Fehlgeschlagene Pods des Jobs (Zuwachs), Erfolgreiche Pods des Jobs |
+| HPA | Aktuelle Replikate des HPA, Gewünschte Replikate des HPA, Maximale Replikate des HPA, Minimale Replikate des HPA |
+| Steuerungsebene | etcd hat einen Leader, Laufende Anfragen des API-Servers, Ausstehende Pods des Schedulers |
 
 > [!NOTE]
-> **Pod CPU Usage** und **Node CPU Usage** sind in Kernen angegeben, nicht in Prozent: `0.18` ist 0,18 eines Kerns. **Pod Phase (Code)** ist ein Code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregieren Sie ihn mit Maximum oder Minimum, niemals mit Summe. Metriken der Steuerungsebene kommen nur an, wenn die Erfassung der Steuerungsebene durch den Agent eingeschaltet ist. **Node Ready Condition** ist 1 bei Ready, 0 bei NotReady und -1 bei Unknown, was ein ausgefallener Knoten meldet: Warnen Sie bei weniger als 1. **Container Restarts** ist der laufende Neustartzähler des Containers; **Container Restarts (Increase)** sendet der Agent mit jeder Messung: die Neustarts seit seiner vorigen Messung des Containers, sodass ihre Summe über ein Zeitfenster die Neustarts darin ergibt. Sie trägt, was **Container Restarts** trägt, einschließlich der Workload-Namen des Pods des Containers, aber nicht die ID des Containers, die sich bei jedem Neustart ändert. **Job Failed Pods** ist der laufende Zähler fehlgeschlagener Pods eines Jobs; **Job Failed Pods (Increase)** sendet der Agent mit jeder Messung: die Pods des Jobs, die seit seiner vorigen Messung des Jobs fehlgeschlagen sind, sodass ihre Summe über ein Zeitfenster die Fehlschläge darin ergibt. Sie trägt, was **Job Failed Pods** trägt: den Namen und den Namespace des Jobs.
+> **Pod-CPU-Nutzung** und **Knoten-CPU-Nutzung** sind in Kernen angegeben, nicht in Prozent: `0.18` ist 0,18 eines Kerns. **Pod-Phase (Code)** ist ein Code (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown) – aggregieren Sie ihn mit Maximum oder Minimum, niemals mit Summe. Metriken der Steuerungsebene kommen nur an, wenn die Erfassung der Steuerungsebene durch den Agent eingeschaltet ist. **Ready-Bedingung des Knotens** ist 1 bei Ready, 0 bei NotReady und -1 bei Unknown, was ein ausgefallener Knoten meldet: Warnen Sie bei weniger als 1. **Container-Neustarts** ist der laufende Neustartzähler des Containers; **Container-Neustarts (Zuwachs)** sendet der Agent mit jeder Messung: die Neustarts seit seiner vorigen Messung des Containers, sodass ihre Summe über ein Zeitfenster die Neustarts darin ergibt. Sie trägt, was **Container-Neustarts** trägt, einschließlich der Workload-Namen des Pods des Containers, aber nicht die ID des Containers, die sich bei jedem Neustart ändert. **Fehlgeschlagene Pods des Jobs** ist der laufende Zähler fehlgeschlagener Pods eines Jobs; **Fehlgeschlagene Pods des Jobs (Zuwachs)** sendet der Agent mit jeder Messung: die Pods des Jobs, die seit seiner vorigen Messung des Jobs fehlgeschlagen sind, sodass ihre Summe über ein Zeitfenster die Fehlschläge darin ergibt. Sie trägt, was **Fehlgeschlagene Pods des Jobs** trägt: den Namen und den Namespace des Jobs.
 
 ## Überwachungskriterien
 
@@ -191,7 +191,7 @@ Cluster registrieren sich selbst aus den Daten des Agents, unter dem `clusterNam
 :::
 
 :::details Ein CPU-Schwellenwert löst nie aus
-**Pod CPU Usage** und **Node CPU Usage** sind in Kernen angegeben, nicht in Prozent, ein Schwellenwert von `80` bedeutet also 80 Kerne. Legen Sie den Schwellenwert in Kernen fest, oder beginnen Sie mit **High Node CPU Utilization** oder **Pod CPU Saturating Container Limit**, die einen Prozentwert vergleichen.
+**Pod-CPU-Nutzung** und **Knoten-CPU-Nutzung** sind in Kernen angegeben, nicht in Prozent, ein Schwellenwert von `80` bedeutet also 80 Kerne. Legen Sie den Schwellenwert in Kernen fest, oder beginnen Sie mit **High Node CPU Utilization** oder **Pod CPU Saturating Container Limit**, die einen Prozentwert vergleichen.
 :::
 
 :::details CrashLoopBackOff Detection hat bei einem Neustart nicht ausgelöst

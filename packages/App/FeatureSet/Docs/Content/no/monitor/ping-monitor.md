@@ -52,7 +52,7 @@ Angi under **Vertsnavn eller IP-adresse** vertsnavnet eller IPv4- eller IPv6-adr
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser tur-retur-tidene og pakketapet sonden så.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser tur-retur-tidene og pakketapet sonden så.
 
 ### Gå gjennom kriteriene
 
