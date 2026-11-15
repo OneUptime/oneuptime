@@ -306,7 +306,8 @@ work out, starts from a default for everything else, and folds what most people 
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
   failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
   the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
-  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278); never
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278, or
+  the App's own 50 MB limit, which it answers with that sentence and a 413, #8419); never
   a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
@@ -563,11 +564,19 @@ work out, starts from a default for everything else, and folds what most people 
   ("2.5k", "3.5 TiB") is put in the reader's language with `writeFigureInLanguage`, its scale letter
   and unit kept. Checked on the Host and Kubernetes pages, on a database's Runtime charts, on the
   Storage Arrays pages (a volume read "۳٫۵ TiB" on a dashboard and "3.5 TiB" on its page, #8272) and
-  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). Enforced by
+  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). The telemetry helpers (`formatCompact`,
+  `formatPercent`, `formatBytes`) take the reader's translator, and every Overview tile passes it: a
+  service's, a function's, a site's and a cloud app's Requests, Error rate and Memory read "1.2k" in
+  Latin digits beside a p95 tile in Persian (#8481). A figure's unit word is the reader's too: a
+  database's and a queue's engine metric tile counts in a plural sentence of the locale, its noun
+  agreeing with the number by the language's rules ("1 Verbindung", "24 Verbindungen",
+  "۲۴ اتصال"), never "۲۴ connections" (#8482). Enforced by
   [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
   [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx),
   [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx),
-  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts)
+  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts),
+  [TelemetryOverviewTileFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/TelemetryOverviewTileFiguresInReadersLanguage.test.tsx),
+  [EngineMetricTileUnitsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/EngineMetricTileUnitsInReadersLanguage.test.ts)
   and
   [StatusPageUptimeFiguresInLanguage](../../packages/Common/Tests/App/StatusPage/StatusPageUptimeFiguresInLanguage.test.ts).
 - **A chart's value axis, its legend and its tooltip write a figure as the tiles beside it do:** in
@@ -635,16 +644,26 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms" or written before "ms" in a template or JSX:
   every monitor's Response Time read "ms 411" on an Arabic or Persian page (#7224), and a trace's
   p95 "۱۲٫۴ ms" (#7418). `minimumFractionDigits` keeps the decimals toFixed wrote, `showsSign` an
-  offset's sign. A chart's value axis and its tooltip write it so too; only the AI chat's PDF
-  export writes it in English (`formatMillisecondsInEnglish`). Enforced by
+  offset's sign. Its other units are `formatDurationInUnit` (microseconds, seconds, minutes,
+  hours, days, each language's own short unit), never `${x} s`, `${x}µs`, `${x}ns` or `${x} min`
+  by hand: a Persian row read "1.25 s" under "۴۲ میلی‌ثانیه" (#8348). A chart's value axis and its
+  tooltip write it so too; only the AI chat's PDF export writes it in English
+  (`formatMillisecondsInEnglish`). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
   "Verfügbarkeit (24" over "Std.)" (#8043). Wherever the English writes a number beside a unit's
   symbol ("{{minutes}} min", "{{percent}}%", "24h"), the space a translation puts after that number
-  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`). Write
-  the unit as its symbol after the number in the English, so the rule finds it. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts).
+  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`), and so
+  is the space English itself writes there ("Every 5 min", #8302). A unit a language writes in two
+  words, Arabic's "ملي ث", is held together after its number too (#8304). Write the unit as its
+  symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
+  itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
+  as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
+  plain space, listed with its reason. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts)
+  and
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
@@ -710,9 +729,12 @@ then `npm run i18n:validate` from the root.
   for the metric query form (the metric picker, its attribute filter, the series and group
   colour pickers, a formula's row), which was English in twelve languages (#8310),
   [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts),
-  and, for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
+  for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
   the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
-  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts).
+  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts),
+  and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
+  whose 186 texts had no entry in its locales and read English in every language (#8227),
+  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
@@ -725,14 +747,20 @@ then `npm run i18n:validate` from the root.
   `formatDictionaryValueForDisplay`, which glues the operator's English label before the value
   (#8309): a locked chip whose filter holds an operator carries its stored value (`filterValue`) and
   says the sentence, and the detail page is handed the filters as stored. That formatter's text is
-  a key, never a line a person reads. And an empty dropdown says so in the reader's words ("No
-  matches found", "No options available"), never react-select's English "No options" (#7805).
-  Enforced by
+  a key, never a line a person reads. A monitor's criteria list words each filter the same way,
+  every part of it a sentence of the locale around the part it holds: it read `Check if "Response
+  Time (in ms)" is greater than 500ms and,` under a Persian form (#8350). Whether all of the filters
+  must match or any one is said once, above them, never as an "and," left at the end of each line
+  (#8533). And an empty dropdown
+  says so in the reader's words ("No matches found", "No options available"), never react-select's
+  English "No options" (#7805). Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
   [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
   [LockedFilterChipSentencesInReadersLanguage](../../packages/Common/Tests/UI/Components/LockedFilterChipSentencesInReadersLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
-  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx),
+  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx),
+  [CriteriaListSaysHowFiltersCombine](../../packages/Common/Tests/App/Dashboard/CriteriaListSaysHowFiltersCombine.test.tsx)
   and
   [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,
@@ -764,6 +792,18 @@ then `npm run i18n:validate` from the root.
   attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
   by
   [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
+- **A product's Help > Documentation page reads in the reader's language, its code as written.** A
+  page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
+  Observability's does, #7531). A page that is a setup guide holds each language's words for every
+  piece of its markdown in `Pages/<Product>/DocumentationTranslations/<code>.ts`
+  (`SetupGuideTranslation`), one chunk per language: Docker's guide read "Replace `my-docker-host`
+  with a name for this host" under a German step title (#8341). Commands, code spans, field names
+  and product names stay as the English writes them; what the Dashboard draws (a tab, a page, a
+  guide's own topic) is named as the locale words it. A change to a guide's English changes every
+  language's words in the same pull request. Enforced by
+  [SetupGuideDocumentationInLocale](../../packages/Common/Tests/App/Dashboard/SetupGuideDocumentationInLocale.test.ts)
+  and
+  [DocumentationPagesInEveryLanguage](../../packages/Common/Tests/App/Dashboard/DocumentationPagesInEveryLanguage.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).

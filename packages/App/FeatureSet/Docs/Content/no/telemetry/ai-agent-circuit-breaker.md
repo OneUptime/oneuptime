@@ -26,7 +26,7 @@ Prisen er hastighet: den stopper en løpsk agent i løpet av minutter, ikke mill
 
 | Snubletråd | Fanger | Tid til varsel |
 | --- | --- | --- |
-| Et budsjettvarsel fra en metrikk-overvåking | Forbruk som fortsetter å stige, uansett årsak | Opptil 15 minutter, pluss ett minutt for monitoren |
+| Et budsjettvarsel fra en målingsovervåking | Forbruk som fortsetter å stige, uansett årsak | Opptil 15 minutter, pluss ett minutt for monitoren |
 | Et løkkevarsel fra en trase-overvåking | Det samme verktøyet kalt om og om igjen | 1 til 5 minutter |
 
 ## Før du begynner
@@ -41,12 +41,12 @@ Begge snubletrådene ender på samme måte: en monitor oppretter et varsel, og d
 
 ### Et budsjettvarsel
 
-Forbruk er det sikreste tegnet på en løpsk agent. Et budsjett summerer dagens AI-forbruk hvert 15. minutt og publiserer det som to metrikker, `oneuptime.llm.budget.spend.usd` og `oneuptime.llm.budget.percent.used`, hver med budsjettets ID i `oneuptime.llm.budget.id`.
+Forbruk er det sikreste tegnet på en løpsk agent. Et budsjett summerer dagens AI-forbruk hvert 15. minutt og publiserer det som to målinger, `oneuptime.llm.budget.spend.usd` og `oneuptime.llm.budget.percent.used`, hver med budsjettets ID i `oneuptime.llm.budget.id`.
 
 :::steps
 1. Åpne **Produkter → AI / LLM → Budsjetter**, og klikk på **Opprett LLM Cost Budget**. Angi et **Daglig budsjett (USD)**, og velg agentens tjeneste i **Tjeneste (valgfritt)**, slik at budsjettet bare følger med på den agenten.
 2. Velg **Vis ID** i radmenyen til det nye budsjettet, og kopier ID-en.
-3. Opprett en [Metrikk-overvåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsvindu** til **Siste 30 minutter**.
+3. Opprett en [Målingsovervåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsvindu** til **Siste 30 minutter**.
 4. I **Når det skal varsles** setter du **Betingelse** til **På eller over** og **Verdi** til `100`, beholder **Opprett et varsel**, og gir det en **Varseltittel** som navngir agenten, for eksempel `LLM budget exceeded: support-bot`. Både arbeidsflyten og endepunktet ditt leser den tittelen.
 :::
 

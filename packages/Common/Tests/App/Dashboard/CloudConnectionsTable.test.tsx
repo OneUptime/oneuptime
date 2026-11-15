@@ -1296,7 +1296,7 @@ describe("streaming an AWS connection's metrics and logs", () => {
   test("Stop streaming that is refused says why in its own dialog", async () => {
     postSpy.mockRejectedValue(
       new Error(
-        "Project owners and project administrators can connect, test and read cloud accounts.",
+        "Project Owners and Project Admins can connect, test and read cloud accounts.",
       ),
     );
     renderTable();
@@ -1315,7 +1315,7 @@ describe("streaming an AWS connection's metrics and logs", () => {
     expect(done).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledTimes(1);
     expect((onError.mock.calls[0]![0] as Error).message).toBe(
-      "Project owners and project administrators can connect, test and read cloud accounts.",
+      "Project Owners and Project Admins can connect, test and read cloud accounts.",
     );
   });
 

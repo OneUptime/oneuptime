@@ -79,6 +79,8 @@ export enum FailurePoint {
   ClaimStart = "ClaimStart",
   // The read of the incident's state, for the page of runs.
   ReadRecords = "ReadRecords",
+  // A move on's claim given back (giveBackEscalationAdvance).
+  GiveBackClaim = "GiveBackClaim",
 }
 
 interface PlannedFailure {
@@ -98,6 +100,9 @@ const CREATED_STATE: ObjectID = new ObjectID(
 );
 const ACKNOWLEDGED_STATE: ObjectID = new ObjectID(
   "0f500000-0000-4000-8000-0000000007a2",
+);
+const RESOLVED_STATE: ObjectID = new ObjectID(
+  "0f500000-0000-4000-8000-0000000007a3",
 );
 
 function sameKey(a: unknown, b: unknown): boolean {
@@ -120,6 +125,16 @@ function isNullOperator(value: unknown): boolean {
   );
 }
 
+// A TypeORM FindOperator for IS NOT NULL: Not(IsNull()).
+function isNotNullOperator(value: unknown): boolean {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    (value as { type?: unknown }).type === "not" &&
+    isNullOperator((value as { child?: unknown }).child)
+  );
+}
+
 export default class PolicyRunFailureWorld extends EmptyLevelWorld {
   // What Redis holds, by namespace and key.
   public cache: Map<string, string> = new Map();
@@ -128,6 +143,8 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
   public stopped: boolean = false;
   // The incident is gone.
   public isIncidentGone: boolean = false;
+  // The incident is resolved.
+  public isRecordResolved: boolean = false;
   // Every run read by the worker's page reads, as it was read.
   public pageReads: number = 0;
 
@@ -298,9 +315,11 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
       const incident: Incident = new Incident();
       incident.id = INCIDENT_ID;
       incident.projectId = PROJECT_ID;
-      incident.currentIncidentStateId = this.isRecordAcknowledged
-        ? ACKNOWLEDGED_STATE
-        : CREATED_STATE;
+      incident.currentIncidentStateId = this.isRecordResolved
+        ? RESOLVED_STATE
+        : this.isRecordAcknowledged
+          ? ACKNOWLEDGED_STATE
+          : CREATED_STATE;
       return [incident];
     }) as never);
 
@@ -308,6 +327,7 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
       return [
         [CREATED_STATE, 1, "isCreatedState"],
         [ACKNOWLEDGED_STATE, 2, "isAcknowledgedState"],
+        [RESOLVED_STATE, 3, "isResolvedState"],
       ].map(([id, order, flag]: Array<unknown>) => {
         const state: IncidentState = new IncidentState();
         state.id = id as ObjectID;
@@ -321,6 +341,13 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
 
   // Redis, in memory, outside the process: what it holds outlives a restart.
   private installCache(): void {
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      return this.cache.get(`${namespace}-${key}`) || null;
+    }) as never);
+
     jest.spyOn(GlobalCache, "getStrings").mockImplementation((async (
       namespace: string,
       keys: Array<string>,
@@ -375,6 +402,10 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
 
                 if (isNullOperator(expected)) {
                   return actual === null || actual === undefined;
+                }
+
+                if (isNotNullOperator(expected)) {
+                  return actual !== null && actual !== undefined;
                 }
 
                 if (expected instanceof Date) {
@@ -482,6 +513,33 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
         this.hit(FailurePoint.ClaimStart, args);
       },
     );
+
+    /*
+     * The real give-back, over the run table's own UPDATE: a planned
+     * failure is the database's, thrown to a caller that asks for it and
+     * swallowed otherwise, as the real one does.
+     */
+    const realGiveBack: AnyFunction =
+      OnCallDutyPolicyExecutionLogService.giveBackEscalationAdvance.bind(
+        OnCallDutyPolicyExecutionLogService,
+      );
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "giveBackEscalationAdvance")
+      .mockImplementation((async (data: { throwOnError?: boolean }) => {
+        try {
+          this.throwIfStopped();
+          this.hit(FailurePoint.GiveBackClaim, [data]);
+        } catch (err) {
+          if (data.throwOnError) {
+            throw err;
+          }
+
+          return false;
+        }
+
+        return await realGiveBack(data);
+      }) as never);
   }
 
   private wrap(

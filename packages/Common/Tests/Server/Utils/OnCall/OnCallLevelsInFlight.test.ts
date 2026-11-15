@@ -3,6 +3,10 @@ import logger from "../../../../Server/Utils/Logger";
 import OnCallLevelsInFlight, {
   OnCallLevelInFlight,
 } from "../../../../Server/Utils/OnCall/OnCallLevelsInFlight";
+import {
+  NotificationSchedule,
+  OnCallPageStart,
+} from "../../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   afterEach,
@@ -125,6 +129,109 @@ describe("a level in flight", () => {
     ],
   ])("is none for %s", (_name: string, value: string | null) => {
     expect(OnCallLevelsInFlight.fromCacheValue(value)).toBeNull();
+  });
+});
+
+/*
+ * Who a level pages first, and how its pages were timed as it started, are
+ * kept with it, so a resume pages and times them the same way (issue #8471).
+ */
+describe("what a level kept for its resume", () => {
+  test("its first people and its scheduled send are read back as they were kept", async () => {
+    const kept: OnCallLevelInFlight = level({
+      firstUserIds: ["84710000-0000-4000-8000-0000000000c1"],
+      scheduledSend: {
+        dueAt: new Date(STARTED.getTime() - MINUTE),
+        schedule: NotificationSchedule.Escalation,
+      },
+    });
+
+    await OnCallLevelsInFlight.keep(RUN, kept);
+
+    expect(
+      (await OnCallLevelsInFlight.read([RUN])).get(RUN.toString()),
+    ).toEqual(kept);
+  });
+
+  test("its page's start is read back as it was kept", async () => {
+    const kept: OnCallLevelInFlight = level({
+      pageStart: { startedAt: STARTED, start: OnCallPageStart.RecordCreated },
+    });
+
+    await OnCallLevelsInFlight.keep(RUN, kept);
+
+    expect(
+      (await OnCallLevelsInFlight.read([RUN])).get(RUN.toString()),
+    ).toEqual(kept);
+  });
+
+  /*
+   * A page again's start is kept before its rule is recorded (issue
+   * #8514): where it starts - or nowhere named, for the policy's first
+   * rule - who acknowledged, and its timeout's minutes.
+   */
+  test("a page again's start, naming no rule, is read back as it was kept", async () => {
+    const kept: OnCallLevelInFlight = level({
+      ruleId: "",
+      stopped: true,
+      firstUserIds: ["85140000-0000-4000-8000-0000000000d1"],
+      pageAgain: {
+        startAtRuleId: null,
+        acknowledgedByUserId: "85140000-0000-4000-8000-0000000000d1",
+        minutes: 30,
+      },
+    });
+
+    await OnCallLevelsInFlight.keep(RUN, kept);
+
+    expect(
+      (await OnCallLevelsInFlight.read([RUN])).get(RUN.toString()),
+    ).toEqual(kept);
+  });
+
+  test("only a page again's start may name no rule", () => {
+    expect(
+      OnCallLevelsInFlight.fromCacheValue(
+        JSON.stringify({
+          ruleId: "",
+          startedAt: 1,
+          heartbeatAt: 1,
+          stopped: true,
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      OnCallLevelsInFlight.fromCacheValue(
+        JSON.stringify({
+          ruleId: "",
+          startedAt: 1,
+          heartbeatAt: 1,
+          stopped: true,
+          pageAgain: { startAtRuleId: 42, minutes: "soon" },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("timing that is not one it knows is left out, and the level still reads", () => {
+    expect(
+      OnCallLevelsInFlight.fromCacheValue(
+        JSON.stringify({
+          ruleId: "r",
+          startedAt: 1,
+          heartbeatAt: 1,
+          stopped: false,
+          firstUserIds: [42, ""],
+          scheduledSend: { dueAt: 1, schedule: "whenever" },
+          pageStart: { startedAt: "soon", start: "record_created" },
+        }),
+      ),
+    ).toEqual({
+      ruleId: "r",
+      startedAt: new Date(1),
+      heartbeatAt: new Date(1),
+      stopped: false,
+    });
   });
 });
 

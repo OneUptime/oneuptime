@@ -318,7 +318,7 @@ describe("the transceiver checks", () => {
       snmpMonitorOptions: { transceiverReading: "wavelength" },
     });
 
-    expect(text).toContain('"SNMP Transceiver Reading" is less than -14 ');
+    expect(text).toMatch(/"SNMP Transceiver Reading" is less than -14$/);
     expect(text).not.toContain("(");
   });
 });

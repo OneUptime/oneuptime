@@ -487,6 +487,12 @@ Het incident legt het sjabloon waarvan het is gemeld vast in `createdIncidentTem
 
 Een vermelding die nergens op past, houdt de stap niet tegen: het record wordt toch gemaakt, en het logboek van de uitvoering zegt wat elke vermelding koppelde en welke nergens op pasten. Gearchiveerde middelen worden niet gekoppeld. Monitoren worden niet opgezocht: noem ze in **JSON Object** (`monitors` bij een incident, `monitorId` bij een waarschuwing), omdat een monitor aan een incident koppelen zijn bewaking pauzeert.
 
+### Wie het vanaf het begin bezit
+
+**Create One Incident** en **Create One Alert** hebben de instellingen **Eigenaarsgebruikers** en **Eigenaarsteams**: de personen en teams die het record bezitten vanaf het moment dat het wordt gemaakt. Kies ze, of neem ze over uit een eerdere stap: de id of het e-mailadres van een gebruiker, de id van een team, meerdere gescheiden door komma's, of een lijst. De eigenaren van het record horen ongeveer een minuut na het aanmaken dat het is gemaakt, iedere eigenaar die het dan heeft: wie je hier kiest, hoort er altijd bij, terwijl eigenaren die een latere stap toevoegt het missen zodra die stap meer dan een minuut later draait, en in hun plaats de eigenaren van het project worden ingelicht.
+
+De stap vraagt als Projectbeheerder van het project van de workflow of hij ze mag toevoegen, voordat het record wordt opgeslagen: eigenaren die hij niet mag toevoegen, laten het aanmaken weigeren. Wie geen lid is van het project, of een team dat niet van het project is, wordt weggelaten, en het logboek van de uitvoering zegt dat: het record wordt toch gemaakt. Eigenaren die zo zijn toegevoegd, horen niet dat ze zijn toegevoegd: de melding dat het record is gemaakt, is degene die ze krijgen.
+
 ## Werken met records
 
 Elk veld van een datacomponent gebruikt de eigen **kolom**namen van het record — dezelfde namen als de API, niet de labels van het formulier in het dashboard. De ID-kolom is `_id`. De spelling `id` wordt overal waar je een kolomnaam kunt typen als alias geaccepteerd, maar `_id` is wat een record teruggeeft, dus dat lees je bij de uitvoer:

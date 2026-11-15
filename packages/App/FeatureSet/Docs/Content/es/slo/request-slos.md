@@ -37,7 +37,7 @@ A partir de ahí, un SLO de solicitudes funciona como cualquier otro. Su estado,
 ## Antes de empezar
 
 - Los servicios envían trazas a OneUptime: consulta [OpenTelemetry](/docs/telemetry/open-telemetry). Cada uno está en el [catálogo de servicios](/docs/telemetry/services) con su `service.name`.
-- Un rol que pueda crear SLO: Project Owner, Project Admin o un rol personalizado con el permiso Create Service Level Objective.
+- Un rol que pueda crear SLO: Propietario del proyecto, Administrador del proyecto o un rol personalizado con el permiso Create Service Level Objective.
 
 ## Crear un SLO de solicitudes
 
@@ -59,7 +59,7 @@ Escribe un **Nombre**, por ejemplo «Checkout requests», y un **Objetivo (%)**:
 La primera evaluación, en menos de 5 minutos, cuenta las solicitudes de las últimas 6 horas, así que el SLO tiene cifras enseguida. Las evaluaciones siguientes cuentan también solicitudes más antiguas, hasta cubrir la ventana de cumplimiento.
 :::
 
-Para cambiar más adelante lo que mide un SLO, sus servicios o su umbral, abre sus **Ajustes** y haz clic en **Editar qué mide**.
+La página **SLO** de un servicio lista los SLO que lo miden, y su **Crear Objetivo de nivel de servicio** abre el mismo formulario con el servicio ya elegido. Para cambiar más adelante lo que mide un SLO, sus servicios o su umbral, abre sus **Ajustes** y haz clic en **Editar qué mide**.
 
 ## Cómo se cuentan las solicitudes
 
@@ -86,7 +86,7 @@ Un SLO de solicitudes recibe las mismas reglas **Fast burn**, **Slow burn** y **
 
 ## Solución de problemas
 
-:::details El SLO muestra Waiting for requests
+:::details El SLO muestra Esperando solicitudes
 Ninguno de sus servicios ha servido todavía una solicitud en la ventana. Comprueba que los servicios envían trazas a OneUptime y que sus spans incluyen spans de entrada: un servicio cuyos spans son todos internos no tiene solicitudes que contar.
 :::
 

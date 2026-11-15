@@ -22,7 +22,7 @@ Cada caminho normaliza o que chega para [OCSF](https://schema.ocsf.io/), o Open 
 
 ## Antes de começar
 
-- Para o conector gerenciado, no OneUptime, a função Project Owner, Project Admin ou Security Admin. As funções Security Member e Security Viewer podem ler as conexões, mas não criá-las.
+- Para o conector gerenciado, no OneUptime, a função Proprietário do projeto, Administrador do projeto ou Administrador de segurança. As funções Membro de segurança e Visualizador de segurança podem ler as conexões, mas não criá-las.
 - Para o webhook e o encaminhamento de UDM, uma chave de ingestão: abra **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e clique em **Criar chave de ingestão**.
 - Para o conector gerenciado, permissão para criar uma conta de serviço do Google Cloud no projeto ao qual a sua instância do SecOps está vinculada.
 
@@ -173,7 +173,7 @@ Cada requisição de um teste tem um prazo de 20 segundos. Os testes não mexem 
 
 ## Pré-visualizar, executar e importar sob demanda
 
-Abra **Diagnóstico** em uma conexão para ver as execuções recentes e operar o conector. Os proprietários do projeto, os administradores do projeto e os administradores de segurança podem iniciar operações. Os membros e leitores de segurança podem ler o histórico.
+Abra **Diagnóstico** em uma conexão para ver as execuções recentes e operar o conector. Os Proprietários do projeto, os Administradores do projeto e os Administradores de segurança podem iniciar operações. Os membros e leitores de segurança podem ler o histórico.
 
 - **Executar agora** enfileira uma consulta na hora, usando o cursor e o caminho de ingestão normais, mesmo quando a consulta agendada está desabilitada. Os estados na fila e em execução continuam visíveis enquanto o worker executa a requisição. Se uma execução continuar na fila, verifique que há workers processando a fila Worker; a verificação **Background workers** do Testar conexão diz se algum processo está fazendo isso.
 - **Prévia de detecções** lê um intervalo de tempo escolhido sem importar nem mudar o cursor. Use a última hora, 24 horas, 7 dias ou um intervalo personalizado de até 7 dias. O intervalo corresponde à visão de alertas do SecOps, que lê por horário de detecção, e as duas passadas de pesquisa leem as detecções criadas nele além das detecções cujo horário de detecção cai nele, então pré-visualizar ontem mostra também detecções criadas ontem sobre eventos mais antigos. A pré-visualização mostra o horário de detecção e o horário de criação separadamente. Os resultados seguem a seleção **Dados a importar** salva da conexão.

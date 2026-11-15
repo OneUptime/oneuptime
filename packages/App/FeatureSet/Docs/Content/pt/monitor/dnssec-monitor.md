@@ -41,7 +41,7 @@ Uma assinatura com menos de um dia restante já conta como quebrada, então voc�
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma zona assinada.** A zona precisa estar assinada, e o seu registro DS publicado na zona pai através do seu registrador.
 - **DNS de saída a partir da sonda** para os resolvedores que você informar e, para a verificação de consistência dos servidores de nomes, para os servidores de nomes autoritativos da zona. As sondas padrão do seu projeto são escolhidas para cada monitor novo.
 
@@ -103,7 +103,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de DNSSEC novo começa com dois critérios:
 
-- **Cadeia quebrada** — **Cadeia DNSSEC válida** é **Falso**. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ DNSSEC chain is broken" é criado. O incidente se resolve sozinho assim que a cadeia volta a ser válida.
+- **Cadeia quebrada** — **Cadeia DNSSEC válida** é **Falso**. O monitor é marcado como **Offline** e um incidente chamado "A cadeia DNSSEC de _nome do monitor_ está quebrada" é criado. O incidente se resolve sozinho assim que a cadeia volta a ser válida.
 - **Cadeia válida** — o monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Quando nenhum corresponde, o monitor mostra o seu status padrão: **Operacional**, a menos que você escolha outro em **Mais campos**, abaixo dos critérios.

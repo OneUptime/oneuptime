@@ -1,11 +1,11 @@
 # Opsgenie
 
-Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsgenie). Ét workflow opretter en Opsgenie-alarm, når en OneUptime-hændelse erklæres, og et andet lukker den, når OneUptime-hændelsen er løst. Brug det, så længe Opsgenie stadig kalder dit team op, og OneUptime overvåger dine systemer.
+Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsgenie). Én arbejdsgang opretter en Opsgenie-alarm, når en OneUptime-hændelse erklæres, og en anden lukker den, når OneUptime-hændelsen er løst. Brug det, så længe Opsgenie stadig kalder dit team op, og OneUptime overvåger dine systemer.
 
 :::cards
-- [Gem API-nøglen](#gem-api-nøglen): Hold Opsgenies nøgle ude af dine workflows.
-- [Opret Opsgenie-alarmer](#opret-en-opsgenie-alarm-for-hver-hændelse): Ét workflow, to blokke.
-- [Luk dem](#luk-opsgenie-alarmen): Et andet workflow, der følger hændelsens tilstand.
+- [Gem API-nøglen](#gem-api-nøglen): Hold Opsgenies nøgle ude af dine arbejdsgange.
+- [Opret Opsgenie-alarmer](#opret-en-opsgenie-alarm-for-hver-hændelse): én arbejdsgang, to blokke.
+- [Luk dem](#luk-opsgenie-alarmen): En anden arbejdsgang, der følger hændelsens tilstand.
 - [Fejlfinding](#fejlfinding): Når Opsgenie afviser en anmodning.
 :::
 
@@ -14,21 +14,21 @@ Send OneUptime-hændelser til [Opsgenie](https://www.atlassian.com/software/opsg
 
 ## Sådan fungerer det
 
-```mermaid title="To workflows, én Opsgenie-alarm"
+```mermaid title="To arbejdsgange, én Opsgenie-alarm"
 flowchart TB
-    declared["Hændelse erklæret"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Hændelse erklæret"] --> create["Arbejdsgang 1:<br/>On Create Incident"]
     create -->|"POST /v2/alerts"| og["Opsgenie-alarm"]
-    resolved["Hændelse løst"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Hændelse løst"] --> update["Arbejdsgang 2:<br/>On Update Incident"]
     update -->|"luk via alias"| og
 ```
 
-Begge workflows kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Det første giver alarmen et `alias` dannet ud fra OneUptime-hændelsens ID, og det andet lukker alarmen via det alias.
+Begge arbejdsgange kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Den første giver alarmen et `alias` dannet ud fra OneUptime-hændelsens ID, og den anden lukker alarmen via det alias.
 
 ## Før du går i gang
 
 - En Opsgenie-integration af typen **API** og dens **API Key**. Tilføj en under **Settings → Integrations** i Opsgenie, eller under et teams **Integrations** for at sende alarmer til det team.
 - Din Opsgenie-region. Konti i Europa, som logger ind på `app.eu.opsgenie.com`, bruger `api.eu.opsgenie.com`. Alle andre bruger `api.opsgenie.com`.
-- I OneUptime rettigheden til at oprette workflows og globale variabler. På OneUptime Cloud kræver workflows **Growth**-abonnementet eller højere.
+- I OneUptime rettigheden til at oprette arbejdsgange og globale variabler. På OneUptime Cloud kræver arbejdsgange **Growth**-abonnementet eller højere.
 
 ## Gem API-nøglen
 
@@ -43,9 +43,9 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så nøglen vise
 ## Opret en Opsgenie-alarm for hver hændelse
 
 :::steps
-### Opret workflowet
+### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to Opsgenie`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to Opsgenie`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 
@@ -80,12 +80,12 @@ Opsgenies skema er ordet `GenieKey`, et mellemrum og derefter nøglen. Opsgenie 
 
 ## Luk Opsgenie-alarmen
 
-Et workflow har én trigger, så det kræver et andet workflow at lukke den, startet når en hændelses tilstand ændres.
+En arbejdsgang har én trigger, så det kræver en anden arbejdsgang at lukke den, startet når en hændelses tilstand ændres.
 
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret et workflow med navnet `Close Opsgenie alerts`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
+Opret en arbejdsgang med navnet `Close Opsgenie alerts`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så den kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -141,15 +141,15 @@ Nøglen er forkert, eller den hører til den anden region. Kontrollér, at heade
 :::
 
 :::details Lukningen svarer 404
-Ingen alarm har det alias. Begge workflows skal danne aliasset på samme måde, `oneuptime-` efterfulgt af hændelsens `_id`, og URL'en skal ende på `?identifierType=alias`.
+Ingen alarm har det alias. Begge arbejdsgange skal danne aliasset på samme måde, `oneuptime-` efterfulgt af hændelsens `_id`, og URL'en skal ende på `?identifierType=alias`.
 :::
 
 :::details Alarmen dukker aldrig op, selvom trinnet viser 202
 Opsgenie svarer `202`, før den behandler anmodningen, så en anmodning, den senere afviser, viser stadig `202`. Find anmodningen i Opsgenies logs for at se, hvorfor den blev afvist, f.eks. en integration, der er slået fra.
 :::
 
-:::details Workflowet kører aldrig
-Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
+:::details Arbejdsgangen kører aldrig
+Kontrollér, at den er slået til: **Aktiveret**, øverst i dens **Bygger**. Åbn derefter **Protokoller → Kørsler**: en kørsel, der tog **Nej**-siden af **If / Else**-blokken, er en opdatering, der ikke var en løsning.
 :::
 
 ## Næste trin
@@ -157,6 +157,6 @@ Kontrollér, at det er slået til: **Aktiveret**, øverst i dets **Bygger**. Åb
 :::cards
 - [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie): Hent dit team, dine vagtplaner og eskaleringer over, før Opsgenie lukker.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Kald folk op fra OneUptime selv.
-- [PagerDuty](/docs/integrations/pagerduty): De samme to workflows til PagerDuty.
+- [PagerDuty](/docs/integrations/pagerduty): De samme to arbejdsgange til PagerDuty.
 - [Oversigt over integrationer](/docs/integrations/index): Mønstrene bag hver integration.
 :::

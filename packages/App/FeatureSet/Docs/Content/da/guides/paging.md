@@ -51,7 +51,7 @@ Skriv dit mobilnummer med landekode i **Dit telefonnummer**, for eksempel `+1555
 
 ![Trinnet »Hvem har ellers vagt?«, med »Gem og fortsæt« fremhævet](screen:paging-who-else)
 
-Under **Hvem har ellers vagt?** er du allerede med i **Tilkaldes først**. Klik på **Tilføj teammedlemmer** for at tilkalde andre sammen med dig, og klik derefter på **Gem og fortsæt**. I et projekt, der endnu ikke har en vagtpolitik, oprettes `Default on-call policy`, som tilkalder dem ved hver ny hændelse og advarsel. I et projekt, der har en, vælger du den under **Vagtpolitik** og tilføjer i stedet personer under **Føj til den første eskaleringsregel**. Kan nogen ikke nås endnu, bliver trinnet stående på **Når en tilkaldelse dem?**: klik på **Send påmindelse om opsætning** for dem og derefter på **Fortsæt**.
+Under **Hvem har ellers vagt?** er du allerede med i **Tilkaldes først**. Klik på **Tilføj teammedlemmer** for at tilkalde andre sammen med dig, og klik derefter på **Gem og fortsæt**. I et projekt, der endnu ikke har en vagtpolitik, oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel. I et projekt, der har en, vælger du den under **Vagtpolitik** og tilføjer i stedet personer under **Føj til den første eskaleringsregel**. Kan nogen ikke nås endnu, bliver trinnet stående på **Når en tilkaldelse dem?**: klik på **Send påmindelse om opsætning** for dem og derefter på **Fortsæt**.
 
 ### Bestem, hvad der sker, hvis ingen svarer
 
@@ -83,7 +83,7 @@ Tilkalder politikken en anden, kan du også se eskaleringen: klik på **Åbn vag
 ## Hvad der kan gå galt
 
 :::details Knappen Send mig en kode på sms mangler
-Sms er slået fra eller kan ikke sendes, og trinnet siger hvorfor. Kun en projektejer eller en person, der administrerer fakturering, ser **Slå sms og opkald til**. På OneUptime Cloud skjuler en saldo på 1.00 USD eller mindre feltet. På en selvhostet server, der ikke kan sende sms, ser masteradministratoren **Sæt sms og opkald op**, der åbner Admin Dashboard, så Twilio kan tilføjes, sådan som [Twilio-integration](/docs/self-hosted/twilio-integration) viser.
+Sms er slået fra eller kan ikke sendes, og trinnet siger hvorfor. Kun en Projektejer eller en person, der administrerer fakturering, ser **Slå sms og opkald til**. På OneUptime Cloud skjuler en saldo på 1.00 USD eller mindre feltet. På en selvhostet server, der ikke kan sende sms, ser masteradministratoren **Sæt sms og opkald op**, der åbner Admin Dashboard, så Twilio kan tilføjes, sådan som [Twilio-integration](/docs/self-hosted/twilio-integration) viser.
 :::
 
 :::details Tilføj saldo siger, at der ikke blev fundet nogen betalingsmetode

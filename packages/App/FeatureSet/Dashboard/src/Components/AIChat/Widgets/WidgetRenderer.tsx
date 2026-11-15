@@ -78,8 +78,9 @@ const WidgetCard: FunctionComponent<{ widget: AIChatWidget }> = ({
   /*
    * A table a read left says its title and the line under it in the
    * reader's language (issue #7394): "Monitore (4)", as the cards above
-   * it say their words (TableWords). Any other widget, and a table saved
-   * before it had words, reads as its tool wrote it.
+   * it say their words (TableWords). So do a chart, a list of incidents,
+   * alerts or exceptions and a trace waterfall (issue #8312). A widget
+   * saved before it had words reads as its tool wrote it.
    */
   const heading: DrawnWidgetHeading = getDrawnWidgetHeading(widget, translator);
 

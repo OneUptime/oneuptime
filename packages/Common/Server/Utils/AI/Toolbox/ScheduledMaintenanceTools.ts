@@ -231,8 +231,14 @@ export const QueryScheduledMaintenanceTool: ObservabilityTool = {
     });
 
     const now: Date = OneUptimeDate.getCurrentDate();
-    const windowStart: Date = OneUptimeDate.addRemoveDays(now, -1 * pastDays);
-    const windowEnd: Date = OneUptimeDate.addRemoveDays(now, upcomingDays);
+    const windowStart: Date = OneUptimeDate.addRemoveDurationInDays(
+      now,
+      -1 * pastDays,
+    );
+    const windowEnd: Date = OneUptimeDate.addRemoveDurationInDays(
+      now,
+      upcomingDays,
+    );
 
     // Overlap: the event's window intersects [windowStart, windowEnd].
     const events: Array<ScheduledMaintenance> =

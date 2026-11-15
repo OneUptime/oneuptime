@@ -111,7 +111,7 @@ Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste match
 
 En ny DNS-monitor börjar med två kriterier:
 
-- **Offline** — namnet går inte att slå upp, eller har ingen post av typen, efter alla återförsök. Monitorn markeras som **Offline** och en incident med namnet "_monitor name_ is offline" skapas. Incidenten löser sig själv när namnet går att slå upp igen.
+- **Offline** — namnet går inte att slå upp, eller har ingen post av typen, efter alla återförsök. Monitorn markeras som **Offline** och en incident med namnet "_monitornamn_ är offline" skapas. Incidenten löser sig själv när namnet går att slå upp igen.
 - **Uppe** — namnet går att slå upp. Monitorn markeras som **Fungerar**.
 
 Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad som händer. När inget matchar visar monitorn sin standardstatus: **Fungerar**, om du inte väljer en annan under **Fler fält** under kriterierna.
@@ -173,6 +173,6 @@ Servern i **DNS-server (valfritt)** validerar inte DNSSEC och sätter därför a
 :::cards
 - [DNSSEC-övervakning](/docs/monitor/dnssec-monitor): Validera förtroendekedjan i en signerad zon.
 - [Domänövervakning](/docs/monitor/domain-monitor): Håll koll på domänens registrering och utgång.
-- [Anpassade probes](/docs/probe/custom-probe): Fråga interna DNS-servrar från ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Fråga interna DNS-servrar från ditt eget nätverk.
 - [Incidenter – Översikt](/docs/incidents/index): Vad som händer när monitorn har deklarerat en.
 :::

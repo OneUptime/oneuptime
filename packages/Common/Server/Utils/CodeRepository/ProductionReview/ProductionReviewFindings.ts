@@ -820,7 +820,7 @@ export default class ProductionReviewFindings {
     servicesById: Map<string, CodeAgentScopedService>;
     now: Date;
   }): Promise<Array<ProductionReviewExceptionJSON> | null> {
-    const since: Date = OneUptimeDate.addRemoveDays(
+    const since: Date = OneUptimeDate.addRemoveDurationInDays(
       data.now,
       -PRODUCTION_REVIEW_WINDOWS.exceptionsDays,
     );
@@ -1151,7 +1151,7 @@ export default class ProductionReviewFindings {
         query: {
           projectId: data.projectId,
           createdAt: QueryHelper.greaterThanEqualTo(
-            OneUptimeDate.addRemoveDays(
+            OneUptimeDate.addRemoveDurationInDays(
               data.now,
               -PRODUCTION_REVIEW_WINDOWS.incidentsDays,
             ),

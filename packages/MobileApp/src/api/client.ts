@@ -7,8 +7,10 @@ import axios, {
 import { getServerUrl } from "../storage/serverUrl";
 import {
   getCachedAccessToken,
+  getSignInRevision,
+  getTokenRevision,
   getTokens,
-  storeTokens,
+  storeRenewedTokens,
   clearTokens,
   type StoredTokens,
 } from "../storage/keychain";
@@ -21,9 +23,16 @@ import { recordProjectPermissions } from "./projectPermissions";
 import {
   forgetInactivityReportedBy,
   getRenewalReport,
+  isActivityReportDue,
+  noteActivityReported,
   onUserActivity,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   type RenewalReport,
 } from "../auth/userActivity";
+import {
+  getSessionEndReasonOfRefusal,
+  type SessionEndReason,
+} from "../auth/sessionEnded";
 import { decodeJwtPayload } from "../utils/jwt";
 
 /**
@@ -96,9 +105,16 @@ interface RefreshWaiter {
   onRefreshFailed: () => void;
 }
 
+/*
+ * Told that the session is over and the app goes back to its sign-in, with
+ * why when the server said why (auth/sessionEnded): its length or its idle
+ * timeout. Null for any other end.
+ */
+export type AuthFailureListener = (reason: SessionEndReason | null) => void;
+
 let isRefreshing: boolean = false;
 let refreshSubscribers: Array<RefreshWaiter> = [];
-let onAuthFailure: (() => void) | null = null;
+let onAuthFailure: AuthFailureListener | null = null;
 
 // The renewal in flight, whichever way it started; settled when it is over.
 let renewalInFlight: Promise<void> | null = null;
@@ -137,8 +153,94 @@ function onRefreshFailed(): void {
   });
 }
 
-export function setOnAuthFailure(callback: () => void): void {
+export function setOnAuthFailure(callback: AuthFailureListener): void {
   onAuthFailure = callback;
+}
+
+/*
+ * A SIGN-OUT CLOSES RENEWALS UNTIL THE NEXT SIGN-IN (issue #8382).
+ *
+ * The server rotates the refresh token at every renewal. A sign-out reads
+ * the stored refresh token, posts it to /identity/logout, and then clears
+ * the tokens (api/auth.ts logout). A renewal that started meanwhile - a
+ * request that met a 401, a touch that renewed ahead - posted the same
+ * token: when the server took the renewal first, the revoke named a token
+ * that no longer matched any session, and the session stayed signed in on
+ * the server until it ran out, while the person believed they had ended
+ * it. And when the renewal's answer came back after the tokens were
+ * cleared, they were written back, and the next launch was signed in
+ * again.
+ *
+ * So a sign-out closes renewals as it begins (closeSessionRenewals): from
+ * then on, a request that meets a 401 is refused with it, and nothing is
+ * renewed ahead, until a sign-in stores tokens again (keychain
+ * getSignInRevision). A renewal already on its way is waited for
+ * (waitForSessionRenewal), so the revoke carries the token it was handed.
+ * And whatever a renewal brings back is stored only over the tokens it
+ * started from (keychain storeRenewedTokens): one that lands after the
+ * sign-out cleared them, or after a sign-in replaced them, is not stored,
+ * and the session it renewed is ended at the server (renewSession).
+ */
+let renewalsClosedAtSignIn: number | null = null;
+
+export function closeSessionRenewals(): void {
+  renewalsClosedAtSignIn = getSignInRevision();
+}
+
+// Whether a sign-out has closed renewals, and no sign-in has stored tokens since.
+export function areSessionRenewalsClosed(): boolean {
+  if (renewalsClosedAtSignIn === null) {
+    return false;
+  }
+
+  if (getSignInRevision() !== renewalsClosedAtSignIn) {
+    renewalsClosedAtSignIn = null;
+    return false;
+  }
+
+  return true;
+}
+
+/*
+ * A renewal went through at the server, but its tokens were not stored: a
+ * sign-out or a sign-in wrote the tokens while it was on its way. The
+ * session it renewed has been ended at the server; the app's session -
+ * none, or the newer one - is not touched.
+ */
+export class RenewalOutlivedError extends Error {
+  public constructor() {
+    super("The session was signed out or replaced while it was renewed.");
+    this.name = "RenewalOutlivedError";
+  }
+}
+
+function isRenewalOutlived(failure: unknown): boolean {
+  return failure instanceof RenewalOutlivedError;
+}
+
+/*
+ * Ends at the server a session a renewal renewed after the app let go of
+ * it: nobody holds its refresh token but this answer, so nobody could
+ * ever sign it out. Best effort, as a sign-out's own revoke is; posted on
+ * the bare axios import, never through apiClient, as the renewal is.
+ */
+async function revokeRenewedSession(
+  serverUrl: string,
+  refreshToken: unknown,
+): Promise<void> {
+  if (typeof refreshToken !== "string" || !refreshToken) {
+    return;
+  }
+
+  try {
+    await axios.post(
+      `${serverUrl}/identity/logout`,
+      { refreshToken },
+      { timeout: 10000 },
+    );
+  } catch {
+    // Not reached: the session runs out at the server on its own.
+  }
 }
 
 /*
@@ -172,13 +274,25 @@ function beginRenewal(nowMs: number): () => void {
  * timeout is decided from (issue #8187). A renewal that says nothing is
  * decided from the last renewal alone, and under the 15-minute idle
  * timeout that ended the session at every renewal, however much the app
- * was used. Once the server has taken the report, the time without use it
- * reported is forgotten. Rejects when the session was not renewed.
+ * was used. And it says the app renews while its person uses it
+ * (REPORTS_ACTIVITY_WHILE_IN_USE_FIELD, issue #8458): it does, within
+ * ACTIVITY_REPORT_INTERVAL_MS of the activity the server last heard of
+ * (renewSessionAheadOfExpiry), which lets the server record an idle
+ * timeout within minutes of it running out rather than at the next
+ * renewal. Once the server has taken the report, the time without use it
+ * reported is forgotten, and the activity it reported is noted as heard.
+ * Rejects when the session was not renewed.
+ *
+ * What it brings back is stored only over the tokens it started from
+ * (issue #8382): when a sign-out cleared them or a sign-in replaced them
+ * while it was on its way, the session it renewed is ended at the server
+ * instead, and it rejects with RenewalOutlivedError.
  *
  * Posted on the bare axios import, never through apiClient, so it cannot
  * recurse into its own 401 handling.
  */
 async function renewSession(): Promise<string> {
+  const startedAtRevision: number = getTokenRevision();
   const tokens: StoredTokens | null = await getTokens();
   if (!tokens?.refreshToken) {
     throw new Error("No refresh token available");
@@ -193,6 +307,7 @@ async function renewSession(): Promise<string> {
     {
       refreshToken: tokens.refreshToken,
       ...report,
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
     },
     {
       timeout: 10000,
@@ -201,13 +316,22 @@ async function renewSession(): Promise<string> {
 
   const { accessToken, refreshToken, refreshTokenExpiresAt } = response.data;
 
-  await storeTokens({
-    accessToken,
-    refreshToken,
-    refreshTokenExpiresAt,
-  });
+  const isStored: boolean = await storeRenewedTokens(
+    {
+      accessToken,
+      refreshToken,
+      refreshTokenExpiresAt,
+    },
+    startedAtRevision,
+  );
+
+  if (!isStored) {
+    await revokeRenewedSession(serverUrl, refreshToken);
+    throw new RenewalOutlivedError();
+  }
 
   forgetInactivityReportedBy(reportedAtMs);
+  noteActivityReported(reportedAtMs - report.inactiveForInSeconds * 1000);
 
   return accessToken;
 }
@@ -222,9 +346,14 @@ async function renewSession(): Promise<string> {
  * server's record of the person's last activity lags up to a token's life
  * behind them, and each run-out costs a refused request and its replay. So
  * each time the person uses the app (onUserActivity), a token with less
- * than RENEW_AHEAD_WINDOW_MS left is renewed ahead. An app nobody touches
- * never renews ahead: its token runs out, and its next renewal says how
- * long it went unused.
+ * than RENEW_AHEAD_WINDOW_MS left is renewed ahead - and so is one whose
+ * session the server last heard of the person's activity
+ * ACTIVITY_REPORT_INTERVAL_MS ago (isActivityReportDue, issue #8458): every
+ * renewal promises the server that, while the app is in use, it hears of
+ * its person at least that often, and the server's sweep ends a session it
+ * has heard nothing of for its idle timeout and half an hour more. An app
+ * nobody touches never renews ahead: its token runs out, and its next
+ * renewal says how long it went unused.
  */
 export const RENEW_AHEAD_WINDOW_MS: number = 2 * 60 * 1000;
 
@@ -257,32 +386,46 @@ function isRenewalRefused(failure: unknown): boolean {
   return axios.isAxiosError(failure) && failure.response?.status === 401;
 }
 
-// The session is over: its tokens go, and the app goes back to its sign-in.
-async function endSession(): Promise<void> {
+/*
+ * The session is over: its tokens go, and the app goes back to its
+ * sign-in, saying why when the server said why (auth/sessionEnded).
+ */
+async function endSession(reason: SessionEndReason | null): Promise<void> {
   await clearTokens();
   if (onAuthFailure) {
-    onAuthFailure();
+    onAuthFailure(reason);
   }
+}
+
+// Whether an access token has less than RENEW_AHEAD_WINDOW_MS left at `nowMs`, or has run out.
+function isAboutToRunOut(accessToken: string, nowMs: number): boolean {
+  const expiresAtMs: number | null = getAccessTokenExpiresAtMs(accessToken);
+
+  return expiresAtMs !== null && expiresAtMs - nowMs <= RENEW_AHEAD_WINDOW_MS;
 }
 
 /*
  * Renews the session now when its access token has less than
- * RENEW_AHEAD_WINDOW_MS left (or has run out), nothing is renewing it
- * already, and no renewal started in the last MIN_TIME_BETWEEN_RENEWALS_MS.
- * Resolves once that renewal is over, or is null when none started. Called
- * at each use of the app.
+ * RENEW_AHEAD_WINDOW_MS left (or has run out), or the server last heard of
+ * its person's activity ACTIVITY_REPORT_INTERVAL_MS ago - and nothing is
+ * renewing it already, no sign-out has closed renewals, and no renewal
+ * started in the last MIN_TIME_BETWEEN_RENEWALS_MS, so one that got no
+ * answer is tried again a minute later, not at every touch. Resolves once
+ * that renewal is over, or is null when none started. Called at each use
+ * of the app.
  *
  * Requests that meet a 401 meanwhile wait for it, as for any renewal. When
  * the server refuses it, the session is over, as when the 401 below is
  * refused. When it gets no answer - no signal, a server restarting - the
  * session is left as it is and the next request decides, unless a request
  * is already waiting on it with a 401: then it ends as that request's own
- * renewal would have.
+ * renewal would have. When a sign-out or a sign-in wrote the tokens while
+ * it was on its way, it leaves them as they are.
  */
 export function renewSessionAheadOfExpiry(
   nowMs: number = Date.now(),
 ): Promise<void> | null {
-  if (isRefreshing) {
+  if (isRefreshing || areSessionRenewalsClosed()) {
     return null;
   }
 
@@ -292,9 +435,7 @@ export function renewSessionAheadOfExpiry(
     return null;
   }
 
-  const expiresAtMs: number | null = getAccessTokenExpiresAtMs(accessToken);
-
-  if (expiresAtMs === null || expiresAtMs - nowMs > RENEW_AHEAD_WINDOW_MS) {
+  if (!isAboutToRunOut(accessToken, nowMs) && !isActivityReportDue(nowMs)) {
     return null;
   }
 
@@ -312,11 +453,14 @@ export function renewSessionAheadOfExpiry(
     try {
       onTokenRefreshed(await renewSession());
     } catch (failure: unknown) {
-      if (isRenewalRefused(failure) || refreshSubscribers.length > 0) {
+      if (isRenewalOutlived(failure)) {
+        // The tokens are a sign-out's or a newer sign-in's: they stay as they are.
+        onRefreshFailed();
+      } else if (isRenewalRefused(failure) || refreshSubscribers.length > 0) {
         onRefreshFailed();
 
         try {
-          await endSession();
+          await endSession(getSessionEndReasonOfRefusal(failure));
         } catch {
           // Its tokens could not be removed: its next request is refused all the same.
         }
@@ -342,10 +486,11 @@ export async function waitForSessionRenewal(): Promise<void> {
   }
 }
 
-// Forgets when the last renewal started. For tests.
+// Forgets when the last renewal started, and opens renewals a sign-out closed. For tests.
 export function resetSessionRenewalForTests(): void {
   lastRenewalStartedAtMs = null;
   expiryOfToken = null;
+  renewalsClosedAtSignIn = null;
 }
 
 const apiClient: AxiosInstance = axios.create({
@@ -477,6 +622,14 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    /*
+     * Signing out: refused with its own 401, nothing renewed (issue #8382).
+     * A renewal now would rotate the refresh token the sign-out revokes.
+     */
+    if (areSessionRenewalsClosed()) {
+      return Promise.reject(error);
+    }
+
     if (isRefreshing) {
       return new Promise<AxiosResponse>(
         (
@@ -529,7 +682,7 @@ apiClient.interceptors.response.use(
       }
 
       return apiClient(originalRequest);
-    } catch {
+    } catch (failure: unknown) {
       /*
        * Settled first, before anything else in this handler: clearTokens
        * touches storage and can reject on its own, and onAuthFailure runs
@@ -540,7 +693,14 @@ apiClient.interceptors.response.use(
        */
       onRefreshFailed();
 
-      await endSession();
+      /*
+       * A sign-out or a sign-in wrote the tokens while it was on its way:
+       * they are not this session's to end.
+       */
+      if (!isRenewalOutlived(failure)) {
+        await endSession(getSessionEndReasonOfRefusal(failure));
+      }
+
       return Promise.reject(error);
     } finally {
       endRenewal();

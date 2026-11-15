@@ -93,7 +93,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny ping-monitor starter med to kriterier:
 
-- **Frakoblet** — verten svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når verten svarer igjen.
+- **Frakoblet** — verten svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når verten svarer igjen.
 - **Oppe** — verten svarer. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -152,6 +152,6 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 :::cards
 - [IP-overvåking](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
 - [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
-- [Egendefinerte probes](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

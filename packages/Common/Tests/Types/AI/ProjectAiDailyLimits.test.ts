@@ -468,7 +468,7 @@ describe("who may change the limits, and where", () => {
 
   test("named in the words every who-can sentence uses for those permissions", () => {
     expect(WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS).toBe(
-      "a project owner or someone with Manage Billing",
+      "a Project Owner or someone with Manage Billing",
     );
 
     /*
@@ -476,7 +476,7 @@ describe("who may change the limits, and where", () => {
      * and a Billing Admin between them, who may flip those switches but not
      * change what AI may cost.
      */
-    expect(WHO_MAY_TURN_THEM_ON.startsWith("a project owner, ")).toBe(true);
+    expect(WHO_MAY_TURN_THEM_ON.startsWith("a Project Owner, ")).toBe(true);
     expect(WHO_MAY_TURN_THEM_ON.endsWith(" someone with Manage Billing")).toBe(
       true,
     );
@@ -493,7 +493,7 @@ describe("who may change the limits, and where", () => {
 
   test("the sentence said to whoever met the limit names them rather than telling the reader to", () => {
     expect(ProjectAiDailyLimits.getWhoCanChangeSentence()).toBe(
-      "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+      "A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     );
     expect(PROJECT_AI_DAILY_LIMITS_LOCATION).toBe(
       "Project Settings → AI → AI Features → More settings",

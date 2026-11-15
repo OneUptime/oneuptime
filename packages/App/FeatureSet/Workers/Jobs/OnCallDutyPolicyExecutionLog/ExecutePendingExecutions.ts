@@ -44,6 +44,9 @@ import OnCallPolicyRunRetries from "Common/Server/Utils/OnCall/OnCallPolicyRunRe
 import OnCallLevelsInFlight, {
   OnCallLevelInFlight,
 } from "Common/Server/Utils/OnCall/OnCallLevelsInFlight";
+import OnCallMoveOnsInFlight, {
+  OnCallMoveOnInFlight,
+} from "Common/Server/Utils/OnCall/OnCallMoveOnsInFlight";
 import OnCallRunFailure, {
   OnCallRunFailureKind,
 } from "Common/Server/Utils/OnCall/OnCallRunFailure";
@@ -219,6 +222,17 @@ export const executePendingPolicyRuns: (
           }),
         );
 
+      /*
+       * And the page's runs with a move on still in flight - maybe one whose
+       * process stopped after its claim (OnCallMoveOnsInFlight, issue #8410).
+       */
+      const moveOnsInFlight: Map<string, OnCallMoveOnInFlight> =
+        await OnCallMoveOnsInFlight.read(
+          runs.map((run: OnCallDutyPolicyExecutionLog): ObjectID | null => {
+            return run.id;
+          }),
+        );
+
       await forEachWithConcurrency<OnCallDutyPolicyExecutionLog>({
         items: runs,
         concurrency: POLICY_RUN_CONCURRENCY,
@@ -229,6 +243,7 @@ export const executePendingPolicyRuns: (
             recordStates,
             failures.get(executionLog.id?.toString() || "") || null,
             levelsInFlight.get(executionLog.id?.toString() || "") || null,
+            moveOnsInFlight.get(executionLog.id?.toString() || "") || null,
           );
         },
       });
@@ -274,6 +289,8 @@ type WorkOnRunFunction = (
   failures: OnCallPolicyRunFailures | null,
   // Its escalation level in flight, if it has one (OnCallLevelsInFlight).
   levelInFlight?: OnCallLevelInFlight | null,
+  // Its move on in flight, if it has one (OnCallMoveOnsInFlight).
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ) => Promise<void>;
 
 const workOnRun: WorkOnRunFunction = async (
@@ -281,6 +298,7 @@ const workOnRun: WorkOnRunFunction = async (
   recordStates: OnCallRecordStates,
   failures: OnCallPolicyRunFailures | null,
   levelInFlight?: OnCallLevelInFlight | null,
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ): Promise<void> => {
   const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -299,6 +317,7 @@ const workOnRun: WorkOnRunFunction = async (
         executionLog,
         recordStates,
         levelInFlight || null,
+        moveOnInFlight || null,
       );
     }
   } catch (err) {
@@ -435,6 +454,7 @@ type ExecuteOnCallPolicyFunction = (
   executionLog: OnCallDutyPolicyExecutionLog,
   recordStates: OnCallRecordStates,
   levelInFlight?: OnCallLevelInFlight | null,
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ) => Promise<void>;
 
 // What a run that pages needs this minute. What a failure means is workOnRun's.
@@ -442,6 +462,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   executionLog: OnCallDutyPolicyExecutionLog,
   recordStates: OnCallRecordStates,
   levelInFlight?: OnCallLevelInFlight | null,
+  moveOnInFlight?: OnCallMoveOnInFlight | null,
 ): Promise<void> => {
   logger.debug(`Executing on-call policy execution log: ${executionLog.id}`);
 
@@ -564,6 +585,20 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
   const currentDate: Date = OneUptimeDate.getCurrentDate();
 
   /*
+   * A move on whose process stopped after its claim, before its next rule
+   * (issue #8410): its claim restarted the wait of the rule the run is on,
+   * and the run would wait that whole wait again before it moved on. The
+   * claim is given back, and the run moves on below, now.
+   */
+  if (moveOnInFlight) {
+    await settleMoveOnInFlight({
+      run: executionLog,
+      moveOn: moveOnInFlight,
+      now: currentDate,
+    });
+  }
+
+  /*
    * The level it is on stopped paging part way - a database error, or a
    * process that stopped, in the middle of its people (issue #8406): the
    * people it did not get to are paged now, once, and the run waits out
@@ -615,6 +650,57 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
 };
 
 /*
+ * Settles a run's move on in flight that never finished
+ * (OnCallMoveOnsInFlight): left to it while it may still be under way;
+ * then its claim is given back while the run is as the claim left it -
+ * on `run`, as the worker read it, too, so the run moves on this minute -
+ * and it is forgotten. One whose next rule started keeps its claim: some
+ * of its people may be paged, and its level is resumed if it stopped
+ * (OnCallLevelsInFlight). Throws as the database does, and the move on
+ * stays in flight for the run's next try.
+ */
+const settleMoveOnInFlight: (data: {
+  run: OnCallDutyPolicyExecutionLog;
+  moveOn: OnCallMoveOnInFlight;
+  now: Date;
+}) => Promise<void> = async (data: {
+  run: OnCallDutyPolicyExecutionLog;
+  moveOn: OnCallMoveOnInFlight;
+  now: Date;
+}): Promise<void> => {
+  if (!OnCallMoveOnsInFlight.isToGiveBack(data.moveOn, data.now)) {
+    return;
+  }
+
+  const givenBack: boolean = await OnCallEscalationAdvance.giveBackMoveOnClaim({
+    runId: data.run.id!,
+    moveOn: data.moveOn,
+  });
+
+  await OnCallMoveOnsInFlight.forget(data.run.id);
+
+  if (!givenBack) {
+    return;
+  }
+
+  logger.warn(
+    `On-call execution log ${data.run.id?.toString()}: its move on, claimed at ${data.moveOn.claimedAt.toISOString()}, never finished; its claim is given back, and it moves on now.`,
+  );
+
+  if (data.moveOn.previousLastEscalationRuleExecutedAt) {
+    data.run.lastEscalationRuleExecutedAt =
+      data.moveOn.previousLastEscalationRuleExecutedAt;
+  } else {
+    delete data.run.lastEscalationRuleExecutedAt;
+  }
+
+  // A level that reached nobody has no wait to wait out (issue #8515).
+  if (data.moveOn.passesEmptyLevel) {
+    data.run.executeNextEscalationRuleInMinutes = 0;
+  }
+};
+
+/*
  * Resumes a run's level in flight that never finished paging
  * (OnCallLevelsInFlight): one that stopped, or shows no sign of life. One
  * still paging is left to it, and one of a rule the run is no longer on is
@@ -632,6 +718,25 @@ const resumeLevelInFlight: (data: {
 }): Promise<boolean> => {
   const currentRuleId: string =
     data.run.lastExecutedEscalationRuleId?.toString().toLowerCase() || "";
+
+  /*
+   * A page again whose start failed or stopped before its rule was
+   * recorded (issue #8514): it is started now, from where it starts, the
+   * person who acknowledged first - once its start, if it may still be
+   * under way somewhere, has shown no sign of life for a while.
+   */
+  if (data.level.pageAgain && !currentRuleId) {
+    if (!OnCallLevelsInFlight.isToResume(data.level, data.now)) {
+      return false;
+    }
+
+    await OnCallDutyPolicyExecutionLogService.startHandedOverPageAgain({
+      run: data.run,
+      level: data.level,
+    });
+
+    return true;
+  }
 
   if (data.level.ruleId.toLowerCase() !== currentRuleId) {
     await OnCallLevelsInFlight.forget(data.run.id);

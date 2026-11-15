@@ -53,17 +53,17 @@ En sondestatusmonitors filtre tæller sonder:
 
 | Filter | Hvad det tæller |
 | --- | --- |
-| **Disconnected Probes** | De overvågede sonder, der er afbrudt. |
-| **Connected Probes** | De overvågede sonder, der er forbundet. |
+| **Afbrudte sonder** | De overvågede sonder, der er afbrudt. |
+| **Forbundne sonder** | De overvågede sonder, der er forbundet. |
 
 Begge er heltal, der sammenlignes med **Større end**, **Mindre end**, **Lig med** og de øvrige sammenligninger. En ny monitor starter med to kriterier:
 
 | Kriterium | Filter | Hvad det gør |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** større end `0` | Sætter monitoren offline og erklærer en hændelse med titlen `Probe disconnected: {{disconnectedProbeNames}}`, som løser sig selv. |
-| Check if every probe is connected | **Disconnected Probes** lig med `0` | Sætter monitoren til operationel. |
+| Tjek, om en sonde er afbrudt | **Afbrudte sonder** større end `0` | Sætter monitoren offline og erklærer en hændelse med titlen "Sonde afbrudt: {{disconnectedProbeNames}}", som løser sig selv. |
+| Tjek, om alle sonder er forbundet | **Afbrudte sonder** lig med `0` | Sætter monitoren til operationel. |
 
-**Connected Probes** passer til en monitor, der overvåger flere sonder og kan undvære én: **Connected Probes** mindre end `2` erklærer først en hændelse, når der er færre end to tilbage.
+Filteret **Forbundne sonder** passer til en monitor, der overvåger flere sonder og kan undvære én: **Forbundne sonder** mindre end `2` erklærer først en hændelse, når der er færre end to tilbage.
 
 ### Vent længere før en hændelse
 
@@ -89,7 +89,7 @@ En sondestatusmonitors hændelses- og alarmskabeloner kan bruge disse variabler 
 ## Fejlfinding
 
 :::details Monitoren siger, at den venter på data
-En ny monitor viser sin første evaluering inden for et minut eller to. Hvis den ikke overvåger nogen sonde, viser den i stedet **Not set up**: vælg sonderne under **Kriterier**.
+En ny monitor viser sin første evaluering inden for et minut eller to. Hvis den ikke overvåger nogen sonde, viser den i stedet **Ikke sat op**: vælg sonderne under **Kriterier**.
 :::
 
 :::details En sonde gik ned, og der blev ikke erklæret nogen hændelse

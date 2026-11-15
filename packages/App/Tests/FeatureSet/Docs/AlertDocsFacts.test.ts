@@ -1458,8 +1458,10 @@ describe("what happens when an alert is created", () => {
 
     expect(job).toContain("schedule: EVERY_MINUTE");
     expect(job).toContain("owners = await ProjectService.getOwners(");
+    // It waits a minute for the owners a script or a workflow adds (CreatedNotificationHold).
+    expect(job).toContain("await AlertService.findCreatedNotificationsDue(");
     expect(page).toContain(
-      "A background job tells the alert's owners within a minute",
+      "A background job tells the alert's owners about a minute after it is created, every owner it has by then",
     );
   });
 });
@@ -1606,7 +1608,7 @@ describe("responding to an alert", () => {
     const model: string = readCommonSource("Models/DatabaseModels/Alert.ts");
 
     expect(model).toContain(
-      "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+      "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     );
     expect(section(page, "## Private alerts")).toContain(
       "A private alert is seen only by its owners, the owner users and the members of its owner teams, and by your project's admins and owners.",

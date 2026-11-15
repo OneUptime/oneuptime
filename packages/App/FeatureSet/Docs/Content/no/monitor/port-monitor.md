@@ -122,7 +122,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny port-monitor starter med to kriterier:
 
-- **Frakoblet** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
+- **Frakoblet** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
 - **Oppe** — porten godtar en tilkobling. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -181,5 +181,5 @@ Port-monitorer åpner bare TCP-tilkoblinger. For en DNS-server bruker du en [DNS
 - [Ping-overvåking](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
 - [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
 - [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
 :::

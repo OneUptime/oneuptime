@@ -33,7 +33,7 @@ Un serveur qui répond n'est pas interrogé à nouveau, même s'il répond sans 
 
 ## Avant de commencer
 
-- **Un rôle autorisé à créer des moniteurs** : Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé disposant de l'autorisation Create Monitor.
+- **Un rôle autorisé à créer des moniteurs** : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé disposant de l'autorisation Create Monitor.
 - **Une sonde qui joint le port UDP 123 du serveur.** N'importe quelle sonde peut vérifier un serveur de temps public. Pour un serveur sur un réseau privé, utilisez une [sonde personnalisée](/docs/probe/custom-probe) dans ce réseau. Un pare-feu devant le serveur doit laisser passer l'UDP, pas seulement le TCP, depuis les [adresses IP des sondes de OneUptime Cloud](/docs/configuration/ip-addresses) ou depuis votre sonde personnalisée.
 
 ## Créer un moniteur NTP
@@ -112,7 +112,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur NTP commence avec deux critères :
 
-- **Hors ligne** — le serveur ne répond pas, n'est pas synchronisé, ou son horloge est à `1000` ms ou plus de celle de la sonde. Le moniteur est marqué **Hors ligne** et un incident nommé « _nom du moniteur_ is not serving good time » est créé. Il se résout de lui-même quand le serveur fournit de nouveau une heure fiable.
+- **Hors ligne** — le serveur ne répond pas, n'est pas synchronisé, ou son horloge est à `1000` ms ou plus de celle de la sonde. Le moniteur est marqué **Hors ligne** et un incident nommé « _nom du moniteur_ ne fournit pas d'heure fiable » est créé. Il se résout de lui-même quand le serveur fournit de nouveau une heure fiable.
 - **En ligne** — le serveur répond, est synchronisé et son horloge est à moins de `1000` ms de celle de la sonde. Le moniteur est marqué **Opérationnel**.
 
 Les critères sont évalués de haut en bas, et le premier qui correspond décide de ce qui se passe. Un serveur qui répond avec une mauvaise heure est volontairement considéré comme en panne : chaque client qui le suit prendrait cette heure à son tour.

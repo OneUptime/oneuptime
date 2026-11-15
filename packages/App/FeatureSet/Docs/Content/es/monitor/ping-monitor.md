@@ -32,7 +32,7 @@ Una sonda que ha perdido su propia conexión de red no informa de ningún result
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una sonda que pueda llegar al host**, con ICMP permitido por el camino. Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo. Si un cortafuegos protege el host, permita las solicitudes de eco ICMP desde las [direcciones IP de las sondas de OneUptime Cloud](/docs/configuration/ip-addresses). Un host en una red privada necesita una [sonda personalizada](/docs/probe/custom-probe) dentro de esa red.
 
 ## Crear un monitor de ping
@@ -93,7 +93,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de ping nuevo empieza con dos criterios:
 
-- **Sin conexión** — el host no responde a ninguna de las solicitudes de eco, o no es accesible en absoluto, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ is offline». El incidente se resuelve solo cuando el host vuelve a responder.
+- **Sin conexión** — el host no responde a ninguna de las solicitudes de eco, o no es accesible en absoluto, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_nombre del monitor_ está sin conexión». El incidente se resuelve solo cuando el host vuelve a responder.
 - **En línea** — el host responde. El monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.

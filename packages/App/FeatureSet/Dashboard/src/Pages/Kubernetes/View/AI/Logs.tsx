@@ -1020,8 +1020,7 @@ const KubernetesClusterAILogs: FunctionComponent<
                                   exitCode: item.exitCode,
                                 },
                               )
-                            : translator.translateText(look.label) ||
-                              look.label
+                            : translator.translateText(look.label) || look.label
                         }
                         isUserContent={true}
                         color={look.color}

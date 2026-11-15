@@ -31,7 +31,7 @@ Quando uma verificação falha, a sonda também rastreia a rota até o host e pr
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma sonda que alcance a porta.** As sondas padrão do seu projeto são escolhidas para cada monitor novo. Se um firewall protege o serviço, permita que os [endereços IP das sondas do OneUptime Cloud](/docs/configuration/ip-addresses) se conectem à porta. Um serviço em uma rede privada, como um banco de dados, precisa de uma [sonda personalizada](/docs/probe/custom-probe) dentro dessa rede.
 
 ## Criar um monitor de porta
@@ -122,7 +122,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de porta novo começa com dois critérios:
 
-- **Offline** — a porta não aceita uma conexão, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ is offline" é criado. O incidente se resolve sozinho quando a porta volta a aceitar conexões.
+- **Offline** — a porta não aceita uma conexão, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_nome do monitor_ está offline" é criado. O incidente se resolve sozinho quando a porta volta a aceitar conexões.
 - **No ar** — a porta aceita uma conexão. O monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Quando nenhum corresponde, o monitor mostra o status padrão: **Operacional**, a menos que você escolha outro em **Mais campos**, abaixo dos critérios.

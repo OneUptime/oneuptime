@@ -16,7 +16,6 @@ import CriteriaFilterUiUtil, {
   METRIC_FORECAST_BELOW_LABEL,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import CriteriaNameUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaName";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   CheckOn,
   CriteriaFilter,
@@ -317,10 +316,8 @@ describe("the full criteria editor", () => {
       },
     };
 
-    expect(
-      CriteriaFilterUiUtil.translateFilterToText(filter, FilterCondition.All),
-    ).toBe(
-      'Check if "Metric Value" is forecast to fall below 10 GB within 3 days and,',
+    expect(CriteriaFilterUiUtil.translateFilterToText(filter)).toBe(
+      'Check if "Metric Value" is forecast to fall below 10 GB within 3 days',
     );
     expect(
       CriteriaFilterUiUtil.translateFilterToText({

@@ -86,7 +86,7 @@ Um nível de uma política de plantão: quem é acionado, e quanto tempo esperar
 
 Veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
-### Agendamento de Plantão
+### Agendamento de plantão
 
 Quem está de plantão a cada momento: as pessoas se revezam, e cada uma passa o turno para a seguinte. Uma regra de escalonamento que aciona um agendamento aciona quem está de plantão nele.
 
@@ -108,7 +108,7 @@ Veja [Métodos de notificação](/docs/notifications/notification-methods).
 
 As suas próprias regras para ser acionado: quais dos seus métodos de notificação um acionamento tenta, e depois de quanto tempo. Uma escada cobre todo incidente, alerta e episódio, e uma gravidade pode ter regras próprias. Cada pessoa define as suas em **Configurações do usuário**.
 
-Também chamado: **Regras de Plantão pessoais**. Veja [Como me contatar](/docs/notifications/on-call-rules).
+Também chamado: **Regras de plantão pessoais**. Veja [Como me contatar](/docs/notifications/on-call-rules).
 
 ### Página de status
 
@@ -430,13 +430,13 @@ Veja [Usuários, equipes e permissões](/docs/permissions/index#chaves-de-api).
 
 ### Regra
 
-Muitas coisas no OneUptime são regras, e cada uma toma uma decisão por você: quem é acionado (**Regras de Plantão**, **Regras de escalonamento**), quem é o proprietário dos novos registros e como eles são rotulados (**Regras de proprietário**, **Regras de Rótulos**), o que fica junto (**Regras de agrupamento**) e o que a OneUptime AI faz (**Regras de IA**). As regras próprias de um monitor são os critérios dele.
+Muitas coisas no OneUptime são regras, e cada uma toma uma decisão por você: quem é acionado (**Regras de plantão**, **Regras de escalonamento**), quem é o proprietário dos novos registros e como eles são rotulados (**Regras de proprietário**, **Regras de Rótulos**), o que fica junto (**Regras de agrupamento**) e o que a OneUptime AI faz (**Regras de IA**). As regras próprias de um monitor são os critérios dele.
 
 Veja [Conceitos básicos](/docs/introduction/core-concepts#os-tipos-de-regra).
 
 ### Função
 
-Quatro coisas diferentes: as permissões que uma equipe concede, como Project Owner ou Project Admin; uma **Função personalizada** que você monta a partir de permissões; uma **Função no incidente**, o papel que alguém desempenha em um incidente; e uma **Network Device Role**, o que um dispositivo faz na sua rede.
+Quatro coisas diferentes: as permissões que uma equipe concede, como Proprietário do projeto ou Administrador do projeto; uma **Função personalizada** que você monta a partir de permissões; uma **Função no incidente**, o papel que alguém desempenha em um incidente; e uma **Network Device Role**, o que um dispositivo faz na sua rede.
 
 Veja [Usuários, equipes e permissões](/docs/permissions/index).
 
@@ -476,7 +476,7 @@ Um programa que você instala e que se reporta ao OneUptime ou age em nome dele:
 
 Veja [Qual devo usar?](/docs/introduction/which-one#sonda-agente-coletor-ou-runner).
 
-### Regras de Plantão
+### Regras de plantão
 
 Em **Incidentes** e **Alertas**, as regras de plantão escolhem as políticas de plantão que um novo incidente ou alerta executa. As regras próprias de cada pessoa sobre como um acionamento chega até ela também se chamavam regras de plantão: agora são **Como me contatar**, em **Configurações do usuário**.
 

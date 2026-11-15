@@ -6,7 +6,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 import { formatDurationMsInLanguage as formatTelemetryDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
 import { formatRuntimeValue } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/serviceGoldenMetrics";
-import { formatVital } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalsCard";
+import {
+  formatVital,
+  RatedValue,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/WebVitalsCard";
 import {
   formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
@@ -179,10 +182,16 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
       ar: "250 ملي ث",
       fa: "۲۵۰ میلی‌ثانیه",
     });
-    expect(formatTelemetryDuration(2340, translators["en"]!)).toBe("2.34 s");
-    expect(formatTelemetryDuration(2340, translators["de"]!)).toBe("2,34 Sek.");
+    expect(formatTelemetryDuration(2340, translators["en"]!)).toBe(
+      "2.34\u00A0s",
+    );
+    expect(formatTelemetryDuration(2340, translators["de"]!)).toBe(
+      "2,34\u00A0Sek.",
+    );
     expectPersian(formatTelemetryDuration(2340, translators["fa"]!));
-    expect(formatTelemetryDuration(0.25, translators["en"]!)).toBe("250 µs");
+    expect(formatTelemetryDuration(0.25, translators["en"]!)).toBe(
+      "250\u00A0µs",
+    );
     expectPersian(formatTelemetryDuration(0.25, translators["fa"]!));
     expect(formatTelemetryDuration(null, translators["fa"]!)).toBe("—");
   });
@@ -204,16 +213,16 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     expectPersian(formatRuntimeValue(2500, "count", translators["fa"]!));
     expectPersian(formatRuntimeValue(42, "milliseconds", translators["fa"]!));
 
-    const lcp: { value: number; unit: string; thresholds: never } = {
+    const lcp: RatedValue = {
       value: 2500,
       unit: "ms",
       thresholds: undefined as never,
     };
-    expect(formatVital(lcp, translators["en"]!)).toBe("2.50 s");
+    expect(formatVital(lcp, translators["en"]!)).toBe("2.50\u00A0s");
     expectPersian(formatVital(lcp, translators["fa"]!));
     expect(
       formatVital(
-        { value: 0.1, unit: "", thresholds: undefined as never },
+        { value: 0.1, unit: "score", thresholds: undefined as never },
         translators["de"]!,
       ),
     ).toBe("0,100");
@@ -232,7 +241,7 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     });
     expect(
       formatMessageQueueDurationMsInLanguage(1250, translators["en"]!),
-    ).toBe("1.25 s");
+    ).toBe("1.25\u00A0s");
     expectPersian(
       formatMessageQueueDurationMsInLanguage(1250, translators["fa"]!),
     );
@@ -252,8 +261,8 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
       ar: "42 ملي ث",
       fa: "۴۲ میلی‌ثانیه",
     });
-    expect(formatDatabaseLatencyMs(5)).toBe("5.0 ms");
-    expect(formatDatabaseLatencyMs(1250)).toBe("1.25 s");
+    expect(formatDatabaseLatencyMs(5)).toBe("5.0\u00A0ms");
+    expect(formatDatabaseLatencyMs(1250)).toBe("1.25\u00A0s");
     expect(formatDatabaseLatencyMs(null)).toBe("—");
     expectPersian(formatDatabaseLatencyMs(1250, translators["fa"]!));
   });
@@ -283,7 +292,9 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
   test("a service map edge's latency chart, from a second up too", () => {
     expect(formatTopologyDuration(1500)).toBe("1.50s");
     expect(formatTopologyDuration(1500, translators["en"]!)).toBe("1.50s");
-    expect(formatTopologyDuration(1500, translators["de"]!)).toBe("1,50 Sek.");
+    expect(formatTopologyDuration(1500, translators["de"]!)).toBe(
+      "1,50\u00A0Sek.",
+    );
     expectPersian(formatTopologyDuration(1500, translators["fa"]!));
     expectPersian(formatTopologyDuration(42, translators["fa"]!));
   });
@@ -296,10 +307,10 @@ describe("a database's and a queue's engine charts (#8283)", () => {
       [0.25, "connections", "0.25", "0,25"],
       [2500, "rollbacks", "2.5k", "2,5k"],
       [12, "%", "12%", "12\u00a0%"],
-      [5 * 1024 ** 3, "bytes", "5 GiB", "5 GiB"],
-      [1536, "bytes", "1.5 KiB", "1,5 KiB"],
+      [5 * 1024 ** 3, "bytes", "5\u00A0GiB", "5\u00A0GiB"],
+      [1536, "bytes", "1.5\u00A0KiB", "1,5\u00A0KiB"],
       [0.85, "fraction", "85%", "85\u00a0%"],
-      [90, "s", "1.5 min", "1,5 Min."],
+      [90, "s", "1.5\u00A0min", "1,5\u00A0Min."],
     ];
 
     for (const [value, unit, english, german] of ticks) {
@@ -344,7 +355,7 @@ describe("a database's and a queue's engine charts (#8283)", () => {
       fa: "۱۲ میلی‌ثانیه",
     });
     // A tick in thousands keeps its letter, as every count on the chart does.
-    expect(formatDatabaseMetricAxisValue(2500, "ms")).toBe("2.5k ms");
+    expect(formatDatabaseMetricAxisValue(2500, "ms")).toBe("2.5k\u00A0ms");
     expect(
       spaced(formatDatabaseMetricAxisValue(2500, "ms", translators["fa"]!)),
     ).toBe("۲٫۵k میلی‌ثانیه");
@@ -372,28 +383,38 @@ describe("a database's and a queue's engine charts (#8283)", () => {
     );
   });
 
-  test("a tile in the reader's digits, its unit word kept", () => {
+  // The unit word in the reader's language too (#8482, EngineMetricTileUnitsInReadersLanguage).
+  test("a tile in the reader's digits and its unit in their words", () => {
     expect(formatDatabaseMetricValue(1, "databases", "gauge")).toBe(
       "1 database",
     );
     expect(
-      formatDatabaseMetricValue(
-        2500,
-        "connections",
-        "gauge",
-        translators["fa"]!,
+      spaced(
+        formatDatabaseMetricValue(
+          2500,
+          "connections",
+          "gauge",
+          translators["fa"]!,
+        ),
       ),
-    ).toBe("۲٫۵k connections");
+    ).toBe("۲٫۵k اتصال");
     expect(
-      formatDatabaseMetricValue(12.5, "commits", "counter", translators["de"]!),
-    ).toBe("12,5 commits/s");
+      spaced(
+        formatDatabaseMetricValue(
+          12.5,
+          "commits",
+          "counter",
+          translators["de"]!,
+        ),
+      ),
+    ).toBe("12,5 Commits/s");
     expect(
       formatDatabaseMetricValue(1024, "bytes", "counter", translators["de"]!),
-    ).toBe("1,0 KiB/s");
+    ).toBe("1,0\u00A0KiB/s");
     expect(
       spaced(formatDatabaseMetricValue(42, "ms", "gauge", translators["fa"]!)),
     ).toBe("۴۲ میلی‌ثانیه");
-    expect(formatDatabaseMetricValue(42, "ms", "gauge")).toBe("42 ms");
+    expect(formatDatabaseMetricValue(42, "ms", "gauge")).toBe("42\u00A0ms");
   });
 
   test("the Overview's counts, sizes, durations and shares", () => {
@@ -401,19 +422,23 @@ describe("a database's and a queue's engine charts (#8283)", () => {
     expect(formatDatabaseCount(2500, translators["de"]!)).toBe("2,5k");
     expect(formatDatabaseCount(2500, translators["fa"]!)).toBe("۲٫۵k");
     expect(formatDatabaseCount(null, translators["fa"]!)).toBe("—");
-    expect(formatDatabaseBytes(1048576, translators["de"]!)).toBe("1,0 MiB");
+    expect(formatDatabaseBytes(1048576, translators["de"]!)).toBe(
+      "1,0\u00A0MiB",
+    );
     expect(formatDatabaseFraction(0.042, translators["de"]!)).toBe(
       "4,2\u00a0%",
     );
     expect(formatDatabaseErrorRate(2.5)).toBe("2.5%");
     expect(formatDatabaseErrorRate(2.5, translators["fa"]!)).toBe("۲٫۵٪");
     expect(formatDatabaseErrorRate(null, translators["fa"]!)).toBe("—");
-    expect(formatDatabaseSeconds(5)).toBe("5.0 s");
-    expect(formatDatabaseSeconds(5, translators["de"]!)).toBe("5,0 Sek.");
-    expect(formatDatabaseSeconds(150, translators["de"]!)).toBe("2,5 Min.");
-    expect(formatDatabaseSeconds(7200, translators["de"]!)).toBe("2 Std.");
+    expect(formatDatabaseSeconds(5)).toBe("5.0\u00A0s");
+    expect(formatDatabaseSeconds(5, translators["de"]!)).toBe("5,0\u00A0Sek.");
+    expect(formatDatabaseSeconds(150, translators["de"]!)).toBe(
+      "2,5\u00A0Min.",
+    );
+    expect(formatDatabaseSeconds(7200, translators["de"]!)).toBe("2\u00A0Std.");
     expectPersian(formatDatabaseSeconds(86400 * 3, translators["fa"]!));
-    expect(formatDatabaseSeconds(7200)).toBe("2 h");
+    expect(formatDatabaseSeconds(7200)).toBe("2\u00A0h");
   });
 
   test("a broker metric's chart and a queue's error share", () => {

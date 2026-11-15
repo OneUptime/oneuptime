@@ -106,35 +106,35 @@ const ENGLISH_CASES: Array<FormatterCase> = [
     () => {
       return formatHostBytes(512);
     },
-    "512 B",
+    "512\u00A0B",
   ],
   [
     "formatHostBytes(1023)",
     () => {
       return formatHostBytes(1023);
     },
-    "1023 B",
+    "1023\u00A0B",
   ],
   [
-    "formatHostBytes(1.5 KiB)",
+    "formatHostBytes(1.5\u00A0KiB)",
     () => {
       return formatHostBytes(1.5 * KIB);
     },
-    "1.5 KiB",
+    "1.5\u00A0KiB",
   ],
   [
-    "formatHostBytes(16 GiB)",
+    "formatHostBytes(16\u00A0GiB)",
     () => {
       return formatHostBytes(16 * GIB);
     },
-    "16 GiB",
+    "16\u00A0GiB",
   ],
   [
     "formatHostBytes(9.96 GiB)",
     () => {
       return formatHostBytes(9.96 * GIB);
     },
-    "10.0 GiB",
+    "10.0\u00A0GiB",
   ],
   [
     "Kubernetes formatCpuValue(0.4)",
@@ -155,28 +155,28 @@ const ENGLISH_CASES: Array<FormatterCase> = [
     () => {
       return KubernetesResourceUtils.formatMemoryValue(512);
     },
-    "512 B",
+    "512\u00A0B",
   ],
   [
     "Kubernetes formatMemoryValue(2 KiB)",
     () => {
       return KubernetesResourceUtils.formatMemoryValue(2 * KIB);
     },
-    "2.0 KB",
+    "2.0\u00A0KB",
   ],
   [
     "Kubernetes formatMemoryValue(512 MiB)",
     () => {
       return KubernetesResourceUtils.formatMemoryValue(512 * MIB);
     },
-    "512.0 MB",
+    "512.0\u00A0MB",
   ],
   [
     "Kubernetes formatMemoryValue(3 GiB)",
     () => {
       return KubernetesResourceUtils.formatMemoryValue(3 * GIB);
     },
-    "3.00 GB",
+    "3.00\u00A0GB",
   ],
   [
     "formatKubernetesCount(3)",
@@ -197,7 +197,7 @@ const ENGLISH_CASES: Array<FormatterCase> = [
     () => {
       return formatMemoryValue(471 * MIB);
     },
-    "471.0 MB",
+    "471.0\u00A0MB",
   ],
   [
     "formatCost(1234.5)",
@@ -270,11 +270,11 @@ describe("in Persian, every figure is in Persian digits, with the same rounding"
     inLanguage("fa", () => {
       expect(formatHostUsagePercent(4.25)).toBe("۴٫۳٪");
       expect(formatHostUsagePercent(97.5)).toBe("۹۸٪");
-      expect(formatHostBytes(16 * GIB)).toBe("۱۶ GiB");
-      expect(formatHostBytes(1023)).toBe("۱٬۰۲۳ B");
+      expect(formatHostBytes(16 * GIB)).toBe("۱۶\u00A0GiB");
+      expect(formatHostBytes(1023)).toBe("۱٬۰۲۳\u00A0B");
       expect(KubernetesResourceUtils.formatCpuValue(0.4)).toBe("۰٫۴٪");
       expect(KubernetesResourceUtils.formatMemoryValue(512 * MIB)).toBe(
-        "۵۱۲٫۰ MB",
+        "۵۱۲٫۰\u00A0MB",
       );
       expect(formatKubernetesCount(12)).toBe("۱۲");
       expect(formatEfficiency(0.873)).toBe("۸۷٪");
@@ -317,10 +317,10 @@ describe("in German and Arabic", () => {
   test("German writes its decimal comma, its thousands point and its percent", () => {
     inLanguage("de", () => {
       expect(formatHostUsagePercent(4.25)).toBe("4,3\u{00A0}%");
-      expect(formatHostBytes(1023)).toBe("1.023 B");
-      expect(formatHostBytes(1.5 * KIB)).toBe("1,5 KiB");
+      expect(formatHostBytes(1023)).toBe("1.023\u00A0B");
+      expect(formatHostBytes(1.5 * KIB)).toBe("1,5\u00A0KiB");
       expect(KubernetesResourceUtils.formatMemoryValue(3 * GIB)).toBe(
-        "3,00 GB",
+        "3,00\u00A0GB",
       );
       expect(formatCost(1234.5)).toBe("1.234,50\u{00A0}$");
       expect(formatEfficiency(0.873)).toBe("87\u{00A0}%");
@@ -479,7 +479,7 @@ describe("a reason's percentage and decimals take the sentence's language", () =
   });
 
   test("German writes its decimal comma and its spaced percent", () => {
-    expect(full(dashboardTranslator("de"))).toBe("/var zu 96 % voll");
+    expect(full(dashboardTranslator("de"))).toBe("/var zu 96\u00A0% voll");
     expect(loaded(dashboardTranslator("de"), 4)).toBe(
       "15-Minuten-Last 9,6 auf 4 Kernen",
     );
@@ -511,7 +511,7 @@ describe("a reason's percentage and decimals take the sentence's language", () =
       "۱۰۰٪ پر",
     );
     expect(filled(german, "{{percent}} full", { percent: "0.5%" })).toBe(
-      "0,5 % voll",
+      "0,5\u00A0% voll",
     );
   });
 

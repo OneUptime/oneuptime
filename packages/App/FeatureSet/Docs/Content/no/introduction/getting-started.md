@@ -1,6 +1,6 @@
 # Kom i gang
 
-OneUptime er en observerbarhetsplattform med åpen kildekode. Den sjekker at nettstedene, API-ene og serverne dine virker, samler inn loggene, metrikkene og sporene appene dine sender, varsler den som har vakt når noe går i stykker, og holder kundene dine oppdatert på en statusside. Alt skjer i ett produkt: verktøyet som oppdager et problem, er det samme som varsler teamet ditt. Bruk OneUptime Cloud, eller kjør OneUptime på dine egne servere.
+OneUptime er en observerbarhetsplattform med åpen kildekode. Den sjekker at nettstedene, API-ene og serverne dine virker, samler inn loggene, målingene og sporene appene dine sender, varsler den som har vakt når noe går i stykker, og holder kundene dine oppdatert på en statusside. Alt skjer i ett produkt: verktøyet som oppdager et problem, er det samme som varsler teamet ditt. Bruk OneUptime Cloud, eller kjør OneUptime på dine egne servere.
 
 ## Hva vil du gjøre?
 
@@ -8,7 +8,7 @@ OneUptime er en observerbarhetsplattform med åpen kildekode. Den sjekker at net
 - [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down): Sjekk det fra sonder over hele verden, og få en e-post eller et varsel når det feiler.
 - [Bli varslet via telefon, SMS eller push, og eskaler](/docs/guides/paging): Varsle den som har vakt, og den neste hvis ingen svarer.
 - [Publiser en statusside på ditt eget domene](/docs/guides/status-page): Fortell kundene dine hva som skjer, på en adresse som er din egen.
-- [Send logger, metrikker og spor](/docs/telemetry/open-telemetry): Send appenes telemetri med OpenTelemetry, søk i den, og bli varslet om den.
+- [Send logger, målinger og spor](/docs/telemetry/open-telemetry): Send appenes telemetri med OpenTelemetry, søk i den, og bli varslet om den.
 - [Overvåk en server](/docs/telemetry/hosts): Legg til en vert med én kommando, og følg med på CPU, minne og disker.
 - [Overvåk en Kubernetes-klynge](/docs/telemetry/kubernetes-agent): Installer agenten med Helm, og følg med på hver node og pod.
 - [Ta med teamet ditt](/docs/permissions/index): Inviter folk, del dem inn i team, og bestem hvem som kan gjøre hva.
@@ -45,7 +45,7 @@ Sender du allerede telemetri med Prometheus, en Loki-klient, en Splunk-forwarder
 | [Better Stack](/docs/moving-to-oneuptime/better-stack) | Monitorer, heartbeats, statussider og e-postabonnenter |
 | [Pingdom](/docs/moving-to-oneuptime/pingdom) | Oppetidssjekker |
 | [StatusCake](/docs/moving-to-oneuptime/statuscake) | Oppetids-, SSL- og heartbeat-sjekker |
-| [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma) | Monitorer, fra en sikkerhetskopi eller metrikksiden |
+| [Uptime Kuma](/docs/moving-to-oneuptime/uptime-kuma) | Monitorer, fra en sikkerhetskopi eller målingssiden |
 :::
 
 :::details Hva OneUptime erstatter
@@ -87,7 +87,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 :::cards
 - [Monitorer](/docs/monitor/create-monitor): Sjekk nettsteder, API-er, porter, DNS, NTP-servere, sertifikater og mer fra sonder over hele verden.
 - [Infrastrukturmonitorer](/docs/monitor/host-monitor): Følg med på servere, Kubernetes, Docker, VMware, nettverksenheter og lagring.
-- [Telemetrimonitorer](/docs/monitor/logs-monitor): Få varsler om loggene, metrikkene, sporene, unntakene og profilene du sender.
+- [Telemetrimonitorer](/docs/monitor/logs-monitor): Få varsler om loggene, målingene, sporene, unntakene og profilene du sender.
 - [SLO-er](/docs/slo/introduction): Følg pålitelighetsmål, feilbudsjetter og forbruksrater.
 - [Sonder](/docs/probe/custom-probe): Kjør sjekker fra innsiden av ditt eget nettverk.
 - [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving): Hvorfor et brudd hos OneUptime aldri teller som din nedetid.
@@ -98,7 +98,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 :::cards
 - [Hendelser](/docs/incidents/index): Erklær, koordiner og løs hendelser, med en fullstendig tidslinje.
 - [Varsler](/docs/alerts/index): Undersøk problemer før brukerne dine merker dem, og samle støyen i episoder.
-- [Vakt](/docs/on-call/index): Retningslinjer, eskaleringsregler, rotasjoner og hvem som varsles når.
+- [Vakt](/docs/on-call/index): Policyer, eskaleringsregler, rotasjoner og hvem som varsles når.
 - [Notifikasjoner](/docs/notifications/index): Slik når OneUptime deg: metodene, vaktreglene og varselinnstillingene dine.
 - [Statussider](/docs/status-pages/index): Hold kundene oppdatert på offentlige eller private statussider.
 - [Planlagt vedlikehold](/docs/scheduled-maintenance/index): Kunngjør planlagt arbeid, og sett monitorene det berører på pause.
@@ -108,7 +108,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 
 :::details Observerbarhet
 :::cards
-- [Telemetri](/docs/telemetry/open-telemetry): Send logger, metrikker og spor med OpenTelemetry, og søk i dem.
+- [Telemetri](/docs/telemetry/open-telemetry): Send logger, målinger og spor med OpenTelemetry, og søk i dem.
 - [Infrastrukturagenter](/docs/telemetry/hosts): Legg til en vert med én kommando, og installer agentene for Kubernetes, Docker, Proxmox, VMware og mer.
 - [App-plattformer](/docs/telemetry/cloud-environments): Overvåk appene du kjører på ECS og Fargate, Cloud Run, App Service og andre administrerte plattformer.
 - [Sky](/docs/telemetry/cloud-accounts): Koble til AWS-, Azure- og Google Cloud-kontoene dine, og overvåk hver ressurs i dem.
@@ -117,7 +117,7 @@ Dokumentasjonen er organisert som sidefeltet, i ni deler. Velg den delen du tren
 - [Datasikkerhet](/docs/data-security/index): Finn de sensitive dataene i bucketene, databasene og telemetrien din, og rett hvordan de oppbevares.
 - [Dataobserverbarhet](/docs/data-observability/index): Få vite når dataene i databasene og datavarehusene dine er forsinket, feil eller ødelagt, og hvilken kjøring, utrulling eller tabell som står bak.
 - [Real User Monitoring](/docs/rum/index): Mål hva ekte brukere opplever, med Core Web Vitals og øktavspilling.
-- [Dashbord](/docs/dashboards/index): Bygg dashbord av metrikkene, loggene og monitorene dine.
+- [Dashbord](/docs/dashboards/index): Bygg dashbord av målingene, loggene og monitorene dine.
 - [Inventar](/docs/inventory/overview): Se hver tjeneste, vert og enhet OneUptime kjenner til.
 :::
 :::

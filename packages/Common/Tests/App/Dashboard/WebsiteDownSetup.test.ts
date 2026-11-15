@@ -608,7 +608,7 @@ describe("what the first check found", () => {
         ],
       }),
     ).toEqual({
-      text: "example.com answered 200 in 313 ms from 2 locations.",
+      text: "example.com answered 200 in 313\u00A0ms from 2 locations.",
       verdict: null,
       verdictKind: FirstCheckVerdict.None,
       isDown: false,
@@ -626,7 +626,7 @@ describe("what the first check found", () => {
           { isOnline: true, responseCode: 204, responseTimeInMs: 1234 },
         ],
       }).text,
-    ).toBe("example.com answered 204 in 1,234 ms from 1 location.");
+    ).toBe("example.com answered 204 in 1,234\u00A0ms from 1 location.");
   });
 
   test("an error from its one location counts as down, and says an incident opens", () => {
@@ -823,7 +823,7 @@ describe("what the first check found", () => {
     }).text;
 
     expect(text).not.toBe(
-      "example.com answered 200 in 312 ms from 2 locations.",
+      "example.com answered 200 in 312\u00A0ms from 2 locations.",
     );
     expect(text).toContain("example.com");
     expect(text).toContain("200");
@@ -1323,7 +1323,7 @@ describe("a payment method, said before Start checking (#7367)", () => {
     expect(
       getPaymentNeededText({ translator: english, mayAddPaymentMethod: false }),
     ).toBe(
-      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Ask a project owner to add a payment method before you start checking.",
+      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Ask a Project Owner to add a payment method before you start checking.",
     );
   });
 

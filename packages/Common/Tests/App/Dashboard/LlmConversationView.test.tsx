@@ -228,7 +228,7 @@ describe("reading a conversation", () => {
     expect(fact("person")).toBe("ada@example.com");
     expect(fact("app")).toBe("Support bot");
     expect(fact("models")).toBe("gpt-4o");
-    expect(fact("duration")).toBe("1.0 s");
+    expect(fact("duration")).toBe("1.0\u00A0s");
     expect(fact("answers")).toBe("1 answer");
     expect(fact("cost")).toBe("$0.0010");
     expect(fact("tokens")).toBe("15 tokens");

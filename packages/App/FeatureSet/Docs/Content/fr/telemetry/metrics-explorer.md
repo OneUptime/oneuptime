@@ -37,7 +37,7 @@ L'explorateur a six onglets :
 ## Avant de commencer
 
 - **Des métriques qui arrivent.** Envoyez-les avec [OpenTelemetry](/docs/telemetry/open-telemetry), ou depuis un agent comme le [collecteur OpenTelemetry pour hôte](/docs/telemetry/host-otel-collector) ou l'[agent Kubernetes](/docs/telemetry/kubernetes-agent).
-- **Un rôle qui peut lire la télémétrie.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member ou Telemetry Viewer, ou un rôle personnalisé avec la permission Read Metrics. Voir [Télémétrie](/docs/permissions/index#télémétrie) pour savoir quelles métriques il lit.
+- **Un rôle qui peut lire la télémétrie.** Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, Administrateur de la télémétrie, Membre de la télémétrie ou Lecteur de la télémétrie, ou un rôle personnalisé avec la permission Read Metrics. Voir [Télémétrie](/docs/permissions/index#télémétrie) pour savoir quelles métriques il lit.
 
 ## Trouver une métrique
 
@@ -64,13 +64,13 @@ Ouvrez **Filtres et regroupement**. **Filtrer par attributs** garde les points d
 
 ### Ajuster le graphique
 
-Ouvrez **Paramètres d'affichage** pour choisir le **Type de graphique** (ligne, aire ou barres), tracer un **Warning Threshold** et un **Seuil critique** sur le graphique, ou activer **Convertir en taux par seconde**.
+Ouvrez **Paramètres d'affichage** pour choisir le **Type de graphique** (ligne, aire ou barres), tracer un **Seuil d'avertissement** et un **Seuil critique** sur le graphique, ou activer **Convertir en taux par seconde**.
 :::
 
 > [!TIP]
 > Un compteur qui ne fait que croître, comme `system.disk.io`, se lit mieux comme un taux. Activez **Convertir en taux par seconde** pour tracer la vitesse à laquelle il change plutôt que son cumul ; l'explorateur le suggère quand il repère un tel compteur.
 
-Chaque requête trace son propre graphique. Pour tracer une requête sur le même graphique que la précédente, activez **Overlay with previous query** dans ses **Paramètres d'affichage**.
+Chaque requête trace son propre graphique. Pour tracer une requête sur le même graphique que la précédente, activez **Superposer à la requête précédente** dans ses **Paramètres d'affichage**.
 
 ## Combiner des requêtes avec une formule
 

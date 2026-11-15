@@ -39,6 +39,8 @@ import ServiceViewIncidents from "../Pages/Service/View/Incidents";
 
 import ServiceViewAlerts from "../Pages/Service/View/Alerts";
 
+import ServiceViewSlos from "../Pages/Service/View/Slos";
+
 import ServiceViewScheduledMaintenance from "../Pages/Service/View/ScheduledMaintenance";
 
 import ServiceSettingsOwnerRules from "../Pages/Service/Settings/OwnerRules";
@@ -294,6 +296,16 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewAlerts
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_ALERTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SERVICE_VIEW_SLOS)}
+          element={
+            <ServiceViewSlos
+              {...props}
+              pageRoute={RouteMap[PageMap.SERVICE_VIEW_SLOS] as Route}
             />
           }
         />

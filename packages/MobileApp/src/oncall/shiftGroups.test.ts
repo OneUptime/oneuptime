@@ -14,6 +14,7 @@ import {
   type ShiftDayGroup,
 } from "./shiftGroups";
 import type { MyOnCallShift } from "../api/types";
+import { writeDay } from "../utils/date";
 
 /*
  * Grouping is what keeps a fortnight of shifts readable, and the one grouping
@@ -56,8 +57,43 @@ describe("dayLabel", () => {
     expect(dayLabel(new Date(2026, 2, 3, 23, 59), NOW)).toBe("Today");
     expect(dayLabel(new Date(2026, 2, 4, 0, 1), NOW)).toBe("Tomorrow");
     expect(dayLabel(new Date(2026, 2, 2, 8, 0), NOW)).toBe("Yesterday");
-    expect(dayLabel(new Date(2026, 2, 5, 9, 0), NOW)).toBe("Thu 5 Mar");
-    expect(dayLabel(new Date(2026, 2, 12, 9, 0), NOW)).toBe("Thu 12 Mar");
+    expect(dayLabel(new Date(2026, 2, 5, 9, 0), NOW, { locale: "en-GB" })).toBe(
+      "Thu 5 Mar",
+    );
+    expect(
+      dayLabel(new Date(2026, 2, 12, 9, 0), NOW, { locale: "en-GB" }),
+    ).toBe("Thu 12 Mar");
+  });
+
+  /*
+   * The weekday and the date are the phone's, in its language and its
+   * order, as the shift cards under the heading write theirs (#8232); the
+   * app's own words stay English.
+   */
+  test.each<[string, string]>([
+    ["en-US", "Thu, Mar 5"],
+    ["en-GB", "Thu 5 Mar"],
+    ["de", "Do., 5. März"],
+    ["fr", "jeu. 5 mars"],
+    ["ja", "3月5日(木)"],
+    ["ko", "3월 5일 (목)"],
+  ])("in %s, a day further out reads %p", (locale: string, label: string) => {
+    const written: string = dayLabel(new Date(2026, 2, 5, 9, 0), NOW, {
+      locale,
+    });
+
+    // A space, a no-break space or a narrow one: the same to a reader.
+    expect(written.replace(/\s/g, " ")).toBe(label);
+    expect(dayLabel(new Date(2026, 2, 3, 9, 0), NOW, { locale })).toBe("Today");
+    expect(dayLabel(new Date(2026, 2, 4, 9, 0), NOW, { locale })).toBe(
+      "Tomorrow",
+    );
+  });
+
+  test("with no locale named, the phone's own language", () => {
+    expect(dayLabel(new Date(2026, 2, 5, 9, 0), NOW)).toBe(
+      writeDay(new Date(2026, 2, 5)),
+    );
   });
 });
 
@@ -153,7 +189,7 @@ describe("groupShiftsByDay", () => {
       }),
     ).toEqual([
       ["Today", ["today"]],
-      ["Thu 5 Mar", ["thu-early", "thu-late"]],
+      [writeDay(new Date(2026, 2, 5)), ["thu-early", "thu-late"]],
     ]);
   });
 

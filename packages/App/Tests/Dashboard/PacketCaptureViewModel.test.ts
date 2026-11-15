@@ -271,14 +271,16 @@ describe("what the Start form offers", () => {
 
   test("the folded limits say when the capture stops", () => {
     expect(describeLimits(DEFAULT_PACKET_CAPTURE_LIMITS, english)).toBe(
-      "Stops after 1 minute, 100,000 packets or 10 MB, whichever comes first.",
+      "Stops after 1 minute, 100,000 packets or 10\u00A0MB, whichever comes first.",
     );
     expect(
       describeLimits(
         { maxDurationInSeconds: 90, maxPackets: 1, maxFileSizeInMB: 25 },
         english,
       ),
-    ).toBe("Stops after 90 seconds, 1 packet or 25 MB, whichever comes first.");
+    ).toBe(
+      "Stops after 90 seconds, 1 packet or 25\u00A0MB, whichever comes first.",
+    );
   });
 
   test("before anything is captured, the form says what a capture holds and what OneUptime does about it", () => {
@@ -451,7 +453,7 @@ describe("how a capture reads in the list", () => {
     ).toEqual({
       label: "Completed",
       tone: "success",
-      detail: "3 packets · 1.5 KB",
+      detail: "3 packets · 1.5\u00A0KB",
       note: "Stopped after 1 minute.",
     });
     expect(
@@ -461,7 +463,7 @@ describe("how a capture reads in the list", () => {
         endReason: PacketCaptureEndReason.StoppedFromDashboard,
       }),
     ).toMatchObject({
-      detail: "1 packet · 100 B",
+      detail: "1 packet · 100\u00A0B",
       note: "Stopped from the dashboard.",
     });
   });
@@ -546,7 +548,7 @@ describe("how a capture reads in the list", () => {
       "Stopped at its limit of 5,000 packets.",
     );
     expect(sentence(PacketCaptureEndReason.FileSizeLimitReached)).toBe(
-      "Stopped at its file size limit of 25 MB.",
+      "Stopped at its file size limit of 25\u00A0MB.",
     );
     expect(sentence(PacketCaptureEndReason.StoppedFromDashboard)).toBe(
       "Stopped from the dashboard.",
@@ -615,12 +617,12 @@ describe("numbers in words", () => {
   });
 
   test("sizes", () => {
-    expect(formatBytes(0, english)).toBe("0 B");
-    expect(formatBytes(-5, english)).toBe("0 B");
-    expect(formatBytes(1023, english)).toBe("1,023 B");
-    expect(formatBytes(1536, english)).toBe("1.5 KB");
-    expect(formatBytes(2.2 * 1024 * 1024, english)).toBe("2.2 MB");
-    expect(formatBytes(25 * 1024 * 1024, english)).toBe("25 MB");
+    expect(formatBytes(0, english)).toBe("0\u00A0B");
+    expect(formatBytes(-5, english)).toBe("0\u00A0B");
+    expect(formatBytes(1023, english)).toBe("1,023\u00A0B");
+    expect(formatBytes(1536, english)).toBe("1.5\u00A0KB");
+    expect(formatBytes(2.2 * 1024 * 1024, english)).toBe("2.2\u00A0MB");
+    expect(formatBytes(25 * 1024 * 1024, english)).toBe("25\u00A0MB");
   });
 
   test("the running clock", () => {

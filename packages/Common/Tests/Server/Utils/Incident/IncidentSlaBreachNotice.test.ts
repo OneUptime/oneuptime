@@ -158,7 +158,7 @@ describe("IncidentSlaBreachNotice", () => {
       );
     });
 
-    test("tells a project owner why it came: the incident has no owners", () => {
+    test("tells a Project Owner why it came: the incident has no owners", () => {
       const vars: Record<string, unknown> = messagesFor(undefined, {
         isOwner: false,
       }).emailEnvelope.vars as Record<string, unknown>;

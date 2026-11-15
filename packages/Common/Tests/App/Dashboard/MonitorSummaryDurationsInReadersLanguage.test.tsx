@@ -82,7 +82,8 @@ const LRM: string = "\u{200E}";
 const UNIT: Record<Language, string> = {
   en: "ms",
   de: "ms",
-  ar: "ملي ث",
+  // Its two words held together after the figure (#8304).
+  ar: "ملي\u00A0ث",
   fa: `میلی${ZWNJ}ثانیه`,
 };
 
@@ -671,7 +672,7 @@ describe.each(NAMED_CASES)(
 
       expect(durationCase.read(container, "en")).toEqual(
         durationCase.figures.en.map((figure: string): string => {
-          return `${figure} ms`;
+          return `${figure}\u00A0ms`;
         }),
       );
     });
@@ -681,7 +682,7 @@ describe.each(NAMED_CASES)(
 
       expect(durationCase.read(container, "de")).toEqual(
         durationCase.figures.de.map((figure: string): string => {
-          return `${figure} ms`;
+          return `${figure}\u00A0ms`;
         }),
       );
     });
@@ -786,8 +787,8 @@ describe("what sits beside the durations", () => {
       return value;
     };
 
-    expect(offset("en")).toBe("0.042 ms ahead of the probe");
-    expect(offset("de")).toBe("0,042 ms vor der Sonde");
+    expect(offset("en")).toBe("0.042\u00A0ms ahead of the probe");
+    expect(offset("de")).toBe("0,042\u00A0ms vor der Sonde");
     expect(offset("ar")).toBe(`متقدم على المسبار بمقدار 0.042\u00A0${UNIT.ar}`);
     expect(offset("fa")).toBe(`۰٫۰۴۲\u00A0${UNIT.fa} جلوتر از پراب`);
   });
@@ -824,7 +825,7 @@ describe("what sits beside the durations", () => {
     };
 
     expect(sentence("en")).toBe(
-      "DNS: example.com resolved to 93.184.216.34 in 1,234 ms",
+      "DNS: example.com resolved to 93.184.216.34 in 1,234\u00A0ms",
     );
     expect(sentence("ar")).toBe(
       `DNS: حُل example.com إلى 93.184.216.34 خلال 1,234\u00A0${UNIT.ar}`,

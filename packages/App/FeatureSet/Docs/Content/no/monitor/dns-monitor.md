@@ -111,7 +111,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny DNS-monitor starter med to kriterier:
 
-- **Frakoblet** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ is offline". Hendelsen løser seg selv når navnet kan slås opp igjen.
+- **Frakoblet** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitornavn_ er frakoblet". Hendelsen løser seg selv når navnet kan slås opp igjen.
 - **Oppe** — navnet kan slås opp. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -173,6 +173,6 @@ Serveren i **DNS-server (valgfritt)** validerer ikke DNSSEC og setter derfor ald
 :::cards
 - [DNSSEC-overvåking](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
 - [Domene-overvåking](/docs/monitor/domain-monitor): Følg med på domenets registrering og utløp.
-- [Egendefinerte probes](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Spør interne DNS-servere fra ditt eget nettverk.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

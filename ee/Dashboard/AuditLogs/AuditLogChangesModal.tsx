@@ -12,6 +12,7 @@ import {
   AUDIT_LOG_SESSION_FIELDS,
   AUDIT_LOG_SESSION_TIME_FIELDS,
   AuditLogSessionField,
+  getSessionEntryValueInLanguage,
   isSessionAuditLogAction,
   readSessionEntryFields,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
@@ -165,8 +166,9 @@ export interface SessionDetailRow {
 /*
  * A session entry's details as the dialog lists them (issue #6762): each
  * field it recorded, in the order the audit log names them, by its words -
- * in the reader's language when handed their translator (#8291) - and a
- * time in the reader's own zone.
+ * in the reader's language when handed their translator (#8291), and so is
+ * a value that is one of OneUptime's own words, why it ended or how they
+ * signed in (#8459) - and a time in the reader's own zone.
  */
 export const readSessionDetailRows: (
   changes: unknown,
@@ -193,7 +195,7 @@ export const readSessionDetailRows: (
       label: translator?.translateText(label) || label,
       value: AUDIT_LOG_SESSION_TIME_FIELDS.includes(field)
         ? formatScalar(value)
-        : value,
+        : getSessionEntryValueInLanguage({ field, value, translator }),
     });
   }
 
@@ -344,7 +346,7 @@ const renderValue: (
   if (value === null || value === undefined || value === "") {
     return (
       <span className="italic text-gray-400">
-        {translator.translateText("empty") || "empty"}
+        {translator.translateText("empty")}
       </span>
     );
   }
@@ -509,7 +511,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-2 md:gap-3 items-start">
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-red-600 font-semibold mb-1">
-                          {translator.translateText("Before") || "Before"}
+                          {translator.translateText("Before")}
                         </div>
                         <div className="rounded-md border border-red-100 bg-red-50/60 px-3 py-2 text-sm">
                           {renderValue(row.oldValue, translator)}
@@ -524,7 +526,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-wide text-emerald-600 font-semibold mb-1">
-                          {translator.translateText("After") || "After"}
+                          {translator.translateText("After")}
                         </div>
                         <div className="rounded-md border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-sm">
                           {renderValue(row.newValue, translator)}

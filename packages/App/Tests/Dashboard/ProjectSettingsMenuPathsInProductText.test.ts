@@ -803,7 +803,7 @@ describe("every translation names the path as its language's Dashboard draws it"
     "Only domains verified in Project Settings → Advanced → Domains are listed.",
     "Project Settings → Advanced → API Keys",
     "Project Settings → Notifications → Notification Channels",
-    "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
+    "SMS is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
     "If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
     "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
     "Project Settings > Telemetry & APM > Ingestion Keys",
@@ -835,7 +835,7 @@ describe("every translation names the path as its language's Dashboard draws it"
       "This project has no alert severity. Add one under Project Settings > Alert Severity.",
       "Payment methods not found. Please add one in Project Settings -> Billing.",
       "Manage team members from your identity provider or disable Push Groups in Settings > SCIM to make changes here.",
-      "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
+      "SMS is off in this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
       "MS Teams Subscribers",
     ]) {
       expect({ dropped, kept: dropped in english }).toEqual({

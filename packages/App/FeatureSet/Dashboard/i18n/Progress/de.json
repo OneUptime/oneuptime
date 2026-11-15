@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 2523
+    "keys": 54234,
+    "untranslated": 2437
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -227,6 +227,7 @@
     "Fatal",
     "Favicon",
     "Feed",
+    "Feedback",
     "Filter",
     "Filter:",
     "Filter: {{expression}}",
@@ -443,6 +444,7 @@
     "Panama",
     "Panics",
     "Paraguay",
+    "Passkey",
     "Passkeys",
     "Passthrough",
     "Payload",
@@ -514,6 +516,7 @@
     "Router",
     "Router Discovery - Region 1100",
     "Runbook",
+    "Runbook {{id}}",
     "Runbook: {{name}}",
     "Runbooks",
     "Runbooks ({{count}})",
@@ -568,6 +571,7 @@
     "Stack",
     "Stacks",
     "Stacktrace",
+    "Staging",
     "Status",
     "Status: ",
     "Stratum",
@@ -592,6 +596,7 @@
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",
     "Team",
+    "Team {{id}}",
     "Team {{name}}",
     "Team: {{name}}",
     "Teams",
@@ -682,6 +687,7 @@
     "Website",
     "WhatsApp: ",
     "Widgets",
+    "Workflow {{id}}",
     "Workload",
     "Workloads",
     "Zone",

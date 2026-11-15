@@ -144,11 +144,11 @@ Un embudo o una tabla de retención guardados también van a un panel: los widge
 
 ## Quién puede verla
 
-Leer estas páginas requiere lo mismo que leer la lista de sesiones: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), que tienen los propietarios y administradores del proyecto. Ver quién es un usuario con sesión iniciada, y buscar personas por nombre, requiere `ReadRumSessionReplayPayload` (_Watch Session Replays_), como se describe en [Quién puede ver una grabación](/docs/telemetry/session-replay#quién-puede-ver-una-grabación).
+Leer estas páginas requiere lo mismo que leer la lista de sesiones: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), que tienen los Propietarios del proyecto y Administradores del proyecto. Ver quién es un usuario con sesión iniciada, y buscar personas por nombre, requiere `ReadRumSessionReplayPayload` (_Watch Session Replays_), como se describe en [Quién puede ver una grabación](/docs/telemetry/session-replay#quién-puede-ver-una-grabación).
 
 Guardar, renombrar y eliminar embudos y tablas de retención guardados requiere los mismos permisos que leer estas páginas, y un widget de panel solo muestra uno a quien los tenga.
 
-Activar o desactivar los eventos requiere `EditRumApplication` (_Edit RUM Application_) o el rol de propietario, administrador o miembro del proyecto. Enumerar propiedades de usuario requiere `EditRumApplication` o el rol de propietario o administrador, porque decide qué se guarda sobre las personas con sesión iniciada.
+Activar o desactivar los eventos requiere `EditRumApplication` (_Edit RUM Application_) o el rol Propietario del proyecto, Administrador del proyecto o Miembro del proyecto. Enumerar propiedades de usuario requiere `EditRumApplication` o el rol de propietario o administrador, porque decide qué se guarda sobre las personas con sesión iniciada.
 
 ## Próximos pasos
 

@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - साइन-इन और जोखिम पहचान के लिए, Microsoft Entra ID P1 या P2, जो Microsoft 365 E3, E5 और Business Premium में शामिल हैं: Microsoft Graph इन्हें सिर्फ़ ऐसे टेनेंट को देता है, और P2 हर जोखिम पहचान का पूरा ब्यौरा देता है। डायरेक्टरी बदलाव किसी भी टेनेंट में पढ़े जाते हैं।
 - ऐप्लिकेशन रजिस्टर कर सकने वाला कोई Entra रोल, जैसे Application Administrator, और एडमिन सहमति देने के लिए एक Global Administrator या Privileged Role Administrator।
 - Microsoft 365 ऑडिट लॉग के लिए, टेनेंट में ऑडिटिंग चालू होनी चाहिए, जो डिफ़ॉल्ट रूप से होती है: [Microsoft Purview पोर्टल](https://purview.microsoft.com) में **Audit** को **Start recording user and admin activity** नहीं दिखाना चाहिए।

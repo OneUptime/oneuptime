@@ -39,7 +39,7 @@ Una sonda que ha perdido su propia conexión de red no informa de ningún result
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una sonda que pueda llegar a la dirección**, con ICMP permitido por el camino. Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo. Si un cortafuegos la protege, permita las solicitudes de eco ICMP desde las [direcciones IP de las sondas de OneUptime Cloud](/docs/configuration/ip-addresses). Una dirección privada necesita una [sonda personalizada](/docs/probe/custom-probe) en esa red, y una dirección IPv6 necesita una sonda con conectividad IPv6.
 
 ## Crear un monitor de IP
@@ -98,7 +98,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de IP nuevo empieza con dos criterios:
 
-- **Sin conexión** — la dirección no responde a ninguna de las solicitudes de eco, o no es accesible en absoluto, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ is offline». El incidente se resuelve solo cuando la dirección vuelve a responder.
+- **Sin conexión** — la dirección no responde a ninguna de las solicitudes de eco, o no es accesible en absoluto, después de todos los reintentos. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_nombre del monitor_ está sin conexión». El incidente se resuelve solo cuando la dirección vuelve a responder.
 - **En línea** — la dirección responde. El monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.

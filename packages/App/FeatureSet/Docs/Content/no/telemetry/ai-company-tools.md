@@ -1,6 +1,6 @@
 # Virksomhetens AI-verktøy
 
-Se hva folkene dine spør AI-verktøyene virksomheten betaler for om, som samtaler per person. Koble til Claude Enterprise eller Microsoft 365 Copilot med påloggingsinformasjon som bare kan lese, så henter OneUptime hver ny chat inn i **Samtaler** hvert 15. minutt. Bare prosjektets eiere og administratorer kan lese dem, med mindre du velger noe annet.
+Se hva folkene dine spør AI-verktøyene virksomheten betaler for om, som samtaler per person. Koble til Claude Enterprise eller Microsoft 365 Copilot med påloggingsinformasjon som bare kan lese, så henter OneUptime hver ny chat inn i **Samtaler** hvert 15. minutt. Bare Prosjekteiere og Prosjektadministratorer kan lese dem, med mindre du velger noe annet.
 
 :::cards
 - [Si fra til folkene dine først](#si-fra-til-folkene-dine-først): Chattene deres er deres egne ord.
@@ -97,7 +97,7 @@ Fyll ut **Katalog-ID (tenant)**, **Program-ID (klient)** og **Klienthemmelighet*
 
 | Innstilling | Hva den gjør |
 | --- | --- |
-| **Hvem som kan lese samtaler** | **Prosjekteiere og administratorer**, standarden: ingen andre i prosjektet ser disse samtalene, eller AI-kallene de består av, noe sted i OneUptime. **Alle som kan lese AI-kall**: alle som kan lese prosjektets traces. |
+| **Hvem som kan lese samtaler** | **Prosjekteiere og Prosjektadministratorer**, standarden: ingen andre i prosjektet ser disse samtalene, eller AI-kallene de består av, noe sted i OneUptime. **Alle som kan lese AI-kall**: alle som kan lese prosjektets traces. |
 | **Behold det som ble skrevet** | På, standarden: spørsmålene og svarene beholdes. Av: OneUptime beholder hvem som spurte, når, med hvilken modell og i hvilken app, men ikke ordene. |
 
 En endring av hvem som kan lese, gjelder innen ett minutt. Å slå av **Behold det som ble skrevet** gjelder for chattene som leses etterpå; det som ble beholdt før, blir værende til oppbevaringen tar slutt.
@@ -139,7 +139,7 @@ For Copilot gir du administratorsamtykke for appens Graph-tillatelser, og også 
 :::
 
 :::details Noen ser ikke samtalene
-**Hvem som kan lese samtaler** står på **Prosjekteiere og administratorer**. En eier eller administrator kan endre det med **Rediger** i tilkoblingens rad.
+**Hvem som kan lese samtaler** står på **Prosjekteiere og Prosjektadministratorer**. En eier eller administrator kan endre det med **Rediger** i tilkoblingens rad.
 :::
 
 :::details Samtalene viser hvem som spurte, men ingen ord

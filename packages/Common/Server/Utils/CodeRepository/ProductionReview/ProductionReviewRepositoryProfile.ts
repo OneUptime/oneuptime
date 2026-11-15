@@ -569,7 +569,7 @@ export default class ProductionReviewRepositoryProfile {
     serviceIds: Array<ObjectID>;
     now: Date;
   }): Promise<Array<SuspectDeploy>> {
-    const since: Date = OneUptimeDate.addRemoveDays(
+    const since: Date = OneUptimeDate.addRemoveDurationInDays(
       data.now,
       -PRODUCTION_REVIEW_WINDOWS.deploysDays,
     );

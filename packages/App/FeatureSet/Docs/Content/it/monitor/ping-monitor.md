@@ -32,7 +32,7 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 
 ## Prima di iniziare
 
-- **Un ruolo che può creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che può creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una sonda che raggiunga l'host**, con ICMP consentito lungo il percorso. Le sonde predefinite del vostro progetto vengono scelte per ogni nuovo monitor. Se un firewall protegge l'host, consentite le richieste di eco ICMP dagli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses). Un host su una rete privata ha bisogno di una [sonda personalizzata](/docs/probe/custom-probe) in quella rete.
 
 ## Creare un monitor ping
@@ -93,7 +93,7 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor ping parte con due criteri:
 
-- **Offline** — l'host non risponde a nessuna delle richieste di eco, o non è affatto raggiungibile, dopo tutti i nuovi tentativi. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ is offline». L'incidente si risolve da solo quando l'host risponde di nuovo.
+- **Offline** — l'host non risponde a nessuna delle richieste di eco, o non è affatto raggiungibile, dopo tutti i nuovi tentativi. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_nome del monitor_ è offline». L'incidente si risolve da solo quando l'host risponde di nuovo.
 - **Online** — l'host risponde. Il monitor viene segnato **Operativo**.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quando nessuno corrisponde, il monitor mostra il suo stato predefinito: **Operativo**, a meno che non ne scegliate un altro sotto **Altri campi**, sotto i criteri.

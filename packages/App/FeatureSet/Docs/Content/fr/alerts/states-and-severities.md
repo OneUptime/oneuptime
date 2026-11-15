@@ -85,7 +85,7 @@ Vous faites passer une alerte dans un état à vous depuis le menu **⋯** de l'
 
 ## L'ordre est imposé
 
-Chaque changement d'état d'une alerte est vérifié par rapport à la liste, qui qu'en soit l'auteur : le tableau de bord, Slack, Microsoft Teams, l'API, Terraform, un workflow ou OneUptime lui-même.
+Chaque changement d'état d'une alerte est vérifié par rapport à la liste, qui qu'en soit l'auteur : le tableau de bord, Slack, Microsoft Teams, l'API, Terraform, un flux de travail ou OneUptime lui-même.
 
 - **Les retours en arrière sont refusés**, avec un message qui nomme les deux états : « Alert cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of alert states. »
 - **Passer à l'état où elle se trouve déjà est refusé** : « Alert state cannot be same as previous state. »

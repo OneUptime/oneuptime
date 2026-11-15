@@ -43,7 +43,7 @@ Alle tre samler ting, men for ulike lesere. De virker også sammen: monitorene t
 | Valg | Hva det er | Bruk det når |
 | --- | --- | --- |
 | [Monitorgruppe](/docs/monitor/monitor-groups) | Flere monitorer samlet i én status, den verste blant dem, med egen oppetid. | Kundene skal se én rad på en statusside for noe som består av flere monitorer, for eksempel Checkout. |
-| [Tjeneste](/docs/telemetry/services) | En applikasjon OneUptime fant i telemetrien din, med logger, spor, metrikker, hendelser og eiere på én side. | Du vil ha alt om én applikasjon på ett sted. Den dukker opp av seg selv ut fra `service.name`. |
+| [Tjeneste](/docs/telemetry/services) | En applikasjon OneUptime fant i telemetrien din, med logger, spor, målinger, hendelser og eiere på én side. | Du vil ha alt om én applikasjon på ett sted. Den dukker opp av seg selv ut fra `service.name`. |
 | [Etikett](/docs/configuration/label-and-owner-rules) | Et merke du setter på monitorer og de fleste andre poster. En post kan ha mange. | Du vil filtrere lister, begrense et teams tillatelser eller plukke ut poster i regler. |
 
 Monitorgrupper er slått av fra start: slå dem på under **Prosjektinnstillinger → Avansert → Funksjonsflagg**.
@@ -56,8 +56,8 @@ Det meste av OneUptime trenger ingen installasjon: installer noe bare for å nå
 | --- | --- | --- | --- |
 | [Egendefinert sonde](/docs/probe/custom-probe) | Kjører monitorenes sjekker fra innsiden av nettverket ditt. | Det du sjekker, er bak brannmuren din. OneUptimes egne sonder sjekker det som er offentlig. | Egen sonde-ID og nøkkel |
 | [Infrastrukturagent](/docs/monitor/server-monitor) | Rapporterer én maskins CPU, minne, disker og prosesser til en Server / VM-monitor. | Du vil ha én monitor for én server, med kriterier på tallene. | Monitorens hemmelige nøkkel |
-| [OpenTelemetry Collector](/docs/telemetry/hosts) | Sender en maskins metrikker, logger og prosesser. **Legg til vert** installerer den med én kommando. | Du vil ha en maskin under **Verter**, med telemetrien dens. | En inntaksnøkkel |
-| [Kubernetes-agent](/docs/telemetry/kubernetes-agent) | Samler inn en klynges metrikker, hendelser, logger og spor. Du installerer den med Helm. | Du kjører Kubernetes. | En inntaksnøkkel |
+| [OpenTelemetry Collector](/docs/telemetry/hosts) | Sender en maskins målinger, logger og prosesser. **Legg til vert** installerer den med én kommando. | Du vil ha en maskin under **Verter**, med telemetrien dens. | En inntaksnøkkel |
+| [Kubernetes-agent](/docs/telemetry/kubernetes-agent) | Samler inn en klynges målinger, hendelser, logger og spor. Du installerer den med Helm. | Du kjører Kubernetes. | En inntaksnøkkel |
 | [Runner](/docs/runbooks/agents) | Kjører runbook-trinn, for eksempel Bash, SSH og kubectl, inne i infrastrukturen din. | Runbookene dine må nå dine egne verter og klynger. | Egen Runner-ID og nøkkel |
 
 ### Inntaksnøkkel eller API-nøkkel?

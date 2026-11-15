@@ -1295,13 +1295,19 @@ describe("what a move on pages, timed from when it was due", () => {
       },
     );
 
-    expect(setString).not.toHaveBeenCalled();
+    // Its due moments; the move itself is kept in flight beside them (issue #8410).
+    const dueMoments: () => Array<unknown> = (): Array<unknown> => {
+      return setString.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[0] === OnCallSendLag.CACHE_NAMESPACE;
+      });
+    };
+
+    expect(dueMoments()).toHaveLength(0);
 
     // The same move on outside a page's start keeps one.
     await OnCallEscalationAdvance.advance({ run: runOn(1), now: NOW });
 
-    expect(setString).toHaveBeenCalledTimes(1);
-    expect(setString.mock.calls[0]![0]).toBe(OnCallSendLag.CACHE_NAMESPACE);
+    expect(dueMoments()).toHaveLength(1);
   });
 });
 
@@ -1386,12 +1392,16 @@ describe("a move that fails after its claim", () => {
       previousLastEscalationRuleExecutedAt: STARTED,
       lastExecutedEscalationRuleId: rules[0]!.id!,
       onCallPolicyExecutionRepeatCount: 2,
+      // A give-back the database fails is left in flight for the worker (issue #8410).
+      throwOnError: true,
+      // A claim past no empty level leaves the wait of the rule as it is (issue #8515).
+      clearWait: false,
     });
   });
 
   test("a run read before its first rule - no moment of its own - has none put back", async () => {
     const run: OnCallDutyPolicyExecutionLog = runOn(0);
-    run.lastEscalationRuleExecutedAt = undefined;
+    run.lastEscalationRuleExecutedAt = undefined as unknown as Date;
     startSpy.mockRejectedValue(new Error("Connection is closed.") as never);
 
     await expect(advance(run)).rejects.toThrow("Connection is closed.");

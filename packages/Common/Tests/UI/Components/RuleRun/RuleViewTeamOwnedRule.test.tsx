@@ -175,7 +175,7 @@ const PLATFORM: string = "9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a";
 
 // What the list's row says of a rule Oversight owns (RuleOwningTeams).
 const REASON: string =
-  "This rule belongs to Oversight: only its members, with its permissions, and project admins can change it.";
+  "This rule belongs to Oversight: only its members, with its permissions, and Project Admins can change it.";
 
 const FORM_FIELDS: RuleViewProps<IncidentOwnerRule>["formFields"] = [
   {
@@ -357,7 +357,7 @@ describe("a rule teams own, on its own page", () => {
     expect(deleteButton()).not.toBeDisabled();
   });
 
-  test("so do a project admin and a master admin, whichever teams own it", async () => {
+  test("so do a Project Admin and a master admin, whichever teams own it", async () => {
     rowsForTest = [row(Permission.ProjectAdmin, PLATFORM)];
 
     await openPage(ownership([OVERSIGHT]));
@@ -406,7 +406,7 @@ describe("a rule teams own, on its own page", () => {
     expect(deleteButton()).toBeDisabled();
   });
 
-  test("the reading holds back nothing from a project admin", async () => {
+  test("the reading holds back nothing from a Project Admin", async () => {
     rowsForTest = [row(Permission.ProjectAdmin, PLATFORM)];
 
     await openPage(ownership(undefined));

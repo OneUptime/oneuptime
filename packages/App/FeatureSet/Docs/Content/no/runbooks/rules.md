@@ -136,7 +136,7 @@ Conditions:  (none)
 Runbooks:    [Capture pre-incident state]
 ```
 
-Utløses ved hver hendelse: nyttig for å registrere øyeblikksbilder av systemets tilstand, metrikker og lignende til postmortem.
+Utløses ved hver hendelse: nyttig for å registrere øyeblikksbilder av systemets tilstand, målinger og lignende til postmortem.
 
 ## Deaktiverte runbooks
 

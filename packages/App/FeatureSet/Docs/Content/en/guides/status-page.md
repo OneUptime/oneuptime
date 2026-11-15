@@ -13,7 +13,7 @@ flowchart TB
 ## What you need
 
 - At least one monitor: a status page shows monitors. With none yet, the guided setup offers **Set up a monitor** first.
-- A project owner or admin's role: the page needs permission to create status pages, and your domain needs permission to add and verify the project's domains.
+- The Project Owner or Project Admin role: the page needs permission to create status pages, and your domain needs permission to add and verify the project's domains.
 - A domain you control, and access to its DNS records at your DNS provider.
 
 :::tabs

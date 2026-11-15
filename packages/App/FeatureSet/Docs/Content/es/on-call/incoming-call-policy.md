@@ -155,12 +155,12 @@ Una regla hace sonar a una persona en el número que verificó para llamadas ent
 :::steps
 1. Abre **Ajustes de usuario** > **Política de llamadas entrantes** > **Números de teléfono entrantes**. **Política de llamadas entrantes** es una sección del menú lateral que empieza plegada.
 2. En la tarjeta **Números de teléfono para enrutamiento de llamadas entrantes**, haz clic en **Añadir Número de teléfono para enrutamiento de llamadas entrantes** y escribe el número con su prefijo de país, por ejemplo `+15551234567`.
-3. Escribe el código de 6 dígitos que OneUptime le envía por SMS en **Código de verificación** y haz clic en **Verificar**. **Send a new code** envía otro.
+3. Escribe el código de 6 dígitos que OneUptime le envía por SMS en **Código de verificación** y haz clic en **Verificar**. **Enviar un código nuevo** envía otro.
 :::
 
 Cada persona puede tener un número verificado por proyecto. Para cambiarlo, elimina primero el número antiguo. Estos números son distintos de los números de teléfono de **Métodos de notificación**, que usan los avisos de guardia. Consulta [Métodos de notificación](/docs/notifications/notification-methods).
 
-Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Canales de notificación**.
+Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un Propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Canales de notificación**.
 
 ## Mensajes de voz y ajustes de la política
 
@@ -198,7 +198,7 @@ Una llamada se pierde cuando termina sin contactar con nadie: su estado es **Sin
 
 ### A quién se avisa
 
-Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política: los usuarios y los miembros de los equipos añadidos en la página **Propietarios** de la política. Si la política no tiene propietarios, se avisa en su lugar a los propietarios del proyecto.
+Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política: los usuarios y los miembros de los equipos añadidos en la página **Propietarios** de la política. Si la política no tiene propietarios, se avisa en su lugar a los Propietarios del proyecto.
 
 El aviso dice quién llamó, qué número marcó, por qué nadie contestó, y a quién sonó y cómo terminó cada intento. Enlaza la llamada en el registro de llamadas.
 
@@ -275,7 +275,7 @@ La cuenta solo puede cambiar mientras la política no tiene números de teléfon
 :::
 
 :::details No llega el código para el número de una persona
-El SMS debe estar activado en el proyecto. En OneUptime Cloud, un proyecto sin su propia configuración de Twilio predeterminada paga los SMS con su saldo, que debe superar 1 USD. Los códigos pueden tardar un minuto en llegar; haz clic en **Send a new code** para enviar otro, y **Ajustes del proyecto** > **Notificaciones** > **Registros de notificación** muestra qué pasó con él.
+El SMS debe estar activado en el proyecto. En OneUptime Cloud, un proyecto sin su propia configuración de Twilio predeterminada paga los SMS con su saldo, que debe superar 1 USD. Los códigos pueden tardar un minuto en llegar; haz clic en **Enviar un código nuevo** para enviar otro, y **Ajustes del proyecto** > **Notificaciones** > **Registros de notificación** muestra qué pasó con él.
 :::
 
 ## Próximos pasos

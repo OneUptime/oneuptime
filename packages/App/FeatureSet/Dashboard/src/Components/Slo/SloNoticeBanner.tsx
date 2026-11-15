@@ -41,6 +41,12 @@ import SloEvaluationSwitchCopy, {
   TURN_SLO_EVALUATION_ON_ERROR_TEST_ID,
 } from "./SloEvaluationSwitchCopy";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getSloNoticeActionLabelInLanguage,
+  getSloNoticeBodyInLanguage,
+} from "./SloNoticeText";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -93,9 +99,11 @@ const ACTION_PAGES: Record<SloNoticeLinkTarget, PageMap> = {
 const getTurnEvaluationOnBanner: (
   notice: SloNotice,
   turnEvaluationOn: SaveModelSwitch,
+  translator: Translator,
 ) => ReactElement = (
   notice: SloNotice,
   turnEvaluationOn: SaveModelSwitch,
+  translator: Translator,
 ): ReactElement => {
   const showButton: boolean =
     turnEvaluationOn.gate.isAllowed ||
@@ -125,7 +133,7 @@ const getTurnEvaluationOnBanner: (
       dataTestId="slo-notice-banner"
     >
       <>
-        <p>{notice.body}</p>
+        <p>{getSloNoticeBodyInLanguage(notice, translator)}</p>
         {turnEvaluationOn.error ? (
           <p
             className="mt-1 text-sm text-red-600"
@@ -179,6 +187,9 @@ const getTurnEvaluationOnBanner: (
 const SloNoticeBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Each notice's body and link, in the reader's language (#8446).
+  const translator: Translator = useTranslator();
+
   const [slo, setSlo] = useState<ServiceLevelObjective | null>(null);
 
   // Bumped whenever evaluation is switched on or off, here or elsewhere.
@@ -272,7 +283,7 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
   }
 
   if (notice.action?.target === SloNoticeActionTarget.TurnEvaluationOn) {
-    return getTurnEvaluationOnBanner(notice, turnEvaluationOn);
+    return getTurnEvaluationOnBanner(notice, turnEvaluationOn, translator);
   }
 
   const actionRoute: Route | null = notice.action
@@ -292,7 +303,7 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
         to={actionRoute}
         className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
       >
-        <span>{notice.action.label}</span>
+        <span>{getSloNoticeActionLabelInLanguage(notice, translator)}</span>
         <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
       </Link>
     ) : undefined;
@@ -305,7 +316,7 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
       rightElement={actionElement}
       dataTestId="slo-notice-banner"
     >
-      <p>{notice.body}</p>
+      <p>{getSloNoticeBodyInLanguage(notice, translator)}</p>
     </AlertBanner>
   );
 };

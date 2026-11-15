@@ -1,11 +1,11 @@
 # Eskaleringsregler
 
-En vaktretningslinje varsler folk i nivåer. Hver eskaleringsregel er ett nivå: hvem som varsles, og hvor lenge det ventes på at noen bekrefter før neste nivå varsles. Reglene i en retningslinje står i rekkefølge på siden **Eskaleringsregler**.
+En vaktpolicy varsler folk i nivåer. Hver eskaleringsregel er ett nivå: hvem som varsles, og hvor lenge det ventes på at noen bekrefter før neste nivå varsles. Reglene i en policy står i rekkefølge på siden **Eskaleringsregler**.
 
 > [!TIP]
 > Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
 
-```mermaid title="En vaktretningslinje varsler nivå for nivå til noen bekrefter"
+```mermaid title="En vaktpolicy varsler nivå for nivå til noen bekrefter"
 flowchart TB
     trigger["Hendelse eller varsel"] --> level1["Level 1 varsler"]
     level1 --> ack1{"Bekreftet<br/>i tide?"}
@@ -13,39 +13,39 @@ flowchart TB
     ack1 -->|"Nei"| level2["Level 2 varsler"]
     level2 --> ack2{"Bekreftet<br/>i tide?"}
     ack2 -->|"Ja"| stop
-    ack2 -->|"Nei, siste nivå"| repeat{"Gjenta retningslinjen?"}
+    ack2 -->|"Nei, siste nivå"| repeat{"Gjenta policyen?"}
     repeat -->|"Ja"| level1
-    repeat -->|"Nei"| done["Retningslinjen stopper"]
+    repeat -->|"Nei"| done["Policyen stopper"]
 ```
 
 :::cards
-- [Hvem som varsles først](#hvem-som-varsles-først): Opprett en retningslinje med det første nivået.
+- [Hvem som varsles først](#hvem-som-varsles-først): Opprett en policy med det første nivået.
 - [Legg til en eskaleringsregel](#legg-til-en-eskaleringsregel): Legg til neste nivå, steg for steg.
 - [Slik varsler nivåene folk](#slik-varsler-nivåene-folk): Tidsbruk, gjentakelser og hvordan hver person nås.
 - [Neste person i rotasjonen](#eskaler-til-neste-person-i-rotasjonen): Varsle backupen til den som har vakt, fra samme rotasjon.
 - [Eskaler en varsling](#eskaler-en-varsling): Kan du ikke ta en varsling? Få neste nivå varslet med en gang.
-- [API og Terraform](#opprett-regler-med-api-et-eller-terraform): Opprett retningslinjer og regler som kode.
+- [API og Terraform](#opprett-regler-med-api-et-eller-terraform): Opprett policyer og regler som kode.
 :::
 
 ## Hvem som varsles først
 
-Når du oppretter en vaktretningslinje på siden **Vaktretningslinjer**, spør skjemaet om **Navn** og **Hvem varsles først?**. Spørsmålet bruker samme velger som **Varsle**: vaktplaner, team og personer, så mange du trenger. De du velger, blir den første eskaleringsregelen i retningslinjen, **Level 1**, som venter **30 minutter** på en bekreftelse før neste nivå varsles.
+Når du oppretter en vaktpolicy på siden **Vaktpolicyer**, spør skjemaet om **Navn** og **Hvem varsles først?**. Spørsmålet bruker samme velger som **Varsle**: vaktplaner, team og personer, så mange du trenger. De du velger, blir den første eskaleringsregelen i policyen, **Level 1**, som venter **30 minutter** på en bekreftelse før neste nivå varsles.
 
 :::steps
-1. Gå til **Vakt** > **Vaktretningslinjer**, og klikk på **Opprett Vaktpolicy**.
+1. Gå til **Vakt** > **Vaktpolicyer**, og klikk på **Opprett Vaktpolicy**.
 2. Skriv inn et **Navn**.
 3. Klikk på **Legg til mottaker** under **Hvem varsles først?**, og velg vaktplanene, teamene og personene som skal varsles først.
-4. Klikk på **Opprett Vaktpolicy**. Den nye retningslinjen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
+4. Klikk på **Opprett Vaktpolicy**. Den nye policyen åpnes deretter på siden **Eskaleringsregler**, der du kan legge til flere nivåer.
 :::
 
-**Hvem varsles først?** er valgfritt. Lar du det stå tomt, starter retningslinjen uten eskaleringsregler: den varsler ingen før du legger til en, og oversikten sier det. Beskrivelsen og etikettene ligger under **Flere felt**. Spørsmålet stilles bare til dem som kan legge til eskaleringsregler.
+**Hvem varsles først?** er valgfritt. Lar du det stå tomt, starter policyen uten eskaleringsregler: den varsler ingen før du legger til en, og oversikten sier det. Beskrivelsen og etikettene ligger under **Flere felt**. Spørsmålet stilles bare til dem som kan legge til eskaleringsregler.
 
 ## Legg til en eskaleringsregel
 
 :::steps
-### Åpne eskaleringsreglene i retningslinjen
+### Åpne eskaleringsreglene i policyen
 
-Åpne vaktretningslinjen, velg **Eskaleringsregler** i sidemenyen, og klikk på **Legg til eskaleringsregel**. Dialogen er én kort side.
+Åpne vaktpolicyen, velg **Eskaleringsregler** i sidemenyen, og klikk på **Legg til eskaleringsregel**. Dialogen er én kort side.
 
 ### Velg hvem som skal varsles
 
@@ -66,25 +66,25 @@ Klikk på **Legg til mottaker** under **Varsle**, søk, og velg så mange vaktpl
 
 Alt annet ligger under **Flere felt**, slått sammen til du åpner det:
 
-- **Navn**: valgfritt. En regel du ikke gir navn, får navn etter nivået sitt: den første regelen i en retningslinje er **Level 1**, den andre **Level 2** og så videre. Navnefeltet viser navnet regelen får.
+- **Navn**: valgfritt. En regel du ikke gir navn, får navn etter nivået sitt: den første regelen i en policy er **Level 1**, den andre **Level 2** og så videre. Navnefeltet viser navnet regelen får.
 - **Beskrivelse**: valgfrie notater, for eksempel hvem dette nivået varsler og hvorfor.
 
 Sammenslått nevner overskriften til **Flere felt** de to og viser dem regelen har: en beskrivelse eller et navn du har valgt selv.
 
 ### Opprett regelen
 
-Klikk på **Opprett regel**. Regelen legges til under de andre, som neste nivå i retningslinjen.
+Klikk på **Opprett regel**. Regelen legges til under de andre, som neste nivå i policyen.
 :::
 
 ## Slik varsler nivåene folk
 
-Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottakerne sine med en gang. Bekrefter ingen innen ventetiden, varsles **Level 2**, og så videre nedover listen. Når ventetiden for det siste nivået har gått uten bekreftelse, starter retningslinjen på nytt fra **Level 1** hvis **Gjentakelsesretningslinje** (under reglene) sier at den skal gjentas, så mange ganger som den tillater, og ellers stopper den. Å bekrefte eller løse hendelsen eller varselet stopper varslingen på et hvilket som helst nivå. Den som blir varslet og ikke kan ta det, kan eskalere varslingen, og neste nivå varsles uten å vente: se [Eskaler en varsling](#eskaler-en-varsling).
+Når en hendelse eller et varsel når policyen, varsler **Level 1** mottakerne sine med en gang. Bekrefter ingen innen ventetiden, varsles **Level 2**, og så videre nedover listen. Når ventetiden for det siste nivået har gått uten bekreftelse, starter policyen på nytt fra **Level 1** hvis **Gjentakelsespolicy** (under reglene) sier at den skal gjentas, så mange ganger som den tillater, og ellers stopper den. Å bekrefte eller løse hendelsen eller varselet stopper varslingen på et hvilket som helst nivå. Den som blir varslet og ikke kan ta det, kan eskalere varslingen, og neste nivå varsles uten å vente: se [Eskaler en varsling](#eskaler-en-varsling).
 
-En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av retningslinjene sine: ingen varsles, og feeden sier det og nevner dem ved navn. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
+En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av policyene sine: ingen varsles, og feeden sier det og nevner dem ved navn. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 
-Et nivå som ikke har noen å varsle når det nås, hoppes over med en gang: neste nivå varsles straks, uten å vente. Det er et nivå uten mottakere, og et nivå der mottakerne ikke gir noen å varsle akkurat da: et team uten medlemmer, en vaktplan der ingen har vakt, eller folk som er borte uten noen til å dekke, har forlatt prosjektet eller ikke kan nås i det hele tatt. Har ingen nivåer noen å varsle, stopper retningslinjen med en gang og gjentas ikke.
+Et nivå som ikke har noen å varsle når det nås, hoppes over med en gang: neste nivå varsles straks, uten å vente. Det er et nivå uten mottakere, og et nivå der mottakerne ikke gir noen å varsle akkurat da: et team uten medlemmer, en vaktplan der ingen har vakt, eller folk som er borte uten noen til å dekke, har forlatt prosjektet eller ikke kan nås i det hele tatt. Har ingen nivåer noen å varsle, stopper policyen med en gang og gjentas ikke.
 
-For å gjenta en retningslinje klikker du på **Rediger** på kortet **Gjentakelsesretningslinje**, velger **Start på nytt fra Level 1** og angir **Hvor mange ganger til?**.
+For å gjenta en policy klikker du på **Rediger** på kortet **Gjentakelsespolicy**, velger **Start på nytt fra Level 1** og angir **Hvor mange ganger til?**.
 
 ### Eskaleringsoversikten
 
@@ -92,7 +92,7 @@ Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert
 
 ### Slik nås hver person
 
-Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Slik når man meg**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Slik når man meg**. Se [Slik når man meg](/docs/notifications/on-call-rules).
+Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Slik når man meg**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En Prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Slik når man meg**. Se [Slik når man meg](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et nivå varsler, og hvordan hver person nås"
 flowchart TB
@@ -109,7 +109,7 @@ flowchart TB
     rules --> methods["Personens varselmetoder"]
 ```
 
-En brukeroverstyring som gjelder for en person, sender varslene til den som dekker for personen i stedet. En overstyring som ikke navngir noen til å dekke, hopper over personen: personen får ingen varsler, kjøringen av retningslinjen viser at personen er borte og til når, og i en vaktplan går hver av personens vakter til neste person i rotasjonen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+En brukeroverstyring som gjelder for en person, sender varslene til den som dekker for personen i stedet. En overstyring som ikke navngir noen til å dekke, hopper over personen: personen får ingen varsler, kjøringen av policyen viser at personen er borte og til når, og i en vaktplan går hver av personens vakter til neste person i rotasjonen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Hver melding er en som leverandøren tar imot, så et varsel går alltid ut. Så mye bærer hver kanal:
 
@@ -139,7 +139,7 @@ Den oppgir alvorlighetsgraden og hva som har skjedd (en hendelse, et varsel elle
 
 Alvorlighetsgraden, nummeret og lenken kortes aldri ned. En tittel beholder minst 20 tegn: får ikke engang det plass, for eksempel med en svært lang adresse eller et svært langt produktnavn, tar SMS-en en del til og sier alt.
 
-Når en retningslinje varsler igjen fordi en bekreftet hendelse eller et bekreftet varsel fortsatt ikke er løst, sier SMS-en det etter nummeret og prosjektet, og heller ikke de ordene kortes noen gang ned:
+Når en policy varsler igjen fordi en bekreftet hendelse eller et bekreftet varsel fortsatt ikke er løst, sier SMS-en det etter nummeret og prosjektet, og heller ikke de ordene kortes noen gang ned:
 
 ```text
 OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
@@ -176,11 +176,11 @@ På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-
 - Varslene fortsetter å gå ut på saldoen som er igjen, mens automatisk påfylling ikke får belastet kortet.
 
 > [!IMPORTANT]
-> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto, en SMS- og anropsgateway eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler** — en prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
+> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto, en SMS- og anropsgateway eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en Prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varslingskanaler** — en Prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
 
 ## Eskaler til neste person i rotasjonen
 
-Et nivå kan varsle neste person i en vaktplans rotasjon: personen etter den som har vakt i den. Slik kan en retningslinje først varsle den som har vakt, så backupen fra samme rotasjon og så et team eller en leder, alt fra én vaktplan.
+Et nivå kan varsle neste person i en vaktplans rotasjon: personen etter den som har vakt i den. Slik kan en policy først varsle den som har vakt, så backupen fra samme rotasjon og så et team eller en leder, alt fra én vaktplan.
 
 | Nivå | Varsle | Hvem som varsles |
 | --- | --- | --- |
@@ -189,7 +189,7 @@ Et nivå kan varsle neste person i en vaktplans rotasjon: personen etter den som
 | **Level 3** | Teamet Platform | Alle medlemmene i teamet |
 
 :::steps
-1. Sørg for at det første nivået i retningslinjen, **Level 1**, varsler vaktplanen.
+1. Sørg for at det første nivået i policyen, **Level 1**, varsler vaktplanen.
 2. Klikk på **Legg til eskaleringsregel**, deretter på **Legg til mottaker**, og velg den samme vaktplanen under **Neste i rotasjonen**. Angi **Eskaler etter (i minutter)**, og klikk på **Opprett regel**.
 3. Legg til ett nivå til for teamet eller lederen som skal få beskjed etterpå.
 :::
@@ -208,15 +208,15 @@ Kjøringens melding i Slack og Microsoft Teams, hendelsens feed og **Tidslinje f
 
 ## Eskaler en varsling
 
-Den som blir varslet og ikke kan ta det, fordi vedkommende sover, sitter på et fly eller allerede jobber med en annen hendelse, kan eskalere varslingen i stedet for å la den ringe ut. Retningslinjen varsler da neste nivå med en gang, uten å vente ut nivåets **Eskaler etter (i minutter)**, og vedkommende blir ikke varslet om det igjen.
+Den som blir varslet og ikke kan ta det, fordi vedkommende sover, sitter på et fly eller allerede jobber med en annen hendelse, kan eskalere varslingen i stedet for å la den ringe ut. Policyen varsler da neste nivå med en gang, uten å vente ut nivåets **Eskaler etter (i minutter)**, og vedkommende blir ikke varslet om det igjen.
 
-```mermaid title="En eskalert varsling flytter retningslinjen straks til neste nivå"
+```mermaid title="En eskalert varsling flytter policyen straks til neste nivå"
 flowchart TB
     page["Level 1 varsler Alex"] --> take{"Kan Alex<br/>ta den?"}
     take -->|"Ja"| ack["Alex bekrefter:<br/>varslingen stopper"]
     take -->|"Nei"| pass["Alex eskalerer den"]
     pass --> others{"Varsles andre på<br/>Level 1 fortsatt?"}
-    others -->|"Ja"| wait["Retningslinjen venter<br/>på dem som før"]
+    others -->|"Ja"| wait["Policyen venter<br/>på dem som før"]
     others -->|"Nei"| next["Level 2 varsles<br/>nå"]
 ```
 
@@ -237,9 +237,9 @@ Med to eller flere nivåer etter ditt spør OneUptime og sidene som lenkene i en
 
 Hva som skjer videre, avhenger av hvem andre som blir varslet:
 
-- Andre på samme nivå blir fortsatt varslet: retningslinjen venter på dem som før. Den går videre når nivåets ventetid løper ut, eller så snart den siste av dem også eskalerer varslingen.
+- Andre på samme nivå blir fortsatt varslet: policyen venter på dem som før. Den går videre når nivåets ventetid løper ut, eller så snart den siste av dem også eskalerer varslingen.
 - Det er ingen andre igjen på nivået: neste nivå varsles med en gang.
-- Det var det siste nivået: hvis **Gjentakelsesretningslinje** sier at den skal gjentas, starter retningslinjen på nytt fra **Level 1** med en gang. Ellers stopper varslingen, og noen må ta seg av det.
+- Det var det siste nivået: hvis **Gjentakelsespolicy** sier at den skal gjentas, starter policyen på nytt fra **Level 1** med en gang. Ellers stopper varslingen, og noen må ta seg av det.
 
 Å eskalere en varsling bekrefter den ikke: hendelsen eller varselet venter fortsatt på at noen bekrefter, og den som eskalerte den, kan fortsatt bekrefte selv. Denne kjøringen varsler ikke vedkommende om det igjen: et senere nivå, eller en gjentakelse, som nevner vedkommende, hopper over vedkommende. Når alle den varslet har eskalert den, og det ikke er noen igjen å varsle, stopper varslingen, og hendelsens feed sier det.
 
@@ -259,12 +259,12 @@ Kortet til hver regel har **Rediger regel**, og en **⋯**-meny med de andre han
 
 Eskaleringsregler er ressursen `/api/on-call-duty-policy-escalation-rule`; personene, teamene og vaktplanene en regel varsler, er ressursene `/api/on-call-duty-policy-escalation-rule-user`, `-team` og `-schedule`.
 
-- En regel som opprettes uten `name`, får navn etter nivået sitt, som i dashbordet: **Level 3** for en regel som blir det tredje nivået i retningslinjen. Terraforms ressurs for eskaleringsregler krever fortsatt et navn.
+- En regel som opprettes uten `name`, får navn etter nivået sitt, som i dashbordet: **Level 3** for en regel som blir det tredje nivået i policyen. Terraforms ressurs for eskaleringsregler krever fortsatt et navn.
 - `escalateAfterInMinutes` har ingen standardverdi utenfor dashbordet. En regel som opprettes uten den, venter ikke: neste nivå varsles så snart dette har kjørt. Angi den eksplisitt — 30 er det dashbordet foreslår.
 - En regel som opprettes med `onCallSchedules`, `teams` eller `users` (lister med ID-er) i `miscDataProps`, får de mottakerne; det er slik dashbordets velger **Varsle** sender dem. En regel som opprettes uten dem, varsler ingen før du legger til mottakere gjennom ressursene ovenfor.
 - En regel som opprettes med `nextInRotationSchedules` (en liste med vaktplan-ID-er) i `miscDataProps`, varsler neste person i rotasjonen til hver av disse vaktplanene. På ressursen `-schedule` gjør en rad med `pageNextInRotation` satt til `true` det samme; verdien settes når raden opprettes.
 - Regler som har navn etter nivået sitt, får nye navn når du flytter eller sletter regler i dashbordet. Å endre `order` gjennom API-et eller Terraform endrer bare rekkefølgen.
-- Å opprette en vaktretningslinje på `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (lister med ID-er) i `miscDataProps` gir den den første eskaleringsregelen, slik dashbordet gjør: **Level 1**, som varsler dem, med en `escalateAfterInMinutes` på 30. Hver ID må høre til prosjektet, og den som kaller, må ha lov til å opprette eskaleringsregler, ellers blir ikke retningslinjen opprettet. En retningslinje som opprettes uten dem, har ingen regler, som før; Terraforms ressurs for retningslinjer sender dem ikke.
+- Å opprette en vaktpolicy på `/api/on-call-duty-policy` med `onCallSchedules`, `teams` eller `users` (lister med ID-er) i `miscDataProps` gir den den første eskaleringsregelen, slik dashbordet gjør: **Level 1**, som varsler dem, med en `escalateAfterInMinutes` på 30. Hver ID må høre til prosjektet, og den som kaller, må ha lov til å opprette eskaleringsregler, ellers blir ikke policyen opprettet. En policy som opprettes uten dem, har ingen regler, som før; Terraforms ressurs for policyer sender dem ikke.
 
 ```bash
 curl -X POST https://oneuptime.com/api/on-call-duty-policy \

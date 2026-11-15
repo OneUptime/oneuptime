@@ -214,6 +214,7 @@ function membershipRow(data: {
 }
 
 let isMemberSpy: jest.SpyInstance;
+let hasMembershipSpy: jest.SpyInstance;
 let duplicateLookupSpy: jest.SpyInstance;
 let sendMailSpy: jest.SpyInstance;
 let createTokenSpy: jest.SpyInstance;
@@ -245,6 +246,20 @@ beforeEach(() => {
    */
   isMemberSpy = jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
+
+  /*
+   * And so they have a membership in it: a person picked by id is emailed
+   * only with their first membership in a project (getInviteeToEmailById,
+   * #8421), which TeamMemberInvitationEmailById.test.ts covers.
+   */
+  hasMembershipSpy = jest
+    .spyOn(
+      TeamMemberService as unknown as {
+        hasMembershipInProject: (data: unknown) => Promise<boolean>;
+      },
+      "hasMembershipInProject",
+    )
     .mockResolvedValue(true);
 
   jest
@@ -306,7 +321,7 @@ function sentMail(): EmailMessage {
 }
 
 describe("TeamMemberService.onBeforeCreate - adding a member of the project to another team", () => {
-  test("a project admin adds them straight away: there is nothing for them to accept", async () => {
+  test("a Project Admin adds them straight away: there is nothing for them to accept", async () => {
     /*
      * The bug. This is Users > (user) > Teams > Invite on the dashboard: the
      * row used to be forced to pending, and the person had to accept the
@@ -448,22 +463,25 @@ describe("TeamMemberService.onBeforeCreate - adding a member of the project by e
     expect(create.data.hasAcceptedInvitation).toBe(true);
   });
 
-  test("the email says they have been added, not invited", async () => {
-    await callHook(
-      "onBeforeCreate",
-      addToTeam({
-        props: projectAdminProps(),
-        email: MEMBER_EMAIL.toString(),
-      }),
-    );
+  test("a member who has signed up is not emailed: they are in, and sign in as ever (#8568)", async () => {
+    /*
+     * They were sent "You've Been Added to <project>" for every team,
+     * though they were in it, and a person picked by id for the same team
+     * was sent nothing.
+     */
+    const create: CreateBy<TeamMember> = addToTeam({
+      props: projectAdminProps(),
+      email: MEMBER_EMAIL.toString(),
+    });
 
-    const mail: EmailMessage = sentMail();
+    await callHook("onBeforeCreate", create);
 
-    expect(mail.vars["isInvitationAccepted"]).toBe("true");
-    expect(mail.subject).toBe(`You have been added to ${PROJECT_NAME}`);
+    expect(sendMailSpy).not.toHaveBeenCalled();
+    // Still on the team at once.
+    expect(create.data.hasAcceptedInvitation).toBe(true);
   });
 
-  test("it sends them to sign in, and mints no registration token", async () => {
+  test("and no registration token is minted for them", async () => {
     await callHook(
       "onBeforeCreate",
       addToTeam({
@@ -472,9 +490,20 @@ describe("TeamMemberService.onBeforeCreate - adding a member of the project by e
       }),
     );
 
-    expect(sentMail().vars["isNewUser"]).toBe("false");
-    expect(sentMail().vars["registerLink"]).not.toContain("token=");
     expect(createTokenSpy).not.toHaveBeenCalled();
+  });
+
+  test("a master admin's tick of accept changes nothing for a member who has signed up", async () => {
+    await callHook(
+      "onBeforeCreate",
+      addToTeam({
+        props: masterAdminProps(),
+        email: MEMBER_EMAIL.toString(),
+        hasAcceptedInvitation: true,
+      }),
+    );
+
+    expect(sendMailSpy).not.toHaveBeenCalled();
   });
 
   test("a member who has still not registered is sent to register, with a token", async () => {
@@ -506,10 +535,11 @@ describe("TeamMemberService.onBeforeCreate - adding a member of the project by e
 describe("TeamMemberService.onBeforeCreate - somebody who is not in the project yet is still invited", () => {
   beforeEach(() => {
     isMemberSpy.mockResolvedValue(false);
+    hasMembershipSpy.mockResolvedValue(false);
     stubProjectDirectory({});
   });
 
-  test("a project admin's invitation stays pending", async () => {
+  test("a Project Admin's invitation stays pending", async () => {
     const create: CreateBy<TeamMember> = addToTeam({
       props: projectAdminProps(),
       userId: USER_ID,
@@ -521,7 +551,7 @@ describe("TeamMemberService.onBeforeCreate - somebody who is not in the project 
     expect(create.data.invitationAcceptedAt).toBeUndefined();
   });
 
-  test("a project admin still cannot accept for them", async () => {
+  test("a Project Admin still cannot accept for them", async () => {
     /*
      * The rule the auto-accept guard exists for: a project admin who could
      * accept on behalf of somebody outside the project could pull any account

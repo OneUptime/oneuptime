@@ -152,7 +152,7 @@ const PRESS_RESPONSE_URL: string =
 const ZERO_WIDTH_SPACE: string = String.fromCharCode(0x200b);
 
 const NOT_CONNECTED: string =
-  "This Slack workspace is not connected to a OneUptime project yet. A project admin can connect it in OneUptime under Project Settings → Workspace → Slack.";
+  "This Slack workspace is not connected to a OneUptime project yet. A Project Admin can connect it in OneUptime under Project Settings → Workspace → Slack.";
 
 interface RoutePort {
   port: number;

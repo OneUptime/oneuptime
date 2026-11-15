@@ -23,7 +23,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- OneUptime में Project Owner, Project Admin या Security Admin रोल। Security Member और Security Viewer कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
+- OneUptime में प्रोजेक्ट स्वामी, प्रोजेक्ट एडमिन या सुरक्षा एडमिन रोल। सुरक्षा सदस्य और सुरक्षा दर्शक कनेक्शन और उनका रन इतिहास देख सकते हैं, पर उन्हें बदल नहीं सकते।
 - Elastic Security 8.x या बाद का, Elastic Cloud पर या आपके अपने Elastic स्टैक पर, जिसमें डिटेक्शन नियम किसी Kibana स्पेस में चलते हों।
 - ऐसी Kibana पहुंच जो उस स्पेस के डिटेक्शन अलर्ट देख सके: `.alerts-security.alerts-<space-id>` पर इंडेक्स अनुमतियां `read` और `view_index_metadata`, और Kibana की Security फ़ीचर अनुमति जो उसे वहां अलर्ट पढ़ने दे।
 - एक Kibana जिस तक OneUptime HTTPS पर पहुंच सके। OneUptime Cloud इंटरनेट से कनेक्ट करता है, इसलिए Kibana को एक सार्वजनिक पते की ज़रूरत है, जैसा Elastic Cloud डिप्लॉयमेंट के पास होता है: निजी पते अस्वीकार किए जाते हैं। सेल्फ-होस्टेड OneUptime अपने ऐप और वर्कर कंटेनर से कनेक्ट करता है, और आपके निजी नेटवर्क पर Kibana तक पहुंच सकता है, जब तक `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` न हो।

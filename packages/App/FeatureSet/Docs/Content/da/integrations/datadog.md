@@ -3,7 +3,7 @@
 Send advarsler fra [Datadog](https://www.datadoghq.com)-monitorer til OneUptime, så hver af dem bliver en hændelse eller en advarsel, kalder dit vagthold op, når det er presserende, og løses, når Datadog-monitoren er kommet sig. Datadog sender sine advarsler via sin [Webhooks-integration](https://docs.datadoghq.com/integrations/webhooks/), så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En workflow-skabelon eller en monitor for indgående anmodninger.
+- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En arbejdsgangsskabelon eller en monitor for indgående anmodninger.
 - [Start med skabelonen](#start-med-skabelonen): Vælg, hvem der skal kaldes op, kopiér URL'en, og se, hvad hver advarsel gør.
 - [Modtag advarsler med en monitor](#modtag-advarsler-med-en-monitor): Én hændelse pr. advarsel, løst ved genopretning.
 - [Konfigurer Datadog](#konfigurer-datadog): En webhook og de monitorer, der underretter den.
@@ -27,7 +27,7 @@ En Datadog-monitor underretter de webhooks, som dens besked nævner, når den sk
 ## Før du går i gang
 
 - En Datadog-konto, hvor du kan konfigurere integrationer og redigere monitorer.
-- I OneUptime rettigheden til at oprette workflows, eller monitorer, hvis du vælger den vej. På OneUptime Cloud kræver workflows planen **Growth** eller højere.
+- I OneUptime rettigheden til at oprette arbejdsgange, eller monitorer, hvis du vælger den vej. På OneUptime Cloud kræver arbejdsgange planen **Growth** eller højere.
 
 ## Vælg, hvordan OneUptime modtager advarsler
 
@@ -35,8 +35,8 @@ Sæt OneUptime op først: det giver dig den URL, Datadog sender til.
 
 | Vej | Brug den, når |
 | --- | --- |
-| Workflow-skabelonen (anbefales) | Du vil have hver advarsel som en hændelse eller en advarsel med en alvorlighed ud fra monitorens prioritet, med vagten kaldt op for P1 og P2, med advarselsniveauer noteret på den og løst ved genopretning. Der er intet at bygge. |
-| En monitor for indgående anmodninger | Du vil have hændelser uden et workflow, på enhver plan, og en monitor, hvis status følger Datadog. |
+| Arbejdsgangsskabelonen (anbefales) | Du vil have hver advarsel som en hændelse eller en advarsel med en alvorlighed ud fra monitorens prioritet, med vagten kaldt op for P1 og P2, med advarselsniveauer noteret på den og løst ved genopretning. Der er intet at bygge. |
+| En monitor for indgående anmodninger | Du vil have hændelser uden en arbejdsgang, på enhver plan, og en monitor, hvis status følger Datadog. |
 
 Begge får den samme JSON fra den samme webhook, så du kan begynde med den ene og skifte senere ved at ændre én URL i Datadog.
 
@@ -46,18 +46,18 @@ Dialogen **Opret en arbejdsgang** har to Datadog-skabeloner under **Datadog** i 
 
 :::steps
 1. Gå til **Arbejdsgange**, og klik på **Opret arbejdsgang**. Under **Eller start fra en skabelon** vælger du **Datadog** i kategorilisten, klikker på **Declare an incident when a Datadog monitor triggers** eller **Create an alert when a Datadog monitor triggers** og klikker på **Brug denne skabelon**.
-2. Under **Who to page for P1 and P2 monitors** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Workflowet åbner i **Bygger**, slået fra.
+2. Under **Who to page for P1 and P2 monitors** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Arbejdsgangen åbner i **Bygger**, slået fra.
 3. Klik på triggeren **Webhook**, derefter på **Kopiér URL**, og gem URL'en til Datadog.
-4. Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer Datadog med `400`.
+4. Slå **Aktiveret** til øverst i **Bygger**. En arbejdsgang, der er slået fra, svarer Datadog med `400`.
 :::
 
-Derefter [konfigurerer du Datadog](#konfigurer-datadog) til at sende sine advarsler til den URL. Workflowets trin `read-event-1` åbner med den samme opsætning, til når du vender tilbage til det i **Bygger**.
+Derefter [konfigurerer du Datadog](#konfigurer-datadog) til at sende sine advarsler til den URL. Arbejdsgangens trin `read-event-1` åbner med den samme opsætning, til når du vender tilbage til det i **Bygger**.
 
-### Hvad workflowet gør
+### Hvad arbejdsgangen gør
 
 Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event-1` den `transition`, Datadog sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i advarselsskabelonen, gør det, den betyder, ud fra advarslens cyklusnøgle. Datadog beholder den nøgle fra det øjeblik, en advarsel udløses, til den kommer sig, og næste gang den udløses, er nøglen ny, så hver gang får sin egen hændelse. Hændelsen gemmer nøglen i sit brugerdefinerede felt `datadogAlertCycleKey`.
 
-| Transition | Hvad workflowet gør |
+| Transition | Hvad arbejdsgangen gør |
 | --- | --- |
 | `Triggered`, `Re-Triggered` | Erklærer en hændelse med titlen `Datadog: <monitor>`, med den alvorlighed, monitorens prioritet svarer til, holdt uden for dine statussider. Dens beskrivelse linker til advarslen i Datadog og viser prioriteten, værten, scope og monitorens besked. En notifikation for en advarsel, der har sin hændelse, opretter ingen ny og kalder ingen op igen. |
 | `Recovered` | Løser advarslens hændelse, medmindre den allerede er løst. Hvorfor står på dens tidslinje. |
@@ -200,17 +200,17 @@ curl -X POST "<url>" \
 
 Med skabelonen åbnes en hændelse med titlen `Datadog: High CPU`, og de vagtpolitikker, du valgte, kaldes op. Med monitoren åbnes en hændelse med titlen `[Triggered] High CPU`. Send den samme anmodning med `transition` sat til `Recovered`, og hændelsen løses.
 
-Test derefter fra Datadog: åbn en monitor, der nævner webhooken, klik på **Test Notifications**, og send dens notifikation **Alert**. For at se, at den kom frem, åbn workflowets **Protokoller → Kørsler** eller OneUptime-monitorens tidslinje.
+Test derefter fra Datadog: åbn en monitor, der nævner webhooken, klik på **Test Notifications**, og send dens notifikation **Alert**. For at se, at den kom frem, åbn arbejdsgangens **Protokoller → Kørsler** eller OneUptime-monitorens tidslinje.
 
 ## Fejlfinding
 
 :::details Intet kommer frem til OneUptime
 - Kontrollér, at Datadog-monitorens besked nævner `@webhook-oneuptime`, stavet som webhooken hedder.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, også ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om advarsler kommer frem.
-- Et workflow, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
-:::details Workflowet kører, men åbner intet
+:::details Arbejdsgangen kører, men åbner intet
 Åbn kørslen i **Protokoller → Kørsler**. Posten `read-event-1` under **Trin** siger, hvorfor den tog **Nej**.
 
 - `Datadog named no alert cycle key`: tilføj `"alert_cycle_key": "$ALERT_CYCLE_KEY"` til webhookens payload i Datadog.
@@ -220,7 +220,7 @@ Test derefter fra Datadog: åbn en monitor, der nævner webhooken, klik på **Te
 :::details Vagten bliver ikke kaldt op
 - Kun P1- og P2-monitorer og monitorer uden prioritet kalder op. Se [Prioriteter og opkald](#prioriteter-og-opkald).
 - En notifikation for en advarsel, der har sin hændelse, kalder ingen op igen.
-- Hvis ingen er valgt i dialogen **Opret en arbejdsgang**, har workflowet intet trin, der kalder op.
+- Hvis ingen er valgt i dialogen **Opret en arbejdsgang**, har arbejdsgangen intet trin, der kalder op.
 :::
 
 :::details Hændelser oprettes, men løses aldrig
@@ -232,7 +232,7 @@ Test derefter fra Datadog: åbn en monitor, der nævner webhooken, klik på **Te
 :::
 
 :::details Et felt viser en variabels navn, eller ingenting
-Datadog udfylder kun de variabler, der gælder for begivenheden. Send en testnotifikation, og se derefter, hvad der kom frem: i monitorens tidslinje, eller for et workflow i **Protokoller → Kørsler**.
+Datadog udfylder kun de variabler, der gælder for begivenheden. Send en testnotifikation, og se derefter, hvad der kom frem: i monitorens tidslinje, eller for en arbejdsgang i **Protokoller → Kørsler**.
 :::
 
 :::details Alle advarsler fra en monitor foldes sammen til én hændelse
@@ -241,14 +241,14 @@ Med monitoren skal hver gruppe have sin egen `alert_key`. Kontrollér, at payloa
 
 ## Sikkerhed
 
-- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så nulstil den: **Nulstil URL** i workflowets **Webhook**-trigger, eller **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**. Opdater derefter webhookens **URL** i Datadog.
+- **Behandl URL'en som en adgangskode.** Alle, der har den, kan åbne hændelser. Hvis den slipper ud, så nulstil den: **Nulstil URL** i arbejdsgangens **Webhook**-trigger, eller **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**. Opdater derefter webhookens **URL** i Datadog.
 - **Links går til Datadog.** Skabelonen linker kun en advarsel på et Datadog-websted, uanset hvad en anmodning siger, og skriver det, Datadog sendte, som tekst.
 - **Selvhostet?** Datadog sender webhooks fra internettet, så din OneUptime skal kunne nås derfra over HTTPS.
 
 ## Næste trin
 
 :::cards
-- [Workflow-skabeloner](/docs/workflows/authoring): Opret et workflow fra en skabelon, og ændr det i Bygger.
+- [Arbejdsgangsskabeloner](/docs/workflows/authoring): Opret en arbejdsgang fra en skabelon, og ændr den i Bygger.
 - [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor): Hver indstilling for den monitor, der modtager dine advarsler.
 - [New Relic](/docs/integrations/new-relic): Den samme skabelon, til New Relic-sager.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem, hvem en vagtpolitik kalder op, og hvornår.

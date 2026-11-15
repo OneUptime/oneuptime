@@ -55,7 +55,7 @@ Alles Weitere steht in der [Dokumentation](https://oneuptime.com/docs/de/introdu
 
 ### OneUptime Cloud
 
-[Registrieren Sie sich](https://oneuptime.com/accounts/register) und legen Sie ein Projekt an. Für den kostenlosen Tarif brauchen Sie keine Kreditkarte.
+[Registrieren Sie sich](https://oneuptime.com/accounts/register) und legen Sie ein Projekt an. Ein Projekt braucht keine Karte. Im Free-Tarif erfordert das Prüfen einer Website eine Zahlungsmethode.
 
 ### Selbst hosten mit Docker Compose
 

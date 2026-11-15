@@ -32,7 +32,7 @@ Les noms de domaine internationalisés sont acceptés sous les deux formes : `m�
 
 ## Avant de commencer
 
-- **Un rôle qui peut créer des moniteurs** : Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor.
+- **Un rôle qui peut créer des moniteurs** : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 - **Un accès sortant depuis la sonde** vers les registres. Les sondes par défaut de votre projet sont choisies pour chaque nouveau moniteur ; une [sonde personnalisée](/docs/probe/custom-probe) doit pouvoir joindre :
 
 | Destination | Protocole | Utilisé pour |
@@ -122,8 +122,8 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur de domaine commence avec trois critères, donc il vous avertit avant l'expiration d'un enregistrement sans rien configurer :
 
-1. **Vérification du domaine échouée** — l'enregistrement a expiré, ou ses données n'ont pas pu être lues. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ domain check failed » est créé. L'incident se résout de lui-même dès que l'enregistrement est de nouveau lu et à jour.
-2. **Domaine bientôt expiré** — l'enregistrement n'a pas expiré mais expire dans 30 jours ou moins. Une **alerte** appelée « _monitor name_ domain expires soon » est créée.
+1. **Vérification du domaine échouée** — l'enregistrement a expiré, ou ses données n'ont pas pu être lues. Le moniteur est marqué **Hors ligne** et un incident appelé « Le contrôle du domaine _nom du moniteur_ a échoué » est créé. L'incident se résout de lui-même dès que l'enregistrement est de nouveau lu et à jour.
+2. **Domaine bientôt expiré** — l'enregistrement n'a pas expiré mais expire dans 30 jours ou moins. Une **alerte** appelée « Le domaine _nom du moniteur_ expire bientôt » est créée.
 3. **Domaine non expiré** — le moniteur est marqué **Opérationnel**.
 
 L'avertissement « bientôt expiré » est une alerte, pas un incident : il n'apparaît pas sur vos pages de statut, il ne prévient personne tant que vous n'y ajoutez pas une politique d'astreinte, et il ne change pas l'état du moniteur. Il utilise la deuxième gravité d'alerte de votre projet, **Faible** sur un nouveau projet. Dès que le renouvellement apparaît dans l'enregistrement, l'alerte se résout d'elle-même. Un registre qui ne publie aucune date d'expiration ne donne rien à l'avertissement, qui reste donc silencieux.

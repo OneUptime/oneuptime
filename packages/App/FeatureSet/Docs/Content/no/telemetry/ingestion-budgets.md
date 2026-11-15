@@ -138,9 +138,9 @@ Gå til **Prosjektinnstillinger → Telemetri og APM → Forbruk**. Mens et buds
 
 ## Bli varslet om et budsjett
 
-Hvert 5. minutt skriver OneUptime dagens tall for hvert budsjett som metrikker for prosjektet, og en [metrikkmonitor](/docs/monitor/metrics-monitor) varsler om dem som om alle andre metrikker:
+Hvert 5. minutt skriver OneUptime dagens tall for hvert budsjett som målinger for prosjektet, og en [målingsmonitor](/docs/monitor/metrics-monitor) varsler om dem som om alle andre målinger:
 
-| Metrikk | Enhet | Hva den inneholder |
+| Måling | Enhet | Hva den inneholder |
 | --- | --- | --- |
 | `oneuptime.telemetry.budget.used.bytes` | `By` | Bytene som er telt mot det daglige budsjettet siden budsjettdagen begynte. |
 | `oneuptime.telemetry.budget.used.percent` | `%` | Det samme, som prosent av det daglige budsjettet. Ved 100 eller mer avvises signalet til tilbakestillingen. |
@@ -157,12 +157,12 @@ Hvert punkt har disse attributtene:
 | `ingestionKeyId` | ID-en til nøkkelen, for en nøkkels eget budsjett. |
 | `ingestionKeyName` | Navnet på nøkkelen da punktet ble skrevet, for en nøkkels eget budsjett. |
 
-For å bli varslet ved 90 % av prosjektets loggbudsjett oppretter du en metrikkmonitor på `oneuptime.telemetry.budget.used.percent`, filtrert på `signal` `logs` og `scope` `project`, som varsler når maksimum er over 90:
+For å bli varslet ved 90 % av prosjektets loggbudsjett oppretter du en målingsmonitor på `oneuptime.telemetry.budget.used.percent`, filtrert på `signal` `logs` og `scope` `project`, som varsler når maksimum er over 90:
 
 - **Aggreger med maksimum.** Hvert tall vokser bare i løpet av en budsjettdag.
 - **Bruk et vindu på 15 minutter eller mer.** Et punkt skrives hvert 5. minutt, og et vindu uten punkter løser varselet.
 - **Forvent hull, ikke nuller.** Ingenting skrives for et tall som er 0, eller mens tellingene ikke kan leses.
-- **De koster ingenting.** Disse metrikkene telles ikke mot noe budsjett eller som telemetriforbruk, og de oppbevares like lenge som monitormetrikker: 30 dager, med mindre instansadministratoren endrer det. Metrikknavn som starter med `oneuptime.telemetry.budget.`, er reservert for dem: metrikker applikasjonene dine sender under et slikt navn, forkastes.
+- **De koster ingenting.** Disse målingene telles ikke mot noe budsjett eller som telemetriforbruk, og de oppbevares like lenge som monitormålinger: 30 dager, med mindre instansadministratoren endrer det. Målingsnavn som starter med `oneuptime.telemetry.budget.`, er reservert for dem: målinger applikasjonene dine sender under et slikt navn, forkastes.
 
 ## Feilsøking
 
@@ -188,5 +188,5 @@ OneUptime kan ikke nå Valkey, der budsjettene telles. Til det kan det, lagres t
 - [Telemetriforbruk](/docs/telemetry/usage): Se hva hvert prosjekt og hver tjeneste sender.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Slutt å lagre telemetrien du ikke trenger.
 - [Inntaksnøkler](/docs/telemetry/ingestion-keys): En nøkkel for hver avsender, slik at hver kan ha et budsjett.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Bli varslet om budsjettmetrikkene.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om budsjettmålingene.
 :::

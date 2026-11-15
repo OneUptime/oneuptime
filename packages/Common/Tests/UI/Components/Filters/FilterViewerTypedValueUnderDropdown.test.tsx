@@ -1,5 +1,13 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import { Mock } from "jest-mock";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
@@ -21,7 +29,6 @@ import buildQueryFromFilterData, {
   sanitizeFilterData,
 } from "../../../../UI/Components/ModelTable/FilterDataToQuery";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
-import getJestMockFunction, { MockFunction } from "../../../MockType";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import {
   readDashboardLocale,
@@ -267,7 +274,8 @@ describe("a value typed while the filter was text, under a dropdown", () => {
   });
 
   test("Clear Filters clears it", () => {
-    const onFilterChanged: MockFunction = getJestMockFunction();
+    const onFilterChanged: Mock<(filterData: FilterData<Row>) => void> =
+      jest.fn<(filterData: FilterData<Row>) => void>();
 
     renderViewer(
       "en",

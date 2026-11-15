@@ -255,7 +255,7 @@ describe("the AI SRE page's Limits per run section", () => {
     }
 
     expect(englishSection()).toContain(
-      "Only a project owner or someone with **Manage Billing** can change them.",
+      "Only a Project Owner or someone with **Manage Billing** can change them.",
     );
   });
 

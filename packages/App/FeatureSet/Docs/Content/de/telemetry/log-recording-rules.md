@@ -180,7 +180,7 @@ Mit gesetzter Gruppierung ist jedes Gateway eine eigene Reihe: Wird WAN2 langsam
 - **Zeitstempel stammen aus den Protokollen.** Ein Protokoll landet in der Minute seines eigenen Zeitstempels. Ein Gerät, dessen Uhr mehr als ein wenig falsch geht, legt seine Protokolle in die falsche Minute oder ganz außerhalb des Fensters.
 - **Kein Nachberechnen.** Eine neue Regel beginnt mit der Minute vor ihrem ersten Lauf; ältere Protokolle werden nicht berechnet.
 - **Eine Regel zu löschen** stoppt sie. Die bereits geschriebenen Punkte bleiben, bis sie ablaufen.
-- **Aufzeichnungsregeln laufen mit der vollen Sicht des Projekts auf die Protokolle.** Wer die Ausgabemetrik lesen kann, sieht Zahlen, die aus jedem Protokoll berechnet wurden, auf das der Filter der Regel zutrifft; Aufzeichnungsregeln für Protokolle zu erstellen und zu bearbeiten ist daher Projektinhabern, Admins und den Berechtigungen **Create / Edit Log Recording Rule** vorbehalten.
+- **Aufzeichnungsregeln laufen mit der vollen Sicht des Projekts auf die Protokolle.** Wer die Ausgabemetrik lesen kann, sieht Zahlen, die aus jedem Protokoll berechnet wurden, auf das der Filter der Regel zutrifft; Aufzeichnungsregeln für Protokolle zu erstellen und zu bearbeiten ist daher Projektinhabern, Projektadministratoren und den Berechtigungen **Create / Edit Log Recording Rule** vorbehalten.
 
 ## Berechtigungen
 
@@ -191,7 +191,7 @@ Mit gesetzter Gruppierung ist jedes Gateway eine eigene Reihe: Wird WAN2 langsam
 | Delete Log Recording Rule | Regeln löschen. |
 | Read Log Recording Rule | Regeln sehen und was sie berechnen. |
 
-Projektinhaber und Admins dürfen all das. Projektmitglieder, Betrachter und die Telemetrie-Rollen können Regeln lesen.
+Projektinhaber und Projektadministratoren dürfen all das. Projektmitglieder, Betrachter und die Telemetrie-Rollen können Regeln lesen.
 
 ## Nächste Schritte
 

@@ -955,7 +955,7 @@ describe("when a page finds no rule", () => {
       "statusMessage: NO_NOTIFICATION_RULES_STATUS_MESSAGE,",
     );
     expect(english(PERSONAL_ON_CALL_RULES)).toContain(
-      "A project owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API.",
+      "A Project Owner, or someone with **Manage Billing**, can set the project's `disableOnCallNotificationFallback` through the API.",
     );
   });
 
@@ -1469,7 +1469,7 @@ describe("notification methods", () => {
         Permission.ProjectAdmin,
       );
       expect(WHO_MAY_TURN_THEM_ON).toBe(
-        "a project owner, a Billing Admin or someone with Manage Billing",
+        "a Project Owner, a Billing Admin or someone with Manage Billing",
       );
       expect(PermissionHelper.getTitle(Permission.BillingAdmin)).toBe(
         "Billing Admin",
@@ -1486,7 +1486,7 @@ describe("notification methods", () => {
         expect.arrayContaining(["Notification Channels", "Notification Logs"]),
       );
       expect(methods).toContain(
-        "A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Channels**. A project admin cannot.",
+        "A Project Owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Channels**. A Project Admin cannot.",
       );
     });
   });

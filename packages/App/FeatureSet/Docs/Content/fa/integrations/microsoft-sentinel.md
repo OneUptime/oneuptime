@@ -23,7 +23,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 ## پیش از شروع
 
-- در OneUptime، نقش Project Owner، Project Admin یا Security Admin. Security Member و Security Viewer می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
+- در OneUptime، نقش مالک پروژه، مدیر پروژه یا مدیر امنیت. عضو امنیت و بیننده امنیت می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
 - یک فضای کاری Log Analytics با Microsoft Sentinel فعال، در ابر عمومی Azure یا در Azure Government (US).
 - در Microsoft Entra ID، اجازهٔ ساختن یک ثبت برنامه و یک رمز کلاینت.
 - روی گروه منابعی که فضای کاری را در خود دارد، اجازهٔ واگذاری نقش، مانند Owner یا User Access Administrator.

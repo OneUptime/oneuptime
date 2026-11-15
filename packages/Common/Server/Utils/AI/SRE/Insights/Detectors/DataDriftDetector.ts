@@ -75,11 +75,11 @@ export function buildDataDriftStatement(data: {
   projectId: ObjectID;
   now: Date;
 }): Statement {
-  const recentStart: Date = OneUptimeDate.addRemoveDays(
+  const recentStart: Date = OneUptimeDate.addRemoveDurationInDays(
     data.now,
     -WEEK_IN_DAYS,
   );
-  const priorStart: Date = OneUptimeDate.addRemoveDays(
+  const priorStart: Date = OneUptimeDate.addRemoveDurationInDays(
     data.now,
     -2 * WEEK_IN_DAYS,
   );

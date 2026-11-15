@@ -204,7 +204,7 @@ describe("KubernetesCluster AI access columns", () => {
     );
 
     it.each(SERVER_WRITTEN_COLUMNS)(
-      "%s is refused even for a project owner and admin",
+      "%s is refused even for a Project Owner and admin",
       (column: string) => {
         expect(() => {
           ColumnPermissions.checkDataColumnPermissions(

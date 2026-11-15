@@ -330,7 +330,7 @@ describe("POST /slack/interactive: a press is answered where it was made", () =>
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url).toBe(RESPONSE_URL);
     expect(readAnswer(calls[0]!)).toEqual({
-      text: "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.\n",
+      text: "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.\n",
       connectUrl: null,
     });
   });

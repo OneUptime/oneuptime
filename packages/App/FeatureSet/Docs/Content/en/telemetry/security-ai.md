@@ -123,7 +123,7 @@ Check that **Enable AI** is on, and **Triage new cases** under **Products → Se
 :::
 
 :::details The card says the project is out of AI credits, or reached its daily AI limit
-A project owner or someone with Manage Billing can add credits under **Project Settings → AI → AI Credits**, or raise or remove the limit under **Project Settings → AI → AI Features**. Then click **Triage with AI** on the case.
+A Project Owner or someone with Manage Billing can add credits under **Project Settings → AI → AI Credits**, or raise or remove the limit under **Project Settings → AI → AI Features**. Then click **Triage with AI** on the case.
 :::
 
 :::details The card says text in the case reads like instructions to an AI

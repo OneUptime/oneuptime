@@ -167,7 +167,7 @@ A new website monitor starts with two criteria, so it works without changing any
 - **Offline** — the website does not answer, or answers with a status code of `400` or above (or below `200`). The monitor is marked **Offline** and an incident is created. The incident resolves itself when the website is back.
 - **Online** — the website answers with any `2xx` or `3xx` status code, such as `200`, `204` or `301`. The monitor is marked **Operational**.
 
-In the criteria list they are named after the monitor: _Check if (name) is offline_ and _Check if (name) is online_.
+In the criteria list they are named after the monitor: "Check if _monitor name_ is offline" and "Check if _monitor name_ is online".
 
 So a page that answers `204 No Content`, or a redirect you watch with **Do not follow redirects** turned on, counts as up. If only one status code means healthy for you, change both criteria on the monitor's **Configuration → Criteria** page: for example **Response Status Code** / **Equal To** / `200` in the online criteria and **Not Equal To** / `200` in the offline one, in place of the two status code filters each has.
 

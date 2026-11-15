@@ -1,6 +1,6 @@
 # Microsoft Dynamics 365
 
-Hold [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365)-sager i takt med dine OneUptime-hændelser og -advarsler, begge veje. Færdige workflowskabeloner opretter en sag for hver hændelse eller advarsel, lukker den, når posten er løst, og kopierer noter ind i den. Andre erklærer hændelser ud fra nye sager og bringer løsninger og noter tilbage. Der er intet plugin: workflowene kalder Dataverse Web API, og Dynamics 365 kalder deres webhook-URL'er.
+Hold [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365)-sager i takt med dine OneUptime-hændelser og -advarsler, begge veje. Færdige arbejdsgangsskabeloner opretter en sag for hver hændelse eller advarsel, lukker den, når posten er løst, og kopierer noter ind i den. Andre erklærer hændelser ud fra nye sager og bringer løsninger og noter tilbage. Der er intet plugin: arbejdsgangene kalder Dataverse Web API, og Dynamics 365 kalder deres webhook-URL'er.
 
 :::cards
 - [Forbered Dynamics 365](#forbered-dynamics-365): En appregistrering, en programbruger og en forbindelseskolonne.
@@ -13,27 +13,27 @@ Hold [Microsoft Dynamics 365](https://www.microsoft.com/dynamics-365)-sager i ta
 
 ```mermaid title="To retninger, forbundet af en kolonne på sagen"
 flowchart TB
-    record["Hændelse eller<br/>advarsel"] -->|"erklæret, løst,<br/>noteret"| out["Workflows til<br/>Dynamics 365"]
+    record["Hændelse eller<br/>advarsel"] -->|"erklæret, løst,<br/>noteret"| out["Arbejdsgange til<br/>Dynamics 365"]
     out -->|"Web API, logget ind<br/>via Entra ID"| case["Dynamics 365-sag,<br/>med en<br/>forbindelseskolonne"]
     case -->|"oprettet, løst,<br/>noteret"| flow["Power Automate-flow<br/>eller Dataverse-webhook"]
-    flow --> back["Workflows fra<br/>Dynamics 365"]
+    flow --> back["Arbejdsgange fra<br/>Dynamics 365"]
     back -->|"erklær, løs,<br/>tilføj noter"| record
 ```
 
-Hver skabelon er et lille workflow, så du tager kun de retninger, du vil have, for hændelser, advarsler eller begge. Skabelonerne OneUptime → Dynamics 365 kalder Dataverse Web API, logget ind som et program via Microsoft Entra ID. Skabelonerne Dynamics 365 → OneUptime starter, når et Power Automate-flow eller en Dataverse-webhook kalder dem. En tekstkolonne, som du tilføjer til tabellen Case, forbinder hver sag med dens post.
+Hver skabelon er en lille arbejdsgang, så du tager kun de retninger, du vil have, for hændelser, advarsler eller begge. Skabelonerne OneUptime → Dynamics 365 kalder Dataverse Web API, logget ind som et program via Microsoft Entra ID. Skabelonerne Dynamics 365 → OneUptime starter, når et Power Automate-flow eller en Dataverse-webhook kalder dem. En tekstkolonne, som du tilføjer til tabellen Case, forbinder hver sag med dens post.
 
 ## Før du går i gang
 
 - Et Dynamics 365-miljø med tabellen **Case**. Sager kommer fra Dynamics 365 Customer Service: et Dataverse-miljø uden det har ingen `incident`-tabel at skrive til.
 - Rettigheder til at registrere et program i **Microsoft Entra ID** og til at oprette en programbruger i miljøet. Det er ofte to forskellige administratorer.
-- I OneUptime rettigheden til at oprette workflows. På OneUptime Cloud kræver workflows **Growth**-abonnementet eller højere.
+- I OneUptime rettigheden til at oprette arbejdsgange. På OneUptime Cloud kræver arbejdsgange **Growth**-abonnementet eller højere.
 
 > [!NOTE]
 > Denne side bruger Dataverses navne, ikke etiketterne på Dynamics-formularerne. En sag er tabellen `incident`, dens samling i en URL er `incidents`, dens nøgle er `incidentid`, og dens titelkolonne er `title`. Det sagsnummer, du ser, er `ticketnumber`.
 
 ## Forbered Dynamics 365
 
-Både skabelonerne og et workflow, du selv bygger, har brug for dette. OneUptime logger ind som et program, ikke som en person, med OAuth 2.0-flowet for klientlegitimationsoplysninger.
+Både skabelonerne og en arbejdsgang, du selv bygger, har brug for dette. OneUptime logger ind som et program, ikke som en person, med OAuth 2.0-flowet for klientlegitimationsoplysninger.
 
 :::steps
 ### Registrer et program i Microsoft Entra ID
@@ -104,7 +104,7 @@ Skabelonerne til advarsler gør det samme arbejde for advarsler. Der er én mind
 
 Ingen af skabelonerne OneUptime → Dynamics 365 sender en hændelse markeret som **Privat hændelse** eller en advarsel markeret som **Privat advarsel** til Dynamics 365: hverken posten, dens tilstand eller dens noter, medmindre du slår det til. Se [Ændr, hvad en skabelon gør](#ændr-hvad-en-skabelon-gør).
 
-**Monitorer udløser selv advarsler, og det kan blive mange.** **Create a Dynamics 365 case when an alert is created** opretter en sag for hver eneste. Medmindre hver advarsel fortjener en sag, så sæt en **If / Else**-blok mellem triggeren og resten af workflowet, f.eks. på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og forbind kun dens **Ja**-side videre.
+**Monitorer udløser selv advarsler, og det kan blive mange.** **Create a Dynamics 365 case when an alert is created** opretter en sag for hver eneste. Medmindre hver advarsel fortjener en sag, så sæt en **If / Else**-blok mellem triggeren og resten af arbejdsgangen, f.eks. på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og forbind kun dens **Ja**-side videre.
 
 ### Hvad skabelonerne beder om
 
@@ -118,29 +118,29 @@ Trinnet **Konfigurer** i oprettelsesguiden beder om op til syv værdier: hver sk
 - **Customer for New Cases** — kun de to skabeloner, der opretter en sag, beder om den. Hver sag skal have en kunde, og en OneUptime-hændelse har ingen, så alle nye sager oprettes i én kundes navn: indsæt ID'et for en konto, eller `contacts(<id>)` for en kontaktperson. Åbn posten i Dynamics 365: dens ID er delen efter `id=` i adressen.
 - **OneUptime URL** — kun de to skabeloner, der opretter en sag, beder om den: den adresse, du åbner OneUptime på, f.eks. `https://oneuptime.com`. Sagens beskrivelse linker med den tilbage til hændelsen eller advarslen.
 
-**Sådan logger skabelonerne ind.** Guiden gemmer lejeren, klient-ID'et og hemmeligheden i én [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv), `dynamicsAccessToken`, under workflowets **Arbejdsgangsvariabler**: Client Credentials, token-URL'en `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, scopet `<environment URL>/.default` og klienthemmeligheden, sendt i anmodningens brødtekst og gemt krypteret. Hvert kald til Dynamics 365 sender `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime henter tokenet første gang, et trin har brug for det, henter et nyt, før det udløber, og erstatter det med `[REDACTED]` i kørselslogs og trinspor.
+**Sådan logger skabelonerne ind.** Guiden gemmer lejeren, klient-ID'et og hemmeligheden i én [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv), `dynamicsAccessToken`, under arbejdsgangens **Arbejdsgangsvariabler**: Client Credentials, token-URL'en `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, scopet `<environment URL>/.default` og klienthemmeligheden, sendt i anmodningens brødtekst og gemt krypteret. Hvert kald til Dynamics 365 sender `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime henter tokenet første gang, et trin har brug for det, henter et nyt, før det udløber, og erstatter det med `[REDACTED]` i kørselslogs og trinspor.
 
 For at kontrollere login, før noget kører, åbner du **Arbejdsgangsvariabler**, klikker på **Vis** ved `dynamicsAccessToken` og klikker på **Opdater nu**. **Adgangstoken hentet** betyder, at appregistreringen er i orden. Ellers nævner fejlen fra Microsoft Entra ID, hvad der er galt, f.eks. `AADSTS7000215: Invalid client secret provided`.
 
-Hvert workflow har sin egen kopi. Når du udskifter klienthemmeligheden, åbner du `dynamicsAccessToken` i hvert Dynamics 365-workflow og bruger **Opdater legitimationsoplysninger**.
+Hver arbejdsgang har sin egen kopi. Når du udskifter klienthemmeligheden, åbner du `dynamicsAccessToken` i hvert Dynamics 365-arbejdsgang og bruger **Opdater legitimationsoplysninger**.
 
-### Opret workflowene
+### Opret arbejdsgangene
 
 :::steps
 1. Åbn **Arbejdsgange → Opret arbejdsgang**. Vælg **Dynamics 365** i kategorilisten under **Eller start fra en skabelon**, eller skriv `Dynamics` i **Søg i skabeloner…**, og klik på den skabelon, du vil have. Den åbnes og viser, hvad den gør, og hvilke indstillinger den vil bede om. Klik på **Brug denne skabelon**.
 2. **Navn** udfyldes ud fra skabelonen. Skift det, hvis du vil.
 3. **Konfigurer** beder om værdierne ovenfor.
-4. Klik på **Opret arbejdsgang**. Hvert workflow oprettes slået fra: slå **Aktiveret** til øverst i dets **Bygger**.
+4. Klik på **Opret arbejdsgang**. Hver arbejdsgang oprettes slået fra: slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
-Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** til advarsler: alle andre skabeloner OneUptime → Dynamics 365 af samme slags finder sagen via den forbindelse, som denne skriver. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn workflowets **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Svarets brødtekst** i dens sidste trin, `create-case-1`, indeholder den nye sags `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
+Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** til advarsler: alle andre skabeloner OneUptime → Dynamics 365 af samme slags finder sagen via den forbindelse, som denne skriver. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn arbejdsgangens **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Svarets brødtekst** i dens sidste trin, `create-case-1`, indeholder den nye sags `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
 
 ### Forbind skabelonerne Dynamics 365 → OneUptime
 
 Skabelonerne Dynamics 365 → OneUptime, tre til hændelser og tre til advarsler, starter fra en [Webhook-trigger](/docs/workflows/triggers#webhook), så Dynamics 365 skal have at vide, hvor det skal sende sine begivenheder hen. Gør det i denne rækkefølge:
 
-1. Opret workflowet, og **slå det til først**. Et workflow, der er slået fra, afviser leveringer, og de sættes ikke i kø.
-2. Åbn workflowets **Bygger**, klik på triggerblokken **Webhook** (`webhook-1`), og klik på **Kopiér URL** øverst i dens indstillinger. URL'en ser sådan ud:
+1. Opret arbejdsgangen, og **slå den til først**. En arbejdsgang, der er slået fra, afviser leveringer, og de sættes ikke i kø.
+2. Åbn arbejdsgangens **Bygger**, klik på triggerblokken **Webhook** (`webhook-1`), og klik på **Kopiér URL** øverst i dens indstillinger. URL'en ser sådan ud:
 
    ```text
    https://<your OneUptime host>/workflow/trigger/<webhook secret key>
@@ -152,7 +152,7 @@ Hver skabelon behøver kun at vide, hvilken række der ændrede sig. Den læser 
 
 :::tabs
 @tab Power Automate flow
-Opret i [Power Automate](https://make.powerautomate.com) et **Automated cloud flow** med **Microsoft Dataverse**-triggeren **When a row is added, modified or deleted**, sat op som nedenfor, med **Scope** sat til **Organization**. Tilføj den indbyggede handling **HTTP**: **Method** `POST`, **URI** workflowets URL, en `Content-Type: application/json`-header og brødteksten nedenfor, med rækkens ID valgt fra triggerens dynamiske indhold.
+Opret i [Power Automate](https://make.powerautomate.com) et **Automated cloud flow** med **Microsoft Dataverse**-triggeren **When a row is added, modified or deleted**, sat op som nedenfor, med **Scope** sat til **Organization**. Tilføj den indbyggede handling **HTTP**: **Method** `POST`, **URI** arbejdsgangens URL, en `Content-Type: application/json`-header og brødteksten nedenfor, med rækkens ID valgt fra triggerens dynamiske indhold.
 
 | Skabelon | Change type | Table name | Select columns | Body |
 | --- | --- | --- | --- | --- |
@@ -175,8 +175,8 @@ Når en sag løses, udløses meddelelsen **Close**, ikke **Update**, og derfor h
 
 Før du stoler på en af dem:
 
-- **Alle, der har URL'en, kan udløse workflowet.** Fordi skabelonerne læser hver række igen fra Dynamics 365, kan en anmodning kun få dem til at se på en rigtig sag eller note. Den kan stadig få oprettelsesskabelonerne til at handle på en sag, der endnu ikke er forbundet. Opbevar kun URL'en i flowet eller webhooken. Hvis den slipper ud, så klik på **Webhook**-triggeren i workflowets **Bygger**, klik på **Nulstil URL**, og indsæt den nye URL i flowet eller webhooken. Den gamle URL holder op med at virke med det samme.
-- **Hver begivenhed er en kørsel**, også dem, en skabelon springer over. På OneUptime Cloud tæller hver af dem med i dit abonnements workflowkørsler, og filtrering i flowet holder tallet nede. Se [Abonnementsgrænser](/docs/workflows/configuration#plangrænser).
+- **Alle, der har URL'en, kan udløse arbejdsgangen.** Fordi skabelonerne læser hver række igen fra Dynamics 365, kan en anmodning kun få dem til at se på en rigtig sag eller note. Den kan stadig få oprettelsesskabelonerne til at handle på en sag, der endnu ikke er forbundet. Opbevar kun URL'en i flowet eller webhooken. Hvis den slipper ud, så klik på **Webhook**-triggeren i arbejdsgangens **Bygger**, klik på **Nulstil URL**, og indsæt den nye URL i flowet eller webhooken. Den gamle URL holder op med at virke med det samme.
+- **Hver begivenhed er en kørsel**, også dem, en skabelon springer over. På OneUptime Cloud tæller hver af dem med i dit abonnements arbejdsgangskørsler, og filtrering i flowet holder tallet nede. Se [Abonnementsgrænser](/docs/workflows/configuration#plangrænser).
 - **Bruger du begge skabeloner, der opretter en post ud fra en sag?** **Declare an incident when a Dynamics 365 case is created** og **Create an alert when a Dynamics 365 case is created** handler begge på hver sag, de får sendt. Hver af dem tjekker forbindelseskolonnen først, men to leveringer for én ny sag kommer samtidig, så sagen kan ende med både en hændelse og en advarsel. Send de to forskellige sager, f.eks. efter sagstype.
 
 ### Kontrollér, at det virker
@@ -221,7 +221,7 @@ Behold markørerne, når du redigerer skabelonerne. De er konstanterne `FROM_ONE
 
 ### Ændr, hvad en skabelon gør
 
-Åbn workflowets **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript-kode** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
+Åbn arbejdsgangens **Bygger**, og klik på den blok, du vil ændre. De indstillinger, du mest sandsynligt vil ændre, er konstanter øverst i et script, **JavaScript-kode** i en **Check With JavaScript**-blok, lige under den fælles hjælpeblok. Versionerne til hændelser og til advarsler har de samme konstanter i de samme blokke.
 
 | Konstant | Skabelon og blok | Hvad den styrer |
 | --- | --- | --- |
@@ -244,7 +244,7 @@ Tilstands- og statusnavne, der bruges som nøgler, skal staves præcis, som de h
 - **Microsofts kommercielle sky.** Token-URL'en er `login.microsoftonline.com`. Til skyerne US Government (GCC High, DoD) eller Kina åbner du `dynamicsAccessToken`, bruger **Rediger indstillinger** og ændrer token-URL'en til din skys login-vært, f.eks. `login.microsoftonline.us`.
 - **Dynamics 365 kan nægte at løse en sag.** Dine Customer Service-indstillinger kan forhindre, at en sag løses, mens den har åbne aktiviteter eller åbne undersager, og en forretningsregel eller et plug-in kan også afvise det. Kørslen mislykkes ved `close-case-1` med Dynamics 365's begrundelse, og sagen forbliver, som den var.
 - **Poster og sager går aldrig baglæns.** At genåbne en sag ændrer intet i OneUptime, og en løst post genåbnes aldrig. En sag, der allerede er løst eller annulleret, genåbnes aldrig for at blive lukket igen.
-- **Noter og beskrivelser er almindelig tekst.** En note skrevet i Dynamics 365's editor til formateret tekst kommer ind i OneUptime som den tekst, den viser, og det samme gør en sagsbeskrivelse, der er skrevet i editoren eller hentet fra en e-mail: afsnit og linjeskift bevares, mens formatering, billeder og e-mailens egne typografier forsvinder. En OneUptime-note kommer frem i Dynamics 365 som sine rå tegn, Markdown og det hele. Tekst fra Dynamics 365 — en sags titel og beskrivelse, en note, navnene på statusser, prioriteter, kunder og personer — læses præcis, som den blev skrevet: et billede, et link, HTML, et diagram eller en chatomtale som `<!channel>`, der er skrevet i den, vises som sine tegn og gør intet, fordi en usynlig word joiner sættes efter det tegn, der ville starte det. En kopi af teksten beholder word joineren. Et workflow beholder de scripts, det blev oprettet med, så et workflow oprettet ud fra en ældre version af en skabelon skriver tekst, som den version gjorde: opret det igen ud fra skabelonen for at få dette. Vedhæftede filer bliver i Dynamics 365; noten i OneUptime nævner filen.
+- **Noter og beskrivelser er almindelig tekst.** En note skrevet i Dynamics 365's editor til formateret tekst kommer ind i OneUptime som den tekst, den viser, og det samme gør en sagsbeskrivelse, der er skrevet i editoren eller hentet fra en e-mail: afsnit og linjeskift bevares, mens formatering, billeder og e-mailens egne typografier forsvinder. En OneUptime-note kommer frem i Dynamics 365 som sine rå tegn, Markdown og det hele. Tekst fra Dynamics 365 — en sags titel og beskrivelse, en note, navnene på statusser, prioriteter, kunder og personer — læses præcis, som den blev skrevet: et billede, et link, HTML, et diagram eller en chatomtale som `<!channel>`, der er skrevet i den, vises som sine tegn og gør intet, fordi en usynlig word joiner sættes efter det tegn, der ville starte det. En kopi af teksten beholder word joineren. En arbejdsgang beholder de scripts, den blev oprettet med, så en arbejdsgang oprettet ud fra en ældre version af en skabelon skriver tekst, som den version gjorde: opret det igen ud fra skabelonen for at få dette. Vedhæftede filer bliver i Dynamics 365; noten i OneUptime nævner filen.
 - **Redigerede noter kopieres ikke**, kun nye, medmindre du tilføjer `'Update'` til `MESSAGES`.
 - **Private hændelser og advarsler bliver i OneUptime**, men skabelonerne Dynamics 365 → OneUptime kontrollerer det ikke: noter og statusændringer på en forbundet sag når stadig en privat post.
 - **Hver sag får en post.** Medmindre du filtrerer flowet eller sætter `ONLY_PRIORITIES`, opretter skabelonerne, der opretter en post ud fra en sag, en hændelse eller advarsel for hver ny sag, de får sendt. I et travlt kundeservicemiljø er det mange.
@@ -256,7 +256,7 @@ Skabelonerne dækker de almindelige tilfælde. For at bygge en retning selv bygg
 
 ### Log ind med en OAuth 2.0-variabel
 
-Opret tokenet én gang, til alle workflows, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv):
+Opret tokenet én gang, til alle arbejdsgange, som en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv):
 
 1. Gå til **Arbejdsgange → Globale variabler**, åbn menuen **Mere** (**⋯**) ved siden af **Opret Arbejdsgangsvariabel**, og vælg **Opret OAuth 2.0-variabel**. Giv den navnet `DYNAMICS_TOKEN`.
 2. Vælg **Microsoft Entra ID** under **Udbyder**, erstat `{tenant-id}` i **Token-URL** med dit Directory (tenant) ID, og vælg **Client Credentials**.
@@ -269,7 +269,7 @@ Scopet skal være din miljø-URL efterfulgt af `/.default`. En forkert miljø-UR
 ### Opret en sag for hver hændelse
 
 :::steps
-1. Opret et workflow fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Fields to pass on** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre.
+1. Opret en arbejdsgang fra bunden med navnet `Incidents to Dynamics 365`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Fields to pass on** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre.
 2. Klik på **Tilføj komponent**, tilføj en **API Post (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-case` og dens **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
@@ -302,7 +302,7 @@ Scopet skal være din miljø-URL efterfulgt af `/.default`. En forkert miljø-UR
 
 Hver sag skal have en kunde, så `customerid` er påkrævet. Den kan pege på en konto eller en kontaktperson, og derfor skriver du `customerid_account@odata.bind` eller `customerid_contact@odata.bind`, stavet præcist. `Prefer: return=representation` gør svaret til `201` med selve sagen, så den næste blok kan læse `{{local.components.create-case.returnValues.response-body.incidentid}}`. Uden den svarer Dynamics 365 `204` uden brødtekst.
 
-`new_oneuptimelink` er forbindelseskolonnen fra [Forbered Dynamics 365](#forbered-dynamics-365), med den samme værdi, som skabelonerne skriver, så dine workflows og skabelonerne finder hinandens sager. Brug din kolonnes logiske navn.
+`new_oneuptimelink` er forbindelseskolonnen fra [Forbered Dynamics 365](#forbered-dynamics-365), med den samme værdi, som skabelonerne skriver, så dine arbejdsgange og skabelonerne finder hinandens sager. Brug din kolonnes logiske navn.
 
 ### Tilknyt prioritet og status
 
@@ -320,10 +320,10 @@ Dynamics 365 leveres med `severitycode` med en enkelt mulighed, så sæt i stede
 
 ### Løs sagen, når hændelsen løses
 
-Byg dette som et andet workflow, så en fejl her aldrig forhindrer, at der oprettes sager.
+Byg dette som en anden arbejdsgang, så en fejl her aldrig forhindrer, at der oprettes sager.
 
 :::steps
-1. Opret et workflow med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Fields to pass on**, åbn **Current Incident State**, og vælg **Is Resolved State**.
+1. Opret en arbejdsgang med navnet `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Fields to pass on**, åbn **Current Incident State**, og vælg **Is Resolved State**.
 2. Tilføj en **If / Else**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Sammenligning** **er sand**.
 3. Tilføj efter dens **Ja**-side en **API Get (JSON)**-blok med **Identifier** `find-case`, de samme headere uden `Prefer` og denne **URL**:
 
@@ -351,16 +351,16 @@ Brug `CloseIncident` til at løse i stedet for en `PATCH` af `statecode`: den re
 
 ### Modtag ændringer fra Dynamics 365
 
-Byg først det modtagende workflow:
+Byg først den modtagende arbejdsgang:
 
-1. Opret et workflow med navnet `Dynamics 365 to OneUptime`, med triggeren **Webhook**.
-2. Åbn workflowets **Bygger**, klik på **Webhook**-triggeren, og klik på **Kopiér URL** øverst i dens indstillinger. URL'en ser sådan ud:
+1. Opret en arbejdsgang med navnet `Dynamics 365 to OneUptime`, med triggeren **Webhook**.
+2. Åbn arbejdsgangens **Bygger**, klik på **Webhook**-triggeren, og klik på **Kopiér URL** øverst i dens indstillinger. URL'en ser sådan ud:
 
    ```text
    https://oneuptime.com/workflow/trigger/<webhook secret key>
    ```
 
-   På en selvhostet installation har URL'en din egen vært. Behandl URL'en som en adgangskode: alle, der har den, kan starte workflowet. Hvis den slipper ud, så klik på **Nulstil URL** samme sted, og den gamle URL holder op med at virke med det samme.
+   På en selvhostet installation har URL'en din egen vært. Behandl URL'en som en adgangskode: alle, der har den, kan starte arbejdsgangen. Hvis den slipper ud, så klik på **Nulstil URL** samme sted, og den gamle URL holder op med at virke med det samme.
 
 3. Tilføj en **If / Else**-blok, der tjekker en delt hemmelighed før alt andet: **Værdi, der skal tjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lig med**, **Sammenlign med** en værdi, du selv finder på, gemt i en hemmelig global variabel.
 4. Tilføj efter dens **Ja**-side en **Update One Incident**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON Object)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
@@ -371,14 +371,14 @@ Slå det til, og få derefter Dynamics 365 til at kalde det:
 @tab Power Automate flow
 1. Opret i [Power Automate](https://make.powerautomate.com) et **Automated cloud flow** med **Microsoft Dataverse**-triggeren **When a row is added, modified or deleted**: **Change type** `Modified`, **Table name** `Cases`, **Scope** `Organization` og **Select columns** `statecode,statuscode`, så den kun udløses ved statusændringer.
 2. Tilføj **Get a row by ID** på `Cases`, med rækkens ID fra triggeren: en opdatering indeholder kun de kolonner, der ændrede sig.
-3. Tilføj den indbyggede handling **HTTP**: **Method** `POST`, **URI** workflowets URL, headerne `Content-Type: application/json` og `X-OneUptime-Secret: <your secret>` og en brødtekst bygget ud fra rækken: `oneuptimeIncidentId` er forbindelseskolonnen uden `oneuptime-incident-`, f.eks. `replace(<link column>, 'oneuptime-incident-', '')`, ved siden af `ticketnumber` og `statecode`.
+3. Tilføj den indbyggede handling **HTTP**: **Method** `POST`, **URI** arbejdsgangens URL, headerne `Content-Type: application/json` og `X-OneUptime-Secret: <your secret>` og en brødtekst bygget ud fra rækken: `oneuptimeIncidentId` er forbindelseskolonnen uden `oneuptime-incident-`, f.eks. `replace(<link column>, 'oneuptime-incident-', '')`, ved siden af `ticketnumber` og `statecode`.
 4. Gem flowet, og slå det til.
 
 Microsoft Dataverse-connectoren er premium: flowets ejer skal have licensen, og flowet stopper, hvis den udløber. Levering tager som regel få sekunder.
 @tab Dataverse webhook
-1. Registrer workflowets URL med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, med **HttpHeader**-godkendelse og headeren `X-OneUptime-Secret`.
+1. Registrer arbejdsgangens URL med [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook): **Register New WebHook**, med **HttpHeader**-godkendelse og headeren `X-OneUptime-Secret`.
 2. Registrer et trin for meddelelsen **Update** på `incident`, med **Filtering Attributes** begrænset til de kolonner, du har brug for, **PostOperation** og **Asynchronous**.
-3. Læs payloaden i workflowet: det er plug-in'ets kørselskontekst, hvor `InputParameters` er en liste af `{key, value}`-par, og den ændrede række ligger under `Target`. En **Run Custom JavaScript**-blok er den nemmeste måde at læse den på.
+3. Læs payloaden i arbejdsgangen: det er plug-in'ets kørselskontekst, hvor `InputParameters` er en liste af `{key, value}`-par, og den ændrede række ligger under `Target`. En **Run Custom JavaScript**-blok er den nemmeste måde at læse den på.
 
 Dataverse kalder kun portene 80 og 443, venter 60 sekunder på et svar og prøver igen én gang, kun ved `502`, `503` og `504`. En opdatering indeholder kun de kolonner, der ændrede sig, så registrer et post-image til de andre.
 :::
@@ -395,7 +395,7 @@ Advarsler fungerer på samme måde. Skift posttypen, og intet andet ændrer sig:
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-Et workflow har præcis én trigger, så hændelser og advarsler skal have ét workflow hver. For at udføre det samme Dynamics 365-arbejde for begge bygger du det én gang i et workflow med en **Manuel**-trigger og starter det fra begge med en **Execute Workflow**-blok.
+En arbejdsgang har præcis én trigger, så hændelser og advarsler skal have én arbejdsgang hver. For at udføre det samme Dynamics 365-arbejde for begge bygger du det én gang i en arbejdsgang med en **Manuel**-trigger og starter det fra begge med en **Execute Workflow**-blok.
 
 ## Fejlfinding
 
@@ -430,14 +430,14 @@ En regel til dubletregistrering gav et match. Indsnævr reglen, eller stop med a
 :::
 
 :::details 429 Too Many Requests
-Dataverses grænser for tjenestebeskyttelse tillader omkring 6.000 anmodninger og 20 minutters kørselstid pr. bruger i enhver periode på fem minutter. Svaret indeholder `Retry-After` i sekunder. Sæt en **Sleep**-blok i et workflow, der sender i bølger, eller flyt arbejdet til et planlagt workflow.
+Dataverses grænser for tjenestebeskyttelse tillader omkring 6.000 anmodninger og 20 minutters kørselstid pr. bruger i enhver periode på fem minutter. Svaret indeholder `Retry-After` i sekunder. Sæt en **Sleep**-blok i en arbejdsgang, der sender i bølger, eller flyt arbejdet til en planlagt arbejdsgang.
 :::
 
 :::details Intet når OneUptime
 Send selv en anmodning til webhook-URL'en med `curl`, og find den i **Protokoller → Kørsler**. Hvis din kommer frem, og Dynamics 365's ikke gør, så kig længere oppe i kæden: flowets egen kørselshistorik eller de mislykkede System Jobs for en Dataverse-webhook.
 :::
 
-:::details Workflowet kører, men hændelsen ændrer sig ikke
+:::details Arbejdsgangen kører, men hændelsen ændrer sig ikke
 En **Update One Incident**-blok rapporterer `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det er en succes, ikke en fejl. Kontrollér, at ID'et i anmodningen virkelig er OneUptime-hændelsens, og at du forespørger på `_id`.
 :::
 
@@ -445,7 +445,7 @@ En **Update One Incident**-blok rapporterer `Items Updated: 0`, når dens foresp
 
 :::cards
 - [Jira](/docs/integrations/jira): Den samme tovejssynkronisering til Jira-sager.
-- [Workflow-variabler](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv): OAuth 2.0-variabler og de tokens, de holder friske.
-- [Workflow-konfiguration & sikkerhed](/docs/workflows/configuration): Webhooksikkerhed, udgående netværksadgang og abonnementsgrænser.
+- [Arbejdsgangsvariabler](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv): OAuth 2.0-variabler og de tokens, de holder friske.
+- [Arbejdsgangskonfiguration & sikkerhed](/docs/workflows/configuration): Webhooksikkerhed, udgående netværksadgang og abonnementsgrænser.
 - [IP-adresser](/docs/configuration/ip-addresses): OneUptimes udgående adresser, hvis Dynamics 365 står bag en tilladelsesliste.
 :::

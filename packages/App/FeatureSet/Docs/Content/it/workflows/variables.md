@@ -1,11 +1,11 @@
-# Variabili del workflow
+# Variabili del flusso di lavoro
 
-Le variabili sono il modo in cui i dati si muovono in un workflow: dal trigger al primo blocco, da un blocco al successivo, e dai valori che salvi una volta a ogni blocco che ne ha bisogno. L'impostazione di un blocco legge un valore con un riferimento tra doppie parentesi graffe, e l'esecutore lo compila subito prima che il blocco venga eseguito.
+Le variabili sono il modo in cui i dati si muovono in un flusso di lavoro: dal trigger al primo blocco, da un blocco al successivo, e dai valori che salvi una volta a ogni blocco che ne ha bisogno. L'impostazione di un blocco legge un valore con un riferimento tra doppie parentesi graffe, e l'esecutore lo compila subito prima che il blocco venga eseguito.
 
 | Valore                          | Da dove viene                                                    | Come lo legge un blocco                               |
 | ------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------- |
 | **Variabile globale**           | Salvata in **Flussi di lavoro → Variabili globali**               | `{{global.variables.NAME}}`                          |
-| **Variabile del workflow**      | Salvata nella pagina **Variabili del flusso** di un workflow      | `{{local.variables.NAME}}`                           |
+| **Variabile del flusso di lavoro**      | Salvata nella pagina **Variabili del flusso** di un flusso di lavoro      | `{{local.variables.NAME}}`                           |
 | **Il valore di un blocco precedente** | Ciò che il trigger o un blocco precedente ha restituito in questa esecuzione | `{{local.components.BLOCK_ID.returnValues.VALUE_ID}}` |
 
 ```mermaid title="Da dove vengono i valori di un blocco"
@@ -13,7 +13,7 @@ flowchart TB
     subgraph saved["Salvate una volta"]
         direction LR
         global["Variabili globali"]
-        local["Variabili del workflow"]
+        local["Variabili del flusso di lavoro"]
     end
     trigger["Trigger"] -->|"restituisce"| earlier["Blocchi precedenti"]
     saved --> settings["Le impostazioni del blocco"]
@@ -25,7 +25,7 @@ Raramente scrivi un riferimento a mano. Fai clic su **{ }** alla fine di un'impo
 
 ## Variabili globali
 
-Valori validi per tutto il progetto che salvi una volta e riusi in ogni workflow: chiavi API, URL, nomi di canali — qualsiasi cosa tu non voglia copiare in dieci workflow diversi.
+Valori validi per tutto il progetto che salvi una volta e riusi in ogni flusso di lavoro: chiavi API, URL, nomi di canali — qualsiasi cosa tu non voglia copiare in dieci flussi di lavoro diversi.
 
 :::steps
 ### Apri le variabili globali
@@ -51,13 +51,13 @@ Nel passaggio **Valore**, compila:
 Fai clic su **Crea: Variabile del flusso di lavoro**. Per cambiare il nome o la descrizione prima di farlo, fai clic su **Variabile** nell'elenco dei passaggi accanto al modulo (visibile sugli schermi larghi); ciò che hai scritto in entrambi i passaggi viene conservato.
 :::
 
-Usa una variabile globale in qualsiasi workflow con:
+Usa una variabile globale in qualsiasi flusso di lavoro con:
 
 ```text
 {{global.variables.NAME}}
 ```
 
-Ad esempio, se hai salvato la tua chiave PagerDuty come `PAGERDUTY_KEY`, qualsiasi blocco può usarla come `{{global.variables.PAGERDUTY_KEY}}`: l'editor salva il riferimento, e la registrazione del workflow elimina il valore segreto risolto.
+Ad esempio, se hai salvato la tua chiave PagerDuty come `PAGERDUTY_KEY`, qualsiasi blocco può usarla come `{{global.variables.PAGERDUTY_KEY}}`: l'editor salva il riferimento, e la registrazione del flusso di lavoro elimina il valore segreto risolto.
 
 L'elenco mostra il nome e la descrizione di ogni variabile. Fai clic su **Visualizza** in una riga per aprire la pagina della variabile. Mostra se la variabile è statica o OAuth 2.0, ed è lì che fai tutto il resto:
 
@@ -70,17 +70,17 @@ L'elenco mostra il nome e la descrizione di ogni variabile. Fai clic su **Visual
 
 Per creare invece una variabile **token di accesso OAuth 2.0**, apri il menu **Altro** (**⋯**) accanto a **Crea: Variabile del flusso di lavoro** e scegli **Crea variabile OAuth 2.0**. Le variabili OAuth 2.0 hanno [una sezione tutta loro](#variabili-oauth-20-token-che-si-rinnovano-da-soli) più sotto. Il tipo di una variabile non può essere cambiato dopo il salvataggio.
 
-Puoi anche aggiornare una variabile tramite l'API, come spiegato [alla fine di questa pagina](#aggiornare-una-variabile-da-un-workflow). Le variabili globali e del workflow sono una funzione del piano Growth.
+Puoi anche aggiornare una variabile tramite l'API, come spiegato [alla fine di questa pagina](#aggiornare-una-variabile-da-un-flusso-di-lavoro). Le variabili globali e del flusso di lavoro sono una funzione del piano Growth.
 
-## Variabili locali del workflow
+## Variabili locali del flusso di lavoro
 
-Variabili limitate a un solo workflow, gestite in **Variabili del flusso** nel menu di quel workflow. Funzionano come le variabili globali: **Crea: Variabile del flusso di lavoro** crea una variabile statica, il menu **Altro** (**⋯**) crea una variabile OAuth 2.0 e **Visualizza** apre la pagina di una variabile. Fai riferimento a esse con:
+Variabili limitate a un solo flusso di lavoro, gestite in **Variabili del flusso** nel menu di quel flusso di lavoro. Funzionano come le variabili globali: **Crea: Variabile del flusso di lavoro** crea una variabile statica, il menu **Altro** (**⋯**) crea una variabile OAuth 2.0 e **Visualizza** apre la pagina di una variabile. Fai riferimento a esse con:
 
 ```text
 {{local.variables.NAME}}
 ```
 
-Usane una per un valore che serve solo a quel workflow, come l'URL del webhook Slack di un modello. I modelli che chiedono impostazioni le salvano come variabili del workflow, così puoi cambiarle in seguito senza modificare i blocchi.
+Usane una per un valore che serve solo a quel flusso di lavoro, come l'URL del webhook Slack di un modello. I modelli che chiedono impostazioni le salvano come variabili del flusso di lavoro, così puoi cambiarle in seguito senza modificare i blocchi.
 
 ## Variabili OAuth 2.0 (token che si rinnovano da soli)
 
@@ -96,7 +96,7 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 
 ```mermaid title="Prima di un passaggio che usa la variabile"
 sequenceDiagram
-    participant Runner as Esecutore dei workflow
+    participant Runner as Esecutore dei flussi di lavoro
     participant Variable as Variabile OAuth 2.0
     participant IdP as Provider di identità
     Runner->>Variable: Legge il token in cache
@@ -108,7 +108,7 @@ sequenceDiagram
     Runner->>Runner: Esegue il passaggio con<br/>un token non scaduto
 ```
 
-- La prima volta che un workflow usa la variabile, OneUptime chiede un token di accesso all'endpoint dei token del tuo provider di identità e lo conserva.
+- La prima volta che un flusso di lavoro usa la variabile, OneUptime chiede un token di accesso all'endpoint dei token del tuo provider di identità e lo conserva.
 - Prima di ogni passaggio che fa riferimento alla variabile, l'esecutore controlla il token. Se è scaduto, o scade entro il minuto successivo, ne viene recuperato uno nuovo prima che il passaggio venga eseguito. Il componente riceve sempre un token non scaduto, per quanto a lungo la variabile sia rimasta inutilizzata e per quanto duri l'esecuzione.
 - Solo i passaggi che fanno davvero riferimento alla variabile provocano un rinnovo. Un'esecuzione che non usa mai una variabile non ne recupera mai il token, e non fallisce perché quel provider è irraggiungibile.
 - Quando molte esecuzioni hanno bisogno di un nuovo token nello stesso momento, una lo recupera e le altre usano quello.
@@ -125,7 +125,7 @@ sequenceDiagram
 
 **Crea variabile OAuth 2.0** chiede una cosa per passaggio:
 
-1. **Variabile**: il nome con cui i workflow fanno riferimento alla variabile, e una descrizione.
+1. **Variabile**: il nome con cui i flussi di lavoro fanno riferimento alla variabile, e una descrizione.
 2. **Provider**: scegli il tuo **Provider di identità** e OneUptime compila il suo **URL del token**:
 
    | Provider di identità | URL del token che compila |
@@ -144,7 +144,7 @@ sequenceDiagram
 
 Sotto alcuni campi il modulo aggiunge una riga di aiuto per il provider che hai scelto, ad esempio dove Microsoft Entra ID mostra il tuo tenant ID, e che il suo client secret è il **Valore** del segreto, non il suo **Secret ID**.
 
-Quando salvi una nuova variabile OAuth 2.0, OneUptime recupera subito il suo primo token e ti dice cosa ha risposto il provider. Un errore di battitura nel secret o nell'URL emerge in quel momento, non ore dopo in un'esecuzione non riuscita. Recuperare un token scrive nella variabile, quindi serve il permesso di modificare le variabili del workflow; se puoi creare variabili ma non modificarle, sarà la prima esecuzione di un workflow che usa la variabile a recuperarne il token.
+Quando salvi una nuova variabile OAuth 2.0, OneUptime recupera subito il suo primo token e ti dice cosa ha risposto il provider. Un errore di battitura nel secret o nell'URL emerge in quel momento, non ore dopo in un'esecuzione non riuscita. Recuperare un token scrive nella variabile, quindi serve il permesso di modificare le variabili del flusso di lavoro; se puoi creare variabili ma non modificarle, sarà la prima esecuzione di un flusso di lavoro che usa la variabile a recuperarne il token.
 
 La pagina della variabile (fai clic su **Visualizza** nella sua riga) ha una scheda **Impostazioni OAuth 2.0**. **Modifica impostazioni** ripercorre gli stessi passaggi **Provider** (URL del token), **Credenziali** (client ID) e **Avanzato** (ambito, parametri aggiuntivi, autenticazione del client). **Avanti** prosegue e **Salva modifiche** è nell'ultimo passaggio. Ogni passaggio è già compilato, quindi l'elenco dei passaggi accanto al modulo apre uno qualsiasi di essi: cambia un'impostazione nel suo passaggio, poi apri l'ultimo passaggio e salva. Il tipo di concessione resta fisso una volta salvato.
 
@@ -155,12 +155,12 @@ La scheda **Token di accesso** nella pagina di una variabile OAuth 2.0 mostra un
 | Stato                      | Cosa significa                                                                                                                       |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **Valido**                 | Il token in cache non è ancora scaduto.                                                                                              |
-| **Scaduto**                | Normale per una variabile che nessun workflow ha usato di recente. La prossima esecuzione che la usa recupera un nuovo token.       |
+| **Scaduto**                | Normale per una variabile che nessun flusso di lavoro ha usato di recente. La prossima esecuzione che la usa recupera un nuovo token.       |
 | **Non ancora recuperato**  | Non è stato recuperato nessun token da quando la variabile è stata creata o le sue impostazioni sono cambiate.                       |
 | **Nessuna scadenza indicata** | Il provider non ha detto quando scade il token, quindi ogni esecuzione ne recupera uno nuovo.                                        |
 | **Aggiornamento non riuscito** | L'ultimo tentativo di ottenere un token non è riuscito. Il motivo del provider viene mostrato per intero, con il momento in cui è successo. Il prossimo rinnovo riuscito lo cancella. |
 
-**Aggiorna ora**, sotto lo stato, recupera subito un nuovo token. Usalo per verificare nuove impostazioni senza eseguire un workflow. **Aggiorna le credenziali**, nella scheda **Impostazioni OAuth 2.0**, sostituisce il client secret o il refresh token, poi recupera un token con essi. Modificare qualsiasi impostazione (URL del token, client ID, ambito e così via) scarta il token in cache, quindi l'esecuzione successiva ne recupera uno con le nuove impostazioni.
+**Aggiorna ora**, sotto lo stato, recupera subito un nuovo token. Usalo per verificare nuove impostazioni senza eseguire un flusso di lavoro. **Aggiorna le credenziali**, nella scheda **Impostazioni OAuth 2.0**, sostituisce il client secret o il refresh token, poi recupera un token con essi. Modificare qualsiasi impostazione (URL del token, client ID, ambito e così via) scarta il token in cache, quindi l'esecuzione successiva ne recupera uno con le nuove impostazioni.
 
 ### Quando il provider dice di no
 
@@ -176,7 +176,7 @@ Se il rinnovo fallisce quando il token in cache non è ancora davvero scaduto (e
 
 ### Passare da un token statico esistente a OAuth 2.0
 
-Il tipo di una variabile resta fisso una volta salvata. Elimina la variabile statica e crea una variabile OAuth 2.0 con lo **stesso nome**. I workflow fanno riferimento alle variabili per nome, quindi usano la nuova senza alcuna modifica.
+Il tipo di una variabile resta fisso una volta salvata. Elimina la variabile statica e crea una variabile OAuth 2.0 con lo **stesso nome**. I flussi di lavoro fanno riferimento alle variabili per nome, quindi usano la nuova senza alcuna modifica.
 
 ## Output dei componenti (i dati dei blocchi precedenti)
 
@@ -245,12 +245,12 @@ Arriva un webhook con un corpo come `{ "service": "checkout", "status": "failed"
 
 ### Usare un segreto in una chiamata API
 
-Un workflow che chiama PagerDuty:
+Un flusso di lavoro che chiama PagerDuty:
 
 1. Salva `PAGERDUTY_KEY` come variabile globale segreta.
 2. Sul blocco **API**, imposta l'header `Authorization` su `Token token={{global.variables.PAGERDUTY_KEY}}`.
 
-La chiave resta fuori dal workflow e dai registri.
+La chiave resta fuori dal flusso di lavoro e dai registri.
 
 ### Concatenare due chiamate API
 
@@ -261,7 +261,7 @@ La prima chiamata ti dà un ID di cui ha bisogno la seconda:
 
 Se `lookup-order` non va a buon fine, scatta la sua uscita **Errore** invece di **Successo**. Collegala a un blocco Email o Slack, così gli errori non passano inosservati.
 
-## Aggiornare una variabile da un workflow
+## Aggiornare una variabile da un flusso di lavoro
 
 Uno schema comune è ruotare una credenziale con una pianificazione: recuperare un token nuovo da una terza parte, poi salvarlo di nuovo nella variabile così l'esecuzione successiva lo usa. Fallo con un blocco **API** che chiama l'API di OneUptime.
 

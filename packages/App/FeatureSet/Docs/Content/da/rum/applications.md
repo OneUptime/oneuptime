@@ -145,7 +145,7 @@ For at slette én persons data i stedet for en hel applikation skal du indsende 
 
 ## Tilladelser
 
-Alle med projektets Seer-rolle kan se RUM-applikationer og deres telemetri. Sessionsafspilning er holdt uden for den rolle med vilje: at vise optagelser, at se en og at læse, hvem der så den, er separate tilladelser. Projektejere og -administratorer har dem alle. Tilladelsesvælgerne viser hver tilladelse med dens titel, her vist i kursiv.
+Alle med projektets Seer-rolle kan se RUM-applikationer og deres telemetri. Sessionsafspilning er holdt uden for den rolle med vilje: at vise optagelser, at se en og at læse, hvem der så den, er separate tilladelser. Projektejere og Projektadministratorer har dem alle. Tilladelsesvælgerne viser hver tilladelse med dens titel, her vist i kursiv.
 
 | Tilladelse | Lader et medlem |
 | --- | --- |

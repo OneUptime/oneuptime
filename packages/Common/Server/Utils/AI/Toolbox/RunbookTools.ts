@@ -34,12 +34,18 @@ import {
   AIActionTableCell,
   aiActionPluralSentence,
   aiActionSentence,
+  AIActionSentence,
+  aiActionTerm,
+  describeAIActionSentence,
 } from "../../../../Types/AI/AIActionWords";
 import {
   AI_READ_CITATION_PLURALS,
   AI_READ_CITATIONS,
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
+  AI_READ_RUNBOOK_STEP_INSTRUCTIONS,
+  AI_READ_RUNBOOK_STEP_TYPES,
 } from "../../../../Types/AI/AIReadTableWords";
 import {
   citationOf,
@@ -79,35 +85,56 @@ function configString(config: JSONObject, key: string): string {
 
 /*
  * One human/model-readable line describing what a step actually DOES — the
- * script, command, request or prompt behind it. Long values are fine here:
- * the serializer caps each field at its per-field limit.
+ * script, command, request or prompt behind it — as a sentence of
+ * Types/AI/AIReadTableWords, which the table says in the reader's language
+ * (issue #8313): the script, the address, the prompt and the command are
+ * data in it. Null for a step type newer than this build, whose raw config
+ * is shown instead. Long values are fine here: the serializer caps each
+ * field at its per-field limit.
  */
-function describeStepInstructions(step: RunbookStep): string {
+export function describeStepInstructionWords(
+  step: RunbookStep,
+): AIActionSentence | null {
   const config: JSONObject = (step.config || {}) as unknown as JSONObject;
+  const words: typeof AI_READ_RUNBOOK_STEP_INSTRUCTIONS =
+    AI_READ_RUNBOOK_STEP_INSTRUCTIONS;
 
   switch (step.type) {
     case RunbookStepType.Manual: {
-      return "Manual step — a responder performs this by hand (see the step title/description).";
+      return aiActionSentence(words.manual);
     }
     case RunbookStepType.JavaScript: {
-      return `Runs JavaScript on a runner: ${configString(config, "script")}`;
+      return aiActionSentence(words.javaScript, {
+        script: configString(config, "script"),
+      });
     }
     case RunbookStepType.Bash: {
-      return `Runs bash on a runner: ${configString(config, "script")}`;
+      return aiActionSentence(words.bash, {
+        script: configString(config, "script"),
+      });
     }
     case RunbookStepType.HttpRequest: {
       const body: string = configString(config, "body");
-      return `HTTP ${configString(config, "method")} ${configString(config, "url")}${
-        body ? ` with body: ${body}` : ""
-      }`;
+      const request: { method: string; url: string } = {
+        method: configString(config, "method"),
+        url: configString(config, "url"),
+      };
+
+      return body
+        ? aiActionSentence(words.httpRequestWithBody, { ...request, body })
+        : aiActionSentence(words.httpRequest, request);
     }
     case RunbookStepType.AI: {
-      return `AI step with prompt: ${configString(config, "prompt")}`;
+      return aiActionSentence(words.ai, {
+        prompt: configString(config, "prompt"),
+      });
     }
     case RunbookStepType.SSH: {
       // A step written before runbook variables runs one command.
       if (isLegacySSHStepConfig(config)) {
-        return `Runs over SSH: ${configString(config, "command")}`;
+        return aiActionSentence(words.sshCommand, {
+          command: configString(config, "command"),
+        });
       }
 
       /*
@@ -117,36 +144,49 @@ function describeStepInstructions(step: RunbookStep): string {
        */
       const username: string = configString(config, "username");
       const host: string = configString(config, "host");
-      const target: string = username ? `${username}@${host}` : host;
 
-      return `Runs a bash script over SSH on ${target}: ${configString(
-        config,
-        "script",
-      )}`;
+      return aiActionSentence(words.sshScript, {
+        target: username ? `${username}@${host}` : host,
+        script: configString(config, "script"),
+      });
     }
     case RunbookStepType.Kubernetes: {
       // A step written before kubectl scripts restarts or scales a workload.
       if (isLegacyKubernetesStepConfig(config)) {
         const replicas: unknown = config["replicas"];
-        return `Kubernetes ${configString(config, "action")} on ${configString(
-          config,
-          "workloadKind",
-        )} ${configString(config, "namespace")}/${configString(
-          config,
-          "workloadName",
-        )}${typeof replicas === "number" ? ` (replicas: ${replicas})` : ""}`;
+        const workload: Record<string, string> = {
+          action: configString(config, "action"),
+          workloadKind: configString(config, "workloadKind"),
+          namespace: configString(config, "namespace"),
+          workloadName: configString(config, "workloadName"),
+        };
+
+        return typeof replicas === "number"
+          ? aiActionSentence(words.kubernetesActionWithReplicas, {
+              ...workload,
+              replicas: String(replicas),
+            })
+          : aiActionSentence(words.kubernetesAction, workload);
       }
 
-      return `Runs kubectl commands on a runner: ${configString(
-        config,
-        "script",
-      )}`;
+      return aiActionSentence(words.kubectl, {
+        script: configString(config, "script"),
+      });
     }
     default: {
-      // Unknown step type (newer schema than this build) — show the raw config.
-      return JSON.stringify(config);
+      return null;
     }
   }
+}
+
+// The same line in English, for the model: a newer step type's raw config.
+function describeStepInstructions(step: RunbookStep): string {
+  const words: AIActionSentence | null = describeStepInstructionWords(step);
+
+  // Unknown step type (newer schema than this build) — show the raw config.
+  return words
+    ? describeAIActionSentence(words)
+    : JSON.stringify((step.config || {}) as unknown as JSONObject);
 }
 
 /*
@@ -246,7 +286,10 @@ export const QueryRunbooksTool: ObservabilityTool = {
         return {
           dataForLlm: serialized.text,
           rowCount: serialized.rowCount,
-          citationLabel: `Runbook ${runbookId.toString()}`,
+          // In the reader's language (issue #8311).
+          ...citationSentence(AI_TOOL_CITATIONS.runbookById, {
+            id: runbookId.toString(),
+          }),
           citationTarget: {
             type: AIChatCitationTargetType.RunbookView,
             params: { runbookId: runbookId.toString() },
@@ -396,6 +439,24 @@ export const QueryRunbooksTool: ObservabilityTool = {
                   title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.runbook, {
                     name: runbook.name || "",
                   }),
+                  /*
+                   * Each step's type, as the runbook's Steps page names it,
+                   * and what it does (issue #8313).
+                   */
+                  cells: steps.map(
+                    (step: RunbookStep): Record<string, AIActionTableCell> => {
+                      const instructions: AIActionSentence | null =
+                        describeStepInstructionWords(step);
+                      const type: string | undefined = step.type
+                        ? AI_READ_RUNBOOK_STEP_TYPES[step.type]
+                        : undefined;
+
+                      return {
+                        ...(type ? { type: aiActionTerm(type) } : {}),
+                        ...(instructions ? { instructions } : {}),
+                      };
+                    },
+                  ),
                 },
                 // The runbook's own description, as written.
                 description: runbook.description || undefined,

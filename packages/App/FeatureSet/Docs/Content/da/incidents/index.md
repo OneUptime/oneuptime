@@ -61,13 +61,13 @@ Fem veje fører til det samme objekt:
 - **Via API'et** — `POST /api/incident` med en API-nøgle. Serveren udfylder `declaredAt`, oprettelsestilstanden og hændelsesnummeret for dig.
 - **Via en formular** — en uden for dit team udfylder en formular, du har delt som et link, uden en OneUptime-konto. Hændelsen erklæres skjult for statussider, ud fra formularens hændelsesskabelon, hvis den har en. Se [Formularer](/docs/forms/index).
 
-Workflows åbner også hændelser: [Huntress](/docs/integrations/huntress)-workflowet gør hver hændelsesrapport, dens SOC sender, til én hændelse, der tilkalder den vagtpolitik, du vælger. Se [Opret en hændelse](/docs/incidents/declaring-incidents) for gennemgangen felt for felt.
+Arbejdsgange åbner også hændelser: [Huntress](/docs/integrations/huntress)-arbejdsgangen gør hver hændelsesrapport, dens SOC sender, til én hændelse, der tilkalder den vagtpolitik, du vælger. Se [Opret en hændelse](/docs/incidents/declaring-incidents) for gennemgangen felt for felt.
 
 ### 2. De rigtige personer får det at vide
 
 Ved oprettelsen kører OneUptime den automatisering, du har sat op: privatlivsregler, ejerregler, etiketregler, vagtregler og runbook-regler. Alle vagtpolitikker, der er knyttet til hændelsen — i hånden, fra en skabelon eller lagt til af en vagtregel, der matcher — udføres parallelt.
 
-Ejerne får besked via de kanaler, hver af dem har slået til under **Brugerindstillinger → Notifikationsindstillinger**: e-mail, SMS, taleopkald, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en hændelse slet ingen ejere, går beskeden til projektets ejere i stedet for at gå tabt.
+Ejerne får besked via de kanaler, hver af dem har slået til under **Brugerindstillinger → Notifikationsindstillinger**: e-mail, SMS, taleopkald, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en hændelse slet ingen ejere, går beskeden til Projektejere i stedet for at gå tabt.
 
 Er hændelsen synlig på en statusside, og er notifikationer til abonnenter slået til, får abonnenterne også besked: abonnenterne på hver statusside, der viser en af dens monitorer, eller kun dem på de sider, du har begrænset den til. Se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience) for at give hver målgruppe sin egen statusside.
 
@@ -157,7 +157,7 @@ Rediger eller tilføj alvorsgrader under **Hændelser → Indstillinger → Hæn
 
 | Afsnit        | Hvad du gør der                                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Oversigt**  | **Alle hændelser**, **Aktive hændelser** og **Postmortem-analyser** — den anden har et rødt mærke med antallet af hændelser i en tilstand over den løste tilstand, og den tredje viser postmortem for hver hændelse, så du kan filtrere efter ejer, alvorlighed eller status. |
+| **Oversigt**  | **Alle hændelser**, **Aktive hændelser**, **Postmortem-analyser** og **Handlingspunkter** — den anden har et rødt mærke med antallet af hændelser i en tilstand over den løste tilstand, den tredje viser postmortem for hver hændelse, så du kan filtrere efter ejer, alvorlighed eller status, og den fjerde viser handlingspunkterne fra alle postmortem-analyser, med den tidligste frist først. Se [Postmortem-analyser](/docs/incidents/postmortems#se-alle-handlingspunkter). |
 | **Episoder**  | Hændelsesepisoder, en separat grupperingsfunktion med sine egne sider.                                                                                                    |
 | **AI**        | **Indsigter**, **Protokoller**, **Indstillinger**: hvad OneUptime AI har lært af dine hændelser, og alt, hvad den har gjort for dem, og hvad den må gøre på egen hånd — med reglerne for, hvilke hændelser den undersøger og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbejdsområde** | De chatarbejdsområder, projektet har forbundet: **Slack**, **Microsoft Teams** og **Mattermost**, hver med sine notifikationsregler for hændelser. Er ingen af dem forbundet, indeholder det **Forbind et arbejdsområde**, en side, der viser alle tre, og hvordan de forbindes. |
@@ -203,7 +203,7 @@ Hvad hver side indeholder:
 - **Vagtpolitikker står for tilkaldelsen.** Knyt politikker på trinnet **Vagt og roller** i guiden til at erklære, på en skabelon, eller via **Hændelser → Regler → Vagtregler**. Hver regel, der matcher, udløses — det, der udføres, er foreningen af alle match plus alt, hvad der er knyttet direkte, uden dubletter.
 - **Runbooks fortæller folk, hvad de skal gøre.** Runbook-regler knytter automatisk en procedure til, når en matchende hændelse oprettes, og dem, der reagerer, kan starte en i hånden fra hændelsen. Se [Runbooks – Oversigt](/docs/runbooks/index).
 - **Statussider informerer kunderne.** En hændelse vises i en statussides aktive liste, når siden viser en af dens monitorer, siden har hændelser slået til, hændelsen er markeret som synlig på statussiden, og dens aktuelle tilstand står over den løste tilstand. En hændelse, der er begrænset til nogle statussider, vises kun på dem. Private hændelser er altid skjult for alle statussider. Se [Statussider – Oversigt](/docs/status-pages/index) og [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience).
-- **Workflows automatiserer omkring den.** Med udløserne **On Create Incident**, **On Update Incident**, **On Create or Update Incident** og **On Delete Incident** bygger du automatisering uden kode oven på hændelsens livscyklus. Se [Workflows – Oversigt](/docs/workflows/index).
+- **Arbejdsgange automatiserer omkring den.** Med udløserne **On Create Incident**, **On Update Incident**, **On Create or Update Incident** og **On Delete Incident** bygger du automatisering uden kode oven på hændelsens livscyklus. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ## Næste skridt
 

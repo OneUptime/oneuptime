@@ -1,10 +1,10 @@
 # GitLab
 
-Ouvrez une issue [GitLab](https://gitlab.com) pour chaque incident OneUptime, afin que le travail qui en découle soit suivi dans le projet propriétaire du service. Un workflow appelle l'[API Issues](https://docs.gitlab.com/api/issues/#new-issue) de GitLab, sur GitLab.com ou sur votre propre GitLab.
+Ouvrez une issue [GitLab](https://gitlab.com) pour chaque incident OneUptime, afin que le travail qui en découle soit suivi dans le projet propriétaire du service. Un flux de travail appelle l'[API Issues](https://docs.gitlab.com/api/issues/#new-issue) de GitLab, sur GitLab.com ou sur votre propre GitLab.
 
 :::cards
-- [Enregistrer le jeton](#enregistrer-le-jeton): Gardez le jeton de GitLab hors de vos workflows.
-- [Ouvrir une issue pour chaque incident](#ouvrir-une-issue-gitlab-pour-chaque-incident): Un workflow, deux blocs.
+- [Enregistrer le jeton](#enregistrer-le-jeton): Gardez le jeton de GitLab hors de vos flux de travail.
+- [Ouvrir une issue pour chaque incident](#ouvrir-une-issue-gitlab-pour-chaque-incident): Un flux de travail, deux blocs.
 - [Conseils](#conseils): Votre propre GitLab, les chemins de projet et les assignés.
 - [Dépannage](#dépannage): Quand GitLab refuse une requête.
 :::
@@ -14,19 +14,19 @@ Ouvrez une issue [GitLab](https://gitlab.com) pour chaque incident OneUptime, af
 
 ## Fonctionnement
 
-```mermaid title="Un workflow, une issue GitLab"
+```mermaid title="Un flux de travail, une issue GitLab"
 flowchart TB
-    declared["Incident déclaré"] --> workflow["Workflow :<br/>On Create Incident"]
+    declared["Incident déclaré"] --> workflow["Flux de travail :<br/>On Create Incident"]
     workflow -->|"POST issues"| issue["Issue GitLab"]
 ```
 
-Le workflow s'exécute une fois pour chaque nouvel incident. Son bloc **API Post (JSON)** envoie le titre et la description de l'incident aux issues du projet, signés avec un jeton d'accès.
+Le flux de travail s'exécute une fois pour chaque nouvel incident. Son bloc **API Post (JSON)** envoie le titre et la description de l'incident aux issues du projet, signés avec un jeton d'accès.
 
 ## Avant de commencer
 
 - L'ID du projet GitLab. Sur la page d'aperçu du projet, sélectionnez le menu d'actions, les trois points verticaux, puis **Copy project ID**.
 - Un jeton d'accès GitLab avec le scope `api`, pour un utilisateur ou un bot dont le rôle dans le projet peut créer des issues : un jeton d'accès de projet, de groupe ou personnel. Créez-le sous **Settings → Access tokens** dans le projet, le groupe ou vos paramètres utilisateur.
-- Dans OneUptime, le droit de créer des workflows et des variables globales. Sur OneUptime Cloud, les workflows nécessitent l'offre **Growth** ou supérieure.
+- Dans OneUptime, le droit de créer des flux de travail et des variables globales. Sur OneUptime Cloud, les flux de travail nécessitent l'offre **Growth** ou supérieure.
 
 ## Enregistrer le jeton
 
@@ -41,7 +41,7 @@ Une variable secrète est remplacée par `[REDACTED]` dans les journaux d'exécu
 ## Ouvrir une issue GitLab pour chaque incident
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Incidents to GitLab` et cliquez sur **Créer un flux de travail**.
 
@@ -106,8 +106,8 @@ GitLab ne peut pas lire le corps : `title` manque, ou un champ a le mauvais type
 ## Étapes suivantes
 
 :::cards
-- [GitHub](/docs/integrations/github): Le même workflow pour GitHub, et l'application GitHub.
-- [Composants de workflow](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
-- [Exécutions de workflow](/docs/workflows/runs-and-logs): Lisez ce que chaque requête a envoyé et reçu.
+- [GitHub](/docs/integrations/github): Le même flux de travail pour GitHub, et l'application GitHub.
+- [Composants de flux de travail](/docs/workflows/components#api): Chaque paramètre des blocs d'API.
+- [Exécutions de flux de travail](/docs/workflows/runs-and-logs): Lisez ce que chaque requête a envoyé et reçu.
 - [Présentation des intégrations](/docs/integrations/index): Les modèles derrière chaque intégration.
 :::

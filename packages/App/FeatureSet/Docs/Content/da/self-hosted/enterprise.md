@@ -34,7 +34,7 @@ Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise 
 
 | Funktion | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| Overvågning, advarsler, hændelser, vagtordning, statussider, logs, metrikker, traces, exceptions, dashboards, workflows, AI-funktioner, API og Terraform | Ja | Ja | Alle abonnementer |
+| Overvågning, advarsler, hændelser, vagtordning, statussider, logs, metrikker, traces, exceptions, dashboards, arbejdsgange, AI-funktioner, API og Terraform | Ja | Ja | Alle abonnementer |
 | Login med adgangskode, totrinsgodkendelse, teams, indbyggede roller og API-nøgler | Ja | Ja | Alle abonnementer |
 | [SAML-SSO og OpenID Connect](/docs/identity/sso) til login i projekter | Ja | Ja | Abonnementet Scale og derover |
 | SAML-SSO og OpenID Connect til login på private statussider | Ja | Ja | Abonnementet Scale og derover |

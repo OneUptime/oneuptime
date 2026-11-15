@@ -46,14 +46,14 @@ De er atskilt med vilje. Å slå på alle kanaler i **Varselinnstillinger** tilk
 | **Kom i gang** | **Oppsettsjekkliste**: hva som gjenstår å sette opp, i den rekkefølgen som teller |
 | **Varsler og notifikasjoner** | **Varselmetoder**, **Slik når man meg**, **Varselinnstillinger** og **E-postinnstillinger**, der du bestemmer hvor mange e-poster oppdateringene dine blir til |
 | **Vaktlogger** | **Vaktlogger**: hver gang du ble tilkalt i dette prosjektet, og hva som ble sendt |
-| **Retningslinjer for innkommende anrop** | **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
+| **Policy for innkommende anrop** | **Innkommende telefonnumre**: nummeret en policy for innkommende anrop ringer deg på |
 | **Kalender** | **Kalenderfeed**: vaktene dine i kalenderappen din, og påminnelser før de starter |
 | **Profil** | **Egendefinerte felt**: opplysninger prosjektet ditt ber medlemmene om |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams** og **Mattermost**: din egen konto, i hvert arbeidsområde prosjektet har koblet til |
 
 **Kom i gang** og **Varsler og notifikasjoner** er åpne; de andre seksjonene starter sammenslått, og en seksjon åpner seg selv når du er på en av sidene dens. **Arbeidsområde** vises bare når prosjektet har koblet til Slack, Microsoft Teams eller Mattermost.
 
-Prosjekteiere og administratorer kan også se oppsettet ditt: Under **Brukere** åpner de raden din og seksjonen **Vakt** i den, med **Beredskap**, **Varselmetoder** og **Slik når man meg**. De kan legge til en metode for deg der, men koden går til selve metoden, så bare du kan verifisere den.
+Prosjekteiere og Prosjektadministratorer kan også se oppsettet ditt: Under **Brukere** åpner de raden din og seksjonen **Vakt** i den, med **Beredskap**, **Varselmetoder** og **Slik når man meg**. De kan legge til en metode for deg der, men koden går til selve metoden, så bare du kan verifisere den.
 
 ## Dette starter du med
 
@@ -116,7 +116,7 @@ Det som endres, er OneUptimes egne ord: emnelinjer, overskrifter, knapper og set
 :::
 
 :::details Jeg får e-poster om ting jeg aldri har bedt om
-Du eier tingen, direkte eller gjennom et team, eller tingen har ingen eiere og du er prosjekteier. Slå av hendelsen under **Brukerinnstillinger → Varselinnstillinger**, eller skru ned mengden under **Brukerinnstillinger → E-postinnstillinger**.
+Du eier tingen, direkte eller gjennom et team, eller tingen har ingen eiere og du er Prosjekteier. Slå av hendelsen under **Brukerinnstillinger → Varselinnstillinger**, eller skru ned mengden under **Brukerinnstillinger → E-postinnstillinger**.
 :::
 
 :::details Tilkallingene mine er på engelsk, selv om dashbordet ikke er det

@@ -122,7 +122,7 @@ Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten o
 
 Een nieuwe poortmonitor begint met twee criteria:
 
-- **Offline** — de poort accepteert na alle nieuwe pogingen geen verbinding. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ is offline" gemaakt. Het incident lost zichzelf op wanneer de poort weer verbindingen accepteert.
+- **Offline** — de poort accepteert na alle nieuwe pogingen geen verbinding. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitornaam_ is offline" gemaakt. Het incident lost zichzelf op wanneer de poort weer verbindingen accepteert.
 - **Bereikbaar** — de poort accepteert een verbinding. De monitor wordt als **Operationeel** gemarkeerd.
 
 Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenkomt bepaalt wat er gebeurt. Komt er geen overeen, dan toont de monitor zijn standaardstatus: **Operationeel**, tenzij u onder **Meer velden** onder de criteria een andere kiest.

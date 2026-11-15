@@ -1,19 +1,19 @@
 # Lagringsarray-overvåking
 
-En lagringsarray-monitor følger med på ett lagringsarray og sier fra når arrayet selv sender ut et varsel, går tom for plass, blir tregt, mister maskinvare eller en vertssti, eller henger etter med replikering. Den virker med Pure Storage FlashArray og Pure Storage FlashBlade og leser metrikkene arrayet selv eksporterer - Pures serier `purefa_*` og `purefb_*` -, som OneUptime Storage Array Agent samler inn.
+En lagringsarray-monitor følger med på ett lagringsarray og sier fra når arrayet selv sender ut et varsel, går tom for plass, blir tregt, mister maskinvare eller en vertssti, eller henger etter med replikering. Den virker med Pure Storage FlashArray og Pure Storage FlashBlade og leser målingene arrayet selv eksporterer - Pures serier `purefa_*` og `purefb_*` -, som OneUptime Storage Array Agent samler inn.
 
 :::cards
 - [Opprett monitoren](#opprett-en-lagringsarray-monitor): Seks trinn i dashbordet.
 - [Maler](#ferdige-varslingsmaler): Tjue ferdige varsler, én hendelse per volum, vert eller komponent.
-- [Slik fungerer Pures serier](#slik-er-pures-serier-bygd-opp): Ett metrikknavn, mange verdier.
-- [Metrikker](#innsamlede-metrikker): Hver serie monitoren kan varsle på.
+- [Slik fungerer Pures serier](#slik-er-pures-serier-bygd-opp): Ett målingsnavn, mange verdier.
+- [Målinger](#innsamlede-målinger): Hver serie monitoren kan varsle på.
 :::
 
 ## Slik fungerer det
 
-OneUptime Storage Array Agent kjører på en maskin som kan nå arrayets administrasjonsgrensesnitt. Den leser arrayets metrikker med et skrivebeskyttet API-token, merker dem med arrayets navn, `storage.array.name`, og plattformen, `storage.system`, og sender dem til OneUptime over OTLP. De første dataene registrerer arrayet.
+OneUptime Storage Array Agent kjører på en maskin som kan nå arrayets administrasjonsgrensesnitt. Den leser arrayets målinger med et skrivebeskyttet API-token, merker dem med arrayets navn, `storage.array.name`, og plattformen, `storage.system`, og sender dem til OneUptime over OTLP. De første dataene registrerer arrayet.
 
-En lagringsarray-monitor er knyttet til ett array. Hvert minutt kjører den spørringen sin på det arrayets metrikker og sammenligner resultatet med kriteriene sine.
+En lagringsarray-monitor er knyttet til ett array. Hvert minutt kjører den spørringen sin på det arrayets målinger og sammenligner resultatet med kriteriene sine.
 
 ```mermaid title="Fra et lagringsarray til en hendelse"
 flowchart TB
@@ -21,7 +21,7 @@ flowchart TB
         direction LR
         array["FlashArray eller FlashBlade"] --> agent["OneUptime Storage<br/>Array Agent"]
     end
-    agent -->|"purefa- og purefb-<br/>metrikker over OTLP"| oneuptime["OneUptime"]
+    agent -->|"purefa- og purefb-<br/>målinger over OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"første data"| registered["Array registrert"]
     oneuptime --> monitor["Lagringsarray-monitor"]
     monitor -->|"hvert minutt"| criteria{"Kriterier oppfylt?"}
@@ -47,19 +47,19 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Lagringsarray*
 
 ### Velg arrayet
 
-Velg arrayet i **Lagringsarray** under **Storage Array Monitor Configuration**. Hvert array som har sendt data, står i listen. Plattformen avgjør hvilke metrikker og maler skjemaet tilbyr. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til lagringsarray** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
+Velg arrayet i **Lagringsarray** under **Storage Array Monitor Configuration**. Hvert array som har sendt data, står i listen. Plattformen avgjør hvilke målinger og maler skjemaet tilbyr. Når du har valgt, viser en linje under feltet om det kommer data. **Legg til lagringsarray** åpner oppsettstrinn med nøklene dine fylt inn, som venter på de første dataene.
 
 ### Velg hva som skal overvåkes
 
 En ny monitor starter med **Array Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, etikettfiltrene, aggregeringen, tidsintervallet og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) - velg én metrikk i **Storage Array Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til ett volum, én vert, én pod, én komponent, ett filsystem eller én bucket.
-- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, for eksempel brukt kapasitet som `purefa_array_space_bytes` filtrert til `space=capacity` minus den samme metrikken filtrert til `space=empty`. Bruk **Grupper etter** med et objekts etikett for å vurdere hvert objekt for seg.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter målingen, etikettfiltrene, aggregeringen, tidsintervallet og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én måling i **Storage Array Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til ett volum, én vert, én pod, én komponent, ett filsystem eller én bucket.
+- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, for eksempel brukt kapasitet som `purefa_array_space_bytes` filtrert til `space=capacity` minus den samme målingen filtrert til `space=empty`. Bruk **Grupper etter** med et objekts etikett for å vurdere hvert objekt for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Kriterier**, og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
+Åpne hvert kriterium under **Kriterier**, og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at målingen ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -80,16 +80,16 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade. |
 | **Filsystem** | Custom Metric, Avansert | Bare FlashBlade. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avansert | Bare FlashBlade. Én bucket for objektlagring, via etiketten `name`. |
-| **Storage Array Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). Skjemaet legger til etikettfilteret som gir den betydningen sin, og grupperer den etter objektet den beskriver, så hvert volum, hver vert eller hver komponent vurderes for seg. |
-| **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
-| **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; en egendefinert metrikk for et filsystem eller en bucket på **Siste 15 minutter**; maler setter sitt eget. |
+| **Storage Array Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). Skjemaet legger til etikettfilteret som gir den betydningen sin, og grupperer den etter objektet den beskriver, så hvert volum, hver vert eller hver komponent vurderes for seg. |
+| **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
+| **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; en egendefinert måling for et filsystem eller en bucket på **Siste 15 minutter**; maler setter sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 Agenten leser arrayets endepunkt hvert 60. sekund, og volumer, verter og pods hvert 2. minutt, så et vindu på 5 minutter alltid inneholder en prøve. Filsystemene og bucketene til et FlashBlade leser den hvert 5. minutt, derav 15, og FlashArray-kataloger hvert 30. minutt: gi en katalogmonitor et vindu på 60 minutter.
 
 ## Slik er Pures serier bygd opp
 
-Pure legger flere verdier på **ett** metrikknavn og skiller dem med en etikett:
+Pure legger flere verdier på **ett** målingsnavn og skiller dem med en etikett:
 
 - **`dimension`** på ytelsesseriene. `purefa_array_performance_latency_usec` bærer leselatensen (`usec_per_read_op`), skrivelatensen (`usec_per_write_op`), latensen for speilede skrivinger og SAN-, kø-, QoS- og tjenestetiden for hver av dem. Filtrer alltid på én `dimension`: et gjennomsnitt på tvers av dem blander en leselatens på 200 µs med en køverdi.
 - **`space`** på kapasitetsseriene: `capacity`, `empty`, `snapshots`, `total_provisioned`, `total_physical`, `available_ratio` og flere.
@@ -109,7 +109,7 @@ I monitorfiltre og grupperingsnøkler begynner agentens attributter med `resourc
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 20 maler — 12 for FlashArray og 8 for FlashBlade — og listen under **Hva det skal varsles om** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: metrikkspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 20 maler — 12 for FlashArray og 8 for FlashBlade — og listen under **Hva det skal varsles om** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: målingsspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet. En monitor som utløste på en terskel for kapasitet, latens, etterslep eller forhold, gjenoppretter først 10 % forbi den, så en verdi som svinger rundt terskelen, ikke skifter fram og tilbake. Malene for varsler, maskinvare og tilkobling utløses når en tilstand har vist seg i hele vinduet på 5 minutter, og gjenoppretter omtrent 5 minutter etter at den er borte.
 
@@ -153,20 +153,20 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 
 Det finnes ingen mal for latensen til hvert volum, fordi den riktige terskelen avhenger av arbeidsbelastningen: bygg den fra katalogen med en gruppering på `name`. Kapasitetsprognoser trenger en vekstkurve heller enn en terskel, og slitasje på disker har ingen serie å varsle på.
 
-## Innsamlede metrikker
+## Innsamlede målinger
 
 Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskjemaet tilbyr. Hver verdi er en gauge som arrayet selv beregner - latenser er mikrosekunder per operasjon, og gjennomstrømning er per sekund -, så det trengs ingen rateberegning. **Filter** er etikettfilteret som gir serien betydningen raden angir; skjemaet bruker det for deg.
 
 ### Array Health
 
-| Metrikk              | Filter | Plattform  | Enhet   | Beskrivelse                                                                                                                                                       |
+| Måling              | Filter | Plattform  | Enhet   | Beskrivelse                                                                                                                                                       |
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Én serie per åpent varsel på arrayet (verdi 1), med etikettene `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` og `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Én serie per åpent varsel på FlashBladen (verdi 1), med etikettene `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` og `kburl` (Pures artikkel i kunnskapsbasen) |
 
 ### Capacity
 
-| Metrikk                                   | Filter                       | Plattform  | Enhet   | Beskrivelse                                                                                                                           |
+| Måling                                   | Filter                       | Plattform  | Enhet   | Beskrivelse                                                                                                                           |
 | ----------------------------------------- | ---------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_array_space_utilization`          | —                            | FlashArray | `%`     | Andelen av arrayets brukbare kapasitet som er i bruk. Pure sender selv ut kapasitetsvarsler ved 80 %, 90 % og 100 %                   |
 | `purefa_array_space_bytes`                | `space=capacity`             | FlashArray | `bytes` | Arrayets brukbare kapasitet                                                                                                           |
@@ -179,7 +179,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ### Performance
 
-| Metrikk                                    | Filter                                         | Plattform  | Enhet     | Beskrivelse                                                                                                  |
+| Måling                                    | Filter                                         | Plattform  | Enhet     | Beskrivelse                                                                                                  |
 | ------------------------------------------ | ---------------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------ |
 | `purefa_array_performance_latency_usec`    | `dimension=usec_per_read_op`                   | FlashArray | `µs`      | Gjennomsnittlig latens for en lesing slik vertene ser den; lesinger på et FlashArray tar typisk godt under 1 ms |
 | `purefa_array_performance_latency_usec`    | `dimension=usec_per_write_op`                  | FlashArray | `µs`      | Gjennomsnittlig latens for en skriving slik vertene ser den                                                  |
@@ -200,7 +200,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ### Volumes
 
-| Metrikk                                     | Filter                           | Plattform  | Enhet     | Beskrivelse                                                   |
+| Måling                                     | Filter                           | Plattform  | Enhet     | Beskrivelse                                                   |
 | ------------------------------------------- | -------------------------------- | ---------- | --------- | ------------------------------------------------------------- |
 | `purefa_volume_performance_latency_usec`    | `dimension=usec_per_read_op`     | FlashArray | `µs`      | Gjennomsnittlig leselatens for hvert volum — grupper etter `name` |
 | `purefa_volume_performance_latency_usec`    | `dimension=usec_per_write_op`    | FlashArray | `µs`      | Gjennomsnittlig skrivelatens for hvert volum                  |
@@ -214,7 +214,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ### Hosts
 
-| Metrikk                                   | Filter                        | Plattform  | Enhet   | Beskrivelse                                                                                                                                    |
+| Måling                                   | Filter                        | Plattform  | Enhet   | Beskrivelse                                                                                                                                    |
 | ----------------------------------------- | ----------------------------- | ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_host_connectivity_info`           | —                             | FlashArray | `count` | Én serie per vert (verdi 1) med etiketten for tilkoblingen `status` (`healthy`, `critical`, `unused`) og `details` (`Redundant`, `Single Controller`, `None`, ...) |
 | `purefa_host_performance_latency_usec`    | `dimension=usec_per_read_op`  | FlashArray | `µs`    | Gjennomsnittlig leselatens hver vert ser — grupper etter `host`                                                                                |
@@ -224,7 +224,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ### Replication
 
-| Metrikk                                              | Filter                                 | Plattform  | Enhet     | Beskrivelse                                                                                                                                                  |
+| Måling                                              | Filter                                 | Plattform  | Enhet     | Beskrivelse                                                                                                                                                  |
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `purefa_pod_replica_links_lag_max_msec`              | —                                      | FlashArray | `ms`      | Største replikeringsetterslep for hver pod-replikalenke (ActiveDR / asynkron), med etikettene `local_pod`, `remote_pod`, `remote`, `direction` og `status` — grupper etter `local_pod` |
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Gjennomsnittlig replikeringsetterslep for hver pod-replikalenke                                                                                              |
@@ -233,7 +233,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ### Hardware
 
-| Metrikk                                       | Filter                           | Plattform  | Enhet      | Beskrivelse                                                                                                                                                                                                  |
+| Måling                                       | Filter                           | Plattform  | Enhet      | Beskrivelse                                                                                                                                                                                                  |
 | --------------------------------------------- | -------------------------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `purefa_hw_component_status`                  | —                                | FlashArray | `count`    | Én serie per maskinvarekomponent (verdi 1) — chassis, kontrollere, disk- og NVRAM-bayer, strømforsyninger, vifter, temperatursensorer, Ethernet- og Fibre Channel-porter — med etiketten `component_status` (`ok`, `critical`, `degraded`, `device_off`, `identifying`, `not_installed`, `unknown`) |
 | `purefa_hw_component_temperature_celsius`     | —                                | FlashArray | `°C`       | Temperaturen til hver sensor — grupper etter `component_name`                                                                                                                                                |
@@ -243,7 +243,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ### File Systems
 
-| Metrikk                                        | Filter                        | Plattform  | Enhet   | Beskrivelse                                                                                  |
+| Måling                                        | Filter                        | Plattform  | Enhet   | Beskrivelse                                                                                  |
 | ---------------------------------------------- | ----------------------------- | ---------- | ------- | -------------------------------------------------------------------------------------------- |
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_read_op`  | FlashBlade | `µs`    | Gjennomsnittlig leselatens for hvert filsystem — grupper etter `name`                        |
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs`    | Gjennomsnittlig skrivelatens for hvert filsystem                                             |
@@ -252,7 +252,7 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ### Buckets
 
-| Metrikk                                   | Filter                       | Plattform  | Enhet   | Beskrivelse                                           |
+| Måling                                   | Filter                       | Plattform  | Enhet   | Beskrivelse                                           |
 | ----------------------------------------- | ---------------------------- | ---------- | ------- | ----------------------------------------------------- |
 | `purefb_buckets_performance_latency_usec` | `dimension=usec_per_read_op` | FlashBlade | `µs`    | Gjennomsnittlig leselatens for hver bucket — grupper etter `name` |
 | `purefb_buckets_space_bytes`              | `space=total_physical`       | FlashBlade | `bytes` | Fysisk plass hver bucket bruker                       |
@@ -260,19 +260,19 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 
 ## Overvåkingskriterier
 
-Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en lagringsarray-monitor har ingen **Filtertype**: hver regel sjekker metrikkverdien, med disse feltene.
+Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en lagringsarray-monitor har ingen **Filtertype**: hver regel sjekker målingsverdien, med disse feltene.
 
 | Felt | Hva det gjør |
 | --- | --- |
 | **Måling** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må samsvare, i hele vinduet) eller **Minst én verdi** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
-| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når målingens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når målingen har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen prøver: **Ignore** (standarden), **Treat As Zero** eller **Utløser**. |
 
-Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 Noen kriterier å starte med:
 
@@ -287,11 +287,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Så |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen "_monitor name_ is offline", som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
+| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen "_monitornavn_ er frakoblet", som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 
@@ -336,7 +336,7 @@ Det er det sunne tilfellet. `purefa_alerts_open`, `purefa_hw_component_status`, 
 :::
 
 :::details En latensmonitor viser feil verdier
-Pure legger lese-, skrive-, speilet-skrive-, SAN-, kø- og QoS-verdier på ett metrikknavn, bare skilt av etiketten `dimension`, og en spørring uten et `dimension`-filter tar gjennomsnittet av alle sammen. Filtrer på én dimensjon, slik malene og skjemaets katalog gjør. Serier per volum og per vert beholder bare `usec_per_read_op`, `usec_per_write_op` og `usec_per_mirrored_write_op`: agenten forkaster resten for å spare serier, og bare den arraydekkende `purefa_array_performance_latency_usec` beholder alle.
+Pure legger lese-, skrive-, speilet-skrive-, SAN-, kø- og QoS-verdier på ett målingsnavn, bare skilt av etiketten `dimension`, og en spørring uten et `dimension`-filter tar gjennomsnittet av alle sammen. Filtrer på én dimensjon, slik malene og skjemaets katalog gjør. Serier per volum og per vert beholder bare `usec_per_read_op`, `usec_per_write_op` og `usec_per_mirrored_write_op`: agenten forkaster resten for å spare serier, og bare den arraydekkende `purefa_array_performance_latency_usec` beholder alle.
 :::
 
 :::details Et vindu på 1 minutt viser ingen data
@@ -350,8 +350,8 @@ Grupper spørringen etter objektets etikett: `name` for volumer, pods, kataloger
 ## Neste steg
 
 :::cards
-- [Lagringsarray-agent](/docs/telemetry/storage-arrays): Installer agenten som sender metrikkene.
+- [Lagringsarray-agent](/docs/telemetry/storage-arrays): Installer agenten som sender målingene.
 - [Ceph-overvåking](/docs/monitor/ceph-monitor): Samme type monitor for Ceph-lagringsclustere.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst metrikk, fra hvilken som helst kilde.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, fra hvilken som helst kilde.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

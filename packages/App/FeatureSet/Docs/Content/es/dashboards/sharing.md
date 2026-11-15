@@ -139,9 +139,9 @@ En una instalación autoalojada, los dominios personalizados de los paneles se a
 
 ### Quién puede comprobar y volver a emitir
 
-**Comprobar ahora**, la solicitud del certificado de un dominio y **Volver a emitir SSL** cambian el dominio, así que necesitan permiso para editarlo: **Edit Dashboard Domain**, o un rol que lo incluya (Project Owner, Project Admin, Project Member, Settings Admin o Settings Member).
+**Comprobar ahora**, la solicitud del certificado de un dominio y **Volver a emitir SSL** cambian el dominio, así que necesitan permiso para editarlo: **Edit Dashboard Domain**, o un rol que lo incluya (Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de ajustes o Miembro de ajustes).
 
-Quien solo puede leer el dominio, como un Viewer o un Settings Viewer, sigue viendo la columna **Estado** y el registro que hay que añadir en **Configuración de DNS**. Para esa persona, **Comprobar ahora** y **Volver a emitir SSL** están bloqueados, e indican qué permiso necesitan. OneUptime sigue comprobando cada dominio y solicitando su certificado por su cuenta en cualquier caso.
+Quien solo puede leer el dominio, como un Visor o un Visor de ajustes, sigue viendo la columna **Estado** y el registro que hay que añadir en **Configuración de DNS**. Para esa persona, **Comprobar ahora** y **Volver a emitir SSL** están bloqueados, e indican qué permiso necesitan. OneUptime sigue comprobando cada dominio y solicitando su certificado por su cuenta en cualquier caso.
 
 Lo mismo vale para las claves de API. Una clave que solo puede leer los dominios de paneles no puede llamar a `verify-cname`, `order-ssl` ni `reissue-ssl` en `/dashboard-domain`. Dale **Read Dashboard Domain** y **Edit Dashboard Domain** si lo necesita.
 

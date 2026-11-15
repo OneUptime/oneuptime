@@ -93,7 +93,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer Ping-Monitor beginnt mit zwei Kriterien:
 
-- **Offline** — der Host beantwortet keine der Echo-Anfragen oder ist nach allen Wiederholungen überhaupt nicht erreichbar. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_monitor name_ is offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Host wieder antwortet.
+- **Offline** — der Host beantwortet keine der Echo-Anfragen oder ist nach allen Wiederholungen überhaupt nicht erreichbar. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ ist offline“ wird erstellt. Der Vorfall löst sich von selbst auf, wenn der Host wieder antwortet.
 - **Online** — der Host antwortet. Der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet, was passiert. Trifft keines zu, zeigt der Monitor seinen Standardstatus: **Betriebsbereit**, sofern Sie unter **Weitere Felder** unterhalb der Kriterien keinen anderen wählen.
@@ -152,6 +152,6 @@ Die Sonde, die die Prüfung ausgeführt hat, kann keine Pings senden und hat des
 :::cards
 - [IP-Überwachung](/docs/monitor/ip-monitor): Eine feste IPv4- oder IPv6-Adresse beobachten.
 - [Port-Überwachung](/docs/monitor/port-monitor): Einen Dienst auf dem Host prüfen, nicht nur den Host.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Hosts in Ihrem eigenen Netzwerk anpingen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Hosts in Ihrem eigenen Netzwerk anpingen.
 - [Vorfälle](/docs/incidents/index): Was passiert, nachdem der Monitor einen gemeldet hat.
 :::

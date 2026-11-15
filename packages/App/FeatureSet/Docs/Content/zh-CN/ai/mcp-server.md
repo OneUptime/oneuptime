@@ -113,7 +113,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 管理已连接的客户端
 
-通过登录连接的每个客户端都列在 **项目设置 → 人工智能 → MCP 服务器** 的 **已连接的 MCP 客户端** 下，并显示是谁连接的、可以做什么以及上次使用的时间。您能看到自己连接的客户端；项目所有者和管理员能看到所有人的客户端。
+通过登录连接的每个客户端都列在 **项目设置 → 人工智能 → MCP 服务器** 的 **已连接的 MCP 客户端** 下，并显示是谁连接的、可以做什么以及上次使用的时间。您能看到自己连接的客户端；项目所有者和项目管理员能看到所有人的客户端。
 
 点击 **断开连接** 可让客户端退出登录。它会立即停止工作。
 
@@ -497,7 +497,7 @@ MCP 服务器是无状态的：它既不发放也不跟踪会话 ID，因此每�
 | 安全 | Security Event, Threat Intel Indicator |
 | 变更和成本 | Change Event, Kubernetes Cost Allocation |
 
-工具以蛇形命名法命名：`create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident` 和 `count_incidents`，遥测则为 `list_logs` 和 `count_spans`。
+工具以蛇形命名法命名：`create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident` 和 `count_incidents`，遥测则为 `list_logs` 和 `count_spans`。`create_incident` 和 `create_alert` 还接受 `ownerUsers` 和 `ownerTeams`：从一开始就拥有该记录的用户和团队的 ID，他们会收到记录已创建的通知。
 
 ## 后续步骤
 

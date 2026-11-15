@@ -41,7 +41,7 @@ Una firma a cui resta meno di un giorno conta già come interrotta, quindi lo sa
 
 ## Prima di iniziare
 
-- **Un ruolo che può creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che può creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una zona firmata.** La zona deve essere firmata, e il suo record DS pubblicato nella zona padre tramite il vostro registrar.
 - **DNS in uscita dalla sonda** verso i resolver che indicate e, per il controllo di coerenza dei nameserver, verso i nameserver autorevoli della zona. Le sonde predefinite del vostro progetto vengono scelte per ogni nuovo monitor.
 
@@ -103,7 +103,7 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor DNSSEC parte con due criteri:
 
-- **Catena interrotta** — **Catena DNSSEC valida** è **Falso**. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ DNSSEC chain is broken». L'incidente si risolve da solo appena la catena torna valida.
+- **Catena interrotta** — **Catena DNSSEC valida** è **Falso**. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «La catena DNSSEC di _nome del monitor_ è interrotta». L'incidente si risolve da solo appena la catena torna valida.
 - **Catena valida** — il monitor viene segnato **Operativo**.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quando nessuno corrisponde, il monitor mostra il suo stato predefinito: **Operativo**, a meno che non ne scegliate un altro sotto **Altri campi**, sotto i criteri.

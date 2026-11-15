@@ -473,7 +473,7 @@ Um tipo só oferece os componentes que o modelo dele permite. Um tipo somente le
 
 É assim que um workflow lê e altera os dados do OneUptime. Por exemplo, um webhook da sua ferramenta de CI pode usar **Create One Incident** para abrir um incidente com os detalhes da falha.
 
-Esses componentes agem como Project Admin do projeto do workflow: o que um Project Admin não pode fazer, ou o que o seu plano não inclui, é recusado, e o log da execução diz por quê. Veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
+Esses componentes agem como Administrador do projeto no projeto do workflow: o que um Administrador do projeto não pode fazer, ou o que o seu plano não inclui, é recusado, e o log da execução diz por quê. Veja [O que os passos de um workflow podem fazer](/docs/workflows/configuration#o-que-os-passos-de-um-workflow-podem-fazer).
 
 ### Declarar um incidente a partir de um modelo
 
@@ -486,6 +486,12 @@ O incidente registra o modelo a partir do qual foi declarado em `createdIncident
 **Create One Incident** e **Create One Alert** têm uma configuração **Recursos afetados**: os hosts, dispositivos de rede, clusters, bancos de dados ou serviços de que o registro trata, por nome, endereço ou ID, separados por vírgulas — digitados ou tirados de um passo anterior, como o host que um alerta vindo de outra ferramenta nomeia. Cada entrada é procurada em todos os tipos de recurso que o registro pode conter, como valor inteiro e sem diferenciar maiúsculas de minúsculas: pelo nome, um dispositivo de rede também pelo endereço em que é sondado ou pelo nome DNS, um host pelo nome que o agente dele informa ou por um dos seus endereços IP, e um recurso de nuvem pelo ID do provedor. Cada recurso que corresponde a uma entrada é vinculado, ao lado do que **JSON Object** e o modelo já vinculam, até 50 a partir das 25 primeiras entradas.
 
 Uma entrada que não corresponde a nada não interrompe o passo: o registro é criado mesmo assim, e o log da execução diz o que cada entrada vinculou e quais não corresponderam a nada. Recursos arquivados não são vinculados. Monitores não são procurados: nomeie-os em **JSON Object** (`monitors` em um incidente, `monitorId` em um alerta), porque vincular um monitor a um incidente pausa o monitoramento dele.
+
+### Quem é dono desde o início
+
+**Create One Incident** e **Create One Alert** têm as configurações **Usuários proprietários** e **Equipes proprietárias**: as pessoas e equipes que são donas do registro desde a criação. Escolha-as, ou pegue-as de um passo anterior: o ID ou endereço de e-mail de um usuário, o ID de uma equipe, vários separados por vírgulas, ou uma lista. Os proprietários do registro ficam sabendo da criação cerca de um minuto depois, todos os que ele tiver até lá: os escolhidos aqui estão sempre entre eles, enquanto os proprietários que um passo posterior adiciona perdem o aviso quando esse passo roda mais de um minuto depois, e os proprietários do projeto são avisados no lugar deles.
+
+O passo pergunta se pode adicioná-los, como Administrador do projeto no projeto do workflow, antes de o registro ser salvo: proprietários que ele não pode adicionar fazem a criação ser recusada. Quem não é membro do projeto, ou uma equipe que não é do projeto, fica de fora, e o log da execução diz isso: o registro é criado mesmo assim. Os proprietários adicionados assim não são avisados de que foram adicionados: o aviso de que o registro foi criado é o que recebem.
 
 ## Trabalhar com registros
 

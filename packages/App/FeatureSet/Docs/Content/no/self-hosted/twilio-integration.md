@@ -37,7 +37,7 @@ Lagre påloggingsinformasjonen for ett prosjekt, eller én gang for hele install
 | Hvor | Kortet **Twilio-konfigurasjon** under **Flere innstillinger** på **Prosjektinnstillinger > Varsler > Varslingskanaler** | **Admin Dashboard > Innstillinger > Anrop og SMS** |
 | Hvem kan angi den | **Prosjekteier**, **Prosjektadministrator** eller **Create Call and SMS** i en egendefinert rolle | En master-admin |
 | Hvem kan lese dens Auth Token | **Prosjekteier**, **Prosjektadministrator** eller **Read Call and SMS** i en egendefinert rolle. Andre som ser konfigurasjonen, ser resten av den; tokenet lagres kryptert | En master-admin |
-| Brukes til | SMS og anrop til prosjektets medlemmer så lenge den er prosjektstandarden, statussidene den er tildelt, og retningslinjene for innkommende anrop som bruker den | SMS og anrop til medlemmene i alle prosjekter som ikke har en standardkonfigurasjon |
+| Brukes til | SMS og anrop til prosjektets medlemmer så lenge den er prosjektstandarden, statussidene den er tildelt, og policyene for innkommende anrop som bruker den | SMS og anrop til medlemmene i alle prosjekter som ikke har en standardkonfigurasjon |
 
 Slik legger du til en prosjektkonfigurasjon:
 
@@ -49,7 +49,7 @@ Slik legger du til en prosjektkonfigurasjon:
 5. Lagre. Et prosjekt har én standard for SMS og én for anrop, så en konfigurasjon satt til **Bare SMS** og en satt til **Bare anrop** kan begge være standard: se [En konto bare for SMS, eller bare for anrop](#en-konto-bare-for-sms-eller-bare-for-anrop). Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
 > [!IMPORTANT]
-> **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
+> **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En Prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
 :::
 
 For en standard for hele installasjonen kan en administrator i stedet åpne **Admin Dashboard > Innstillinger > Anrop og SMS**, velge hva kontoen sender, redigere Twilio-påloggingsinformasjonen og telefonnumrene og lagre. Medlemmenes varsler bruker denne globale konfigurasjonen når prosjektet deres ikke har en standard. Hold Auth Token hemmelig.
@@ -112,7 +112,7 @@ resource "oneuptime_call_and_sms_config" "production" {
 - **Prosjektstandard.** Terraform gjør bare en konfigurasjon til prosjektets standard med `is_project_default = true`. Utelates den, sender Terraform `false`, så et prosjekts første konfigurasjon blir ikke standard slik den blir i dashbordet. Sett den på én konfigurasjon for hver type melding: to med samme `used_for` som begge setter den, tar standarden fra hverandre ved hver apply. OneUptime setter `is_project_default_for_sms` og `is_project_default_for_calls`, som Terraform bare leser.
 - **Telefonnumre.** Skriv hvert nummer med `+` og landskoden. Mellomrom, bindestreker, punktum og parenteser mellom sifrene går fint: OneUptime lagrer `+1 415 555 0100` som `+14155550100`, og Terraform leser det som nummeret du skrev, så en plan viser ingen endringer.
 - **API-nøkkel.** Nøkkelen Terraform bruker, må kunne lese Auth Token: **Prosjekteier**, **Prosjektadministrator** eller **Read Call and SMS** i en egendefinert rolle, i tillegg til å opprette og redigere konfigurasjoner. Med en nøkkel som ikke kan det, mislykkes lesingen av konfigurasjonen, og feilen sier hvem som kan lese tokenet.
-- **Referanser.** `call_sms_config_id` på en statusside og `project_call_sms_config_id` på en retningslinje for innkommende anrop tar konfigurasjonens `id`.
+- **Referanser.** `call_sms_config_id` på en statusside og `project_call_sms_config_id` på en policy for innkommende anrop tar konfigurasjonens `id`.
 
 ### Egne numre for anrop og SMS
 
@@ -173,7 +173,7 @@ Innkommende tilgang avhenger av funksjonen:
 | Et enkelt testanrop med tale | Nei. OneUptime sender de talte instruksjonene med i den utgående API-forespørselen. |
 | Vite om et vaktanrop ble besvart | Ja. Twilio melder hvordan hvert anrop endte, slik at hendelsens feed kan si når noen ikke svarte. Anrop går ut også uten dette. |
 | Trykke 1 for å bekrefte et vaktvarsel | Ja. Twilio sender tasteinndataene til OneUptime. |
-| Retningslinjer for innkommende anrop | Ja. Twilio henter anropsinstruksjoner og rapporterer resultatene av oppringingen. |
+| Policyer for innkommende anrop | Ja. Twilio henter anropsinstruksjoner og rapporterer resultatene av oppringingen. |
 
 Dette er de eksterne stiene gjennom OneUptimes Nginx-gateway. Plassholderne er forskjellige for hvert varsel:
 
@@ -185,7 +185,7 @@ Dette er de eksterne stiene gjennom OneUptimes Nginx-gateway. Plassholderne er f
 | POST | `/notification/incoming-call/voice` | Valgfrie instruksjoner for innkommende anrop |
 | POST | `/notification/incoming-call/dial-status/:callLogId/:callLogItemId` | Valgfrie resultater av ruting av innkommende anrop |
 
-OneUptime genererer URL-ene for SMS, anropsresultater og bekreftelse automatisk. Ikke erstatt tokenene deres med en fast webhook-URL. For innkommende anrop følger du [retningslinjer for innkommende anrop](/docs/on-call/incoming-call-policy), som konfigurerer webhooken til nummeret når du knytter til et nummer.
+OneUptime genererer URL-ene for SMS, anropsresultater og bekreftelse automatisk. Ikke erstatt tokenene deres med en fast webhook-URL. For innkommende anrop følger du [policyer for innkommende anrop](/docs/on-call/incoming-call-policy), som konfigurerer webhooken til nummeret når du knytter til et nummer.
 
 Twilio krever [offentlig tilgjengelige webhook-URL-er](https://www.twilio.com/docs/usage/webhooks/webhooks-overview). Bruk et offentlig klarert TLS-sertifikat, og bevar den opprinnelige verten, protokollen, stien, spørringsparameterne, kroppen og headeren `X-Twilio-Signature` gjennom proxyer. Behandlerne for innkommende anrop validerer Twilios signaturer; SMS-levering og anropsresultater bruker et URL-token per melding eller anrop, og bekreftelse med tastene et signert spørringstoken. Ikke vis tokener i delte logger eller skjermbilder. Se [Twilios webhook-sikkerhet](https://www.twilio.com/docs/usage/webhooks/webhooks-security).
 
@@ -206,7 +206,7 @@ Dashbordet kan bli værende på en privat ingress: Med delt DNS slår ansatte op
 De vanlige kildeadressene for Twilios webhooker endres, så ikke bruk SIP- eller medie-IP-områder som tillatelsesliste for tilbakekall. Kvalifiserte Twilio-utgaver tilbyr [Static Proxy for Webhooks](https://www.twilio.com/docs/iam/twilio-editions/twilio-static-proxy). Bekreft at utgaven din er kvalifisert, og hvilke produkter som støttes, og konfigurer brannmuren med områdene Twilio publiserer nå; fortsett å validere tilbakekall også når du bruker det.
 
 > [!WARNING]
-> Hvis en retningslinje forbyr innkommende tilkoblinger, kan sending av SMS og enkel innebygd taleavspilling fungere med utgående HTTPS. Oppdateringer av SMS-levering, anropsresultater, bekreftelse med tastene og ruting av innkommende anrop fungerer ikke uten tilgjengelige tilbakekall. En helt frakoblet installasjon kan ikke bruke Twilio.
+> Hvis en policy forbyr innkommende tilkoblinger, kan sending av SMS og enkel innebygd taleavspilling fungere med utgående HTTPS. Oppdateringer av SMS-levering, anropsresultater, bekreftelse med tastene og ruting av innkommende anrop fungerer ikke uten tilgjengelige tilbakekall. En helt frakoblet installasjon kan ikke bruke Twilio.
 
 For utvikling beskriver Twilios [veiledning for testing av webhooker](https://www.twilio.com/docs/usage/webhooks/webhook-testing) bruk av en offentlig tunnel: Send den videre til en proxy som bare tillater de nødvendige rutene, konfigurer vertsnavnet du får, som ovenfor, og stopp tunnelen etter testingen. En tunnel åpner likevel for innkommende tilgang.
 
@@ -215,7 +215,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 :::steps
 1. Kontroller fra utsiden av bedriftsnettverket og VPN at vertsnavnet for tilbakekall slås opp til den offentlige gatewayen og leverer et gyldig TLS-sertifikat. En GET fra nettleseren tester ikke disse POST-tilbakekallene.
 2. Bruk **Send test-SMS** og **Send testanrop** på prosjektets Twilio-konfigurasjon. Bekreft at meldingen kommer fram på mottakertelefonen. Begge krever tillatelse til å legge til Twilio-konfigurasjoner: **Prosjekteier**, **Prosjektadministrator** eller **Create Call and SMS** og **Read Call and SMS** i en egendefinert rolle.
-3. Sett opp brukerens bekreftede SMS- eller anropskontakt og varslingsregler, og utløs så et kontrollert vaktvarsel. Trykk 1, og bekreft kvitteringen i OneUptime. Hvis du bruker retningslinjer for innkommende anrop, ringer du det konfigurerte nummeret og sjekker rutingen og anropsloggen.
+3. Sett opp brukerens bekreftede SMS- eller anropskontakt og varslingsregler, og utløs så et kontrollert vaktvarsel. Trykk 1, og bekreft kvitteringen i OneUptime. Hvis du bruker policyer for innkommende anrop, ringer du det konfigurerte nummeret og sjekker rutingen og anropsloggen.
 4. Bekreft leveringsstatusen for SMS i OneUptime og i Twilios meldingslogger. En godtatt sending beviser ikke levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
@@ -239,10 +239,10 @@ Et nummer som er bekreftet for SMS, er også bekreftet for anrop, uten en ny kod
 ## Neste steg
 
 :::cards
-- [Retningslinje for innkommende anrop](/docs/on-call/incoming-call-policy): La innringere nå vaktingeniørene dine via et Twilio-nummer.
+- [Policy for innkommende anrop](/docs/on-call/incoming-call-policy): La innringere nå vaktingeniørene dine via et Twilio-nummer.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som varsles på hvert nivå, via SMS, anrop eller en annen metode.
 - [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway): Send SMS og anrop gjennom din egen leverandør i stedet for Twilio.
 - [SMTP](/docs/emails/smtp): Send også e-post gjennom din egen e-postserver.
 - [Tilgang til private nettverk](/docs/self-hosted/private-network-access): La arbeidsflyter og webhooker nå interne verktøy.
-- [Metrikker for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Mål hvor mange SMS-er og anrop som når Twilio og telefonen.
+- [Målinger for varslingslevering](/docs/self-hosted/notification-delivery-metrics): Mål hvor mange SMS-er og anrop som når Twilio og telefonen.
 :::

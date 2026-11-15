@@ -56,7 +56,7 @@ Formulare beginnen mit diesen beiden, weitere Arten von Datensätzen folgen.
 ## Bevor Sie beginnen
 
 - **Ein Tarif, der Formulare enthält.** In OneUptime Cloud brauchen Formulare den Tarif **Growth** oder höher. Siehe [Tarif](#tarif).
-- **Die Berechtigung, Formulare anzulegen.** **Create Form** haben Projektinhaber und -administratoren sowie die Rollen, denen Sie es geben. Siehe [Berechtigungen](#berechtigungen).
+- **Die Berechtigung, Formulare anzulegen.** **Create Form** haben Projektinhaber und Projektadministratoren sowie die Rollen, denen Sie es geben. Siehe [Berechtigungen](#berechtigungen).
 - **Für ein Vorfallsformular einen Schweregrad.** Jeder Vorfall braucht einen: aus einer Frage, aus den Einstellungen des Formulars oder aus seiner Vorfallsvorlage. Ohne ihn wird jede Einreichung abgelehnt. Siehe [Was eine Einreichung erstellt](/docs/forms/on-submit#wie-aus-einer-einreichung-ein-vorfall-wird).
 
 ## Ihr erstes Formular anlegen
@@ -127,7 +127,7 @@ Einreichungen schreibt das Formular, nie eine Person, und sie lassen sich nicht 
 
 ## Berechtigungen
 
-Formulare erlauben Menschen außerhalb Ihres Teams, Vorfälle und Wartungsereignisse in Ihrem Projekt anzulegen, daher verwalten sie Projektinhaber und -administratoren sowie die Rollen, denen Sie die Berechtigungen **Form** geben. Sie stehen in der Gruppe **Form** der [Berechtigungsreferenz](/docs/permissions/reference):
+Formulare erlauben Menschen außerhalb Ihres Teams, Vorfälle und Wartungsereignisse in Ihrem Projekt anzulegen, daher verwalten sie Projektinhaber und Projektadministratoren sowie die Rollen, denen Sie die Berechtigungen **Form** geben. Sie stehen in der Gruppe **Form** der [Berechtigungsreferenz](/docs/permissions/reference):
 
 | Berechtigung | Was sie erlaubt | Wer sie standardmäßig hat |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ Formulare erlauben Menschen außerhalb Ihres Teams, Vorfälle und Wartungsereign
 | **Delete Form Domain** | Die eigenen Domains eines Formulars entfernen. | Projektinhaber, Projektadministrator und **Edit Form** |
 | **Read Form Domain** | Die eigenen Domains eines Formulars sehen, ihre DNS-Einträge und wie weit jede auf dem Weg zu HTTPS ist. | Alle mit **Read Form** |
 
-Einreichungen enthalten, was Fremde eingetippt haben – Namen, E-Mail-Adressen und Antworten, die vielleicht nie im Datensatz landen –, daher sehen sie nur Projektinhaber und -administratoren, es sei denn, Sie gewähren **Read Form Submission**. Wer ein Formular lesen kann, kann seinen Link sehen und teilen. Ein Formular abzusenden braucht überhaupt keine Berechtigung. Wie Rollen und granulare Berechtigungen zusammenwirken, lesen Sie unter [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
+Einreichungen enthalten, was Fremde eingetippt haben – Namen, E-Mail-Adressen und Antworten, die vielleicht nie im Datensatz landen –, daher sehen sie nur Projektinhaber und Projektadministratoren, es sei denn, Sie gewähren **Read Form Submission**. Wer ein Formular lesen kann, kann seinen Link sehen und teilen. Ein Formular abzusenden braucht überhaupt keine Berechtigung. Wie Rollen und granulare Berechtigungen zusammenwirken, lesen Sie unter [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 
 ## Tarif
 

@@ -7,6 +7,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface HealthTool {
@@ -65,6 +67,12 @@ export const EVERY_EDITION_HEALTH_TOOLS: ReadonlyArray<HealthTool> = [
  * card that says what to set (VisitorAddressesSummary).
  */
 const CommunityHealthOverview: FunctionComponent = (): ReactElement => {
+  /*
+   * Each tool's name and line in the reader's language: drawn in a tile of
+   * the page's own, not a shared component that looks them up (#8227).
+   */
+  const translator: Translator = useTranslator();
+
   return (
     <div>
       <VisitorAddressesSummary />
@@ -92,7 +100,7 @@ const CommunityHealthOverview: FunctionComponent = (): ReactElement => {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1 text-sm font-semibold text-gray-900">
-                    {tool.title}
+                    {translator.translateText(tool.title) || tool.title}
                     <Icon
                       icon={IconProp.ChevronRight}
                       size={SizeProp.Small}
@@ -100,7 +108,8 @@ const CommunityHealthOverview: FunctionComponent = (): ReactElement => {
                     />
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
-                    {tool.description}
+                    {translator.translateText(tool.description) ||
+                      tool.description}
                   </div>
                 </div>
               </Link>

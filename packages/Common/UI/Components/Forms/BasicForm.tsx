@@ -603,11 +603,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     };
 
     /*
-     * Whether a field the record holds nothing for (null) starts on its
-     * default: only where it says its default stands in for nothing
-     * (startsOnDefaultWhenEmpty), and only while it is shown - a hidden
-     * field is sent as it was, so an untouched form saves the record as it
-     * holds it (a Microsoft Graph server keeps its empty port).
+     * Whether a field the record holds nothing for (null, or text of only
+     * spaces) starts on its default: only where it says its default stands
+     * in for nothing (startsOnDefaultWhenEmpty), and only while it is shown
+     * - a hidden field is sent as it was, so an untouched form saves the
+     * record as it holds it (a Microsoft Graph server keeps its empty
+     * port). A fresh server's SMTP From Name is "", not null (#8183).
      */
     type StartsOnDefaultForEmptyFunction = (
       field: Field<T>,
@@ -618,10 +619,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       field: Field<T>,
       values: FormValues<T>,
     ): boolean => {
-      if (
-        !field.startsOnDefaultWhenEmpty ||
-        (values as any)[field.name!] !== null
-      ) {
+      const held: unknown = (values as any)[field.name!];
+      const holdsNothing: boolean =
+        held === null || (typeof held === "string" && held.trim() === "");
+
+      if (!field.startsOnDefaultWhenEmpty || !holdsNothing) {
         return false;
       }
 
@@ -1379,9 +1381,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         /*
          * A field the form does not start with a value for starts on its
          * default - 0 and false included (hasDefaultValue). So does one
-         * whose record holds nothing (null), where the field says its
-         * default stands in for nothing (startsOnDefaultWhenEmpty): the
-         * server's SMTP port, empty on a fresh server, starts on 587.
+         * whose record holds nothing (null or blank text), where the field
+         * says its default stands in for nothing (startsOnDefaultWhenEmpty):
+         * the server's SMTP port, empty on a fresh server, starts on 587,
+         * and its blank From Name on the product's name.
          */
         if (
           hasDefaultValue(field) &&

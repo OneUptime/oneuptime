@@ -56,7 +56,7 @@ On OneUptime Cloud's Free plan, monitors are billed as they are used, so the pro
 
 ### Choose who is told
 
-Under **Who should be told?**, you are already in **Who is paged**. Click **Save and continue**: this makes `Default on-call policy`, which pages you for every new incident and alert in the project, by email to start with. To page teammates who are already in the project as well, click **Add teammates** first.
+Under **Who should be told?**, you are already in **Who is paged**. Click **Save and continue**: this makes **Default on-call policy**, which pages you for every new incident and alert in the project, by email to start with. To page teammates who are already in the project as well, click **Add teammates** first.
 
 ### Send yourself a test
 
@@ -69,7 +69,7 @@ To check an API too, and to see what to do when the first check never comes back
 
 ## Get paged when it goes down
 
-The website setup already made `Default on-call policy`, which pages you by email for every new incident and alert, so the checklist ticks **Set up an on-call policy** as done. Its guided setup still adds your phone, the people paged with you and what happens when nobody answers.
+The website setup already made **Default on-call policy**, which pages you by email for every new incident and alert, so the checklist ticks **Set up an on-call policy** as done. Its guided setup still adds your phone, the people paged with you and what happens when nobody answers.
 
 :::steps
 ### Open the on-call setup
@@ -84,7 +84,7 @@ Under **How should we reach you?**, your sign-in email is listed already. For pu
 
 ### Choose who else is paged
 
-Under **Who else is on call?**, keep `Default on-call policy` under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.
+Under **Who else is on call?**, keep **Default on-call policy** under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.
 
 ### Decide what happens if nobody answers
 
@@ -96,7 +96,7 @@ Under **Send a test page**, click **Test this policy**, pick a **Severity** and 
 :::
 
 > [!NOTE]
-> SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.
+> SMS and phone calls are off in a new project. A Project Owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.
 
 Two on-call rules run the policy: one for every new incident and one for every new alert. To see the first, open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**: it matches **All incidents**. To page the policy for only some incidents, such as critical ones, edit the rule there, or click **Create Incident On-Call Rule** to add one of your own.
 

@@ -68,7 +68,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 | --- | --- |
 | **Topologi** | **Enhetstopologi**, **Oppdagede enheter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
 | **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Navneregler**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
-| **Innstillinger** | **Varslingsretningslinjer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
+| **Innstillinger** | **Varslingspolicyer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
 | **Avansert** | **SNMP-walk**, **Arkiverte enheter** |
 
 ## Legg til en nettverksenhet
@@ -764,7 +764,7 @@ Polling gir deg status, inventar og diagrammer. Hendelser, varsler og utkallinge
 
 ### Varslingspolicyer
 
-**Nettverk → Innstillinger → Varslingsretningslinjer** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
+**Nettverk → Innstillinger → Varslingspolicyer** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
 
 ```mermaid title="Hva en varslingspolicy vedlikeholder"
 flowchart TB
@@ -797,7 +797,7 @@ Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended 
 
 Åpne enhetens side og klikk på **Opprett monitor** på kortet **Monitors alerting on this device**. Monitorskjemaet åpner med typen Network Device og enheten valgt, og den [anbefalte varslingspakken](#anbefalt-varslingspakke) fylt ut: gå gjennom den, sett alvorlighetsgrader og vaktpolicyer, og lagre.
 
-De fleste svitsjer, rutere, brannmurer og skrivere har også et nettgrensesnitt på sin egen adresse. **Overvåk nettgrensesnitt**, på det samme kortet, åpner en **Nettsted**-monitor for det: `https://` på enhetens adresse, med **Tillat selvsignerte sertifikater** slått på, siden en enhets nettgrensesnitt nesten alltid har et, kontrollert fra enhetens egen probe og med navn etter enheten. Endre URL-en hvis grensesnittet svarer på `http`, på en annen port eller under en sti, og lagre deretter. Kortet viser monitoren så lenge navnet inneholder enhetens navn og URL-en er på enhetens adresse; den endrer ikke enhetens status.
+De fleste svitsjer, rutere, brannmurer og skrivere har også et nettgrensesnitt på sin egen adresse. **Overvåk nettgrensesnitt**, på det samme kortet, åpner en **Nettsted**-monitor for det: `https://` på enhetens adresse, med **Tillat selvsignerte sertifikater** slått på, siden en enhets nettgrensesnitt nesten alltid har et, kontrollert fra enhetens egen sonde og med navn etter enheten. Endre URL-en hvis grensesnittet svarer på `http`, på en annen port eller under en sti, og lagre deretter. Kortet viser monitoren så lenge navnet inneholder enhetens navn og URL-en er på enhetens adresse; den endrer ikke enhetens status.
 
 For å opprette en fra **Monitorer** i stedet:
 
@@ -1055,7 +1055,7 @@ Et klikk på en administrert enhet på kartet åpner skuffen dens, og skuffens s
 - **Ping** sender fem ICMP-ekkoforespørsler til enheten og rapporterer om den svarte, laveste, gjennomsnittlige og høyeste svartid, jitter og pakketap. En enhet som svarer på noen av dem, rapporteres som tilgjengelig, med pakketap.
 - **Traceroute** rapporterer veien fra sonden til enheten hopp for hopp — hoppnummeret, verten som svarte, og svartiden — med hopp uten svar merket `* * *` og, når ruten ikke nådde enheten, hoppet der den brøt sammen.
 
-Begge kjører fra enhetens tildelte sonde, ikke fra OneUptime-serveren, så svaret er utsikten fra der enheten faktisk overvåkes. Sonden henter forespørselen innen omtrent ti sekunder, og resultatet vises så snart den rapporterer tilbake. Hvis sonden ikke har svart innen to minutter, sier skuffen det og foreslår å kontrollere at sonden er online og kjører en versjon som støtter diagnostikk. En enhet uten sonde viser en merknad som peker på siden **Innstillinger** i stedet for knappene. Å kjøre en diagnostikk krever tillatelsen **Create Network Device Diagnostic**, som prosjektmedlemmer har; uten den er knappene skjult, men svartidsdiagrammet vises fortsatt.
+Begge kjører fra enhetens tildelte sonde, ikke fra OneUptime-serveren, så svaret er utsikten fra der enheten faktisk overvåkes. Sonden henter forespørselen innen omtrent ti sekunder, og resultatet vises så snart den rapporterer tilbake. Hvis sonden ikke har svart innen to minutter, sier skuffen det og foreslår å kontrollere at sonden er online og kjører en versjon som støtter diagnostikk. En enhet uten sonde viser en merknad som peker på siden **Innstillinger** i stedet for knappene. Å kjøre en diagnostikk krever tillatelsen **Create Network Device Diagnostic**, som Prosjektmedlemmer har; uten den er knappene skjult, men svartidsdiagrammet vises fortsatt.
 
 Resultatene beholdes i to dager og slettes deretter. De samme verktøyene finnes på enhetens oversikt, på kortet **Connectivity tools**, for når du kommer til enheten i stedet for til kartet.
 

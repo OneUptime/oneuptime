@@ -1456,7 +1456,10 @@ describe("the docs' Node.js tab says what the Setup Guide's says", () => {
       "utf8",
     );
 
-    return page.slice(page.indexOf("@tab Node.js"), page.indexOf("@tab Python"));
+    return page.slice(
+      page.indexOf("@tab Node.js"),
+      page.indexOf("@tab Python"),
+    );
   };
   const locales: Array<string> = fs
     .readdirSync(contentDirectory)

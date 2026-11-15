@@ -59,7 +59,7 @@ export default class MeasurementMetricWriter {
       return;
     }
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       await MeasurementMetricWriter.getMetricRetentionInDays(),
     );
@@ -164,7 +164,7 @@ export default class MeasurementMetricWriter {
       return;
     }
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       await MeasurementMetricWriter.getMetricRetentionInDays(),
     );

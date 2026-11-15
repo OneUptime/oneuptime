@@ -42,8 +42,11 @@ const LONG_DIGIT_SEGMENT: RegExp = /^\d{9,}$/;
 /*
  * Long high-entropy strings: session tokens, JWT parts, signed links.
  * Deliberately conservative at 32 characters so ordinary slugs survive.
+ * In base64url, or in standard base64 (#8489): its "+" and "/" (a "/" only
+ * escaped, as "%2F", or it would end the segment), and up to two "=" of
+ * padding at its end.
  */
-const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_-]{32,}$/;
+const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_+/-]{32,}={0,2}$/;
 
 /*
  * A JSON Web Token, signed, unsigned or encrypted (#8385): a header of

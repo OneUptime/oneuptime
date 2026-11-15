@@ -40,6 +40,8 @@ import {
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 // The cards' titles: the record by its number once read, else by its ID.
 function buildIncidentNoteTitle(
   args: JSONObject,
@@ -238,7 +240,10 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     return {
       dataForLlm: `Added a private internal note to incident #${incident.incidentNumber} ("${incident.title}"). Only the people who can see the incident can read it — it does not appear on any status page and no subscribers were notified.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Internal note on incident #${incident.incidentNumber}`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.incidentNote, {
+        incident: `#${incident.incidentNumber}`,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },
@@ -370,7 +375,9 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     return {
       dataForLlm: `Added a private internal note to alert #${alert.alertNumber} ("${alert.title}"). Only the people who can see the alert can read it — it does not appear on any status page and no subscribers were notified.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Internal note on alert #${alert.alertNumber}`,
+      ...citationSentence(AI_TOOL_CITATIONS.alertNote, {
+        alert: `#${alert.alertNumber}`,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: alertIdString },

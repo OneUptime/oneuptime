@@ -145,7 +145,7 @@ För att radera en persons data i stället för en hel applikation skickar du in
 
 ## Behörigheter
 
-Alla med projektets Tittare-roll kan se RUM-applikationer och deras telemetri. Sessionsuppspelning hålls utanför den rollen med avsikt: att lista inspelningar, titta på en och läsa vem som tittade på den är separata behörigheter. Projektägare och administratörer har alla. Behörighetsväljarna visar varje behörighet med dess titel, här visad i kursiv stil.
+Alla med projektets Tittare-roll kan se RUM-applikationer och deras telemetri. Sessionsuppspelning hålls utanför den rollen med avsikt: att lista inspelningar, titta på en och läsa vem som tittade på den är separata behörigheter. Projektägare och Projektadministratörer har alla. Behörighetsväljarna visar varje behörighet med dess titel, här visad i kursiv stil.
 
 | Behörighet | Låter en medlem |
 | --- | --- |

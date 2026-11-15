@@ -761,13 +761,15 @@ describe("the Changes column", () => {
         "audit-log-session-summary",
       );
 
+      // The summary is in the reader's words too (#8459): "Password" is OneUptime's.
       expect(button).toHaveAttribute(
         "title",
         dashboardTranslator(language).translateTemplate(
           AUDIT_LOGS_TABLE_WORDS.viewSessionDetails,
-          { summary: "Password" },
+          { summary: wordIn(language, "Password") },
         ),
       );
+      expect(button).toHaveTextContent(wordIn(language, "Password"));
 
       if (language !== "en") {
         expect(button.getAttribute("title")).not.toContain(

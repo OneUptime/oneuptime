@@ -239,7 +239,7 @@ Når GitHub sender dig tilbage, og installationen ikke blev forbundet, viser **K
 | Siden siger | Hvad du gør |
 | --- | --- |
 | **"Dette forbindelseslink er ugyldigt, er udløbet eller er allerede brugt. Start forfra."** | Linket virker én gang, i 15 minutter, i den browser, der startede det. Start forfra fra **Kode**, og gør det færdigt på GitHub inden for 15 minutter i samme browser. At installere appen fra dens side på GitHub forbinder den ikke med noget projekt: for at forbinde en installation, der er lavet dér, skal du klikke på **Forbind en eksisterende installation**. |
-| **"Du har ikke tilladelse til at tilføje kode-repositories til dette projekt."** | At forbinde kræver tilladelse til at tilføje koderepositorier (se [Forbind repositories](#forbind-repositories)). Bed en projektadministrator om at give den. Den kontrolleres igen, når GitHub sender dig tilbage, så en tilladelse, der er fjernet i mellemtiden, afslutter også forbindelsen her. |
+| **"Du har ikke tilladelse til at tilføje kode-repositories til dette projekt."** | At forbinde kræver tilladelse til at tilføje koderepositorier (se [Forbind repositories](#forbind-repositories)). Bed en Projektadministrator om at give den. Den kontrolleres igen, når GitHub sender dig tilbage, så en tilladelse, der er fjernet i mellemtiden, afslutter også forbindelsen her. |
 | **"Det kræver ...-abonnementet at forbinde GitHub."** | På OneUptime Cloud kræver koderepositorier det abonnement, sætningen nævner. Opgradér projektets abonnement, og forbind igen. |
 | **"GitHub bekræftede ikke, hvem der installerede appen, så installationen kunne ikke kontrolleres."** | Slå **Request user authorization (OAuth) during installation** til i GitHub-appens indstillinger (se [Opret GitHub-appen](#opret-github-appen)), og forbind igen. |
 | **"OneUptime kunne ikke bekræfte, at din GitHub-konto kan administrere denne installation."** | Den GitHub-konto, der fuldførte installationen, administrerer den ikke (se [Forbind repositories](#forbind-repositories) for, hvem der gør). Appen forbliver installeret på GitHub, så bed en, der administrerer den, om at forbinde den med **Forbind en eksisterende installation**. |
@@ -291,5 +291,5 @@ Giv appen **Issues: Read and write**, og abonnér den på de interaktive events 
 :::cards
 - [Arbejd med OneUptime fra GitHub](/docs/ai/github-app): De kommandoer, man kan give appen, og hvem der må give dem.
 - [Kode](/docs/ai/ai-agent): Hvordan AI-agenten åbner rettelsers pull requests.
-- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
+- [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad arbejdsgange og webhooks nå interne værktøjer.
 :::

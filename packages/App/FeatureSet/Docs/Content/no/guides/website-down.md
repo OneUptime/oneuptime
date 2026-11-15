@@ -42,7 +42,7 @@ Under **Hva skal vi sjekke?** skriver du adressen i **Adresse til nettsted eller
 
 Under **Hvem skal få beskjed?** avhenger det av prosjektet hva du ser:
 
-- Har prosjektet ennå ingen vaktpolicy eller vaktregel, er du allerede med i **Hvem som tilkalles**. Klikk på **Legg til teammedlemmer** for å legge til personer som allerede er med i prosjektet, og klikk deretter på **Lagre og fortsett**. Da opprettes `Default on-call policy`, som tilkaller dem ved hver nye hendelse og hvert nye varsel i prosjektet.
+- Har prosjektet ennå ingen vaktpolicy eller vaktregel, er du allerede med i **Hvem som tilkalles**. Klikk på **Legg til teammedlemmer** for å legge til personer som allerede er med i prosjektet, og klikk deretter på **Lagre og fortsett**. Da opprettes **Standard vaktpolicy**, som tilkaller dem ved hver nye hendelse og hvert nye varsel i prosjektet.
 - Har prosjektet en vaktpolicy eller vaktregel, avgjør prosjektets egne regler hvem som tilkalles: klikk på **Fortsett**.
 - Som medlem kan du ikke sette opp tilkalling, så steget forteller at du får e-post som monitorens eier: klikk på **Fortsett**.
 

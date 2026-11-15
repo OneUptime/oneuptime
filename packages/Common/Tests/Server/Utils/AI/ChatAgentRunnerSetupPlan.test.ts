@@ -270,11 +270,9 @@ function installSpies(data?: {
     .spyOn(OnCallDutyPolicyService, "countBy")
     .mockResolvedValue(new PositiveNumber(data?.policies ?? 0) as never);
   jest
-    .spyOn(IncidentOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
-  jest
-    .spyOn(AlertOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
+    .spyOn(IncidentOnCallRuleService, "findBy")
+    .mockResolvedValue([] as never);
+  jest.spyOn(AlertOnCallRuleService, "findBy").mockResolvedValue([] as never);
   jest.spyOn(OnCallReadinessService, "getReadinessForUser").mockResolvedValue({
     status: ReadinessStatus.PartiallyReady,
     methods: [
@@ -586,7 +584,7 @@ describe("what cannot be made is never on the card", () => {
     ]);
   });
 
-  test("a project member gets the monitor on the card, and is told paging needs the on-call rules a project admin may add", async () => {
+  test("a project member gets the monitor on the card, and is told paging needs the on-call rules a Project Admin may add", async () => {
     const spies: Spies = installSpies();
     spies.executeWithLogging.mockResolvedValueOnce(
       response({

@@ -698,7 +698,7 @@ describe("every Code route", () => {
       403,
       {
         message:
-          "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+          "Reviewing a pull request again takes permission to edit its repository - ask a Project Admin for it.",
       },
       {},
     );

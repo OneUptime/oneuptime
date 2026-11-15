@@ -34,7 +34,7 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma sonda que alcance a API.** As sondas padrão do seu projeto são escolhidas para cada monitor novo. Se um firewall protege a API, libere os [endereços IP das sondas do OneUptime Cloud](/docs/configuration/ip-addresses). Uma API em uma rede privada precisa de uma [sonda personalizada](/docs/probe/custom-probe) dentro dessa rede, com permissão para alcançar endereços privados: veja [Acesso à rede privada](/docs/self-hosted/private-network-access).
 - **Credenciais como segredos de monitor.** Se a API precisa de uma chave ou de um token, guarde-o primeiro como [segredo de monitor](/docs/monitor/monitor-secrets), para que o monitor só guarde uma referência a ele.
 
@@ -181,7 +181,7 @@ Um monitor de API novo começa com dois critérios, então funciona sem que voc�
 - **Offline** — a API não responde, ou responde com um código de status `400` ou maior (ou menor que `200`). O monitor é marcado como **Offline** e um incidente é criado. O incidente se resolve sozinho quando a API volta.
 - **No ar** — a API responde com qualquer código de status `2xx` ou `3xx`, como `200`, `201`, `202` ou `204`. O monitor é marcado como **Operacional**.
 
-Na lista de critérios, eles levam o nome do monitor: _Check if (name) is offline_ e _Check if (name) is online_.
+Na lista de critérios, eles levam o nome do monitor: "Verificar se _nome do monitor_ está offline" e "Verificar se _nome do monitor_ está online".
 
 Então um endpoint que responde `201 Created` ou `204 No Content` conta como no ar. Se para você só um código de status significa que está saudável, altere os dois critérios na página **Configuração → Critérios** do monitor: por exemplo **Código de status da resposta** / **Igual a** / `200` no critério online e **Diferente de** / `200` no critério offline, no lugar dos dois filtros de código de status que cada um tem. Para verificar também o que a API retorna, adicione um filtro **Corpo da Resposta** ou **Expressão JavaScript** ao critério offline.
 

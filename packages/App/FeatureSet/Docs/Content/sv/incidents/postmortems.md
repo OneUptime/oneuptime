@@ -209,7 +209,7 @@ De två AI-åtgärderna kräver att AI är påslaget för projektet och ett repo
 
 **Incidenter → Åtgärdspunkter** visar åtgärdspunkterna från alla efteranalyser i projektet, den som förfaller först överst, med varje punkts incident, ägare, förfallodatum och status. Filtrera listan på **Status**, **Ägare** och **Förfallodatum**, och **Visa** på en rad öppnar incidentens sida **Efteranalys**.
 
-Att läsa åtgärdspunkter kräver samma sak som att läsa incidenten. Att lägga till, ändra och ta bort dem kräver rollen Projektägare, Projektadministratör, Projektmedlem, Incidentadministratör eller Incidentmedlem, eller en anpassad roll med motsvarande behörighet för åtgärdspunkter. En privat incidents åtgärdspunkter är, precis som incidenten, bara synliga för användarna som äger den, medlemmarna i teamen som äger den, projektadministratörer och projektägare.
+Att läsa åtgärdspunkter kräver samma sak som att läsa incidenten. Att lägga till, ändra och ta bort dem kräver rollen Projektägare, Projektadministratör, Projektmedlem, Incidentadministratör eller Incidentmedlem, eller en anpassad roll med motsvarande behörighet för åtgärdspunkter. En privat incidents åtgärdspunkter är, precis som incidenten, bara synliga för användarna som äger den, medlemmarna i teamen som äger den, Projektadministratörer och Projektägare.
 
 ## Efteranalyser för episoder
 

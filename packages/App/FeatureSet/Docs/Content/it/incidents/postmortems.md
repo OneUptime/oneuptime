@@ -54,7 +54,7 @@ Fate clic su **Salva modifiche**. La scheda mostra la nota e gli allegati. Lo st
 
 Ogni modifica della nota viene registrata nel feed dell'incidente, e pubblicata nel canale Slack o Microsoft Teams dell'incidente se ne ha uno. Finché il post-mortem non è pubblicato, nessun iscritto della pagina di stato ne viene a conoscenza.
 
-Scrivere un post-mortem richiede il ruolo Project Owner, Project Admin, Project Member, Incident Admin o Incident Member, oppure un ruolo personalizzato con il permesso Edit Incident. Chi può leggere l'incidente può leggerne il post-mortem.
+Scrivere un post-mortem richiede il ruolo Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore degli incidenti o Membro degli incidenti, oppure un ruolo personalizzato con il permesso Edit Incident. Chi può leggere l'incidente può leggerne il post-mortem.
 
 ## Partire da un modello o da una bozza dell'IA
 
@@ -72,7 +72,7 @@ Fate clic su **Generate with AI**. Il dialogo **Genera post-mortem con l'AI** pr
 
 Fate clic su **Generate with AI** in fondo al dialogo. OneUptime AI legge l'incidente (la sua descrizione, la causa principale e la correzione, la cronologia degli stati, le note pubbliche e private, i messaggi del suo canale Slack o Microsoft Teams, e ciò che si è detto nelle [sue chiamate](/docs/workspace-connections/video-calls#trascrizioni-delle-chiamate)) e scrive il post-mortem secondo la vostra traccia. Poi l'editor si apre con il risultato.
 
-La generazione richiede che l'IA sia attiva per il progetto, in **Impostazioni del progetto → IA → Funzionalità IA**, e un provider LLM: vedere [Provider LLM](/docs/ai/llm-provider). Richiede anche il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident: gli altri ruoli possono scrivere il post-mortem, ma non generarlo.
+La generazione richiede che l'IA sia attiva per il progetto, in **Impostazioni del progetto → IA → Funzionalità IA**, e un provider LLM: vedere [Provider LLM](/docs/ai/llm-provider). Richiede anche il ruolo Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Incident: gli altri ruoli possono scrivere il post-mortem, ma non generarlo.
 
 ### Lasciare che OneUptime AI lo scriva quando un incidente viene risolto
 
@@ -92,7 +92,7 @@ Senza regole, ogni incidente risolto riceve una bozza, secondo lo schema standar
 - Il suo **Provider LLM**, in **Altri campi**, è il provider con cui OneUptime AI scrive la bozza e ne sceglie il modello. Se non se ne sceglie nessuno, è il provider predefinito del progetto, altrimenti quello globale. Il post della bozza nel feed nomina il provider scelto da una regola, o quello usato al suo posto e perché. Vedere [Quale provider LLM usa una regola](/docs/ai/ai-sre#quale-provider-llm-usa-una-regola).
 - Decide la prima regola abilitata che corrisponde all'incidente, partendo dall'alto dell'elenco: trascinare una regola per cambiarne la posizione. Un incidente a cui non corrisponde nessuna regola non riceve una bozza, e nessun incidente la riceve finché le regole non si possono leggere.
 - **Scrivi una bozza di post-mortem quando un incidente viene risolto** resta l'unico interruttore che disattiva le bozze. Le regole decidono solo le bozze che OneUptime AI scrive da sé: **Generate with AI** offre ogni schema, qualunque cosa dicano.
-- Creare, modificare e riordinare le regole richiede il ruolo Project Owner o Project Admin. Su OneUptime Cloud, i modelli richiedono il piano Growth: al di sotto, le regole decidono comunque quali incidenti ricevono una bozza, e ogni bozza segue lo schema standard.
+- Creare, modificare e riordinare le regole richiede il ruolo Proprietario del progetto o Amministratore del progetto. Su OneUptime Cloud, i modelli richiedono il piano Growth: al di sotto, le regole decidono comunque quali incidenti ricevono una bozza, e ogni bozza segue lo schema standard.
 
 ## Pubblicarlo sulla vostra pagina di stato
 
@@ -158,7 +158,7 @@ Se il vostro processo ha un passaggio suo, come una revisione, aggiungete uno st
 
 La posizione di uno stato decide come conta, mostrato sotto **Conta come**: sopra **Bozza**, **Non iniziato**; da **Bozza** in giù, **In corso**; da **Completato** in giù, **Fatto**, e non è più da fare. **In revisione**, in mezzo, è ancora da fare; **Non necessario**, sotto **Completato**, no.
 
-**Non iniziato**, **Bozza** e **Completato** sono integrati, perché OneUptime vi sposta i post-mortem: potete rinominarli e cambiarne il colore, ma non eliminarli né archiviarli, e mantengono il loro ordine. Archiviate uno stato che non usate più dal menu **⋯** della sua riga: nessuno può più spostarvi un post-mortem, i post-mortem che contiene vi restano finché qualcuno non li sposta, e l'elenco filtra ancora in base a esso. **Stati post-mortem archiviati**, ripiegato sotto la tabella, li elenca, con **Annulla archiviazione** per riportarne indietro uno. Creare, modificare ed eliminare stati richiede il ruolo Project Owner, Project Admin o Incident Admin, oppure un ruolo personalizzato con il permesso corrispondente sugli stati di post-mortem.
+**Non iniziato**, **Bozza** e **Completato** sono integrati, perché OneUptime vi sposta i post-mortem: potete rinominarli e cambiarne il colore, ma non eliminarli né archiviarli, e mantengono il loro ordine. Archiviate uno stato che non usate più dal menu **⋯** della sua riga: nessuno può più spostarvi un post-mortem, i post-mortem che contiene vi restano finché qualcuno non li sposta, e l'elenco filtra ancora in base a esso. **Stati post-mortem archiviati**, ripiegato sotto la tabella, li elenca, con **Annulla archiviazione** per riportarne indietro uno. Creare, modificare ed eliminare stati richiede il ruolo Proprietario del progetto, Amministratore del progetto o Amministratore degli incidenti, oppure un ruolo personalizzato con il permesso corrispondente sugli stati di post-mortem.
 
 ## Vedere tutti i post-mortem
 
@@ -209,13 +209,13 @@ Le due azioni con l'IA richiedono che l'IA sia attiva per il progetto e un repos
 
 **Incidenti → Azioni da intraprendere** elenca le azioni da intraprendere di tutti i post-mortem del progetto, dalla scadenza più vicina, con l'incidente, il proprietario, la data di scadenza e lo stato di ciascuna. Filtrate l'elenco per **Stato**, **Proprietario** e **Data di scadenza**, e **Visualizza** su una riga apre la pagina **Post-mortem** dell'incidente.
 
-Per leggere le azioni da intraprendere serve ciò che serve per leggere l'incidente. Aggiungerle, modificarle ed eliminarle richiede il ruolo Project Owner, Project Admin, Project Member, Incident Admin o Incident Member, oppure un ruolo personalizzato con il permesso corrispondente sulle azioni da intraprendere. Come l'incidente, le azioni da intraprendere di un incidente privato sono visibili solo ai suoi utenti proprietari, ai membri dei suoi team proprietari, agli amministratori e ai proprietari del progetto.
+Per leggere le azioni da intraprendere serve ciò che serve per leggere l'incidente. Aggiungerle, modificarle ed eliminarle richiede il ruolo Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore degli incidenti o Membro degli incidenti, oppure un ruolo personalizzato con il permesso corrispondente sulle azioni da intraprendere. Come l'incidente, le azioni da intraprendere di un incidente privato sono visibili solo ai suoi utenti proprietari, ai membri dei suoi team proprietari, agli Amministratori del progetto e ai Proprietari del progetto.
 
 ## Post-mortem degli episodi
 
 Anche un episodio di incidenti ha una pagina **Post-mortem**, sotto **Indagine**: un unico resoconto per tutti gli incidenti dell'episodio. Fate clic su **Modifica post mortem** per scriverlo. **Applica modello** e **Generate with AI** funzionano come su un incidente, e l'IA legge l'episodio e i suoi incidenti membri.
 
-Il post-mortem di un episodio è solo la nota: non ha allegati, e nessuna pagina di stato lo mostra. OneUptime AI non ne scrive uno da solo quando un episodio viene risolto. Generarlo richiede il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident Episode. Non ha nemmeno uno stato, e l'elenco dei post-mortem non lo include.
+Il post-mortem di un episodio è solo la nota: non ha allegati, e nessuna pagina di stato lo mostra. OneUptime AI non ne scrive uno da solo quando un episodio viene risolto. Generarlo richiede il ruolo Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Incident Episode. Non ha nemmeno uno stato, e l'elenco dei post-mortem non lo include.
 
 Gli avvisi e gli eventi di manutenzione non hanno un post-mortem.
 
@@ -233,7 +233,7 @@ Un post-mortem è un insieme di campi dell'incidente, letti e scritti tramite `/
 
 Scrivere `showPostmortemOnStatusPage` come `true` su una `postmortemNote` già scritta pubblica il post-mortem, come fa il dialogo. Sposta anche il post-mortem in **Completato**, a meno che la stessa scrittura non imposti `postmortemStatusId`.
 
-Le azioni da intraprendere di un post-mortem sono record a sé, in `/api/incident-postmortem-action-item`: ciascuna con i suoi `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` e `status` (`Open`, `Done` o `WontDo`). I workflow possono partire quando una di esse viene creata, modificata o eliminata.
+Le azioni da intraprendere di un post-mortem sono record a sé, in `/api/incident-postmortem-action-item`: ciascuna con i suoi `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` e `status` (`Open`, `Done` o `WontDo`). I flussi di lavoro possono partire quando una di esse viene creata, modificata o eliminata.
 
 ## Risoluzione dei problemi
 
@@ -242,7 +242,7 @@ Il progetto non ha ancora un modello di post-mortem, oppure il vostro ruolo non 
 :::
 
 :::details Generate with AI dice che l'IA è disattivata, o che vi manca il permesso
-Attivate l'IA in **Impostazioni del progetto → IA → Funzionalità IA**. La generazione richiede il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident, anche per chi può modificare il post-mortem.
+Attivate l'IA in **Impostazioni del progetto → IA → Funzionalità IA**. La generazione richiede il ruolo Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Incident, anche per chi può modificare il post-mortem.
 :::
 
 :::details Il post-mortem non è sulla pagina di stato

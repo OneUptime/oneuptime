@@ -24,7 +24,7 @@ flowchart TB
 ## Before you begin
 
 - **A plan that includes it.** On OneUptime Cloud, creating and changing data sources needs the **Growth** plan. Deleting one works on every plan.
-- **A permission to add them.** Project owners and admins can add data sources; anyone else needs `CreateDataSource`, with `EditDataSource` and `DeleteDataSource` to change and remove them. Everyone who can read the project's data sources, members and viewers included, sees their widgets' data.
+- **A permission to add them.** Project Owners and Project Admins can add data sources; anyone else needs `CreateDataSource`, with `EditDataSource` and `DeleteDataSource` to change and remove them. Everyone who can read the project's data sources, members and viewers included, sees their widgets' data.
 - **A read-only account.** Dashboards only ever read. Connect databases with an account that can only read, and HTTP sources with a token that can only query.
 - **A way in.** OneUptime's API server connects to your system, so it must be able to reach it: see [Keeping it safe](#keeping-it-safe) for the addresses that are refused.
 

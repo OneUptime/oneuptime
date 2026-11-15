@@ -263,7 +263,7 @@ Et prosjekt kan også logge inn via en OpenID Connect-leverandør, for eksempel 
 
 OneUptime overtar ikke roller eller grupper fra identitetsleverandøren din. Hva en person kan gjøre, følger av teamene vedkommende er med i: en leverandør legger nye personer til i sine **Team**, og du administrerer team og tillatelsene deres i OneUptime, slik [Brukere, team og tillatelser](/docs/permissions/index) beskriver. Bruk [SCIM](/docs/identity/scim) for å holde teammedlemskap i takt med identitetsleverandøren din. Hvert team noen blir med i når de logger på, registreres på teamets side **Revisjonslogger** som en endring gjort av personen som logget på.
 
-Teamene til en leverandør avgjør hva personene som logger inn med den, kan gjøre, så en leverandør lagres bare med team som den som lagrer den, kunne invitert noen til. Hver lagring kontrollerer dem på nytt: en leverandør der teamene gir mer tilgang enn du har, kan bare endres av noen som har tilgang som dekker dem, for eksempel en prosjekteier. Leverandører som ble lagret før denne kontrollen, fortsetter å logge personer inn i teamene sine. Alle som får redigere en leverandør, kan fortsatt slå den av, slik at den kan stoppes umiddelbart.
+Teamene til en leverandør avgjør hva personene som logger inn med den, kan gjøre, så en leverandør lagres bare med team som den som lagrer den, kunne invitert noen til. Hver lagring kontrollerer dem på nytt: en leverandør der teamene gir mer tilgang enn du har, kan bare endres av noen som har tilgang som dekker dem, for eksempel en Prosjekteier. Leverandører som ble lagret før denne kontrollen, fortsetter å logge personer inn i teamene sine. Alle som får redigere en leverandør, kan fortsatt slå den av, slik at den kan stoppes umiddelbart.
 
 ## Krev SSO for prosjektet ditt
 
@@ -283,7 +283,7 @@ Et nytt prosjekt følger samme regel. Det har ingen egen leverandør ennå, så 
 
 Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pålogging** > **Krev SSO for innlogging**), krever det å opprette et hvilket som helst prosjekt også en slik global leverandør, ellers kunne ingen, heller ikke den som oppretter det, åpne prosjektet. Uten en slik avvises opprettelsen av et prosjekt, og meldingen ber en serveradministrator slå på en. Master-admins kan fortsatt opprette prosjekter.
 
-Å slå av **Krev SSO for innlogging** lagres så snart du slår om bryteren, og slipper medlemmer inn med passordet sitt med en gang — med mindre noen slår den på igjen i akkurat det øyeblikket; da kan en appserver bruke opptil ett minutt på å følge etter. Prosjekteiere, prosjektadministratorer og medlemmer med tillatelsen **Edit Project** kan endre den; alle andre ser bryteren låst, sammen med tillatelsen de ville trengt.
+Å slå av **Krev SSO for innlogging** lagres så snart du slår om bryteren, og slipper medlemmer inn med passordet sitt med en gang — med mindre noen slår den på igjen i akkurat det øyeblikket; da kan en appserver bruke opptil ett minutt på å følge etter. Prosjekteiere, Prosjektadministratorer og medlemmer med tillatelsen **Edit Project** kan endre den; alle andre ser bryteren låst, sammen med tillatelsen de ville trengt.
 
 > [!NOTE]
 > På OneUptime Cloud krever det planen **Scale** å kreve SSO, mens det fungerer på alle planer å slå det av. Under Scale viser **Prosjektinnstillinger** > **Sikkerhet** > **SSO** planens oppgraderingstilbud; et prosjekt som en Scale-prøveperiode etterlot med krav om SSO, finner også **Krev SSO for innlogging** der, under tilbudet, slik at det kan slås av. Å slå det på igjen krever **Scale**.

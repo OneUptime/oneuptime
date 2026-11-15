@@ -37,7 +37,7 @@ L'esploratore ha sei schede:
 ## Prima di iniziare
 
 - **Metriche in arrivo.** Inviatele con [OpenTelemetry](/docs/telemetry/open-telemetry), oppure da un agente come il [collector OpenTelemetry per host](/docs/telemetry/host-otel-collector) o l'[agente Kubernetes](/docs/telemetry/kubernetes-agent).
-- **Un ruolo che può leggere la telemetria.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member o Telemetry Viewer, oppure un ruolo personalizzato con il permesso Read Metrics. Vedere [Telemetria](/docs/permissions/index#telemetria) per sapere quali metriche legge.
+- **Un ruolo che può leggere la telemetria.** Proprietario del progetto, Amministratore del progetto, Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria o Visualizzatore della telemetria, oppure un ruolo personalizzato con il permesso Read Metrics. Vedere [Telemetria](/docs/permissions/index#telemetria) per sapere quali metriche legge.
 
 ## Trovare una metrica
 
@@ -64,13 +64,13 @@ Aprite **Filters & grouping**. **Filter by attributes** conserva i punti dati i 
 
 ### Regolare il grafico
 
-Aprite **Display Settings** per scegliere il **Chart type** (linea, area o barre), tracciare un **Warning Threshold** e un **Critical Threshold** sul grafico, oppure attivare **Convert to per-second rate**.
+Aprite **Impostazioni di visualizzazione** per scegliere il **Tipo di grafico** (linea, area o barre), tracciare una **Soglia di avviso** e una **Soglia critica** sul grafico, oppure attivare **Converti in tasso al secondo**.
 :::
 
 > [!TIP]
-> Un contatore che cresce soltanto, come `system.disk.io`, si legge meglio come tasso. Attivate **Convert to per-second rate** per mostrare quanto velocemente cambia invece del suo totale progressivo; l'esploratore lo suggerisce quando riconosce un contatore del genere.
+> Un contatore che cresce soltanto, come `system.disk.io`, si legge meglio come tasso. Attivate **Converti in tasso al secondo** per mostrare quanto velocemente cambia invece del suo totale progressivo; l'esploratore lo suggerisce quando riconosce un contatore del genere.
 
-Ogni query disegna il proprio grafico. Per disegnare una query sullo stesso grafico della precedente, attivate **Overlay with previous query** nelle sue **Display Settings**.
+Ogni query disegna il proprio grafico. Per disegnare una query sullo stesso grafico della precedente, attivate **Sovrapponi alla query precedente** nelle sue **Impostazioni di visualizzazione**.
 
 ## Combinare query con una formula
 
@@ -195,7 +195,7 @@ Riavviate il collector. Ogni servizio le cui tracce lo attraversano invia allora
 ## Risoluzione dei problemi
 
 :::details Il grafico di un contatore sale soltanto
-È un contatore cumulativo. Attivate **Convert to per-second rate** nelle **Display Settings** della query.
+È un contatore cumulativo. Attivate **Converti in tasso al secondo** nelle **Impostazioni di visualizzazione** della query.
 :::
 
 :::details L'elenco dice che non sono state trovate metriche

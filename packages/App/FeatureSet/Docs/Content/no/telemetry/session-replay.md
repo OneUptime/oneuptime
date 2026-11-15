@@ -3,7 +3,7 @@
 Øktavspilling tar opp det ekte brukere så i web- eller React Native-appen din, og spiller det av ved siden av feil, spor og logger fra den samme økten. Du legger til én skript-tagg, velger hva som maskeres, og ser enhver økt fra RUM-applikasjonen dens.
 
 :::cards
-- [Slik fungerer det](#slik-fungerer-det): En loader, en retningslinje og en opptaker som laster opp underveis.
+- [Slik fungerer det](#slik-fungerer-det): En loader, en policy og en opptaker som laster opp underveis.
 - [Installasjon](#installasjon): Én skript-tagg på hver side, eller React Native-SDK-et.
 - [Personvern](#personvern): Hva som maskeres, samtykke, og hvem som kan sende opptak.
 - [Korreler med resten av telemetrien din](#korreler-med-resten-av-telemetrien-din): Backend-spor, -logger og -feil, koblet uten kode.
@@ -13,13 +13,13 @@
 
 ## Slik fungerer det
 
-Skriptet på siden din er en liten loader. Den sjekker nettleserens personvernsignaler, henter applikasjonens retningslinje fra OneUptime og laster først deretter inn opptakeren, som maskerer siden mens den tar den opp, og laster den opp i chunker mens brukeren er aktiv.
+Skriptet på siden din er en liten loader. Den sjekker nettleserens personvernsignaler, henter applikasjonens policy fra OneUptime og laster først deretter inn opptakeren, som maskerer siden mens den tar den opp, og laster den opp i chunker mens brukeren er aktiv.
 
 ```mermaid title="Fra en sideinnlasting til et opptak du kan se"
 flowchart TB
     page["Siden din laster inn<br/>skript-taggen"] --> dnt{"Do Not Track-<br/>eller GPC-signal?"}
     dnt -->|"Ja"| none["Ingenting<br/>tas opp"]
-    dnt -->|"Nei"| policy["Loaderen henter<br/>retningslinjen"]
+    dnt -->|"Nei"| policy["Loaderen henter<br/>policyen"]
     policy --> recorder["Opptakeren maskerer<br/>og tar opp siden"]
     recorder -->|"Chunker mens<br/>brukeren er aktiv"| ingest["OneUptime"]
     ingest --> player["Øktliste<br/>og avspiller"]
@@ -27,7 +27,7 @@ flowchart TB
 
 Som standard tas hver økt opp og lastes opp mens den pågår, ikke bare de som gikk galt. Det er i øktene der ingenting gikk galt, at du finner kassen som ingen fullførte, skjemaet som alle ga opp, og siden som ifølge en kunde «så rar ut».
 
-For å lagre mindre samarbeider to innstillinger i applikasjonens retningslinje:
+For å lagre mindre samarbeider to innstillinger i applikasjonens policy:
 
 | Innstilling | Standard | Hva den endrer |
 | --- | --- | --- |
@@ -43,9 +43,9 @@ For å lagre mindre samarbeider to innstillinger i applikasjonens retningslinje:
 
 | Hvor | Hva som er der |
 | --- | --- |
-| Applikasjonens side **Avspillingspolicy** | Retningslinjen (opptak, maskering, samtykke, sporing og grenser), et sammendrag av **Opptakets tilstand**, kortet **Hva et opptak inneholder**, panelet **Test installasjonen din** og **Ta opp en bestemt brukers neste økt**. |
+| Applikasjonens side **Avspillingspolicy** | Policyen (opptak, maskering, samtykke, sporing og grenser), et sammendrag av **Opptakets tilstand**, kortet **Hva et opptak inneholder**, panelet **Test installasjonen din** og **Ta opp en bestemt brukers neste økt**. |
 | Applikasjonens side **Helse** | Om opptak kommer inn, og hvorfor ikke når de ikke gjør det. Se [Opptaksstatus](#opptaksstatus). |
-| **Overvåking av reelle brukere → Innstillinger → Øktavspilling** | Bryteren for hele prosjektet som stopper alle applikasjoner på én gang, og en skrivebeskyttet liste over hver applikasjons retningslinje. |
+| **Overvåking av reelle brukere → Innstillinger → Øktavspilling** | Bryteren for hele prosjektet som stopper alle applikasjoner på én gang, og en skrivebeskyttet liste over hver applikasjons policy. |
 
 ## Installasjon
 
@@ -77,7 +77,7 @@ Sett taggen på hver side, med nøkkelen din og applikasjonens identifikator:
 Åpne en av sidene dine, og klikk rundt i noen sekunder. Innen omtrent et minutt vises økten på applikasjonens side **Øktavspilling**, merket som **Tar opp nå**. Gjør den ikke det, sier applikasjonens side **Helse** hvorfor: se [Opptaksstatus](#opptaksstatus).
 :::
 
-Skriptet på `/v1/recorder.js` er en liten loader. Den sjekker Do Not Track, henter applikasjonens retningslinje og laster først deretter inn `/latest/recorder.js`. Retningslinjen og opptakeren leveres med `no-store`, så en endring i en av dem når neste sideinnlasting uten å vente på at en nettleserbuffer utløper.
+Skriptet på `/v1/recorder.js` er en liten loader. Den sjekker Do Not Track, henter applikasjonens policy og laster først deretter inn `/latest/recorder.js`. Policyen og opptakeren leveres med `no-store`, så en endring i en av dem når neste sideinnlasting uten å vente på at en nettleserbuffer utløper.
 
 ### Skript-taggens attributter
 
@@ -111,7 +111,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
 
 Åpne DevTools → Network, og filtrer på `session-replay`. En fungerende side gir:
 
-1. **Én `GET .../session-replay/v1/config`** per sideinnlasting — hentingen av retningslinjen.
+1. **Én `GET .../session-replay/v1/config`** per sideinnlasting — hentingen av policyen.
 2. **En `POST .../session-replay/v1/chunk` omtrent hvert 15. sekund mens brukeren gjør noe**, eller tidligere når 256 KB med hendelser har hopet seg opp. En inaktiv fane produserer ingen hendelser og derfor ingen POST-er: beveg musen eller klikk før du vurderer en installasjon ut fra fanen Network.
 3. Når fanen skjules, og igjen når siden forsvinner, en `POST` som sendes med `keepalive`. Å forlate siden — fanen lukket, lastet inn på nytt eller sendt til en annen side, eller siden lagt i nettleserens back/forward-buffer (hver `pagehide`) — merker den som den siste, noe som forteller OneUptime at fanens opptak er ferdig; en side som brukeren henter tilbake fra back/forward-bufferen, fortsetter å ta opp som en ny fane i den samme økten. En fane som bare skjules, forblir åpen, så opptaket fortsetter når brukeren kommer tilbake til den. Hele bodyen holder seg under 56 KB — opptakerens andel av nettleserens keepalive-kvote på 64 KB per opprinnelse — og kan bære flere chunker som rammer i den ene forespørselen: den avsluttende chunken, bitene en stor avsluttende chunk ble delt i (høyst 48 KB med hendelser hver, så rammens header fortsatt får plass) og enhver chunk som fortsatt ventet på et nytt forsøk. En chunk som allerede er større enn det budsjettet når fanen bare skjules, går i stedet den vanlige veien, mens siden fortsatt lever og kan sende den.
 
@@ -160,7 +160,7 @@ export default function App() {
 }
 ```
 
-`appIdentifier` er RUM-applikasjonens identifikator. `mobileAppIdentifier` er Android-application-ID-en eller iOS-bundle-identifikatoren som leveres i binærfilen, ikke et visningsnavn. Bruk den samme verdien i [`app://`-listene over tillatte opprinnelser](#angi-de-tillatte-opprinnelsene-dine-i-produksjon). SDK-et henter applikasjonens avspillingsretningslinje fra `host`; sampling, utløser, samtykke, oppbevaring og opplastingsbudsjetter forblir styrt av serveren.
+`appIdentifier` er RUM-applikasjonens identifikator. `mobileAppIdentifier` er Android-application-ID-en eller iOS-bundle-identifikatoren som leveres i binærfilen, ikke et visningsnavn. Bruk den samme verdien i [`app://`-listene over tillatte opprinnelser](#angi-de-tillatte-opprinnelsene-dine-i-produksjon). SDK-et henter applikasjonens avspillingspolicy fra `host`; sampling, utløser, samtykke, oppbevaring og opplastingsbudsjetter forblir styrt av serveren.
 :::
 
 Provideren har en native rot som ikke kan slås sammen, og tar opp visningstreet sitt og start-, bevegelses- og slutthendelser for berøringer. Hvis du allerede bygger opptakerinstanser selv, sender du en med `<OneUptimeReplayProvider recorder={recorder}>`. `MobileReplayRecorder` eksporteres også for isolerte integrasjoner eller integrasjoner med flere klienter; de fleste apper bør bruke singletonen.
@@ -171,7 +171,7 @@ Importer `OneUptimeReplay` direkte, eller kall `useOneUptimeReplay()` under prov
 
 | Metode | Hva den gjør |
 | --- | --- |
-| `start(options)` | Henter retningslinjen og starter opptaket. Påkrevde alternativer er `host`, `token`, `appIdentifier` og `mobileAppIdentifier`; `appName` og `appVersion` er valgfrie visningsmetadata, og `connectivity` er en valgfri kilde til nettverksstatus for [offlinemodus](#offlinemodus). |
+| `start(options)` | Henter policyen og starter opptaket. Påkrevde alternativer er `host`, `token`, `appIdentifier` og `mobileAppIdentifier`; `appName` og `appVersion` er valgfrie visningsmetadata, og `connectivity` er en valgfri kilde til nettverksstatus for [offlinemodus](#offlinemodus). |
 | `stop()` | Tømmer det som kan sendes, stopper opptaket og kobler fra livssyklushåndtererne. |
 | `identify(userRef, traits?)` | Knytter den påloggede brukeren og valgfrie egenskaper til, avhengig av **Registrer sluttbrukerens identitet**. |
 | `setTags(tags)` / `addTag(key, value)` | Erstatter alle øktens søkbare tagger, eller legger til én tagg uten å erstatte de andre. |
@@ -183,7 +183,7 @@ Importer `OneUptimeReplay` direkte, eller kall `useOneUptimeReplay()` under prov
 | `getSessionId()` / `onSessionChange(listener)` | Leser den gjeldende avspillingsøktens ID med samtykke, eller abonnerer på den, for å korrelere spor og logger. Lytteren mottar også `null` når opptaket eller samtykket opphører. |
 | `getDiagnostics()` | Returnerer opptakerens tilstand og de siste beslutningene uten å returnere innholdet i de opptatte visningene. |
 
-SDK-et lytter på React Natives `AppState`: å gå i bakgrunnen lukker og tømmer hendelser med samtykke, mens opptak fra før samtykke bare blir værende i minnet. Før opptaket i forgrunnen gjenopptas, oppdaterer SDK-et retningslinjen uten å bruke et bufret svar. Det oppdaterer også retningslinjen med jevne mellomrom mens det er aktivt, slik at deaktivering, samtykke, sampling, målretting og identitetsendringer trer i kraft i en app som står åpen lenge. Kall `stop()` når integrasjonen din demonteres permanent; vanlig navigasjon mellom skjermbilder skal bruke `setRoute()` i stedet for å stoppe og starte opptakeren på nytt.
+SDK-et lytter på React Natives `AppState`: å gå i bakgrunnen lukker og tømmer hendelser med samtykke, mens opptak fra før samtykke bare blir værende i minnet. Før opptaket i forgrunnen gjenopptas, oppdaterer SDK-et policyen uten å bruke et bufret svar. Det oppdaterer også policyen med jevne mellomrom mens det er aktivt, slik at deaktivering, samtykke, sampling, målretting og identitetsendringer trer i kraft i en app som står åpen lenge. Kall `stop()` når integrasjonen din demonteres permanent; vanlig navigasjon mellom skjermbilder skal bruke `setRoute()` i stedet for å stoppe og starte opptakeren på nytt.
 
 **Når en mobiløkt avsluttes på grunn av inaktivitet.** Fem minutter uten input setter allerede opptaket på pause (se [Inaktiv tid](#inaktiv-tid)). Tretti minutter uten noen berøring og uten noe opptatt SDK-kall (`track()`, `setTags()`, `identify()` og lignende, gjort mens opptaket pågikk) avslutter økten. Den slutter ved den siste aktiviteten, eller for en økt på pause ved pausen, der opptaket sluttet — ikke når appen kommer tilbake eller opptakeren merker det — så tid i bakgrunnen eller på pause legges aldri til slutten av en økt. En app som står åpen i forgrunnen, starter ikke en ny økt hver halvtime. Neste økt begynner når brukeren kommer tilbake: den første berøringen, skjermtastaturet som vises eller skjules, appen som kommer tilbake til forgrunnen, eller et kall til `captureSession()`. Den åpner med et nytt øyeblikksbilde av skjermen. Inntil da returnerer `getSessionId()` `null`, og `onSessionChange()` kalles med `null`. Feil, navigasjon og kall til `track()` i mellomtiden tas ikke opp.
 
@@ -224,7 +224,7 @@ OneUptimeReplay.identify("user-123", { plan: "pro", tenant: "acme" });
 - **Identiteten tilhører økten, ikke bare siden.** En økt omfatter hver sideinnlasting og hver fane i besøket, og så snart en hvilken som helst av sidene kaller `identify()`, er hele økten den brukerens — også sidene fra før påloggingen, siden de er det samme besøket. Hver senere side og fane i økten nevner også brukeren, selv en som aldri kaller `identify()` selv: målsiden for omdirigeringen etter pålogging, en lenke som er åpnet i en ny fane. Så lenge **Registrer sluttbrukerens identitet** er slått på, husker opptakeren hvem den gjeldende økten tilhører, i `localStorage` under `oneuptime.replay.user` — økt-ID-en og referansen, ingenting annet, og med samtykket _Require explicit_ først etter at samtykke er gitt — og bare for den økten: neste økt (etter 30 minutter inaktivitet eller grensen på 4 timer) starter anonymt til en side identifiserer den, med mindre siden som startet den, selv hadde identifisert brukeren. Kall derfor `identify()` ved hver sideinnlasting der appen din kjenner brukeren, ikke bare rett etter pålogging.
 - **En annen bruker får sin egen økt.** Når `identify()` nevner en annen enn brukeren økten allerede tilhører — én person logget av og en annen logget på i den samme nettleseren, i denne fanen eller en annen —, avsluttes den gjeldende økten, fortsatt arkivert under den første brukeren, og en ny økt begynner for den andre. Lyttere på `onSessionChange` får beskjed, og avspilleren viser byttet som slutten på ett opptak og begynnelsen på det neste. Å identifisere den samme brukeren igjen endrer ingenting; referanser sammenlignes etter at mellomrom i endene er fjernet, og med forskjell på store og små bokstaver, nøyaktig slik serveren sammenligner dem.
 - Det `identify()` gir opptakeren, lastes bare opp med opptaket mens **Registrer sluttbrukerens identitet** er slått på for applikasjonen (standard). Er det slått av, utelater opptakeren referansen og egenskapene fra chunken, og serveren lagrer **overhodet ingenting** om personen — ingen referanse, ingen nøkkelbasert hash av den, ingen egenskaper. De øktene er virkelig pseudonyme, og prisen er at de ikke kan slettes _per bruker_: en sletteforespørsel har ingenting å samsvare med, så bruk i stedet `BySessionId`, `ByDateRange` eller `ByRumApplication` (se [Slett økter](#slett-økter)). Hvis det betyr mer for deg å kunne etterkomme en sletteforespørsel per bruker enn å ikke lagre noen identifikator, lar du bryteren stå på — den lagrede nøkkelen er en enveis nøkkelbasert hash som kan sammenlignes, men ikke leses, og bare den separate etiketten bærer selve referansen.
-- Én referanse forlater nettleseren uansett den bryteren, med vilje: den siden din leverer **ved innlasting** via `data-oneuptime-user-ref` eller `userRef` på init-globalen, reiser som en forespørselsheader ved hentingen av retningslinjen ved hver sideinnlasting, fordi det er slik [Ta opp en bestemt brukers neste økt](#ta-opp-en-bestemt-brukers-neste-økt) gjenkjenner en besøkende før noen opptaker finnes. Serveren sammenligner den med det aktiverte målet og forkaster den; den skrives ikke inn i økten med mindre identitetsopptak er slått på og opptakeren sender den igjen med opptaket. En referanse som sendes til `identify()`, sendes aldri på denne måten.
+- Én referanse forlater nettleseren uansett den bryteren, med vilje: den siden din leverer **ved innlasting** via `data-oneuptime-user-ref` eller `userRef` på init-globalen, reiser som en forespørselsheader ved hentingen av policyen ved hver sideinnlasting, fordi det er slik [Ta opp en bestemt brukers neste økt](#ta-opp-en-bestemt-brukers-neste-økt) gjenkjenner en besøkende før noen opptaker finnes. Serveren sammenligner den med det aktiverte målet og forkaster den; den skrives ikke inn i økten med mindre identitetsopptak er slått på og opptakeren sender den igjen med opptaket. En referanse som sendes til `identify()`, sendes aldri på denne måten.
 - Egenskaper er begrenset til 20 nøkler, 40 tegn per nøkkel og 200 per verdi, gjøres om til strenger og går gjennom applikasjonens maskeringsmodus: under _Mask all text_ maskeres de før opplasting.
 - Å lese identiteten tilbake i dashbordet krever den samme tillatelsen som å se opptaket (se [Hvem kan se et opptak](#hvem-kan-se-et-opptak)); andre roller ser «Identity hidden».
 
@@ -298,7 +298,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 
 **Maskering skjer ved opptaket, på sluttbrukerens enhet, før noe lastes opp.** Serveren mottar aldri det som ble maskert, så en maskeringsbeslutning kan ikke angres i etterkant og heller ikke brukes med tilbakevirkende kraft. På web avhenger det som maskeres, av modusen; React Native sender alltid den strengere wireframe-strukturen som er beskrevet i [Personvern og maskering i React Native](#personvern-og-maskering-i-react-native). Kortet **Hva et opptak inneholder** på applikasjonens side **Avspillingspolicy** omformulerer disse beslutningene til vanlige setninger for det du har konfigurert.
 
-Retningslinjens personverninnstillinger, med navnet som **Rediger policy** gir dem:
+Policyens personverninnstillinger, med navnet som **Rediger policy** gir dem:
 
 | Innstilling | Standard | Hva den gjør |
 | --- | --- | --- |
@@ -306,7 +306,7 @@ Retningslinjens personverninnstillinger, med navnet som **Rediger policy** gir d
 | **Maskeringsmodus** | _Mask sensitive inputs only_ | Passord, kortfelt og felt for engangskoder maskeres. Resten av siden, den statiske teksten og vanlige inputverdier, tas opp slik den så ut. Se [Velg en maskeringsmodus med omhu](#velg-en-maskeringsmodus-med-omhu). |
 | **Samtykke** | _Not required_ | Opplastinger starter umiddelbart. Velg _Require explicit_ hvis du trenger en samtykkeutveksling for hver økt, slik de fleste deployments i EU vil trenge. |
 | **Når et opptak skal lastes opp** | _Always_ | Hver samplet økt lastes opp fra den første hendelsen. Velg _On error or frustration_ for bare å laste opp når noe går galt. |
-| **Utvalgsprosent** | 100 % | Andelen økter som kan tas opp, og kostnadsbryteren. 0 % sammen med _Always_ tar ikke opp noe som helst, og retningslinjesiden advarer når du setter det. |
+| **Utvalgsprosent** | 100 % | Andelen økter som kan tas opp, og kostnadsbryteren. 0 % sammen med _Always_ tar ikke opp noe som helst, og policysiden advarer når du setter det. |
 | **Tillatte opprinnelser** | Tom: enhver opprinnelse | Oppgi domenene dine for å begrense hvem som kan sende opptak. Se [Angi de tillatte opprinnelsene dine i produksjon](#angi-de-tillatte-opprinnelsene-dine-i-produksjon). |
 | **Registrer sluttbrukerens identitet** | På | Sluttbrukerens referanse og egenskaper som siden din leverer, lagres, slik at du kan finne en navngitt kundes økt. Slå det av for å holde opptak pseudonyme: slått av lagres ingenting om personen, ikke engang nøkkelen en sletteforespørsel per bruker måtte samsvare med ([Identifiser brukerne dine](#identifiser-brukerne-dine)). Påvirker ikke den [anonyme besøks-ID-en](#anonyme-besøkende), som er tilfeldig, ikke nevner noen og sendes uansett. |
 | **Sporvideresending fra samme opprinnelse** | På | Mens en økt laster opp, bærer sidens forespørsler til dens egen opprinnelse en W3C-`traceparent` og en `tracestate` som nevner økten, så backendens telemetri kobles til opptaket uten kode. Backendens OpenTelemetry videresender begge til hver tjeneste den kaller. Se [Hva dine egne forespørsler bærer](#hva-dine-egne-forespørsler-bærer). |
@@ -417,7 +417,7 @@ Banneret ditt avgjøres vanligvis før opptakerens skript lastes inn, så legg b
 (window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push(["grantConsent"]);
 ```
 
-Under _Require explicit_ tar opptakeren opp i minnet fra den første hendelsen og laster opp hele bufferen så snart samtykket kommer, så sekundene før banneret ble godtatt, går ikke tapt. Til det kommer, sier siden **Helse** «waiting for consent», som er et svar fra retningslinjen og ikke en feil.
+Under _Require explicit_ tar opptakeren opp i minnet fra den første hendelsen og laster opp hele bufferen så snart samtykket kommer, så sekundene før banneret ble godtatt, går ikke tapt. Til det kommer, sier siden **Helse** «waiting for consent», som er et svar fra policyen og ikke en feil.
 
 `revokeConsent()` glemmer tre ting, og en senere `grantConsent()` gjenskaper de to første:
 
@@ -431,7 +431,7 @@ Den samme porten styrer [sporingskonteksten som opptakeren legger til i dine egn
 
 `navigator.doNotTrack` og `navigator.globalPrivacyControl` respekteres før konfigurasjonsforespørselen gjøres: en side som ikke sier noe på skript-taggen, trekker seg for en bruker som sender et av signalene, uten at det gjøres noen forespørsel om vedkommende bare for å finne ut om vedkommende ville blitt tatt opp. Loaderen logger `privacy-signal`, og ingenting annet skjer.
 
-Regelen har ett unntak. Sett `data-oneuptime-respect-do-not-track="false"` (eller `respectDoNotTrack: false` på init-globalen) for å ta opp uansett signalet, hvis rettsgrunnlaget ditt virkelig ikke avhenger av det. Bare sidens egen markup kan si det: ingenting i dashbordets retningslinje lemper på det, og en side som ikke sier noe, respekterer signalet.
+Regelen har ett unntak. Sett `data-oneuptime-respect-do-not-track="false"` (eller `respectDoNotTrack: false` på init-globalen) for å ta opp uansett signalet, hvis rettsgrunnlaget ditt virkelig ikke avhenger av det. Bare sidens egen markup kan si det: ingenting i dashbordets policy lemper på det, og en side som ikke sier noe, respekterer signalet.
 
 ## Content Security Policy
 
@@ -447,9 +447,9 @@ connect-src 'self' https://oneuptime.com;
 
 Hvis du hoster OneUptime selv, bruker du din egen vert i stedet.
 
-Én ting til knyttet til CSP, som handler om stilark og ikke om retningslinjen din: opptakeren kan bare beholde et stilark den kan lese. Et stilark fra en annen opprinnelse kan bare leses når serveren dets sender en header `Access-Control-Allow-Origin` som tillater nettstedet ditt, **og** `<link>`-en din bærer `crossorigin="anonymous"`. Ellers beholder opptaket bare adressen, og avspillingen laster det inn derfra i nettleseren til den som ser på; se [Bilder, stiler og skrifttyper under avspilling](#bilder-stiler-og-skrifttyper-under-avspilling). Legg bare til attributtet når headeren er på plass: `crossorigin` uten headeren får din egen side til å avvise stilarket.
+Én ting til knyttet til CSP, som handler om stilark og ikke om policyen din: opptakeren kan bare beholde et stilark den kan lese. Et stilark fra en annen opprinnelse kan bare leses når serveren dets sender en header `Access-Control-Allow-Origin` som tillater nettstedet ditt, **og** `<link>`-en din bærer `crossorigin="anonymous"`. Ellers beholder opptaket bare adressen, og avspillingen laster det inn derfra i nettleseren til den som ser på; se [Bilder, stiler og skrifttyper under avspilling](#bilder-stiler-og-skrifttyper-under-avspilling). Legg bare til attributtet når headeren er på plass: `crossorigin` uten headeren får din egen side til å avvise stilarket.
 
-Bruk panelet **Test installasjonen din** på applikasjonens side **Avspillingspolicy** for å bekrefte tokenet, retningslinjens brytere og listene over tillatte opprinnelser fra serversiden. Det kan ikke sjekke CSP-en din: en CSP er en header som ditt eget nettsted sender til dine egne besøkende, og ingenting på serversiden ser den noen gang. En CSP-blokkering viser seg bare indirekte der: `script-src` blokkerer opptakeren, så panelets rad _Recorder loaded on your site_ fortsetter å vente; `connect-src` blokkerer opplastingen, så den raden består mens raden for det mottatte opptaket under fortsetter å vente. I begge tilfeller logger nettleserkonsollen på den blokkerte siden avvisningen, og det er det eneste positive beviset.
+Bruk panelet **Test installasjonen din** på applikasjonens side **Avspillingspolicy** for å bekrefte tokenet, policyens brytere og listene over tillatte opprinnelser fra serversiden. Det kan ikke sjekke CSP-en din: en CSP er en header som ditt eget nettsted sender til dine egne besøkende, og ingenting på serversiden ser den noen gang. En CSP-blokkering viser seg bare indirekte der: `script-src` blokkerer opptakeren, så panelets rad _Recorder loaded on your site_ fortsetter å vente; `connect-src` blokkerer opplastingen, så den raden består mens raden for det mottatte opptaket under fortsetter å vente. I begge tilfeller logger nettleserkonsollen på den blokkerte siden avvisningen, og det er det eneste positive beviset.
 
 ## Korreler med resten av telemetrien din
 
@@ -792,7 +792,7 @@ Trykk på `?` i avspilleren for denne listen. Hurtigtaster utløses aldri mens d
 
 ## Opptaksstatus
 
-Applikasjonens side **Helse**, i delen **Øktavspilling** i sidemenyen, svarer fra serversiden på «tas det opp noe, og hvis ikke, hvorfor?», og siden **Avspillingspolicy** gjentar diagnosen på én linje over retningslinjen. Diagnosen nevner én årsak, tallfester den og tilbyr én handling; den sier aldri «disconnected» uten en grunn. Tilstandene, i den rekkefølgen de sjekkes:
+Applikasjonens side **Helse**, i delen **Øktavspilling** i sidemenyen, svarer fra serversiden på «tas det opp noe, og hvis ikke, hvorfor?», og siden **Avspillingspolicy** gjentar diagnosen på én linje over policyen. Diagnosen nevner én årsak, tallfester den og tilbyr én handling; den sier aldri «disconnected» uten en grunn. Tilstandene, i den rekkefølgen de sjekkes:
 
 | Tilstand | Hva den betyr | Hva du gjør |
 | --- | --- | --- |
@@ -800,18 +800,18 @@ Applikasjonens side **Helse**, i delen **Øktavspilling** i sidemenyen, svarer f
 | `disabled-app` | Øktavspilling er slått av for denne applikasjonen. | Slå den på under **Avspillingspolicy**. |
 | `budget-paused` | Applikasjonens månedlige budsjett eller deploymentens daglige bytegrense er brukt opp; aktive opptakere har fått beskjed om å stoppe. | Øk budsjettet, eller vent til neste dag / måned. Sett opp [varsler for lagringsbudsjettet](#varsler-for-lagringsbudsjettet) for å få vite det før det skjer. |
 | `refusing` | Opplastinger kommer inn og avvises — diagnosen sier den viktigste årsaken og antallet de siste 24 timene, for eksempel `origin-not-allowed` (212 opplastinger fra en opprinnelse som ikke er blant de tillatte opprinnelsene dine) eller `not-sampled`. | Følg årsaken: rediger de tillatte opprinnelsene, øk samplingsprosenten og så videre. |
-| `never-loaded` | Ingen nettleser har noen gang hentet denne applikasjonens retningslinje. Skript-taggen er ikke på siden, eller identifikatoren samsvarer ikke. | Oppsettsveiledningen på applikasjonens side **Dokumentasjon**, i delen **Øktavspilling**, leder deg gjennom det. |
-| `loaded-never-uploaded` | Opptakeren hentet retningslinjen sin nylig, men ingen chunk har noen gang kommet fram. Detaljen forklarer det ut fra retningslinjen: sampling står på 0 %, samtykkemodusen er _Require explicit_ og siden har ikke gitt det, utløseren er _On error or frustration_ og ingenting har gått av — eller, med en sunn retningslinje, avviser en CSP eller en annonseblokkering inntaks-URL-en. | Handlingen samsvarer med årsaken. |
-| `stale` | Opptakere fortsetter å hente retningslinjen, men ingen chunk har kommet fram på mer enn seks timer. | De samme årsakene som over, på en side som pleide å virke: sjekk hva som er endret. |
-| `healthy-quiet` | Ingen chunk på mer enn seks timer, **og** ingen side har hentet retningslinjen de siste 24 timene heller, uten at noe er slått av, over budsjett eller avvist. Ingen opptaker kjører på denne applikasjonen akkurat nå — en app med lite trafikk eller en stagingapp, eller en snippet som ikke lenger er på siden. Siden tallfester begge stillhetene. | Hvis sidene dine leveres, sjekker du at skript-taggen fortsatt står på dem; ellers ingenting. |
+| `never-loaded` | Ingen nettleser har noen gang hentet denne applikasjonens policy. Skript-taggen er ikke på siden, eller identifikatoren samsvarer ikke. | Oppsettsveiledningen på applikasjonens side **Dokumentasjon**, i delen **Øktavspilling**, leder deg gjennom det. |
+| `loaded-never-uploaded` | Opptakeren hentet policyen sin nylig, men ingen chunk har noen gang kommet fram. Detaljen forklarer det ut fra policyen: sampling står på 0 %, samtykkemodusen er _Require explicit_ og siden har ikke gitt det, utløseren er _On error or frustration_ og ingenting har gått av — eller, med en sunn policy, avviser en CSP eller en annonseblokkering inntaks-URL-en. | Handlingen samsvarer med årsaken. |
+| `stale` | Opptakere fortsetter å hente policyen, men ingen chunk har kommet fram på mer enn seks timer. | De samme årsakene som over, på en side som pleide å virke: sjekk hva som er endret. |
+| `healthy-quiet` | Ingen chunk på mer enn seks timer, **og** ingen side har hentet policyen de siste 24 timene heller, uten at noe er slått av, over budsjett eller avvist. Ingen opptaker kjører på denne applikasjonen akkurat nå — en app med lite trafikk eller en stagingapp, eller en snippet som ikke lenger er på siden. Siden tallfester begge stillhetene. | Hvis sidene dine leveres, sjekker du at skript-taggen fortsatt står på dem; ellers ingenting. |
 | `healthy` | Chunker kommer inn: diagnosen viser alderen på den siste chunken, dagens økter og samplingsprosenten. | Ingenting. |
 | `unknown` | Statusendepunktet kunne ikke leses. | Prøv på nytt; sjekk tillatelsesfeilen som siden viser. |
 
-Under diagnosen deler siden et opptak opp i fire faser — **Opptaker lastet**, **Opptak tillatt**, **Blokker mottatt** og **Økter siste 24 t** —, hver merket med grønt, rav eller rødt etter hva serveren vet om den, så den første fasen i rav eller rødt er der opptakene stopper. Under det viser den per årsak opplastinger som ble avvist ved porten, og chunker som ble kastet etter at de ble godtatt, bytene som er brukt i dag og denne måneden mot grensene, retningslinjen slik opptakeren mottar den, etiketten på det publiserte opptakerartefaktet og egenskapene til den nyeste opptakeren som rapporterte. Tellere som kommer fra Valkey, viser **ukjent** — aldri 0 — når Valkey ikke kan nås. Nederst tar **Spør nettleseren** utdataene fra `getDiagnostics()` og forklarer hver kode i dem.
+Under diagnosen deler siden et opptak opp i fire faser — **Opptaker lastet**, **Opptak tillatt**, **Blokker mottatt** og **Økter siste 24 t** —, hver merket med grønt, rav eller rødt etter hva serveren vet om den, så den første fasen i rav eller rødt er der opptakene stopper. Under det viser den per årsak opplastinger som ble avvist ved porten, og chunker som ble kastet etter at de ble godtatt, bytene som er brukt i dag og denne måneden mot grensene, policyen slik opptakeren mottar den, etiketten på det publiserte opptakerartefaktet og egenskapene til den nyeste opptakeren som rapporterte. Tellere som kommer fra Valkey, viser **ukjent** — aldri 0 — når Valkey ikke kan nås. Nederst tar **Spør nettleseren** utdataene fra `getDiagnostics()` og forklarer hver kode i dem.
 
 ### Varsler for lagringsbudsjettet
 
-De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applikasjons valgfrie **Månedlig budsjett (GB)** — håndheves stille: så snart ett er brukt opp, får opptakerne beskjed om å stoppe, og opptakene slutter rett og slett å komme inn. For at noen skal få vite det, helst før det skjer, skriver OneUptime hvert 5. minutt som målinger hvor mye av hvert som er brukt, og vanlige [metrikk-overvåkinger](/docs/monitor/metrics-monitor) varsler på dem.
+De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applikasjons valgfrie **Månedlig budsjett (GB)** — håndheves stille: så snart ett er brukt opp, får opptakerne beskjed om å stoppe, og opptakene slutter rett og slett å komme inn. For at noen skal få vite det, helst før det skjer, skriver OneUptime hvert 5. minutt som målinger hvor mye av hvert som er brukt, og vanlige [målingsovervåkinger](/docs/monitor/metrics-monitor) varsler på dem.
 
 **Sette dem opp.** Fire ferdige varsler overvåker disse budsjettene, på applikasjonens fane **Anbefalinger** under **Øktavspilling**:
 
@@ -822,7 +822,7 @@ De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applik
 | **Session Replay Monthly Budget Nearly Spent** | Advarsel | Applikasjonen har brukt 80 % av det månedlige budsjettet sitt. |
 | **Session Replay Monthly Budget Spent** | Kritisk | Applikasjonens månedlige budsjett er brukt opp: opptakerne har fått beskjed om å stoppe til den 1. i neste måned (UTC) eller til budsjettet økes. |
 
-Så lenge øktavspilling er slått på for applikasjonen, tilbys det daglige paret så snart den har tatt opp en avspilling, og det månedlige paret så snart den også har et **Månedlig budsjett (GB)** på siden **Avspillingspolicy**; mangler ett av dem på en applikasjon der du bruker øktavspilling, sier fanen hvorfor. Så snart det daglige paret tilbys, åpner **Sett opp varsler** i panelet **Lagringsbudsjett** på siden **Helse** fanen filtrert på budsjettvarslene, inkludert dem du allerede har opprettet. Hvert varsel du oppretter, er en vanlig metrikk-overvåking på applikasjonen, og hendelsen og varselet den åpner, sier hva du skal gjøre. For å få et budsjett til å vare lenger senker du **Utvalgsprosent**, laster bare opp _On error or frustration_ eller snevrer inn **Tillatte opprinnelser** på **Avspillingspolicy** — hver av dem stopper en opplasting før den telles — eller øker **Månedlig budsjett (GB)**. Den daglige grensen kan ikke økes fra dashbordet; på en egenhostet installasjon er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Merknader om egen hosting](#merknader-om-egen-hosting)).
+Så lenge øktavspilling er slått på for applikasjonen, tilbys det daglige paret så snart den har tatt opp en avspilling, og det månedlige paret så snart den også har et **Månedlig budsjett (GB)** på siden **Avspillingspolicy**; mangler ett av dem på en applikasjon der du bruker øktavspilling, sier fanen hvorfor. Så snart det daglige paret tilbys, åpner **Sett opp varsler** i panelet **Lagringsbudsjett** på siden **Helse** fanen filtrert på budsjettvarslene, inkludert dem du allerede har opprettet. Hvert varsel du oppretter, er en vanlig målingsovervåking på applikasjonen, og hendelsen og varselet den åpner, sier hva du skal gjøre. For å få et budsjett til å vare lenger senker du **Utvalgsprosent**, laster bare opp _On error or frustration_ eller snevrer inn **Tillatte opprinnelser** på **Avspillingspolicy** — hver av dem stopper en opplasting før den telles — eller øker **Månedlig budsjett (GB)**. Den daglige grensen kan ikke økes fra dashbordet; på en egenhostet installasjon er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Merknader om egen hosting](#merknader-om-egen-hosting)).
 
 **Én daglig overvåking dekker prosjektet.** Den daglige grensen tilhører prosjektet, ikke en applikasjon: alle applikasjonene bruker av den sammen, og hver applikasjon som tar opp, bærer prosjektets tall, så det daglige paret tilbys på hver av dem, og en daglig overvåking på en hvilken som helst av dem dekker dem alle. Opprett det daglige paret på én applikasjon, en som holder øktavspilling slått på (overvåkingen dens ser bare punktene som er skrevet for den applikasjonen), og avvis de daglige kortene på de andre; ellers gir én oppbrukt dag ett varsel per applikasjon. Det månedlige paret tilhører hver applikasjon: opprett det overalt der du setter et budsjett.
 
@@ -855,7 +855,7 @@ Det daglige paret bærer bare `projectId`: tallet er prosjektets, og ingenting i
 - Applikasjonen har aldri tatt opp en avspilling.
 - Applikasjonen har ikke noe månedlig budsjett: ingenting telles mot et budsjett som ikke er satt, så det finnes ikke noe månedlig par i det hele tatt. Å fjerne budsjettet gjør de månedlige overvåkingene stille, og det månedlige tallet teller bare opplastinger som gjøres mens et budsjett er satt: et som settes første gang midt i måneden, teller fra det øyeblikket, ikke fra den 1., mens et som fjernes og settes igjen i samme måned, fortsetter månedens tidligere telling.
 
-**Lag din egen overvåking.** En [metrikk-overvåking](/docs/monitor/metrics-monitor) som du lager selv, trenger de samme innstillingene som anbefalingene bruker:
+**Lag din egen overvåking.** En [målingsovervåking](/docs/monitor/metrics-monitor) som du lager selv, trenger de samme innstillingene som anbefalingene bruker:
 
 - Finn målingene i prosjektets målingsutforsker (**Målinger** i hovednavigasjonen) og i en overvåkings målingsvelger når det første punktet deres er skrevet. De står ikke på applikasjonens egen fane **Målinger**.
 - Sett det [rullerende tidsvinduet](/docs/monitor/metrics-monitor#glidende-tidsvindu) til 15 minutter eller mer. Et punkt kommer hvert 5. minutt, så et kortere vindu kan inneholde ett punkt eller ingen, og et tomt vindu løser varselet: én forsinket kjøring ville fått det til å blafre.
@@ -870,7 +870,7 @@ Det daglige paret bærer bare `projectId`: tallet er prosjektets, og ingenting i
 
 ## Frustrasjonssignaler
 
-Frustrasjonssignaler er det øktlistens filter Frustration, sortering og totaler teller, det de ravgule markørene på avspillerens tidslinje viser, og det som starter et opptak under _On error or frustration_. Hver applikasjon bestemmer hva som teller, på sin egen side **Frustrasjonssignaler** i delen **Øktavspilling** i sidemenyen sin. Endringer gjelder for økter som tas opp fra nå av: en nettside henter dem ved neste innlasting, og en app neste gang opptakeren henter retningslinjene sine, noe den gjør når den starter, når den kommer tilbake i forgrunnen og hvert femte minutt mens den er åpen. Økter som allerede er tatt opp, beholder signalene de ble tatt opp med.
+Frustrasjonssignaler er det øktlistens filter Frustration, sortering og totaler teller, det de ravgule markørene på avspillerens tidslinje viser, og det som starter et opptak under _On error or frustration_. Hver applikasjon bestemmer hva som teller, på sin egen side **Frustrasjonssignaler** i delen **Øktavspilling** i sidemenyen sin. Endringer gjelder for økter som tas opp fra nå av: en nettside henter dem ved neste innlasting, og en app neste gang opptakeren henter policyene sine, noe den gjør når den starter, når den kommer tilbake i forgrunnen og hvert femte minutt mens den er åpen. Økter som allerede er tatt opp, beholder signalene de ble tatt opp med.
 
 Kortet **Innebygde signaler** viser de fire som nettleseropptakeren oppdager, hver med en bryter som lagrer så snart du slår den om, en definisjon på én linje bygget av tallene og et eksempel. **Endre regelen** åpner tallene, og **Lagre regel** lagrer dem; **Bruk standardverdiene** setter inn standardtallene igjen og tømmer listen over ignorerte elementer, noe som trer i kraft når du lagrer. Standardverdiene er reglene hvert opptak brukte før de kunne endres:
 
@@ -929,7 +929,7 @@ Feil kan være en for støyende utløser: et tredjepartsskript som kaster en fei
 Når en navngitt kunde rapporterer et problem du ikke kan gjenskape, aktiverer du et engangsmål i stedet for å vente på en feil.
 
 :::steps
-### Åpne retningslinjen
+### Åpne policyen
 
 Åpne applikasjonens side **Avspillingspolicy**, og finn **Ta opp en bestemt brukers neste økt**.
 
@@ -944,7 +944,7 @@ Den brukerens neste besøk tas opp fra den første hendelsen, med utløserårsak
 
 Begrensningene, slik at «aktivert» ikke leses som «garantert»:
 
-- Siden din må levere referansen **ved innlasting** — attributtet `data-oneuptime-user-ref` eller `userRef` på init-globalen —, fordi målet sammenlignes når retningslinjen hentes, før opptakerens artefakt finnes. En referanse som settes senere via `identify()`, kommer for sent for den sideinnlastingen, selv om den fortsatt gjør økten søkbar med `user:`.
+- Siden din må levere referansen **ved innlasting** — attributtet `data-oneuptime-user-ref` eller `userRef` på init-globalen —, fordi målet sammenlignes når policyen hentes, før opptakerens artefakt finnes. En referanse som settes senere via `identify()`, kommer for sent for den sideinnlastingen, selv om den fortsatt gjør økten søkbar med `user:`.
 - Samtykke gjelder fortsatt. En målrettet økt i modusen _Require explicit_ laster ikke opp noe før siden din gir samtykke.
 - Målet utløper etter 24 timer, brukes opp av den første samsvarende sideinnlastingen, og bare en nøkkelbasert hash av referansen lagres på serveren.
 
@@ -978,11 +978,11 @@ Begge opptakerne fortsetter å ta opp når enheten mister tilkoblingen, og laste
 
 - **Et brudd er ikke en feil.** En forespørsel som aldri når OneUptime, teller ikke mot opptakerens kretsbryter eller mot chunken, uansett hvor lenge bruddet varer. Begrensninger fra serveren ventes ut på samme måte. (Nettleseropptakeren teller fortsatt en feil før sin aller første vellykkede opplasting, fordi det også er slik en annonseblokkering som avviser opplastings-URL-en, ser ut.)
 - **Den laster opp så snart den kan.** Nettleseropptakeren sender ingenting mens nettleseren melder seg frakoblet, og tømmer etterslepet ved nettleserens hendelse `online`; React Native-SDK-et prøver på nytt med en mild tilbaketrekking, igjen når appen kommer tilbake til forgrunnen, og umiddelbart hvis du gir den en kilde `connectivity` som NetInfo: `connectivity: { subscribe: (listener) => NetInfo.addEventListener((state) => listener(state.isConnected)) }`.
-- **En lukket fane eller en avsluttet app mister ingenting.** Nettleseropptakeren skriver også det den har i kø, til nettleserens IndexedDB (databasen `oneuptime-session-replay`), inkludert de siste sekundene av en fane som ble lukket frakoblet, og neste side i appen din som lastes inn med tilkobling, laster det opp. React Native-SDK-et holder køen sin i AsyncStorage, komprimert, og laster den opp ved neste oppstart. En app som startes uten tilkobling, tar opp under den siste retningslinjen den fikk (høyst tre dager gammel), og henter en ny når den kan.
+- **En lukket fane eller en avsluttet app mister ingenting.** Nettleseropptakeren skriver også det den har i kø, til nettleserens IndexedDB (databasen `oneuptime-session-replay`), inkludert de siste sekundene av en fane som ble lukket frakoblet, og neste side i appen din som lastes inn med tilkobling, laster det opp. React Native-SDK-et holder køen sin i AsyncStorage, komprimert, og laster den opp ved neste oppstart. En app som startes uten tilkobling, tar opp under den siste policyen den fikk (høyst tre dager gammel), og henter en ny når den kan.
 - **Opptak beholder sin faktiske tid.** En økt som ble tatt opp under en flytur og lastet opp ved landing, vises i øktlisten på tidspunktet den skjedde, ikke tidspunktet den kom inn.
 - **Begrenset og privat.** Nettleserens kø rommer opptil 240 chunker eller 4 MB, den mobile utboksen 240 chunker eller 3 MB komprimert; utover det kastes de eldste chunkene, og avspilleren viser hullet. Det som lagres, er det samme maskerte innholdet som ville blitt lastet opp, slettes etter tre dager hvis det aldri ble sendt, og slettes umiddelbart av `revokeConsent()`. En side som ikke har fått samtykke, laster ikke opp noe av det en tidligere side har lagret. Sett `data-oneuptime-offline-storage="false"` for å holde chunker i kø bare i minnet.
 
-En nettside som _lastes inn_ frakoblet, tar ikke opp: opptakeren må hente applikasjonens retningslinje fra OneUptime før den starter.
+En nettside som _lastes inn_ frakoblet, tar ikke opp: opptakeren må hente applikasjonens policy fra OneUptime før den starter.
 
 ## Hva som ikke tas opp
 
@@ -1015,7 +1015,7 @@ Alt annet forblir blokkert inne i avspillingen: skript, `fetch`-, XHR- og WebSoc
 
 Under _Mask all text_ laster avspilleren verken bilder eller webskrifttyper inn fra adressene deres. Opptaket beholder de adressene, men avspillingen forblir wireframen som den modusen lover, og et opptaksnotat under avspilleren sier _Images and web fonts are not loaded_. Stilark lastes fortsatt inn, slik at oppsettet beholder formen, og nettleseren din kontakter fortsatt nettstedene de kommer fra (se [Hva det avslører å se en avspilling](#hva-det-avslører-å-se-en-avspilling)). Et bilde som siden din hadde som en `data:`-URL, er unntaket: det er en del av opptaket i stedet for en adresse, så det vises fortsatt, i denne modusen som i de andre. Blokker et element som på den måten kan vise et personlig bilde, som forhåndsvisningen av et dokument brukeren laster opp (se [Merk ditt eget innhold](#merk-ditt-eget-innhold)).
 
-En økt der maskeringsmodusen ikke ble rapportert, eller ikke er en som dette dashbordet gjenkjenner, spilles også av uten bildene og webskrifttypene sine, for sikkerhets skyld; teksten spilles av slik den ble tatt opp. Avspilleren går ut fra maskeringsmodusen økten rapporterer, som er modusen for den siste sideinnlastingen: en økt der retningslinjen ble lempet på mens den tok opp, spilles av under den lempede modusen og laster inn bildene sine.
+En økt der maskeringsmodusen ikke ble rapportert, eller ikke er en som dette dashbordet gjenkjenner, spilles også av uten bildene og webskrifttypene sine, for sikkerhets skyld; teksten spilles av slik den ble tatt opp. Avspilleren går ut fra maskeringsmodusen økten rapporterer, som er modusen for den siste sideinnlastingen: en økt der policyen ble lempet på mens den tok opp, spilles av under den lempede modusen og laster inn bildene sine.
 
 ### Hva en fil trenger for å vises i avspillingen
 
@@ -1031,7 +1031,7 @@ Fordi forespørselen kommer fra din nettleser i stedet for brukerens, og fra One
 
 Ikoner som tegnes fra en SVG-sprite-fil (`<use href="/icons.svg#close">`), gjengis aldri. Nettlesere lar bare `<use>` peke på en fil på sidens egen opprinnelse, og avspillingens opprinnelse er OneUptimes, så en sprite på ditt eget domene er også utenfor rekkevidde. En sprite som er bygget inn i siden (`<use href="#close">`), virker.
 
-**Egen hosting:** hvis en omvendt proxy foran OneUptime legger til en header `Content-Security-Policy` på dashbordet, gjelder den retningslinjen også inne i avspillingen. Dens `img-src`, `style-src` og `font-src` må tillate nettstedene de opptatte sidene dine laster inn filer fra (`https:` dekker dem), ellers vises ikke de filene.
+**Egen hosting:** hvis en omvendt proxy foran OneUptime legger til en header `Content-Security-Policy` på dashbordet, gjelder den policyen også inne i avspillingen. Dens `img-src`, `style-src` og `font-src` må tillate nettstedene de opptatte sidene dine laster inn filer fra (`https:` dekker dem), ellers vises ikke de filene.
 
 ### Ta opp et stilark fra en annen opprinnelse
 
@@ -1064,7 +1064,7 @@ Vær oppmerksom på at øktraden utløper sammen med opptaket: antall feil, frus
 
 ### Slett økter
 
-For å etterkomme en sletteforespørsel sender du inn en sletteforespørsel via OneUptimes API — ressursen `/rum-session-erasure-request`; det finnes ennå ikke noe skjema i dashbordet for det. En forespørsel krever `CreateRumSessionErasureRequest` (eller en prosjekteier / -administrator) og tar:
+For å etterkomme en sletteforespørsel sender du inn en sletteforespørsel via OneUptimes API — ressursen `/rum-session-erasure-request`; det finnes ennå ikke noe skjema i dashbordet for det. En forespørsel krever `CreateRumSessionErasureRequest` (eller en Prosjekteier / Prosjektadministrator) og tar:
 
 | Felt | Verdier |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Fordi merkingen når hver tjeneste en nettleserforespørsel gikk gjennom, fjerne
 
 ## Hvem kan se et opptak
 
-Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Leser-rollen for hele prosjektet. Prosjekteiere og -administratorer har alle.
+Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Leser-rollen for hele prosjektet. Prosjekteiere og Prosjektadministratorer har alle.
 
 | Tillatelse | Låser opp |
 | --- | --- |
@@ -1130,7 +1130,7 @@ To ting forteller deg hvilken av dem du har foran deg:
 - Sett `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` for å begrense diskbruken. Avspilling er den største tabellen i systemet, og en ubegrenset konfigurasjon kan presse ClickHouse ut i kapasitetsbeskjæring. Når grensen er brukt opp, sier siden **Helse** «Uploads paused for today». Appen håndhever grensen, og bakgrunnsarbeideren beregner prosentene bak [varslene for lagringsbudsjettet](#varsler-for-lagringsbudsjettet) ut fra sin egen kopi av variabelen, så begge trenger den samme verdien. Med Docker Compose setter du den i `config.env`: én `app`-container kjører begge. Med Helm setter du den i chartets felles `extraEnv`, og også i `app.extraEnv` eller `worker.extraEnv` hvis du setter en av dem, fordi en komponent som setter sin egen `extraEnv`, erstatter chartets felles liste i stedet for å legge til i den. Bruks-tellerne holdes i Valkey, som som standard kjører uten persistens, så en omstart av Valkey nullstiller dem: dagens bruk, og hver applikasjons måned, starter på nytt fra 0.
 - Opptak lagres i ClickHouse. Ingen objektlagring kreves.
 - En header `Content-Security-Policy` som en omvendt proxy legger til på OneUptime-dashbordet, gjelder også inne i avspillingen, så dens `img-src`, `style-src` og `font-src` må tillate nettstedene de opptatte sidene dine laster inn bilder, stilark og skrifttyper fra. Se [Bilder, stiler og skrifttyper under avspilling](#bilder-stiler-og-skrifttyper-under-avspilling).
-- `SESSION_REPLAY_DEBUG=true` får hver opptaker denne deploymenten leverer, til å skrive beslutningene sine ut i nettleserkonsollen. Det er den ene diagnostikkbryteren som ikke krever noen ved nettleseren der det går galt, så den er nyttig når en kunde rapporterer «ingenting skjer» på en side der du ikke kan åpne en konsoll. Den endrer ingen retningslinje — verken sampling, maskering eller samtykke —, men den logger på hver side hver opptaker kjører på, så slå den på, samle inn én ny innlasting og slå den av igjen.
+- `SESSION_REPLAY_DEBUG=true` får hver opptaker denne deploymenten leverer, til å skrive beslutningene sine ut i nettleserkonsollen. Det er den ene diagnostikkbryteren som ikke krever noen ved nettleseren der det går galt, så den er nyttig når en kunde rapporterer «ingenting skjer» på en side der du ikke kan åpne en konsoll. Den endrer ingen policy — verken sampling, maskering eller samtykke —, men den logger på hver side hver opptaker kjører på, så slå den på, samle inn én ny innlasting og slå den av igjen.
 
 ## Neste steg
 
@@ -1138,5 +1138,5 @@ To ting forteller deg hvilken av dem du har foran deg:
 - [Feilsøking av øktavspilling](/docs/rum/session-replay-troubleshooting): Hver kode fra opptakeren, og hva du gjør med den.
 - [Nettleseroppsett](/docs/rum/browser-setup): Legg til OpenTelemetry-spor, -logger og Core Web Vitals på de samme sidene.
 - [Administrere applikasjoner](/docs/rum/applications): Oppbevaring, etiketter og hvem som kan se opptak.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på lagringsbudsjettets målinger, eller på alt annet appen din sender.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på lagringsbudsjettets målinger, eller på alt annet appen din sender.
 :::

@@ -98,7 +98,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny IP-monitor starter med to kriterier:
 
-- **Frakoblet** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
+- **Frakoblet** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
 - **Oppe** — adressen svarer. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.
@@ -143,7 +143,7 @@ Adressen, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fr
 :::
 
 :::details En IPv6-adresse feiler alltid
-Sonden som kjørte sjekken, har ingen IPv6-tilkobling; feilmeldingen sier det. Kjør monitoren på en sonde med IPv6: se [Egendefinerte probes](/docs/probe/custom-probe).
+Sonden som kjørte sjekken, har ingen IPv6-tilkobling; feilmeldingen sier det. Kjør monitoren på en sonde med IPv6: se [Egendefinerte sonder](/docs/probe/custom-probe).
 :::
 
 :::details Pakketap og jitter er tomme
@@ -155,6 +155,6 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 :::cards
 - [Ping-overvåking](/docs/monitor/ping-monitor): Ping en vert ved navn, og følg DNS-endringer.
 - [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på adressen, ikke bare adressen.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk private adresser og IPv6-adresser fra ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk private adresser og IPv6-adresser fra ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

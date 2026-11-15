@@ -117,7 +117,7 @@ export default class GreenlockUtil {
       return false;
     }
 
-    const renewAt: Date = OneUptimeDate.addRemoveDays(
+    const renewAt: Date = OneUptimeDate.addRemoveDurationInDays(
       certificate.expiresAt,
       -GreenlockUtil.getRenewalLeadTimeInDays(certificate.domain),
     );
@@ -335,7 +335,7 @@ export default class GreenlockUtil {
         await AcmeCertificateService.findAllBy({
           query: {
             expiresAt: QueryHelper.lessThanEqualTo(
-              OneUptimeDate.addRemoveDays(
+              OneUptimeDate.addRemoveDurationInDays(
                 OneUptimeDate.getCurrentDate(),
                 GreenlockUtil.RENEW_LEAD_TIME_MAX_IN_DAYS,
               ),
@@ -510,7 +510,7 @@ export default class GreenlockUtil {
       getOwnedDomains: (domains: Array<string>) => Promise<Array<string>>;
     }>;
   }): Promise<number> {
-    const expiredBefore: Date = OneUptimeDate.addRemoveDays(
+    const expiredBefore: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       -GreenlockUtil.REMOVE_UNOWNED_AFTER_EXPIRY_IN_DAYS,
     );

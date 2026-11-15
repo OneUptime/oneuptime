@@ -158,7 +158,7 @@ moved {
 
 ### Overvåkere fra før trinn-ID-er
 
-ID-ene inne i en overvåkers trinn - for hvert trinn, kriterium, og hver hendelses- og varselmal - er serveren sine å gi. Eldre OneUptime-versjoner ga bare kriterier ID-er, og et nytt sett ved hver skriving, så en overvåker som ble skrevet via API-et, slik hver overvåker provideren laget ble, ble lagret med et trinn uten ID. Probene sjekket den fortsatt og statusen endret seg fortsatt, men overvåkerens side fant ikke sjekkene dens, hendelsene dens kunne ikke løse seg selv, og hver `terraform apply` som endret `monitor_steps`, rev åpne hendelser løs fra kriteriene sine.
+ID-ene inne i en overvåkers trinn - for hvert trinn, kriterium, og hver hendelses- og varselmal - er serveren sine å gi. Eldre OneUptime-versjoner ga bare kriterier ID-er, og et nytt sett ved hver skriving, så en overvåker som ble skrevet via API-et, slik hver overvåker provideren laget ble, ble lagret med et trinn uten ID. Sondene sjekket den fortsatt og statusen endret seg fortsatt, men overvåkerens side fant ikke sjekkene dens, hendelsene dens kunne ikke løse seg selv, og hver `terraform apply` som endret `monitor_steps`, rev åpne hendelser løs fra kriteriene sine.
 
 Den nåværende OneUptime gir hver av dem en ID ved opprettelse, beholder dem ved hver apply, og fyller inn de manglende på eksisterende overvåkere når den oppgraderes. Ingenting endres i konfigurasjonen din: det er fortsatt ingen ID-er å skrive. En hendelse som den gamle oppførselen lot stå åpen, lukkes ved overvåkerens neste gjenoppretting, så lenge kriteriet som åpnet den, fortsatt finnes; en hendelse der en tidligere apply erstattet kriteriet, må løses én gang for hånd.
 

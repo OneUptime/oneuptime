@@ -132,7 +132,7 @@ export function getSessionReplayRetentionDate(data: {
   serverClampedSessionStart: Date;
   retentionInDays: number;
 }): Date {
-  return OneUptimeDate.addRemoveDays(
+  return OneUptimeDate.addRemoveDurationInDays(
     data.serverClampedSessionStart,
     data.retentionInDays,
   );

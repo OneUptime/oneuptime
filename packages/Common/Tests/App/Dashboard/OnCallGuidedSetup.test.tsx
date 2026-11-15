@@ -770,7 +770,7 @@ describe("how should we reach you", () => {
     expect(
       screen.getByTestId("on-call-setup-who-can-turn-on"),
     ).toHaveTextContent(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn it on",
+      "A Project Owner, a Billing Admin or someone with Manage Billing can turn it on",
     );
   });
 
@@ -1146,7 +1146,7 @@ describe("who else is on call", () => {
     await reachDone();
 
     expect(screen.getByTestId("on-call-setup-cannot-create")).toHaveTextContent(
-      "Ask a project owner or admin",
+      "Ask a Project Owner or Project Admin",
     );
     expect(screen.queryByTestId("on-call-setup-who-save")).toBeNull();
   });
@@ -1903,7 +1903,7 @@ describe("a policy made meanwhile, in another tab or on another device (#7252)",
 
     expect(api["createPolicy"]).not.toHaveBeenCalled();
     expect(screen.getByTestId("on-call-setup-cannot-create")).toHaveTextContent(
-      "Ask a project owner or admin",
+      "Ask a Project Owner or Project Admin",
     );
     // No policy appeared, so none is said to have.
     expect(
@@ -2384,7 +2384,7 @@ describe("the run's policy deleted in another tab or by a teammate (#7516)", () 
     );
 
     expect(cannot).toHaveTextContent(DELETED);
-    expect(cannot).toHaveTextContent("Ask a project owner or admin");
+    expect(cannot).toHaveTextContent("Ask a Project Owner or Project Admin");
     expect(screen.getByTestId("on-call-setup-who-help")).toHaveAttribute(
       "aria-live",
       "polite",
@@ -2641,6 +2641,597 @@ describe("the run's policy deleted in another tab or by a teammate (#7516)", () 
 });
 
 /*
+ * THE RUN'S POLICY ARCHIVED - in another tab, or by a teammate - while the
+ * page was open (#8432). An archived policy is still there, but pages no
+ * one: incidents and alerts that use it skip it. The setup read it as
+ * "still there" and went on adding levels to it, testing it, and summing it
+ * up as paging people. Now it is forgotten as a deleted one is, and step 2
+ * says, in a sentence of its own, that it was archived.
+ */
+describe("the run's policy archived in another tab or by a teammate (#8432)", () => {
+  const ARCHIVED: string =
+    "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.";
+  const DELETED: string =
+    "The on-call policy this setup was using was deleted, so pick or make one again.";
+  const OTHER_POLICY_ID: string = "60000000-0000-4000-8000-000000000002";
+
+  // The project's policies in service, as loadPolicyChoices reads them.
+  const NO_POLICY_IN_SERVICE: Record<string, unknown> = {
+    policies: [],
+    mayCreatePolicy: true,
+    mayAddRules: true,
+    mayEditLevels: true,
+  };
+
+  const ONLY_THE_RUNS_POLICY: Record<string, unknown> = {
+    policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+    mayCreatePolicy: true,
+    mayAddRules: true,
+    mayEditLevels: true,
+  };
+
+  // What the run keeps once it has forgotten its policy: who is reached.
+  const FORGOTTEN: Record<string, unknown> = { reachConfirmed: true };
+
+  const archived: (
+    overrides?: Partial<OnCallPolicyRecord>,
+  ) => OnCallPolicyRecord = (
+    overrides?: Partial<OnCallPolicyRecord>,
+  ): OnCallPolicyRecord => {
+    return policyRecord({ ...overrides, isArchived: true });
+  };
+
+  // Step 2 open on the run's policy, as it is after Save and continue.
+  const atWhoElse: (policy?: OnCallPolicyRecord) => Promise<void> = async (
+    policy?: OnCallPolicyRecord,
+  ): Promise<void> => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
+    api["loadPolicyChoices"]!.mockResolvedValue(ONLY_THE_RUNS_POLICY);
+    api["loadPolicy"]!.mockResolvedValue(policy || policyRecord());
+    await renderSetup();
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
+    });
+    expect(stepState("who_else")).toBe("open");
+    expect(screen.getByTestId("on-call-setup-who-continue")).toBeVisible();
+  };
+
+  /*
+   * Another tab, or a teammate, archives the policy: it still reads, now
+   * archived, and the project's policies in service no longer list it.
+   */
+  const archiveThePolicy: (choicesAfter?: Record<string, unknown>) => void = (
+    choicesAfter?: Record<string, unknown>,
+  ): void => {
+    api["loadPolicy"]!.mockResolvedValue(archived());
+    api["loadPolicyChoices"]!.mockResolvedValue(
+      choicesAfter || NO_POLICY_IN_SERVICE,
+    );
+  };
+
+  // The run forgot its policy, and step 2 is open on making one, saying it was archived.
+  const expectStepTwoAgain: () => void = (): void => {
+    expect(storedRun()).toEqual(FORGOTTEN);
+    expect(stepState("reach_you")).toBe("done");
+    expect(stepState("who_else")).toBe("open");
+    expect(stepState("no_answer")).toBe("upcoming");
+    expect(stepState("test")).toBe("upcoming");
+    expect(
+      screen.getByTestId("on-call-setup-policy-archived"),
+    ).toHaveTextContent(ARCHIVED);
+    // Its own sentence: never the deleted one's.
+    expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+    expect(screen.queryByText(DELETED)).toBeNull();
+    expect(
+      screen
+        .getByTestId("on-call-setup-who-help")
+        .contains(screen.getByTestId("on-call-setup-policy-archived")),
+    ).toBe(true);
+    expect(screen.queryByRole("alert")).toBeNull();
+    // Nothing of the archived policy is left on the page.
+    expect(screen.queryByTestId("on-call-setup-policy")).toBeNull();
+    expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+  };
+
+  describe("on step 2, who else is on call", () => {
+    test("Continue with rules to add: none is added to the archived policy, the run forgets it, and step 2 opens on making one, saying why", async () => {
+      await atWhoElse(policyRecord({ alertRuleCount: 0 }));
+      expect(
+        screen.getByTestId("on-call-setup-who-continue"),
+      ).toHaveTextContent("Page this policy for every new incident and alert");
+
+      archiveThePolicy();
+      await press("on-call-setup-who-continue");
+
+      expect(api["addEveryNewEventRules"]).not.toHaveBeenCalled();
+      expectStepTwoAgain();
+      // The project's policies were read again: making one is offered.
+      expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(2);
+      expect(
+        screen.getByText(
+          'This makes the on-call policy "Default on-call policy". It pages these people first, for every new incident and alert in this project.',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("on-call-setup-who-save")).toBeVisible();
+      expect(screen.queryByTestId("on-call-setup-who-continue")).toBeNull();
+      expect(screen.queryByTestId("on-call-setup-readiness")).toBeNull();
+    });
+
+    test("Continue with no rule missing: the same, and step 3 never opens on an archived policy", async () => {
+      await atWhoElse();
+      expect(
+        screen.getByTestId("on-call-setup-who-continue"),
+      ).toHaveTextContent("Continue");
+
+      archiveThePolicy();
+      await press("on-call-setup-who-continue");
+
+      expect(api["loadPolicy"]).toHaveBeenLastCalledWith(POLICY_ID);
+      expectStepTwoAgain();
+      expect(screen.queryByTestId("on-call-setup-no-answer-save")).toBeNull();
+    });
+
+    // The same policy, in service: Continue moves on, as it always did.
+    test("negative control: the policy read in service (isArchived false) moves on, and nothing is forgotten", async () => {
+      await atWhoElse();
+      api["loadPolicy"]!.mockResolvedValue(policyRecord({ isArchived: false }));
+      await press("on-call-setup-who-continue");
+
+      expect(storedRun()).toEqual({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        policyIsExisting: true,
+      });
+      expect(stepState("no_answer")).toBe("open");
+      expect(screen.queryByTestId("on-call-setup-policy-archived")).toBeNull();
+      expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(1);
+    });
+
+    test("the sentence is read out: the step's polite live region, there before Continue, says it first", async () => {
+      await atWhoElse();
+      const region: HTMLElement = screen.getByTestId("on-call-setup-who-help");
+
+      expect(region).toHaveAttribute("aria-live", "polite");
+      expect(region).not.toHaveTextContent(ARCHIVED);
+
+      archiveThePolicy();
+      await press("on-call-setup-who-continue");
+
+      expect(screen.getByTestId("on-call-setup-who-help")).toBe(region);
+      expect(region).toHaveTextContent(ARCHIVED);
+      expect(region.firstElementChild).toBe(
+        screen.getByTestId("on-call-setup-policy-archived"),
+      );
+      expect(
+        region.contains(screen.getByTestId("on-call-setup-who-save")),
+      ).toBe(false);
+    });
+
+    test("archived, while the project has other policies in service: step 2 turns to them, the archived one not among them", async () => {
+      await atWhoElse();
+      archiveThePolicy({
+        policies: [{ id: OTHER_POLICY_ID, name: "Ops" }],
+        mayCreatePolicy: true,
+        mayAddRules: true,
+        mayEditLevels: true,
+      });
+      await press("on-call-setup-who-continue");
+
+      expectStepTwoAgain();
+      expect(
+        Array.from(
+          screen
+            .getByTestId("on-call-setup-policy-choice")
+            .querySelectorAll("option"),
+        ).map((option: HTMLOptionElement): string => {
+          return option.value;
+        }),
+      ).toEqual([OTHER_POLICY_ID]);
+
+      // Picking it sets the run up again, and the reason is said no more.
+      api["loadPolicy"]!.mockResolvedValue(
+        policyRecord({ id: OTHER_POLICY_ID, name: "Ops" }),
+      );
+      await press("on-call-setup-who-save");
+
+      expect(storedRun()).toEqual({
+        reachConfirmed: true,
+        policyId: OTHER_POLICY_ID,
+        policyIsExisting: true,
+      });
+      expect(screen.queryByTestId("on-call-setup-policy-archived")).toBeNull();
+      expect(stepState("no_answer")).toBe("open");
+    });
+
+    test("the project's policies that cannot be read again: the ones read before, without the archived one", async () => {
+      keepRun({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        policyIsExisting: true,
+      });
+      api["loadPolicyChoices"]!.mockResolvedValue({
+        policies: [
+          { id: POLICY_ID, name: "Default on-call policy" },
+          { id: OTHER_POLICY_ID, name: "Ops" },
+        ],
+        mayCreatePolicy: true,
+        mayAddRules: true,
+        mayEditLevels: true,
+      });
+      await renderSetup();
+      await act(async () => {
+        fireEvent.click(
+          screen
+            .getByTestId("guided-setup-step-who_else")
+            .querySelector("button")!,
+        );
+      });
+
+      api["loadPolicy"]!.mockResolvedValue(archived());
+      api["loadPolicyChoices"]!.mockRejectedValue(new Error("offline"));
+      await press("on-call-setup-who-continue");
+
+      expectStepTwoAgain();
+      expect(
+        Array.from(
+          screen
+            .getByTestId("on-call-setup-policy-choice")
+            .querySelectorAll("option"),
+        ).map((option: HTMLOptionElement): string => {
+          return option.value;
+        }),
+      ).toEqual([OTHER_POLICY_ID]);
+    });
+
+    test("a policy picked from the project's, archived since they were read: nobody is added to it, and the step offers them as they are now", async () => {
+      keepRun({ reachConfirmed: true });
+      api["loadPolicyChoices"]!.mockResolvedValue({
+        policies: [
+          { id: POLICY_ID, name: "Default on-call policy" },
+          { id: OTHER_POLICY_ID, name: "Ops" },
+        ],
+        mayCreatePolicy: true,
+        mayAddRules: true,
+        mayEditLevels: true,
+      });
+      await renderSetup();
+      expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+        POLICY_ID,
+      );
+
+      archiveThePolicy({
+        policies: [{ id: OTHER_POLICY_ID, name: "Ops" }],
+        mayCreatePolicy: true,
+        mayAddRules: true,
+        mayEditLevels: true,
+      });
+      await pressText("Add Ben to on-call-setup-people");
+      await press("on-call-setup-who-save");
+
+      expect(api["addToFirstLevel"]).not.toHaveBeenCalled();
+      expect(api["createPolicy"]).not.toHaveBeenCalled();
+      expectStepTwoAgain();
+      expect(screen.getByTestId("on-call-setup-policy-choice")).toHaveValue(
+        OTHER_POLICY_ID,
+      );
+    });
+
+    test("someone who may not make a policy, its only one archived: told why, and who can", async () => {
+      await atWhoElse();
+      archiveThePolicy({
+        policies: [],
+        mayCreatePolicy: false,
+        mayAddRules: false,
+        mayEditLevels: false,
+      });
+      await press("on-call-setup-who-continue");
+
+      expect(storedRun()).toEqual(FORGOTTEN);
+
+      const cannot: HTMLElement = screen.getByTestId(
+        "on-call-setup-cannot-create",
+      );
+
+      expect(cannot).toHaveTextContent(ARCHIVED);
+      expect(cannot).not.toHaveTextContent(DELETED);
+      expect(cannot).toHaveTextContent("Ask a Project Owner or Project Admin");
+      expect(screen.getByTestId("on-call-setup-who-help")).toHaveAttribute(
+        "aria-live",
+        "polite",
+      );
+    });
+
+    test("made again, the reason is said no more", async () => {
+      await atWhoElse();
+      archiveThePolicy();
+      await press("on-call-setup-who-continue");
+      expect(screen.getByTestId("on-call-setup-policy-archived")).toBeVisible();
+
+      api["loadPolicy"]!.mockResolvedValue(policyRecord());
+      await press("on-call-setup-who-save");
+
+      expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+      expect(storedRun()["policyId"]).toBe(POLICY_ID);
+      expect(stepState("no_answer")).toBe("open");
+      expect(screen.queryByTestId("on-call-setup-policy-archived")).toBeNull();
+    });
+
+    // The made policy read back archived: never taken for one in service.
+    test("a policy just made that reads back archived is forgotten too, never moved on with", async () => {
+      keepRun({ reachConfirmed: true });
+      await renderSetup();
+      api["loadPolicy"]!.mockResolvedValue(archived());
+      await press("on-call-setup-who-save");
+
+      expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+      expect(stepState("no_answer")).toBe("upcoming");
+      expect(screen.getByTestId("on-call-setup-policy-archived")).toBeVisible();
+      expect(storedRun()).toEqual(FORGOTTEN);
+    });
+
+    test("deleted and archived each say their own sentence: deleted after archived says deleted", async () => {
+      await atWhoElse();
+      archiveThePolicy({
+        policies: [{ id: OTHER_POLICY_ID, name: "Ops" }],
+        mayCreatePolicy: true,
+        mayAddRules: true,
+        mayEditLevels: true,
+      });
+      await press("on-call-setup-who-continue");
+      expect(screen.getByTestId("on-call-setup-policy-archived")).toBeVisible();
+
+      // Ops is picked, and was deleted meanwhile: the newer reason is said.
+      api["loadPolicy"]!.mockResolvedValue(null);
+      api["loadPolicyChoices"]!.mockResolvedValue(NO_POLICY_IN_SERVICE);
+      await press("on-call-setup-who-save");
+
+      expect(
+        screen.getByTestId("on-call-setup-policy-deleted"),
+      ).toHaveTextContent(DELETED);
+      expect(screen.queryByTestId("on-call-setup-policy-archived")).toBeNull();
+      expect(screen.queryByText(ARCHIVED)).toBeNull();
+    });
+  });
+
+  describe("on step 3, what if nobody answers", () => {
+    const atNoAnswer: () => Promise<void> = async (): Promise<void> => {
+      keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+      await renderSetup();
+      expect(stepState("no_answer")).toBe("open");
+    };
+
+    test("Save, to page someone else: no level is added to the archived policy, and step 2 opens with why", async () => {
+      await atNoAnswer();
+      await pressText("Add Ben to on-call-setup-next-people");
+
+      archiveThePolicy();
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["addSecondLevel"]).not.toHaveBeenCalled();
+      expectStepTwoAgain();
+    });
+
+    test("Save, to page again: no repeat is set on the archived policy", async () => {
+      await atNoAnswer();
+      await press("choice-repeat");
+
+      archiveThePolicy();
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["setRepeat"]).not.toHaveBeenCalled();
+      expectStepTwoAgain();
+    });
+
+    test("Do nothing more: not saved as done, and step 2 opens with why", async () => {
+      await atNoAnswer();
+      await press("choice-nothing");
+
+      archiveThePolicy();
+      await press("on-call-setup-no-answer-save");
+
+      expect(storedRun()["noAnswerDone"]).toBeUndefined();
+      expectStepTwoAgain();
+    });
+
+    test("archived just after the second level was saved: forgotten, and the test step never opens", async () => {
+      await atNoAnswer();
+      await pressText("Add Ben to on-call-setup-next-people");
+
+      // Read just before: in service. Read again once saved: archived.
+      api["loadPolicy"]!.mockResolvedValueOnce(policyRecord());
+      api["loadPolicy"]!.mockResolvedValue(archived());
+      api["loadPolicyChoices"]!.mockResolvedValue(NO_POLICY_IN_SERVICE);
+      await press("on-call-setup-no-answer-save");
+
+      expect(api["addSecondLevel"]).toHaveBeenCalledTimes(1);
+      expectStepTwoAgain();
+    });
+  });
+
+  describe("on step 4, the test page", () => {
+    const atTest: () => Promise<void> = async (): Promise<void> => {
+      keepRun({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        noAnswerDone: true,
+      });
+      await renderSetup();
+      expect(stepState("test")).toBe("open");
+    };
+
+    test("Skip: no summary saying an archived policy pages people; step 2 opens with why", async () => {
+      await atTest();
+
+      archiveThePolicy();
+      await press("on-call-setup-skip-test");
+
+      expect(storedRun()["testSkipped"]).toBeUndefined();
+      expectStepTwoAgain();
+    });
+
+    test("Continue once acknowledged: the policy is read again first, and archived meanwhile, no summary; step 2 opens with why", async () => {
+      await atTest();
+      await press("send-test-page");
+      await act(async () => {
+        reportTestResult(result(OnCallTestPageStatus.Acknowledged));
+      });
+      expect(screen.getByTestId("on-call-setup-test-continue")).toBeVisible();
+
+      archiveThePolicy();
+      await press("on-call-setup-test-continue");
+
+      expect(api["loadPolicy"]).toHaveBeenLastCalledWith(POLICY_ID);
+      expectStepTwoAgain();
+    });
+
+    test("Continue once acknowledged, the policy in service: the summary, as before", async () => {
+      await atTest();
+      await press("send-test-page");
+      await act(async () => {
+        reportTestResult(result(OnCallTestPageStatus.Acknowledged));
+      });
+      await press("on-call-setup-test-continue");
+
+      expect(api["loadPolicy"]).toHaveBeenLastCalledWith(POLICY_ID);
+      expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+      expect(sent(ProductEventName.GuidedSetupFinished)).toHaveLength(1);
+    });
+
+    test("Continue once acknowledged, and the read fails: the step says why and stays", async () => {
+      await atTest();
+      await press("send-test-page");
+      await act(async () => {
+        reportTestResult(result(OnCallTestPageStatus.Acknowledged));
+      });
+
+      api["loadPolicy"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+      await press("on-call-setup-test-continue");
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The server could not be reached.",
+      );
+      expect(stepState("test")).toBe("open");
+      expect(storedRun()["policyId"]).toBe(POLICY_ID);
+      expect(screen.queryByTestId("guided-setup-summary")).toBeNull();
+    });
+
+    test("Skip, and the read fails: the step says why and stays, and the test is not saved as skipped", async () => {
+      await atTest();
+      api["loadPolicy"]!.mockRejectedValue(
+        new Error("The server could not be reached."),
+      );
+      await press("on-call-setup-skip-test");
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The server could not be reached.",
+      );
+      expect(stepState("test")).toBe("open");
+      expect(storedRun()["testSkipped"]).toBeUndefined();
+    });
+
+    test("the test dialog closes on a policy archived meanwhile: step 2 opens with why", async () => {
+      await atTest();
+
+      archiveThePolicy();
+      await press("close-test-page");
+
+      await waitFor(() => {
+        expect(stepState("who_else")).toBe("open");
+      });
+      expectStepTwoAgain();
+    });
+  });
+
+  describe("coming back", () => {
+    test("to a finished run whose policy was archived: step 2, saying why, and no summary", async () => {
+      keepRun({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        noAnswerDone: true,
+        testExecutionLogId: "log-1",
+        testSkipped: true,
+      });
+      api["loadPolicy"]!.mockResolvedValue(archived());
+      await renderSetup();
+
+      expectStepTwoAgain();
+      // Nothing of the archived policy is read on: not its readiness, nor its test.
+      expect(getResultMock).not.toHaveBeenCalled();
+      expect(api["loadPolicyReadiness"]).not.toHaveBeenCalled();
+    });
+
+    test("to a run whose policy is in service: nothing is said of an archived one", async () => {
+      keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+      api["loadPolicy"]!.mockResolvedValue(policyRecord({ isArchived: false }));
+      await renderSetup();
+
+      expect(stepState("no_answer")).toBe("open");
+      expect(screen.queryByTestId("on-call-setup-policy-archived")).toBeNull();
+      expect(screen.queryByTestId("on-call-setup-policy-deleted")).toBeNull();
+    });
+
+    test("to a run whose policy was deleted: it still says deleted, never archived", async () => {
+      keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+      api["loadPolicy"]!.mockResolvedValue(null);
+      await renderSetup();
+
+      expect(
+        screen.getByTestId("on-call-setup-policy-deleted"),
+      ).toHaveTextContent(DELETED);
+      expect(screen.queryByTestId("on-call-setup-policy-archived")).toBeNull();
+    });
+  });
+});
+
+/*
+ * THE SENTENCE FOR AN ARCHIVED POLICY IS WORDED IN EVERY DASHBOARD LANGUAGE
+ * (#8432): a value of its own in each, its full stop kept - never the
+ * English left as a placeholder, nor the deleted sentence's words.
+ */
+describe("the sentence for an archived policy, in every Dashboard language (#8432)", () => {
+  const LANGUAGES: Array<string> = [...DASHBOARD_LANGUAGES];
+
+  test("English has it, as itself, and it is not the deleted sentence", () => {
+    expect(readDashboardLocale("en")[ON_CALL_SETUP_COPY.policyArchived]).toBe(
+      ON_CALL_SETUP_COPY.policyArchived,
+    );
+    expect(ON_CALL_SETUP_COPY.policyArchived).not.toBe(
+      ON_CALL_SETUP_COPY.policyDeleted,
+    );
+    // Why it matters is said: an archived policy pages no one.
+    expect(ON_CALL_SETUP_COPY.policyArchived).toContain("pages no one");
+  });
+
+  test.each(LANGUAGES)(
+    "%s words it, apart from its deleted sentence",
+    (language: string) => {
+      const locale: Record<string, string> = readDashboardLocale(language);
+      const text: string | undefined =
+        locale[ON_CALL_SETUP_COPY.policyArchived];
+
+      expect({
+        language,
+        worded: Boolean(
+          text && text.trim() && text !== ON_CALL_SETUP_COPY.policyArchived,
+        ),
+      }).toEqual({ language, worded: true });
+      expect(text).not.toBe(locale[ON_CALL_SETUP_COPY.policyDeleted]);
+      // Sentences, ended as the language ends one.
+      expect(text).toMatch(/[.。।]$/u);
+    },
+  );
+});
+/*
  * THE SENTENCE FOR A DELETED POLICY IS WORDED IN EVERY DASHBOARD LANGUAGE
  * (#7516): a value of its own in each, its full stop kept - never the
  * English left as a placeholder.
@@ -2800,6 +3391,7 @@ describe("read in another language (#7252)", () => {
 
       expect(sentence).toBe(worded(language, ON_CALL_SETUP_COPY.policyDeleted));
       expect(sentence).not.toMatch(/deleted|pick or make/u);
+      expect(screen.queryByTestId("on-call-setup-policy-archived")).toBeNull();
       // No English is left in the step's live region, but the policy's name.
       expect(
         withoutIsolateMarks(
@@ -2808,6 +3400,46 @@ describe("read in another language (#7252)", () => {
           .split("Default on-call policy")
           .join(""),
       ).not.toMatch(/\b(the|this|was|policy|setup)\b/iu);
+      expect(storedRun()).toEqual({ reachConfirmed: true });
+    });
+
+    // #8432: Continue that finds the run's policy archived says so in their words.
+    test("the run's policy archived meanwhile: the step says why in their words", async () => {
+      keepRun({
+        reachConfirmed: true,
+        policyId: POLICY_ID,
+        policyIsExisting: true,
+      });
+      await renderSetup();
+      await act(async () => {
+        fireEvent.click(
+          screen
+            .getByTestId("guided-setup-step-who_else")
+            .querySelector("button")!,
+        );
+      });
+      api["loadPolicy"]!.mockResolvedValue(policyRecord({ isArchived: true }));
+      await press("on-call-setup-who-continue");
+
+      const sentence: string = withoutIsolateMarks(
+        screen.getByTestId("on-call-setup-policy-archived").textContent || "",
+      );
+
+      expect(sentence).toBe(
+        worded(language, ON_CALL_SETUP_COPY.policyArchived),
+      );
+      expect(sentence).not.toBe(
+        worded(language, ON_CALL_SETUP_COPY.policyDeleted),
+      );
+      expect(sentence).not.toMatch(/archived|pages no one|pick or make/iu);
+      // No English is left in the step's live region, but the policy's name.
+      expect(
+        withoutIsolateMarks(
+          screen.getByTestId("on-call-setup-who-help").textContent || "",
+        )
+          .split("Default on-call policy")
+          .join(""),
+      ).not.toMatch(/\b(the|this|was|policy|setup|archived)\b/iu);
       expect(storedRun()).toEqual({ reachConfirmed: true });
     });
 

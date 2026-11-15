@@ -164,8 +164,8 @@ async function raise(
 
 describe("who may raise an alert from Ask AI is who may create one on the Create Alert form", () => {
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     ["a project member", [Permission.ProjectMember]],
     ["an Alert Admin", [Permission.AlertAdmin]],
     ["an Alert Member", [Permission.AlertMember]],

@@ -1,11 +1,11 @@
 # GitHub
 
-OneUptime arbejder sammen med [GitHub](https://github.com) på to måder. Forbind dine repositorier via OneUptimes GitHub App, så åbner OneUptimes AI pull requests, der retter det, den finder, og svarer, når du nævner den i et issue eller en pull request. Eller byg et workflow, der åbner et GitHub-issue for hver hændelse, så opfølgningsarbejdet spores i det repositorie, der ejer tjenesten.
+OneUptime arbejder sammen med [GitHub](https://github.com) på to måder. Forbind dine repositorier via OneUptimes GitHub App, så åbner OneUptimes AI pull requests, der retter det, den finder, og svarer, når du nævner den i et issue eller en pull request. Eller byg en arbejdsgang, der åbner et GitHub-issue for hver hændelse, så opfølgningsarbejdet spores i det repositorie, der ejer tjenesten.
 
 :::cards
-- [Vælg, hvordan du forbinder](#vælg-hvordan-du-forbinder): GitHub App eller et workflow, og hvad hver af dem gør.
+- [Vælg, hvordan du forbinder](#vælg-hvordan-du-forbinder): GitHub App eller en arbejdsgang, og hvad hver af dem gør.
 - [Forbind dine repositorier](#forbind-dine-repositorier): GitHub App, til pull requests med rettelser.
-- [Åbn et issue for hver hændelse](#åbn-et-github-issue-for-hver-hændelse): Ét workflow, to blokke.
+- [Åbn et issue for hver hændelse](#åbn-et-github-issue-for-hver-hændelse): én arbejdsgang, to blokke.
 - [Fejlfinding](#fejlfinding): Når GitHub afviser en anmodning.
 :::
 
@@ -15,18 +15,18 @@ OneUptime arbejder sammen med [GitHub](https://github.com) på to måder. Forbin
 flowchart TB
     app["GitHub App"] --> repos["Dine repositorier,<br/>importeret"]
     repos --> pr["Pull requests med<br/>rettelser fra<br/>OneUptimes AI"]
-    declared["Hændelse erklæret"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Hændelse erklæret"] --> workflow["Arbejdsgang:<br/>On Create Incident"]
     workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
-De to er adskilte, og du kan bruge den ene eller begge. GitHub App arbejder i de repositorier, du installerer den på. Workflowet behøver kun et token og kalder GitHubs [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) som ethvert andet API.
+De to er adskilte, og du kan bruge den ene eller begge. GitHub App arbejder i de repositorier, du installerer den på. Arbejdsgangen behøver kun et token og kalder GitHubs [REST API](https://docs.github.com/en/rest/issues/issues#create-an-issue) som ethvert andet API.
 
 ## Vælg, hvordan du forbinder
 
 | Måde | Hvad den gør | Hvad den kræver |
 | --- | --- | --- |
 | GitHub App | Importerer dine repositorier. OneUptimes AI åbner pull requests i dem, der retter exceptions, langsomme traces og de årsager, dens undersøgelser finder, og svarer på omtaler i issues og pull requests. | En organisation eller konto at installere appen på. På OneUptime Cloud planen **Growth**. |
-| Et workflow | Åbner et GitHub-issue for hver hændelse i det repositorie, du vælger. | Et GitHub-token, der kan oprette issues, og et workflow med to blokke. |
+| En arbejdsgang | Åbner et GitHub-issue for hver hændelse i det repositorie, du vælger. | Et GitHub-token, der kan oprette issues, og en arbejdsgang med to blokke. |
 
 ## Forbind dine repositorier
 
@@ -38,10 +38,10 @@ En selvhostet instans skal først have sin egen GitHub App: [GitHub-integration]
 
 ## Før du går i gang
 
-Resten af denne side bygger workflowet. Det kræver:
+Resten af denne side bygger arbejdsgangen. Den kræver:
 
 - Et GitHub-token, der kan oprette issues i repositoriet: et fine-grained personal access token til det repositorie, med tilladelsen **Issues** sat til **Read and write**, eller et klassisk token med omfanget `repo`. Opret et i GitHubs [tokenindstillinger](https://github.com/settings/tokens).
-- I OneUptime rettigheden til at oprette workflows og globale variabler. På OneUptime Cloud kræver workflows **Growth**-abonnementet eller højere.
+- I OneUptime rettigheden til at oprette arbejdsgange og globale variabler. På OneUptime Cloud kræver arbejdsgange **Growth**-abonnementet eller højere.
 
 ## Gem tokenet
 
@@ -56,9 +56,9 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldr
 ## Åbn et GitHub-issue for hver hændelse
 
 :::steps
-### Opret workflowet
+### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to GitHub`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to GitHub`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 
@@ -124,7 +124,7 @@ Ejeren eller repositoriet i **URL** er forkert, eller tokenet kan ikke se reposi
 
 :::cards
 - [GitHub App](/docs/ai/github-app): Bed OneUptimes AI om en ændring, en revision eller en review direkte fra GitHub.
-- [GitLab](/docs/integrations/gitlab): Det samme workflow, for GitLab-issues.
-- [Workflow-komponenter](/docs/workflows/components#api): Alle indstillinger for API-blokkene.
+- [GitLab](/docs/integrations/gitlab): Den samme arbejdsgang, for GitLab-issues.
+- [Arbejdsgangskomponenter](/docs/workflows/components#api): Alle indstillinger for API-blokkene.
 - [Oversigt over integrationer](/docs/integrations/index): Mønstrene bag hver integration.
 :::

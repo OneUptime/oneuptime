@@ -39,7 +39,7 @@ Uma sonda que perdeu a própria conexão de rede não informa nenhum resultado, 
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Uma sonda que alcance o endereço**, com ICMP permitido no caminho. As sondas padrão do seu projeto são escolhidas para cada monitor novo. Se um firewall o protege, libere as requisições de eco ICMP dos [endereços IP das sondas do OneUptime Cloud](/docs/configuration/ip-addresses). Um endereço privado precisa de uma [sonda personalizada](/docs/probe/custom-probe) nessa rede, e um endereço IPv6 precisa de uma sonda com conectividade IPv6.
 
 ## Criar um monitor de IP
@@ -98,7 +98,7 @@ Com dois ou mais filtros, **Condição de correspondência** decide se **Todos**
 
 Um monitor de IP novo começa com dois critérios:
 
-- **Offline** — o endereço não responde a nenhuma das requisições de eco, ou não pode ser alcançado de forma alguma, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_monitor name_ is offline" é criado. O incidente se resolve sozinho quando o endereço volta a responder.
+- **Offline** — o endereço não responde a nenhuma das requisições de eco, ou não pode ser alcançado de forma alguma, depois de todas as novas tentativas. O monitor é marcado como **Offline** e um incidente chamado "_nome do monitor_ está offline" é criado. O incidente se resolve sozinho quando o endereço volta a responder.
 - **No ar** — o endereço responde. O monitor é marcado como **Operacional**.
 
 Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide o que acontece. Quando nenhum corresponde, o monitor mostra o status padrão: **Operacional**, a menos que você escolha outro em **Mais campos**, abaixo dos critérios.

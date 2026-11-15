@@ -1009,6 +1009,8 @@ import { AddMeasurementBackfillCursorId1809178200000 } from "./1809178200000-Add
 import { RemovePermissionsThatGrantNothing1809178600000 } from "./1809178600000-RemovePermissionsThatGrantNothing";
 import { AddServiceLevelObjectiveRequestSli1809178700000 } from "./1809178700000-AddServiceLevelObjectiveRequestSli";
 import { AddIncomingRequestSecret1809178800000 } from "./1809178800000-AddIncomingRequestSecret";
+import { AddOwnerNotificationDelivery1809179400000 } from "./1809179400000-AddOwnerNotificationDelivery";
+import { AddIncomingRequestSecretActivity1809179500000 } from "./1809179500000-AddIncomingRequestSecretActivity";
 
 export default [
   InitialMigration,
@@ -2022,4 +2024,6 @@ export default [
   RemovePermissionsThatGrantNothing1809178600000,
   AddServiceLevelObjectiveRequestSli1809178700000,
   AddIncomingRequestSecret1809178800000,
+  AddOwnerNotificationDelivery1809179400000,
+  AddIncomingRequestSecretActivity1809179500000,
 ];

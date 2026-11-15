@@ -133,7 +133,7 @@ A status says how much budget is left, not what your team does about it. To writ
 
 When an SLO turns **At Risk** or **Budget Exhausted**, OneUptime notifies its owners:
 
-- The owners are the users and the members of the teams on the SLO's **Owners** page who are still members of the project. An SLO with no owners notifies the project owners instead.
+- The owners are the users and the members of the teams on the SLO's **Owners** page who are still members of the project. An SLO with no owners notifies the Project Owners instead.
 - Each owner gets an email by default, and the notification on every other channel they turn on for **SLO status changed** in **User Settings** → **Notification Settings** → **Monitoring**.
 - The email subject names the status and the SLO, for example `[SLO At Risk] API Availability`.
 

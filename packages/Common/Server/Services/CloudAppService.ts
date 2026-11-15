@@ -222,7 +222,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public getUnseenThresholdDate(nowOverride?: Date): Date {
-    return OneUptimeDate.addRemoveDays(
+    return OneUptimeDate.addRemoveDurationInDays(
       nowOverride || OneUptimeDate.getCurrentDate(),
       -this.getRetentionDays(),
     );

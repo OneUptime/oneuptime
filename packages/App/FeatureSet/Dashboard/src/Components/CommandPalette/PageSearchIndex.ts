@@ -1151,7 +1151,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "x-oneuptime-secret",
               "incoming request security",
             ],
-            settings: ["Require a Secret", "Require a secret on every request"],
+            settings: [
+              "Require a Secret",
+              "Require a secret on every request",
+              "Requests Without a Secret",
+            ],
           },
           {
             page: PageMap.MONITORS_SETTINGS_TEMPLATES,

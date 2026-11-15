@@ -1,9 +1,9 @@
 # Zabbix
 
-Send [Zabbix](https://www.zabbix.com)-problemer til OneUptime, så hvert problem bliver en hændelse, der kalder dit vagthold op og løses, når Zabbix er kommet sig. Færdige workflow-skabeloner holder begge sider i takt: det, folk gør i Zabbix, noteres på hændelsen, og at bekræfte eller løse hændelsen bekræfter eller lukker problemet i Zabbix. Zabbix sender hvert problem via en webhook-medietype, så der er intet at installere på nogen af siderne.
+Send [Zabbix](https://www.zabbix.com)-problemer til OneUptime, så hvert problem bliver en hændelse, der kalder dit vagthold op og løses, når Zabbix er kommet sig. Færdige arbejdsgangsskabeloner holder begge sider i takt: det, folk gør i Zabbix, noteres på hændelsen, og at bekræfte eller løse hændelsen bekræfter eller lukker problemet i Zabbix. Zabbix sender hvert problem via en webhook-medietype, så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager problemer](#vælg-hvordan-oneuptime-modtager-problemer): Workflow-skabeloner eller en monitor for indgående anmodninger.
+- [Vælg, hvordan OneUptime modtager problemer](#vælg-hvordan-oneuptime-modtager-problemer): Arbejdsgangsskabeloner eller en monitor for indgående anmodninger.
 - [Start med skabelonerne](#start-med-skabelonerne): Seks skabeloner, hvad de gør, og hvad de beder om.
 - [Konfigurer Zabbix](#konfigurer-zabbix): En medietype, en bruger og en handling.
 - [Fejlfinding](#fejlfinding): Når problemer ikke kommer frem, eller hændelser forbliver åbne.
@@ -28,7 +28,7 @@ Zabbix sender et problem til en bruger via brugerens medier. Her er mediet en we
 
 - En Zabbix-server, som du administrerer. Denne vejledning er skrevet til Zabbix 6.0 LTS og 7.0 LTS. Webhook-medietyper fungerer på samme måde fra Zabbix 5.0. Skabelonerne, der kalder Zabbix' API, kræver Zabbix 6.4 eller nyere eller [én ændring på Zabbix 6.0](#på-zabbix-60).
 - En Zabbix-server, der kan nå din OneUptime via HTTPS, og til skabelonerne, der kalder Zabbix, en OneUptime, der kan nå Zabbix.
-- I OneUptime rettigheden til at oprette workflows, eller monitorer, hvis du vælger den vej. På OneUptime Cloud kræver workflows planen **Growth** eller højere.
+- I OneUptime rettigheden til at oprette arbejdsgange, eller monitorer, hvis du vælger den vej. På OneUptime Cloud kræver arbejdsgange planen **Growth** eller højere.
 
 ## Vælg, hvordan OneUptime modtager problemer
 
@@ -36,8 +36,8 @@ Sæt OneUptime op først: det giver dig den URL, som Zabbix sender til.
 
 | Måde | Brug den, når |
 | --- | --- |
-| Workflow-skabelonerne (anbefales) | Du vil have hvert problem som en hændelse eller en advarsel med dets Zabbix-alvorlighed, med vagten kaldt op for High og Disaster, løst ved gendannelse, med det, folk gør i Zabbix, noteret på den, og Zabbix bekræftet eller lukket fra OneUptime. |
-| En monitor for indgående anmodninger | Du vil have hændelser uden et workflow, på enhver plan, og en monitor, hvis status følger Zabbix. Intet går tilbage til Zabbix. |
+| Arbejdsgangsskabelonerne (anbefales) | Du vil have hvert problem som en hændelse eller en advarsel med dets Zabbix-alvorlighed, med vagten kaldt op for High og Disaster, løst ved gendannelse, med det, folk gør i Zabbix, noteret på den, og Zabbix bekræftet eller lukket fra OneUptime. |
+| En monitor for indgående anmodninger | Du vil have hændelser uden en arbejdsgang, på enhver plan, og en monitor, hvis status følger Zabbix. Intet går tilbage til Zabbix. |
 
 Begge får den samme JSON fra den samme medietype, så du kan starte med den ene og skifte senere ved at ændre én URL i Zabbix.
 
@@ -48,7 +48,7 @@ Dialogen **Opret en arbejdsgang** har seks Zabbix-skabeloner under **Zabbix** i 
 | Skabelon | Hvad den gør | Hvad den beder om |
 | --- | --- | --- |
 | **Hændelser** | | |
-| Declare an incident for each Zabbix problem | Det workflow, Zabbix sender alle sine beskeder til. Det erklærer en hændelse for hvert problem, kalder vagten op for High og Disaster, noterer opdateringer foretaget i Zabbix og løser hændelsen ved gendannelse. | Zabbix URL |
+| Declare an incident for each Zabbix problem | Den arbejdsgang, Zabbix sender alle sine beskeder til. Den erklærer en hændelse for hvert problem, kalder vagten op for High og Disaster, noterer opdateringer foretaget i Zabbix og løser hændelsen ved gendannelse. | Zabbix URL |
 | Acknowledge or close the Zabbix problem with the incident | Når hændelsen bekræftes, bekræfter den sit problem. Når den løses, lukker den problemet, eller bekræfter det, hvor Zabbix ikke tillader at lukke det manuelt. | Zabbix URL, Zabbix API Token |
 | Copy incident private notes to the Zabbix problem | Tilføjer hver privat note på hændelsen til dens problem som en besked. | Zabbix URL, Zabbix API Token |
 | **Advarsler** | | |
@@ -61,24 +61,24 @@ Start med **Declare an incident for each Zabbix problem**, eller **Create an ale
 ### Hvad skabelonerne beder om
 
 - **Zabbix URL**: den adresse, du åbner Zabbix på, f.eks. `https://zabbix.example.com`, eller `https://example.com/zabbix`, når Zabbix kører under en sti. Links til et problem går dertil, og skabelonerne, der kalder Zabbix, sender deres anmodninger til dets `api_jsonrpc.php`. Feltet afviser adressen på en side i Zabbix.
-- **Zabbix API Token**: et API-token for den Zabbix-bruger, workflowet handler som. [Opret API-tokenet](#opret-api-tokenet) viser hvordan. Det gemmes som en hemmelig variabel og sendes kun til Zabbix: i headeren `Authorization`, eller i anmodningens brødtekst på Zabbix 6.0.
+- **Zabbix API Token**: et API-token for den Zabbix-bruger, arbejdsgangen handler som. [Opret API-tokenet](#opret-api-tokenet) viser hvordan. Det gemmes som en hemmelig variabel og sendes kun til Zabbix: i headeren `Authorization`, eller i anmodningens brødtekst på Zabbix 6.0.
 
 ### Modtag problemer med skabelonen
 
 :::steps
 1. Gå til **Arbejdsgange**, og klik på **Opret arbejdsgang**. Under **Eller start fra en skabelon** vælger du **Zabbix** i kategorilisten, klikker på **Declare an incident for each Zabbix problem** og klikker på **Brug denne skabelon**.
-2. Udfyld **Zabbix URL**. Under **Who to page for High and Disaster problems** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Workflowet åbner i **Bygger**, slået fra.
+2. Udfyld **Zabbix URL**. Under **Who to page for High and Disaster problems** vælger du de vagtpolitikker, der skal tilkaldes, eller ingen for ikke at tilkalde nogen, og klikker på **Opret arbejdsgang**. Arbejdsgangen åbner i **Bygger**, slået fra.
 3. Klik på triggeren **Webhook**, derefter på **Kopiér URL**, og gem URL'en til Zabbix.
-4. Slå **Aktiveret** til øverst i **Bygger**. Et workflow, der er slået fra, svarer Zabbix med `400`.
+4. Slå **Aktiveret** til øverst i **Bygger**. En arbejdsgang, der er slået fra, svarer Zabbix med `400`.
 :::
 
 Derefter [konfigurerer du Zabbix](#konfigurer-zabbix) til at sende sine problemer til den URL.
 
-### Hvad workflowet gør
+### Hvad arbejdsgangen gør
 
 Efter triggeren **Webhook** læser trinnet **Check With JavaScript** `read-event-1` den `event`, medietypen sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i advarselsskabelonen, gør det, den betyder, ud fra problemets hændelses-ID:
 
-| Event | Hvad workflowet gør |
+| Event | Hvad arbejdsgangen gør |
 | --- | --- |
 | `problem` | Erklærer en hændelse med titlen `Zabbix: <problem> on <host>`, med den alvorlighed, Zabbix-alvorligheden svarer til, holdt uden for dine statussider. Dens beskrivelse linker til problemet i Zabbix og viser værten, alvorligheden, hvornår det startede, dets driftsdata og dets tags. For et problem med High eller Disaster kalder den den vagtpolitik op, du valgte. Et problem, som Zabbix sender igen, med samme hændelses-ID, opretter ingen ny hændelse. |
 | `recovery` | Løser problemets hændelse, medmindre den allerede er løst. Hvorfor står på dens tidslinje. |
@@ -108,7 +108,7 @@ Med egne alvorligheder går Disaster og High til din mest alvorlige, Average og 
 
 :::steps
 1. [Opret API-tokenet](#opret-api-tokenet).
-2. Opret et workflow fra **Acknowledge or close the Zabbix problem with the incident**. Udfyld **Zabbix URL** og **Zabbix API Token**, klik på **Opret arbejdsgang**, og slå **Aktiveret** til.
+2. Opret en arbejdsgang fra **Acknowledge or close the Zabbix problem with the incident**. Udfyld **Zabbix URL** og **Zabbix API Token**, klik på **Opret arbejdsgang**, og slå **Aktiveret** til.
 3. Hvis du også vil have noter i Zabbix, så gør det samme med **Copy incident private notes to the Zabbix problem**.
 :::
 
@@ -288,12 +288,12 @@ Zabbix har brug for tre ting: en medietype, der sender til OneUptime, en bruger 
 5. Klik på **Add**, og kontrollér, at handlingen er aktiveret.
 :::
 
-For at sende nogle problemer til hændelsesskabelonen og andre til advarselsskabelonen skal du give brugeren `OneUptime` to medier af typen `OneUptime`: hvert sender til ét workflows URL, med de alvorligheder, det skal have.
+For at sende nogle problemer til hændelsesskabelonen og andre til advarselsskabelonen skal du give brugeren `OneUptime` to medier af typen `OneUptime`: hvert sender til én arbejdsgangs URL, med de alvorligheder, det skal have.
 
 ## Test det
 
 1. Åbn **Alerts → Media types** i Zabbix, og klik på **Test** ved siden af `OneUptime`. Udfyld den URL, du kopierede, og eksempelværdier som `event_id` `12345`, `event_name` `Test problem`, `host` `web-1`, `event_nseverity` `4` og `event_value` `1`. Klik på **Test**: Zabbix viser scriptets svar, `OK`, eller den fejl, det kastede.
-2. Åbn workflowets **Protokoller → Kørsler** i OneUptime, og tjek kørslen, eller åbn monitoren, og kontrollér, at der blev oprettet en hændelse.
+2. Åbn arbejdsgangens **Protokoller → Kørsler** i OneUptime, og tjek kørslen, eller åbn monitoren, og kontrollér, at der blev oprettet en hændelse.
 3. Test igen med `event_value` `0` og samme `event_id`. Hændelsen bliver løst.
 
 Lad derefter en rigtig trigger udløses, f.eks. ved at sænke en tærskel et øjeblik, og se problemet komme ind. For at prøve en opdatering skal du bekræfte problemet i Zabbix med en besked: hændelsen får en privat note og bliver bekræftet.
@@ -311,7 +311,7 @@ Zabbix sender sin alvorlighed som tekst: `Not classified`, `Information`, `Warni
 - Åbn **Reports → Action log** i Zabbix, og kontrollér, at handlingen sendte problemet, og hvad der kom tilbage.
 - Send selv en anmodning fra Zabbix-serveren: `curl -i -X POST <url> -H 'Content-Type: application/json' -d '{"source":"zabbix","event":"problem","event_id":"1","name":"Test","host":"test","severity_number":"4","status":"1"}'`.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, selv ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om anmodningerne kommer frem.
-- Et workflow, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Zabbix rapporterer en scriptfejl
@@ -320,7 +320,7 @@ Zabbix sender sin alvorlighed som tekst: `Not classified`, `Information`, `Warni
 
 :::details Hændelser oprettes, men løses aldrig
 - Handlingen skal have **Recovery operations**, ellers sender Zabbix aldrig gendannelsen.
-- Med skabelonen åbner du workflowets **Protokoller → Kørsler** og gendannelsens kørsel: dens sidste trin siger hvorfor. En gendannelse for et problem, der ikke oprettede nogen hændelse, ændrer intet.
+- Med skabelonen åbner du arbejdsgangens **Protokoller → Kørsler** og gendannelsens kørsel: dens sidste trin siger hvorfor. En gendannelse for et problem, der ikke oprettede nogen hændelse, ændrer intet.
 - Med monitoren skal kriteriets hændelse have **Løs hændelse automatisk** under **Flere felter**. **Field that signals recovery** skal være `requestBody.status`, og **Value that means recovered** præcis `0`.
 :::
 
@@ -334,7 +334,7 @@ Zabbix sender sin alvorlighed som tekst: `Not classified`, `Information`, `Warni
 :::
 
 :::details Hændelsen viser en reference i stedet for en værdi
-En reference til et felt, som anmodningen ikke har, bliver stående, som den er skrevet, krøllede parenteser og det hele, i stedet for at blive tømt. Kontrollér, at Zabbix sender `Content-Type: application/json`, og at de feltnavne, du bruger (`name`, `host`, `severity`, `status`, `event_id`), passer til scriptets payload. Ved et workflow åbner du kørslen i **Protokoller → Kørsler** og sammenligner med det, triggeren modtog. Se [Faldgruber](/docs/workflows/variables#fælder).
+En reference til et felt, som anmodningen ikke har, bliver stående, som den er skrevet, krøllede parenteser og det hele, i stedet for at blive tømt. Kontrollér, at Zabbix sender `Content-Type: application/json`, og at de feltnavne, du bruger (`name`, `host`, `severity`, `status`, `event_id`), passer til scriptets payload. Ved en arbejdsgang åbner du kørslen i **Protokoller → Kørsler** og sammenligner med det, triggeren modtog. Se [Faldgruber](/docs/workflows/variables#fælder).
 :::
 
 :::details Hvert problem kommer to gange
@@ -343,16 +343,16 @@ Handlingen har sandsynligvis to operationer, der sender til den samme bruger, f.
 
 ## Sikkerhed
 
-- **Behandl URL'en som en adgangskode.** Alle, der har den, kan oprette hændelser. Hvis den slipper ud, så nulstil den: **Nulstil URL** i workflowets **Webhook**-trigger, eller **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**. Opdater derefter **Send to** i Zabbix-brugerens medie.
+- **Behandl URL'en som en adgangskode.** Alle, der har den, kan oprette hændelser. Hvis den slipper ud, så nulstil den: **Nulstil URL** i arbejdsgangens **Webhook**-trigger, eller **Nulstil hemmelig nøgle for indgående anmodning** på monitorens side **Indstillinger**. Opdater derefter **Send to** i Zabbix-brugerens medie.
 - **Links går til dit Zabbix.** Skabelonen linker et problem på det websted, som dens **Zabbix URL** navngiver, uanset hvad en anmodning siger, og skriver det, Zabbix sendte, som tekst.
-- **Begræns API-tokenet til det, workflowet gør.** Det er en hemmelig variabel, skjult i kørselslogge og kun sendt til Zabbix, i headeren `Authorization`, medmindre **Zabbix 6.0** er slået til. Giv dens bruger en rolle med intet ud over handlingerne ovenfor, og slet tokenet i **Users → API tokens**, hvis det slipper ud.
+- **Begræns API-tokenet til det, arbejdsgangen gør.** Det er en hemmelig variabel, skjult i kørselslogge og kun sendt til Zabbix, i headeren `Authorization`, medmindre **Zabbix 6.0** er slået til. Giv dens bruger en rolle med intet ud over handlingerne ovenfor, og slet tokenet i **Users → API tokens**, hvis det slipper ud.
 - **Send kun det, der kræver en hændelse.** Brug handlingens betingelser, eller alvorlighederne i brugerens medie, til at holde problemer med lav alvorlighed i Zabbix.
-- **Selvhostet?** Lad din Zabbix-server nå din OneUptime via HTTPS gennem din firewall. For at kalde et Zabbix på et privat netværk skal workflowet have [udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
+- **Selvhostet?** Lad din Zabbix-server nå din OneUptime via HTTPS gennem din firewall. For at kalde et Zabbix på et privat netværk skal arbejdsgangen have [udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 
 ## Næste trin
 
 :::cards
-- [Workflow-skabeloner](/docs/workflows/authoring): Opret et workflow fra en skabelon, og ændr det i Bygger.
+- [Arbejdsgangsskabeloner](/docs/workflows/authoring): Opret en arbejdsgang fra en skabelon, og ændr den i Bygger.
 - [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor): Alle indstillinger for den monitor, der modtager Zabbix-problemer.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem, hvem en vagtpolitik kalder op, og hvornår.
 - [Oversigt over integrationer](/docs/integrations/index): De andre værktøjer, du kan forbinde.

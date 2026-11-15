@@ -32,7 +32,7 @@ flowchart TB
 
 - **No OneUptime Cloud, o plano Enterprise.** Nos outros planos, as páginas do registro de auditoria mostram o que o recurso faz e como obtê-lo.
 - **Quando você hospeda o OneUptime, a Enterprise Edition**, com uma licença que inclua os registros de auditoria. Veja [Edição Enterprise](/docs/self-hosted/enterprise).
-- **Uma função que pode ler o registro de auditoria.** Project Owner, Project Admin, Settings Admin ou a permissão **Read Audit Log**. Ativar o registro de auditoria e mudar as configurações dele exige um Project Owner, um Project Admin ou a permissão para editar o projeto.
+- **Uma função que pode ler o registro de auditoria.** Proprietário do projeto, Administrador do projeto, Administrador de configurações ou a permissão **Read Audit Log**. Ativar o registro de auditoria e mudar as configurações dele exige um Proprietário do projeto, um Administrador do projeto ou a permissão para editar o projeto.
 
 ## Ativar o registro de auditoria
 
@@ -120,7 +120,7 @@ Cada vez que um membro do projeto faz login no OneUptime, o registro de auditori
 
 O **Recurso** de uma entrada é a sessão, com o nome do dispositivo em que o login foi feito, como `Chrome 130 on macOS`. O **Ator** é a pessoa dona da sessão, então filtrar por **E-mail do Usuário** encontra todos os logins e sessões dela. Os detalhes da entrada dizem como a pessoa fez login e com qual segundo fator, o endereço IP e o local, e, para uma sessão que terminou, quando o login foi feito, quando ela foi usada pela última vez e quando expirou. O provedor de SSO próprio de um projeto só aparece no registro de auditoria desse projeto.
 
-Os logins e as sessões são registrados quer o projeto armazene eventos do sistema ou não. Uma sessão encerrada pela duração da sessão ou por 30 dias sem uso é registrada poucos minutos depois de o tempo se esgotar. Uma sessão encerrada pelo tempo de inatividade no navegador é registrada até 35 minutos depois de o tempo se esgotar, volte a pessoa ou não. No aplicativo móvel, ela é registrada quando o aplicativo volta a acessar o OneUptime.
+Os logins e as sessões são registrados quer o projeto armazene eventos do sistema ou não. Uma sessão encerrada pela duração da sessão ou por 30 dias sem uso é registrada poucos minutos depois de o tempo se esgotar. Uma sessão encerrada pelo tempo de inatividade no navegador, ou em uma versão do aplicativo móvel mais nova que a 1.6.0, é registrada até 35 minutos depois de o tempo se esgotar, volte a pessoa ou não. Na versão 1.6.0 e anteriores do aplicativo móvel, ela é registrada quando o aplicativo volta a acessar o OneUptime.
 
 ## Por quanto tempo as entradas ficam
 

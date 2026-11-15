@@ -357,19 +357,19 @@ describe("Last Seen, in the reader's language", () => {
 describe("CPU / Memory, in the reader's language", () => {
   test("memory: in English as toFixed wrote it, in German and Persian their way", () => {
     expect(formatHostListBytes(32 * GIB, dashboardTranslator("en"))).toBe(
-      "32.0 GB",
+      "32.0\u00A0GB",
     );
     expect(
       formatHostListBytes(512 * 1024 ** 2, dashboardTranslator("en")),
-    ).toBe("512 MB");
+    ).toBe("512\u00A0MB");
     expect(formatHostListBytes(32 * GIB, dashboardTranslator("de"))).toBe(
-      "32,0 GB",
+      "32,0\u00A0GB",
     );
     expect(formatHostListBytes(32 * GIB, dashboardTranslator("fa"))).toBe(
-      "۳۲٫۰ GB",
+      "۳۲٫۰\u00A0GB",
     );
     expect(formatHostListBytes(32 * GIB, dashboardTranslator("ar"))).toBe(
-      "32.0 GB",
+      "32.0\u00A0GB",
     );
   });
 
@@ -377,7 +377,7 @@ describe("CPU / Memory, in the reader's language", () => {
     const english: Translator = dashboardTranslator("en");
 
     for (const bytes of [1, 5, 9, 42, 512, 999]) {
-      expect(formatHostListBytes(bytes, english)).toBe(`${bytes} B`);
+      expect(formatHostListBytes(bytes, english)).toBe(`${bytes}\u00A0B`);
     }
 
     expect(formatHostListBytes(0, english)).toBe(NO_HOST_FIGURE);
@@ -388,12 +388,12 @@ describe("CPU / Memory, in the reader's language", () => {
   test("in English, word for word as it always read", () => {
     const english: Translator = dashboardTranslator("en");
 
-    expect(formatHostCpuMemory(8, 32 * GIB, english)).toBe("8c / 32.0 GB");
+    expect(formatHostCpuMemory(8, 32 * GIB, english)).toBe("8c / 32.0\u00A0GB");
     expect(formatHostCpuMemory(1, 512 * 1024 ** 2, english)).toBe(
-      "1c / 512 MB",
+      "1c / 512\u00A0MB",
     );
     expect(formatHostCpuMemory(undefined, 64 * GIB, english)).toBe(
-      "— / 64.0 GB",
+      "— / 64.0\u00A0GB",
     );
     expect(formatHostCpuMemory(16, 0, english)).toBe("16c / —");
     expect(formatHostCpuMemory(0, 0, english)).toBe("—");
@@ -403,19 +403,19 @@ describe("CPU / Memory, in the reader's language", () => {
   test("in German: the cores in their plural form, the memory in German figures", () => {
     const de: Translator = dashboardTranslator("de");
 
-    expect(formatHostCpuMemory(8, 32 * GIB, de)).toBe("8 Kerne / 32,0 GB");
-    expect(formatHostCpuMemory(1, 32 * GIB, de)).toBe("1 Kern / 32,0 GB");
+    expect(formatHostCpuMemory(8, 32 * GIB, de)).toBe("8 Kerne / 32,0\u00A0GB");
+    expect(formatHostCpuMemory(1, 32 * GIB, de)).toBe("1 Kern / 32,0\u00A0GB");
   });
 
   test("in Persian and Arabic", () => {
     expect(formatHostCpuMemory(8, 32 * GIB, dashboardTranslator("fa"))).toBe(
-      "۸ هسته / ۳۲٫۰ GB",
+      "۸ هسته / ۳۲٫۰\u00A0GB",
     );
     expect(formatHostCpuMemory(8, 32 * GIB, dashboardTranslator("ar"))).toBe(
-      "8 من الأنوية / 32.0 GB",
+      "8 من الأنوية / 32.0\u00A0GB",
     );
     expect(formatHostCpuMemory(1, 32 * GIB, dashboardTranslator("ar"))).toBe(
-      "1 نواة / 32.0 GB",
+      "1 نواة / 32.0\u00A0GB",
     );
   });
 
@@ -488,16 +488,16 @@ describe("a container host's tile, and a container's figures", () => {
       formatCpu: (percent: number | null, translator?: Translator) => string,
     ) => {
       expect(formatBytes(1.25 * GIB, dashboardTranslator("en"))).toBe(
-        "1.25 GiB",
+        "1.25\u00A0GiB",
       );
-      expect(formatBytes(1.25 * GIB)).toBe("1.25 GiB");
+      expect(formatBytes(1.25 * GIB)).toBe("1.25\u00A0GiB");
       expect(formatBytes(1.25 * GIB, dashboardTranslator("de"))).toBe(
-        "1,25 GiB",
+        "1,25\u00A0GiB",
       );
       expect(formatBytes(1.25 * GIB, dashboardTranslator("fa"))).toBe(
-        "۱٫۲۵ GiB",
+        "۱٫۲۵\u00A0GiB",
       );
-      expect(formatBytes(512, dashboardTranslator("fa"))).toBe("۵۱۲ B");
+      expect(formatBytes(512, dashboardTranslator("fa"))).toBe("۵۱۲\u00A0B");
       expect(formatCpu(12.5, dashboardTranslator("en"))).toBe("12.5%");
       expect(formatCpu(12.5, dashboardTranslator("de"))).toBe(`12,5${NBSP}%`);
       expect(formatCpu(12.5, dashboardTranslator("fa"))).toBe("۱۲٫۵٪");
@@ -645,10 +645,10 @@ describe("the Host list widget, drawn", () => {
     );
 
     expect(cpuMemoryCell(container, HOST_WITH_CORES).textContent).toBe(
-      "16c / 64.0 GB",
+      "16c / 64.0\u00A0GB",
     );
     expect(cpuMemoryCell(container, HOST_WITHOUT_CORES).textContent).toBe(
-      "— / 64.0 GB",
+      "— / 64.0\u00A0GB",
     );
     expect(lastSeenCell(container, HOST_WITH_CORES).textContent).toBe("5m ago");
     // Its instant, one hover away, as before.
@@ -656,9 +656,9 @@ describe("the Host list widget, drawn", () => {
   });
 
   test.each([
-    ["de", "16 Kerne / 64,0 GB", "vor 5 Min."],
-    ["fa", "۱۶ هسته / ۶۴٫۰ GB", "۵ دقیقه پیش"],
-    ["ar", "16 من الأنوية / 64.0 GB", "قبل 5 دقائق"],
+    ["de", "16 Kerne / 64,0\u00A0GB", "vor 5 Min."],
+    ["fa", "۱۶ هسته / ۶۴٫۰\u00A0GB", "۵ دقیقه پیش"],
+    ["ar", "16 من الأنوية / 64.0\u00A0GB", "قبل 5 دقائق"],
   ])(
     "on a %s board: %s, %s",
     async (language: string, cpuMemory: string, lastSeen: string) => {
@@ -772,7 +772,7 @@ describe("the Host list widget, drawn", () => {
       "vor 5 Min.",
     );
     expect(cpuMemoryCell(container, HOST_WITH_CORES).textContent).toBe(
-      "16 Kerne / 64,0 GB",
+      "16 Kerne / 64,0\u00A0GB",
     );
   });
 });
@@ -859,7 +859,7 @@ describe("the Docker and Podman container lists' CPU and memory cells", () => {
       });
 
       expect(cells).toContain(`12,5${NBSP}%`);
-      expect(cells).toContain("1,25 GiB");
+      expect(cells).toContain("1,25\u00A0GiB");
       expect(cells).not.toContain("12.5%");
     },
   );

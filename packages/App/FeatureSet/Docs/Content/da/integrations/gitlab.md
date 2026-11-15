@@ -1,10 +1,10 @@
 # GitLab
 
-Åbn et [GitLab](https://gitlab.com)-issue for hver OneUptime-hændelse, så opfølgningsarbejdet spores i det projekt, der ejer tjenesten. Et workflow kalder GitLabs [Issues API](https://docs.gitlab.com/api/issues/#new-issue), på GitLab.com eller på dit eget GitLab.
+Åbn et [GitLab](https://gitlab.com)-issue for hver OneUptime-hændelse, så opfølgningsarbejdet spores i det projekt, der ejer tjenesten. En arbejdsgang kalder GitLabs [Issues API](https://docs.gitlab.com/api/issues/#new-issue), på GitLab.com eller på dit eget GitLab.
 
 :::cards
-- [Gem tokenet](#gem-tokenet): Hold GitLabs token ude af dine workflows.
-- [Åbn et issue for hver hændelse](#åbn-et-gitlab-issue-for-hver-hændelse): Ét workflow, to blokke.
+- [Gem tokenet](#gem-tokenet): Hold GitLabs token ude af dine arbejdsgange.
+- [Åbn et issue for hver hændelse](#åbn-et-gitlab-issue-for-hver-hændelse): én arbejdsgang, to blokke.
 - [Tips](#tips): Dit eget GitLab, projektstier og tildelte.
 - [Fejlfinding](#fejlfinding): Når GitLab afviser en anmodning.
 :::
@@ -14,19 +14,19 @@
 
 ## Sådan fungerer det
 
-```mermaid title="Ét workflow, ét GitLab-issue"
+```mermaid title="én arbejdsgang, ét GitLab-issue"
 flowchart TB
-    declared["Hændelse erklæret"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Hændelse erklæret"] --> workflow["Arbejdsgang:<br/>On Create Incident"]
     workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
-Workflowet kører én gang for hver ny hændelse. Dets blok **API Post (JSON)** sender hændelsens titel og beskrivelse til projektets issues, signeret med et adgangstoken.
+Arbejdsgangen kører én gang for hver ny hændelse. Dens blok **API Post (JSON)** sender hændelsens titel og beskrivelse til projektets issues, signeret med et adgangstoken.
 
 ## Før du går i gang
 
 - GitLab-projektets ID. Vælg handlingsmenuen, de lodrette prikker, på projektets oversigtsside, og derefter **Copy project ID**.
 - Et GitLab-adgangstoken med omfanget `api`, til en bruger eller bot, hvis rolle i projektet kan oprette issues: et projekt-, gruppe- eller personligt adgangstoken. Opret det under **Settings → Access tokens** i projektet, gruppen eller dine brugerindstillinger.
-- I OneUptime rettigheden til at oprette workflows og globale variabler. På OneUptime Cloud kræver workflows **Growth**-abonnementet eller højere.
+- I OneUptime rettigheden til at oprette arbejdsgange og globale variabler. På OneUptime Cloud kræver arbejdsgange **Growth**-abonnementet eller højere.
 
 ## Gem tokenet
 
@@ -41,9 +41,9 @@ En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så tokenet aldr
 ## Åbn et GitLab-issue for hver hændelse
 
 :::steps
-### Opret workflowet
+### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to GitLab`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv den navnet `Incidents to GitLab`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj triggeren
 
@@ -106,8 +106,8 @@ GitLab kan ikke læse body'en: `title` mangler, eller et felt har den forkerte t
 ## Næste trin
 
 :::cards
-- [GitHub](/docs/integrations/github): Det samme workflow til GitHub, og GitHub App.
-- [Workflow-komponenter](/docs/workflows/components#api): Alle indstillinger for API-blokkene.
-- [Workflow-kørsler](/docs/workflows/runs-and-logs): Læs, hvad hver anmodning sendte og fik tilbage.
+- [GitHub](/docs/integrations/github): Den samme arbejdsgang til GitHub, og GitHub App.
+- [Arbejdsgangskomponenter](/docs/workflows/components#api): Alle indstillinger for API-blokkene.
+- [Arbejdsgangskørsler](/docs/workflows/runs-and-logs): Læs, hvad hver anmodning sendte og fik tilbage.
 - [Oversigt over integrationer](/docs/integrations/index): Mønstrene bag hver integration.
 :::

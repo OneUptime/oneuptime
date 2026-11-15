@@ -1,6 +1,6 @@
 # Herramientas de IA de la empresa
 
-Mira lo que tu gente pregunta a las herramientas de IA que paga tu empresa, como conversaciones por persona. Conecta Claude Enterprise o Microsoft 365 Copilot con una credencial que solo puede leer, y OneUptime trae cada chat nuevo a **Conversaciones** cada 15 minutos. Solo los propietarios y administradores del proyecto pueden leerlas, salvo que decidas otra cosa.
+Mira lo que tu gente pregunta a las herramientas de IA que paga tu empresa, como conversaciones por persona. Conecta Claude Enterprise o Microsoft 365 Copilot con una credencial que solo puede leer, y OneUptime trae cada chat nuevo a **Conversaciones** cada 15 minutos. Solo los Propietarios del proyecto y Administradores del proyecto pueden leerlas, salvo que decidas otra cosa.
 
 :::cards
 - [Avisa primero a tu gente](#avisa-primero-a-tu-gente): Sus chats son sus propias palabras.
@@ -29,7 +29,7 @@ Los chats llegan igual que las llamadas de IA de tus aplicaciones, así que las 
 
 ## Antes de empezar
 
-- El rol Project Owner o Project Admin. Solo ellos pueden conectar, cambiar o quitar una herramienta.
+- El rol Propietario del proyecto o Administrador del proyecto. Solo ellos pueden conectar, cambiar o quitar una herramienta.
 - Alguien que administre la herramienta, para crear la credencial: la sección de cada herramienta, más abajo, dice quién.
 - Tu gente avisada, y la respuesta de tu equipo legal o de RR. HH.
 
@@ -97,7 +97,7 @@ Rellena **ID de directorio (tenant)**, **ID de aplicación (cliente)** y **Secre
 
 | Ajuste | Qué hace |
 | --- | --- |
-| **Quién puede leer las conversaciones** | **Propietarios y administradores del proyecto**, el valor predeterminado: nadie más en el proyecto ve estas conversaciones, ni las llamadas de IA de las que se componen, en ninguna parte de OneUptime. **Todos los que pueden leer llamadas de IA**: todos los que pueden leer las trazas del proyecto. |
+| **Quién puede leer las conversaciones** | **Propietarios del proyecto y Administradores del proyecto**, el valor predeterminado: nadie más en el proyecto ve estas conversaciones, ni las llamadas de IA de las que se componen, en ninguna parte de OneUptime. **Todos los que pueden leer llamadas de IA**: todos los que pueden leer las trazas del proyecto. |
 | **Guardar lo que se escribió** | Activado, el valor predeterminado: se guardan las preguntas y las respuestas. Desactivado: OneUptime guarda quién preguntó, cuándo, con qué modelo y en qué aplicación, pero no las palabras. |
 
 Un cambio de quién puede leer se aplica en menos de un minuto. Desactivar **Guardar lo que se escribió** se aplica a los chats leídos después; lo que se guardó antes se queda hasta que termina su retención.
@@ -139,7 +139,7 @@ Para Copilot, concede el consentimiento de administrador para los permisos de Gr
 :::
 
 :::details Alguien no puede ver las conversaciones
-**Quién puede leer las conversaciones** está en **Propietarios y administradores del proyecto**. Un propietario o administrador puede cambiarlo con **Editar** en la fila de la conexión.
+**Quién puede leer las conversaciones** está en **Propietarios del proyecto y Administradores del proyecto**. Un propietario o administrador puede cambiarlo con **Editar** en la fila de la conexión.
 :::
 
 :::details Las conversaciones muestran quién preguntó, pero no las palabras

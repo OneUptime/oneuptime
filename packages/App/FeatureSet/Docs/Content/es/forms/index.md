@@ -56,7 +56,7 @@ Los formularios empiezan con estos dos, y llegarán más tipos de registro.
 ## Antes de empezar
 
 - **Un plan que incluya formularios.** En OneUptime Cloud, los formularios necesitan el plan **Growth** o superior. Consulta [Plan](#plan).
-- **Permiso para crear formularios.** **Create Form** corresponde a los propietarios y administradores del proyecto, y a los roles a los que se lo des. Consulta [Permisos](#permisos).
+- **Permiso para crear formularios.** **Create Form** corresponde a los Propietarios del proyecto y Administradores del proyecto, y a los roles a los que se lo des. Consulta [Permisos](#permisos).
 - **Para un formulario de incidentes, una severidad.** Cada incidente necesita una: de una pregunta, de los ajustes del formulario o de su plantilla de incidente. Sin ella, se rechaza cada envío. Consulta [Lo que crea un envío](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-un-incidente).
 
 ## Crear tu primer formulario
@@ -127,22 +127,22 @@ Los envíos los escribe el formulario, nunca una persona, y no se pueden editar.
 
 ## Permisos
 
-Los formularios permiten que personas ajenas a tu equipo creen incidentes y eventos de mantenimiento en tu proyecto, así que los gestionan los propietarios y administradores del proyecto, y los roles a los que des los permisos **Form**. Están en el grupo **Form** de la [Referencia de permisos](/docs/permissions/reference):
+Los formularios permiten que personas ajenas a tu equipo creen incidentes y eventos de mantenimiento en tu proyecto, así que los gestionan los Propietarios del proyecto y Administradores del proyecto, y los roles a los que des los permisos **Form**. Están en el grupo **Form** de la [Referencia de permisos](/docs/permissions/reference):
 
 | Permiso | Qué permite | Quién lo tiene por defecto |
 | --- | --- | --- |
-| **Create Form** | Crear formularios y duplicarlos. | Project Owner, Project Admin |
-| **Edit Form** | Cambiar un formulario: sus preguntas, su marca, sus plantillas, sus ajustes de Al enviar, **Acepta envíos**, su enlace y su **Lista de IP permitidas**. | Project Owner, Project Admin |
-| **Delete Form** | Eliminar un formulario, y con él sus envíos. | Project Owner, Project Admin |
-| **Read Form** | Ver los formularios, sus preguntas, sus ajustes y sus enlaces. | Los anteriores, más Project Member, Viewer y los roles de incidentes y de mantenimiento programado |
-| **Read Form Submission** | Ver los envíos y sus respuestas. | Project Owner, Project Admin |
-| **Delete Form Submission** | Eliminar envíos. | Project Owner, Project Admin |
-| **Create Form Domain** | Añadir un [dominio personalizado](/docs/forms/sharing-and-security#dominios-personalizados) a un formulario. | Project Owner, Project Admin y **Edit Form** |
-| **Edit Form Domain** | Comprobar los dominios personalizados de un formulario, y pedir, volver a emitir o cambiar sus certificados. | Project Owner, Project Admin y **Edit Form** |
-| **Delete Form Domain** | Quitar los dominios personalizados de un formulario. | Project Owner, Project Admin y **Edit Form** |
+| **Create Form** | Crear formularios y duplicarlos. | Propietario del proyecto, Administrador del proyecto |
+| **Edit Form** | Cambiar un formulario: sus preguntas, su marca, sus plantillas, sus ajustes de Al enviar, **Acepta envíos**, su enlace y su **Lista de IP permitidas**. | Propietario del proyecto, Administrador del proyecto |
+| **Delete Form** | Eliminar un formulario, y con él sus envíos. | Propietario del proyecto, Administrador del proyecto |
+| **Read Form** | Ver los formularios, sus preguntas, sus ajustes y sus enlaces. | Los anteriores, más Miembro del proyecto, Visor y los roles de incidentes y de mantenimiento programado |
+| **Read Form Submission** | Ver los envíos y sus respuestas. | Propietario del proyecto, Administrador del proyecto |
+| **Delete Form Submission** | Eliminar envíos. | Propietario del proyecto, Administrador del proyecto |
+| **Create Form Domain** | Añadir un [dominio personalizado](/docs/forms/sharing-and-security#dominios-personalizados) a un formulario. | Propietario del proyecto, Administrador del proyecto y **Edit Form** |
+| **Edit Form Domain** | Comprobar los dominios personalizados de un formulario, y pedir, volver a emitir o cambiar sus certificados. | Propietario del proyecto, Administrador del proyecto y **Edit Form** |
+| **Delete Form Domain** | Quitar los dominios personalizados de un formulario. | Propietario del proyecto, Administrador del proyecto y **Edit Form** |
 | **Read Form Domain** | Ver los dominios personalizados de un formulario, sus registros DNS y en qué punto está cada uno camino de HTTPS. | Cualquiera con **Read Form** |
 
-Los envíos contienen lo que escribieron desconocidos (nombres, direcciones de correo y respuestas que quizá nunca lleguen al registro), así que solo los ven los propietarios y administradores del proyecto, salvo que concedas **Read Form Submission**. Quien puede leer un formulario puede ver y compartir su enlace. Enviar un formulario no necesita ningún permiso. Para ver cómo se combinan los roles y los permisos granulares, consulta [Usuarios, equipos y permisos](/docs/permissions/index).
+Los envíos contienen lo que escribieron desconocidos (nombres, direcciones de correo y respuestas que quizá nunca lleguen al registro), así que solo los ven los Propietarios del proyecto y Administradores del proyecto, salvo que concedas **Read Form Submission**. Quien puede leer un formulario puede ver y compartir su enlace. Enviar un formulario no necesita ningún permiso. Para ver cómo se combinan los roles y los permisos granulares, consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
 ## Plan
 

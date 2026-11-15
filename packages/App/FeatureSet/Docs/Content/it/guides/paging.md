@@ -51,7 +51,7 @@ Digita il tuo numero di cellulare con il prefisso internazionale in **Il tuo num
 
 ![Il passaggio «Chi altro è reperibile?», con «Salva e continua» evidenziato](screen:paging-who-else)
 
-In **Chi altro è reperibile?** sei già in **Chiamati per primi**. Fai clic su **Aggiungi membri del team** per avvisare altre persone insieme a te, poi fai clic su **Salva e continua**. In un progetto che non ha ancora una policy di reperibilità, questo crea `Default on-call policy`, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso. In un progetto che ne ha già una, sceglila in **Policy di reperibilità** e aggiungi invece le persone in **Aggiungi alla prima regola di escalation**. Se qualcuno non è ancora raggiungibile, il passaggio resta aperto su **Una chiamata li raggiunge?**: fai clic su **Invia promemoria di configurazione** per quella persona, poi su **Continua**.
+In **Chi altro è reperibile?** sei già in **Chiamati per primi**. Fai clic su **Aggiungi membri del team** per avvisare altre persone insieme a te, poi fai clic su **Salva e continua**. In un progetto che non ha ancora una policy di reperibilità, questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso. In un progetto che ne ha già una, sceglila in **Policy di reperibilità** e aggiungi invece le persone in **Aggiungi alla prima regola di escalation**. Se qualcuno non è ancora raggiungibile, il passaggio resta aperto su **Una chiamata li raggiunge?**: fai clic su **Invia promemoria di configurazione** per quella persona, poi su **Continua**.
 
 ### Decidere cosa succede se nessuno risponde
 
@@ -83,7 +83,7 @@ Se la policy avvisa qualcun altro, puoi guardare anche l'escalation: fai clic su
 ## Cosa può andare storto
 
 :::details Non c'è il pulsante Inviami un codice via SMS
-Gli SMS sono disattivati, o non si possono inviare, e il passaggio dice perché. Solo un proprietario del progetto, o chi gestisce la fatturazione, vede **Attiva SMS e chiamate**. Su OneUptime Cloud, un credito di 1.00 USD o meno nasconde il campo. Su un server self-hosted che non può inviare SMS, il suo amministratore principale vede **Configura SMS e chiamate**, che apre l'Admin Dashboard per aggiungere Twilio, come mostra [Integrazione Twilio](/docs/self-hosted/twilio-integration).
+Gli SMS sono disattivati, o non si possono inviare, e il passaggio dice perché. Solo un Proprietario del progetto, o chi gestisce la fatturazione, vede **Attiva SMS e chiamate**. Su OneUptime Cloud, un credito di 1.00 USD o meno nasconde il campo. Su un server self-hosted che non può inviare SMS, il suo amministratore principale vede **Configura SMS e chiamate**, che apre l'Admin Dashboard per aggiungere Twilio, come mostra [Integrazione Twilio](/docs/self-hosted/twilio-integration).
 :::
 
 :::details Aggiungi credito dice che non è stato trovato alcun metodo di pagamento

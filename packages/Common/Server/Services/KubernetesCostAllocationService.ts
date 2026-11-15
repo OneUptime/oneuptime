@@ -39,7 +39,7 @@ export class KubernetesCostAllocationService extends AnalyticsDatabaseService<Ku
         primaryEntityType: ServiceType.KubernetesCluster,
       });
 
-    return OneUptimeDate.addRemoveDays(
+    return OneUptimeDate.addRemoveDurationInDays(
       allocation.windowStart,
       retention.dataRententionInDays,
     );

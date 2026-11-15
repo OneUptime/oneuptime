@@ -179,7 +179,7 @@ L'interruttore è attivo per i repository collegati da ora in poi, tramite la Gi
 
 ## Verifica prima della pull request
 
-Un repository dice come si compila e si testa in un `AGENTS.md` nella sua radice, il file che leggono gli agenti di codice. Prima di cambiare qualsiasi cosa, l'agente di codice legge l'`AGENTS.md` del repository (o il suo `CLAUDE.md`, quando non ha un `AGENTS.md`) dal branch da cui parte l'attività, e lavora come dice. Senza nessuno dei due, impara come fare dal `CONTRIBUTING.md` del repository, dal README, dagli script del pacchetto, dal `Makefile` o dai workflow di CI. Non c'è nulla da configurare in OneUptime.
+Un repository dice come si compila e si testa in un `AGENTS.md` nella sua radice, il file che leggono gli agenti di codice. Prima di cambiare qualsiasi cosa, l'agente di codice legge l'`AGENTS.md` del repository (o il suo `CLAUDE.md`, quando non ha un `AGENTS.md`) dal branch da cui parte l'attività, e lavora come dice. Senza nessuno dei due, impara come fare dal `CONTRIBUTING.md` del repository, dal README, dagli script del pacchetto, dal `Makefile` o dai flussi di lavoro di CI. Non c'è nulla da configurare in OneUptime.
 
 | Dove lavora l'IA | Cosa fa con la build e i test del repository |
 | --- | --- |
@@ -283,7 +283,7 @@ Per eseguire un Runner altrove, ad esempio su una macchina vicina ai tuoi reposi
 :::steps
 ### Crea il Runner
 
-Crea un Runner in **Runbook → Agenti di runbook** e fai clic su **Mostra istruzioni di configurazione** nella sua riga. Il comando contiene la chiave segreta del Runner, che solo un Project Owner, Project Admin o Runbook Admin può leggere. Ha questo aspetto:
+Crea un Runner in **Runbook → Agenti di runbook** e fai clic su **Mostra istruzioni di configurazione** nella sua riga. Il comando contiene la chiave segreta del Runner, che solo un Proprietario del progetto, Amministratore del progetto o Amministratore dei runbook può leggere. Ha questo aspetto:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

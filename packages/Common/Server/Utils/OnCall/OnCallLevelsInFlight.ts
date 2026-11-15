@@ -1,6 +1,10 @@
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../Logger";
+import {
+  NotificationSchedule,
+  OnCallPageStart,
+} from "../Telemetry/NotificationDeliveryMetrics";
 
 /*
  * AN ESCALATION LEVEL WHILE IT PAGES ITS PEOPLE (issue #8406).
@@ -28,8 +32,20 @@ import logger from "../Logger";
  * a level that stops then is lost as it always was.
  */
 
+/*
+ * A page again's start, kept before its rule is recorded (issue #8514):
+ * where it starts, who acknowledged, and its timeout's minutes, for its
+ * status message - what the policy-run worker needs to start it when its
+ * start failed or stopped (startHandedOverPageAgain).
+ */
+export interface OnCallPageAgainInFlight {
+  startAtRuleId: string | null;
+  acknowledgedByUserId: string | null;
+  minutes: number;
+}
+
 export interface OnCallLevelInFlight {
-  // The level's escalation rule.
+  // The level's escalation rule: none (empty) for a page again's start that names none.
   ruleId: string;
   // When it started paging: whoever this run paged for the rule since is paged.
   startedAt: Date;
@@ -37,6 +53,22 @@ export interface OnCallLevelInFlight {
   heartbeatAt: Date;
   // Its paging failed part way: it is resumed at the run's next try.
   stopped: boolean;
+  /*
+   * People it pages before its own: a page again's acknowledger
+   * (OnCallAcknowledgementTimeout, alsoPageUserIds). A resume pages them
+   * first too (issue #8471).
+   */
+  firstUserIds?: Array<string> | undefined;
+  /*
+   * How its pages were timed as it started (issue #8471): a scheduled send
+   * due when the wait before it ran out (OnCallSendLag), or a page's start
+   * (OnCallPageTiming). A resume is timed the same way, so a page it sends
+   * late shows as late.
+   */
+  scheduledSend?: { dueAt: Date; schedule: NotificationSchedule } | undefined;
+  pageStart?: { startedAt: Date; start: OnCallPageStart } | undefined;
+  // A page again's start, before its rule is recorded (issue #8514).
+  pageAgain?: OnCallPageAgainInFlight | undefined;
 }
 
 // A level kept in Redis: its moments in milliseconds since the epoch.
@@ -45,6 +77,14 @@ type KeptLevel = {
   startedAt: number;
   heartbeatAt: number;
   stopped: boolean;
+  firstUserIds?: Array<string>;
+  scheduledSend?: { dueAt: number; schedule: string };
+  pageStart?: { startedAt: number; start: string };
+  pageAgain?: {
+    startAtRuleId: string | null;
+    acknowledgedByUserId: string | null;
+    minutes: number;
+  };
 };
 
 export class OnCallLevels {
@@ -157,6 +197,26 @@ export class OnCallLevels {
       startedAt: level.startedAt.getTime(),
       heartbeatAt: level.heartbeatAt.getTime(),
       stopped: level.stopped,
+      ...(level.firstUserIds && level.firstUserIds.length > 0
+        ? { firstUserIds: level.firstUserIds }
+        : {}),
+      ...(level.scheduledSend
+        ? {
+            scheduledSend: {
+              dueAt: level.scheduledSend.dueAt.getTime(),
+              schedule: level.scheduledSend.schedule,
+            },
+          }
+        : {}),
+      ...(level.pageStart
+        ? {
+            pageStart: {
+              startedAt: level.pageStart.startedAt.getTime(),
+              start: level.pageStart.start,
+            },
+          }
+        : {}),
+      ...(level.pageAgain ? { pageAgain: level.pageAgain } : {}),
     };
 
     return JSON.stringify(kept);
@@ -177,10 +237,65 @@ export class OnCallLevels {
         !kept ||
         typeof kept !== "object" ||
         typeof kept.ruleId !== "string" ||
-        !kept.ruleId ||
+        // Only a page again's start may name no rule.
+        (!kept.ruleId && !kept.pageAgain) ||
         !this.isMoment(kept.startedAt) ||
         !this.isMoment(kept.heartbeatAt)
       ) {
+        return null;
+      }
+
+      const firstUserIds: Array<string> = Array.isArray(kept.firstUserIds)
+        ? kept.firstUserIds.filter((userId: unknown): userId is string => {
+            return typeof userId === "string" && userId.length > 0;
+          })
+        : [];
+
+      const schedules: Array<string> = Object.values(NotificationSchedule);
+      const scheduledSend:
+        | { dueAt: Date; schedule: NotificationSchedule }
+        | undefined =
+        kept.scheduledSend &&
+        this.isMoment(kept.scheduledSend.dueAt) &&
+        schedules.includes(kept.scheduledSend.schedule)
+          ? {
+              dueAt: new Date(kept.scheduledSend.dueAt),
+              schedule: kept.scheduledSend.schedule as NotificationSchedule,
+            }
+          : undefined;
+
+      const starts: Array<string> = Object.values(OnCallPageStart);
+      const pageStart: { startedAt: Date; start: OnCallPageStart } | undefined =
+        kept.pageStart &&
+        this.isMoment(kept.pageStart.startedAt) &&
+        starts.includes(kept.pageStart.start)
+          ? {
+              startedAt: new Date(kept.pageStart.startedAt),
+              start: kept.pageStart.start as OnCallPageStart,
+            }
+          : undefined;
+
+      const pageAgain: OnCallPageAgainInFlight | undefined =
+        kept.pageAgain &&
+        typeof kept.pageAgain === "object" &&
+        typeof kept.pageAgain.minutes === "number" &&
+        Number.isFinite(kept.pageAgain.minutes)
+          ? {
+              startAtRuleId:
+                typeof kept.pageAgain.startAtRuleId === "string" &&
+                kept.pageAgain.startAtRuleId
+                  ? kept.pageAgain.startAtRuleId
+                  : null,
+              acknowledgedByUserId:
+                typeof kept.pageAgain.acknowledgedByUserId === "string" &&
+                kept.pageAgain.acknowledgedByUserId
+                  ? kept.pageAgain.acknowledgedByUserId
+                  : null,
+              minutes: kept.pageAgain.minutes,
+            }
+          : undefined;
+
+      if (!kept.ruleId && !pageAgain) {
         return null;
       }
 
@@ -189,6 +304,10 @@ export class OnCallLevels {
         startedAt: new Date(kept.startedAt as number),
         heartbeatAt: new Date(kept.heartbeatAt as number),
         stopped: kept.stopped === true,
+        ...(firstUserIds.length > 0 ? { firstUserIds: firstUserIds } : {}),
+        ...(scheduledSend ? { scheduledSend: scheduledSend } : {}),
+        ...(pageStart ? { pageStart: pageStart } : {}),
+        ...(pageAgain ? { pageAgain: pageAgain } : {}),
       };
     } catch {
       return null;

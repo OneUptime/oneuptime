@@ -1,7 +1,8 @@
 import escapeRegExp from "../Utils/RegExpEscape";
+import OldestKeyMap from "../Utils/OldestKeyMap";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import { getWordOfMeaningKey, withMeaningKeyAsItsWord } from "./MeaningKeys";
-import { withNoBreakSpaces } from "./NoBreakSpaces";
+import { withNoBreakSpaces, withNumbersKeptWithUnits } from "./NoBreakSpaces";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -666,14 +667,77 @@ const startsASentence: (template: string, at: number) => boolean = (
 };
 
 /*
+ * WHICH ENDS OF A SENTENCE ARE ONEUPTIME'S OWN WORDS.
+ *
+ * A sentence can hold another as a value (composedValue): a criteria
+ * filter's summary is a comparison around "the average value of ..."
+ * around a check's name. In Chinese and Japanese a space the outer
+ * sentence puts beside such a value is dropped where both sides are their
+ * words (WHERE A TERM MEETS CHINESE OR JAPANESE WORDS), but only where the
+ * inner sentence's letter on that side is OneUptime's own - its words, or
+ * a term - and never a name someone typed: "过去 5 分钟内的磁盘使用率的平均值
+ * 大于 90%" read "... 的平均值 大于 ..." (#8532), while a typed name keeps the
+ * space the template wrote beside it.
+ *
+ * So each sentence filled in a language that writes no space between its
+ * words is remembered, by its text, with whether its first and its last
+ * piece are OneUptime's own words; a composed value with that text closes
+ * up on those sides. A composed value that is not one sentence (a list of
+ * names, facts set side by side) is never remembered, so its spaces stay.
+ * Kept for the most recent sentences only, as DateLanguage keeps the
+ * English of its texts.
+ */
+interface OwnWordsEdges {
+  // The first letter is OneUptime's own words, or a term's.
+  atStart: boolean;
+  // The last letter is.
+  atEnd: boolean;
+}
+
+export const MAX_REMEMBERED_SENTENCE_EDGES: number = 5000;
+
+const sentenceEdges: OldestKeyMap<string, OwnWordsEdges> = new OldestKeyMap<
+  string,
+  OwnWordsEdges
+>();
+
+const rememberSentenceEdges: (text: string, edges: OwnWordsEdges) => void = (
+  text: string,
+  edges: OwnWordsEdges,
+): void => {
+  if (!text || (!edges.atStart && !edges.atEnd)) {
+    return;
+  }
+
+  // The newest last, so the oldest is the first to go.
+  sentenceEdges.delete(text);
+  sentenceEdges.set(text, edges);
+
+  if (sentenceEdges.size > MAX_REMEMBERED_SENTENCE_EDGES) {
+    const oldest: string | undefined = sentenceEdges.oldestKey();
+
+    if (oldest !== undefined) {
+      sentenceEdges.delete(oldest);
+    }
+  }
+};
+
+// For tests: forget every remembered sentence.
+export const forgetRememberedSentenceEdges: () => void = (): void => {
+  sentenceEdges.clear();
+};
+
+/*
  * A value as text where it goes into a sentence: as the middle of one takes
- * it, and as it reads where it starts one (startsASentence); and whether it
- * is a term, OneUptime's own words (closeSpacesBesideTerms).
+ * it, and as it reads where it starts one (startsASentence); and whether its
+ * first and last letters are OneUptime's own words - a term's, or those of
+ * a sentence it was composed as (closeSpacesBesideTerms).
  */
 interface SentenceValue {
   text: string;
   atSentenceStart: string;
-  isTerm: boolean;
+  closesAtStart: boolean;
+  closesAtEnd: boolean;
 }
 
 /*
@@ -691,13 +755,19 @@ const toSentenceValue: (
   text: string,
   language: string,
 ): SentenceValue => {
+  const isTerm: boolean = isTranslatableTerm(value);
+  const edges: OwnWordsEdges | undefined = isComposedValue(value)
+    ? sentenceEdges.get(text)
+    : undefined;
+
   return {
     text,
     atSentenceStart:
       isTranslatableTerm(value) && value.inSentence
         ? toLabelTerm(text, language)
         : text,
-    isTerm: isTranslatableTerm(value),
+    closesAtStart: isTerm || Boolean(edges?.atStart),
+    closesAtEnd: isTerm || Boolean(edges?.atEnd),
   };
 };
 
@@ -789,8 +859,13 @@ const countTrailingSpaces: (text: string) => number = (
 interface FilledPiece {
   text: string;
   isValue: boolean;
-  // A value that is a term (SentenceValue's isTerm).
-  isTerm: boolean;
+  /*
+   * A value whose first or last letter is OneUptime's own words - a term,
+   * or a sentence it was composed as (SentenceValue's closesAtStart and
+   * closesAtEnd); its own words always are.
+   */
+  closesAtStart: boolean;
+  closesAtEnd: boolean;
 }
 
 /*
@@ -798,7 +873,9 @@ interface FilledPiece {
  * writes no space between its words, each space its words put between a
  * term and a letter of Chinese or Japanese is dropped where the term's own
  * letter on that side is one too (WHERE A TERM MEETS CHINESE OR JAPANESE
- * WORDS). The words beside any other value keep their spaces.
+ * WORDS), and so is one beside a sentence composed of OneUptime's own
+ * words on that side (WHICH ENDS OF A SENTENCE ARE ONEUPTIME'S OWN WORDS).
+ * The words beside any other value keep their spaces.
  */
 const closeSpacesBesideTerms: (
   pieces: Array<FilledPiece>,
@@ -824,8 +901,8 @@ const closeSpacesBesideTerms: (
     // Spaces and nothing else, between two values: two terms meet.
     if (leading === piece.text.length) {
       const termsMeet: boolean = Boolean(
-        before?.isTerm &&
-          after?.isTerm &&
+        before?.closesAtEnd &&
+          after?.closesAtStart &&
           endsInChineseOrJapanese(before.text) &&
           startsInChineseOrJapanese(after.text),
       );
@@ -837,7 +914,7 @@ const closeSpacesBesideTerms: (
 
     if (
       leading > 0 &&
-      before?.isTerm &&
+      before?.closesAtEnd &&
       endsInChineseOrJapanese(before.text) &&
       startsInChineseOrJapanese(text.slice(leading))
     ) {
@@ -849,7 +926,7 @@ const closeSpacesBesideTerms: (
 
     if (
       trailing > 0 &&
-      after?.isTerm &&
+      after?.closesAtStart &&
       startsInChineseOrJapanese(after.text) &&
       endsInChineseOrJapanese(words)
     ) {
@@ -895,13 +972,19 @@ const fillPieces: (
 
     const value: SentenceValue = values[name] as SentenceValue;
 
-    pieces.push({ text: words, isValue: false, isTerm: false });
+    pieces.push({
+      text: words,
+      isValue: false,
+      closesAtStart: false,
+      closesAtEnd: false,
+    });
     pieces.push({
       text: startsASentence(template, start)
         ? value.atSentenceStart
         : value.text,
       isValue: true,
-      isTerm: value.isTerm,
+      closesAtStart: value.closesAtStart,
+      closesAtEnd: value.closesAtEnd,
     });
     words = "";
   }
@@ -909,10 +992,54 @@ const fillPieces: (
   pieces.push({
     text: words + template.slice(at),
     isValue: false,
-    isTerm: false,
+    closesAtStart: false,
+    closesAtEnd: false,
   });
 
   return closeSpacesBesideTerms(pieces, language);
+};
+
+/*
+ * Whether the filled sentence's first and last letters are OneUptime's own
+ * words: its own, or a value's that are (closesAtStart, closesAtEnd).
+ */
+const getOwnWordsEdges: (pieces: Array<FilledPiece>) => OwnWordsEdges = (
+  pieces: Array<FilledPiece>,
+): OwnWordsEdges => {
+  const drawn: Array<FilledPiece> = pieces.filter(
+    (piece: FilledPiece): boolean => {
+      return piece.text.length > 0;
+    },
+  );
+  const first: FilledPiece | undefined = drawn[0];
+  const last: FilledPiece | undefined = drawn[drawn.length - 1];
+
+  return {
+    atStart: Boolean(first && (!first.isValue || first.closesAtStart)),
+    atEnd: Boolean(last && (!last.isValue || last.closesAtEnd)),
+  };
+};
+
+/*
+ * The filled sentence's text, remembered with its ends in a language that
+ * writes no space between its words, so a sentence it goes into as a
+ * composed value closes up beside them.
+ */
+const joinPieces: (pieces: Array<FilledPiece>, language: string) => string = (
+  pieces: Array<FilledPiece>,
+  language: string,
+): string => {
+  const text: string = pieces
+    .map((piece: FilledPiece): string => {
+      return piece.text;
+    })
+    .join("");
+
+  if (LANGUAGES_WITHOUT_WORD_SPACES.includes(getBaseLanguage(language))) {
+    rememberSentenceEdges(text, getOwnWordsEdges(pieces));
+  }
+
+  return text;
 };
 
 /*
@@ -930,11 +1057,7 @@ const fillSentenceValues: (
   values: Record<string, SentenceValue>,
   language: string,
 ): string => {
-  return fillPieces(template, values, language)
-    .map((piece: FilledPiece): string => {
-      return piece.text;
-    })
-    .join("");
+  return joinPieces(fillPieces(template, values, language), language);
 };
 
 // A value as the English sentence shows it.
@@ -1235,6 +1358,17 @@ export const createTranslator: (
     return withNoBreakSpaces(punctuate(wording), english, activeLanguage);
   };
 
+  /*
+   * An English sentence as it sets a line: punctuated, and each number it
+   * writes beside a unit kept with it - "Every 5\u00A0min", "411\u00A0ms"
+   * (#8302). Only a template, OneUptime's own English, is set: an English
+   * text with no wording anywhere (translateText) may be a value, and goes
+   * out as written.
+   */
+  const setEnglish: (english: string) => string = (english: string): string => {
+    return withNumbersKeptWithUnits(punctuate(english), english);
+  };
+
   // The stored wording for `key`, or undefined when nothing has one.
   const find: (key: string) => string | undefined = (
     key: string,
@@ -1375,18 +1509,19 @@ export const createTranslator: (
       /*
        * An English sentence on a Persian page holds Persian digits too (its
        * counts are written the reader's way): its separators are punctuated
-       * the reader's way, its values never.
+       * the reader's way, and its numbers kept with their units, its values
+       * never.
        */
       if (hasWords(english)) {
         return setsValuesApart
           ? fillSettingValuesApart(
-              punctuate(english),
+              setEnglish(english),
               englishTextValues(values),
               LEFT_TO_RIGHT,
               setsSlotsApart,
               DEFAULT_LANGUAGE,
             )
-          : fillTemplate(punctuate(english), englishDateValues(values));
+          : fillTemplate(setEnglish(english), englishDateValues(values));
       }
 
       // No words of its own: the reader's words, as their sentence holds them.

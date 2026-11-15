@@ -34,7 +34,7 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 
 ## Prima di iniziare
 
-- **Un ruolo che può creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che può creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una sonda che raggiunga l'API.** Le sonde predefinite del vostro progetto vengono scelte per ogni nuovo monitor. Se un firewall protegge l'API, consentite gli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses). Un'API su una rete privata ha bisogno di una [sonda personalizzata](/docs/probe/custom-probe) in quella rete, autorizzata a raggiungere indirizzi privati: vedete [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 - **Credenziali come segreti del monitor.** Se l'API richiede una chiave o un token, salvatelo prima come [segreto del monitor](/docs/monitor/monitor-secrets), così il monitor contiene solo un riferimento a esso.
 
@@ -181,7 +181,7 @@ Un nuovo monitor API parte con due criteri, quindi funziona senza cambiare nulla
 - **Offline** — l'API non risponde, o risponde con un codice di stato pari o superiore a `400` (o inferiore a `200`). Il monitor viene segnato **Offline** e viene creato un incidente. L'incidente si risolve da solo quando l'API torna disponibile.
 - **Online** — l'API risponde con qualsiasi codice di stato `2xx` o `3xx`, come `200`, `201`, `202` o `204`. Il monitor viene segnato **Operativo**.
 
-Nell'elenco dei criteri prendono il nome dal monitor: _Check if (name) is offline_ e _Check if (name) is online_.
+Nell'elenco dei criteri prendono il nome dal monitor: «Verifica se _nome del monitor_ è offline» e «Verifica se _nome del monitor_ è online».
 
 Quindi un endpoint che risponde `201 Created` o `204 No Content` conta come attivo. Se per voi solo un codice di stato significa che tutto è a posto, modificate entrambi i criteri nella pagina **Configurazione → Criteri** del monitor: per esempio **Codice di stato della risposta** / **Uguale a** / `200` nel criterio online e **Diverso da** / `200` in quello offline, al posto dei due filtri sul codice di stato che ha ciascuno. Per controllare anche cosa restituisce l'API, aggiungete un filtro **Corpo della Risposta** o **Espressione JavaScript** al criterio offline.
 

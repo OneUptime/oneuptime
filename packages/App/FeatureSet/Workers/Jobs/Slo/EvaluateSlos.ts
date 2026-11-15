@@ -905,7 +905,7 @@ async function measureRequestSlo(data: {
   const windowStart: Date =
     slo.windowType === SloWindowType.CalendarMonth
       ? getComplianceWindow({ slo: slo, now: now }).window.startDate
-      : OneUptimeDate.addRemoveDays(
+      : OneUptimeDate.addRemoveDurationInDays(
           countedUntil,
           -1 * (slo.windowDays || DEFAULT_ROLLING_WINDOW_DAYS),
         );
@@ -4650,7 +4650,7 @@ async function postSloRecordRaisedFeedItem(data: {
           feedInfoInMarkdown:
             mdText`${source.words.feedNoun} **${source.name}** ${isAlert ? "raised a private alert" : "declared a private incident"}.`.toString(),
           moreInformationInMarkdown: FeedMarkdown.bulletList([
-            mdText`**Visibility:** Private - only its owners and project admins can see this ${isAlert ? "alert" : "incident"}.`,
+            mdText`**Visibility:** Private - only its owners and Project Admins can see this ${isAlert ? "alert" : "incident"}.`,
             ...source.getFeedMeasurementLines(variables),
           ]).toString(),
           displayColor: Red500,

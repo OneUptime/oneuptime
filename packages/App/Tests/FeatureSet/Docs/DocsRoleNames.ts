@@ -94,6 +94,22 @@ export const KEPT_IN_ENGLISH: ReadonlyArray<KeptEnglish> = [
     text: "Workflow steps can do only what a Project Admin of this project can do",
     why: "A refused step's reason, which the run log shows as the server writes it (LogComponentError), in English.",
   },
+  {
+    text: "A Project Owner or someone with Manage Billing can raise or remove the limit",
+    why: "The refusal when a project's own AI limit is reached, quoted as the server writes it, in English.",
+  },
+  {
+    text: "A Project Owner or someone with Manage Billing can add AI credits",
+    why: "The refusal when a project's AI credits are used up, quoted as the server writes it, in English.",
+  },
+  {
+    text: "Ask a Project Admin for access to it.",
+    why: "The Slack and Microsoft Teams reply when a private incident is out of reach, quoted as the bot writes it, in English.",
+  },
+  {
+    text: "Ask a Project Admin for access to them.",
+    why: "The Slack and Microsoft Teams reply when no incident state is in reach, quoted as the bot writes it, in English.",
+  },
 ];
 
 /*
@@ -241,39 +257,6 @@ function drawnRolePattern(language: string, role: string): string {
       return escapeRegExp(kept) + (letters.length <= 3 ? "" : WORD_LETTERS);
     })
     .join("[\\s\\u200c]+");
-}
-
-/*
- * The languages whose every page names the built-in roles as drawn in its
- * running text too (#8315). The other translations are rewritten a few
- * languages at a time; until theirs are, their pages still write a role
- * in English in sentences and table cells.
- */
-export const ROLES_DRAWN_ON_EVERY_PAGE: ReadonlyArray<string> = [
-  "da",
-  "de",
-  "ja",
-  "ko",
-  "nl",
-  "no",
-  "sv",
-  "zh-CN",
-  "zh-TW",
-];
-
-/*
- * Whether running text in this language names a role as its pages write
- * it: as drawn (namesRoleAsDrawn) in a language rewritten for #8315, in
- * English in one still waiting.
- */
-export function namesRoleAsWritten(
-  language: string,
-  text: string,
-  role: string,
-): boolean {
-  return language === "en" || !ROLES_DRAWN_ON_EVERY_PAGE.includes(language)
-    ? text.includes(role)
-    : namesRoleAsDrawn(language, text, role);
 }
 
 /*

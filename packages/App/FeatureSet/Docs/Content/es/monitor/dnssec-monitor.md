@@ -41,7 +41,7 @@ Una firma a la que le queda menos de un día ya cuenta como rota, así que se en
 
 ## Antes de empezar
 
-- **Un rol que pueda crear monitores**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, o un rol personalizado con el permiso Create Monitor.
+- **Un rol que pueda crear monitores**: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de monitores o Miembro de monitores, o un rol personalizado con el permiso Create Monitor.
 - **Una zona firmada.** La zona debe estar firmada, y su registro DS publicado en la zona padre a través de su registrador.
 - **DNS saliente desde la sonda** hacia los resolutores que indique y, para la comprobación de coherencia de los servidores de nombres, hacia los servidores de nombres autoritativos de la zona. Las sondas predeterminadas de su proyecto se eligen para cada monitor nuevo.
 
@@ -103,7 +103,7 @@ Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir
 
 Un monitor de DNSSEC nuevo empieza con dos criterios:
 
-- **Cadena rota** — **Cadena DNSSEC válida** es **Falso**. El monitor se marca como **Sin conexión** y se crea un incidente llamado «_monitor name_ DNSSEC chain is broken». El incidente se resuelve solo en cuanto la cadena vuelve a ser válida.
+- **Cadena rota** — **Cadena DNSSEC válida** es **Falso**. El monitor se marca como **Sin conexión** y se crea un incidente llamado «La cadena DNSSEC de _nombre del monitor_ está rota». El incidente se resuelve solo en cuanto la cadena vuelve a ser válida.
 - **Cadena válida** — el monitor se marca como **Operativo**.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Cuando ninguno coincide, el monitor muestra su estado predeterminado: **Operativo**, salvo que elija otro en **Más campos**, debajo de los criterios.

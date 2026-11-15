@@ -541,8 +541,8 @@ const projectMemberProps: (
 };
 
 const NON_ROOT_CALLERS: Array<[string, DatabaseCommonInteractionProps]> = [
-  ["a project owner", projectMemberProps([Permission.ProjectOwner])],
-  ["a project admin", projectMemberProps([Permission.ProjectAdmin])],
+  ["a Project Owner", projectMemberProps([Permission.ProjectOwner])],
+  ["a Project Admin", projectMemberProps([Permission.ProjectAdmin])],
   [
     "a master admin",
     {
@@ -562,7 +562,7 @@ const NON_ROOT_CALLERS: Array<[string, DatabaseCommonInteractionProps]> = [
   ],
   ["a caller with no identity", {}],
   [
-    "a project admin skipping hooks",
+    "a Project Admin skipping hooks",
     {
       ...projectMemberProps([Permission.ProjectAdmin]),
       ignoreHooks: true,
@@ -672,8 +672,8 @@ describe("the AuditLog model grants create to nobody", () => {
    * before AuditLogService is even reached.
    */
   test.each([
-    ["a project owner", Permission.ProjectOwner],
-    ["a project admin", Permission.ProjectAdmin],
+    ["a Project Owner", Permission.ProjectOwner],
+    ["a Project Admin", Permission.ProjectAdmin],
   ])(
     "the analytics create check refuses %s",
     (_caller: string, permission: Permission) => {

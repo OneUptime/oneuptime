@@ -1,17 +1,17 @@
-# Metrikker for varslingslevering
+# Målinger for varslingslevering
 
 OneUptime registrerer hvordan det går med varslene det sender: hvor mange hendelser og varsler som krever dem, om hver melding nådde leverandøren sin, hvor lang tid en vakttilkalling brukte på å gå ut, og om den nådde telefonen. Send OneUptimes egen telemetri til et OneUptime-prosjekt, eller til en hvilken som helst OpenTelemetry-backend, for å sette leveringsmål for menneskene installasjonen din betjener og kontrollere at du holder dem.
 
 :::cards
 - [Slå dem på](#slå-dem-på): To innstillinger, og uten dem registreres ingenting.
-- [Metrikkene](#metrikkene): Sju metrikker, fra utløseren til telefonen.
+- [Målingene](#målingene): Sju målinger, fra utløseren til telefonen.
 - [Slik tas tiden på en tilkalling](#slik-tas-tiden-på-en-tilkalling): Hva tid til sending og sendeforsinkelse regnes fra.
 - [SLO-er å begynne med](#slo-er-å-begynne-med): Fire mål, spørring for spørring.
 :::
 
 ## Slik fungerer det
 
-```mermaid title="Hva hver metrikk måler"
+```mermaid title="Hva hver måling måler"
 flowchart TB
     trigger["Hendelse eller varsel<br/>opprettet<br/>notification.trigger.count"]
     page["En vakttilkalling starter"]
@@ -29,7 +29,7 @@ Hver melding teller i `notification.send.count`, på hver kanal, ikke bare vaktt
 
 ## Slå dem på
 
-Ingenting registreres før OneUptime har en OpenTelemetry-eksportør: uten en koster metrikkene ingenting og lagres ingen steder. Pek den mot et OneUptime-prosjekt, med en Server-[inntaksnøkkel](/docs/telemetry/ingestion-keys) fra det prosjektet, eller mot en hvilken som helst backend som tar imot OTLP over HTTP.
+Ingenting registreres før OneUptime har en OpenTelemetry-eksportør: uten en koster målingene ingenting og lagres ingen steder. Pek den mot et OneUptime-prosjekt, med en Server-[inntaksnøkkel](/docs/telemetry/ingestion-keys) fra det prosjektet, eller mot en hvilken som helst backend som tar imot OTLP over HTTP.
 
 :::tabs
 @tab Kubernetes
@@ -48,11 +48,11 @@ DISABLE_TELEMETRY_FOR_APP=false
 Angi dem i `config.env`, og kjør deretter `npm start`. `DISABLE_TELEMETRY_FOR_APP` er `true` som standard, og da sendes ingenting.
 :::
 
-OneUptime trenger både endepunktet og headerne: uten en header sender det ingenting. Skriv hver header som `name=value`, og skill flere med `;`. En verdi kan inneholde `=`. OneUptime legger selv til `/v1/metrics` på endepunktet, og de samme innstillingene sender også dets egne traces og logger. Hver metrikk dukker opp så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte meldingen.
+OneUptime trenger både endepunktet og headerne: uten en header sender det ingenting. Skriv hver header som `name=value`, og skill flere med `;`. En verdi kan inneholde `=`. OneUptime legger selv til `/v1/metrics` på endepunktet, og de samme innstillingene sender også dets egne traces og logger. Hver måling dukker opp så snart OneUptime registrerer den første gang: `notification.send.count` med den første sendte meldingen.
 
 ### Send deltaer til et OneUptime-prosjekt
 
-OneUptime sender tellere og histogrammer slik OpenTelemetry gjør som standard: hvert punkt inneholder den løpende summen siden den serverprosessen startet. Metrikkutforskeren legger sammen punktene i hvert trinn av et diagram, så den leser antall og persentiler for et tidsrom nøyaktig bare fra deltaer, punkter som inneholder det som har skjedd siden det forrige. Når metrikkene går til et OneUptime-prosjekt, send deltaer:
+OneUptime sender tellere og histogrammer slik OpenTelemetry gjør som standard: hvert punkt inneholder den løpende summen siden den serverprosessen startet. Målingsutforskeren legger sammen punktene i hvert trinn av et diagram, så den leser antall og persentiler for et tidsrom nøyaktig bare fra deltaer, punkter som inneholder det som har skjedd siden det forrige. Når målingene går til et OneUptime-prosjekt, send deltaer:
 
 :::tabs
 @tab Kubernetes
@@ -72,11 +72,11 @@ services:
 Opprett den ved siden av `docker-compose.yml`, eller legg dette til i den du har, og kjør deretter `npm start`.
 :::
 
-Dette gjelder hver metrikk OneUptime sender om seg selv. En backend som selv leser løpende summer, som Prometheus, trenger ingen endring.
+Dette gjelder hver måling OneUptime sender om seg selv. En backend som selv leser løpende summer, som Prometheus, trenger ingen endring.
 
-## Metrikkene
+## Målingene
 
-| Metrikk | Type | Enhet | Hva den svarer på |
+| Måling | Type | Enhet | Hva den svarer på |
 | --- | --- | --- | --- |
 | `notification.trigger.count` | Teller | `1` | Hvor mange poster som krevde varsler |
 | `notification.send.count` | Teller | `1` | Hvordan det gikk med hver melding som ble gitt til en leverandør |
@@ -153,7 +153,7 @@ Statuser kommer bare der leverandøren kan melde dem:
 
 | `notification.page.start` | Tiden regnes fra |
 | --- | --- |
-| `monitor_data_received` | Da OneUptime mottok dataene som utløste monitoren: en innkommende forespørsel, rapporten fra en serveragent, en innkommende e-post, en probes sjekk, en SNMP-trap eller en avspørring av en nettverksenhet. Det inkluderer tiden dataene ventet i køen på å bli vurdert. |
+| `monitor_data_received` | Da OneUptime mottok dataene som utløste monitoren: en innkommende forespørsel, rapporten fra en serveragent, en innkommende e-post, en sonder sjekk, en SNMP-trap eller en avspørring av en nettverksenhet. Det inkluderer tiden dataene ventet i køen på å bli vurdert. |
 | `record_created` | Da hendelsen, varselet eller episoden ble opprettet: av en telemetrimonitor, en regel eller en person, og ved en sjekk for fravær, for eksempel et heartbeat som stoppet. |
 | `page_started` | Da en tilkalling startet senere: en person, en arbeidsflyt eller en regel som nå passer startet den, eller det er en direkte tilkalling. For en tilkalling som vaktregelen dens eller OneUptime AI holdt igjen, da pausen løp ut, eller da den startet hvis det var tidligere. For en ny tilkalling, da tidsavbruddet etter bekreftelse løp ut. Slik vises en worker som kom for sent til en av dem, i tiden. |
 
@@ -168,7 +168,7 @@ For en innkommende forespørsel løper tiden fra den siste forespørselen endepu
 | `rule_wait` | En persons vaktregel som venter, for eksempel "ring meg etter 10 minutter": så lenge etter at personen ble tilkalt. Aldri før workeren sist gikk gjennom reglene deres, så en regel som legges til eller endres senere, forfaller fra da. |
 | `repeat` | En push som gjentas til noen bekrefter: hver gang intervallet løper ut. |
 | `escalation` | Et senere eskaleringsnivå: når nivået før har fullført ventetiden sin, eller med en gang når en person gir tilkallingen videre. |
-| `policy_repeat` | Retningslinjen som starter på nytt fra første nivå: når ventetiden på det siste nivået har løpt ut. |
+| `policy_repeat` | Policyen som starter på nytt fra første nivå: når ventetiden på det siste nivået har løpt ut. |
 
 Den bærer også `notification.channel`, `notification.trigger.type` og, for egendefinerte kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. Et varsel som forfaller når tilkallingen starter, er aldri med i den, heller ikke når en worker startet tilkallingen for sent, etter en pause eller som en ny tilkalling: det er i tid til sending.
 
@@ -187,16 +187,16 @@ En persentil beregnes fra bucketene og tegnes som midten av bucketen den faller 
 
 ## SLO-er å begynne med
 
-Fire mål de fleste installasjoner kan love, hvert bygd av én eller to spørringer i metrikkutforskeren i prosjektet som mottar metrikkene. De leser et tidsrom nøyaktig når metrikkene kommer som deltaer: se [Send deltaer til et OneUptime-prosjekt](#send-deltaer-til-et-oneuptime-prosjekt).
+Fire mål de fleste installasjoner kan love, hvert bygd av én eller to spørringer i målingsutforskeren i prosjektet som mottar målingene. De leser et tidsrom nøyaktig når målingene kommer som deltaer: se [Send deltaer til et OneUptime-prosjekt](#send-deltaer-til-et-oneuptime-prosjekt).
 
-### Bygg ett i metrikkutforskeren
+### Bygg ett i målingsutforskeren
 
 :::steps
-1. Åpne prosjektets [Metrikkutforsker](/docs/telemetry/metrics-explorer), og klikk på målets første metrikk. Spørringen dens er `a`.
+1. Åpne prosjektets [Målingsutforsker](/docs/telemetry/metrics-explorer), og klikk på målets første måling. Spørringen dens er `a`.
 2. Velg aggregeringen dens under **Aggregate by**. Åpne deretter **Filters & grouping**, og legg til hver av betingelsene dens under **Filter by attributes**.
 3. For en ny spørring klikker du **Legg til måling** og setter opp `b` på samme måte.
 4. For en formel klikker du **Legg til formel** og skriver den i **Formel**.
-5. For å få beskjed når målet ikke nås, klikker du **Handlinger → Opprett monitor fra denne visningen** og varsler når verdien går forbi målet: se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
+5. For å få beskjed når målet ikke nås, klikker du **Handlinger → Opprett monitor fra denne visningen** og varsler når verdien går forbi målet: se [Målingsovervåking](/docs/monitor/metrics-monitor).
 :::
 
 For å følge et mål over 30 dager med et feilbudsjett, knytt den monitoren til en [SLO](/docs/slo/introduction): den teller tiden målet ikke ble nådd.
@@ -205,7 +205,7 @@ For å følge et mål over 30 dager med et feilbudsjett, knytt den monitoren til
 
 Høyst 1 % av vakt-SMS-ene som sendes gjennom installasjonens egen Twilio-konto, feiler, så 99 % blir tatt imot.
 
-| Spørring | Metrikk | Aggregering | Betingelser |
+| Spørring | Måling | Aggregering | Betingelser |
 | --- | --- | --- | --- |
 | `a` | `notification.send.count` | **Sum** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global`, `outcome != not_sent` |
 | `b` | `notification.send.count` | **Sum** | De samme, med `outcome = failure` |
@@ -216,7 +216,7 @@ Formelen `$b / $a * 100` er andelen som feilet, og målet holder så lenge den h
 
 95 % av vakttilkallingene når leverandøren sin innen 30 sekunder etter utløseren.
 
-| Spørring | Metrikk | Aggregering | Betingelser |
+| Spørring | Måling | Aggregering | Betingelser |
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
@@ -226,7 +226,7 @@ Målet holder så lenge `a` holder seg på eller under 30000. Tilkallinger som s
 
 99 % av varslene som sendes etter en ventetid, når leverandøren sin innen 90 sekunder etter forfallstidspunktet.
 
-| Spørring | Metrikk | Aggregering | Betingelser |
+| Spørring | Måling | Aggregering | Betingelser |
 | --- | --- | --- | --- |
 | `a` | `notification.send.lag` | **P99** | — |
 
@@ -236,7 +236,7 @@ Målet holder så lenge `a` holder seg på eller under 90000. Grupper etter `not
 
 Høyst 5 % av vakt-SMS-ene som Twilio tok imot for installasjonens egen konto, blir ikke levert.
 
-| Spørring | Metrikk | Aggregering | Betingelser |
+| Spørring | Måling | Aggregering | Betingelser |
 | --- | --- | --- | --- |
 | `a` | `notification.delivery.count` | **Sum** | `notification.channel = sms`, `notification.on_call_page = true`, `notification.provider.config = global` |
 | `b` | `notification.delivery.count` | **Sum** | De samme, med `outcome != delivered` |
@@ -245,12 +245,12 @@ Formelen `$b / $a * 100` er andelen som ikke ble levert. Teleoperatører og avsl
 
 ## Feilsøking
 
-:::details Ingen varslingsmetrikker kommer inn
-Kontroller at `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` og `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` begge er angitt, og i Docker Compose at `DISABLE_TELEMETRY_FOR_APP` er `false`, og start deretter OneUptime på nytt. Når OneUptime starter, logger det en advarsel hvis det ikke kan lese en header, eller hvis det ikke sender noe. En metrikk dukker først opp når noe er registrert, så send et varsel først.
+:::details Ingen varslingsmålinger kommer inn
+Kontroller at `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` og `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` begge er angitt, og i Docker Compose at `DISABLE_TELEMETRY_FOR_APP` er `false`, og start deretter OneUptime på nytt. Når OneUptime starter, logger det en advarsel hvis det ikke kan lese en header, eller hvis det ikke sender noe. En måling dukker først opp når noe er registrert, så send et varsel først.
 :::
 
 :::details Et antall bare vokser, eller en persentil rører seg knapt
-Metrikkene kommer som løpende summer. Send deltaer: se [Send deltaer til et OneUptime-prosjekt](#send-deltaer-til-et-oneuptime-prosjekt).
+Målingene kommer som løpende summer. Send deltaer: se [Send deltaer til et OneUptime-prosjekt](#send-deltaer-til-et-oneuptime-prosjekt).
 :::
 
 :::details Ingen endelige statuser kommer inn
@@ -260,8 +260,8 @@ Endelige statuser kommer fra leverandørene, senere, og bare der de kan melde de
 ## Neste steg
 
 :::cards
-- [Metrikkutforsker](/docs/telemetry/metrics-explorer): Vis, kombiner og sammenlign enhver metrikk.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle når et mål ikke nås.
+- [Målingsutforsker](/docs/telemetry/metrics-explorer): Vis, kombiner og sammenlign enhver måling.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle når et mål ikke nås.
 - [Twilio-integrasjon](/docs/self-hosted/twilio-integration): La Twilio melde hva som nådde telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Ventetidene sendeforsinkelsen regnes fra.
 :::

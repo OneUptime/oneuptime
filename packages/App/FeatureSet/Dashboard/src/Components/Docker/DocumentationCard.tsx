@@ -11,6 +11,7 @@ import {
   getDockerSetupGuide,
   resolveDockerInstallMethod,
 } from "../../Pages/Docker/Utils/DocumentationMarkdown";
+import { DOCKER_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Docker/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -43,6 +44,7 @@ const DockerDocumentationCard: FunctionComponent<ComponentProps> = (
           hostName: props.hostName,
         });
       }}
+      translations={DOCKER_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

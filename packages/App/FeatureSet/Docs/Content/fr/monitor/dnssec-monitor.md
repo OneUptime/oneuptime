@@ -41,7 +41,7 @@ Une signature à qui il reste moins d'un jour compte déjà comme rompue, donc v
 
 ## Avant de commencer
 
-- **Un rôle qui peut créer des moniteurs** : Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor.
+- **Un rôle qui peut créer des moniteurs** : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 - **Une zone signée.** La zone doit être signée, et son enregistrement DS publié chez le parent par votre registraire.
 - **Du DNS sortant depuis la sonde** vers les résolveurs que vous indiquez et, pour la vérification de cohérence des serveurs de noms, vers les serveurs de noms faisant autorité de la zone. Les sondes par défaut de votre projet sont choisies pour chaque nouveau moniteur.
 
@@ -103,7 +103,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur DNSSEC commence avec deux critères :
 
-- **Chaîne rompue** — **Chaîne DNSSEC valide** est **Faux**. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ DNSSEC chain is broken » est créé. L'incident se résout de lui-même dès que la chaîne est de nouveau valide.
+- **Chaîne rompue** — **Chaîne DNSSEC valide** est **Faux**. Le moniteur est marqué **Hors ligne** et un incident appelé « La chaîne DNSSEC de _nom du moniteur_ est rompue » est créé. L'incident se résout de lui-même dès que la chaîne est de nouveau valide.
 - **Chaîne valide** — le moniteur est marqué **Opérationnel**.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. Quand aucun ne correspond, le moniteur affiche son état par défaut : **Opérationnel**, sauf si vous en choisissez un autre sous **Plus de champs**, sous les critères.

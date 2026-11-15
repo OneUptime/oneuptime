@@ -1,25 +1,25 @@
 # Docker Swarm-overvåking
 
-En Docker Swarm-monitor overvåker containerne bak tjenesteoppgavene i en Swarm-klynge og sier fra når en oppgave starter på nytt, går varm eller går tom for minne. Den leser containermetrikkene som OneUptimes Docker Swarm-agent sender, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
+En Docker Swarm-monitor overvåker containerne bak tjenesteoppgavene i en Swarm-klynge og sier fra når en oppgave starter på nytt, går varm eller går tom for minne. Den leser containermålingene som OneUptimes Docker Swarm-agent sender, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
 
 Fra versjon 0.161.3 av filene sender agenten også hvert minutt swarmens egen tilstand, så en monitor kan overvåke selve nodene og tjenestene: en node som ikke er klar, eller en tjeneste som kjører færre replikaer enn den vil.
 
 :::cards
 - [Opprett monitoren](#opprett-en-docker-swarm-monitor): Seks trinn i dashbordet.
 - [Maler](#ferdige-varslingsmaler): Sju ferdige varsler, én hendelse per node, tjeneste eller oppgave.
-- [Metrikker](#innsamlede-metrikker): Containermetrikkene du kan varsle på.
+- [Målinger](#innsamlede-målinger): Containermålingene du kan varsle på.
 - [Filtre](#monitorinnstillinger): Snevre inn en monitor til en tjeneste, en oppgave eller et bilde.
 :::
 
 ## Slik fungerer det
 
-OneUptimes Docker Swarm-agent kjører på en managernode. Innsamleren leser containerstatistikk fra nodens Docker-daemon hvert 30. sekund, stempler hver bunke med klyngens navn, `docker.swarm.cluster.name`, og metrikkene til hver oppgave med oppgavens tjeneste og node. En liten inventarpoller ved siden av leser klyngens noder, tjenester og oppgaver fra Swarm-API-et hvert 5. minutt. De første dataene registrerer klyngen i OneUptime.
+OneUptimes Docker Swarm-agent kjører på en managernode. Innsamleren leser containerstatistikk fra nodens Docker-daemon hvert 30. sekund, stempler hver bunke med klyngens navn, `docker.swarm.cluster.name`, og målingene til hver oppgave med oppgavens tjeneste og node. En liten inventarpoller ved siden av leser klyngens noder, tjenester og oppgaver fra Swarm-API-et hvert 5. minutt. De første dataene registrerer klyngen i OneUptime.
 
-Hvert minutt leser polleren også fra manageren om hver node er klar, og hvor mange replikaer hver tjeneste vil ha og kjører, og sender det som metrikker. Slik hører **Node Not Ready** og **Service Replicas Mismatch** om en node eller en tjeneste i trøbbel innen et minutt eller to, ikke fem.
+Hvert minutt leser polleren også fra manageren om hver node er klar, og hvor mange replikaer hver tjeneste vil ha og kjører, og sender det som målinger. Slik hører **Node Not Ready** og **Service Replicas Mismatch** om en node eller en tjeneste i trøbbel innen et minutt eller to, ikke fem.
 
-Innsamleren ser bare containere på noden den kjører på. For å få metrikker fra hver node kjører du innsamleren på hver node med samme `DOCKER_SWARM_CLUSTER_NAME`.
+Innsamleren ser bare containere på noden den kjører på. For å få målinger fra hver node kjører du innsamleren på hver node med samme `DOCKER_SWARM_CLUSTER_NAME`.
 
-En Docker Swarm-monitor er knyttet til én klynge. Hvert minutt kjører den spørringen sin over klyngens containermetrikker og sammenligner resultatet med kriteriene sine.
+En Docker Swarm-monitor er knyttet til én klynge. Hvert minutt kjører den spørringen sin over klyngens containermålinger og sammenligner resultatet med kriteriene sine.
 
 ```mermaid title="Fra en Swarm-klynge til en hendelse"
 flowchart TB
@@ -28,8 +28,8 @@ flowchart TB
         manager["Agent på<br/>en manager"]
         others["Innsamlere på<br/>andre noder"]
     end
-    manager -->|"metrikker<br/>og inventar"| oneuptime["OneUptime"]
-    others -->|"metrikker"| oneuptime
+    manager -->|"målinger<br/>og inventar"| oneuptime["OneUptime"]
+    others -->|"målinger"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registrert"]
     oneuptime --> monitor["Docker<br/>Swarm-monitor"]
     monitor -->|"hvert minutt"| criteria{"Kriterier oppfylt?"}
@@ -61,13 +61,13 @@ Velg klyngen i **Docker Swarm-klynge** under **Docker Swarm Monitor Configuratio
 
 En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikken, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Docker Swarm Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til bestemte oppgaver.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir målingen, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én måling i **Docker Swarm Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til bestemte oppgaver.
 - **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**. Bruk **Grupper etter** `resource.container.name` for å vurdere hver oppgave for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Kriterier** og kontroller **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
+Åpne hvert kriterium under **Kriterier** og kontroller **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at målingen ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -81,13 +81,13 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
-| **Docker Swarm-klynge** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. En oppgaves metrikker har `container.runtime=docker` slik en Docker-verts har, og agenten stempler aldri `host.name`, så monitoren filtrerer på ingen av dem. |
+| **Docker Swarm-klynge** | Alle | Påkrevd. Avgrenser hver spørring til `resource.docker.swarm.cluster.name`. En oppgaves målinger har `container.runtime=docker` slik en Docker-verts har, og agenten stempler aldri `host.name`, så monitoren filtrerer på ingen av dem. |
 | **Tjenestenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.service.name`, tjenesten slik `docker service ls` navngir den, for eksempel `web` (`<stack>_web` i en stack). |
 | **Nodenavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.docker.swarm.node.name`, nodens vertsnavn slik `docker node ls` viser det, for eksempel `swarm-node-1`. Agenten på den noden stempler det fra `DOCKER_SWARM_NODE_NAME`. |
 | **Containernavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.name`. En oppgaves container heter `<service>.<slot>.<taskid>`, for eksempel `web.1.abc123`. |
 | **Container-bilde** | Custom Metric, Avansert | Valgfritt. Samsvarer med `resource.container.image.name` med eller uten digesten Swarm fester til bildet: `nginx:latest` samsvarer også med `nginx:latest@sha256:…`, en digest du skriver inn, utelates, og et navn uten tag betyr `:latest`. |
-| **Docker Swarm Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
+| **Docker Swarm Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
+| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
@@ -123,35 +123,35 @@ Med mindre tabellen sier noe annet, utløses et kriterium bare når betingelsen 
 > [!NOTE]
 > **Node Not Ready** og **Service Replicas Mismatch** leser seriene agentens inventarpoller sender fra en manager, fra versjon 0.161.3 av filene. En eldre agent sender ingen av dem, så begge malene har ingenting å lese og utløses aldri: [oppgrader agenten](/docs/telemetry/docker-swarm#oppgradere-agenten); et tegn ved versjonen i klyngens oversikt viser når den ligger bak. Service Replicas Mismatch venter femten minutter, så en rullerende oppdatering, som bytter ut en tjenestes oppgaver noen få om gangen, ikke varsler noen. En jobbtjeneste kjører oppgavene sine til de er ferdige, har ingen replikaer som kan mangle, og holdes utenfor.
 
-## Innsamlede metrikker
+## Innsamlede målinger
 
-Agentens innsamler bruker OpenTelemetry-mottakeren `docker_stats`, så metrikkene er de vanlige containermetrikkene, én serie per oppgavecontainer. Det finnes ingen metrikker `docker_swarm_*`: noder, tjenester og oppgaver spores som inventar, på klyngens sider **Tjenester**, **Oppgaver**, **Noder** og relaterte sider.
+Agentens innsamler bruker OpenTelemetry-mottakeren `docker_stats`, så målingene er de vanlige containermålingene, én serie per oppgavecontainer. Det finnes ingen målinger `docker_swarm_*`: noder, tjenester og oppgaver spores som inventar, på klyngens sider **Tjenester**, **Oppgaver**, **Noder** og relaterte sider.
 
-Ved siden av dem sender agentens inventarpoller fra versjon 0.161.3 av filene hvert minutt swarmens egen tilstand: de tre metrikkene under [Swarm](#swarm).
+Ved siden av dem sender agentens inventarpoller fra versjon 0.161.3 av filene hvert minutt swarmens egen tilstand: de tre målingene under [Swarm](#swarm).
 
 ### CPU
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `container.cpu.utilization` | % | CPU en oppgaves container brukte i hvert intervall på 30 sekunder, der 100 % er én hel CPU-kjerne. |
 
 ### Minne
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `container.memory.usage.total` | byte | Minne brukt av en oppgaves container. |
 | `container.memory.percent` | % | Brukt minne som prosentandel av containerens grense, eller av nodens totale minne når tjenesten ikke angir noen grense. |
 
 ### Nettverk
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `container.network.io.usage.rx_bytes` | byte | Byte mottatt av en oppgaves container. En teller over hele levetiden. |
 | `container.network.io.usage.tx_bytes` | byte | Byte sendt av en oppgaves container. En teller over hele levetiden. |
 
 ### Container
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `container.pids.count` | antall | Oppgaver i en tasks container: cgroup-pids-kontrolleren teller både tråder og prosesser. En plutselig økning kan bety en fork-bombe eller en trådlekkasje. |
 | `container.uptime` | sekunder | Hvor lenge en oppgaves container har kjørt. En oppgave som planlegges på nytt eller startes på nytt, starter en ny container på 0. |
@@ -160,7 +160,7 @@ Hver serie bærer containerens identitet som ressursattributter: `resource.conta
 
 ### Swarm
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `docker.swarm.node.ready` | — | Om en node er klar, slik managerne ser den: 1 mens den er det, 0 mens den er nede, frakoblet eller ukjent. Én serie per node. |
 | `docker.swarm.service.replicas.desired` | count | Oppgavene en replikert eller global tjeneste vil ha kjørende: replikaene, eller for en global tjeneste nodene den skal kjøre på. Én serie per tjeneste. |
@@ -170,19 +170,19 @@ Serien til en node bærer `resource.docker.swarm.node.name`, `resource.docker.sw
 
 ## Overvåkingskriterier
 
-Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Docker Swarm-monitor har ingen **Filtertype**: hver regel kontrollerer metrikkverdien, med disse feltene.
+Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Docker Swarm-monitor har ingen **Filtertype**: hver regel kontrollerer målingsverdien, med disse feltene.
 
 | Felt | Hva det gjør |
 | --- | --- |
 | **Måling** | Spørringen eller formelen som kontrolleres, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må samsvare, i hele vinduet) eller **Minst én verdi** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
-| **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når målingens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når målingen har en enhet. Vises ikke for avviksbetingelser. |
 | **Følsomhet** | Bare avviksbetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare avviksbetingelser. 14 dager (standard), 28, 60 eller 90 dager med historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
-Avviksbetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i en «Learning»-tilstand og gir ingenting før grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Avviksbetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i en «Learning»-tilstand og gir ingenting før grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 Hvert kriterium sier også hva som skal skje når det samsvarer: endre monitorstatusen, opprette et varsel eller erklære en hendelse. Kriterier kontrolleres ovenfra og ned, og det første som samsvarer, avgjør.
 
@@ -192,11 +192,11 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Samsvarer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitor name_ is offline», som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
+| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Markerer monitoren som **Frakoblet** og erklærer hendelsen «_monitornavn_ er frakoblet», som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 
@@ -204,7 +204,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 Klynger registrerer seg selv fra agentens data. Kontroller at agenten kjører på en managernode, at `DOCKER_SWARM_CLUSTER_NAME` er angitt, og at klyngen står under **Produkter → Infrastruktur → Docker Swarm → Alle klynger**. [Veiledningen for Docker Swarm-agenten](/docs/telemetry/docker-swarm) har kontrollene du kan kjøre på noden.
 :::
 
-:::details Bare noen oppgaver har metrikker
+:::details Bare noen oppgaver har målinger
 Innsamleren leser Docker-daemonen på noden den kjører på, så den ser bare oppgavene på den noden. Kjør innsamleren på hver node med samme `DOCKER_SWARM_CLUSTER_NAME`.
 :::
 

@@ -112,7 +112,7 @@ Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutre
 
 Ein neuer NTP-Monitor beginnt mit zwei Kriterien:
 
-- **Offline** — der Server antwortet nicht, ist nicht synchronisiert, oder seine Uhr weicht `1000` ms oder mehr von der der Sonde ab. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ is not serving good time“ wird erstellt. Er löst sich selbst auf, sobald der Server wieder gute Zeit liefert.
+- **Offline** — der Server antwortet nicht, ist nicht synchronisiert, oder seine Uhr weicht `1000` ms oder mehr von der der Sonde ab. Der Monitor wird als **Offline** markiert und ein Vorfall namens „_Monitorname_ liefert keine korrekte Zeit“ wird erstellt. Er löst sich selbst auf, sobald der Server wieder gute Zeit liefert.
 - **Online** — der Server antwortet, ist synchronisiert und seine Uhr liegt innerhalb von `1000` ms an der der Sonde. Der Monitor wird als **Betriebsbereit** markiert.
 
 Kriterien werden von oben nach unten geprüft, und das erste zutreffende entscheidet. Ein Server, der mit der falschen Zeit antwortet, gilt bewusst als ausgefallen: Jeder Client, der ihm folgt, würde diese Zeit übernehmen.

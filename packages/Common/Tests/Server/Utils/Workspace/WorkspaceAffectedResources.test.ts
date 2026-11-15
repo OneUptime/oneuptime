@@ -541,7 +541,7 @@ describe("one list across the kinds, for a chat that lists them together", () =>
 
 describe("whose kinds a member may read: from their permissions alone", () => {
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
+    ["a Project Owner", [Permission.ProjectOwner]],
     ["a project member", [Permission.ProjectMember]],
     ["a viewer", [Permission.Viewer]],
   ])("%s reads every kind", (_who: string, permissions: Array<Permission>) => {

@@ -6,7 +6,11 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
+import {
+  dashboardTranslator,
+  drawnActionLabel,
+  isActionLabel,
+} from "./DocsDashboardLabels";
 import {
   CARD_LINE,
   anchorProblems,
@@ -23,10 +27,12 @@ import {
   tableShape,
 } from "./DocsTranslationChecks";
 import { pathWithArrows } from "./DocsPageShape";
+import { defaultTitlesAsQuoted, isQuotedIn } from "./DocsDefaultTitles";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -60,7 +66,9 @@ import path from "path";
  *     holds every page to the conditions).
  *
  * The incident and alert titles a new monitor's default criteria create are
- * English in every project, so every translation quotes them as created.
+ * written with the reader's translator, so every translation quotes them in
+ * its Dashboard's words, with the monitor's name as an italic placeholder in
+ * the reader's words (DocsDefaultTitles, #8526): „_Monitorname_ ist offline“.
  *
  * Bold words that are Dashboard labels only by coincidence are PROSE, with
  * why; bold words that are neither labels nor shown in English are the
@@ -86,6 +94,7 @@ const DOMAIN_MONITOR: string = "monitor/domain-monitor";
 const MANUAL_MONITOR: string = "monitor/manual-monitor";
 const JAVASCRIPT_EXPRESSION: string = "monitor/javascript-expression";
 const MONITOR_SECRETS: string = "monitor/monitor-secrets";
+const PROBE_STATUS_MONITOR: string = "monitor/probe-status-monitor";
 
 const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: DNS_MONITOR, navTitle: "DNS Monitor" },
@@ -95,6 +104,7 @@ const PAGES: ReadonlyArray<TranslatedPage> = [
   { page: MANUAL_MONITOR, navTitle: "Manual Monitor" },
   { page: JAVASCRIPT_EXPRESSION, navTitle: "JavaScript Expressions" },
   { page: MONITOR_SECRETS, navTitle: "Monitor Secrets" },
+  { page: PROBE_STATUS_MONITOR, navTitle: "Probe Status Monitor" },
 ];
 
 const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
@@ -107,6 +117,16 @@ const DEFAULT_CRITERIA_TYPES: Record<string, MonitorType> = {
   [DNSSEC_MONITOR]: MonitorType.DNSSEC,
   [SSL_MONITOR]: MonitorType.SSLCertificate,
   [DOMAIN_MONITOR]: MonitorType.Domain,
+};
+
+/*
+ * The monitor types whose default criteria a page names in a table, each
+ * criteria by the name a new monitor gives it (#8307). The Dashboard makes
+ * them with the reader's translator, so a Danish Probe Status monitor starts
+ * with "Tjek, om en sonde er afbrudt": the page names it so.
+ */
+const DEFAULT_CRITERIA_NAMED: Record<string, MonitorType> = {
+  [PROBE_STATUS_MONITOR]: MonitorType.ProbeStatus,
 };
 
 /*
@@ -294,11 +314,14 @@ function stepCount(markdown: string): number {
 }
 
 /*
- * The incident and alert titles a new monitor of this type gets, as the
- * English pages quote them: "_monitor name_ is offline".
+ * The names of the criteria a new monitor of this type starts with, as the
+ * Dashboard writes them with this translator (English without one).
  */
-function defaultTitles(monitorType: MonitorType): Array<string> {
-  const instances: Array<MonitorCriteriaInstance> =
+function defaultCriteriaNames(
+  monitorType: MonitorType,
+  translator?: Translator | undefined,
+): Array<string> {
+  return (
     MonitorCriteria.getDefaultMonitorCriteria({
       monitorType: monitorType,
       monitorName: MONITOR_NAME,
@@ -306,27 +329,23 @@ function defaultTitles(monitorType: MonitorType): Array<string> {
       offlineMonitorStatusId: ObjectID.generate(),
       defaultIncidentSeverityId: ObjectID.generate(),
       defaultAlertSeverityId: ObjectID.generate(),
-      warningAlertSeverityId: ObjectID.generate(),
-    }).data?.monitorCriteriaInstanceArray || [];
+      translator: translator,
+    }).data?.monitorCriteriaInstanceArray || []
+  ).map((instance: MonitorCriteriaInstance): string => {
+    return instance.data?.name || "";
+  });
+}
 
-  const titles: Array<string> = [];
-
-  for (const instance of instances) {
-    const created: Array<{ title: string }> = [
-      ...(instance.data?.createIncidents ? instance.data.incidents : []),
-      ...(instance.data?.createAlerts ? instance.data.alerts : []),
-    ];
-
-    for (const item of created) {
-      const title: string = item.title.replace(MONITOR_NAME, "_monitor name_");
-
-      if (!titles.includes(title)) {
-        titles.push(title);
-      }
-    }
-  }
-
-  return titles;
+// The first cell of each row of a page's tables.
+function firstCells(markdown: string): Array<string> {
+  return prose(markdown)
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.startsWith("| ");
+    })
+    .map((line: string): string => {
+      return (line.split("|")[1] || "").trim();
+    });
 }
 
 describe("the lists this test keeps", () => {
@@ -336,6 +355,7 @@ describe("the lists this test keeps", () => {
       PROSE,
       PROSE_LEADS,
       DEFAULT_CRITERIA_TYPES,
+      DEFAULT_CRITERIA_NAMED,
     ]) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
@@ -426,10 +446,27 @@ describe("the lists this test keeps", () => {
     }
   });
 
+  it("find the default criteria's names in the English table of every page that names them", () => {
+    for (const page of Object.keys(DEFAULT_CRITERIA_NAMED)) {
+      const names: Array<string> = defaultCriteriaNames(
+        DEFAULT_CRITERIA_NAMED[page] as MonitorType,
+      );
+
+      expect(names.length).toBeGreaterThan(1);
+      expect({ page, names }).toEqual({
+        page,
+        names: names.filter((name: string): boolean => {
+          return firstCells(englishPage(page)).includes(name);
+        }),
+      });
+    }
+  });
+
   it("find the incident and alert titles of every page with default criteria", () => {
     for (const page of Object.keys(DEFAULT_CRITERIA_TYPES)) {
-      const titles: Array<string> = defaultTitles(
+      const titles: Array<string> = defaultTitlesAsQuoted(
         DEFAULT_CRITERIA_TYPES[page] as MonitorType,
+        "en",
       );
 
       expect(titles.length).toBeGreaterThan(0);
@@ -438,7 +475,7 @@ describe("the lists this test keeps", () => {
         expect({ page: page, title: title, quoted: true }).toEqual({
           page: page,
           title: title,
-          quoted: englishPage(page).includes(`"${title}"`),
+          quoted: isQuotedIn(englishPage(page), title),
         });
       }
     }
@@ -627,17 +664,50 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("quotes the incident and alert titles exactly as a new monitor creates them", () => {
+    it("names each default criteria as a new monitor in this language is given it", () => {
+      const monitorType: MonitorType | undefined =
+        DEFAULT_CRITERIA_NAMED[entry.page];
+      const cells: Array<string> = firstCells(readPage(language, entry.page));
+      const named: Array<string> = monitorType
+        ? defaultCriteriaNames(monitorType, dashboardTranslator(language))
+        : [];
+
+      expect(
+        named.filter((name: string): boolean => {
+          return !cells.includes(name);
+        }),
+      ).toEqual([]);
+
+      // And none in English, where this language words it otherwise.
+      expect(
+        (monitorType ? defaultCriteriaNames(monitorType) : []).filter(
+          (english: string): boolean => {
+            return !named.includes(english) && cells.includes(english);
+          },
+        ),
+      ).toEqual([]);
+    });
+
+    it("quotes the incident and alert titles as a new monitor in this language creates them", () => {
       const monitorType: MonitorType | undefined =
         DEFAULT_CRITERIA_TYPES[entry.page];
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = (
-        monitorType ? defaultTitles(monitorType) : []
+        monitorType ? defaultTitlesAsQuoted(monitorType, language) : []
       ).filter((title: string): boolean => {
-        return !translated.includes(title);
+        return !isQuotedIn(translated, title);
       });
 
       expect(missing).toEqual([]);
+
+      // And none in English, which this language words otherwise (#8526).
+      expect(
+        (monitorType ? defaultTitlesAsQuoted(monitorType, "en") : []).filter(
+          (english: string): boolean => {
+            return translated.includes(english);
+          },
+        ),
+      ).toEqual([]);
     });
   });
 });
@@ -689,7 +759,7 @@ describe("the helpers, on these pages' shapes", () => {
     // The quoted titles' italic name closes before a space.
     expect(
       await strayMarkers(
-        "# Title\n\n名为“_monitor name_ is offline”的事件。",
+        "# Title\n\n名为“_监视器名称_ 已离线”的事件。",
         "zh-CN",
       ),
     ).toEqual([]);
@@ -731,10 +801,47 @@ describe("the helpers, on these pages' shapes", () => {
     );
   });
 
-  it("quote the titles a new DNS monitor creates", () => {
-    expect(defaultTitles(MonitorType.DNS)).toEqual([
+  it("name a new Probe Status monitor's criteria in the reader's language (#8307)", () => {
+    expect(defaultCriteriaNames(MonitorType.ProbeStatus)).toEqual([
+      "Check if a probe is disconnected",
+      "Check if every probe is connected",
+    ]);
+    expect(
+      defaultCriteriaNames(MonitorType.ProbeStatus, dashboardTranslator("da")),
+    ).toEqual([
+      "Tjek, om en sonde er afbrudt",
+      "Tjek, om alle sonder er forbundet",
+    ]);
+    expect(drawnActionLabel("da", "Disconnected Probes")).toBe(
+      "Afbrudte sonder",
+    );
+    expect(
+      firstCells(
+        "| Criteria | Filter |\n| --- | --- |\n| Tjek, om en sonde er afbrudt | **Afbrudte sonder** |",
+      ),
+    ).toEqual(["Criteria", "---", "Tjek, om en sonde er afbrudt"]);
+  });
+
+  it("quote the titles a new DNS monitor creates, in the reader's words (#8526)", () => {
+    expect(defaultTitlesAsQuoted(MonitorType.DNS, "en")).toEqual([
       "_monitor name_ is offline",
     ]);
+    expect(defaultTitlesAsQuoted(MonitorType.DNS, "de")).toEqual([
+      "_Monitorname_ ist offline",
+    ]);
+    expect(
+      isQuotedIn(
+        "ein Vorfall namens „_Monitorname_ ist offline“ wird erstellt",
+        defaultTitlesAsQuoted(MonitorType.DNS, "de")[0]!,
+      ),
+    ).toBe(true);
+    // The English title the German page quoted before #8526 is not it.
+    expect(
+      isQuotedIn(
+        "ein Vorfall namens „_monitor name_ is offline“ wird erstellt",
+        defaultTitlesAsQuoted(MonitorType.DNS, "de")[0]!,
+      ),
+    ).toBe(false);
   });
 
   it("compare a flowchart by its nodes and arrows, not its words", () => {

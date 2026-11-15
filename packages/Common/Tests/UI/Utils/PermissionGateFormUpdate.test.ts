@@ -166,7 +166,7 @@ describe("PermissionGate.checkFormUpdate", () => {
     ).toEqual({ isAllowed: true });
   });
 
-  test("a project admin may update a project, but not its channels: that card's Edit locks, naming who may", () => {
+  test("a Project Admin may update a project, but not its channels: that card's Edit locks, naming who may", () => {
     permissionsForTest = [Permission.ProjectAdmin];
 
     const result: PermissionGateResult = PermissionGate.checkFormUpdate(

@@ -349,6 +349,7 @@ describe("a policy, read back", () => {
       repeatTimes: 2,
       incidentRuleCount: 1,
       alertRuleCount: 0,
+      isArchived: false,
     });
   });
 
@@ -380,6 +381,73 @@ describe("a policy, read back", () => {
     seedPolicy({ policy: null });
 
     await expect(OnCallSetupApi.loadPolicy(POLICY_ID)).resolves.toBeNull();
+  });
+
+  /*
+   * An archived policy pages no one (#8432): the setup must tell it from
+   * one in service, so the read asks for isArchived, and says it.
+   */
+  describe("archived since (#8432)", () => {
+    test("the read asks whether it is archived", async () => {
+      await OnCallSetupApi.loadPolicy(POLICY_ID);
+
+      const select: Record<string, unknown> = (
+        getItemSpy.mock.calls[0]![0] as unknown as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select).toEqual(expect.objectContaining({ isArchived: true }));
+      expect(select).toEqual(
+        expect.objectContaining({ _id: true, name: true }),
+      );
+    });
+
+    test("an archived policy reads as archived - there, not gone - with what it holds", async () => {
+      seedPolicy({
+        policy: model(OnCallDutyPolicy, {
+          _id: POLICY_ID,
+          name: "Old rota",
+          isArchived: true,
+        }),
+      });
+
+      const policy: OnCallPolicyRecord | null =
+        await OnCallSetupApi.loadPolicy(POLICY_ID);
+
+      expect(policy).not.toBeNull();
+      expect(policy!.isArchived).toBe(true);
+      expect(policy!.name).toBe("Old rota");
+      expect(
+        policy!.levels.map((level: { id: string }) => {
+          return level.id;
+        }),
+      ).toEqual([LEVEL_1, LEVEL_2]);
+    });
+
+    test("in service, it reads as not archived", async () => {
+      seedPolicy({
+        policy: model(OnCallDutyPolicy, {
+          _id: POLICY_ID,
+          name: "Ops",
+          isArchived: false,
+        }),
+      });
+
+      expect((await OnCallSetupApi.loadPolicy(POLICY_ID))!.isArchived).toBe(
+        false,
+      );
+    });
+
+    test("read with no archived flag at all, it is in service, never undefined", async () => {
+      seedPolicy({
+        policy: model(OnCallDutyPolicy, { _id: POLICY_ID, name: "Ops" }),
+      });
+
+      expect((await OnCallSetupApi.loadPolicy(POLICY_ID))!.isArchived).toBe(
+        false,
+      );
+    });
   });
 });
 
@@ -690,7 +758,7 @@ describe("the phone", () => {
       const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
 
       await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow(
-        "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
+        "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
       );
       expect(postSpy).not.toHaveBeenCalled();
     },

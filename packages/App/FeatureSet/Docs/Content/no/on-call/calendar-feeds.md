@@ -20,13 +20,13 @@ flowchart TB
 
 ## Hva du får
 
-- Én hendelse per vakt, med tittelen `On-call · <Schedule>` (med ` · <Policy>` lagt til når vaktplanen er knyttet til nøyaktig én eskaleringsretningslinje) i den personlige feeden din og `<Name> · On-call · <Schedule>` i en delt feed. Beskrivelsen viser hvem som har vakt, vaktplanen og tidssonen dens, laget, vakten i vaktplanens sone, i UTC og i din sone, hvilke eskaleringsretningslinjer som varsler deg gjennom denne vaktplanen, og en lenke til vaktplanen i dashbordet.
+- Én hendelse per vakt, med tittelen `On-call · <Schedule>` (med ` · <Policy>` lagt til når vaktplanen er knyttet til nøyaktig én eskaleringspolicy) i den personlige feeden din og `<Name> · On-call · <Schedule>` i en delt feed. Beskrivelsen viser hvem som har vakt, vaktplanen og tidssonen dens, laget, vakten i vaktplanens sone, i UTC og i din sone, hvilke eskaleringspolicyer som varsler deg gjennom denne vaktplanen, og en lenke til vaktplanen i dashbordet.
 - Overstyringer følges. Når noen dekker for deg, flyttes hendelsen til dem (`(covering for <Name>)` legges til) og forblir den samme hendelsen i kalenderappen din, så den oppdateres på stedet i stedet for å dupliseres. En delvis overstyring deler vakten i hendelser som ligger inntil hverandre.
 - To dager med historikk og 90 dager fremover som standard. Du kan utvide dette til 60 dager bakover og 180 dager fremover; en feed som ville ha over 5 000 hendelser, kortes ned og sier det i kalenderbeskrivelsen.
 - Hendelser er merket som ledig (`TRANSP:TRANSPARENT`), så en abonnert feed blokkerer aldri tilgjengeligheten din, og ingenting er merket som privat, så en delt teamkalender viser titlene til alle som kan se den.
 - Tider sendes i UTC og regnes om av kalenderappen din; beskrivelsen skriver klokkeslettet i vaktplanens sone og i din. Angi din egen tidssone som **Tidssone** på **Profil** (bildet ditt øverst til høyre i dashbordet), og vaktplanens i kortet **Tidsplanens tidssone** på siden **Lag**. En vaktplan uten tidssone regnes ut i serverens sone, slik som ved varsling, og hendelsen sier det.
 
-Faste tildelinger — en bruker eller et team som er nevnt direkte i en regel i en eskaleringsretningslinje — har ingen start eller slutt og vises ikke i noen feed. På OneUptime Cloud følger feeder samme plan som vaktplaner (Growth); et prosjekt under den planen får en tom kalender i stedet for en feil.
+Faste tildelinger — en bruker eller et team som er nevnt direkte i en regel i en eskaleringspolicy — har ingen start eller slutt og vises ikke i noen feed. På OneUptime Cloud følger feeder samme plan som vaktplaner (Growth); et prosjekt under den planen får en tom kalender i stedet for en feil.
 
 ## Tre typer lenker
 
@@ -98,13 +98,13 @@ Resten finner du i menyen **⋯** på kortet. **Generer lenke på nytt** og **Sl
 
 ### Kommende vakter og avløsning
 
-Siden viser også **Kommende vakter** for de neste 30 dagene i din tidssone og kortet **Påminn meg før vakter**, som er beskrevet lenger ned. Vakter som følger rett etter hverandre i samme vaktplan og samme lag, står på én rad, så en måned alene i en daglig rotasjon leses som én periode, og perioden du har vakt i nå, står øverst. Hver av dine egne rader har en lenke **Finn avløser**: den åpner brukeroverstyringer i vaktens prosjekt med en ny overstyring som allerede er fylt ut for den raden, med deg som **Hvem er borte?** og tidene som **Starter** og **Slutter** (fra nå, hvis den har startet; kort dem ned der hvis du bare trenger en del), så det bare gjenstår **Hvem dekker?**. Overstyringen sender alle varslene dine i det tidsrommet til den som dekker, fra alle vaktretningslinjer; en vakt som bare finnes inne i én retningslinje, dekkes i stedet på den retningslinjens side for brukeroverstyringer. Å dekke alle retningslinjer krever tillatelsen for overstyringer over hele prosjektet: er rollen din begrenset til noen retningslinjer, åpner **Finn avløser** i stedet siden for brukeroverstyringer for den av vaktens retningslinjer du kan legge til overstyringer på, eller en meny med dem hvis det er flere, og er bare låst og sier hvorfor der du ikke kan på noen av dem. Lar du **Hvem dekker?** stå som **Neste person i rotasjonen**, hoppes du i stedet over: hver av vaktene dine går til neste person i rotasjonen som ikke er borte. En vakt der du dekker for noen andre, har ingen **Finn avløser**: overstyringer lenkes ikke sammen, så avløsning for en avløsning ville ikke endre noe. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Siden viser også **Kommende vakter** for de neste 30 dagene i din tidssone og kortet **Påminn meg før vakter**, som er beskrevet lenger ned. Vakter som følger rett etter hverandre i samme vaktplan og samme lag, står på én rad, så en måned alene i en daglig rotasjon leses som én periode, og perioden du har vakt i nå, står øverst. Hver av dine egne rader har en lenke **Finn avløser**: den åpner brukeroverstyringer i vaktens prosjekt med en ny overstyring som allerede er fylt ut for den raden, med deg som **Hvem er borte?** og tidene som **Starter** og **Slutter** (fra nå, hvis den har startet; kort dem ned der hvis du bare trenger en del), så det bare gjenstår **Hvem dekker?**. Overstyringen sender alle varslene dine i det tidsrommet til den som dekker, fra alle vaktpolicyer; en vakt som bare finnes inne i én policy, dekkes i stedet på den policyens side for brukeroverstyringer. Å dekke alle policyer krever tillatelsen for overstyringer over hele prosjektet: er rollen din begrenset til noen policyer, åpner **Finn avløser** i stedet siden for brukeroverstyringer for den av vaktens policyer du kan legge til overstyringer på, eller en meny med dem hvis det er flere, og er bare låst og sier hvorfor der du ikke kan på noen av dem. Lar du **Hvem dekker?** stå som **Neste person i rotasjonen**, hoppes du i stedet over: hver av vaktene dine går til neste person i rotasjonen som ikke er borte. En vakt der du dekker for noen andre, har ingen **Finn avløser**: overstyringer lenkes ikke sammen, så avløsning for en avløsning ville ikke endre noe. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
-Den samme personlige lenken, filtrert til én vaktplan med `?schedule=<id>`, tilbys som **Bare mine vakter i denne vaktplanen** på siden til hver vaktplan, og vaktbanneret og siden **Mine vaktretningslinjer** har en lenke **Legg vaktene dine til i kalenderen din** til siden ovenfor.
+Den samme personlige lenken, filtrert til én vaktplan med `?schedule=<id>`, tilbys som **Bare mine vakter i denne vaktplanen** på siden til hver vaktplan, og vaktbanneret og siden **Mine vaktpolicyer** har en lenke **Legg vaktene dine til i kalenderen din** til siden ovenfor.
 
 ### I mobilappen
 
-I mobilappen: **On-Call** > **Add shifts to my calendar** (også under **Settings** > **Calendar feed**), med én lenke per prosjekt. På iPhone åpner **Open in Calendar** det innebygde abonnementsarket. På Android finnes det ingen måte å abonnere på en URL på telefonen, så skjermen tilbyr **Share link** og **Copy https link** og ber deg legge til lenken på en datamaskin, hvoretter den synkroniseres til telefonen. Listen **Your shifts** i appen kommer fra de samme dataene og har den samme handlingen **Get cover**. Når rollen din bare omfatter noen retningslinjer, tilbyr den vaktens retningslinjer du kan legge til overstyringer på, og ordner avløsningen på hver avkrysset retningslinje; der du ikke kan på noen av dem, sier den hvorfor i stedet for å tilby skjemaet.
+I mobilappen: **On-Call** > **Add shifts to my calendar** (også under **Settings** > **Calendar feed**), med én lenke per prosjekt. På iPhone åpner **Open in Calendar** det innebygde abonnementsarket. På Android finnes det ingen måte å abonnere på en URL på telefonen, så skjermen tilbyr **Share link** og **Copy https link** og ber deg legge til lenken på en datamaskin, hvoretter den synkroniseres til telefonen. Listen **Your shifts** i appen kommer fra de samme dataene og har den samme handlingen **Get cover**. Når rollen din bare omfatter noen policyer, tilbyr den vaktens policyer du kan legge til overstyringer på, og ordner avløsningen på hver avkrysset policy; der du ikke kan på noen av dem, sier den hvorfor i stedet for å tilby skjemaet.
 
 ## Abonner i kalenderappen din
 
@@ -165,7 +165,7 @@ Fastmail oppdaterer omtrent hver time og **deaktiverer et abonnement etter fem m
 | Fastmail | Omtrent hver time | Fastmails servere | Deaktiveres etter fem mislykkede hentinger |
 | Proton Calendar | 4–16 timer | Protons servere | Avviser store feeder |
 
-OneUptime selv leverer ferske data: en endring i et lag, en rotasjon, en overstyring eller en tilknytning til en retningslinje gjør feeden ugyldig med en gang, og svar mellomlagres i høyst fem minutter. Ventetiden du ser, er kalenderappens, ikke serverens. OneUptime foreslår oppdatering hver time via `REFRESH-INTERVAL` og `X-PUBLISHED-TTL`; bare klassisk Outlook følger hintet, og bare med **Oppdateringsgrense** på — Apple Kalender, Thunderbird og resten oppdaterer med intervallet du angir per kalender.
+OneUptime selv leverer ferske data: en endring i et lag, en rotasjon, en overstyring eller en tilknytning til en policy gjør feeden ugyldig med en gang, og svar mellomlagres i høyst fem minutter. Ventetiden du ser, er kalenderappens, ikke serverens. OneUptime foreslår oppdatering hver time via `REFRESH-INTERVAL` og `X-PUBLISHED-TTL`; bare klassisk Outlook følger hintet, og bare med **Oppdateringsgrense** på — Apple Kalender, Thunderbird og resten oppdaterer med intervallet du angir per kalender.
 
 ## https- og webcal-lenker
 
@@ -189,12 +189,12 @@ Kalenderapper leverer ikke alarmer fra abonnerte feeder — Google forkaster dem
 3. Velg hvordan påminnelser når deg under **Før vakten min starter** på **Brukerinnstillinger** > **Varselinnstillinger** (fanen Vakt). E-post og push er på som standard.
 :::
 
-Hver påminnelse sendes én gang per vakt. Meldingen nevner vaktplanen, retningslinjene den varsler gjennom, og starttidspunktet i din tidssone.
+Hver påminnelse sendes én gang per vakt. Meldingen nevner vaktplanen, policyene den varsler gjennom, og starttidspunktet i din tidssone.
 
 - En vakt som havner innenfor en av påminnelsestidene dine på grunn av en sen overstyring — noen gir deg en vakt 20 minutter før den starter — får straks én innhentingspåminnelse.
 - Gis en vakt du har fått påminnelse om, til noen andre, får du **Min kommende vakt blir tildelt noen andre**, en egen hendelsestype, så den kan dempes for seg selv.
-- Påminnelser sendes aldri etter at en vakt har startet, og aldri for vaktplaner som ikke er knyttet til noen eskaleringsretningslinje, fordi de ikke kan varsle noen.
-- På WhatsApp kommer en påminnelse via Metas forhåndsgodkjente vaktmal, som nevner vaktplanen og eskaleringsretningslinjen og lenker til vaktplanen, men ikke har med starttidspunktet, og som WhatsApp bare leverer på engelsk. Meldinger om ny tildeling har ingen godkjent WhatsApp-mal, så de når deg gjennom de andre kanalene dine i stedet.
+- Påminnelser sendes aldri etter at en vakt har startet, og aldri for vaktplaner som ikke er knyttet til noen eskaleringspolicy, fordi de ikke kan varsle noen.
+- På WhatsApp kommer en påminnelse via Metas forhåndsgodkjente vaktmal, som nevner vaktplanen og eskaleringspolicyen og lenker til vaktplanen, men ikke har med starttidspunktet, og som WhatsApp bare leverer på engelsk. Meldinger om ny tildeling har ingen godkjent WhatsApp-mal, så de når deg gjennom de andre kanalene dine i stedet.
 
 ## Delte lenker for en vaktplan eller et prosjekt
 
@@ -227,9 +227,9 @@ Når en person forlater sitt siste team i et prosjekt, fjerner OneUptime også p
 
 - Hver vakt har en fast identitet laget av vaktplanen og vaktens start, så den samme vakten er den samme hendelsen i den personlige feeden din, i vaktplanfeeden og etter at du har generert en lenke på nytt. Kalenderapper oppdaterer den på stedet; en endring øker hendelsens sekvensnummer.
 - En overstyring som bytter hele vakten, beholder hendelsen og endrer personen; en overstyring som dekker en del av en vakt, gir tre hendelser som ligger inntil hverandre, for eksempel A 09:00–12:00, B 12:00–13:00, A 13:00–17:00.
-- Når en vaktplan er knyttet til to eller flere eskaleringsretningslinjer og en overstyring bare gjelder for én av dem, er det forskjellige personer som varsles per retningslinje. Feeden viser dette i stedet for å skjule det: vakten beholder hendelsen sin for personen de andre retningslinjene varsler, med en merknad som nevner retningslinjen som varsler noen andre, og avløseren får en ekstra hendelse med tittelen `On-call · <Schedule> · <Policy> (covering for <Name>)`.
+- Når en vaktplan er knyttet til to eller flere eskaleringspolicyer og en overstyring bare gjelder for én av dem, er det forskjellige personer som varsles per policy. Feeden viser dette i stedet for å skjule det: vakten beholder hendelsen sin for personen de andre policyene varsler, med en merknad som nevner policyen som varsler noen andre, og avløseren får en ekstra hendelse med tittelen `On-call · <Schedule> · <Policy> (covering for <Name>)`.
 - Vakter i fortiden har linjen "Past shifts reflect the current rotation, not who was actually paged" i beskrivelsen.
-- En vaktplan som ikke er knyttet til noen eskaleringsretningslinje, vises fortsatt, med en merknad om at den ikke vil varsle noen.
+- En vaktplan som ikke er knyttet til noen eskaleringspolicy, vises fortsatt, med en merknad om at den ikke vil varsle noen.
 
 ## Planlegging, ikke revisjon
 
@@ -237,7 +237,7 @@ Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager:
 
 ## Sikkerhet
 
-- Tokenet i lenken er den eneste påloggingsinformasjonen. Alle som har lenken, ser vaktene — navn, vaktplaner, retningslinjer — til den genereres på nytt. Ikke lim inn lenker i chatterom eller saker; når et team trenger en kalender, deler du vaktplan- eller prosjektlenken i stedet for din personlige.
+- Tokenet i lenken er den eneste påloggingsinformasjonen. Alle som har lenken, ser vaktene — navn, vaktplaner, policyer — til den genereres på nytt. Ikke lim inn lenker i chatterom eller saker; når et team trenger en kalender, deler du vaktplan- eller prosjektlenken i stedet for din personlige.
 - Lenker er per prosjekt. En lekket personlig lenke avslører vaktene i ett prosjekt, ikke i alle prosjektene du er med i.
 - Å generere en lenke på nytt flytter det gamle tokenet inn i en karensperiode på 30 dager (tom kalender, deretter 404). **Deaktiver lenke** leverer en tom kalender. En ukjent eller utløpt lenke gir en ren 404 uten hint. Tomme kalendere får abonnerte apper til å tømme kopien sin; en 404 får dem til å beholde den, og derfor leverer deaktivering og ny generering tomme kalendere.
 - Tokener lagres hashet; kopien som vises på innstillingssiden, er kryptert med `ENCRYPTION_SECRET`. Sett den variabelen til en ekte hemmelighet på en selvdriftet installasjon — serveren advarer ved oppstart når den ikke er satt eller fortsatt er en av plassholderne dette repositoriet leverer (`secret`, eller `please-change-this-to-random-value` som `config.example.env` setter). Endrer du den senere, tilbyr siden **Generer lenke på nytt**, fordi den lagrede kopien ikke lenger kan leses; feeden fortsetter å fungere til du gjør det.
@@ -315,7 +315,7 @@ Lenken er ukjent, er slettet, eller karensperioden er over. Generer en ny og abo
 :::
 
 :::details Lenken svarer 503
-Enten er `DISABLE_ON_CALL_CALENDAR_FEED` satt, eller serveren er opptatt: høyst noen få feeder bygges om gangen, og en vaktplan som tar svært lang tid å regne ut, avbrytes. Finnes det en tidligere kopi av feeden, leverer serveren den i stedet, med en `Warning: 110`-header, så en 503 betyr at det ikke fantes noe å falle tilbake på. Klienter beholder sin siste kopi og prøver igjen etter intervallet i `Retry-After`. Fastmail deaktiverer et abonnement etter fem feil på rad; legg det til igjen når serveren er frisk. Metrikken `oncall_calendar_render_duration_ms` viser driftsfolk hvilke feeder som er trege.
+Enten er `DISABLE_ON_CALL_CALENDAR_FEED` satt, eller serveren er opptatt: høyst noen få feeder bygges om gangen, og en vaktplan som tar svært lang tid å regne ut, avbrytes. Finnes det en tidligere kopi av feeden, leverer serveren den i stedet, med en `Warning: 110`-header, så en 503 betyr at det ikke fantes noe å falle tilbake på. Klienter beholder sin siste kopi og prøver igjen etter intervallet i `Retry-After`. Fastmail deaktiverer et abonnement etter fem feil på rad; legg det til igjen når serveren er frisk. Målingen `oncall_calendar_render_duration_ms` viser driftsfolk hvilke feeder som er trege.
 :::
 
 :::details 429 eller "too many requests"
@@ -343,7 +343,7 @@ Google leser navnet bare ved første abonnement; fjern kalenderen og legg den ti
 :::
 
 :::details En vakt mangler i feeden min
-Bare vakter fra vaktplaner vises; direkte tildelinger av brukere eller team i en retningslinjeregel er faste og har ingen hendelser. En vakt som noen andre har overtatt gjennom en overstyring, forsvinner fra feeden din, fordi den nå er i deres. Slå på **Ta med vakter jeg dekker for andre** for å se vakter du har fått gjennom overstyringer i vaktplaner du ikke er medlem av.
+Bare vakter fra vaktplaner vises; direkte tildelinger av brukere eller team i en policyregel er faste og har ingen hendelser. En vakt som noen andre har overtatt gjennom en overstyring, forsvinner fra feeden din, fordi den nå er i deres. Slå på **Ta med vakter jeg dekker for andre** for å se vakter du har fått gjennom overstyringer i vaktplaner du ikke er medlem av.
 :::
 
 ## Neste steg
@@ -351,5 +351,5 @@ Bare vakter fra vaktplaner vises; direkte tildelinger av brukere eller team i en
 :::cards
 - [Vaktplaner](/docs/on-call/schedules): Sett opp rotasjonene feedene dine viser.
 - [Tidslinje for vaktplaner](/docs/on-call/schedule-timeline): Se alle vaktplanene side om side i dashbordet.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Knytt vaktplaner til retningslinjer, så vaktene deres varsler folk.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Knytt vaktplaner til policyer, så vaktene deres varsler folk.
 :::

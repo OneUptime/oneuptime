@@ -1,6 +1,6 @@
 # Skyressurser (IaaS og PaaS)
 
-**Skyressurser** viser IaaS- og PaaS-ressursene i AWS-, Azure- og Google Cloud-kontoene dine: virtuelle maskiner, disker, lastbalanserere, bøtter, administrerte databaser, hurtigbuffere, køer, API-gatewayer og resten. Hver ressurs får sin egen side, med type, region og konto, leverandørens egen ID for den, hver metrikk leverandøren publiserer om den, og eiere og etiketter som alle andre ressurser i OneUptime. Du finner dem under **Sky → Alle ressurser**.
+**Skyressurser** viser IaaS- og PaaS-ressursene i AWS-, Azure- og Google Cloud-kontoene dine: virtuelle maskiner, disker, lastbalanserere, bøtter, administrerte databaser, hurtigbuffere, køer, API-gatewayer og resten. Hver ressurs får sin egen side, med type, region og konto, leverandørens egen ID for den, hver måling leverandøren publiserer om den, og eiere og etiketter som alle andre ressurser i OneUptime. Du finner dem under **Sky → Alle ressurser**.
 
 > [!TIP]
 > Vil du heller slippe å kjøre en collector? [Koble til en skykonto](/docs/telemetry/cloud-accounts) under **Sky → Koble til**, så leser OneUptime disse målingene selv. En AWS-konto kan også [strømme målingene og loggene sine](/docs/telemetry/cloud-streaming) via Amazon Data Firehose.
@@ -21,14 +21,14 @@ flowchart TB
         res["VM-er, bøtter,<br/>lastbalanserere,<br/>databaser"] --> mon["Azure Monitor,<br/>CloudWatch eller<br/>Cloud Monitoring"]
     end
     mon -->|"skrivebeskyttet API"| col["OpenTelemetry Collector<br/>som du kjører"]
-    col -->|"OTLP-metrikker"| ou["OneUptime"]
+    col -->|"OTLP-målinger"| ou["OneUptime"]
     ou --> cr["Skyressurser<br/>én per ressurs"]
     ou --> metrics["Målinger"]
 ```
 
-- **Leverandøren måler allerede ressursene dine.** Azure Monitor, Amazon CloudWatch og Google Cloud Monitoring publiserer metrikker om hver ressurs de kjører for deg.
-- **En collector du kjører selv, leser dem.** En OpenTelemetry Collector med skrivebeskyttet tilgang til den overvåkingstjenesten eksporterer metrikkene til OneUptime. Ingenting installeres på ressursene, og OneUptime har aldri skylegitimasjonen din: det har collectoren, i ditt eget miljø.
-- **Hver ressurs vises med sin første metrikk.** OneUptime ser ut fra hvert datapunkt hvilken ressurs det gjelder, og oppretter skyressursen første gang det ser den.
+- **Leverandøren måler allerede ressursene dine.** Azure Monitor, Amazon CloudWatch og Google Cloud Monitoring publiserer målinger om hver ressurs de kjører for deg.
+- **En collector du kjører selv, leser dem.** En OpenTelemetry Collector med skrivebeskyttet tilgang til den overvåkingstjenesten eksporterer målingene til OneUptime. Ingenting installeres på ressursene, og OneUptime har aldri skylegitimasjonen din: det har collectoren, i ditt eget miljø.
+- **Hver ressurs vises med sin første måling.** OneUptime ser ut fra hvert datapunkt hvilken ressurs det gjelder, og oppretter skyressursen første gang det ser den.
 
 Skyressurser er ett av flere steder skyen din dukker opp:
 
@@ -36,10 +36,10 @@ Skyressurser er ett av flere steder skyen din dukker opp:
 | --- | --- | --- |
 | Containere på ECS, Cloud Run, Container Apps, App Service, … | **App-plattformer → Alle miljøer** | Arbeidsbelastningenes egen telemetri, etter `cloud.platform`. Se [Skymiljøer](/docs/telemetry/cloud-environments) |
 | Enhver IaaS- eller PaaS-ressurs leverandøren overvåker | **Sky → Alle ressurser** | Leverandørens overvåkings-API, lest av en collector: denne siden |
-| Virtuelle maskiner med en OpenTelemetry Collector på | **Verter** | Vertens egne metrikker og logger. Se [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) |
-| Køer og emner som applikasjonene dine bruker | **Køer** | Spenn, og de samme skymetrikkene. Se [Køer](/docs/telemetry/queues) |
+| Virtuelle maskiner med en OpenTelemetry Collector på | **Verter** | Vertens egne målinger og logger. Se [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) |
+| Køer og emner som applikasjonene dine bruker | **Køer** | Spenn, og de samme skymålingene. Se [Køer](/docs/telemetry/queues) |
 
-En ressurs kan vises på mer enn ett sted. En virtuell maskin med collectoren på er en **Vert**, og plattformmetrikkene dens (CPU-kreditter, disk og nettverk slik hypervisoren ser dem) gjør den også til en **Skyressurs**. En SQS-kø er en **Kø** og en **Skyressurs**. Hver visning viser det kilden dens vet.
+En ressurs kan vises på mer enn ett sted. En virtuell maskin med collectoren på er en **Vert**, og plattformmålingene dens (CPU-kreditter, disk og nettverk slik hypervisoren ser dem) gjør den også til en **Skyressurs**. En SQS-kø er en **Kø** og en **Skyressurs**. Hver visning viser det kilden dens vet.
 
 ## Før du begynner
 
@@ -54,12 +54,12 @@ Hvis du hoster OneUptime selv, erstatter du `https://oneuptime.com/otlp` med `ht
 
 ## Koble til Azure
 
-Receiveren `azure_monitor` viser ressursene i et abonnement og leser plattformmetrikkene deres hvert minutt. Uten en liste `services` leser den alle ressurstyper, så hver ressurs i abonnementet blir en skyressurs.
+Receiveren `azure_monitor` viser ressursene i et abonnement og leser plattformmålingene deres hvert minutt. Uten en liste `services` leser den alle ressurstyper, så hver ressurs i abonnementet blir en skyressurs.
 
 :::steps
 ### Opprett en tjenestekontohaver med Monitoring Reader
 
-**Monitoring Reader** leser metrikker og viser ressurser, og kan ikke endre noe:
+**Monitoring Reader** leser målinger og viser ressurser, og kan ikke endre noe:
 
 ```bash
 az ad sp create-for-rbac \
@@ -131,15 +131,15 @@ Innstillinger for receiveren `azure_monitor`:
 | Innstilling | Hva den gjør |
 | --- | --- |
 | `resource_groups`, `services`, `resource_tags` | Les mindre: en liste over ressursgrupper, over Resource Manager-typer (`Microsoft.Compute/virtualMachines`), eller over tagger en ressurs må ha |
-| `metrics` | Begrenser hver ressurstype til metrikkene og aggregeringene du lister opp. Når en type er listet opp, leses bare de oppførte metrikkene for den |
+| `metrics` | Begrenser hver ressurstype til målingene og aggregeringene du lister opp. Når en type er listet opp, leses bare de oppførte målingene for den |
 | `discover_subscriptions: true` | Leser hvert abonnement tjenestekontohaveren kan se, i stedet for `subscription_ids` |
-| `maximum_number_of_records_per_resource` | Hvor mange serier Azure returnerer per metrikk og ressurs (10 som standard). Øk den når en metrikk deles opp etter en dimensjon med mange verdier |
-| `use_batch_api: true` | For store abonnementer. Receiveren gjør ett Resource Manager-kall per ressurs og bunke på 20 metrikker, og Resource Manager tillater rundt 12 000 lesinger i timen; batch-API-et leser opptil 50 ressurser per kall fra dataplanet til Azure Monitor, der grensen er langt høyere |
+| `maximum_number_of_records_per_resource` | Hvor mange serier Azure returnerer per måling og ressurs (10 som standard). Øk den når en måling deles opp etter en dimensjon med mange verdier |
+| `use_batch_api: true` | For store abonnementer. Receiveren gjør ett Resource Manager-kall per ressurs og bunke på 20 målinger, og Resource Manager tillater rundt 12 000 lesinger i timen; batch-API-et leser opptil 50 ressurser per kall fra dataplanet til Azure Monitor, der grensen er langt høyere |
 | `cache_resources` | Hvor ofte, i sekunder, receiveren viser ressursene: én gang i døgnet som standard. En ressurs som er opprettet etter at collectoren startet, kan bruke opptil et døgn på å dukke opp; start collectoren på nytt for å vise dem med en gang |
 
 ## Koble til AWS
 
-CloudWatch-metrikker når OneUptime på én av to måter:
+CloudWatch-målinger når OneUptime på én av to måter:
 
 | | Polling | Metric Streams |
 | --- | --- | --- |
@@ -280,7 +280,7 @@ docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
 På en EC2-instans, ECS-oppgave eller EKS-pod som har rollen, utelater du de to nøkkelvariablene.
 :::
 
-- **La `stats` stå tom.** Hver metrikk leses da som én oppsummering per periode: fire statistikker, fire spørringer med `GetMetricData`, og AWS fakturerer `GetMetricData` per forespurt metrikk. `discovery.limit` begrenser metrikkene en receiver leser per innhenting (sett den: receiverens egen standard er 100), og et lengre `collection_interval` leser dem sjeldnere.
+- **La `stats` stå tom.** Hver måling leses da som én oppsummering per periode: fire statistikker, fire spørringer med `GetMetricData`, og AWS fakturerer `GetMetricData` per forespurt måling. `discovery.limit` begrenser målingene en receiver leser per innhenting (sett den: receiverens egen standard er 100), og et lengre `collection_interval` leser dem sjeldnere.
 - **Data kommer sent.** `delay` venter på at CloudWatch publiserer en periode, så datapunkter kommer 10 til 20 minutter etter tidspunktet de måler, og ressurser vises innen omtrent tjue minutter.
 
 ### Strømming med CloudWatch Metric Streams
@@ -342,19 +342,19 @@ Sertifikatet og nøkkelen til det skal ligge i `tls/`, som `server.crt` og `serv
 
 1. **Amazon Data Firehose → Create Firehose stream**: kilde **Direct PUT**, mål **HTTP Endpoint**. Endepunkt-URL-en er collectorens adresse `https://`; tilgangsnøkkelen er `FIREHOSE_ACCESS_KEY`. Velg eller opprett en S3-bøtte for mislykkede leveranser.
 2. **CloudWatch → Metrics → Streams → Create metric stream**: navnerommene som skal være med (eller alle), Firehose-strømmen og utdataformatet **OpenTelemetry 1.0**.
-3. Gjenta i hver region: en metric stream bærer metrikkene fra sin egen region.
+3. Gjenta i hver region: en metric stream bærer målingene fra sin egen region.
 :::
 
-AWS fakturerer en metric stream per metrikkoppdatering den leverer, pluss datakostnadene til Firehose, så ta bare med navnerommene du vil ha. En strøm i formatet **JSON** (`format: json` på kodingsutvidelsen) navngir de samme ressursene, men skriver også hvert navnerom inn i `service.name`, så hvert navnerom også vises under **Tjenester**: foretrekk **OpenTelemetry 1.0**.
+AWS fakturerer en metric stream per målingsoppdatering den leverer, pluss datakostnadene til Firehose, så ta bare med navnerommene du vil ha. En strøm i formatet **JSON** (`format: json` på kodingsutvidelsen) navngir de samme ressursene, men skriver også hvert navnerom inn i `service.name`, så hvert navnerom også vises under **Tjenester**: foretrekk **OpenTelemetry 1.0**.
 
 ## Koble til Google Cloud
 
-Receiveren `googlecloudmonitoring` leser metrikktypene som `metrics_list` nevner, for ett prosjekt.
+Receiveren `googlecloudmonitoring` leser målingstypene som `metrics_list` nevner, for ett prosjekt.
 
 :::steps
 ### Opprett en tjenestekonto med Monitoring Viewer
 
-**Monitoring Viewer** leser metrikker, og kan ikke endre noe:
+**Monitoring Viewer** leser målinger, og kan ikke endre noe:
 
 ```bash
 gcloud iam service-accounts create oneuptime-cloud-collector \
@@ -372,7 +372,7 @@ På selve Google Cloud kjører du collectoren som denne tjenestekontoen i stedet
 
 ### Konfigurer Cloud Monitoring-receiveren
 
-Hvert filter leser hver metrikktype fra én tjeneste. Lagre dette som `config.yaml`:
+Hvert filter leser hver målingstype fra én tjeneste. Lagre dette som `config.yaml`:
 
 ```yaml
 receivers:
@@ -420,12 +420,12 @@ docker run -d --name oneuptime-cloud-collector --restart unless-stopped \
 
 - **Listen leses når collectoren starter:** start den på nytt etter en endring. `metric_name: compute.googleapis.com/instance/cpu/utilization` leser én type i stedet for alle typene til en tjeneste.
 - **Én receiver leser ett prosjekt:** legg til én per prosjekt.
-- **Lesing har en kostnad og en kvote.** Hver metrikktype er én lesing fra Cloud Monitoring-API-et per innsamlingsintervall. Å lese Google Clouds egne metrikker er gratis innenfor API-ets månedlige kvote; et lengre `collection_interval` holder et stort prosjekt innenfor den, og innenfor kvoten per minutt.
+- **Lesing har en kostnad og en kvote.** Hver målingstype er én lesing fra Cloud Monitoring-API-et per innsamlingsintervall. Å lese Google Clouds egne målinger er gratis innenfor API-ets månedlige kvote; et lengre `collection_interval` holder et stort prosjekt innenfor den, og innenfor kvoten per minutt.
 
 ## Hold pipelinen fri for ressursdeteksjon
 
 > [!WARNING]
-> Ikke legg prosessoren `resourcedetection` til i pipelinen som leser skyovervåkingen. Den stempler collector-maskinens egen `host.name` og `os.type` på hvert datapunkt, og OneUptime arkiverer da også skyens metrikker under den maskinen i **Verter**. En collector som også overvåker sin egen vert, bør gjøre det i en egen pipeline.
+> Ikke legg prosessoren `resourcedetection` til i pipelinen som leser skyovervåkingen. Den stempler collector-maskinens egen `host.name` og `os.type` på hvert datapunkt, og OneUptime arkiverer da også skyens målinger under den maskinen i **Verter**. En collector som også overvåker sin egen vert, bør gjøre det i en egen pipeline.
 
 ## Slik identifiseres en ressurs
 
@@ -498,9 +498,9 @@ Hvert datapunkt bærer Azure-ressurs-ID-en til ressursen sin (`azuremonitor.reso
 
 ### AWS
 
-En CloudWatch-metrikk navngir ressursen sin i en dimensjon som avhenger av navnerommet. Et datapunkt som bærer dimensjonene under **Identifisert av**, hører til den ressursen, sammen med kontoen og regionen; ekstra dimensjoner snevrer inn serien, ikke ressursen (seriene per målgruppe for en Application Load Balancer hører til lastbalansereren). Et datapunkt som er aggregert over noe annet (`InstanceType`, `DatabaseClass`, en total for hele kontoen), navngir ingen ressurs og oppdages ikke. Det gjør heller ikke et navnerom som ikke står på listen: metrikkene fra det kommer likevel fram til **Målinger**.
+En CloudWatch-måling navngir ressursen sin i en dimensjon som avhenger av navnerommet. Et datapunkt som bærer dimensjonene under **Identifisert av**, hører til den ressursen, sammen med kontoen og regionen; ekstra dimensjoner snevrer inn serien, ikke ressursen (seriene per målgruppe for en Application Load Balancer hører til lastbalansereren). Et datapunkt som er aggregert over noe annet (`InstanceType`, `DatabaseClass`, en total for hele kontoen), navngir ingen ressurs og oppdages ikke. Det gjør heller ikke et navnerom som ikke står på listen: målingene fra det kommer likevel fram til **Målinger**.
 
-Hver ressurs vises med ARN-en sin der metrikkene navngir den fullt ut; der de ikke gjør det (ARN-en til en Auto Scaling-gruppe inneholder en UUID som ingen metrikk rapporterer), med navnerommet og dimensjonene.
+Hver ressurs vises med ARN-en sin der målingene navngir den fullt ut; der de ikke gjør det (ARN-en til en Auto Scaling-gruppe inneholder en UUID som ingen måling rapporterer), med navnerommet og dimensjonene.
 
 :::details CloudWatch-navnerommene og dimensjonene som identifiserer en ressurs
 | Navnerom | Identifisert av | Vises som | Ressurstype | Modell |
@@ -563,7 +563,7 @@ Hver ressurs vises med ARN-en sin der metrikkene navngir den fullt ut; der de ik
 
 ### Google Cloud
 
-Cloud Monitoring navngir den overvåkede ressursen til hver metrikk med en type og etiketter. Et datapunkt av en type nedenfor hører til den ressursen, identifisert av etikettene som står oppført; ressursens andre etiketter, og metadataetikettene, deler den aldri. Kubernetes-typer (`k8s_container`, `k8s_pod`, …) overlates til produktet [Kubernetes](/docs/telemetry/kubernetes-agent).
+Cloud Monitoring navngir den overvåkede ressursen til hver måling med en type og etiketter. Et datapunkt av en type nedenfor hører til den ressursen, identifisert av etikettene som står oppført; ressursens andre etiketter, og metadataetikettene, deler den aldri. Kubernetes-typer (`k8s_container`, `k8s_pod`, …) overlates til produktet [Kubernetes](/docs/telemetry/kubernetes-agent).
 
 :::details Ressurstypene i Cloud Monitoring og etikettene som identifiserer dem
 | Overvåket ressurstype | Identifisert av | Vises som | Modell |
@@ -597,7 +597,7 @@ Cloud Monitoring navngir den overvåkede ressursen til hver metrikk med en type 
 
 ### Navn
 
-En ressurs får navnet leverandøren kaller den (`vm-prod-01`, `checkout`, `orders`). Navn er unike innenfor et prosjekt, og leverandørens er det ikke: to abonnementer har hver sin `web-01`, og en App Service-plan og appen i den heter begge `checkout`. Derfor får en ressurs med et opptatt navn navn med typen, deretter ressursgruppen eller regionen, deretter kontoen: `web-01 (Virtual Machine, rg-prod)`. Gi nytt navn til hvilken som helst ressurs på fanen **Innstillinger**: metrikker matches på identiteten, ikke på navnet.
+En ressurs får navnet leverandøren kaller den (`vm-prod-01`, `checkout`, `orders`). Navn er unike innenfor et prosjekt, og leverandørens er det ikke: to abonnementer har hver sin `web-01`, og en App Service-plan og appen i den heter begge `checkout`. Derfor får en ressurs med et opptatt navn navn med typen, deretter ressursgruppen eller regionen, deretter kontoen: `web-01 (Virtual Machine, rg-prod)`. Gi nytt navn til hvilken som helst ressurs på fanen **Innstillinger**: målinger matches på identiteten, ikke på navnet.
 
 ## Status, arkivering og grenser
 
@@ -613,16 +613,16 @@ stateDiagram-v2
     Archived --> Reporting: rapporterer igjen
 ```
 
-- **Rapporterer** betyr at leverandøren har sendt en metrikk om ressursen den siste timen; etter en time uten står det **Rapporterer ikke**. Noen ressurser er stille av natur, for eksempel et Key Vault ingen har kalt, eller en bøtte der CloudWatch publiserer lagringsmetrikkene én gang i døgnet, og de kommer tilbake med neste datapunkt.
-- En ressurs som **ikke sender noen metrikk på 7 dager**, arkiveres automatisk: en instans som en Auto Scaling-gruppe har erstattet, et slettet volum, en bøtte som er borte. Den beholder etikettene, eierne og historikken sin under **Sky → Avansert → Arkivert**, og gjenopprettes av seg selv så snart den rapporterer igjen. En ressurs du arkiverer selv, forblir arkivert; en du gjenoppretter mens den er stille, blir stående i listen til den rapporterer.
-- Det hjelper ikke å slette en ressurs som leverandøren fortsatt rapporterer: den oppdages på nytt fra de neste metrikkene. Arkiver den i stedet.
+- **Rapporterer** betyr at leverandøren har sendt en måling om ressursen den siste timen; etter en time uten står det **Rapporterer ikke**. Noen ressurser er stille av natur, for eksempel et Key Vault ingen har kalt, eller en bøtte der CloudWatch publiserer lagringsmålingene én gang i døgnet, og de kommer tilbake med neste datapunkt.
+- En ressurs som **ikke sender noen måling på 7 dager**, arkiveres automatisk: en instans som en Auto Scaling-gruppe har erstattet, et slettet volum, en bøtte som er borte. Den beholder etikettene, eierne og historikken sin under **Sky → Avansert → Arkivert**, og gjenopprettes av seg selv så snart den rapporterer igjen. En ressurs du arkiverer selv, forblir arkivert; en du gjenoppretter mens den er stille, blir stående i listen til den rapporterer.
+- Det hjelper ikke å slette en ressurs som leverandøren fortsatt rapporterer: den oppdages på nytt fra de neste målingene. Arkiver den i stedet.
 - Oppdagelsen slutter å opprette ressurser når et prosjekt har **5 000** levende (ikke arkiverte), og logger en advarsel; arkiverte ressurser teller ikke.
 
 Selvhostede installasjoner kan endre dette med miljøvariabler på appen:
 
 | Variabel | Standard | Betydning |
 | --- | --- | --- |
-| `CLOUD_RESOURCE_AUTO_ARCHIVE_DAYS` | `7` | Dager uten metrikk før en ressurs arkiveres (minst 1) |
+| `CLOUD_RESOURCE_AUTO_ARCHIVE_DAYS` | `7` | Dager uten måling før en ressurs arkiveres (minst 1) |
 | `CLOUD_RESOURCE_AUTO_CREATE_BUDGET` | `5000` | Levende ressurser et prosjekt kan ha før oppdagelsen slutter å opprette flere (`0` slår av oppdagelsen) |
 
 ## Varsler på en ressurs
@@ -630,15 +630,15 @@ Selvhostede installasjoner kan endre dette med miljøvariabler på appen:
 En ressurs i en [tilkoblet konto](/docs/telemetry/cloud-accounts) får på fanen **Anbefalinger** tilbud om monitorene OneUptime anbefaler for typen, hver opprettet i ett trinn. Slik varsler du om en annen måling den rapporterer:
 
 :::steps
-1. Åpne ressursen og fanen **Målinger**, som viser hver metrikk leverandøren rapporterer om den.
-2. Åpne en metrikk for å vise den som diagram i metrikkutforskeren, allerede filtrert til ressursen.
-3. Klikk **Opprett monitor fra denne visningen**: monitoren overvåker den metrikken for den ressursen.
+1. Åpne ressursen og fanen **Målinger**, som viser hver måling leverandøren rapporterer om den.
+2. Åpne en måling for å vise den som diagram i målingsutforskeren, allerede filtrert til ressursen.
+3. Klikk **Opprett monitor fra denne visningen**: monitoren overvåker den målingen for den ressursen.
 :::
 
 Et Service Bus-navneområde rapporterer målingene sine én gang per kø og emne, og et Event Hubs-navneområde én gang per event hub. Der de kan legges sammen, viser en rad i fanen **Målinger** for navneområdet summen av dem, med **sum av serier** under. En monitor opprettet fra den raden leser også summen, og det samme gjør en monitor opprettet via API-et eller Terraform uten en aggregering. De andre radene viser **gjennomsnitt av serier**, altså den gjennomsnittlige køen eller event huben: en forsinkelse og, over et tidsrom på mer enn 3 timer, en mengde navneområdet holder, som ventende meldinger.
 
 > [!IMPORTANT]
-> Skyovervåking publiserer hvert tall minutter etter tidspunktet det måler: 10 til 20 minutter for CloudWatch som polles som ovenfor, noen få minutter for Azure Monitor og Cloud Monitoring. Det lagres under tidspunktet det måler. Gi en monitor over disse metrikkene et vindu som er lengre enn det (30 minutter for CloudWatch, 15 for de andre), ellers ser den ingen data og utløses aldri.
+> Skyovervåking publiserer hvert tall minutter etter tidspunktet det måler: 10 til 20 minutter for CloudWatch som polles som ovenfor, noen få minutter for Azure Monitor og Cloud Monitoring. Det lagres under tidspunktet det måler. Gi en monitor over disse målingene et vindu som er lengre enn det (30 minutter for CloudWatch, 15 for de andre), ellers ser den ingen data og utløses aldri.
 
 ## Inventar og regler
 
@@ -651,13 +651,13 @@ Et Service Bus-navneområde rapporterer målingene sine én gang per kø og emne
 
 1. Sjekk tokenet: `curl -i https://oneuptime.com/otlp/v1/validate -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"` må svare `200` med `"valid": true`.
 2. Les loggen til collectoren (`docker logs oneuptime-cloud-collector`). En autorisasjonsfeil nevner tillatelsen som mangler: `AuthorizationFailed` (Azure: **Monitoring Reader** på abonnementet), `AccessDenied` på `cloudwatch:GetMetricData` (AWS: policyen ovenfor), `PermissionDenied` (Google Cloud: **Monitoring Viewer**).
-3. Se i **Målinger** etter leverandørens metrikker (`azure_…`, `amazonaws.com/aws/…`, `compute.googleapis.com/…`). Hvis de er der, men ingen ressurs er det, navngir ikke datapunktene noen ressurs OneUptime gjenkjenner: et AWS-navnerom eller en Google Cloud-type som ikke står ovenfor, eller et datapunkt som er aggregert over noe annet enn en ressurs.
+3. Se i **Målinger** etter leverandørens målinger (`azure_…`, `amazonaws.com/aws/…`, `compute.googleapis.com/…`). Hvis de er der, men ingen ressurs er det, navngir ikke datapunktene noen ressurs OneUptime gjenkjenner: et AWS-navnerom eller en Google Cloud-type som ikke står ovenfor, eller et datapunkt som er aggregert over noe annet enn en ressurs.
 4. Vent på sene data: CloudWatch som polles som ovenfor, ligger 10 til 20 minutter etter.
 
 ### En ressurs mangler
 
-- **Azure:** receiveren viser ressursene én gang i døgnet; start collectoren på nytt for å vise nye nå. En ressurstype uten plattformmetrikker i Azure Monitor har ingenting å rapportere.
-- **AWS:** hver receiver leser ett navnerom i én region, og `discovery.limit` begrenser hvor mange metrikker den leser: øk den når en konto har flere.
+- **Azure:** receiveren viser ressursene én gang i døgnet; start collectoren på nytt for å vise nye nå. En ressurstype uten plattformmålinger i Azure Monitor har ingenting å rapportere.
+- **AWS:** hver receiver leser ett navnerom i én region, og `discovery.limit` begrenser hvor mange målinger den leser: øk den når en konto har flere.
 - **Google Cloud:** `metrics_list` må nevne tjenesten til ressursen.
 - **Alle leverandører:** et prosjekt som har nådd budsjettet, oppretter ingen nye ressurser før noen er arkivert. Se [Status, arkivering og grenser](#status-arkivering-og-grenser).
 
@@ -665,22 +665,22 @@ Et Service Bus-navneområde rapporterer målingene sine én gang per kø og emne
 
 En AWS-ressurs som leses én gang med konto-ID-en og én gang uten, er to ressurser: polling-receiveren rapporterer bare kontoen når den har lov til å kalle `sts:GetCallerIdentity`. Gi hver collector den tillatelsen, og arkiver kopien uten konto.
 
-### Skymetrikkene mine vises under en vert
+### Skymålingene mine vises under en vert
 
 Pipelinen har en prosessor `resourcedetection`. Se [Hold pipelinen fri for ressursdeteksjon](#hold-pipelinen-fri-for-ressursdeteksjon).
 
 ## Begrensninger
 
-- **Bare metrikker.** Leverandørenes overvåkings-API-er publiserer ingen logger eller spor om en ressurs. Send dem fra arbeidsbelastningene dine med OpenTelemetry.
-- **Oppdagelsen følger metrikkene.** En ressurs som leverandøren ikke publiserer metrikker om, eller som collectoren ikke leser, oppdages ikke.
-- **Ingen egen innstilling for oppbevaring.** Metrikkene til en ressurs beholdes like lenge som resten av metrikkene collectoren dens sender.
+- **Bare målinger.** Leverandørenes overvåkings-API-er publiserer ingen logger eller spor om en ressurs. Send dem fra arbeidsbelastningene dine med OpenTelemetry.
+- **Oppdagelsen følger målingene.** En ressurs som leverandøren ikke publiserer målinger om, eller som collectoren ikke leser, oppdages ikke.
+- **Ingen egen innstilling for oppbevaring.** Målingene til en ressurs beholdes like lenge som resten av målingene collectoren dens sender.
 - **Polling koster penger** og teller mot grensene til sky-API-ene: se notatene for hver leverandør ovenfor.
 
 ## Neste steg
 
 :::cards
 - [Skymiljøer](/docs/telemetry/cloud-environments): Containerne dine på ECS, Cloud Run og Container Apps, fra deres egen telemetri.
-- [Køer](/docs/telemetry/queues): SQS, Service Bus og Pub/Sub, med de samme skymetrikkene.
+- [Køer](/docs/telemetry/queues): SQS, Service Bus og Pub/Sub, med de samme skymålingene.
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): Sett etiketter på ressurser og tildel eiere etter hvert som de oppdages.
 - [Inventar](/docs/inventory/overview): Hver vert, enhet og skyressurs i én liste.
 :::

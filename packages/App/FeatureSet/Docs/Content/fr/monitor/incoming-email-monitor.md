@@ -266,7 +266,7 @@ Ces incidents restent ouverts jusqu'à ce que quelqu'un les résolve. Avec **Ré
 > [!WARNING]
 > **Quiconque connaît l'adresse peut ouvrir des incidents.** Gardez l'adresse privée, filtrez sur l'expéditeur comme ci-dessus et [réinitialisez l'adresse](#réinitialiser-ou-personnaliser-ladresse-e-mail) si elle fuit. L'adresse d'un expéditeur peut être falsifiée : le filtre écarte le courrier égaré, pas quelqu'un de déterminé à entrer.
 
-Pour plus de contrôle, comme une gravité lue dans l'objet ou une équipe choisie selon l'expéditeur, démarrez plutôt un workflow à partir de chaque e-mail : voir le [déclencheur Incoming Email](/docs/workflows/triggers#incoming-email).
+Pour plus de contrôle, comme une gravité lue dans l'objet ou une équipe choisie selon l'expéditeur, démarrez plutôt un flux de travail à partir de chaque e-mail : voir le [déclencheur Incoming Email](/docs/workflows/triggers#incoming-email).
 
 ## Cas d'usage
 

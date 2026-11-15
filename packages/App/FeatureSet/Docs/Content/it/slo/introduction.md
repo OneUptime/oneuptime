@@ -40,7 +40,7 @@ Un budget di errore trasforma l'affidabilità in qualcosa che puoi spendere. Se 
 
 ## Creare uno SLO
 
-Ti serve un ruolo che possa creare SLO: Project Owner, Project Admin o un ruolo personalizzato con il permesso Create Service Level Objective.
+Ti serve un ruolo che possa creare SLO: Proprietario del progetto, Amministratore del progetto o un ruolo personalizzato con il permesso Create Service Level Objective.
 
 :::steps
 ### Aprire gli SLO
@@ -146,7 +146,7 @@ Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta c
 
 ## L'elenco degli SLO
 
-La pagina **SLOs** elenca ogni SLO non archiviato, con stato, SLI, budget rimanente, tasso di consumo, obiettivo, finestra, monitor, etichette e proprietari.
+La pagina **SLOs** elenca ogni SLO non archiviato, con stato, SLI, budget rimanente, tasso di consumo, obiettivo, finestra, monitor, etichette e proprietari. La sua colonna **Cosa misura** mostra i servizi di uno SLO di richieste dove mostra i monitor di uno SLO di uptime, e il filtro **Servizi** trova gli SLO che misurano un servizio.
 
 - I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **A rischio**, **Budget esaurito**, **Configurato male**, **In pausa** e **Disabilitato**. Compaiono non appena c'è uno SLO non archiviato. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
 - Seleziona degli SLO per aggiungere o togliere etichette e proprietari, attivarli o disattivarli, dare loro le [regole del tasso di consumo consigliate](/docs/slo/burn-rate-alerts#aggiungerle-a-molti-slo-in-una-volta) che ancora non hanno, archiviarli o eliminarli, tutti insieme.
@@ -256,15 +256,15 @@ Un banner in cima alle pagine dello SLO dice cosa gli impedisce di misurare:
 | Banner | Cosa significa | Cosa fare |
 | --- | --- | --- |
 | **Nessun monitor collegato** | Lo SLO non ha monitor, quindi non c'è niente da misurare. | Collega dei monitor o crea una regola dei monitor. |
-| **Waiting for SLO evaluation** | Ci sono monitor collegati, ma l'ultima valutazione non aveva dati di stato da loro. | Controlla che i monitor vengano verificati. I numeri compaiono dopo la prossima valutazione con dati. |
-| **Measurement is paused** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato. | Riattiva il monitoraggio di almeno un monitor, oppure aspetta la fine della manutenzione. |
-| **The target is out of range** | L'obiettivo non è maggiore di 0 e minore di 100. | Imposta un obiettivo come 99,9 in **Impostazioni** → **Obiettivo**. |
-| **This SLO is disabled** | La valutazione è disattivata. | Fai clic su **Attiva la valutazione**. |
-| **This SLO is archived** | Lo SLO è archiviato. | Annulla l'archiviazione in **Impostazioni**. |
+| **In attesa della valutazione dello SLO** | Ci sono monitor collegati, ma l'ultima valutazione non aveva dati di stato da loro. | Controlla che i monitor vengano verificati. I numeri compaiono dopo la prossima valutazione con dati. |
+| **La misurazione è in pausa** | Ogni monitor che misura è archiviato o ha il monitoraggio attivo disattivato. | Riattiva il monitoraggio di almeno un monitor, oppure aspetta la fine della manutenzione. |
+| **L'obiettivo è fuori intervallo** | L'obiettivo non è maggiore di 0 e minore di 100. | Imposta un obiettivo come 99,9 in **Impostazioni** → **Obiettivo**. |
+| **Questo SLO è disabilitato** | La valutazione è disattivata. | Fai clic su **Attiva la valutazione**. |
+| **Questo SLO è archiviato** | Lo SLO è archiviato. | Annulla l'archiviazione in **Impostazioni**. |
 | **Non ancora valutato** | Lo SLO è appena stato creato. | Aspetta la prima valutazione, al massimo qualche minuto. |
 | **Nessun servizio scelto** | Uno SLO di richieste non ha servizi, quindi non ha richieste da contare. | Scegli i suoi servizi in **Impostazioni** → **Cosa misura**. |
-| **No latency threshold** | Uno SLO di latenza delle richieste non ha una soglia, quindi nessuna richiesta può contare come abbastanza veloce. | Imposta la **Soglia di latenza (ms)** in **Impostazioni** → **Cosa misura**. |
-| **Waiting for requests** | Nessuno dei servizi di uno SLO di richieste ha ancora servito una richiesta nella sua finestra. | Controlla che i servizi inviino tracce a OneUptime. I numeri compaiono dopo la prossima valutazione che conta una richiesta. |
+| **Nessuna soglia di latenza** | Uno SLO di latenza delle richieste non ha una soglia, quindi nessuna richiesta può contare come abbastanza veloce. | Imposta la **Soglia di latenza (ms)** in **Impostazioni** → **Cosa misura**. |
+| **In attesa di richieste** | Nessuno dei servizi di uno SLO di richieste ha ancora servito una richiesta nella sua finestra. | Controlla che i servizi inviino tracce a OneUptime. I numeri compaiono dopo la prossima valutazione che conta una richiesta. |
 
 ## Passi successivi
 

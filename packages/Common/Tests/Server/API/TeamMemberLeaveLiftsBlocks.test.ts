@@ -253,7 +253,7 @@ describe("POST /team-member/:id/leave lifts the team's blocks only for someone w
       expect.anything(),
       expect.anything(),
       new NotAuthorizedException(
-        "You cannot leave the Contractors team: it blocks Incident Member for its members, and lifting that block needs Incident Member at an equal or broader scope in your own access. Ask a project owner to remove you from the team.",
+        "You cannot leave the Contractors team: it blocks Incident Member for its members, and lifting that block needs Incident Member at an equal or broader scope in your own access. Ask a Project Owner to remove you from the team.",
       ),
     );
     expect(deleteMembership).not.toHaveBeenCalled();

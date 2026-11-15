@@ -153,7 +153,7 @@ Status kommen nur dort an, wo der Anbieter sie melden kann:
 
 | `notification.page.start` | Die Zeit läuft ab |
 | --- | --- |
-| `monitor_data_received` | Wann OneUptime die Daten erhielt, die den Monitor ausgelöst haben: eine eingehende Anfrage, den Bericht eines Server-Agents, eine eingehende E-Mail, die Prüfung einer Probe, einen SNMP-Trap oder die Abfrage eines Netzwerkgeräts. Sie schließt die Zeit ein, die die Daten in der Warteschlange auf ihre Auswertung gewartet haben. |
+| `monitor_data_received` | Wann OneUptime die Daten erhielt, die den Monitor ausgelöst haben: eine eingehende Anfrage, den Bericht eines Server-Agents, eine eingehende E-Mail, die Prüfung einer Sonde, einen SNMP-Trap oder die Abfrage eines Netzwerkgeräts. Sie schließt die Zeit ein, die die Daten in der Warteschlange auf ihre Auswertung gewartet haben. |
 | `record_created` | Wann der Vorfall, die Warnung oder die Episode erstellt wurde: von einem Telemetrie-Monitor, einer Regel oder einer Person, und bei einer Prüfung auf Ausbleiben, etwa einem Heartbeat, der aufgehört hat. |
 | `page_started` | Wann ein Alarm später gestartet wurde: Eine Person, ein Workflow oder eine Regel, die jetzt zutrifft, hat ihn gestartet, oder es ist ein direkter Alarm. Bei einem Alarm, den seine Bereitschaftsregel oder OneUptime AI zurückgehalten hat, wann die Sperre ablief, oder wann er startete, falls das früher war. Bei einem erneuten Alarm, wann das Bestätigungs-Timeout ablief. So zeigt sich ein Worker, der einen davon zu spät erreichte, in der Zeit. |
 

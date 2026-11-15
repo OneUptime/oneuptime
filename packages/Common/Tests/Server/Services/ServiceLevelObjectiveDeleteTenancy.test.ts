@@ -623,7 +623,7 @@ afterEach(() => {
 });
 
 describe("Deleting a burn rate rule by id, the way the CRUD API does", () => {
-  test("a project admin who names another project's rule deletes nothing, resolves nothing, describes nothing, and never reads that rule", async () => {
+  test("a Project Admin who names another project's rule deletes nothing, resolves nothing, describes nothing, and never reads that rule", async () => {
     const deleteSuccessSpy: jest.SpyInstance = spyOnDeleteSuccess(
       ServiceLevelObjectiveBurnRateRuleService,
     );
@@ -750,7 +750,7 @@ describe("Deleting a burn rate rule by id, the way the CRUD API does", () => {
 });
 
 describe("Deleting an SLO by id, the way the CRUD API does", () => {
-  test("a project admin who names another project's SLO deletes nothing, resolves nothing, and never reads that SLO or its rules", async () => {
+  test("a Project Admin who names another project's SLO deletes nothing, resolves nothing, and never reads that SLO or its rules", async () => {
     const deleteSuccessSpy: jest.SpyInstance = spyOnDeleteSuccess(
       ServiceLevelObjectiveService,
     );

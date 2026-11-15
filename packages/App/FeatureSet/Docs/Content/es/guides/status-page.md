@@ -13,7 +13,7 @@ flowchart TB
 ## Qué necesitas
 
 - Al menos un monitor: una página de estado muestra monitores. Si aún no tienes ninguno, la configuración guiada te ofrece antes **Configurar un monitor**.
-- El rol de propietario o de administrador del proyecto: crear la página requiere permiso para crear páginas de estado, y añadir tu dominio, permiso para añadir y verificar los dominios del proyecto.
+- El rol de Propietario del proyecto o de Administrador del proyecto: crear la página requiere permiso para crear páginas de estado, y añadir tu dominio, permiso para añadir y verificar los dominios del proyecto.
 - Un dominio que controles, y acceso a sus registros DNS en tu proveedor de DNS.
 
 :::tabs

@@ -20,7 +20,7 @@ export class ChangeEventService extends AnalyticsDatabaseService<ChangeEvent> {
   ): Promise<Date | null> {
     if (!changeEvent.primaryEntityId) {
       return changeEvent.createdAt
-        ? OneUptimeDate.addRemoveDays(
+        ? OneUptimeDate.addRemoveDurationInDays(
             changeEvent.createdAt,
             DEFAULT_CHANGE_EVENT_RETENTION_IN_DAYS,
           )

@@ -32,7 +32,11 @@ import { NotificationSchedule } from "../Telemetry/NotificationDeliveryMetrics";
 import { toOnCallPolicyRunStatusMessage } from "../../../Types/OnCallDutyPolicy/OnCallPolicyRunRetry";
 import OnCallRunFailure from "./OnCallRunFailure";
 import OnCallSendLag, { OnCallScheduledSend } from "./OnCallSendLag";
+import OnCallPageTiming from "./OnCallPageTiming";
 import { OnCallLevelInFlight } from "./OnCallLevelsInFlight";
+import OnCallMoveOnsInFlight, {
+  OnCallMoveOnInFlight,
+} from "./OnCallMoveOnsInFlight";
 
 /*
  * MOVING AN ON-CALL POLICY'S RUN ON TO ITS NEXT ESCALATION RULE.
@@ -299,6 +303,31 @@ export default class OnCallEscalationAdvance {
       now: data.now,
     });
 
+    /*
+     * What giving the claim back needs, kept in flight from just before the
+     * claim until the move is done (OnCallMoveOnsInFlight, issue #8410): a
+     * process that stops between the claim and the next rule is given its
+     * claim back by the worker, rather than left to wait the rule's whole
+     * wait again. Not a move a person asked for (toRuleId), which is never
+     * given back.
+     */
+    const moveOn: OnCallMoveOnInFlight | null = data.toRuleId
+      ? null
+      : {
+          claimedAt: claimTime,
+          previousLastEscalationRuleExecutedAt: run.lastEscalationRuleExecutedAt
+            ? new Date(run.lastEscalationRuleExecutedAt)
+            : null,
+          lastExecutedEscalationRuleId:
+            run.lastExecutedEscalationRuleId?.toString() || null,
+          onCallPolicyExecutionRepeatCount:
+            run.onCallPolicyExecutionRepeatCount ?? null,
+        };
+
+    if (moveOn) {
+      await OnCallMoveOnsInFlight.keep(runId, moveOn);
+    }
+
     const claimed: boolean =
       await OnCallDutyPolicyExecutionLogService.claimEscalationAdvance({
         executionLogId: runId,
@@ -308,6 +337,10 @@ export default class OnCallEscalationAdvance {
       });
 
     if (!claimed) {
+      if (moveOn) {
+        await OnCallMoveOnsInFlight.forget(runId);
+      }
+
       logger.debug(
         `Execution log ${runId.toString()} was already moved on by a concurrent run; skipping to avoid double-paging.`,
         {
@@ -318,12 +351,24 @@ export default class OnCallEscalationAdvance {
       return { kind: OnCallEscalationAdvanceKind.NotClaimed, pagedUserIds: [] };
     }
 
+    let result: OnCallEscalationAdvanceResult;
+
+    /*
+     * The move's latest claim in flight: a move past a level that reached
+     * nobody claims again (claimAgain), and that claim is the one to give
+     * back (issue #8515).
+     */
+    const inFlight: { moveOn: OnCallMoveOnInFlight | null } = {
+      moveOn: moveOn,
+    };
+
     try {
-      return await this.moveOnClaimed({
+      result = await this.moveOnClaimed({
         run: run,
         isCurrentRuleEmpty: data.isCurrentRuleEmpty,
         toRuleId: data.toRuleId,
         send: send,
+        inFlight: inFlight,
       });
     } catch (err) {
       /*
@@ -335,22 +380,66 @@ export default class OnCallEscalationAdvance {
        * nobody twice (giveBackEscalationAdvance). A later level picked by the
        * person escalating is theirs to pick again: its claim is kept.
        */
-      if (!data.toRuleId) {
-        await OnCallDutyPolicyExecutionLogService.giveBackEscalationAdvance({
-          executionLogId: runId,
-          claimedLastEscalationRuleExecutedAt: claimTime,
-          previousLastEscalationRuleExecutedAt: run.lastEscalationRuleExecutedAt
-            ? new Date(run.lastEscalationRuleExecutedAt)
-            : null,
-          lastExecutedEscalationRuleId:
-            run.lastExecutedEscalationRuleId || null,
-          onCallPolicyExecutionRepeatCount:
-            run.onCallPolicyExecutionRepeatCount ?? null,
-        });
+      if (inFlight.moveOn) {
+        await this.giveBackMoveOn({ runId: runId, moveOn: inFlight.moveOn });
       }
 
       throw err;
     }
+
+    if (moveOn) {
+      await OnCallMoveOnsInFlight.forget(runId);
+    }
+
+    return result;
+  }
+
+  /*
+   * A move on that failed after its claim gives the claim back, as it is
+   * given back by the worker for one whose process stopped (issue #8410).
+   * Given back, or found moved past - its next rule started - there is
+   * nothing left to settle; a give-back the database failed is left in
+   * flight, for the worker to make at the run's next try. Never throws.
+   */
+  private static async giveBackMoveOn(data: {
+    runId: ObjectID;
+    moveOn: OnCallMoveOnInFlight;
+  }): Promise<void> {
+    try {
+      await this.giveBackMoveOnClaim(data);
+    } catch (err) {
+      logger.error(
+        `Could not give back the claim to move on-call execution log ${data.runId.toString()} on; the worker gives it back at the run's next try.`,
+      );
+      logger.error(err as Error);
+      return;
+    }
+
+    await OnCallMoveOnsInFlight.forget(data.runId);
+  }
+
+  /*
+   * Gives back a move on's claim while the run is still as it left it
+   * (giveBackEscalationAdvance): returns whether it did. Throws as the
+   * database does.
+   */
+  public static async giveBackMoveOnClaim(data: {
+    runId: ObjectID;
+    moveOn: OnCallMoveOnInFlight;
+  }): Promise<boolean> {
+    return await OnCallDutyPolicyExecutionLogService.giveBackEscalationAdvance({
+      executionLogId: data.runId,
+      claimedLastEscalationRuleExecutedAt: data.moveOn.claimedAt,
+      previousLastEscalationRuleExecutedAt:
+        data.moveOn.previousLastEscalationRuleExecutedAt,
+      lastExecutedEscalationRuleId: data.moveOn.lastExecutedEscalationRuleId
+        ? new ObjectID(data.moveOn.lastExecutedEscalationRuleId)
+        : null,
+      onCallPolicyExecutionRepeatCount:
+        data.moveOn.onCallPolicyExecutionRepeatCount,
+      throwOnError: true,
+      clearWait: Boolean(data.moveOn.passesEmptyLevel),
+    });
   }
 
   /*
@@ -362,6 +451,8 @@ export default class OnCallEscalationAdvance {
     isCurrentRuleEmpty?: boolean | undefined;
     toRuleId?: ObjectID | undefined;
     send: OnCallScheduledSend;
+    // The move's latest claim in flight, for claimAgain to keep (issue #8515).
+    inFlight?: { moveOn: OnCallMoveOnInFlight | null } | undefined;
   }): Promise<OnCallEscalationAdvanceResult> {
     const run: OnCallDutyPolicyExecutionLog = data.run;
     const runId: ObjectID = run.id!;
@@ -396,7 +487,7 @@ export default class OnCallEscalationAdvance {
        * claimed again, as any move on is. A run that ended meanwhile - its
        * page was acknowledged - or that somebody else moved on is left.
        */
-      if (step > 0 && !(await this.claimAgain(runId))) {
+      if (step > 0 && !(await this.claimAgain(runId, data.inFlight))) {
         return lastStarted!;
       }
 
@@ -638,16 +729,43 @@ export default class OnCallEscalationAdvance {
       run.id!,
     );
 
-    const outcome: OnCallRuleExecutionOutcome =
-      await OnCallDutyPolicyEscalationRuleService.resumeRuleExecution(
-        new ObjectID(data.level.ruleId),
-        {
-          ...this.getPageContext(run),
-          onCallPolicyId: run.onCallDutyPolicyId!,
-          passedOnUserIds: passedOnUserIds,
-          since: data.level.startedAt,
-        },
-      );
+    const resume: () => Promise<OnCallRuleExecutionOutcome> =
+      (): Promise<OnCallRuleExecutionOutcome> => {
+        return OnCallDutyPolicyEscalationRuleService.resumeRuleExecution(
+          new ObjectID(data.level.ruleId),
+          {
+            ...this.getPageContext(run),
+            onCallPolicyId: run.onCallDutyPolicyId!,
+            passedOnUserIds: passedOnUserIds,
+            level: data.level,
+          },
+        );
+      };
+
+    /*
+     * Its pages are timed as the level's were as it started (issue #8471):
+     * due when the wait before it ran out, or as its page started - so one
+     * it sends now shows as late as it is (notification.send.lag).
+     */
+    const level: OnCallLevelInFlight = data.level;
+
+    const outcome: OnCallRuleExecutionOutcome = level.pageStart
+      ? await OnCallPageTiming.runInPageStart(
+          {
+            startedAt: level.pageStart.startedAt,
+            start: level.pageStart.start,
+          },
+          resume,
+        )
+      : level.scheduledSend
+        ? await OnCallSendLag.runAsScheduledSend(
+            {
+              dueAt: level.scheduledSend.dueAt,
+              schedule: level.scheduledSend.schedule,
+            },
+            resume,
+          )
+        : await resume();
 
     if (outcome.movesOnAtOnce) {
       await this.moveOnAtOnce({ runId: run.id! });
@@ -759,13 +877,18 @@ export default class OnCallEscalationAdvance {
    * since starting that rule moved its clock. A run that ended in between,
    * or that somebody else moved on, is left as it is.
    */
-  private static async claimAgain(runId: ObjectID): Promise<boolean> {
+  private static async claimAgain(
+    runId: ObjectID,
+    inFlight?: { moveOn: OnCallMoveOnInFlight | null } | undefined,
+  ): Promise<boolean> {
     const current: OnCallDutyPolicyExecutionLog | null =
       await OnCallDutyPolicyExecutionLogService.findOneById({
         id: runId,
         select: {
           status: true,
           lastEscalationRuleExecutedAt: true,
+          lastExecutedEscalationRuleId: true,
+          onCallPolicyExecutionRepeatCount: true,
         },
         props: {
           isRoot: true,
@@ -776,14 +899,40 @@ export default class OnCallEscalationAdvance {
       return false;
     }
 
+    const claimTime: Date = this.getClaimTime({
+      previous: current.lastEscalationRuleExecutedAt,
+      now: OneUptimeDate.getCurrentDate(),
+    });
+
+    /*
+     * This claim, past the level that reached nobody, is kept in flight in
+     * place of the move's first (issue #8515): a process that stops before
+     * the next level is recorded has it given back - the level's wait
+     * cleared with it - rather than waiting out the wait of a level that
+     * paged nobody.
+     */
+    if (inFlight?.moveOn) {
+      inFlight.moveOn = {
+        claimedAt: claimTime,
+        previousLastEscalationRuleExecutedAt:
+          current.lastEscalationRuleExecutedAt
+            ? new Date(current.lastEscalationRuleExecutedAt)
+            : null,
+        lastExecutedEscalationRuleId:
+          current.lastExecutedEscalationRuleId?.toString() || null,
+        onCallPolicyExecutionRepeatCount:
+          current.onCallPolicyExecutionRepeatCount ?? null,
+        passesEmptyLevel: true,
+      };
+
+      await OnCallMoveOnsInFlight.keep(runId, inFlight.moveOn);
+    }
+
     return await OnCallDutyPolicyExecutionLogService.claimEscalationAdvance({
       executionLogId: runId,
       previousLastEscalationRuleExecutedAt:
         current.lastEscalationRuleExecutedAt || null,
-      newLastEscalationRuleExecutedAt: this.getClaimTime({
-        previous: current.lastEscalationRuleExecutedAt,
-        now: OneUptimeDate.getCurrentDate(),
-      }),
+      newLastEscalationRuleExecutedAt: claimTime,
     });
   }
 

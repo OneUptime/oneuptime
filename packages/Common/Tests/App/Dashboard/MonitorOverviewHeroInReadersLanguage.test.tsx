@@ -425,7 +425,7 @@ describe("the hero's latest result in the reader's digits and unit (#7416)", () 
   test("English, as it always read, its figure grouped", () => {
     drawFailedCheck("en");
 
-    expect(latestValue()).toBe("Down · 2,410 ms · HTTP 503");
+    expect(latestValue()).toBe("Down · 2,410\u00A0ms · HTTP 503");
     expect(cause()).toHaveTextContent("Connection refused.");
     expect(isolate()).toBeNull();
   });
@@ -433,7 +433,7 @@ describe("the hero's latest result in the reader's digits and unit (#7416)", () 
   test("German: the verdict in German, the figure grouped as German groups it", () => {
     drawFailedCheck("de");
 
-    expect(latestValue()).toBe("Ausgefallen · 2.410 ms · HTTP 503");
+    expect(latestValue()).toBe("Ausgefallen · 2.410\u00A0ms · HTTP 503");
     // An English cause on a page that reads left to right needs no isolate.
     expect(isolate()).toBeNull();
     expect(cause()).toHaveTextContent("Connection refused.");
@@ -459,7 +459,7 @@ describe("the hero's latest result in the reader's digits and unit (#7416)", () 
 
     const latest: string = latestValue();
 
-    expect(latest).toBe("متوقف · 2,410\u00A0ملي ث · HTTP 503");
+    expect(latest).toBe("متوقف · 2,410\u00A0ملي\u00A0ث · HTTP 503");
     expect(latest).not.toMatch(/\bms\b/);
     expect(isolate()).toHaveAttribute("dir", "ltr");
     expect(isolate()).toHaveTextContent("Connection refused.");

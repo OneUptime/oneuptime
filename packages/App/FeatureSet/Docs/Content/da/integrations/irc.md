@@ -2,11 +2,11 @@
 
 Post hændelsesopdateringer i en kanal på et hvilket som helst IRC-netværk: Libera.Chat, OFTC eller din egen server.
 
-IRC har ingen webhooks, så OneUptimes workflowtrin **Send Message to IRC** forbinder selv til serveren, ligesom enhver IRC-klient. Der er intet at installere og ingen app at registrere. Denne integration er **udgående**: OneUptime poster i kanalen og læser ikke, hvad der bliver sagt der.
+IRC har ingen webhooks, så OneUptimes arbejdsgangstrin **Send Message to IRC** forbinder selv til serveren, ligesom enhver IRC-klient. Der er intet at installere og ingen app at registrere. Denne integration er **udgående**: OneUptime poster i kanalen og læser ikke, hvad der bliver sagt der.
 
 :::cards
 - [Sådan virker det](#sådan-virker-det): Hvad én kørsel af trinnet siger til serveren.
-- [Opsætning](#opsæt-integrationen): Server og kanal, adgangskoder og så workflowet: fra skabelonen eller fra bunden.
+- [Opsætning](#opsæt-integrationen): Server og kanal, adgangskoder og så arbejdsgangen: fra skabelonen eller fra bunden.
 - [Tips](#tips): Post uden at gå ind i kanalen, SASL, lange beskeder og byger.
 - [Fejlfinding](#fejlfinding): Hvad trinnets fejl betyder, og hvad du skal ændre.
 :::
@@ -45,8 +45,8 @@ Trinnet tager sin udgang **Succes**, så snart serveren har taget imod hver linj
 
 ## Før du begynder
 
-- På OneUptime Cloud planen **Growth** eller en højere: workflows og deres variabler er en del af den. Selvhostede installationer uden fakturering har ingen plangrænser.
-- En rolle, der bygger workflows: **Projektejer**, **Projektadministrator** eller **Arbejdsgangsadministrator**.
+- På OneUptime Cloud planen **Growth** eller en højere: arbejdsgange og deres variabler er en del af den. Selvhostede installationer uden fakturering har ingen plangrænser.
+- En rolle, der bygger arbejdsgange: **Projektejer**, **Projektadministrator** eller **Arbejdsgangsadministrator**.
 - En konto på IRC-netværket, hvis det vil have dig logget ind. Det vil Libera.Chat for forbindelser fra nogle cloud- og VPN-adresser.
 
 ## Opsæt integrationen
@@ -63,7 +63,7 @@ Serveren skal være en, som OneUptime må forbinde til. Loopback-adresser (`loca
 
 ### Gem adgangskoder som hemmelige variabler
 
-Spring dette trin over, hvis din server, dit netværk og din kanal ikke kræver nogen adgangskode. Ellers skal du gemme hver adgangskode som en hemmelig [global variabel](/docs/workflows/variables#globale-variabler). Så indeholder workflowet variablens navn i stedet for adgangskoden, og du ændrer adgangskoden ét sted.
+Spring dette trin over, hvis din server, dit netværk og din kanal ikke kræver nogen adgangskode. Ellers skal du gemme hver adgangskode som en hemmelig [global variabel](/docs/workflows/variables#globale-variabler). Så indeholder arbejdsgangen variablens navn i stedet for adgangskoden, og du ændrer adgangskoden ét sted.
 
 | Indstilling         | Udfyld den, når                                                                        | Variabel, for eksempel |
 | ------------------- | -------------------------------------------------------------------------------------- | ---------------------- |
@@ -73,9 +73,9 @@ Spring dette trin over, hvis din server, dit netværk og din kanal ikke kræver 
 
 For at gemme en skal du åbne **Arbejdsgange → Globale variabler** og klikke på **Opret Arbejdsgangsvariabel**. Skriv navnet i **Navn**, og klik på **Næste**. Indsæt adgangskoden i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**. Kørselslogge viser `[REDACTED]` i stedet for værdien af en hemmelig variabel.
 
-### Byg workflowet
+### Byg arbejdsgangen
 
-Start fra skabelonen, som bygger hele workflowet for dig, eller fra bunden.
+Start fra skabelonen, som bygger hele arbejdsgangen for dig, eller fra bunden.
 
 :::tabs
 @tab Fra skabelonen
@@ -84,9 +84,9 @@ Start fra skabelonen, som bygger hele workflowet for dig, eller fra bunden.
 3. Behold navnet **Notify IRC on new incident**, eller ret det, og klik på **Næste**.
 4. Indtast **IRC Server** og **IRC Channel**, og klik på **Opret arbejdsgang**.
 
-Workflowet åbner i **Bygger** med to trin: **On Create Incident** og **Send Message to IRC**, som poster hændelsens nummer, titel, alvorlighed og tilstand på to linjer. En besked, der ikke bliver leveret, får kørslen til at mislykkes, og kørslens log siger hvorfor. Serveren og kanalen gemmes som workflowets variabler `ircServer` og `ircChannel`. Har du gemt adgangskoder i det forrige trin, så klik på **Send Message to IRC**, åbn **Flere felter**, og vælg hver variabel med knappen **{ }** i dens indstilling.
+Arbejdsgangen åbner i **Bygger** med to trin: **On Create Incident** og **Send Message to IRC**, som poster hændelsens nummer, titel, alvorlighed og tilstand på to linjer. En besked, der ikke bliver leveret, får kørslen til at mislykkes, og kørslens log siger hvorfor. Serveren og kanalen gemmes som arbejdsgangens variabler `ircServer` og `ircChannel`. Har du gemt adgangskoder i det forrige trin, så klik på **Send Message to IRC**, åbn **Flere felter**, og vælg hver variabel med knappen **{ }** i dens indstilling.
 @tab Fra bunden
-1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
+1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv arbejdsgangen et navn, og klik på **Opret arbejdsgang**.
 2. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident** under **Populære**. Klik på triggeren, og vælg i **Fields to pass on** de felter fra hændelsen, som din besked viser, for eksempel dens titel.
 3. Klik på **Tilføj komponent**, søg efter `irc`, og klik på **Send Message to IRC**. Forbind triggerens udgang **Succes** med trinnet.
 4. Klik på det nye trin, og udfyld **IRC Server**, **Kanal** og **Message Text**. Knappen **{ }** i **Message Text** indsætter felter fra hændelsen, for eksempel dens titel.
@@ -105,7 +105,7 @@ For at teste uden at åbne en hændelse skal du klikke på **Kør arbejdsgang** 
 - **Post uden at gå ind i kanalen.** De fleste kanaler tager kun imod beskeder fra deres medlemmer (tilstand `+n`), så trinnet går ind, før det poster, og forlader kanalen lige efter. En kanal med `-n` tager imod beskeder udefra: Slå **Send Without Joining** til under **Flere felter**, så ser kanalen ikke trinnet komme og gå.
 - **Log ind med SASL.** På netværk, der bruger SASL, som Libera.Chat, skal du udfylde **SASL Username** og **SASL Password** for at logge ind på din konto. Libera.Chat kræver det for forbindelser fra nogle cloud- og VPN-adresser. Se [Libera.Chats vejledning til SASL](https://libera.chat/guides/sasl).
 - **Hold øje med grænsen på 15 linjer.** Hver linje i **Message Text** er sin egen IRC-besked, en lang linje deles, så den passer, og tomme linjer udelades. En besked sendes som højst 15 IRC-linjer: En længere bliver afkortet, og dens sidste linje siger det. De første fire linjer går ud med det samme og resten én pr. sekund, i IRC-klienters tempo, så 15 linjer tager omkring 11 sekunder.
-- **Saml byger i én besked.** Hver kørsel er sin egen forbindelse, og IRC-netværk begrænser, hvor ofte én adresse må forbinde. En byge af kørsler kan blive afvist med en årsag som `Reconnecting too fast` og tager **Fejl** som enhver anden afvisning. For et workflow, der kan køre mange gange i minuttet, skal du samle det, det har at sige, i én besked eller sende det gennem din egen server.
+- **Saml byger i én besked.** Hver kørsel er sin egen forbindelse, og IRC-netværk begrænser, hvor ofte én adresse må forbinde. En byge af kørsler kan blive afvist med en årsag som `Reconnecting too fast` og tager **Fejl** som enhver anden afvisning. For en arbejdsgang, der kan køre mange gange i minuttet, skal du samle det, den har at sige, i én besked eller sende det gennem din egen server.
 - **Formatér med IRC's egne koder.** IRC har ingen Markdown, så teksten sendes, som den er skrevet. IRC's formateringskoder, som fed skrift og farver, virker.
 - **En server uden TLS.** Slå kun **Disable TLS** til for en server, der ikke tilbyder TLS: Trinnet forbinder så på port `6667`, og enhver adgangskode sendes ukrypteret. For at stole på en servers certifikat fra din egen certifikatudsteder sætter en selvhostet installation i stedet `NODE_EXTRA_CA_CERTS`.
 - **Et andet nickname.** Beskeder kommer fra `OneUptime`, medmindre du sætter **Nickname**. Er nicknamet optaget, tilføjer trinnet en understregning eller et tal.
@@ -139,6 +139,6 @@ Serverens certifikat er ikke et, som OneUptime stoler på. En selvhostet install
 :::cards
 - [Komponenter → IRC](/docs/workflows/components#irc): Hver indstilling i trinnet, og hvad dets udgange betyder.
 - [Variabler](/docs/workflows/variables#globale-variabler): Hemmelige globale variabler, og hvordan trin bruger dem.
-- [Kørsler](/docs/workflows/runs-and-logs): Læs, hvad hver kørsel af workflowet gjorde.
+- [Kørsler](/docs/workflows/runs-and-logs): Læs, hvad hver kørsel af arbejdsgangen gjorde.
 - [Oversigt over integrationer](/docs/integrations/index): Det udgående mønster og de andre værktøjer, du kan forbinde.
 :::

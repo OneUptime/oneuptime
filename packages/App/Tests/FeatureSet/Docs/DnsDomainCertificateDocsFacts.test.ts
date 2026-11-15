@@ -1181,11 +1181,14 @@ describe("SSL Certificate monitor", () => {
       now.getTime() + (14 * 24 + 20) * 60 * 60 * 1000,
     );
 
-    // "a certificate that expires in 14 days and 20 hours has 14 days left"
-    expect(OneUptimeDate.getDaysBetweenTwoDates(now, expiresAt)).toBe(14);
+    /*
+     * "a certificate that expires in 14 days and 20 hours has 14 days left":
+     * whole days of 24 hours, on any server's clock (issue #8473).
+     */
+    expect(OneUptimeDate.getWholeDaysOfTimeBetween(now, expiresAt)).toBe(14);
     expect(OneUptimeDate.getHoursBetweenTwoDates(now, expiresAt)).toBe(356);
     expect(readRepoFile(SSL_CRITERIA_FILE)).toContain(
-      "OneUptimeDate.getDaysBetweenTwoDates(",
+      "OneUptimeDate.getWholeDaysOfTimeBetween(",
     );
     expect(page).toContain(
       "a certificate that expires in 14 days and 20 hours has 14 days left",

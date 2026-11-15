@@ -19,7 +19,7 @@ Cada função e cada permissão tem uma linha com estas colunas:
 
 ## Funções
 
-{{PERMISSION_ROLE_COUNT}} funções. Quatro delas valem para o projeto inteiro: Project Owner, Project Admin, Project Member e Viewer. Cada uma das outras cobre uma área do produto, como incidentes ou monitores, no nível Admin, Member ou Viewer. São elas que **Adicionar função** oferece na página **Permissões** de uma equipe e na página de uma chave de API.
+{{PERMISSION_ROLE_COUNT}} funções. Quatro delas valem para o projeto inteiro: Proprietário do projeto, Administrador do projeto, Membro do projeto e Visualizador. Cada uma das outras cobre uma área do produto, como incidentes ou monitores, no nível Administrador, Membro ou Visualizador. São elas que **Adicionar função** oferece na página **Permissões** de uma equipe e na página de uma chave de API.
 
 {{PERMISSION_ROLE_TABLES}}
 

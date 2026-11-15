@@ -303,7 +303,7 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Contain | Bloker offentlig adgang til datalagre | Blokerer offentlig adgang til hver bucket eller storage account, sagen handler om, gennem dens cloudforbindelse |
 | Contain | Tilbagekald deling af datalager | Stopper delingen uden for jeres konti af snapshots af hver database, sagen handler om, gennem dens cloudforbindelse |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
-| Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
+| Automate | Run a workflow | Starter en OneUptime-arbejdsgang med sagen som input |
 | Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
 | Automate | Fix the code with AI | Beder OneUptime AI om en pull request, der retter de undtagelser, sagens anmodninger udløste |
 | Flow control | Stop kørslen | Afslutter kørslen der som udført: trinnene efter det kører ikke |
@@ -428,7 +428,7 @@ Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, 
 
 ## Automatisér
 
-- **Arbejdsgange**: en sag eller en note kan starte et workflow, når den oprettes, opdateres eller slettes. Et trin **Kør en arbejdsgang** starter et workflow, hvis trigger er en webhook.
+- **Arbejdsgange**: en sag eller en note kan starte en arbejdsgang, når den oprettes, opdateres eller slettes. Et trin **Kør en arbejdsgang** starter en arbejdsgang, hvis trigger er en webhook.
 - **API**: sager, noter, opgaver, beviser, detektioner, playbooks, kørsler, beskyttede entiteter samt sagsprioriteter og sagsstatusser har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-reference](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har værktøjer til sager, noter, opgaver, beviser, detektioner, playbooks samt sagsprioriteter og sagsstatusser. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: ressourcerne `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder et projekts prioriteter og statusser som kode.

@@ -338,7 +338,7 @@ export default class TelemetryIngestionBudgetMetrics {
 
     paragraphs.push(
       SafeHtml.escape(
-        "Project owners get this email once a day for each budget: when it crosses the warning threshold, and when it is used up.",
+        "Project Owners get this email once a day for each budget: when it crosses the warning threshold, and when it is used up.",
       ),
     );
 
@@ -380,7 +380,7 @@ export default class TelemetryIngestionBudgetMetrics {
       return summary;
     }
 
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       await this.getRetentionDays(),
     );

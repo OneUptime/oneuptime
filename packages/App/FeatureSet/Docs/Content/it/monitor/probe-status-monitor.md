@@ -53,17 +53,17 @@ I filtri di un monitor dello stato delle sonde contano sonde:
 
 | Filtro | Cosa conta |
 | --- | --- |
-| **Disconnected Probes** | Le sonde sorvegliate che sono disconnesse. |
-| **Connected Probes** | Le sonde sorvegliate che sono connesse. |
+| **Sonde disconnesse** | Le sonde sorvegliate che sono disconnesse. |
+| **Sonde connesse** | Le sonde sorvegliate che sono connesse. |
 
 Entrambi sono numeri interi, confrontati con **Maggiore di**, **Minore di**, **Uguale a** e gli altri confronti. Un nuovo monitor parte con due criteri:
 
 | Criterio | Filtro | Cosa fa |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** maggiore di `0` | Mette il monitor offline e dichiara un incidente intitolato `Probe disconnected: {{disconnectedProbeNames}}`, che si risolve da solo. |
-| Check if every probe is connected | **Disconnected Probes** uguale a `0` | Mette il monitor in stato operativo. |
+| Verifica se una sonda è disconnessa | **Sonde disconnesse** maggiore di `0` | Mette il monitor offline e dichiara un incidente intitolato «Sonda disconnessa: {{disconnectedProbeNames}}», che si risolve da solo. |
+| Verifica se tutte le sonde sono connesse | **Sonde disconnesse** uguale a `0` | Mette il monitor in stato operativo. |
 
-**Connected Probes** è adatto a un monitor che sorveglia più sonde e può perderne una: **Connected Probes** minore di `2` dichiara un incidente solo quando ne restano meno di due.
+Il filtro **Sonde connesse** è adatto a un monitor che sorveglia più sonde e può perderne una: **Sonde connesse** minore di `2` dichiara un incidente solo quando ne restano meno di due.
 
 ### Aspettare di più prima di un incidente
 
@@ -89,7 +89,7 @@ I modelli di incidente e di avviso di un monitor dello stato delle sonde possono
 ## Risoluzione dei problemi
 
 :::details Il monitor dice che sta aspettando i dati
-Un nuovo monitor mostra la sua prima valutazione entro un minuto o due. Se non sorveglia nessuna sonda, mostra invece **Not set up**: scegli le sonde in **Criteri**.
+Un nuovo monitor mostra la sua prima valutazione entro un minuto o due. Se non sorveglia nessuna sonda, mostra invece **Non configurato**: scegli le sonde in **Criteri**.
 :::
 
 :::details Una sonda è caduta e non è stato dichiarato alcun incidente

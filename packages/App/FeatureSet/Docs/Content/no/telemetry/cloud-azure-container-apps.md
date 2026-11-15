@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-Send spor, logger og metrikker fra Azure Container Apps til OneUptime. Hver replika som rapporterer `cloud.platform=azure_container_apps`, havner i ett **Skymiljø** per Azure-abonnement og region, for eksempel _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, med de kjørende replikaene oppført under **Instanser**.
+Send spor, logger og målinger fra Azure Container Apps til OneUptime. Hver replika som rapporterer `cloud.platform=azure_container_apps`, havner i ett **Skymiljø** per Azure-abonnement og region, for eksempel _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, med de kjørende replikaene oppført under **Instanser**.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva detektorene setter, og de to attributtene du setter selv.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Se etter `Everything is ready`, og ingen `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **App-plattformer → Alle miljøer** som _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Se etter `Everything is ready`, og ingen `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller målingen vises miljøet under **App-plattformer → Alle miljøer** som _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## Bruk miljøets administrerte OpenTelemetry-agent
@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## Hva du får
 
-- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine. Container Apps viser ikke en replikas ressursbruk til en sidecar, så flisene **CPU** og **Minne** fylles bare hvis du sender metrikkene `container.cpu.utilization` og `container.memory.usage` med replikaens identitet. De fleste team overlater dem til Azure Monitor.
+- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine. Container Apps viser ikke en replikas ressursbruk til en sidecar, så flisene **CPU** og **Minne** fylles bare hvis du sender målingene `container.cpu.utilization` og `container.memory.usage` med replikaens identitet. De fleste team overlater dem til Azure Monitor.
 - **Instanser**: én rad per replika, navngitt etter detektorenes `azure.container_app.instance.id`, etter `service.instance.id` når du setter den selv, eller etter `host.name` når bare vertsdetektoren kjørte.
 - **Logger**, **Spor** og **Målinger**, filtrert til miljøet, og visningen per tjeneste under **Tjenester**.
 

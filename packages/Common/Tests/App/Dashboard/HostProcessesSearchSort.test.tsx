@@ -592,13 +592,13 @@ describe("the Memory column", () => {
     await renderPage();
 
     expect(sizesByPid()).toEqual({
-      "4321": "2.0 GiB",
-      "784": "4.0 GiB",
-      "99": "100 MiB",
-      "8404": "1.6 GiB",
-      "10040": "8.0 MiB",
-      "600": "3.0 MiB",
-      "31": "512 B",
+      "4321": "2.0\u00A0GiB",
+      "784": "4.0\u00A0GiB",
+      "99": "100\u00A0MiB",
+      "8404": "1.6\u00A0GiB",
+      "10040": "8.0\u00A0MiB",
+      "600": "3.0\u00A0MiB",
+      "31": "512\u00A0B",
     });
   });
 });

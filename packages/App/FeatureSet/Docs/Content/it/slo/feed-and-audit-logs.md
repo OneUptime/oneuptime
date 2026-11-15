@@ -84,14 +84,14 @@ Vai a **Impostazioni del progetto**, apri **Registri di audit** nel menu lateral
 
 ### Modificare le impostazioni
 
-Fai clic su **Edit Audit Log Settings** e attiva **Abilita log di controllo**.
+Fai clic su **Modifica le impostazioni dei registri di audit** e attiva **Abilita log di controllo**.
 
 ### Scegliere cosa conservare
 
 Imposta **Conservazione (giorni)**, da 7 (il valore predefinito) a 180, e attiva **Memorizza eventi di sistema** per registrare anche le modifiche che OneUptime fa da solo. Salva. La modifica si applica in circa un minuto.
 :::
 
-Mentre la registrazione di audit è disattivata, la pagina **Registri di audit** dello SLO mostra **Audit logging is off**, con un link per attivarla. Le voci registrate prima della disattivazione restano visibili. Il registro di audit completo del progetto, per ogni risorsa, si trova in **Impostazioni del progetto** → **Registri di audit** → **Registri di audit**.
+Mentre la registrazione di audit è disattivata, la pagina **Registri di audit** dello SLO mostra **Registrazione di audit disattivata**, con un link per attivarla. Le voci registrate prima della disattivazione restano visibili. Il registro di audit completo del progetto, per ogni risorsa, si trova in **Impostazioni del progetto** → **Registri di audit** → **Registri di audit**.
 
 ## Passi successivi
 

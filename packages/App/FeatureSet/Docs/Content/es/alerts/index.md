@@ -104,7 +104,9 @@ En cuanto se crea una alerta, OneUptime recorre estos pasos, en este orden:
 7. **Las reglas de agrupación la meten en un episodio**, cuando alguna coincide. Consulta [Episodios de alertas y reglas de agrupación](/docs/alerts/episodes).
 8. **Se programan los recordatorios**, cuando coincide una regla de recordatorio, y **OneUptime AI** investiga la alerta cuando **Investigar las alertas nuevas** está activado en **Alertas → IA → Ajustes**, y la corrige cuando **Corregir automáticamente las alertas nuevas** está activado. Consulta [AI SRE](/docs/ai/ai-sre).
 
-Un trabajo en segundo plano avisa a los propietarios de la alerta en menos de un minuto, y el disparador de flujo de trabajo **On Create Alert** inicia cualquier flujo de trabajo basado en él.
+Un trabajo en segundo plano avisa a los propietarios de la alerta alrededor de un minuto después de crearse, a todos los que tenga para entonces, y el disparador de flujo de trabajo **On Create Alert** inicia cualquier flujo de trabajo basado en él.
+
+Para que personas y equipos sean propietarios de la alerta desde que se crea, de modo que este aviso les llegue a ellos y no a los propietarios del proyecto, entrégalos con la creación: por la API, envía sus ids en `miscDataProps`, como `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, con `POST /api/alert`; en un flujo de trabajo, elígelos en **Usuarios propietarios** y **Equipos propietarios** de **Create One Alert**; por MCP, pasa `ownerUsers` y `ownerTeams` a `create_alert`. Una solicitud cuyo autor no puede añadir esos propietarios se rechaza antes de guardar nada. Los propietarios que una solicitud aparte añade después de la creación solo se enteran si se añaden dentro de ese minuto.
 
 ### Creada ya reconocida o resuelta
 
@@ -159,7 +161,7 @@ Un episodio que abre una alerta privada no es privado, así que nunca muestra el
 ## Quién se entera de una alerta
 
 - **La guardia.** Las políticas de guardia de la alerta avisan a sus personas, cada una como lo haya configurado en **Ajustes de usuario → Cómo contactarme**, en la pestaña **Alertas**. Responder al aviso reconoce la alerta y los avisos se detienen.
-- **Sus propietarios.** Por correo electrónico, salvo que hayan elegido otros canales en **Ajustes de usuario → Ajustes de notificaciones**, en la pestaña **Alertas**: **Alerta creada**, **El estado de la alerta ha cambiado** y **Recordatorio de alerta** están activados por defecto, y **Nota de alerta publicada** y **Añadido como propietario de la alerta** están desactivados hasta que alguien los active. Una alerta sin propietarios notifica en su lugar a los propietarios del proyecto.
+- **Sus propietarios.** Por correo electrónico, salvo que hayan elegido otros canales en **Ajustes de usuario → Ajustes de notificaciones**, en la pestaña **Alertas**: **Alerta creada**, **El estado de la alerta ha cambiado** y **Recordatorio de alerta** están activados por defecto, y **Nota de alerta publicada** y **Añadido como propietario de la alerta** están desactivados hasta que alguien los active. Una alerta sin propietarios notifica en su lugar a los propietarios del proyecto. Si OneUptime se detiene mientras envía una notificación, las personas a las que aún no había llegado la reciben cuando OneUptime vuelve, unos minutos tarde, y nadie la recibe dos veces.
 - **Tus herramientas de chat.** **Alertas → Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican alertas y episodios en canales. Consulta [Slack](/docs/workspace-connections/slack) y [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Solución de problemas
@@ -173,7 +175,7 @@ Un criterio mantiene una sola alerta abierta a la vez. Hasta que esa alerta se r
 :::
 
 :::details Un compañero puede abrir una alerta que yo no encuentro
-Probablemente la alerta es privada. Pide a un administrador del proyecto que te añada como propietario o que desactive **Alerta privada** en la página **Ajustes** de la alerta.
+Probablemente la alerta es privada. Pide a un Administrador del proyecto que te añada como propietario o que desactive **Alerta privada** en la página **Ajustes** de la alerta.
 :::
 
 ## Próximos pasos
