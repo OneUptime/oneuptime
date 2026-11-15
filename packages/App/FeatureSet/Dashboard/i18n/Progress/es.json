@@ -137,6 +137,7 @@
     "Daemon",
     "Daemons",
     "DeploymentConfigs",
+    "Digital",
     "Docker CLI",
     "Docker Compose",
     "Docker {{version}}",

@@ -5,6 +5,7 @@ import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import { LABEL_WITH_COLON } from "../../../Utils/LabelWithColon";
 import { FacetHelp, FacetHelpEntry } from "../FacetHelp";
 
 // The (i) itself, and the box it opens: what a test or a page finds them by.
@@ -171,7 +172,14 @@ const FacetHelpButton: FunctionComponent<FacetHelpButtonProps> = (
         {props.help.entries.map((entry: FacetHelpEntry): ReactElement => {
           return (
             <span key={entry.value}>
-              {entry.label}: {translated(translator, entry.description)}{" "}
+              {/*
+               * The value's name with its own colon, as the reader's
+               * language writes it, then its sentence (#8571).
+               */}
+              {translator.translateTemplate(LABEL_WITH_COLON, {
+                label: entry.label,
+              })}{" "}
+              {translated(translator, entry.description)}{" "}
             </span>
           );
         })}

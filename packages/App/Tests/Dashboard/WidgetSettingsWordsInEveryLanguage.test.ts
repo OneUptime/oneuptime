@@ -6,6 +6,11 @@ import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/D
 import { ComponentArgument } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentsUtil from "Common/Utils/Dashboard/Components/Index";
 import {
+  ExtractedString,
+  isTranslatableText,
+  scanSourceText,
+} from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
+import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,
   readDashboardLocale,
@@ -23,10 +28,14 @@ import {
  * state" and "Unresolved (open)" in English in every language, beside
  * "Alle", "Bestätigt" and "Behoben" in German.
  *
- * Those two widgets' settings, and the View Mode every list widget offers,
- * are keys now, worded in every language. The other widgets' settings are
- * still to come (STILL_TO_COME, #8479): the list only shrinks, and a widget
- * not on it must have every word a key.
+ * The same was true of every other widget's settings form (#8479): a
+ * Chart's "Chart Type" and "Stacked Area Chart", a Clock's "Time Format", a
+ * Gauge's "Red zone starts at this value", about 300 words in all. Every
+ * widget's settings are keys now (Common/Utils/Dashboard/Components is a
+ * source root, and a setting's and a section's name is a word by its type),
+ * worded in every language, and a new widget's words are keys from the
+ * start. What is data, not words, is drawn as written: a Clock's timezones
+ * and the OCSF event classes a Security Events List filters by.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -45,7 +54,8 @@ function settingsWords(type: DashboardComponentType): Array<SettingsWord> {
     text: string | undefined,
     where: string,
   ): void => {
-    if (text && LETTER.test(text)) {
+    // What the extraction reads as words: code samples it leaves as written.
+    if (text && LETTER.test(text) && isTranslatableText(text, "prop")) {
       words.push({ text, where });
     }
   };
@@ -89,75 +99,7 @@ function unkeyed(type: DashboardComponentType): Array<string> {
   ].sort();
 }
 
-const KEYED: ReadonlyArray<DashboardComponentType> = [
-  DashboardComponentType.IncidentList,
-  DashboardComponentType.AlertList,
-];
-
-/*
- * Widgets whose settings still read English somewhere: #8479 makes them
- * keys (Common/Utils/Dashboard/Components, a source root
- * of the extraction each, as the Incident List's is). The list only
- * shrinks: a widget keyed leaves it, and a new widget is keyed from the
- * start.
- */
-const STILL_TO_COME: ReadonlySet<DashboardComponentType> =
-  new Set<DashboardComponentType>([
-    DashboardComponentType.Chart,
-    DashboardComponentType.Value,
-    DashboardComponentType.Text,
-    DashboardComponentType.Clock,
-    DashboardComponentType.Table,
-    DashboardComponentType.Gauge,
-    DashboardComponentType.DataSourceChart,
-    DashboardComponentType.DataSourceValue,
-    DashboardComponentType.DataSourceGauge,
-    DashboardComponentType.DataSourceTable,
-    DashboardComponentType.LogStream,
-    DashboardComponentType.LogChart,
-    DashboardComponentType.SecurityEventsList,
-    DashboardComponentType.SecurityEventsFlow,
-    DashboardComponentType.ProductAnalyticsFunnel,
-    DashboardComponentType.ProductAnalyticsRetention,
-    DashboardComponentType.TraceList,
-    DashboardComponentType.TraceChart,
-    DashboardComponentType.TraceTable,
-    DashboardComponentType.MonitorList,
-    DashboardComponentType.Slo,
-    DashboardComponentType.SloList,
-    DashboardComponentType.KubernetesPodList,
-    DashboardComponentType.KubernetesNodeList,
-    DashboardComponentType.KubernetesNamespaceList,
-    DashboardComponentType.KubernetesDeploymentList,
-    DashboardComponentType.KubernetesStatefulSetList,
-    DashboardComponentType.KubernetesDaemonSetList,
-    DashboardComponentType.KubernetesJobList,
-    DashboardComponentType.KubernetesCronJobList,
-    DashboardComponentType.DockerHostList,
-    DashboardComponentType.DockerContainerList,
-    DashboardComponentType.DockerImageList,
-    DashboardComponentType.DockerNetworkList,
-    DashboardComponentType.DockerVolumeList,
-    DashboardComponentType.PodmanHostList,
-    DashboardComponentType.PodmanContainerList,
-    DashboardComponentType.PodmanImageList,
-    DashboardComponentType.PodmanNetworkList,
-    DashboardComponentType.PodmanVolumeList,
-    DashboardComponentType.HostList,
-    DashboardComponentType.ProxmoxNodeList,
-    DashboardComponentType.ProxmoxGuestList,
-    DashboardComponentType.VMwareHostList,
-    DashboardComponentType.VMwareVirtualMachineList,
-    DashboardComponentType.DockerSwarmNodeList,
-    DashboardComponentType.DockerSwarmServiceList,
-    DashboardComponentType.CephOsdList,
-    DashboardComponentType.CephPoolList,
-    DashboardComponentType.StorageArrayVolumeList,
-    DashboardComponentType.StorageArrayHardwareList,
-    DashboardComponentType.NetworkMap,
-    DashboardComponentType.Html,
-  ]);
-
+// Every widget with settings, its words read at run time.
 function hasSettings(type: DashboardComponentType): boolean {
   try {
     return (
@@ -167,6 +109,145 @@ function hasSettings(type: DashboardComponentType): boolean {
     return false;
   }
 }
+
+const WIDGETS: ReadonlyArray<DashboardComponentType> = Object.values(
+  DashboardComponentType,
+).filter(hasSettings);
+
+const KEYED: ReadonlyArray<DashboardComponentType> = [
+  DashboardComponentType.IncidentList,
+  DashboardComponentType.AlertList,
+];
+
+describe("every widget's settings form", () => {
+  test("the scan reads every widget's settings", () => {
+    expect(WIDGETS.length).toBeGreaterThan(50);
+    expect(WIDGETS).toEqual(
+      expect.arrayContaining([
+        DashboardComponentType.Chart,
+        DashboardComponentType.Clock,
+        DashboardComponentType.Html,
+        DashboardComponentType.NetworkMap,
+      ]),
+    );
+  });
+
+  test.each(WIDGETS)(
+    "%s: every word it draws is a key",
+    (type: DashboardComponentType) => {
+      expect(settingsWords(type).length).toBeGreaterThan(0);
+      expect(unkeyed(type)).toEqual([]);
+    },
+  );
+
+  test.each(WIDGETS)(
+    "%s: and each is worded in every language",
+    (type: DashboardComponentType) => {
+      const notWorded: Array<string> = [];
+
+      for (const language of DASHBOARD_LANGUAGES) {
+        for (const word of settingsWords(type)) {
+          if (!isWordedInDashboardLocale(word.text, language)) {
+            notWorded.push(`${language} ${word.where}: ${word.text}`);
+          }
+        }
+      }
+
+      expect(notWorded).toEqual([]);
+    },
+  );
+
+  test("a Chart's settings, word for word in German", () => {
+    const german: Record<string, string> = readDashboardLocale("de");
+
+    for (const [english, words] of [
+      ["Chart Type", "Diagrammtyp"],
+      ["Stacked Area Chart", "Gestapeltes Flächendiagramm"],
+      [
+        "Configure what data to display on the chart",
+        "Festlegen, welche Daten das Diagramm zeigt",
+      ],
+    ] as Array<[string, string]>) {
+      expect({ english, german: german[english] }).toEqual({
+        english,
+        german: words,
+      });
+    }
+  });
+
+  test("data is drawn as written: a Clock's timezones and the OCSF event classes", () => {
+    const clock: Array<ComponentArgument<DashboardBaseComponent>> =
+      DashboardComponentsUtil.getComponentSettingsArguments(
+        DashboardComponentType.Clock,
+      ) as Array<ComponentArgument<DashboardBaseComponent>>;
+    const zones: Array<{
+      label: unknown;
+      isUserContent?: boolean | undefined;
+    }> =
+      clock.find(
+        (argument: ComponentArgument<DashboardBaseComponent>): boolean => {
+          return argument.id === "timezone";
+        },
+      )?.dropdownOptions || [];
+
+    expect(zones.length).toBeGreaterThan(300);
+    expect(
+      zones.every((zone: { isUserContent?: boolean | undefined }): boolean => {
+        return zone.isUserContent === true;
+      }),
+    ).toBe(true);
+
+    const classes: Array<{
+      label: unknown;
+      isUserContent?: boolean | undefined;
+    }> =
+      (
+        DashboardComponentsUtil.getComponentSettingsArguments(
+          DashboardComponentType.SecurityEventsList,
+        ) as Array<ComponentArgument<DashboardBaseComponent>>
+      ).find((argument: ComponentArgument<DashboardBaseComponent>): boolean => {
+        return argument.id === "classNameFilters";
+      })?.dropdownOptions || [];
+
+    expect(classes.length).toBeGreaterThan(20);
+    expect(
+      classes.every(
+        (option: { isUserContent?: boolean | undefined }): boolean => {
+          return option.isUserContent === true;
+        },
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * A reduce picker's placeholder named its default by the enum's value,
+   * "Last", where the menu says "Last value": no option, and no word.
+   */
+  test("a reduce picker's placeholder names its default as the menu does", () => {
+    for (const type of [
+      DashboardComponentType.DataSourceValue,
+      DashboardComponentType.DataSourceGauge,
+      DashboardComponentType.Table,
+    ]) {
+      const reduce: ComponentArgument<DashboardBaseComponent> | undefined = (
+        DashboardComponentsUtil.getComponentSettingsArguments(type) as Array<
+          ComponentArgument<DashboardBaseComponent>
+        >
+      ).find((argument: ComponentArgument<DashboardBaseComponent>): boolean => {
+        return (argument.dropdownOptions || []).some(
+          (option: { label: unknown }): boolean => {
+            return option.label === "Last value";
+          },
+        );
+      });
+
+      expect({ type, placeholder: reduce?.placeholder }).toEqual({
+        type,
+        placeholder: "Last value",
+      });
+    }
+  });
+});
 
 describe("the Incident List and Alert List settings", () => {
   test.each(KEYED)(
@@ -240,30 +321,7 @@ describe("the Incident List and Alert List settings", () => {
   });
 });
 
-describe("the other widgets' settings, still to come", () => {
-  test("each widget on the list still has a word no locale keys: a keyed one leaves it", () => {
-    for (const type of STILL_TO_COME) {
-      expect({ type, unkeyed: unkeyed(type).length > 0 }).toEqual({
-        type,
-        unkeyed: true,
-      });
-    }
-  });
-
-  test("a widget not on the list has every word of its settings a key", () => {
-    for (const type of Object.values(DashboardComponentType)) {
-      if (STILL_TO_COME.has(type) || !hasSettings(type)) {
-        continue;
-      }
-
-      expect({ type, unkeyed: unkeyed(type) }).toEqual({ type, unkeyed: [] });
-    }
-
-    for (const type of KEYED) {
-      expect(STILL_TO_COME.has(type)).toBe(false);
-    }
-  });
-
+describe("the list widgets' shared settings", () => {
   test("the View Mode every list widget offers is keyed already", () => {
     for (const type of [
       DashboardComponentType.IncidentList,
@@ -481,6 +539,66 @@ describe("the widgets page names the Lifecycle State options as the Dashboard dr
           found: row.includes(gone[language] as string),
         }).toEqual({ language, found: false });
       }
+    }
+  });
+});
+
+// What the extraction reads from a fixture widget, as its texts.
+function extractedFrom(source: string): Array<string> {
+  return scanSourceText(
+    "packages/Common/Utils/Dashboard/Components/DashboardExampleComponent.ts",
+    source,
+    { kind: "ui" },
+  ).strings.map((entry: ExtractedString): string => {
+    return entry.text;
+  });
+}
+
+describe("the extraction reads a setting's name by its type (#8479)", () => {
+  test("a setting pushed onto a typed list, a section, and a list a method returns", () => {
+    const texts: Array<string> = extractedFrom(
+      [
+        'const Section: ComponentArgumentSection = { name: "Example Section", order: 1 };',
+        "class Example {",
+        "  public static first(): Array<ComponentArgument<Widget>> {",
+        "    const componentArguments: Array<ComponentArgument<Widget>> = [];",
+        '    componentArguments.push({ name: "Example Pushed", id: "a" });',
+        "    return componentArguments;",
+        "  }",
+        "  public static second(): Array<ComponentArgument<Widget>> {",
+        '    return [{ name: "Example Returned", id: "b" }];',
+        "  }",
+        "}",
+        "function shared<T>(): ComponentArgument<T> {",
+        '  return { name: "Example Shared", id: "c" };',
+        "}",
+      ].join("\n"),
+    );
+
+    expect(texts).toEqual(
+      expect.arrayContaining([
+        "Example Section",
+        "Example Pushed",
+        "Example Returned",
+        "Example Shared",
+      ]),
+    );
+  });
+
+  test("a name in a list of anything else stays out (negative control)", () => {
+    const texts: Array<string> = extractedFrom(
+      [
+        'const people: Array<Person> = [{ name: "Ada Lovelace" }];',
+        'function make(): Array<Row> { return [{ name: "row_id" }]; }',
+        'const plain = [{ name: "Plain Name" }];',
+      ].join("\n"),
+    );
+
+    for (const name of ["Ada Lovelace", "row_id", "Plain Name"]) {
+      expect({ name, extracted: texts.includes(name) }).toEqual({
+        name,
+        extracted: false,
+      });
     }
   });
 });
