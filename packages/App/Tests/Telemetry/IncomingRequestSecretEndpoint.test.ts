@@ -110,9 +110,7 @@ const sendEmptySuccessResponse: jest.Mock =
 
 let policy: IncomingRequestSecretPolicyValue;
 let keptMonitor: MonitorOfSecretKey | null;
-let advanceIfTracked: jest.SpiedFunction<
-  typeof IncomingRequestReceivedAtStore.advanceIfTracked
->;
+let advanceIfTracked: jest.Mock;
 
 // Express 4 keeps these on each stack layer; its typings leave them out.
 interface RouteLayer {
@@ -213,7 +211,7 @@ beforeEach(() => {
 
   advanceIfTracked = jest
     .spyOn(IncomingRequestReceivedAtStore, "advanceIfTracked")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined) as unknown as jest.Mock;
 
   addIncomingRequestIngestJob.mockResolvedValue(undefined as never);
 });

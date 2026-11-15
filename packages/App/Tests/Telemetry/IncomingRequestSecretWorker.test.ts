@@ -104,8 +104,8 @@ const monitorResource: jest.Mock =
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 
 let policy: IncomingRequestSecretPolicyValue;
-let track: jest.SpiedFunction<typeof IncomingRequestReceivedAtStore.track>;
-let recordUse: jest.SpiedFunction<typeof IncomingRequestSecretPolicy.recordUse>;
+let track: jest.Mock;
+let recordUse: jest.Mock;
 
 const job: (
   overrides?: Partial<IncomingRequestIngestJobData>,
@@ -153,7 +153,7 @@ beforeEach(() => {
     .spyOn(IncomingRequestReceivedAtStore, "track")
     .mockImplementation(async (data: { receivedAt: Date }) => {
       return data.receivedAt;
-    });
+    }) as unknown as jest.Mock;
 
   jest
     .spyOn(IncomingRequestSecretPolicy, "getPolicy")
@@ -163,7 +163,7 @@ beforeEach(() => {
 
   recordUse = jest
     .spyOn(IncomingRequestSecretPolicy, "recordUse")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(undefined) as unknown as jest.Mock;
 });
 
 afterEach(() => {
