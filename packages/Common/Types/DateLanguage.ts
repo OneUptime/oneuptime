@@ -696,6 +696,8 @@ export type RelativeDateUnit =
   | "minute"
   | "hour"
   | "day"
+  // For a caller that counts weeks (formatRelativeAmount): "vor 3 Wochen".
+  | "week"
   | "month"
   | "year";
 

@@ -13,7 +13,19 @@ import {
   readDtoString,
   readDtoUnixMs,
 } from "Common/Types/Rum/SessionReplayApi";
-import { formatReplayDuration } from "./ReplayTimeFormat";
+import {
+  formatRelativeAmount,
+  isEnglishDateLanguage,
+  RelativeDateUnit,
+  withDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import { formatReplayDurationInLanguage } from "./ReplayTimelineMath";
 
 /*
  * "This user's other sessions", for the player's header
@@ -444,6 +456,81 @@ const MINUTE_MS: number = 60 * 1000;
 const HOUR_MS: number = 60 * MINUTE_MS;
 const DAY_MS: number = 24 * HOUR_MS;
 
+// English, as the node tests and a caller with no translator read it.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * What a row says when it has no start time, as English keys looked up in
+ * the reader's language (#8298).
+ */
+export const REPLAY_USER_SESSION_JUST_NOW: string = translationKey("just now");
+export const REPLAY_USER_SESSION_UNKNOWN_TIME: string =
+  translationKey("Unknown time");
+export const REPLAY_USER_SESSION_NO_START_TIME: string = translationKey(
+  "Start time unavailable",
+);
+
+/*
+ * How long ago a session started, in the buckets the row reads: under 45
+ * seconds is now (count 0), then one minute, minutes, one hour, hours, one
+ * day, days and weeks, at moment's fromNow thresholds - and weeks from a
+ * fortnight on, which fromNow never says.
+ */
+interface ReplayUserSessionAge {
+  unit: RelativeDateUnit;
+  count: number;
+}
+
+function getReplayUserSessionAge(
+  startTimeUnixMs: number,
+  nowUnixMs: number,
+): ReplayUserSessionAge {
+  const elapsedMs: number = nowUnixMs - startTimeUnixMs;
+
+  if (!Number.isFinite(elapsedMs) || elapsedMs < 45 * 1000) {
+    return { unit: "second", count: 0 };
+  }
+
+  if (elapsedMs < 90 * 1000) {
+    return { unit: "minute", count: 1 };
+  }
+
+  if (elapsedMs < 45 * MINUTE_MS) {
+    return { unit: "minute", count: Math.round(elapsedMs / MINUTE_MS) };
+  }
+
+  if (elapsedMs < 90 * MINUTE_MS) {
+    return { unit: "hour", count: 1 };
+  }
+
+  if (elapsedMs < 22 * HOUR_MS) {
+    return { unit: "hour", count: Math.round(elapsedMs / HOUR_MS) };
+  }
+
+  if (elapsedMs < 36 * HOUR_MS) {
+    return { unit: "day", count: 1 };
+  }
+
+  if (elapsedMs < 14 * DAY_MS) {
+    return { unit: "day", count: Math.round(elapsedMs / DAY_MS) };
+  }
+
+  return { unit: "week", count: Math.round(elapsedMs / (7 * DAY_MS)) };
+}
+
+// The English words of an age, exactly as the menu has always read.
+function writeReplayUserSessionAgeInEnglish(age: ReplayUserSessionAge): string {
+  if (age.count === 0) {
+    return REPLAY_USER_SESSION_JUST_NOW;
+  }
+
+  if (age.count === 1) {
+    return age.unit === "hour" ? "an hour ago" : `a ${age.unit} ago`;
+  }
+
+  return `${age.count} ${age.unit}s ago`;
+}
+
 /*
  * "5 minutes ago" against a SUPPLIED now, in the same voice as
  * OneUptimeDate.fromNow (moment's thresholds). Not fromNow itself: the
@@ -453,42 +540,40 @@ const DAY_MS: number = 24 * HOUR_MS;
  * device clock ahead of the server's) reads "just now" rather than
  * "in 3 minutes", which would be a claim about the future no recording
  * can make.
+ *
+ * In the translator's language (#8298): English word for word as above;
+ * any other language says it the way its Intl does, in its own digits -
+ * "vor 5 Minuten", "۵ دقیقه پیش", "قبل 5 دقائق" - counted in the same
+ * buckets, and "just now" in the locale's words. A browser without
+ * Intl.RelativeTimeFormat, or a language it cannot write, reads English.
  */
 export function formatReplayUserSessionAge(
   startTimeUnixMs: number,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): string {
-  const elapsedMs: number = nowUnixMs - startTimeUnixMs;
+  const age: ReplayUserSessionAge = getReplayUserSessionAge(
+    startTimeUnixMs,
+    nowUnixMs,
+  );
+  const english: string = writeReplayUserSessionAgeInEnglish(age);
 
-  if (!Number.isFinite(elapsedMs) || elapsedMs < 45 * 1000) {
-    return "just now";
+  if (age.count === 0) {
+    return translator.translateText(REPLAY_USER_SESSION_JUST_NOW) || english;
   }
 
-  if (elapsedMs < 90 * 1000) {
-    return "a minute ago";
+  if (isEnglishDateLanguage(translator.language)) {
+    return english;
   }
 
-  if (elapsedMs < 45 * MINUTE_MS) {
-    return `${Math.round(elapsedMs / MINUTE_MS)} minutes ago`;
-  }
-
-  if (elapsedMs < 90 * MINUTE_MS) {
-    return "an hour ago";
-  }
-
-  if (elapsedMs < 22 * HOUR_MS) {
-    return `${Math.round(elapsedMs / HOUR_MS)} hours ago`;
-  }
-
-  if (elapsedMs < 36 * HOUR_MS) {
-    return "a day ago";
-  }
-
-  if (elapsedMs < 14 * DAY_MS) {
-    return `${Math.round(elapsedMs / DAY_MS)} days ago`;
-  }
-
-  return `${Math.round(elapsedMs / (7 * DAY_MS))} weeks ago`;
+  return (
+    formatRelativeAmount({
+      count: age.count,
+      unit: age.unit,
+      isFuture: false,
+      locale: translator.language,
+    }) || english
+  );
 }
 
 export interface ReplayUserSessionDescription {
@@ -504,26 +589,39 @@ export interface ReplayUserSessionDescription {
   deviceHint: string;
 }
 
+/*
+ * A row of the menu and the ended card's next-session line, in the
+ * translator's language and digits (#8298): when it started ("vor 5
+ * Minuten"), the timestamp under it, and how long it ran - "4 Min., 12
+ * Sek.", "۴ دقیقه ۱۲ ثانیه" - through the player's own length helper. The
+ * menu and the player hand theirs in (useTranslator()); without one it is
+ * English, exactly as before.
+ */
 export function describeReplayUserSession(
   item: ReplayUserSessionItem,
   nowUnixMs: number,
+  translator: Translator = ENGLISH,
 ): ReplayUserSessionDescription {
   const hasStart: boolean =
     Number.isFinite(item.startTimeUnixMs) && item.startTimeUnixMs > 0;
 
   return {
     when: hasStart
-      ? formatReplayUserSessionAge(item.startTimeUnixMs, nowUnixMs)
-      : "Unknown time",
+      ? formatReplayUserSessionAge(item.startTimeUnixMs, nowUnixMs, translator)
+      : translator.translateText(REPLAY_USER_SESSION_UNKNOWN_TIME) ||
+        REPLAY_USER_SESSION_UNKNOWN_TIME,
     absolute: hasStart
-      ? OneUptimeDate.getDateAsLocalFormattedString(
-          new Date(item.startTimeUnixMs),
-          false,
-          false,
-          true,
-        )
-      : "Start time unavailable",
-    duration: formatReplayDuration(item.durationMs),
+      ? withDateDisplayLanguage(translator.language, (): string => {
+          return OneUptimeDate.getDateAsLocalFormattedString(
+            new Date(item.startTimeUnixMs),
+            false,
+            false,
+            true,
+          );
+        })
+      : translator.translateText(REPLAY_USER_SESSION_NO_START_TIME) ||
+        REPLAY_USER_SESSION_NO_START_TIME,
+    duration: formatReplayDurationInLanguage(item.durationMs, translator),
     path: replayUserSessionPathOf(item.entryUrl),
     deviceHint: [item.browserName, item.deviceType]
       .filter((part: string): boolean => {
