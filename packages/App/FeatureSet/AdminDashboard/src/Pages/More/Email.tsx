@@ -107,6 +107,7 @@ const MoreEmail: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.moreEmail.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

@@ -39,6 +39,7 @@ const ProjectTelemetryUsage: FunctionComponent = (): ReactElement => {
       modelType={Project}
       modelAPI={AdminModelAPI}
       title={t("pages.projectView.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

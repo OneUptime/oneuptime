@@ -122,6 +122,7 @@ export const InventoryUptimeValue: FunctionComponent<
         text={translator.translateTemplate("Booted at {{date}}", {
           date: OneUptimeDate.getDateAsFormattedString(props.lastRebootedAt),
         })}
+        isTextTranslated={true}
       >
         <span className="text-sm text-gray-900">{humanizedUptime}</span>
       </Tooltip>

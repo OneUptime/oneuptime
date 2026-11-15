@@ -78,6 +78,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
       modelType={Project}
       modelAPI={AdminModelAPI}
       title={t("pages.projectTeamView.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
