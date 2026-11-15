@@ -2,8 +2,8 @@
   /*
    * Every Common test file, as one program. `npm run compile-tests`, run by
    * the compile-common job in the Compile workflow, type-checks it in parts
-   * that extend this file and change only what they include
-   * (tsconfig.tests.app-dashboard-a-m.json, tsconfig.tests.app-rest.json,
+   * that extend this file and change only what they include (the five
+   * tsconfig.tests.app-dashboard-*.json, tsconfig.tests.app-rest.json,
    * tsconfig.tests.ui.json, tsconfig.tests.server.json,
    * tsconfig.tests.server-utils.json and tsconfig.tests.rest.json): as one
    * program it outgrew an 8 GiB heap.
