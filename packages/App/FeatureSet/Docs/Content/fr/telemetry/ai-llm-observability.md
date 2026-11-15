@@ -321,7 +321,7 @@ Les prompts et les réponses envoyés comme événements de journal sont stocké
 
 Dans les deux cas, une règle lit chaque texte d'une liste ou d'une valeur structurée, comme les messages qu'une instrumentation envoie sous forme de liste plutôt que de texte JSON, et garde la forme de la valeur : une adresse e-mail dans un prompt est masquée où qu'elle se trouve. Voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles).
 
-Les conversations sont lues avec la même permission que les traces : quiconque peut lire les traces du projet peut lire ses conversations, et personne d'autre. Les conversations d'un outil d'IA de l'entreprise sont l'exception : seuls les propriétaires et administrateurs du projet peuvent les lire, sauf si leur connexion en décide autrement ([Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools#confidentialité)).
+Les conversations sont lues avec la même permission que les traces : quiconque peut lire les traces du projet peut lire ses conversations, et personne d'autre. Les conversations d'un outil d'IA de l'entreprise sont l'exception : seuls les Propriétaires du projet et Administrateurs du projet peuvent les lire, sauf si leur connexion en décide autrement ([Outils d'IA de l'entreprise](/docs/telemetry/ai-company-tools#confidentialité)).
 
 ## Attributs lus par OneUptime
 

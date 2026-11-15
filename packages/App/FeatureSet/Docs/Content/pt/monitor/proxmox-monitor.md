@@ -289,7 +289,7 @@ No envio nativo do Proxmox VE, um nó retirado do cluster parece igual a um que 
 :::
 
 :::details Contadores como pve_network_receive_bytes só crescem
-As séries de E/S de rede e de disco são contadores de toda a vida útil, e os critérios comparam valores brutos: não há operador de taxa, e **Convert to per-second rate** no construtor de consultas só muda o gráfico. Mostre-os como taxa, ou alerte sobre o crescimento com uma fórmula, como uma consulta de **Máximo** menos uma consulta de **Mínimo** do mesmo contador.
+As séries de E/S de rede e de disco são contadores de toda a vida útil, e os critérios comparam valores brutos: não há operador de taxa, e **Converter em taxa por segundo** no construtor de consultas só muda o gráfico. Mostre-os como taxa, ou alerte sobre o crescimento com uma fórmula, como uma consulta de **Máximo** menos uma consulta de **Mínimo** do mesmo contador.
 :::
 
 ## Próximos passos

@@ -155,12 +155,12 @@ En regel ringer til en person på det nummer, personen har bekræftet til indgå
 :::steps
 1. Åbn **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre**. **Indgående opkaldspolitik** er et afsnit i sidemenuen, der starter foldet sammen.
 2. Klik i kortet **Telefonnumre til indgående opkaldsrouting** på **Tilføj Telefonnummer til indgående opkaldsrouting**, og indtast nummeret med landekode, fx `+15551234567`.
-3. Indtast den 6-cifrede kode, som OneUptime sender til nummeret via SMS, under **Bekræftelseskode**, og klik på **Bekræft**. **Send a new code** sender en ny.
+3. Indtast den 6-cifrede kode, som OneUptime sender til nummeret via SMS, under **Bekræftelseskode**, og klik på **Bekræft**. **Send en ny kode** sender en ny.
 :::
 
 Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
 
-Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler**.
+Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En Projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler**.
 
 ## Talebeskeder og politikindstillinger
 
@@ -198,7 +198,7 @@ Et opkald er ubesvaret, når det slutter uden at nå nogen: dets status er **Int
 
 ### Hvem der får besked
 
-Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne og medlemmerne af de teams, der er tilføjet på politikkens side **Ejere**. Har politikken ingen ejere, får projektets ejere besked i stedet.
+Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne og medlemmerne af de teams, der er tilføjet på politikkens side **Ejere**. Har politikken ingen ejere, får Projektejere besked i stedet.
 
 Notifikationen siger, hvem der ringede, hvilket nummer der blev ringet til, hvorfor ingen svarede, og hvem der blev ringet til, og hvordan hvert forsøg endte. Den linker til opkaldet i opkaldsloggen.
 
@@ -275,7 +275,7 @@ Kontoen kan kun ændres, mens politikken ikke har nogen telefonnumre: siden sige
 :::
 
 :::details Koden til en ingeniørs nummer kommer ikke frem
-SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt uden sin egen standard-Twilio-konfiguration for SMS'erne af sin saldo, som skal være over 1 USD. Koder kan være et minut om at komme frem; klik på **Send a new code** for at sende en ny, og **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** viser, hvad der skete med den.
+SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt uden sin egen standard-Twilio-konfiguration for SMS'erne af sin saldo, som skal være over 1 USD. Koder kan være et minut om at komme frem; klik på **Send en ny kode** for at sende en ny, og **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** viser, hvad der skete med den.
 :::
 
 ## Næste trin

@@ -47,7 +47,7 @@ flowchart TB
 ## 시작하기 전에
 
 - OneUptime에 들어오는 로그. [OpenTelemetry](/docs/telemetry/open-telemetry), [syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) 또는 프로브를 통해 들어옵니다.
-- 파이프라인을 변경할 권한. 프로젝트 소유자와 관리자에게는 있으며, 그 밖의 사용자에게는 **Create Log Pipeline** 및 **Create Log Pipeline Processor** 권한이 필요합니다.
+- 파이프라인을 변경할 권한. 프로젝트 소유자와 프로젝트 관리자에게는 있으며, 그 밖의 사용자에게는 **Create Log Pipeline** 및 **Create Log Pipeline Processor** 권한이 필요합니다.
 
 ## 파이프라인 만들기
 

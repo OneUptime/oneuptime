@@ -188,7 +188,17 @@ interface PageUnderTest {
   hints: {
     // TimeRangeZoomHints, each revealed while the pointer is over its card.
     card: number;
-    // ChartGroup hint lines, one per MetricView chart, always shown.
+    /*
+     * Of those, the ones that name the drag while zoomed too ("Drag to zoom
+     * · double-click to reset"): ChartGroup's, which draws the shared hint
+     * with namesDragWhileZoomed since 7c7d1c2dcb5. The rest say "Double-click
+     * to reset".
+     */
+    cardNamingDrag: number;
+    /*
+     * ChartGroup's own hint lines, which it drew before it took the shared
+     * hint (7c7d1c2dcb5): none on any page now, which this holds.
+     */
     group: number;
     // A chart whose card (or section) hint the spec reveals by hovering it.
     hoverChart: string;
@@ -246,7 +256,7 @@ const KUBERNETES_OVERVIEW: PageUnderTest = {
   },
   resetButtons: 1,
   // One under each chart card's header.
-  hints: { card: 5, group: 0, hoverChart: "CPU" },
+  hints: { card: 5, cardNamingDrag: 0, group: 0, hoverChart: "CPU" },
 };
 
 const HOST_OVERVIEW: PageUnderTest = {
@@ -284,7 +294,7 @@ const HOST_OVERVIEW: PageUnderTest = {
   },
   resetButtons: 1,
   // One per section: Availability, and the Resource usage row.
-  hints: { card: 2, group: 0, hoverChart: "CPU" },
+  hints: { card: 2, cardNamingDrag: 0, group: 0, hoverChart: "CPU" },
 };
 
 const KUBERNETES_INSIGHTS: PageUnderTest = {
@@ -333,8 +343,11 @@ const KUBERNETES_INSIGHTS: PageUnderTest = {
     window: { start: at("09:00"), end: at("12:00") },
   },
   resetButtons: 3,
-  // The network chart's hint row, and ChartGroup's line on the others.
-  hints: { card: 1, group: 5, hoverChart: "Network" },
+  /*
+   * The network chart's hint row, and the shared hint ChartGroup draws on
+   * each of the others since 7c7d1c2dcb5 (no line of its own any more).
+   */
+  hints: { card: 6, cardNamingDrag: 5, group: 0, hoverChart: "Network" },
 };
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -892,11 +905,31 @@ async function expectHints(
   zoomed: boolean,
 ): Promise<void> {
   await expect(cardHints(page)).toHaveCount(subject.hints.card);
-  for (let index: number = 0; index < subject.hints.card; index++) {
-    await expect(cardHints(page).nth(index)).toHaveText(
-      zoomed ? HINT_RESET_TEXT : HINT_TEXT,
-    );
-  }
+  /*
+   * While zoomed, ChartGroup's hints name the drag too and the others do
+   * not; read as one set, wherever on the page each chart sits.
+   */
+  const expectedTexts: Array<string> = Array.from(
+    { length: subject.hints.card },
+    (_: unknown, index: number): string => {
+      if (!zoomed) {
+        return HINT_TEXT;
+      }
+
+      return index < subject.hints.cardNamingDrag
+        ? GROUP_HINT_RESET_TEXT
+        : HINT_RESET_TEXT;
+    },
+  ).sort();
+  await expect
+    .poll(async (): Promise<Array<string>> => {
+      return (await cardHints(page).allTextContents())
+        .map((text: string): string => {
+          return text.replace(/\s+/g, " ").trim();
+        })
+        .sort();
+    })
+    .toEqual(expectedTexts);
   await expect(groupHints(page)).toHaveCount(subject.hints.group);
   for (let index: number = 0; index < subject.hints.group; index++) {
     await expect(groupHints(page).nth(index)).toHaveText(

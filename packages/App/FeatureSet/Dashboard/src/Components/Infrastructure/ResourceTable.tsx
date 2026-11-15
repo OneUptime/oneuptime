@@ -320,20 +320,20 @@ export function formatMemoryValue(bytes: number | null): string {
     return `${formatReaderFigure(bytes, {
       decimals: 1,
       dropTrailingZeros: true,
-    })} B`;
+    })}\u00A0B`;
   }
 
   if (bytes < 1024 * 1024) {
-    return `${formatReaderFigure(bytes / 1024, { decimals: 1 })} KB`;
+    return `${formatReaderFigure(bytes / 1024, { decimals: 1 })}\u00A0KB`;
   }
 
   if (bytes < 1024 * 1024 * 1024) {
-    return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })} MB`;
+    return `${formatReaderFigure(bytes / (1024 * 1024), { decimals: 1 })}\u00A0MB`;
   }
 
   return `${formatReaderFigure(bytes / (1024 * 1024 * 1024), {
     decimals: 2,
-  })} GB`;
+  })}\u00A0GB`;
 }
 
 // A row's status in the reader's language.

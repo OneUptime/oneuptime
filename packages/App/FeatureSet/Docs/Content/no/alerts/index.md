@@ -175,7 +175,7 @@ Et kriterium holder ett åpent varsel om gangen. Til det varselet er løst, legg
 :::
 
 :::details En kollega kan åpne et varsel som jeg ikke finner
-Varselet er sannsynligvis privat. Be en prosjektadministrator om å legge deg til som eier eller slå av **Privat varsel** på varselets side **Innstillinger**.
+Varselet er sannsynligvis privat. Be en Prosjektadministrator om å legge deg til som eier eller slå av **Privat varsel** på varselets side **Innstillinger**.
 :::
 
 ## Neste steg

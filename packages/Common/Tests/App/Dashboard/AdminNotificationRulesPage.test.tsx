@@ -2126,7 +2126,7 @@ describe("the on-behalf-of banner", () => {
     });
   });
 
-  test("a project owner keeps the controls even without the granular permission", async () => {
+  test("a Project Owner keeps the controls even without the granular permission", async () => {
     /*
      * Existing teams are seeded with ROLES, never with individual granular
      * permissions, so a permission introduced in this release is held by nobody

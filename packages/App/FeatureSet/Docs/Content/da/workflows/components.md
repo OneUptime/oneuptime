@@ -491,7 +491,7 @@ En post, der ikke passer på noget, stopper ikke trinnet: posten oprettes allige
 
 **Create One Incident** og **Create One Alert** har indstillingerne **Ejer-brugere** og **Ejer-teams**: de personer og teams, der ejer posten, fra den bliver oprettet. Vælg dem, eller tag dem fra et tidligere trin: en brugers id eller e-mailadresse, et teams id, flere adskilt af kommaer eller en liste. Postens ejere hører, at den er oprettet, omkring et minut efter oprettelsen, alle de ejere, den har til den tid: dem, der vælges her, er altid blandt dem, mens ejere, som et senere trin tilføjer, går glip af det, når det trin kører mere end et minut senere, og projektets ejere får besked i stedet.
 
-Trinnet spørger, om det må tilføje dem, som Project Admin for arbejdsgangens projekt, før posten gemmes: ejere, det ikke må tilføje, får oprettelsen afvist. En person, der ikke er medlem af projektet, eller et team, der ikke er et af projektets, udelades, og kørselsloggen siger det: posten oprettes alligevel. Ejere, der tilføjes på denne måde, får ikke besked om, at de er tilføjet: beskeden om, at posten er oprettet, er den, de får.
+Trinnet spørger, om det må tilføje dem, som Projektadministrator for arbejdsgangens projekt, før posten gemmes: ejere, det ikke må tilføje, får oprettelsen afvist. En person, der ikke er medlem af projektet, eller et team, der ikke er et af projektets, udelades, og kørselsloggen siger det: posten oprettes alligevel. Ejere, der tilføjes på denne måde, får ikke besked om, at de er tilføjet: beskeden om, at posten er oprettet, er den, de får.
 
 ## Arbejd med poster
 

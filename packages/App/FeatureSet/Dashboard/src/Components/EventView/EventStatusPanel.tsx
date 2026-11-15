@@ -675,7 +675,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Lock}
                 tooltip={
                   props.privateTooltip ||
-                  "Visible only to owners, owner teams, and project admins."
+                  "Visible only to owners, owner teams, and Project Admins."
                 }
               />
             )}

@@ -133,7 +133,7 @@ Un estado dice cuánto presupuesto queda, no qué hace tu equipo al respecto. Pa
 
 Cuando un SLO pasa a **En riesgo** o **Presupuesto agotado**, OneUptime avisa a sus propietarios:
 
-- Los propietarios son los usuarios y los miembros de los equipos de la página **Propietarios** del SLO que siguen siendo miembros del proyecto. Un SLO sin propietarios avisa en su lugar a los propietarios del proyecto.
+- Los propietarios son los usuarios y los miembros de los equipos de la página **Propietarios** del SLO que siguen siendo miembros del proyecto. Un SLO sin propietarios avisa en su lugar a los Propietarios del proyecto.
 - Cada propietario recibe un correo electrónico de forma predeterminada, y la notificación por cualquier otro canal que active para **El estado del SLO cambió** en **Ajustes de usuario** → **Ajustes de notificaciones** → **Monitoreo**.
 - El asunto del correo nombra el estado y el SLO, por ejemplo `[SLO At Risk] API Availability`.
 

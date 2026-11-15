@@ -41,7 +41,7 @@ Med prosjekt-SCIM styrer identitetsleverandører teammedlemmene i OneUptime-pros
 
 ### Sette opp prosjekt-SCIM
 
-Bare en prosjekteier kan legge til eller endre SCIM-tilkoblingen til et prosjekt, eller se eller tilbakestille bearer-tokenet: via SCIM kan identitetsleverandøren din legge personer til i hvilket som helst team i prosjektet.
+Bare en Prosjekteier kan legge til eller endre SCIM-tilkoblingen til et prosjekt, eller se eller tilbakestille bearer-tokenet: via SCIM kan identitetsleverandøren din legge personer til i hvilket som helst team i prosjektet.
 :::steps
 1. **Gå til prosjektinnstillingene**
 
@@ -88,7 +88,7 @@ Noen identitetsleverandører tar ikke vare på et bearer-token, og ber i stedet 
 
 Identitetsleverandøren din sender klient-ID-en og hemmeligheten til tokenendepunktet og får et tilgangstoken som gjelder i én time. Bearer-tokenet til tilkoblingen fortsetter å virke ved siden av.
 
-For å erstatte en hemmelighet klikker du på **Make New Client Secret**. Den forrige hemmeligheten fortsetter å virke til den utløper eller du klikker på **Delete Previous Secret**, slik at identitetsleverandøren din kan få den nye uten avbrudd i klargjøringen: slett den gamle når identitetsleverandøren bruker den nye. En hemmelighet som utløper eller slettes, avslutter umiddelbart tilgangstokenene som ble utstedt med den. De som kan endre bearer-tokenet til en tilkobling, kan opprette og slette hemmelighetene dens: en prosjekteier, eller for en statusside, den som kan redigere single sign-on for statussiden.
+For å erstatte en hemmelighet klikker du på **Make New Client Secret**. Den forrige hemmeligheten fortsetter å virke til den utløper eller du klikker på **Delete Previous Secret**, slik at identitetsleverandøren din kan få den nye uten avbrudd i klargjøringen: slett den gamle når identitetsleverandøren bruker den nye. En hemmelighet som utløper eller slettes, avslutter umiddelbart tilgangstokenene som ble utstedt med den. De som kan endre bearer-tokenet til en tilkobling, kan opprette og slette hemmelighetene dens: en Prosjekteier, eller for en statusside, den som kan redigere single sign-on for statussiden.
 
 ## SCIM for statussider
 
@@ -394,7 +394,7 @@ På OneUptime Cloud fungerer SCIM-klargjøring bare fullt ut så lenge prosjekte
 
 Ingenting slettes. Oppgrader til **Scale**, så fungerer tilkoblingene fullt ut igjen slik de er, med det samme bearer-tokenet og ingenting å sette opp på nytt i identitetsleverandøren din; en planendring trer i kraft innen ett minutt. Identitetsleverandører fortsetter å kalle etter sin egen tidsplan: Okta viser avvisningene blant klargjøringsfeilene sine, og Entra ID viser dem i klargjøringsloggene sine og kan sette en jobb som stadig mislykkes i karantene, noe som senker synkroniseringene — også fjerninger — til omtrent én om dagen. Start klargjøringen på nytt der etter oppgraderingen, slik at personene som er lagt til i mellomtiden, blir klargjort.
 
-Under **Scale** viser **Prosjektinnstillinger** > **Sikkerhet** > **SCIM** og siden **SCIM** for en statusside tilkoblingene under planens oppgraderingstilbud (**SCIM-tilkoblinger som fortsatt er satt opp**) og sier at de bare fjerner personer. Slett en tilkobling for å fjerne den. Å legge til en tilkobling, endre en eller erstatte bearer-tokenet krever **Scale**. Listen viser ikke bearer-tokener, og bare prosjekteiere kan lese et token, på alle planer.
+Under **Scale** viser **Prosjektinnstillinger** > **Sikkerhet** > **SCIM** og siden **SCIM** for en statusside tilkoblingene under planens oppgraderingstilbud (**SCIM-tilkoblinger som fortsatt er satt opp**) og sier at de bare fjerner personer. Slett en tilkobling for å fjerne den. Å legge til en tilkobling, endre en eller erstatte bearer-tokenet krever **Scale**. Listen viser ikke bearer-tokener, og bare Prosjekteiere kan lese et token, på alle planer.
 
 ## Feilsøking
 

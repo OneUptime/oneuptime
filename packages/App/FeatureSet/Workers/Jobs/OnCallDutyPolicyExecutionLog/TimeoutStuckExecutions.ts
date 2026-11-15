@@ -13,12 +13,20 @@ import {
   isOnCallDirectPage,
 } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE,
+  ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE,
+} from "Common/Types/OnCallDutyPolicy/OnCallRunStart";
 
-// What a run that cannot be handed over ends with, as it always did.
-export const ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE: string =
-  "Policy Execution timed out.";
-export const ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE: string =
-  "Policy Execution never started (stuck in Scheduled) and was timed out.";
+/*
+ * What a run that cannot be handed over ends with, as it always did: kept
+ * with the lines a run starts with (OnCallRunStart), where the on-call logs
+ * read them back to word them in the reader's language (#8434).
+ */
+export {
+  ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE,
+  ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE,
+};
 
 /**
  * Runs move from Scheduled to Started to Executing in seconds. One still

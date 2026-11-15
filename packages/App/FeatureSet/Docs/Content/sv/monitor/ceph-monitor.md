@@ -275,7 +275,7 @@ En hälsokontroll som aldrig har utlösts har ingen serie, `ceph_daemon_health_m
 :::
 
 :::details Räknare som ceph_pool_wr_bytes växer bara
-Poolernas I/O-serier är räknare över hela livslängden, och kriterier jämför råa värden: Det finns ingen rate-operator, och **Convert to per-second rate** i frågebyggaren ändrar bara diagrammet. Visa dem som rate, eller larma på deras tillväxt med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga för samma räknare.
+Poolernas I/O-serier är räknare över hela livslängden, och kriterier jämför råa värden: Det finns ingen rate-operator, och **Räkna om till takt per sekund** i frågebyggaren ändrar bara diagrammet. Visa dem som rate, eller larma på deras tillväxt med en formel, till exempel en **Maximum**-fråga minus en **Minimum**-fråga för samma räknare.
 :::
 
 ## Nästa steg

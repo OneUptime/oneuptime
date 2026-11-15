@@ -790,17 +790,17 @@ describe("a member who may not read a kind of record is told so", () => {
     [
       WorkspaceOpenRecordKind.Incidents,
       new NotAuthorizedException("no read"),
-      "You do not have permission to see the incidents in this project. Ask a project admin for access to them.",
+      "You do not have permission to see the incidents in this project. Ask a Project Admin for access to them.",
     ],
     [
       WorkspaceOpenRecordKind.Alerts,
       new PaymentRequiredException("plan"),
-      "You do not have permission to see the alerts in this project. Ask a project admin for access to them.",
+      "You do not have permission to see the alerts in this project. Ask a Project Admin for access to them.",
     ],
     [
       WorkspaceOpenRecordKind.UpcomingMaintenance,
       new NotAuthorizedException("no read"),
-      "You do not have permission to see the maintenance events in this project. Ask a project admin for access to them.",
+      "You do not have permission to see the maintenance events in this project. Ask a Project Admin for access to them.",
     ],
   ])(
     "%s",

@@ -151,9 +151,11 @@ describe("describePingResult", () => {
         return row.label;
       }),
     ).toEqual(["Average RTT", "Min / Max RTT", "Jitter", "Packet loss"]);
-    expect(rowValue(summary, "Average RTT")).toBe("12.4 ms");
-    expect(rowValue(summary, "Min / Max RTT")).toBe("10.2 ms / 20.1 ms");
-    expect(rowValue(summary, "Jitter")).toBe("1.2 ms");
+    expect(rowValue(summary, "Average RTT")).toBe("12.4\u00A0ms");
+    expect(rowValue(summary, "Min / Max RTT")).toBe(
+      "10.2\u00A0ms / 20.1\u00A0ms",
+    );
+    expect(rowValue(summary, "Jitter")).toBe("1.2\u00A0ms");
     expect(rowValue(summary, "Packet loss")).toBe("0% (5/5 received)");
   });
 
@@ -449,7 +451,7 @@ describe("describeTraceRoute", () => {
     });
 
     expect(summary.dnsLine).toBe(
-      "core.example.com resolved to 10.0.0.1, 10.0.0.2 in 12 ms",
+      "core.example.com resolved to 10.0.0.1, 10.0.0.2 in 12\u00A0ms",
     );
   });
 
@@ -569,10 +571,10 @@ describe("latencyPointsFromAggregates", () => {
 
 describe("formatRoundTrip", () => {
   test("one decimal, with the unit", () => {
-    expect(formatRoundTrip(12.44)).toBe("12.4 ms");
-    expect(formatRoundTrip(0)).toBe("0.0 ms");
+    expect(formatRoundTrip(12.44)).toBe("12.4\u00A0ms");
+    expect(formatRoundTrip(0)).toBe("0.0\u00A0ms");
     // A thousand or more takes its separator, as every duration does (#7418).
-    expect(formatRoundTrip(1234.56)).toBe("1,234.6 ms");
+    expect(formatRoundTrip(1234.56)).toBe("1,234.6\u00A0ms");
   });
 
   test("a missing value is a dash, not NaN ms", () => {

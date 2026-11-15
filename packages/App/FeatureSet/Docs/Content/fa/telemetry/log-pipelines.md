@@ -47,7 +47,7 @@ flowchart TB
 ## پیش از شروع
 
 - لاگ‌هایی که به OneUptime می‌رسند — از راه [OpenTelemetry](/docs/telemetry/open-telemetry)، [syslog](/docs/telemetry/syslog)، [Fluentd](/docs/telemetry/fluentd) یا یک پراب.
-- مجوز تغییر خط‌های لوله. مالکان و مدیران پروژه آن را دارند؛ دیگران به مجوزهای **Create Log Pipeline** و **Create Log Pipeline Processor** نیاز دارند.
+- مجوز تغییر خط‌های لوله. مالکان پروژه و مدیران پروژه آن را دارند؛ دیگران به مجوزهای **Create Log Pipeline** و **Create Log Pipeline Processor** نیاز دارند.
 
 ## ساخت خط لوله
 

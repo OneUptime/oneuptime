@@ -56,7 +56,7 @@ Los formularios empiezan con estos dos, y llegarán más tipos de registro.
 ## Antes de empezar
 
 - **Un plan que incluya formularios.** En OneUptime Cloud, los formularios necesitan el plan **Growth** o superior. Consulta [Plan](#plan).
-- **Permiso para crear formularios.** **Create Form** corresponde a los propietarios y administradores del proyecto, y a los roles a los que se lo des. Consulta [Permisos](#permisos).
+- **Permiso para crear formularios.** **Create Form** corresponde a los Propietarios del proyecto y Administradores del proyecto, y a los roles a los que se lo des. Consulta [Permisos](#permisos).
 - **Para un formulario de incidentes, una severidad.** Cada incidente necesita una: de una pregunta, de los ajustes del formulario o de su plantilla de incidente. Sin ella, se rechaza cada envío. Consulta [Lo que crea un envío](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-un-incidente).
 
 ## Crear tu primer formulario
@@ -127,7 +127,7 @@ Los envíos los escribe el formulario, nunca una persona, y no se pueden editar.
 
 ## Permisos
 
-Los formularios permiten que personas ajenas a tu equipo creen incidentes y eventos de mantenimiento en tu proyecto, así que los gestionan los propietarios y administradores del proyecto, y los roles a los que des los permisos **Form**. Están en el grupo **Form** de la [Referencia de permisos](/docs/permissions/reference):
+Los formularios permiten que personas ajenas a tu equipo creen incidentes y eventos de mantenimiento en tu proyecto, así que los gestionan los Propietarios del proyecto y Administradores del proyecto, y los roles a los que des los permisos **Form**. Están en el grupo **Form** de la [Referencia de permisos](/docs/permissions/reference):
 
 | Permiso | Qué permite | Quién lo tiene por defecto |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ Los formularios permiten que personas ajenas a tu equipo creen incidentes y even
 | **Delete Form Domain** | Quitar los dominios personalizados de un formulario. | Propietario del proyecto, Administrador del proyecto y **Edit Form** |
 | **Read Form Domain** | Ver los dominios personalizados de un formulario, sus registros DNS y en qué punto está cada uno camino de HTTPS. | Cualquiera con **Read Form** |
 
-Los envíos contienen lo que escribieron desconocidos (nombres, direcciones de correo y respuestas que quizá nunca lleguen al registro), así que solo los ven los propietarios y administradores del proyecto, salvo que concedas **Read Form Submission**. Quien puede leer un formulario puede ver y compartir su enlace. Enviar un formulario no necesita ningún permiso. Para ver cómo se combinan los roles y los permisos granulares, consulta [Usuarios, equipos y permisos](/docs/permissions/index).
+Los envíos contienen lo que escribieron desconocidos (nombres, direcciones de correo y respuestas que quizá nunca lleguen al registro), así que solo los ven los Propietarios del proyecto y Administradores del proyecto, salvo que concedas **Read Form Submission**. Quien puede leer un formulario puede ver y compartir su enlace. Enviar un formulario no necesita ningún permiso. Para ver cómo se combinan los roles y los permisos granulares, consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
 ## Plan
 

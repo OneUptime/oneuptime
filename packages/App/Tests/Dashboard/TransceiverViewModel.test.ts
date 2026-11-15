@@ -245,13 +245,13 @@ describe("words beside the value", () => {
 
   test("values are printed the way switch CLIs print them", () => {
     expect(formatReadingValue(TransceiverReadingKind.RxPower, -4.7)).toBe(
-      "-4.70 dBm",
+      "-4.70\u00A0dBm",
     );
     expect(formatReadingValue(TransceiverReadingKind.TxPower, 0)).toBe(
-      "0.00 dBm",
+      "0.00\u00A0dBm",
     );
     expect(formatReadingValue(TransceiverReadingKind.Temperature, 34.62)).toBe(
-      "34.6 °C",
+      "34.6\u00A0°C",
     );
     expect(formatReadingValue(TransceiverReadingKind.Voltage, 3.3)).toBe(
       "3.30 V",

@@ -216,7 +216,7 @@ describe("a probe's Retry Attempts", () => {
     expect(partsOf(result.getAllByTestId("probe-attempt-line")[2]!)).toEqual([
       "المحاولة 3/3",
       "نجح",
-      "1,234\u00A0ملي ث",
+      "1,234\u00A0ملي\u00A0ث",
       "HTTP 200",
     ]);
   });
@@ -227,7 +227,7 @@ describe("a probe's Retry Attempts", () => {
     expect(partsOf(result.getAllByTestId("probe-attempt-line")[0]!)).toEqual([
       "Versuch 1/3",
       "Fehlgeschlagen",
-      "1.234 ms",
+      "1.234\u00A0ms",
     ]);
 
     const card: string = withoutIsolateMarks(
@@ -247,9 +247,9 @@ describe("a probe's Retry Attempts", () => {
         return line.textContent;
       }),
     ).toEqual([
-      "Attempt 1/3—Failed—1,234 ms",
-      "Attempt 2/3—Failed—1,234 ms",
-      "Attempt 3/3—Succeeded—1,234 ms—HTTP 200",
+      "Attempt 1/3—Failed—1,234\u00A0ms",
+      "Attempt 2/3—Failed—1,234\u00A0ms",
+      "Attempt 3/3—Succeeded—1,234\u00A0ms—HTTP 200",
     ]);
   });
 });
@@ -303,8 +303,8 @@ describe("a custom code monitor's Retry Attempts", () => {
         return line.textContent;
       }),
     ).toEqual([
-      "Attempt 1/2—Failed—30,000 ms",
-      "Attempt 2/2—Succeeded—1,234 ms",
+      "Attempt 1/2—Failed—30,000\u00A0ms",
+      "Attempt 2/2—Succeeded—1,234\u00A0ms",
     ]);
   });
 });

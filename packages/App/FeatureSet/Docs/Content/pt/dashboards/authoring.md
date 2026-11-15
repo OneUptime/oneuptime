@@ -11,7 +11,7 @@ Para criar um painel, abra **Produtos → Painéis** e clique em **Criar painel*
 
 ## Antes de começar
 
-Os proprietários e administradores do projeto podem criar e editar todos os painéis. Os demais precisam de uma permissão de equipe: `CreateDashboard` para criar painéis e `EditDashboard` para alterá-los. Membros e visualizadores do projeto podem ler os painéis sem nenhuma das duas. Quem não pode editar um painel ainda abre o menu **⋯** dele, onde **Editar painel** fica bloqueado e informa qual permissão é necessária.
+Os Proprietários do projeto e Administradores do projeto podem criar e editar todos os painéis. Os demais precisam de uma permissão de equipe: `CreateDashboard` para criar painéis e `EditDashboard` para alterá-los. Membros do projeto e Visualizadores podem ler os painéis sem nenhuma das duas. Quem não pode editar um painel ainda abre o menu **⋯** dele, onde **Editar painel** fica bloqueado e informa qual permissão é necessária.
 
 ## Criar o painel
 

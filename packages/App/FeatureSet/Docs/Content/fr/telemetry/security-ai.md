@@ -123,7 +123,7 @@ Vérifiez que **Activer l'IA** est activé, ainsi que **Qualifier les nouveaux d
 :::
 
 :::details La carte indique que le projet n'a plus de crédits IA, ou qu'il a atteint sa limite quotidienne d'IA
-Un propriétaire du projet ou une personne disposant de Manage Billing peut ajouter des crédits sous **Paramètres du projet → IA → Crédits IA**, ou relever ou supprimer la limite sous **Paramètres du projet → IA → Fonctionnalités IA**. Cliquez ensuite sur **Qualifier avec l'IA** sur le dossier.
+Un Propriétaire du projet ou une personne disposant de Manage Billing peut ajouter des crédits sous **Paramètres du projet → IA → Crédits IA**, ou relever ou supprimer la limite sous **Paramètres du projet → IA → Fonctionnalités IA**. Cliquez ensuite sur **Qualifier avec l'IA** sur le dossier.
 :::
 
 :::details La carte indique qu'un texte du dossier ressemble à des instructions adressées à une IA

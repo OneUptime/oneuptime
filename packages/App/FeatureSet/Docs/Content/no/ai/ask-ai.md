@@ -146,7 +146,7 @@ Spør AI sier hvorfor før du skriver: prosjektets abonnement omfatter ikke AI, 
 :::
 
 :::details En handling ble avvist
-Spør AI sier hvilken tillatelse handlingen trenger, eller hvilket team som blokkerer den. Be noen som har lov til å gjøre endringen, eller be en prosjekteier om å gi rollen din tillatelsen. Ingenting ble endret.
+Spør AI sier hvilken tillatelse handlingen trenger, eller hvilket team som blokkerer den. Be noen som har lov til å gjøre endringen, eller be en Prosjekteier om å gi rollen din tillatelsen. Ingenting ble endret.
 :::
 
 :::details Svarene er vage eller bruker aldri data

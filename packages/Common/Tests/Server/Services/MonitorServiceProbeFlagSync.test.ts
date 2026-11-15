@@ -1282,7 +1282,7 @@ describe("MonitorService probe flags", () => {
       },
     );
 
-    it("falls back to the project owners when the monitor has no owners", async () => {
+    it("falls back to the Project Owners when the monitor has no owners", async () => {
       ownersToReturn = [];
 
       await MonitorService.notifyOwnersProbesDisconnected({

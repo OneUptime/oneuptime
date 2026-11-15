@@ -3913,7 +3913,7 @@ export class PermissionHelper {
         permission: Permission.CreateWorkspaceNotificationRuleOwningTeam,
         title: "Create Workspace Notification Rule Owning Team",
         description:
-          "This permission can make teams owners of Workspace Notification Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Workspace Notification Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17572,7 +17572,7 @@ export class PermissionHelper {
         permission: Permission.CreateAlertOnCallRuleOwningTeam,
         title: "Create Alert On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Alert On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Alert On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -17780,7 +17780,7 @@ export class PermissionHelper {
         permission: Permission.CreateAlertEpisodeOnCallRuleOwningTeam,
         title: "Create Alert Episode On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Alert Episode On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Alert Episode On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18747,7 +18747,7 @@ export class PermissionHelper {
         permission: Permission.CreateIncidentOnCallRuleOwningTeam,
         title: "Create Incident On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Incident On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Incident On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18829,7 +18829,7 @@ export class PermissionHelper {
         permission: Permission.CreateIncidentOwnerRuleOwningTeam,
         title: "Create Incident Owner Rule Owning Team",
         description:
-          "This permission can make teams owners of Incident Owner Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Incident Owner Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -18953,7 +18953,7 @@ export class PermissionHelper {
         permission: Permission.CreateIncidentEpisodeOnCallRuleOwningTeam,
         title: "Create Incident Episode On-Call Rule Owning Team",
         description:
-          "This permission can make teams owners of Incident Episode On-Call Rules of this project. Only an owning team's members, and project admins, can change or delete a rule with owning teams.",
+          "This permission can make teams owners of Incident Episode On-Call Rules of this project. Only an owning team's members, and Project Admins, can change or delete a rule with owning teams.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

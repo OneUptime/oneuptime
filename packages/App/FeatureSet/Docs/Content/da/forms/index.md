@@ -56,7 +56,7 @@ Formularer starter med disse to, og flere slags poster følger.
 ## Før du begynder
 
 - **En plan, der omfatter formularer.** På OneUptime Cloud kræver formularer planen **Growth** eller højere. Se [Plan](#plan).
-- **Tilladelse til at oprette formularer.** **Create Form** har projektejere og -administratorer samt de roller, du giver den til. Se [Tilladelser](#tilladelser).
+- **Tilladelse til at oprette formularer.** **Create Form** har Projektejere og Projektadministratorer samt de roller, du giver den til. Se [Tilladelser](#tilladelser).
 - **For en hændelsesformular, en alvorsgrad.** Hver hændelse har brug for én: fra et spørgsmål, fra formularens indstillinger eller fra dens hændelsesskabelon. Uden den afvises hver indsendelse. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-hændelse).
 
 ## Opret din første formular
@@ -127,7 +127,7 @@ Indsendelser skrives af formularen, aldrig manuelt, og kan ikke redigeres. Når 
 
 ## Tilladelser
 
-Formularer lader folk uden for dit team oprette hændelser og vedligeholdelseshændelser i dit projekt, så de styres af projektejere og -administratorer samt af de roller, du giver tilladelserne **Form**. De står i gruppen **Form** i [Tilladelsesreference](/docs/permissions/reference):
+Formularer lader folk uden for dit team oprette hændelser og vedligeholdelseshændelser i dit projekt, så de styres af Projektejere og Projektadministratorer samt af de roller, du giver tilladelserne **Form**. De står i gruppen **Form** i [Tilladelsesreference](/docs/permissions/reference):
 
 | Tilladelse | Hvad den tillader | Hvem har den som standard |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ Formularer lader folk uden for dit team oprette hændelser og vedligeholdelsesh�
 | **Delete Form Domain** | Fjerne en formulars brugerdefinerede domæner. | Projektejer, Projektadministrator og **Edit Form** |
 | **Read Form Domain** | Se en formulars brugerdefinerede domæner, deres DNS-poster og hvor langt hvert er på vejen mod HTTPS. | Alle med **Read Form** |
 
-Indsendelser indeholder det, fremmede har skrevet (navne, e-mailadresser og svar, der måske aldrig når posten), så kun projektejere og -administratorer ser dem, medmindre du giver **Read Form Submission**. Alle, der kan læse en formular, kan se og dele dens link. Det kræver ingen tilladelse at indsende en formular. Hvordan roller og detaljerede tilladelser spiller sammen, kan du læse om i [Brugere, teams og tilladelser](/docs/permissions/index).
+Indsendelser indeholder det, fremmede har skrevet (navne, e-mailadresser og svar, der måske aldrig når posten), så kun Projektejere og Projektadministratorer ser dem, medmindre du giver **Read Form Submission**. Alle, der kan læse en formular, kan se og dele dens link. Det kræver ingen tilladelse at indsende en formular. Hvordan roller og detaljerede tilladelser spiller sammen, kan du læse om i [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Plan
 

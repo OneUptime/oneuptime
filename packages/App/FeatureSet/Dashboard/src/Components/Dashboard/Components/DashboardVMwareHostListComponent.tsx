@@ -192,12 +192,12 @@ export function formatVMwareHostMhz(
     return `${formatReaderFigure(numeric / 1000, {
       decimals: 1,
       language: translator.language,
-    })} GHz`;
+    })}\u00A0GHz`;
   }
   return `${formatReaderFigure(Math.round(numeric), {
     decimals: 0,
     language: translator.language,
-  })} MHz`;
+  })}\u00A0MHz`;
 }
 
 export function formatVMwareHostBytes(
@@ -218,7 +218,7 @@ export function formatVMwareHostBytes(
   return `${formatReaderFigure(scaled, {
     decimals: unitIndex === 0 ? 0 : 1,
     language: translator.language,
-  })} ${units[unitIndex]}`;
+  })}\u00A0${units[unitIndex]}`;
 }
 
 /*

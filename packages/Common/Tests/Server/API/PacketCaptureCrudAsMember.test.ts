@@ -18,7 +18,7 @@ import {
  * nothing of it stubbed but the table, which is held in memory, and the
  * probe and the file store around it.
  *
- * A customer's every capture was refused, the project owner's included:
+ * A customer's every capture was refused, the Project Owner's included:
  * "User is not allowed to create on fileId column of Packet Capture". The
  * create hook stamped fileId null, DatabaseService checks the record as the
  * hooks leave it against the caller's create permission, and nobody may
@@ -156,8 +156,8 @@ const CUSTOMER_START: {
 
 // Who may start a capture, as the docs name them.
 const STARTERS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   [
     "a member whose team was given Start Packet Capture",
     [Permission.ProjectMember, Permission.CreatePacketCapture],
@@ -188,8 +188,8 @@ const NOT_STARTERS: Array<[string, Array<Permission>]> = [
 ];
 
 const DELETERS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   [
     "a member whose team was given Delete Packet Capture",
     [Permission.ProjectMember, Permission.DeletePacketCapture],
@@ -210,8 +210,8 @@ const NOT_DELETERS: Array<[string, Array<Permission>]> = [
 ];
 
 const READERS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["a project member", [Permission.ProjectMember]],
   ["a viewer", [Permission.Viewer]],
 ];
@@ -697,7 +697,7 @@ describe("edit: PUT /packet-capture/:id", () => {
   });
 
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
+    ["a Project Owner", [Permission.ProjectOwner]],
     [
       "a member who may start captures",
       [Permission.ProjectMember, Permission.CreatePacketCapture],

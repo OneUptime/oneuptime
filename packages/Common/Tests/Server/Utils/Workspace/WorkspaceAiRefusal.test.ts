@@ -74,7 +74,7 @@ describe("getCreditsRefusal: the credits, before a question is acknowledged", ()
 
   test("the sentence names who can add credits, and where", () => {
     expect(PROJECT_AI_CREDITS_USED_UP_MESSAGE).toBe(
-      "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      "This project's AI credits are used up. A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 

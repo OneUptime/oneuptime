@@ -588,24 +588,24 @@ describe("formatMbps", () => {
   });
 
   test("keeps one decimal below 10 Mbps, including zero", () => {
-    expect(formatMbps(0)).toBe("0.0 Mbps");
-    expect(formatMbps(2.5)).toBe("2.5 Mbps");
+    expect(formatMbps(0)).toBe("0.0\u00A0Mbps");
+    expect(formatMbps(2.5)).toBe("2.5\u00A0Mbps");
   });
 
   test("rounds to whole Mbps from 10 up", () => {
-    expect(formatMbps(10)).toBe("10 Mbps");
-    expect(formatMbps(999.4)).toBe("999 Mbps");
+    expect(formatMbps(10)).toBe("10\u00A0Mbps");
+    expect(formatMbps(999.4)).toBe("999\u00A0Mbps");
   });
 
   test("stays in Mbps just under the Gbps cutover, even when rounding hits 1000", () => {
     // The >= 1000 tier check runs on the raw value, before rounding.
-    expect(formatMbps(999.6)).toBe("1000 Mbps");
+    expect(formatMbps(999.6)).toBe("1000\u00A0Mbps");
   });
 
   test("switches to Gbps with two decimals from 1000 Mbps", () => {
-    expect(formatMbps(1000)).toBe("1.00 Gbps");
-    expect(formatMbps(1500)).toBe("1.50 Gbps");
-    expect(formatMbps(100000)).toBe("100.00 Gbps");
+    expect(formatMbps(1000)).toBe("1.00\u00A0Gbps");
+    expect(formatMbps(1500)).toBe("1.50\u00A0Gbps");
+    expect(formatMbps(100000)).toBe("100.00\u00A0Gbps");
   });
 });
 
@@ -659,7 +659,7 @@ describe("describeEndpoint", () => {
         },
         undefined,
       ),
-    ).toBe("Gi0/1 · down · 84% · ↓12 Mbps ↑3.0 Mbps");
+    ).toBe("Gi0/1 · down · 84% · ↓12\u00A0Mbps ↑3.0\u00A0Mbps");
   });
 
   test("omits the down marker for an operationally up interface", () => {
@@ -683,7 +683,7 @@ describe("describeEndpoint", () => {
   test("shows a dash for the missing direction when only one rate is known", () => {
     expect(
       describeEndpoint({ interfaceName: "Gi0/1", inRateMbps: 5 }, undefined),
-    ).toBe("Gi0/1 · ↓5.0 Mbps ↑—");
+    ).toBe("Gi0/1 · ↓5.0\u00A0Mbps ↑—");
   });
 });
 

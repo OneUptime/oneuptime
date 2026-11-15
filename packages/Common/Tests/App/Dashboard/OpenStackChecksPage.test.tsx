@@ -685,11 +685,11 @@ describe("an archived cloud", () => {
 
 describe("what the page works out", () => {
   test("durations read as a person would say them", () => {
-    expect(getOpenStackCheckDurationText(850)).toBe("850 ms");
-    expect(getOpenStackCheckDurationText(1500)).toBe("1.5 s");
+    expect(getOpenStackCheckDurationText(850)).toBe("850\u00A0ms");
+    expect(getOpenStackCheckDurationText(1500)).toBe("1.5\u00A0s");
     expect(getOpenStackCheckDurationText(200_000)).toBe("3m 20s");
     expect(getOpenStackCheckDurationText(119_900)).toBe("2m 0s");
-    expect(getOpenStackCheckDurationText(Number.NaN)).toBe("0 ms");
+    expect(getOpenStackCheckDurationText(Number.NaN)).toBe("0\u00A0ms");
   });
 
   test("API checks are one click only with a probe, an address and a credential", () => {

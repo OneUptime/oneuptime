@@ -11,7 +11,7 @@ For at oprette et dashboard åbner du **Produkter → Dashboards** og klikker p�
 
 ## Før du begynder
 
-Projektejere og -administratorer kan oprette og redigere alle dashboards. Alle andre skal have en teamtilladelse: `CreateDashboard` for at oprette dashboards og `EditDashboard` for at ændre dem. Projektmedlemmer og seere kan læse dashboards uden nogen af dem. Den, der ikke må redigere et dashboard, kan stadig åbne dets menu **⋯**, hvor **Rediger dashboard** er låst og fortæller, hvilken tilladelse der kræves.
+Projektejere og Projektadministratorer kan oprette og redigere alle dashboards. Alle andre skal have en teamtilladelse: `CreateDashboard` for at oprette dashboards og `EditDashboard` for at ændre dem. Projektmedlemmer og Seere kan læse dashboards uden nogen af dem. Den, der ikke må redigere et dashboard, kan stadig åbne dets menu **⋯**, hvor **Rediger dashboard** er låst og fortæller, hvilken tilladelse der kræves.
 
 ## Opret dashboardet
 

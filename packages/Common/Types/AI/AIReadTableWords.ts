@@ -836,6 +836,9 @@ export const AI_READ_TRIAGE_LABELS: Record<ErrorClass, string> = {
   [ErrorClass.Unknown]: translationKey("Unclassified"),
 };
 
+// An open data security issue's status, by its meaning key (Types/MeaningKeys).
+export const AI_READ_OPEN_STATUS_TERM: string = translationKey("Open (status)");
+
 /*
  * Data Security's words in its tables, as its pages' pills say them: a
  * store's sensitivity and exposure, an issue's severity and status, an
@@ -859,9 +862,12 @@ export const AI_READ_DATA_SECURITY_TERMS: ReadonlyArray<string> = [
   translationKey("Medium"),
   translationKey("Low"),
   /*
-   * DataSecurityIssueStatus, but Open: "Open" alone is every Open button's
-   * verb in every language ("Öffnen"), so an open issue's status is data.
+   * DataSecurityIssueStatus. "Open" alone is every Open button's verb in
+   * every language ("Öffnen"), so an open issue's status is its meaning key
+   * (Types/MeaningKeys), as the Data Security pages word it: "Open" in
+   * English and the stored row, "Offen" in German (#8512).
    */
+  AI_READ_OPEN_STATUS_TERM,
   translationKey("Resolved"),
   translationKey("Accepted"),
   translationKey("Not an issue"),
@@ -1448,6 +1454,70 @@ export const AI_READ_RESOURCE_KINDS: ReadonlyArray<string> = [
 
 /*
  * ---------------------------------------------------------------------------
+ * The chips of the tools Ask AI gets from outside the toolbox (#8511): a
+ * connected cluster's kubectl, a resource's AI agent, the external MCP
+ * servers and an investigation's remediation. A command, a cluster's, a
+ * runner's and a server's name are data.
+ * ---------------------------------------------------------------------------
+ */
+
+export const AI_TOOLKIT_CITATIONS: {
+  clustersAvailable: string;
+  commandOnCluster: string;
+  infrastructureAvailable: string;
+  commandOnResource: string;
+  mcpServerTools: string;
+  mcpServersTools: string;
+  mcpToolResult: string;
+  mcpToolNotRun: string;
+  noFixReason: string;
+  proposedRollback: string;
+  commandTargets: string;
+  sentToCluster: string;
+  executedOnCluster: string;
+  sentToResource: string;
+  executedOnResource: string;
+  executedOnRunner: string;
+  proposedPlan: string;
+} = {
+  clustersAvailable: translationKey("Clusters OneUptime AI can inspect"),
+  // {{command}} is the command as run; {{cluster}} the cluster's name.
+  commandOnCluster: translationKey('{{command}} on cluster "{{cluster}}"'),
+  infrastructureAvailable: translationKey(
+    "Infrastructure OneUptime AI can inspect",
+  ),
+  // {{resource}} is the resource, by its kind and name ('Docker host "web-1"').
+  commandOnResource: translationKey("{{command}} on {{resource}}"),
+  // {{server}} is the MCP server's name; {{tool}} its tool's.
+  mcpServerTools: translationKey("Tools of MCP server {{server}}"),
+  mcpServersTools: translationKey("Tools of the external MCP servers"),
+  // What a tool of an MCP server returned: no words of their own.
+  mcpToolResult: "{{server}} · {{tool}}",
+  mcpToolNotRun: translationKey("{{server}} · {{tool}} (not run)"),
+  noFixReason: translationKey("Why there is no fix"),
+  // {{deployment}} is namespace/deployment.
+  proposedRollback: translationKey("Proposed rolling back {{deployment}}"),
+  commandTargets: translationKey("Available command targets"),
+  sentToCluster: translationKey(
+    'Sent to cluster "{{cluster}}", result unknown: {{command}}',
+  ),
+  executedOnCluster: translationKey(
+    'Executed on cluster "{{cluster}}": {{command}}',
+  ),
+  sentToResource: translationKey(
+    "Sent to {{resource}}, result unknown: {{command}}",
+  ),
+  executedOnResource: translationKey("Executed on {{resource}}: {{command}}"),
+  // {{runner}} is the Runner's name.
+  executedOnRunner: translationKey(
+    'Executed on Runner "{{runner}}": {{command}}',
+  ),
+  // {{count}} is how many commands the plan proposes.
+  proposedPlan: translationKey("Proposed a {{count}}-command remediation plan"),
+};
+
+/*
+ * ---------------------------------------------------------------------------
  * Every sentence and term above, for AIActionWords' lists.
  * ---------------------------------------------------------------------------
  */
@@ -1465,6 +1535,7 @@ export const AI_READ_TABLE_AND_CITATION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_READ_ESCALATION_CHAIN),
   ...Object.values(AI_READ_RUNBOOK_STEP_INSTRUCTIONS),
   ...Object.values(AI_TOOL_CITATIONS),
+  ...Object.values(AI_TOOLKIT_CITATIONS),
 ];
 
 export const AI_READ_TABLE_AND_CITATION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> =

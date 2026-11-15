@@ -239,7 +239,7 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
         className="text-sm tabular-nums text-gray-700"
         data-testid="cloud-app-requests"
       >
-        {formatCompact(signals.requests)}
+        {formatCompact(signals.requests, translator)}
       </span>
     );
   }
@@ -265,7 +265,7 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
       data-testid="cloud-app-error-rate"
       data-tone={tone}
     >
-      {formatPercent(signals.errorRatePercent)}
+      {formatPercent(signals.errorRatePercent, translator)}
     </span>
   );
 };
@@ -347,13 +347,13 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
         data-tone={tone}
       >
         {translator.translateTemplate(APP_ERRORS_SUMMARY, {
-          rate: formatPercent(signals.errorRatePercent),
+          rate: formatPercent(signals.errorRatePercent, translator),
         })}
       </div>
       <div className="mt-0.5 whitespace-nowrap text-xs tabular-nums text-gray-500">
         <span data-testid="cloud-app-requests">
           {translator.translateTemplate(APP_REQUESTS_SUMMARY, {
-            requests: formatCompact(signals.requests),
+            requests: formatCompact(signals.requests, translator),
           })}
         </span>
         <InlineSeparator />

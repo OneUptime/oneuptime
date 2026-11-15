@@ -270,11 +270,11 @@ describe("the postmortem page's action items", () => {
       'FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm',
     );
     expect(INCIDENT_PRIVACY_FILTER).toContain(
-      " * Project owners and admins, plus root/master-admin contexts, see all\n * private incidents.",
+      " * Project Owners and Project Admins, plus root/master-admin contexts, see all\n * private incidents.",
     );
 
     expect(flat(section(POSTMORTEMS, "### See every action item"))).toContain(
-      "Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, project admins and project owners.",
+      "Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, Project Admins and Project Owners.",
     );
   });
 

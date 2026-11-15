@@ -664,7 +664,7 @@ describe("the sentences #6659 put right", () => {
     },
     {
       language: "fa",
-      english: "SMS is off in this project. A project owner, a Billing Admin",
+      english: "SMS is off in this project. A Project Owner, a Billing Admin",
       quoted: "Billing Admin",
     },
     {

@@ -47,7 +47,7 @@ flowchart TB
 ## 開始之前
 
 - 正在進入 OneUptime 的日誌，透過 [OpenTelemetry](/docs/telemetry/open-telemetry)、[syslog](/docs/telemetry/syslog)、[Fluentd](/docs/telemetry/fluentd) 或探測器傳送。
-- 變更管道的權限。專案擁有者與管理員擁有此權限；其他人需要 **Create Log Pipeline** 與 **Create Log Pipeline Processor** 權限。
+- 變更管道的權限。專案擁有者與專案管理員擁有此權限；其他人需要 **Create Log Pipeline** 與 **Create Log Pipeline Processor** 權限。
 
 ## 建立管道
 

@@ -173,7 +173,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. Tester rører verken p
 
 ## Forhåndsvis, kjør og importer ved behov
 
-Åpne **Diagnostikk** på en tilkobling for å se de siste kjøringene og betjene koblingen. Prosjekteiere, prosjektadministratorer og sikkerhetsadministratorer kan starte operasjoner. Sikkerhetsmedlemmer og -lesere kan lese historikken.
+Åpne **Diagnostikk** på en tilkobling for å se de siste kjøringene og betjene koblingen. Prosjekteiere, Prosjektadministratorer og Sikkerhetsadministratorer kan starte operasjoner. Sikkerhetsmedlemmer og -lesere kan lese historikken.
 
 - **Kjør nå** setter en poll i kø med en gang, med den vanlige markøren og inntaksveien, også når planlagt polling er slått av. Tilstandene i kø og kjører forblir synlige mens workeren utfører forespørselen. Hvis en kjøring blir stående i kø, sjekker du at workers behandler Worker-køen; kontrollen **Background workers** i Test tilkoblingen sier om noen prosess gjør det.
 - **Forhåndsvis deteksjoner** leser et valgt tidsrom uten å importere eller endre markøren. Bruk den siste timen, 24 timer, 7 dager eller et egendefinert tidsrom på opptil 7 dager. Tidsrommet samsvarer med varselvisningen i SecOps, som leser etter deteksjonstid, og de to søkegjennomgangene leser både deteksjoner som er opprettet i det, og deteksjoner der deteksjonstiden faller i det, så en forhåndsvisning av i går viser også deteksjoner som ble opprettet i går om eldre hendelser. Forhåndsvisningen viser deteksjonstid og opprettelsestid hver for seg. Resultatene følger tilkoblingens lagrede valg **Data som skal importeres**.

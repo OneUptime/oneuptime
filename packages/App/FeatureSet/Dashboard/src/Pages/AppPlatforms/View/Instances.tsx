@@ -236,6 +236,7 @@ export const CloudInstancesTable: FunctionComponent<
                   typeof item.latestCpuPercent === "number"
                     ? item.latestCpuPercent
                     : null,
+                  translator,
                 )}
               </span>
             );
@@ -253,6 +254,7 @@ export const CloudInstancesTable: FunctionComponent<
                   typeof item.latestMemoryBytes === "number"
                     ? item.latestMemoryBytes
                     : null,
+                  translator,
                 )}
               </span>
             );

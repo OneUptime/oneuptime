@@ -1007,7 +1007,7 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       "This project has no Acknowledged alert state, so the alerts cannot be acknowledged. Declare the incident without acknowledging them, or add an Acknowledged state in the alert settings.";
 
     const NO_PERMISSION_TO_ACKNOWLEDGE_MESSAGE: string =
-      "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.";
+      "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a Project Admin for permission.";
 
     const PRIVATE_INCIDENT_CAUSE: string =
       "Acknowledged because a private incident was declared from this alert.";

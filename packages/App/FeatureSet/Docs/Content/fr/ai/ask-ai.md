@@ -146,7 +146,7 @@ Demander à l'IA dit pourquoi avant que vous ne tapiez : l'offre du projet n'inc
 :::
 
 :::details Une action a été refusée
-Demander à l'IA dit quelle autorisation l'action demande, ou quelle équipe la bloque. Demandez à quelqu'un qui peut faire le changement, ou demandez à un propriétaire du projet de donner l'autorisation à votre rôle. Rien n'a été modifié.
+Demander à l'IA dit quelle autorisation l'action demande, ou quelle équipe la bloque. Demandez à quelqu'un qui peut faire le changement, ou demandez à un Propriétaire du projet de donner l'autorisation à votre rôle. Rien n'a été modifié.
 :::
 
 :::details Les réponses sont vagues ou n'utilisent jamais de données

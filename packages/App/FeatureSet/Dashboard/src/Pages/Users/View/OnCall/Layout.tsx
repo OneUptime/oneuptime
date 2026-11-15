@@ -42,7 +42,7 @@ const UserViewOnCallLayout: FunctionComponent = (): ReactElement => {
 
   if (!data.value.canRead) {
     return (
-      <ErrorMessage message="You do not have permission to view this user's on-call notification configuration. Ask a project owner or admin for the 'Read User Notification Rules' permission." />
+      <ErrorMessage message="You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission." />
     );
   }
 

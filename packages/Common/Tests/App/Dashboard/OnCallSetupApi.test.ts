@@ -758,7 +758,7 @@ describe("the phone", () => {
       const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
 
       await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow(
-        "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
+        "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
       );
       expect(postSpy).not.toHaveBeenCalled();
     },

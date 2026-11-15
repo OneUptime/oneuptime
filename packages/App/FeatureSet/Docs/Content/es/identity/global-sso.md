@@ -1,6 +1,6 @@
 # SSO global
 
-El SSO global permite que un **administrador de la instancia** de OneUptime (administrador maestro) configure **una sola vez**, a nivel de instancia, un proveedor de identidad SAML 2.0 u OpenID Connect (OIDC) y lo conecte a cualquier proyecto del servidor. En lugar de que cada propietario de proyecto configure su propio proveedor de identidad, un administrador maestro configura uno que sirve a toda la instancia.
+El SSO global permite que un **administrador de la instancia** de OneUptime (administrador maestro) configure **una sola vez**, a nivel de instancia, un proveedor de identidad SAML 2.0 u OpenID Connect (OIDC) y lo conecte a cualquier proyecto del servidor. En lugar de que cada Propietario del proyecto configure su propio proveedor de identidad, un administrador maestro configura uno que sirve a toda la instancia.
 
 > [!NOTE]
 > El SSO global, incluido el interruptor "Require SSO for Login" para toda la instancia, forma parte de todas las ediciones de OneUptime: toda instancia autoalojada lo tiene, también la Community Edition, y no necesita licencia. Es administración de la instancia, así que no se aplica a OneUptime Cloud. Consulta [Edición Enterprise](/docs/self-hosted/enterprise) para ver qué incluye cada edición.
@@ -16,7 +16,7 @@ El SSO global permite que un **administrador de la instancia** de OneUptime (adm
 
 |                         | SSO de proyecto                                      | SSO global                                               |
 | ----------------------- | ---------------------------------------------------- | -------------------------------------------------------- |
-| Lo configura            | Propietario/administrador del proyecto (Ajustes del proyecto) | Administrador maestro de la instancia (Admin Dashboard) |
+| Lo configura            | Propietario del proyecto o Administrador del proyecto (Ajustes del proyecto) | Administrador maestro de la instancia (Admin Dashboard) |
 | Alcance                 | Un solo proyecto                                     | Toda la instancia, conectable a cualquier proyecto       |
 | Resultado del inicio de sesión | Acceso a ese único proyecto                   | Acceso a todos los proyectos a los que llega el usuario  |
 

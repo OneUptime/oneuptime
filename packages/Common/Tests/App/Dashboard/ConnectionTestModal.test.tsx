@@ -197,7 +197,7 @@ describe("ConnectionTestModal", () => {
           403,
           {
             message:
-              "Project owners, project administrators, and security administrators can run connection diagnostics.",
+              "Project Owners, project administrators, and security administrators can run connection diagnostics.",
           },
           {},
         ),

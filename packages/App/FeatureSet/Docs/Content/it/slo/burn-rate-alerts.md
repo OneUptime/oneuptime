@@ -235,7 +235,7 @@ Per esempio, il titolo `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRat
 - **Aggiungi i proprietari dello SLO come proprietari** aggiunge anche i proprietari dello SLO, i suoi utenti proprietari e i membri dei suoi team proprietari, a tutto ciò che la regola crea. I proprietari dello SLO sanno già dei cambi di stato dello SLO stesso, quindi questo può avvisarli due volte. È disattivato per impostazione predefinita.
 - Ogni proprietario viene aggiunto una volta: un utente che è già proprietario dell'avviso o dell'incidente, per esempio tramite le regole del proprietario del progetto, o che è in un team proprietario aggiunto, non viene aggiunto di nuovo.
 - **Etichette dell'avviso** e **Etichette dell'incidente** vengono aggiunte all'avviso o all'incidente, così filtri, regole del proprietario e regole di notifica dell'area di lavoro possono corrispondere.
-- Un avviso o un incidente privato è visibile solo ai suoi proprietari, agli amministratori del progetto e ai proprietari del progetto.
+- Un avviso o un incidente privato è visibile solo ai suoi proprietari, agli Amministratori del progetto e ai Proprietari del progetto.
 
 Etichette, team proprietari e politiche di reperibilità devono appartenere al progetto dello SLO.
 

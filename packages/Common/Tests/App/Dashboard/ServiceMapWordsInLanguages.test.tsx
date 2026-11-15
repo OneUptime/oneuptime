@@ -735,13 +735,13 @@ describe("English reads exactly as it did", () => {
     expect(cardStats("api")).toEqual([
       "600/min in",
       "10.0% errors",
-      "25 ms avg",
+      "25\u00A0ms avg",
     ]);
     expect(cardStats("web")[0]).toBe("600/min out");
     expect(cardStats("postgres")).toEqual([
       "1.2k/min in",
       "0% errors",
-      "4 ms avg",
+      "4\u00A0ms avg",
     ]);
 
     showConnectionLabels("errors");
@@ -750,7 +750,7 @@ describe("English reads exactly as it did", () => {
     showConnectionLabels("calls");
     expect(edgeLabel("api->postgres")).toBe("1.2k/min");
     showConnectionLabels("latency");
-    expect(edgeLabel("web->api")).toBe("25 ms");
+    expect(edgeLabel("web->api")).toBe("25\u00A0ms");
 
     expect(screen.getByTestId("service-map-summary")).toHaveTextContent(
       "1 inactive not shown",

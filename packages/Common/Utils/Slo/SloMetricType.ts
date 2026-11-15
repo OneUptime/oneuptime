@@ -2,7 +2,6 @@ import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import SloMetricType from "../../Types/ServiceLevelObjective/SloMetricType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import { translationKey } from "../../Types/Translator";
-import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "./SloEvaluation";
 
 /*
  * Display and catalog metadata for the `oneuptime.slo.*` metrics the SLO
@@ -141,7 +140,15 @@ class SloMetricTypeUtil {
           "Downtime the SLO can still absorb in its compliance window before it breaches. Negative once the budget is overspent.",
         );
       case SloMetricType.BurnRate:
-        return `How fast the error budget is being spent, measured over the trailing ${SLO_CURRENT_BURN_RATE_WINDOW_MINUTES} minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.`;
+        /*
+         * Written out whole, for the window SLO_CURRENT_BURN_RATE_WINDOW_MINUTES
+         * holds (60), so the series' stored description is a key the
+         * metrics list words (#8356). SloBurnRateDescriptionWindow holds the
+         * two together.
+         */
+        return translationKey(
+          "How fast the error budget is being spent, measured over the trailing 60 minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
+        );
       case SloMetricType.Status:
         return translationKey(
           "The SLO's status at each evaluation: 0 = Healthy, 1 = At Risk, 2 = Budget Exhausted. Paused and misconfigured evaluations record no point.",

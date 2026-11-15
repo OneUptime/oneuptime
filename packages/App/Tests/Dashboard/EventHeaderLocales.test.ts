@@ -35,7 +35,7 @@ const HEADER_WORDS: Array<string> = [
   "Severity",
   "Number",
   "Private",
-  "Visible only to owners, owner teams, and project admins.",
+  "Visible only to owners, owner teams, and Project Admins.",
   "More actions",
   "Change state to",
   "Move episode to",

@@ -1,3 +1,4 @@
+import { DataAlertCauseTitleWords } from "./DataAlertCauseTitles";
 import { DataObservabilityMetricName } from "./DataObservabilityMetric";
 
 /*
@@ -218,7 +219,15 @@ const CAUSE_ORDER: ReadonlyArray<DataAlertCauseKind> = [
 
 export interface DataAlertLikelyCause {
   kind: DataAlertCauseKind;
+  // In English, as it always read.
   title: string;
+  /*
+   * The same title as a sentence of the Dashboard's, with the names and
+   * counts that go into it, for the reader's language (DataAlertCauseTitles).
+   * None where the title is a record's own words: drawn as written.
+   */
+  titleWords?: DataAlertCauseTitleWords | undefined;
+  // What the source system said (a run's error, an exception's message), as it said it.
   detail?: string | undefined;
   at?: string | undefined;
 }

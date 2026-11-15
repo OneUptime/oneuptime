@@ -55,11 +55,15 @@ const ZWNJ: string = "\u{200C}";
 const UNIT: Record<string, string> = {
   en: "ms",
   de: "ms",
-  ar: "ملي ث",
+  // Its two words held together after the figure (#8304).
+  ar: "ملي\u00A0ث",
   fa: `میلی${ZWNJ}ثانیه`,
 };
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
+
+// Between a figure and its unit: a no-break space (#8302, #8304).
+const NB: string = "\u00A0";
 const LATIN_MS_AFTER_A_FIGURE: RegExp = /[0-9\u{06F0}-\u{06F9}]\s?ms\b/u;
 
 const translators: Record<string, Translator> = Object.fromEntries(
@@ -80,10 +84,10 @@ const milliseconds: (figures: Expected) => Expected = (
   figures: Expected,
 ): Expected => {
   return {
-    en: `${figures.en} ${UNIT["en"]}`,
-    de: `${figures.de} ${UNIT["de"]}`,
-    ar: `${figures.ar} ${UNIT["ar"]}`,
-    fa: `${figures.fa} ${UNIT["fa"]}`,
+    en: `${figures.en}${NB}${UNIT["en"]}`,
+    de: `${figures.de}${NB}${UNIT["de"]}`,
+    ar: `${figures.ar}${NB}${UNIT["ar"]}`,
+    fa: `${figures.fa}${NB}${UNIT["fa"]}`,
   };
 };
 
@@ -132,8 +136,10 @@ describe("traces", () => {
         return formatTraceListDuration(12_345_678, t);
       }),
     ).toEqual(milliseconds({ en: "12.3", de: "12,3", ar: "12.3", fa: "۱۲٫۳" }));
-    // The other units are as short as they were.
-    expect(formatTraceListDuration(500, translators["fa"]!)).toBe("500ns");
+    // The other units are the reader's too (#8348).
+    expect(formatTraceListDuration(500, translators["fa"]!)).toBe(
+      "۵۰۰\u00A0نانوثانیه",
+    );
   });
 
   // A chart's value axis and tooltip write it as the tiles beside them do (#8349).
@@ -144,7 +150,7 @@ describe("traces", () => {
       }),
     ).toEqual(milliseconds(FORTY_TWO));
     expect(formatTraceDurationMsInLanguage(5, translators["en"]!)).toBe(
-      "5.0 ms",
+      "5.0\u00A0ms",
     );
   });
 });
@@ -173,7 +179,7 @@ describe("databases and queues", () => {
         return formatDatabaseMetricAxisValue(0.042, "s", t);
       }),
     ).toEqual(milliseconds(FORTY_TWO));
-    expect(formatDatabaseMetricAxisValue(0.0042, "s")).toBe("4.2 ms");
+    expect(formatDatabaseMetricAxisValue(0.0042, "s")).toBe("4.2\u00A0ms");
   });
 });
 
@@ -184,7 +190,9 @@ describe("telemetry and topology", () => {
         return formatTelemetryDurationMs(5, t);
       }),
     ).toEqual(milliseconds(FIVE_TENTHS));
-    expect(formatTelemetryDurationMs(5, translators["en"]!)).toBe("5.0 ms");
+    expect(formatTelemetryDurationMs(5, translators["en"]!)).toBe(
+      "5.0\u00A0ms",
+    );
   });
 
   test("a topology call's average", () => {
@@ -194,7 +202,7 @@ describe("telemetry and topology", () => {
       }),
     ).toEqual(milliseconds(FORTY_TWO));
     // No translator: English, as a chart's axis writes it.
-    expect(formatTopologyDurationMs(42.4)).toBe("42 ms");
+    expect(formatTopologyDurationMs(42.4)).toBe("42\u00A0ms");
   });
 
   test("a cloud account's topology card, from seconds", () => {
@@ -235,7 +243,7 @@ describe("code and AI", () => {
       }),
     ).toEqual(milliseconds({ en: "0", de: "0", ar: "0", fa: "۰" }));
     // A second or more is as it was.
-    expect(formatLlmDuration(2300, translators["en"]!)).toBe("2.3 s");
+    expect(formatLlmDuration(2300, translators["en"]!)).toBe("2.3\u00A0s");
   });
 });
 
@@ -272,7 +280,7 @@ describe("infrastructure", () => {
         1_234_000,
         translators["en"]!,
       ),
-    ).toBe("1,234 ms");
+    ).toBe("1,234\u00A0ms");
   });
 
   test("a ping's round trips, to a tenth", () => {
@@ -311,7 +319,7 @@ describe("infrastructure", () => {
 
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatMerakiLatency(24, t).split(noBreakSpace).join(" ");
+        return formatMerakiLatency(24, t);
       }),
     ).toEqual(milliseconds({ en: "24", de: "24", ar: "24", fa: "۲۴" }));
     expect(formatMerakiLatency(1.2, translators["en"]!)).toBe(
@@ -368,7 +376,7 @@ describe("the others: breadcrumbs, replays, cloud tiles, connectors, App Service
       }),
     ).toEqual(milliseconds({ en: "420", de: "420", ar: "420", fa: "۴۲۰" }));
     // The panel's own English sentences keep it English.
-    expect(formatReplayMilliseconds(-420)).toBe("-420 ms");
+    expect(formatReplayMilliseconds(-420)).toBe("-420\u00A0ms");
   });
 
   test("a cloud headline tile, from seconds", () => {
@@ -394,7 +402,7 @@ describe("the others: breadcrumbs, replays, cloud tiles, connectors, App Service
       }),
     ).toEqual(milliseconds({ en: "450", de: "450", ar: "450", fa: "۴۵۰" }));
     // Without a translator, English, as before.
-    expect(formatAppServiceCpuTime(0.004)).toBe("4.0 ms");
+    expect(formatAppServiceCpuTime(0.004)).toBe("4.0\u00A0ms");
   });
 });
 

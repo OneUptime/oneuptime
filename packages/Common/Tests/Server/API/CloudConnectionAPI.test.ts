@@ -308,7 +308,7 @@ describe("POST /cloud-connection/test", () => {
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
     expect((next.mock.calls[0]![0] as Error).message).toContain(
-      "Project owners and project administrators",
+      "Project Owners and project administrators",
     );
     expect(testConnection).not.toHaveBeenCalled();
   });
