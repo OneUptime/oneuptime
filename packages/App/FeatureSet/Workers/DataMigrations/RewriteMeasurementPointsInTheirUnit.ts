@@ -83,6 +83,7 @@ export default class RewriteMeasurementPointsInTheirUnit extends DataMigrationBa
             data: {
               backfillRequestedAt: OneUptimeDate.getCurrentDate(),
               backfillCursorCreatedAt: null,
+              backfillCursorId: null,
               backfillCompletedAt: null,
             } as never,
             props: { isRoot: true },

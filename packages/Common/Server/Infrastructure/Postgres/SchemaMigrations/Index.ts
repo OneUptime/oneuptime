@@ -1005,6 +1005,7 @@ import { AddSavedAsRunbookToAutoRemediationSuggestion1809174900000 } from "./180
 import { AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000 } from "./1809174910000-AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey";
 import { RemoveServiceTelemetryLinkPermissions1809176500000 } from "./1809176500000-RemoveServiceTelemetryLinkPermissions";
 import { RemovePermissionsTeamsCannotBeGiven1809178100000 } from "./1809178100000-RemovePermissionsTeamsCannotBeGiven";
+import { AddMeasurementBackfillCursorId1809178200000 } from "./1809178200000-AddMeasurementBackfillCursorId";
 
 export default [
   InitialMigration,
@@ -2014,4 +2015,5 @@ export default [
   AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000,
   RemoveServiceTelemetryLinkPermissions1809176500000,
   RemovePermissionsTeamsCannotBeGiven1809178100000,
+  AddMeasurementBackfillCursorId1809178200000,
 ];

@@ -6,8 +6,8 @@ import ObjectID from "../../../Types/ObjectID";
  * BELONGS TO.
  *
  * A measurement's history is asked to be worked out again by stamping
- * backfillRequestedAt and clearing backfillCursorCreatedAt and
- * backfillCompletedAt: when the measurement is made and when what it means
+ * backfillRequestedAt and clearing the cursor (backfillCursorCreatedAt and
+ * backfillCursorId) and backfillCompletedAt: when the measurement is made and when what it means
  * changes (the measurement services' onBeforeCreate and onUpdatePermitted),
  * when First Paged At is filled for records paged before the upgrade
  * (FirstPagedAt), and when its points are rewritten in their unit
@@ -38,13 +38,26 @@ import ObjectID from "../../../Types/ObjectID";
  * that run when a measurement is updated.
  */
 
+/*
+ * How far a walk has got: the last record it worked out, by the two columns
+ * the walk is ordered by (MeasurementBackfillPage). The createdAt alone left
+ * the walk no way past a page of records created at one moment (#8171).
+ */
+export interface MeasurementBackfillCursor {
+  createdAt: Date;
+  id: ObjectID;
+}
+
 // One write of a walk, and the request it belongs to.
 export interface MeasurementBackfillProgressWrite {
   measurementId: ObjectID;
   // backfillRequestedAt as the walk read it, before its first page.
   requestedAt: Date;
-  // How far the walk has got (an entity's createdAt). Left alone when absent.
-  cursorCreatedAt?: Date | undefined;
+  /*
+   * How far the walk has got, written to backfillCursorCreatedAt and
+   * backfillCursorId together. Left alone when absent.
+   */
+  cursor?: MeasurementBackfillCursor | undefined;
   // When the walk finished. Left alone when absent.
   completedAt?: Date | undefined;
 }
@@ -58,7 +71,10 @@ export interface MeasurementBackfillStatement {
 /*
  * The service of a measurement table (IncidentMeasurementService,
  * AlertMeasurementService or ScheduledMaintenanceMeasurementService): the
- * table the write goes to, and the connection it goes on.
+ * table the write goes to, and the connection it goes on. A page of the walk
+ * (MeasurementBackfillPage) is read the same way from the service of the
+ * records walked (IncidentService, AlertService or
+ * ScheduledMaintenanceService).
  */
 export interface MeasurementBackfillService {
   getModel: () => { tableName: string | null };
@@ -85,11 +101,16 @@ export default class MeasurementBackfillProgress {
 
     /*
      * Only what the walk has. A completion with no cursor - a project with
-     * nothing in it - leaves the cursor as it is: null would clear it.
+     * nothing in it - leaves the cursor as it is: null would clear it. The
+     * cursor's two columns are written together, always: one record's
+     * createdAt with another's id would start the next page in the wrong
+     * place.
      */
-    if (data.write.cursorCreatedAt) {
-      parameters.push(data.write.cursorCreatedAt);
+    if (data.write.cursor) {
+      parameters.push(data.write.cursor.createdAt);
       assignments.push(`"backfillCursorCreatedAt" = $${parameters.length}`);
+      parameters.push(data.write.cursor.id.toString());
+      assignments.push(`"backfillCursorId" = $${parameters.length}`);
     }
 
     if (data.write.completedAt) {
