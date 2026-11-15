@@ -11,6 +11,7 @@ import { withoutIsolateMarks } from "Common/Tests/Helpers/IsolateMarks";
 import OneUptimeDate from "Common/Types/Date";
 import { withDateDisplayLanguage } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { LicenseSnapshot } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { PluralTemplate } from "Common/UI/Utils/TranslateTemplate";
@@ -370,7 +371,10 @@ describe("the license details in the reader's language", () => {
     expect(drawn).toContain("/ 50 Plätze");
     expect(drawn).toContain("2 über dem Limit");
     expect(drawn).toContain("2 Benutzer über Ihren lizenzierten Plätzen");
-    expect(drawn).toContain("104 % der lizenzierten Plätze belegt");
+    // A number and its unit on one line: a no-break space (Types/NoBreakSpaces).
+    expect(drawn).toContain(
+      `104${NO_BREAK_SPACE}% der lizenzierten Plätze belegt`,
+    );
     expect(drawn).toContain(
       "Diese Installation belegt 52 von 50 lizenzierten Plätzen.",
     );
@@ -389,7 +393,7 @@ describe("the license details in the reader's language", () => {
     );
     expect(screen.getByRole("progressbar")).toHaveAttribute(
       "aria-valuetext",
-      "104 % der lizenzierten Plätze belegt — 2 Benutzer über Ihren lizenzierten Plätzen",
+      `104${NO_BREAK_SPACE}% der lizenzierten Plätze belegt — 2 Benutzer über Ihren lizenzierten Plätzen`,
     );
   });
 
