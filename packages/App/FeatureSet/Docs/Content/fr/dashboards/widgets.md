@@ -146,8 +146,8 @@ Les widgets de traces ne comptent que les spans racines, comme l'explorateur de 
 
 | Widget | Ce qu'il affiche | Filtres |
 | --- | --- | --- |
-| **Liste des incidents** | Les incidents avec leur état et leur gravité. | Non résolus, acquittés ou résolus ; gravité, état, moniteurs et étiquettes. |
-| **Liste des alertes** | Les alertes avec leur état et leur gravité. | Non résolues, acquittées ou résolues ; gravité, état, moniteurs et étiquettes. |
+| **Liste des incidents** | Les incidents avec leur état et leur gravité. | Non résolus, pris en compte ou résolus ; gravité, état, moniteurs et étiquettes. |
+| **Liste des alertes** | Les alertes avec leur état et leur gravité. | Non résolues, prises en compte ou résolues ; gravité, état, moniteurs et étiquettes. |
 | **Liste des moniteurs** | Les moniteurs avec leur statut actuel. | Opérationnel ou non, statut, type de moniteur et étiquettes, ou une **Variable d'étiquette** que les personnes choisissent dans la barre d'outils. |
 
 Comme la plupart des widgets de liste, ces trois-là peuvent dessiner un nid d'abeilles de cellules colorées selon le statut au lieu d'un tableau : choisissez-le sous **Mode d'affichage**. Ils montrent l'état actuel, quelle que soit la plage temporelle du tableau de bord.

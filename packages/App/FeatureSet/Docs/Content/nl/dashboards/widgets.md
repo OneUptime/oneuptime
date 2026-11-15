@@ -146,8 +146,8 @@ De tracewidgets tellen alleen rootspans, net als de trace-verkenner, tenzij je o
 
 | Widget | Wat hij toont | Filters |
 | --- | --- | --- |
-| **Incidentenlijst** | Incidenten met hun toestand en ernst. | Onopgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
-| **Waarschuwingslijst** | Waarschuwingen met hun toestand en ernst. | Onopgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
+| **Incidentenlijst** | Incidenten met hun toestand en ernst. | Niet opgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
+| **Waarschuwingslijst** | Waarschuwingen met hun toestand en ernst. | Niet opgelost, bevestigd of opgelost; ernst, toestand, monitors en labels. |
 | **Monitorlijst** | Monitors met hun huidige status. | Operationeel of niet, status, monitortype en labels, of een **Labelvariabele** die kijkers in de werkbalk kiezen. |
 
 Net als de meeste lijstwidgets kunnen deze drie een honingraat tekenen van cellen gekleurd naar status in plaats van een tabel: kies dat onder **Weergavemodus**. Ze tonen de huidige toestand, wat het tijdsbereik van het dashboard ook is.
