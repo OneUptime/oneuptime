@@ -14,6 +14,7 @@
 - [傳送心跳](#傳送心跳): 從 curl、cron、Node.js、Python 或 Go 傳送。
 - [呼叫停止時發出警示](#10-分鐘內沒有心跳就標示為離線失效開關): 把監測器變成一個失效開關。
 - [接收警示](#接收其他系統的警示): Alertmanager 或 Grafana 的每則警示對應一個事件。
+- [訂閱 SNS 或 Event Grid](#訂閱-amazon-sns-或-azure-event-grid): 一鍵確認訂閱。
 :::
 
 ## 運作方式
@@ -93,6 +94,7 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 | --- | --- |
 | `application/json` | 剖析後的 JSON。 |
 | `application/x-www-form-urlencoded` | 剖析後的表單。帶方括號的鍵會形成巢狀（`alerts[0][status]=firing`），每個值都是字串。 |
+| `text/plain` | 文字是 JSON 物件或陣列時，為剖析後的 JSON：Amazon SNS 就是這樣傳送訊息的。其他任何文字都視為空的請求內文。 |
 | 其他任何類型，或沒有 | 空的請求內文（`{}`），因此對 `requestBody` 的任何參照都得不到值。 |
 
 最多接受 50 MB 的請求內文；更大的會以 `413` 拒絕。不要以 `Content-Encoding: gzip` 壓縮請求內文：那樣它就不會以 JSON 形式儲存，其中的路徑也無法解析。
@@ -345,6 +347,40 @@ flowchart TB
 
 完整的 Alertmanager 設定請參閱 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。Grafana 請參閱 [Grafana](/docs/integrations/grafana)。
 
+## 訂閱 Amazon SNS 或 Azure Event Grid
+
+在有人開啟服務傳送到新端點的連結、確認訂閱之前，Amazon SNS 和 Azure Event Grid 不會向該端點傳送任何內容。這個請求送達後，監測器 **概覽** 上的 **監測器摘要** 卡片會顯示服務在等待什麼、主題，以及一個會在新分頁中開啟該連結的按鈕。
+
+| 服務 | 請求 | 按鈕 | 連結有效期 |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`，用於新的 HTTPS 訂閱 | **確認訂閱** | 2 天 |
+| Amazon SNS | `UnsubscribeConfirmation`，在訂閱被刪除時傳送 | **還原訂閱** | 2 天 |
+| Azure Event Grid | `SubscriptionValidationEvent`，用於新的 Webhook 事件訂閱 | **驗證訂閱** | 10 分鐘 |
+
+即使你開啟了連結，按鈕也會一直保留，直到監測器收到下一個請求。連結過期後，卡片會改為說明如何取得新的連結。如果之後又有新的請求送達，請開啟 **監測日誌**，在該請求所在的列上點選 **檢視摘要**。
+
+連結及其中的權杖在請求被保留的所有地方都不會被遮蔽：請求詳細資料、日誌，以及它開啟的事件和警示。這個連結唯一能做的，就是開始傳送訊息到此監測器。只有指向服務本身位址的連結才算數：其他連結照常被遮蔽，也不會顯示按鈕。
+
+### Amazon SNS
+
+:::steps
+1. 在 Amazon SNS 主控台中開啟主題，選擇 **Create subscription**。通訊協定選擇 `HTTPS`，端點填入監測器的 **Heartbeat URL**。
+2. 開啟監測器的 **概覽**，在 **監測器摘要** 卡片中點選 **確認訂閱**。在 SNS 主控台中，該訂閱的狀態會從 **Pending confirmation** 變為已確認。
+:::
+
+SNS 以標示為 `text/plain` 的 JSON 傳送訊息，監測器會把它們當作 JSON 讀取，因此條件、範本和事件分組都可以使用其中的欄位，例如 `{{requestBody.Subject}}` 和 `{{requestBody.Message}}`。通知本身的 JSON（例如 CloudWatch 警報的 JSON）會以文字形式出現在 `Message` 中。
+
+如果卡片顯示連結已無法開啟，請在 SNS 主控台中選取該訂閱並選擇 **Request confirmation**。SNS 會刪除 48 小時內未確認的訂閱；如果發生這種情況，請重新建立訂閱。
+
+### Azure Event Grid
+
+:::steps
+1. 在 Azure 入口網站中開啟你想取得其事件的資源，並新增一個事件訂閱。事件結構描述選擇 **Event Grid Schema**，端點類型選擇 **Web Hook**，端點填入監測器的 **Heartbeat URL**。
+2. 在 10 分鐘內開啟監測器的 **概覽**，並在 **監測器摘要** 卡片中點選 **驗證訂閱**。
+:::
+
+Event Grid 會驗證這樣的端點：它把驗證碼原樣傳回，或者它的擁有者開啟了 Event Grid 傳送的連結。OneUptime 對每個請求都以空的 `200` 回應，因此只能透過連結來驗證。該連結指向連接埠 553 上的 Event Grid，你瀏覽器前方的防火牆必須允許這個連接埠。如果先過了 10 分鐘，事件訂閱就會失敗：請重新建立它。
+
 ## 最佳做法
 
 1. **適當設定時間範圍** —— 如果你的 cron 工作每 5 分鐘執行一次，就把 "在指定分鐘內未收到" 門檻設為 10–15 分鐘，以容許偶爾的延遲，並把這個條件放在第一位。
@@ -364,11 +400,15 @@ flowchart TB
 :::
 
 :::details 請求內文篩選器從不符合
-傳送 `Content-Type: application/json`，並把值寫成精簡的 JSON：`"status":"firing"`，冒號後面沒有空格。沒有 JSON 或表單內容類型時，請求內文不會被剖析。
+傳送 `Content-Type: application/json`，並把值寫成精簡的 JSON：`"status":"firing"`，冒號後面沒有空格。沒有 JSON 或表單內容類型時，請求內文不會被剖析：只有以 `text/plain` 傳送的 JSON 例外。
 :::
 
 :::details 「請求標頭」篩選器從不符合
 標頭的名稱和值是整體比較的。請提供完整的值，例如 `application/json; charset=utf-8`，而不是其中一部分。
+:::
+
+:::details Amazon SNS 顯示訂閱正在等待確認
+在監測器 **概覽** 上的 **監測器摘要** 卡片中點選 **確認訂閱**。如果之後又有新的請求送達，請開啟 **監測日誌**，在該確認請求所在的列上點選 **檢視摘要**。關閉 **保留請求內容** 時，監測器不會保留請求內文，因此也不會保留連結：在監測器的 **設定** 中開啟它，最新的請求就會連同連結再次顯示。
 :::
 
 :::details 傳送端收到 500
