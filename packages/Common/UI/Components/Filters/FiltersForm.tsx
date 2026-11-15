@@ -288,6 +288,7 @@ const ShownFiltersForm: FiltersFormFunction = <T extends GenericObject>(
           title={tx(
             showMoreFilters ? "Hide Advanced Filters" : "Show Advanced Filters",
           )}
+          isTitleTranslated={true}
           onClick={() => {
             setShowMoreFilters((currentValue: boolean) => {
               const newValue: boolean = !currentValue;

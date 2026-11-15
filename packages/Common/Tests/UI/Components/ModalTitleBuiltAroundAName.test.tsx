@@ -17,12 +17,10 @@ import { I18nextProvider } from "react-i18next";
  * connection's name as a value, the way the Dashboard's other dialogs
  * build a title around a value.
  *
- * Modal still looks its title up as a whole. A title worded already is no
- * key of the locale, so that lookup finds nothing and the title stays as
- * worded. The name is the record's own, and a name that is itself an
- * English key keeps its spelling. (Modal offering isTitleTranslated, so
- * that it is never looked up at all, is a follow-up: about 150 dialogs
- * hand it a worded title today.)
+ * The dialog says the title is in the reader's words already
+ * (isTitleTranslated, #8633), so Modal draws it as given and never looks
+ * it up again. The name is the record's own, and a name that is itself an
+ * English key keeps its spelling.
  */
 
 const NAME_THAT_IS_A_KEY: string = "Window not measured";
@@ -74,6 +72,7 @@ const ScimUrlsDialog: FunctionComponent<{ name: string }> = (props: {
         { name: props.name },
         { setsValuesApart: true },
       )}
+      isTitleTranslated={true}
       description="Configure your identity provider with these SCIM endpoint URLs:"
       onSubmit={noop}
     />

@@ -425,6 +425,7 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
         ) : (
           <Button
             title={sendCodeButtonText}
+            isTitleTranslated={true}
             buttonStyle={ButtonStyleType.LINK}
             buttonSize={ButtonSize.ExtraSmall}
             onClick={() => {

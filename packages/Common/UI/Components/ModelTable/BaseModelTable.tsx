@@ -6207,6 +6207,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            */
           isDefaultLayout={isEmptyColumnPreference(ownColumnPreference)}
           title={tx("Customize Columns")}
+          isTitleTranslated={true}
           onSave={onColumnCustomizationSave}
           projectDefault={projectDefault}
           isSaving={isSavingProjectDefault}
@@ -6422,12 +6423,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           isLoading={isDeleteAlternativeRunning}
           error={deleteAlternativeError || undefined}
           title={
-            deleteConfirmation?.title ||
-            translateNamedAction(translator, {
-              template: "Delete {{itemName}}",
-              itemName: getDeleteLabel(props.singularName, model.singularName),
-            })
+            deleteConfirmation?.title
+              ? translator.translateText(deleteConfirmation.title) ||
+                deleteConfirmation.title
+              : translateNamedAction(translator, {
+                  template: "Delete {{itemName}}",
+                  itemName: getDeleteLabel(
+                    props.singularName,
+                    model.singularName,
+                  ),
+                })
           }
+          isTitleTranslated={true}
           description={
             isDeleteConfirmationLoading ? (
               <InlineLoadingLine

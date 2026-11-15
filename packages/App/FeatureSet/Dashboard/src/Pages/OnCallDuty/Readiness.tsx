@@ -2026,6 +2026,7 @@ const OnCallReadinessPage: FunctionComponent<
           title={translator.translateTemplate("Coverage for {{responder}}", {
             responder: coverageRow.responder,
           })}
+          isTitleTranslated={true}
           description="Which severities this responder has a notification rule for, and how a page would reach them."
           modalWidth={ModalWidth.Large}
           closeButtonText="Close"

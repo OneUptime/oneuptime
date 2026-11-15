@@ -409,6 +409,7 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
               picked.name,
             ),
           })}
+          isTitleTranslated={true}
           description={translator.translateTemplate(
             "The monitor shows {{status}} from now on, here and on every status page that lists it.",
             {

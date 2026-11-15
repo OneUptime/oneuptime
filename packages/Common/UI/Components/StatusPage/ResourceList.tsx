@@ -776,6 +776,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
                 total: translator.formatNumber(hiddenCount),
               },
             )}
+            isTitleTranslated={true}
             icon={IconProp.ChevronDown}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}

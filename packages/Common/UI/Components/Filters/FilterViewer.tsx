@@ -733,6 +733,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 })
               : tx("Filter results")
           }
+          isTitleTranslated={true}
           description={
             props.pluralLabel
               ? translator.translateTemplate(

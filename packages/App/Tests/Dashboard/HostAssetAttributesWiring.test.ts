@@ -105,7 +105,8 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
         "Manufacturer",
         "Model Name",
       ]) {
-        expect(source).toContain(`label: "${label}"`);
+        // Marked as a key, which the drawer looks up (#8260).
+        expect(source).toContain(`label: translationKey("${label}")`);
       }
     });
   });
