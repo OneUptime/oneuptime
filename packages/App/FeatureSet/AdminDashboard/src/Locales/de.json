@@ -175,7 +175,11 @@
       "noItems": "Es wurden noch keine Enterprise-Lizenzen ausgestellt.",
       "settingsCardTitle": "Einstellungen für Lizenzbenachrichtigungen",
       "settingsCardDescription": "Wer bei Lizenz-E-Mails in Kopie gesetzt wird und wie lange im Voraus Erinnerungen zum Ablauf verschickt werden. Erinnerungen werden täglich per E-Mail an die Master-Admins des Kunden gesendet, solange eine Lizenz ihr Benutzerlimit überschreitet oder kurz vor dem Ablauf steht.",
-      "settingsEditButton": "Einstellungen bearbeiten"
+      "settingsEditButton": "Einstellungen bearbeiten",
+      "cloudOnlyTitle": "Nur auf OneUptime Cloud verfügbar",
+      "cloudOnlyDescription": "Enterprise-Lizenzen werden auf dem gehosteten oneuptime.com ausgestellt und nachverfolgt, wo die Abrechnung aktiviert ist. Diese selbst gehostete Instanz verwaltet keine Lizenzen.",
+      "enterpriseEditionRequiredTitle": "Erfordert die OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "Die Lizenzverwaltung ist Teil der OneUptime Enterprise Edition. Stellen Sie das Image der Enterprise Edition bereit, um Lizenzen auszustellen und nachzuverfolgen."
     },
     "enterpriseLicenseView": {
       "title": "Enterprise-Lizenz",
