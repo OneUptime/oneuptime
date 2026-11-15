@@ -22,7 +22,13 @@ import path from "path";
  *   word, a word each.
  */
 
-const FEATURE_SET: string = path.join(__dirname, "..", "..", "..", "FeatureSet");
+const FEATURE_SET: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "FeatureSet",
+);
 
 type Strings = Record<string, unknown>;
 
@@ -77,7 +83,10 @@ function flatten(strings: Strings, prefix: string = ""): Map<string, string> {
     if (typeof value === "string") {
       flat.set(prefix + key, value);
     } else if (value && typeof value === "object") {
-      for (const [inner, text] of flatten(value as Strings, `${prefix}${key}.`)) {
+      for (const [inner, text] of flatten(
+        value as Strings,
+        `${prefix}${key}.`,
+      )) {
         flat.set(inner, text);
       }
     }
@@ -180,7 +189,13 @@ function docsLinesSayingNotification(
 }
 
 function readDocsLines(language: string, page: string): Array<string> | null {
-  const file: string = path.join(FEATURE_SET, "Docs", "Content", language, page);
+  const file: string = path.join(
+    FEATURE_SET,
+    "Docs",
+    "Content",
+    language,
+    page,
+  );
 
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n") : null;
 }
@@ -192,9 +207,11 @@ describe("an alert is not a notification", () => {
     );
   });
 
-  test.each(dashboardLanguages().filter((language: string) => {
-    return language !== "en" && !STILL_ONE_WORD[language];
-  }))(
+  test.each(
+    dashboardLanguages().filter((language: string) => {
+      return language !== "en" && !STILL_ONE_WORD[language];
+    }),
+  )(
     "%s: the Dashboard says Alerts and Notifications, and Alert and Notification, with different words",
     (language: string) => {
       const strings: Strings = readStrings("Dashboard", language);
@@ -231,9 +248,11 @@ describe("an alert is not a notification", () => {
     },
   );
 
-  test.each(SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string) => {
-    return language !== "en";
-  }))(
+  test.each(
+    SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )(
     "%s: the docs' Alerts and Notifications groups read apart",
     (language: string) => {
       const groups: Record<string, string> = (
@@ -256,7 +275,10 @@ describe("Korean says an alert 경고", () => {
     const strings: Strings = readStrings("Dashboard", "ko");
     const groups: Record<string, string> = (
       JSON.parse(
-        fs.readFileSync(path.join(FEATURE_SET, "Docs", "Locales", "ko.json"), "utf8"),
+        fs.readFileSync(
+          path.join(FEATURE_SET, "Docs", "Locales", "ko.json"),
+          "utf8",
+        ),
       ) as { navGroups: Record<string, string> }
     ).navGroups;
 
@@ -291,7 +313,9 @@ describe("Korean says an alert 경고", () => {
   );
 
   test("the rule reads real strings: hundreds of Korean strings name an alert", () => {
-    const english: Map<string, string> = flatten(readStrings("Dashboard", "en"));
+    const english: Map<string, string> = flatten(
+      readStrings("Dashboard", "en"),
+    );
     const korean: Map<string, string> = flatten(readStrings("Dashboard", "ko"));
     const naming: Array<string> = Array.from(english.entries())
       .filter(([key, text]: [string, string]): boolean => {
@@ -375,11 +399,9 @@ describe("Korean says an alert 경고", () => {
         continue;
       }
 
-      korean.forEach((line: string, index: number) => {
-        if (namesOnlyAnAlert(english[index] || "") && line.includes(ALERT)) {
-          lines++;
-        }
-      });
+      lines += korean.filter((line: string, index: number): boolean => {
+        return namesOnlyAnAlert(english[index] || "") && line.includes(ALERT);
+      }).length;
     }
 
     expect(lines).toBeGreaterThan(1000);
