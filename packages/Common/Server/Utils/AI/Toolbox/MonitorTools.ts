@@ -367,7 +367,7 @@ export const QueryMonitorsTool: ObservabilityTool = {
      * status is stale too (NotOperationalMonitorQuery).
      */
     if (problemsOnly) {
-      Object.assign(query, NotOperationalMonitorQuery.getQuery());
+      Object.assign(query, NotOperationalMonitorQuery.getQuery(ctx.projectId));
     }
 
     // The status a monitorStatusName matched, when it matched one, as named.

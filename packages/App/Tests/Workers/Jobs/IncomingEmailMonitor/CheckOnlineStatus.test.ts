@@ -1,8 +1,11 @@
-import type { FindOperator } from "Common/Server/Types/Database/QueryHelper";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "Common/Types/Monitor/CriteriaFilter";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -22,10 +25,9 @@ import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
  *   1. the stamp goes through the hookless fast path with EXACTLY the
  *      incomingEmailMonitorHeartbeatCheckedAt column, and updateOneById is
  *      never called (the regression the change removes),
- *   2. the per-monitor control flow around the stamp is unchanged: both
- *      findBy phases (never-checked first, then checked before this sweep)
- *      are processed; a monitor without monitorSteps is skipped with no
- *      write; only a monitor whose criteria check CheckOn.EmailReceivedAt
+ *   2. the per-monitor control flow around the stamp: one findBy query
+ *      by type, paged by id, visits every monitor once; a monitor without
+ *      monitorSteps is skipped with no write; only a monitor whose criteria check CheckOn.EmailReceivedAt
  *      (NOT the request monitor's CheckOn.IncomingRequest) is handed to
  *      MonitorResourceUtil.monitorResource; one failing monitor does not
  *      prevent the others.
@@ -115,9 +117,13 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
   };
 });
 
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
+import MonitorHeartbeatState, {
+  HeartbeatKind,
+} from "Common/Server/Utils/Monitor/MonitorHeartbeatState";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
@@ -240,6 +246,8 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Results queued for a page a test's sweep never asked for go with it.
+    monitorService.findBy.mockReset();
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
       return new Date(NOW);
@@ -257,44 +265,31 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
     monitorResourceMock.mockResolvedValue(undefined);
   });
 
-  test("processes the never-checked and already-checked pages and stamps each through the hookless fast path only", async () => {
-    const neverChecked: Monitor = makeMonitor({
+  test("visits every incoming email monitor once, with one query by type, and stamps each through the hookless fast path only", async () => {
+    const first: Monitor = makeMonitor({
       id: MONITOR_A_ID,
       monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
     });
-    const alreadyChecked: Monitor = makeMonitor({
+    const second: Monitor = makeMonitor({
       id: MONITOR_B_ID,
       monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([neverChecked])
-      .mockResolvedValueOnce([alreadyChecked]);
+    monitorService.findBy.mockResolvedValueOnce([first, second]);
 
     await runWorkerTick();
 
-    // Never-checked first, then previously checked; both use an immutable ID cursor.
-    expect(monitorService.findBy).toHaveBeenCalledTimes(2);
+    // One query, paged by the sweep's immutable ID cursor.
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
-    const firstBatch: FindByArgs = monitorService.findBy.mock
+    const batch: FindByArgs = monitorService.findBy.mock
       .calls[0]![0] as FindByArgs;
-    const secondBatch: FindByArgs = monitorService.findBy.mock
-      .calls[1]![0] as FindByArgs;
 
-    for (const batch of [firstBatch, secondBatch]) {
-      expect(batch.query["monitorType"]).toBe(MonitorType.IncomingEmail);
-      // the enabled-monitor and active-project gates stay in both queries.
-      expect(batch.query["disableActiveMonitoring"]).toBe(false);
-      expect(batch.query["project"]).toEqual(ACTIVE_PROJECT_QUERY);
-      expect(
-        batch.query["incomingEmailMonitorHeartbeatCheckedAt"],
-      ).toBeDefined();
-    }
-
-    expect(firstBatch.sort).toEqual({ _id: SortOrder.Ascending });
-    expect(secondBatch.sort).toEqual({
-      _id: SortOrder.Ascending,
-    });
+    expect(batch.query["monitorType"]).toBe(MonitorType.IncomingEmail);
+    // the enabled-monitor and active-project gates stay in the query.
+    expect(batch.query["disableActiveMonitoring"]).toBe(false);
+    expect(batch.query["project"]).toEqual(ACTIVE_PROJECT_QUERY);
+    expect(batch.sort).toEqual({ _id: SortOrder.Ascending });
 
     // One fast-path stamp per monitor, batches concatenated in order.
     const stamps: Array<UpdateCallArgs> = stampCalls();
@@ -353,21 +348,21 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
     expect(finished).toBe(true);
   });
 
-  test("the previously checked phase excludes this sweep's heartbeat stamps", async () => {
+  test("no query asks for the status-check stamp: it is written every few minutes, and no longer says who was visited", async () => {
     await runWorkerTick();
-    const args: FindByArgs = monitorService.findBy.mock
-      .calls[1]![0] as FindByArgs;
-    const filter: FindOperator<Date> = args.query[
-      "incomingEmailMonitorHeartbeatCheckedAt"
-    ] as FindOperator<Date>;
-    expect(filter.getSql!("checkedAt")).toMatch(/checkedAt < :/);
-    expect(Object.values(filter.objectLiteralParameters!)).toEqual([NOW]);
+
+    for (const call of monitorService.findBy.mock.calls) {
+      const args: FindByArgs = call[0] as FindByArgs;
+      expect("incomingEmailMonitorHeartbeatCheckedAt" in args.query).toBe(
+        false,
+      );
+    }
   });
 
   test("a monitor without monitorSteps is skipped with no write at all", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([makeMonitor({ id: MONITOR_A_ID })])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({ id: MONITOR_A_ID }),
+    ]);
 
     await runWorkerTick();
 
@@ -387,9 +382,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       } as IncomingEmailMonitorRequest,
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([monitor])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([monitor]);
 
     await runWorkerTick();
 
@@ -434,9 +427,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       } as IncomingEmailMonitorRequest,
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([monitor])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([monitor]);
 
     await runWorkerTick();
 
@@ -453,9 +444,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       monitorSteps: stepsWithCheckOn(CheckOn.EmailReceivedAt),
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([monitor])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([monitor]);
 
     await runWorkerTick();
 
@@ -466,14 +455,12 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
   });
 
   test("criteria checking only CheckOn.IncomingRequest (the request monitor's filter) are stamped but never evaluated", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        makeMonitor({
-          id: MONITOR_A_ID,
-          monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({
+        id: MONITOR_A_ID,
+        monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -492,20 +479,18 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
    * above covers.
    */
   test("a monitor on the default body criteria is stamped but never evaluated", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        makeMonitor({
-          id: MONITOR_A_ID,
-          monitorSteps: stepsWithCheckOn(
-            MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
-              monitorType: MonitorType.IncomingEmail,
-              monitorStatusId: new ObjectID("online-status"),
-              monitorName: "Nightly Backup",
-            })!.data!.filters[0]!.checkOn,
-          ),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({
+        id: MONITOR_A_ID,
+        monitorSteps: stepsWithCheckOn(
+          MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+            monitorType: MonitorType.IncomingEmail,
+            monitorStatusId: new ObjectID("online-status"),
+            monitorName: "Nightly Backup",
+          })!.data!.filters[0]!.checkOn,
+        ),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -525,9 +510,7 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
       monitorSteps: stepsWithCheckOn(CheckOn.EmailReceivedAt),
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([failing])
-      .mockResolvedValueOnce([healthy]);
+    monitorService.findBy.mockResolvedValueOnce([failing, healthy]);
 
     monitorService.updateColumnsByIdWithoutHooks.mockImplementation(
       (args: UpdateCallArgs) => {
@@ -548,5 +531,252 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
     const payload: IncomingEmailMonitorRequest = monitorResourceMock.mock
       .calls[0]![0] as IncomingEmailMonitorRequest;
     expect(payload.monitorId.toString()).toBe(MONITOR_B_ID.toString());
+  });
+});
+
+/*
+ * The sweep visited every incoming email monitor every 30 seconds, wrote its
+ * row, and evaluated it. It now writes the "status checked at" stamp at
+ * most every few minutes, and evaluates a monitor only when something its
+ * criteria judge can have changed since its last evaluation
+ * (MonitorHeartbeatState): a new email, other criteria, another status, or
+ * a heartbeat window that has passed. Redis is a map here.
+ */
+describe("IncomingEmailMonitor:CheckOnlineStatus writes and evaluates only when something can have changed", () => {
+  const RECEIVED_AT: Date = new Date(NOW.getTime() - 10 * 60 * 1000);
+  const ONLINE: ObjectID = new ObjectID("status-online");
+  const OFFLINE: ObjectID = new ObjectID("status-offline");
+
+  let redis: Map<string, string>;
+  let redisFails: boolean;
+  let clock: Date;
+
+  function emailFilter(values: Partial<CriteriaFilter>): CriteriaFilter {
+    return {
+      checkOn: CheckOn.EmailReceivedAt,
+      filterType: FilterType.RecievedInMinutes,
+      value: 60,
+      ...values,
+    } as CriteriaFilter;
+  }
+
+  function stepsWithWindow(
+    minutes: number,
+    others: Array<CriteriaFilter> = [],
+  ): MonitorSteps {
+    return {
+      data: {
+        monitorStepsInstanceArray: [
+          {
+            data: {
+              monitorCriteria: {
+                data: {
+                  monitorCriteriaInstanceArray: [
+                    {
+                      data: {
+                        filters: [emailFilter({ value: minutes }), ...others],
+                      },
+                    },
+                    {
+                      data: {
+                        filters: [
+                          emailFilter({
+                            filterType: FilterType.NotRecievedInMinutes,
+                            value: minutes,
+                          }),
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    } as unknown as MonitorSteps;
+  }
+
+  function emailMonitor(
+    values: { monitorSteps?: MonitorSteps; status?: ObjectID } = {},
+  ): Monitor {
+    const monitor: Monitor = makeMonitor({
+      id: MONITOR_A_ID,
+      monitorSteps: values.monitorSteps || stepsWithWindow(60),
+      incomingEmailMonitorRequest: {
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_A_ID,
+        emailFrom: "backup@example.com",
+        emailTo: "monitor@example.com",
+        emailSubject: "Backup OK",
+        emailBody: "OK",
+        emailReceivedAt: RECEIVED_AT,
+        checkedAt: RECEIVED_AT,
+      },
+    });
+    monitor.currentMonitorStatusId = values.status || ONLINE;
+    return monitor;
+  }
+
+  // What MonitorResource records after evaluating an email (mocked here).
+  async function evaluatedBefore(monitor: Monitor): Promise<void> {
+    await MonitorHeartbeatState.markEvaluated({
+      kind: HeartbeatKind.IncomingEmail,
+      monitorId: monitor.id!,
+      receivedAt: RECEIVED_AT,
+      monitorSteps: monitor.monitorSteps,
+      monitorStatusId: monitor.currentMonitorStatusId,
+    });
+  }
+
+  async function sweepAt(at: Date, monitors: Array<Monitor>): Promise<void> {
+    clock = at;
+    monitorService.findBy.mockResolvedValueOnce(monitors);
+    await runWorkerTick();
+  }
+
+  function expireFences(): void {
+    for (const name of Array.from(redis.keys())) {
+      if (name.includes("-write-")) {
+        redis.delete(name);
+      }
+    }
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Results queued for a page a test's sweep never asked for go with it.
+    monitorService.findBy.mockReset();
+
+    redis = new Map<string, string>();
+    redisFails = false;
+    clock = NOW;
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(clock);
+    });
+
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockImplementation(async (namespace: string, key: string) => {
+        if (redisFails) {
+          throw new Error("Redis is down");
+        }
+
+        return redis.get(`${namespace}-${key}`) ?? null;
+      });
+
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockImplementation(
+        async (namespace: string, key: string, value: string) => {
+          if (redisFails) {
+            throw new Error("Redis is down");
+          }
+
+          redis.set(`${namespace}-${key}`, value);
+        },
+      );
+
+    monitorService.findBy.mockResolvedValue([]);
+    monitorService.getEnabledMonitorQuery.mockReturnValue(
+      ENABLED_MONITOR_QUERY,
+    );
+    monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
+    projectService.getActiveProjectStatusQuery.mockReturnValue(
+      ACTIVE_PROJECT_QUERY,
+    );
+    monitorResourceMock.mockResolvedValue(undefined);
+  });
+
+  test("the status-check stamp is written at most every few minutes", async () => {
+    const monitor: Monitor = emailMonitor();
+
+    await sweepAt(NOW, [monitor]);
+    await sweepAt(new Date(NOW.getTime() + 30 * 1000), [monitor]);
+
+    expect(stampCalls()).toHaveLength(1);
+
+    expireFences();
+    await sweepAt(new Date(NOW.getTime() + 60 * 1000), [monitor]);
+
+    expect(stampCalls()).toHaveLength(2);
+  });
+
+  test("a monitor whose latest email was evaluated is not evaluated again inside its window", async () => {
+    const monitor: Monitor = emailMonitor();
+    await evaluatedBefore(monitor);
+
+    await sweepAt(NOW, [monitor]);
+
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+  });
+
+  test("an inbox that stops getting email is judged missing in the first sweep after its window, as before", async () => {
+    const monitor: Monitor = emailMonitor({
+      monitorSteps: stepsWithWindow(15),
+    });
+    await evaluatedBefore(monitor);
+
+    await sweepAt(new Date(RECEIVED_AT.getTime() + 14.5 * 60 * 1000), [
+      monitor,
+    ]);
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+
+    await sweepAt(new Date(RECEIVED_AT.getTime() + 15 * 60 * 1000), [monitor]);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+
+    await sweepAt(new Date(RECEIVED_AT.getTime() + 15.5 * 60 * 1000), [
+      monitor,
+    ]);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("criteria edited, a status changed, or nothing evaluated: evaluated", async () => {
+    const edited: Monitor = emailMonitor();
+    await evaluatedBefore(edited);
+    edited.monitorSteps = stepsWithWindow(120);
+    await sweepAt(NOW, [edited]);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+
+    redis.clear();
+    const changed: Monitor = emailMonitor({ status: ONLINE });
+    await evaluatedBefore(changed);
+    changed.currentMonitorStatusId = OFFLINE;
+    await sweepAt(NOW, [changed]);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(2);
+
+    redis.clear();
+    await sweepAt(NOW, [emailMonitor()]);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(3);
+  });
+
+  test("a monitor whose criteria judge more than emails is evaluated every sweep", async () => {
+    const monitor: Monitor = emailMonitor({
+      monitorSteps: stepsWithWindow(60, [
+        emailFilter({ checkOn: CheckOn.JavaScriptExpression, value: "true" }),
+      ]),
+    });
+    await evaluatedBefore(monitor);
+
+    await sweepAt(NOW, [monitor]);
+
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a Redis that cannot be reached stamps every visit and evaluates every sweep, as before", async () => {
+    const monitor: Monitor = emailMonitor();
+    await evaluatedBefore(monitor);
+    redisFails = true;
+
+    await sweepAt(NOW, [monitor]);
+    await sweepAt(new Date(NOW.getTime() + 30 * 1000), [monitor]);
+
+    expect(stampCalls()).toHaveLength(2);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(2);
   });
 });

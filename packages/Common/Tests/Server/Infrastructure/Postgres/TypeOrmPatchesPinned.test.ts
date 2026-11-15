@@ -31,14 +31,22 @@ import { JoinAttribute } from "typeorm/query-builder/JoinAttribute";
  *  - PagedFind turns the two-query page of SelectQueryBuilder's
  *    executeEntitiesAndRawResults (taken when find options set skip or take
  *    and the read joins: applyFindOptions) into the one query of
- *    createLimitOffsetExpression, where that gives the same page.
+ *    createLimitOffsetExpression, where that gives the same page; and, for
+ *    a read whose to-many joins are only selected, reads the page's ids
+ *    from the table itself and then runs TypeORM's own second query - the
+ *    read with the ids appended as extraAppendedAndWhereCondition, which
+ *    createWhereExpression appends;
+ *  - CappedCount counts what TypeORM's count counts (computeCountExpression,
+ *    executeCountQuery, on the builder EntityManager.count builds), in a
+ *    subquery with a LIMIT.
  *
  * Each is held to TypeORM's answers by its own suite. Those hold the TypeORM
  * that is installed; this holds TypeORM to the one they were written for. A
  * TypeORM upgrade that changes any of these functions fails here: read the
  * new function, change the piece that relies on it if it must, run its
- * suite (EntityMetadataLookup, QueryPropertyNames, PagedFindSql and
- * PagedFindPostgres), and then pin the new function's hash - and the new
+ * suite (EntityMetadataLookup, QueryPropertyNames, PagedFindSql,
+ * PagedFindPostgres, CappedCountSql and CappedCountPostgres), and then pin
+ * the new function's hash - and the new
  * version both here and in TypeOrmPatchVersion, which the patches check in
  * production too: on any other TypeORM they stand aside (held below).
  */
@@ -113,6 +121,34 @@ describe("the TypeORM functions OneUptime's query patches rely on", () => {
         return selectPrototype["createLimitOffsetExpression"];
       },
       "0d8fe9b80758c31d8020854eff5c166fc32c97ecabb52d9905c483a8f10e7143",
+    ],
+    [
+      "SelectQueryBuilder.createWhereExpression (PagedFind's ids condition)",
+      (): unknown => {
+        return selectPrototype["createWhereExpression"];
+      },
+      "741c59584ea497c1b3baece11458499fd28465217ad519ef479df16d2874020c",
+    ],
+    [
+      "SelectQueryBuilder.computeCountExpression (CappedCount)",
+      (): unknown => {
+        return selectPrototype["computeCountExpression"];
+      },
+      "8be1fb73eaa4a62669a9e1df583983848862caf853417ad31922565ef774d29a",
+    ],
+    [
+      "SelectQueryBuilder.executeCountQuery (CappedCount)",
+      (): unknown => {
+        return selectPrototype["executeCountQuery"];
+      },
+      "5200b114b965557726c1e80afeac4ad27bd291e448ce5c68458d992344286f36",
+    ],
+    [
+      "EntityManager.count (CappedCount builds the query builder it builds)",
+      (): unknown => {
+        return (EntityManager.prototype as unknown as Prototype)["count"];
+      },
+      "a78aad98ce08c959018c39e1fa26c7f95b6e0756e0d7f90392c067f94cd8927b",
     ],
     [
       "EntityManager.find (PagedFind builds the query builder it builds)",

@@ -1460,6 +1460,33 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
     );
 
+    /*
+     * Nothing changed - the same people, the same times: nobody to tell and
+     * nothing to write. The refresh cron reaches every schedule with no
+     * roster every minute (RefreshHandoffTime), and each used to read who to
+     * tell and write the same NULLs back, a dead row every minute per
+     * schedule.
+     */
+    if (
+      Service.isSameRoster(previousInformation, {
+        currentUserIdOnRoster: newInformation.currentUserId,
+        rosterHandoffAt: newInformation.handOffTimeAt,
+        nextUserIdOnRoster: newInformation.nextUserId,
+        nextHandOffTimeAt: newInformation.nextHandOffTimeAt,
+        rosterStartAt: newInformation.rosterStartAt,
+        nextRosterStartAt: newInformation.nextRosterStartAt,
+      })
+    ) {
+      logger.debug(
+        "Roster unchanged for scheduleId: " +
+          scheduleId.toString() +
+          "; nothing to notify or write.",
+        { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
+      );
+
+      return newInformation;
+    }
+
     logger.debug(
       "Sending notifications for schedule handoff for scheduleId: " +
         scheduleId.toString(),
@@ -2767,6 +2794,54 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         event.end.getTime() > windowStart.getTime()
       );
     });
+  }
+
+  /*
+   * Whether two rosters are the same: the same people on call and next, at
+   * the same times. Nobody and nobody are the same; so are no time and no
+   * time.
+   */
+  public static isSameRoster(
+    a: {
+      currentUserIdOnRoster: ObjectID | null;
+      rosterHandoffAt: Date | null;
+      nextUserIdOnRoster: ObjectID | null;
+      nextHandOffTimeAt: Date | null;
+      rosterStartAt: Date | null;
+      nextRosterStartAt: Date | null;
+    },
+    b: {
+      currentUserIdOnRoster: ObjectID | null;
+      rosterHandoffAt: Date | null;
+      nextUserIdOnRoster: ObjectID | null;
+      nextHandOffTimeAt: Date | null;
+      rosterStartAt: Date | null;
+      nextRosterStartAt: Date | null;
+    },
+  ): boolean {
+    return (
+      Service.isSameUser(a.currentUserIdOnRoster, b.currentUserIdOnRoster) &&
+      Service.isSameUser(a.nextUserIdOnRoster, b.nextUserIdOnRoster) &&
+      Service.isSameRosterTime(a.rosterHandoffAt, b.rosterHandoffAt) &&
+      Service.isSameRosterTime(a.nextHandOffTimeAt, b.nextHandOffTimeAt) &&
+      Service.isSameRosterTime(a.rosterStartAt, b.rosterStartAt) &&
+      Service.isSameRosterTime(a.nextRosterStartAt, b.nextRosterStartAt)
+    );
+  }
+
+  // Whether two roster times are the same moment (none and none are).
+  public static isSameRosterTime(
+    a: Date | string | null | undefined,
+    b: Date | string | null | undefined,
+  ): boolean {
+    if (!a || !b) {
+      return !a && !b;
+    }
+
+    const aTime: number = OneUptimeDate.fromString(a).getTime();
+    const bTime: number = OneUptimeDate.fromString(b).getTime();
+
+    return aTime === bTime || (isNaN(aTime) && isNaN(bTime));
   }
 
   // Whether two roster users are the same person (nobody and nobody are).

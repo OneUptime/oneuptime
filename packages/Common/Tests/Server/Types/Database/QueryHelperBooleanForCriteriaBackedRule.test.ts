@@ -8,6 +8,7 @@ import AlertReminderRuleService from "../../../../Server/Services/AlertReminderR
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import IncidentReminderRuleService from "../../../../Server/Services/IncidentReminderRuleService";
 import ScheduledMaintenanceReminderRuleService from "../../../../Server/Services/ScheduledMaintenanceReminderRuleService";
+import PagedFind from "../../../../Server/Infrastructure/Postgres/PagedFind";
 import Query from "../../../../Server/Types/Database/Query";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import Select from "../../../../Server/Types/Database/Select";
@@ -18,11 +19,13 @@ import {
   FindOperator,
   FindOptionsSelect,
   FindOptionsWhere,
+  ObjectLiteral,
   QueryFailedError,
   QueryResult,
   QueryRunner,
   ReplicationMode,
   Repository,
+  SelectQueryBuilder,
 } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import {
@@ -179,23 +182,34 @@ const capturedQueries: Array<CapturedQuery> = [];
 let entityRows: Array<RawRow> = [];
 
 /*
- * TypeORM pages a find that joins a to-many relation in two statements: a
- * DISTINCT query for the page of ids, then the real SELECT restricted to those
- * ids. Returning one id from the first makes TypeORM render the second too.
+ * A find that joins a to-many relation is paged in two statements: the page
+ * of ids, then the real SELECT restricted to those ids. TypeORM's own first
+ * statement is a DISTINCT query over the whole read (its ids aliased
+ * "ids_..."). DatabaseService's reads go through PagedFind, which reads the
+ * page of a read that joins its lists only to select them from the table
+ * itself instead - the primary key alone, aliased `<Alias>__id`
+ * (PagedFind.readIdPage). Returning one id from either first statement makes
+ * the second render too.
  */
 const DISTINCT_ID_COLUMN: RegExp = /AS "(ids_[^"]+)"/;
+const ID_PAGE_ID_COLUMN: RegExp = /^SELECT "[^"]+"\."[^"]+" AS "([^"]+)" FROM /;
+
+// Set while PagedFind reads a page of ids (installIdPageMarker).
+let readingIdPage: boolean = false;
 
 const rowsFor: (sql: string) => Array<RawRow> = (
   sql: string,
 ): Array<RawRow> => {
-  const distinctIdColumn: RegExpExecArray | null = DISTINCT_ID_COLUMN.exec(sql);
+  const idColumn: RegExpExecArray | null =
+    DISTINCT_ID_COLUMN.exec(sql) ||
+    (readingIdPage ? ID_PAGE_ID_COLUMN.exec(sql) : null);
 
-  if (distinctIdColumn) {
+  if (idColumn) {
     const firstRowId: unknown = entityRows[0]
       ? Object.values(entityRows[0])[0]
       : ObjectID.generate().toString();
 
-    return [{ [distinctIdColumn[1]!]: firstRowId }];
+    return [{ [idColumn[1]!]: firstRowId }];
   }
 
   if (sql.startsWith("SELECT") && !sql.startsWith("SELECT COUNT(")) {
@@ -264,6 +278,32 @@ const installRecordingRunner: () => void = (): void => {
     (runner as unknown as { query: RecordingQuery }).query = recordingQuery;
 
     return runner;
+  };
+};
+
+let originalReadIdPage: typeof PagedFind.readIdPage;
+
+/*
+ * PagedFind.readIdPage, unchanged but for marking the statement it sends as
+ * a page of ids (readingIdPage), so that one is handed an id and no other
+ * read of the primary key alone is. Assigned directly, as the runner is.
+ */
+const installIdPageMarker: () => void = (): void => {
+  originalReadIdPage = PagedFind.readIdPage;
+
+  const readIdPage: typeof PagedFind.readIdPage =
+    originalReadIdPage.bind(PagedFind);
+
+  PagedFind.readIdPage = async <TEntity extends ObjectLiteral>(
+    idPageBuilder: SelectQueryBuilder<TEntity>,
+  ): Promise<Array<unknown>> => {
+    readingIdPage = true;
+
+    try {
+      return await readIdPage(idPageBuilder);
+    } finally {
+      readingIdPage = false;
+    }
   };
 };
 
@@ -347,11 +387,16 @@ beforeAll(async () => {
     dataSource as unknown as { buildMetadatas: () => Promise<void> }
   ).buildMetadatas();
   installRecordingRunner();
+  installIdPageMarker();
 });
 
 afterAll(() => {
   if (dataSource && originalCreateQueryRunner) {
     dataSource.driver.createQueryRunner = originalCreateQueryRunner;
+  }
+
+  if (originalReadIdPage) {
+    PagedFind.readIdPage = originalReadIdPage;
   }
 });
 
@@ -921,15 +966,22 @@ describe("DatabaseService translates a boolean isEnabled on relation-only rules"
          * The rows are read before they are deleted with every column, the
          * rule's lists among them, for the audit log's record of what was
          * deleted (AuditLogCoverage audits these rules). A read that joins a
-         * list with a limit is paged in two statements, and both locate the
-         * rows with the quoted predicate.
+         * list with a limit is paged in two statements: the page of ids,
+         * from the table itself as the filter and order need no join
+         * (PagedFind), then the rows of those ids with their lists. Both
+         * locate the rows with the quoted predicate.
          */
         expect(new modelType().enableAuditLogOn?.delete).toBe(true);
         expect(queries).toHaveLength(2);
-        expect(queries[0]!.sql).toMatch(/^SELECT DISTINCT "distinctAlias"\./);
+        expect(queries[0]!.sql).toMatch(
+          new RegExp(
+            `^SELECT "${escapeRegExp(alias)}"\\."_id" AS "${escapeRegExp(alias)}__id" FROM "${escapeRegExp(alias)}" "${escapeRegExp(alias)}" WHERE `,
+          ),
+        );
+        expect(queries[0]!.sql).not.toContain("JOIN");
+        expect(queries[1]!.sql).toContain("LEFT JOIN");
 
         for (const query of queries) {
-          expect(query.sql).toContain("LEFT JOIN");
           expectEffectiveEnabledPredicate(query, {
             alias,
             qualified: true,

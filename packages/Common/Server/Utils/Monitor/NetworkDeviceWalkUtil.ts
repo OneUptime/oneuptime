@@ -4,11 +4,13 @@ import MonitorPauseState, {
 } from "../../../Utils/Monitor/MonitorPauseState";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import MonitorService from "../../Services/MonitorService";
+import MonitorNetworkDeviceService from "../../Services/MonitorNetworkDeviceService";
+import MonitorNetworkDevice from "../../../Models/DatabaseModels/MonitorNetworkDevice";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkDeviceOidTemplateService from "../../Services/NetworkDeviceOidTemplateService";
 import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
-import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import Select from "../../Types/Database/Select";
 import MonitorResourceUtil from "./MonitorResource";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import NetworkDeviceMetricUtil from "./NetworkDeviceMetricUtil";
@@ -20,7 +22,6 @@ import SnmpOidRateUtil, {
 } from "./SnmpOidRateUtil";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
-import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -88,12 +89,11 @@ export interface NetworkDevicePingResult {
  */
 export default class NetworkDeviceWalkUtil {
   /*
-   * One page of the monitor fan-out lookup. The indexed query rarely needs
-   * a second page (a device has a handful of monitors); the legacy JSON
-   * scan can, on a project with more than this many hand-made Network
-   * Device monitors.
+   * How many device or monitor ids one statement of the monitor lookup
+   * names. A poll and a trap name one or a few devices; the stale poll check
+   * names a page of them.
    */
-  private static readonly FAN_OUT_PAGE_SIZE: number = LIMIT_MAX;
+  public static readonly FAN_OUT_ID_CHUNK_SIZE: number = 500;
 
   public static async processWalkResult(data: {
     probeId: ObjectID;
@@ -919,116 +919,162 @@ export default class NetworkDeviceWalkUtil {
   }
 
   /*
-   * Every enabled Network Device monitor in the project watching one of
-   * the given devices. Shared by the walk fan-out above and the SNMP trap
-   * fan-out.
+   * Every Network Device monitor in the project whose steps name one of the
+   * given devices, with its steps and the flags that say it is paused.
+   * Shared by the poll fan-out above, the SNMP trap fan-out and the stale
+   * poll check. The caller skips paused monitors and the steps that name
+   * another device.
    *
-   * Two sources, unioned and deduped by id:
+   * Read through MonitorNetworkDevice, which Postgres keeps from every
+   * monitor's steps (see the model): one index lookup by device, then the
+   * monitors found, by id. The work is the device's, not the project's.
    *
-   *   1. Indexed: monitors whose `autoProvisionedNetworkDeviceId` is one of
-   *      the devices - every monitor a template, an auto-import rule or an
-   *      alert policy provisioned. Served by the partial index on that
-   *      column, so it costs one index probe per device however many
-   *      monitors the project has.
-   *   2. Legacy: hand-made monitors, which carry the device link only in
-   *      their step JSON. Restricted to rows with NO
-   *      autoProvisionedNetworkDeviceId (the indexed query already covered
-   *      the rest), paged, and filtered server-side on the step JSON.
+   * It used to read the steps of every hand-made Network Device monitor in
+   * the project (a monitor no template, rule or policy provisioned, which
+   * names its device only in its steps), in OFFSET pages of 10,000, and keep
+   * the ones naming the device - on every poll of every device and every
+   * trap: at 100,000 devices polled every five minutes, about 333 reads of
+   * all of them a second. The lookup by autoProvisionedNetworkDeviceId it
+   * ran beside that is gone too: a provisioned monitor's steps name its
+   * device like any other's, so the table holds it, and it also holds a
+   * provisioned monitor whose steps were edited to name another device,
+   * which neither query found.
    *
-   * The legacy scan is what this lookup used to be in full - one fetch of
-   * every Network Device monitor in the project per walk - and it shrinks
-   * as monitors move onto the column.
+   * `select` adds columns to the monitors read (the stale poll check wants
+   * createdAt).
    */
   public static async findMonitorsWatchingDevices(data: {
     projectId: ObjectID;
     deviceIds: Array<string>;
+    select?: Select<Monitor> | undefined;
   }): Promise<Array<Monitor>> {
-    if (data.deviceIds.length === 0) {
+    const deviceIds: Array<string> = Array.from(
+      new Set(
+        data.deviceIds.filter((deviceId: string): boolean => {
+          return ObjectID.isValidUUID(deviceId);
+        }),
+      ),
+    );
+
+    if (deviceIds.length === 0) {
       return [];
     }
 
-    const deviceIdSet: Set<string> = new Set(data.deviceIds);
+    const monitorIds: Set<string> = new Set();
 
-    const indexedMonitors: Array<Monitor> =
-      await NetworkDeviceWalkUtil.findNetworkDeviceMonitorsPaged({
-        projectId: data.projectId,
-        monitorType: MonitorType.NetworkDevice,
-        autoProvisionedNetworkDeviceId: QueryHelper.any(data.deviceIds),
-      });
-
-    const legacyMonitors: Array<Monitor> = (
-      await NetworkDeviceWalkUtil.findNetworkDeviceMonitorsPaged({
-        projectId: data.projectId,
-        monitorType: MonitorType.NetworkDevice,
-        autoProvisionedNetworkDeviceId: QueryHelper.isNull(),
-      })
-    ).filter((monitor: Monitor) => {
-      return (monitor.monitorSteps?.data?.monitorStepsInstanceArray || []).some(
-        (monitorStep: MonitorStep) => {
-          const referencedDeviceId: string | undefined =
-            monitorStep.data?.networkDeviceMonitor?.networkDeviceId;
-          return Boolean(
-            referencedDeviceId && deviceIdSet.has(referencedDeviceId),
-          );
+    for (const chunk of NetworkDeviceWalkUtil.toChunks(deviceIds)) {
+      for (const monitorId of await NetworkDeviceWalkUtil.findMonitorIdsWatching(
+        {
+          projectId: data.projectId,
+          deviceIds: chunk,
         },
-      );
-    });
+      )) {
+        monitorIds.add(monitorId);
+      }
+    }
 
-    const seenMonitorIds: Set<string> = new Set();
+    if (monitorIds.size === 0) {
+      return [];
+    }
+
     const monitors: Array<Monitor> = [];
 
-    for (const monitor of [...indexedMonitors, ...legacyMonitors]) {
-      const monitorId: string | undefined = monitor.id?.toString();
-
-      if (!monitorId || seenMonitorIds.has(monitorId)) {
-        continue;
-      }
-
-      seenMonitorIds.add(monitorId);
-      monitors.push(monitor);
+    for (const chunk of NetworkDeviceWalkUtil.toChunks(
+      Array.from(monitorIds).sort(),
+    )) {
+      monitors.push(
+        ...(await MonitorService.findBy({
+          query: {
+            _id: QueryHelper.any(chunk),
+            // A row and its monitor always share a project; asked anyway.
+            projectId: data.projectId,
+            monitorType: MonitorType.NetworkDevice,
+          },
+          select: {
+            ...(data.select || {}),
+            _id: true,
+            projectId: true,
+            monitorSteps: true,
+            ...MONITOR_PAUSE_FLAGS_SELECT,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: chunk.length,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        })),
+      );
     }
 
     return monitors;
   }
 
   /*
-   * Every monitor matching the query, in id order so the pages stay
-   * stable while monitors are created or deleted underneath the scan.
+   * The ids of the monitors whose steps name one of the devices (at most
+   * FAN_OUT_ID_CHUNK_SIZE of them), in pages by row id - a device has a
+   * handful of monitors, so one page nearly always holds them all.
    */
-  private static async findNetworkDeviceMonitorsPaged(
-    query: Query<Monitor>,
-  ): Promise<Array<Monitor>> {
-    const monitors: Array<Monitor> = [];
-    let skip: number = 0;
+  private static async findMonitorIdsWatching(data: {
+    projectId: ObjectID;
+    deviceIds: Array<string>;
+  }): Promise<Array<string>> {
+    const monitorIds: Array<string> = [];
+    let cursor: ObjectID | undefined = undefined;
 
     for (;;) {
-      const page: Array<Monitor> = await MonitorService.findBy({
-        query: query,
-        select: {
-          _id: true,
-          projectId: true,
-          monitorSteps: true,
-          ...MONITOR_PAUSE_FLAGS_SELECT,
-        },
-        sort: {
-          _id: SortOrder.Ascending,
-        },
-        limit: NetworkDeviceWalkUtil.FAN_OUT_PAGE_SIZE,
-        skip: skip,
-        props: {
-          isRoot: true,
-        },
-      });
+      const page: Array<MonitorNetworkDevice> =
+        await MonitorNetworkDeviceService.findBy({
+          query: {
+            projectId: data.projectId,
+            networkDeviceId: QueryHelper.any(data.deviceIds),
+            ...(cursor ? { _id: QueryHelper.greaterThan(cursor) } : {}),
+          },
+          select: {
+            _id: true,
+            monitorId: true,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
 
-      monitors.push(...page);
-
-      if (page.length < NetworkDeviceWalkUtil.FAN_OUT_PAGE_SIZE) {
-        break;
+      for (const row of page) {
+        if (row.monitorId) {
+          monitorIds.push(row.monitorId.toString());
+        }
       }
 
-      skip += page.length;
+      const last: ObjectID | null | undefined = page[page.length - 1]?.id;
+
+      if (page.length < LIMIT_MAX || !last) {
+        return monitorIds;
+      }
+
+      cursor = last;
+    }
+  }
+
+  private static toChunks(ids: Array<string>): Array<Array<string>> {
+    const chunks: Array<Array<string>> = [];
+
+    for (
+      let index: number = 0;
+      index < ids.length;
+      index += NetworkDeviceWalkUtil.FAN_OUT_ID_CHUNK_SIZE
+    ) {
+      chunks.push(
+        ids.slice(index, index + NetworkDeviceWalkUtil.FAN_OUT_ID_CHUNK_SIZE),
+      );
     }
 
-    return monitors;
+    return chunks;
   }
 }

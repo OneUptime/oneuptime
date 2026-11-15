@@ -2200,7 +2200,9 @@ describe("where a monitor's status counts", () => {
       "Not Operational",
     );
     expect(attention).toContain("badgeType: BadgeType.DANGER,");
-    expect(attention).toContain("...NotOperationalMonitorQuery.getQuery(),");
+    expect(attention).toContain(
+      "...NotOperationalMonitorQuery.getQuery(props.project?._id),",
+    );
     expect(NotOperationalMonitorQuery.getQuery().currentMonitorStatus).toEqual({
       isOperationalState: false,
     });

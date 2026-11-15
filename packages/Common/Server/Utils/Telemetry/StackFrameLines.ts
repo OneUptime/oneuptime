@@ -1079,3 +1079,108 @@ export const readRubyFrame: (line: string) => FrameLineMatch | null = (
 
   return null;
 };
+
+// What ends the method on the first line of Ruby's own output: "': ".
+const RUBY_MESSAGE_SEPARATOR: string = "': ";
+
+/*
+ * The first place RUBY_MESSAGE_SEPARATOR is written at or after a point,
+ * or the line's length, for points that only ever move forward: what was
+ * found is kept, and the search goes on from past it, so the line is read
+ * once however often it is asked.
+ */
+class RubyMessageSeparatorFinder {
+  private readonly line: string;
+  private found: number = -1;
+
+  public constructor(line: string) {
+    this.line = line;
+  }
+
+  public atOrAfter(from: number): number {
+    if (this.found >= from) {
+      return this.found;
+    }
+
+    const index: number = this.line.indexOf(RUBY_MESSAGE_SEPARATOR, from);
+
+    this.found = index === -1 ? this.line.length : index;
+
+    return this.found;
+  }
+}
+
+/*
+ * /^(.+?):(\d+):in\s+[`'](.+?)': / - the first line of Ruby's own output
+ * of an exception (Exception#full_message), where the frame that raised it
+ * is followed by ": " and the message: "app/models/order.rb:42:in 'pay':
+ * card declined (PaymentError)". Not anchored at the end, so the message,
+ * which may hold anything, is left out. The method is the shortest
+ * followed by "': " - a message may hold one of its own ("couldn't find
+ * 'User': ..."), a method does not - and the file is the shortest followed
+ * by ":<digits>:in", white space and an opening quote with such a method
+ * after it. Each later place the file can end starts its method further
+ * along the line, so the searches for a "': " and for a line terminator
+ * each go on from where they stopped.
+ */
+export const readRubyFrameWithMessage: (
+  line: string,
+) => FrameLineMatch | null = (line: string): FrameLineMatch | null => {
+  const firstTerminator: number = firstLineTerminator(line, 0);
+  const separators: RubyMessageSeparatorFinder = new RubyMessageSeparatorFinder(
+    line,
+  );
+  const terminators: LineTerminatorFinder = new LineTerminatorFinder(line);
+
+  for (
+    let fileEnd: number = 1;
+    fileEnd < line.length && fileEnd <= firstTerminator;
+    fileEnd++
+  ) {
+    if (line.charCodeAt(fileEnd) !== COLON) {
+      continue;
+    }
+
+    const lineNumberEnd: number = digitsEnd(line, fileEnd + 1);
+
+    if (
+      lineNumberEnd === fileEnd + 1 ||
+      !line.startsWith(":in", lineNumberEnd)
+    ) {
+      continue;
+    }
+
+    const runStart: number = lineNumberEnd + 3;
+    const openingQuote: number = whiteSpaceEnd(line, runStart);
+
+    if (openingQuote === runStart) {
+      continue;
+    }
+
+    const quoteCode: number = line.charCodeAt(openingQuote);
+
+    if (quoteCode !== BACKTICK && quoteCode !== SINGLE_QUOTE) {
+      continue;
+    }
+
+    const methodStart: number = openingQuote + 1;
+    const methodEnd: number = separators.atOrAfter(methodStart + 1);
+
+    // No "': " after this method's first character, so none after a later one.
+    if (methodEnd === line.length) {
+      return null;
+    }
+
+    // The method may hold no line terminator.
+    if (terminators.atOrAfter(methodStart) >= methodEnd) {
+      return [
+        line.slice(0, methodEnd + RUBY_MESSAGE_SEPARATOR.length),
+        line.slice(0, fileEnd),
+        line.slice(fileEnd + 1, lineNumberEnd),
+        line.slice(methodStart, methodEnd),
+      ];
+    }
+  }
+
+  return null;
+};

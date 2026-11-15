@@ -1,4 +1,3 @@
-import type { FindOperator } from "Common/Server/Types/Database/QueryHelper";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -24,9 +23,9 @@ import ObjectID from "Common/Types/ObjectID";
  *   1. the stamp goes through the hookless fast path with EXACTLY the
  *      incomingRequestMonitorHeartbeatCheckedAt column, and updateOneById is
  *      never called (the regression the change removes),
- *   2. the per-monitor control flow around the stamp is unchanged: both
- *      findBy phases (never-checked first, then checked before this sweep)
- *      are processed; a monitor without monitorSteps is skipped with no write;
+ *   2. the per-monitor control flow around the stamp: one findBy query
+ *      by type, paged by id, visits every monitor once; a monitor without
+ *      monitorSteps is skipped with no write;
  *      only a monitor whose criteria check CheckOn.IncomingRequest is handed
  *      to MonitorResourceUtil.monitorResource; one failing monitor does not
  *      prevent the others.
@@ -138,9 +137,13 @@ jest.mock("Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore", () => {
   };
 });
 
+import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
+import MonitorHeartbeatState, {
+  HeartbeatKind,
+} from "Common/Server/Utils/Monitor/MonitorHeartbeatState";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import IncomingRequestCriteria from "Common/Server/Utils/Monitor/Criteria/IncomingRequestCriteria";
@@ -279,6 +282,8 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Results queued for a page a test's sweep never asked for go with it.
+    monitorService.findBy.mockReset();
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
       return new Date(NOW);
@@ -304,44 +309,31 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
     });
   });
 
-  test("processes the never-checked and already-checked pages and stamps each through the hookless fast path only", async () => {
-    const neverChecked: Monitor = makeMonitor({
+  test("visits every incoming request monitor once, with one query by type, and stamps each through the hookless fast path only", async () => {
+    const first: Monitor = makeMonitor({
       id: MONITOR_A_ID,
       monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
     });
-    const alreadyChecked: Monitor = makeMonitor({
+    const second: Monitor = makeMonitor({
       id: MONITOR_B_ID,
       monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([neverChecked])
-      .mockResolvedValueOnce([alreadyChecked]);
+    monitorService.findBy.mockResolvedValueOnce([first, second]);
 
     await runWorkerTick();
 
-    // Never-checked first, then previously checked; both use an immutable ID cursor.
-    expect(monitorService.findBy).toHaveBeenCalledTimes(2);
+    // One query, paged by the sweep's immutable ID cursor.
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
-    const firstBatch: FindByArgs = monitorService.findBy.mock
+    const batch: FindByArgs = monitorService.findBy.mock
       .calls[0]![0] as FindByArgs;
-    const secondBatch: FindByArgs = monitorService.findBy.mock
-      .calls[1]![0] as FindByArgs;
 
-    for (const batch of [firstBatch, secondBatch]) {
-      expect(batch.query["monitorType"]).toBe(MonitorType.IncomingRequest);
-      // the enabled-monitor and active-project gates stay in both queries.
-      expect(batch.query["disableActiveMonitoring"]).toBe(false);
-      expect(batch.query["project"]).toEqual(ACTIVE_PROJECT_QUERY);
-      expect(
-        batch.query["incomingRequestMonitorHeartbeatCheckedAt"],
-      ).toBeDefined();
-    }
-
-    expect(firstBatch.sort).toEqual({ _id: SortOrder.Ascending });
-    expect(secondBatch.sort).toEqual({
-      _id: SortOrder.Ascending,
-    });
+    expect(batch.query["monitorType"]).toBe(MonitorType.IncomingRequest);
+    // the enabled-monitor and active-project gates stay in the query.
+    expect(batch.query["disableActiveMonitoring"]).toBe(false);
+    expect(batch.query["project"]).toEqual(ACTIVE_PROJECT_QUERY);
+    expect(batch.sort).toEqual({ _id: SortOrder.Ascending });
 
     // One fast-path stamp per monitor, batches concatenated in order.
     const stamps: Array<UpdateCallArgs> = stampCalls();
@@ -400,21 +392,21 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
     expect(finished).toBe(true);
   });
 
-  test("the previously checked phase excludes this sweep's heartbeat stamps", async () => {
+  test("no query asks for the status-check stamp: it is written every few minutes, and no longer says who was visited", async () => {
     await runWorkerTick();
-    const args: FindByArgs = monitorService.findBy.mock
-      .calls[1]![0] as FindByArgs;
-    const filter: FindOperator<Date> = args.query[
-      "incomingRequestMonitorHeartbeatCheckedAt"
-    ] as FindOperator<Date>;
-    expect(filter.getSql!("checkedAt")).toMatch(/checkedAt < :/);
-    expect(Object.values(filter.objectLiteralParameters!)).toEqual([NOW]);
+
+    for (const call of monitorService.findBy.mock.calls) {
+      const args: FindByArgs = call[0] as FindByArgs;
+      expect("incomingRequestMonitorHeartbeatCheckedAt" in args.query).toBe(
+        false,
+      );
+    }
   });
 
   test("a monitor without monitorSteps is skipped with no write at all", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([makeMonitor({ id: MONITOR_A_ID })])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({ id: MONITOR_A_ID }),
+    ]);
 
     await runWorkerTick();
 
@@ -433,9 +425,7 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
       } as IncomingMonitorRequest,
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([monitor])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([monitor]);
 
     await runWorkerTick();
 
@@ -465,9 +455,7 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
       monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([monitor])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([monitor]);
 
     await runWorkerTick();
 
@@ -480,14 +468,12 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
   });
 
   test("a monitor with steps but no IncomingRequest criteria is stamped but never evaluated", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        makeMonitor({
-          id: MONITOR_A_ID,
-          monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({
+        id: MONITOR_A_ID,
+        monitorSteps: stepsWithCheckOn(CheckOn.ResponseTime),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -506,20 +492,18 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
    * test above covers.
    */
   test("a monitor on the default body criteria is stamped but never evaluated", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        makeMonitor({
-          id: MONITOR_A_ID,
-          monitorSteps: stepsWithCheckOn(
-            MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
-              monitorType: MonitorType.IncomingRequest,
-              monitorStatusId: new ObjectID("online-status"),
-              monitorName: "Payments API",
-            })!.data!.filters[0]!.checkOn,
-          ),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({
+        id: MONITOR_A_ID,
+        monitorSteps: stepsWithCheckOn(
+          MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+            monitorType: MonitorType.IncomingRequest,
+            monitorStatusId: new ObjectID("online-status"),
+            monitorName: "Payments API",
+          })!.data!.filters[0]!.checkOn,
+        ),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -539,9 +523,7 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
       monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([failing])
-      .mockResolvedValueOnce([healthy]);
+    monitorService.findBy.mockResolvedValueOnce([failing, healthy]);
 
     monitorService.updateColumnsByIdWithoutHooks.mockImplementation(
       (args: UpdateCallArgs) => {
@@ -625,6 +607,8 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Results queued for a page a test's sweep never asked for go with it.
+    monitorService.findBy.mockReset();
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
       return new Date(NOW);
@@ -648,10 +632,10 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
     });
   });
 
-  test("both sweep phases load the secret key that the arrivals are kept under", async () => {
+  test("the sweep loads the secret key that the arrivals are kept under", async () => {
     await runWorkerTick();
 
-    expect(monitorService.findBy).toHaveBeenCalledTimes(2);
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
     for (const call of monitorService.findBy.mock.calls) {
       const args: FindByArgs = call[0] as FindByArgs;
@@ -660,9 +644,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   });
 
   test("a heartbeat that arrived but is still queued keeps the monitor online", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor(persistedAt(LAST_PERSISTED)),
+    ]);
 
     trackMock.mockResolvedValue(new Date(LAST_ARRIVAL));
 
@@ -721,9 +705,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   });
 
   test("a sender that really stopped is still judged missing", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor(persistedAt(LAST_PERSISTED)),
+    ]);
 
     // No arrival newer than the persisted heartbeat.
     await runWorkerTick();
@@ -748,9 +732,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
    * write, right before the evaluation.
    */
   test("reads the arrivals after the bookkeeping write and before the evaluation", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor(persistedAt(LAST_PERSISTED)),
+    ]);
 
     await runWorkerTick();
 
@@ -765,9 +749,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   });
 
   test("the check time is taken after the arrivals are read, so a fresh arrival is never judged against an older clock", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor(persistedAt(LAST_PERSISTED)),
+    ]);
 
     const clock: { now: Date } = { now: new Date(NOW) };
     (OneUptimeDate.getCurrentDate as unknown as jest.Mock).mockImplementation(
@@ -792,9 +776,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   });
 
   test("an arrival stamped after the check (pod clock skew) is clamped to the check", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor(persistedAt(LAST_PERSISTED)),
+    ]);
 
     trackMock.mockResolvedValue(new Date(NOW.getTime() + 7 * 60 * 1000));
 
@@ -812,9 +796,7 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   });
 
   test("a monitor that never received anything registers with its creation time", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor()])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([heartbeatMonitor()]);
 
     await runWorkerTick();
 
@@ -830,15 +812,13 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   });
 
   test("a monitor with no heartbeat criteria is never registered", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        makeMonitor({
-          id: MONITOR_A_ID,
-          monitorSteps: stepsWithCheckOn(CheckOn.RequestBody),
-          incomingRequestSecretKey: SECRET_KEY,
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({
+        id: MONITOR_A_ID,
+        monitorSteps: stepsWithCheckOn(CheckOn.RequestBody),
+        incomingRequestSecretKey: SECRET_KEY,
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -847,11 +827,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
   });
 
   test("a monitor without steps never touches the store", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        makeMonitor({ id: MONITOR_A_ID, incomingRequestSecretKey: SECRET_KEY }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      makeMonitor({ id: MONITOR_A_ID, incomingRequestSecretKey: SECRET_KEY }),
+    ]);
 
     await runWorkerTick();
 
@@ -865,9 +843,7 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing"
       requestHeaders: { "user-agent": "curl/8.12.1" },
     } as IncomingMonitorRequest;
 
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor(persisted)])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([heartbeatMonitor(persisted)]);
 
     trackMock.mockResolvedValue(new Date(LAST_ARRIVAL));
 
@@ -971,6 +947,8 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Results queued for a page a test's sweep never asked for go with it.
+    monitorService.findBy.mockReset();
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
       return new Date(NOW);
@@ -994,10 +972,10 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
     });
   });
 
-  test("both sweep phases read the request as it came, and the copy people read", async () => {
+  test("the sweep reads the request as it came, and the copy people read", async () => {
     await runWorkerTick();
 
-    expect(monitorService.findBy).toHaveBeenCalledTimes(2);
+    expect(monitorService.findBy).toHaveBeenCalledTimes(1);
 
     for (const call of monitorService.findBy.mock.calls) {
       const args: FindByArgs = call[0] as FindByArgs;
@@ -1007,14 +985,12 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   });
 
   test("a split request is judged as it came: its headers and its body whole, never the cut copy", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({
-          incomingMonitorRequest: cutCopy(),
-          incomingMonitorRequestAsReceived: asItCame(),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({
+        incomingMonitorRequest: cutCopy(),
+        incomingMonitorRequestAsReceived: asItCame(),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -1027,14 +1003,12 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   });
 
   test("the real criteria agree: a filter on the body or on a header still matches the request the sender sent", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({
-          incomingMonitorRequest: cutCopy(),
-          incomingMonitorRequestAsReceived: asItCame(),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({
+        incomingMonitorRequest: cutCopy(),
+        incomingMonitorRequestAsReceived: asItCame(),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -1075,16 +1049,14 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   });
 
   test("the arrival floor is the request as it came", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({
-          incomingMonitorRequest: cutCopy({
-            incomingRequestReceivedAt: new Date("2026-07-27T09:00:00.000Z"),
-          }),
-          incomingMonitorRequestAsReceived: asItCame(),
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({
+        incomingMonitorRequest: cutCopy({
+          incomingRequestReceivedAt: new Date("2026-07-27T09:00:00.000Z"),
         }),
-      ])
-      .mockResolvedValueOnce([]);
+        incomingMonitorRequestAsReceived: asItCame(),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -1097,14 +1069,12 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   });
 
   test("a split monitor is not written again", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({
-          incomingMonitorRequest: cutCopy(),
-          incomingMonitorRequestAsReceived: asItCame(),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({
+        incomingMonitorRequest: cutCopy(),
+        incomingMonitorRequestAsReceived: asItCame(),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -1114,11 +1084,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   });
 
   test("a request kept once, as it came: judged as before, and split", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
+    ]);
 
     await runWorkerTick();
 
@@ -1156,14 +1124,12 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
       checkedAt: new Date("2026-07-27T09:59:31.000Z"),
     });
 
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({
-          incomingMonitorRequest: later,
-          incomingMonitorRequestAsReceived: asItCame(),
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({
+        incomingMonitorRequest: later,
+        incomingMonitorRequestAsReceived: asItCame(),
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -1186,11 +1152,9 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
       new Error("db connection reset"),
     );
 
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({ incomingMonitorRequest: asItCame() }),
+    ]);
 
     await runWorkerTick();
 
@@ -1199,14 +1163,12 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   });
 
   test("a monitor with no heartbeat criteria is split too: the copy people read is cut whatever it checks", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([
-        heartbeatMonitor({
-          incomingMonitorRequest: asItCame(),
-          checkOn: CheckOn.RequestBody,
-        }),
-      ])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([
+      heartbeatMonitor({
+        incomingMonitorRequest: asItCame(),
+        checkOn: CheckOn.RequestBody,
+      }),
+    ]);
 
     await runWorkerTick();
 
@@ -1217,9 +1179,7 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
   });
 
   test("a monitor no request reached has nothing to split, and falls back to its creation time", async () => {
-    monitorService.findBy
-      .mockResolvedValueOnce([heartbeatMonitor({})])
-      .mockResolvedValueOnce([]);
+    monitorService.findBy.mockResolvedValueOnce([heartbeatMonitor({})]);
 
     await runWorkerTick();
 
@@ -1229,5 +1189,305 @@ describe("IncomingRequestMonitor:CheckHeartbeat judges the request as it came, n
     expect(evaluatedPayload().incomingRequestReceivedAt.getTime()).toBe(
       CREATED_AT.getTime(),
     );
+  });
+});
+
+/*
+ * The sweep visited every incoming request monitor every 30 seconds, wrote
+ * its row, and evaluated it. It now writes the "status checked at" stamp at
+ * most every few minutes, and evaluates a monitor only when something its
+ * criteria judge can have changed since its last evaluation
+ * (MonitorHeartbeatState): a new request, other criteria, another status,
+ * or a heartbeat window that has passed. Redis is a map here.
+ */
+describe("IncomingRequestMonitor:CheckHeartbeat writes and evaluates only when something can have changed", () => {
+  const ARRIVED_AT: Date = new Date(NOW.getTime() - 60 * 1000);
+  const ONLINE: ObjectID = new ObjectID("status-online");
+  const OFFLINE: ObjectID = new ObjectID("status-offline");
+
+  let redis: Map<string, string>;
+  let redisFails: boolean;
+  let clock: Date;
+
+  function filter(values: Partial<CriteriaFilter>): CriteriaFilter {
+    return {
+      checkOn: CheckOn.IncomingRequest,
+      filterType: FilterType.RecievedInMinutes,
+      value: 5,
+      ...values,
+    } as CriteriaFilter;
+  }
+
+  // Received in N minutes / not received in N minutes, and any others.
+  function stepsWithWindow(
+    minutes: number,
+    others: Array<CriteriaFilter> = [],
+  ): MonitorSteps {
+    return {
+      data: {
+        monitorStepsInstanceArray: [
+          {
+            data: {
+              monitorCriteria: {
+                data: {
+                  monitorCriteriaInstanceArray: [
+                    {
+                      data: {
+                        filters: [filter({ value: minutes }), ...others],
+                      },
+                    },
+                    {
+                      data: {
+                        filters: [
+                          filter({
+                            filterType: FilterType.NotRecievedInMinutes,
+                            value: minutes,
+                          }),
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      },
+    } as unknown as MonitorSteps;
+  }
+
+  function heartbeatMonitor(
+    values: {
+      monitorSteps?: MonitorSteps;
+      status?: ObjectID;
+      id?: ObjectID;
+    } = {},
+  ): Monitor {
+    const monitor: Monitor = makeMonitor({
+      id: values.id || MONITOR_A_ID,
+      monitorSteps: values.monitorSteps || stepsWithWindow(5),
+      incomingMonitorRequestAsReceived: {
+        projectId: PROJECT_ID,
+        monitorId: values.id || MONITOR_A_ID,
+        requestHeaders: {},
+        requestBody: {},
+        incomingRequestReceivedAt: ARRIVED_AT,
+        checkedAt: ARRIVED_AT,
+      },
+      incomingRequestSecretKey: new ObjectID("secret-a"),
+    });
+    monitor.currentMonitorStatusId = values.status || ONLINE;
+    return monitor;
+  }
+
+  // What MonitorResource records after evaluating a request (mocked here).
+  async function evaluatedBefore(
+    monitor: Monitor,
+    receivedAt: Date = ARRIVED_AT,
+  ): Promise<void> {
+    await MonitorHeartbeatState.markEvaluated({
+      kind: HeartbeatKind.IncomingRequest,
+      monitorId: monitor.id!,
+      receivedAt: receivedAt,
+      monitorSteps: monitor.monitorSteps,
+      monitorStatusId: monitor.currentMonitorStatusId,
+    });
+  }
+
+  async function sweepAt(at: Date, monitors: Array<Monitor>): Promise<void> {
+    clock = at;
+    monitorService.findBy.mockResolvedValueOnce(monitors);
+    await runWorkerTick();
+  }
+
+  function expireFences(): void {
+    for (const name of Array.from(redis.keys())) {
+      if (name.includes("-write-")) {
+        redis.delete(name);
+      }
+    }
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Results queued for a page a test's sweep never asked for go with it.
+    monitorService.findBy.mockReset();
+
+    redis = new Map<string, string>();
+    redisFails = false;
+    clock = NOW;
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(clock);
+    });
+
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockImplementation(async (namespace: string, key: string) => {
+        if (redisFails) {
+          throw new Error("Redis is down");
+        }
+
+        return redis.get(`${namespace}-${key}`) ?? null;
+      });
+
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockImplementation(
+        async (namespace: string, key: string, value: string) => {
+          if (redisFails) {
+            throw new Error("Redis is down");
+          }
+
+          redis.set(`${namespace}-${key}`, value);
+        },
+      );
+
+    monitorService.findBy.mockResolvedValue([]);
+    monitorService.getEnabledMonitorQuery.mockReturnValue(
+      ENABLED_MONITOR_QUERY,
+    );
+    monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
+    monitorService.rewriteLatestIncomingRequestForReaders.mockResolvedValue(
+      true,
+    );
+    projectService.getActiveProjectStatusQuery.mockReturnValue(
+      ACTIVE_PROJECT_QUERY,
+    );
+    monitorResourceMock.mockResolvedValue(undefined);
+
+    // No arrival newer than the one the monitor's row holds.
+    trackMock.mockImplementation((input: { receivedAt: Date | string }) => {
+      return Promise.resolve(OneUptimeDate.fromString(input.receivedAt));
+    });
+  });
+
+  test("the status-check stamp is written at most every few minutes", async () => {
+    const monitor: Monitor = heartbeatMonitor();
+
+    await sweepAt(NOW, [monitor]);
+    await sweepAt(new Date(NOW.getTime() + 30 * 1000), [monitor]);
+
+    expect(stampCalls()).toHaveLength(1);
+
+    expireFences();
+    await sweepAt(new Date(NOW.getTime() + 60 * 1000), [monitor]);
+
+    expect(stampCalls()).toHaveLength(2);
+    expect(MonitorHeartbeatState.CHECK_STAMP_WRITE_EVERY_SECONDS).toBe(300);
+  });
+
+  test("a monitor whose latest request was evaluated is not evaluated again inside its window", async () => {
+    const monitor: Monitor = heartbeatMonitor();
+    await evaluatedBefore(monitor);
+
+    await sweepAt(NOW, [monitor]);
+
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+  });
+
+  test("a sender that stops is judged missing in the first sweep after its window, as before", async () => {
+    const monitor: Monitor = heartbeatMonitor();
+    await evaluatedBefore(monitor);
+
+    // Every 30 seconds until the 5-minute window has passed since the request.
+    for (
+      let at: number = ARRIVED_AT.getTime() + 30 * 1000;
+      at < ARRIVED_AT.getTime() + 5 * 60 * 1000;
+      at += 30 * 1000
+    ) {
+      await sweepAt(new Date(at), [monitor]);
+    }
+
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+
+    await sweepAt(new Date(ARRIVED_AT.getTime() + 5 * 60 * 1000), [monitor]);
+
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+    const judged: IncomingMonitorRequest = monitorResourceMock.mock
+      .calls[0]![0] as IncomingMonitorRequest;
+    expect(
+      OneUptimeDate.fromString(judged.incomingRequestReceivedAt).getTime(),
+    ).toBe(ARRIVED_AT.getTime());
+
+    // And on every sweep after it, as before.
+    await sweepAt(new Date(ARRIVED_AT.getTime() + 5.5 * 60 * 1000), [monitor]);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("a request that arrived after the one evaluated is evaluated", async () => {
+    const monitor: Monitor = heartbeatMonitor();
+    await evaluatedBefore(monitor);
+
+    // A newer arrival the endpoint saw; its own job has not run yet.
+    trackMock.mockResolvedValue(new Date(NOW.getTime() - 5 * 1000));
+
+    await sweepAt(NOW, [monitor]);
+
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("criteria edited since the last evaluation are evaluated", async () => {
+    const monitor: Monitor = heartbeatMonitor();
+    await evaluatedBefore(monitor);
+
+    monitor.monitorSteps = stepsWithWindow(10);
+    await sweepAt(NOW, [monitor]);
+
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a status changed since the last evaluation is evaluated", async () => {
+    const monitor: Monitor = heartbeatMonitor({ status: ONLINE });
+    await evaluatedBefore(monitor);
+
+    // Someone set the monitor's status by hand, or a maintenance event did.
+    monitor.currentMonitorStatusId = OFFLINE;
+    await sweepAt(NOW, [monitor]);
+
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a monitor nothing was evaluated for is evaluated", async () => {
+    await sweepAt(NOW, [heartbeatMonitor()]);
+
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a monitor whose criteria judge more than requests is evaluated every sweep", async () => {
+    const monitor: Monitor = heartbeatMonitor({
+      monitorSteps: stepsWithWindow(5, [
+        filter({ checkOn: CheckOn.JavaScriptExpression, value: "true" }),
+      ]),
+    });
+    await evaluatedBefore(monitor);
+
+    await sweepAt(NOW, [monitor]);
+
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a Redis that cannot be reached stamps every visit and evaluates every sweep, as before", async () => {
+    const monitor: Monitor = heartbeatMonitor();
+    await evaluatedBefore(monitor);
+    redisFails = true;
+
+    await sweepAt(NOW, [monitor]);
+    await sweepAt(new Date(NOW.getTime() + 30 * 1000), [monitor]);
+
+    expect(stampCalls()).toHaveLength(2);
+    expect(monitorResourceMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("the sweep reads each monitor's status, to compare with its last evaluation", async () => {
+    await runWorkerTick();
+
+    const args: FindByArgs = monitorService.findBy.mock
+      .calls[0]![0] as FindByArgs;
+    expect(args.select["currentMonitorStatusId"]).toBe(true);
   });
 });

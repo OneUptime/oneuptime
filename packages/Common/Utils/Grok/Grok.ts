@@ -6,6 +6,7 @@ import {
   PatternWorkLimitError,
 } from "../LinearRegExp/PatternProblem";
 import { patternWorkRefusesQuestions } from "../LinearRegExp/PatternWork";
+import { readOwnValue, writeOwnValue } from "../LookupTable";
 import GrokPatterns from "./GrokPatterns";
 
 /*
@@ -165,7 +166,11 @@ function resolveReference(
     );
   }
 
-  const definition: string | undefined = context.patterns[patternName];
+  // A library's own names only: %{constructor} names no pattern.
+  const definition: string | undefined = readOwnValue(
+    context.patterns,
+    patternName,
+  );
 
   if (definition === undefined) {
     throw new BadDataException(
@@ -426,13 +431,18 @@ export function matchGrokPattern(
      * The same field name can legitimately appear twice (alternation
      * branches, or a library pattern that already names it). Whichever
      * group actually matched first wins, so a later branch that did not
-     * participate cannot blank out a real value.
+     * participate cannot blank out a real value. Own fields only, and
+     * written as own: a field may be named constructor or __proto__.
      */
-    if (extracted[capture.fieldName] !== undefined) {
+    if (Object.prototype.hasOwnProperty.call(extracted, capture.fieldName)) {
       continue;
     }
 
-    extracted[capture.fieldName] = coerceValue(raw, capture.fieldType);
+    writeOwnValue(
+      extracted,
+      capture.fieldName,
+      coerceValue(raw, capture.fieldType),
+    );
   }
 
   return extracted;

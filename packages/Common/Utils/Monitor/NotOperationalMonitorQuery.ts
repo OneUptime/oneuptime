@@ -1,5 +1,6 @@
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Query from "../../Types/BaseDatabase/Query";
+import ObjectID from "../../Types/ObjectID";
 import MonitoringOff from "./MonitoringOff";
 
 /*
@@ -28,12 +29,33 @@ import MonitoringOff from "./MonitoringOff";
  * problemsOnly. The checked monitors are MonitoringOff's.
  */
 export default class NotOperationalMonitorQuery {
-  public static getQuery(): Query<Monitor> {
+  /*
+   * Given the project the monitors are read in, the status is asked of that
+   * project too (issue #8096). A monitor's statuses are its project's own,
+   * so the answer is the same, but Postgres can then start from the
+   * project's few statuses that are not operational and read only the
+   * monitors that hold one (the index on currentMonitorStatusId), where it
+   * otherwise reads every monitor of the project and joins each to its
+   * status: 1,915 buffers instead of 8,585 for a count in a project of
+   * 20,000 monitors. Every Not Operational count and list that knows its
+   * project passes it; a list also counts what it lists.
+   */
+  public static getQuery(
+    projectId?: ObjectID | string | null | undefined,
+  ): Query<Monitor> {
     return {
       ...MonitoringOff.getMonitoredQuery(),
-      currentMonitorStatus: {
-        isOperationalState: false,
-      },
+      currentMonitorStatus: projectId
+        ? {
+            isOperationalState: false,
+            projectId:
+              projectId instanceof ObjectID
+                ? projectId
+                : new ObjectID(projectId),
+          }
+        : {
+            isOperationalState: false,
+          },
     };
   }
 }

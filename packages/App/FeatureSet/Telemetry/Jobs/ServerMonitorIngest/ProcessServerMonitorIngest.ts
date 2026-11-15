@@ -9,6 +9,10 @@ import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMoni
 import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import MonitorSecretKeyCache, {
+  MonitorOfSecretKey,
+  MonitorSecretKeyKind,
+} from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -24,25 +28,52 @@ export async function processServerMonitorFromQueue(
     throw new BadDataException("Invalid Secret Key");
   }
 
-  const monitor: Monitor | null = await MonitorService.findOneBy({
-    query: {
-      serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
-      monitorType: MonitorType.Server,
-      ...MonitorService.getEnabledMonitorQuery(),
-      project: {
-        ...ProjectService.getActiveProjectStatusQuery(),
-      },
-    },
-    select: {
-      _id: true,
-    },
-    props: {
-      isRoot: true,
-    },
-  });
+  /*
+   * The monitor this key is the agent's for: an agent reports every 30
+   * seconds, so it is kept for a minute (MonitorSecretKeyCache) rather than
+   * looked up in Postgres every report. monitorResource reads the monitor
+   * anyway, and checks the key is still its own (options.secretKey).
+   */
+  const keptMonitor: MonitorOfSecretKey | null =
+    await MonitorSecretKeyCache.getMonitor({
+      kind: MonitorSecretKeyKind.ServerMonitor,
+      secretKey: monitorSecretKeyAsString,
+    });
 
-  if (!monitor) {
-    throw new BadDataException(ExceptionMessages.MonitorNotFound);
+  let monitorId: ObjectID | null = keptMonitor?.monitorId || null;
+
+  if (!monitorId) {
+    const monitor: Monitor | null = await MonitorService.findOneBy({
+      query: {
+        serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
+        monitorType: MonitorType.Server,
+        ...MonitorService.getEnabledMonitorQuery(),
+        project: {
+          ...ProjectService.getActiveProjectStatusQuery(),
+        },
+      },
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor || !monitor.id) {
+      throw new BadDataException(ExceptionMessages.MonitorNotFound);
+    }
+
+    monitorId = monitor.id;
+
+    if (monitor.projectId) {
+      await MonitorSecretKeyCache.setMonitor({
+        kind: MonitorSecretKeyKind.ServerMonitor,
+        secretKey: monitorSecretKeyAsString,
+        monitor: { monitorId: monitor.id, projectId: monitor.projectId },
+      });
+    }
   }
 
   /*
@@ -66,11 +97,7 @@ export async function processServerMonitorFromQueue(
     throw new BadDataException("Invalid Server Monitor Response");
   }
 
-  if (!monitor.id) {
-    throw new BadDataException("Monitor id not found");
-  }
-
-  serverMonitorResponse.monitorId = monitor.id;
+  serverMonitorResponse.monitorId = monitorId;
   serverMonitorResponse.requestReceivedAt = OneUptimeDate.getCurrentDate();
   serverMonitorResponse.timeNow = OneUptimeDate.getCurrentDate();
 
@@ -86,7 +113,31 @@ export async function processServerMonitorFromQueue(
   );
 
   // process probe response here.
-  await MonitorResourceUtil.monitorResource(serverMonitorResponse);
+  try {
+    await MonitorResourceUtil.monitorResource(serverMonitorResponse, {
+      secretKey: {
+        column: "serverMonitorSecretKey",
+        value: monitorSecretKeyAsString,
+      },
+    });
+  } catch (err) {
+    /*
+     * A key that no longer finds its monitor - rotated, or the monitor
+     * deleted, since it was kept or looked up: forgotten, so the next report
+     * looks it up.
+     */
+    if (
+      err instanceof BadDataException &&
+      err.message === ExceptionMessages.MonitorNotFound
+    ) {
+      await MonitorSecretKeyCache.forget({
+        kind: MonitorSecretKeyKind.ServerMonitor,
+        secretKey: monitorSecretKeyAsString,
+      });
+    }
+
+    throw err;
+  }
 }
 
 logger.debug("Server monitor ingest processing functions loaded");

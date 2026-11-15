@@ -21,6 +21,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import { getJestSpyOn } from "../../Spy";
+import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import jwt from "jsonwebtoken";
 import {
   afterEach,
@@ -655,6 +656,8 @@ describe("the API's project access check follows the provider", () => {
     ): Promise<UserTenantAccessPermission> => {
       return { projectId: projectId } as UserTenantAccessPermission;
     }) as never);
+    // A request across projects, answered through the lookups above.
+    answerMultiTenantReadsProjectByProject();
   });
 
   const access: (

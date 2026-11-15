@@ -14,6 +14,8 @@ import StatusTimelineViewSwitch, {
 } from "Common/UI/Components/StatusTimeline/StatusTimelineView";
 import StateTimelineSubscriberNotification from "../../../Components/StateTimeline/StateTimelineSubscriberNotification";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   getStateTimelineDurationColumn,
   getStateTimelineEndsAtColumn,
@@ -311,6 +313,10 @@ const ScheduledMaintenanceViewStateTimeline: FunctionComponent<
                 <Pill
                   color={item.scheduledMaintenanceState.color || Black}
                   text={item.scheduledMaintenanceState.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.ScheduledMaintenanceState,
+                    item.scheduledMaintenanceState.name,
+                  )}
                 />
               );
             },

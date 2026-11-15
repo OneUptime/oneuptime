@@ -933,7 +933,7 @@ describe("the NetworkDevice source selects every column it projects", () => {
       return Promise.resolve([selectFrom(full, call.select)]);
     };
 
-    return networkSource().fetchPage({ skip: 0, limit: 1 });
+    return (await networkSource().fetchPage({ limit: 1 })).rows;
   }
 
   test("the projection through select equals the projection of the full row", async () => {
@@ -969,7 +969,7 @@ describe("the NetworkDevice source selects every column it projects", () => {
       return Promise.resolve([]);
     };
 
-    await networkSource().fetchPage({ skip: 0, limit: 1 });
+    await networkSource().fetchPage({ limit: 1 });
 
     expect(selects).toHaveLength(1);
     expect(selects[0]!["discoveredDetails"]).toBe(true);
@@ -1125,7 +1125,7 @@ describe("the NetworkDevice source selects every column it projects", () => {
       return Promise.resolve([]);
     };
 
-    await networkSource().fetchPage({ skip: 0, limit: 1 });
+    await networkSource().fetchPage({ limit: 1 });
 
     expect(seen).toEqual([{ isArchived: false }]);
     expect(roleQueries).toEqual([]);
