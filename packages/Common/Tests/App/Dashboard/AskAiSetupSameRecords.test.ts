@@ -39,6 +39,8 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
+import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -48,6 +50,11 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import {
+  WhoIsToldMode,
+  getWhoIsToldMode,
+} from "../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { GUIDED_SETUP_MONITORING_INTERVAL } from "../../../Utils/GuidedSetup/WebsiteMonitorRecords";
 import UserLanguage from "../../../Server/Utils/Notification/UserLanguage";
@@ -222,11 +229,9 @@ async function askAiPolicy(
     .spyOn(OnCallDutyPolicyService, "countBy")
     .mockResolvedValue(new PositiveNumber(0) as never);
   jest
-    .spyOn(IncidentOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
-  jest
-    .spyOn(AlertOnCallRuleService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0) as never);
+    .spyOn(IncidentOnCallRuleService, "findBy")
+    .mockResolvedValue([] as never);
+  jest.spyOn(AlertOnCallRuleService, "findBy").mockResolvedValue([] as never);
   const serverCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
     .spyOn(OnCallDutyPolicyService, "create")
     .mockImplementation((async (args: {
@@ -800,4 +805,171 @@ describe("the same records, for the same answers", () => {
       }
     },
   );
+});
+
+/*
+ * THE SAME DECISION OF WHO IS TOLD, FOR THE SAME PROJECT (#8518). The
+ * website-down guided setup (WebsiteDownApi.loadWhoIsToldFacts) and Ask
+ * AI's set_up_paging (SetupTools' readPagingCounts) each ask whether the
+ * project pages people already. Only what pages people counts in both: a
+ * policy in service (#8234), and an on-call rule that runs one (#8433). The
+ * project is one database here, read by both: the browser through the
+ * model API, the server through the services, each answering as the real
+ * ones do - only what the query matches, each rule with its policies.
+ */
+describe("the same decision of who is told, for the same project (#8518)", () => {
+  interface Shape {
+    name: string;
+    policies: Array<boolean>;
+    incidentRules: Array<Array<boolean>>;
+    alertRules: Array<Array<boolean>>;
+    pagesAlready: boolean;
+  }
+
+  const SHAPES: Array<Shape> = [
+    {
+      name: "a new project",
+      policies: [],
+      incidentRules: [],
+      alertRules: [],
+      pagesAlready: false,
+    },
+    {
+      name: "its only policy archived, with the two rules that run it",
+      policies: [true],
+      incidentRules: [[true]],
+      alertRules: [[true]],
+      pagesAlready: false,
+    },
+    {
+      name: "rules that run no policy",
+      policies: [],
+      incidentRules: [[]],
+      alertRules: [[]],
+      pagesAlready: false,
+    },
+    {
+      name: "an archived policy beside one in service",
+      policies: [true, false],
+      incidentRules: [[true]],
+      alertRules: [],
+      pagesAlready: true,
+    },
+    {
+      name: "a rule running a policy in service beside an archived one",
+      policies: [true, false],
+      incidentRules: [[true, false]],
+      alertRules: [],
+      pagesAlready: true,
+    },
+    {
+      name: "a policy in service and no rule",
+      policies: [false],
+      incidentRules: [],
+      alertRules: [],
+      pagesAlready: true,
+    },
+  ];
+
+  const policiesOf: (archived: Array<boolean>) => Array<OnCallDutyPolicy> = (
+    archived: Array<boolean>,
+  ): Array<OnCallDutyPolicy> => {
+    return archived.map((isArchived: boolean): OnCallDutyPolicy => {
+      return model(OnCallDutyPolicy, {
+        _id: ObjectID.generate().toString(),
+        isArchived: isArchived,
+      });
+    });
+  };
+
+  const rulesOf: <T>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ) => Array<T> = <T>(
+    type: { new (): T },
+    rules: Array<Array<boolean>>,
+  ): Array<T> => {
+    return rules.map((archived: Array<boolean>): T => {
+      return model(type, {
+        _id: ObjectID.generate().toString(),
+        onCallDutyPolicies: policiesOf(archived),
+      });
+    });
+  };
+
+  // How many of the project's policies a query matches, as a count does.
+  const matching: (
+    archived: Array<boolean>,
+    query: Record<string, unknown>,
+  ) => number = (
+    archived: Array<boolean>,
+    query: Record<string, unknown>,
+  ): number => {
+    return archived.filter((isArchived: boolean): boolean => {
+      return !("isArchived" in query) || query["isArchived"] === isArchived;
+    }).length;
+  };
+
+  test.each(SHAPES)("$name: both decide alike", async (shape: Shape) => {
+    // The browser's reads.
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    jest.spyOn(ModelAPI, "count").mockImplementation((async (args: {
+      query: Record<string, unknown>;
+    }): Promise<number> => {
+      return matching(shape.policies, args.query);
+    }) as never);
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+    }) => {
+      if (args.modelType === IncidentOnCallRule) {
+        return list(rulesOf(IncidentOnCallRule, shape.incidentRules));
+      }
+
+      if (args.modelType === AlertOnCallRule) {
+        return list(rulesOf(AlertOnCallRule, shape.alertRules));
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+
+    // The server's.
+    jest
+      .spyOn(OnCallDutyPolicyService, "countBy")
+      .mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }): Promise<PositiveNumber> => {
+        return new PositiveNumber(matching(shape.policies, args.query));
+      }) as never);
+    jest
+      .spyOn(IncidentOnCallRuleService, "findBy")
+      .mockResolvedValue(
+        rulesOf(IncidentOnCallRule, shape.incidentRules) as never,
+      );
+    jest
+      .spyOn(AlertOnCallRuleService, "findBy")
+      .mockResolvedValue(rulesOf(AlertOnCallRule, shape.alertRules) as never);
+
+    const guidedSetup: WhoIsToldMode = getWhoIsToldMode(
+      await WebsiteDownApi.loadWhoIsToldFacts(),
+    );
+    const askAi: { toldModel: string } | null =
+      await SetUpPagingTool.checkBeforeApproval!({ userIds: [USER_ID] }, ctx);
+
+    expect({
+      guidedSetup: guidedSetup,
+      askAiPagesAlready: Boolean(
+        askAi?.toldModel.includes("already pages people"),
+      ),
+    }).toEqual({
+      guidedSetup: shape.pagesAlready
+        ? WhoIsToldMode.ExistingPolicy
+        : WhoIsToldMode.CreatePolicy,
+      askAiPagesAlready: shape.pagesAlready,
+    });
+
+    // Where the project pages nobody, nothing else stood in Ask AI's way.
+    if (!shape.pagesAlready) {
+      expect(askAi).toBeNull();
+    }
+  });
 });
