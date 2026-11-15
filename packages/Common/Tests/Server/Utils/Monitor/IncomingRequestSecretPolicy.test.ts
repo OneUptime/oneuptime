@@ -72,7 +72,7 @@ let secretFindBy: jest.SpiedFunction<
   typeof IncomingRequestSecretService.findBy
 >;
 let secretUpdateOneById: jest.SpiedFunction<
-  typeof IncomingRequestSecretService.updateOneById
+  typeof IncomingRequestSecretService.updateColumnsByIdWithoutHooks
 >;
 
 beforeEach(() => {
@@ -165,7 +165,7 @@ beforeEach(() => {
     });
 
   secretUpdateOneById = jest
-    .spyOn(IncomingRequestSecretService, "updateOneById")
+    .spyOn(IncomingRequestSecretService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
 });
 
@@ -408,12 +408,13 @@ describe("recordUse", () => {
     expect(secretUpdateOneById).toHaveBeenCalledTimes(1);
 
     const call: Parameters<
-      typeof IncomingRequestSecretService.updateOneById
+      typeof IncomingRequestSecretService.updateColumnsByIdWithoutHooks
     >[0] = secretUpdateOneById.mock.calls[0]![0];
 
     expect(call.id.toString()).toBe(SECRET_ID);
     expect(call.data.lastUsedAt).toBeInstanceOf(Date);
-    expect(call.props).toEqual({ isRoot: true, ignoreHooks: true });
+    // A stamp, not a change: updatedAt stays as the secret's owner left it.
+    expect(call.skipUpdateDateColumn).toBe(true);
   });
 
   test("does not stamp it again within the window", async () => {

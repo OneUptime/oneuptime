@@ -219,15 +219,17 @@ export default class IncomingRequestSecretPolicy {
         return;
       }
 
-      await IncomingRequestSecretService.updateOneById({
+      /*
+       * One hook-free UPDATE of the one column, as an ingestion key's stamp
+       * is: no hooks, so a passive stamp does not forget the cached policy,
+       * and no updatedAt, so it never reads as someone changing the secret.
+       */
+      await IncomingRequestSecretService.updateColumnsByIdWithoutHooks({
         id: new ObjectID(secretId),
         data: {
           lastUsedAt: OneUptimeDate.getCurrentDate(),
         },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
+        skipUpdateDateColumn: true,
       });
     } catch (err) {
       logger.debug(
