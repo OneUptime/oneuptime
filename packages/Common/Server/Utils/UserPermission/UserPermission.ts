@@ -6,8 +6,16 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import GlobalCache from "../../Infrastructure/GlobalCache";
+import { PERMISSION_ROWS_VERSION } from "../../Infrastructure/Postgres/PermissionRowMigrations";
 import PermissionNamespace from "../../Types/Permission/PermissionNamespace";
+import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+
+/*
+ * What a member's cached permission set holds beside its own fields: the
+ * version of the permission rows it was built from (PermissionRowMigrations).
+ */
+export const PERMISSION_ROWS_VERSION_FIELD: string = "permissionRowsVersion";
 
 export default class UserPermissionUtil {
   /*
@@ -99,12 +107,19 @@ export default class UserPermissionUtil {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<UserTenantAccessPermission | null> {
-    return this.readCachedTenantAccessPermission(
-      await GlobalCache.getJSONObject(
-        PermissionNamespace.ProjectPermission,
-        this.buildTenantPermissionCacheKey(userId, projectId),
-      ),
+    const key: string = this.buildTenantPermissionCacheKey(userId, projectId);
+    const cached: JSONObject | null = await GlobalCache.getJSONObject(
+      PermissionNamespace.ProjectPermission,
+      key,
     );
+
+    // Cached before a migration changed the rows it was built from: it goes.
+    if (cached && !this.isCachedFromCurrentPermissionRows(cached)) {
+      await this.forgetSetsCachedBeforePermissionRowsChanged([key]);
+      return null;
+    }
+
+    return this.readCachedTenantAccessPermission(cached);
   }
 
   /*
@@ -121,30 +136,133 @@ export default class UserPermissionUtil {
       return [];
     }
 
+    const keys: Array<string> = projectIds.map(
+      (projectId: ObjectID): string => {
+        return this.buildTenantPermissionCacheKey(userId, projectId);
+      },
+    );
+
     const cached: Array<JSONObject | null> = await GlobalCache.getJSONObjects(
       PermissionNamespace.ProjectPermission,
-      projectIds.map((projectId: ObjectID): string => {
-        return this.buildTenantPermissionCacheKey(userId, projectId);
-      }),
+      keys,
     );
+
+    const staleKeys: Array<string> = keys.filter(
+      (_key: string, index: number): boolean => {
+        const json: JSONObject | null = cached[index] || null;
+        return Boolean(json) && !this.isCachedFromCurrentPermissionRows(json!);
+      },
+    );
+
+    if (staleKeys.length > 0) {
+      await this.forgetSetsCachedBeforePermissionRowsChanged(staleKeys);
+    }
 
     return cached.map(
       (json: JSONObject | null): UserTenantAccessPermission | null => {
+        if (json && !this.isCachedFromCurrentPermissionRows(json)) {
+          return null;
+        }
+
         return this.readCachedTenantAccessPermission(json);
       },
     );
   }
 
-  // A cached permission set as a request may use it, or null to rebuild it.
+  /*
+   * Deletes sets cached before a migration changed the permission rows they
+   * were built from, the first time one is read: the caller rebuilds a
+   * member's from the rows as they are now, and a set of someone who is no
+   * longer a member is not left to be read, and rebuilt, until it expires.
+   * A key that holds nothing is never deleted, so a plain miss costs no
+   * write. Never throws: a set that stays is still never served.
+   */
+  private static async forgetSetsCachedBeforePermissionRowsChanged(
+    keys: Array<string>,
+  ): Promise<void> {
+    try {
+      await Promise.all(
+        keys.map((key: string): Promise<void> => {
+          return GlobalCache.deleteKey(
+            PermissionNamespace.ProjectPermission,
+            key,
+          );
+        }),
+      );
+    } catch (err) {
+      logger.warn(
+        "Could not delete permission sets cached before the permission rows changed; they are still never served.",
+      );
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * Caches a member's permission set in a project, with the version of the
+   * permission rows it was built from (PERMISSION_ROWS_VERSION), so it is
+   * never served once a migration has changed those rows
+   * (isCachedFromCurrentPermissionRows). Every write of a set goes through
+   * here (AccessTokenService), with GlobalCache's expiry of 30 days.
+   */
+  @CaptureSpan()
+  public static async cacheUserTenantAccessPermission(
+    userId: ObjectID,
+    projectId: ObjectID,
+    permission: UserTenantAccessPermission,
+  ): Promise<void> {
+    await GlobalCache.setJSON(
+      PermissionNamespace.ProjectPermission,
+      this.buildTenantPermissionCacheKey(userId, projectId),
+      this.toCachedTenantAccessPermission(permission),
+    );
+  }
+
+  // A member's set as it is cached: a copy, with the version of its rows.
+  public static toCachedTenantAccessPermission(
+    permission: UserTenantAccessPermission,
+  ): JSONObject {
+    return {
+      ...permission,
+      [PERMISSION_ROWS_VERSION_FIELD]: PERMISSION_ROWS_VERSION,
+    };
+  }
+
+  /*
+   * Whether a cached set was built from the permission rows as they are now:
+   * cached with PERMISSION_ROWS_VERSION, or with a newer one - by a server
+   * of a newer release, while both run, from the rows a newer migration
+   * left. One cached with an older version, or with none (every set cached
+   * before sets carried one), was built before a migration that changed
+   * permission rows ran, and may hold a row it took away: it is read as
+   * missing, so the caller rebuilds it from the rows (PermissionRowMigrations).
+   */
+  public static isCachedFromCurrentPermissionRows(cached: JSONObject): boolean {
+    const version: unknown = cached[PERMISSION_ROWS_VERSION_FIELD];
+
+    return (
+      typeof version === "number" &&
+      Number.isFinite(version) &&
+      version >= PERMISSION_ROWS_VERSION
+    );
+  }
+
+  /*
+   * A cached permission set as a request may use it, or null to rebuild it.
+   * The callers have read a set cached before the permission rows changed as
+   * missing already; it is refused here too, so no caller can serve one.
+   */
   private static readCachedTenantAccessPermission(
     cached: JSONObject | null,
   ): UserTenantAccessPermission | null {
-    const json: UserTenantAccessPermission | null =
-      cached as UserTenantAccessPermission | null;
-
-    if (!json) {
+    if (!cached || !this.isCachedFromCurrentPermissionRows(cached)) {
       return null;
     }
+
+    // The set itself, without the version it was cached with.
+    const json: UserTenantAccessPermission = {
+      ...cached,
+    } as UserTenantAccessPermission;
+    delete json[PERMISSION_ROWS_VERSION_FIELD];
 
     json._type = "UserTenantAccessPermission";
 

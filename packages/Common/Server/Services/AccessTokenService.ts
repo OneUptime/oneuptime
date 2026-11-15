@@ -97,9 +97,9 @@ export class AccessTokenService extends BaseService {
             return;
           }
 
-          await GlobalCache.setJSON(
-            PermissionNamespace.ProjectPermission,
-            cacheKey,
+          await UserPermissionUtil.cacheUserTenantAccessPermission(
+            userId,
+            projectId,
             permission,
           );
         },
@@ -516,9 +516,9 @@ export class AccessTokenService extends BaseService {
     const permission: UserTenantAccessPermission =
       this.buildUserTenantAccessPermission(projectId, teamPermissions);
 
-    await GlobalCache.setJSON(
-      PermissionNamespace.ProjectPermission,
-      UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId),
+    await UserPermissionUtil.cacheUserTenantAccessPermission(
+      userId,
+      projectId,
       permission,
     );
 
@@ -751,9 +751,9 @@ export class AccessTokenService extends BaseService {
             isUnlistedProjectStillJoined = true;
           }
 
-          await GlobalCache.setJSON(
-            PermissionNamespace.ProjectPermission,
-            cacheKey,
+          await UserPermissionUtil.cacheUserTenantAccessPermission(
+            userId,
+            projectId,
             permission,
           );
           return;
