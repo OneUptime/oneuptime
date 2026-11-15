@@ -826,8 +826,12 @@ describe.each(Object.keys(ONE_NAME))(
           LOCALE_DIRS["Dashboard"]!,
           language,
         )!;
+        // A title with no lower-case term of its own (On-Call) is checked by its title.
+        const english: Strings = stringsIn(LOCALE_DIRS["Dashboard"]!, "en")!;
 
-        for (const key of keys) {
+        for (const key of keys.filter((candidate: string): boolean => {
+          return english.has(candidate);
+        })) {
           expect({ key, worded: dashboard.get(key) }).toEqual({
             key,
             worded: expect.stringMatching(name.word),

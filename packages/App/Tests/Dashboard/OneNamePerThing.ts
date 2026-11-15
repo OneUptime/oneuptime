@@ -200,6 +200,15 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       word: /排定維護/,
       others: /排程維護/,
     },
+    /*
+     * An on-call policy is a 待命策略, as the On-Call menu and every
+     * Dashboard sentence say it; seven docs pages said 待命政策 (#8527).
+     */
+    {
+      title: "On-Call",
+      word: /待命/,
+      others: /待命政策/,
+    },
   ],
   ru: [
     {
@@ -229,6 +238,17 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Metrics",
       word: /मेट्रिक/,
       others: /मीट्रिक/,
+    },
+  ],
+  /*
+   * An on-call policy is a سیاست آنکال, as the On-Call menu (آنکال) and the
+   * Dashboard's sentences say it; sixteen docs pages said سیاست کشیک (#8527).
+   */
+  fa: [
+    {
+      title: "On-Call",
+      word: /آنکال/,
+      others: /سیاست(?:‌های)? کشیک/,
     },
   ],
   no: [
