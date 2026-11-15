@@ -692,6 +692,18 @@ then `npm run i18n:validate` from the root.
   attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
   by
   [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
+- **A product's Help > Documentation page reads in the reader's language, its code as written.** A
+  page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
+  Observability's does, #7531). A page that is a setup guide holds each language's words for every
+  piece of its markdown in `Pages/<Product>/DocumentationTranslations/<code>.ts`
+  (`SetupGuideTranslation`), one chunk per language: Docker's guide read "Replace `my-docker-host`
+  with a name for this host" under a German step title (#8341). Commands, code spans, field names
+  and product names stay as the English writes them; what the Dashboard draws (a tab, a page, a
+  guide's own topic) is named as the locale words it. A change to a guide's English changes every
+  language's words in the same pull request. Enforced by
+  [SetupGuideDocumentationInLocale](../../packages/Common/Tests/App/Dashboard/SetupGuideDocumentationInLocale.test.ts)
+  and
+  [DocumentationPagesInEveryLanguage](../../packages/Common/Tests/App/Dashboard/DocumentationPagesInEveryLanguage.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
