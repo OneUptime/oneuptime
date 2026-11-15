@@ -275,15 +275,12 @@ interface NotTheLabel {
 
 /*
  * English pages whose bold word spells one of the labels without quoting
- * that Dashboard label: their translations word it their own way.
+ * that Dashboard label: their translations word it their own way. The
+ * Database Health page's Queries is the label since the catalog's metric
+ * names are keys (#8354): its metric table names the metric as the
+ * monitor's form and summary draw it.
  */
 const NOT_THE_LABEL: ReadonlyArray<NotTheLabel> = [
-  {
-    page: "monitor/database-health-monitor",
-    label: "Queries",
-    reason:
-      "The metric table names the catalog's metric, which the monitor form draws as written in every language.",
-  },
   ...["api", "dns", "ip", "ntp", "ping", "port", "website"].map(
     (kind: string): NotTheLabel => {
       return {
@@ -313,7 +310,7 @@ const KNOWN_QUOTES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "telemetry/iot-devices",
   ],
   "Broker health": ["telemetry/queues"],
-  Queries: ["telemetry/databases"],
+  Queries: ["monitor/database-health-monitor", "telemetry/databases"],
   "Queries from applications": ["telemetry/databases"],
   Stacks: ["telemetry/docker-swarm"],
   Online: ["monitor/database-health-monitor", "telemetry/proxmox"],

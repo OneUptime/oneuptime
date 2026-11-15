@@ -152,8 +152,8 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 探测器通过 `SERVERPROPERTY('EngineEdition')` 而不是版本来识别 Azure SQL Database——无论实际运行的是什么，Azure SQL Database 都会报告 `12.0.2000.8`，看起来就像 SQL Server 2014。因此，监视器的 **引擎** 显示为 `Azure SQL Database 12.0.2000.8`，缺少的权限会显示为上面的 Azure 语句，而绝不会显示为 `VIEW SERVER STATE`。
 
 - **在 Azure SQL Database 上不收集复制信息。** Azure SQL Database 没有 `sys.dm_hadr_database_replica_states`，因此 Replication 组在那里会被跳过，而不是每次检查都报告失败。Azure 自己的副本视图（`sys.dm_database_replica_states`、`sys.dm_geo_replication_link_status`）目前还不读取。
-- **连接按数据库计算。** 使用 `VIEW DATABASE STATE` 时，Azure SQL Database 只显示被监控数据库的会话，所以 Connections 统计的是该数据库，而不是逻辑服务器。请分别监控你关心的每个数据库。
-- **在弹性池中，TempDB Free Space 是整个池的值。** 池中的数据库共享同一个 tempdb。
+- **连接按数据库计算。** 使用 `VIEW DATABASE STATE` 时，Azure SQL Database 只显示被监控数据库的会话，所以 **连接** 统计的是该数据库，而不是逻辑服务器。请分别监控你关心的每个数据库。
+- **在弹性池中，“TempDB 可用空间”是整个池的值。** 池中的数据库共享同一个 tempdb。
 
 ## 创建 Database Health 监视器
 
@@ -198,7 +198,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### 更多字段
 
-**Metric Groups** 也在这里：从 Connections、活动、Throughput、Locks and Blocking、存储、Replication 和维护中选择要运行的组。默认全部开启；参见[指标组](#指标组)。监视器的详细信息中将它们列为 **Collected Metric Groups**。
+**Metric Groups** 也在这里：从连接、活动、吞吐量、锁与阻塞、存储、复制和维护中选择要运行的组。默认全部开启；参见[指标组](#指标组)。监视器的详细信息中将它们列为 **Collected Metric Groups**。
 
 | 字段 | 默认值 | 最大值 | 限制的内容 |
 |---|---|---|---|
@@ -249,13 +249,13 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | 失败的环节 | 监视器状态 | 你会看到 |
 |---|---|---|
 | **连接**或探测查询——凭据错误、连接被拒绝、TLS 失败、连接超时 | **离线** | `Database Is Online` 为 false，你为它关联的事件和值班策略会被触发。 |
-| **某个组**——缺少权限、`performance_schema` 被禁用、语句超时 | **保持在线** | 该组未能读取的指标是**缺失的**，而不是零。图表上不会画线，针对这些序列的阈值都不会匹配，也不会由它们产生事件。这次检查会记录一个收集问题，写明组、原因以及（如果有的话）需要运行的确切 `GRANT`；它显示在监视器摘要中，并计入 **Metric Groups Failed**。 |
-| **引擎根本无法提供某个指标**——标准 MySQL 没有死锁计数器；SQL Server 默认不限制连接上限，因此“已用百分比”没有意义 | **保持在线** | 该指标只是不存在。这**不是**收集问题，不计入 Metric Groups Failed，也不需要修复。参见[收集的指标](#收集的指标)中的 Engines 列。 |
+| **某个组**——缺少权限、`performance_schema` 被禁用、语句超时 | **保持在线** | 该组未能读取的指标是**缺失的**，而不是零。图表上不会画线，针对这些序列的阈值都不会匹配，也不会由它们产生事件。这次检查会记录一个收集问题，写明组、原因以及（如果有的话）需要运行的确切 `GRANT`；它显示在监视器摘要中，并计入 **失败的指标组**。 |
+| **引擎根本无法提供某个指标**——标准 MySQL 没有死锁计数器；SQL Server 默认不限制连接上限，因此“已用百分比”没有意义 | **保持在线** | 该指标只是不存在。这**不是**收集问题，不计入 **失败的指标组**，也不需要修复。参见[收集的指标](#收集的指标)中的 Engines 列。 |
 
 缺失就是缺失。未测量的值永远不会报告为 `0`，因为满是编造的零的图表比空缺更糟——空缺至少你看得见。
 
 > [!TIP]
-> 要在失去可见性时收到警报，请使用 `Database Collection Error`，或针对 **Metric Groups Failed** 设置阈值。把两者都设为警报而不是事件：被撤销的权限应该开工单处理，而不是呼叫值班人员。
+> 要在失去可见性时收到警报，请使用 `Database Collection Error`，或针对 **失败的指标组** 设置阈值。把两者都设为警报而不是事件：被撤销的权限应该开工单处理，而不是呼叫值班人员。
 
 ### "The user does not have permission to perform this action"
 
@@ -274,54 +274,54 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | 连接 | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | 连接 | PostgreSQL, MySQL, SQL Server |
+| **运行时间** (s) | `oneuptime.monitor.database.uptime.seconds` | 连接 | PostgreSQL, MySQL, SQL Server |
+| **失败的指标组** | `oneuptime.monitor.database.metric.groups.failed` | 连接 | PostgreSQL, MySQL, SQL Server |
 
 ### 连接
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | 连接 | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | 连接 | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | 连接 | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | 连接 | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | 连接 | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | 连接 | MySQL |
+| **连接** | `oneuptime.monitor.database.connections.total` | 连接 | PostgreSQL, MySQL, SQL Server |
+| **活动连接** | `oneuptime.monitor.database.connections.active` | 连接 | PostgreSQL, MySQL, SQL Server |
+| **最大连接数** | `oneuptime.monitor.database.connections.max` | 连接 | PostgreSQL, MySQL |
+| **已用连接** (%) | `oneuptime.monitor.database.connections.used.percent` | 连接 | PostgreSQL, MySQL |
+| **事务中空闲** | `oneuptime.monitor.database.connections.idle.in.transaction` | 连接 | PostgreSQL |
+| **中止的连接** | `oneuptime.monitor.database.connections.aborted.total` | 连接 | MySQL |
 
 ### 吞吐量
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | 吞吐量 | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | 吞吐量 | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | 吞吐量 | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | 吞吐量 | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **事务** | `oneuptime.monitor.database.transactions.total` | 吞吐量 | PostgreSQL, SQL Server |
+| **查询** | `oneuptime.monitor.database.queries.total` | 吞吐量 | MySQL, SQL Server |
+| **慢查询** | `oneuptime.monitor.database.queries.slow.total` | 吞吐量 | MySQL |
+| **回滚比率** (%) | `oneuptime.monitor.database.rollback.percent` | 吞吐量 | PostgreSQL |
+| **运行时间最长的查询** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **打开时间最长的事务** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **打开的事务** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
 
 ### 锁与阻塞
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **被阻塞的会话** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
+| **锁等待** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
+| **死锁** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
+| **表锁等待** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
 
-标准 MySQL 不提供任何形式的死锁计数器，所以 Deadlocks 只存在于 PostgreSQL 和 SQL Server 上。
+标准 MySQL 不提供任何形式的死锁计数器，所以 **死锁** 只存在于 PostgreSQL 和 SQL Server 上。
 
 ### 缓存与 I/O
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | 吞吐量 | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | 吞吐量 | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | 吞吐量 | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | 吞吐量 | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | 吞吐量 | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | 吞吐量 | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | 吞吐量 | SQL Server |
+| **缓存命中率** (%) | `oneuptime.monitor.database.cache.hit.percent` | 吞吐量 | PostgreSQL, MySQL, SQL Server |
+| **磁盘读取** | `oneuptime.monitor.database.disk.reads.total` | 吞吐量 | PostgreSQL, MySQL, SQL Server |
+| **磁盘写入** | `oneuptime.monitor.database.disk.writes.total` | 吞吐量 | MySQL, SQL Server |
+| **I/O 读取时间** (ms) | `oneuptime.monitor.database.io.read.time.ms` | 吞吐量 | PostgreSQL, SQL Server |
+| **I/O 写入时间** (ms) | `oneuptime.monitor.database.io.write.time.ms` | 吞吐量 | PostgreSQL, SQL Server |
+| **页面预期寿命** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | 吞吐量 | SQL Server |
+| **待处理的内存授予** | `oneuptime.monitor.database.memory.grants.pending` | 吞吐量 | SQL Server |
 
 只有在 `track_io_timing` 开启时，PostgreSQL 才会测量 I/O 读写时间。它默认是关闭的，这时 PostgreSQL 会把两者都报告为 `0`——所以在 PostgreSQL 上，这两个序列一直是零通常意味着“没有测量”，而不是“很快”。这是服务器设置，不是权限问题。
 
@@ -329,42 +329,42 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Database Size** (字节) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (字节) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (字节) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **数据库大小** (字节) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
+| **写入的临时字节** (字节) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
+| **磁盘临时表** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
+| **已用日志空间** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
+| **TempDB 可用空间** (字节) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
 
 ### 复制
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (字节) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **已连接的副本** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
+| **复制延迟** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
+| **复制延迟（字节）** (字节) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
+| **处于恢复中** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
+| **不活动的复制槽** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
 
 复制指标从监视器所连接的那一端报告。把一个监视器指向主库，可以看到已连接的副本和发送队列；为每个备库各指向一个监视器，可以看到该备库实际落后了多少。
 
-即使副本已经远远落后，空闲主库上以秒计的延迟仍显示为零，因为没有写入任何新内容。**Replication Lag (Bytes)** 没有这个盲区，所以请对两者都设置警报。
+即使副本已经远远落后，空闲主库上以秒计的延迟仍显示为零，因为没有写入任何新内容。**复制延迟（字节）** 没有这个盲区，所以请对两者都设置警报。
 
 ### 维护
 
 | 指标 | 序列 | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **已用事务 ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
+| **死元组** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
+| **从未执行 autovacuum 的表** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
+| **请求的检查点** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
+| **定时检查点** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used** 值得在你创建的每个 PostgreSQL 监视器上设置一条条件。它达到 100% 时，PostgreSQL 会拒绝所有写入，恢复需要在数据库停机的情况下以单用户模式执行 vacuum，而几乎没人关注它。请在远未到悬崖时就发出警报——对大多数工作负载来说，80% 还留有好几天的余量。
+> **已用事务 ID** 值得在你创建的每个 PostgreSQL 监视器上设置一条条件。它达到 100% 时，PostgreSQL 会拒绝所有写入，恢复需要在数据库停机的情况下以单用户模式执行 vacuum，而几乎没人关注它。请在远未到悬崖时就发出警报——对大多数工作负载来说，80% 还留有好几天的余量。
 
-以 `total` 结尾的计数器是自服务器启动以来的累计值。比较两个时间点才能得到速率；单个值只有和它自己的历史相比才有意义，而且服务器重启时会归零（**Uptime** 会告诉你何时重启过）。
+以 `total` 结尾的计数器是自服务器启动以来的累计值。比较两个时间点才能得到速率；单个值只有和它自己的历史相比才有意义，而且服务器重启时会归零（**运行时间** 会告诉你何时重启过）。
 
-**Cache Hit Ratio** 和 **Rollback Ratio** 在每次检查时根据计数器自该监视器上一次检查以来的变化计算，而不是自服务器启动以来，因此缓存开始未命中时会立刻显现。探测器启动后的第一次检查，以及服务器重启后的第一次检查，两者都没有。
+**缓存命中率** 和 **回滚比率** 在每次检查时根据计数器自该监视器上一次检查以来的变化计算，而不是自服务器启动以来，因此缓存开始未命中时会立刻显现。探测器启动后的第一次检查，以及服务器重启后的第一次检查，两者都没有。
 
 ## 设置条件
 
@@ -409,14 +409,14 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | 顺序 | 条件 | 过滤器 |
 |---|---|---|
 | 1 | **离线** | `Database Is Online` 为 `false`。 |
-| 2 | **性能下降** | `Database Metric` → Connections Used 大于 `90`，用 All Values 在 5 分钟内评估，这样单次尖峰不会呼叫任何人。 |
-| 3 | **性能下降** | `Database Metric` → Transaction ID Used 大于 `80`。 |
-| 4 | **性能下降** | `Database Metric` → Blocked Sessions 在 5 分钟内大于 `0`。 |
+| 2 | **性能下降** | `Database Metric` → **已用连接** 大于 `90`，用 All Values 在 5 分钟内评估，这样单次尖峰不会呼叫任何人。 |
+| 3 | **性能下降** | `Database Metric` → **已用事务 ID** 大于 `80`。 |
+| 4 | **性能下降** | `Database Metric` → **被阻塞的会话** 在 5 分钟内大于 `0`。 |
 | 5 | **在线** | `Database Is Online` 为 `true`。 |
 
 条件按从上到下的顺序评估，第一个匹配的条件生效，所以请把警报条件放在前面，把健康条件放在最后。
 
-为离线条件关联一个值班策略，而由 **Metric Groups Failed** 或 `Database Collection Error` 派生的条件都保持为警报，不关联值班策略。
+为离线条件关联一个值班策略，而由 **失败的指标组** 或 `Database Collection Error` 派生的条件都保持为警报，不关联值班策略。
 
 ## 注意事项
 
@@ -441,11 +441,11 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 要么登录名缺少对 `performance_schema` 的 `SELECT`，要么服务器上的 `performance_schema` 被关闭了；监视器摘要会显示 MySQL 的消息。如果是缺少权限，请运行 [MySQL](#mysql) 中的语句。被关闭的 `performance_schema` 需要在服务器配置中设置 `performance_schema = ON` 并重启。
 :::
 
-:::details PostgreSQL 上的 I/O Read Time 和 I/O Write Time 始终为 0
+:::details PostgreSQL 上的 **I/O 读取时间** 和 **I/O 写入时间** 始终为 0
 只有在 `track_io_timing` 开启时 PostgreSQL 才会测量它们，而它默认是关闭的。请在服务器配置或托管服务的参数组中开启它，才能看到真实的值。这不是缺少权限。
 :::
 
-:::details 每次检查 Metric Groups Failed 都大于 0
+:::details 每次检查 **失败的指标组** 都大于 0
 有一个组在任何检查中都无法收集，所以同一个收集问题不断重复。监视器摘要会写明组、原因以及修复它的 `GRANT`。运行这条授权；如果拿不到权限，就在 **更多字段 → Metric Groups** 中关闭该组，让问题不再重复出现。
 :::
 
