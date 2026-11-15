@@ -127,7 +127,9 @@ import AuditLogsTable, {
 } from "../../../Dashboard/AuditLogs/AuditLogsTable";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import DatabaseModels from "Common/Models/DatabaseModels/Index";
-import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -155,7 +157,7 @@ interface RenamedType {
 
 // Every renamed model, read from the models.
 const RENAMED: Array<RenamedType> = DatabaseModels.map(
-  (modelType: typeof DatabaseBaseModel): DatabaseBaseModel => {
+  (modelType: DatabaseBaseModelType): DatabaseBaseModel => {
     return new modelType();
   },
 )

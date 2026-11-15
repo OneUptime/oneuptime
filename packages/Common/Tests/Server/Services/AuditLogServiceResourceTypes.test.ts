@@ -11,7 +11,9 @@ import { OnFind } from "../../../Server/Types/AnalyticsDatabase/Hooks";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import DatabaseModels from "../../../Models/DatabaseModels/Index";
-import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -24,6 +26,9 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { getJestSpyOn } from "../../Spy";
+
+type Spy = ReturnType<typeof getJestSpyOn>;
 
 /*
  * THE AUDIT LOG'S API FINDS A RENAMED TYPE BY EITHER NAME (#7580).
@@ -83,7 +88,7 @@ interface RenamedType {
 
 // Every renamed model, read from the models.
 const RENAMED: Array<RenamedType> = DatabaseModels.map(
-  (modelType: typeof DatabaseBaseModel): DatabaseBaseModel => {
+  (modelType: DatabaseBaseModelType): DatabaseBaseModel => {
     return new modelType();
   },
 )
@@ -214,11 +219,10 @@ describe("the hooks every read of the audit log passes", () => {
   });
 
   test("a chart reads the type by both names", async () => {
-    const aggregate: jest.SpiedFunction<
-      typeof AnalyticsDatabaseService.prototype.aggregateBy
-    > = jest
-      .spyOn(AnalyticsDatabaseService.prototype, "aggregateBy")
-      .mockResolvedValue({ data: [] } as never);
+    const aggregate: Spy = getJestSpyOn(
+      AnalyticsDatabaseService.prototype,
+      "aggregateBy",
+    ).mockResolvedValue({ data: [] } as never);
 
     await AuditLogServiceInstance.aggregateBy({
       query: listQuery("On-Call Schedule"),
@@ -242,11 +246,10 @@ describe("the hooks every read of the audit log passes", () => {
   });
 
   test("an existence check reads the type by both names", async () => {
-    const exists: jest.SpiedFunction<
-      typeof AnalyticsDatabaseService.prototype.existsBy
-    > = jest
-      .spyOn(AnalyticsDatabaseService.prototype, "existsBy")
-      .mockResolvedValue(true as never);
+    const exists: Spy = getJestSpyOn(
+      AnalyticsDatabaseService.prototype,
+      "existsBy",
+    ).mockResolvedValue(true as never);
 
     await AuditLogServiceInstance.existsBy({
       query: listQuery("Ingestion Key"),

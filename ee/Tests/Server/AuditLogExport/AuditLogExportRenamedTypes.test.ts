@@ -5,7 +5,9 @@ import {
 } from "../../../Server/AuditLogExport/AuditLogExportRedaction";
 import { toNdjson } from "../../../Server/AuditLogExport/AuditLogExportFiles";
 import DatabaseModels from "Common/Models/DatabaseModels/Index";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { getAuditLogRedactedColumns } from "Common/Types/AuditLog/AuditLogRedaction";
 import { getColumnAccessControlForAllColumns } from "Common/Types/Database/AccessControl/ColumnAccessControl";
@@ -47,7 +49,7 @@ interface RenamedModel {
 }
 
 const RENAMED: Array<RenamedModel> = DatabaseModels.map(
-  (modelType: typeof BaseModel): BaseModel => {
+  (modelType: DatabaseBaseModelType): BaseModel => {
     return new modelType();
   },
 )

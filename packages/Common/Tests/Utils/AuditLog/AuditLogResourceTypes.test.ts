@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import DatabaseModels from "../../../Models/DatabaseModels/Index";
-import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
@@ -47,7 +49,7 @@ interface RenamedType {
 }
 
 const RENAMED: Array<RenamedType> = DatabaseModels.map(
-  (modelType: typeof DatabaseBaseModel): DatabaseBaseModel => {
+  (modelType: DatabaseBaseModelType): DatabaseBaseModel => {
     return new modelType();
   },
 )
@@ -64,13 +66,11 @@ const RENAMED: Array<RenamedType> = DatabaseModels.map(
 
 // The type every model's entries are stored under, by table.
 const STORED_TYPES: Map<string, string> = new Map<string, string>(
-  DatabaseModels.map(
-    (modelType: typeof DatabaseBaseModel): [string, string] => {
-      const model: DatabaseBaseModel = new modelType();
+  DatabaseModels.map((modelType: DatabaseBaseModelType): [string, string] => {
+    const model: DatabaseBaseModel = new modelType();
 
-      return [model.tableName!, getApiSingularName(model)];
-    },
-  ),
+    return [model.tableName!, getApiSingularName(model)];
+  }),
 );
 
 describe("the renamed models", () => {
@@ -259,7 +259,7 @@ describe("a resource type's condition", () => {
 
   test("a text search reads the stored words, as it did", () => {
     const search: Search<string> = new Search<string>("On-Call Schedule");
-    const startsWith: StartsWith = new StartsWith("On-Call");
+    const startsWith: StartsWith<string> = new StartsWith<string>("On-Call");
     const isNull: IsNull = new IsNull();
 
     expect(toAuditLogResourceTypeCondition(search)).toBe(search);

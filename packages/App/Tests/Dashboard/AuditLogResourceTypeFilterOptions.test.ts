@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import DatabaseModels from "Common/Models/DatabaseModels/Index";
-import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { AUDIT_LOG_SESSION_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogSessionEvent";
 import { Translator } from "Common/Types/Translator";
 import type { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -39,7 +41,7 @@ interface RenamedType {
 }
 
 const RENAMED: Array<RenamedType> = DatabaseModels.map(
-  (modelType: typeof DatabaseBaseModel): DatabaseBaseModel => {
+  (modelType: DatabaseBaseModelType): DatabaseBaseModel => {
     return new modelType();
   },
 )

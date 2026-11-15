@@ -1,6 +1,8 @@
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import DatabaseModels from "Common/Models/DatabaseModels/Index";
-import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
   ClickhouseClient,
@@ -132,7 +134,7 @@ interface RenamedType {
 }
 
 const RENAMED: Array<RenamedType> = DatabaseModels.map(
-  (modelType: typeof DatabaseBaseModel): DatabaseBaseModel => {
+  (modelType: DatabaseBaseModelType): DatabaseBaseModel => {
     return new modelType();
   },
 )

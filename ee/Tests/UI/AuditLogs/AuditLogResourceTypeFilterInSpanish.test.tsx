@@ -136,7 +136,7 @@ function entry(data: {
   resourceName: string;
 }): AuditLog {
   const auditLog: AuditLog = new AuditLog();
-  auditLog._id = data.id;
+  auditLog.id = new ObjectID(data.id);
   auditLog.projectId = new ObjectID(PROJECT_ID);
   auditLog.createdAt = new Date("2026-11-14T09:00:00.000Z");
   auditLog.action = "Update";
