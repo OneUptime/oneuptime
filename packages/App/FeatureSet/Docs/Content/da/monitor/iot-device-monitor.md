@@ -95,7 +95,7 @@ Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindu
 | Skabelon | Kategori | Alvorlighed | Overvåger | Udløser når | Genopretter når |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tilgængelighed | Kritisk | `iot_device_up`, Min pr. `device.id`, seneste 30 minutter | En måling er under 1, eller en registreret enhed sender intet i hele vinduet | Tilbage på 1 |
-| Low Battery | Power | Advarsel | `iot_battery_percent`, Avg pr. `device.id`, seneste 5 minutter | Under 20 % | Ved 22 % eller derover |
+| Low Battery | Strøm | Advarsel | `iot_battery_percent`, Avg pr. `device.id`, seneste 5 minutter | Under 20 % | Ved 22 % eller derover |
 | Weak Signal | Forbindelse | Advarsel | `iot_signal_strength_dbm`, Avg pr. `device.id`, seneste 5 minutter | Under -100 dBm | Ved -90 dBm eller derover |
 | High Temperature | Miljø | Kritisk | `iot_temperature_celsius`, Max pr. `device.id`, seneste 5 minutter | Over 70 °C | Ved 63 °C eller derunder |
 | High CPU Usage | System | Advarsel | `iot_cpu_usage_ratio`, Avg pr. `device.id`, seneste 5 minutter | Over 0.9 (90 % af dens CPU) | Ved 0.81 eller derunder |

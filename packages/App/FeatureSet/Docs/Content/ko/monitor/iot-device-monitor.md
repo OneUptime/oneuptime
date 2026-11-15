@@ -95,7 +95,7 @@ flowchart TB
 | 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | 가용성 | 심각 | `iot_device_up`, `device.id` 별 Min, 최근 30분 | 측정값 중 하나가 1보다 낮거나, 등록된 기기가 기간 내내 아무것도 보내지 않음 | 다시 1 |
-| Low Battery | Power | 경고 | `iot_battery_percent`, `device.id` 별 Avg, 최근 5분 | 20% 미만 | 22% 이상 |
+| Low Battery | 전원 | 경고 | `iot_battery_percent`, `device.id` 별 Avg, 최근 5분 | 20% 미만 | 22% 이상 |
 | Weak Signal | 연결 | 경고 | `iot_signal_strength_dbm`, `device.id` 별 Avg, 최근 5분 | -100 dBm 미만 | -90 dBm 이상 |
 | High Temperature | 환경 | 심각 | `iot_temperature_celsius`, `device.id` 별 Max, 최근 5분 | 70 °C 초과 | 63 °C 이하 |
 | High CPU Usage | 시스템 | 경고 | `iot_cpu_usage_ratio`, `device.id` 별 Avg, 최근 5분 | 0.9 초과(CPU의 90%) | 0.81 이하 |
