@@ -4713,11 +4713,11 @@ test.describe("a task of more than 200 turns", () => {
     await page.goto(
       `${taskPath(LONG_TASK_ID)}/log?long=1&lang=ar&turn=${LONG_TASK_TURN_5}`,
     );
-    expect(
-      await page.evaluate((): string => {
-        return document.documentElement.dir;
-      }),
-    ).toBe("rtl");
+    /*
+     * Read once the page has its language: Arabic is a chunk of its own,
+     * loaded after the page's load event (#8366).
+     */
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
 
     const picker: Locator = page.getByTestId("code-task-log-turn-picker");
     await expect(picker).toContainText("الجولة 5 ·");
