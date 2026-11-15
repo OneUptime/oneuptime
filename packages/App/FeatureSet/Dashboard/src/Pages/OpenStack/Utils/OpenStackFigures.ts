@@ -1,4 +1,5 @@
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   BytesReading,
   getBytesReading,
@@ -43,7 +44,7 @@ export function formatOpenStackBytes(
   options?: OpenStackFigureOptions,
 ): string {
   if (!Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const reading: BytesReading = getBytesReading(bytes);

@@ -1,4 +1,6 @@
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
+import { getValueOrQuietDash } from "../Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import IconProp from "../../../Types/Icon/IconProp";
 import StatusPageResourceExplorerUtil, {
   StatusPageResourceGridModel,
@@ -370,7 +372,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
           className={layout.cellLabel}
           data-testid="status-page-resource-grid-cell-label"
         >
-          {columnValue}
+          {getValueOrQuietDash(columnValue)}
         </div>
 
         {cell.map((statusPageResource: StatusPageResource) => {
@@ -431,8 +433,10 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
   const renderAxisLine: RenderAxisLineFunction = (
     statusPageResource: StatusPageResource,
   ): ReactElement => {
-    const rowValue: string = statusPageResource.rowAxisValue || "—";
-    const columnValue: string = statusPageResource.columnAxisValue || "—";
+    const rowValue: string =
+      statusPageResource.rowAxisValue || EMPTY_VALUE_MARK;
+    const columnValue: string =
+      statusPageResource.columnAxisValue || EMPTY_VALUE_MARK;
     const line: string = `${props.rowLabel}: ${rowValue}${getInlineSeparator(translator.language)}${props.columnLabel}: ${columnValue}`;
 
     return (
@@ -488,7 +492,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
                     key={columnValue}
                     className="min-w-[13rem] border-b border-gray-200 bg-gray-50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500"
                   >
-                    {columnValue}
+                    {getValueOrQuietDash(columnValue, { isSmall: true })}
                   </th>
                 );
               })}
@@ -498,7 +502,9 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
             {props.rowValues.map((rowValue: string) => {
               return (
                 <tr key={rowValue} className={layout.row}>
-                  <th className={layout.rowHeading}>{rowValue}</th>
+                  <th className={layout.rowHeading}>
+                    {getValueOrQuietDash(rowValue)}
+                  </th>
                   {props.columnValues.map((columnValue: string) => {
                     return (
                       <td key={columnValue} className={layout.cell}>

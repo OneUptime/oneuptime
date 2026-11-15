@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import WifiEmptyState from "../../../Components/NetworkDevice/WifiEmptyState";
 import WifiTablesNotReadState from "../../../Components/NetworkDevice/WifiTablesNotReadState";
 import OneUptimeDate from "Common/Types/Date";
@@ -51,7 +52,7 @@ const formatNumber: FormatNumberFunction = (
   unit?: string | undefined,
 ): string => {
   if (value === undefined) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   // "-67 dBm": the figure held to its unit by a no-break space (#8457).
@@ -476,7 +477,7 @@ const NetworkDeviceWiFi: FunctionComponent<
           return Boolean(radio.band || radio.bandText);
         },
         render: (radio: WifiRadioView): ReactNode => {
-          return radio.band || radio.bandText || "—";
+          return radio.band || radio.bandText || EMPTY_VALUE_MARK;
         },
       },
       numberColumn(translationKey("Channel"), (radio: WifiRadioView) => {
@@ -532,7 +533,7 @@ const NetworkDeviceWiFi: FunctionComponent<
           return Boolean(ssid.band || ssid.bandText);
         },
         render: (ssid: WifiSsidView): ReactNode => {
-          return ssid.band || ssid.bandText || "—";
+          return ssid.band || ssid.bandText || EMPTY_VALUE_MARK;
         },
       },
       numberColumn(translationKey("Clients"), (ssid: WifiSsidView) => {

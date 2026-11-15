@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -53,7 +54,8 @@ const STAT_TONE_CLASS_NAMES: Record<StatTone, string> = {
 interface Stat {
   key: string;
   label: string;
-  value: string;
+  // None, and it draws the quiet dash (#8262).
+  value?: string | undefined;
   tone: StatTone;
   description: string;
 }
@@ -103,7 +105,8 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
   stats.push({
     key: "not-in-job",
     label: "In no backup job",
-    value: summary.coverageKnown > 0 ? formatCount(summary.notInJob) : "—",
+    value:
+      summary.coverageKnown > 0 ? formatCount(summary.notInJob) : undefined,
     tone: summary.notInJob > 0 ? "warning" : "neutral",
     description: PROXMOX_METRIC_DESCRIPTIONS.backupsNotInJob,
   });
@@ -118,7 +121,7 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
             now: props.now,
             language: translator.language,
           })
-        : "—",
+        : undefined,
       tone: "neutral",
       description: PROXMOX_METRIC_DESCRIPTIONS.backupsNewest,
     });
@@ -168,7 +171,7 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
                   <dd
                     className={`mt-1 text-xl font-semibold tabular-nums ${STAT_TONE_CLASS_NAMES[stat.tone]}`}
                   >
-                    {stat.value}
+                    {getFigure(stat.value)}
                   </dd>
                 </div>
               );

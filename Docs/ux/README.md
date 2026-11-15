@@ -393,8 +393,13 @@ work out, starts from a default for everything else, and folds what most people 
   labels attached."). A stat tile's figure (`text-lg` and up) draws `EmptyFigure`: the same light
   grey dash at the figure's size, read out as "Not set", where tiles drew bare dashes of their own
   in several greys that a screen reader heard as "dash" (#8264). Every tile draws it for a value
-  that is missing, blank or a dash, so a tile is handed no value. A dash between two values, a
-  minus sign and code are not empty values. Enforced by
+  that is missing, blank or a dash, so a tile is handed no value. A formatter never writes a dash
+  of its own for nothing (`return "—"`, `host || "-"`): pages drew some five hundred of those
+  straight into their cells (#8262). A component that draws a value is handed nothing, and plain
+  text (a chart's label, an export, a sentence) gets the shared mark `EMPTY_VALUE_MARK`. A page
+  that draws a formatter's text in an element of its own draws it through `getValueOrQuietDash`
+  (or `getFigure` in a figure), which turns that mark into the quiet dash. A dash between two
+  values, a minus sign and code are not empty values. Enforced by
   [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
   and
   [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
@@ -711,8 +716,11 @@ work out, starts from a default for everything else, and folds what most people 
   attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
   timeout or a count is written in the reader's digits. A summary draws a probe's message with
   `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
-  right-to-left line. An incident's root cause words its figures the same way: a response time,
-  the attempts and an NTP server's facts in the reader's digits and units (#8268). A Database
+  right-to-left line, and so do a network device's diagnostics (a ping's Reason, a traceroute's
+  note, #8675). An incident's root cause words its figures the same way: a response time, the
+  attempts and an NTP server's facts in the reader's digits and units (#8268), and a metric
+  criteria's Time Window, Data Arrives and Forecast lines with a duration as the reader's
+  language says one in a sentence (#8674). A Database
   Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own

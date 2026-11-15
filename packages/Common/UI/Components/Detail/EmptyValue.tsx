@@ -2,6 +2,12 @@ import PlaceholderText from "./PlaceholderText";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  DASH_PLACEHOLDERS,
+  EMPTY_VALUE_MARK,
+  isDashText,
+  isNoValue,
+} from "../../../Types/EmptyValueMark";
 
 /*
  * What a detail card shows for a field with no value.
@@ -15,28 +21,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * dash (isDashText).
  */
 
-// The mark an empty value is drawn as, everywhere a detail card draws one.
-export const EMPTY_VALUE_MARK: string = "\u2014";
-
 /*
- * The marks pages write for "nothing here": a hyphen, an en dash, an em
- * dash. Written as a field's placeholder or a table column's
- * noValueMessage, one is not words of its own: it was drawn as a hyphen
- * darker than the dash every other empty value is, with nothing for a
- * screen reader to hear (#7264), so it is drawn as that dash instead.
+ * The mark an empty value is drawn as, everywhere a detail card draws one,
+ * and a plain-text consumer's words for nothing (#8262), with the marks
+ * pages write for "nothing here" and how they are read: in
+ * Common/Types/EmptyValueMark, React-free, so a view model, an export or a
+ * worker reads them as a formatter does.
  */
-export const DASH_PLACEHOLDERS: ReadonlyArray<string> = [
-  "-",
-  "\u2013",
-  "\u2014",
-];
-
-// Whether a page's words for an empty value are only a dash (DASH_PLACEHOLDERS).
-export const isDashText: (text: string | undefined) => boolean = (
-  text: string | undefined,
-): boolean => {
-  return typeof text === "string" && DASH_PLACEHOLDERS.includes(text.trim());
-};
+export { DASH_PLACEHOLDERS, EMPTY_VALUE_MARK, isDashText, isNoValue };
 
 /*
  * Whether a field's or a column's own element is a bare dash - `<>-</>`,

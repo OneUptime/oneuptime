@@ -53,6 +53,7 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * A CHART'S VALUE AXIS AND ITS TOOLTIP, IN THE READER'S LANGUAGE (#8349).
@@ -168,7 +169,9 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     );
     expect(microseconds["en"]).toBe("500 µs");
     expectPersian(microseconds["fa"]!);
-    expect(formatTraceDuration(Infinity, translators["fa"]!)).toBe("-");
+    expect(formatTraceDuration(Infinity, translators["fa"]!)).toBe(
+      EMPTY_VALUE_MARK,
+    );
   });
 
   test("a service's, a function's, a site's and a cloud app's p95 chart", () => {

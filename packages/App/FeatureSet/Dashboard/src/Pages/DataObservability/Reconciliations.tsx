@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DataObservabilityApi from "../../Components/DataObservability/DataObservabilityApi";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import DataReconciliation from "Common/Models/DatabaseModels/DataReconciliation";
@@ -38,7 +39,9 @@ import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Every reconciliation: one measure of two tables - rows, a column's sum or
@@ -150,7 +153,7 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
     value: number | undefined | null,
   ): string => {
     return value === undefined || value === null
-      ? "-"
+      ? EMPTY_VALUE_MARK
       : translator.formatNumber(Number(value));
   };
 
@@ -423,7 +426,9 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                     {item.sourceDataAsset?.assetKey || <TableEmptyValue />}
                   </span>
                   <span className="block text-xs text-gray-500">
-                    {formatNumber(item.sourceValue)}
+                    {getValueOrQuietDash(formatNumber(item.sourceValue), {
+                      isSmall: true,
+                    })}
                   </span>
                 </div>
               );
@@ -450,7 +455,9 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                     {item.targetDataAsset?.assetKey || <TableEmptyValue />}
                   </span>
                   <span className="block text-xs text-gray-500">
-                    {formatNumber(item.targetValue)}
+                    {getValueOrQuietDash(formatNumber(item.targetValue), {
+                      isSmall: true,
+                    })}
                   </span>
                 </div>
               );
@@ -470,7 +477,9 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                 <TableEmptyValue />
               ) : (
                 <div className="text-sm text-gray-700">
-                  <span className="block">{formatNumber(item.difference)}</span>
+                  <span className="block">
+                    {getValueOrQuietDash(formatNumber(item.difference))}
+                  </span>
                   <span className="block text-xs text-gray-500">
                     {`${formatNumber(
                       Math.round(Number(item.differencePercent || 0) * 100) /

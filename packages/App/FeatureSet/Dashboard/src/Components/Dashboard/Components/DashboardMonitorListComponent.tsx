@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import DashboardMonitorListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
@@ -93,7 +94,7 @@ export const getMonitorListTypeText: (
   translator: Translator,
 ) => string = (monitor: Monitor, translator: Translator): string => {
   if (!monitor.monitorType) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return getMonitorTypeTitleInLanguage(monitor.monitorType, translator);

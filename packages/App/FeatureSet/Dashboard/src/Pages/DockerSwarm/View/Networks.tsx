@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ResourceTable, {
@@ -74,14 +75,14 @@ const DockerSwarmClusterNetworks: FunctionComponent<
           title: "Driver",
           key: "driver",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["driver"] || "-";
+            return resource.additionalAttributes["driver"] || EMPTY_VALUE_MARK;
           },
         },
         {
           title: "Scope",
           key: "scope",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["scope"] || "-";
+            return resource.additionalAttributes["scope"] || EMPTY_VALUE_MARK;
           },
         },
       ]}

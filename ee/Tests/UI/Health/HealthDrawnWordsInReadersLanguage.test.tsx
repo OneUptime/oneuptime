@@ -1,5 +1,7 @@
 import PostgresCluster from "../../../AdminDashboard/Health/PostgresCluster";
 import HealthOverview from "../../../AdminDashboard/Health/Overview";
+import { metricTooltipContent } from "../../../AdminDashboard/Health/HealthMetricTooltip";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   EnterpriseLicenseInstanceStatusPill,
   getLicenseLifecycle,
@@ -427,6 +429,33 @@ describe.each(LANGUAGES)("Health > Overview, in %s", (language: string) => {
     }
   });
 });
+
+// A tooltip's explanation, drawn as the health pages draw it (#8677).
+const SLOTS_EXPLAINED: string =
+  "Named slots that make the primary retain WAL until a consumer (a standby or logical subscriber) has read it. Inactive slots can pile up WAL and fill the disk; a 'lost' slot has already dropped WAL a consumer still needed.";
+
+const SlotsTooltip: () => ReactElement = (): ReactElement => {
+  return metricTooltipContent(
+    { title: "Replication slots", body: SLOTS_EXPLAINED },
+    useTranslator(),
+  );
+};
+
+describe.each(LANGUAGES)(
+  "Health > a metric's tooltip, in %s",
+  (language: string) => {
+    test("its title and its explanation read in the language", async () => {
+      await drawIn(language, <SlotsTooltip />);
+
+      expect(pageText()).toContain(wordIn(language, "Replication slots"));
+      expect(pageText()).toContain(wordIn(language, SLOTS_EXPLAINED));
+
+      if (language !== "en") {
+        expect(pageText()).not.toContain("Named slots that make the primary");
+      }
+    });
+  },
+);
 
 describe.each(LANGUAGES)("Enterprise licenses, in %s", (language: string) => {
   test("a license's status reads in the language, its days in the language's forms", async () => {

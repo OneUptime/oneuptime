@@ -270,21 +270,19 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
        * the reader's words, a project's own as written - so the tile reads
        * them as written from here on, never looking them up again.
        */
-      const stateName: string =
-        translateRecordName(
-          translator,
-          StateListType.AlertState,
-          alert.currentAlertState?.name,
-        ) || "—";
+      const stateName: string | undefined = translateRecordName(
+        translator,
+        StateListType.AlertState,
+        alert.currentAlertState?.name,
+      );
       const stateColor: Color | undefined = alert.currentAlertState?.color as
         | Color
         | undefined;
-      const severityName: string =
-        translateRecordName(
-          translator,
-          StateListType.AlertSeverity,
-          alert.alertSeverity?.name,
-        ) || "—";
+      const severityName: string | undefined = translateRecordName(
+        translator,
+        StateListType.AlertSeverity,
+        alert.alertSeverity?.name,
+      );
       const severityColor: Color | undefined = alert.alertSeverity?.color as
         | Color
         | undefined;
@@ -329,21 +327,19 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
   const rows: Array<ReactElement> = alerts.map((alert: Alert): ReactElement => {
     const alertId: string = (alert._id as string) || "";
     // By their lists, as the tiles read them.
-    const stateName: string =
-      translateRecordName(
-        translator,
-        StateListType.AlertState,
-        alert.currentAlertState?.name,
-      ) || "—";
+    const stateName: string | undefined = translateRecordName(
+      translator,
+      StateListType.AlertState,
+      alert.currentAlertState?.name,
+    );
     const stateColor: Color | undefined = alert.currentAlertState?.color as
       | Color
       | undefined;
-    const severityName: string =
-      translateRecordName(
-        translator,
-        StateListType.AlertSeverity,
-        alert.alertSeverity?.name,
-      ) || "—";
+    const severityName: string | undefined = translateRecordName(
+      translator,
+      StateListType.AlertSeverity,
+      alert.alertSeverity?.name,
+    );
     const severityColor: Color | undefined = alert.alertSeverity?.color as
       | Color
       | undefined;
