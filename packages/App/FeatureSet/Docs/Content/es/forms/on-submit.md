@@ -73,7 +73,7 @@ Un incidente declarado a través de un formulario es un incidente normal, con al
 
 - **Oculto en las páginas de estado.** **Visible en la página de estado** está desactivado, igual que **Notificar a suscriptores de la página de estado**. Hasta que un respondedor lo publica, nada del incidente llega a una página de estado ni a un suscriptor — salvo el cambio de estado de monitor de una plantilla, descrito arriba.
 - **No lo declara nadie.** El remitente no es un usuario de OneUptime, así que no queda registrado ningún usuario como quien declaró el incidente.
-- **Se avisa a sus propietarios.** Los propietarios que nombran los ajustes y la plantilla se añaden en cuanto existen los canales de Slack y Microsoft Teams del incidente, y reciben el aviso — la notificación **Incidente creado** del incidente espera a que sean sus propietarios, para que les llegue a ellos y no a los propietarios del proyecto.
+- **Se avisa a sus propietarios.** Los propietarios que nombran los ajustes y la plantilla se añaden en cuanto existen los canales de Slack y Microsoft Teams del incidente, y reciben el aviso — la notificación **Incidente creado** del incidente espera a que sean sus propietarios, para que les llegue a ellos y no a los Propietarios del proyecto.
 - **Una nota privada registra el envío** — consulta [La nota privada](#la-nota-privada).
 
 Todo lo que se ejecuta para un incidente nuevo se ejecuta también para estos: las reglas de privacidad, de propietarios, de etiquetas, de guardia y de runbooks, las políticas de guardia y los flujos de trabajo **On Create Incident**. Las reglas de guardia coinciden con los incidentes de un formulario como con cualquier otro — también por su título y su descripción, que escribió el remitente.

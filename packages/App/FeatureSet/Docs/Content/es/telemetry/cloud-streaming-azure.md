@@ -28,7 +28,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Una suscripción de Azure conectada.** Conéctala primero en **Nube → Conectar**: consulta [Conectar una cuenta en la nube](/docs/telemetry/cloud-accounts).
-- **Un propietario o administrador del proyecto.** Solo ellos pueden activar la lectura y detener la transmisión.
+- **Un Propietario del proyecto o un Administrador del proyecto.** Solo ellos pueden activar la lectura y detener la transmisión.
 - **Azure Cloud Shell**, con la sesión iniciada como **Owner** de las suscripciones, o como **Contributor** que también sea **User Access Administrator**: el comando crea un grupo de recursos y una asignación de roles, y cambia configuraciones de diagnóstico.
 - **Una salida hacia Azure, en un OneUptime autoalojado.** OneUptime lee cada espacio de nombres en `<namespace>.servicebus.windows.net` por el puerto 9093, y los espacios de nombres aceptan conexiones desde internet.
 

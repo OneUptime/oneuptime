@@ -28,7 +28,7 @@ flowchart TB
 ## Før du begynder
 
 - **Et forbundet Azure-abonnement.** Forbind det først under **Cloud → Forbind**: se [Forbind en cloudkonto](/docs/telemetry/cloud-accounts).
-- **En projektejer eller administrator.** Kun de kan slå læsning til og stoppe streaming.
+- **En Projektejer eller Projektadministrator.** Kun de kan slå læsning til og stoppe streaming.
 - **Azure Cloud Shell**, logget ind som **Owner** af abonnementerne eller som **Contributor**, der også er **User Access Administrator**: kommandoen opretter en ressourcegruppe og en rolletildeling og ændrer diagnosticeringsindstillinger.
 - **En vej ud til Azure, på en selvhostet OneUptime.** OneUptime læser hvert navnerum på `<namespace>.servicebus.windows.net` på port 9093, og navnerummene tager imod forbindelser fra internettet.
 

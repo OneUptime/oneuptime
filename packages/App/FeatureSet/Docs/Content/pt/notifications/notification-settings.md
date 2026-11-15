@@ -21,7 +21,7 @@ flowchart TB
 - Cada linha é um evento, e cada coluna um canal: E-mail, SMS, Chamada, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost só são colunas quando o projeto os conectou.
 - Um canal ativado envia para cada método verificado que você tem nele neste projeto, não só para um.
 - Um canal ativado sem um método verificado por trás não envia nada. **Your setup checklist** avisa sobre isso em **Staying informed**.
-- Uma novidade vai para os proprietários do registro: as pessoas indicadas como proprietárias e os membros das equipes proprietárias dele. Quando um registro não tem proprietários, ela vai para os proprietários do projeto. Um evento sobre ter sido adicionado como proprietário vai só para a pessoa adicionada.
+- Uma novidade vai para os proprietários do registro: as pessoas indicadas como proprietárias e os membros das equipes proprietárias dele. Quando um registro não tem proprietários, ela vai para os Proprietários do projeto. Um evento sobre ter sido adicionado como proprietário vai só para a pessoa adicionada.
 - Os casos de segurança não têm proprietários. Um caso novo vai para todos que podem ver os casos do projeto, na prioridade que cada um escolhe, e um caso atribuído vai para as pessoas a quem ele está atribuído. Veja [Casos de segurança](/docs/telemetry/security-cases#notificações).
 - Todo e-mail para proprietários termina com um link "Manage notification preferences" que leva de volta a esta página.
 

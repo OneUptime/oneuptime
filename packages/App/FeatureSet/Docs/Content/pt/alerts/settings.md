@@ -123,7 +123,7 @@ As **Regras de proprietário** adicionam usuários e equipes proprietários aos 
 
 ## Regras de privacidade e de runbook
 
-As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os administradores e proprietários do projeto podem vê-los. Uma regra tem duas etapas: **Corresponder**, os alertas que ela torna privados, e depois **Nome**, já preenchido como "Tornar privados os alertas". Veja [Alertas privados](/docs/alerts/index#alertas-privados).
+As **Regras de privacidade** tornam privados os novos alertas que correspondem, antes que qualquer outra coisa seja executada: só seus proprietários e os Administradores do projeto e Proprietários do projeto podem vê-los. Uma regra tem duas etapas: **Corresponder**, os alertas que ela torna privados, e depois **Nome**, já preenchido como "Tornar privados os alertas". Veja [Alertas privados](/docs/alerts/index#alertas-privados).
 
 As **Regras de runbook** iniciam um runbook quando um novo alerta corresponde, a menos que o alerta tenha sido criado resolvido. Veja [Regras de runbook](/docs/runbooks/rules).
 

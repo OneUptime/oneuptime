@@ -123,7 +123,7 @@ Hændelsen får advarslens titel, beskrivelse, monitor, berørte ressourcer og e
 
 ## Privatlivs- og runbook-regler
 
-**Privatlivsregler** gør nye advarsler, der matcher, private, før noget andet kører: Kun deres ejere og projektets administratorer og ejere kan se dem. En regel har to trin: **Match**, de advarsler, den gør private, og derefter **Navn**, allerede udfyldt som "Gør advarsler private". Se [Private advarsler](/docs/alerts/index#private-advarsler).
+**Privatlivsregler** gør nye advarsler, der matcher, private, før noget andet kører: Kun deres ejere og Projektadministratorer og Projektejere kan se dem. En regel har to trin: **Match**, de advarsler, den gør private, og derefter **Navn**, allerede udfyldt som "Gør advarsler private". Se [Private advarsler](/docs/alerts/index#private-advarsler).
 
 **Runbook-regler** starter en runbook, når en ny advarsel matcher, medmindre advarslen blev oprettet løst. Se [Runbook-regler](/docs/runbooks/rules).
 
