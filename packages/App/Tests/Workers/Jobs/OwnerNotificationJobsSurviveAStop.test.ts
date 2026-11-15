@@ -395,7 +395,7 @@ interface World {
   isTaken: boolean;
   takes: number;
   isResolved: boolean;
-  // A public note is published; one taken back for approval is not.
+  // Whether a public note is published: owners are told only of a published one.
   isPublished: boolean;
   // The next take never answers: the worker stops there.
   takeStops: boolean;
@@ -1429,7 +1429,7 @@ describe.each(CASES)("$title", (jobCase: JobCase) => {
   });
 
   if (jobCase.kind === OwnerNotificationKind.IncidentPublicNotePosted) {
-    test("a public note taken back for approval before the next run takes its owners up: nobody else is told", async () => {
+    test("a public note no longer published when the next run takes its owners up: nobody else is told", async () => {
       table.stopAt({ statement: "startTelling", userId: idOf(OWNER_2) });
       void runJob();
       await untilStopped();
