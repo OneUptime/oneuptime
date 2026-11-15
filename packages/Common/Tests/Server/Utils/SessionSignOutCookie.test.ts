@@ -1,11 +1,14 @@
 import CookieUtil, {
   SESSION_SIGN_OUT_COOKIE_NAME,
   SESSION_SIGN_OUT_COOKIE_PATH,
+  STATUS_PAGE_SIGN_OUT_COOKIE_PATH_PREFIX,
 } from "../../../Server/Utils/Cookie";
 import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import JSONWebToken, {
   SessionToSignOut,
+  StatusPageSessionToSignOut,
 } from "../../../Server/Utils/JsonWebToken";
+import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
 import User from "../../../Models/DatabaseModels/User";
 import { IdentityRoute } from "../../../ServiceRoute";
 import CookieName from "../../../Types/CookieName";
@@ -411,5 +414,244 @@ describe("clearing it", () => {
         return cleared.name === SESSION_SIGN_OUT_COOKIE_NAME;
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * A STATUS PAGE'S READER KEEPS WHICH SESSION THEY HOLD, FOR THE PAGE'S
+ * SIGN-OUT ONLY (issue #8671). A private status page's session is rotated
+ * at every renewal as a dashboard's is, and its sign-out read only the
+ * refresh token: after a lost renewal it ended nothing. Every status page
+ * sign-in and renewal hands the browser its cookies through
+ * CookieUtil.setStatusPagePrivateUserCookie, which now sets the page's
+ * sign-out cookie too, held to the same bar.
+ */
+const STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "8f8e8d8c-8b8a-4988-8786-858483828180",
+);
+const OTHER_STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "7f7e7d7c-7b7a-4978-8776-757473727170",
+);
+const READER_ID: ObjectID = new ObjectID(
+  "6f6e6d6c-6b6a-4968-8766-656463626160",
+);
+
+function reader(): StatusPagePrivateUser {
+  const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
+  privateUser.id = READER_ID;
+  privateUser.email = new Email("reader@example.com");
+  return privateUser;
+}
+
+function signInToStatusPage(
+  data: {
+    statusPageId?: ObjectID;
+    refreshTokenExpiresAt?: Date;
+    req?: Partial<ExpressRequest>;
+  } = {},
+): Written {
+  const written: Written = { set: {}, cleared: [] };
+
+  CookieUtil.setStatusPagePrivateUserCookie({
+    expressResponse: response(written, data.req),
+    user: reader(),
+    statusPageId: data.statusPageId || STATUS_PAGE_ID,
+    sessionId: SESSION_ID,
+    refreshToken: "status-page-refresh-token",
+    refreshTokenExpiresAt:
+      data.refreshTokenExpiresAt || OneUptimeDate.getSomeDaysAfter(30),
+  });
+
+  return written;
+}
+
+function statusPageSignOutCookie(
+  written: Written,
+  statusPageId: ObjectID = STATUS_PAGE_ID,
+): WrittenCookie {
+  const cookie: WrittenCookie | undefined =
+    written.set[CookieUtil.getStatusPageSessionSignOutKey(statusPageId)];
+
+  if (!cookie) {
+    throw new Error(
+      `No status page sign-out cookie; set ${Object.keys(written.set).join(", ")}`,
+    );
+  }
+
+  return cookie;
+}
+
+describe("every status page sign-in and renewal sets the page's sign-out cookie, beside its refresh token", () => {
+  test("it names this page, this reader and this session, and is read back as them", () => {
+    const read: StatusPageSessionToSignOut =
+      JSONWebToken.decodeStatusPageSessionToSignOut(
+        statusPageSignOutCookie(signInToStatusPage()).value,
+      );
+
+    expect(read.statusPageId.toString()).toBe(STATUS_PAGE_ID.toString());
+    expect(read.userId.toString()).toBe(READER_ID.toString());
+    expect(read.sessionId.toString()).toBe(SESSION_ID.toString());
+  });
+
+  test("it is HttpOnly, SameSite=Strict, sent only to this page's sign-out, and lives as long as the page's refresh token", () => {
+    const written: Written = signInToStatusPage();
+    const refresh: WrittenCookie =
+      written.set[CookieUtil.getRefreshTokenKey(STATUS_PAGE_ID)]!;
+
+    expect(statusPageSignOutCookie(written).options).toEqual({
+      path: `/status-page-identity-api/logout/${STATUS_PAGE_ID.toString()}`,
+      sameSite: "strict",
+      httpOnly: true,
+      maxAge: refresh.options["maxAge"],
+    });
+    expect(refresh.options).toEqual(
+      expect.objectContaining({ httpOnly: true, sameSite: "lax", path: "/" }),
+    );
+    expect(CookieUtil.getStatusPageSessionSignOutPath(STATUS_PAGE_ID)).toBe(
+      `${STATUS_PAGE_SIGN_OUT_COOKIE_PATH_PREFIX}/${STATUS_PAGE_ID.toString()}`,
+    );
+  });
+
+  test("over HTTPS it is Secure, as the page's refresh token is, and over plain HTTP neither is", () => {
+    for (const secure of [true, false]) {
+      const written: Written = signInToStatusPage({
+        req: { secure, headers: { host: "status.customer.com" } },
+      });
+
+      expect(Boolean(statusPageSignOutCookie(written).options["secure"])).toBe(
+        Boolean(
+          written.set[CookieUtil.getRefreshTokenKey(STATUS_PAGE_ID)]!.options[
+            "secure"
+          ],
+        ),
+      );
+    }
+
+    expect(
+      statusPageSignOutCookie(
+        signInToStatusPage({
+          req: { secure: true, headers: { host: "status.customer.com" } },
+        }),
+      ).options["secure"],
+    ).toBe(true);
+  });
+
+  test("each page has its own, on its own path: one page's is never another's", () => {
+    const thisPage: WrittenCookie =
+      statusPageSignOutCookie(signInToStatusPage());
+    const otherPage: WrittenCookie = statusPageSignOutCookie(
+      signInToStatusPage({ statusPageId: OTHER_STATUS_PAGE_ID }),
+      OTHER_STATUS_PAGE_ID,
+    );
+
+    expect(thisPage.options["path"]).not.toBe(otherPage.options["path"]);
+    expect(CookieUtil.getStatusPageSessionSignOutKey(STATUS_PAGE_ID)).not.toBe(
+      CookieUtil.getStatusPageSessionSignOutKey(OTHER_STATUS_PAGE_ID),
+    );
+    expect(
+      JSONWebToken.decodeStatusPageSessionToSignOut(
+        otherPage.value,
+      ).statusPageId.toString(),
+    ).toBe(OTHER_STATUS_PAGE_ID.toString());
+    // Nor the dashboard's.
+    expect(CookieUtil.getStatusPageSessionSignOutKey(STATUS_PAGE_ID)).not.toBe(
+      SESSION_SIGN_OUT_COOKIE_NAME,
+    );
+  });
+
+  test("a refresh token that has run out: the cookie goes at once, and the token it held is refused", () => {
+    const written: Written = signInToStatusPage({
+      refreshTokenExpiresAt: OneUptimeDate.getSomeDaysAgo(1),
+    });
+
+    expect(statusPageSignOutCookie(written).options["maxAge"]).toBe(0);
+    expect(() => {
+      return JSONWebToken.decodeStatusPageSessionToSignOut(
+        statusPageSignOutCookie(written).value,
+      );
+    }).toThrow("AccessToken is invalid or expired");
+  });
+
+  test("it holds no address, is no session, and is no cookie a page's own code reads", () => {
+    const value: string = statusPageSignOutCookie(signInToStatusPage()).value;
+
+    expect(
+      Buffer.from(value.split(".")[1]!, "base64url").toString("utf8"),
+    ).not.toContain("reader@example.com");
+
+    for (const purpose of Object.values(
+      JsonWebTokenPurpose,
+    ) as Array<JsonWebTokenPurpose>) {
+      expect(() => {
+        return JSONWebToken.decode(value, purpose);
+      }).toThrow("AccessToken is invalid or expired");
+    }
+
+    expect(Object.values(CookieName) as Array<string>).not.toContain(
+      CookieUtil.getStatusPageSessionSignOutKey(STATUS_PAGE_ID),
+    );
+  });
+
+  test("it is read from this page's own cookie only: never from a body, a header, the dashboard's or another page's", () => {
+    const token: string = statusPageSignOutCookie(signInToStatusPage()).value;
+
+    expect(
+      CookieUtil.getStatusPageSessionSignOutTokenFromExpressRequest(
+        requestWith({
+          cookies: {
+            [CookieUtil.getStatusPageSessionSignOutKey(STATUS_PAGE_ID)]: token,
+          },
+        }),
+        STATUS_PAGE_ID,
+      ),
+    ).toBe(token);
+
+    for (const req of [
+      requestWith({ body: { refreshToken: token, statusPageSignOut: token } }),
+      requestWith({ headers: { authorization: `Bearer ${token}` } }),
+      requestWith({ cookies: { [SESSION_SIGN_OUT_COOKIE_NAME]: token } }),
+      requestWith({
+        cookies: {
+          [CookieUtil.getStatusPageSessionSignOutKey(OTHER_STATUS_PAGE_ID)]:
+            token,
+        },
+      }),
+      requestWith({
+        cookies: { [CookieUtil.getRefreshTokenKey(STATUS_PAGE_ID)]: token },
+      }),
+    ]) {
+      expect(
+        CookieUtil.getStatusPageSessionSignOutTokenFromExpressRequest(
+          req,
+          STATUS_PAGE_ID,
+        ),
+      ).toBeUndefined();
+    }
+  });
+
+  test("the page's sign-out clears it on its own path, with the attributes it was set with", () => {
+    for (const secure of [true, false]) {
+      const written: Written = { set: {}, cleared: [] };
+
+      CookieUtil.removeStatusPageSessionSignOutCookie(
+        response(written, {
+          secure,
+          headers: { host: "status.customer.com" },
+        }),
+        STATUS_PAGE_ID,
+      );
+
+      expect(written.cleared).toEqual([
+        {
+          name: CookieUtil.getStatusPageSessionSignOutKey(STATUS_PAGE_ID),
+          options: {
+            path: CookieUtil.getStatusPageSessionSignOutPath(STATUS_PAGE_ID),
+            sameSite: "strict",
+            httpOnly: true,
+            ...(secure ? { secure: true } : {}),
+          },
+        },
+      ]);
+    }
   });
 });
