@@ -217,6 +217,7 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
           "Send test notification to {{destination}}",
           { destination: props.destinationName },
         )}
+        isAriaLabelTranslated={true}
         dataTestId="send-test-notification-button"
         className="!w-auto whitespace-nowrap !text-sm md:!ml-0"
         onClick={() => {

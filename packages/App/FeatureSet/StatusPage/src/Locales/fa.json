@@ -402,10 +402,10 @@
     "majorIncident": "حادثه مهم",
     "minorIncident": "حادثه جزئی",
     "operational": "عملیاتی",
-    "degraded": "تنزل‌یافته",
+    "degraded": "کاهش کارایی",
     "offline": "آفلاین",
     "scheduled": "زمان‌بندی‌شده",
-    "ongoing": "در حال انجام",
+    "ongoing": "در جریان",
     "ended": "پایان‌یافته",
     "completed": "تکمیل‌شده"
   },

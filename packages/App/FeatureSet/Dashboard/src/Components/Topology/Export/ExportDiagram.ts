@@ -13,6 +13,7 @@ import {
   labelFontSizeFor,
   labelLineHeightFor,
 } from "../NetworkTopologyDrawing";
+import { TopologyConnectorSegment } from "../LeafBlockConnectors";
 import { resolvePrintColor } from "./ExportColor";
 import { ExportItem, textItem } from "./ExportItems";
 import { shapeItems } from "./ExportShapes";
@@ -191,6 +192,32 @@ export function buildDiagramItems(
         ),
       );
     }
+  }
+
+  /*
+   * Leaf-block combs (issue #6606) under the links, as on the canvas: one
+   * line per segment of a block's trunk, bus and spines.
+   */
+  for (const comb of viewModel.combs) {
+    comb.segments.forEach(
+      (segment: TopologyConnectorSegment, index: number): void => {
+        items.push({
+          type: "line",
+          tag: `comb:${comb.key}:${index}`,
+          x1: px(segment.x1),
+          y1: py(segment.y1),
+          x2: px(segment.x2),
+          y2: py(segment.y2),
+          stroke: {
+            color: resolvePrintColor(comb.color),
+            width: style.combStrokeWidth * s,
+            dash: dashFor(comb.strokeDashArray, s),
+          },
+          strokeOpacity: comb.isDimmed ? style.dimmedEdgeOpacity : 1,
+          roundCaps: false,
+        });
+      },
+    );
   }
 
   // Links under the nodes, so a node is never covered by a line.
