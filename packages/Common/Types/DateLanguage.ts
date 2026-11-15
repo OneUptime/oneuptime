@@ -754,25 +754,25 @@ export const formatDateText: (data: {
  * a space inside a unit of two words (Arabic's "ملي ث", Hindi's "नैनो से॰",
  * Persian's "Gb در ثانیه"). A space no line breaks at is left as Intl wrote
  * it: French's narrow U+202F and its U+00A0. English is held as well, for
- * the same reason its sentences are (#8302): "in 5 minutes".
+ * the same reason its sentences are (#8302): "in 5\u00A0minutes".
  *
  * Only the space beside the number is set. A line may still break between
- * two units of a duration ("2 Tage, 3 Stunden") and before or
- * after the words of a relative time ("vor 5 Minuten",
- * "5 minutes ago"). A relative time has no part of its own for its
+ * two units of a duration ("2\u00A0Tage, 3\u00A0Stunden") and before or
+ * after the words of a relative time ("vor 5\u00A0Minuten",
+ * "5\u00A0minutes ago"). A relative time has no part of its own for its
  * unit: the unit's name is the word beside the number on the side the
  * language writes a unit on (after it in every language the Dashboard
  * ships, "dakika 5 zilizopita" in Swahili).
  */
 
 // A run of the spaces a line may break at: not the figure space (U+2007).
-const BREAKING_SPACES: RegExp = /[  -  -  ]+/g;
+const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]+/g;
 
 const LEADING_BREAKING_SPACES: RegExp =
-  /^[  -  -  ]+/;
+  /^[ \u2000-\u2006\u2008-\u200A\u205F]+/;
 
 const TRAILING_BREAKING_SPACES: RegExp =
-  /[  -  -  ]+$/;
+  /[ \u2000-\u2006\u2008-\u200A\u205F]+$/;
 
 // One part of what Intl writes, as formatToParts hands it.
 export interface IntlTextPart {
@@ -1032,7 +1032,7 @@ export const getUnitAmountParts: (
   return holdUnitToNumber(format.formatToParts(amount.value));
 };
 
-// "5 Min.", "4,2 MB": an amount of a unit; null when Intl cannot write it.
+// "5\u00A0Min.", "4,2\u00A0MB": an amount of a unit; null when Intl cannot write it.
 export const formatUnitAmount: (amount: UnitAmount) => string | null = (
   amount: UnitAmount,
 ): string | null => {

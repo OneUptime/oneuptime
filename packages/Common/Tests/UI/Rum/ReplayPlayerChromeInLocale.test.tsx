@@ -582,7 +582,7 @@ describe("ReplayControls in the reader's language", () => {
       screen.getByTestId("replay-seek-back").textContent?.trim() || "";
 
     expect(seekLabel.replace(/\s/g, " ")).toBe("10 Sek.");
-    expect(screen.getByTestId("replay-seek-forward")).toHaveTextContent(
+    expect(screen.getByTestId("replay-seek-forward").textContent).toContain(
       seekLabel,
     );
 
@@ -722,7 +722,7 @@ describe("ReplayTimeline in the reader's language", () => {
     expect(gapLabel).toBe(
       `⟦${formatReplayDurationInLanguage(18000, MARKED)} missing⟧`,
     );
-    expect(gap).toHaveTextContent(gapLabel);
+    expect(gap.textContent).toContain(gapLabel);
     expect(gap).toHaveAttribute("aria-label", `⟦Recording gap: ${gapLabel}⟧`);
 
     const [idle, background] = screen.getAllByTestId("timeline-idle-band");
@@ -857,7 +857,7 @@ describe("ReplayTabSwitcher in the reader's language", () => {
       }) as HTMLElement;
     const thirtySeconds: string = formatReplayDurationInLanguage(30000, MARKED);
 
-    expect(watched).toHaveTextContent(`⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`);
+    expect(watched.textContent).toContain(`⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`);
     expect(watched).toHaveAttribute(
       "title",
       `⟦⟦⟦Tab 3⟧ (closed)⟧ · /page-3 · ⟦opened 0:40⟧ · ${thirtySeconds} — switch to this tab; the playhead stays where it is⟧`,

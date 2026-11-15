@@ -175,13 +175,13 @@ describe("formatAutoRefreshInterval", () => {
   test("German and Persian name the unit, Persian in Persian digits", () => {
     expect(
       formatAutoRefreshInterval(AutoRefreshInterval.THIRTY_SECONDS, "de"),
-    ).toBe("30 Sek.");
+    ).toBe("30\u00A0Sek.");
     expect(
       formatAutoRefreshInterval(AutoRefreshInterval.THIRTY_SECONDS, "fa"),
-    ).toBe("۳۰ ثانیه");
+    ).toBe("۳۰\u00A0ثانیه");
     expect(
       formatAutoRefreshInterval(AutoRefreshInterval.ONE_MINUTE, "fa"),
-    ).toBe("۱ دقیقه");
+    ).toBe("۱\u00A0دقیقه");
 
     for (const interval of EVERY_INTERVAL) {
       const persian: string = formatAutoRefreshInterval(interval, "fa") || "";
@@ -197,7 +197,7 @@ describe("formatAutoRefreshInterval", () => {
   test("without a language, the page's", () => {
     setDateDisplayLanguage("fa");
     expect(formatAutoRefreshInterval(AutoRefreshInterval.THIRTY_SECONDS)).toBe(
-      "۳۰ ثانیه",
+      "۳۰\u00A0ثانیه",
     );
     setDateDisplayLanguage("en");
     expect(formatAutoRefreshInterval(AutoRefreshInterval.THIRTY_SECONDS)).toBe(
@@ -272,14 +272,14 @@ describe("the resource pages' auto-refresh picker", () => {
   test("German reads Alle 30 Sek., never Alle 30s", () => {
     const options: Array<string> = drawControl("de");
 
-    expect(options[1]).toBe("Alle 30 Sek.");
+    expect(options[1]).toBe("Alle 30\u00A0Sek.");
     expect(options).not.toContain("Alle 30s");
   });
 
   test("Persian reads هر ۳۰ ثانیه: no Latin digit anywhere", () => {
     const options: Array<string> = drawControl("fa");
 
-    expect(options[1]).toBe("هر ۳۰ ثانیه");
+    expect(options[1]).toBe("هر ۳۰\u00A0ثانیه");
 
     for (const option of options) {
       expect({ option, latin: LATIN_DIGIT.test(option) }).toEqual({
@@ -300,7 +300,7 @@ describe("the resource pages' auto-refresh picker", () => {
       sentence({
         language: "ar",
         template: "Every {{interval}}",
-        interval: "30 ث",
+        interval: "30\u00A0ث",
       }),
     );
     expect(options[1]).not.toContain("30s");
@@ -437,8 +437,8 @@ describe("a dashboard's auto-refresh menu", () => {
 
       const minute: string = formatDurationCompactInLanguage(60, language);
 
-      // The countdown beside the button names the interval in use.
-      expect(screen.getByText(minute)).toBeInTheDocument();
+      // The countdown beside the button names the interval in use, held whole.
+      expect(screen.getByText(minute, { collapseWhitespace: false })).toBeInTheDocument();
 
       const menu: HTMLElement = await openAutoRefreshMenu(language);
       const choices: Array<string> = choicesOf(menu);
@@ -512,7 +512,7 @@ describe("the editing row's Default auto-refresh", () => {
       DEFAULT_AUTO_REFRESH_PICKER_TEST_ID,
     );
 
-    expect(withoutIsolateMarks(button.textContent || "")).toContain("۱ دقیقه");
+    expect(withoutIsolateMarks(button.textContent || "")).toContain("۱\u00A0دقیقه");
     expect(withoutIsolateMarks(button.textContent || "")).not.toMatch(
       LATIN_DIGIT,
     );
@@ -536,7 +536,7 @@ describe("the editing row's Default auto-refresh", () => {
       sentence({
         language: "fa",
         template: "Refresh every {{interval}}",
-        interval: "۳۰ ثانیه",
+        interval: "۳۰\u00A0ثانیه",
       }),
     );
   });
@@ -555,7 +555,7 @@ describe("the editing row's Default auto-refresh", () => {
     );
     expect(
       getAutoRefreshChoiceLabel(AutoRefreshInterval.ONE_MINUTE, "fa"),
-    ).toBe("۱ دقیقه");
+    ).toBe("۱\u00A0دقیقه");
     expect(getAutoRefreshChoiceLabel(AutoRefreshInterval.OFF, "fa")).toBe(
       "Off",
     );

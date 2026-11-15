@@ -573,7 +573,7 @@ describe("in German and in Persian", () => {
         }),
       ).toEqual({
         tone: "error",
-        text: "Abgelehnt. Die letzte Ablehnung war vor 30 Minuten.",
+        text: "Abgelehnt. Die letzte Ablehnung war vor 30\u00A0Minuten.",
         detail:
           "Der Schlüssel „Storefront browser key“ ist ausgeschaltet, daher wird alles abgelehnt, was damit gesendet wird.",
         action: { kind: "pick-key", label: "Anderen Schlüssel wählen" },
@@ -590,7 +590,7 @@ describe("in German and in Persian", () => {
       });
 
       expect(copy?.title).toBe("Protokolle werden abgelehnt");
-      expect(copy?.evidence).toBe("Die letzte Ablehnung war vor 30 Minuten.");
+      expect(copy?.evidence).toBe("Die letzte Ablehnung war vor 30\u00A0Minuten.");
       expect(copy?.action).toEqual({
         kind: "billing",
         label: "Zahlungsmethode hinzufügen",

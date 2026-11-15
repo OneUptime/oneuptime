@@ -87,7 +87,7 @@ export default class StatusPageLiveRefreshUtil {
    * three forms). A runtime without it - or a locale tag it rejects - falls
    * back to English rather than throwing on a page whose whole job is to be
    * up when other things are not. The number is held to its unit ("vor
-   * 12 Sekunden", "12 seconds ago", #8456), as DateLanguage
+   * 12\u00A0Sekunden", "12\u00A0seconds ago", #8456), as DateLanguage
    * writes every relative time.
    */
   public static formatRelativeTime(data: {

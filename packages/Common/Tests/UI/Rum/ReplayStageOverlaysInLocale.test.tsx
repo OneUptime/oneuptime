@@ -85,9 +85,9 @@ const PLAYED: string = formatReplayDurationInLanguage(DURATION_MS, MARKING);
 
 describe("the lengths these sentences hold", () => {
   it("are German's own, not the English short form", () => {
-    expect(SKIPPED).toBe("1 Min., 12 Sek.");
-    expect(GAP).toBe("18 Sek.");
-    expect(PLAYED).toBe("4 Min., 12 Sek.");
+    expect(SKIPPED).toBe("1\u00A0Min., 12\u00A0Sek.");
+    expect(GAP).toBe("18\u00A0Sek.");
+    expect(PLAYED).toBe("4\u00A0Min., 12\u00A0Sek.");
   });
 });
 
@@ -343,7 +343,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
       }),
     });
 
-    expect(screen.getByTestId("replay-overlay-gap")).toHaveTextContent(
+    expect(screen.getByTestId("replay-overlay-gap").textContent).toContain(
       `⟦Skipped ${GAP} - the recorder never delivered this stretch⟧`,
     );
 
@@ -356,7 +356,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
       }),
     });
 
-    expect(screen.getByTestId("replay-overlay-idle-skip")).toHaveTextContent(
+    expect(screen.getByTestId("replay-overlay-idle-skip").textContent).toContain(
       `⟦Skipped ${SKIPPED}: recording paused while the page was idle⟧`,
     );
   });
@@ -399,7 +399,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
     const ended: HTMLElement = screen.getByTestId("replay-overlay-ended");
 
     expect(ended).toHaveTextContent("⟦Replay ended⟧");
-    expect(ended).toHaveTextContent(`⟦${PLAYED} of footage played out.⟧`);
+    expect(ended.textContent).toContain(`⟦${PLAYED} of footage played out.⟧`);
     expect(screen.getByTestId("replay-watch-again")).toHaveTextContent(
       "⟦Watch again⟧",
     );
@@ -473,7 +473,7 @@ describe("ReplayStageOverlays in the reader's language", () => {
 
     const chip: HTMLElement = screen.getByTestId("replay-paused-chip");
 
-    expect(chip).toHaveTextContent(`⟦Recording paused · ${SKIPPED}⟧`);
+    expect(chip.textContent).toContain(`⟦Recording paused · ${SKIPPED}⟧`);
     expect(chip).toHaveTextContent("⟦skip >⟧");
     expect(chip).toHaveAttribute(
       "title",

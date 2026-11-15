@@ -106,7 +106,7 @@ const formatInEnglish: (parts: RelativeTimeParts) => string = (
 /*
  * A time already put in a unit, in the reader's language: Intl's words,
  * plural forms and digits (formatRelativeAmount, the number held to its
- * unit: "vor 2 Stunden", "2 hours ago", #8456), or English
+ * unit: "vor 2\u00A0Stunden", "2\u00A0hours ago", #8456), or English
  * where Intl cannot. For a caller that puts a time in its unit its own
  * way - a note's age, in whole minutes and hours - and says it as Home
  * does.

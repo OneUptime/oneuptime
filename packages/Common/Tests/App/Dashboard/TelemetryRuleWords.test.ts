@@ -258,22 +258,22 @@ describe("the windows a rule counts over", () => {
   });
 
   test("a window is said in its largest whole unit, in the reader's language", () => {
-    expect(formatWindow(300, ENGLISH)).toBe("5 minutes");
-    expect(formatWindow(60, ENGLISH)).toBe("1 minute");
-    expect(formatWindow(600, ENGLISH)).toBe("10 minutes");
-    expect(formatWindow(3600, ENGLISH)).toBe("1 hour");
-    expect(formatWindow(86400, ENGLISH)).toBe("1 day");
-    expect(formatWindow(90, ENGLISH)).toBe("90 seconds");
-    expect(formatWindow(300, GERMAN)).toBe("5 Minuten");
+    expect(formatWindow(300, ENGLISH)).toBe("5\u00A0minutes");
+    expect(formatWindow(60, ENGLISH)).toBe("1\u00A0minute");
+    expect(formatWindow(600, ENGLISH)).toBe("10\u00A0minutes");
+    expect(formatWindow(3600, ENGLISH)).toBe("1\u00A0hour");
+    expect(formatWindow(86400, ENGLISH)).toBe("1\u00A0day");
+    expect(formatWindow(90, ENGLISH)).toBe("90\u00A0seconds");
+    expect(formatWindow(300, GERMAN)).toBe("5\u00A0Minuten");
     expect(formatWindow(300, PERSIAN)).toContain("۵");
   });
 
   test("a length of time is said in its two largest units", () => {
-    expect(formatDuration(19500, ENGLISH)).toBe("5 hours, 25 minutes");
-    expect(formatDuration(3600, ENGLISH)).toBe("1 hour");
-    expect(formatDuration(90061, ENGLISH)).toBe("1 day, 1 hour");
-    expect(formatDuration(0, ENGLISH)).toBe("1 second");
-    expect(formatDuration(19500, GERMAN)).toContain("5 Stunden");
+    expect(formatDuration(19500, ENGLISH)).toBe("5\u00A0hours, 25\u00A0minutes");
+    expect(formatDuration(3600, ENGLISH)).toBe("1\u00A0hour");
+    expect(formatDuration(90061, ENGLISH)).toBe("1\u00A0day, 1\u00A0hour");
+    expect(formatDuration(0, ENGLISH)).toBe("1\u00A0second");
+    expect(formatDuration(19500, GERMAN)).toContain("5\u00A0Stunden");
   });
 });
 
@@ -424,72 +424,72 @@ describe("the rule said back in one sentence", () => {
     [
       FilterType.GreaterThan,
       10,
-      "Alerts when the number of matching logs in 5 minutes is more than 10.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is more than 10.",
     ],
     [
       FilterType.GreaterThanOrEqualTo,
       5,
-      "Alerts when the number of matching logs in 5 minutes is at least 5.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is at least 5.",
     ],
     [
       FilterType.LessThan,
       3,
-      "Alerts when the number of matching logs in 5 minutes is fewer than 3.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is fewer than 3.",
     ],
     [
       FilterType.LessThanOrEqualTo,
       3,
-      "Alerts when the number of matching logs in 5 minutes is at most 3.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is at most 3.",
     ],
     [
       FilterType.EqualTo,
       7,
-      "Alerts when the number of matching logs in 5 minutes is exactly 7.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is exactly 7.",
     ],
     [
       FilterType.EqualTo,
       0,
-      "Alerts when no matching logs arrive in 5 minutes.",
+      "Alerts when no matching logs arrive in 5\u00A0minutes.",
     ],
     [
       FilterType.LessThan,
       1,
-      "Alerts when no matching logs arrive in 5 minutes.",
+      "Alerts when no matching logs arrive in 5\u00A0minutes.",
     ],
     [
       FilterType.LessThanOrEqualTo,
       0,
-      "Alerts when no matching logs arrive in 5 minutes.",
+      "Alerts when no matching logs arrive in 5\u00A0minutes.",
     ],
     [
       FilterType.GreaterThan,
       0,
-      "Alerts when any matching log arrives in 5 minutes.",
+      "Alerts when any matching log arrives in 5\u00A0minutes.",
     ],
     [
       FilterType.GreaterThanOrEqualTo,
       1,
-      "Alerts when any matching log arrives in 5 minutes.",
+      "Alerts when any matching log arrives in 5\u00A0minutes.",
     ],
     [
       FilterType.AnomalouslyHigh,
       undefined,
-      "Alerts when matching logs in 5 minutes are unusually many for this hour of the week.",
+      "Alerts when matching logs in 5\u00A0minutes are unusually many for this hour of the week.",
     ],
     [
       FilterType.AnomalouslyLow,
       undefined,
-      "Alerts when matching logs in 5 minutes are unusually few for this hour of the week.",
+      "Alerts when matching logs in 5\u00A0minutes are unusually few for this hour of the week.",
     ],
     [
       FilterType.Anomalous,
       undefined,
-      "Alerts when matching logs in 5 minutes are unusually many or few for this hour of the week.",
+      "Alerts when matching logs in 5\u00A0minutes are unusually many or few for this hour of the week.",
     ],
     [
       FilterType.GreaterThan,
       undefined,
-      "Alerts when the number of matching logs in 5 minutes is more than the number you enter.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is more than the number you enter.",
     ],
   ])(
     "a Logs rule %s %p reads: %s",
@@ -516,7 +516,7 @@ describe("the rule said back in one sentence", () => {
         translator: ENGLISH,
       }),
     ).toBe(
-      "Alerts when the number of matching spans in 5 minutes is more than 10.",
+      "Alerts when the number of matching spans in 5\u00A0minutes is more than 10.",
     );
     expect(
       getRuleSentence({
@@ -524,14 +524,14 @@ describe("the rule said back in one sentence", () => {
         rule: countRule(FilterType.EqualTo, 0, 600),
         translator: ENGLISH,
       }),
-    ).toBe("Alerts when no matching spans arrive in 10 minutes.");
+    ).toBe("Alerts when no matching spans arrive in 10\u00A0minutes.");
     expect(
       getRuleSentence({
         monitorType: MonitorType.Exceptions,
         rule: countRule(FilterType.GreaterThan, 0),
         translator: ENGLISH,
       }),
-    ).toBe("Alerts when any matching exception happens in 5 minutes.");
+    ).toBe("Alerts when any matching exception happens in 5\u00A0minutes.");
     expect(
       getRuleSentence({
         monitorType: MonitorType.Exceptions,
@@ -539,7 +539,7 @@ describe("the rule said back in one sentence", () => {
         translator: ENGLISH,
       }),
     ).toBe(
-      "Alerts when the number of matching exceptions in 5 minutes is more than 20.",
+      "Alerts when the number of matching exceptions in 5\u00A0minutes is more than 20.",
     );
   });
 
@@ -551,7 +551,7 @@ describe("the rule said back in one sentence", () => {
         translator: ENGLISH,
       }),
     ).toBe(
-      "Alerts when the number of matching logs in 5 minutes is more than 12,500.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is more than 12,500.",
     );
     expect(
       getRuleSentence({
@@ -560,7 +560,7 @@ describe("the rule said back in one sentence", () => {
         translator: GERMAN,
       }),
     ).toBe(
-      "Alarmiert, wenn die Zahl passender Logs in 5 Minuten mehr als 12.500 ist.",
+      "Alarmiert, wenn die Zahl passender Logs in 5\u00A0Minuten mehr als 12.500 ist.",
     );
   });
 
@@ -571,7 +571,7 @@ describe("the rule said back in one sentence", () => {
         rule: countRule(FilterType.EqualTo, 0, 600),
         translator: GERMAN,
       }),
-    ).toBe("Alarmiert, wenn in 10 Minuten keine passenden Logs eintreffen.");
+    ).toBe("Alarmiert, wenn in 10\u00A0Minuten keine passenden Logs eintreffen.");
 
     const persian: string = getRuleSentence({
       monitorType: MonitorType.Logs,
@@ -600,7 +600,7 @@ describe("the rule said back in one sentence", () => {
         unit: "ms",
       }),
     ).toBe(
-      "Alerts when the average of http.server.duration over the last 5 minutes is above 250 ms.",
+      "Alerts when the average of http.server.duration over the last 5\u00A0minutes is above 250 ms.",
     );
 
     expect(
@@ -617,7 +617,7 @@ describe("the rule said back in one sentence", () => {
         metricName: "queue.consumers",
       }),
     ).toBe(
-      "Alerts when every value of queue.consumers over the last 1 hour is at or below 1.",
+      "Alerts when every value of queue.consumers over the last 1\u00A0hour is at or below 1.",
     );
   });
 
@@ -635,7 +635,7 @@ describe("the rule said back in one sentence", () => {
         translator: ENGLISH,
       }),
     ).toBe(
-      "Alerts when the average of the metric over the last 5 minutes is above the value you enter.",
+      "Alerts when the average of the metric over the last 5\u00A0minutes is above the value you enter.",
     );
   });
 
@@ -654,7 +654,7 @@ describe("the rule said back in one sentence", () => {
         metricName: "cpu",
       }),
     ).toBe(
-      "Alerts when the highest value of cpu over the last 15 minutes is unusually high for this hour of the week.",
+      "Alerts when the highest value of cpu over the last 15\u00A0minutes is unusually high for this hour of the week.",
     );
   });
 });
@@ -686,7 +686,7 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 43200,
         translator: ENGLISH,
       }),
-    ).toBe("Matching logs per 5 minutes, over the last 12 hours.");
+    ).toBe("Matching logs per 5\u00A0minutes, over the last 12\u00A0hours.");
     expect(
       getPreviewCaption({
         monitorType: MonitorType.Traces,
@@ -694,7 +694,7 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 8640,
         translator: ENGLISH,
       }),
-    ).toBe("Matching spans per 1 minute, over the last 2 hours, 24 minutes.");
+    ).toBe("Matching spans per 1\u00A0minute, over the last 2\u00A0hours, 24\u00A0minutes.");
     expect(
       getPreviewCaption({
         monitorType: MonitorType.Exceptions,
@@ -702,7 +702,7 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 518400,
         translator: ENGLISH,
       }),
-    ).toBe("Matching exceptions per 1 hour, over the last 6 days.");
+    ).toBe("Matching exceptions per 1\u00A0hour, over the last 6\u00A0days.");
     // Ten-minute windows read a day back: said in hours, as a person says it.
     expect(
       getPreviewCaption({
@@ -711,7 +711,7 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 86400,
         translator: ENGLISH,
       }),
-    ).toBe("Matching logs per 10 minutes, over the last 24 hours.");
+    ).toBe("Matching logs per 10\u00A0minutes, over the last 24\u00A0hours.");
     expect(
       getPreviewCaption({
         monitorType: MonitorType.Logs,
@@ -719,24 +719,24 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 43200,
         translator: GERMAN,
       }),
-    ).toBe("Passende Logs je 5 Minuten, über die letzten 12 Stunden.");
+    ).toBe("Passende Logs je 5\u00A0Minuten, über die letzten 12\u00A0Stunden.");
   });
 
   test("how far back a preview reads: a day or two in hours, longer in days, the rest in its two largest units", () => {
     // Every range a preview reads (144 windows, never more than 7 days).
     const ranges: Array<[number, string]> = [
-      [720, "12 minutes"],
-      [1440, "24 minutes"],
-      [4320, "1 hour, 12 minutes"],
-      [8640, "2 hours, 24 minutes"],
-      [3600, "1 hour"],
-      [43200, "12 hours"],
-      [86400, "24 hours"],
-      [129600, "36 hours"],
-      [172800, "48 hours"],
-      [259200, "3 days"],
-      [518400, "6 days"],
-      [604800, "7 days"],
+      [720, "12\u00A0minutes"],
+      [1440, "24\u00A0minutes"],
+      [4320, "1\u00A0hour, 12\u00A0minutes"],
+      [8640, "2\u00A0hours, 24\u00A0minutes"],
+      [3600, "1\u00A0hour"],
+      [43200, "12\u00A0hours"],
+      [86400, "24\u00A0hours"],
+      [129600, "36\u00A0hours"],
+      [172800, "48\u00A0hours"],
+      [259200, "3\u00A0days"],
+      [518400, "6\u00A0days"],
+      [604800, "7\u00A0days"],
     ];
 
     for (const [seconds, said] of ranges) {
@@ -749,8 +749,8 @@ describe("what the rule's preview found", () => {
     // Never "1 day", which nobody says of the last 24 hours.
     expect(formatPreviewRange(86400, ENGLISH)).not.toContain("day");
     // In the reader's language, from the browser's own unit names.
-    expect(formatPreviewRange(86400, GERMAN)).toBe("24 Stunden");
-    expect(formatPreviewRange(259200, GERMAN)).toBe("3 Tage");
+    expect(formatPreviewRange(86400, GERMAN)).toBe("24\u00A0Stunden");
+    expect(formatPreviewRange(259200, GERMAN)).toBe("3\u00A0Tage");
   });
 
   test("nothing matched: a rule that looks for silence would alert at once, and says so", () => {
@@ -793,7 +793,7 @@ describe("what the rule's preview found", () => {
         matchesNothing: false,
         translator: ENGLISH,
       }),
-    ).toBe("This rule would have alerted 1 time, for 5 hours, 25 minutes.");
+    ).toBe("This rule would have alerted 1 time, for 5\u00A0hours, 25\u00A0minutes.");
     expect(
       getPreviewVerdict({
         summary: summary({ timesItWouldHaveFired: 3, matchedWindowCount: 4 }),
@@ -801,7 +801,7 @@ describe("what the rule's preview found", () => {
         matchesNothing: false,
         translator: ENGLISH,
       }),
-    ).toBe("This rule would have alerted 3 times, for 20 minutes in all.");
+    ).toBe("This rule would have alerted 3 times, for 20\u00A0minutes in all.");
   });
 
   test("German and Persian readers get the count in their own form; Russian says 21 with the 'one' form", () => {
@@ -812,7 +812,7 @@ describe("what the rule's preview found", () => {
         matchesNothing: false,
         translator: GERMAN,
       }),
-    ).toBe("Diese Regel hätte 2-mal alarmiert, insgesamt 10 Minuten.");
+    ).toBe("Diese Regel hätte 2-mal alarmiert, insgesamt 10\u00A0Minuten.");
 
     expect(
       getPreviewVerdict({
@@ -1009,7 +1009,7 @@ describe("the metric a Metrics rule reads", () => {
       translator: ENGLISH,
     });
 
-    expect(sentence).toContain("the average of CPU over the last 5 minutes");
+    expect(sentence).toContain("the average of CPU over the last 5\u00A0minutes");
     expect(sentence).toContain("above 80");
   });
 });

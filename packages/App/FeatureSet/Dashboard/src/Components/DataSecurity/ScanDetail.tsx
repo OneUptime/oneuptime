@@ -105,7 +105,7 @@ const writeScanAmount: (data: {
     formatUnitAmount({ ...amount, locale: getReaderNumberLocale() }) ||
     `${formatReaderNumber(data.value, {
       maximumFractionDigits: data.maximumFractionDigits,
-    })} ${data.symbol}`
+    })}\u00A0${data.symbol}`
   );
 };
 

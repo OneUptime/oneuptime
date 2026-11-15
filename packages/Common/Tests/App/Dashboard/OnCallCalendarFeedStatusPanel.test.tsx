@@ -400,7 +400,7 @@ describe("FeedStatusPanel", () => {
       );
 
       expect(screen.getByTestId("feed-status-headline").textContent).toBe(
-        "Last fetched 7 minutes ago",
+        "Last fetched 7\u00A0minutes ago",
       );
     });
 

@@ -298,16 +298,16 @@ describe("Last Seen, in the reader's language", () => {
       AMOUNTS.map((seconds: number) => {
         return lastSeen("de", seconds);
       }),
-    ).toEqual(["vor 12 Sek.", "vor 5 Min.", "vor 4 Std.", "vor 2 Tagen"]);
+    ).toEqual(["vor 12\u00A0Sek.", "vor 5\u00A0Min.", "vor 4\u00A0Std.", "vor 2\u00A0Tagen"]);
     // Just now is the past too, never "in 0 Sek.".
-    expect(lastSeen("de", 0)).toBe("vor 0 Sek.");
+    expect(lastSeen("de", 0)).toBe("vor 0\u00A0Sek.");
   });
 
   test("in Persian, in Persian digits; in Arabic, in its words and Latin digits", () => {
-    expect(lastSeen("fa", 12)).toBe("۱۲ ثانیه پیش");
-    expect(lastSeen("fa", 5 * 60)).toBe("۵ دقیقه پیش");
-    expect(lastSeen("ar", 5 * 60)).toBe("قبل 5 دقائق");
-    expect(lastSeen("ar", 4 * 3600)).toBe("قبل 4 ساعات");
+    expect(lastSeen("fa", 12)).toBe("۱۲\u00A0ثانیه پیش");
+    expect(lastSeen("fa", 5 * 60)).toBe("۵\u00A0دقیقه پیش");
+    expect(lastSeen("ar", 5 * 60)).toBe("قبل 5\u00A0دقائق");
+    expect(lastSeen("ar", 4 * 3600)).toBe("قبل 4\u00A0ساعات");
 
     for (const seconds of AMOUNTS) {
       expect(lastSeen("fa", seconds)).not.toMatch(LATIN_DIGIT);
@@ -656,9 +656,9 @@ describe("the Host list widget, drawn", () => {
   });
 
   test.each([
-    ["de", "16 Kerne / 64,0\u00A0GB", "vor 5 Min."],
-    ["fa", "۱۶ هسته / ۶۴٫۰\u00A0GB", "۵ دقیقه پیش"],
-    ["ar", "16 من الأنوية / 64.0\u00A0GB", "قبل 5 دقائق"],
+    ["de", "16 Kerne / 64,0\u00A0GB", "vor 5\u00A0Min."],
+    ["fa", "۱۶ هسته / ۶۴٫۰\u00A0GB", "۵\u00A0دقیقه پیش"],
+    ["ar", "16 من الأنوية / 64.0\u00A0GB", "قبل 5\u00A0دقائق"],
   ])(
     "on a %s board: %s, %s",
     async (language: string, cpuMemory: string, lastSeen: string) => {
@@ -769,7 +769,7 @@ describe("the Host list widget, drawn", () => {
     await inLanguage("de");
 
     expect(lastSeenCell(container, HOST_WITH_CORES).textContent).toBe(
-      "vor 5 Min.",
+      "vor 5\u00A0Min.",
     );
     expect(cpuMemoryCell(container, HOST_WITH_CORES).textContent).toBe(
       "16 Kerne / 64,0\u00A0GB",

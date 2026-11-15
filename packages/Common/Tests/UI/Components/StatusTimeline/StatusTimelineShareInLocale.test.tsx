@@ -383,8 +383,8 @@ describe("the legend's reading order", () => {
     expect(offline).toHaveLength(4);
     expect(offline[0]).toBe("Offline");
     expect(offline[1]).toBe("0.19%");
-    // The duration whole, its first number with its unit.
-    expect(offline[2]).toMatch(/^1 /);
+    // The duration whole, its first number held to its unit.
+    expect(offline[2]).toMatch(/^1\u00A0/);
     expect(offline[3]).toBe(
       dashboardTranslator("ar").translatePlural(
         { one: "{{count}} time", other: "{{count}} times" },
@@ -397,7 +397,7 @@ describe("the legend's reading order", () => {
     expect(operational).toHaveLength(3);
     expect(operational[0]).toBe("Operational");
     expect(operational[1]).toBe("99.81%");
-    expect(operational[2]).toMatch(/^29 /);
+    expect(operational[2]).toMatch(/^29\u00A0/);
   });
 
   test("an English name reads left to right in an Arabic legend, an Arabic name right to left", () => {

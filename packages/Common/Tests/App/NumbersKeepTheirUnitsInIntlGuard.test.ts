@@ -57,14 +57,14 @@ import { DASHBOARD_LANGUAGES } from "../Helpers/DashboardLocales";
 const LANGUAGES: ReadonlyArray<string> = ["en", ...DASHBOARD_LANGUAGES];
 
 // A space a line may break at: the space and the fixed-width ones.
-const BREAKING_SPACE: RegExp = /[  -  -  ]/;
+const BREAKING_SPACE: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]/;
 
-const BREAKING_SPACES: RegExp = /[  -  -  ]/g;
+const BREAKING_SPACES: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]/g;
 
-const NO_BREAK_SPACES: RegExp = / /g;
+const NO_BREAK_SPACES: RegExp = /\u00A0/g;
 
 // A digit, in any script, and what follows it if that is no digit.
-const FIGURE_END: RegExp = /\p{Nd}(?=[^\p{Nd}.,٫٬  ]|$)/gu;
+const FIGURE_END: RegExp = /\p{Nd}(?=[^\p{Nd}.,٫٬\u00A0\u202F]|$)/gu;
 
 const DURATION_UNITS: ReadonlyArray<DurationTextUnit> = [
   "year",
@@ -175,17 +175,36 @@ const intlRelative: (data: {
   }).format(data.value, data.unit);
 };
 
+/*
+ * Intl's list of units, typed structurally: Common compiles against the
+ * ES2017 library, which does not declare Intl.ListFormat.
+ */
+type UnitList = new (
+  locale: string,
+  options: { type: "unit"; style: "long" | "short" | "narrow" },
+) => { format: (items: Array<string>) => string };
+
+const listUnits: (
+  language: string,
+  style: "long" | "short" | "narrow",
+  items: Array<string>,
+) => string = (
+  language: string,
+  style: "long" | "short" | "narrow",
+  items: Array<string>,
+): string => {
+  const ListFormat: UnitList = (Intl as unknown as { ListFormat: UnitList })
+    .ListFormat;
+
+  return new ListFormat(language, { type: "unit", style }).format(items);
+};
+
 // What Intl's unit list puts between two units: ", ", " und ", " ", "".
 const listJoin: (
   language: string,
   style: "long" | "short" | "narrow",
 ) => string = (language: string, style: "long" | "short" | "narrow"): string => {
-  const joined: string = new Intl.ListFormat(language, {
-    type: "unit",
-    style: style,
-  }).format(["A", "B"]);
-
-  return joined.slice(1, -1);
+  return listUnits(language, style, ["A", "B"]).slice(1, -1);
 };
 
 describe("an amount of a unit Intl writes holds its number to its unit", () => {
@@ -459,10 +478,7 @@ describe("a duration of several units holds each number to its unit", () => {
                 });
               },
             );
-            const intl: string = new Intl.ListFormat(language, {
-              type: "unit",
-              style: listStyle,
-            }).format(words);
+            const intl: string = listUnits(language, listStyle, words);
             // A line may still break between two units where the list breaks.
             const listBreaks: boolean = BREAKING_SPACE.test(
               listJoin(language, listStyle),
@@ -648,7 +664,7 @@ describe("a relative time holds its number to its unit, and only that", () => {
         numeric: "always",
       }).replace(/ (?=5)/, NO_BREAK_SPACE),
     );
-    expect(written).toMatch(/^\S+ 5 /);
+    expect(written).toMatch(/^\S+\u00A05 /);
   });
 
   test.each(LANGUAGES)(
@@ -926,12 +942,12 @@ describe("negative controls: what holds no unit is as Intl wrote it", () => {
     expect(
       holdUnitToNumber([
         { type: "integer", value: "5" },
-        { type: "literal", value: " " },
+        { type: "literal", value: "\u202F" },
         { type: "unit", value: "h" },
       ]),
     ).toEqual([
       { type: "integer", value: "5" },
-      { type: "literal", value: " " },
+      { type: "literal", value: "\u202F" },
       { type: "unit", value: "h" },
     ]);
   });

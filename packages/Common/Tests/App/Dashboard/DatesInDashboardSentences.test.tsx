@@ -392,7 +392,7 @@ describe("a date a sentence is filled with", () => {
       germanTranslator().translateTemplate("Last seen {{time}}", {
         time: OneUptimeDate.fromNow(FIVE_HOURS_AGO),
       }),
-    ).toBe("Zuletzt gesehen vor 5 Stunden");
+    ).toBe("Zuletzt gesehen vor 5\u00A0Stunden");
   });
 
   test("an event's duration in German, and 'less than a minute' as German words it", async () => {
@@ -413,7 +413,7 @@ describe("a date a sentence is filled with", () => {
       "less than a minute"
     ];
 
-    expect(getEventDurationText(start, NOW)).toBe("2 Tage, 3 Stunden");
+    expect(getEventDurationText(start, NOW)).toBe("2\u00A0Tage, 3\u00A0Stunden");
     expect(typeof lessThanAMinute).toBe("string");
     expect(lessThanAMinute).not.toBe("less than a minute");
     expect(getEventDurationText(NOW, NOW)).toBe(lessThanAMinute);

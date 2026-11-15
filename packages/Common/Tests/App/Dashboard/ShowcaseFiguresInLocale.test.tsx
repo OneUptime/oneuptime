@@ -228,12 +228,12 @@ describe("a showcase figure, written the reader's way", () => {
       [2.14, "2.14"],
       [{ percent: 99.98 }, "99.98%"],
       [{ percent: 63 }, "63%"],
-      [{ milliseconds: 184 }, "184 ms"],
-      [{ seconds: 1.24 }, "1.24 s"],
-      [{ megabytes: 412 }, "412 MB"],
-      [{ gigabytes: 6.4 }, "6.4 GB"],
-      [{ gigabitsPerSecond: 1.2 }, "1.2 Gbps"],
-      [{ dBm: -67 }, "-67 dBm"],
+      [{ milliseconds: 184 }, `184${NO_BREAK_SPACE}ms`],
+      [{ seconds: 1.24 }, `1.24${NO_BREAK_SPACE}s`],
+      [{ megabytes: 412 }, `412${NO_BREAK_SPACE}MB`],
+      [{ gigabytes: 6.4 }, `6.4${NO_BREAK_SPACE}GB`],
+      [{ gigabitsPerSecond: 1.2 }, `1.2${NO_BREAK_SPACE}Gbps`],
+      [{ dBm: -67 }, `-67${NO_BREAK_SPACE}dBm`],
       [{ abbreviated: 1_820_000 }, "1.82M"],
       [{ abbreviated: 482_000 }, "482K"],
       [{ abbreviated: 42_200 }, "42.2K"],
@@ -271,13 +271,18 @@ describe("a showcase figure, written the reader's way", () => {
     expect(formatShowcaseFigure({ count: 41, outOf: 42 }, GERMAN)).toBe(
       "41/42",
     );
-    // A unit in German's own word for it, not the English symbol.
+    // A unit in German's own word for it, not the English symbol, held to its number.
     expect(formatShowcaseFigure({ seconds: 1.24 }, GERMAN)).toBe(
       new Intl.NumberFormat("de", {
         style: "unit",
         unit: "second",
         unitDisplay: "short",
-      }).format(1.24),
+      })
+        .format(1.24)
+        .replace(" ", NO_BREAK_SPACE),
+    );
+    expect(formatShowcaseFigure({ seconds: 1.24 }, GERMAN)).toBe(
+      `1,24${NO_BREAK_SPACE}Sek.`,
     );
     expect(formatShowcaseFigure({ seconds: 1.24 }, GERMAN)).not.toBe("1.24 s");
     // A million in German's own abbreviation.
@@ -371,18 +376,18 @@ describe("a showcase figure, written the reader's way", () => {
 });
 
 describe("a figure's amount and unit, apart", () => {
-  test("English: the product's own symbol after a space", () => {
+  test("English: the product's own symbol after a no-break space", () => {
     expect(formatShowcaseFigureParts({ milliseconds: 184 }, ENGLISH)).toEqual({
       amount: "184",
-      separator: " ",
+      separator: NO_BREAK_SPACE,
       unit: "ms",
     });
     expect(
       formatShowcaseFigureParts({ gigabitsPerSecond: 1.2 }, ENGLISH),
-    ).toEqual({ amount: "1.2", separator: " ", unit: "Gbps" });
+    ).toEqual({ amount: "1.2", separator: NO_BREAK_SPACE, unit: "Gbps" });
     expect(formatShowcaseFigureParts({ dBm: -67 }, ENGLISH)).toEqual({
       amount: "-67",
-      separator: " ",
+      separator: NO_BREAK_SPACE,
       unit: "dBm",
     });
   });
@@ -409,7 +414,7 @@ describe("a figure's amount and unit, apart", () => {
   test("a unit a language writes long stays whole: Persian's and Arabic's", () => {
     expect(formatShowcaseFigureParts({ milliseconds: 184 }, PERSIAN)).toEqual({
       amount: "۱۸۴",
-      separator: " ",
+      separator: NO_BREAK_SPACE,
       unit: "میلی‌ثانیه",
     });
 
@@ -585,7 +590,7 @@ describe("the showcase draws its figures in the reader's language", () => {
   test("a row's figure is written the reader's way, and its word translated", async () => {
     render(<ResourceShowcaseCard showcase={TRACES_SHOWCASE} />);
 
-    expect(drawnRowStates().slice(0, 3)).toEqual(["120 ms", "840 ms", "Error"]);
+    expect(drawnRowStates().slice(0, 3)).toEqual(["120\u00A0ms", "840\u00A0ms", "Error"]);
 
     cleanup();
     await i18next.changeLanguage("fa");
@@ -631,7 +636,7 @@ describe("the showcase draws its figures in the reader's language", () => {
 
     // Its duration, 1.24 s: "s" apart, the only unit of its four tiles.
     expect(englishUnits).toEqual(["s"]);
-    expect(drawnStatValues()[0]).toBe("1.24 s");
+    expect(drawnStatValues()[0]).toBe(`1.24${NO_BREAK_SPACE}s`);
     // A figure with no unit draws none: one unit per figure that has one.
     expect(englishUnits.length).toBe(
       getStatValues(TRACES_SHOWCASE).filter((value: ShowcaseValue): boolean => {

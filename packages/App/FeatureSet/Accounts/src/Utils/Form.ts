@@ -864,7 +864,7 @@ export const formatFormRetryAfter: FormatFormRetryAfterFunction = (
   }
 
   /*
-   * The number held to its unit, "in 5 minutes" (#8456); null for an
+   * The number held to its unit, "in 5\u00A0minutes" (#8456); null for an
    * unknown language tag, or no Intl.RelativeTimeFormat at all.
    */
   return formatRelativeAmount({

@@ -275,6 +275,11 @@ const HELD: Readonly<Record<string, Held>> = {
   "App/FeatureSet/AdminDashboard/src/Pages/Health/InstanceHealthLogs.tsx": {
     wholeBytesRule: "scaled >= 10 || exponent === 0 ? 0 : 1",
   },
+  // A data security scan's size: Intl's byte, its symbols only for an engine without one (#8456).
+  "App/FeatureSet/Dashboard/src/Components/DataSecurity/ScanDetail.tsx": {
+    wholeBytesRule: "maximumFractionDigits: unit > 0 && value < 10 ? 1 : 0",
+    provenBy: "Common/Tests/App/Dashboard/IntlUnitsHeldWhereTheyAreDrawn.test.ts",
+  },
 };
 
 const SKIPPED_FOLDERS: ReadonlyArray<string> = ["node_modules", "Locales"];

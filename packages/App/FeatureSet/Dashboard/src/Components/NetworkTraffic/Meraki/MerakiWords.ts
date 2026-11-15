@@ -177,7 +177,7 @@ export function getMerakiReadTime(
     Math.round((now.getTime() - readAt.getTime()) / 1000),
   );
 
-  // The number held to its unit: "12 seconds ago" (#8456).
+  // The number held to its unit: "12\u00A0seconds ago" (#8456).
   return (
     formatRelativeAmount({
       count: seconds,

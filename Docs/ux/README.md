@@ -671,10 +671,16 @@ work out, starts from a default for everything else, and folds what most people 
   symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
   itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
   as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
-  plain space, listed with its reason. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts)
+  plain space, listed with its reason. Intl writes a plain space there too ("5 Min.", "vor 5
+  Minuten", "2 Tage, 3 Stunden", #8456), so ask Intl for a unit or a relative time only through
+  `Common/Types/DateLanguage` (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`,
+  `getUnitAmountParts`, `formatRelativeAmount`), which holds the number to its unit in every
+  language, English included, and keeps French's own no-break spaces; never with `style: "unit"`
+  or `Intl.RelativeTimeFormat` yourself. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and
-  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts).
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message

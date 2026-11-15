@@ -352,7 +352,7 @@ const capitalizeFirst: (text: string, locale: string) => string = (
 /*
  * A relative time in `locale`, `value` units from now (negative for the
  * past): Intl's words through DateLanguage's formatRelativeAmount, the
- * number held to its unit ("12 min. ago", #8456). `numeric: "auto"`
+ * number held to its unit ("12\u00A0min. ago", #8456). `numeric: "auto"`
  * says "now" and "yesterday" where it can, which a day heading and the
  * last hour's hint want; "always" says "1 day ago", which a sentence that
  * already has its own words around the value wants. Null when the browser

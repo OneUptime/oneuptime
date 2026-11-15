@@ -215,7 +215,7 @@ describe("and when", () => {
         english,
         NOW,
       ),
-    ).toBe("Discovery scan Store subnets (SNMP) · 2 hours ago");
+    ).toBe("Discovery scan Store subnets (SNMP) · 2\u00A0hours ago");
   });
 
   test("a source with no time, or a time that does not parse, is the source alone", () => {
@@ -245,7 +245,7 @@ describe("and when", () => {
         english,
         NOW,
       ),
-    ).toBe("ARP table of core-rtr-01 says 00-1B-54-C2-7A-02 · 3 hours ago");
+    ).toBe("ARP table of core-rtr-01 says 00-1B-54-C2-7A-02 · 3\u00A0hours ago");
 
     expect(
       getAssetFactDifferenceLine(
@@ -276,7 +276,7 @@ describe("the lines said once, below the details", () => {
         NOW,
       ),
     ).toBe(
-      "Last found at its address by discovery scan Store subnets, 2 hours ago.",
+      "Last found at its address by discovery scan Store subnets, 2\u00A0hours ago.",
     );
 
     expect(
@@ -291,7 +291,7 @@ describe("the lines said once, below the details", () => {
         english,
         NOW,
       ),
-    ).toBe("Last found at its address by a discovery scan, 2 hours ago.");
+    ).toBe("Last found at its address by a discovery scan, 2\u00A0hours ago.");
   });
 
   test("a scan that found another machine at the address, and what it said it was", () => {
@@ -310,7 +310,7 @@ describe("the lines said once, below the details", () => {
         NOW,
       ),
     ).toBe(
-      "Discovery scan Store subnets found another machine at this address 2 hours ago (LAPTOP-12), so nothing it read there is used.",
+      "Discovery scan Store subnets found another machine at this address 2\u00A0hours ago (LAPTOP-12), so nothing it read there is used.",
     );
 
     expect(
@@ -327,7 +327,7 @@ describe("the lines said once, below the details", () => {
         NOW,
       ),
     ).toBe(
-      "A discovery scan found another machine at this address 2 hours ago (printer-02), so nothing it read there is used.",
+      "A discovery scan found another machine at this address 2\u00A0hours ago (printer-02), so nothing it read there is used.",
     );
   });
 
@@ -374,10 +374,10 @@ describe("the lines said once, below the details", () => {
 
   test("a host's collector and a device's own poll, each with when", () => {
     expect(getCollectorLine(THREE_MINUTES_AGO, english, NOW)).toBe(
-      "Reported by its collector, 3 minutes ago.",
+      "Reported by its collector, 3\u00A0minutes ago.",
     );
     expect(getSnmpPollLine(THREE_MINUTES_AGO, english, NOW)).toBe(
-      "Read over SNMP by its probe, 3 minutes ago.",
+      "Read over SNMP by its probe, 3\u00A0minutes ago.",
     );
     // With no time there is nothing worth saying once.
     expect(getCollectorLine(undefined, english, NOW)).toBeUndefined();
@@ -405,14 +405,14 @@ describe("the lines said once, below the details", () => {
         english,
         NOW,
       ),
-    ).toBe("Reported by its collector, 3 minutes ago.");
+    ).toBe("Reported by its collector, 3\u00A0minutes ago.");
     expect(
       getSharedSourceLine(
         { kind: AssetFactSourceKind.SnmpPoll, readAt: THREE_MINUTES_AGO },
         english,
         NOW,
       ),
-    ).toBe("Read over SNMP by its probe, 3 minutes ago.");
+    ).toBe("Read over SNMP by its probe, 3\u00A0minutes ago.");
     // A device its own poll has not read: the scan that read it over SNMP.
     expect(
       getSharedSourceLine(
@@ -424,14 +424,14 @@ describe("the lines said once, below the details", () => {
         english,
         NOW,
       ),
-    ).toBe("Read over SNMP by discovery scan Store subnets, 2 hours ago.");
+    ).toBe("Read over SNMP by discovery scan Store subnets, 2\u00A0hours ago.");
     expect(
       getSharedSourceLine(
         discovered(NetworkDeviceDiscoveryMethod.Snmp, undefined, TWO_HOURS_AGO),
         english,
         NOW,
       ),
-    ).toBe("Read over SNMP by a discovery scan, 2 hours ago.");
+    ).toBe("Read over SNMP by a discovery scan, 2\u00A0hours ago.");
     // One detail's source is said under it, never once below.
     expect(
       getSharedSourceLine(
@@ -458,7 +458,7 @@ describe("the lines said once, below the details", () => {
     );
 
     expect(getScanReadLine(scan.readBy, TWO_HOURS_AGO, english, NOW)).toBe(
-      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+      "Read over SNMP by discovery scan Store subnets, 2\u00A0hours ago.",
     );
     // With no time there is nothing worth saying once.
     expect(getScanReadLine(scan.readBy, undefined, english, NOW)).toBe(
@@ -719,7 +719,7 @@ describe("in the reader's language", () => {
         german,
         NOW,
       ),
-    ).toBe("Erkennungsscan Store subnets (SNMP) · vor 2 Stunden");
+    ).toBe("Erkennungsscan Store subnets (SNMP) · vor 2\u00A0Stunden");
     expect(
       getFoundByLine(
         {
@@ -734,7 +734,7 @@ describe("in the reader's language", () => {
         NOW,
       ),
     ).toBe(
-      "Zuletzt von Erkennungsscan Store subnets unter seiner Adresse gefunden, vor 2 Stunden.",
+      "Zuletzt von Erkennungsscan Store subnets unter seiner Adresse gefunden, vor 2\u00A0Stunden.",
     );
     expect(
       getSharedSourceLine(
@@ -747,7 +747,7 @@ describe("in the reader's language", () => {
         NOW,
       ),
     ).toBe(
-      "Von Erkennungsscan Store subnets über SNMP gelesen, vor 2 Stunden.",
+      "Von Erkennungsscan Store subnets über SNMP gelesen, vor 2\u00A0Stunden.",
     );
   });
 
@@ -764,9 +764,9 @@ describe("in the reader's language", () => {
         japanese,
         NOW,
       ),
-    ).toBe("core-rtr-01 の ARP テーブル · 2 時間前");
+    ).toBe("core-rtr-01 の ARP テーブル · 2\u00A0時間前");
     expect(getSnmpPollLine(THREE_MINUTES_AGO, japanese, NOW)).toBe(
-      "プローブが SNMP で読み取りました (3 分前)。",
+      "プローブが SNMP で読み取りました (3\u00A0分前)。",
     );
     expect(
       getSharedSourceLine(
@@ -778,7 +778,7 @@ describe("in the reader's language", () => {
         japanese,
         NOW,
       ),
-    ).toBe("検出スキャン Store subnets が SNMP で読み取りました (2 時間前)。");
+    ).toBe("検出スキャン Store subnets が SNMP で読み取りました (2\u00A0時間前)。");
   });
 
   /*

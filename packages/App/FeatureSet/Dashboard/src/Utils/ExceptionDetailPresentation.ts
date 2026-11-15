@@ -67,7 +67,7 @@ export function formatRelativeTime(
 
   const diffMs: number = now.getTime() - date.getTime();
   const absMs: number = Math.abs(diffMs);
-  // Intl's words, the number held to its unit ("vor 5 Minuten", #8456).
+  // Intl's words, the number held to its unit ("vor 5\u00A0Minuten", #8456).
   const inReadersWords: (
     count: number,
     unit: RelativeDateUnit,

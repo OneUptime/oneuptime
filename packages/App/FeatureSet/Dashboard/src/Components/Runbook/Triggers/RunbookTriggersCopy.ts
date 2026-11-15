@@ -791,7 +791,7 @@ export function formatRunRelativeTime(data: {
     unit = "minute";
   }
 
-  // The number held to its unit: "in 23 hours" (#8456).
+  // The number held to its unit: "in 23\u00A0hours" (#8456).
   const relative: string | null = formatRelativeAmount({
     count: value,
     unit: unit,

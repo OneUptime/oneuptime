@@ -661,7 +661,7 @@ export function formatAuditLogExportDuration(data: {
   }
 
   const distance: TimeAgoDistance = getFeedTimeAgoDistance(seconds);
-  // The number held to its unit: "2 Stunden" (#8456).
+  // The number held to its unit: "2\u00A0Stunden" (#8456).
   const written: string | null = formatDurationUnit({
     part: { count: distance.count, unit: distance.unit },
     locale: getFeedLocale(data.language),

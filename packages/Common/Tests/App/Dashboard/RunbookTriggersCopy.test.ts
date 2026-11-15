@@ -581,9 +581,9 @@ describe("when a run is", () => {
   test("in the reader's language and its digits, with the Gregorian calendar", () => {
     expect(at("2026-10-16T08:00:00.000Z", "de")).toEqual({
       when: "Fr., 16. Okt., 09:00 BST",
-      relative: "in 1 Tag",
+      relative: "in 1\u00A0Tag",
     });
-    expect(at("2026-10-19T08:00:00.000Z", "fr").relative).toBe("dans 4 jours");
+    expect(at("2026-10-19T08:00:00.000Z", "fr").relative).toBe("dans 4\u00A0jours");
     expect(at("2026-10-16T08:00:00.000Z", "ja").when).toContain("10月16日");
     // Persian reads Gregorian dates in its own digits, as its counts.
     expect(at("2026-10-16T08:00:00.000Z", "fa").when).toContain("۱۶");
@@ -596,17 +596,17 @@ describe("when a run is", () => {
     };
 
     expect(relative("2026-10-15T06:00:20.000Z")).toBe("now");
-    expect(relative("2026-10-15T06:25:00.000Z")).toBe("in 25 minutes");
+    expect(relative("2026-10-15T06:25:00.000Z")).toBe("in 25\u00A0minutes");
     // Never "in 60 minutes" or "in 24 hours".
-    expect(relative("2026-10-15T06:59:50.000Z")).toBe("in 59 minutes");
-    expect(relative("2026-10-15T08:00:00.000Z")).toBe("in 2 hours");
-    expect(relative("2026-10-16T05:50:00.000Z")).toBe("in 23 hours");
+    expect(relative("2026-10-15T06:59:50.000Z")).toBe("in 59\u00A0minutes");
+    expect(relative("2026-10-15T08:00:00.000Z")).toBe("in 2\u00A0hours");
+    expect(relative("2026-10-16T05:50:00.000Z")).toBe("in 23\u00A0hours");
     // Monday 09:00, seen on Thursday at 07:00: four calendar days, not three.
-    expect(relative("2026-10-19T08:00:00.000Z")).toBe("in 4 days");
+    expect(relative("2026-10-19T08:00:00.000Z")).toBe("in 4\u00A0days");
     // Counted, never "tomorrow".
-    expect(relative("2026-10-16T08:00:00.000Z")).toBe("in 1 day");
-    expect(relative("2026-10-15T04:00:00.000Z")).toBe("2 hours ago");
-    expect(relative("2026-10-13T08:00:00.000Z")).toBe("2 days ago");
+    expect(relative("2026-10-16T08:00:00.000Z")).toBe("in 1\u00A0day");
+    expect(relative("2026-10-15T04:00:00.000Z")).toBe("2\u00A0hours ago");
+    expect(relative("2026-10-13T08:00:00.000Z")).toBe("2\u00A0days ago");
   });
 
   test("calendar days are counted on the zone's clock, not the reader's", () => {
@@ -618,7 +618,7 @@ describe("when a run is", () => {
         language: "en",
         timezone: "America/Los_Angeles",
       }),
-    ).toBe("in 1 day");
+    ).toBe("in 1\u00A0day");
     expect(
       formatRunRelativeTime({
         date: new Date("2026-10-17T07:30:00.000Z"),
@@ -626,7 +626,7 @@ describe("when a run is", () => {
         language: "en",
         timezone: "America/Los_Angeles",
       }),
-    ).toBe("in 2 days");
+    ).toBe("in 2\u00A0days");
   });
 });
 
