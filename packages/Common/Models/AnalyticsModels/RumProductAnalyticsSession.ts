@@ -241,7 +241,7 @@ const MEASURES: Array<MeasureDefinition> = [
     key: "entryPage",
     title: "Entry Page",
     description:
-      "Path of the session's first page, as the recorder scrubbed it",
+      "The session's first page, as the recorder scrubbed it: its path, and a hash router's route after it",
     type: TableColumnType.Text,
     simpleAggregateFunction: "max",
   },
@@ -249,7 +249,7 @@ const MEASURES: Array<MeasureDefinition> = [
     key: "pages",
     title: "Pages",
     description:
-      "Distinct scrubbed paths the session visited (at most the 500 the finalizer keeps)",
+      "Distinct scrubbed addresses the session visited (its routes, at most the 500 the finalizer keeps); the reads name each by its page",
     type: TableColumnType.ArrayText,
     simpleAggregateFunction: "groupUniqArrayArray",
   },
