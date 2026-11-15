@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% oppetid",
+    "uptimePercent": "{{percent}}% oppetid",
     "operational": "I drift",
     "notMonitored": "Ikke overvåget",
     "noResourcesInGroup": "Der er ikke tilføjet nogen ressourcer til denne gruppe.",
@@ -114,6 +115,7 @@
     "noneDescription": "Der er ikke rapporteret nogen hændelser på denne statusside.",
     "postmortem": "Hændelsesanalyse",
     "declaredAt": "Rapporteret den ",
+    "declaredAtTime": "Rapporteret den {{time}}",
     "report": "Hændelsesrapport",
     "notFound": "Hændelsen blev ikke fundet på denne statusside."
   },
@@ -130,6 +132,7 @@
     "none": "Ingen meddelelser",
     "noneDescription": "Der er ikke offentliggjort nogen meddelelser på denne side endnu.",
     "announcedAt": "Annonceret den ",
+    "announcedAtTime": "Annonceret den {{time}}",
     "notFound": "Meddelelsen blev ikke fundet på denne statusside."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "Ingen planlagt vedligeholdelse",
     "noneDescription": "Der er ikke offentliggjort nogen planlagt vedligeholdelse for denne statusside.",
     "scheduledAt": "Planlagt til ",
+    "scheduledAtTime": "Planlagt til {{time}}",
     "report": "Rapport over vedligeholdelseshændelse",
     "notFound": "Ingen vedligeholdelseshændelse fundet for denne statusside.",
     "calendar": {

@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 正常运行时间",
+    "uptimePercent": "正常运行时间 {{percent}}%",
     "operational": "运行正常",
     "notMonitored": "未监控",
     "noResourcesInGroup": "此组中未添加任何资源。",
@@ -114,6 +115,7 @@
     "noneDescription": "此状态页未发布任何事件。",
     "postmortem": "事件事后分析",
     "declaredAt": "声明于 ",
+    "declaredAtTime": "声明于 {{time}}",
     "report": "事件报告",
     "notFound": "在此状态页上未找到此事件。"
   },
@@ -130,6 +132,7 @@
     "none": "无公告",
     "noneDescription": "此页面尚未发布任何公告。",
     "announcedAt": "公告于 ",
+    "announcedAtTime": "公告于 {{time}}",
     "notFound": "在此状态页上未找到此公告。"
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "暂无计划维护",
     "noneDescription": "此状态页尚未发布计划维护。",
     "scheduledAt": "计划于 ",
+    "scheduledAtTime": "计划于 {{time}}",
     "report": "维护事件报告",
     "notFound": "此状态页上未找到维护事件。",
     "calendar": {
