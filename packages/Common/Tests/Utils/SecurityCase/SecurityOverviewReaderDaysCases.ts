@@ -412,7 +412,7 @@ export default function describeSecurityOverviewReaderDays(
     });
 
     describe.each(
-      READERS.map((reader: ReaderCase) => {
+      READERS.map((reader: ReaderCase): [string, ReaderCase] => {
         return [reader.name, reader];
       }),
     )("a reader in %s", (_name: string, reader: ReaderCase) => {

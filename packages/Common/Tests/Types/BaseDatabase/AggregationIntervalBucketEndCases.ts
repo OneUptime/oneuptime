@@ -327,7 +327,7 @@ export default function describeBucketEnds(processTimezone: string): void {
         cases: ReadonlyArray<BucketCase>,
       ) => {
         test.each(
-          cases.map((item: BucketCase) => {
+          cases.map((item: BucketCase): [string, BucketCase] => {
             return [item.name, item];
           }),
         )("%s", (_name: string, item: BucketCase) => {
@@ -335,7 +335,7 @@ export default function describeBucketEnds(processTimezone: string): void {
         });
 
         test.each(
-          cases.map((item: BucketCase) => {
+          cases.map((item: BucketCase): [string, BucketCase] => {
             return [item.name, item];
           }),
         )(
@@ -356,7 +356,7 @@ export default function describeBucketEnds(processTimezone: string): void {
         );
 
         test.each(
-          cases.map((item: BucketCase) => {
+          cases.map((item: BucketCase): [string, BucketCase] => {
             return [item.name, item];
           }),
         )(

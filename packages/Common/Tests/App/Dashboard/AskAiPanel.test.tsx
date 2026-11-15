@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import type { SpyInstance } from "jest-mock";
 import {
   afterAll,
   afterEach,
@@ -2597,7 +2598,7 @@ describe("the reader's time zone goes with every question and approval (#7922)",
   });
 
   test("a zone the list does not name is not sent", async () => {
-    const zone: jest.SpiedFunction<() => Timezone> = jest
+    const zone: SpyInstance<() => Timezone> = jest
       .spyOn(OneUptimeDate, "getCurrentTimezone")
       .mockReturnValue("Mars/Olympus_Mons" as Timezone);
 

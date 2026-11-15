@@ -279,7 +279,7 @@ export default function describeWholeIntervalTrims(
     });
 
     test.each(
-      CASES.map((item: TrimCase) => {
+      CASES.map((item: TrimCase): [string, TrimCase] => {
         return [item.name, item];
       }),
     )(
@@ -325,7 +325,7 @@ export default function describeWholeIntervalTrims(
       }
 
       test.each(
-        CASES.map((item: TrimCase) => {
+        CASES.map((item: TrimCase): [string, TrimCase] => {
           return [item.name, item];
         }),
       )(
@@ -360,7 +360,7 @@ export default function describeWholeIntervalTrims(
       }
 
       test.each(
-        CASES.map((item: TrimCase) => {
+        CASES.map((item: TrimCase): [string, TrimCase] => {
           return [item.name, item];
         }),
       )(
@@ -404,13 +404,22 @@ export default function describeWholeIntervalTrims(
       }
 
       test.each(
-        CASES.flatMap((item: TrimCase) => {
-          return [MetricsAggregationType.Sum, MetricsAggregationType.Count].map(
-            (aggregationType: MetricsAggregationType) => {
-              return [item.name, aggregationType, item];
-            },
-          );
-        }),
+        CASES.flatMap(
+          (
+            item: TrimCase,
+          ): Array<[string, MetricsAggregationType, TrimCase]> => {
+            return [
+              MetricsAggregationType.Sum,
+              MetricsAggregationType.Count,
+            ].map(
+              (
+                aggregationType: MetricsAggregationType,
+              ): [string, MetricsAggregationType, TrimCase] => {
+                return [item.name, aggregationType, item];
+              },
+            );
+          },
+        ),
       )(
         "%s, read as %s, is left out until it has closed, and kept once it has",
         (
