@@ -610,7 +610,7 @@ describe("MicrosoftTeamsAPI.getTeamsAppManifest", () => {
 
     test("names the admin's one-time setup, and that each person connects their own account", () => {
       expect(fullDescription()).toContain(
-        "A OneUptime project admin connects your Microsoft 365 organization once",
+        "A OneUptime Project Admin connects your Microsoft 365 organization once",
       );
       expect(fullDescription()).toContain(
         "everyone connects their own Microsoft Teams account the first time they use a command",

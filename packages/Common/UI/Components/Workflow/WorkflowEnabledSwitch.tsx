@@ -9,7 +9,8 @@ export interface ComponentProps {
   /*
    * Set when the user may not turn the workflow on or off. The switch stays on
    * screen, so the state is still read from it, but it is disabled and says
-   * which permission is missing.
+   * which permission is missing - in the reader's words, as the permission
+   * check (PermissionGate) words it, so the switch draws it as given.
    */
   disabledReason?: string | undefined;
   onChange: (isEnabled: boolean) => void;
@@ -37,6 +38,7 @@ const WorkflowEnabledSwitch: FunctionComponent<ComponentProps> = (
         onChange={props.onChange}
         disabled={Boolean(props.isSaving) || Boolean(props.disabledReason)}
         tooltip={props.disabledReason}
+        isTooltipTranslated={true}
         dataTestId="workflow-enabled-switch"
       />
     </div>

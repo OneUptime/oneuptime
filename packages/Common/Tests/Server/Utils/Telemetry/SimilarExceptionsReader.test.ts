@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import SimilarExceptionsReader, {
   MAX_SAME_SERVICE_CANDIDATES,
   MAX_SAME_TYPE_CANDIDATES,
@@ -269,7 +270,7 @@ describe("what is read of each exception", () => {
 
   test("no ids, no query", async () => {
     jest.restoreAllMocks();
-    const query: jest.SpiedFunction<() => unknown> = jest.fn() as never;
+    const query: SpyInstance<() => unknown> = jest.fn() as never;
     jest
       .spyOn(TelemetryExceptionService, "getRepository")
       .mockReturnValue({ manager: { query } } as never);

@@ -159,13 +159,13 @@ beforeEach(() => {
 });
 
 describe("the people the messages name", () => {
-  test("are a project owner and Manage Billing, in those words", () => {
+  test("are a Project Owner and Manage Billing, in those words", () => {
     expect([...PROJECT_BALANCE_RECHARGE_PERMISSIONS]).toEqual([
       Permission.ProjectOwner,
       Permission.ManageProjectBilling,
     ]);
     expect(WHO_CAN_ADD_PROJECT_BALANCE).toBe(
-      "a project owner or someone with Manage Billing",
+      "a Project Owner or someone with Manage Billing",
     );
     expect(PermissionHelper.getTitle(Permission.ManageProjectBilling)).toBe(
       "Manage Billing",
@@ -206,7 +206,7 @@ describe.each(ROUTES)("adding to $name ($uri)", (route: RechargeRoute) => {
     expect(route.rechargeBalance.mock.calls[0]?.[1]).toBe(25);
   });
 
-  test("a project admin is refused: Project Admin leaves out billing", async () => {
+  test("a Project Admin is refused: Project Admin leaves out billing", async () => {
     await recharge(route, [Permission.ProjectAdmin]);
 
     expect(route.rechargeBalance).not.toHaveBeenCalled();

@@ -75,7 +75,25 @@ function readSource(...relativeParts: Array<string>): string {
   return squash(fs.readFileSync(path.join(FORM_DIR, ...relativeParts), "utf8"));
 }
 
+/*
+ * The same with its comments removed, for pinning an object whose fields a
+ * comment sits between. The checks that a word is absent read the source
+ * with its comments, so a comment cannot bring one back unnoticed.
+ */
+function readCode(...relativeParts: Array<string>): string {
+  return squash(
+    fs
+      .readFileSync(path.join(FORM_DIR, ...relativeParts), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/(^|\s)\/\/.*$/gm, " "),
+  );
+}
+
 const stepFormSource: string = readSource(
+  "StorageArrayMonitor",
+  "StorageArrayMonitorStepForm.tsx",
+);
+const stepFormCode: string = readCode(
   "StorageArrayMonitor",
   "StorageArrayMonitorStepForm.tsx",
 );
@@ -335,8 +353,14 @@ describe("StorageArrayMonitorStepForm array selection", () => {
     expect(stepFormSource).toContain(
       "useInfrastructureResources<StorageArray>({ modelType: StorageArray,",
     );
-    expect(stepFormSource).toContain(
-      'return { label: storageArray.name || "Unknown", value: storageArray.name || "", };',
+    /*
+     * The option draws an array's own name as written (isUserContent), never
+     * looked up in the reader's language, where an array named like one of
+     * the product's words would read as its translation; "Unknown", for an
+     * array with no name, is the product's word and is looked up (#8065).
+     */
+    expect(stepFormCode).toContain(
+      'return { label: storageArray.name || "Unknown", isUserContent: Boolean(storageArray.name), value: storageArray.name || "", };',
     );
     expect(dense(stepFormSource)).toContain("onChange={changeResource}");
     expect(dense(stepFormSource)).toContain(

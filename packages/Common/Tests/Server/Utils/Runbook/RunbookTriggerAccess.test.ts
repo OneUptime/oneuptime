@@ -274,8 +274,8 @@ describe("seeing and resetting the webhook URL", () => {
   }
 
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     ["a runbook admin", [Permission.RunbookAdmin]],
     [
       "someone who may edit runbooks and start runs",

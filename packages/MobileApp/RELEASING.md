@@ -471,6 +471,39 @@ Before the release, with a rule that pages a policy you are on as observers:
 5. When `app.json` moves past 1.6.0, the FAQ's "Can I acknowledge a page
    from the notification?" names I've seen it for an observer's page too.
 
+### Sessions: the idle timeout, signing out, and why the app signed out
+
+Since the release after 1.6.0 the app tells the server, with every renewal,
+how long since its person last used it and that it renews while in use, and
+it renews at least every five minutes while it is used. The server's sweep
+then records an idle timeout within 35 minutes even for a phone that is never
+opened again. A sign-out closes renewals until the next sign-in, so the
+revoke always names the refresh token the server holds. The sign-in screen
+says why the server ended a session (its idle timeout or its length). The
+on-call shift times follow the phone's 12- or 24-hour clock and language.
+`src/api/clientRenewAhead.test.ts` and
+`src/api/sessionIdleTimeout.integration.test.ts` cover the code paths; on a
+device, against a server with Session Length set in the Admin Dashboard:
+
+1. Set the idle timeout to 15 minutes. Use the app for half an hour,
+   touching it but never pulling a list: it stays signed in.
+2. Put the phone away for an hour without opening the app. The project's
+   audit log records a **Session Timeout** for it within 35 minutes of the
+   idle timeout running out. Open the app: the sign-in screen says "You
+   were signed out after a while without use."
+3. Set a 60-minute session length and use the app past it: the sign-in
+   screen says the sign-in lasted as long as the server allows. Signing in
+   again removes the sentence.
+4. Sign out, with the network on: the audit log records a **Sign Out** for
+   the session, and nothing renews it afterwards.
+5. On a phone set to a 24-hour clock, On-Call reads "Today 09:00", not
+   "9:00 AM".
+
+The docs already name the version: Self Hosted > Session Length and Audit
+Logs say "newer than 1.6.0", which stays true whatever number the release
+takes, and `packages/App/Tests/FeatureSet/Docs/SessionLengthMobileAppDocs.test.ts`
+holds them to it.
+
 ## 5. Publish Android through Play Console
 
 This is the route verified for 1.1.0; it gives visibility into the production

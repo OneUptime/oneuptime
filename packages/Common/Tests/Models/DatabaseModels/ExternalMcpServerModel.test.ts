@@ -78,7 +78,7 @@ function accessOf(column: string): ColumnAccessControl {
 }
 
 describe("ExternalMcpServer: who sets a server up, and who sees it", () => {
-  test("project owners and admins add, change and remove servers", () => {
+  test("Project Owners and Project Admins add, change and remove servers", () => {
     expect(server.getCreatePermissions()).toEqual(ADMINS);
     expect(server.getUpdatePermissions()).toEqual(ADMINS);
     expect(server.getDeletePermissions()).toEqual(ADMINS);

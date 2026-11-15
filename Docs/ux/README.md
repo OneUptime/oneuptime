@@ -306,7 +306,8 @@ work out, starts from a default for everything else, and folds what most people 
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
   failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
   the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
-  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278); never
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278, or
+  the App's own 50 MB limit, which it answers with that sentence and a 413, #8419); never
   a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
@@ -519,6 +520,11 @@ work out, starts from a default for everything else, and folds what most people 
   server and the front ends write, the English docs with their diagrams, and the website, and
   [RetiredNamesFindable](../../packages/App/Tests/Dashboard/RetiredNamesFindable.test.ts), which checks
   that each old name still finds the page.
+- **A permission is named after the record it guards.** A feed's permissions read "Create Incident
+  Feed" and "Read Scheduled Maintenance Feed", as the feed calls itself, so a search of the permission
+  picker for "feed" finds every one, and a refusal names the same thing the permission does. They
+  read "Scheduled Maintenance Log" until #8451. Enforced by
+  [FeedPermissionTitles](../../packages/Common/Tests/Types/FeedPermissionTitles.test.ts).
 - **At most three words on a page are marked as defined terms, each the first time it is met.** A
   `DefinedTerm` draws the word with a dotted line and shows its definition on hover, focus or tap.
   Enforced by
@@ -723,9 +729,12 @@ then `npm run i18n:validate` from the root.
   for the metric query form (the metric picker, its attribute filter, the series and group
   colour pickers, a formula's row), which was English in twelve languages (#8310),
   [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts),
-  and, for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
+  for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
   the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
-  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts).
+  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts),
+  and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
+  whose 186 texts had no entry in its locales and read English in every language (#8227),
+  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
@@ -740,7 +749,9 @@ then `npm run i18n:validate` from the root.
   says the sentence, and the detail page is handed the filters as stored. That formatter's text is
   a key, never a line a person reads. A monitor's criteria list words each filter the same way,
   every part of it a sentence of the locale around the part it holds: it read `Check if "Response
-  Time (in ms)" is greater than 500ms and,` under a Persian form (#8350). And an empty dropdown
+  Time (in ms)" is greater than 500ms and,` under a Persian form (#8350). Whether all of the filters
+  must match or any one is said once, above them, never as an "and," left at the end of each line
+  (#8533). And an empty dropdown
   says so in the reader's words ("No matches found", "No options available"), never react-select's
   English "No options" (#7805). Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
@@ -748,7 +759,8 @@ then `npm run i18n:validate` from the root.
   [LockedFilterChipSentencesInReadersLanguage](../../packages/Common/Tests/UI/Components/LockedFilterChipSentencesInReadersLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
   [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx),
-  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx)
+  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx),
+  [CriteriaListSaysHowFiltersCombine](../../packages/Common/Tests/App/Dashboard/CriteriaListSaysHowFiltersCombine.test.tsx)
   and
   [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,

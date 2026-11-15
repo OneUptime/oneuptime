@@ -1356,7 +1356,7 @@ describe("POST /slack/command: /oneuptime page", () => {
       const calls: Array<SlackCall> = await slackCallsAfter(1);
 
       expect(textOf(calls[0]!.data["blocks"])).toBe(
-        "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.\n",
+        "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.\n",
       );
       expect(pages).toEqual([]);
     });

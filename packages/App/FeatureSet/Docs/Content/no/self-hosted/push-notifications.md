@@ -204,7 +204,7 @@ En enhet beholder systemlyden til den kjører en versjon av appen som tilbyr val
 
 ### Gjenta et varsel til det bekreftes
 
-En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **Brukerinnstillinger > Slik når man meg** angir du **Gjenta til det bekreftes** når du legger til en push-regel, eller endrer det senere i regelens rad: hvert minutt, eller hvert 2., 3., 5., 10., 15. eller 30. minutt. Varselet sendes på nytt med det intervallet, høyst 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. En tilkalling som fortsetter etter en bekreftelse, som en ny varsling, gjentas til noen den har tilkalt, svarer, eller hendelsen, varselet eller episoden er løst: [Når flere retningslinjer tilkaller](/docs/on-call/policies#når-flere-retningslinjer-tilkaller) nevner dem. Lagret per regel i `UserNotificationRule.repeatEveryMinutes`, der 0, som er standard, sender varselet én gang.
+En push-regel kan sende varselet sitt på nytt til noen bekrefter det. Under **Brukerinnstillinger > Slik når man meg** angir du **Gjenta til det bekreftes** når du legger til en push-regel, eller endrer det senere i regelens rad: hvert minutt, eller hvert 2., 3., 5., 10., 15. eller 30. minutt. Varselet sendes på nytt med det intervallet, høyst 10 ganger til, og stopper så snart hendelsen, varselet eller episoden er bekreftet. En tilkalling som fortsetter etter en bekreftelse, som en ny varsling, gjentas til noen den har tilkalt, svarer, eller hendelsen, varselet eller episoden er løst: [Når flere policyer tilkaller](/docs/on-call/policies#når-flere-policyer-tilkaller) nevner dem. Lagret per regel i `UserNotificationRule.repeatEveryMinutes`, der 0, som er standard, sender varselet én gang.
 
 ## Feilsøking
 

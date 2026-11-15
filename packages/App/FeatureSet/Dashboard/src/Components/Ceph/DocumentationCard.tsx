@@ -11,6 +11,7 @@ import {
   getCephSetupGuide,
   resolveCephInstallMethod,
 } from "../../Pages/Ceph/Utils/DocumentationMarkdown";
+import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Ceph/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -43,6 +44,7 @@ const CephDocumentationCard: FunctionComponent<ComponentProps> = (
           clusterName: props.clusterName,
         });
       }}
+      translations={CEPH_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

@@ -1172,7 +1172,7 @@ describe("Rum:ProcessSessionErasureRequests retry-or-fail", () => {
     expect(harness.sendEmail).not.toHaveBeenCalled();
   });
 
-  test("the final attempt marks Failed and notifies the project owners", async () => {
+  test("the final attempt marks Failed and notifies the Project Owners", async () => {
     const harness: RetryHarness = installHarness();
 
     mockRedis.connected = false;

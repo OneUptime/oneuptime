@@ -111,7 +111,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny DNS-monitor starter med to kriterier:
 
-- **Frakoblet** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ is offline". Hendelsen løser seg selv når navnet kan slås opp igjen.
+- **Frakoblet** — navnet kan ikke slås opp, eller har ingen post av typen, etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitornavn_ er frakoblet". Hendelsen løser seg selv når navnet kan slås opp igjen.
 - **Oppe** — navnet kan slås opp. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.

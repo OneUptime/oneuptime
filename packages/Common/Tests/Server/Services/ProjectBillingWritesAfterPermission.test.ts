@@ -186,7 +186,7 @@ async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
 }
 
 describe("turning auto recharge on", () => {
-  test("a project admin, who may not change billing, is refused, and nothing is charged", async () => {
+  test("a Project Admin, who may not change billing, is refused, and nothing is charged", async () => {
     const error: unknown = await rejectionOf(
       ProjectService.updateOneById({
         id: PROJECT_ID,
@@ -300,7 +300,7 @@ describe("turning auto recharge on", () => {
  * (ignoreRecentFailure), and a charge that fails refuses the change.
  */
 describe("turning AI credits' auto recharge on", () => {
-  test("a project admin, who may not change billing, is refused, and nothing is charged", async () => {
+  test("a Project Admin, who may not change billing, is refused, and nothing is charged", async () => {
     const error: unknown = await rejectionOf(
       ProjectService.updateOneById({
         id: PROJECT_ID,
@@ -408,7 +408,7 @@ describe("turning AI credits' auto recharge on", () => {
 });
 
 describe("changing the invoice details", () => {
-  test("a project admin, who may not change billing, is refused, and the payment provider hears nothing", async () => {
+  test("a Project Admin, who may not change billing, is refused, and the payment provider hears nothing", async () => {
     const error: unknown = await rejectionOf(
       ProjectService.updateOneById({
         id: PROJECT_ID,

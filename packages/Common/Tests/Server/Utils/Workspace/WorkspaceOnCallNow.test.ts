@@ -400,8 +400,8 @@ describe("WorkspaceOnCallNow: who is on call, schedule by schedule", () => {
 
       expect(await answer()).toEqual({
         markdown:
-          "You do not have permission to see the on-call schedules in this project. Ask a project admin for access to them.",
-        text: "You do not have permission to see the on-call schedules in this project. Ask a project admin for access to them.",
+          "You do not have permission to see the on-call schedules in this project. Ask a Project Admin for access to them.",
+        text: "You do not have permission to see the on-call schedules in this project. Ask a Project Admin for access to them.",
       });
     },
   );

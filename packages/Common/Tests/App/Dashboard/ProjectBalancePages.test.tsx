@@ -254,7 +254,7 @@ afterEach(() => {
 
 describe.each(PAGES)("$name", (page: BalancePage) => {
   test.each([
-    ["a project owner", Permission.ProjectOwner],
+    ["a Project Owner", Permission.ProjectOwner],
     ["someone with Manage Billing", Permission.ManageProjectBilling],
   ])(
     "%s is asked to recharge it, and may: the button opens the recharge dialog",
@@ -287,7 +287,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
   );
 
   test.each([
-    ["a project owner", Permission.ProjectOwner],
+    ["a Project Owner", Permission.ProjectOwner],
     ["someone with Manage Billing", Permission.ManageProjectBilling],
   ])(
     "%s may edit Auto Recharge",
@@ -307,7 +307,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
   );
 
   test.each([
-    ["a project admin", Permission.ProjectAdmin],
+    ["a Project Admin", Permission.ProjectAdmin],
     ["a member", Permission.ProjectMember],
     ["the Billing Admin role", Permission.BillingAdmin],
   ])(
@@ -322,7 +322,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
         PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forEveryoneElse,
       );
       expect(balanceCard).toHaveTextContent(
-        "A project owner or someone with Manage Billing can recharge it",
+        "A Project Owner or someone with Manage Billing can recharge it",
       );
       expect(balanceCard).not.toHaveTextContent("Recharge it, or");
 
@@ -371,7 +371,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
   });
 
   test.each([
-    ["a project owner", Permission.ProjectOwner],
+    ["a Project Owner", Permission.ProjectOwner],
     ["someone with Manage Billing", Permission.ManageProjectBilling],
   ])(
     "Auto Recharge's last charge failed: %s is told first, in red, to check the payment method or recharge now",
@@ -405,7 +405,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
   );
 
   test.each([
-    ["a project admin", Permission.ProjectAdmin],
+    ["a Project Admin", Permission.ProjectAdmin],
     ["a member", Permission.ProjectMember],
     ["the Billing Admin role", Permission.BillingAdmin],
   ])(
@@ -425,7 +425,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
         AUTO_RECHARGE_FAILED_DESCRIPTIONS[page.balance].forEveryoneElse,
       );
       expect(notice).toHaveTextContent(
-        "A project owner or someone with Manage Billing can",
+        "A Project Owner or someone with Manage Billing can",
       );
       expect(notice).not.toHaveTextContent("Check the payment method");
     },

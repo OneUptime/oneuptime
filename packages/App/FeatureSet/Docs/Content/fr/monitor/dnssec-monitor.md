@@ -103,7 +103,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur DNSSEC commence avec deux critères :
 
-- **Chaîne rompue** — **Chaîne DNSSEC valide** est **Faux**. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ DNSSEC chain is broken » est créé. L'incident se résout de lui-même dès que la chaîne est de nouveau valide.
+- **Chaîne rompue** — **Chaîne DNSSEC valide** est **Faux**. Le moniteur est marqué **Hors ligne** et un incident appelé « La chaîne DNSSEC de _nom du moniteur_ est rompue » est créé. L'incident se résout de lui-même dès que la chaîne est de nouveau valide.
 - **Chaîne valide** — le moniteur est marqué **Opérationnel**.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. Quand aucun ne correspond, le moniteur affiche son état par défaut : **Opérationnel**, sauf si vous en choisissez un autre sous **Plus de champs**, sous les critères.

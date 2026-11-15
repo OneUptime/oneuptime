@@ -122,7 +122,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny port-monitor starter med to kriterier:
 
-- **Frakoblet** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
+- **Frakoblet** — porten godtar ikke en tilkobling etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når porten godtar tilkoblinger igjen.
 - **Oppe** — porten godtar en tilkobling. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.

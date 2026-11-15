@@ -120,7 +120,7 @@ Each time a member of the project signs in to OneUptime, the audit log records i
 
 An entry's **Resource** is the session, named by the device it signed in from, such as `Chrome 130 on macOS`. Its **Actor** is the person whose session it is, so filtering by **User Email** finds every sign-in and session of theirs. Its details say how they signed in and with which second factor, the IP address and the place, and for a session that ended, when it signed in, when it was last used and when it timed out. A project's own SSO provider is named only in that project's audit log.
 
-Sign-ins and sessions are recorded whether or not the project stores system events. A session length or 30 days without use is recorded within minutes of running out. An idle timeout in the browser is recorded within 35 minutes of running out, whether or not the person comes back. In the mobile app, it is recorded the next time the app reaches OneUptime.
+Sign-ins and sessions are recorded whether or not the project stores system events. A session length or 30 days without use is recorded within minutes of running out. An idle timeout in the browser, or in a version of the mobile app newer than 1.6.0, is recorded within 35 minutes of running out, whether or not the person comes back. In version 1.6.0 and earlier of the mobile app, it is recorded the next time the app reaches OneUptime.
 
 ## How long entries are kept
 

@@ -1,6 +1,6 @@
 # Vaktplaner
 
-En vaktplan bestemmer hvem som har vakt til enhver tid. Folk bytter på i den: hver har vakt en stund, og så tar den neste over. Legg til en vaktplan i eskaleringsreglene til en vaktretningslinje, så varsler retningslinjen den som har vakt i den når det nivået kjører.
+En vaktplan bestemmer hvem som har vakt til enhver tid. Folk bytter på i den: hver har vakt en stund, og så tar den neste over. Legg til en vaktplan i eskaleringsreglene til en vaktpolicy, så varsler policyen den som har vakt i den når det nivået kjører.
 
 > [!NOTE]
 > På OneUptime Cloud hører vaktplaner til planen **Growth** og høyere. En vaktplan som et prosjekt fortsatt har, fortsetter å varsle personene i den, gjennom eskaleringsreglene som nevner den, etter at en prøveperiode for Growth er over eller planen nedgraderes. Under **Growth** viser siden **Vaktplaner** derfor merknaden om planen med vaktplanene som fortsatt er satt opp under, der du kan slette dem. Å opprette eller endre en vaktplan krever **Growth**.
@@ -92,12 +92,12 @@ Mens de er borte:
 
 - Hver av vaktene deres går til neste person i laget som ikke er borte, i alle vaktplaner de er med i. Ingen andres vakter flytter seg, og deres egne er deres igjen så snart de er tilbake.
 - Hvis alle i et lag er borte, har laget ingen på vakt, og lagene under tar over. Laget viser **Alle i dette laget er borte akkurat nå**.
-- Eskaleringsregler som varsler dem direkte eller gjennom et team, hopper over dem. Kjøringen av retningslinjen viser at de er borte, og til når.
+- Eskaleringsregler som varsler dem direkte eller gjennom et team, hopper over dem. Kjøringen av policyen viser at de er borte, og til når.
 - Raden deres i laget viser når de er tilbake, og den endelige vaktplanen og **Tidslinje for vaktplaner** viser hvem som har hver av vaktene deres.
 
-Velg i stedet noen under **Hvem dekker?**, så får den personen alle varslene deres fra alle vaktplaner og alle retningslinjer, i stedet for at rotasjonen tar vaktene deres.
+Velg i stedet noen under **Hvem dekker?**, så får den personen alle varslene deres fra alle vaktplaner og alle policyer, i stedet for at rotasjonen tar vaktene deres.
 
-Fravær som legges til på denne måten, gjelder for alle vaktretningslinjer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne retningslinjer eller til noen etiketter, legges det i stedet på retningslinjene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per retningslinje, som står på hver retningslinjes egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakt** > **Avansert** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én retningslinje legger du til overstyringen på den retningslinjens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
+Fravær som legges til på denne måten, gjelder for alle vaktpolicyer, så det krever tillatelsen for overstyringer over hele prosjektet. Er teamets rolle begrenset til egne policyer eller til noen etiketter, legges det i stedet på policyene i denne vaktplanen du kan legge til overstyringer på, med én overstyring per policy, som står på hver policys egen side **Brukeroverstyringer**; er det flere, krysser du dem av under **Vaktpolicyer**. **Hopp over til…** er bare låst og sier hvorfor der du ikke kan på noen av dem. Det står under **Vakt** > **Avansert** > **Brukeroverstyringer**, der du kan slette det for å få dem tilbake tidligere. For å hoppe over noen i bare én policy legger du til overstyringen på den policyens side **Brukeroverstyringer** og lar **Hvem dekker?** være som det er. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 
 Via API-et hopper en brukeroverstyring (`/api/on-call-duty-policy-user-override`) som opprettes uten `routeAlertsToUserId`, over personen i `overrideUserId` fra `startsAt` til `endsAt`.
 
@@ -129,7 +129,7 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
 ## Neste steg
 
 :::cards
-- [Eskaleringsregler](/docs/on-call/escalation-rules): La et nivå i en vaktretningslinje varsle denne vaktplanen.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): La et nivå i en vaktpolicy varsle denne vaktplanen.
 - [Tidslinje for vaktplaner](/docs/on-call/schedule-timeline): Se alle vaktplanene side om side, med hull i dekningen.
 - [Kalenderfeeder](/docs/on-call/calendar-feeds): Få vakter inn i Google Kalender, Outlook eller Apple Kalender.
 - [Slik når man meg](/docs/notifications/on-call-rules): Bestem hvordan et varsel når deg mens du har vakt.

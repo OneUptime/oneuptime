@@ -249,22 +249,22 @@ interface Caller {
 
 const CALLERS: Array<Caller> = [
   {
-    name: "a project owner",
+    name: "a Project Owner",
     rows: [allow(Permission.ProjectOwner)],
     grantable: PROJECT_TEAMS,
   },
   {
-    name: "a project admin",
+    name: "a Project Admin",
     rows: [allow(Permission.ProjectAdmin)],
     grantable: [ADMIN, READERS],
   },
   {
-    name: "a project admin who is also in Members",
+    name: "a Project Admin who is also in Members",
     rows: [allow(Permission.ProjectAdmin), allow(Permission.ProjectMember)],
     grantable: [ADMIN, MEMBERS, FRONTEND, READERS],
   },
   {
-    name: "a project owner blocked from Project Owner, who is also an admin",
+    name: "a Project Owner blocked from Project Owner, who is also an admin",
     rows: [
       allow(Permission.ProjectOwner),
       block(Permission.ProjectOwner),
@@ -822,7 +822,7 @@ describe("the note under Teams", () => {
 
     expect(note).toHaveAttribute("role", "note");
     expect(note).toHaveTextContent(
-      "You can't add people to Owners through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+      "You can't add people to Owners through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save this provider.",
     );
   });
 
@@ -901,7 +901,7 @@ describe("the note under Teams", () => {
   });
 
   test.each([
-    ["a project owner", false],
+    ["a Project Owner", false],
     ["a master admin", true],
   ])(
     "%s is never warned, and nothing is read for them",
@@ -1078,7 +1078,7 @@ describe("in the SAML provider form", () => {
     });
   }
 
-  test("a project admin who starts a provider on Owners is told on Sign-in", async () => {
+  test("a Project Admin who starts a provider on Owners is told on Sign-in", async () => {
     signIn(CALLERS[1]!);
 
     await renderForm({
@@ -1203,7 +1203,7 @@ describe("in the SAML provider form", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("a project owner sees no note", async () => {
+  test("a Project Owner sees no note", async () => {
     signIn(CALLERS[0]!);
 
     await renderForm({
@@ -1256,9 +1256,9 @@ describe("the note's words in every language", () => {
     "../../../../App/FeatureSet/Dashboard/src/Locales",
   );
   const OTHER: string =
-    "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.";
+    "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save this provider.";
   const ONE: string =
-    "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.";
+    "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a Project Owner to save this provider.";
   const SWITCH_OFF: string =
     "Switching it off, with nothing else changed, is still allowed.";
 

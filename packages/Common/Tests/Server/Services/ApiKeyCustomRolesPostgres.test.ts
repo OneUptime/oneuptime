@@ -1263,7 +1263,7 @@ describePostgres(
     });
 
     describe("a key's copies are the role's", () => {
-      test("a copy is not changed or removed on its own, even by a project admin; the role names itself in the refusal", async () => {
+      test("a copy is not changed or removed on its own, even by a Project Admin; the role names itself in the refusal", async () => {
         const role: ObjectID = await createRole("Deploy Reporter");
         await addToRole(role, Permission.IncidentMember);
         await giveRoleToKey(roleKey, role);

@@ -54,7 +54,7 @@ function propsWith(
 }
 
 describe("shouldBypassRecordPrivacy", () => {
-  test("is decided by the project owner and admin roles", () => {
+  test("is decided by the Project Owner and admin roles", () => {
     expect(PRIVATE_RECORD_BYPASS_PERMISSIONS).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -100,8 +100,8 @@ describe("shouldBypassRecordPrivacy", () => {
   });
 
   test.each([
-    ["a project owner", [row(Permission.ProjectOwner)], true],
-    ["a project admin", [row(Permission.ProjectAdmin)], true],
+    ["a Project Owner", [row(Permission.ProjectOwner)], true],
+    ["a Project Admin", [row(Permission.ProjectAdmin)], true],
     ["a project member", [row(Permission.ProjectMember)], false],
     [
       "someone whose only owner row is a block with no labels",

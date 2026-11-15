@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment";
 
@@ -37,7 +38,7 @@ import { startEachTestOnSelfHostedEgressPolicy } from "./EgressPolicyEnvironment
 const ALLOW_ENV: string = "ALLOW_PRIVATE_NETWORK_WEBHOOKS";
 const ALLOWLIST_ENV: string = "PRIVATE_NETWORK_WEBHOOK_ALLOWLIST";
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

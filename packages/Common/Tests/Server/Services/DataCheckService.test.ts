@@ -231,8 +231,8 @@ describe("changing a check, as each person the table lets edit one", () => {
 
   // Who may edit a check: the model's update list.
   const EDITORS: Array<[string, Array<Permission>]> = [
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     ["a project member", [Permission.ProjectMember]],
     ["a telemetry admin", [Permission.TelemetryAdmin]],
     ["a telemetry member", [Permission.TelemetryMember]],

@@ -190,7 +190,7 @@ describe("CodeFixReadiness.getLlmProviderCheck", () => {
      */
     expect(check.detail).toBe(CODE_FIX_AI_CREDITS_USED_UP_DETAIL);
     expect(check.detail).toContain(
-      "A project owner or someone with Manage Billing can add AI credits",
+      "A Project Owner or someone with Manage Billing can add AI credits",
     );
     expect(check.detail).not.toMatch(/\brecharge\b/i);
   });

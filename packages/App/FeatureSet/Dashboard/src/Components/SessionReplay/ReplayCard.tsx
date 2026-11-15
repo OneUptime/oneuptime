@@ -100,7 +100,7 @@ export interface ReplayCardFailure {
  * it).
  */
 export const REPLAY_CARD_PERMISSION_COPY: string = translationKey(
-  'A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the "{{permission}}" permission.',
+  'A recording of this error may exist, but your role cannot list session replays. Ask a Project Admin for the "{{permission}}" permission.',
 );
 
 export const REPLAY_CARD_PLAN_COPY: string = translationKey(

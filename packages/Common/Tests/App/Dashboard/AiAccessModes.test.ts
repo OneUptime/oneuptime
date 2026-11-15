@@ -201,7 +201,7 @@ describe("the hint under Fixes while fixes are Off", () => {
     const hint: string = getAiFixesOffHint(false);
 
     expect(hint).toBe(
-      "Want AI to propose fixes? Ask a project owner or admin to choose Ask for approval.",
+      "Want AI to propose fixes? Ask a Project Owner or Project Admin to choose Ask for approval.",
     );
     expect(hint).not.toContain("Click Change");
   });
@@ -627,7 +627,7 @@ describe("in the reader's language", () => {
       "‹Want AI to propose fixes? Click Change and choose Ask for approval.›",
     );
     expect(getAiFixesOffHint(false)).toBe(
-      "‹Want AI to propose fixes? Ask a project owner or admin to choose Ask for approval.›",
+      "‹Want AI to propose fixes? Ask a Project Owner or Project Admin to choose Ask for approval.›",
     );
     expect(getAiFixesFieldDescription("Docker host")).toBe(
       "‹What AI does when it finds a fix for a problem on this ‹Docker host›.›",

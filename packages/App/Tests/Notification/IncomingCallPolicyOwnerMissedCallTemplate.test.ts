@@ -383,7 +383,7 @@ describe("the missed call email", () => {
     );
   });
 
-  test("tells a project owner why they got it instead", () => {
+  test("tells a Project Owner why they got it instead", () => {
     expect(visibleText(render(build(makeCall(), false)))).toContain(
       "You are receiving this email because no owners have been added to this resource and you are the owner of the project.",
     );

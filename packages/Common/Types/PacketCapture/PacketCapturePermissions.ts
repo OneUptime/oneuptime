@@ -36,10 +36,10 @@ export const PACKET_CAPTURE_DOWNLOAD_PERMISSIONS: ReadonlyArray<Permission> = [
 ];
 
 export const PACKET_CAPTURE_DOWNLOAD_REFUSED_MESSAGE: string =
-  "You do not have permission to download packet captures. Ask a project admin for the Download Packet Capture permission.";
+  "You do not have permission to download packet captures. Ask a Project Admin for the Download Packet Capture permission.";
 
 export const PACKET_CAPTURE_STOP_REFUSED_MESSAGE: string =
-  "You do not have permission to stop packet captures. Ask a project admin for the Start Packet Capture permission.";
+  "You do not have permission to stop packet captures. Ask a Project Admin for the Start Packet Capture permission.";
 
 export const PACKET_CAPTURE_NOT_FOUND_MESSAGE: string =
   "This packet capture was not found.";

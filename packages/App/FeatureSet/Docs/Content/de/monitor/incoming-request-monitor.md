@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Bei jeder Anfrage ein Geheimnis verlangen
 
-Wer die URL eines Monitors hat, kann ihm Anfragen senden. Ein Projektinhaber oder -administrator kann jeden Monitor für eingehende Anfragen im Projekt zusätzlich eines der eigenen Geheimnisse des Projekts verlangen lassen, egal wer den Monitor eingerichtet hat: Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Eine Anfrage ohne Geheimnis wird mit `401` und dem Grund abgelehnt, bevor sie als Heartbeat zählt, als letzte Anfrage des Monitors gespeichert wird oder Kriterien erreicht. Eine Anfrage mit Geheimnis geht wie bisher an die eigenen Kriterien des Monitors.
+Wer die URL eines Monitors hat, kann ihm Anfragen senden. Ein Projektinhaber oder Projektadministrator kann jeden Monitor für eingehende Anfragen im Projekt zusätzlich eines der eigenen Geheimnisse des Projekts verlangen lassen, egal wer den Monitor eingerichtet hat: Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Eine Anfrage ohne Geheimnis wird mit `401` und dem Grund abgelehnt, bevor sie als Heartbeat zählt, als letzte Anfrage des Monitors gespeichert wird oder Kriterien erreicht. Eine Anfrage mit Geheimnis geht wie bisher an die eigenen Kriterien des Monitors.
 
 :::steps
 ### Ein Geheimnis erstellen

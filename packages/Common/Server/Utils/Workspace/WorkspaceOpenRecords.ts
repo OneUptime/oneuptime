@@ -256,7 +256,7 @@ export default class WorkspaceOpenRecords {
   public static getRefusalAnswer(
     kind: WorkspaceOpenRecordKind,
   ): WorkspaceAnswer {
-    const message: string = `You do not have permission to see the ${WORDS[kind].noun} in this project. Ask a project admin for access to them.`;
+    const message: string = `You do not have permission to see the ${WORDS[kind].noun} in this project. Ask a Project Admin for access to them.`;
 
     return {
       markdown: mdText`${message}`.toString(),

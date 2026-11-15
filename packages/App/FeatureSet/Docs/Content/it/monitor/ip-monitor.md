@@ -98,7 +98,7 @@ Con due o più filtri, **Condizione di corrispondenza** decide se devono corrisp
 
 Un nuovo monitor IP parte con due criteri:
 
-- **Offline** — l'indirizzo non risponde a nessuna delle richieste di eco, o non è affatto raggiungibile, dopo tutti i nuovi tentativi. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_monitor name_ is offline». L'incidente si risolve da solo quando l'indirizzo risponde di nuovo.
+- **Offline** — l'indirizzo non risponde a nessuna delle richieste di eco, o non è affatto raggiungibile, dopo tutti i nuovi tentativi. Il monitor viene segnato **Offline** e viene creato un incidente chiamato «_nome del monitor_ è offline». L'incidente si risolve da solo quando l'indirizzo risponde di nuovo.
 - **Online** — l'indirizzo risponde. Il monitor viene segnato **Operativo**.
 
 I criteri vengono controllati dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quando nessuno corrisponde, il monitor mostra il suo stato predefinito: **Operativo**, a meno che non ne scegliate un altro sotto **Altri campi**, sotto i criteri.

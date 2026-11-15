@@ -143,7 +143,7 @@ describe("the retired wording", () => {
 describe("a private record reads the same where it is asked and shown", () => {
   test("Private Incident: the Edit Settings switch, its detail and Declare Incident", () => {
     const sentence: string =
-      "Only the incident's owners, project admins and project owners can see it. It never shows on status pages and takes no public notes.";
+      "Only the incident's owners, Project Admins and Project Owners can see it. It never shows on status pages and takes no public notes.";
 
     // The switch on Edit Settings, and the detail it saves into.
     expect(countOf(read("Pages/Incidents/View/Settings.tsx"), sentence)).toBe(
@@ -154,7 +154,7 @@ describe("a private record reads the same where it is asked and shown", () => {
 
   test("Private Alert: Create Alert and the alert's Edit", () => {
     const sentence: string =
-      "Only the alert's owners, project admins and project owners can see it.";
+      "Only the alert's owners, Project Admins and Project Owners can see it.";
 
     expect(read("Pages/Alerts/Create.tsx")).toContain(sentence);
     expect(read("Pages/Alerts/View/Index.tsx")).toContain(sentence);

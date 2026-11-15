@@ -1481,7 +1481,7 @@ describe("Product analytics API", () => {
       );
       // The grant it lacks, as the roles screen titles it (#6635).
       expect((result.thrownToNext as Error).message).toContain(
-        `Ask a project admin for the "${PermissionHelper.getTitle(
+        `Ask a Project Admin for the "${PermissionHelper.getTitle(
           Permission.ReadRumSessionReplayPayload,
         )}" permission.`,
       );

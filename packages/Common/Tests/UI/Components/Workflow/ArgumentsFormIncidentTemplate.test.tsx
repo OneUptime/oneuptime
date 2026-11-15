@@ -75,6 +75,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 const CHECKOUT_TEMPLATE_ID: string = "7c000000-0000-4000-8000-0000000000a1";
 
@@ -162,7 +163,7 @@ describe("Create One Incident's Incident Template", () => {
     expect(screen.getByText("Database failover")).toBeInTheDocument();
 
     const listed: Array<string> = (
-      ModelAPI.getList as unknown as jest.Mock<
+      ModelAPI.getList as unknown as Mock<
         (args: { modelType: new () => { tableName?: string } }) => unknown
       >
     ).mock.calls.map((call: Array<unknown>): string => {

@@ -920,6 +920,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                   { one: "All {{count}} tab", other: "All {{count}} tabs" },
                   tabs.length,
                 )}
+                isLabelTranslated={true}
                 trailingIcon={IconProp.ChevronDown}
                 variant="ghost"
                 tone="accent"
