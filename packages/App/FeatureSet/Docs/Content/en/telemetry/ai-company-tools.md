@@ -139,7 +139,7 @@ For Copilot, grant admin consent for the app's Graph permissions, and `GroupMemb
 :::
 
 :::details Someone cannot see the conversations
-**Who can read conversations** is **Project Owners and Project Admins**. An owner or admin can change it with **Edit** in the connection's row.
+**Who can read conversations** is **Project Owners and Project Admins**. A Project Owner or Project Admin can change it with **Edit** in the connection's row.
 :::
 
 :::details The conversations show who asked, but no words

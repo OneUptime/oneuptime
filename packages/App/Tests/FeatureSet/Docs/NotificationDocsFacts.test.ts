@@ -922,7 +922,7 @@ describe("when a page finds no rule", () => {
       "const NOTIFICATION_WINDOW_IN_MS: number = 24 * 60 * 60 * 1000;",
     );
     expect(english(REACHING_YOU)).toContain(
-      "You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none.",
+      "You get an email saying so, and so do the on-call policy's owners, or the Project Owners when the policy has none.",
     );
   });
 
@@ -2235,7 +2235,7 @@ describe("notification settings", () => {
       "AlertOwnerTeamService.findBy(",
     );
     expect(settings).toContain(
-      "When a record has no owners, it goes to the project's owners instead.",
+      "When a record has no owners, it goes to the Project Owners instead.",
     );
   });
 
