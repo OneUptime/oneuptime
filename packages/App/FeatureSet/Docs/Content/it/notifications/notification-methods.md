@@ -36,8 +36,8 @@ Ogni scheda dei **Metodi di notifica** contiene uno o più riquadri, uno per tip
 | **Numeri di telefono per le notifiche tramite chiamata** | **Contatto diretto** | Un numero di telefono | Un codice letto in una chiamata, o nessuno per un numero verificato per gli SMS |
 | **Numeri WhatsApp per le notifiche** | **Contatto diretto** | Un numero WhatsApp | Un codice su WhatsApp |
 | **Account Telegram per le notifiche** | **Contatto diretto** | Il vostro account Telegram | Un messaggio al bot di OneUptime |
-| **Slack Account for Notifications** | **App dell'area di lavoro** | Il vostro account Slack | Collegare il vostro account all'area di lavoro del progetto |
-| **Microsoft Teams Account for Notifications** | **App dell'area di lavoro** | Il vostro account Microsoft Teams | Collegare il vostro account all'area di lavoro del progetto |
+| **Account Slack per le notifiche** | **App dell'area di lavoro** | Il vostro account Slack | Collegare il vostro account all'area di lavoro del progetto |
+| **Account Microsoft Teams per le notifiche** | **App dell'area di lavoro** | Il vostro account Microsoft Teams | Collegare il vostro account all'area di lavoro del progetto |
 | **Account Mattermost per le notifiche** | **App dell'area di lavoro** | Il vostro account Mattermost | Collegare il vostro account all'area di lavoro del progetto |
 | **Dispositivi per notifiche push** | **Notifiche push** | Un telefono con l'app OneUptime On-Call, o un browser | Registrare il dispositivo |
 | **Webhook per le notifiche** | **Webhook** | Un endpoint HTTPS vostro | Nessuno |
@@ -67,7 +67,7 @@ La riga ora risulta **Verificato**. Avete chiuso la finestra troppo presto? Fate
 :::
 
 - Un codice vale 15 minuti. Cinque tentativi sbagliati lo annullano, e ne serve uno nuovo.
-- **Send a new code**, oppure **Call me with a new code** per un numero per chiamate, si trova nella finestra. Potete chiederne uno un minuto dopo il precedente.
+- **Invia un nuovo codice**, oppure **Chiamami con un nuovo codice** per un numero per chiamate, si trova nella finestra. Potete chiederne uno un minuto dopo il precedente.
 - Un numero verificato per gli SMS è verificato anche per le chiamate. Aggiungerlo in **Numeri di telefono per le notifiche tramite chiamata** non richiede un codice, e verificare un numero SMS verifica anche il numero per chiamate che avete aggiunto per esso.
 - La vostra e-mail di accesso è già lì, verificata, dal giorno in cui siete entrati nel progetto.
 
@@ -80,11 +80,11 @@ In **Account Telegram per le notifiche**, fate clic su **Aggiungi: Account Teleg
 
 ### Scrivete al bot
 
-Fate clic su **Verifica** nella nuova riga. La finestra **Verifica account Telegram** vi offre tre modi per raggiungere il bot di OneUptime: scansionare il codice QR con il telefono, fare clic su **Open in Telegram**, oppure cercare il bot in Telegram e inviargli il comando `/start` mostrato nella finestra.
+Fate clic su **Verifica** nella nuova riga. La finestra **Verifica account Telegram** vi offre tre modi per raggiungere il bot di OneUptime: scansionare il codice QR con il telefono, fare clic su **Apri in Telegram**, oppure cercare il bot in Telegram e inviargli il comando `/start` mostrato nella finestra.
 
 ### Confermate
 
-Tornati in OneUptime, fate clic su **I've sent the message — check**. Appena il bot riceve il vostro messaggio, l'account è verificato.
+Tornati in OneUptime, fate clic su **Ho inviato il messaggio: verifica**. Appena il bot riceve il vostro messaggio, l'account è verificato.
 :::
 
 **Ruota il codice** crea un nuovo codice per un account non ancora verificato. Il codice QR e il link aperti prima smettono di funzionare. Su un OneUptime self-hosted, l'amministratore del server collega un bot Telegram prima che chiunque possa collegare un account.
@@ -92,8 +92,8 @@ Tornati in OneUptime, fate clic su **I've sent the message — check**. Appena i
 ## Slack, Microsoft Teams e Mattermost
 
 1. Collegate il vostro account all'area di lavoro del progetto: **Impostazioni utente → Area di lavoro → Slack**, **Microsoft Teams** oppure **Mattermost**. Vedete [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) e [Mattermost](/docs/workspace-connections/mattermost).
-2. Nella scheda **App dell'area di lavoro**, fate clic su **Add Slack Account**, **Add Microsoft Teams Account** o **Aggiungi account Mattermost**. L'account risulta verificato appena viene aggiunto.
-3. Fate clic su **Send Test Message** nella sua riga. Le chiamate arrivano come messaggi diretti dall'app di OneUptime o, in Mattermost, dal bot del progetto.
+2. Nella scheda **App dell'area di lavoro**, fate clic su **Aggiungi account Slack**, **Aggiungi account Microsoft Teams** o **Aggiungi account Mattermost**. L'account risulta verificato appena viene aggiunto.
+3. Fate clic su **Invia messaggio di prova** nella sua riga. Le chiamate arrivano come messaggi diretti dall'app di OneUptime o, in Mattermost, dal bot del progetto.
 
 ## Notifiche push
 
@@ -186,11 +186,11 @@ Quel canale è disattivato in questo progetto. Il riquadro dice chi può attivar
 :::
 
 :::details Il codice non è mai arrivato
-Le e-mail possono richiedere qualche minuto, e a volte finiscono nello spam; gli SMS possono richiedere un minuto. Aspettate un minuto, poi fate clic su **Send a new code** nella finestra. **Impostazioni del progetto → Notifiche → Registri di notifica** mostra cosa è successo al messaggio.
+Le e-mail possono richiedere qualche minuto, e a volte finiscono nello spam; gli SMS possono richiedere un minuto. Aspettate un minuto, poi fate clic su **Invia un nuovo codice** nella finestra. **Impostazioni del progetto → Notifiche → Registri di notifica** mostra cosa è successo al messaggio.
 :::
 
 :::details L'aggiunta del mio account Slack non riesce
-Collegate prima il vostro account in **Impostazioni utente → Area di lavoro → Slack**, poi fate di nuovo clic su **Add Slack Account**. La finestra di errore ha un pulsante che vi porta lì.
+Collegate prima il vostro account in **Impostazioni utente → Area di lavoro → Slack**, poi fate di nuovo clic su **Aggiungi account Slack**. La finestra di errore ha un pulsante che vi porta lì.
 :::
 
 :::details Il mio telefono non riceve notifiche push

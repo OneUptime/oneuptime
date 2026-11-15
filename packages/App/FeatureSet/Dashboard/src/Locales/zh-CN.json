@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "已将 {{count}} 个属性复制为 {{format}} JSON",
   "Copied {{count}} attributes as {{format}} JSON_one": "Copied {{count}} attribute as {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "复制对 {{name}} 的引用",
   "Copy {{count}} attributes as {{format}} JSON": "将 {{count}} 个属性复制为 {{format}} JSON",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copy {{count}} attribute as {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52373,7 +52373,7 @@
   "Execution Completed - No One Notified": "执行完成 - 未通知任何人",
   "Execution Exceeded Current Plan": "执行超出当前套餐",
   "Foreign Table": "外部表",
-  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "使用指向你的 OneUptime 实例的 OTLP 导出器初始化 OpenTelemetry。日志是你的日志记录器写出的内容，而不是 print 或 console.log 输出的行。",
   "Materialized View": "物化视图",
   "Notification Sent": "已发送通知",
   "Nullability changed": "已更改可空性",
@@ -52391,7 +52391,7 @@
   "Successfully Acknowledged": "已成功确认",
   "Table dropped": "已删除表",
   "Table restored": "已恢复表",
-  "Telemetry key": "Telemetry key",
+  "Telemetry key": "遥测密钥",
   "That counts as down, so an incident opens.": "这会被视为宕机，因此会创建事件。",
   "That counts as down, so its status changes to Offline.": "这会被视为宕机，因此其状态会变为离线。",
   "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "页面在此处暂停了录制。在页面恢复录制之前，无论访客在此期间做什么，都不会录制任何内容。",
@@ -52424,7 +52424,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "连接已中止。请求被中止，可能是因为超时或连接意外关闭。",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "连接被拒绝。服务器主动拒绝了连接。这通常表示指定端口上没有服务在监听，或有防火墙阻止了连接。",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "连接被重置。服务器或网络设备强制关闭了连接。服务器重启、负载均衡器超时或网络问题都可能导致这种情况。",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "创建通知暂缓时间",
   "DNS resolution failed before a TCP connection could be attempted.": "在尝试 TCP 连接之前，DNS 解析就已失败。",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS 解析失败。无法将主机名解析为 IP 地址。请确认主机名正确，且 DNS 工作正常。",
   "Databases and APIs your services call": "您的服务调用的数据库和 API",
@@ -53489,5 +53489,6 @@
   "Expected": "符合预期",
   "Useful": "有用",
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
-  "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin."
+  "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
+  "The whole {{name}}": "整个 {{name}}"
 }

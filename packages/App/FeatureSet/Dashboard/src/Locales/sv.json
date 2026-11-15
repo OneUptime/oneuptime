@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} attribut kopierade som {{format}} JSON",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} attribut kopierat som {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Kopiera referensen till {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Kopiera {{count}} attribut som {{format}} JSON",
   "Copy {{count}} attributes as {{format}} JSON_one": "Kopiera {{count}} attribut som {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52373,7 +52373,7 @@
   "Execution Completed - No One Notified": "Exekvering slutförd - ingen aviserad",
   "Execution Exceeded Current Plan": "Exekvering överskred aktuell plan",
   "Foreign Table": "Extern tabell",
-  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.": "Initiera OpenTelemetry med OTLP-exportören som pekar på din OneUptime-instans. Loggar är det som din logger skriver, inte print- eller console.log-rader.",
   "Materialized View": "Materialiserad vy",
   "Notification Sent": "Avisering skickad",
   "Nullability changed": "NULL-tillåtelse ändrad",
@@ -52391,7 +52391,7 @@
   "Successfully Acknowledged": "Bekräftad",
   "Table dropped": "Tabell borttagen",
   "Table restored": "Tabell återställd",
-  "Telemetry key": "Telemetry key",
+  "Telemetry key": "Nyckel för telemetri",
   "That counts as down, so an incident opens.": "Det räknas som nere, så en incident öppnas.",
   "That counts as down, so its status changes to Offline.": "Det räknas som nere, så dess status ändras till Offline.",
   "The page paused recording here. Nothing is recorded until the page resumes it, whatever the visitor does meanwhile.": "Sidan pausade inspelningen här. Inget spelas in förrän sidan återupptar den, vad besökaren än gör under tiden.",
@@ -52424,7 +52424,7 @@
   "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.": "Anslutningen avbröts. Begäran avbröts, kanske på grund av en timeout eller för att anslutningen stängdes oväntat.",
   "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.": "Anslutningen nekades. Servern nekade aktivt anslutningen. Det betyder oftast att ingen tjänst lyssnar på den angivna porten, eller att en brandvägg blockerar anslutningen.",
   "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.": "Anslutningen återställdes. Anslutningen stängdes med tvång av servern eller en nätverksenhet. Det kan hända vid omstarter av servern, timeouts i en lastbalanserare eller nätverksproblem.",
-  "Created Notification Held At": "Created Notification Held At",
+  "Created Notification Held At": "Skapandeavisering kvarhållen",
   "DNS resolution failed before a TCP connection could be attempted.": "DNS-uppslaget misslyckades innan en TCP-anslutning kunde försökas.",
   "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.": "DNS-uppslaget misslyckades. Värdnamnet kunde inte slås upp till en IP-adress. Kontrollera att värdnamnet är rätt och att DNS fungerar som det ska.",
   "Databases and APIs your services call": "Databaser och API:er som dina tjänster anropar",
@@ -53489,5 +53489,6 @@
   "Expected": "Förväntat",
   "Useful": "Användbart",
   "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.": "One series per instance, whose value is a numeric code for its status: ACTIVE is 0, BUILD is 1, ERROR is 4. Read the word from the `status` label, and filter on it: the code is not a count and not a severity. The agent's exporter leaves `address_ipv4` and `address_ipv6` empty on a real cloud, and a probe fills them in from the addresses Nova lists. `hypervisor_hostname`, `host_id` and `availability_zone` are empty until the instance is scheduled. `image_id` names the image it booted from: only a probe sends it, and not for an instance booted from a volume.",
-  "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin."
+  "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.": "One series per volume, whose value is its size, with its status word in the status label. On a cloud a probe collects, the `pool` label says which pool holds it, for a credential Cinder treats as an admin.",
+  "The whole {{name}}": "{{name}} i sin helhet"
 }
