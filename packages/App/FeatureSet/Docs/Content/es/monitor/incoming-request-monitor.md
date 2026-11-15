@@ -202,6 +202,10 @@ Vaya a **Monitores → Ajustes → Secretos de solicitud entrante** y cree un se
 
 Envíe el secreto en la cabecera `X-OneUptime-Secret`, o como token Bearer en la cabecera `Authorization`, según lo que su remitente pueda establecer.
 
+### Encuentre los remitentes que faltan
+
+En cuanto el proyecto tiene un secreto, OneUptime comprueba cada solicitud, todavía sin rechazar ninguna. **Solicitudes sin secreto**, en la misma página, enumera cada monitor de solicitudes entrantes que recibió una solicitud sin un secreto válido en las últimas 24 horas, y por qué: no se envió ninguno, o se envió uno incorrecto. Corrija esos remitentes. Un monitor cuyos remitentes estén corregidos muestra en **Última con secreto** una hora posterior a la de **Última sin secreto**, y sale de la lista en menos de 24 horas.
+
 ### Active el requisito
 
 Active **Exigir un secreto en cada solicitud**. No se puede activar mientras el proyecto no tenga ningún secreto, para que ningún remitente sea rechazado por error.
@@ -429,6 +433,10 @@ El `200` se envía antes de validar la solicitud, así que no demuestra que se h
 
 :::details Mi remitente recibe un 401
 El proyecto exige un secreto en cada solicitud, y la solicitud no envió ninguno, o envió uno que no es del proyecto: la respuesta indica cuál de los dos. Envíe uno de los secretos del proyecto en la cabecera `X-OneUptime-Secret` o como token Bearer, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud). Una solicitud rechazada nunca llega al monitor.
+:::
+
+:::details El monitor dejó de recibir solicitudes desde que se exige un secreto
+Sus remitentes no envían ningún secreto, o envían uno incorrecto, así que cada solicitud que envían se rechaza. Una línea bajo la **URL de latido** del monitor indica cuándo llegó la última solicitud rechazada, y **Solicitudes sin secreto** enumera cada monitor que recibió una en las últimas 24 horas, y por qué. Envíe uno de los secretos del proyecto desde esos remitentes, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud).
 :::
 
 :::details El monitor nunca queda sin conexión cuando cesan los latidos
