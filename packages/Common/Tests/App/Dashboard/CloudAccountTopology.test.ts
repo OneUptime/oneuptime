@@ -618,6 +618,28 @@ describe("the numbers on a resource's card", () => {
         periodSeconds: 60,
       }),
     ).toBe("3.3/s");
+    // Traffic summed over five minutes, drawn per minute; rates per second.
+    expect(
+      formatCloudTopologyFigure({
+        format: "bytesPerPeriod",
+        value: 300 * 1024 * 1024,
+        periodSeconds: 300,
+      }),
+    ).toBe("60.0 MiB/min");
+    expect(
+      formatCloudTopologyFigure({
+        format: "bytesPerSecond",
+        value: 2048,
+        periodSeconds: 60,
+      }),
+    ).toBe("2.0 KiB/s");
+    expect(
+      formatCloudTopologyFigure({
+        format: "bitsPerSecond",
+        value: 8 * 1024 * 1024,
+        periodSeconds: 60,
+      }),
+    ).toBe("1.0 MiB/s");
     // Never a negative share or size.
     expect(
       formatCloudTopologyFigure({

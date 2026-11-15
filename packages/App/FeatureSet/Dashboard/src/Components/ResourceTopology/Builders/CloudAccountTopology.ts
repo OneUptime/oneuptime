@@ -252,6 +252,14 @@ export function formatCloudTopologyFigure(data: {
       )}/min`;
     case "perSecond":
       return `${formatCloudTopologyCount(Math.max(0, value))}/s`;
+    case "bytesPerPeriod":
+      return `${formatTopologyBytes(
+        (Math.max(0, value) * 60) / Math.max(1, data.periodSeconds),
+      )}/min`;
+    case "bytesPerSecond":
+      return `${formatTopologyBytes(Math.max(0, value))}/s`;
+    case "bitsPerSecond":
+      return `${formatTopologyBytes(Math.max(0, value) / 8)}/s`;
     default:
       return formatCloudTopologyCount(value);
   }

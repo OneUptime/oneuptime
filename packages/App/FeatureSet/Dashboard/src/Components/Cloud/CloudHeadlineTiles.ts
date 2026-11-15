@@ -4,23 +4,51 @@ import {
   CloudResourceReading,
   CloudResourceReadings,
   HEADLINE_AVAILABILITY,
+  HEADLINE_CAPACITY,
   HEADLINE_CONNECTIONS,
   HEADLINE_CPU,
+  HEADLINE_DEAD_LETTERED,
+  HEADLINE_DISK_READ,
+  HEADLINE_DISK_WRITE,
   HEADLINE_DURATION,
   HEADLINE_ERRORS,
+  HEADLINE_FAILED_RUNS,
+  HEADLINE_FREE_MEMORY,
   HEADLINE_FREE_STORAGE,
+  HEADLINE_HEALTH,
+  HEADLINE_HEALTHY_BACKENDS,
+  HEADLINE_INSTANCES,
   HEADLINE_INVOCATIONS,
   HEADLINE_LATENCY,
   HEADLINE_MEMORY,
+  HEADLINE_MESSAGES_IN,
+  HEADLINE_MESSAGES_OUT,
   HEADLINE_MESSAGES_WAITING,
+  HEADLINE_NETWORK_IN,
+  HEADLINE_NETWORK_OUT,
   HEADLINE_OLDEST_MESSAGE,
+  HEADLINE_PODS_READY,
+  HEADLINE_PORTS_USED,
+  HEADLINE_QUEUE_LENGTH,
+  HEADLINE_READ_LATENCY,
+  HEADLINE_READ_OPERATIONS,
   HEADLINE_REQUESTS,
+  HEADLINE_REQUEST_UNITS,
   HEADLINE_RESPONSE_TIME,
+  HEADLINE_RESTARTS,
+  HEADLINE_RUNS,
   HEADLINE_SERVER_LOAD,
+  HEADLINE_SESSIONS,
   HEADLINE_STORAGE_USED,
+  HEADLINE_THROTTLED,
+  HEADLINE_THROUGHPUT,
+  HEADLINE_TRAFFIC,
   HEADLINE_UNHEALTHY_HOSTS,
+  HEADLINE_WRITE_LATENCY,
+  HEADLINE_WRITE_OPERATIONS,
   getCloudHeadlineReadings,
   getCloudReadingPeriodSeconds,
+  isCloudHeadlineExpected,
 } from "Common/Types/Cloud/CloudResourceHealth";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -36,11 +64,25 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  * over the metrics. A type with none gets no tiles: its Metrics card below
  * lists everything it reports.
  *
+ * A level every resource of the type reports (its CPU, its free memory,
+ * its connections) that a fresh read did not bring is said plainly - "Not
+ * reported" in its tile - rather than left out, so a page never leaves the
+ * reader wondering where a number went (isCloudHeadlineExpected). A sum
+ * over the period is left out: the cloud writes none for a period it is
+ * zero in.
+ *
  * React-free (the page maps these to its tiles), so App tests can read it.
  */
 
 export const PER_MINUTE: string = translationKey("per minute");
 export const PER_SECOND: string = translationKey("per second");
+export const NOT_REPORTED: string = translationKey("Not reported");
+export const NOT_REPORTED_DESCRIPTION: string = translationKey(
+  "Its cloud sent no value for this in the last read.",
+);
+
+// Two rows of tiles at most: the Metrics card below has every metric.
+export const CLOUD_HEADLINE_TILES_MAX: number = 8;
 
 export interface CloudHeadlineTile {
   key: string;
@@ -48,6 +90,10 @@ export interface CloudHeadlineTile {
   title: string;
   value: string;
   sublabel?: string | undefined;
+  // English words drawn in place of a value the last read did not bring.
+  valueNote?: string | undefined;
+  // The (i) beside the title: what a missing value means (English).
+  description?: string | undefined;
   // For a percent: the tile's bar.
   percent?: number | null | undefined;
   icon: IconProp;
@@ -74,6 +120,33 @@ const ICONS: Record<
   [HEADLINE_UNHEALTHY_HOSTS]: { icon: IconProp.Server, color: "rose" },
   [HEADLINE_AVAILABILITY]: { icon: IconProp.Heart, color: "emerald" },
   [HEADLINE_SERVER_LOAD]: { icon: IconProp.Scale, color: "violet" },
+  [HEADLINE_FREE_MEMORY]: { icon: IconProp.Server, color: "violet" },
+  [HEADLINE_NETWORK_IN]: { icon: IconProp.ArrowDown, color: "sky" },
+  [HEADLINE_NETWORK_OUT]: { icon: IconProp.ArrowUp, color: "sky" },
+  [HEADLINE_DISK_READ]: { icon: IconProp.Disc, color: "amber" },
+  [HEADLINE_DISK_WRITE]: { icon: IconProp.Disc, color: "amber" },
+  [HEADLINE_READ_OPERATIONS]: { icon: IconProp.ArrowDown, color: "amber" },
+  [HEADLINE_WRITE_OPERATIONS]: { icon: IconProp.ArrowUp, color: "amber" },
+  [HEADLINE_READ_LATENCY]: { icon: IconProp.Clock, color: "emerald" },
+  [HEADLINE_WRITE_LATENCY]: { icon: IconProp.Clock, color: "emerald" },
+  [HEADLINE_TRAFFIC]: { icon: IconProp.ArrowUpDown, color: "sky" },
+  [HEADLINE_THROUGHPUT]: { icon: IconProp.ArrowUpDown, color: "sky" },
+  [HEADLINE_HEALTHY_BACKENDS]: { icon: IconProp.CheckCircle, color: "emerald" },
+  [HEADLINE_HEALTH]: { icon: IconProp.Heart, color: "emerald" },
+  [HEADLINE_MESSAGES_IN]: { icon: IconProp.InboxArrowDown, color: "sky" },
+  [HEADLINE_MESSAGES_OUT]: { icon: IconProp.PaperAirplane, color: "sky" },
+  [HEADLINE_DEAD_LETTERED]: { icon: IconProp.Alert, color: "rose" },
+  [HEADLINE_QUEUE_LENGTH]: { icon: IconProp.InboxStack, color: "amber" },
+  [HEADLINE_PODS_READY]: { icon: IconProp.Cube, color: "emerald" },
+  [HEADLINE_INSTANCES]: { icon: IconProp.SquareStack, color: "blue" },
+  [HEADLINE_RESTARTS]: { icon: IconProp.Refresh, color: "amber" },
+  [HEADLINE_REQUEST_UNITS]: { icon: IconProp.Scale, color: "violet" },
+  [HEADLINE_SESSIONS]: { icon: IconProp.User, color: "sky" },
+  [HEADLINE_CAPACITY]: { icon: IconProp.Scale, color: "violet" },
+  [HEADLINE_RUNS]: { icon: IconProp.Play, color: "blue" },
+  [HEADLINE_FAILED_RUNS]: { icon: IconProp.Alert, color: "rose" },
+  [HEADLINE_THROTTLED]: { icon: IconProp.Stop, color: "amber" },
+  [HEADLINE_PORTS_USED]: { icon: IconProp.Signal, color: "violet" },
 };
 
 const BYTE_UNITS: ReadonlyArray<string> = [
@@ -189,6 +262,24 @@ function formatValue(data: {
         value: formatCloudAmount(Math.max(0, value), data.translator),
         sublabel: PER_SECOND,
       };
+    case "bytesPerPeriod":
+      return {
+        value: formatCloudBytes(
+          (Math.max(0, value) * 60) / Math.max(1, data.periodSeconds),
+          data.translator,
+        ),
+        sublabel: PER_MINUTE,
+      };
+    case "bytesPerSecond":
+      return {
+        value: formatCloudBytes(Math.max(0, value), data.translator),
+        sublabel: PER_SECOND,
+      };
+    case "bitsPerSecond":
+      return {
+        value: formatCloudBytes(Math.max(0, value) / 8, data.translator),
+        sublabel: PER_SECOND,
+      };
     default:
       return { value: formatCloudAmount(value, data.translator) };
   }
@@ -196,8 +287,10 @@ function formatValue(data: {
 
 /*
  * The tiles of a resource of this type, in the catalog's order: one per
- * headline reading the last read kept. None while its readings are stale -
- * a number from hours ago would read as the resource's now.
+ * headline reading the last read kept, and a "Not reported" one for each
+ * level every resource of its type reports that the read did not bring -
+ * two rows at most. None while its readings are stale: a number from hours
+ * ago would read as the resource's now.
  */
 export function getCloudHeadlineTiles(data: {
   provider: string;
@@ -213,15 +306,30 @@ export function getCloudHeadlineTiles(data: {
   const tiles: Array<CloudHeadlineTile> = [];
 
   for (const headline of getCloudHeadlineReadings(data.provider, data.type)) {
-    const reading: CloudResourceReading | undefined =
-      data.readings[headline.key];
-
-    if (!reading) {
-      continue;
+    if (tiles.length >= CLOUD_HEADLINE_TILES_MAX) {
+      break;
     }
 
+    const reading: CloudResourceReading | undefined =
+      data.readings[headline.key];
     const look: { icon: IconProp; color: CloudHeadlineTile["iconColor"] } =
       ICONS[headline.label] || { icon: IconProp.ChartBar, color: "slate" };
+
+    if (!reading) {
+      if (isCloudHeadlineExpected(headline)) {
+        tiles.push({
+          key: headline.key,
+          title: headline.label,
+          value: "",
+          valueNote: NOT_REPORTED,
+          description: NOT_REPORTED_DESCRIPTION,
+          icon: look.icon,
+          iconColor: "slate",
+        });
+      }
+
+      continue;
+    }
     const formatted: {
       value: string;
       sublabel?: string | undefined;

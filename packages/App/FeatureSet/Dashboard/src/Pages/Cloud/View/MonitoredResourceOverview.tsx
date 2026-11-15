@@ -248,6 +248,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       title: tile.title,
       value: tile.value,
       sublabel: tile.sublabel,
+      // "Not reported", where the last read brought no value: never a figure.
+      valueNote: tile.valueNote,
+      description: tile.description,
       percent: tile.percent,
       icon: tile.icon,
       iconColor: tile.iconColor,
