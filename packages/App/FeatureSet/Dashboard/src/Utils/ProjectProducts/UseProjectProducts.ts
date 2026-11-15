@@ -20,13 +20,16 @@ const toKey: (projectId: ProjectIdInput | undefined) => string = (
 /*
  * The current project's products (ProjectProductsStore), drawn again
  * whenever they change: the server's answer arriving, a product shown or
- * hidden, a pin.
+ * hidden, a pin, a product's first record made on this page.
  *
  * Reading asks the server nothing. The navbar, which every project page
- * draws, asks once per page load (useLoadedProjectProducts), and the pin
- * beside a product page's title, Home's cards, Search and the keyboard
- * shortcuts draw what it got - the remembered answer until it arrives. So a
- * page drawn on its own makes no request it did not make before.
+ * draws, asks when it is drawn and when its menus open
+ * (useLoadedProjectProducts), the App when the page changes or the tab is
+ * shown again (useProjectProductsKeptUpToDate) - each only once the answer
+ * is older than REFRESH_AFTER_MS - and the pin beside a product page's
+ * title, Home's cards, Search and the keyboard shortcuts draw what they
+ * got: the remembered answer until it arrives. So a page drawn on its own
+ * makes no request it did not make before.
  */
 const useProjectProducts: (
   projectId?: ProjectIdInput,
@@ -47,9 +50,10 @@ const useProjectProducts: (
 };
 
 /*
- * The same, and asks the server for them once per page load, however many
- * components call it: for the navbar, and for Project Settings > Products,
- * which shows the latest wherever it is drawn.
+ * The same, and asks the server for them when they are drawn (unless the
+ * answer is younger than REFRESH_AFTER_MS), however many components call
+ * it: for the navbar, and for Project Settings > Products, which shows the
+ * latest wherever it is drawn.
  */
 export const useLoadedProjectProducts: (
   projectId?: ProjectIdInput,
@@ -60,12 +64,55 @@ export const useLoadedProjectProducts: (
   const state: ProjectProductsState = useProjectProducts(key);
 
   useEffect(() => {
-    ProjectProducts.load(key).catch(() => {
-      // The store keeps what it knew; the menu shows every product.
-    });
+    loadQuietly(key);
   }, [key]);
 
   return state;
+};
+
+// Asks the store to read the project's products; a failure keeps what it knew.
+export const loadQuietly: (projectId?: ProjectIdInput) => void = (
+  projectId?: ProjectIdInput,
+): void => {
+  ProjectProducts.load(toKey(projectId)).catch(() => {
+    // The store keeps what it knew; the menu shows every product.
+  });
+};
+
+/*
+ * Keeps the current project's products up to date while the person works
+ * (#7465): asks again - once the answer is older than REFRESH_AFTER_MS -
+ * whenever they move to another page (`pathname`) or come back to the tab.
+ * A product set up meanwhile somewhere else (its first logs, a host an
+ * agent reports, a teammate's monitor) then stops saying "Not set up".
+ * The Dashboard's App draws it once, with the page's path.
+ */
+export const useProjectProductsKeptUpToDate: (pathname: string) => void = (
+  pathname: string,
+): void => {
+  const key: string = toKey(undefined);
+
+  useEffect(() => {
+    loadQuietly(key);
+  }, [key, pathname]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const onVisibilityChange: () => void = (): void => {
+      if (document.visibilityState === "visible") {
+        loadQuietly(key);
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [key]);
 };
 
 export default useProjectProducts;
