@@ -46,7 +46,7 @@ flowchart TB
 
 ## پیش از شروع
 
-- لاگ‌هایی که به OneUptime می‌رسند — از راه [OpenTelemetry](/docs/telemetry/open-telemetry)، [syslog](/docs/telemetry/syslog)، [Fluentd](/docs/telemetry/fluentd) یا یک probe.
+- لاگ‌هایی که به OneUptime می‌رسند — از راه [OpenTelemetry](/docs/telemetry/open-telemetry)، [syslog](/docs/telemetry/syslog)، [Fluentd](/docs/telemetry/fluentd) یا یک پراب.
 - مجوز تغییر خط‌های لوله. مالکان و مدیران پروژه آن را دارند؛ دیگران به مجوزهای **Create Log Pipeline** و **Create Log Pipeline Processor** نیاز دارند.
 
 ## ساخت خط لوله
@@ -110,7 +110,7 @@ flowchart TB
 
 ### نمونه: فایروال Sophos XGS
 
-OneUptime خودش syslog مربوط به Sophos و FortiGate را به‌صورت ویژگی‌های `sophos.*` و `fortigate.*` می‌خواند ([رویدادهای شبکه](/docs/monitor/network-events) را ببینید)؛ این نمونه همان را دستی می‌سازد، همان‌طور که برای قالبی که OneUptime نمی‌شناسد انجام می‌دهید. وقتی یک فایروال Sophos XGS لاگ syslog را به یک [probe](/docs/monitor/network-device-monitor) می‌فرستد، هر پیام به‌عنوان لاگ دستگاه شبکه ذخیره می‌شود و پیام syslog بدنهٔ آن است. برای تجزیهٔ آن:
+OneUptime خودش syslog مربوط به Sophos و FortiGate را به‌صورت ویژگی‌های `sophos.*` و `fortigate.*` می‌خواند ([رویدادهای شبکه](/docs/monitor/network-events) را ببینید)؛ این نمونه همان را دستی می‌سازد، همان‌طور که برای قالبی که OneUptime نمی‌شناسد انجام می‌دهید. وقتی یک فایروال Sophos XGS لاگ syslog را به یک [پراب](/docs/monitor/network-device-monitor) می‌فرستد، هر پیام به‌عنوان لاگ دستگاه شبکه ذخیره می‌شود و پیام syslog بدنهٔ آن است. برای تجزیهٔ آن:
 
 :::steps
 #### یک خط لوله برای فایروال بسازید

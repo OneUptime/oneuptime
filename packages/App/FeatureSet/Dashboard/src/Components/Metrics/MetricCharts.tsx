@@ -126,6 +126,13 @@ import {
 } from "./SeriesCounts";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import {
+  getSeriesGroupValue,
+  getSeriesNameForReader,
+  isSeriesFoundBySearch,
+  withSeriesNamesForReader,
+} from "./SeriesNameForReader";
+import { getUnsetText } from "../Dashboard/Components/DashboardWidgetFallbackWords";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
@@ -767,14 +774,15 @@ function buildQuerySeries(
               | Record<string, unknown>
               | undefined) || {};
 
+          /*
+           * A group whose attribute holds nothing is named "(unset)" on
+           * every board: the name is what a color pin and the is-empty
+           * filter match. Its reader reads it in their words
+           * (SeriesNameForReader).
+           */
           const parts: Array<string> = groupByAttributeKeys.map(
             (key: string) => {
-              const value: unknown = attributes[key];
-              const displayValue: string =
-                value === undefined || value === null || value === ""
-                  ? "(unset)"
-                  : String(value);
-              return `${key}=${displayValue}`;
+              return `${key}=${getSeriesGroupValue(attributes[key])}`;
             },
           );
 
@@ -1114,7 +1122,7 @@ function renderSeriesControls(input: {
     searchQuery === ""
       ? fullSeries
       : fullSeries.filter((s: SeriesPoint) => {
-          return s.seriesName.toLowerCase().includes(searchQuery);
+          return isSeriesFoundBySearch(s.seriesName, searchQuery, translator);
         });
 
   /*
@@ -1448,6 +1456,11 @@ function renderSeriesControls(input: {
             );
             const valueLabel: string | null =
               statValue === null ? null : valueFormatter(statValue);
+            // Its name as the reader reads it: "(unset)" in their words.
+            const readerName: string = getSeriesNameForReader(
+              series.seriesName,
+              translator,
+            );
             /*
              * A chip never runs past its row. On a narrow widget - a chart
              * half of a tablet's board wide - the series' name gives way
@@ -1482,7 +1495,7 @@ function renderSeriesControls(input: {
                     isHidden
                       ? "{{name}} — click to show"
                       : "{{name}} — click to hide",
-                    { name: series.seriesName },
+                    { name: readerName },
                   )}
                 >
                   <span
@@ -1507,7 +1520,7 @@ function renderSeriesControls(input: {
                    * cut short keeps its start ("Req...", not "...sts").
                    */}
                   <IsolatedText
-                    text={series.seriesName}
+                    text={readerName}
                     className={`${SERIES_CHIP_NAME_CLASS_NAME} ${
                       isHidden ? "line-through" : ""
                     }`}
@@ -1526,7 +1539,7 @@ function renderSeriesControls(input: {
                     type="button"
                     aria-label={translator.translateTemplate(
                       "Investigate {{name}}",
-                      { name: series.seriesName },
+                      { name: readerName },
                     )}
                     aria-haspopup="menu"
                     aria-expanded={investigatedSeriesName === series.seriesName}
@@ -1991,8 +2004,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
        * ordering the hover tooltip uses, but pinned.
        */
       const entries: Array<BucketInspectorEntry> = input.seriesNames
-        .map((name: string): BucketInspectorEntry | null => {
-          const value: unknown = input.valuesAtBucket[name];
+        .map((seriesName: string): BucketInspectorEntry | null => {
+          /*
+           * The chart keys a moment's values by the names it draws, the
+           * reader's (getChartsForReader); each row says that name too.
+           */
+          const name: string = getSeriesNameForReader(seriesName, translator);
+          const value: unknown =
+            input.valuesAtBucket[name] ?? input.valuesAtBucket[seriesName];
           return typeof value === "number" && Number.isFinite(value)
             ? { name, value }
             : null;
@@ -2038,7 +2057,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       });
       setIsBucketInspectorVisible(true);
     },
-    [setIsBucketInspectorVisible],
+    [setIsBucketInspectorVisible, translator],
   );
 
   const investigateBucket: VoidFunction = useCallback((): void => {
@@ -2514,7 +2533,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     if (controls.searchQuery.trim() !== "") {
       const q: string = controls.searchQuery.toLowerCase();
       displayableSeries = displayableSeries.filter((s: SeriesPoint) => {
-        return s.seriesName.toLowerCase().includes(q);
+        return isSeriesFoundBySearch(s.seriesName, q, translator);
       });
     }
 
@@ -3326,12 +3345,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               | undefined) || {};
           const seriesName: string = formulaGroupKeys
             .map((key: string) => {
-              const value: unknown = attributes[key];
-              const displayValue: string =
-                value === undefined || value === null || value === ""
-                  ? "(unset)"
-                  : String(value);
-              return `${key}=${displayValue}`;
+              return `${key}=${getSeriesGroupValue(attributes[key])}`;
             })
             .join(", ");
 
@@ -3566,6 +3580,47 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   };
 
   /*
+   * The charts, each line named as its reader reads it: a group with no
+   * value in their word, in its line's tooltip row and legend entry. The
+   * names the colors, the hidden series and the pins go by are kept: a
+   * chart's colors are handed over by position, and a moment's values come
+   * back keyed by the names drawn (openBucketInspector reads them so).
+   */
+  const getChartsForReader: () => Array<Chart> = (): Array<Chart> => {
+    return getCharts().map((chart: Chart): Chart => {
+      const data: Array<SeriesPoint> = withSeriesNamesForReader(
+        chart.props.data,
+        translator,
+      );
+
+      if (data === chart.props.data) {
+        return chart;
+      }
+
+      const ghostSeriesNames: Array<string> | undefined = (
+        chart.props as { ghostSeriesNames?: Array<string> | undefined }
+      ).ghostSeriesNames;
+
+      return {
+        ...chart,
+        props: {
+          ...chart.props,
+          data: data,
+          ...(ghostSeriesNames
+            ? {
+                ghostSeriesNames: ghostSeriesNames.map(
+                  (name: string): string => {
+                    return getSeriesNameForReader(name, translator);
+                  },
+                ),
+              }
+            : {}),
+        },
+      };
+    });
+  };
+
+  /*
    * Derived only while the series menu is open: the series-scoped view
    * (drives which items render), the "host.name = prod-01" narrowing
    * summary, and the resource pages this series can jump to.
@@ -3578,7 +3633,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     ? MetricSeriesScope.getAppliedSeriesLabelSummary({
         queryConfigs: props.metricViewData.queryConfigs,
         seriesLabels: seriesMenuScoped.seriesLabels,
+        // An empty group, in the reader's word: "service.name = (nicht gesetzt)".
+        unsetLabel: getUnsetText(translator),
       })
+    : "";
+  // The series the menu is for, as its chip names it.
+  const seriesMenuReaderName: string = seriesMenu
+    ? getSeriesNameForReader(seriesMenu.seriesName, translator)
     : "";
   const seriesMenuResourceTargets: Array<SeriesResourceTarget> =
     seriesMenuScoped
@@ -3601,7 +3662,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
   return (
     <>
       <ChartGroup
-        charts={getCharts()}
+        charts={getChartsForReader()}
         hideCard={props.hideCard}
         chartCssClass={props.chartCssClass}
         syncId={props.chartSyncId}
@@ -3670,9 +3731,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               <div className="mx-1 mb-1 border-b border-gray-100 px-3 pb-2 pt-1.5">
                 <p
                   className="truncate text-xs font-medium text-gray-900"
-                  title={seriesMenu.seriesName}
+                  title={seriesMenuReaderName}
                 >
-                  {seriesMenu.seriesName}
+                  {seriesMenuReaderName}
                 </p>
                 {seriesMenuNarrowSummary ? (
                   <p
@@ -3706,7 +3767,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                     const menuState: SeriesMenuState = seriesMenu;
                     closeSeriesMenu();
                     setInvestigation({
-                      title: menuState.seriesName,
+                      title: getSeriesNameForReader(
+                        menuState.seriesName,
+                        translator,
+                      ),
                       window: exemplarWindow,
                       viewData:
                         getScopedViewDataForSeries(menuState).scopedViewData,

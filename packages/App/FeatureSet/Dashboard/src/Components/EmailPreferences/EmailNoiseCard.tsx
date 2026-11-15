@@ -12,6 +12,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 interface ComponentProps {
   onApply: () => Promise<void>;
@@ -122,7 +123,7 @@ const EmailNoiseCard: FunctionComponent<ComponentProps> = (
         ) : null}
         {error ? (
           <p role="alert" className="mt-3 text-sm text-red-700">
-            {error}
+            <ErrorInSentence message={error} showWhereToLook={true} />
           </p>
         ) : null}
       </React.Fragment>

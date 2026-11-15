@@ -68,6 +68,7 @@ import UninstallWorkspaceConfirm, {
   MANAGE_WORKSPACE_CONNECTION,
 } from "../Workspace/UninstallWorkspaceConfirm";
 import AskToConnectCard from "../Workspace/AskToConnectCard";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 // The full setup guide, folded at the bottom of a self-hosted install's page.
 export const MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID: string =
@@ -308,7 +309,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         setWorkspaceUserAuthTokenId(userAuth.data[0]!.id);
       }
     } catch (error) {
-      setError(<div>{API.getFriendlyErrorMessage(error as Error)}</div>);
+      setError(
+        <div>
+          <ErrorInSentence
+            message={API.getFriendlyErrorMessage(error as Error)}
+            showWhereToLook={true}
+          />
+        </div>,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -322,7 +330,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
      * sends a code, not words.
      */
     loadItems().catch((error: Exception) => {
-      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      setError(
+        <div>
+          <ErrorInSentence
+            message={API.getFriendlyErrorMessage(error)}
+            showWhereToLook={true}
+          />
+        </div>,
+      );
     });
   }, []);
 
@@ -516,7 +531,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             }
           } catch (error) {
             setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+              <div>
+                <ErrorInSentence
+                  message={API.getFriendlyErrorMessage(error as Exception)}
+                  showWhereToLook={true}
+                />
+              </div>,
             );
           }
           setIsButtonLoading(false);
@@ -569,7 +589,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       Navigation.navigate(URL.fromString(authorizationUrl));
     } catch (error) {
-      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
+      setError(
+        <div>
+          <ErrorInSentence
+            message={API.getFriendlyErrorMessage(error as Exception)}
+            showWhereToLook={true}
+          />
+        </div>,
+      );
     }
   };
 
@@ -599,7 +626,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       navigateToAuthorizationUrl("/microsoft-teams/sign-in-url").catch(
         (error: Exception) => {
-          setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+          setError(
+            <div>
+              <ErrorInSentence
+                message={API.getFriendlyErrorMessage(error)}
+                showWhereToLook={true}
+              />
+            </div>,
+          );
         },
       );
     } else {
@@ -646,7 +680,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
     navigateToAuthorizationUrl("/microsoft-teams/admin-consent").catch(
       (error: Exception) => {
-        setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+        setError(
+          <div>
+            <ErrorInSentence
+              message={API.getFriendlyErrorMessage(error)}
+              showWhereToLook={true}
+            />
+          </div>,
+        );
       },
     );
   };
@@ -671,7 +712,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       // Reload the component to get updated teams
       await loadItems();
     } catch (error) {
-      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
+      setError(
+        <div>
+          <ErrorInSentence
+            message={API.getFriendlyErrorMessage(error as Exception)}
+            showWhereToLook={true}
+          />
+        </div>,
+      );
     } finally {
       setIsRefreshTeamsLoading(false);
     }

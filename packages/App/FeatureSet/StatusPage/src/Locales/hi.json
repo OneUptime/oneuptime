@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% अपटाइम",
+    "uptimePercent": "{{percent}}% अपटाइम",
     "operational": "कार्यरत",
     "notMonitored": "निगरानी नहीं",
     "noResourcesInGroup": "इस समूह में कोई संसाधन नहीं जोड़ा गया है।",
@@ -114,6 +115,7 @@
     "noneDescription": "इस स्थिति पृष्ठ पर कोई घटना पोस्ट नहीं की गई है।",
     "postmortem": "घटना की समीक्षा",
     "declaredAt": "घोषित किया गया: ",
+    "declaredAtTime": "{{time}} को घोषित किया गया",
     "report": "घटना रिपोर्ट",
     "notFound": "इस स्थिति पृष्ठ पर घटना नहीं मिली।"
   },
@@ -130,6 +132,7 @@
     "none": "कोई घोषणा नहीं",
     "noneDescription": "इस पृष्ठ पर अभी तक कोई घोषणा पोस्ट नहीं की गई है।",
     "announcedAt": "घोषित किया गया: ",
+    "announcedAtTime": "{{time}} को घोषित किया गया",
     "notFound": "इस स्थिति पृष्ठ पर घोषणा नहीं मिली।"
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "कोई अनुसूचित रखरखाव नहीं",
     "noneDescription": "इस स्थिति पृष्ठ पर कोई अनुसूचित रखरखाव प्रकाशित नहीं हुआ है।",
     "scheduledAt": "निर्धारित समय: ",
+    "scheduledAtTime": "{{time}} के लिए निर्धारित",
     "report": "रखरखाव इवेंट रिपोर्ट",
     "notFound": "इस स्थिति पृष्ठ पर कोई रखरखाव इवेंट नहीं मिला।",
     "calendar": {

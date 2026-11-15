@@ -11,7 +11,7 @@
 
 ## 如何判定一次檢查
 
-每次檢查都會給出一個結果：探針的回應、指令碼的傳回值，或檢查讀取的遙測資料。然後，步驟的條件按順序判定這個結果。第一個篩選器相符的條件決定會發生什麼：它可以更改監測器的狀態、建立事件和建立警示。對這次檢查而言，它之後的條件不會被檢視。
+每次檢查都會給出一個結果：探測器的回應、指令碼的傳回值，或檢查讀取的遙測資料。然後，步驟的條件按順序判定這個結果。第一個篩選器相符的條件決定會發生什麼：它可以更改監測器的狀態、建立事件和建立警示。對這次檢查而言，它之後的條件不會被檢視。
 
 ```mermaid title="如何判定每次檢查"
 flowchart TB
@@ -26,7 +26,7 @@ flowchart TB
 
 ## 編寫步驟
 
-`monitor_steps` 是直接用 HCL 編寫的有類型物件列表。沒有 `jsonencode()`，沒有 `{_type, value}` 包裝，沒有 camelCase 鍵，也不需要寫 ID：提供者把你的 HCL 轉換為 API 的格式，伺服器為每個步驟、條件、事件範本和警示範本分配 ID。伺服器會在每次 apply 中保留這些 ID，按名稱（否則按位置）把每個條件和範本與它所替換的那個對應起來，因此探針結果會留在各自的步驟上，事件也會一直指向觸發它們的條件。
+`monitor_steps` 是直接用 HCL 編寫的有類型物件列表。沒有 `jsonencode()`，沒有 `{_type, value}` 包裝，沒有 camelCase 鍵，也不需要寫 ID：提供者把你的 HCL 轉換為 API 的格式，伺服器為每個步驟、條件、事件範本和警示範本分配 ID。伺服器會在每次 apply 中保留這些 ID，按名稱（否則按位置）把每個條件和範本與它所替換的那個對應起來，因此探測器結果會留在各自的步驟上，事件也會一直指向觸發它們的條件。
 
 ```mermaid title="monitor_steps 的組成部分"
 flowchart TB
@@ -170,8 +170,8 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_certificate` | string | 網站、API | 用於雙向 TLS 的用戶端憑證：PEM，或 `{{monitorSecrets.name}}` 引用。 |
 | `tls_client_key` | string（敏感） | 網站、API | 用戶端憑證的私密金鑰。與憑證一起設定。 |
 | `tls_client_key_passphrase` | string（敏感） | 網站、API | 私密金鑰的密碼短語。 |
-| `request_timeout_in_ms` | number | 由探針執行的檢查 | 單次嘗試允許的時長，單位為毫秒。探針會把超過 60000 的值降為 60000。 |
-| `retry_count` | number | 由探針執行的檢查 | 首次嘗試失敗後的重試次數：`0` 只檢查一次，`3` 最多檢查四次。探針會把超過 3 的值降為 3。 |
+| `request_timeout_in_ms` | number | 由探測器執行的檢查 | 單次嘗試允許的時長，單位為毫秒。探測器會把超過 60000 的值降為 60000。 |
+| `retry_count` | number | 由探測器執行的檢查 | 首次嘗試失敗後的重試次數：`0` 只檢查一次，`3` 最多檢查四次。探測器會把超過 3 的值降為 3。 |
 | `custom_code` | string | Custom JavaScript Code、Synthetic | 步驟執行的指令碼。 |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`、`Tablet` 和 `Desktop`。 |
 | `browser_types` | list(string) | Synthetic | `Chromium` 和 `Firefox`。 |
@@ -401,7 +401,7 @@ monitor_steps = [{
 
 ## 沒有步驟的監測器
 
-`monitor_steps` 是選用的，但沒有它而建立的監測器沒有用來判定結果的條件：探針會跳過沒有步驟的監測器，它會一直停留在初始狀態。你的 state 會讓該屬性保持為空，計畫也保持乾淨。手動監測器從不需要步驟：它的狀態由你自己設定。其他所有類型都至少需要一個步驟才能檢查任何東西。
+`monitor_steps` 是選用的，但沒有它而建立的監測器沒有用來判定結果的條件：探測器會跳過沒有步驟的監測器，它會一直停留在初始狀態。你的 state 會讓該屬性保持為空，計畫也保持乾淨。手動監測器從不需要步驟：它的狀態由你自己設定。其他所有類型都至少需要一個步驟才能檢查任何東西。
 
 ## 傳輸格式
 

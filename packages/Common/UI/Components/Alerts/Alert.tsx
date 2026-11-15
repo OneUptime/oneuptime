@@ -1,3 +1,5 @@
+import { isUnexplainedErrorMessage } from "../ErrorMessage/ErrorExplanation";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 import Icon from "../Icon/Icon";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -46,6 +48,12 @@ export interface ComponentProps {
  * A message's words are read the way they are written (readAsWritten): an
  * answer from the server is in English - "Promo code is invalid." - and on
  * a Persian page, laid out right to left, its full stop came first.
+ *
+ * A title that is an error nobody explained - API.getFriendlyMessage's
+ * sentence for a gateway's 502, a server failure with its reference,
+ * OneUptime not reached - says why and what to do next in the reader's
+ * language with ErrorInSentence, and the reference with a copy button
+ * (#7537): about forty cards show why a button failed as an Alert's title.
  */
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -178,7 +186,23 @@ const Alert: FunctionComponent<ComponentProps> = (
                 </div>
               )}
               {translatedTitle && (
-                <div>{readAsWritten(translatedTitle, translator.language)}</div>
+                <div>
+                  {isUnexplainedErrorMessage(props.title) ? (
+                    /*
+                     * An error nobody explained, as API.getFriendlyMessage
+                     * writes it (#7537): why and what to do next in the
+                     * reader's language, the reference with its copy
+                     * button - never the English sentence, which a
+                     * gateway's 502 has no key for.
+                     */
+                    <ErrorInSentence
+                      message={props.title as string}
+                      showWhereToLook={true}
+                    />
+                  ) : (
+                    readAsWritten(translatedTitle, translator.language)
+                  )}
+                </div>
               )}
             </div>
             {translatedTextOnRight && (

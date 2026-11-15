@@ -164,7 +164,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## YAML سرویس با یک sidecar
 
-Collector کل پیکربندی خود را از `OTEL_COLLECTOR_CONFIG` (`--config=env:OTEL_COLLECTOR_CONFIG`) و توکن را از راز با `${env:ONEUPTIME_TOKEN}` می‌خواند. حاشیه‌نویسی `run.googleapis.com/container-dependencies` باعث می‌شود Cloud Run اول Collector را آغاز کند و پیش از آغاز برنامه منتظر کاوشگر آغاز آن بماند:
+Collector کل پیکربندی خود را از `OTEL_COLLECTOR_CONFIG` (`--config=env:OTEL_COLLECTOR_CONFIG`) و توکن را از راز با `${env:ONEUPTIME_TOKEN}` می‌خواند. حاشیه‌نویسی `run.googleapis.com/container-dependencies` باعث می‌شود Cloud Run اول Collector را آغاز کند و پیش از آغاز برنامه منتظر پروب راه‌اندازی آن بماند:
 
 ```yaml title="service.yaml"
 apiVersion: serving.knative.dev/v1
@@ -282,7 +282,7 @@ gcloud run services replace service.yaml --region us-central1
 :::
 
 :::details Cloud Run مقدار container-dependencies را رد می‌کند
-حاشیه‌نویسی کانتینری را نام می‌برد که وجود ندارد، یا Collector کاوشگر آغاز ندارد، پس Cloud Run نمی‌تواند بفهمد کی آماده است.
+حاشیه‌نویسی کانتینری را نام می‌برد که وجود ندارد، یا Collector پروب راه‌اندازی ندارد، پس Cloud Run نمی‌تواند بفهمد کی آماده است.
 :::
 
 :::details سرویس در توابع بدون سرور هست، اما هیچ محیطی وجود ندارد

@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 가동 시간",
+    "uptimePercent": "가동 시간 {{percent}}%",
     "operational": "정상 작동",
     "notMonitored": "모니터링되지 않음",
     "noResourcesInGroup": "이 그룹에 추가된 리소스가 없습니다.",
@@ -114,6 +115,7 @@
     "noneDescription": "이 상태 페이지에 게시된 사고가 없습니다.",
     "postmortem": "사고 사후 분석",
     "declaredAt": "발생 시각: ",
+    "declaredAtTime": "발생 시각: {{time}}",
     "report": "사고 보고서",
     "notFound": "이 상태 페이지에서 사고를 찾을 수 없습니다."
   },
@@ -130,6 +132,7 @@
     "none": "공지사항 없음",
     "noneDescription": "이 페이지에 아직 게시된 공지사항이 없습니다.",
     "announcedAt": "공지 시각: ",
+    "announcedAtTime": "공지 시각: {{time}}",
     "notFound": "이 상태 페이지에서 공지사항을 찾을 수 없습니다."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "예정된 유지 관리 없음",
     "noneDescription": "이 상태 페이지에 게시된 예정된 유지 관리가 없습니다.",
     "scheduledAt": "예정 시각: ",
+    "scheduledAtTime": "예정 시각: {{time}}",
     "report": "유지 관리 이벤트 보고서",
     "notFound": "이 상태 페이지에서 유지 관리 이벤트를 찾을 수 없습니다.",
     "calendar": {

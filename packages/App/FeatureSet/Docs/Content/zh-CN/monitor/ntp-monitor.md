@@ -157,6 +157,6 @@ sequenceDiagram
 :::cards
 - [Ping 监控](/docs/monitor/ping-monitor): 检查主机本身是否可达。
 - [端口监控](/docs/monitor/port-monitor): 检查同一主机上的 TCP 服务。
-- [自定义探针](/docs/probe/custom-probe): 检查您自己网络中的时间服务器。
+- [自定义探测器](/docs/probe/custom-probe): 检查您自己网络中的时间服务器。
 - [事件与告警模板](/docs/monitor/incident-alert-templating): 将层级和偏差放进事件标题。
 :::

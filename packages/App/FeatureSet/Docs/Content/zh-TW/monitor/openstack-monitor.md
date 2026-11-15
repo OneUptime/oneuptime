@@ -5,7 +5,7 @@ OpenStack 監測器會監看一座雲端，包括它的 API、API 背後的工�
 :::cards
 - [建立監測器](#建立-openstack-監測器): 在儀表板中分六個步驟完成。
 - [範本](#預先建立的警示範本): 現成的警示，每個工作程序、執行個體、網路或地區各產生一個事件。
-- [從外部檢查](#從外部檢查): 從雲端之外的探測點確認是否真的有人能啟動執行個體。
+- [從外部檢查](#從外部檢查): 從雲端之外的探測器確認是否真的有人能啟動執行個體。
 - [身分屬性](#身分屬性): 如何鎖定單一地區、主機或專案。
 - [指標](#收集的指標): 監測器可以設定警示的所有序列。
 :::
@@ -106,7 +106,7 @@ flowchart TB
 
 ## 預先建立的警示範本
 
-OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **告警內容** 清單中選用。雲端的 Recommendations 頁面只會把 Heat、Magnum、Ironic、Manila、Octavia、Trove、Designate、Gnocchi 或 Swift 的範本提供給實際執行該服務的雲端；只有探測點才會送出的序列所對應的範本，只提供給由探測點收集的雲端；以[從外部檢查](#從外部檢查)為基礎的範本，只提供給已啟用該檢查的雲端：在其他雲端上，這些序列根本不存在，範本永遠不會觸發。每個範本都會建立完整的監測器：指標查詢、屬性篩選器、依一個事件所針對的對象設定的分組、一個觸發條件和一個復原條件。閾值與雲端自身頁面所畫的線相同，只是你可以自行修改的起點。
+OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **告警內容** 清單中選用。雲端的 Recommendations 頁面只會把 Heat、Magnum、Ironic、Manila、Octavia、Trove、Designate、Gnocchi 或 Swift 的範本提供給實際執行該服務的雲端；只有探測器才會送出的序列所對應的範本，只提供給由探測器收集的雲端；以[從外部檢查](#從外部檢查)為基礎的範本，只提供給已啟用該檢查的雲端：在其他雲端上，這些序列根本不存在，範本永遠不會觸發。每個範本都會建立完整的監測器：指標查詢、屬性篩選器、依一個事件所針對的對象設定的分組、一個觸發條件和一個復原條件。閾值與雲端自身頁面所畫的線相同，只是你可以自行修改的起點。
 
 每個範本至少讀取所監看對象的三次收集，而且只有在條件於整個視窗內都成立時才會觸發。以比例為基礎的閾值，會在越過該線 10% 後才復原，因此徘徊在線附近的值不會反覆觸發與復原。
 
@@ -149,15 +149,15 @@ OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **告
 | Image Stuck | 儲存 | 警告 | 針對每個過渡狀態字詞的 `openstack_glance_image_created_at`，每個映像檔的最大值，**過去 1 小時** | 一小時內每次收集都處於該狀態 | 已離開該狀態，或已被刪除 |
 | Orchestration API Down | 可用性 | 嚴重 | `orchestration` 的 `openstack_heat_up` 和 `up`，每個地區的最小值，**過去 15 分鐘** | 每次呼叫都失敗（`heat-engine` 停止時也會讀到這種情況），或 exporter 沒有回應 | 兩者都讀到 1 |
 | Kubernetes Clusters API Down | 可用性 | 嚴重 | `container-infra` 的 `openstack_container_infra_up` 和 `up`，每個地區的最小值，**過去 15 分鐘** | 每次呼叫都失敗，或 exporter 沒有回應 | 兩者都讀到 1 |
-| Rating API Down | 可用性 | 嚴重 | `rating` 的 `openstack_cloudkitty_up` 和 `up`，每個地區的最小值，**過去 15 分鐘**。只有探測點會送出 | CloudKitty 的 API 沒有回應，因此各專案的計費評等不再更新 | 兩者都讀到 1 |
-| Heat Engine Down | 控制平面 | 警告 | `openstack_heat_agent_state`，每台主機的最小值，**過去 15 分鐘**。只有探測點會送出 | Heat 將某個 `heat-engine` 列為停止。所有 engine 都停止時，Heat 無法列出它們，此時會改由 Orchestration API Down 觸發 | 讀到 1，或 Heat 移除其記錄 |
-| Magnum Conductor Down | 控制平面 | 嚴重 | `adminState=enabled` 的 `openstack_container_infra_agent_state`，每台主機的最小值，**過去 15 分鐘**。只有探測點會送出 | Magnum 將已啟用的 `magnum-conductor` 列為停止。Magnum 的 API 仍持續回應，因此沒有其他項目會指出這件事 | 讀到 1，或有人將它停用 |
+| Rating API Down | 可用性 | 嚴重 | `rating` 的 `openstack_cloudkitty_up` 和 `up`，每個地區的最小值，**過去 15 分鐘**。只有探測器會送出 | CloudKitty 的 API 沒有回應，因此各專案的計費評等不再更新 | 兩者都讀到 1 |
+| Heat Engine Down | 控制平面 | 警告 | `openstack_heat_agent_state`，每台主機的最小值，**過去 15 分鐘**。只有探測器會送出 | Heat 將某個 `heat-engine` 列為停止。所有 engine 都停止時，Heat 無法列出它們，此時會改由 Orchestration API Down 觸發 | 讀到 1，或 Heat 移除其記錄 |
+| Magnum Conductor Down | 控制平面 | 嚴重 | `adminState=enabled` 的 `openstack_container_infra_agent_state`，每台主機的最小值，**過去 15 分鐘**。只有探測器會送出 | Magnum 將已啟用的 `magnum-conductor` 列為停止。Magnum 的 API 仍持續回應，因此沒有其他項目會指出這件事 | 讀到 1，或有人將它停用 |
 | Stack Failed | 編排 | 警告 | 針對每個 `*_FAILED` 狀態的 `openstack_heat_stack_status`，每個 stack，**過去 15 分鐘** | stack 在整個視窗內都處於失敗狀態 | 已更新或刪除 |
 | Stack Stuck In Progress | 編排 | 警告 | 針對每個 `*_IN_PROGRESS` 狀態的 `openstack_heat_stack_status`，每個 stack，**過去 2 小時** | stack 在整個視窗內都處於進行中狀態，超過 Heat 預設給予的一小時（除非有人設定更長） | 已進入下一個狀態，或已被刪除 |
 | Kubernetes Cluster Failed | 編排 | 警告 | 針對每個 `*_FAILED` 狀態的 `openstack_container_infra_cluster_status`，每個叢集，**過去 15 分鐘** | 叢集在整個視窗內都處於失敗狀態 | 已更新或刪除 |
 | Kubernetes Cluster Stuck | 編排 | 警告 | 針對每個 `*_IN_PROGRESS` 狀態的 `openstack_container_infra_cluster_status`，每個叢集，**過去 2 小時** | 叢集在整個視窗內都處於進行中狀態。只有 Magnum 的 conductor 能推動它前進 | 已進入下一個狀態，或已被刪除 |
 | Shared File Systems API Down | 可用性 | 嚴重 | `sharev2` 的 `openstack_sharev2_up` 和 `up`，每個地區的最小值，**過去 15 分鐘** | 每次呼叫都失敗，或 exporter 沒有回應。每個能登入的憑證都會讀到 1，因此這不可能是憑證被拒絕 | 兩者都讀到 1 |
-| Manila Service Down | 控制平面 | 警告 | `adminState=enabled` 的 `openstack_sharev2_agent_state`，每台主機和服務的最小值，**過去 15 分鐘**。只有探測點會送出 | Manila 將已啟用的服務列為已停止或停機。它的 API 仍持續回應，因此沒有其他項目會指出這件事 | 讀到 1，或有人將它停用 |
+| Manila Service Down | 控制平面 | 警告 | `adminState=enabled` 的 `openstack_sharev2_agent_state`，每台主機和服務的最小值，**過去 15 分鐘**。只有探測器會送出 | Manila 將已啟用的服務列為已停止或停機。它的 API 仍持續回應，因此沒有其他項目會指出這件事 | 讀到 1，或有人將它停用 |
 | Share in Error | 儲存 | 警告 | 針對每個錯誤狀態的 `openstack_sharev2_share_gb`，每個共享，**過去 15 分鐘** | 共享在整個視窗內都處於錯誤狀態 | 已修復或刪除 |
 | Share Stuck | 儲存 | 警告 | 針對每個過渡狀態的 `openstack_sharev2_share_gb`，每個共享，**過去 1 小時** | 共享在整個視窗內都處於過渡狀態。Manila 對速度緩慢的後端沒有自己的逾時機制。正在遷移或備份的共享不在監看範圍內 | 已進入下一個狀態，或已被刪除 |
 | Load Balancers API Down | 負載平衡器 | 嚴重 | `openstack_loadbalancer_up`，每個地區的最小值，**過去 15 分鐘** | 低於 1。Octavia API 停止時，Agent 的 exporter 得到的是空回應而非 0，與沒有 Octavia 的雲端相同，因此在由 Agent 收集的雲端上，這個範本保持安靜，要由雲端的頁面說明最後一次收到 Octavia 訊息的時間 | 讀到 1，或已消失 |
@@ -166,7 +166,7 @@ OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **告
 | Load Balancer With Two Masters | 負載平衡器 | 嚴重 | `role=MASTER` 且 `status=ALLOCATED` 的 `openstack_loadbalancer_amphora_status`，每個負載平衡器的計數，**過去 15 分鐘**。需要有權列出 amphora 的憑證 | 同一個負載平衡器有超過一個已分配的 amphora 自稱為 MASTER | 只剩一個如此 |
 | Amphora in Error | 負載平衡器 | 嚴重 | `status=ERROR` 的 `openstack_loadbalancer_amphora_status`，每個 amphora 的計數，**過去 15 分鐘**。需要有權列出 amphora 的憑證 | amphora 在整個視窗內都處於 ERROR：health manager 無法替換它 | 已被替換 |
 | Pool Has No Healthy Members | 負載平衡器 | 嚴重 | `operating_status=ERROR` 的 `openstack_loadbalancer_pool_status`，每個 pool 的計數，**過去 15 分鐘** | pool 的每個成員都未通過健康檢查，但 pool 及其負載平衡器的 provisioning 仍是 ACTIVE | 有成員恢復健康 |
-| DNS API Down | 可用性 | 嚴重 | `openstack_designate_up`，每個地區的最小值，**過去 15 分鐘**。只有探測點會提供 | 低於 1。Designate 停止時，Agent 的 exporter 得到的是空回應，與沒有 Designate 的雲端相同，因此由 Agent 收集的雲端只能表示它沉默了 | 讀到 1 |
+| DNS API Down | 可用性 | 嚴重 | `openstack_designate_up`，每個地區的最小值，**過去 15 分鐘**。只有探測器會提供 | 低於 1。Designate 停止時，Agent 的 exporter 得到的是空回應，與沒有 Designate 的雲端相同，因此由 Agent 收集的雲端只能表示它沉默了 | 讀到 1 |
 | DNS Zone in Error | 網路 | 警告 | `status=ERROR` 的 `openstack_designate_zone_status` 計數，每個 zone，**過去 15 分鐘** | zone 在整個視窗內都讀到 `ERROR`：它的 worker 放棄將其寫入 DNS 伺服器 | 讀到其他值 |
 | DNS Zone Stuck Pending | 網路 | 警告 | `status=PENDING` 的 `openstack_designate_zone_status` 計數，每個 zone，**過去 30 分鐘** | zone 在整個視窗內都讀到 `PENDING`。它的 worker 幾分鐘後就會放棄，所以沒有任何程序在處理它 | 讀到其他值 |
 | DNS Recordset in Error | 網路 | 警告 | `status=ERROR` 且包含每個指定類型的 `openstack_designate_recordsets_status` 計數，每個 zone，**過去 15 分鐘** | zone 本身的 SOA 和 NS 以外的 recordset 讀到 `ERROR`。那兩個會隨 zone 一起讀到 `ERROR`，所以由 DNS Zone in Error 來說明 | 讀到其他值 |
@@ -175,22 +175,22 @@ OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **告
 | Gnocchi Backlog Growing | 指標 | 警告 | `openstack_gnocchi_status_measures_to_process`，貫穿**過去 2 小時**的一條線 | 這條線在接下來一小時內會超過 10,000 筆量測值。超過該數量但正在下降的積壓不會觸發 | 這條線不再到達 9,000 |
 | Object Storage API Down | 可用性 | 嚴重 | `object-store` 的 `openstack_object_store_up` 和 `up`，每個地區的最小值，**過去 15 分鐘** | exporter 讀取 Swift 失敗，或 exporter 沒有回應。Swift 拒絕的憑證讀到的結果相同，因此憑證從未讀取過 Swift 的雲端不會提供這個範本 | 兩者都讀到 1 |
 | Object Container Growth Forecast | 儲存 | 警告 | `openstack_object_store_bytes`，貫穿**過去 7 天**的一條線，每個 container | 這條線在接下來一週內會超過 1 TiB。請改成你的雲端應該收到通知的數值 | 這條線不再到達該值的 90% |
-| Key Manager API Down | 可用性 | 嚴重 | `openstack_barbican_up`，每個地區的最小值，**過去 15 分鐘**。只有探測點會提供 | 低於 1。exporter 完全沒有讀取 Barbican 的功能 | 讀到 1 |
-| Swift Storage Server Not Answering | 儲存 | 警告 | `openstack_object_store_recon_up`，每台伺服器的最小值，**過去 15 分鐘**。只有探測點會提供，且須由雲端的設定指明其儲存伺服器 | 伺服器不回應 `/recon`。Swift 的 proxy 在沒有它的情況下仍持續回應 | 它有回應 |
-| Swift Rings Differ | 儲存 | 警告 | `openstack_object_store_recon_rings_differ`，每個 ring 的最小值，**過去 15 分鐘**。只有探測點會提供 | 指名的伺服器對同一個 ring 回報不同的檢查碼 | 它們一致 |
-| Swift Replication Stale | 儲存 | 警告 | `openstack_object_store_recon_replication_age_seconds`，每台伺服器和 ring 的最小值，**過去 15 分鐘**。只有探測點會提供 | 伺服器上次完成一輪複寫已是 6 小時以前 | 有一輪完成 |
+| Key Manager API Down | 可用性 | 嚴重 | `openstack_barbican_up`，每個地區的最小值，**過去 15 分鐘**。只有探測器會提供 | 低於 1。exporter 完全沒有讀取 Barbican 的功能 | 讀到 1 |
+| Swift Storage Server Not Answering | 儲存 | 警告 | `openstack_object_store_recon_up`，每台伺服器的最小值，**過去 15 分鐘**。只有探測器會提供，且須由雲端的設定指明其儲存伺服器 | 伺服器不回應 `/recon`。Swift 的 proxy 在沒有它的情況下仍持續回應 | 它有回應 |
+| Swift Rings Differ | 儲存 | 警告 | `openstack_object_store_recon_rings_differ`，每個 ring 的最小值，**過去 15 分鐘**。只有探測器會提供 | 指名的伺服器對同一個 ring 回報不同的檢查碼 | 它們一致 |
+| Swift Replication Stale | 儲存 | 警告 | `openstack_object_store_recon_replication_age_seconds`，每台伺服器和 ring 的最小值，**過去 15 分鐘**。只有探測器會提供 | 伺服器上次完成一輪複寫已是 6 小時以前 | 有一輪完成 |
 | Databases API Down | 可用性 | 嚴重 | `database` 的 `openstack_trove_up` 和 `up`，每個地區的最小值，**過去 15 分鐘** | exporter 讀取 Trove 失敗，或 exporter 沒有回應。它讀取的是 Trove 的 mgmt API，因此憑證被拒絕與 API 停止讀到的結果相同，而憑證從未讀取過 Trove 的雲端不會提供這個範本 | 兩者都讀到 1 |
 | Database Instance in Error | 資料庫 | 警告 | 針對每個錯誤狀態的 `openstack_trove_instance_status` 計數，每個執行個體，**過去 15 分鐘** | 執行個體在整個視窗內都處於錯誤狀態 | 已修復或刪除 |
 | Database Instance Stuck | 資料庫 | 警告 | 針對每個過渡狀態的 `openstack_trove_instance_status` 計數，每個執行個體，**過去 1 小時** | 執行個體在整個視窗內都處於過渡狀態。Trove 沒有其 worker 的清單，所以由這個範本來指出 `trove-taskmanager` 已停止 | 已進入下一個狀態，或已被刪除 |
 | Database Volume Nearly Full | 資料庫 | 警告 | `openstack_trove_instance_volume_used_gb` 除以 `openstack_trove_instance_volume_size_gb`，每個執行個體，**過去 15 分鐘** | 達到或超過 85%。未執行的執行個體已使用量讀到 0。沒有任何記錄涵蓋執行中的執行個體 | 已調整大小，或用量縮減 |
-| Bare Metal API Down | 裸機 | 嚴重 | `openstack_ironic_up`，每個地區的最小值，**過去 15 分鐘** | 低於 1。只在能讀取 Ironic 並據以判斷的地方才會發聲：探測點，或 exporter 1.7.0。Ironic 停止時，Agent 的 exporter 沒有東西可讀，與沒有 Ironic 的雲端相同，因此在那裡保持安靜，要由雲端的頁面說明最後一次收到 Ironic 訊息的時間 | 讀到 1，或已消失 |
-| Bare Metal Conductor Down | 裸機 | 警告 | `openstack_ironic_agent_state`，每台主機的最小值，**過去 15 分鐘**。只有探測點會送出，且僅限雲端的原則允許其憑證讀取 Ironic 的 conductor 時：預設會拒絕專案的憑證 | Ironic 將某個 conductor 列為未存活。它的 API 仍持續回應，且每個節點的讀數都和原來一樣，因此沒有其他項目會指出這件事 | 讀到 1，或 Ironic 移除其記錄 |
+| Bare Metal API Down | 裸機 | 嚴重 | `openstack_ironic_up`，每個地區的最小值，**過去 15 分鐘** | 低於 1。只在能讀取 Ironic 並據以判斷的地方才會發聲：探測器，或 exporter 1.7.0。Ironic 停止時，Agent 的 exporter 沒有東西可讀，與沒有 Ironic 的雲端相同，因此在那裡保持安靜，要由雲端的頁面說明最後一次收到 Ironic 訊息的時間 | 讀到 1，或已消失 |
+| Bare Metal Conductor Down | 裸機 | 警告 | `openstack_ironic_agent_state`，每台主機的最小值，**過去 15 分鐘**。只有探測器會送出，且僅限雲端的原則允許其憑證讀取 Ironic 的 conductor 時：預設會拒絕專案的憑證 | Ironic 將某個 conductor 列為未存活。它的 API 仍持續回應，且每個節點的讀數都和原來一樣，因此沒有其他項目會指出這件事 | 讀到 1，或 Ironic 移除其記錄 |
 | Bare Metal Node in Error | 裸機 | 警告 | 針對每個失敗的 `provision_state` 的 `openstack_ironic_node`，每個節點的最大值，**過去 15 分鐘** | 15 分鐘內每次收集都處於該狀態，無論是否在維護中 | 已離開該狀態，或已被刪除 |
 | Bare Metal Node Stuck Transitioning | 裸機 | 警告 | 針對每個過渡的 `provision_state` 且 `maintenance = false` 的 `openstack_ironic_node`，每個節點的最大值，**過去 2 小時** | 2 小時內每次收集都處於該狀態。長時間的磁碟抹除確實可能花這麼久，這一點節點的頁面看得出來，這個範本看不出來 | 已離開該狀態，或已被刪除 |
 | Bare Metal Node in Maintenance Too Long | 裸機 | 警告 | `maintenance = true` 的 `openstack_ironic_node`，每個節點的最大值，**過去 7 天** | 7 天內每次收集都處於維護中。需要你的指標保留那麼久 | 已離開維護狀態，或已被刪除 |
 | Bare Metal Power State Unexpected | 裸機 | 警告 | `provision_state = active`、`power_state = power off` 且 `maintenance = false` 的 `openstack_ironic_node`，每個節點的最大值，**過去 15 分鐘** | 15 分鐘內每次收集都是如此。擁有者自行停止的執行個體讀到的結果相同，這一點節點的頁面看得出來，這個範本看不出來 | 已開機，或不再部署 |
 | Project Quota Nearly Reached | 專案 | 警告 | `openstack_nova_limits_*` 和 `openstack_cinder_limits_volume_*`，已用量 / 上限，每個專案，**過去 3 小時** | 高於其 vCPU、記憶體、執行個體或磁碟區配額的 90%。需要[啟用 limits 序列](#啟用-limits-序列) | 等於或低於 81% |
-| Token Issue Failing | 可用性 | 嚴重 | `openstack_check_token_success`，每個地區的最小值，**過去 5 分鐘**。需要啟用 API 檢查 | 低於 1：Keystone 沒有發給探測點權杖 | 已發出權杖 |
+| Token Issue Failing | 可用性 | 嚴重 | `openstack_check_token_success`，每個地區的最小值，**過去 5 分鐘**。需要啟用 API 檢查 | 低於 1：Keystone 沒有發給探測器權杖 | 已發出權杖 |
 | Service API Check Failing | 可用性 | 嚴重 | `openstack_check_api_success`，每個地區和 `service_type` 的最小值，**過去 5 分鐘**。需要啟用 API 檢查 | 低於 1：該服務沒有回應，適用於目錄中的任何服務 | 它有回應，或已離開目錄 |
 | Public Certificate Expiring in 30 Days | 可用性 | 警告 | `openstack_check_certificate_expiry_days`，每個地區、主機和連接埠的最小值，**過去 5 分鐘**。需要啟用 API 檢查 | 剩餘不到 30 天 | 剩餘 33 天或以上，或端點已離開目錄 |
 | Public Certificate Expiring in 7 Days | 可用性 | 嚴重 | 同上 | 剩餘不到 7 天 | 剩餘 7.7 天或以上，或端點已離開目錄 |
@@ -233,7 +233,7 @@ OneUptime 內建 120 個範本，對應常見的 OpenStack 問題，可在 **告
 | Database Connection Lost | 服務記錄 | 嚴重 | `DBConnectionError`、`SQL connection failed`，或 MySQL 的 `Lost connection` 和 `Can't connect`，**過去 5 分鐘** | 5 筆或更多 | 少於 5 筆 |
 | Too Many Errors from a Service | 服務記錄 | 警告 | `ERROR` 和 `CRITICAL` 行，每個服務和機器，**過去 5 分鐘** | 50 筆或更多 | 少於 50 筆 |
 | Token Validation Failing | 服務記錄 | 嚴重 | 服務的 `Authorization failed for token`，**過去 5 分鐘** | 10 筆或更多。一筆只是某人過期的工作階段。Fernet 金鑰與其他控制器不同的控制器也會讀到這個結果，且沒有任何一行記錄說明更多，因此請比對每一台上的 `/etc/keystone/fernet-keys` | 少於 10 筆 |
-| Instance Action Failed | 事件 | 警告 | `compute.exception` 和任何 `instance.*.error`，每個執行個體、事件和原因，**過去 15 分鐘**。需要[通知](/docs/telemetry/openstack#開啟通知)或探測點 | 一筆或更多 | 視窗內一筆都不剩 |
+| Instance Action Failed | 事件 | 警告 | `compute.exception` 和任何 `instance.*.error`，每個執行個體、事件和原因，**過去 15 分鐘**。需要[通知](/docs/telemetry/openstack#開啟通知)或探測器 | 一筆或更多 | 視窗內一筆都不剩 |
 | Scheduling Failed | 事件 | 警告 | 指名 `NoValidHost` 的運算任務錯誤，例如 Nova 所送出的 `compute_task.build_instances.error`。也包含 Cinder 的 `scheduler.create_volume`，以及 Nova 文件列出、但我們的測試雲端從未送出的 `scheduler.select_destinations.error`。每個執行個體、事件和原因，**過去 15 分鐘**。需要相同的條件 | 一筆或更多 | 視窗內一筆都不剩 |
 
 ### 雲端所依賴的基礎
@@ -292,7 +292,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 三個 **容量** 範本讀取的是 OneUptime 在雲端回報期間，每兩分鐘根據雲端的清單自行寫入的序列。沒有任何 exporter 序列帶有區域或 flavor 的數量。它們的意義請見[容量](/docs/telemetry/openstack#容量)。這三個範本談的都是分配量，也就是已經承諾出去的部分，沒有任何一個談的是負載。
 
-**Project Quota Nearly Reached** 讀取 `openstack_nova_limits_*` 和 `openstack_cinder_limits_*`，這些序列預設是關閉的，因為每個專案都要花費 API 呼叫。在你啟用之前，這個範本會保持安靜：請以 `OPENSTACK_COLLECT_QUOTAS=true` 再次執行 Agent 的 `install.sh`。接著會有第二個 exporter 每小時讀取一次，而範本要等到累積三次讀數。對於由探測點讀取的雲端，請在其 **設定** 頁面的 **資料收集** 下啟用 **專案限制**。
+**Project Quota Nearly Reached** 讀取 `openstack_nova_limits_*` 和 `openstack_cinder_limits_*`，這些序列預設是關閉的，因為每個專案都要花費 API 呼叫。在你啟用之前，這個範本會保持安靜：請以 `OPENSTACK_COLLECT_QUOTAS=true` 再次執行 Agent 的 `install.sh`。接著會有第二個 exporter 每小時讀取一次，而範本要等到累積三次讀數。對於由探測器讀取的雲端，請在其 **設定** 頁面的 **資料收集** 下啟用 **專案限制**。
 
 ### 接下來要執行的指令
 
@@ -331,8 +331,8 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 | 指標 | 單位 | 讀取 | 說明 |
 | --- | --- | --- | --- |
-| `openstack_nova_agent_state` | - | 最小值 | Nova 工作程序（nova-compute、nova-scheduler、nova-conductor）是運作中（1）還是停機（0），每個工作程序各一個序列。adminState 表示已啟用或已停用，被停用的屬於計畫中的作業，其原因記在 disabledReason。hostname 是 Nova 的簡短主機名稱，而虛擬化主機和 Placement 序列使用的是完整名稱。forced_down 表示操作員告知 Nova 它已停機：只有探測點會送出。 |
-| `openstack_neutron_agent_state` | - | 最小值 | Neutron agent 是否存活（1）或否（0），每個主機和執行檔各一個序列。adminState 表示 up 或 down，被設為 down 的屬於計畫中的作業。dhcp_network_count 表示 DHCP agent 服務多少個網路：只有探測點會送出。 |
+| `openstack_nova_agent_state` | - | 最小值 | Nova 工作程序（nova-compute、nova-scheduler、nova-conductor）是運作中（1）還是停機（0），每個工作程序各一個序列。adminState 表示已啟用或已停用，被停用的屬於計畫中的作業，其原因記在 disabledReason。hostname 是 Nova 的簡短主機名稱，而虛擬化主機和 Placement 序列使用的是完整名稱。forced_down 表示操作員告知 Nova 它已停機：只有探測器會送出。 |
+| `openstack_neutron_agent_state` | - | 最小值 | Neutron agent 是否存活（1）或否（0），每個主機和執行檔各一個序列。adminState 表示 up 或 down，被設為 down 的屬於計畫中的作業。dhcp_network_count 表示 DHCP agent 服務多少個網路：只有探測器會送出。 |
 | `openstack_cinder_agent_state` | - | 最小值 | Cinder 服務（cinder-volume、cinder-scheduler、cinder-backup）是運作中（1）還是停機（0），每個主機和執行檔各一個序列。adminState 表示已啟用或已停用，被停用的屬於計畫中的作業。uuid 標籤在每次收集時都會重新產生，因此切勿依它分組。 |
 
 ### RabbitMQ
@@ -411,7 +411,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | `openstack_placement_resource_usage` | - | 最大值 | Placement 已對虛擬化主機上的執行個體承諾了多少資源。這是分配量，而非負載：閒置的執行個體也佔用全部。 |
 | `openstack_placement_resource_generation` | `count` | 最大值 | 依 Placement 的計算，虛擬化主機的清單已變更幾次。每次變更都會增加，所以它只說明有東西變了，而不是變了什麼。 |
 | `openstack_placement_resource_provider_allocations` | - | 最大值 | 單一消費者（其 uuid）在虛擬化主機上持有多少資源。 |
-| `openstack_placement_flavor_fits` | `count` | 最大值 | 依 `GET /allocation_candidates`，Placement 認為還能再放進多少個某 flavor，以主機逐一計算：地區一個序列，每個區域和 aggregate 各一個序列。依序讀取，每次收集讀幾個 flavor，其間則以上次讀到的值送出。只有探測點會查詢這個。 |
+| `openstack_placement_flavor_fits` | `count` | 最大值 | 依 `GET /allocation_candidates`，Placement 認為還能再放進多少個某 flavor，以主機逐一計算：地區一個序列，每個區域和 aggregate 各一個序列。依序讀取，每次收集讀幾個 flavor，其間則以上次讀到的值送出。只有探測器會查詢這個。 |
 | `openstack_nova_vcpus_available` | `count` | 最大值 | 虛擬化主機擁有的 vCPU，不論名稱如何，是套用任何分配比率之前的數量。Nova 自 microversion 2.88 起不再回報此項，所以應該信賴的是 Placement 的序列。 |
 | `openstack_nova_vcpus_used` | `count` | 最大值 | Nova 已對虛擬化主機上的執行個體承諾的 vCPU。是分配量，而非負載。 |
 | `openstack_nova_memory_available_bytes` | `bytes` | 最大值 | 虛擬化主機擁有的記憶體，不論名稱如何，是套用任何分配比率之前的量。 |
@@ -421,7 +421,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | `openstack_nova_free_disk_bytes` | `bytes` | 最小值 | Nova 認為虛擬化主機上可用的本機磁碟。當虛擬化主機承諾的量超過它所擁有的時，這個值可能變成負數。 |
 | `openstack_nova_current_workload` | `count` | 最大值 | 虛擬化主機上正在執行多少個建置、調整大小、快照、遷移和救援作業。這不是 CPU 負載。 |
 | `openstack_nova_running_vms` | `count` | 最大值 | 虛擬化主機有多少個 ACTIVE 的執行個體。hostname 是虛擬化主機的完整名稱。 |
-| `openstack_nova_server_status` | - | 最大值 | 每個執行個體一個序列，其值是代表狀態的數字代碼：ACTIVE 為 0，BUILD 為 1，ERROR 為 4。請從 status 標籤讀取字詞並依它篩選：這個代碼不是計數，也不是嚴重程度。在真實雲端上，Agent 的 exporter 會讓 address_ipv4 和 address_ipv6 保持空白，而探測點會根據 Nova 列出的位址填入。在執行個體被排程之前，hypervisor_hostname、host_id 和 availability_zone 是空的。image_id 指出它是從哪個映像檔啟動的：只有探測點會送出，而且從磁碟區啟動的執行個體沒有。network_names 以 JSON 陣列列出它有位址的網路名稱：只有探測點會送出。 |
+| `openstack_nova_server_status` | - | 最大值 | 每個執行個體一個序列，其值是代表狀態的數字代碼：ACTIVE 為 0，BUILD 為 1，ERROR 為 4。請從 status 標籤讀取字詞並依它篩選：這個代碼不是計數，也不是嚴重程度。在真實雲端上，Agent 的 exporter 會讓 address_ipv4 和 address_ipv6 保持空白，而探測器會根據 Nova 列出的位址填入。在執行個體被排程之前，hypervisor_hostname、host_id 和 availability_zone 是空的。image_id 指出它是從哪個映像檔啟動的：只有探測器會送出，而且從磁碟區啟動的執行個體沒有。network_names 以 JSON 陣列列出它有位址的網路名稱：只有探測器會送出。 |
 | `openstack_nova_server_local_gb` | `GiB` | 最大值 | 單一執行個體持有的本機磁碟。_預設為關閉：_ 請從 exporter 中刪除 `--disable-metric=nova-server_local_gb`。 |
 | `openstack_nova_total_vms` | `count` | 最大值 | 該地區有多少個執行個體，不論狀態。 |
 | `openstack_nova_instances_by_status` | `count` | 最大值 | 每種狀態各有多少個執行個體，每個地區的每種狀態各一個序列。超過摘要大小的雲端會保留此項，取代每個執行個體一個序列。其他雲端不會送出。 |
@@ -489,12 +489,12 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | `openstack_cinder_pool_capacity_total_gb` | `GiB` | 最大值 | Cinder 儲存池依其後端所述共有多少容量。 |
 | `openstack_cinder_pool_capacity_free_gb` | `GiB` | 最小值 | Cinder 儲存池依其後端所述還有多少可用。 |
 | `openstack_cinder_volume_status_counter` | `count` | 最大值 | 每種狀態各有多少個磁碟區，每個狀態字詞在 status 標籤中各一個序列。已知但沒有磁碟區的狀態讀到 0。 |
-| `openstack_cinder_volume_gb` | `GiB` | 最大值 | 每個磁碟區一個序列，其值是它的大小，狀態字詞在 status 標籤中。在由探測點收集的雲端上，對於 Cinder 視為管理員的憑證，pool 標籤會指出是哪個儲存池持有它。 |
+| `openstack_cinder_volume_gb` | `GiB` | 最大值 | 每個磁碟區一個序列，其值是它的大小，狀態字詞在 status 標籤中。在由探測器收集的雲端上，對於 Cinder 視為管理員的憑證，pool 標籤會指出是哪個儲存池持有它。 |
 | `openstack_cinder_volume_status` | - | 最大值 | 每個磁碟區一個序列，其值是代表狀態的數字代碼。exporter 已將它列為棄用：請讀取 Volume Size 的 status 標籤，或 Volumes by Status。 |
 | `openstack_cinder_volumes` | `count` | 最大值 | 該地區有多少個磁碟區。 |
 | `openstack_cinder_snapshots` | `count` | 最大值 | 該地區有多少個磁碟區快照。 |
-| `openstack_cinder_snapshot_gb` | `GiB` | 最大值 | 每個磁碟區快照一個序列，其值是它的大小，狀態字詞在 status 標籤中。只有探測點會送出：Agent 的 exporter 只計算快照數量。 |
-| `openstack_cinder_backup_gb` | `GiB` | 最大值 | 每個磁碟區備份一個序列，其值是它的大小，狀態字詞在 status 標籤中，因此可以看出持續失敗的備份。只有探測點會送出：Agent 的 exporter 沒有備份資料。 |
+| `openstack_cinder_snapshot_gb` | `GiB` | 最大值 | 每個磁碟區快照一個序列，其值是它的大小，狀態字詞在 status 標籤中。只有探測器會送出：Agent 的 exporter 只計算快照數量。 |
+| `openstack_cinder_backup_gb` | `GiB` | 最大值 | 每個磁碟區備份一個序列，其值是它的大小，狀態字詞在 status 標籤中，因此可以看出持續失敗的備份。只有探測器會送出：Agent 的 exporter 沒有備份資料。 |
 
 ### 容量
 
@@ -537,15 +537,15 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | `openstack_heat_up` | | 最小值 | Heat 的 API 是否有回應。`heat-engine` 停止時也會讀到 0，因為 Heat 的 API 會向 engine 要求取得清單。 |
 | `openstack_heat_stack_status` | | 最大值 | 每個 stack 一個序列，帶有 `id`、`name`、`project_id` 和 `status`。其值是代碼，所以請讀取它的 `status` 標籤。對於管理員以下的權限，`project_id` 是空的。 |
 | `openstack_heat_stack_status_counter` | `count` | 最大值 | 各地區有多少個 stack 處於每種狀態。 |
-| `openstack_heat_agent_state` | | 最小值 | Heat 是否將每個 `heat-engine` 列為 up。只有探測點會送出。 |
+| `openstack_heat_agent_state` | | 最小值 | Heat 是否將每個 `heat-engine` 列為 up。只有探測器會送出。 |
 | `openstack_container_infra_up` | | 最小值 | Magnum 的 API 是否有回應。`magnum-conductor` 停止時仍維持 1。 |
-| `openstack_cloudkitty_up` | | 最小值 | 在執行 CloudKitty 的雲端上，CloudKitty 的 API 是否有回應。只有探測點會送出。 |
-| `openstack_cloudkitty_rated` | | 最大值 | CloudKitty 為某專案評定一個月的金額，每小時一次，依專案和月份。是一個數字，單位是其費率所採用的單位。只有探測點會送出。 |
+| `openstack_cloudkitty_up` | | 最小值 | 在執行 CloudKitty 的雲端上，CloudKitty 的 API 是否有回應。只有探測器會送出。 |
+| `openstack_cloudkitty_rated` | | 最大值 | CloudKitty 為某專案評定一個月的金額，每小時一次，依專案和月份。是一個數字，單位是其費率所採用的單位。只有探測器會送出。 |
 | `openstack_container_infra_total_clusters` | `count` | 最大值 | Magnum 針對此憑證列出了多少個叢集。 |
 | `openstack_container_infra_cluster_status` | | 最大值 | 每個叢集一個序列，帶有 `uuid`、`name`、`stack_id`、`status`、`node_count`、`master_count` 和 `project_id`。其值是代碼，所以請讀取它的 `status` 標籤。exporter 送出的 `project_id` 是空的。 |
 | `openstack_container_infra_cluster_masters` | `count` | 最大值 | 每個叢集被要求建立多少個控制平面節點。 |
 | `openstack_container_infra_cluster_nodes` | `count` | 最大值 | 每個叢集被要求建立多少個工作節點。 |
-| `openstack_container_infra_agent_state` | | 最小值 | Magnum 是否將每個 `magnum-conductor` 列為 up。只有探測點會送出。 |
+| `openstack_container_infra_agent_state` | | 最小值 | Magnum 是否將每個 `magnum-conductor` 列為 up。只有探測器會送出。 |
 
 ### 共享檔案系統
 
@@ -558,7 +558,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | `openstack_sharev2_share_status` | | 最大值 | 每個共享一個序列。其值是代碼，而 `creating` 的代碼是 0，所以請讀取它的 `status` 標籤。 |
 | `openstack_sharev2_share_status_counter` | `count` | 最大值 | 各地區有多少個共享處於每種狀態。 |
 | `openstack_sharev2_shares_counter` | `count` | 最大值 | Manila 針對此憑證列出了多少個共享，依地區。 |
-| `openstack_sharev2_agent_state` | | 最小值 | Manila 是否將每個服務列為 up，其中 `state` 對正常關閉的服務是 `stopped`，對當掉的服務是 `down`。只有探測點會送出。 |
+| `openstack_sharev2_agent_state` | | 最小值 | Manila 是否將每個服務列為 up，其中 `state` 對正常關閉的服務是 `stopped`，對當掉的服務是 `down`。只有探測器會送出。 |
 
 ### 負載平衡器
 
@@ -570,18 +570,18 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | `openstack_loadbalancer_loadbalancer_status` | | 最大值 | 每個負載平衡器一個序列，帶有 `provisioning_status`、`operating_status`、`provider`、`vip_address` 和 `project_id`。其值是 operating status 的代碼：請讀取字詞。 |
 | `openstack_loadbalancer_pool_status` | | 最大值 | 每個 pool 一個序列，帶有 `provisioning_status`、`operating_status`、`protocol` 和 `lb_algorithm`。成員全部停機的 pool 仍然讀到 0：請讀取 `operating_status`。 |
 | `openstack_loadbalancer_amphora_status` | | 最大值 | 每個 amphora 一個序列，帶有 `status`、`role`、`compute_id`、`loadbalancer_id` 和 `cert_expiration`（是文字而非數字）。只有管理員可以列出 amphora。 |
-| `openstack_loadbalancer_listener_status` | | 最大值 | 每個 listener 一個序列，值永遠是 1，帶有 `provisioning_status`、`operating_status`、`protocol`、`protocol_port` 和 `loadbalancer_id`。只有探測點會送出。 |
-| `openstack_loadbalancer_member_status` | | 最大值 | 每個 pool 成員一個序列，值永遠是 1，最重要的是 `operating_status`，另帶有 `pool_id`、`address`、`protocol_port` 和 `weight`。只有探測點會送出。 |
-| `openstack_loadbalancer_stats_active_connections` | `{connection}` | 最大值 | 讀取當下開啟中的連線數，依負載平衡器。只有探測點會送出：它讀取的是 Octavia 的 API。 |
-| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | 最大值 | 兩次讀取之間，每秒開啟的連線數，依負載平衡器。只有探測點會送出。 |
-| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | 最大值 | 每秒抵達的位元組數，依負載平衡器。只有探測點會送出。 |
-| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | 最大值 | 每秒送出的位元組數，依負載平衡器。只有探測點會送出。 |
-| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | 最大值 | 每秒失敗的請求數，依負載平衡器。只有探測點會送出。 |
-| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | 最大值 | 同上，依 listener。只有探測點會送出。 |
-| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | 最大值 | 同上，依 listener。只有探測點會送出。 |
-| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | 最大值 | 同上，依 listener。只有探測點會送出。 |
-| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | 最大值 | 同上，依 listener。只有探測點會送出。 |
-| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | 最大值 | 同上，依 listener。只有探測點會送出。 |
+| `openstack_loadbalancer_listener_status` | | 最大值 | 每個 listener 一個序列，值永遠是 1，帶有 `provisioning_status`、`operating_status`、`protocol`、`protocol_port` 和 `loadbalancer_id`。只有探測器會送出。 |
+| `openstack_loadbalancer_member_status` | | 最大值 | 每個 pool 成員一個序列，值永遠是 1，最重要的是 `operating_status`，另帶有 `pool_id`、`address`、`protocol_port` 和 `weight`。只有探測器會送出。 |
+| `openstack_loadbalancer_stats_active_connections` | `{connection}` | 最大值 | 讀取當下開啟中的連線數，依負載平衡器。只有探測器會送出：它讀取的是 Octavia 的 API。 |
+| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | 最大值 | 兩次讀取之間，每秒開啟的連線數，依負載平衡器。只有探測器會送出。 |
+| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | 最大值 | 每秒抵達的位元組數，依負載平衡器。只有探測器會送出。 |
+| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | 最大值 | 每秒送出的位元組數，依負載平衡器。只有探測器會送出。 |
+| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | 最大值 | 每秒失敗的請求數，依負載平衡器。只有探測器會送出。 |
+| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | 最大值 | 同上，依 listener。只有探測器會送出。 |
+| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | 最大值 | 同上，依 listener。只有探測器會送出。 |
+| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | 最大值 | 同上，依 listener。只有探測器會送出。 |
+| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | 最大值 | 同上，依 listener。只有探測器會送出。 |
+| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | 最大值 | 同上，依 listener。只有探測器會送出。 |
 | `openstack_loadbalancer_total_loadbalancers` | `count` | 最大值 | Octavia 針對此憑證列出了多少個負載平衡器，依地區。 |
 | `openstack_loadbalancer_total_pools` | `count` | 最大值 | Octavia 針對此憑證列出了多少個 pool，依地區。 |
 | `openstack_loadbalancer_total_amphorae` | `count` | 最大值 | Octavia 針對此憑證列出了多少個 amphora，依地區。 |
@@ -597,7 +597,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | `openstack_designate_zone_status` | | 最大值 | 每個 zone 一個序列，帶有 `id`、`name`、`tenant_id`、`type` 和 `status`。其值是代碼，而 `PENDING` 的代碼是 0，所以請讀取它的 `status` 標籤。 |
 | `openstack_designate_recordsets` | `count` | 最大值 | 每個 zone 持有多少個 recordset。exporter 每次抓取都要為每個 zone 各呼叫一次才能得知這個數字。 |
 | `openstack_designate_recordsets_status` | | 最大值 | 每個 recordset 一個序列，帶有 `id`、`name`、`type`、`zone_id`、`zone_name` 和 `status`。其值是代碼，而 `PENDING` 的代碼是 0，所以請讀取它的 `status` 標籤。 |
-| `openstack_designate_agent_state` | | 最小值 | Designate 是否將它的每個服務列為 up。只有探測點會送出。 |
+| `openstack_designate_agent_state` | | 最小值 | Designate 是否將它的每個服務列為 up。只有探測器會送出。 |
 
 ### 指標
 
@@ -618,27 +618,27 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 | --- | --- | --- | --- |
 | `openstack_object_store_up` | | 最小值 | exporter 讀取 Swift 是否有回應。Swift 拒絕的憑證會讀到 0，與 proxy 停止時相同。 |
 | `openstack_object_store_bytes` | `bytes` | 最大值 | container 持有多少資料，帶有 `container_name`。僅限該憑證自己專案的，且沒有專案標籤。 |
-| `openstack_object_store_recon_servers` | `count` | 最大值 | 雲端設定中，有多少台 Swift 儲存伺服器被指定要做 `/recon`。只有探測點會送出。 |
-| `openstack_object_store_recon_up` | | 最小值 | 被指定的伺服器是否回應了 `/recon`，帶有 `address`。只有探測點會送出。 |
-| `openstack_object_store_recon_servers_not_answering` | `count` | 最大值 | 被指定的伺服器中有多少台沒有回應。只有探測點會送出。 |
-| `openstack_object_store_recon_replication_age_seconds` | `s` | 最小值 | 伺服器上次完成一輪複寫是多久以前，帶有 `address` 和 `ring`。只有探測點會送出。 |
-| `openstack_object_store_recon_replication_failures` | `count` | 最大值 | 該輪複寫的嘗試中有多少次失敗，帶有 `address` 和 `ring`。只有探測點會送出。 |
-| `openstack_object_store_recon_oldest_replication_seconds` | `s` | 最大值 | 其中任何一個的最長等待時間。只有探測點會送出。 |
-| `openstack_object_store_recon_unmounted_drives` | `count` | 最大值 | 伺服器表示有多少個磁碟機未掛載，帶有 `address`。只有探測點會送出。 |
-| `openstack_object_store_recon_rings_differ` | | 最小值 | 被指定的伺服器是否對某個 ring 回報不同的檢查碼，帶有 `ring`。只有探測點會送出。 |
-| `openstack_object_store_recon_rings_differing` | `count` | 最大值 | 它們對多少個 ring 如此。只有探測點會送出。 |
+| `openstack_object_store_recon_servers` | `count` | 最大值 | 雲端設定中，有多少台 Swift 儲存伺服器被指定要做 `/recon`。只有探測器會送出。 |
+| `openstack_object_store_recon_up` | | 最小值 | 被指定的伺服器是否回應了 `/recon`，帶有 `address`。只有探測器會送出。 |
+| `openstack_object_store_recon_servers_not_answering` | `count` | 最大值 | 被指定的伺服器中有多少台沒有回應。只有探測器會送出。 |
+| `openstack_object_store_recon_replication_age_seconds` | `s` | 最小值 | 伺服器上次完成一輪複寫是多久以前，帶有 `address` 和 `ring`。只有探測器會送出。 |
+| `openstack_object_store_recon_replication_failures` | `count` | 最大值 | 該輪複寫的嘗試中有多少次失敗，帶有 `address` 和 `ring`。只有探測器會送出。 |
+| `openstack_object_store_recon_oldest_replication_seconds` | `s` | 最大值 | 其中任何一個的最長等待時間。只有探測器會送出。 |
+| `openstack_object_store_recon_unmounted_drives` | `count` | 最大值 | 伺服器表示有多少個磁碟機未掛載，帶有 `address`。只有探測器會送出。 |
+| `openstack_object_store_recon_rings_differ` | | 最小值 | 被指定的伺服器是否對某個 ring 回報不同的檢查碼，帶有 `ring`。只有探測器會送出。 |
+| `openstack_object_store_recon_rings_differing` | `count` | 最大值 | 它們對多少個 ring 如此。只有探測器會送出。 |
 | `openstack_object_store_objects` | `count` | 最大值 | container 持有多少個物件，帶有 `container_name`。僅限該憑證自己專案的，且沒有專案標籤。 |
 
 ### 金鑰管理
 
-只有探測點會送出這些序列，且僅限目錄中列有 Barbican 的雲端：exporter 沒有讀取它的功能。沒有它的雲端看不到任何痕跡，由 Agent 收集的雲端也一樣。
+只有探測器會送出這些序列，且僅限目錄中列有 Barbican 的雲端：exporter 沒有讀取它的功能。沒有它的雲端看不到任何痕跡，由 Agent 收集的雲端也一樣。
 
 | 指標 | 單位 | 讀取 | 說明 |
 | --- | --- | --- | --- |
-| `openstack_barbican_up` | | 最小值 | Barbican 的 API 是否有回應。它拒絕的憑證會讀到 1，因為它有回應。只有探測點會送出。 |
-| `openstack_barbican_secrets` | `count` | 最大值 | 此憑證自己的專案持有多少個 secret。只有探測點會送出。 |
-| `openstack_barbican_orders` | `count` | 最大值 | 此憑證自己的專案持有多少個 order。只有探測點會送出。 |
-| `openstack_barbican_containers` | `count` | 最大值 | 此憑證自己的專案持有多少個 secret container。只有探測點會送出。 |
+| `openstack_barbican_up` | | 最小值 | Barbican 的 API 是否有回應。它拒絕的憑證會讀到 1，因為它有回應。只有探測器會送出。 |
+| `openstack_barbican_secrets` | `count` | 最大值 | 此憑證自己的專案持有多少個 secret。只有探測器會送出。 |
+| `openstack_barbican_orders` | `count` | 最大值 | 此憑證自己的專案持有多少個 order。只有探測器會送出。 |
+| `openstack_barbican_containers` | `count` | 最大值 | 此憑證自己的專案持有多少個 secret container。只有探測器會送出。 |
 
 ### 資料庫
 
@@ -658,11 +658,11 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 | 指標 | 單位 | 讀取 | 說明 |
 | --- | --- | --- | --- |
-| `openstack_ironic_up` | | 最小值 | 讀取 Ironic 進行到足以判斷的程度時為 1。停止時，OpenStack Agent 執行的 exporter 會回應空的 200，與沒有 Ironic 的雲端相同，所以這個序列會沉默而不是讀到 0：探測點和 exporter 1.7.0 可以回報 0。 |
+| `openstack_ironic_up` | | 最小值 | 讀取 Ironic 進行到足以判斷的程度時為 1。停止時，OpenStack Agent 執行的 exporter 會回應空的 200，與沒有 Ironic 的雲端相同，所以這個序列會沉默而不是讀到 0：探測器和 exporter 1.7.0 可以回報 0。 |
 | `openstack_ironic_node` | | 最大值 | Ironic 向此憑證顯示的每個節點一個序列，值永遠是 1：它要表達的內容在標籤中，包括佈建狀態、電源狀態，以及是否處於維護中。Ironic 只會向專案顯示它所擁有的節點。 |
 | `openstack_ironic_node_provision_updated_at` | `seconds` | 最大值 | Ironic 上次看到此節點佈建狀態變動的時間，以 Unix 時間表示。部署 agent 的心跳也會讓它變動，所以長時間的抹除不代表節點卡住。從未變動過的節點沒有這個序列。 |
 | `openstack_ironic_node_updated_at` | `seconds` | 最大值 | 此節點的記錄上次變更的時間，以 Unix 時間表示。從未變更過的節點沒有這個序列。 |
-| `openstack_ironic_agent_state` | | 最小值 | Ironic 認為 conductor 存活時為 1，心跳逾期後為 0。只有探測點會送出：exporter 沒有這類序列，而限定於專案的憑證會被拒絕列出。 |
+| `openstack_ironic_agent_state` | | 最小值 | Ironic 認為 conductor 存活時為 1，心跳逾期後為 0。只有探測器會送出：exporter 沒有這類序列，而限定於專案的憑證會被拒絕列出。 |
 
 ### 專案
 
@@ -705,11 +705,11 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 ### 檢查
 
-探測點從雲端外部所發現的內容：請見[從外部檢查](#從外部檢查)。沒有任何東西收集這些序列，所以在有人啟用檢查之前它們是空的。每一個都帶有 `openstack.region.name`。
+探測器從雲端外部所發現的內容：請見[從外部檢查](#從外部檢查)。沒有任何東西收集這些序列，所以在有人啟用檢查之前它們是空的。每一個都帶有 `openstack.region.name`。
 
 | 指標 | 單位 | 讀取 | 說明 |
 | --- | --- | --- | --- |
-| `openstack_check_token_success` | - | 最小值 | Keystone 是否向從外部檢查這座雲端的探測點發出了權杖：發出為 1，沒有發出為 0。 |
+| `openstack_check_token_success` | - | 最小值 | Keystone 是否向從外部檢查這座雲端的探測器發出了權杖：發出為 1，沒有發出為 0。 |
 | `openstack_check_token_duration_seconds` | `s` | 最大值 | Keystone 發出該權杖花了多久。 |
 | `openstack_check_api_success` | - | 最小值 | 目錄中的服務是否回應了單列讀取：回應，或拒絕此憑證時為 1（因為這表示它的 API 正常運作），失敗、逾時或無法連到時為 0。標籤有 `service_type`、`service_name`、`outcome`。 |
 | `openstack_check_api_duration_seconds` | `s` | 最大值 | 該服務回應花了多久。標籤有 `service_type`、`service_name`。 |
@@ -726,7 +726,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 ## 從外部檢查
 
-每個服務都可能回報健康，但沒有人能啟動執行個體。`oslo.middleware` 的 `/healthcheck` 只能顯示服務是否可連線，所以最可靠的測試就是做使用者做的事。探測點從雲端外部執行這些操作，因為在已故障的雲端內部進行的檢查什麼也說明不了。請從雲端的 **檢查** 頁面啟用它們。[指南](/docs/telemetry/openstack#從外部檢查雲端)說明了做法，以及生命週期檢查會建立哪些東西、可能碰觸哪些東西。
+每個服務都可能回報健康，但沒有人能啟動執行個體。`oslo.middleware` 的 `/healthcheck` 只能顯示服務是否可連線，所以最可靠的測試就是做使用者做的事。探測器從雲端外部執行這些操作，因為在已故障的雲端內部進行的檢查什麼也說明不了。請從雲端的 **檢查** 頁面啟用它們。[指南](/docs/telemetry/openstack#從外部檢查雲端)說明了做法，以及生命週期檢查會建立哪些東西、可能碰觸哪些東西。
 
 - **API 檢查**預設每分鐘執行一次，而且只讀取。Keystone 發出一個權杖，目錄中的每個服務回應一次經過驗證的單列讀取，並讀取每個端點的憑證到期時間。不需要維護清單：有人加入目錄的服務，從那一刻起就會被檢查。
 - **生命週期檢查**預設每 30 分鐘執行一次，而且只有在你選擇啟用時才會執行。它在一個專用的專案中自行完成：建立伺服器、等待 `ACTIVE`、選擇性地附加浮動 IP 並 ping 它、選擇性地建立並掛接磁碟區，然後刪除所有東西。每個步驟的耗時都是一個序列。
@@ -735,7 +735,7 @@ Exporter 以連線位址稱呼機器，Neutron 則以主機名稱稱呼，因此
 
 生命週期執行每 30 分鐘回報一次，而範本會讀取多次收集。因此最近一次執行的發現，會隨每分鐘的 API 檢查重複回報，直到下一次執行為止。事件在失敗的執行後幾分鐘內開啟，並在下一次通過的執行後幾分鐘內關閉，不論間隔多長。失敗執行的事件會指出步驟，以及 Nova 或 Cinder 給出的錯誤，這些內容是從該次執行的回報中讀取的。錯誤是自由文字，因此不是標籤：下次以不同方式失敗的啟動，仍然屬於同一個事件。
 
-沉默不等於復原。超過兩個半間隔的結論不再被回報，探測點停止後也不再回報任何東西，所以開啟中的事件會保持開啟，而不是顯示為已解決。
+沉默不等於復原。超過兩個半間隔的結論不再被回報，探測器停止後也不再回報任何東西，所以開啟中的事件會保持開啟，而不是顯示為已解決。
 
 ### 以這些序列為基礎
 

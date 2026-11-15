@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 稼働率",
+    "uptimePercent": "稼働率 {{percent}}%",
     "operational": "稼働中",
     "notMonitored": "未監視",
     "noResourcesInGroup": "このグループにリソースが追加されていません。",
@@ -114,6 +115,7 @@
     "noneDescription": "このステータスページに投稿されたインシデントはありません。",
     "postmortem": "インシデント事後分析",
     "declaredAt": "発生日時: ",
+    "declaredAtTime": "発生日時: {{time}}",
     "report": "インシデントレポート",
     "notFound": "このステータスページでインシデントが見つかりません。"
   },
@@ -130,6 +132,7 @@
     "none": "お知らせなし",
     "noneDescription": "このページにはまだお知らせが投稿されていません。",
     "announcedAt": "告知日時: ",
+    "announcedAtTime": "告知日時: {{time}}",
     "notFound": "このステータスページでお知らせが見つかりません。"
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "定期メンテナンスはありません",
     "noneDescription": "このステータスページに公開された定期メンテナンスはありません。",
     "scheduledAt": "予定日時: ",
+    "scheduledAtTime": "予定日時: {{time}}",
     "report": "メンテナンスイベントのレポート",
     "notFound": "このステータスページにメンテナンスイベントは見つかりません。",
     "calendar": {

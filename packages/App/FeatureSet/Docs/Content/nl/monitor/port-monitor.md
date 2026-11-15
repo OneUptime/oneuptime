@@ -181,5 +181,5 @@ Poortmonitoren openen alleen TCP-verbindingen. Gebruik voor een DNS-server een [
 - [Ping-monitor](/docs/monitor/ping-monitor): Controleren of de host zelf bereikbaar is.
 - [SSL-certificaat-monitor](/docs/monitor/ssl-certificate-monitor): Het certificaat op een TLS-poort controleren.
 - [Databasegezondheid-monitor](/docs/monitor/database-health-monitor): Verder kijken dan een open poort en de gezondheid van een database bewaken.
-- [Aangepaste probes](/docs/probe/custom-probe): Poorten in uw eigen netwerk controleren.
+- [Aangepaste sondes](/docs/probe/custom-probe): Poorten in uw eigen netwerk controleren.
 :::

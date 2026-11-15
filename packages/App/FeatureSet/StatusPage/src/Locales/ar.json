@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% وقت التشغيل",
+    "uptimePercent": "{{percent}}% وقت التشغيل",
     "operational": "يعمل بشكل طبيعي",
     "notMonitored": "غير مراقَب",
     "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",
@@ -114,6 +115,7 @@
     "noneDescription": "لم تُنشر أي حوادث على صفحة الحالة هذه.",
     "postmortem": "تقرير ما بعد الحادثة",
     "declaredAt": "أُعلنت في ",
+    "declaredAtTime": "أُعلنت في {{time}}",
     "report": "تقرير الحادثة",
     "notFound": "لم يُعثر على الحادثة في صفحة الحالة هذه."
   },
@@ -130,6 +132,7 @@
     "none": "لا يوجد إعلان",
     "noneDescription": "لم تُنشر أي إعلانات على هذه الصفحة حتى الآن.",
     "announcedAt": "أُعلن في ",
+    "announcedAtTime": "أُعلن في {{time}}",
     "notFound": "لم يُعثر على الإعلان في صفحة الحالة هذه."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "لا توجد صيانة مجدولة",
     "noneDescription": "لم تُنشر أي صيانة مجدولة لصفحة الحالة هذه.",
     "scheduledAt": "مجدول في ",
+    "scheduledAtTime": "مجدول في {{time}}",
     "report": "تقرير حدث الصيانة",
     "notFound": "لم يُعثر على حدث صيانة لصفحة الحالة هذه.",
     "calendar": {

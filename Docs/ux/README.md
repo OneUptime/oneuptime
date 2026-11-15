@@ -324,6 +324,15 @@ work out, starts from a default for everything else, and folds what most people 
   card read half in English, and a server failure's reference had no copy button (#7307).
   Enforced by
   [ErrorSentenceGuard](../../packages/Common/Tests/App/Dashboard/ErrorSentenceGuard.test.ts).
+- **An error drawn on its own is said in the reader's language too.** A line under a button, a red
+  paragraph in a card or a tooltip that shows `API.getFriendlyMessage`'s answer draws it with
+  `ErrorInSentence` (`showWhereToLook` where it stands alone), or hands it to a place that explains
+  it: an `Alert`'s title, `ErrorMessage`, `ErrorLine`, `TableEmptyState`. Drawn as it came
+  (`<p>{error}</p>`), a gateway's 502 read "Error connecting to server. Please try again in few
+  minutes." in English on a German or a Persian page, and a server failure's reference had no copy
+  button (#7537). A message the server wrote in any script is kept as written; only an empty or
+  generic one becomes the sentence for a failure nobody explained (#7536). Enforced by
+  [FriendlyMessageDrawnGuard](../../packages/Common/Tests/App/Dashboard/FriendlyMessageDrawnGuard.test.ts).
 - **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
   words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's
   `WidgetPlaceholder`, or a view that draws one of them. Each widget drew it its own way: the set
@@ -600,7 +609,17 @@ work out, starts from a default for everything else, and folds what most people 
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
-  yet". Use `TranslatedSentence` for a sentence with values in it. Not enforced: use judgement.
+  yet", and a sentence joined from translated pieces keeps English's order, punctuation and digits
+  whatever each piece says: every table row's ⋯ button read "More actions for" and then the row's
+  name, where Japanese puts the name first, and the Correlate builder's "Remove condition 2" kept a
+  Latin 2 on a Persian page (#8076). A sentence with a value in it is one key with a
+  `{{placeholder}}` (`translateTemplate("Remove condition {{number}}", { number:
+  translator.formatNumber(index + 1) })`), a `translatePlural` for a count, or a `TranslatedSentence`
+  around an element. Two whole sentences side by side, a label that carries its own colon and its
+  value, facts set apart by " · ", a path and an aside in brackets are no sentence built from
+  pieces. Enforced by
+  [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
+  which reads template literals, `+` and `join()`.
 
 ### In every language
 
@@ -697,8 +716,17 @@ then `npm run i18n:validate` from the root.
   called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
   status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
   product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
-  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). Enforced by
-  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts).
+  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). A probe is the
+  Dashboard's word too, in the apps and every docs page: the Danish docs said "probes" over a list
+  of Sonder, the Chinese 探针 beside 探测器, the Persian کاوشگر, its explorer's word (#7976); a cloud's
+  own startup probe keeps its name, in
+  [`ProbeWords`](../../packages/App/Tests/Dashboard/ProbeWords.ts). And Persian names a port پورت:
+  درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
+  Enforced by
+  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
+  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
+  and
+  [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a

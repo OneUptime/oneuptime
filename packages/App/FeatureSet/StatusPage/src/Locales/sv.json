@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% drifttid",
+    "uptimePercent": "{{percent}}% drifttid",
     "operational": "Fungerar",
     "notMonitored": "Inte övervakad",
     "noResourcesInGroup": "Inga resurser har lagts till i den här gruppen.",
@@ -114,6 +115,7 @@
     "noneDescription": "Inga incidenter har publicerats på den här statussidan.",
     "postmortem": "Incidentanalys",
     "declaredAt": "Rapporterad den ",
+    "declaredAtTime": "Rapporterad den {{time}}",
     "report": "Incidentrapport",
     "notFound": "Incidenten kunde inte hittas på den här statussidan."
   },
@@ -130,6 +132,7 @@
     "none": "Inga meddelanden",
     "noneDescription": "Inga meddelanden har publicerats på den här sidan hittills.",
     "announcedAt": "Meddelat den ",
+    "announcedAtTime": "Meddelat den {{time}}",
     "notFound": "Meddelandet kunde inte hittas på den här statussidan."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "Inget schemalagt underhåll",
     "noneDescription": "Inget schemalagt underhåll har publicerats för den här statussidan.",
     "scheduledAt": "Planerad till ",
+    "scheduledAtTime": "Planerad till {{time}}",
     "report": "Rapport för underhållshändelse",
     "notFound": "Ingen underhållshändelse hittades för den här statussidan.",
     "calendar": {

@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% Verfügbarkeit",
+    "uptimePercent": "{{percent}}% Verfügbarkeit",
     "operational": "Betriebsbereit",
     "notMonitored": "Nicht überwacht",
     "noResourcesInGroup": "Dieser Gruppe wurden keine Ressourcen hinzugefügt.",
@@ -114,6 +115,7 @@
     "noneDescription": "Auf dieser Statusseite wurden keine Vorfälle veröffentlicht.",
     "postmortem": "Nachbearbeitung des Vorfalls",
     "declaredAt": "Gemeldet am ",
+    "declaredAtTime": "Gemeldet am {{time}}",
     "report": "Vorfallsbericht",
     "notFound": "Vorfall auf dieser Statusseite nicht gefunden."
   },
@@ -130,6 +132,7 @@
     "none": "Keine Ankündigungen",
     "noneDescription": "Auf dieser Seite wurden bisher keine Ankündigungen veröffentlicht.",
     "announcedAt": "Angekündigt am ",
+    "announcedAtTime": "Angekündigt am {{time}}",
     "notFound": "Ankündigung auf dieser Statusseite nicht gefunden."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "Keine geplante Wartung",
     "noneDescription": "Für diese Statusseite wurde keine geplante Wartung veröffentlicht.",
     "scheduledAt": "Geplant für ",
+    "scheduledAtTime": "Geplant für {{time}}",
     "report": "Bericht zum Wartungsereignis",
     "notFound": "Kein Wartungsereignis auf dieser Statusseite gefunden.",
     "calendar": {

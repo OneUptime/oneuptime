@@ -105,7 +105,7 @@ De provider heeft een resource voor elk soort record dat je via de OneUptime-API
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | Incidenten, hun ernstniveaus en hun statussen |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | Waarschuwingen, hun ernstniveaus en hun statussen |
 | `oneuptime_scheduled_maintenance_event` | Een gepland onderhoudsvenster |
-| `oneuptime_probe` | Een eigen probe, die vanuit je netwerk controleert |
+| `oneuptime_probe` | Een eigen sonde, die vanuit je netwerk controleert |
 
 De [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) toont elke resource met al zijn attributen.
 

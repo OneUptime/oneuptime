@@ -113,7 +113,7 @@ Het netwerk van de sonde kan vCenter niet via TCP 443 bereiken. Sta het verkeer 
 :::
 
 :::details De sonde heeft dit niet opgepakt
-De sonde is offline, of draait een OneUptime-versie die ouder is dan de VMware-verzameling. Controleer in de tabel **Aangepaste probes** of ze verbonden is, en werk haar bij.
+De sonde is offline, of draait een OneUptime-versie die ouder is dan de VMware-verzameling. Controleer in de tabel **Aangepaste sondes** of ze verbonden is, en werk haar bij.
 :::
 
 :::details Deze vCenter is te groot om met een sonde te verzamelen

@@ -94,7 +94,8 @@
     "versionModalTitle": "Версия OneUptime",
     "versionLabel": "Версия",
     "commitLabel": "Коммит",
-    "versionUnavailable": "Данные о версии недоступны"
+    "versionUnavailable": "Данные о версии недоступны",
+    "versionUnavailableWithError": "Данные о версии недоступны: {{error}}"
   },
   "navbar": {
     "users": "Пользователи",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "Фильтр по полю «{{field}}»",
   "Something went wrong. Please try again.": "Что-то пошло не так. Попробуйте ещё раз.",
   "More actions": "Другие действия",
-  "More actions for": "Другие действия для",
+  "More actions for {{name}}": "Другие действия для {{name}}",
+  "Clear {{filter}} filter": "Очистить фильтр «{{filter}}»",
+  "Clear {{filter}}": "Очистить: {{filter}}",
   "Delete Error": "Ошибка удаления",
   "Refresh?": "Обновить?",
   "Updated": "Обновлено",

@@ -35,6 +35,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The databases whose tables are watched, with who collects each - OneUptime,
@@ -161,7 +162,9 @@ const DataObservabilityStoresPage: FunctionComponent<
       >
         <div>
           {actionError ? (
-            <p className="mb-3 text-sm text-red-600">{actionError}</p>
+            <p className="mb-3 text-sm text-red-600">
+              <ErrorInSentence message={actionError} showWhereToLook={true} />
+            </p>
           ) : (
             <></>
           )}
