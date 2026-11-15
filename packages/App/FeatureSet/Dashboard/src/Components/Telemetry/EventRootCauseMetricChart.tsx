@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
@@ -9,6 +10,8 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { ResolvedStateList } from "Common/Utils/ResolvedState";
 import EventMetricInvestigationPanel from "./EventMetricInvestigationPanel";
 import {
@@ -24,6 +27,7 @@ import {
   getRootCauseMetrics,
   getRootCauseTimes,
 } from "../../Utils/EventRootCauseMetrics";
+import { getUnsetText } from "../Dashboard/Components/DashboardWidgetFallbackWords";
 
 /*
  * Where a Root Cause page keeps what the reader changed in its URL
@@ -100,7 +104,8 @@ export interface ComponentProps {
 }
 
 interface LoadedCard {
-  metrics: RootCauseMetrics;
+  // The event as read: what the card charts is worked out from it as drawn.
+  event: RootCauseEvent;
   times: RootCauseTimes;
   impactStartedAt: Date | undefined;
   moments: RootCauseMoments;
@@ -140,6 +145,7 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
 ): ReactElement | null => {
   const eventId: string = props.eventId.toString();
   const reader: RootCauseEventReader = props.reader;
+  const translator: Translator = useTranslator();
   const [loaded, setLoaded] = useState<LoadedRootCause | null>(null);
   const [error, setError] = useState<{ eventId: string; text: string }>({
     eventId: "",
@@ -154,11 +160,10 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
         new ObjectID(eventId),
       );
 
-      const metrics: RootCauseMetrics | null = event
-        ? getRootCauseMetrics(event)
-        : null;
+      // Whether there is anything to chart: the card works out what as drawn.
+      const hasMetrics: boolean = Boolean(event && getRootCauseMetrics(event));
 
-      if (!event || !metrics) {
+      if (!event || !hasMetrics) {
         if (!isCancelled) {
           setLoaded({ eventId: eventId, card: null });
         }
@@ -180,7 +185,7 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
       setLoaded({
         eventId: eventId,
         card: {
-          metrics: metrics,
+          event: event,
           /*
            * When it was declared or created, and resolved: as on its
            * Overview. An episode's moments say so themselves.
@@ -212,6 +217,24 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   }, [eventId, reader]);
 
   /*
+   * What the card charts, worked out as it is drawn from the event read: the
+   * line saying which series the charts were narrowed to is in the reader's
+   * words - "(nicht gesetzt)" for a group whose attribute held nothing, on a
+   * German page - and follows the language when it changes after the read
+   * (#8269), with no second read.
+   */
+  const unsetLabel: string = getUnsetText(translator);
+  const readEvent: RootCauseEvent | undefined =
+    loaded && loaded.eventId === eventId && loaded.card
+      ? loaded.card.event
+      : undefined;
+  const metrics: RootCauseMetrics | null = useMemo(() => {
+    return readEvent
+      ? getRootCauseMetrics({ ...readEvent, unsetLabel: unsetLabel })
+      : null;
+  }, [readEvent, unsetLabel]);
+
+  /*
    * What the card says it is while it reads, and when a read fails: the
    * investigation's own words for its subject, so the card keeps its title
    * and description when the charts come in.
@@ -235,7 +258,7 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
     );
   }
 
-  if (!loaded.card) {
+  if (!loaded.card || !metrics) {
     // No metrics behind this event: nothing to show.
     return null;
   }
@@ -250,9 +273,9 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
      */
     <EventMetricInvestigationPanel
       key={eventId}
-      telemetryQuery={card.metrics.telemetryQuery}
-      evaluationWindow={card.metrics.evaluationWindow}
-      seriesSummary={card.metrics.seriesSummary}
+      telemetryQuery={metrics.telemetryQuery}
+      evaluationWindow={metrics.evaluationWindow}
+      seriesSummary={metrics.seriesSummary}
       subject={reader.subject}
       eventId={
         ROOT_CAUSE_SUBJECT_IS_ONE_EVENT[reader.subject] ? eventId : undefined
@@ -266,7 +289,7 @@ const EventRootCauseMetricChart: FunctionComponent<ComponentProps> = (
       stateList={reader.stateList}
       urlParamPrefix={ROOT_CAUSE_METRICS_URL_PREFIX}
       showsCompanionTabs={false}
-      chartedFromMonitorNow={card.metrics.chartedFromMonitorNow}
+      chartedFromMonitorNow={metrics.chartedFromMonitorNow}
     />
   );
 };
