@@ -17,10 +17,10 @@ import {
   GLOBAL_EMAIL_PROVIDERS,
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
   GlobalEmailProviderTransport,
-  SMTP_AUTH_TYPE_CHOICES,
   getGlobalEmailProviderCard,
   getGlobalSmtpConfigFormFields,
   getSmtpConfigFormSteps,
+  getSmtpSignInSentence,
   showsSmtpOAuthCredentials,
   showsSmtpOAuthProviderType,
   showsSmtpServerFields,
@@ -28,7 +28,6 @@ import {
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import IconProp from "Common/Types/Icon/IconProp";
 import EmailProviderSettingsCard from "./EmailProviderSettingsCard";
 import ServerEmailEnvironmentCard, {
@@ -46,6 +45,7 @@ import {
   useServerSetupChecklist,
   UseServerSetupChecklistResult,
 } from "Common/UI/Utils/ServerSetupChecklist";
+import ServerSendingStatusLoader from "Common/UI/Utils/ServerSending";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
@@ -115,27 +115,17 @@ export const getEmailServerTypeChoice: (
 };
 
 /*
- * The sign-in a stored Authentication Type reads as, in the Edit dialog's
- * words: the card showed the stored English ("Username and Password") in
- * every language. Never picked, the mail service signs in with the
- * username and password.
+ * How the server signs in to its mail server, as the card says it: the
+ * Edit dialog's own sentence (getSmtpSignInSentence), so the two say the
+ * same thing (#7458). The card showed the stored Authentication Type, and
+ * read "Username and Password" on a server that was never given a
+ * username or a password - and so sends without signing in, as the
+ * dialog said - and on one that never picked a sign-in at all.
  */
-export const getSmtpAuthTypeTitle: (value: unknown) => string = (
-  value: unknown,
+export const getSmtpSignInText: (item: GlobalConfig) => string = (
+  item: GlobalConfig,
 ): string => {
-  const choice: RadioButton | undefined = SMTP_AUTH_TYPE_CHOICES.find(
-    (candidate: RadioButton): boolean => {
-      return candidate.value === value;
-    },
-  );
-
-  if (choice) {
-    return choice.title;
-  }
-
-  return value
-    ? String(value)
-    : (SMTP_AUTH_TYPE_CHOICES[0] as RadioButton).title;
+  return getSmtpSignInSentence(item, GLOBAL_SMTP_CONFIG_FORM_COLUMNS);
 };
 
 const Settings: FunctionComponent = (): ReactElement => {
@@ -152,7 +142,12 @@ const Settings: FunctionComponent = (): ReactElement => {
     useServerEmailEnvironment();
 
   const onSettingsSaved: () => void = (): void => {
-    // Saving the settings starts email again at "not tested yet".
+    /*
+     * Saving the settings starts email again at "not tested yet": the
+     * banner at the top of the page reads where email stands again too, so
+     * "Email is not set up" goes once it is (#7459).
+     */
+    ServerSendingStatusLoader.clear();
     void checklist.reload();
   };
   const [emailServerType, setemailServerType] = React.useState<EmailServerType>(
@@ -381,6 +376,14 @@ const Settings: FunctionComponent = (): ReactElement => {
                 modelType: GlobalConfig,
                 id: "model-detail-global-config",
                 /*
+                 * Whether a password is set: the server signs in with the
+                 * username and password only when both are (the
+                 * Authentication Type row). Never shown.
+                 */
+                selectMoreFields: {
+                  smtpPassword: true,
+                },
+                /*
                  * What the server sends with: the rows a Microsoft Graph or
                  * OAuth server does not use are left out, as the form leaves
                  * them out.
@@ -440,11 +443,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                     title: "Authentication Type",
                     fieldType: FieldType.Element,
                     getElement: (item: GlobalConfig): ReactElement => {
-                      return (
-                        <span>
-                          {t(getSmtpAuthTypeTitle(item.smtpAuthType))}
-                        </span>
-                      );
+                      return <span>{t(getSmtpSignInText(item))}</span>;
                     },
                     showIf: (item: GlobalConfig): boolean => {
                       return showsSmtpServerFields(

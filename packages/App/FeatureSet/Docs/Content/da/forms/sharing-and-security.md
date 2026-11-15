@@ -232,7 +232,7 @@ En skabelons svar bruges kun, så længe det stadig passer til sit spørgsmål: 
 :::
 
 :::details Hændelsen eller begivenheden er ikke på statussiden
-Det er med vilje: hændelser fra en formular oprettes skjulte, og vedligeholdelsesbegivenheder forbliver skjulte, medmindre formularens indstillinger under **Offentliggørelse** siger andet. Se [Hvad en indsendelse opretter](/docs/forms/on-submit).
+Det er med vilje: hændelser fra en formular oprettes skjulte, og vedligeholdelseshændelser forbliver skjulte, medmindre formularens indstillinger under **Offentliggørelse** siger andet. Se [Hvad en indsendelse opretter](/docs/forms/on-submit).
 :::
 
 :::details Ingen blev tilkaldt

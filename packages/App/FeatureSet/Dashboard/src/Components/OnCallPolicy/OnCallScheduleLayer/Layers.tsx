@@ -225,6 +225,15 @@ const Layers: FunctionComponent<ComponentProps> = (
     new Set<string>(),
   );
 
+  /*
+   * The layer Add Layer just made, whose form puts the cursor in its name to
+   * be named right away. Only that one: the first layer the page opens by
+   * itself, and a layer opened with its chevron, leave focus and the scroll
+   * where they are - the page used to open scrolled down to the first
+   * layer's name field, past its header and the people in it (#7812).
+   */
+  const [layerToNameId, setLayerToNameId] = React.useState<string | null>(null);
+
   const [showCannotDeleteOnlyLayerError, setShowCannotDeleteOnlyLayerError] =
     React.useState<boolean>(false);
 
@@ -787,8 +796,9 @@ const Layers: FunctionComponent<ComponentProps> = (
         }
       }
 
-      // Expanded, so the user can configure it right away.
+      // Expanded, with its name to type, so the user can configure it right away.
       if (createdLayerId) {
+        setLayerToNameId(createdLayerId);
         setExpandedLayerIds((prev: Set<string>) => {
           const next: Set<string> = new Set<string>(prev);
           next.add(createdLayerId);
@@ -854,6 +864,13 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   const toggleExpand: (layerId: string) => void = (layerId: string): void => {
+    /*
+     * A layer folded and opened again is opened with its chevron: its form
+     * takes no focus, even if it was the layer just added.
+     */
+    setLayerToNameId((current: string | null) => {
+      return current?.toLowerCase() === layerId.toLowerCase() ? null : current;
+    });
     setExpandedLayerIds((prev: Set<string>) => {
       const next: Set<string> = new Set<string>(prev);
       if (next.has(layerId)) {
@@ -1531,6 +1548,9 @@ const Layers: FunctionComponent<ComponentProps> = (
               index={index}
               total={keptLayerIds.length}
               isExpanded={expandedLayerIds.has(layerId)}
+              focusesNameOnOpen={
+                layerToNameId?.toLowerCase() === layerId.toLowerCase()
+              }
               actionsDisabled={isMutating}
               onToggleExpand={() => {
                 toggleExpand(layerId);

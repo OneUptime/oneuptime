@@ -120,7 +120,7 @@ Cada vez que um membro do projeto faz login no OneUptime, o registro de auditori
 
 O **Recurso** de uma entrada é a sessão, com o nome do dispositivo em que o login foi feito, como `Chrome 130 on macOS`. O **Ator** é a pessoa dona da sessão, então filtrar por **E-mail do Usuário** encontra todos os logins e sessões dela. Os detalhes da entrada dizem como a pessoa fez login e com qual segundo fator, o endereço IP e o local, e, para uma sessão que terminou, quando o login foi feito, quando ela foi usada pela última vez e quando expirou. O provedor de SSO próprio de um projeto só aparece no registro de auditoria desse projeto.
 
-Os logins e as sessões são registrados quer o projeto armazene eventos do sistema ou não. Uma sessão encerrada pela duração da sessão ou por 30 dias sem uso é registrada poucos minutos depois de o tempo se esgotar. Uma sessão encerrada pelo tempo de inatividade é registrada quando a aba aberta da pessoa ou o aplicativo móvel volta a acessar o OneUptime.
+Os logins e as sessões são registrados quer o projeto armazene eventos do sistema ou não. Uma sessão encerrada pela duração da sessão ou por 30 dias sem uso é registrada poucos minutos depois de o tempo se esgotar. Uma sessão encerrada pelo tempo de inatividade é registrada quando o navegador da pessoa ou o aplicativo móvel volta a acessar o OneUptime: a partir de uma aba que ficou aberta ou quando a pessoa abre o OneUptime de novo.
 
 ## Por quanto tempo as entradas ficam
 

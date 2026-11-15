@@ -38,7 +38,7 @@ flowchart TB
 3. 点击 **创建摄取密钥** ，并在 **密钥类型** 中选择 **浏览器** 。
 4. 在 **浏览器设置** 步骤中，以 JSON 数组的形式在 **允许的来源** 中列出你的来源，例如 `["https://app.example.com"]` ，然后创建密钥。在 OneUptime Cloud 的 Free 套餐中，最后一个 **账单** 步骤会先显示遥测价格。
 
-![项目设置中的遥测摄取密钥页面](/docs/static/images/TelemetryIngestionKeys.png)
+![“摄取密钥”列表，“创建摄取密钥”已框出](screen:ingestion-keys)
 
 新密钥会在它自己的页面中打开。复制它的 **密钥** ：这就是 SDK 以 `x-oneuptime-token` 发送的令牌。
 

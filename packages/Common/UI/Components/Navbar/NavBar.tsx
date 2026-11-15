@@ -1,8 +1,10 @@
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import { createPortal } from "react-dom";
 import Route from "../../../Types/API/Route";
@@ -189,6 +191,12 @@ export interface ComponentProps {
   onTogglePin?: ((item: MoreMenuItem) => void) | undefined;
   // Whether another product can be pinned (fewer than the most).
   canPinMore?: boolean | undefined;
+  /*
+   * Called each time the products menu (by its button or Cmd/Ctrl+K) or the
+   * phone's menu opens: for what the menu shows to be brought up to date as
+   * it is read (the Dashboard's "Not set up" marks, #7465).
+   */
+  onMenuOpen?: (() => void) | undefined;
   className?: string;
   // Legacy support for children-based usage
   children?: ReactElement | Array<ReactElement>;
@@ -297,6 +305,27 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Sync local state with hook state
   useEffect(() => {
     setIsMobileMenuVisible(isMobileMenuOpen);
+  }, [isMobileMenuOpen]);
+
+  /*
+   * Whoever draws the bar hears a menu open (onMenuOpen), once per opening:
+   * the latest callback, so a new function each render calls nothing more.
+   */
+  const onMenuOpenRef: MutableRefObject<(() => void) | undefined> = useRef<
+    (() => void) | undefined
+  >(props.onMenuOpen);
+  onMenuOpenRef.current = props.onMenuOpen;
+
+  useEffect(() => {
+    if (isMoreMenuVisible) {
+      onMenuOpenRef.current?.();
+    }
+  }, [isMoreMenuVisible]);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      onMenuOpenRef.current?.();
+    }
   }, [isMobileMenuOpen]);
 
   // Check if we're on mobile

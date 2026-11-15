@@ -33,6 +33,19 @@ import User from "../../Models/DatabaseModels/User";
  * what GHSA-qg84-6hrg-mr5g made it the only key to. A master admin can
  * already set any account's password from the Admin Dashboard, so the link
  * hands them nothing new; any other inviter is never given one.
+ *
+ * A master admin reads it right after their own Invite, and again whenever
+ * they like - Get Invitation Link on a pending person's row (#7168), for an
+ * invitation somebody else made or whose link ran out. Each read mints a new
+ * token, as each invitation email does; the ones minted before keep working
+ * until they are used or expire.
+ *
+ * The link is the account's, not the membership's: whether the invitation
+ * was accepted does not change it. Someone whose invitation a master admin
+ * accepted for them (the Admin Dashboard's "Accept the invitation
+ * automatically") still has no account, and still needs the sign-up link.
+ * Someone with an account is only ever given the sign-in page, which is no
+ * secret, so nothing is minted for an account that cannot be claimed.
  */
 
 export interface InvitationLinkAnswer {

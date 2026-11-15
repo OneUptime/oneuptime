@@ -184,7 +184,7 @@ flowchart TB
 | 維護事件 | **Create Scheduled Maintenance State Timeline** |
 | 監視器（其狀態） | **Create Monitor Status Timeline** |
 
-接著，記錄的新狀態以及隨之而來的值（例如片段何時被解決，或排程維護下次何時提醒其訂閱者）由 OneUptime 自己寫入。因此，變更狀態不需要另外的記錄編輯權限：擁有 **Create Incident State Timeline** 但沒有 **Edit Incident** 的自訂角色可以變更事件的狀態。若要阻止某個團隊變更狀態，請封鎖時間軸的建立權限；封鎖 **Edit Incident** 不會影響狀態變更。標籤、擁有者與私人記錄會像收窄任何其他權限一樣，透過其狀態被變更的記錄來收窄時間軸的建立權限：請參閱下文的範圍規則。
+接著，記錄的新狀態以及隨之而來的值（例如片段何時被解決，或維護事件下次何時提醒其訂閱者）由 OneUptime 自己寫入。因此，變更狀態不需要另外的記錄編輯權限：擁有 **Create Incident State Timeline** 但沒有 **Edit Incident** 的自訂角色可以變更事件的狀態。若要阻止某個團隊變更狀態，請封鎖時間軸的建立權限；封鎖 **Edit Incident** 不會影響狀態變更。標籤、擁有者與私人記錄會像收窄任何其他權限一樣，透過其狀態被變更的記錄來收窄時間軸的建立權限：請參閱下文的範圍規則。
 
 替你寫入的只有狀態。隨變更一起發布的備註以你的身分發布，並且需要備註本身的權限，詳見[把狀態變更告訴狀態頁面訂閱者](/docs/incidents/states-and-severities#把狀態變更告訴狀態頁面訂閱者)。在宣告事件的同時確認其警示，所需的與在各自頁面上逐一確認這些警示相同：透過每則警示收窄的 **Create Alert State Timeline**，不需要 **Edit Alert**。請參閱[宣告時確認警示](/docs/incidents/linked-alerts#宣告時確認警示)。
 

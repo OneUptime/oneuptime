@@ -38,7 +38,7 @@ flowchart TB
 3. Klicken Sie auf **Aufnahmeschlüssel erstellen** und wählen Sie **Browser** als **Schlüsseltyp**.
 4. Tragen Sie im Schritt **Browser-Einstellungen** Ihre Ursprünge unter **Zulässige Ursprünge** als JSON-Array ein, etwa `["https://app.example.com"]`, und erstellen Sie dann den Schlüssel. Im Free-Tarif von OneUptime Cloud zeigt ein letzter Schritt **Abrechnung** vorher den Preis für Telemetrie.
 
-![Die Seite Telemetrie-Ingestion-Schlüssel in den Projekteinstellungen](/docs/static/images/TelemetryIngestionKeys.png)
+![Die Liste „Ingestion-Schlüssel“, „Aufnahmeschlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
 Der neue Schlüssel öffnet sich auf einer eigenen Seite. Kopieren Sie den Wert unter **Geheimer Schlüssel**: Das ist das Token, das das SDK als `x-oneuptime-token` sendet.
 

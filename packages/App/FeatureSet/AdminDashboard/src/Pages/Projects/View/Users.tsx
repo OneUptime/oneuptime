@@ -32,6 +32,7 @@ import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import InvitationLinkModal, {
   INVITATION_LINK_COPY,
+  getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import React, {
   Fragment,
@@ -53,7 +54,8 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
   /*
    * A server that cannot send email sends no invitation (#6825): the dialog
    * says so, and once the invitation is made this master admin is handed
-   * the link to send - then goes on to the person's page.
+   * the link to send - then goes on to the person's page. A pending row's
+   * Get Invitation Link reads it again, and stays on the list (#7168).
    */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
   const [invitationLinkFor, setInvitationLinkFor] = useState<{
@@ -156,6 +158,17 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
           isEditable={false}
           isCreateable={false}
           isViewable={true}
+          actionButtons={[
+            getInvitationLinkRowAction<TeamMember>({
+              isAvailable: cannotSendEmail,
+              onOpen: (teamMemberId: ObjectID) => {
+                setInvitationLinkFor({
+                  teamMemberId: teamMemberId,
+                  userPage: null,
+                });
+              },
+            }),
+          ]}
           onFilterApplied={(isApplied: boolean) => {
             setIsFilterApplied(isApplied);
           }}

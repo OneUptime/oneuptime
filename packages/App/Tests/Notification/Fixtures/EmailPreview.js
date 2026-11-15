@@ -364,6 +364,24 @@ const cases = [
     },
   },
   {
+    slug: "welcome-account-ready",
+    label: "Welcome, account ready (self-hosted)",
+    template: "SignupAccountReadyEmail.hbs",
+    vars: {
+      dashboardLink: `${home}/dashboard`,
+    },
+  },
+  {
+    slug: "welcome-account-ready-admin",
+    label: "Welcome, account ready (self-hosted, first account)",
+    template: "SignupAccountReadyEmail.hbs",
+    vars: {
+      dashboardLink: `${home}/dashboard`,
+      isMasterAdmin: "true",
+      adminDashboardLink: `${home}/admin`,
+    },
+  },
+  {
     slug: "password-reset",
     label: "Password reset",
     template: "ForgotPassword.hbs",

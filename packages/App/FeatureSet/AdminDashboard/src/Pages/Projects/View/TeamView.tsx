@@ -27,6 +27,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import InvitationLinkModal, {
   INVITATION_LINK_COPY,
+  getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import React, {
   Fragment,
@@ -43,7 +44,8 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
 
   /*
    * A server that cannot send email sends no invitation (#6825): the form
-   * says so, and this master admin is handed the link to send.
+   * says so, and this master admin is handed the link to send - again,
+   * whenever they like, from a pending member's row (#7168).
    */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
   const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
@@ -182,6 +184,14 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
           createVerb="Invite"
           isCreateable={true}
           isViewable={false}
+          actionButtons={[
+            getInvitationLinkRowAction<TeamMember>({
+              isAvailable: cannotSendEmail,
+              onOpen: (teamMemberId: ObjectID) => {
+                setInvitationLinkFor(teamMemberId);
+              },
+            }),
+          ]}
           query={{
             teamId: teamId,
             projectId: projectId,
