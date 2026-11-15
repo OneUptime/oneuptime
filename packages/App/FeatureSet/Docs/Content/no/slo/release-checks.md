@@ -42,6 +42,7 @@ Med en forbruksrate på 1 traff vinduet målet til SLO-et nøyaktig, så standar
 Hva kontrollen leser, avhenger av hva SLO-et måler:
 
 - Et [forespørsels-SLO](/docs/slo/request-slos) bedømmes ut fra forespørslene til tjenestene i vinduet, lest fra spannene deres etter hvert som de kommer inn. Legg til `serviceVersion` for å bedømme bare forespørslene til den nye versjonen: OneUptime sammenligner den med ressursattributtet `service.version` på spannene, som et OpenTelemetry-SDK setter fra `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Slik bedømmes canaryen på sine egne forespørsler, uten å bli utvannet av forespørslene til den gamle versjonen.
+- Et [målings-SLO](/docs/slo/request-slos#slo-er-ut-fra-en-måling) bedømmes ut fra hendelsene til målingen i vinduet, talt slik SLI-en teller dem, så `minimumRequestCount`, `goodRequestCount` og `totalRequestCount` er hendelser. Med `serviceVersion` teller bare punktene til målingen som har ressursattributtet `service.version` med den verdien: et OpenTelemetry-SDK setter det på målingene sine slik det gjør på spannene sine.
 - Et SLO for monitoroppetid bedømmes ut fra statustidslinjene til monitorene over vinduet. `minimumRequestCount` gjelder ikke for det, og en kontroll med `serviceVersion` avvises: monitorer har ingen versjoner.
 
 ## Før du begynner
@@ -126,7 +127,7 @@ Feltene i svaret:
 | `deploymentsAllowed` og `errorBudgetPolicyTier` | Om feilbudsjettpolicyen til SLO-et tillater distribusjoner, og nivået SLO-et er i. |
 | `checkedAt` | Når kontrollen ble målt. |
 
-Et SLO som ikke kan måles – et forespørsels-SLO uten tjenester, et latens-SLO uten grense, et SLO for monitoroppetid uten monitorer – får svaret HTTP 400 og hva som må rettes, så en utrulling stopper på en tydelig feil i stedet for på en gjetning. På en selvhostet installasjon bruker du installasjonens egen adresse i stedet for oneuptime.com.
+Et SLO som ikke kan måles – et forespørsels-SLO uten tjenester, et latens-SLO uten grense, et målings-SLO uten en måling det kan telle, et SLO for monitoroppetid uten monitorer – får svaret HTTP 400 og hva som må rettes, så en utrulling stopper på en tydelig feil i stedet for på en gjetning. På en selvhostet installasjon bruker du installasjonens egen adresse i stedet for oneuptime.com.
 
 ## Argo Rollouts
 

@@ -5,6 +5,7 @@ Un SLO de solicitudes mide lo que tus usuarios obtienen de un servicio: la parte
 :::cards
 - [Crear un SLO de solicitudes](#crear-un-slo-de-solicitudes): Los servicios, un umbral para la latencia y un objetivo.
 - [Contar solo algunas solicitudes](#contar-solo-algunas-solicitudes): Un solo endpoint, o todas las solicitudes menos las comprobaciones de salud.
+- [SLO a partir de una métrica](#slo-a-partir-de-una-métrica): Un contador o un histograma, para servicios que no envían trazas.
 - [Cómo se cuentan las solicitudes](#cómo-se-cuentan-las-solicitudes): Qué spans cuentan, y cuándo.
 - [Comprobaciones de lanzamiento](/docs/slo/release-checks): Revierte un lanzamiento que consume el presupuesto de errores.
 :::
@@ -76,6 +77,22 @@ Un SLO de solicitudes cuenta todas las solicitudes de sus servicios. Un **Filtro
 Todos los términos deben coincidir, así que `@http.route:/checkout* -@http.route:/checkout/health` cuenta las solicitudes de checkout menos su comprobación de salud. Un término con `@` es un atributo del span de la solicitud, y `name:` es el nombre del span. El texto libre y los demás campos del explorador, como `status:` y `duration:`, no son filtros aquí: el SLO ya decide qué solicitudes son malas o lentas. Un filtro admite hasta 10 términos en 500 caracteres.
 
 La **Vista general** muestra el filtro bajo los servicios del SLO, y los **Ajustes** lo muestran bajo **Qué mide**. Cambiarlo vuelve a contar las solicitudes del SLO desde el principio.
+
+## SLO a partir de una métrica
+
+Cuando tus servicios ya cuentan sus solicitudes como métricas, o no envían trazas, mide el SLO a partir de un contador o un histograma en su lugar. En **Qué mide**, elige **Métrica** y los **Servicios** que la envían y, después, en el paso **Métrica**:
+
+| Campo | Qué escribir |
+| --- | --- |
+| **Métrica** | El nombre de la métrica, elegido entre las métricas de tu proyecto o escrito, como `http_requests_total` o `http.server.request.duration`. |
+| **Eventos buenos** | **Un contador, por una condición** o **Un histograma, por un valor**. |
+| **Bueno cuando** | Para un contador: los eventos que son buenos, en forma de búsqueda en sus atributos, por ejemplo `@http.response.status_code:<500`. |
+| **Bueno hasta** | Para un histograma: el valor que una observación buena no supera, en la unidad propia de la métrica, por ejemplo `0.3` para 300 ms en un histograma en segundos. Usa uno de los límites de sus buckets. |
+| **Filtro de métrica** | Opcional: las series que cuentan, como `-@http.route:/health`. |
+
+Los eventos de un contador son lo que creció en cada paso de 5 minutos, como lo lee `increase()` de Prometheus: un contador que se reinicia vuelve a contar desde cero, y cuentan tanto los contadores acumulativos como los delta. Los eventos de un histograma son sus observaciones, y los buenos son los de los buckets iguales o inferiores al valor. Solo cuentan los puntos propios de la métrica, y solo los de los servicios del SLO: un gauge con el mismo nombre no cuenta nada.
+
+A partir de ahí, un SLO de métrica funciona como un SLO de solicitudes, con su presupuesto de errores, sus reglas de tasa de consumo y sus comprobaciones de lanzamiento en eventos. Cambiar la métrica vuelve a contar sus eventos desde el principio.
 
 ## Cómo se cuentan las solicitudes
 

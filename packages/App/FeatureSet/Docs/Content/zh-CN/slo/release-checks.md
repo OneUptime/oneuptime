@@ -42,6 +42,7 @@ sequenceDiagram
 检查读取什么取决于 SLO 衡量的对象：
 
 - [请求 SLO](/docs/slo/request-slos) 根据其服务在窗口内的请求评判，这些请求在 span 到达时从 span 中读取。添加 `serviceVersion` 即可只评判新版本的请求：OneUptime 会将其与 span 的 `service.version` 资源属性匹配，OpenTelemetry SDK 会根据 `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2` 设置该属性。这样，金丝雀版本只按它自己的请求评判，而不会被旧版本的请求稀释。
+- [基于指标的 SLO](/docs/slo/request-slos#基于指标的-slo) 根据其指标在窗口内的事件评判，这些事件按其 SLI 的方式计数，因此 `minimumRequestCount`、`goodRequestCount` 和 `totalRequestCount` 都是事件数。带上 `serviceVersion` 时，只计入 `service.version` 资源属性为该值的指标数据点：OpenTelemetry SDK 会像在 span 上一样，在其指标上设置该属性。
 - 监视器可用率 SLO 根据其监视器在窗口内的状态时间线评判。`minimumRequestCount` 不适用于这类 SLO，带有 `serviceVersion` 的检查会被拒绝：监视器没有版本。
 
 ## 开始之前
@@ -126,7 +127,7 @@ curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/release-che
 | `deploymentsAllowed` 和 `errorBudgetPolicyTier` | SLO 的错误预算策略是否允许部署，以及 SLO 所处的级别。 |
 | `checkedAt` | 检查进行测量的时间。 |
 
-无法测量的 SLO（没有服务的请求 SLO、没有阈值的延迟 SLO、没有监视器的监视器可用率 SLO）会得到 HTTP 400 答复，并说明需要修复什么，这样发布会因明确的错误而停止，而不是依据猜测继续。在自托管安装上，请改用它自己的地址，而不是 oneuptime.com。
+无法测量的 SLO（没有服务的请求 SLO、没有阈值的延迟 SLO、没有可计数指标的基于指标的 SLO、没有监视器的监视器可用率 SLO）会得到 HTTP 400 答复，并说明需要修复什么，这样发布会因明确的错误而停止，而不是依据猜测继续。在自托管安装上，请改用它自己的地址，而不是 oneuptime.com。
 
 ## Argo Rollouts
 
