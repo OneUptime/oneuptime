@@ -1338,7 +1338,7 @@ describe("formatStatusTimelineCompactDuration", () => {
         formatStatusTimelineCompactDuration(
           26 * 86400 + 22 * 3600 + 5 * 60 + 3,
         ),
-      ).toBe("26 Tg., 22 Std.");
+      ).toBe("26\u00A0Tg., 22\u00A0Std.");
     } finally {
       setDateDisplayLanguage("en");
     }

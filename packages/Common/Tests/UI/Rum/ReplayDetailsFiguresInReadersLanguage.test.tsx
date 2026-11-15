@@ -124,8 +124,8 @@ describe("formatReplayMilliseconds, in each language", () => {
 
     const minute: string = formatReplayMilliseconds(65_000, german);
 
-    expect(minute).toContain("1 Min.");
-    expect(minute).toContain("5 Sek.");
+    expect(minute).toContain("1\u00A0Min.");
+    expect(minute).toContain("5\u00A0Sek.");
     expect(formatReplayMilliseconds(Number.NaN, german)).toBe("unbekannt");
   });
 
@@ -385,7 +385,7 @@ describe("the details panel's Timing and Gaps, drawn", () => {
       gaps: [{ fromIndex: 3, toIndex: 5, missingMs: 65_000 }],
     });
 
-    expect(gapText()).toContain("1 Min.");
+    expect(gapText()).toContain("1\u00A0Min.");
     expect(gapText()).not.toMatch(/\d(s|m)\b/);
   });
 
