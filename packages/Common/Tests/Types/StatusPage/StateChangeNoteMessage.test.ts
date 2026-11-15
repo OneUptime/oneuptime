@@ -208,7 +208,7 @@ describe("StateChangeNoteMessage in the reader's language", () => {
         incidentTitle: "Checkout is down",
         translator: french,
       }),
-    ).toBe("[Incident : Résolu] Checkout is down");
+    ).toBe("[Incident\u00A0: Résolu] Checkout is down");
     expect(
       StateChangeNoteMessage.getScheduledMaintenanceEmailSubject({
         stateName: "Ongoing",
@@ -258,7 +258,7 @@ describe("StateChangeNoteMessage in the reader's language", () => {
         "Resolved",
         french,
       ).toString(),
-    ).toBe("**Statut :** Résolu");
+    ).toBe("**Statut\u00A0:** Résolu");
     expect(
       StateChangeNoteMessage.getChatStatusLine(
         StateListType.IncidentState,

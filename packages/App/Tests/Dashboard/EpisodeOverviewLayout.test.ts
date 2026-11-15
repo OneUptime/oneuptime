@@ -92,6 +92,8 @@ interface EpisodePage {
   ownerUserModel: string;
   ownerTeamModel: string;
   ownersPage: string;
+  // The list its states are of, which its tiles read their names by.
+  stateList: string;
 }
 
 const EPISODE_PAGES: Array<EpisodePage> = [
@@ -124,6 +126,7 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     ownerUserModel: "IncidentEpisodeOwnerUser",
     ownerTeamModel: "IncidentEpisodeOwnerTeam",
     ownersPage: "PageMap.INCIDENT_EPISODE_VIEW_OWNERS",
+    stateList: "StateListType.IncidentState",
   },
   {
     name: "Alert episode",
@@ -151,6 +154,7 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     ownerUserModel: "AlertEpisodeOwnerUser",
     ownerTeamModel: "AlertEpisodeOwnerTeam",
     ownersPage: "PageMap.ALERT_EPISODE_VIEW_OWNERS",
+    stateList: "StateListType.AlertState",
   },
 ];
 
@@ -243,12 +247,18 @@ describe("episode overview layout", () => {
       expect(countOccurrences(source, '<EventStatTile variant="segment"')).toBe(
         4,
       );
+      /*
+       * "<state's name> in", translated whole, the name read by its list
+       * (Common/Utils/DefaultRecordNames): the default "Resolved" in the
+       * reader's words, a state the project named "Open" as written (#8064).
+       */
       expect(source).toContain(
-        'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(timing.acknowledgedStateName), })}',
+        `label={translator.translateTemplate("{{stateName}} in", { stateName: recordNameInSentence( ${page.stateList}, timing.acknowledgedStateName, ), })}`,
       );
       expect(source).toContain(
-        'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(timing.resolvedStateName), })}',
+        `label={translator.translateTemplate("{{stateName}} in", { stateName: recordNameInSentence( ${page.stateList}, timing.resolvedStateName, ), })}`,
       );
+      expect(source).not.toContain("translatableTerm(timing.");
       expect(source).toContain(`label="${page.countLabel}"`);
 
       /*
@@ -260,7 +270,7 @@ describe("episode overview layout", () => {
           indexOfOrFail(source, "<EventStatTile"),
           indexOfOrFail(
             source,
-            'label={translator.translateTemplate("{{stateName}} in", { stateName: translatableTerm(timing.acknowledgedStateName',
+            'label={translator.translateTemplate("{{stateName}} in", { stateName: recordNameInSentence(',
           ),
         ),
       );

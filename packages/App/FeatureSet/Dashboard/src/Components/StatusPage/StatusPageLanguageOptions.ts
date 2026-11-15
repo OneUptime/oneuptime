@@ -67,6 +67,8 @@ export const STATUS_PAGE_LANGUAGE_OPTIONS: Array<DropdownOption> =
       return {
         value: language.code,
         label: getStatusPageLanguageLabel(language),
+        // Each language in its own words, drawn as written.
+        isUserContent: true,
       };
     },
   );

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52447,
-    "untranslated": 9031
+    "keys": 52780,
+    "untranslated": 8821
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -76,6 +76,7 @@
     "Mirantis MOSK",
     "MySQL",
     "NAA ID",
+    "OID Collection Template",
     "OK",
     "OSD",
     "OVN Chassis",
@@ -124,6 +125,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "VIP",

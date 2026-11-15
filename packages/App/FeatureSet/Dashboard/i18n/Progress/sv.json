@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52447,
-    "untranslated": 9256
+    "keys": 52780,
+    "untranslated": 9029
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -124,6 +124,7 @@
     "Incident",
     "Incident #{{number}}",
     "Incident #{{number}}: {{title}}",
+    "Incident {{incident}}",
     "Incident {{number}}",
     "Incident {{number}}: {{title}}",
     "Incident:",
@@ -174,6 +175,7 @@
     "Nav",
     "Normal",
     "Null",
+    "OID Collection Template",
     "OK",
     "OSD",
     "Object Gateway",
@@ -244,11 +246,13 @@
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
     "SSH",
     "Samples",
@@ -282,6 +286,7 @@
     "TX",
     "Team",
     "Team {{name}}",
+    "Team: {{name}}",
     "Tenancy",
     "Text",
     "Token",
@@ -293,6 +298,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "VIP",

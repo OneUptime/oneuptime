@@ -7,6 +7,8 @@ import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
@@ -151,6 +153,23 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
       { modelId: issue.id },
     );
 
+    /*
+     * Its severity and state by their lists (Common/Utils/DefaultRecordNames):
+     * the ones a project starts with - "Critical Incident", "Resolved" - in
+     * the reader's words, a project's own as written.
+     */
+    const isIncident: boolean = issue.type === "incident";
+    const severityText: string = translateRecordName(
+      translator,
+      isIncident ? StateListType.IncidentSeverity : StateListType.AlertSeverity,
+      issue.severityName,
+    );
+    const stateText: string = translateRecordName(
+      translator,
+      isIncident ? StateListType.IncidentState : StateListType.AlertState,
+      issue.stateName,
+    );
+
     return (
       <li key={`${issue.type}-${issue.id}`} className="py-2">
         <Link
@@ -160,7 +179,7 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
           {issue.number ? `${issue.number} · ${issue.title}` : issue.title}
         </Link>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
-          {issue.severityName ? (
+          {severityText ? (
             <span
               className="font-medium"
               style={{
@@ -169,10 +188,10 @@ const ResourceTopologyDetailPanel: FunctionComponent<ComponentProps> = (
                   RESOURCE_TOPOLOGY_HEALTH_COLORS.critical,
               }}
             >
-              {issue.severityName}
+              {severityText}
             </span>
           ) : null}
-          {issue.stateName ? <span>{issue.stateName}</span> : null}
+          {stateText ? <span>{stateText}</span> : null}
           {issue.createdAt ? (
             <span>
               {OneUptimeDate.getDateAsLocalFormattedString(issue.createdAt)}

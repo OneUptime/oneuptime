@@ -334,6 +334,7 @@ export const IssueRepositoryModal: FunctionComponent<
             return {
               value: repository._id?.toString() || "",
               label: repository.name || repository._id?.toString() || "",
+              isUserContent: true,
             };
           }),
         );

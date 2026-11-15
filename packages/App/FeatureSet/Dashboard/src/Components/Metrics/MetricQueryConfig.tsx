@@ -32,7 +32,14 @@ import {
   detectOperatorFromValue,
   getOperatorOption,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import DictionaryFilterSentence, {
+  formatDictionaryFilterSentence,
+} from "Common/UI/Components/Dictionary/DictionaryFilterSentence";
+import {
+  ComposedValue,
+  composedValue,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -335,17 +342,17 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               {!isExpanded && activeAttributeCount > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
                   <Icon icon={IconProp.Filter} className="h-3 w-3" />
-                  {activeAttributeCount}{" "}
-                  {translator.translateText(
-                    activeAttributeCount === 1 ? "filter" : "filters",
+                  {translator.translatePlural(
+                    { one: "{{count}} filter", other: "{{count}} filters" },
+                    activeAttributeCount,
                   )}
                 </span>
               )}
               {!isExpanded && groupByKeys.length > 0 && (
                 <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-                  {groupByKeys.length}{" "}
-                  {translator.translateText(
-                    groupByKeys.length === 1 ? "group-by" : "group-bys",
+                  {translator.translatePlural(
+                    { one: "{{count}} group-by", other: "{{count}} group-bys" },
+                    groupByKeys.length,
                   )}
                 </span>
               )}
@@ -411,27 +418,32 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
           </span>
           {Object.entries(attributes).map(
             ([key, value]: [string, DictionaryEntryValue]) => {
-              const detected: {
-                operator: DictionaryFilterOperator;
-                rawValue: string;
-              } = detectOperatorFromValue(value);
-              const option: DictionaryFilterOperatorOption = getOperatorOption(
-                detected.operator,
+              /*
+               * The filter as one sentence in the reader's language, its
+               * key and value as typed (DictionaryFilterSentence): a German
+               * chip says "stimmt überein" as the form above it does.
+               */
+              const chipText: ComposedValue = composedValue(
+                (sentence: Translator): string => {
+                  return formatDictionaryFilterSentence({
+                    attributeKey: key,
+                    value: value,
+                    translator: sentence,
+                  });
+                },
               );
-              const valueSegment: string = option.hidesValueInput
-                ? ""
-                : detected.rawValue;
-              const chipText: string = option.hidesValueInput
-                ? `${key} ${option.symbol}`
-                : `${key} ${option.symbol} ${valueSegment}`;
               return (
                 <span
                   key={key}
                   className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-1 text-xs text-indigo-700"
                 >
-                  <span className="font-medium text-indigo-500">{key}</span>
-                  <span className="text-indigo-400">{option.symbol}</span>
-                  {!option.hidesValueInput && <span>{valueSegment}</span>}
+                  <DictionaryFilterSentence
+                    attributeKey={key}
+                    value={value}
+                    keyClassName="font-medium text-indigo-500"
+                    wordsClassName="text-indigo-400"
+                    dataTestId="metric-query-attribute-chip"
+                  />
                   <button
                     type="button"
                     aria-label={translator.translateTemplate(

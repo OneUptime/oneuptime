@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52447,
-    "untranslated": 9249
+    "keys": 52780,
+    "untranslated": 9021
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -185,6 +185,7 @@
     "Namespaces",
     "Nav",
     "Normal",
+    "OID Collection Template",
     "OK",
     "OSD",
     "OSDs",
@@ -245,12 +246,15 @@
     "Runbook \"{{name}}\"",
     "Runbook: {{name}}",
     "Runbooks",
+    "Runbooks ({{count}})",
     "Runner",
     "SHA",
     "SHA-256",
     "SHA256",
     "SLI %",
+    "SLO {{name}}",
     "SLOs",
+    "SLOs ({{count}})",
     "SSH",
     "ScheduledMaintenance",
     "Script",
@@ -293,6 +297,7 @@
     "URLs",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Uplink",

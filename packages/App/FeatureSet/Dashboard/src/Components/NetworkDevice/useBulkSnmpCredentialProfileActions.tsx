@@ -202,6 +202,8 @@ function useBulkSnmpCredentialProfileActions(): BulkSnmpCredentialProfileActions
         label: profile.snmpVersion
           ? `${profile.name || ""} (${profile.snmpVersion})`
           : profile.name || "",
+        // The profile's name, and the SNMP version it speaks: as written.
+        isUserContent: true,
         value: profile._id?.toString() || "",
       };
     },

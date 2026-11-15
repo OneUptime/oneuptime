@@ -47,7 +47,10 @@ import {
   getStateTimelineEndsAtColumn,
 } from "Common/UI/Components/StateTimeline/StateTimelineColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
-import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import {
+  isRecordNameAsWritten,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import MonitoringOffIndicator from "Common/UI/Components/StateTimeline/MonitoringOffIndicator";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -271,7 +274,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
   ): string => {
     const name: string = status?.name?.toString() || "";
 
-    return name ? translator.translateText(name) || name : "";
+    return translateRecordName(translator, StateListType.MonitorStatus, name);
   };
 
   /*

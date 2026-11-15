@@ -112,6 +112,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
               return {
                 value: probe.id!.toString(),
                 label: probe.name || probe.id!.toString(),
+                isUserContent: true,
               };
             }),
         );

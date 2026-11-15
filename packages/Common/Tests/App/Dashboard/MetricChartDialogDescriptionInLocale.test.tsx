@@ -192,6 +192,7 @@ import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
 
@@ -389,10 +390,15 @@ describe.each(DIALOGS)("$name", (dialog: Dialog) => {
       readAs(language, words);
       const line: string = await dialog.open();
 
+      // Each as the dialog draws it: French's marks kept with their words.
       expect(line).toBe(
-        String(sentence).replace(
+        withNoBreakSpaces(String(sentence), dialog.sentence, language).replace(
           "{{metricDescription}}",
-          String(description).trim(),
+          withNoBreakSpaces(
+            String(description),
+            dialog.description(),
+            language,
+          ).trim(),
         ),
       );
       // Never the English description inside the translated line.

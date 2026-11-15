@@ -28,6 +28,8 @@ import PageMap from "../../Utils/PageMap";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   composedValue,
   formatInline,
@@ -315,11 +317,16 @@ function toInventoryItem(entity: EntityDetail): InventoryItem {
   return item;
 }
 
-/** One active incident/alert row: title link + severity line. */
+/*
+ * One active incident/alert row: title link + severity line, the severity
+ * read by its list (Common/Utils/DefaultRecordNames): "Critical Incident" in
+ * the reader's words, one the project named itself as written.
+ */
 function renderStatusItem(
   item: ServiceStatusItem,
   viewRoute: Route,
   fallbackColor: string,
+  severityText: string,
 ): ReactElement {
   return (
     <li key={item.id} className="py-2">
@@ -331,12 +338,12 @@ function renderStatusItem(
       >
         {item.title}
       </Link>
-      {item.severityName ? (
+      {severityText ? (
         <p
           className="mt-0.5 text-xs font-medium"
           style={{ color: item.severityColor || fallbackColor }}
         >
-          {item.severityName}
+          {severityText}
         </p>
       ) : (
         <></>
@@ -1350,6 +1357,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                         item,
                         RouteMap[PageMap.INCIDENT_VIEW] as Route,
                         "#dc2626",
+                        translateRecordName(
+                          translator,
+                          StateListType.IncidentSeverity,
+                          item.severityName,
+                        ),
                       );
                     },
                   )}
@@ -1372,6 +1384,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                         item,
                         RouteMap[PageMap.ALERT_VIEW] as Route,
                         "#f59e0b",
+                        translateRecordName(
+                          translator,
+                          StateListType.AlertSeverity,
+                          item.severityName,
+                        ),
                       );
                     },
                   )}

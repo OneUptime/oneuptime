@@ -217,8 +217,14 @@ describe("the template picker", () => {
     expect(
       toAITemplates([TEMPLATE_A, { id: "t-c", name: "", note: "" }]),
     ).toEqual([
-      { id: "t-a", name: "Customer-facing", content: "## For customers" },
-      { id: "t-c", name: "Unnamed Template" },
+      // The project's own name drawn as written; the word for none looked up.
+      {
+        id: "t-a",
+        name: "Customer-facing",
+        content: "## For customers",
+        isNameUserContent: true,
+      },
+      { id: "t-c", name: "Unnamed Template", isNameUserContent: false },
     ]);
   });
 });

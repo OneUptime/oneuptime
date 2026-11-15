@@ -2,6 +2,7 @@ import i18n, { BackendModule, ReadCallback, ResourceKey } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 import { toDetectedLanguage } from "Common/Types/ReaderLanguage";
+import { withNoBreakSpacesInLocale } from "Common/Types/NoBreakSpaces";
 import { productNamePostProcessor } from "Common/UI/Utils/ProductNameTranslation";
 import {
   codeReadsAsWrittenPostProcessor,
@@ -96,7 +97,19 @@ const lazyLocaleBackend: BackendModule = {
      */
     Promise.all([loadLocaleResource(language), whenCodeCanBeSetApart(language)])
       .then(([resource]: [LocaleResource, void]): void => {
-        callback(null, resource as ResourceKey);
+        /*
+         * Its words as the language sets a line: each number with its
+         * unit, and French's marks with their words (Common/Types/
+         * NoBreakSpaces).
+         */
+        callback(
+          null,
+          withNoBreakSpacesInLocale({
+            locale: resource,
+            language,
+            english: en,
+          }) as ResourceKey,
+        );
       })
       .catch((error: unknown): void => {
         callback(error as Error, null);

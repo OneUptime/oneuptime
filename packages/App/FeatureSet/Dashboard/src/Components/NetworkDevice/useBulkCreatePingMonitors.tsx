@@ -328,6 +328,7 @@ function useBulkCreatePingMonitors(): BulkCreatePingMonitorsResult {
     .map((probe: Probe): DropdownOption => {
       return {
         label: probe.name || probe._id?.toString() || "",
+        isUserContent: true,
         value: probe._id?.toString() || "",
       };
     });

@@ -508,7 +508,7 @@ describe("a probe's retry attempts", () => {
     expect(items).toHaveLength(3);
     expect(items[0]).toContain("تلاش ۱/۳");
     expect(items[2]).toContain("تلاش ۳/۳");
-    expect(items[0]).toContain("۱٬۲۳۴ میلی‌ثانیه");
+    expect(items[0]).toContain("۱٬۲۳۴\u00A0میلی\u200Cثانیه");
     expect(items.join(" ")).not.toContain("1/3");
     expect(items.join(" ")).not.toContain("1234");
   });

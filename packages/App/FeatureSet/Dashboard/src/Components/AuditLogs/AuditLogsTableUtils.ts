@@ -3,7 +3,12 @@ import { AUDIT_LOG_SESSION_RESOURCE_TYPE } from "Common/Types/AuditLog/AuditLogS
 import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { getScreenSingularName } from "Common/Utils/ModelApiName";
+import type { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { getAuditLogResourceTypeSpellings } from "Common/Utils/AuditLog/AuditLogResourceTypes";
+import {
+  getKeptSingularName,
+  getScreenSingularName,
+} from "Common/Utils/ModelApiName";
 import { getNameInitials } from "Common/Utils/NameInitials";
 import PageMap from "../../Utils/PageMap";
 
@@ -441,18 +446,28 @@ export const DEFAULT_RESOURCE_META: ResourceMeta = {
   bgColor: "bg-gray-50 border-gray-200",
 };
 
+/*
+ * How an entry's type is drawn. RESOURCE_META knows a renamed type by the
+ * name it is stored under (the kept name), so an entry stored under its
+ * name on screen is drawn - and links - as the others of its type are.
+ */
 export const getResourceMeta: (type: string | undefined) => ResourceMeta = (
   type: string | undefined,
 ): ResourceMeta => {
   if (!type) {
     return DEFAULT_RESOURCE_META;
   }
-  return RESOURCE_META[type] || DEFAULT_RESOURCE_META;
+  return (
+    RESOURCE_META[type] ||
+    RESOURCE_META[getKeptSingularName(type)] ||
+    DEFAULT_RESOURCE_META
+  );
 };
 
 /*
  * The resource type an entry shows: what the thing is called now, though
- * the entry keeps the type it was stored under (ResourceMeta's label).
+ * the entry keeps the type it was stored under (ResourceMeta's label). The
+ * same words whichever of its names the entry was stored under.
  */
 export const getResourceTypeLabel: (type: string | undefined) => string = (
   type: string | undefined,
@@ -460,7 +475,87 @@ export const getResourceTypeLabel: (type: string | undefined) => string = (
   if (!type) {
     return "Resource";
   }
-  return RESOURCE_META[type]?.label || getScreenSingularName(type);
+
+  const keptType: string = getKeptSingularName(type);
+
+  return RESOURCE_META[keptType]?.label || getScreenSingularName(keptType);
+};
+
+/*
+ * THE RESOURCE TYPE FILTER'S CHOICES (#7580): the types the entries are
+ * about, each once, by the name the product shows today.
+ *
+ * The audit log stores a renamed model's entries under the name it kept
+ * (an On-Call Schedule's as "On-Call Policy Schedule"), and the Resource
+ * column shows them by today's name. A free-text filter on the stored
+ * value found nothing for "On-Call Schedule", so the filter offers the
+ * types instead, each:
+ *
+ *   - labelled as the rows draw the type (getResourceTypeLabel), a key of
+ *     the Dashboard's locales, so the menu, its chip and the rows read the
+ *     same words in the reader's language;
+ *   - valued by its kept name, so the filter asks for the entries as they
+ *     are stored, and the server finds those stored under either name
+ *     (Common/Utils/AuditLog/AuditLogResourceTypes);
+ *   - with its other name as an alias, so typing the old name in the
+ *     menu's search still finds it;
+ *   - once, though entries were stored under both of its names.
+ *
+ * Read from `types`, the stored values the page's entries carry (empty
+ * ones left out). `compareLabels` orders them as the reader reads their
+ * labels; left out, by the English.
+ */
+export const getResourceTypeFilterOptions: (
+  types: ReadonlyArray<string | null | undefined>,
+  compareLabels?: (first: string, second: string) => number,
+) => Array<DropdownOption> = (
+  types: ReadonlyArray<string | null | undefined>,
+  compareLabels?: (first: string, second: string) => number,
+): Array<DropdownOption> => {
+  const options: Array<DropdownOption> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const type of types) {
+    const storedType: string = (type || "").trim();
+
+    if (!storedType) {
+      continue;
+    }
+
+    const keptType: string = getKeptSingularName(storedType);
+
+    if (seen.has(keptType)) {
+      continue;
+    }
+
+    seen.add(keptType);
+
+    const aliases: Array<string> = getAuditLogResourceTypeSpellings(
+      keptType,
+    ).filter((spelling: string): boolean => {
+      return spelling !== keptType;
+    });
+
+    options.push({
+      label: getResourceTypeLabel(keptType),
+      value: keptType,
+      ...(aliases.length > 0 ? { aliases: aliases } : {}),
+      // OneUptime's own words for the type: looked up in the reader's language.
+      isUserContent: false,
+    });
+  }
+
+  const compare: (first: string, second: string) => number =
+    compareLabels ||
+    ((first: string, second: string): number => {
+      return first.localeCompare(second);
+    });
+
+  return options.sort(
+    (first: DropdownOption, second: DropdownOption): number => {
+      return compare(first.label, second.label);
+    },
+  );
 };
 
 /*

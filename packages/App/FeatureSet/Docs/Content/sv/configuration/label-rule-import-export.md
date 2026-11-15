@@ -34,20 +34,20 @@ Ladda upp en JSON-exportfil, eller klistra in dess innehåll.
 
 ### Validera och förhandsgranska
 
-Välj **Validate and preview**. Varje regel kontrolleras innan någon skapas, och de resurser som det hänvisas till måste finnas i målprojektet med unika, matchande namn.
+Välj **Validera och förhandsgranska**. Varje regel kontrolleras innan någon skapas, och de resurser som det hänvisas till måste finnas i målprojektet med unika, matchande namn.
 
 ### Granska förhandsvisningen
 
-Kontrollera reglernas namn, status, etiketter och villkor. En stor batch visas en sida i taget. För att rätta något väljer du **Edit JSON** och validerar igen.
+Kontrollera reglernas namn, status, etiketter och villkor. En stor batch visas en sida i taget. För att rätta något väljer du **Redigera JSON** och validerar igen.
 
 ### Importera
 
-Välj importknappen, som räknar reglerna (till exempel **Import 2 rules**), och låt fönstret vara öppet tills resultaten visas.
+Välj importknappen, som räknar reglerna (till exempel **Importera 2 regler**), och låt fönstret vara öppet tills resultaten visas.
 :::
 
 Importer lägger till nya regler och behåller befintliga, så om du importerar samma fil igen skapas ännu en kopia. De vanliga behörigheterna för att skapa och serverns validering gäller för varje regel.
 
-Om några regler misslyckas väljer du **Download failed rules** för att bara spara de raderna, rättar dem och importerar den filen igen. Om en begäran får tidsgränsen överskriden ska du kontrollera listan med regler innan du försöker igen: servern kan ha sparat regeln innan svaret gick förlorat.
+Om några regler misslyckas väljer du **Ladda ner misslyckade regler** för att bara spara de raderna, rättar dem och importerar den filen igen. Om en begäran får tidsgränsen överskriden ska du kontrollera listan med regler innan du försöker igen: servern kan ha sparat regeln innan svaret gick förlorat.
 
 ## Skapa en batch i JSON
 
