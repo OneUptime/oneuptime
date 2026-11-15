@@ -152,8 +152,8 @@ En innesluten databasanvändare (`CREATE USER oneuptime_health WITH PASSWORD = '
 Sonden känner igen Azure SQL Database på `SERVERPROPERTY('EngineEdition')` och inte på versionen — Azure SQL Database rapporterar `12.0.2000.8` vad den än faktiskt kör, vilket läses som SQL Server 2014. Därför visar monitorns **Motor** `Azure SQL Database 12.0.2000.8`, och en saknad behörighet visas som Azure-satsen ovan, aldrig som `VIEW SERVER STATE`.
 
 - **Replikering samlas inte in på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication hoppas över där i stället för att rapporteras som misslyckad vid varje kontroll. Azures egna replikvyer (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) läses inte ännu.
-- **Anslutningar gäller per databas.** Med `VIEW DATABASE STATE` visar Azure SQL Database bara den övervakade databasens sessioner, så Connections räknar den databasen och inte den logiska servern. Övervaka varje databas som är viktig för dig.
-- **I en elastisk pool är TempDB Free Space poolens.** Databaserna i en pool delar en tempdb.
+- **Anslutningar gäller per databas.** Med `VIEW DATABASE STATE` visar Azure SQL Database bara den övervakade databasens sessioner, så **Anslutningar** räknar den databasen och inte den logiska servern. Övervaka varje databas som är viktig för dig.
+- **I en elastisk pool är ”Ledigt utrymme i TempDB” poolens.** Databaserna i en pool delar en tempdb.
 
 ## Skapa en Database Health-monitor
 
@@ -198,7 +198,7 @@ Välj de **Sonder** som kan nå databasen och ett **Övervakningsintervall**, oc
 
 ### Fler fält
 
-**Metric Groups** finns här: vilka grupper som körs, bland Connections, Aktivitet, Throughput, Locks and Blocking, Lagring, Replication och Underhåll. Alla är påslagna som standard; se [Mätvärdesgrupper](#mätvärdesgrupper). Monitorns detaljer visar dem som **Collected Metric Groups**.
+**Metric Groups** finns här: vilka grupper som körs, bland Anslutningar, Aktivitet, Genomströmning, Lås och blockeringar, Lagring, Replikering och Underhåll. Alla är påslagna som standard; se [Mätvärdesgrupper](#mätvärdesgrupper). Monitorns detaljer visar dem som **Collected Metric Groups**.
 
 | Fält | Standard | Max | Vad det begränsar |
 |---|---|---|---|
@@ -249,13 +249,13 @@ Att avmarkera alla grupper är inget sätt att samla in ingenting — en tom lis
 | Vad som fallerar | Monitorstatus | Vad du ser |
 |---|---|---|
 | **Anslutningen** eller testfrågan — fel inloggningsuppgifter, nekad anslutning, TLS-fel, tidsgräns vid anslutning | **Offline** | `Database Is Online` är false, och den incident och jourpolicy som du har kopplat till den utlöses. |
-| **En grupp** — en saknad behörighet, ett avstängt `performance_schema`, en tidsgräns för en sats | **Förblir online** | Mätvärdena som gruppen inte kunde läsa **saknas** — de är inte noll. Ingen diagramlinje ritas, ingen tröskel på de serierna kan matcha och ingen incident kan uppstå ur dem. Kontrollen registrerar ett insamlingsproblem som anger gruppen, orsaken och — där en sådan finns — den exakta `GRANT` som ska köras; det visas i monitorns sammanfattning och räknas i **Metric Groups Failed**. |
-| **Motorn kan inte leverera ett mätvärde alls** — standard-MySQL har ingen räknare för deadlocks; SQL Server lämnar som standard sitt anslutningstak obegränsat, så en ”använd procent” skulle vara meningslös | **Förblir online** | Mätvärdet saknas helt enkelt. Det är **inte** ett insamlingsproblem, räknas inte i Metric Groups Failed och är inget som ska åtgärdas. Se kolumnen Engines under [Insamlade mätvärden](#insamlade-mätvärden). |
+| **En grupp** — en saknad behörighet, ett avstängt `performance_schema`, en tidsgräns för en sats | **Förblir online** | Mätvärdena som gruppen inte kunde läsa **saknas** — de är inte noll. Ingen diagramlinje ritas, ingen tröskel på de serierna kan matcha och ingen incident kan uppstå ur dem. Kontrollen registrerar ett insamlingsproblem som anger gruppen, orsaken och — där en sådan finns — den exakta `GRANT` som ska köras; det visas i monitorns sammanfattning och räknas i **Misslyckade mätvärdesgrupper**. |
+| **Motorn kan inte leverera ett mätvärde alls** — standard-MySQL har ingen räknare för deadlocks; SQL Server lämnar som standard sitt anslutningstak obegränsat, så en ”använd procent” skulle vara meningslös | **Förblir online** | Mätvärdet saknas helt enkelt. Det är **inte** ett insamlingsproblem, räknas inte i **Misslyckade mätvärdesgrupper** och är inget som ska åtgärdas. Se kolumnen Engines under [Insamlade mätvärden](#insamlade-mätvärden). |
 
 Saknas betyder alltid saknas. Ett värde som inte mättes rapporteras aldrig som `0`, eftersom ett diagram med påhittade nollor är värre än en lucka — en lucka kan du se.
 
 > [!TIP]
-> För att larma om förlorad insyn använder du `Database Collection Error` eller en tröskel på **Metric Groups Failed**. Gör båda till larm i stället för incidenter: en återkallad behörighet är ett ärende, inte ett jourlarm.
+> För att larma om förlorad insyn använder du `Database Collection Error` eller en tröskel på **Misslyckade mätvärdesgrupper**. Gör båda till larm i stället för incidenter: en återkallad behörighet är ett ärende, inte ett jourlarm.
 
 ### "The user does not have permission to perform this action"
 
@@ -274,54 +274,54 @@ Fyrtioen serier i åtta kategorier. Engines anger motorerna som faktiskt kan lev
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Anslutningar | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Anslutningar | PostgreSQL, MySQL, SQL Server |
+| **Drifttid** (s) | `oneuptime.monitor.database.uptime.seconds` | Anslutningar | PostgreSQL, MySQL, SQL Server |
+| **Misslyckade mätvärdesgrupper** | `oneuptime.monitor.database.metric.groups.failed` | Anslutningar | PostgreSQL, MySQL, SQL Server |
 
 ### Anslutningar
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Anslutningar | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Anslutningar | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Anslutningar | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Anslutningar | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Anslutningar | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Anslutningar | MySQL |
+| **Anslutningar** | `oneuptime.monitor.database.connections.total` | Anslutningar | PostgreSQL, MySQL, SQL Server |
+| **Aktiva anslutningar** | `oneuptime.monitor.database.connections.active` | Anslutningar | PostgreSQL, MySQL, SQL Server |
+| **Maximalt antal anslutningar** | `oneuptime.monitor.database.connections.max` | Anslutningar | PostgreSQL, MySQL |
+| **Använda anslutningar** (%) | `oneuptime.monitor.database.connections.used.percent` | Anslutningar | PostgreSQL, MySQL |
+| **Inaktiv i transaktion** | `oneuptime.monitor.database.connections.idle.in.transaction` | Anslutningar | PostgreSQL |
+| **Avbrutna anslutningsförsök** | `oneuptime.monitor.database.connections.aborted.total` | Anslutningar | MySQL |
 
 ### Genomströmning
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Genomströmning | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Genomströmning | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Genomströmning | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Genomströmning | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Transaktioner** | `oneuptime.monitor.database.transactions.total` | Genomströmning | PostgreSQL, SQL Server |
+| **Frågor** | `oneuptime.monitor.database.queries.total` | Genomströmning | MySQL, SQL Server |
+| **Långsamma frågor** | `oneuptime.monitor.database.queries.slow.total` | Genomströmning | MySQL |
+| **Andel återställningar** (%) | `oneuptime.monitor.database.rollback.percent` | Genomströmning | PostgreSQL |
+| **Längst körande fråga** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **Längst öppna transaktion** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **Öppna transaktioner** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
 
 ### Lås och blockering
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Blockerade sessioner** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
+| **Låsväntetider** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
+| **Dödlägen** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
+| **Väntetider på tabellås** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
 
-Standard-MySQL har ingen räknare för deadlocks över huvud taget, och därför finns Deadlocks bara på PostgreSQL och SQL Server.
+Standard-MySQL har ingen räknare för deadlocks över huvud taget, och därför finns **Dödlägen** bara på PostgreSQL och SQL Server.
 
 ### Cache och I/O
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Genomströmning | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Genomströmning | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Genomströmning | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Genomströmning | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Genomströmning | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Genomströmning | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Genomströmning | SQL Server |
+| **Träffgrad för cache** (%) | `oneuptime.monitor.database.cache.hit.percent` | Genomströmning | PostgreSQL, MySQL, SQL Server |
+| **Diskläsningar** | `oneuptime.monitor.database.disk.reads.total` | Genomströmning | PostgreSQL, MySQL, SQL Server |
+| **Diskskrivningar** | `oneuptime.monitor.database.disk.writes.total` | Genomströmning | MySQL, SQL Server |
+| **I/O-lästid** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Genomströmning | PostgreSQL, SQL Server |
+| **I/O-skrivtid** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Genomströmning | PostgreSQL, SQL Server |
+| **Sidlivslängd** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Genomströmning | SQL Server |
+| **Väntande minnestilldelningar** | `oneuptime.monitor.database.memory.grants.pending` | Genomströmning | SQL Server |
 
 PostgreSQL mäter bara läs- och skrivtid för I/O när `track_io_timing` är påslaget. Det är avstängt som standard, och då rapporterar PostgreSQL båda som `0` — på PostgreSQL betyder en platt nolla i de två serierna därför oftast ”inte mätt”, inte ”snabbt”. Det är en serverinställning, inte ett behörighetsproblem.
 
@@ -329,42 +329,42 @@ PostgreSQL mäter bara läs- och skrivtid för I/O när `track_io_timing` är p�
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Database Size** (byte) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (byte) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (byte) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Databasstorlek** (byte) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
+| **Skrivna temporära byte** (byte) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
+| **Temporära tabeller på disk** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
+| **Använt loggutrymme** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
+| **Ledigt utrymme i TempDB** (byte) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
 
 ### Replikering
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (byte) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Anslutna repliker** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
+| **Replikeringseftersläpning** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
+| **Replikeringseftersläpning (byte)** (byte) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
+| **Under återställning** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
+| **Inaktiva replikeringsplatser** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
 
 Replikeringsmätvärden rapporteras från den sida av länken som monitorn är ansluten till. Rikta en monitor mot primärservern för att se anslutna repliker och sändkön; rikta en mot varje standby för att se hur långt efter just den standbyn faktiskt ligger.
 
-Fördröjningen i sekunder visar noll på en inaktiv primärserver även när en replik ligger långt efter, eftersom inget nytt har skrivits. **Replication Lag (Bytes)** har inte den döda vinkeln, så larma på båda.
+Fördröjningen i sekunder visar noll på en inaktiv primärserver även när en replik ligger långt efter, eftersom inget nytt har skrivits. **Replikeringseftersläpning (byte)** har inte den döda vinkeln, så larma på båda.
 
 ### Underhåll
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **Använda transaktions-ID:n** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
+| **Döda tupler** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
+| **Tabeller som aldrig körts med autovacuum** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
+| **Begärda kontrollpunkter** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
+| **Schemalagda kontrollpunkter** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used** förtjänar ett kriterium på varje PostgreSQL-monitor som du skapar. PostgreSQL nekar alla skrivningar när värdet når 100 %, återställning innebär en vacuum i enanvändarläge med databasen nere, och nästan ingen håller koll på det. Larma i god tid före stupet — 80 % ger dagar av marginal på de flesta arbetsbelastningar.
+> **Använda transaktions-ID:n** förtjänar ett kriterium på varje PostgreSQL-monitor som du skapar. PostgreSQL nekar alla skrivningar när värdet når 100 %, återställning innebär en vacuum i enanvändarläge med databasen nere, och nästan ingen håller koll på det. Larma i god tid före stupet — 80 % ger dagar av marginal på de flesta arbetsbelastningar.
 
-Räknare som slutar på `total` är kumulativa sedan servern startade. Jämför två tidpunkter för att få en takt; ett enskilt värde säger bara något i förhållande till sin egen historik, och det nollställs när servern startas om (vilket **Uptime** visar dig).
+Räknare som slutar på `total` är kumulativa sedan servern startade. Jämför två tidpunkter för att få en takt; ett enskilt värde säger bara något i förhållande till sin egen historik, och det nollställs när servern startas om (vilket **Drifttid** visar dig).
 
-**Cache Hit Ratio** och **Rollback Ratio** räknas fram vid varje kontroll ur hur mycket deras räknare har rört sig sedan monitorns föregående kontroll, inte sedan servern startade, så en cache som börjar missa syns direkt. Den första kontrollen efter att sonden startat, och den första efter att servern startats om, har ingen av dem.
+**Träffgrad för cache** och **Andel återställningar** räknas fram vid varje kontroll ur hur mycket deras räknare har rört sig sedan monitorns föregående kontroll, inte sedan servern startade, så en cache som börjar missa syns direkt. Den första kontrollen efter att sonden startat, och den första efter att servern startats om, har ingen av dem.
 
 ## Ställ in kriterier
 
@@ -409,14 +409,14 @@ För en tröskel på ett enda mätvärde är **Databasmätvärde** ett bättre v
 | Ordning | Kriterier | Filter |
 |---|---|---|
 | 1 | **Offline** | `Database Is Online` är `false`. |
-| 2 | **Försämrad** | `Database Metric` → Connections Used är större än `90`, utvärderat över 5 minuter med All Values så att en enstaka topp inte larmar någon. |
-| 3 | **Försämrad** | `Database Metric` → Transaction ID Used är större än `80`. |
-| 4 | **Försämrad** | `Database Metric` → Blocked Sessions är större än `0`, över 5 minuter. |
+| 2 | **Försämrad** | `Database Metric` → **Använda anslutningar** är större än `90`, utvärderat över 5 minuter med All Values så att en enstaka topp inte larmar någon. |
+| 3 | **Försämrad** | `Database Metric` → **Använda transaktions-ID:n** är större än `80`. |
+| 4 | **Försämrad** | `Database Metric` → **Blockerade sessioner** är större än `0`, över 5 minuter. |
 | 5 | **Online** | `Database Is Online` är `true`. |
 
 Kriterier utvärderas uppifrån och ned och den första träffen vinner, så lägg de larmande kriterierna först och det friska sist.
 
-Koppla en jourpolicy till offline-kriteriet och låt allt som härleds från **Metric Groups Failed** eller `Database Collection Error` vara ett larm utan kopplad jourpolicy.
+Koppla en jourpolicy till offline-kriteriet och låt allt som härleds från **Misslyckade mätvärdesgrupper** eller `Database Collection Error` vara ett larm utan kopplad jourpolicy.
 
 ## Att tänka på
 
@@ -441,11 +441,11 @@ Inloggningen är varken medlem i `pg_monitor` eller `pg_read_all_stats` och är 
 Antingen saknar inloggningen `SELECT` på `performance_schema`, eller så är `performance_schema` avstängt på servern; monitorns sammanfattning visar meddelandet från MySQL. Vid en saknad behörighet kör du satserna under [MySQL](#mysql). Ett avstängt `performance_schema` kräver `performance_schema = ON` i serverns konfiguration och en omstart.
 :::
 
-:::details I/O Read Time och I/O Write Time är alltid 0 på PostgreSQL
+:::details **I/O-lästid** och **I/O-skrivtid** är alltid 0 på PostgreSQL
 PostgreSQL mäter dem bara när `track_io_timing` är påslaget, och det är avstängt som standard. Slå på det i serverns konfiguration, eller i parametergruppen för din hanterade tjänst, för att se riktiga värden. Det är ingen saknad behörighet.
 :::
 
-:::details Metric Groups Failed ligger över 0 vid varje kontroll
+:::details **Misslyckade mätvärdesgrupper** ligger över 0 vid varje kontroll
 En grupp kan inte samlas in vid någon kontroll, så samma insamlingsproblem upprepas. Monitorns sammanfattning anger gruppen, orsaken och den `GRANT` som åtgärdar det. Kör behörigheten, eller stäng av gruppen under **Fler fält → Metric Groups** om du inte kan få den, så att problemet slutar upprepas.
 :::
 

@@ -4,6 +4,7 @@ import {
   formatRelativeDate,
   getDateDisplayLanguage,
   isEnglishDateLanguage,
+  RelativeDateStyle,
   RelativeDateUnit,
 } from "Common/Types/DateLanguage";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
@@ -124,8 +125,9 @@ export function isLastSeenKnown(
 
 /*
  * "just now", "12 min ago", "5 h ago", "3 days ago": English, each figure
- * held to its unit (#8303). The graph's status line draws it as it is
- * (#8418); formatLastSeenInLanguage words it in the reader's language.
+ * held to its unit (#8303). The English reading of formatLastSeenInLanguage,
+ * which words every other language with Intl, and only that: a page draws
+ * formatLastSeenInLanguage, never this (#8418).
  */
 export function formatLastSeen(
   lastSeenAt: Date | undefined,
@@ -151,12 +153,15 @@ export function formatLastSeen(
  * The same, in the reader's language - "vor 12 Minuten", "قبل 3 أيام",
  * "jetzt" - counted in the same buckets. English reads exactly as
  * formatLastSeen does; a browser with no Intl.RelativeTimeFormat falls back
- * to it too.
+ * to it too. `style` "short" writes the unit as the language shortens it,
+ * as English's "12 min ago" does, for a narrow line - a map card's status
+ * line: "vor 12 Min.", "il y a 12 min"; "long" when left out.
  */
 export function formatLastSeenInLanguage(
   lastSeenAt: Date | undefined,
   now: Date = new Date(),
   language: string = getDateDisplayLanguage(),
+  options?: { style?: RelativeDateStyle | undefined } | undefined,
 ): string {
   const english: string = formatLastSeen(lastSeenAt, now);
   const age: LastSeenAge | null = getLastSeenAge(lastSeenAt, now);
@@ -173,6 +178,7 @@ export function formatLastSeenInLanguage(
           unit: age.unit,
           isFuture: false,
           locale: language,
+          style: options?.style,
         });
 
   return worded || english;

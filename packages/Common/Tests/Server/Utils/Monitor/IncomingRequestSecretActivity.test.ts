@@ -11,6 +11,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A monitor's record of whether its requests send one of the project's
@@ -40,10 +41,8 @@ let redis: Map<string, string>;
 let redisFails: boolean;
 let expiries: Array<number | undefined>;
 
-let setStringIfNotExists: jest.SpiedFunction<
-  typeof GlobalCache.setStringIfNotExists
->;
-let updateMonitor: jest.SpiedFunction<
+let setStringIfNotExists: SpyInstance<typeof GlobalCache.setStringIfNotExists>;
+let updateMonitor: SpyInstance<
   typeof MonitorService.updateColumnsByIdWithoutHooks
 >;
 

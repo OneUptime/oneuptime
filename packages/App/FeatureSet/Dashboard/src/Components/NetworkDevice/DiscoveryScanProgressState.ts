@@ -1,5 +1,11 @@
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "Common/Types/Translator";
+import { formatCompactDuration } from "Common/Utils/Milliseconds";
+import {
   DiscoveryScanStatus,
   DISCOVERY_SCAN_STARTED_MESSAGE,
 } from "Common/Utils/NetworkDiscovery/DiscoveryScanStatus";
@@ -25,14 +31,31 @@ export function isWaitingForDiscoveryProgress(
   );
 }
 
-export function formatDiscoveryDuration(milliseconds: number): string {
+// English, as a test and the server read it without a translator of their own.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * How long a scan ran: "59s", "1m 1s", "25h 1m" in English, and in the
+ * reader's units and digits in their language ("1 Min. 1 s", "۱ دقیقه ۱
+ * ثانیه"; #8455). The progress card passes its translator.
+ */
+export function formatDiscoveryDuration(
+  milliseconds: number,
+  translator: Translator = ENGLISH,
+): string {
   const seconds: number = Math.max(0, Math.floor(milliseconds / 1000));
   if (seconds < 60) {
-    return `${seconds}s`;
+    return formatCompactDuration(translator, { seconds });
   }
   const minutes: number = Math.floor(seconds / 60);
   if (minutes < 60) {
-    return `${minutes}m ${seconds % 60}s`;
+    return formatCompactDuration(translator, {
+      minutes,
+      seconds: seconds % 60,
+    });
   }
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  return formatCompactDuration(translator, {
+    hours: Math.floor(minutes / 60),
+    minutes: minutes % 60,
+  });
 }

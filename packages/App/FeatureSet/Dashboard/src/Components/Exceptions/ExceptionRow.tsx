@@ -3,6 +3,7 @@ import TelemetryException from "Common/Models/DatabaseModels/TelemetryException"
 import Service from "Common/Models/DatabaseModels/Service";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDurationAgo } from "../../Utils/Milliseconds";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import RowActions from "Common/UI/Components/ActionButton/RowActions";
@@ -63,26 +64,17 @@ function formatRelativeTime(time: Date, translator: Translator): string {
    * ("۴۱۲ رویداد", "۹ روز پیش" on a Persian page).
    */
   if (sec < 60) {
-    return translator.translateTemplate("{{count}}s ago", {
-      count: translator.formatNumber(sec),
-    });
+    return formatCompactDurationAgo(translator, { seconds: sec });
   }
   const min: number = Math.floor(sec / 60);
   if (min < 60) {
-    return translator.translateTemplate("{{count}}m ago", {
-      count: translator.formatNumber(min),
-    });
+    return formatCompactDurationAgo(translator, { minutes: min });
   }
   const hr: number = Math.floor(min / 60);
   if (hr < 24) {
-    return translator.translateTemplate("{{count}}h ago", {
-      count: translator.formatNumber(hr),
-    });
+    return formatCompactDurationAgo(translator, { hours: hr });
   }
-  const day: number = Math.floor(hr / 24);
-  return translator.translateTemplate("{{count}}d ago", {
-    count: translator.formatNumber(day),
-  });
+  return formatCompactDurationAgo(translator, { days: Math.floor(hr / 24) });
 }
 
 const ExceptionRow: FunctionComponent<ExceptionRowProps> = (

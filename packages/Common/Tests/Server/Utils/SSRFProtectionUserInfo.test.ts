@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 /*
@@ -32,7 +33,7 @@ import dns from "dns";
  * request — because the next disagreement will not be about userinfo.
  */
 
-type LookupSpy = jest.SpiedFunction<
+type LookupSpy = SpyInstance<
   (
     hostname: string,
     options: { all: true },

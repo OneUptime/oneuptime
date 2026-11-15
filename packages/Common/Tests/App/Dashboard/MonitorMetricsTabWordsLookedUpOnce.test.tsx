@@ -38,10 +38,12 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
  * title up as well, so a translation that is itself a key read as another
  * word.
  *
- * The card is drawn here as what it is handed. Every description of the
- * catalog is worded in German as a probe, and every probe, and every group
- * title's German, is a key of its own that reads TWICE: a description or a
- * title looked up twice would say it.
+ * The card is drawn here as what it is handed. Every description and every
+ * metric name of the catalog is worded in German as a probe, and every
+ * probe, and every group title's German, is a key of its own that reads
+ * TWICE: a description, a chart's title or a card's title looked up twice
+ * would say it. A chart's title and legend are its metric's name, a key
+ * since #8354, looked up where its query is built, once.
  */
 
 const TWICE: string = "TWICE";
@@ -92,7 +94,11 @@ jest.mock(
         title?: string;
         description?: string;
         queryConfigs?: Array<{
-          metricAliasData?: { title?: string; description?: string };
+          metricAliasData?: {
+            title?: string;
+            description?: string;
+            legend?: string;
+          };
           metricQueryData: { filterData: { metricName?: string } };
         }>;
       }) => {
@@ -105,7 +111,11 @@ jest.mock(
           },
           (props.queryConfigs || []).map(
             (query: {
-              metricAliasData?: { description?: string };
+              metricAliasData?: {
+                title?: string;
+                description?: string;
+                legend?: string;
+              };
               metricQueryData: { filterData: { metricName?: string } };
             }) => {
               return mockReact.createElement(
@@ -114,6 +124,8 @@ jest.mock(
                   key: query.metricQueryData.filterData.metricName,
                   "data-testid": "chart-description",
                   "data-metric": query.metricQueryData.filterData.metricName,
+                  "data-chart-title": query.metricAliasData?.title,
+                  "data-legend": query.metricAliasData?.legend,
                 },
                 query.metricAliasData?.description || "",
               );
@@ -137,6 +149,13 @@ const DESCRIPTIONS: Array<string> = getDatabaseMetricsForEngine(
   return metric.description;
 });
 
+// Each chart's title and legend: its metric's name, a key since #8354.
+const NAMES: Array<string> = getDatabaseMetricsForEngine(
+  SqlDatabaseType.PostgreSQL,
+).map((metric: DatabaseMetricDefinition): string => {
+  return metric.friendlyName;
+});
+
 const german: Record<string, string> = readDashboardLocale("de");
 
 // German as the Dashboard words it, with each description worded as a probe.
@@ -146,9 +165,9 @@ const probedGerman: () => Record<string, string> = (): Record<
 > => {
   const words: Record<string, string> = { ...german };
 
-  for (const description of DESCRIPTIONS) {
-    words[description] = `${PROBE}${description}`;
-    words[`${PROBE}${description}`] = TWICE;
+  for (const text of [...DESCRIPTIONS, ...NAMES]) {
+    words[text] = `${PROBE}${text}`;
+    words[`${PROBE}${text}`] = TWICE;
   }
 
   for (const category of CATEGORIES) {
@@ -218,6 +237,36 @@ describe("a Database monitor's Metrics tab", () => {
       if (metric) {
         fromTheCatalog++;
         expect(chart.textContent).toBe(`${PROBE}${metric.description}`);
+      }
+    }
+
+    expect(fromTheCatalog).toBeGreaterThan(20);
+  });
+
+  test("names each chart, and its legend, by its metric in the reader's words, looked up once (#8354)", async () => {
+    await drawTab();
+
+    const charts: Array<HTMLElement> =
+      screen.getAllByTestId("chart-description");
+    let fromTheCatalog: number = 0;
+
+    for (const chart of charts) {
+      const metric: DatabaseMetricDefinition | null =
+        getDatabaseMetricByMetricType(
+          chart.getAttribute("data-metric") as never,
+        );
+
+      expect(chart.getAttribute("data-chart-title")).not.toContain(TWICE);
+      expect(chart.getAttribute("data-legend")).not.toContain(TWICE);
+
+      if (metric) {
+        fromTheCatalog++;
+        expect(chart.getAttribute("data-chart-title")).toBe(
+          `${PROBE}${metric.friendlyName}`,
+        );
+        expect(chart.getAttribute("data-legend")).toBe(
+          `${PROBE}${metric.friendlyName}`,
+        );
       }
     }
 

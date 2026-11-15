@@ -27,10 +27,10 @@ import {
 } from "Common/Types/OpenStack/OpenStackHealthRules";
 import {
   getGlobalTranslator,
-  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
+  formatCompactDuration,
   formatDurationInUnit,
   formatMilliseconds,
 } from "../../../Utils/Milliseconds";
@@ -103,11 +103,6 @@ export function isOpenStackCheckConnectionNeeded(data: {
   );
 }
 
-// A check's time from a minute up: "4m 12s".
-export const OPENSTACK_MINUTES_AND_SECONDS_TEMPLATE: string = translationKey(
-  "{{minutes}}m {{seconds}}s",
-);
-
 export function getOpenStackCheckDurationText(
   durationInMs: number,
   translator: Translator = getGlobalTranslator(),
@@ -132,10 +127,13 @@ export function getOpenStackCheckDurationText(
   const seconds: number = Math.round((safe - minutes * 60_000) / 1000);
   const roundsUp: boolean = seconds === 60;
 
-  // "4m 12s", "۴ دقیقه ۱۲ ثانیه": the reader's short minutes and seconds.
-  return translator.translateTemplate(OPENSTACK_MINUTES_AND_SECONDS_TEMPLATE, {
-    minutes: translator.formatNumber(roundsUp ? minutes + 1 : minutes),
-    seconds: translator.formatNumber(roundsUp ? 0 : seconds),
+  /*
+   * "4m 12s", "۴ دقیقه ۱۲ ثانیه": the Dashboard's compact minutes and
+   * seconds, in the reader's units and digits (#8455).
+   */
+  return formatCompactDuration(translator, {
+    minutes: roundsUp ? minutes + 1 : minutes,
+    seconds: roundsUp ? 0 : seconds,
   });
 }
 

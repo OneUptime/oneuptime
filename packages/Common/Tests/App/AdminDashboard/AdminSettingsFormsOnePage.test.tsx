@@ -232,6 +232,17 @@ import {
   setChips,
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 import { ADMIN_DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/global-config/setup-checklist",
+  "/global-config/twilio-environment",
+]);
 
 const WAIT_FOR_TIMEOUT: number = 20000;
 

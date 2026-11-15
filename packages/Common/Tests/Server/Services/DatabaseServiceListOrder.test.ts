@@ -19,6 +19,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -116,9 +117,9 @@ const service: any = StatusPageHeaderLinkService;
 
 let siblings: Array<StatusPageHeaderLink>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let save: jest.Mock<(entity: any) => Promise<any>>;
+let save: Mock<(entity: any) => Promise<any>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let repositoryUpdate: jest.Mock<(...args: Array<any>) => Promise<any>>;
+let repositoryUpdate: Mock<(...args: Array<any>) => Promise<any>>;
 let findAllBy: jest.SpyInstance;
 let written: Array<Written>;
 let errors: Array<string>;
@@ -624,7 +625,7 @@ describe("a list that counts down (site assignment rules: the highest number win
 
   test("a rule created without a priority goes to the bottom, below the lowest", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ruleSave: jest.Mock<(entity: any) => Promise<any>> = jest.fn(
+    const ruleSave: Mock<(entity: any) => Promise<any>> = jest.fn(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       async (entity: any) => {
         return entity;

@@ -182,7 +182,7 @@ describe("getTenantPermissionProblem", () => {
     [Permission.UnAuthorizedSsoUser, "UnAuthorizedSsoUser"],
     // Retired as they grant nothing (#8275, #8276, #8277).
     [Permission.EditIncidentFeed, "Edit Incident Feed"],
-    [Permission.EditScheduledMaintenanceFeed, "Edit Scheduled Maintenance Log"],
+    [Permission.EditScheduledMaintenanceFeed, "Edit Scheduled Maintenance Feed"],
     [
       Permission.CreateOnCallDutyPolicyScheduleLayerUser,
       "Create On-Call Schedule Layer User",

@@ -72,6 +72,14 @@ import {
   InventoryAssetField,
 } from "../../../Utils/Inventory/InventoryAssetDetails";
 import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../UI/Components/Table/TableEmptyValue";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/security-case/resource-security"]);
 
 /*
  * Issue #4569 in the Dashboard: an Inventory host and network device show
