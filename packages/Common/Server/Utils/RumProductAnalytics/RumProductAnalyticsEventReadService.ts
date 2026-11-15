@@ -25,7 +25,12 @@ import { SESSION_REPLAY_MAX_SESSION_MS } from "../../../Types/Rum/SessionReplay"
 import {
   ProductAnalyticsEventKind,
   isProductAnalyticsEventKind,
+  toProductAnalyticsPage,
 } from "../../../Types/Rum/ProductAnalyticsEvents";
+import {
+  pathSpellingKeySql,
+  samePathStatement,
+} from "../AnalyticsDatabase/PathSpelling";
 import {
   PRODUCT_ANALYTICS_EVENT_NAMES_LIMIT,
   PRODUCT_ANALYTICS_FUNNEL_MAX_STARTS,
@@ -150,15 +155,38 @@ function zone(timeZone: string): Statement {
   return SQL`${{ type: TableColumnType.Text, value: timeZone }}`;
 }
 
+/*
+ * A page view is matched in any spelling of its page (samePathStatement):
+ * a row a recorder stored before the ingest wrote one spelling holds
+ * "/caf%c3%a9" or "/cafe%CC%81" for the page now stored as "/caf%C3%A9".
+ * Any other event is matched by the name it was sent with.
+ */
 function eventCondition(event: ProductAnalyticsEventRef): Statement {
-  return SQL`kind = ${{
+  const statement: Statement = SQL`kind = ${{
     type: TableColumnType.Text,
     value: event.kind,
-  }} AND name = ${{
-    type: TableColumnType.Text,
-    value: event.name,
-  }}`;
+  }} AND `;
+
+  if (event.kind === ProductAnalyticsEventKind.Page) {
+    statement.append(samePathStatement("name", event.name));
+    return statement;
+  }
+
+  statement.append(
+    SQL`name = ${{
+      type: TableColumnType.Text,
+      value: event.name,
+    }}`,
+  );
+
+  return statement;
 }
+
+/* What a read groups an event by: a page view by its page's one spelling. */
+const EVENT_NAME_KEY_SQL: string = `if(kind = '${ProductAnalyticsEventKind.Page}', ${pathSpellingKeySql("name")}, name)`;
+
+/* What a breakdown by page groups by. */
+const PAGE_KEY_SQL: string = pathSpellingKeySql("page");
 
 /* What a field reads off one event row; "" when the event does not carry it. */
 export function fieldValueStatement(ref: ProductAnalyticsFieldRef): Statement {
@@ -187,7 +215,10 @@ export function fieldValueStatement(ref: ProductAnalyticsFieldRef): Statement {
   }
 }
 
-/* " AND <field> = <value>" for every filter of a segment. */
+/*
+ * " AND <field> = <value>" for every filter of a segment; a page in any
+ * of its spellings, as eventCondition matches a page view.
+ */
 function filtersCondition(
   filters: Array<ProductAnalyticsSegmentFilter>,
 ): Statement {
@@ -195,6 +226,12 @@ function filtersCondition(
 
   for (const filter of filters) {
     statement.append(" AND ");
+
+    if (filter.field === ProductAnalyticsEventField.Page) {
+      statement.append(samePathStatement("page", filter.value));
+      continue;
+    }
+
     statement.append(fieldValueStatement(filter));
     statement.append(
       SQL` = ${{ type: TableColumnType.Text, value: filter.value }}`,
@@ -467,8 +504,15 @@ export default class RumProductAnalyticsEventReadService {
      * Per session and event: how many times it happened in the range and
      * when last, beside the session's person parts. The rows of other
      * events are read only for who the session's user is.
+     *
+     * A page view is one event in every spelling of its page
+     * (EVENT_NAME_KEY_SQL): grouped by that, it is named by the least of the
+     * spellings it was stored in, and the answer writes that in the page's
+     * one spelling (toProductAnalyticsPage).
      */
-    const perSessionEvent: Statement = SQL`SELECT sessionId AS paSessionId, toString(kind) AS paRowKind, name AS paRowName, countIf(`;
+    const perSessionEvent: Statement = SQL`SELECT sessionId AS paSessionId, toString(kind) AS paRowKind, `;
+    perSessionEvent.append(`${EVENT_NAME_KEY_SQL} AS paRowKey`);
+    perSessionEvent.append(", min(name) AS paRowName, countIf(");
     perSessionEvent.append(inRange());
     perSessionEvent.append(
       ") AS paRowCount, toUnixTimestamp64Milli(maxIf(time, ",
@@ -492,7 +536,7 @@ export default class RumProductAnalyticsEventReadService {
       );
     }
 
-    perSessionEvent.append(" GROUP BY sessionId, kind, name");
+    perSessionEvent.append(" GROUP BY sessionId, kind, paRowKey");
 
     const itemCondition: Statement = SQL`paRowCount > 0`;
 
@@ -505,16 +549,16 @@ export default class RumProductAnalyticsEventReadService {
       );
     }
 
-    const statement: Statement = SQL`SELECT paKind, paName, toFloat64(sum(paCount)) AS paEvents, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers, toFloat64(max(paLast)) AS paLastSeenAt FROM (SELECT `;
+    const statement: Statement = SQL`SELECT paKind, min(paName) AS paLabel, toFloat64(sum(paCount)) AS paEvents, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers, toFloat64(max(paLast)) AS paLastSeenAt FROM (SELECT `;
     statement.append(`${PERSON_KEY_SQL} AS paPersonKey`);
     statement.append(
-      ", tupleElement(paItem, 1) AS paKind, tupleElement(paItem, 2) AS paName, tupleElement(paItem, 3) AS paCount, tupleElement(paItem, 4) AS paLast FROM (SELECT paSessionId, max(paRowUserKey) AS paUserKey, max(paRowVisitorId) AS paVisitorId, groupArrayIf((paRowKind, paRowName, paRowCount, paRowLast), ",
+      ", tupleElement(paItem, 1) AS paKind, tupleElement(paItem, 2) AS paKey, tupleElement(paItem, 3) AS paName, tupleElement(paItem, 4) AS paCount, tupleElement(paItem, 5) AS paLast FROM (SELECT paSessionId, max(paRowUserKey) AS paUserKey, max(paRowVisitorId) AS paVisitorId, groupArrayIf((paRowKind, paRowKey, paRowName, paRowCount, paRowLast), ",
     );
     statement.append(itemCondition);
     statement.append(") AS paItems FROM (");
     statement.append(perSessionEvent);
     statement.append(
-      ") GROUP BY paSessionId HAVING notEmpty(paItems)) ARRAY JOIN paItems AS paItem) GROUP BY paKind, paName ORDER BY paEvents DESC, paKind ASC, paName ASC",
+      ") GROUP BY paSessionId HAVING notEmpty(paItems)) ARRAY JOIN paItems AS paItem) GROUP BY paKind, paKey ORDER BY paEvents DESC, paKind ASC, paLabel ASC",
     );
     statement.append(
       SQL` LIMIT ${{
@@ -535,9 +579,14 @@ export default class RumProductAnalyticsEventReadService {
         continue;
       }
 
+      const name: string = readString(row, "paLabel");
+
       events.push({
         kind: kind,
-        name: readString(row, "paName"),
+        name:
+          kind === ProductAnalyticsEventKind.Page
+            ? toProductAnalyticsPage(name)
+            : name,
         events: readNumber(row, "paEvents"),
         users: readNumber(row, "paUsers"),
         lastSeenAt: readNumber(row, "paLastSeenAt"),
@@ -652,14 +701,39 @@ export default class RumProductAnalyticsEventReadService {
       limit: number;
     },
   ): Promise<ProductAnalyticsEventBreakdownDto> {
-    const rows: Statement = SQL`SELECT paValue, toFloat64(count()) AS paEvents, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers FROM (`;
+    /*
+     * A page is one row in every spelling it was stored in: each event
+     * collects its page's key (PAGE_KEY_SQL) with the page, the rows are
+     * grouped by the key, and each is named by the least of its spellings,
+     * which the answer writes in the page's one spelling.
+     */
+    const isPage: boolean =
+      request.breakdown.field === ProductAnalyticsEventField.Page;
+
+    const rows: Statement = SQL`SELECT `;
+    rows.append(isPage ? "min(tupleElement(paItem, 2)) AS paValue" : "paValue");
+    rows.append(
+      ", toFloat64(count()) AS paEvents, toFloat64(uniqIf(paPersonKey, paPersonKey != '')) AS paUsers FROM (",
+    );
     rows.append(
       eventSessions(request, (): Statement => {
+        if (isPage) {
+          const collected: Statement = SQL`(`;
+          collected.append(PAGE_KEY_SQL);
+          collected.append(", page)");
+          return collected;
+        }
+
         return fieldValueStatement(request.breakdown);
       }),
     );
     rows.append(
-      SQL`) ARRAY JOIN paS0 AS paValue GROUP BY paValue ORDER BY paEvents DESC, paUsers DESC, paValue ASC LIMIT ${{
+      isPage
+        ? ") ARRAY JOIN paS0 AS paItem GROUP BY tupleElement(paItem, 1)"
+        : ") ARRAY JOIN paS0 AS paValue GROUP BY paValue",
+    );
+    rows.append(
+      SQL` ORDER BY paEvents DESC, paUsers DESC, paValue ASC LIMIT ${{
         type: TableColumnType.Number,
         value: request.limit + 1,
       }}`,
@@ -678,8 +752,10 @@ export default class RumProductAnalyticsEventReadService {
       rows: valueRows
         .slice(0, request.limit)
         .map((row: JSONObject): ProductAnalyticsEventBreakdownRowDto => {
+          const value: string = readString(row, "paValue");
+
           return {
-            value: readString(row, "paValue"),
+            value: isPage ? toProductAnalyticsPage(value) : value,
             events: readNumber(row, "paEvents"),
             users: readNumber(row, "paUsers"),
           };
