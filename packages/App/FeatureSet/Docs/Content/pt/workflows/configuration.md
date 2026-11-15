@@ -214,7 +214,7 @@ No OneUptime Cloud, os workflows exigem o plano Growth ou superior, e cada plano
 | Scale      | 2.000                         |
 | Enterprise | Sem limite prático            |
 
-A janela é móvel: cada execução que o projeto registra, manual ou por um gatilho, conta por 30 dias. Nos planos Growth e Scale, a página **Fluxos de trabalho** mostra um cartão **Execuções do Fluxo de Trabalho** com quantas o projeto já usou. Quando o limite é atingido, as novas execuções são registradas com o status **Execution Exceeded Current Plan** e não rodam, e o mesmo acontece enquanto a assinatura estiver em atraso. Instalações self-hosted sem cobrança não têm limite. Em um plano que não roda workflows, o **Construtor** e a página **Fluxos de trabalho** dizem isso, com um link para fazer upgrade.
+A janela é móvel: cada execução que o projeto registra, manual ou por um gatilho, conta por 30 dias. Nos planos Growth e Scale, a página **Fluxos de trabalho** mostra um cartão **Execuções do Fluxo de Trabalho** com quantas o projeto já usou. Quando o limite é atingido, as novas execuções são registradas com o status **Execução excedeu o plano atual** e não rodam, e o mesmo acontece enquanto a assinatura estiver em atraso. Instalações self-hosted sem cobrança não têm limite. Em um plano que não roda workflows, o **Construtor** e a página **Fluxos de trabalho** dizem isso, com um link para fazer upgrade.
 
 ## Quanto tempo uma execução pode durar
 
@@ -224,7 +224,7 @@ A janela é móvel: cada execução que o projeto registra, manual ou por um gat
 | Um bloco **Run Custom JavaScript**                           | 5 segundos         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Um bloco **Sleep**                                           | No máximo 30 dias  | —                               |
 
-O executor verifica o prazo antes e depois de cada bloco, e marca uma execução atrasada como **Timeout** assim que retoma o controle. Ele não consegue interromper um bloco no meio, então os blocos que esperam pela rede têm limites de tempo próprios: uma requisição de Generate Text with AI desiste depois de no máximo 60 segundos, e uma requisição de token OAuth 2.0 depois de 20. Uma espera em um bloco **Sleep** não conta para o tempo de uma execução: a execução é deixada de lado e recebe 2 minutos novos ao acordar.
+O executor verifica o prazo antes e depois de cada bloco, e marca uma execução atrasada como **Tempo esgotado** assim que retoma o controle. Ele não consegue interromper um bloco no meio, então os blocos que esperam pela rede têm limites de tempo próprios: uma requisição de Generate Text with AI desiste depois de no máximo 60 segundos, e uma requisição de token OAuth 2.0 depois de 20. Uma espera em um bloco **Sleep** não conta para o tempo de uma execução: a execução é deixada de lado e recebe 2 minutos novos ao acordar.
 
 ## Limite para chamar outros workflows
 
